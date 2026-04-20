@@ -1430,6 +1430,28 @@
             </div>
 
             <div class="grid-2-iguais" style="margin-bottom:16px;">
+                <div class="card-container" style="margin-bottom:0;opacity:0.75;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <div style="font-size:13px;font-weight:600;color:var(--cor-texto-mutado);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-buildings" style="color:var(--cor-texto-mutado);font-size:17px;"></i> INSS</div>
+                        <span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:99px;color:var(--cor-texto-mutado);background:var(--cor-superficie);">3% a.a. corrigido</span>
+                    </div>
+                    <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;font-weight:600;">Montante final</div>
+                    <div id="inssOutMontante" style="font-size:30px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--cor-texto-mutado);">R$ 0,00</div>
+                    <div style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;cursor:help;" id="iconInflacaoInfo" title=""></i> Poder de compra real: <span id="inssOutReal">—</span> <span style="font-size:10px;color:var(--cor-texto-mutado);margin-left:4px;">(média inflação: <span id="lblInflacaoMedia">4.5</span>% a.a.)</span></div>
+                    <div style="display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total contribuído</span><span id="inssOutInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">R$ 0,00</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Correção gerada</span><span id="inssOutJuros" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-mutado);">R$ 0,00</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Rendimento real</span><span id="inssRentabReal" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-erro);">0%</span></div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
+                        <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoPizzaINSS"></canvas></div>
+                        <div style="font-size:12px;color:var(--cor-texto-secundario);flex:1;">
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-texto-mutado);flex-shrink:0;display:inline-block;"></span>Contribuído: <strong id="legINSSInvestido" style="color:var(--cor-texto-principal);">—</strong></div>
+                            <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex-shrink:0;display:inline-block;"></span>Correção: <strong id="legINSSJuros" style="color:var(--cor-texto-principal);">—</strong></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="card-container" style="margin-bottom:0;border-color:var(--cor-borda-primaria);background:linear-gradient(160deg,var(--cor-branco),var(--cor-bg-primaria));">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
                         <div style="font-size:13px;font-weight:700;color:var(--cor-texto-principal);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-trend-up" style="color:var(--cor-primaria);font-size:17px;"></i> Investindo</div>
@@ -1449,28 +1471,6 @@
                         <div style="font-size:12px;color:var(--cor-texto-secundario);flex:1;">
                             <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-info);flex-shrink:0;display:inline-block;"></span>Investido: <strong id="legPizzaInvestido" style="color:var(--cor-texto-principal);">—</strong></div>
                             <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-primaria);flex-shrink:0;display:inline-block;"></span>Juros: <strong id="legPizzaJuros" style="color:var(--cor-texto-principal);">—</strong></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card-container" style="margin-bottom:0;opacity:0.75;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                        <div style="font-size:13px;font-weight:600;color:var(--cor-texto-mutado);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-buildings" style="color:var(--cor-texto-mutado);font-size:17px;"></i> INSS</div>
-                        <span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:99px;color:var(--cor-texto-mutado);background:var(--cor-superficie);">3% a.a. corrigido</span>
-                    </div>
-                    <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;font-weight:600;">Montante final</div>
-                    <div id="inssOutMontante" style="font-size:30px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--cor-texto-mutado);">R$ 0,00</div>
-                    <div style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;cursor:help;" id="iconInflacaoInfo" title=""></i> Poder de compra real: <span id="inssOutReal">—</span> <span style="font-size:10px;color:var(--cor-texto-mutado);margin-left:4px;">(média inflação: <span id="lblInflacaoMedia">4.5</span>% a.a.)</span></div>
-                    <div style="display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total contribuído</span><span id="inssOutInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">R$ 0,00</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Correção gerada</span><span id="inssOutJuros" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-mutado);">R$ 0,00</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Rendimento real</span><span id="inssRentabReal" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-erro);">0%</span></div>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
-                        <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoPizzaINSS"></canvas></div>
-                        <div style="font-size:12px;color:var(--cor-texto-secundario);flex:1;">
-                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-texto-mutado);flex-shrink:0;display:inline-block;"></span>Contribuído: <strong id="legINSSInvestido" style="color:var(--cor-texto-principal);">—</strong></div>
-                            <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex-shrink:0;display:inline-block;"></span>Correção: <strong id="legINSSJuros" style="color:var(--cor-texto-principal);">—</strong></div>
                         </div>
                     </div>
                 </div>
