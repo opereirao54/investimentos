@@ -391,6 +391,64 @@
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
         #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
         .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
+        
+        /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
+        .tabela-simulador {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            font-size: 13px;
+        }
+        .tabela-simulador th {
+            background: linear-gradient(180deg, var(--cor-superficie) 0%, var(--cor-branco) 100%);
+            color: var(--cor-texto-mutado);
+            padding: 14px 18px;
+            text-align: right;
+            font-weight: 700;
+            border-bottom: 2px solid var(--cor-borda);
+            text-transform: uppercase;
+            font-size: 10.5px;
+            letter-spacing: 0.8px;
+            font-family: 'Figtree', sans-serif;
+            white-space: nowrap;
+            position: relative;
+        }
+        .tabela-simulador th:first-child {
+            text-align: center;
+        }
+        .tabela-simulador td {
+            padding: 13px 18px;
+            border-bottom: 1px solid var(--cor-borda);
+            color: var(--cor-texto-principal);
+            transition: all 0.15s ease;
+        }
+        .tabela-simulador tbody tr {
+            transition: all 0.15s ease;
+        }
+        .tabela-simulador tbody tr:hover td {
+            background-color: var(--cor-bg-primaria);
+            transform: scale(1.002);
+        }
+        .tabela-simulador tbody tr.classe-destaque-juros td {
+            background: linear-gradient(90deg, rgba(16,185,129,0.06) 0%, transparent 100%);
+            font-weight: 600;
+        }
+        .tabela-simulador tbody tr.linha-inflexao td {
+            background: linear-gradient(90deg, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.04) 100%);
+            border-top: 2px solid var(--cor-primaria);
+            border-bottom: 2px solid var(--cor-primaria);
+        }
+        .tabela-simulador tbody tr.linha-inflexao-banner td {
+            padding: 0 !important;
+            background: transparent !important;
+        }
+        .tabela-simulador thead th i.ph-info {
+            transition: opacity 0.15s;
+        }
+        .tabela-simulador thead th:hover i.ph-info {
+            opacity: 1 !important;
+        }
+        
         .ticker-mono { font-family: 'DM Mono', monospace; font-size: 11.5px; font-weight: 500; color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--cor-borda-primaria); }
         .valor-mono { font-family: 'DM Mono', monospace; font-size: 13px; }
         .type-tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 6px; display: inline-block; letter-spacing: 0.3px; }
@@ -1446,15 +1504,77 @@
             </div>
 
             <div class="card-container" style="padding:0;overflow:hidden;margin-bottom:40px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--cor-borda);">
-                    <h3 style="font-size:13px;font-weight:600;margin:0;">Evolução mensal — Patrimônio</h3>
-                    <button id="btnToggleTabela" onclick="toggleTabelaSim()" class="btn-secundario" style="padding:5px 12px;font-size:12px;">Mostrar ▼</button>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--cor-borda);background:linear-gradient(135deg,var(--cor-superficie) 0%,var(--cor-branco) 100%);">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,var(--cor-primaria) 0%,var(--cor-info) 100%);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(5,150,105,0.2);">
+                            <i class="ph ph-trend-up" style="color:#fff;font-size:20px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size:15px;font-weight:700;margin:0;color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;letter-spacing:-0.3px;">Evolução mensal — Patrimônio</h3>
+                            <p style="font-size:11px;color:var(--cor-texto-mutado);margin:3px 0 0 0;font-weight:500;">Acompanhe mês a mês o crescimento do seu patrimônio</p>
+                        </div>
+                    </div>
+                    <button id="btnToggleTabela" onclick="toggleTabelaSim()" class="btn-secundario" style="padding:8px 16px;font-size:12.5px;font-weight:600;display:flex;align-items:center;gap:8px;transition:all 0.2s ease;border-radius:10px;">
+                        <i class="ph ph-table" style="font-size:16px;"></i>
+                        <span id="txtBtnTabela">Mostrar tabela</span>
+                        <i class="ph ph-caret-down" style="font-size:14px;transition:transform 0.2s;" id="iconBtnTabela"></i>
+                    </button>
                 </div>
-                <div id="tabelaSimBody" style="display:none;overflow-y:auto;max-height:340px;">
-                    <div style="min-width:620px;">
-                        <table class="tabela-dashboard" style="margin-bottom:0;width:100%;">
-                            <thead style="position:sticky;top:0;background-color:var(--cor-superficie);z-index:10;">
-                                <tr><th style="text-align:center;">Mês</th><th style="text-align:right;">Valor investido</th><th style="text-align:right;background:var(--cor-bg-primaria);color:var(--cor-primaria);">Juros acumulados ✦</th><th style="text-align:right;">Total acumulado</th></tr>
+                
+                <!-- Banner informativo do ponto de inflexão -->
+                <div id="bannerPontoInflexao" style="display:none;background:linear-gradient(135deg,var(--cor-bg-primaria) 0%,#ecfdf5 100%);border-left:4px solid var(--cor-primaria);padding:14px 22px;margin:16px 22px 0 22px;border-radius:10px;">
+                    <div style="display:flex;align-items:flex-start;gap:12px;">
+                        <div style="width:32px;height:32px;border-radius:8px;background:var(--cor-primaria);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                            <i class="ph ph-sparkle" style="color:#fff;font-size:18px;"></i>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size:12px;font-weight:700;color:var(--cor-txt-primaria);margin-bottom:4px;display:flex;align-items:center;gap:6px;">
+                                <i class="ph ph-check-circle" style="font-size:14px;"></i>
+                                Ponto de Inflexão Atingido!
+                            </div>
+                            <p style="font-size:11.5px;color:var(--cor-texto-secundario);line-height:1.5;margin:0;">
+                                A partir do mês <strong id="mesInflexao" style="color:var(--cor-primaria);font-weight:700;">—</strong>, seus <strong>juros mensais superaram seus aportes</strong>. Este é o momento em que seu dinheiro começa a trabalhar mais forte que você! ✦
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="tabelaSimBody" style="display:none;overflow-x:auto;overflow-y:auto;max-height:420px;margin:16px 0 0 0;border-top:1px solid var(--cor-borda);">
+                    <div style="min-width:780px;">
+                        <table class="tabela-simulador" style="margin-bottom:0;width:100%;">
+                            <thead style="position:sticky;top:0;background:linear-gradient(180deg,var(--cor-superficie) 0%,var(--cor-branco) 100%);z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+                                <tr>
+                                    <th style="text-align:center;width:70px;" title="Número sequencial do mês da simulação" data-tooltip="Número sequencial do mês">
+                                        <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+                                            <span>Mês</span>
+                                            <i class="ph ph-info" style="font-size:13px;opacity:0.6;cursor:help;" title="Número sequencial do mês da simulação"></i>
+                                        </div>
+                                    </th>
+                                    <th style="text-align:right;" title="Valor total que você já colocou do próprio bolso até este mês" data-tooltip="Total investido do seu bolso">
+                                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                            <span>Aporte acumulado</span>
+                                            <i class="ph ph-info" style="font-size:13px;opacity:0.6;cursor:help;" title="Valor total que você já colocou do próprio bolso até este mês"></i>
+                                        </div>
+                                    </th>
+                                    <th style="text-align:right;background:var(--cor-bg-primaria);color:var(--cor-primaria);" title="Rendimento gerado apenas no mês corrente" data-tooltip="Quanto rendeu neste mês específico">
+                                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                            <span>Juros do mês ✦</span>
+                                            <i class="ph ph-info" style="font-size:13px;opacity:0.6;cursor:help;" title="Rendimento gerado apenas no mês corrente"></i>
+                                        </div>
+                                    </th>
+                                    <th style="text-align:right;background:var(--cor-bg-primaria);color:var(--cor-primaria);" title="Total de juros acumulados desde o início até este mês" data-tooltip="Juros totais desde o início">
+                                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                            <span>Juros acumulados ✦</span>
+                                            <i class="ph ph-info" style="font-size:13px;opacity:0.6;cursor:help;" title="Total de juros acumulados desde o início até este mês"></i>
+                                        </div>
+                                    </th>
+                                    <th style="text-align:right;font-weight:800;" title="Patrimônio total = Aportes + Juros Acumulados" data-tooltip="Patrimônio total acumulado">
+                                        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
+                                            <span>Patrimônio total</span>
+                                            <i class="ph ph-info" style="font-size:13px;opacity:0.6;cursor:help;" title="Patrimônio total = Aportes + Juros Acumulados"></i>
+                                        </div>
+                                    </th>
+                                </tr>
                             </thead>
                             <tbody id="tabelaSimuladorCorpo"></tbody>
                         </table>
@@ -2791,9 +2911,17 @@
         function toggleTabelaSim() {
             const body = document.getElementById('tabelaSimBody');
             const btn = document.getElementById('btnToggleTabela');
+            const txtSpan = document.getElementById('txtBtnTabela');
+            const iconCare = document.getElementById('iconBtnTabela');
             const open = body.style.display === 'none';
             body.style.display = open ? 'block' : 'none';
-            btn.textContent = open ? 'Ocultar ▲' : 'Mostrar ▼';
+            txtSpan.textContent = open ? 'Ocultar tabela' : 'Mostrar tabela';
+            iconCare.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+            
+            // Mostrar/ocultar banner do ponto de inflexão quando abrir a tabela
+            if (open) {
+                calcularSimulador();
+            }
         }
 
         function calcularSimulador() {
@@ -2826,12 +2954,56 @@
                     labelsComp.push(`${Math.floor(i/12)}a${i%12>0?' '+i%12+'m':''}`);
                     dataPatr.push(+montante.toFixed(2));
                 }
-                const destaqueClasse = (mesJurosMaiorQueAporte && i >= mesJurosMaiorQueAporte) ? 'style="background:var(--cor-bg-primaria);font-weight:700;"' : '';
-                htmlTabela += `<tr ${destaqueClasse}><td style="text-align:center;font-weight:500;">${i}</td><td style="text-align:right;">${formatarMoeda(investidoTotal)}</td><td style="text-align:right;color:var(--cor-primaria);font-weight:600;background:var(--cor-bg-primaria);">${formatarMoeda(jurosAcum)}</td><td style="text-align:right;font-weight:600;">${formatarMoeda(montante)}</td></tr>`;
+                
+                // Determinar classes e estilos para destaque visual
+                let rowClass = '';
+                let rowStyle = '';
+                let isLinhaInflexao = false;
+                
+                if (mesJurosMaiorQueAporte && i >= mesJurosMaiorQueAporte) {
+                    rowClass = 'classe-destaque-juros';
+                }
+                if (mesJurosMaiorQueAporte && i === mesJurosMaiorQueAporte) {
+                    isLinhaInflexao = true;
+                    rowClass = 'linha-inflexao';
+                }
+                
+                // Formatar valores com fonte monoespaçada
+                const fmtInvestido = formatarMoeda(investidoTotal);
+                const fmtJurosMes = formatarMoeda(jurosMes);
+                const fmtJurosAcum = formatarMoeda(jurosAcum);
+                const fmtPatrimonio = formatarMoeda(montante);
+                
+                htmlTabela += `<tr class="${rowClass}" ${rowStyle}>`;
+                htmlTabela += `<td style="text-align:center;font-family:'DM Mono',monospace;font-size:12.5px;font-weight:600;">${i}</td>`;
+                htmlTabela += `<td style="text-align:right;font-family:'DM Mono',monospace;font-size:12.5px;">${fmtInvestido}</td>`;
+                htmlTabela += `<td style="text-align:right;font-family:'DM Mono',monospace;font-size:12.5px;font-weight:700;color:var(--cor-primaria);">${fmtJurosMes}</td>`;
+                htmlTabela += `<td style="text-align:right;font-family:'DM Mono',monospace;font-size:12.5px;font-weight:700;color:var(--cor-primaria);background:linear-gradient(90deg,var(--cor-bg-primaria) 0%,transparent 100%);">${fmtJurosAcum}</td>`;
+                htmlTabela += `<td style="text-align:right;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:var(--cor-texto-principal);">${fmtPatrimonio}</td>`;
+                htmlTabela += `</tr>`;
+                
+                // Adicionar linha especial de inflexão com ícone
+                if (isLinhaInflexao) {
+                    htmlTabela += `<tr class="linha-inflexao-banner"><td colspan="5" style="padding:0;border:none;">`;
+                    htmlTabela += `<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;background:linear-gradient(90deg,rgba(16,185,129,0.08) 0%,transparent 100%);border-left:4px solid var(--cor-primaria);">`;
+                    htmlTabela += `<i class="ph ph-sparkle" style="color:var(--cor-primaria);font-size:16px;"></i>`;
+                    htmlTabela += `<span style="font-size:11.5px;font-weight:700;color:var(--cor-txt-primaria);">✦ Ponto de Inflexão: neste mês, seus juros mensais (${fmtJurosMes}) superaram seu aporte (${formatarMoeda(aporte)})!</span>`;
+                    htmlTabela += `</div></td></tr>`;
+                }
             }
             const jurosGerados = montante - investidoTotal;
             const poderRealInvest = montante / inflacaoFator;
             const rentab = investidoTotal > 0 ? ((jurosGerados / investidoTotal) * 100).toFixed(1) : 0;
+
+            // Atualiza banner do ponto de inflexão
+            const bannerInflexao = document.getElementById('bannerPontoInflexao');
+            const mesInflexaoEl = document.getElementById('mesInflexao');
+            if (mesJurosMaiorQueAporte) {
+                bannerInflexao.style.display = 'block';
+                mesInflexaoEl.textContent = mesJurosMaiorQueAporte;
+            } else {
+                bannerInflexao.style.display = 'none';
+            }
 
             // Atualiza label de inflação e tooltip
             document.getElementById('lblInflacaoMedia').innerText = inflacaoAnual.toFixed(2);
