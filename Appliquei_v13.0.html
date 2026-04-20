@@ -389,6 +389,7 @@
         .tabela-dashboard tr:hover td { background-color: var(--cor-bg-primaria); }
         #tabelaSimuladorCorpo tr:nth-child(even) td,
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
+        #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
         .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
         .ticker-mono { font-family: 'DM Mono', monospace; font-size: 11.5px; font-weight: 500; color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); padding: 2px 8px; border-radius: 6px; border: 1px solid var(--cor-borda-primaria); }
         .valor-mono { font-family: 'DM Mono', monospace; font-size: 13px; }
@@ -1370,33 +1371,6 @@
                 </div>
             </div>
 
-            <div style="background:linear-gradient(135deg,#059669 0%,#047857 100%);border-radius:var(--radius);padding:26px 30px;margin-bottom:16px;display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center;">
-                <div>
-                    <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">Você terá a mais — investindo vs. INSS</div>
-                    <div id="heroDiff" style="font-size:42px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-2px;line-height:1;">+R$ 0</div>
-                    <div id="heroSub" style="font-size:13px;color:rgba(255,255,255,.65);margin-top:8px;">Preencha os parâmetros acima para simular.</div>
-                </div>
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px;">
-                    <div id="heroMultiplo" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:6px 18px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;">Rendimento —</div>
-                    <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:12px 18px;text-align:right;">
-                        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Renda mensal estimada</div>
-                        <div id="heroRendaMensal" style="font-size:22px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-0.5px;">R$ 0/mês</div>
-                        <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:3px;">regra dos 0,5% a.m.</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card-container" style="margin-bottom:16px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                    <h3 style="font-size:13px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Evolução comparativa ao longo do tempo</h3>
-                    <div style="display:flex;gap:16px;">
-                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:var(--cor-info);display:inline-block;"></span> Investindo</div>
-                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:#94a3b8;display:inline-block;"></span> INSS</div>
-                    </div>
-                </div>
-                <div style="height:240px;position:relative;"><canvas id="graficoComparativo"></canvas></div>
-            </div>
-
             <div class="grid-2-iguais" style="margin-bottom:16px;">
                 <div class="card-container" style="margin-bottom:0;border-color:var(--cor-borda-primaria);background:linear-gradient(160deg,var(--cor-branco),var(--cor-bg-primaria));">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
@@ -1410,6 +1384,7 @@
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total investido</span><span id="outTotalInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-principal);">R$ 0,00</span></div>
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Juros gerados</span><span id="outLucro" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);">R$ 0,00</span></div>
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Rentabilidade</span><span id="outRentab" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);">0%</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Renda passiva estimada</span><span id="outRendaPassiva" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);font-weight:600;">R$ 0,00/mês</span></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
                         <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoPizzaPatrimonio"></canvas></div>
@@ -1427,7 +1402,7 @@
                     </div>
                     <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;font-weight:600;">Montante final</div>
                     <div id="inssOutMontante" style="font-size:30px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--cor-texto-mutado);">R$ 0,00</div>
-                    <div style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;"></i> Poder de compra real: <span id="inssOutReal">—</span></div>
+                    <div style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;cursor:help;" id="iconInflacaoInfo" title=""></i> Poder de compra real: <span id="inssOutReal">—</span> <span style="font-size:10px;color:var(--cor-texto-mutado);margin-left:4px;">(média inflação: <span id="lblInflacaoMedia">4.5</span>% a.a.)</span></div>
                     <div style="display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total contribuído</span><span id="inssOutInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">R$ 0,00</span></div>
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Correção gerada</span><span id="inssOutJuros" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-mutado);">R$ 0,00</span></div>
@@ -1441,6 +1416,33 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div style="background:linear-gradient(135deg,#059669 0%,#047857 100%);border-radius:var(--radius);padding:26px 30px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;">
+                <div>
+                    <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:10px;">Você terá a mais — investindo vs. INSS</div>
+                    <div id="heroDiff" style="font-size:42px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-2px;line-height:1;">+R$ 0</div>
+                    <div id="heroSub" style="font-size:13px;color:rgba(255,255,255,.65);margin-top:8px;">Preencha os parâmetros acima para simular.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <div id="heroMultiplo" style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);border-radius:var(--radius-sm);padding:14px 18px;font-size:12px;font-weight:600;color:#fff;line-height:1.4;">Em <strong>—</strong> anos você terá uma renda passiva estimada em <strong>R$ 0,00</strong> p/mês.<br>Regra de 0,8% a.m</div>
+                    <div style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:var(--radius-sm);padding:12px 18px;text-align:right;">
+                        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;">Renda mensal estimada</div>
+                        <div id="heroRendaMensal" style="font-size:22px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-0.5px;">R$ 0/mês</div>
+                        <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:3px;">regra dos 0,8% a.m.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-container" style="margin-bottom:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                    <h3 style="font-size:13px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Evolução comparativa ao longo do tempo</h3>
+                    <div style="display:flex;gap:16px;">
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:var(--cor-info);display:inline-block;"></span> Investindo</div>
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:#94a3b8;display:inline-block;"></span> INSS</div>
+                    </div>
+                </div>
+                <div style="height:240px;position:relative;"><canvas id="graficoComparativo"></canvas></div>
             </div>
 
             <div class="card-container" style="padding:0;overflow:hidden;margin-bottom:40px;">
@@ -2811,25 +2813,37 @@
 
             // === INVESTINDO ===
             let montante = capital, investidoTotal = capital, labelsComp = [], dataPatr = [], dataINSS = [], htmlTabela = '';
+            let mesJurosMaiorQueAporte = null;
             for (let i = 1; i <= meses; i++) {
-                montante = montante + montante * taxaMensal + aporte;
+                const jurosMes = montante * taxaMensal;
+                montante = montante + jurosMes + aporte;
                 investidoTotal += aporte;
                 const jurosAcum = montante - investidoTotal;
+                if (!mesJurosMaiorQueAporte && jurosMes > aporte) {
+                    mesJurosMaiorQueAporte = i;
+                }
                 if (i % 12 === 0 || i === meses) {
                     labelsComp.push(`${Math.floor(i/12)}a${i%12>0?' '+i%12+'m':''}`);
                     dataPatr.push(+montante.toFixed(2));
                 }
-                htmlTabela += `<tr><td style="text-align:center;font-weight:500;">${i}</td><td style="text-align:right;">${formatarMoeda(investidoTotal)}</td><td style="text-align:right;color:var(--cor-primaria);font-weight:600;background:var(--cor-bg-primaria);">${formatarMoeda(jurosAcum)}</td><td style="text-align:right;font-weight:600;">${formatarMoeda(montante)}</td></tr>`;
+                const destaqueClasse = (mesJurosMaiorQueAporte && i >= mesJurosMaiorQueAporte) ? 'style="background:var(--cor-bg-primaria);font-weight:700;"' : '';
+                htmlTabela += `<tr ${destaqueClasse}><td style="text-align:center;font-weight:500;">${i}</td><td style="text-align:right;">${formatarMoeda(investidoTotal)}</td><td style="text-align:right;color:var(--cor-primaria);font-weight:600;background:var(--cor-bg-primaria);">${formatarMoeda(jurosAcum)}</td><td style="text-align:right;font-weight:600;">${formatarMoeda(montante)}</td></tr>`;
             }
             const jurosGerados = montante - investidoTotal;
             const poderRealInvest = montante / inflacaoFator;
             const rentab = investidoTotal > 0 ? ((jurosGerados / investidoTotal) * 100).toFixed(1) : 0;
+
+            // Atualiza label de inflação e tooltip
+            document.getElementById('lblInflacaoMedia').innerText = inflacaoAnual.toFixed(2);
+            document.getElementById('iconInflacaoInfo').title = `Poder de compra real: considera inflação média de ${inflacaoAnual.toFixed(2)}% a.a. no período`;
 
             document.getElementById('outValorFinal').innerText = formatarMoeda(montante);
             document.getElementById('outValorReal').innerText = formatarMoeda(poderRealInvest);
             document.getElementById('outTotalInvestido').innerText = formatarMoeda(investidoTotal);
             document.getElementById('outLucro').innerText = formatarMoeda(jurosGerados);
             document.getElementById('outRentab').innerText = `+${rentab}%`;
+            const rendaPassivaMensal = montante * 0.008;
+            document.getElementById('outRendaPassiva').innerText = formatarMoeda(rendaPassivaMensal) + '/mês';
             document.getElementById('legPizzaInvestido').innerText = `${formatarMoeda(investidoTotal)} (${(investidoTotal/montante*100).toFixed(0)}%)`;
             document.getElementById('legPizzaJuros').innerText = `${formatarMoeda(jurosGerados)} (${(jurosGerados/montante*100).toFixed(0)}%)`;
             document.getElementById('tabelaSimuladorCorpo').innerHTML = htmlTabela;
@@ -2870,10 +2884,10 @@
             // === HERO ===
             const diff = montante - montInss;
             const multiplo = montInss > 0 ? (montante / montInss).toFixed(1) : '—';
-            const rendaMensal = montante * 0.005;
+            const rendaMensal = montante * 0.008;
             document.getElementById('heroDiff').innerText = (diff >= 0 ? '+' : '') + formatarMoeda(diff);
-            document.getElementById('heroSub').innerText = `em ${Math.round(anos)} anos · investir rende ${multiplo}× mais que o INSS`;
-            document.getElementById('heroMultiplo').innerText = `Rendimento ${multiplo}× maior`;
+            document.getElementById('heroSub').innerText = `Investir com consciência trará um patrimônio ${multiplo}x maior do que depender do INSS.. ${formatarMoeda(diff)}`;
+            document.getElementById('heroMultiplo').innerHTML = `Em <strong>${Math.round(anos)}</strong> anos você terá uma renda passiva estimada em <strong>${formatarMoeda(rendaMensal)}</strong> p/mês.<br>Regra de 0,8% a.m`;
             document.getElementById('heroRendaMensal').innerText = formatarMoeda(rendaMensal) + '/mês';
 
             // === GRÁFICO ===
