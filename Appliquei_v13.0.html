@@ -978,6 +978,31 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+                <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
+                    <div class="thermo-head">
+                        <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
+                        <span id="badgeStatus60" class="badge badge-status-ok">Sem dados</span>
+                    </div>
+                    <p id="msgContextual60" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:12px;">Adicione receitas e despesas para visualizar seu limite de segurança.</p>
+                    <div class="bar-wrap">
+                        <div id="barTermometro60" class="bar-fill" style="width:0%;background:var(--cor-texto-mutado);"></div>
+                        <div class="bar-mark"></div>
+                    </div>
+                    <div class="bar-labels"><span>0%</span><span class="bar-label-limit">limite 60%</span><span style="margin-left:auto">100%</span></div>
+                    <div class="thermo-stats">
+                        <div class="t-stat"><div class="t-stat-lbl">Consumo atual</div><div class="t-stat-val" id="lblGasto60">R$ 0,00</div></div>
+                        <div class="t-stat"><div class="t-stat-lbl">Limite seguro (60%)</div><div class="t-stat-val" id="lblReceita60">R$ 0,00</div></div>
+                        <div class="t-stat"><div class="t-stat-lbl">Percentual</div><div class="t-stat-val"><span id="lblPerc60">0</span>%</div></div>
+                    </div>
+                </div>
+                <div class="card-container" style="margin-bottom:0; min-width: 0;">
+                    <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">Composição do mês</h4>
+                    <div class="grafico-container" style="height:180px;margin-top:0;"><canvas id="graficoComposicao"></canvas></div>
+                    <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
+                </div>
+            </div>
+
             <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
 
                 <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -1070,31 +1095,6 @@
                         <button class="btn-acao" style="background-color:var(--cor-info);" onclick="executarEdicao('todas')"><i class="ph ph-copy"></i> Este e os futuros</button>
                     </div>
                     <button class="btn-secundario" id="btnCancelarEdicao" onclick="cancelarEdicaoControle()" style="display:none;width:100%;margin-top:10px;border-color:var(--cor-erro);color:var(--cor-erro);"><i class="ph ph-x"></i> Cancelar edição</button>
-                </div>
-            </div>
-
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
-                <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
-                    <div class="thermo-head">
-                        <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
-                        <span id="badgeStatus60" class="badge badge-status-ok">Sem dados</span>
-                    </div>
-                    <p id="msgContextual60" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:12px;">Adicione receitas e despesas para visualizar seu limite de segurança.</p>
-                    <div class="bar-wrap">
-                        <div id="barTermometro60" class="bar-fill" style="width:0%;background:var(--cor-texto-mutado);"></div>
-                        <div class="bar-mark"></div>
-                    </div>
-                    <div class="bar-labels"><span>0%</span><span class="bar-label-limit">limite 60%</span><span style="margin-left:auto">100%</span></div>
-                    <div class="thermo-stats">
-                        <div class="t-stat"><div class="t-stat-lbl">Consumo atual</div><div class="t-stat-val" id="lblGasto60">R$ 0,00</div></div>
-                        <div class="t-stat"><div class="t-stat-lbl">Limite seguro (60%)</div><div class="t-stat-val" id="lblReceita60">R$ 0,00</div></div>
-                        <div class="t-stat"><div class="t-stat-lbl">Percentual</div><div class="t-stat-val"><span id="lblPerc60">0</span>%</div></div>
-                    </div>
-                </div>
-                <div class="card-container" style="margin-bottom:0; min-width: 0;">
-                    <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">Composição do mês</h4>
-                    <div class="grafico-container" style="height:180px;margin-top:0;"><canvas id="graficoComposicao"></canvas></div>
-                    <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
                 </div>
             </div>
 
