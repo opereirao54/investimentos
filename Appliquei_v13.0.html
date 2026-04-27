@@ -331,6 +331,24 @@
             background: var(--cor-branco);
             box-shadow: 0 0 0 3px rgba(5,150,105,.09);
         }
+        .input-brl-wrap {
+            position: relative;
+            display: block;
+        }
+        .input-brl-wrap::before {
+            content: 'R$';
+            position: absolute;
+            left: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--cor-texto-mutado);
+            pointer-events: none;
+            font-family: 'Figtree', sans-serif;
+            z-index: 1;
+        }
+        .input-brl-wrap > input { padding-left: 36px !important; }
 
         .btn-acao {
             width: 100%;
@@ -823,10 +841,10 @@
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
             <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Defina seus limites de gastos e metas de saldo.</p>
 
-            <div class="form-group"><label>Limite mensal do cartão de crédito (R$)</label><input type="text" inputmode="decimal" data-brl="1" id="limiteCartao" value="5000" placeholder="Ex: 5.000,00" oninput="aplicarMascaraBRL(this)"></div>
+            <div class="form-group"><label>Limite mensal do cartão de crédito (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="limiteCartao" value="5000" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)"></span></div>
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
-                <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></div>
-                <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></div>
+                <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
+                <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
             </div>
 
             <div style="display:flex;gap:10px;">
@@ -944,7 +962,7 @@
                         </div>
                         <div class="form-group">
                             <label id="lblPrecoOp">Preço Pago (R$)</label>
-                            <input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="Ex: 105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra();">
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra();"></span>
                         </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
@@ -1136,7 +1154,7 @@
                         </div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;">
-                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></div>
+                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
                     </div>
 
@@ -1285,7 +1303,7 @@
                 <div class="card-container" style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; background-color: var(--cor-fundo);">
                     <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
                         <label>Capital Disponível para Alocação (R$)</label>
-                        <input type="text" inputmode="decimal" data-brl="1" id="valorAporteCalculadora" value="1000" oninput="aplicarMascaraBRL(this)" style="font-weight: 700; font-size: 18px; color: var(--cor-primaria);">
+                        <span class="input-brl-wrap" style="display:block;"><input type="text" inputmode="decimal" data-brl="1" id="valorAporteCalculadora" value="1000" oninput="aplicarMascaraBRL(this)" style="font-weight: 700; font-size: 18px; color: var(--cor-primaria); padding-left: 42px !important;"></span>
                     </div>
                     <button class="btn-acao" style="width: auto; padding: 12px 25px;" onclick="calcularCarteiraRecomendada()"><i class="ph ph-calculator"></i> Calcular Distribuição</button>
                 </div>
@@ -1399,11 +1417,11 @@
                 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Capital inicial (R$)</label>
-                        <input type="text" inputmode="decimal" data-brl="1" id="simCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularSimulador();">
+                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Aporte mensal (R$)</label>
-                        <input type="text" inputmode="decimal" data-brl="1" id="simAporte" value="500" oninput="aplicarMascaraBRL(this); calcularSimulador();">
+                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simAporte" value="500" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Inflação anual (%)</label>
