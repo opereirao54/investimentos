@@ -872,7 +872,7 @@
         <div class="nav-area">
             <div class="nav-group">
                 <span class="nav-group-label">Portfólio</span>
-                <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meu Patrimônio"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meu patrimônio</span></button>
+                <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus Investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle Financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira Recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
             </div>
@@ -1870,7 +1870,7 @@
             });
         }
 
-        // --- ABA 1: MEU PATRIMÔNIO ---
+        // --- ABA 1: MEUS INVESTIMENTOS ---
         let historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
         let transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || []; 
 
