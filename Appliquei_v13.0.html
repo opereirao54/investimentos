@@ -875,7 +875,6 @@
             <div class="nav-group">
                 <span class="nav-group-label">Portfólio</span>
                 <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus Investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'dividendos')" data-tooltip="Dividendos"><i class="ph ph-coins"></i><span class="menu-btn-label">Dividendos</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle Financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira Recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
             </div>
@@ -936,9 +935,18 @@
                 </div>
             </div>
 
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px;">
+                    <button class="btn-tab-dre ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                    <button class="btn-tab-dre" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
+                </div>
+                <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+            </div>
+
+            <div id="subAbaCarteira">
             <h2 style="font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); margin-bottom: 16px;">Minha carteira de ativos</h2>
             <div class="grid-2">
-                
+
                 <div class="card-container" id="painelOperacaoCard" style="background: var(--cor-bg-primaria); border-color: #a7f3d0; transition: var(--transicao);">
                     <h3 style="margin-bottom: 20px; font-size: 16px; display: flex; align-items: center; gap: 8px;" id="tituloPainelOp"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria); font-size: 22px;" id="iconePainelOp"></i> Registrar Operação</h3>
                     
@@ -966,17 +974,17 @@
                     <div class="grid-2-iguais" style="gap: 15px;">
                         <div class="form-group">
                             <label>Quantidade</label>
-                            <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra()">
+                            <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra(); atualizarProjecaoForm()">
                         </div>
                         <div class="form-group">
                             <label id="lblPrecoOp">Preço Pago (R$)</label>
-                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra();"></span>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
                         </div>
                     </div>
                     <div class="grid-2-iguais" style="gap: 15px;">
                         <div class="form-group">
                             <label>Data da Operação</label>
-                            <input type="date" id="compraData">
+                            <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
                         </div>
                         <div class="form-group">
                             <label>Banco / Corretora</label>
@@ -987,13 +995,14 @@
                         <div class="grid-2-iguais" style="gap: 15px;">
                             <div class="form-group">
                                 <label>Vencimento (prazo)</label>
-                                <input type="date" id="compraVencimento">
+                                <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
                             </div>
                             <div class="form-group">
                                 <label>Rentabilidade contratada</label>
-                                <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI ou IPCA+6%">
+                                <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
                             </div>
                         </div>
+                        <div id="projecaoRfPreview" style="display:none; padding:10px 12px; border-radius:9px; background: #ecfeff; border:1px solid #a5f3fc; margin-bottom:14px; font-size: 12.5px; color: #155e75;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
                         <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da Operação:</span>
@@ -1016,6 +1025,7 @@
                                         <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">🔄 Atualizando...</span>
                                     </th>
                                     <th style="text-align: right;">Saldo Atual</th>
+                                    <th style="text-align: right;">Projeção</th>
                                     <th style="text-align: right;">Lucro/Prej (%)</th>
                                 </tr>
                             </thead>
@@ -1028,81 +1038,72 @@
                     </div>
                 </div>
             </div>
-        </section>
-
-        <section id="dividendos" class="section">
-            <div class="page-header">
-                <div class="page-header-left">
-                    <h1>Dividendos</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Histórico de proventos pagos pelos seus ativos. Os dados são consultados em APIs públicas (BRAPI / Yahoo).</p>
-                </div>
-                <div class="page-actions">
-                    <button class="btn-secundario" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
-                </div>
             </div>
 
-            <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
-                <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
-                <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
-            </div>
+            <div id="subAbaDividendos" style="display:none;">
+                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
+                    <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
+                    <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
+                </div>
 
-            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
-                <div class="card-destaque">
-                    <h3><i class="ph ph-coins"></i> Recebido (12 meses)</h3>
-                    <div class="valor" id="dividendos12m">R$ 0,00</div>
-                </div>
-                <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                    <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost (12m)</h3>
-                    <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-calendar-blank"></i> Média mensal</h3>
-                    <div class="valor" id="dividendosMedia">R$ 0,00</div>
-                </div>
-            </div>
-
-            <div class="grid-2">
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
-                    <div style="overflow-x: auto; max-height: 460px;">
-                        <table class="tabela-dashboard">
-                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                <tr>
-                                    <th>Ativo</th>
-                                    <th style="text-align: right;">Qtd</th>
-                                    <th style="text-align: right;">Último provento</th>
-                                    <th style="text-align: right;">Frequência</th>
-                                    <th style="text-align: right;">Recebido (12m)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaDividendosCorpo"></tbody>
-                        </table>
-                        <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                            <div class="empty-state">
-                                <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
-                                <div class="empty-state-titulo">Sem dividendos no período</div>
-                                <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
-                            </div>
-                        </div>
+                <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-coins"></i> Recebido (12 meses)</h3>
+                        <div class="valor" id="dividendos12m">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
+                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost (12m)</h3>
+                        <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
+                    </div>
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-calendar-blank"></i> Média mensal</h3>
+                        <div class="valor" id="dividendosMedia">R$ 0,00</div>
                     </div>
                 </div>
 
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
-                    <div style="overflow-x: auto; max-height: 460px;">
-                        <table class="tabela-dashboard">
-                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Ativo</th>
-                                    <th style="text-align: right;">Valor / cota</th>
-                                    <th style="text-align: right;">Total recebido</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaPagamentosCorpo"></tbody>
-                        </table>
-                        <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                            <p style="font-size: 13px;">Nenhum pagamento encontrado nos últimos 12 meses.</p>
+                <div class="grid-2">
+                    <div class="card-container" style="padding: 0; overflow: hidden;">
+                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
+                        <div style="overflow-x: auto; max-height: 460px;">
+                            <table class="tabela-dashboard">
+                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                    <tr>
+                                        <th>Ativo</th>
+                                        <th style="text-align: right;">Qtd</th>
+                                        <th style="text-align: right;">Último provento</th>
+                                        <th style="text-align: right;">Frequência</th>
+                                        <th style="text-align: right;">Recebido (12m)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaDividendosCorpo"></tbody>
+                            </table>
+                            <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                                    <div class="empty-state-titulo">Sem dividendos no período</div>
+                                    <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-container" style="padding: 0; overflow: hidden;">
+                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
+                        <div style="overflow-x: auto; max-height: 460px;">
+                            <table class="tabela-dashboard">
+                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Ativo</th>
+                                        <th style="text-align: right;">Valor / cota</th>
+                                        <th style="text-align: right;">Total recebido</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaPagamentosCorpo"></tbody>
+                            </table>
+                            <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                                <p style="font-size: 13px;">Nenhum pagamento encontrado nos últimos 12 meses.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1743,8 +1744,26 @@
             if(idAba === 'controle') atualizarTelaControle();
             if(idAba === 'simulador') calcularSimulador();
             if(idAba === 'carteira') carregarCarteiraCliente();
-            if(idAba === 'dividendos') carregarDividendos();
             if(callback) callback();
+        }
+
+        // Sub-abas dentro de "Meus Investimentos"
+        function mudarSubAbaPatrimonio(qual) {
+            const carteira = document.getElementById('subAbaCarteira');
+            const dividendos = document.getElementById('subAbaDividendos');
+            const btnC = document.getElementById('subtabBtnCarteira');
+            const btnD = document.getElementById('subtabBtnDividendos');
+            const btnRefresh = document.getElementById('btnAtualizarDividendos');
+            if(qual === 'dividendos') {
+                carteira.style.display = 'none'; dividendos.style.display = 'block';
+                btnC.classList.remove('ativo'); btnD.classList.add('ativo');
+                btnRefresh.style.display = 'inline-flex';
+                carregarDividendos();
+            } else {
+                carteira.style.display = 'block'; dividendos.style.display = 'none';
+                btnD.classList.remove('ativo'); btnC.classList.add('ativo');
+                btnRefresh.style.display = 'none';
+            }
         }
 
         function toggleDarkMode() {
@@ -2072,6 +2091,135 @@
             const grupoRF = document.getElementById('grupoRendaFixa');
             const ehRF = selCat.value === 'renda_fixa' || selCat.value === 'reserva_emergencia';
             if(grupoRF) grupoRF.style.display = ehRF ? 'block' : 'none';
+            atualizarProjecaoForm();
+        }
+
+        // ============================================================
+        // === RENDA FIXA — TAXAS DE MERCADO + PROJEÇÃO              ===
+        // ============================================================
+        // Taxas anuais (em fração decimal). Valores conservadores caso o BCB falhe.
+        let taxasMercado = { cdi: 0.105, ipca: 0.045, selic: 0.105, atualizadoEm: null, fonte: 'estimativa' };
+
+        async function buscarTaxasBCB() {
+            // Selic meta (sgs.432) e IPCA 12m (sgs.13522). CDI ≈ Selic.
+            const consultas = [
+                { chave: 'selic', url: 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json' },
+                { chave: 'ipca', url: 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json' }
+            ];
+            try {
+                const resultados = await Promise.all(consultas.map(c => fetch(c.url).then(r => r.ok ? r.json() : null).catch(() => null)));
+                const [selicData, ipcaData] = resultados;
+                let mudou = false;
+                if(selicData && selicData[0] && selicData[0].valor) {
+                    const v = parseFloat(String(selicData[0].valor).replace(',', '.')) / 100;
+                    if(!isNaN(v) && v > 0) { taxasMercado.selic = v; taxasMercado.cdi = v; mudou = true; }
+                }
+                if(ipcaData && ipcaData[0] && ipcaData[0].valor) {
+                    const v = parseFloat(String(ipcaData[0].valor).replace(',', '.')) / 100;
+                    if(!isNaN(v) && v > 0) { taxasMercado.ipca = v; mudou = true; }
+                }
+                if(mudou) { taxasMercado.fonte = 'BCB'; taxasMercado.atualizadoEm = new Date().toISOString(); }
+            } catch(_) { /* mantém estimativas */ }
+            atualizarProjecaoForm();
+            atualizarCarteiraAtivos();
+        }
+
+        // Converte texto livre de rentabilidade em uma taxa anual (decimal).
+        // Suporta: "110% CDI", "CDI + 2%", "IPCA+6%", "12% a.a.", "12,5%", "Selic+1"
+        function parsearRentabilidade(texto) {
+            if(!texto) return null;
+            const t = String(texto).toLowerCase().replace(/\s+/g, '').replace(/,/g, '.');
+            const cdi = taxasMercado.cdi;
+            const ipca = taxasMercado.ipca;
+            const selic = taxasMercado.selic;
+            // Padrões: <num>% <indexador>      ex: 110%cdi
+            let m = t.match(/^(\d+(?:\.\d+)?)%(?:do)?(cdi|selic|ipca)$/);
+            if(m) {
+                const perc = parseFloat(m[1]) / 100;
+                const idx = m[2] === 'ipca' ? ipca : (m[2] === 'selic' ? selic : cdi);
+                return { taxa: perc * idx, descricao: `${(perc*100).toFixed(0)}% do ${m[2].toUpperCase()}`, indexador: m[2] };
+            }
+            // Padrões: <indexador>+<num>%      ex: ipca+6, cdi+2%
+            m = t.match(/^(cdi|selic|ipca)\+(\d+(?:\.\d+)?)%?$/);
+            if(m) {
+                const idx = m[1] === 'ipca' ? ipca : (m[1] === 'selic' ? selic : cdi);
+                const spread = parseFloat(m[2]) / 100;
+                // Combinação multiplicativa (juros compostos sobre o indexador)
+                const taxa = (1 + idx) * (1 + spread) - 1;
+                return { taxa, descricao: `${m[1].toUpperCase()}+${(spread*100).toFixed(2)}%`, indexador: m[1] };
+            }
+            // Padrões prefixados: "12%", "12% a.a.", "12.5%aa"
+            m = t.match(/^(\d+(?:\.\d+)?)%?(?:aa|a\.a\.?)?$/);
+            if(m) {
+                return { taxa: parseFloat(m[1]) / 100, descricao: `${parseFloat(m[1]).toFixed(2)}% a.a. (prefixado)`, indexador: 'pre' };
+            }
+            return null;
+        }
+
+        // Calcula valor projetado no vencimento (juros compostos anuais)
+        function calcularProjecaoRF(valorInicial, dataInicio, dataVencimento, rentabilidadeTexto) {
+            const parsed = parsearRentabilidade(rentabilidadeTexto);
+            if(!parsed || !valorInicial || !dataInicio || !dataVencimento) return null;
+            const inicio = new Date(dataInicio); const fim = new Date(dataVencimento);
+            const diasMs = fim.getTime() - inicio.getTime();
+            if(diasMs <= 0) return null;
+            const anos = diasMs / (365.25 * 24 * 60 * 60 * 1000);
+            const fator = Math.pow(1 + parsed.taxa, anos);
+            const valorFinalBruto = valorInicial * fator;
+            const rendimentoBruto = valorFinalBruto - valorInicial;
+            // IR regressivo (renda fixa privada). Tesouro Selic/IPCA seguem mesma tabela. LCI/LCA são isentos — não diferenciamos aqui.
+            const dias = diasMs / (24*60*60*1000);
+            let aliquotaIR = 0.225;
+            if(dias > 180) aliquotaIR = 0.20;
+            if(dias > 360) aliquotaIR = 0.175;
+            if(dias > 720) aliquotaIR = 0.15;
+            const ir = rendimentoBruto * aliquotaIR;
+            const valorFinalLiquido = valorFinalBruto - ir;
+            return {
+                taxaAnual: parsed.taxa,
+                indexador: parsed.indexador,
+                descricaoTaxa: parsed.descricao,
+                anos,
+                valorInicial,
+                valorFinalBruto,
+                valorFinalLiquido,
+                rendimentoBruto,
+                rendimentoLiquido: valorFinalLiquido - valorInicial,
+                aliquotaIR
+            };
+        }
+
+        function atualizarProjecaoForm() {
+            const preview = document.getElementById('projecaoRfPreview');
+            if(!preview) return;
+            const cat = document.getElementById('compraCategoria').value;
+            if(cat !== 'renda_fixa' && cat !== 'reserva_emergencia') { preview.style.display = 'none'; return; }
+            const qtd = parseFloat(document.getElementById('compraQtd').value) || 0;
+            const preco = parseBRL(document.getElementById('compraPreco').value) || 0;
+            const dataOp = document.getElementById('compraData').value;
+            const venc = document.getElementById('compraVencimento').value;
+            const rent = document.getElementById('compraRentabilidade').value.trim();
+            const valor = qtd * preco;
+            if(!valor || !dataOp || !venc || !rent) { preview.style.display = 'none'; return; }
+            const proj = calcularProjecaoRF(valor, dataOp, venc, rent);
+            if(!proj) {
+                preview.style.display = 'block';
+                preview.style.background = '#fef3c7'; preview.style.borderColor = '#fde68a'; preview.style.color = '#92400e';
+                preview.innerHTML = `<i class="ph ph-warning"></i> Não consegui interpretar a rentabilidade. Use formatos como <strong>110% CDI</strong>, <strong>IPCA+6%</strong>, <strong>12% a.a.</strong>`;
+                return;
+            }
+            preview.style.background = '#ecfeff'; preview.style.borderColor = '#a5f3fc'; preview.style.color = '#155e75';
+            const fonte = taxasMercado.fonte === 'BCB' ? `CDI ${(taxasMercado.cdi*100).toFixed(2)}% · IPCA ${(taxasMercado.ipca*100).toFixed(2)}% (BCB)` : `taxas estimadas`;
+            preview.style.display = 'block';
+            preview.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <span><i class="ph-fill ph-trend-up"></i> <strong>${proj.descricaoTaxa}</strong> · ${proj.anos.toFixed(2)} anos</span>
+                    <span style="font-weight:600;">Bruto no vencimento: ${formatarMoeda(proj.valorFinalBruto)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:4px;">
+                    <span style="opacity:.85;">IR ${(proj.aliquotaIR*100).toFixed(1)}% · ${fonte}</span>
+                    <span style="font-weight:700; color:#0e7490;">Líquido: ${formatarMoeda(proj.valorFinalLiquido)} (+${formatarMoeda(proj.rendimentoLiquido)})</span>
+                </div>`;
         }
 
         function registrarOperacaoAtivo() {
@@ -2175,13 +2323,25 @@
                 let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
                 let corretoraLbl = ativo.corretora || '—';
                 let extraRF = '';
-                if(ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') {
+                let projecaoCelula = '<span style="color: var(--cor-texto-mutado);">—</span>';
+                const ehRF = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia';
+                if(ehRF) {
                     const partes = [];
                     if(ativo.vencimento) partes.push(`Venc. ${new Date(ativo.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`);
                     if(ativo.rentabilidade) partes.push(ativo.rentabilidade);
                     if(partes.length) extraRF = `<span style="display:block; font-weight: 400; font-size: 10.5px; color: var(--cor-texto-mutado);">${partes.join(' · ')}</span>`;
+                    // Projeção: usa a primeira compra de RF deste ticker como data de início
+                    const primeiraCompra = historicoCompras.find(op => op.ticker === ticker && op.tipo !== 'venda' && op.data_op);
+                    if(primeiraCompra && ativo.vencimento && ativo.rentabilidade) {
+                        const dataIni = primeiraCompra.data_op.slice(0,10);
+                        const proj = calcularProjecaoRF(ativo.valorTotalInvestido, dataIni, ativo.vencimento, ativo.rentabilidade);
+                        if(proj) {
+                            const ganho = proj.rendimentoLiquido;
+                            projecaoCelula = `<span style="font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(proj.valorFinalLiquido)}</span><span style="display:block; font-size: 11px; color: var(--cor-texto-mutado);">+${formatarMoeda(ganho)} líquido</span>`;
+                        }
+                    }
                 }
-                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td><span style="font-weight: 500; color: var(--cor-texto-principal);">${categoriaLbl}</span><span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${corretoraLbl}</span>${extraRF}</td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td><span style="font-weight: 500; color: var(--cor-texto-principal);">${categoriaLbl}</span><span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${corretoraLbl}</span>${extraRF}</td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
             }
 
             if(totalAtivosValidos === 0) {
@@ -3657,6 +3817,7 @@
             atualizarCarteiraAtivos();
             carregarCarteiraCliente();
             buscarInflacaoBCB();
+            buscarTaxasBCB(); // CDI/Selic/IPCA para projeção de Renda Fixa
             buscarCotacoesReais(); // Roda a nossa rotina paralela do Yahoo v8
             // Estado inicial do form de operação
             const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
