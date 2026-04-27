@@ -682,6 +682,7 @@
         }
         .ext-tab:hover { background: var(--cor-superficie); }
         .ext-tab.on { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .ext-tab.ext-tab-inv.on { background: var(--cor-bg-info); color: var(--cor-txt-info); border-color: var(--cor-borda-info); }
 
         /* === RECORRENTE TOGGLE === */
         .recorrente-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 13px; background: var(--cor-bg-info); border: 1.5px solid var(--cor-borda-info); border-radius: 9px; margin-bottom: 14px; cursor: pointer; }
@@ -1090,6 +1091,7 @@
                             <button class="ext-tab" onclick="filtrarExtrato(event,'receita')">Entradas</button>
                             <button class="ext-tab" onclick="filtrarExtrato(event,'despesa')">Saídas</button>
                             <button class="ext-tab" onclick="filtrarExtrato(event,'cartao')">Cartão</button>
+                            <button class="ext-tab ext-tab-inv" onclick="filtrarExtrato(event,'investimento')">Investimentos</button>
                         </div>
                     </div>
                     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;flex-shrink:0;">
@@ -1663,7 +1665,7 @@
             document.querySelectorAll('.ext-tab').forEach(t => t.classList.remove('on'));
             e.currentTarget.classList.add('on');
             const ids = ['extratoReceitas','extratoDespesas','extratoCartao','extratoInvestimentos'];
-            const map = { todos: ids, receita:['extratoReceitas'], despesa:['extratoDespesas'], cartao:['extratoCartao'] };
+            const map = { todos: ids, receita:['extratoReceitas'], despesa:['extratoDespesas'], cartao:['extratoCartao'], investimento:['extratoInvestimentos'] };
             const show = map[tipo] || ids;
             ids.forEach(id => { const el = document.getElementById(id); if(el) el.style.display = show.includes(id) ? 'flex' : 'none'; });
         }
