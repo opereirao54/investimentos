@@ -861,6 +861,7 @@
     <datalist id="listaAtivosMercado"></datalist>
     <datalist id="listaAtivosCarteira"></datalist>
     <datalist id="listaDescricoes"></datalist>
+    <datalist id="listaCorretoras"></datalist>
 
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
@@ -874,6 +875,7 @@
             <div class="nav-group">
                 <span class="nav-group-label">Portfólio</span>
                 <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus Investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'dividendos')" data-tooltip="Dividendos"><i class="ph ph-coins"></i><span class="menu-btn-label">Dividendos</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle Financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira Recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
             </div>
@@ -919,11 +921,7 @@
                 <div><strong>Cotações estimadas.</strong> Não foi possível buscar as cotações do Yahoo Finance. Os preços exibidos são estimativas base.</div>
             </div>
 
-            <div class="grid-4" style="margin-bottom: 24px;">
-                <div class="card-destaque">
-                    <h3><i class="ph ph-bank"></i> Patrimônio total</h3>
-                    <div class="valor" id="resumoPatrimonio">R$ 0,00</div>
-                </div>
+            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
                 <div class="card-destaque">
                     <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
                     <div class="valor" id="resumoInvestido">R$ 0,00</div>
@@ -953,8 +951,17 @@
 
                     <div class="form-group">
                         <label>Buscar Ativo (Ticker ou Nome)</label>
-                        <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico()">
+                        <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
                         <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Categoria</label>
+                        <select id="compraCategoria" onchange="this.dataset.touched='1'; ajustarCamposPorCategoria()">
+                            <option value="renda_variavel">Renda Variável</option>
+                            <option value="renda_fixa">Renda Fixa</option>
+                            <option value="previdencia">Previdência</option>
+                            <option value="reserva_emergencia">Reserva de Emergência</option>
+                        </select>
                     </div>
                     <div class="grid-2-iguais" style="gap: 15px;">
                         <div class="form-group">
@@ -966,11 +973,33 @@
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra();"></span>
                         </div>
                     </div>
+                    <div class="grid-2-iguais" style="gap: 15px;">
+                        <div class="form-group">
+                            <label>Data da Operação</label>
+                            <input type="date" id="compraData">
+                        </div>
+                        <div class="form-group">
+                            <label>Banco / Corretora</label>
+                            <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite">
+                        </div>
+                    </div>
+                    <div id="grupoRendaFixa" style="display: none;">
+                        <div class="grid-2-iguais" style="gap: 15px;">
+                            <div class="form-group">
+                                <label>Vencimento (prazo)</label>
+                                <input type="date" id="compraVencimento">
+                            </div>
+                            <div class="form-group">
+                                <label>Rentabilidade contratada</label>
+                                <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI ou IPCA+6%">
+                            </div>
+                        </div>
+                    </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
                         <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da Operação:</span>
                         <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria);">R$ 0,00</strong>
                     </div>
-                    <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria);" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar Compra</button>
+                    <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria);" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar</button>
                 </div>
 
                 <div class="card-container" style="padding: 0; overflow: hidden;">
@@ -979,6 +1008,7 @@
                             <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
                                 <tr>
                                     <th>Ativo</th>
+                                    <th>Categoria / Corretora</th>
                                     <th style="text-align: right;">Qtd</th>
                                     <th style="text-align: right;">Preço Médio</th>
                                     <th style="text-align: right;">
@@ -994,6 +1024,85 @@
                         <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
                             <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
                             <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Registre sua primeira compra ao lado.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="dividendos" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Dividendos</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Histórico de proventos pagos pelos seus ativos. Os dados são consultados em APIs públicas (BRAPI / Yahoo).</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-secundario" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                </div>
+            </div>
+
+            <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
+                <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
+                <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
+            </div>
+
+            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
+                <div class="card-destaque">
+                    <h3><i class="ph ph-coins"></i> Recebido (12 meses)</h3>
+                    <div class="valor" id="dividendos12m">R$ 0,00</div>
+                </div>
+                <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
+                    <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost (12m)</h3>
+                    <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-calendar-blank"></i> Média mensal</h3>
+                    <div class="valor" id="dividendosMedia">R$ 0,00</div>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <div class="card-container" style="padding: 0; overflow: hidden;">
+                    <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
+                    <div style="overflow-x: auto; max-height: 460px;">
+                        <table class="tabela-dashboard">
+                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                <tr>
+                                    <th>Ativo</th>
+                                    <th style="text-align: right;">Qtd</th>
+                                    <th style="text-align: right;">Último provento</th>
+                                    <th style="text-align: right;">Frequência</th>
+                                    <th style="text-align: right;">Recebido (12m)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaDividendosCorpo"></tbody>
+                        </table>
+                        <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">Sem dividendos no período</div>
+                                <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-container" style="padding: 0; overflow: hidden;">
+                    <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
+                    <div style="overflow-x: auto; max-height: 460px;">
+                        <table class="tabela-dashboard">
+                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Ativo</th>
+                                    <th style="text-align: right;">Valor / cota</th>
+                                    <th style="text-align: right;">Total recebido</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaPagamentosCorpo"></tbody>
+                        </table>
+                        <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                            <p style="font-size: 13px;">Nenhum pagamento encontrado nos últimos 12 meses.</p>
                         </div>
                     </div>
                 </div>
@@ -1630,10 +1739,11 @@
             document.getElementById(idAba).classList.add('ativa');
             e.currentTarget.classList.add('ativo');
 
-            if(idAba === 'patrimonio') atualizarCarteiraAtivos(); 
+            if(idAba === 'patrimonio') atualizarCarteiraAtivos();
             if(idAba === 'controle') atualizarTelaControle();
-            if(idAba === 'simulador') calcularSimulador(); 
+            if(idAba === 'simulador') calcularSimulador();
             if(idAba === 'carteira') carregarCarteiraCliente();
+            if(idAba === 'dividendos') carregarDividendos();
             if(callback) callback();
         }
 
@@ -1901,20 +2011,67 @@
             const dicaTicker = document.getElementById('dicaTicker');
 
             inputTicker.value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
+            const elCorretora = document.getElementById('compraCorretora'); if(elCorretora) elCorretora.value = "";
+            const elVenc = document.getElementById('compraVencimento'); if(elVenc) elVenc.value = "";
+            const elRent = document.getElementById('compraRentabilidade'); if(elRent) elRent.value = "";
+            const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
+            const elCat = document.getElementById('compraCategoria'); if(elCat) { elCat.value = 'renda_variavel'; delete elCat.dataset.touched; }
+            ajustarCamposPorCategoria();
 
             if(tipo === 'compra') {
                 btnCompra.classList.add('ativo-compra'); btnVenda.classList.remove('ativo-venda');
                 painelCard.style.background = 'var(--cor-bg-primaria)'; painelCard.style.borderColor = '#a7f3d0';
-                lblPreco.innerText = 'Preço Pago (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar Compra'; btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
+                lblPreco.innerText = 'Preço Pago (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar'; btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
                 iconePainel.className = 'ph-fill ph-plus-circle'; iconePainel.style.color = 'var(--cor-primaria)'; totalTexto.style.color = 'var(--cor-primaria)';
                 inputTicker.setAttribute('list', 'listaAtivosMercado'); inputTicker.placeholder = "Ex: BTLG11 ou Tesouro"; dicaTicker.innerText = "Digite o ativo e preencheremos a cotação (você pode editar).";
             } else {
                 btnVenda.classList.add('ativo-venda'); btnCompra.classList.remove('ativo-compra');
                 painelCard.style.background = 'var(--cor-bg-erro)'; painelCard.style.borderColor = '#fecdd3';
-                lblPreco.innerText = 'Preço de Venda (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar Venda'; btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
+                lblPreco.innerText = 'Preço de Venda (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar'; btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
                 iconePainel.className = 'ph-fill ph-minus-circle'; iconePainel.style.color = 'var(--cor-erro)'; totalTexto.style.color = 'var(--cor-erro)';
                 inputTicker.setAttribute('list', 'listaAtivosCarteira'); inputTicker.placeholder = "Selecione um ativo da sua carteira"; dicaTicker.innerText = "Apenas ativos que você possui estão listados aqui.";
             }
+        }
+
+        // Lista padrão de bancos / corretoras brasileiras
+        const LISTA_CORRETORAS = [
+            'XP Investimentos', 'BTG Pactual', 'Rico', 'Clear Corretora', 'NuInvest',
+            'Inter Invest', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil',
+            'Caixa Econômica', 'Sicredi', 'Sicoob', 'Modalmais', 'Avenue',
+            'Genial Investimentos', 'C6 Bank', 'PicPay', 'Easynvest', 'Mirae Asset',
+            'Toro Investimentos', 'Órama', 'Ágora Investimentos', 'Safra'
+        ];
+
+        function inicializarDatalistCorretoras() {
+            const dl = document.getElementById('listaCorretoras');
+            if(!dl) return;
+            dl.innerHTML = "";
+            // Junta as padrão com qualquer corretora que o usuário já tenha digitado
+            const usadas = [...new Set(historicoCompras.map(op => op.corretora).filter(Boolean))];
+            const todas = [...new Set([...LISTA_CORRETORAS, ...usadas])].sort((a,b) => a.localeCompare(b,'pt-BR'));
+            todas.forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome;
+                dl.appendChild(opt);
+            });
+        }
+
+        function categoriaInferidaDoMercado(ticker) {
+            const ativo = mockAtivosMercado.find(a => a.ticker === (ticker || '').toUpperCase());
+            if(!ativo) return null;
+            return ativo.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel';
+        }
+
+        function ajustarCamposPorCategoria() {
+            const selCat = document.getElementById('compraCategoria');
+            if(!selCat) return;
+            const ticker = (document.getElementById('compraTicker').value || '').toUpperCase();
+            const inferida = categoriaInferidaDoMercado(ticker);
+            // Se o usuário não trocou manualmente e o ticker é conhecido, sincroniza
+            if(inferida && !selCat.dataset.touched) selCat.value = inferida;
+            const grupoRF = document.getElementById('grupoRendaFixa');
+            const ehRF = selCat.value === 'renda_fixa' || selCat.value === 'reserva_emergencia';
+            if(grupoRF) grupoRF.style.display = ehRF ? 'block' : 'none';
         }
 
         function registrarOperacaoAtivo() {
@@ -1922,6 +2079,11 @@
             const qtd = parseFloat(document.getElementById('compraQtd').value);
             const preco = parseBRL(document.getElementById('compraPreco').value);
             const tipoOp = document.getElementById('tipoOperacao').value;
+            const categoria = document.getElementById('compraCategoria').value;
+            const corretora = document.getElementById('compraCorretora').value.trim();
+            const dataInput = document.getElementById('compraData').value;
+            const vencimento = document.getElementById('compraVencimento').value;
+            const rentabilidade = document.getElementById('compraRentabilidade').value.trim();
 
             if (!ticker || isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker, Quantidade e Preço corretamente.", "erro");
 
@@ -1931,34 +2093,68 @@
                 if (!ativoNaCarteira || ativoNaCarteira.qtdTotal < qtd) return mostrarToast(`Saldo insuficiente! Você possui apenas ${ativoNaCarteira ? ativoNaCarteira.qtdTotal : 0} unidades de ${ticker}.`, "erro");
             }
 
-            const valorTotal = qtd * preco; let dataHoje = new Date();
-            historicoCompras.push({ id: Date.now(), ticker: ticker, quantidade: qtd, preco_op: preco, tipo: tipoOp, data_op: dataHoje.toISOString() });
+            const valorTotal = qtd * preco;
+            const dataOp = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
+            const operacao = {
+                id: Date.now(),
+                ticker: ticker,
+                quantidade: qtd,
+                preco_op: preco,
+                tipo: tipoOp,
+                data_op: dataOp.toISOString(),
+                categoria: categoria || null,
+                corretora: corretora || null
+            };
+            if(categoria === 'renda_fixa' || categoria === 'reserva_emergencia') {
+                if(vencimento) operacao.vencimento = vencimento;
+                if(rentabilidade) operacao.rentabilidade = rentabilidade;
+            }
+            historicoCompras.push(operacao);
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
 
             if (tipoOp === 'compra') {
-                let tipoAtivoStr = 'investimento_variavel'; const ativoNoMercado = mockAtivosMercado.find(a => a.ticker === ticker); if(ativoNoMercado && ativoNoMercado.tipo === 'Renda Fixa') tipoAtivoStr = 'investimento_fixo';
-                transacoes.push({ id: Date.now().toString(), descricao: `Compra: ${qtd}x ${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataHoje.getMonth(), ano: dataHoje.getFullYear(), data: dataHoje.toISOString(), pago: true });
+                let tipoAtivoStr = (categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia') ? 'investimento_fixo' : 'investimento_variavel';
+                transacoes.push({ id: Date.now().toString(), descricao: `Compra: ${qtd}x ${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             } else {
-                transacoes.push({ id: Date.now().toString(), descricao: `Venda Resgate: ${qtd}x ${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataHoje.getMonth(), ano: dataHoje.getFullYear(), data: dataHoje.toISOString(), pago: true });
+                transacoes.push({ id: Date.now().toString(), descricao: `Venda Resgate: ${qtd}x ${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             }
-            
+
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             document.getElementById('compraTicker').value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
+            document.getElementById('compraCorretora').value = ""; document.getElementById('compraVencimento').value = ""; document.getElementById('compraRentabilidade').value = "";
+            document.getElementById('compraData').value = new Date().toISOString().slice(0,10);
+            const elCat = document.getElementById('compraCategoria'); elCat.value = 'renda_variavel'; delete elCat.dataset.touched;
+            ajustarCamposPorCategoria();
             mostrarToast(tipoOp === 'compra' ? `✓ Compra de ${ticker} registrada com sucesso!` : `✓ Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
             atualizarDatalistDescricoes();
+            inicializarDatalistCorretoras();
         }
 
         function obterResumoCarteira() {
             let consolidado = {};
             historicoCompras.forEach(op => {
-                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0 };
+                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, corretora: null, vencimento: null, rentabilidade: null };
                 let ativo = consolidado[op.ticker]; let tipo = op.tipo || 'compra'; let precoDaOp = op.preco_op || op.preco_pago;
-                if (tipo === 'compra') { ativo.qtdTotal += op.quantidade; ativo.valorTotalInvestido += (op.quantidade * precoDaOp); ativo.precoMedio = ativo.valorTotalInvestido / ativo.qtdTotal; } 
+                if (tipo === 'compra') {
+                    ativo.qtdTotal += op.quantidade; ativo.valorTotalInvestido += (op.quantidade * precoDaOp); ativo.precoMedio = ativo.valorTotalInvestido / ativo.qtdTotal;
+                    // Última compra define metadados exibidos
+                    if(op.categoria) ativo.categoria = op.categoria;
+                    if(op.corretora) ativo.corretora = op.corretora;
+                    if(op.vencimento) ativo.vencimento = op.vencimento;
+                    if(op.rentabilidade) ativo.rentabilidade = op.rentabilidade;
+                }
                 else if (tipo === 'venda') { ativo.qtdTotal -= op.quantidade; ativo.valorTotalInvestido -= (op.quantidade * ativo.precoMedio); }
             });
             return consolidado;
         }
+
+        const ROTULOS_CATEGORIA = {
+            renda_variavel: 'Renda Variável',
+            renda_fixa: 'Renda Fixa',
+            previdencia: 'Previdência',
+            reserva_emergencia: 'Reserva de Emergência'
+        };
 
         function atualizarCarteiraAtivos() {
             const tbody = document.getElementById('tabelaCarteiraCorpo'); const msgVazia = document.getElementById('carteiraVaziaMsg'); tbody.innerHTML = "";
@@ -1976,29 +2172,224 @@
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
                 let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
 
-                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
+                let corretoraLbl = ativo.corretora || '—';
+                let extraRF = '';
+                if(ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') {
+                    const partes = [];
+                    if(ativo.vencimento) partes.push(`Venc. ${new Date(ativo.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                    if(ativo.rentabilidade) partes.push(ativo.rentabilidade);
+                    if(partes.length) extraRF = `<span style="display:block; font-weight: 400; font-size: 10.5px; color: var(--cor-texto-mutado);">${partes.join(' · ')}</span>`;
+                }
+                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td><span style="font-weight: 500; color: var(--cor-texto-principal);">${categoriaLbl}</span><span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${corretoraLbl}</span>${extraRF}</td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
             }
 
-            if(totalAtivosValidos === 0) { 
+            if(totalAtivosValidos === 0) {
                 msgVazia.style.display = "block";
                 msgVazia.innerHTML = `<div class="empty-state">
                     <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-wallet" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoPatrimonio').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%"; return; 
+                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%"; return;
             }
             msgVazia.style.display = "none";
 
             let lucroGeralR$ = saldoGeralAtual - totalGeralInvestido; let lucroGeralPerc = totalGeralInvestido > 0 ? (lucroGeralR$ / totalGeralInvestido) * 100 : 0;
-            document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido); document.getElementById('resumoPatrimonio').innerText = formatarMoeda(saldoGeralAtual);
+            document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
             
             const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
             const titRend = document.getElementById('tituloRendimento'); const titRent = document.getElementById('tituloRentabilidade');
 
             cardRend.innerText = formatarMoeda(lucroGeralR$); cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
-            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; } 
+            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; }
             else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; titRent.style.color = 'var(--cor-primaria)'; }
+        }
+
+        // ============================================================
+        // === ABA DIVIDENDOS — BRAPI + YAHOO COM FALLBACK            ===
+        // ============================================================
+        // Cache em memória para evitar repetir chamadas no mesmo carregamento.
+        let cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
+        let cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
+
+        function tickerEhFII(ticker) { return /11$/.test(ticker || ''); }
+
+        function tickerElegivelDividendos(ticker, ativoMercado) {
+            if(!ticker) return false;
+            // Renda Fixa não paga dividendos (juros são tratados separadamente)
+            if(ativoMercado && ativoMercado.tipo === 'Renda Fixa') return false;
+            if(/^TESOURO_/.test(ticker)) return false;
+            return true;
+        }
+
+        async function buscarDividendosBrapi(ticker) {
+            try {
+                const url = `https://brapi.dev/api/quote/${ticker}?modules=dividendsHistory&range=1y&interval=1mo`;
+                const res = await fetchTimeout(url, 10000);
+                if(!res.ok) return null;
+                const json = await res.json();
+                const result = json?.results?.[0];
+                const cashDiv = result?.dividendsHistory?.cashDividends || [];
+                const stockDiv = result?.dividendsHistory?.stockDividends || [];
+                const todos = [...cashDiv, ...stockDiv].map(d => ({
+                    data: d.paymentDate || d.lastDatePrior || d.approvedOn,
+                    valor: parseFloat(d.rate || d.factor || 0)
+                })).filter(d => d.data && d.valor > 0);
+                return todos;
+            } catch(err) {
+                console.warn(`BRAPI falhou para ${ticker}:`, err.message);
+                return null;
+            }
+        }
+
+        async function buscarDividendosYahoo(ticker) {
+            try {
+                const inicio = Math.floor((Date.now() - 365*24*60*60*1000) / 1000);
+                const fim = Math.floor(Date.now() / 1000);
+                const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?period1=${inicio}&period2=${fim}&interval=1mo&events=div`;
+                const json = await fetchComFallback(urlYahoo);
+                if(!json) return null;
+                const eventos = json?.chart?.result?.[0]?.events?.dividends || {};
+                const lista = Object.values(eventos).map(d => ({
+                    data: new Date(d.date * 1000).toISOString().slice(0,10),
+                    valor: d.amount
+                })).filter(d => d.valor > 0);
+                return lista;
+            } catch(err) {
+                console.warn(`Yahoo dividendos falhou para ${ticker}:`, err.message);
+                return null;
+            }
+        }
+
+        async function obterDividendosDoAtivo(ticker, forcar = false) {
+            const agora = Date.now();
+            if(!forcar && cacheDividendos[ticker] && (agora - cacheDividendos[ticker].fetchedAt) < cacheDividendosTTLms) {
+                return cacheDividendos[ticker].pagamentos;
+            }
+            // Tenta BRAPI primeiro (mais consistente para BR), Yahoo como fallback
+            let pagamentos = await buscarDividendosBrapi(ticker);
+            if(!pagamentos || pagamentos.length === 0) {
+                pagamentos = await buscarDividendosYahoo(ticker);
+            }
+            pagamentos = pagamentos || [];
+            cacheDividendos[ticker] = { fetchedAt: agora, pagamentos };
+            return pagamentos;
+        }
+
+        function inferirFrequencia(pagamentos) {
+            if(!pagamentos || pagamentos.length < 2) return pagamentos?.length === 1 ? 'Único' : '—';
+            const datasOrd = pagamentos.map(p => new Date(p.data).getTime()).sort((a,b) => a - b);
+            const intervalos = [];
+            for(let i = 1; i < datasOrd.length; i++) intervalos.push(datasOrd[i] - datasOrd[i-1]);
+            const mediaDias = (intervalos.reduce((a,b)=>a+b,0) / intervalos.length) / (24*60*60*1000);
+            if(mediaDias <= 45) return 'Mensal';
+            if(mediaDias <= 100) return 'Trimestral';
+            if(mediaDias <= 200) return 'Semestral';
+            return 'Anual';
+        }
+
+        async function carregarDividendos(forcar = false) {
+            const tbodyAtivos = document.getElementById('tabelaDividendosCorpo');
+            const tbodyPagamentos = document.getElementById('tabelaPagamentosCorpo');
+            const msgVaziaAtivos = document.getElementById('dividendosVaziaMsg');
+            const msgVaziaPag = document.getElementById('pagamentosVaziaMsg');
+            const banner = document.getElementById('bannerDividendosAviso');
+            const card12m = document.getElementById('dividendos12m');
+            const cardYOC = document.getElementById('dividendosYOC');
+            const cardMedia = document.getElementById('dividendosMedia');
+            if(!tbodyAtivos) return;
+
+            tbodyAtivos.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--cor-texto-secundario);"><i class="ph ph-circle-notch" style="font-size:20px;"></i> Carregando proventos...</td></tr>`;
+            tbodyPagamentos.innerHTML = "";
+            banner.style.display = 'none';
+
+            const carteira = obterResumoCarteira();
+            const tickers = Object.keys(carteira).filter(t => {
+                if(carteira[t].qtdTotal <= 0) return false;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === t);
+                return tickerElegivelDividendos(t, ativoMercado);
+            });
+
+            if(tickers.length === 0) {
+                tbodyAtivos.innerHTML = "";
+                msgVaziaAtivos.style.display = 'block';
+                msgVaziaPag.style.display = 'block';
+                card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
+                return;
+            }
+            msgVaziaAtivos.style.display = 'none';
+            msgVaziaPag.style.display = 'none';
+
+            // Busca em paralelo
+            const resultados = await Promise.all(tickers.map(async t => {
+                const pagamentos = await obterDividendosDoAtivo(t, forcar);
+                return { ticker: t, pagamentos };
+            }));
+
+            const houveFalha = resultados.some(r => r.pagamentos.length === 0);
+            if(houveFalha) banner.style.display = 'flex';
+
+            const limite12m = Date.now() - 365*24*60*60*1000;
+            let total12m = 0;
+            let totalInvestido12m = 0;
+            const linhasAtivos = [];
+            const todosPagamentos = [];
+
+            resultados.forEach(({ ticker, pagamentos }) => {
+                const ativo = carteira[ticker];
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo";
+                const pagOrd = [...pagamentos].sort((a,b) => new Date(b.data) - new Date(a.data));
+                const ultimo = pagOrd[0];
+                const pag12m = pagOrd.filter(p => new Date(p.data).getTime() >= limite12m);
+                const recebido12m = pag12m.reduce((s, p) => s + p.valor * ativo.qtdTotal, 0);
+                total12m += recebido12m;
+                totalInvestido12m += ativo.valorTotalInvestido;
+
+                const freq = inferirFrequencia(pag12m.length ? pag12m : pagOrd);
+                linhasAtivos.push({
+                    ticker, nomeAtivo, qtd: ativo.qtdTotal,
+                    ultimoValor: ultimo ? ultimo.valor : 0,
+                    ultimoData: ultimo ? ultimo.data : null,
+                    freq, recebido12m
+                });
+
+                pag12m.forEach(p => todosPagamentos.push({
+                    data: p.data, ticker, valorCota: p.valor, total: p.valor * ativo.qtdTotal
+                }));
+            });
+
+            // Ordena tabela de ativos por valor recebido (desc)
+            linhasAtivos.sort((a,b) => b.recebido12m - a.recebido12m);
+            tbodyAtivos.innerHTML = linhasAtivos.map(l => {
+                const ultimoLbl = l.ultimoData
+                    ? `${formatarMoeda(l.ultimoValor)} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${new Date(l.ultimoData + (l.ultimoData.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</span>`
+                    : '—';
+                return `<tr>
+                    <td style="font-weight: 600;">${l.ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
+                    <td style="text-align: right;">${l.qtd}</td>
+                    <td style="text-align: right;">${ultimoLbl}</td>
+                    <td style="text-align: right;">${l.freq}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(l.recebido12m)}</td>
+                </tr>`;
+            }).join('');
+
+            todosPagamentos.sort((a,b) => new Date(b.data) - new Date(a.data));
+            if(todosPagamentos.length === 0) {
+                msgVaziaPag.style.display = 'block';
+            } else {
+                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 80).map(p => `<tr>
+                    <td>${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
+                    <td style="font-weight: 600;">${p.ticker}</td>
+                    <td style="text-align: right;">${formatarMoeda(p.valorCota)}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(p.total)}</td>
+                </tr>`).join('');
+            }
+
+            card12m.innerText = formatarMoeda(total12m);
+            cardYOC.innerText = totalInvestido12m > 0 ? `${(total12m / totalInvestido12m * 100).toFixed(2)}%` : '0,00%';
+            cardMedia.innerText = formatarMoeda(total12m / 12);
         }
 
         // --- ABA 2: CONTROLE FINANCEIRO E DRE ---
@@ -3258,6 +3649,7 @@
         // --- INICIALIZAÇÃO ---
         window.onload = function() {
             inicializarDatalistAtivos();
+            inicializarDatalistCorretoras();
             carregarMetas();
             inicializarMascarasBRL();
             atualizarDatalistDescricoes();
@@ -3266,6 +3658,9 @@
             carregarCarteiraCliente();
             buscarInflacaoBCB();
             buscarCotacoesReais(); // Roda a nossa rotina paralela do Yahoo v8
+            // Estado inicial do form de operação
+            const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
+            ajustarCamposPorCategoria();
         };
     </script>
 </body>
