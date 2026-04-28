@@ -565,6 +565,9 @@
         }
         .chip-cat:hover { background: var(--cor-superficie); }
         .chip-cat.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        /* Colunas avançadas da tabela da carteira — ocultas por padrão */
+        #tabelaCarteira .col-extra { display: none; }
+        #tabelaCarteira.com-extras .col-extra { display: table-cell; }
         .projecao-rf-box {
             padding: 10px 12px; border-radius: 9px;
             background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
@@ -574,6 +577,36 @@
             background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber);
         }
         .projecao-rf-box .destaque-liquido { font-weight: 700; color: var(--cor-primaria); }
+
+        /* === DRAWER LATERAL === */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+            backdrop-filter: blur(3px); z-index: 9998; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .drawer-overlay.aberto { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; right: 0; height: 100vh; width: 460px; max-width: 100%;
+            background: var(--cor-branco); border-left: 1px solid var(--cor-borda);
+            box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+            z-index: 9999; transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+            display: flex; flex-direction: column;
+        }
+        .drawer.aberto { transform: translateX(0); }
+        .drawer-header {
+            padding: 18px 22px; border-bottom: 1px solid var(--cor-borda);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: var(--cor-branco);
+        }
+        .drawer-header h3 { font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); display: flex; align-items: center; gap: 8px; margin: 0; }
+        .drawer-fechar {
+            background: transparent; border: none; cursor: pointer; padding: 6px;
+            color: var(--cor-texto-secundario); border-radius: var(--radius-sm);
+            transition: 0.15s; display: inline-flex; align-items: center;
+        }
+        .drawer-fechar:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        .drawer-body { padding: 20px 22px; overflow-y: auto; flex: 1; }
+        @media (max-width: 600px) { .drawer { width: 100%; } }
 
         /* === TOAST === */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -876,6 +909,75 @@
     <div id="toast-container"></div>
     <input type="file" id="inputImportarJSON" accept=".json" onchange="importarDados(event)">
 
+    <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
+    <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
+        <div class="drawer-header">
+            <h3 id="drawerOperacaoTitulo"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria);" id="iconePainelOp"></i> <span id="tituloPainelOp">Registrar operação</span></h3>
+            <button class="drawer-fechar" onclick="fecharDrawerOperacao()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
+        </div>
+        <div class="drawer-body">
+            <div class="toggle-op">
+                <div class="toggle-btn ativo-compra" id="btnTabCompra" onclick="alternarTipoOperacao('compra')"><i class="ph-bold ph-trend-up"></i> Compra</div>
+                <div class="toggle-btn" id="btnTabVenda" onclick="alternarTipoOperacao('venda')"><i class="ph-bold ph-trend-down"></i> Venda</div>
+            </div>
+
+            <input type="hidden" id="tipoOperacao" value="compra">
+
+            <div class="form-group">
+                <label>Buscar Ativo (Ticker ou Nome)</label>
+                <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
+                <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <select id="compraCategoria" onchange="this.dataset.touched='1'; ajustarCamposPorCategoria()">
+                    <option value="renda_variavel">Renda Variável</option>
+                    <option value="renda_fixa">Renda Fixa</option>
+                    <option value="previdencia">Previdência</option>
+                    <option value="reserva_emergencia">Reserva de Emergência</option>
+                </select>
+            </div>
+            <div class="grid-2-iguais" style="gap: 15px;">
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra(); atualizarProjecaoForm()">
+                </div>
+                <div class="form-group">
+                    <label id="lblPrecoOp">Preço Pago (R$)</label>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
+                </div>
+            </div>
+            <div class="grid-2-iguais" style="gap: 15px;">
+                <div class="form-group">
+                    <label>Data da Operação</label>
+                    <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
+                </div>
+                <div class="form-group">
+                    <label>Banco / Corretora</label>
+                    <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite">
+                </div>
+            </div>
+            <div id="grupoRendaFixa" style="display: none;">
+                <div class="grid-2-iguais" style="gap: 15px;">
+                    <div class="form-group">
+                        <label>Vencimento (prazo)</label>
+                        <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
+                    </div>
+                    <div class="form-group">
+                        <label>Rentabilidade contratada</label>
+                        <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
+                    </div>
+                </div>
+                <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
+                <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>
+                <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">R$ 0,00</strong>
+            </div>
+            <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria); width:100%;" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar</button>
+        </div>
+    </aside>
+
     <datalist id="listaAtivosMercado"></datalist>
     <datalist id="listaAtivosCarteira"></datalist>
     <datalist id="listaDescricoes"></datalist>
@@ -921,19 +1023,11 @@
                     <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
                 </div>
                 <div class="page-actions">
+                    <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
+                    <button class="btn-secundario" onclick="exportarDados()" title="Backup JSON dos seus dados (ficam só no navegador)"><i class="ph ph-download-simple"></i> Backup</button>
+                    <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
                     <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
                 </div>
-            </div>
-
-            <div class="barra-backup">
-                <i class="ph ph-cloud-arrow-up" style="font-size: 16px; color: var(--cor-texto-mutado);"></i>
-                <span><strong>Seus dados ficam no navegador.</strong> Faça backup regularmente para não perder informações.</span>
-                <button class="btn-backup exportar" onclick="exportarDados()"><i class="ph ph-download-simple"></i> Exportar JSON</button>
-            </div>
-
-            <div class="banner-aviso-mock" role="alert" id="bannerPrecosEstimados" style="display: none;">
-                <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
-                <div><strong>Cotações estimadas.</strong> Não foi possível buscar as cotações do Yahoo Finance. Os preços exibidos são estimativas base.</div>
             </div>
 
             <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 14px;">
@@ -943,11 +1037,15 @@
                 </div>
                 <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
                     <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
-                    <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
+                    <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
+                        <span class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</span>
+                        <span id="resumoRentabilidade" style="font-size: 14px; font-weight: 600; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">0,00%</span>
+                    </div>
                 </div>
                 <div class="card-destaque">
-                    <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
-                    <div class="valor" id="resumoRentabilidade">0.00%</div>
+                    <h3 id="tituloProximoEvento"><i class="ph ph-calendar-check"></i> Próximo evento</h3>
+                    <div class="valor" id="resumoProximoEvento" style="font-size: 16px; line-height: 1.3;">—</div>
+                    <div id="resumoProximoEventoDetalhe" style="font-size: 11px; color: var(--cor-texto-mutado); margin-top: 6px; font-family: 'Figtree', sans-serif;"></div>
                 </div>
             </div>
 
@@ -960,115 +1058,47 @@
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-                <div style="display:flex; gap:8px;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
                     <button class="btn-tab-dre ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
                     <button class="btn-tab-dre" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
                     <button class="btn-tab-dre" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>
-                <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                <div id="acoesSubAba" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
+                        <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
+                        <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
+                        <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
+                        <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
+                    </div>
+                    <button class="btn-secundario" id="btnToggleColunas" onclick="toggleColunasExtras()" title="Mostrar/ocultar colunas detalhadas"><i class="ph ph-columns"></i> <span id="lblToggleColunas">Mais colunas</span></button>
+                    <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                </div>
             </div>
 
             <div id="subAbaCarteira">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                <h2 style="font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); margin:0;">Minha carteira de ativos</h2>
-                <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
-                    <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
-                    <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
-                    <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
-                    <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
-                    <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
-                </div>
-            </div>
-            <div class="grid-2">
-
-                <div class="card-container" id="painelOperacaoCard" style="background: var(--cor-bg-primaria); border-color: #a7f3d0; transition: var(--transicao);">
-                    <h3 style="margin-bottom: 20px; font-size: 16px; display: flex; align-items: center; gap: 8px;" id="tituloPainelOp"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria); font-size: 22px;" id="iconePainelOp"></i> Registrar Operação</h3>
-                    
-                    <div class="toggle-op">
-                        <div class="toggle-btn ativo-compra" id="btnTabCompra" onclick="alternarTipoOperacao('compra')"><i class="ph-bold ph-trend-up"></i> Compra</div>
-                        <div class="toggle-btn" id="btnTabVenda" onclick="alternarTipoOperacao('venda')"><i class="ph-bold ph-trend-down"></i> Venda</div>
-                    </div>
-
-                    <input type="hidden" id="tipoOperacao" value="compra">
-
-                    <div class="form-group">
-                        <label>Buscar Ativo (Ticker ou Nome)</label>
-                        <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
-                        <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
-                    </div>
-                    <div class="form-group">
-                        <label>Categoria</label>
-                        <select id="compraCategoria" onchange="this.dataset.touched='1'; ajustarCamposPorCategoria()">
-                            <option value="renda_variavel">Renda Variável</option>
-                            <option value="renda_fixa">Renda Fixa</option>
-                            <option value="previdencia">Previdência</option>
-                            <option value="reserva_emergencia">Reserva de Emergência</option>
-                        </select>
-                    </div>
-                    <div class="grid-2-iguais" style="gap: 15px;">
-                        <div class="form-group">
-                            <label>Quantidade</label>
-                            <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra(); atualizarProjecaoForm()">
-                        </div>
-                        <div class="form-group">
-                            <label id="lblPrecoOp">Preço Pago (R$)</label>
-                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
-                        </div>
-                    </div>
-                    <div class="grid-2-iguais" style="gap: 15px;">
-                        <div class="form-group">
-                            <label>Data da Operação</label>
-                            <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
-                        </div>
-                        <div class="form-group">
-                            <label>Banco / Corretora</label>
-                            <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite">
-                        </div>
-                    </div>
-                    <div id="grupoRendaFixa" style="display: none;">
-                        <div class="grid-2-iguais" style="gap: 15px;">
-                            <div class="form-group">
-                                <label>Vencimento (prazo)</label>
-                                <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
-                            </div>
-                            <div class="form-group">
-                                <label>Rentabilidade contratada</label>
-                                <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
-                            </div>
-                        </div>
-                        <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
-                        <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da Operação:</span>
-                        <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria);">R$ 0,00</strong>
-                    </div>
-                    <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria);" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar</button>
-                </div>
-
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-x: auto; max-height: 440px;">
-                        <table class="tabela-dashboard">
-                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                <tr>
-                                    <th>Ativo</th>
-                                    <th>Categoria / Corretora</th>
-                                    <th style="text-align: right;">Qtd</th>
-                                    <th style="text-align: right;">Preço Médio</th>
-                                    <th style="text-align: right;">
-                                        Preço Atual
-                                        <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"><i class="ph ph-circle-notch ph-spin"></i> Atualizando...</span>
-                                    </th>
-                                    <th style="text-align: right;">Saldo Atual</th>
-                                    <th style="text-align: right;">Projeção</th>
-                                    <th style="text-align: right;">Lucro/Prej (%)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaCarteiraCorpo"></tbody>
-                        </table>
-                        <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                            <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
-                            <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Registre sua primeira compra ao lado.</p>
-                        </div>
+            <div class="card-container" style="padding: 0; overflow: hidden;">
+                <div style="overflow-x: auto; max-height: 540px;">
+                    <table class="tabela-dashboard" id="tabelaCarteira">
+                        <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                            <tr>
+                                <th>Ativo</th>
+                                <th style="text-align: right;">Qtd</th>
+                                <th class="col-extra" style="text-align: right;">Preço Médio</th>
+                                <th class="col-extra" style="text-align: right;">
+                                    Preço Atual
+                                    <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"><i class="ph ph-circle-notch ph-spin"></i> Atualizando...</span>
+                                </th>
+                                <th style="text-align: right;">Saldo Atual</th>
+                                <th class="col-extra" style="text-align: right;">Projeção</th>
+                                <th style="text-align: right;">Lucro/Prej (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaCarteiraCorpo"></tbody>
+                    </table>
+                    <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                        <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
+                        <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Use o botão "Registrar operação" acima.</p>
                     </div>
                 </div>
             </div>
@@ -1853,13 +1883,49 @@
                 dividendos: document.getElementById('subtabBtnDividendos')
             };
             const btnRefresh = document.getElementById('btnAtualizarDividendos');
+            const filtros = document.getElementById('filtrosCategoria');
+            const btnCols = document.getElementById('btnToggleColunas');
             Object.keys(subs).forEach(k => {
                 subs[k].style.display = (k === qual) ? 'block' : 'none';
                 btns[k].classList.toggle('ativo', k === qual);
             });
+            // Filtros de categoria + toggle de colunas só fazem sentido na sub-aba Carteira
+            if(filtros) filtros.style.display = (qual === 'carteira') ? 'flex' : 'none';
+            if(btnCols) btnCols.style.display = (qual === 'carteira') ? 'inline-flex' : 'none';
             btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
             if(qual === 'dividendos') carregarDividendos();
             if(qual === 'operacoes') renderizarOperacoes();
+        }
+
+        function toggleColunasExtras() {
+            const tab = document.getElementById('tabelaCarteira');
+            const lbl = document.getElementById('lblToggleColunas');
+            if(!tab) return;
+            const aberto = tab.classList.toggle('com-extras');
+            if(lbl) lbl.innerText = aberto ? 'Menos colunas' : 'Mais colunas';
+            try { localStorage.setItem('appliquei_carteira_extras', aberto ? '1' : '0'); } catch(_){}
+        }
+
+        // === DRAWER DE OPERAÇÃO ===
+        function abrirDrawerOperacao() {
+            const drawer = document.getElementById('drawerOperacao');
+            const overlay = document.getElementById('drawerOverlay');
+            if(!drawer || !overlay) return;
+            // Garante estado inicial limpo do form
+            const elData = document.getElementById('compraData');
+            if(elData && !elData.value) elData.value = new Date().toISOString().slice(0,10);
+            drawer.classList.add('aberto');
+            overlay.classList.add('aberto');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => { document.getElementById('compraTicker')?.focus(); }, 240);
+        }
+        function fecharDrawerOperacao() {
+            const drawer = document.getElementById('drawerOperacao');
+            const overlay = document.getElementById('drawerOverlay');
+            if(!drawer || !overlay) return;
+            drawer.classList.remove('aberto');
+            overlay.classList.remove('aberto');
+            document.body.style.overflow = '';
         }
 
         function toggleDarkMode() {
@@ -2078,7 +2144,7 @@
 
             } catch(erroGeral) {
                 console.error("Erro ao atualizar cotações:", erroGeral);
-                document.getElementById('bannerPrecosEstimados').style.display = 'flex';
+                document.getElementById('badgePrecosEstimados').style.display = 'inline-flex';
                 const badgeRealTime = document.getElementById('badgeRealTime');
                 if(badgeRealTime) {
                     badgeRealTime.style.background = '#fef3c7'; 
@@ -2384,6 +2450,7 @@
             atualizarDatalistDescricoes();
             inicializarDatalistCorretoras();
             renderizarOperacoes();
+            fecharDrawerOperacao();
         }
 
         // --- LISTA DE OPERAÇÕES (sub-aba) ---
@@ -2419,14 +2486,14 @@
                 const corretoraLbl = op.corretora || '—';
                 const total = op.quantidade * (op.preco_op || op.preco_pago || 0);
                 return `<tr>
-                    <td>${dataLbl}</td>
+                    <td style="font-family:'DM Mono', monospace;">${dataLbl}</td>
                     <td>${tipoLabel}</td>
                     <td style="font-weight:600;">${op.ticker}</td>
                     <td>${catLbl}</td>
                     <td>${corretoraLbl}</td>
-                    <td style="text-align:right;">${op.quantidade}</td>
-                    <td style="text-align:right;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
-                    <td style="text-align:right; font-weight:600;">${formatarMoeda(total)}</td>
+                    <td style="text-align:right; font-family:'DM Mono', monospace;">${op.quantidade}</td>
+                    <td style="text-align:right; font-family:'DM Mono', monospace;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
+                    <td style="text-align:right; font-weight:600; font-family:'DM Mono', monospace;">${formatarMoeda(total)}</td>
                     <td style="text-align:center; white-space:nowrap;">
                         <button class="btn-secundario" style="padding:4px 8px; font-size:12px;" title="Editar" onclick="editarOperacao(${op.id})"><i class="ph ph-pencil-simple"></i></button>
                         <button class="btn-secundario" style="padding:4px 8px; font-size:12px; color: var(--cor-erro);" title="Excluir" onclick="excluirOperacao(${op.id})"><i class="ph ph-trash"></i></button>
@@ -2439,10 +2506,8 @@
             const op = historicoCompras.find(o => o.id === id);
             if(!op) return mostrarToast('Operação não encontrada.', 'erro');
 
-            // Volta para a sub-aba Carteira para preencher o formulário
-            mudarSubAbaPatrimonio('carteira');
-
-            // Preenche o formulário e remove a operação atual — ao confirmar, será re-registrada
+            // Abre o drawer com os campos preenchidos
+            abrirDrawerOperacao();
             alternarTipoOperacao(op.tipo || 'compra');
             document.getElementById('compraTicker').value = op.ticker || '';
             document.getElementById('compraQtd').value = op.quantidade || '';
@@ -2465,8 +2530,6 @@
             atualizarCarteiraAtivos();
             renderizarOperacoes();
 
-            // Foca no card de operação
-            document.getElementById('compraTicker').focus();
             mostrarToast('Edite os campos e clique em Confirmar.', 'info');
         }
 
@@ -2537,6 +2600,74 @@
             if(ativoConsolidado?.categoria) return ativoConsolidado.categoria;
             if(ativoMercado?.tipo === 'Renda Fixa') return 'renda_fixa';
             return 'renda_variavel';
+        }
+
+        // Calcula a próxima "coisa importante" a acontecer na carteira:
+        // próximo vencimento de RF ou próximo dividendo previsto (com base na frequência).
+        function atualizarProximoEvento(carteiraConsolidada) {
+            const valorEl = document.getElementById('resumoProximoEvento');
+            const detEl = document.getElementById('resumoProximoEventoDetalhe');
+            const titEl = document.getElementById('tituloProximoEvento');
+            if(!valorEl) return;
+            const candidatos = [];
+            const hoje = Date.now();
+
+            // 1) Vencimentos de Renda Fixa
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0 || !ativo.vencimento) continue;
+                const tsVenc = new Date(ativo.vencimento + 'T12:00:00').getTime();
+                if(tsVenc < hoje) continue;
+                candidatos.push({
+                    tipo: 'vencimento',
+                    ts: tsVenc,
+                    label: `${ticker}`,
+                    detalhe: `Vencimento RF · ${new Date(tsVenc).toLocaleDateString('pt-BR')}`
+                });
+            }
+
+            // 2) Próximo dividendo estimado a partir do cache (último pagamento + intervalo médio)
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const cache = cacheDividendos[ticker];
+                if(!cache || !cache.pagamentos || cache.pagamentos.length === 0) continue;
+                const datasOrd = cache.pagamentos.map(p => new Date(p.data).getTime()).sort((a,b) => a - b);
+                const ultimo = datasOrd[datasOrd.length - 1];
+                if(!ultimo) continue;
+                let intervaloDias = 30;
+                if(datasOrd.length >= 2) {
+                    const diffs = [];
+                    for(let i = 1; i < datasOrd.length; i++) diffs.push(datasOrd[i] - datasOrd[i-1]);
+                    const mediaMs = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+                    intervaloDias = Math.round(mediaMs / (24*60*60*1000));
+                }
+                const proximoTs = ultimo + intervaloDias * 24*60*60*1000;
+                if(proximoTs < hoje) continue;
+                const ultimoPag = cache.pagamentos.find(p => new Date(p.data).getTime() === ultimo);
+                const valorEstim = ultimoPag ? ultimoPag.valor * ativo.qtdTotal : 0;
+                candidatos.push({
+                    tipo: 'dividendo',
+                    ts: proximoTs,
+                    label: `${ticker}`,
+                    detalhe: `Dividendo previsto · ~${formatarMoeda(valorEstim)} em ${new Date(proximoTs).toLocaleDateString('pt-BR')}`
+                });
+            }
+
+            if(candidatos.length === 0) {
+                valorEl.innerText = '—';
+                detEl.innerText = 'Sem vencimentos ou proventos previstos.';
+                titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Próximo evento';
+                return;
+            }
+            candidatos.sort((a,b) => a.ts - b.ts);
+            const prox = candidatos[0];
+            const diasFalta = Math.max(0, Math.round((prox.ts - hoje) / (24*60*60*1000)));
+            valorEl.innerText = prox.label;
+            detEl.innerText = prox.detalhe + ` (em ${diasFalta} dia${diasFalta === 1 ? '' : 's'})`;
+            titEl.innerHTML = prox.tipo === 'vencimento'
+                ? '<i class="ph ph-calendar-check"></i> Próximo vencimento'
+                : '<i class="ph ph-coins"></i> Próximo dividendo';
         }
 
         function atualizarBarraAlocacao(carteiraConsolidada) {
@@ -2615,7 +2746,13 @@
                         }
                     }
                 }
-                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td><span style="font-weight: 500; color: var(--cor-texto-principal);">${categoriaLbl}</span><span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${corretoraLbl}</span>${extraRF}</td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                const corretoraTag = ativo.corretora ? ` · ${ativo.corretora}` : '';
+                const ativoCell = `
+                    <div style="font-weight: 600; color: var(--cor-texto-principal);">${ticker}</div>
+                    <div style="font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</div>
+                    <div style="font-weight: 500; font-size: 10.5px; color: var(--cor-texto-mutado); margin-top:3px;">${categoriaLbl}${corretoraTag}</div>
+                    ${extraRF}`;
+                tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align: right; font-family: 'DM Mono', monospace;">${ativo.qtdTotal}</td><td class="col-extra" style="text-align: right; color: var(--cor-texto-secundario); font-family: 'DM Mono', monospace;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro}; font-family: 'DM Mono', monospace;">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
             }
 
             if(totalAtivosValidos === 0) {
@@ -2625,7 +2762,7 @@
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%";
+                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0,00%";
                 atualizarBarraAlocacao(carteiraConsolidada);
                 return;
             }
@@ -2644,13 +2781,14 @@
             document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
 
             const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
-            const titRend = document.getElementById('tituloRendimento'); const titRent = document.getElementById('tituloRentabilidade');
+            const titRend = document.getElementById('tituloRendimento');
 
             cardRend.innerText = formatarMoeda(lucroGeralR$); cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
-            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; }
-            else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; titRent.style.color = 'var(--cor-primaria)'; }
+            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; }
+            else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; }
 
             atualizarBarraAlocacao(carteiraConsolidada);
+            atualizarProximoEvento(carteiraConsolidada);
         }
 
         // ============================================================
@@ -2865,10 +3003,10 @@
                     const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
                     return `<tr>
                         <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
-                        <td style="text-align: right;">${l.qtdAtual}</td>
-                        <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(l.recebidoTotal)}</td>
-                        <td style="text-align: right;">${formatarMoeda(l.recebido12m)}</td>
-                        <td style="text-align: right;">${yocAtivo.toFixed(2)}%</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${l.qtdAtual}</td>
+                        <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${yocAtivo.toFixed(2)}%</td>
                     </tr>`;
                 }).join('');
             }
@@ -2878,11 +3016,11 @@
                 msgVaziaPag.style.display = 'block';
             } else {
                 tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
-                    <td>${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
+                    <td style="font-family:'DM Mono', monospace;">${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
                     <td style="font-weight: 600;">${p.ticker}</td>
-                    <td style="text-align: right;">${p.qtd}</td>
-                    <td style="text-align: right;">${formatarMoeda(p.valorCota)}</td>
-                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(p.total)}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${p.qtd}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(p.valorCota)}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(p.total)}</td>
                 </tr>`).join('');
             }
 
@@ -4135,6 +4273,8 @@
         // --- TECLADO E ARIA ---
         document.addEventListener('keydown', function(e) {
             if(e.key === 'Escape') {
+                const drawer = document.getElementById('drawerOperacao');
+                if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
                 const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes');
                 if(mc && mc.style.display === 'flex') fecharModal();
                 if(mconf && mconf.style.display === 'flex') fecharModalConfig();
@@ -4162,6 +4302,13 @@
             // Estado inicial do form de operação
             const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
             ajustarCamposPorCategoria();
+            // Restaura preferência do usuário sobre colunas extras
+            try {
+                if(localStorage.getItem('appliquei_carteira_extras') === '1') {
+                    document.getElementById('tabelaCarteira')?.classList.add('com-extras');
+                    const lbl = document.getElementById('lblToggleColunas'); if(lbl) lbl.innerText = 'Menos colunas';
+                }
+            } catch(_){}
         };
     </script>
 </body>
