@@ -936,28 +936,27 @@
                 <div><strong>Cotações estimadas.</strong> Não foi possível buscar as cotações do Yahoo Finance. Os preços exibidos são estimativas base.</div>
             </div>
 
-            <div style="display:grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 16px; margin-bottom: 24px;" id="gridResumoPatrimonio">
-                <div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px;">
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
-                        <div class="valor" id="resumoInvestido">R$ 0,00</div>
-                    </div>
-                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                        <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
-                        <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
-                    </div>
-                    <div class="card-destaque">
-                        <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
-                        <div class="valor" id="resumoRentabilidade">0.00%</div>
-                    </div>
+            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 14px;">
+                <div class="card-destaque">
+                    <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
+                    <div class="valor" id="resumoInvestido">R$ 0,00</div>
                 </div>
-                <div class="card-container" style="padding: 16px 18px; display:flex; flex-direction:column;">
-                    <h3 style="font-size:14px; font-weight:600; color: var(--cor-texto-secundario); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="ph ph-chart-pie-slice"></i> Alocação por categoria</h3>
-                    <div style="position:relative; flex:1; min-height:180px;">
-                        <canvas id="chartAlocacao"></canvas>
-                        <div id="alocacaoVaziaMsg" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; color: var(--cor-texto-mutado); font-size:12px; text-align:center;">Sem dados</div>
-                    </div>
+                <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
+                    <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
+                    <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
                 </div>
+                <div class="card-destaque">
+                    <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
+                    <div class="valor" id="resumoRentabilidade">0.00%</div>
+                </div>
+            </div>
+
+            <div id="alocacaoBox" style="background: var(--cor-branco); border:1px solid var(--cor-borda); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px; box-shadow: var(--shadow-card); display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                    <h3 style="font-size: 12px; font-weight:600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.7px; display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Alocação por categoria</h3>
+                    <div id="alocacaoLegenda" style="display:flex; gap:14px; flex-wrap:wrap; font-size: 12px; color: var(--cor-texto-secundario);"></div>
+                </div>
+                <div id="alocacaoBarra" style="display:flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--cor-superficie);"></div>
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -2526,7 +2525,6 @@
 
         // Filtro ativo de categoria na sub-aba Carteira
         let filtroCategoriaAtivo = '';
-        let chartAlocacao = null;
 
         function filtrarCarteiraPorCategoria(categoria) {
             filtroCategoriaAtivo = categoria || '';
@@ -2541,10 +2539,11 @@
             return 'renda_variavel';
         }
 
-        function atualizarChartAlocacao(carteiraConsolidada) {
-            const canvas = document.getElementById('chartAlocacao');
-            const msgVazia = document.getElementById('alocacaoVaziaMsg');
-            if(!canvas) return;
+        function atualizarBarraAlocacao(carteiraConsolidada) {
+            const box = document.getElementById('alocacaoBox');
+            const barra = document.getElementById('alocacaoBarra');
+            const legenda = document.getElementById('alocacaoLegenda');
+            if(!box || !barra || !legenda) return;
 
             const totaisPorCategoria = { renda_variavel: 0, renda_fixa: 0, previdencia: 0, reserva_emergencia: 0 };
             for(const ticker in carteiraConsolidada) {
@@ -2555,54 +2554,22 @@
                 const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
                 totaisPorCategoria[cat] += ativo.qtdTotal * precoAtual;
             }
+            const total = Object.values(totaisPorCategoria).reduce((a,b)=>a+b,0);
+            if(total <= 0) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
 
-            const labels = [];
-            const valores = [];
-            const cores = [];
+            const segmentos = [];
+            const itensLegenda = [];
             Object.keys(totaisPorCategoria).forEach(k => {
-                if(totaisPorCategoria[k] > 0) {
-                    labels.push(ROTULOS_CATEGORIA[k]);
-                    valores.push(totaisPorCategoria[k]);
-                    cores.push(CORES_CATEGORIA[k]);
-                }
+                const v = totaisPorCategoria[k];
+                if(v <= 0) return;
+                const perc = (v/total*100);
+                const cor = CORES_CATEGORIA[k];
+                segmentos.push(`<div title="${ROTULOS_CATEGORIA[k]}: ${formatarMoeda(v)} (${perc.toFixed(1)}%)" style="flex: ${v}; background: ${cor};"></div>`);
+                itensLegenda.push(`<span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:${cor};"></span><strong style="color: var(--cor-texto-principal); font-weight:600;">${ROTULOS_CATEGORIA[k]}</strong> · ${perc.toFixed(1)}%</span>`);
             });
-
-            if(valores.length === 0) {
-                if(chartAlocacao) { chartAlocacao.destroy(); chartAlocacao = null; }
-                msgVazia.style.display = 'flex';
-                canvas.style.display = 'none';
-                return;
-            }
-            msgVazia.style.display = 'none';
-            canvas.style.display = 'block';
-
-            if(chartAlocacao) {
-                chartAlocacao.data.labels = labels;
-                chartAlocacao.data.datasets[0].data = valores;
-                chartAlocacao.data.datasets[0].backgroundColor = cores;
-                chartAlocacao.update();
-                return;
-            }
-            chartAlocacao = new Chart(canvas.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderWidth: 0 }] },
-                options: {
-                    responsive: true, maintainAspectRatio: false, cutout: '62%',
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: getComputedStyle(document.body).getPropertyValue('--cor-texto-secundario') } },
-                        datalabels: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: function(ctx) {
-                                    const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
-                                    const v = ctx.parsed; const perc = total > 0 ? (v/total*100).toFixed(1) : 0;
-                                    return `${ctx.label}: ${v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} (${perc}%)`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+            barra.innerHTML = segmentos.join('');
+            legenda.innerHTML = itensLegenda.join('');
         }
 
         function atualizarCarteiraAtivos() {
@@ -2659,7 +2626,7 @@
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
                 document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%";
-                atualizarChartAlocacao(carteiraConsolidada);
+                atualizarBarraAlocacao(carteiraConsolidada);
                 return;
             }
             if(linhasRenderizadas === 0 && filtroCategoriaAtivo) {
@@ -2683,7 +2650,7 @@
             if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; }
             else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; titRent.style.color = 'var(--cor-primaria)'; }
 
-            atualizarChartAlocacao(carteiraConsolidada);
+            atualizarBarraAlocacao(carteiraConsolidada);
         }
 
         // ============================================================
