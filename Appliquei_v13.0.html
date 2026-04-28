@@ -503,6 +503,7 @@
 
         .loader { border: 3px solid var(--cor-borda); border-top: 3px solid var(--cor-primaria); border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 40px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ph-spin { display: inline-block; animation: spin 1s linear infinite; }
         .grafico-container { width: 100%; height: 300px; position: relative; margin-top: 16px; }
 
         .filtro-data {
@@ -556,6 +557,23 @@
             font-family: 'Figtree', sans-serif;
         }
         .btn-tab-dre.ativo { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-color: #1d4ed8; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+        .chip-cat {
+            background-color: var(--cor-branco); color: var(--cor-texto-secundario);
+            border: 1.5px solid var(--cor-borda); padding: 5px 11px; border-radius: 99px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.15s;
+            font-family: 'Figtree', sans-serif;
+        }
+        .chip-cat:hover { background: var(--cor-superficie); }
+        .chip-cat.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .projecao-rf-box {
+            padding: 10px 12px; border-radius: 9px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            margin-bottom: 14px; font-size: 12.5px; color: var(--cor-txt-info);
+        }
+        .projecao-rf-box.warning {
+            background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber);
+        }
+        .projecao-rf-box .destaque-liquido { font-weight: 700; color: var(--cor-primaria); }
 
         /* === TOAST === */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -903,8 +921,6 @@
                     <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
                 </div>
                 <div class="page-actions">
-                    <span id="badgeRealTime" style="display:none; align-items:center; gap:5px; padding:5px 12px; border-radius:99px; font-size:12px; font-weight:500; border:1px solid;"></span>
-                    <button class="btn-secundario" onclick="exportarDados()"><i class="ph ph-download-simple"></i> Exportar</button>
                     <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
                 </div>
             </div>
@@ -920,31 +936,50 @@
                 <div><strong>Cotações estimadas.</strong> Não foi possível buscar as cotações do Yahoo Finance. Os preços exibidos são estimativas base.</div>
             </div>
 
-            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
-                <div class="card-destaque">
-                    <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
-                    <div class="valor" id="resumoInvestido">R$ 0,00</div>
+            <div style="display:grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 16px; margin-bottom: 24px;" id="gridResumoPatrimonio">
+                <div style="display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px;">
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
+                        <div class="valor" id="resumoInvestido">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
+                        <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
+                        <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque">
+                        <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
+                        <div class="valor" id="resumoRentabilidade">0.00%</div>
+                    </div>
                 </div>
-                <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                    <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
-                    <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
-                </div>
-                <div class="card-destaque">
-                    <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
-                    <div class="valor" id="resumoRentabilidade">0.00%</div>
+                <div class="card-container" style="padding: 16px 18px; display:flex; flex-direction:column;">
+                    <h3 style="font-size:14px; font-weight:600; color: var(--cor-texto-secundario); margin-bottom:8px; display:flex; align-items:center; gap:6px;"><i class="ph ph-chart-pie-slice"></i> Alocação por categoria</h3>
+                    <div style="position:relative; flex:1; min-height:180px;">
+                        <canvas id="chartAlocacao"></canvas>
+                        <div id="alocacaoVaziaMsg" style="display:none; position:absolute; inset:0; align-items:center; justify-content:center; color: var(--cor-texto-mutado); font-size:12px; text-align:center;">Sem dados</div>
+                    </div>
                 </div>
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
                 <div style="display:flex; gap:8px;">
                     <button class="btn-tab-dre ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                    <button class="btn-tab-dre" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
                     <button class="btn-tab-dre" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>
                 <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
             </div>
 
             <div id="subAbaCarteira">
-            <h2 style="font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); margin-bottom: 16px;">Minha carteira de ativos</h2>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+                <h2 style="font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); margin:0;">Minha carteira de ativos</h2>
+                <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
+                    <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
+                    <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
+                    <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
+                    <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
+                    <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
+                </div>
+            </div>
             <div class="grid-2">
 
                 <div class="card-container" id="painelOperacaoCard" style="background: var(--cor-bg-primaria); border-color: #a7f3d0; transition: var(--transicao);">
@@ -1002,7 +1037,7 @@
                                 <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
                             </div>
                         </div>
-                        <div id="projecaoRfPreview" style="display:none; padding:10px 12px; border-radius:9px; background: #ecfeff; border:1px solid #a5f3fc; margin-bottom:14px; font-size: 12.5px; color: #155e75;"></div>
+                        <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
                     </div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
                         <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da Operação:</span>
@@ -1022,7 +1057,7 @@
                                     <th style="text-align: right;">Preço Médio</th>
                                     <th style="text-align: right;">
                                         Preço Atual
-                                        <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">🔄 Atualizando...</span>
+                                        <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"><i class="ph ph-circle-notch ph-spin"></i> Atualizando...</span>
                                     </th>
                                     <th style="text-align: right;">Saldo Atual</th>
                                     <th style="text-align: right;">Projeção</th>
@@ -1040,23 +1075,81 @@
             </div>
             </div>
 
+            <div id="subAbaOperacoes" style="display:none;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                    <input type="text" id="filtroOperacoesTicker" placeholder="Filtrar por ticker..." style="flex:1; min-width:200px; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);" oninput="renderizarOperacoes()">
+                    <select id="filtroOperacoesTipo" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
+                        <option value="">Todos os tipos</option>
+                        <option value="compra">Apenas compras</option>
+                        <option value="venda">Apenas vendas</option>
+                    </select>
+                    <select id="filtroOperacoesCategoria" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
+                        <option value="">Todas as categorias</option>
+                        <option value="renda_variavel">Renda Variável</option>
+                        <option value="renda_fixa">Renda Fixa</option>
+                        <option value="previdencia">Previdência</option>
+                        <option value="reserva_emergencia">Reserva de Emergência</option>
+                    </select>
+                </div>
+
+                <div class="card-container" style="padding: 0; overflow: hidden;">
+                    <div style="overflow-x: auto; max-height: 540px;">
+                        <table class="tabela-dashboard">
+                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
+                                    <th>Ativo</th>
+                                    <th>Categoria</th>
+                                    <th>Corretora</th>
+                                    <th style="text-align: right;">Qtd</th>
+                                    <th style="text-align: right;">Preço</th>
+                                    <th style="text-align: right;">Total</th>
+                                    <th style="text-align: center;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabelaOperacoesCorpo"></tbody>
+                        </table>
+                        <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">Nenhuma operação encontrada</div>
+                                <div class="empty-state-sub">Registre uma operação na aba Carteira ou ajuste os filtros.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div id="subAbaDividendos" style="display:none;">
                 <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
                     <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
                     <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
                 </div>
 
-                <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 24px;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento, com base no seu histórico de operações.</small>
+                    <label style="display:flex; align-items:center; gap:6px; font-size: 13px; color: var(--cor-texto-secundario); cursor:pointer;">
+                        <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;">
+                        Mostrar posições encerradas
+                    </label>
+                </div>
+
+                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 24px;">
                     <div class="card-destaque">
-                        <h3><i class="ph ph-coins"></i> Recebido (12 meses)</h3>
+                        <h3><i class="ph ph-coins"></i> Recebido total <small style="font-weight:400; color: var(--cor-texto-mutado);">(desde a 1ª compra)</small></h3>
+                        <div class="valor" id="dividendosTotal">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-calendar-blank"></i> Últimos 12 meses</h3>
                         <div class="valor" id="dividendos12m">R$ 0,00</div>
                     </div>
                     <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost (12m)</h3>
+                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost</h3>
                         <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
                     </div>
                     <div class="card-destaque">
-                        <h3><i class="ph ph-calendar-blank"></i> Média mensal</h3>
+                        <h3><i class="ph ph-trend-up"></i> Média mensal (12m)</h3>
                         <div class="valor" id="dividendosMedia">R$ 0,00</div>
                     </div>
                 </div>
@@ -1069,10 +1162,10 @@
                                 <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
                                     <tr>
                                         <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd</th>
-                                        <th style="text-align: right;">Último provento</th>
-                                        <th style="text-align: right;">Frequência</th>
-                                        <th style="text-align: right;">Recebido (12m)</th>
+                                        <th style="text-align: right;">Qtd atual</th>
+                                        <th style="text-align: right;">Recebido total</th>
+                                        <th style="text-align: right;">Recebido 12m</th>
+                                        <th style="text-align: right;">YOC</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tabelaDividendosCorpo"></tbody>
@@ -1095,6 +1188,7 @@
                                     <tr>
                                         <th>Data</th>
                                         <th>Ativo</th>
+                                        <th style="text-align: right;">Qtd na data</th>
                                         <th style="text-align: right;">Valor / cota</th>
                                         <th style="text-align: right;">Total recebido</th>
                                     </tr>
@@ -1102,7 +1196,7 @@
                                 <tbody id="tabelaPagamentosCorpo"></tbody>
                             </table>
                             <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                                <p style="font-size: 13px;">Nenhum pagamento encontrado nos últimos 12 meses.</p>
+                                <p style="font-size: 13px;">Nenhum pagamento encontrado no histórico.</p>
                             </div>
                         </div>
                     </div>
@@ -1749,21 +1843,24 @@
 
         // Sub-abas dentro de "Meus Investimentos"
         function mudarSubAbaPatrimonio(qual) {
-            const carteira = document.getElementById('subAbaCarteira');
-            const dividendos = document.getElementById('subAbaDividendos');
-            const btnC = document.getElementById('subtabBtnCarteira');
-            const btnD = document.getElementById('subtabBtnDividendos');
+            const subs = {
+                carteira: document.getElementById('subAbaCarteira'),
+                operacoes: document.getElementById('subAbaOperacoes'),
+                dividendos: document.getElementById('subAbaDividendos')
+            };
+            const btns = {
+                carteira: document.getElementById('subtabBtnCarteira'),
+                operacoes: document.getElementById('subtabBtnOperacoes'),
+                dividendos: document.getElementById('subtabBtnDividendos')
+            };
             const btnRefresh = document.getElementById('btnAtualizarDividendos');
-            if(qual === 'dividendos') {
-                carteira.style.display = 'none'; dividendos.style.display = 'block';
-                btnC.classList.remove('ativo'); btnD.classList.add('ativo');
-                btnRefresh.style.display = 'inline-flex';
-                carregarDividendos();
-            } else {
-                carteira.style.display = 'block'; dividendos.style.display = 'none';
-                btnD.classList.remove('ativo'); btnC.classList.add('ativo');
-                btnRefresh.style.display = 'none';
-            }
+            Object.keys(subs).forEach(k => {
+                subs[k].style.display = (k === qual) ? 'block' : 'none';
+                btns[k].classList.toggle('ativo', k === qual);
+            });
+            btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
+            if(qual === 'dividendos') carregarDividendos();
+            if(qual === 'operacoes') renderizarOperacoes();
         }
 
         function toggleDarkMode() {
@@ -1946,7 +2043,7 @@
                     badgeRealTime.style.background = '#e0f2fe';
                     badgeRealTime.style.color = '#0369a1';
                     badgeRealTime.style.borderColor = '#bae6fd';
-                    badgeRealTime.innerHTML = '🔄 Consultando Yahoo...';
+                    badgeRealTime.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Consultando Yahoo...';
                     badgeRealTime.style.display = 'inline-flex';
                 }
 
@@ -1973,7 +2070,7 @@
                         badgeRealTime.style.background = '#dcfce7'; 
                         badgeRealTime.style.color = '#166534';
                         badgeRealTime.style.borderColor = '#bbf7d0';
-                        badgeRealTime.innerHTML = '✅ Yahoo Atualizado';
+                        badgeRealTime.innerHTML = '<i class="ph-fill ph-check-circle"></i> Yahoo atualizado';
                         setTimeout(() => { badgeRealTime.style.display = 'none'; }, 4000);
                     }
                 } else {
@@ -1988,7 +2085,7 @@
                     badgeRealTime.style.background = '#fef3c7'; 
                     badgeRealTime.style.color = '#92400e';
                     badgeRealTime.style.borderColor = '#fde68a';
-                    badgeRealTime.innerHTML = '⚠ Preços Estimados';
+                    badgeRealTime.innerHTML = '<i class="ph-fill ph-warning"></i> Preços estimados';
                 }
             }
         }
@@ -2193,22 +2290,32 @@
             const preview = document.getElementById('projecaoRfPreview');
             if(!preview) return;
             const cat = document.getElementById('compraCategoria').value;
-            if(cat !== 'renda_fixa' && cat !== 'reserva_emergencia') { preview.style.display = 'none'; return; }
+            const ehRF = cat === 'renda_fixa' || cat === 'reserva_emergencia';
+            if(!ehRF) { preview.style.display = 'none'; return; }
+
+            const rent = document.getElementById('compraRentabilidade').value.trim();
+            // Validação inline da string de rentabilidade (mesmo sem todos os outros campos)
+            if(rent) {
+                const parsed = parsearRentabilidade(rent);
+                const hint = document.getElementById('compraRentabilidade');
+                if(parsed) hint.style.borderColor = '';
+                else hint.style.borderColor = 'var(--cor-erro)';
+            }
+
             const qtd = parseFloat(document.getElementById('compraQtd').value) || 0;
             const preco = parseBRL(document.getElementById('compraPreco').value) || 0;
             const dataOp = document.getElementById('compraData').value;
             const venc = document.getElementById('compraVencimento').value;
-            const rent = document.getElementById('compraRentabilidade').value.trim();
             const valor = qtd * preco;
             if(!valor || !dataOp || !venc || !rent) { preview.style.display = 'none'; return; }
             const proj = calcularProjecaoRF(valor, dataOp, venc, rent);
             if(!proj) {
+                preview.classList.add('warning');
                 preview.style.display = 'block';
-                preview.style.background = '#fef3c7'; preview.style.borderColor = '#fde68a'; preview.style.color = '#92400e';
                 preview.innerHTML = `<i class="ph ph-warning"></i> Não consegui interpretar a rentabilidade. Use formatos como <strong>110% CDI</strong>, <strong>IPCA+6%</strong>, <strong>12% a.a.</strong>`;
                 return;
             }
-            preview.style.background = '#ecfeff'; preview.style.borderColor = '#a5f3fc'; preview.style.color = '#155e75';
+            preview.classList.remove('warning');
             const fonte = taxasMercado.fonte === 'BCB' ? `CDI ${(taxasMercado.cdi*100).toFixed(2)}% · IPCA ${(taxasMercado.ipca*100).toFixed(2)}% (BCB)` : `taxas estimadas`;
             preview.style.display = 'block';
             preview.innerHTML = `
@@ -2218,7 +2325,7 @@
                 </div>
                 <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:4px;">
                     <span style="opacity:.85;">IR ${(proj.aliquotaIR*100).toFixed(1)}% · ${fonte}</span>
-                    <span style="font-weight:700; color:#0e7490;">Líquido: ${formatarMoeda(proj.valorFinalLiquido)} (+${formatarMoeda(proj.rendimentoLiquido)})</span>
+                    <span class="destaque-liquido">Líquido: ${formatarMoeda(proj.valorFinalLiquido)} (+${formatarMoeda(proj.rendimentoLiquido)})</span>
                 </div>`;
         }
 
@@ -2273,10 +2380,117 @@
             document.getElementById('compraData').value = new Date().toISOString().slice(0,10);
             const elCat = document.getElementById('compraCategoria'); elCat.value = 'renda_variavel'; delete elCat.dataset.touched;
             ajustarCamposPorCategoria();
-            mostrarToast(tipoOp === 'compra' ? `✓ Compra de ${ticker} registrada com sucesso!` : `✓ Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
+            mostrarToast(tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
             atualizarDatalistDescricoes();
             inicializarDatalistCorretoras();
+            renderizarOperacoes();
+        }
+
+        // --- LISTA DE OPERAÇÕES (sub-aba) ---
+        function renderizarOperacoes() {
+            const tbody = document.getElementById('tabelaOperacoesCorpo');
+            const msgVazia = document.getElementById('operacoesVaziaMsg');
+            if(!tbody) return;
+
+            const filtroTicker = (document.getElementById('filtroOperacoesTicker')?.value || '').toUpperCase();
+            const filtroTipo = document.getElementById('filtroOperacoesTipo')?.value || '';
+            const filtroCat = document.getElementById('filtroOperacoesCategoria')?.value || '';
+
+            const ops = [...historicoCompras]
+                .filter(op => !filtroTicker || (op.ticker || '').includes(filtroTicker))
+                .filter(op => !filtroTipo || (op.tipo || 'compra') === filtroTipo)
+                .filter(op => !filtroCat || op.categoria === filtroCat)
+                .sort((a,b) => new Date(b.data_op || 0) - new Date(a.data_op || 0));
+
+            if(ops.length === 0) {
+                tbody.innerHTML = "";
+                msgVazia.style.display = 'block';
+                return;
+            }
+            msgVazia.style.display = 'none';
+
+            tbody.innerHTML = ops.map(op => {
+                const tipo = op.tipo || 'compra';
+                const tipoLabel = tipo === 'venda'
+                    ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro);"><i class="ph-bold ph-trend-down"></i> Venda</span>`
+                    : `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria);"><i class="ph-bold ph-trend-up"></i> Compra</span>`;
+                const dataLbl = op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—';
+                const catLbl = ROTULOS_CATEGORIA[op.categoria] || '—';
+                const corretoraLbl = op.corretora || '—';
+                const total = op.quantidade * (op.preco_op || op.preco_pago || 0);
+                return `<tr>
+                    <td>${dataLbl}</td>
+                    <td>${tipoLabel}</td>
+                    <td style="font-weight:600;">${op.ticker}</td>
+                    <td>${catLbl}</td>
+                    <td>${corretoraLbl}</td>
+                    <td style="text-align:right;">${op.quantidade}</td>
+                    <td style="text-align:right;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
+                    <td style="text-align:right; font-weight:600;">${formatarMoeda(total)}</td>
+                    <td style="text-align:center; white-space:nowrap;">
+                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px;" title="Editar" onclick="editarOperacao(${op.id})"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px; color: var(--cor-erro);" title="Excluir" onclick="excluirOperacao(${op.id})"><i class="ph ph-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function editarOperacao(id) {
+            const op = historicoCompras.find(o => o.id === id);
+            if(!op) return mostrarToast('Operação não encontrada.', 'erro');
+
+            // Volta para a sub-aba Carteira para preencher o formulário
+            mudarSubAbaPatrimonio('carteira');
+
+            // Preenche o formulário e remove a operação atual — ao confirmar, será re-registrada
+            alternarTipoOperacao(op.tipo || 'compra');
+            document.getElementById('compraTicker').value = op.ticker || '';
+            document.getElementById('compraQtd').value = op.quantidade || '';
+            setValorBRLInput(document.getElementById('compraPreco'), op.preco_op || op.preco_pago || 0);
+            document.getElementById('compraData').value = (op.data_op || '').slice(0,10) || new Date().toISOString().slice(0,10);
+            document.getElementById('compraCorretora').value = op.corretora || '';
+            const elCat = document.getElementById('compraCategoria');
+            if(op.categoria) { elCat.value = op.categoria; elCat.dataset.touched = '1'; }
+            document.getElementById('compraVencimento').value = op.vencimento || '';
+            document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
+            ajustarCamposPorCategoria();
+            calcularTotalCompra();
+            atualizarProjecaoForm();
+
+            // Remove a versão antiga; o "Confirmar" cria uma nova entrada
+            historicoCompras = historicoCompras.filter(o => o.id !== id);
+            transacoes = transacoes.filter(t => t.id !== id.toString());
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            atualizarCarteiraAtivos();
+            renderizarOperacoes();
+
+            // Foca no card de operação
+            document.getElementById('compraTicker').focus();
+            mostrarToast('Edite os campos e clique em Confirmar.', 'info');
+        }
+
+        function excluirOperacao(id) {
+            const op = historicoCompras.find(o => o.id === id);
+            if(!op) return mostrarToast('Operação não encontrada.', 'erro');
+
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-trash" style="color: var(--cor-erro);"></i> Excluir operação`;
+            document.getElementById('modalMensagem').innerHTML = `Tem certeza que deseja excluir a operação:<br><strong>${(op.tipo || 'compra').toUpperCase()}</strong> de <strong>${op.quantidade}x ${op.ticker}</strong> em ${op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—'}?<br><br><span style="color: var(--cor-erro); font-weight: 600;">Esta ação não pode ser desfeita.</span>`;
+            document.getElementById('modalAcoes').innerHTML = `<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="confirmarExclusaoOperacao(${id})"><i class="ph ph-trash"></i> Sim, excluir</button>`;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarExclusaoOperacao(id) {
+            historicoCompras = historicoCompras.filter(o => o.id !== id);
+            transacoes = transacoes.filter(t => t.id !== id.toString());
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            fecharModal();
+            atualizarCarteiraAtivos();
+            renderizarOperacoes();
+            mostrarToast('Operação excluída.', 'sucesso');
         }
 
         function obterResumoCarteira() {
@@ -2303,14 +2517,102 @@
             previdencia: 'Previdência',
             reserva_emergencia: 'Reserva de Emergência'
         };
+        const CORES_CATEGORIA = {
+            renda_variavel: '#2563eb',
+            renda_fixa: '#059669',
+            previdencia: '#7c3aed',
+            reserva_emergencia: '#d97706'
+        };
+
+        // Filtro ativo de categoria na sub-aba Carteira
+        let filtroCategoriaAtivo = '';
+        let chartAlocacao = null;
+
+        function filtrarCarteiraPorCategoria(categoria) {
+            filtroCategoriaAtivo = categoria || '';
+            document.querySelectorAll('.chip-cat').forEach(c => c.classList.toggle('ativo', (c.dataset.cat || '') === filtroCategoriaAtivo));
+            atualizarCarteiraAtivos();
+        }
+
+        // Inferi a categoria efetiva do ativo (operação > mock > fallback)
+        function inferirCategoria(ticker, ativoConsolidado, ativoMercado) {
+            if(ativoConsolidado?.categoria) return ativoConsolidado.categoria;
+            if(ativoMercado?.tipo === 'Renda Fixa') return 'renda_fixa';
+            return 'renda_variavel';
+        }
+
+        function atualizarChartAlocacao(carteiraConsolidada) {
+            const canvas = document.getElementById('chartAlocacao');
+            const msgVazia = document.getElementById('alocacaoVaziaMsg');
+            if(!canvas) return;
+
+            const totaisPorCategoria = { renda_variavel: 0, renda_fixa: 0, previdencia: 0, reserva_emergencia: 0 };
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const cat = inferirCategoria(ticker, ativo, ativoMercado);
+                const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                totaisPorCategoria[cat] += ativo.qtdTotal * precoAtual;
+            }
+
+            const labels = [];
+            const valores = [];
+            const cores = [];
+            Object.keys(totaisPorCategoria).forEach(k => {
+                if(totaisPorCategoria[k] > 0) {
+                    labels.push(ROTULOS_CATEGORIA[k]);
+                    valores.push(totaisPorCategoria[k]);
+                    cores.push(CORES_CATEGORIA[k]);
+                }
+            });
+
+            if(valores.length === 0) {
+                if(chartAlocacao) { chartAlocacao.destroy(); chartAlocacao = null; }
+                msgVazia.style.display = 'flex';
+                canvas.style.display = 'none';
+                return;
+            }
+            msgVazia.style.display = 'none';
+            canvas.style.display = 'block';
+
+            if(chartAlocacao) {
+                chartAlocacao.data.labels = labels;
+                chartAlocacao.data.datasets[0].data = valores;
+                chartAlocacao.data.datasets[0].backgroundColor = cores;
+                chartAlocacao.update();
+                return;
+            }
+            chartAlocacao = new Chart(canvas.getContext('2d'), {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data: valores, backgroundColor: cores, borderWidth: 0 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '62%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 }, color: getComputedStyle(document.body).getPropertyValue('--cor-texto-secundario') } },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                                    const v = ctx.parsed; const perc = total > 0 ? (v/total*100).toFixed(1) : 0;
+                                    return `${ctx.label}: ${v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} (${perc}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         function atualizarCarteiraAtivos() {
             const tbody = document.getElementById('tabelaCarteiraCorpo'); const msgVazia = document.getElementById('carteiraVaziaMsg'); tbody.innerHTML = "";
             const datalistCarteira = document.getElementById('listaAtivosCarteira'); datalistCarteira.innerHTML = "";
             let carteiraConsolidada = obterResumoCarteira(); let totalAtivosValidos = 0; let totalGeralInvestido = 0; let saldoGeralAtual = 0;
 
+            let linhasRenderizadas = 0;
             for (let ticker in carteiraConsolidada) {
-                let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue; 
+                let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue;
                 totalAtivosValidos++;
                 let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
 
@@ -2319,6 +2621,11 @@
                 let saldoAtualAtivo = ativo.qtdTotal * precoAtual; let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
                 let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
+
+                // Aplica filtro por categoria (apenas para o que renderiza na tabela)
+                const categoriaEfetiva = inferirCategoria(ticker, ativo, ativoMercado);
+                if(filtroCategoriaAtivo && categoriaEfetiva !== filtroCategoriaAtivo) continue;
+                linhasRenderizadas++;
 
                 let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
                 let corretoraLbl = ativo.corretora || '—';
@@ -2351,19 +2658,32 @@
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%"; return;
+                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%";
+                atualizarChartAlocacao(carteiraConsolidada);
+                return;
             }
-            msgVazia.style.display = "none";
+            if(linhasRenderizadas === 0 && filtroCategoriaAtivo) {
+                msgVazia.style.display = "block";
+                msgVazia.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-icon" style="background: var(--cor-superficie);"><i class="ph ph-funnel" style="font-size: 26px; color: var(--cor-texto-secundario);"></i></div>
+                    <div class="empty-state-titulo">Nenhum ativo nesta categoria</div>
+                    <div class="empty-state-sub">Selecione "Tudo" ou outra categoria nos filtros acima.</div>
+                </div>`;
+            } else {
+                msgVazia.style.display = "none";
+            }
 
             let lucroGeralR$ = saldoGeralAtual - totalGeralInvestido; let lucroGeralPerc = totalGeralInvestido > 0 ? (lucroGeralR$ / totalGeralInvestido) * 100 : 0;
             document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
-            
+
             const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
             const titRend = document.getElementById('tituloRendimento'); const titRent = document.getElementById('tituloRentabilidade');
 
             cardRend.innerText = formatarMoeda(lucroGeralR$); cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
             if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; }
             else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; titRent.style.color = 'var(--cor-primaria)'; }
+
+            atualizarChartAlocacao(carteiraConsolidada);
         }
 
         // ============================================================
@@ -2449,33 +2769,62 @@
             return 'Anual';
         }
 
+        // Quantos ativos o usuário tinha numa data específica.
+        // dataIso pode ser 'YYYY-MM-DD' ou ISO completo. Compara com data_op das operações.
+        function qtdNaData(ticker, dataIso) {
+            const limite = new Date(dataIso).getTime();
+            let qtd = 0;
+            historicoCompras.forEach(op => {
+                if(op.ticker !== ticker) return;
+                if(!op.data_op) return;
+                if(new Date(op.data_op).getTime() > limite) return;
+                if(op.tipo === 'venda') qtd -= op.quantidade;
+                else qtd += op.quantidade;
+            });
+            return qtd;
+        }
+
+        // Data da primeira compra de um ticker (ISO 'YYYY-MM-DD'); null se nunca comprou.
+        function dataPrimeiraCompra(ticker) {
+            const compras = historicoCompras.filter(op => op.ticker === ticker && op.tipo !== 'venda' && op.data_op);
+            if(!compras.length) return null;
+            return compras.reduce((min, op) => op.data_op < min ? op.data_op : min, compras[0].data_op).slice(0,10);
+        }
+
         async function carregarDividendos(forcar = false) {
             const tbodyAtivos = document.getElementById('tabelaDividendosCorpo');
             const tbodyPagamentos = document.getElementById('tabelaPagamentosCorpo');
             const msgVaziaAtivos = document.getElementById('dividendosVaziaMsg');
             const msgVaziaPag = document.getElementById('pagamentosVaziaMsg');
             const banner = document.getElementById('bannerDividendosAviso');
+            const cardTotal = document.getElementById('dividendosTotal');
             const card12m = document.getElementById('dividendos12m');
             const cardYOC = document.getElementById('dividendosYOC');
             const cardMedia = document.getElementById('dividendosMedia');
+            const incluirEncerradas = document.getElementById('chkIncluirEncerradas')?.checked || false;
             if(!tbodyAtivos) return;
 
-            tbodyAtivos.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--cor-texto-secundario);"><i class="ph ph-circle-notch" style="font-size:20px;"></i> Carregando proventos...</td></tr>`;
+            tbodyAtivos.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--cor-texto-secundario);"><i class="ph ph-circle-notch ph-spin" style="font-size:20px;"></i> Carregando proventos...</td></tr>`;
             tbodyPagamentos.innerHTML = "";
             banner.style.display = 'none';
 
             const carteira = obterResumoCarteira();
-            const tickers = Object.keys(carteira).filter(t => {
-                if(carteira[t].qtdTotal <= 0) return false;
+            // Lista de tickers candidatos: todos que aparecem no histórico (mesmo se posição zerada),
+            // filtrando por elegibilidade (não Renda Fixa) e pela opção do usuário.
+            const tickersHistorico = [...new Set(historicoCompras.map(op => op.ticker))];
+            const tickers = tickersHistorico.filter(t => {
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === t);
-                return tickerElegivelDividendos(t, ativoMercado);
+                if(!tickerElegivelDividendos(t, ativoMercado)) return false;
+                const qtdAtual = carteira[t]?.qtdTotal || 0;
+                if(!incluirEncerradas && qtdAtual <= 0) return false;
+                return true;
             });
 
             if(tickers.length === 0) {
                 tbodyAtivos.innerHTML = "";
                 msgVaziaAtivos.style.display = 'block';
                 msgVaziaPag.style.display = 'block';
-                card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
+                cardTotal.innerText = "R$ 0,00"; card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
                 return;
             }
             msgVaziaAtivos.style.display = 'none';
@@ -2490,65 +2839,89 @@
             const houveFalha = resultados.some(r => r.pagamentos.length === 0);
             if(houveFalha) banner.style.display = 'flex';
 
-            const limite12m = Date.now() - 365*24*60*60*1000;
-            let total12m = 0;
-            let totalInvestido12m = 0;
+            const agora = Date.now();
+            const limite12m = agora - 365*24*60*60*1000;
+            let totalGeral = 0;        // Visão A: tudo desde a 1ª compra
+            let total12m = 0;          // Visão B: últimos 12m
+            let totalInvestidoYOC = 0; // Total investido líquido das posições contabilizadas (para YOC)
             const linhasAtivos = [];
             const todosPagamentos = [];
 
             resultados.forEach(({ ticker, pagamentos }) => {
-                const ativo = carteira[ticker];
+                const ativo = carteira[ticker] || { qtdTotal: 0, valorTotalInvestido: 0 };
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
                 const nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo";
-                const pagOrd = [...pagamentos].sort((a,b) => new Date(b.data) - new Date(a.data));
-                const ultimo = pagOrd[0];
-                const pag12m = pagOrd.filter(p => new Date(p.data).getTime() >= limite12m);
-                const recebido12m = pag12m.reduce((s, p) => s + p.valor * ativo.qtdTotal, 0);
-                total12m += recebido12m;
-                totalInvestido12m += ativo.valorTotalInvestido;
+                const primeiraCompra = dataPrimeiraCompra(ticker);
+                if(!primeiraCompra) return;
+                const limitePrimeiraCompraMs = new Date(primeiraCompra).getTime();
 
-                const freq = inferirFrequencia(pag12m.length ? pag12m : pagOrd);
-                linhasAtivos.push({
-                    ticker, nomeAtivo, qtd: ativo.qtdTotal,
-                    ultimoValor: ultimo ? ultimo.valor : 0,
-                    ultimoData: ultimo ? ultimo.data : null,
-                    freq, recebido12m
+                let recebidoTotal = 0;
+                let recebido12m = 0;
+
+                // Para cada pagamento, conta apenas as cotas que o usuário possuía na data.
+                pagamentos.forEach(p => {
+                    if(!p.data) return;
+                    const dataMs = new Date(p.data).getTime();
+                    if(dataMs < limitePrimeiraCompraMs) return; // antes da 1ª compra → não recebeu
+                    const qtd = qtdNaData(ticker, p.data);
+                    if(qtd <= 0) return;
+                    const totalPag = qtd * p.valor;
+                    recebidoTotal += totalPag;
+                    if(dataMs >= limite12m) recebido12m += totalPag;
+                    todosPagamentos.push({ data: p.data, ticker, qtd, valorCota: p.valor, total: totalPag });
                 });
 
-                pag12m.forEach(p => todosPagamentos.push({
-                    data: p.data, ticker, valorCota: p.valor, total: p.valor * ativo.qtdTotal
-                }));
+                if(recebidoTotal === 0 && pagamentos.length === 0) return; // sem dados nem provento
+
+                totalGeral += recebidoTotal;
+                total12m += recebido12m;
+                totalInvestidoYOC += Math.max(ativo.valorTotalInvestido, 0);
+
+                linhasAtivos.push({
+                    ticker, nomeAtivo,
+                    qtdAtual: ativo.qtdTotal,
+                    encerrada: ativo.qtdTotal <= 0,
+                    investido: ativo.valorTotalInvestido,
+                    recebidoTotal, recebido12m
+                });
             });
 
-            // Ordena tabela de ativos por valor recebido (desc)
-            linhasAtivos.sort((a,b) => b.recebido12m - a.recebido12m);
-            tbodyAtivos.innerHTML = linhasAtivos.map(l => {
-                const ultimoLbl = l.ultimoData
-                    ? `${formatarMoeda(l.ultimoValor)} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${new Date(l.ultimoData + (l.ultimoData.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</span>`
-                    : '—';
-                return `<tr>
-                    <td style="font-weight: 600;">${l.ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
-                    <td style="text-align: right;">${l.qtd}</td>
-                    <td style="text-align: right;">${ultimoLbl}</td>
-                    <td style="text-align: right;">${l.freq}</td>
-                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(l.recebido12m)}</td>
-                </tr>`;
-            }).join('');
+            // Ordena por recebido total desc
+            linhasAtivos.sort((a,b) => b.recebidoTotal - a.recebidoTotal);
+
+            if(linhasAtivos.length === 0) {
+                tbodyAtivos.innerHTML = "";
+                msgVaziaAtivos.style.display = 'block';
+            } else {
+                tbodyAtivos.innerHTML = linhasAtivos.map(l => {
+                    const yocAtivo = l.investido > 0 ? (l.recebidoTotal / l.investido * 100) : 0;
+                    const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
+                    return `<tr>
+                        <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
+                        <td style="text-align: right;">${l.qtdAtual}</td>
+                        <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(l.recebidoTotal)}</td>
+                        <td style="text-align: right;">${formatarMoeda(l.recebido12m)}</td>
+                        <td style="text-align: right;">${yocAtivo.toFixed(2)}%</td>
+                    </tr>`;
+                }).join('');
+            }
 
             todosPagamentos.sort((a,b) => new Date(b.data) - new Date(a.data));
             if(todosPagamentos.length === 0) {
                 msgVaziaPag.style.display = 'block';
             } else {
-                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 80).map(p => `<tr>
+                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
                     <td>${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
                     <td style="font-weight: 600;">${p.ticker}</td>
+                    <td style="text-align: right;">${p.qtd}</td>
                     <td style="text-align: right;">${formatarMoeda(p.valorCota)}</td>
                     <td style="text-align: right; font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(p.total)}</td>
                 </tr>`).join('');
             }
 
+            cardTotal.innerText = formatarMoeda(totalGeral);
             card12m.innerText = formatarMoeda(total12m);
-            cardYOC.innerText = totalInvestido12m > 0 ? `${(total12m / totalInvestido12m * 100).toFixed(2)}%` : '0,00%';
+            cardYOC.innerText = totalInvestidoYOC > 0 ? `${(totalGeral / totalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
             cardMedia.innerText = formatarMoeda(total12m / 12);
         }
 
@@ -2714,7 +3087,7 @@
 
             cancelarEdicaoControle();
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes)); 
-            mostrarToast("✓ Lançamento atualizado!", "sucesso");
+            mostrarToast("Lançamento atualizado!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
         }
@@ -2752,7 +3125,7 @@
 
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes)); 
             document.getElementById('descTransacao').value = ""; document.getElementById('valorTransacao').value = ""; document.getElementById('transacaoFixa').checked = false; document.getElementById('qtdParcelas').value = 1; document.getElementById('dataVencimento').value = ""; document.getElementById('categoriaTransacao').value = "";
-            mostrarToast("✓ Lançamento salvo com sucesso!", "sucesso");
+            mostrarToast("Lançamento salvo com sucesso!", "sucesso");
             atualizarTelaControle(); 
             atualizarDatalistDescricoes();
         }
@@ -2853,7 +3226,7 @@
                 return t;
             });
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-            mostrarToast("✓ Pagamento confirmado!", "sucesso");
+            mostrarToast("Pagamento confirmado!", "sucesso");
             atualizarTelaControle(); 
         }
 
@@ -3306,7 +3679,7 @@
                 ativos: ativosTemp
             };
             localStorage.setItem('futurorico_carteira_admin', JSON.stringify(dbCarteira));
-            mostrarToast("✓ Diretriz de carteira publicada com sucesso!", "sucesso"); toggleModoAdmin(); carregarCarteiraCliente();
+            mostrarToast("Diretriz de carteira publicada com sucesso!", "sucesso"); toggleModoAdmin(); carregarCarteiraCliente();
         }
 
         // === Client View ===
@@ -3709,7 +4082,7 @@
             const dados = { versao: 'v6', exportadoEm: new Date().toISOString(), compras: JSON.parse(localStorage.getItem('futurorico_compras') || '[]'), transacoes: JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]'), carteira_admin: JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null'), limiteCartao: localStorage.getItem('futurorico_limiteCartao'), metaVerde: localStorage.getItem('futurorico_metaVerde'), metaVermelha: localStorage.getItem('futurorico_metaVermelha') };
             const json = JSON.stringify(dados, null, 2); const blob = new Blob([json], { type: 'application/json' }); const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `appliquei_backup_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url);
-            mostrarToast('✓ Backup exportado com sucesso!', 'sucesso');
+            mostrarToast('Backup exportado com sucesso!', 'sucesso');
         }
 
         function importarDados(event) {
@@ -3748,7 +4121,7 @@
                 dbCarteira.ativos = (dbCarteira.ativos || []).map(a => ({ ...a, classe: a.classe || 'rf' }));
 
                 fecharModal(); carregarMetas(); atualizarCarteiraAtivos(); atualizarTelaControle(); atualizarDatalistDescricoes();
-                mostrarToast('✓ Dados importados com sucesso!', 'sucesso');
+                mostrarToast('Dados importados com sucesso!', 'sucesso');
             } catch(err) { fecharModal(); mostrarToast('Erro ao importar. O arquivo pode estar corrompido.', 'erro'); }
         }
 
