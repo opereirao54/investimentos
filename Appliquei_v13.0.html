@@ -1111,6 +1111,27 @@
                 </div>
                 <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
             </div>
+
+            <div id="grupoPrevidencia" style="display: none;">
+                <div class="form-group" style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--cor-superficie); border:1.5px dashed var(--cor-borda); border-radius: 9px;">
+                    <input type="checkbox" id="prevRecorrente" checked style="width:18px; height:18px; cursor:pointer; accent-color: var(--cor-primaria);">
+                    <label for="prevRecorrente" style="margin:0; cursor:pointer; font-size:13px; font-weight:600; color: var(--cor-texto-principal);">
+                        Aporte recorrente todo mês
+                        <small style="display:block; font-weight:400; font-size:11px; color: var(--cor-texto-mutado);">Lança automaticamente o mesmo valor no Controle Financeiro a cada mês.</small>
+                    </label>
+                </div>
+                <div class="grid-2-iguais" style="gap: 15px;">
+                    <div class="form-group">
+                        <label>Dia do mês</label>
+                        <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
+                    </div>
+                    <div class="form-group">
+                        <label>Rentabilidade estimada (% ao mês)</label>
+                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
+                        <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                    </div>
+                </div>
+            </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
                 <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>
                 <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">R$ 0,00</strong>
@@ -2795,6 +2816,18 @@
             if(grupoVenc) grupoVenc.style.display = ehReserva ? 'none' : 'block';
             if(grupoSubRV) grupoSubRV.style.display = ehRV ? 'block' : 'none';
             if(grupoQtd) grupoQtd.style.display = semQtd ? 'none' : 'block';
+            const grupoPrev = document.getElementById('grupoPrevidencia');
+            if(grupoPrev) grupoPrev.style.display = ehPrev ? 'block' : 'none';
+            // Default do dia de recorrência: pega o dia da data da operação
+            if(ehPrev) {
+                const inpDia = document.getElementById('prevDiaRecorrencia');
+                const inpTaxa = document.getElementById('prevTaxaMensal');
+                if(inpDia && !inpDia.value) {
+                    const d = document.getElementById('compraData').value;
+                    inpDia.value = d ? new Date(d + 'T12:00:00').getDate() : new Date().getDate();
+                }
+                if(inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+            }
 
             // Renomear "Preço pago" conforme categoria
             if(lblPreco) {
@@ -3009,6 +3042,13 @@
             if(categoria === 'reserva_emergencia') {
                 if(rentabilidade) operacao.rentabilidade = rentabilidade;
             }
+            if(categoria === 'previdencia' && tipoOp === 'compra') {
+                operacao.recorrente = !!document.getElementById('prevRecorrente').checked;
+                const diaInp = parseInt(document.getElementById('prevDiaRecorrencia').value, 10);
+                operacao.diaRecorrencia = (diaInp >= 1 && diaInp <= 31) ? diaInp : dataOp.getDate();
+                const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
+                operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
+            }
             historicoCompras.push(operacao);
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
 
@@ -3026,6 +3066,9 @@
             document.getElementById('compraData').value = new Date().toISOString().slice(0,10);
             const elCat = document.getElementById('compraCategoria'); elCat.value = 'renda_variavel'; delete elCat.dataset.touched;
             const elSub = document.getElementById('compraSubcategoria'); if(elSub) { elSub.value = 'acoes'; delete elSub.dataset.touched; }
+            const inpDiaPrev = document.getElementById('prevDiaRecorrencia'); if(inpDiaPrev) inpDiaPrev.value = '';
+            const inpTaxaPrev = document.getElementById('prevTaxaMensal'); if(inpTaxaPrev) inpTaxaPrev.value = '';
+            const chkRecPrev = document.getElementById('prevRecorrente'); if(chkRecPrev) chkRecPrev.checked = true;
             ajustarCamposPorCategoria();
             mostrarToast(tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
@@ -3104,6 +3147,13 @@
             if(elSub && op.subcategoria) { elSub.value = op.subcategoria; elSub.dataset.touched = '1'; }
             document.getElementById('compraVencimento').value = op.vencimento || '';
             document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
+            // Previdência
+            const chkRec = document.getElementById('prevRecorrente');
+            const inpDiaRec = document.getElementById('prevDiaRecorrencia');
+            const inpTaxaMensal = document.getElementById('prevTaxaMensal');
+            if(chkRec) chkRec.checked = op.recorrente !== false;
+            if(inpDiaRec) inpDiaRec.value = op.diaRecorrencia || '';
+            if(inpTaxaMensal) inpTaxaMensal.value = op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
             ajustarCamposPorCategoria();
             calcularTotalCompra();
             atualizarProjecaoForm();
@@ -3131,14 +3181,29 @@
         }
 
         function confirmarExclusaoOperacao(id) {
-            historicoCompras = historicoCompras.filter(o => o.id !== id);
-            transacoes = transacoes.filter(t => t.id !== id.toString());
+            const op = historicoCompras.find(o => o.id === id);
+            // Cascade: ao excluir o template recorrente de previdência, remove os aportes gerados também
+            const idsParaRemover = new Set([id]);
+            let cascade = 0;
+            if(op && op.categoria === 'previdencia' && op.recorrente && !op.gerado) {
+                historicoCompras.forEach(o => {
+                    if(o.operacaoOrigem === id) { idsParaRemover.add(o.id); cascade++; }
+                });
+            }
+            historicoCompras = historicoCompras.filter(o => !idsParaRemover.has(o.id));
+            transacoes = transacoes.filter(t => {
+                const tid = t.id;
+                for(const remId of idsParaRemover) {
+                    if(tid === remId.toString() || tid === remId) return false;
+                }
+                return true;
+            });
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             fecharModal();
             atualizarCarteiraAtivos();
             renderizarOperacoes();
-            mostrarToast('Operação excluída.', 'sucesso');
+            mostrarToast(cascade > 0 ? `Operação excluída + ${cascade} aporte${cascade===1?'':'s'} recorrente${cascade===1?'':'s'} cancelado${cascade===1?'':'s'}.` : 'Operação excluída.', 'sucesso');
         }
 
         function obterResumoCarteira() {
@@ -3175,6 +3240,115 @@
             const m = ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null;
             if(m) return m;
             return subcategoriaInferidaDoTicker(ticker) || 'acoes';
+        }
+
+        // ============================================================
+        // === PREVIDÊNCIA — recorrência mensal + saldo composto      ===
+        // ============================================================
+        // Calcula o saldo de um plano de previdência aplicando juros compostos
+        // mensais a partir de cada aporte até a data informada (default: hoje).
+        function calcularSaldoPrevidencia(ticker, ts) {
+            const refTs = ts || Date.now();
+            const aportes = historicoCompras.filter(op => op.ticker === ticker && op.categoria === 'previdencia' && op.data_op);
+            let saldo = 0;
+            aportes.forEach(op => {
+                const dataAporte = new Date(op.data_op).getTime();
+                if(dataAporte > refTs) return;
+                const taxa = (op.taxaMensal != null) ? op.taxaMensal : 0.008;
+                const meses = Math.max(0, (refTs - dataAporte) / (30.4375 * 24 * 60 * 60 * 1000));
+                const valor = op.preco_op || op.preco_pago || 0;
+                const fator = Math.pow(1 + taxa, meses);
+                if((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
+                else saldo += valor * fator;
+            });
+            return Math.max(0, saldo);
+        }
+
+        // Acrescenta um mês ao Date `d` ajustando para o último dia do mês alvo
+        // se o `dia` original (ex: 31) não existir naquele mês.
+        function avancarMesParaDia(d, dia) {
+            const proximo = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            const ultDiaMes = new Date(proximo.getFullYear(), proximo.getMonth() + 1, 0).getDate();
+            proximo.setDate(Math.min(dia, ultDiaMes));
+            proximo.setHours(12, 0, 0, 0);
+            return proximo;
+        }
+
+        // Gera retroativamente os aportes mensais que faltaram para cada plano de
+        // previdência marcado como recorrente. Roda no carregamento do app.
+        function processarAportesRecorrentesPrevidencia() {
+            const hoje = new Date();
+            const grupos = {};
+            historicoCompras.forEach(op => {
+                if(op.categoria !== 'previdencia' || (op.tipo || 'compra') === 'venda') return;
+                if(!grupos[op.ticker]) grupos[op.ticker] = [];
+                grupos[op.ticker].push(op);
+            });
+
+            const novosAportes = [];
+            const novasTransacoes = [];
+
+            Object.entries(grupos).forEach(([ticker, ops]) => {
+                // Template = aporte manual marcado como recorrente
+                const templates = ops.filter(o => !o.gerado && o.recorrente).sort((a,b) => new Date(a.data_op) - new Date(b.data_op));
+                if(templates.length === 0) return;
+                const template = templates[0];
+                const diaRec = template.diaRecorrencia || new Date(template.data_op).getDate();
+                const valorAporte = template.preco_op || template.preco_pago || 0;
+                if(valorAporte <= 0) return;
+                const taxa = (template.taxaMensal != null) ? template.taxaMensal : 0.008;
+
+                // Cursor = mês imediatamente após o último aporte existente para o ticker
+                const todasOrdenadas = [...ops].sort((a,b) => new Date(a.data_op) - new Date(b.data_op));
+                const ultimo = todasOrdenadas[todasOrdenadas.length - 1];
+                let cursor = avancarMesParaDia(new Date(ultimo.data_op), diaRec);
+
+                let safety = 0;
+                while(cursor <= hoje && safety < 240) {
+                    safety++;
+                    const id = Date.now() + Math.floor(Math.random() * 100000) + safety;
+                    novosAportes.push({
+                        id,
+                        ticker,
+                        quantidade: 1,
+                        preco_op: valorAporte,
+                        tipo: 'compra',
+                        data_op: cursor.toISOString(),
+                        categoria: 'previdencia',
+                        subcategoria: null,
+                        corretora: template.corretora || null,
+                        recorrente: true,
+                        diaRecorrencia: diaRec,
+                        taxaMensal: taxa,
+                        gerado: true,
+                        operacaoOrigem: template.id
+                    });
+                    novasTransacoes.push({
+                        id: id.toString(),
+                        operacaoId: id,
+                        descricao: `Aporte previdência: ${ticker}`,
+                        valor: valorAporte,
+                        categoria: 'investimento_fixo',
+                        mes: cursor.getMonth(),
+                        ano: cursor.getFullYear(),
+                        data: cursor.toISOString(),
+                        pago: true,
+                        gerado: true
+                    });
+                    cursor = avancarMesParaDia(cursor, diaRec);
+                }
+            });
+
+            if(novosAportes.length > 0) {
+                historicoCompras.push(...novosAportes);
+                transacoes.push(...novasTransacoes);
+                localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+                localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+                if(typeof mostrarToast === 'function') {
+                    mostrarToast(`${novosAportes.length} aporte${novosAportes.length === 1 ? '' : 's'} de previdência lançado${novosAportes.length === 1 ? '' : 's'} retroativamente.`, 'info');
+                }
+            }
+            return novosAportes.length;
         }
 
         const ROTULOS_CATEGORIA = {
@@ -3357,9 +3531,15 @@
                 let valorMercado = 0;
                 Object.entries(posicao).forEach(([ticker, p]) => {
                     if(p.qtd <= 0) return;
-                    const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
-                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
-                    valorMercado += p.qtd * precoAtual;
+                    const opTicker = opsFiltradas.find(o => o.ticker === ticker);
+                    const cat = opTicker?.categoria;
+                    if(cat === 'previdencia') {
+                        valorMercado += calcularSaldoPrevidencia(ticker, fimMes);
+                    } else {
+                        const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                        const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
+                        valorMercado += p.qtd * precoAtual;
+                    }
                 });
                 investido.push(Math.max(0, invest));
                 mercado.push(Math.max(0, valorMercado));
@@ -3462,9 +3642,15 @@
                 if(cat === 'renda_variavel') chave = subcategoriaEfetiva(ticker, ativo, ativoMercado);
                 else chave = cat;
                 if(!grupos[chave]) grupos[chave] = { investido: 0, saldo: 0, ativos: [] };
-                const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                let saldo;
+                if(cat === 'previdencia') {
+                    saldo = calcularSaldoPrevidencia(ticker);
+                } else {
+                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                    saldo = ativo.qtdTotal * precoAtual;
+                }
                 grupos[chave].investido += ativo.valorTotalInvestido;
-                grupos[chave].saldo += ativo.qtdTotal * precoAtual;
+                grupos[chave].saldo += saldo;
                 grupos[chave].ativos.push(ticker);
             }
             return grupos;
@@ -3605,7 +3791,13 @@
 
                 const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
 
-                let saldoAtualAtivo = ativo.qtdTotal * precoAtual; let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
+                let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
+                // Previdência: aplica juros compostos mensais sobre cada aporte
+                if(ativo.categoria === 'previdencia') {
+                    saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
+                    precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
+                }
+                let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
                 let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
 
@@ -5486,6 +5678,8 @@
             carregarMetas();
             inicializarMascarasBRL();
             atualizarDatalistDescricoes();
+            // Lança automaticamente os aportes mensais de previdência que ficaram pendentes
+            processarAportesRecorrentesPrevidencia();
             atualizarTelaControle();
             atualizarCarteiraAtivos();
             carregarCarteiraCliente();
