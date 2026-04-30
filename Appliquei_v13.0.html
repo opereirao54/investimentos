@@ -229,16 +229,10 @@
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
-        body.valores-ocultos .valor-mascarado,
+        body.valores-ocultos #patrimonio .valor-mascarado,
         body.valores-ocultos #patrimonio .valor,
-        body.valores-ocultos #controle .valor,
-        body.valores-ocultos #carteira .valor,
         body.valores-ocultos #patrimonio .tabela-dashboard tbody td:not(.coluna-fixa),
-        body.valores-ocultos #controle .tabela-dashboard tbody td:not(.coluna-fixa),
-        body.valores-ocultos #carteira .tabela-dashboard tbody td:not(.coluna-fixa),
-        body.valores-ocultos #patrimonio canvas,
-        body.valores-ocultos #controle canvas,
-        body.valores-ocultos #carteira canvas {
+        body.valores-ocultos #patrimonio canvas {
             filter: blur(9px) !important;
             user-select: none;
             transition: filter 0.25s ease;
@@ -1308,7 +1302,6 @@
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
-                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
 
@@ -1564,7 +1557,6 @@
                 </div>
                 <div class="page-actions">
                     <button onclick="toggleModoAdmin()" class="btn-secundario"><i class="ph ph-gear"></i> Painel do consultor</button>
-                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
 
