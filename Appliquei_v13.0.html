@@ -1809,7 +1809,13 @@
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total investido</span><span id="outTotalInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-principal);">R$ 0,00</span></div>
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Juros gerados</span><span id="outLucro" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);">R$ 0,00</span></div>
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Rentabilidade</span><span id="outRentab" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);">0%</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Renda passiva estimada</span><span id="outRendaPassiva" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);font-weight:600;">R$ 0,00/mês</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;align-items:center;">
+                            <span style="color:var(--cor-texto-mutado);display:flex;align-items:center;gap:4px;">
+                                Renda passiva estimada 
+                                <i id="iconRendaPassivaReal" class="ph ph-info" style="cursor:help;color:var(--cor-info);" title="Você terá o poder de compra de R$ 0,00, baseado no patrimônio corrigido"></i>
+                            </span>
+                            <span id="outRendaPassiva" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);font-weight:600;">R$ 0,00/mês</span>
+                        </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
                         <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoPizzaPatrimonio"></canvas></div>
@@ -4716,7 +4722,12 @@
             document.getElementById('outLucro').innerText = formatarMoeda(jurosGerados);
             document.getElementById('outRentab').innerText = `+${rentab}%`;
             const rendaPassivaMensal = montante * 0.008;
+            const rendaPassivaRealMensal = poderRealInvest * 0.008;
             document.getElementById('outRendaPassiva').innerText = formatarMoeda(rendaPassivaMensal) + '/mês';
+            const iconRendaPassivaReal = document.getElementById('iconRendaPassivaReal');
+            if(iconRendaPassivaReal) {
+                iconRendaPassivaReal.title = `Você terá o poder de compra de ${formatarMoeda(rendaPassivaRealMensal)}, baseado no patrimônio corrigido`;
+            }
             document.getElementById('legPizzaInvestido').innerText = `${formatarMoeda(investidoTotal)} (${(investidoTotal/montante*100).toFixed(0)}%)`;
             document.getElementById('legPizzaJuros').innerText = `${formatarMoeda(jurosGerados)} (${(jurosGerados/montante*100).toFixed(0)}%)`;
             document.getElementById('tabelaSimuladorCorpo').innerHTML = htmlTabela;
