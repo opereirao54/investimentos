@@ -1048,15 +1048,26 @@
         <div class="nav-area">
             <div class="nav-group">
                 <span class="nav-group-label">Portfólio</span>
-                <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus Investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle Financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira Recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'meu_patrimonio')" data-tooltip="Meu patrimônio"><i class="ph ph-bank"></i><span class="menu-btn-label">Meu patrimônio</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
+                <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'relatorio_mensal')" data-tooltip="Relatório mensal"><i class="ph ph-file-text"></i><span class="menu-btn-label">Relatório mensal</span></button>
             </div>
             <div class="nav-group">
                 <span class="nav-group-label">Ferramentas</span>
-                <button class="menu-btn" onclick="mudarAba(event,'simulador')" data-tooltip="Simule sua Liberdade"><i class="ph ph-calculator"></i><span class="menu-btn-label">Simule sua liberdade</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'aulas')" data-tooltip="Aprenda e Pratique"><i class="ph ph-graduation-cap"></i><span class="menu-btn-label">Aprenda e pratique</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'simulador')" data-tooltip="Simule sua liberdade"><i class="ph ph-calculator"></i><span class="menu-btn-label">Simule sua liberdade</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'meus_sonhos')" data-tooltip="Meus sonhos"><i class="ph ph-star"></i><span class="menu-btn-label">Meus sonhos</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'aulas')" data-tooltip="Jornada Financeira"><i class="ph ph-graduation-cap"></i><span class="menu-btn-label">Jornada Financeira</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'noticias', carregarNoticias)" data-tooltip="Info Mercado"><i class="ph ph-newspaper"></i><span class="menu-btn-label">Info Mercado</span></button>
+            </div>
+            <div class="nav-group">
+                <span class="nav-group-label">Applicash $</span>
+                <button class="menu-btn" onclick="mudarAba(event,'applicash')" data-tooltip="Applicash $"><i class="ph ph-currency-dollar"></i><span class="menu-btn-label">Applicash $</span></button>
+            </div>
+            <div class="nav-group">
+                <span class="nav-group-label">Suporte</span>
+                <button class="menu-btn" onclick="mudarAba(event,'duvidas_sugestoes')" data-tooltip="Dúvidas & Sugestões"><i class="ph ph-question"></i><span class="menu-btn-label">Dúvidas & Sugestões</span></button>
             </div>
         </div>
 
@@ -1517,7 +1528,7 @@
         <section id="aulas" class="section">
             <div class="page-header" style="margin-bottom:20px;">
                 <div class="page-header-left">
-                    <h1>Aprenda e pratique</h1>
+                    <h1>Jornada Financeira</h1>
                     <p class="subtitulo" style="margin-bottom:0">Trilhas de capacitação financeira focadas em execução prática.</p>
                 </div>
             </div>
@@ -1933,6 +1944,76 @@
             </div>
             <div id="loader-noticias" class="loader"></div>
             <div id="container-noticias" class="grid-cards" style="display: none;"></div>
+        </section>
+        <!-- NOVAS SEÇÕES -->
+        <section id="meu_patrimonio" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Meu patrimônio</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Acompanhe seu crescimento patrimonial.</p>
+                </div>
+            </div>
+            <div class="card-container" style="text-align: center; padding: 60px 20px;">
+                <i class="ph ph-bank" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
+                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+            </div>
+        </section>
+
+        <section id="relatorio_mensal" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Relatório mensal</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Análise e consolidação do seu mês.</p>
+                </div>
+            </div>
+            <div class="card-container" style="text-align: center; padding: 60px 20px;">
+                <i class="ph ph-file-text" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
+                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+            </div>
+        </section>
+
+        <section id="meus_sonhos" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Meus sonhos</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Metas e objetivos para o seu futuro.</p>
+                </div>
+            </div>
+            <div class="card-container" style="text-align: center; padding: 60px 20px;">
+                <i class="ph ph-star" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
+                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+            </div>
+        </section>
+
+        <section id="applicash" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Applicash $</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Sua central financeira.</p>
+                </div>
+            </div>
+            <div class="card-container" style="text-align: center; padding: 60px 20px;">
+                <i class="ph ph-currency-dollar" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
+                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+            </div>
+        </section>
+
+        <section id="duvidas_sugestoes" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Dúvidas & Sugestões</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Como podemos ajudar?</p>
+                </div>
+            </div>
+            <div class="card-container" style="text-align: center; padding: 60px 20px;">
+                <i class="ph ph-question" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
+                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
+                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+            </div>
         </section>
 
     </main>
