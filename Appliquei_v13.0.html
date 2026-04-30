@@ -848,7 +848,9 @@
             .sidebar.collapsed { width: 100%; }
             .main-content { padding: 16px 18px; width: 100%; }
             .grid-4, .grid-3, .grid-2, .grid-2-iguais, .grid-cards { grid-template-columns: 1fr; gap: 12px; }
+            #painelEvolucaoCarteira { grid-template-columns: 1fr !important; }
         }
+        .btn-periodo-evolucao.ativo { background: var(--cor-bg-primaria) !important; color: var(--cor-txt-primaria) !important; }
 
         /* === PERFIL QUESTIONNAIRE === */
         .perfil-questionnaire {
@@ -1052,8 +1054,8 @@
             <input type="hidden" id="tipoOperacao" value="compra">
 
             <div class="form-group">
-                <label>Buscar Ativo (Ticker ou Nome)</label>
-                <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
+                <label id="lblTickerOp">Buscar Ativo (Ticker ou Nome)</label>
+                <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" oninput="ajustarCamposPorCategoria();" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
                 <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
             </div>
             <div class="form-group">
@@ -1065,10 +1067,21 @@
                     <option value="reserva_emergencia">Reserva de Emergência</option>
                 </select>
             </div>
-            <div class="grid-2-iguais" style="gap: 15px;">
-                <div class="form-group">
+            <div class="form-group" id="grupoSubcategoriaRV" style="display:none;">
+                <label>Tipo de Renda Variável</label>
+                <select id="compraSubcategoria" onchange="this.dataset.touched='1';">
+                    <option value="acoes">Ações</option>
+                    <option value="fiis">FIIs</option>
+                    <option value="bdrs">BDRs</option>
+                    <option value="etfs">ETFs</option>
+                    <option value="cripto">Criptomoedas</option>
+                </select>
+                <small style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Detectamos automaticamente pelo ticker, mas você pode trocar.</small>
+            </div>
+            <div class="grid-2-iguais" style="gap: 15px;" id="grupoQtdPreco">
+                <div class="form-group" id="grupoQtd">
                     <label>Quantidade</label>
-                    <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra(); atualizarProjecaoForm()">
+                    <input type="text" inputmode="numeric" id="compraQtd" data-qtd="1" placeholder="Ex: 1.250" oninput="aplicarMascaraQtd(this); calcularTotalCompra(); atualizarProjecaoForm()">
                 </div>
                 <div class="form-group">
                     <label id="lblPrecoOp">Preço Pago (R$)</label>
@@ -1087,7 +1100,7 @@
             </div>
             <div id="grupoRendaFixa" style="display: none;">
                 <div class="grid-2-iguais" style="gap: 15px;">
-                    <div class="form-group">
+                    <div class="form-group" id="grupoVencimento">
                         <label>Vencimento (prazo)</label>
                         <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
                     </div>
@@ -1097,6 +1110,27 @@
                     </div>
                 </div>
                 <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
+            </div>
+
+            <div id="grupoPrevidencia" style="display: none;">
+                <div class="form-group" style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--cor-superficie); border:1.5px dashed var(--cor-borda); border-radius: 9px;">
+                    <input type="checkbox" id="prevRecorrente" checked style="width:18px; height:18px; cursor:pointer; accent-color: var(--cor-primaria);">
+                    <label for="prevRecorrente" style="margin:0; cursor:pointer; font-size:13px; font-weight:600; color: var(--cor-texto-principal);">
+                        Aporte recorrente todo mês
+                        <small style="display:block; font-weight:400; font-size:11px; color: var(--cor-texto-mutado);">Lança automaticamente o mesmo valor no Controle Financeiro a cada mês.</small>
+                    </label>
+                </div>
+                <div class="grid-2-iguais" style="gap: 15px;">
+                    <div class="form-group">
+                        <label>Dia do mês</label>
+                        <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
+                    </div>
+                    <div class="form-group">
+                        <label>Rentabilidade estimada (% ao mês)</label>
+                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
+                        <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                    </div>
+                </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
                 <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>
@@ -1189,12 +1223,50 @@
                 </div>
             </div>
 
-            <div id="alocacaoBox" style="background: var(--cor-branco); border:1px solid var(--cor-borda); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px; box-shadow: var(--shadow-card); display:none;">
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
-                    <h3 style="font-size: 12px; font-weight:600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.7px; display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Alocação por categoria</h3>
-                    <div id="alocacaoLegenda" style="display:flex; gap:14px; flex-wrap:wrap; font-size: 12px; color: var(--cor-texto-secundario);"></div>
+            <div id="painelEvolucaoCarteira" style="display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 24px;">
+                <div class="card-container" style="padding: 16px 18px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                        <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-bar"></i> Evolução da carteira</h3>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <select id="filtroEvolucaoTipo" onchange="renderizarGraficoEvolucao()" style="padding:6px 9px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:12px; background:var(--cor-branco); color:var(--cor-texto-principal); font-family:'Figtree',sans-serif;">
+                                <option value="todos">Todos os tipos</option>
+                                <option value="acoes">Ações</option>
+                                <option value="fiis">FIIs</option>
+                                <option value="bdrs">BDRs</option>
+                                <option value="etfs">ETFs</option>
+                                <option value="cripto">Criptomoedas</option>
+                                <option value="renda_fixa">Renda Fixa</option>
+                                <option value="previdencia">Previdência</option>
+                                <option value="reserva_emergencia">Reserva</option>
+                            </select>
+                            <div style="display:inline-flex; gap:0; border:1.5px solid var(--cor-borda); border-radius:9px; overflow:hidden; background: var(--cor-branco);">
+                                <button class="btn-periodo-evolucao ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">3 m</button>
+                                <button class="btn-periodo-evolucao" data-periodo="6" onclick="setPeriodoEvolucao(6)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">6 m</button>
+                                <button class="btn-periodo-evolucao" data-periodo="12" onclick="setPeriodoEvolucao(12)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">12 m</button>
+                                <button class="btn-periodo-evolucao" data-periodo="0" onclick="setPeriodoEvolucao(0)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">Todos</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="position: relative; height: 240px;">
+                        <canvas id="graficoEvolucaoCarteira"></canvas>
+                    </div>
+                    <div id="msgEvolucaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
+                        <i class="ph ph-chart-bar" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
+                        Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
+                    </div>
                 </div>
-                <div id="alocacaoBarra" style="display:flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--cor-superficie);"></div>
+                <div class="card-container" style="padding: 16px 18px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                        <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Distribuição da carteira</h3>
+                    </div>
+                    <div style="position: relative; height: 240px;">
+                        <canvas id="graficoDistribuicaoCarteira"></canvas>
+                    </div>
+                    <div id="msgDistribuicaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
+                        <i class="ph ph-chart-pie-slice" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
+                        Cadastre ativos para ver a distribuição.
+                    </div>
+                </div>
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
@@ -1370,6 +1442,11 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div id="quadroCategoriasInferior" style="display:none; margin-top: 28px;">
+                <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin: 0 0 12px;"><i class="ph ph-squares-four"></i> Posição por categoria <span id="lblMesQuadroCategorias" style="font-weight:500; color: var(--cor-texto-mutado); margin-left:4px;"></span></h3>
+                <div id="cardsCategoriaInferior" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"></div>
             </div>
         </section>
 
@@ -2229,6 +2306,29 @@
 
         function formatarMoeda(valor) { return (valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); }
 
+        // --- Máscara para campo Quantidade (inteiro, separador de milhar pt-BR) ---
+        function aplicarMascaraQtd(input) {
+            const apenasDigitos = (input.value || '').replace(/\D/g, '');
+            if (!apenasDigitos) { input.value = ''; return; }
+            const numero = parseInt(apenasDigitos, 10);
+            input.value = numero.toLocaleString('pt-BR');
+        }
+        function parseQtd(str) {
+            if (str == null) return 0;
+            if (typeof str === 'number') return str;
+            const limpo = String(str).replace(/\./g, '').replace(/,/g, '.');
+            const n = parseFloat(limpo);
+            return isNaN(n) ? 0 : n;
+        }
+        function setValorQtdInput(input, valor) {
+            if (!input) return;
+            input.value = (valor === '' || valor == null) ? '' : Number(valor).toLocaleString('pt-BR');
+        }
+        function formatarQtd(valor) {
+            const n = Number(valor) || 0;
+            return n.toLocaleString('pt-BR');
+        }
+
         // --- BRL helpers (máscara em inputs monetários) ---
         function parseBRL(str) {
             if (str == null) return 0;
@@ -2587,7 +2687,9 @@
         }
 
         function calcularTotalCompra() {
-            const qtd = parseFloat(document.getElementById('compraQtd').value) || 0;
+            const cat = document.getElementById('compraCategoria').value;
+            const semQtd = cat === 'renda_fixa' || cat === 'reserva_emergencia' || cat === 'previdencia';
+            const qtd = semQtd ? 1 : (parseQtd(document.getElementById('compraQtd').value) || 0);
             const preco = parseBRL(document.getElementById('compraPreco').value) || 0;
             document.getElementById('compraTotalOp').innerText = formatarMoeda(qtd * preco);
         }
@@ -2610,6 +2712,7 @@
             const elRent = document.getElementById('compraRentabilidade'); if(elRent) elRent.value = "";
             const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
             const elCat = document.getElementById('compraCategoria'); if(elCat) { elCat.value = 'renda_variavel'; delete elCat.dataset.touched; }
+            const elSub = document.getElementById('compraSubcategoria'); if(elSub) { elSub.value = 'acoes'; delete elSub.dataset.touched; }
             ajustarCamposPorCategoria();
 
             if(tipo === 'compra') {
@@ -2656,16 +2759,105 @@
             return ativo.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel';
         }
 
+        // Detecta a subcategoria de Renda Variável a partir do ticker.
+        // - .SA / 4 letras + 1-2 dígitos = ações ou FII (FIIs terminam em 11)
+        // - 4 letras + 34/35 = BDR
+        // - termina em 11 e é ETF conhecido (BOVA11, IVVB11...) -> ETF
+        // - prefixo cripto (BTC, ETH, SOL, ADA, etc. ou termina em -USD) -> cripto
+        function subcategoriaInferidaDoTicker(ticker) {
+            const t = (ticker || '').toUpperCase().trim();
+            if(!t) return null;
+            // Cripto
+            if(/-USD$/.test(t) || /^(BTC|ETH|SOL|ADA|DOT|XRP|DOGE|BNB|MATIC|AVAX|LTC|LINK|UNI|USDT|USDC)/.test(t)) return 'cripto';
+            // Mock conhecido
+            const ativoMock = mockAtivosMercado.find(a => a.ticker === t);
+            if(ativoMock) {
+                if(ativoMock.tipo === 'FII') return 'fiis';
+                if(ativoMock.tipo === 'BDR') return 'bdrs';
+                if(ativoMock.tipo === 'ETF') return 'etfs';
+                if(ativoMock.tipo === 'Ação') return 'acoes';
+            }
+            // BDR: 4 letras + 32, 33, 34, 35
+            if(/^[A-Z]{4}3[2-5]$/.test(t)) return 'bdrs';
+            // FIIs e alguns ETFs terminam em 11. ETFs comuns: BOVA, IVVB, SMAL, HASH, IMAB, FIND, SPXI, DIVO
+            if(/11$/.test(t)) {
+                if(/^(BOVA|IVVB|SMAL|HASH|IMAB|FIND|SPXI|DIVO|XINA|GOLD|FIXA|PIBB|ECOO|ESGB)/.test(t)) return 'etfs';
+                return 'fiis';
+            }
+            // Ações brasileiras: 4 letras + 3 ou 4
+            if(/^[A-Z]{4}[34]$/.test(t)) return 'acoes';
+            return null;
+        }
+
         function ajustarCamposPorCategoria() {
             const selCat = document.getElementById('compraCategoria');
             if(!selCat) return;
             const ticker = (document.getElementById('compraTicker').value || '').toUpperCase();
-            const inferida = categoriaInferidaDoMercado(ticker);
+            const inferida = categoriaInferidaDoMercado(ticker) || (subcategoriaInferidaDoTicker(ticker) ? 'renda_variavel' : null);
             // Se o usuário não trocou manualmente e o ticker é conhecido, sincroniza
             if(inferida && !selCat.dataset.touched) selCat.value = inferida;
+            const cat = selCat.value;
             const grupoRF = document.getElementById('grupoRendaFixa');
-            const ehRF = selCat.value === 'renda_fixa' || selCat.value === 'reserva_emergencia';
-            if(grupoRF) grupoRF.style.display = ehRF ? 'block' : 'none';
+            const grupoVenc = document.getElementById('grupoVencimento');
+            const grupoSubRV = document.getElementById('grupoSubcategoriaRV');
+            const grupoQtd = document.getElementById('grupoQtd');
+            const lblPreco = document.getElementById('lblPrecoOp');
+            const lblTicker = document.getElementById('lblTickerOp');
+            const inputTicker = document.getElementById('compraTicker');
+            const dicaTicker = document.getElementById('dicaTicker');
+            const ehRF = cat === 'renda_fixa';
+            const ehReserva = cat === 'reserva_emergencia';
+            const ehPrev = cat === 'previdencia';
+            const ehRV = cat === 'renda_variavel';
+            const semQtd = ehRF || ehReserva || ehPrev;
+
+            if(grupoRF) grupoRF.style.display = (ehRF || ehReserva) ? 'block' : 'none';
+            // Reserva NÃO tem vencimento — esconder
+            if(grupoVenc) grupoVenc.style.display = ehReserva ? 'none' : 'block';
+            if(grupoSubRV) grupoSubRV.style.display = ehRV ? 'block' : 'none';
+            if(grupoQtd) grupoQtd.style.display = semQtd ? 'none' : 'block';
+            const grupoPrev = document.getElementById('grupoPrevidencia');
+            if(grupoPrev) grupoPrev.style.display = ehPrev ? 'block' : 'none';
+            // Default do dia de recorrência: pega o dia da data da operação
+            if(ehPrev) {
+                const inpDia = document.getElementById('prevDiaRecorrencia');
+                const inpTaxa = document.getElementById('prevTaxaMensal');
+                if(inpDia && !inpDia.value) {
+                    const d = document.getElementById('compraData').value;
+                    inpDia.value = d ? new Date(d + 'T12:00:00').getDate() : new Date().getDate();
+                }
+                if(inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+            }
+
+            // Renomear "Preço pago" conforme categoria
+            if(lblPreco) {
+                const tipoOp = document.getElementById('tipoOperacao').value;
+                if(tipoOp === 'venda') lblPreco.innerText = 'Preço de Venda (R$)';
+                else if(ehRF) lblPreco.innerText = 'Valor aplicado (R$)';
+                else if(ehReserva) lblPreco.innerText = 'Valor guardado (R$)';
+                else if(ehPrev) lblPreco.innerText = 'Valor do aporte (R$)';
+                else lblPreco.innerText = 'Preço Pago (R$)';
+            }
+
+            // Ticker: ações/FIIs/etc usam datalist; RF / Reserva / Previdência são texto livre
+            if(inputTicker) {
+                if(semQtd) {
+                    inputTicker.removeAttribute('list');
+                    if(lblTicker) lblTicker.innerText = ehPrev ? 'Nome do plano' : (ehReserva ? 'Onde está guardado (banco/aplicação)' : 'Nome do título');
+                    if(dicaTicker) dicaTicker.innerText = ehPrev ? 'Ex: Brasilprev VGBL Conservador' : (ehReserva ? 'Ex: Poupança Itaú, CDB Nubank' : 'Ex: Tesouro IPCA+ 2035, CDB Nubank');
+                } else {
+                    inputTicker.setAttribute('list', document.getElementById('tipoOperacao').value === 'venda' ? 'listaAtivosCarteira' : 'listaAtivosMercado');
+                    if(lblTicker) lblTicker.innerText = 'Buscar Ativo (Ticker ou Nome)';
+                    if(dicaTicker) dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
+                }
+            }
+
+            // Auto-detectar subcategoria de RV
+            if(ehRV) {
+                const selSub = document.getElementById('compraSubcategoria');
+                const sub = subcategoriaInferidaDoTicker(ticker);
+                if(sub && selSub && !selSub.dataset.touched) selSub.value = sub;
+            }
             atualizarProjecaoForm();
         }
 
@@ -2780,7 +2972,8 @@
                 else hint.style.borderColor = 'var(--cor-erro)';
             }
 
-            const qtd = parseFloat(document.getElementById('compraQtd').value) || 0;
+            const semQtd = cat === 'renda_fixa' || cat === 'reserva_emergencia' || cat === 'previdencia';
+            const qtd = semQtd ? 1 : (parseQtd(document.getElementById('compraQtd').value) || 0);
             const preco = parseBRL(document.getElementById('compraPreco').value) || 0;
             const dataOp = document.getElementById('compraData').value;
             const venc = document.getElementById('compraVencimento').value;
@@ -2809,16 +3002,19 @@
 
         function registrarOperacaoAtivo() {
             const ticker = document.getElementById('compraTicker').value.toUpperCase();
-            const qtd = parseFloat(document.getElementById('compraQtd').value);
-            const preco = parseBRL(document.getElementById('compraPreco').value);
             const tipoOp = document.getElementById('tipoOperacao').value;
             const categoria = document.getElementById('compraCategoria').value;
             const corretora = document.getElementById('compraCorretora').value.trim();
             const dataInput = document.getElementById('compraData').value;
             const vencimento = document.getElementById('compraVencimento').value;
             const rentabilidade = document.getElementById('compraRentabilidade').value.trim();
+            const semQtd = categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia';
+            const qtd = semQtd ? 1 : parseQtd(document.getElementById('compraQtd').value);
+            const preco = parseBRL(document.getElementById('compraPreco').value);
+            const subcategoria = categoria === 'renda_variavel' ? (document.getElementById('compraSubcategoria').value || subcategoriaInferidaDoTicker(ticker) || 'acoes') : null;
 
-            if (!ticker || isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker, Quantidade e Preço corretamente.", "erro");
+            if (!ticker || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker e Valor corretamente.", "erro");
+            if (!semQtd && (isNaN(qtd) || qtd <= 0)) return mostrarToast("Preencha a Quantidade corretamente.", "erro");
 
             if (tipoOp === 'venda') {
                 let carteiraAtual = obterResumoCarteira();
@@ -2836,20 +3032,32 @@
                 tipo: tipoOp,
                 data_op: dataOp.toISOString(),
                 categoria: categoria || null,
+                subcategoria: subcategoria,
                 corretora: corretora || null
             };
-            if(categoria === 'renda_fixa' || categoria === 'reserva_emergencia') {
+            if(categoria === 'renda_fixa') {
                 if(vencimento) operacao.vencimento = vencimento;
                 if(rentabilidade) operacao.rentabilidade = rentabilidade;
+            }
+            if(categoria === 'reserva_emergencia') {
+                if(rentabilidade) operacao.rentabilidade = rentabilidade;
+            }
+            if(categoria === 'previdencia' && tipoOp === 'compra') {
+                operacao.recorrente = !!document.getElementById('prevRecorrente').checked;
+                const diaInp = parseInt(document.getElementById('prevDiaRecorrencia').value, 10);
+                operacao.diaRecorrencia = (diaInp >= 1 && diaInp <= 31) ? diaInp : dataOp.getDate();
+                const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
+                operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
             }
             historicoCompras.push(operacao);
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
 
+            const descQtd = semQtd ? '' : `${formatarQtd(qtd)}x `;
             if (tipoOp === 'compra') {
-                let tipoAtivoStr = (categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia') ? 'investimento_fixo' : 'investimento_variavel';
-                transacoes.push({ id: Date.now().toString(), descricao: `Compra: ${qtd}x ${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
+                let tipoAtivoStr = semQtd ? 'investimento_fixo' : 'investimento_variavel';
+                transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Compra: ${descQtd}${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             } else {
-                transacoes.push({ id: Date.now().toString(), descricao: `Venda Resgate: ${qtd}x ${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
+                transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Venda Resgate: ${descQtd}${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             }
 
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
@@ -2857,6 +3065,10 @@
             document.getElementById('compraCorretora').value = ""; document.getElementById('compraVencimento').value = ""; document.getElementById('compraRentabilidade').value = "";
             document.getElementById('compraData').value = new Date().toISOString().slice(0,10);
             const elCat = document.getElementById('compraCategoria'); elCat.value = 'renda_variavel'; delete elCat.dataset.touched;
+            const elSub = document.getElementById('compraSubcategoria'); if(elSub) { elSub.value = 'acoes'; delete elSub.dataset.touched; }
+            const inpDiaPrev = document.getElementById('prevDiaRecorrencia'); if(inpDiaPrev) inpDiaPrev.value = '';
+            const inpTaxaPrev = document.getElementById('prevTaxaMensal'); if(inpTaxaPrev) inpTaxaPrev.value = '';
+            const chkRecPrev = document.getElementById('prevRecorrente'); if(chkRecPrev) chkRecPrev.checked = true;
             ajustarCamposPorCategoria();
             mostrarToast(tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
@@ -2898,13 +3110,15 @@
                 const catLbl = ROTULOS_CATEGORIA[op.categoria] || '—';
                 const corretoraLbl = op.corretora || '—';
                 const total = op.quantidade * (op.preco_op || op.preco_pago || 0);
+                const semQtd = op.categoria === 'renda_fixa' || op.categoria === 'reserva_emergencia' || op.categoria === 'previdencia';
+                const qtdCelula = semQtd ? '—' : formatarQtd(op.quantidade);
                 return `<tr>
                     <td style="font-family:'DM Mono', monospace;">${dataLbl}</td>
                     <td>${tipoLabel}</td>
                     <td style="font-weight:600;">${op.ticker}</td>
                     <td>${catLbl}</td>
                     <td>${corretoraLbl}</td>
-                    <td style="text-align:right; font-family:'DM Mono', monospace;">${op.quantidade}</td>
+                    <td style="text-align:right; font-family:'DM Mono', monospace;">${qtdCelula}</td>
                     <td style="text-align:right; font-family:'DM Mono', monospace;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
                     <td style="text-align:right; font-weight:600; font-family:'DM Mono', monospace;">${formatarMoeda(total)}</td>
                     <td style="text-align:center; white-space:nowrap;">
@@ -2923,14 +3137,23 @@
             abrirDrawerOperacao();
             alternarTipoOperacao(op.tipo || 'compra');
             document.getElementById('compraTicker').value = op.ticker || '';
-            document.getElementById('compraQtd').value = op.quantidade || '';
+            setValorQtdInput(document.getElementById('compraQtd'), op.quantidade || '');
             setValorBRLInput(document.getElementById('compraPreco'), op.preco_op || op.preco_pago || 0);
             document.getElementById('compraData').value = (op.data_op || '').slice(0,10) || new Date().toISOString().slice(0,10);
             document.getElementById('compraCorretora').value = op.corretora || '';
             const elCat = document.getElementById('compraCategoria');
             if(op.categoria) { elCat.value = op.categoria; elCat.dataset.touched = '1'; }
+            const elSub = document.getElementById('compraSubcategoria');
+            if(elSub && op.subcategoria) { elSub.value = op.subcategoria; elSub.dataset.touched = '1'; }
             document.getElementById('compraVencimento').value = op.vencimento || '';
             document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
+            // Previdência
+            const chkRec = document.getElementById('prevRecorrente');
+            const inpDiaRec = document.getElementById('prevDiaRecorrencia');
+            const inpTaxaMensal = document.getElementById('prevTaxaMensal');
+            if(chkRec) chkRec.checked = op.recorrente !== false;
+            if(inpDiaRec) inpDiaRec.value = op.diaRecorrencia || '';
+            if(inpTaxaMensal) inpTaxaMensal.value = op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
             ajustarCamposPorCategoria();
             calcularTotalCompra();
             atualizarProjecaoForm();
@@ -2958,25 +3181,41 @@
         }
 
         function confirmarExclusaoOperacao(id) {
-            historicoCompras = historicoCompras.filter(o => o.id !== id);
-            transacoes = transacoes.filter(t => t.id !== id.toString());
+            const op = historicoCompras.find(o => o.id === id);
+            // Cascade: ao excluir o template recorrente de previdência, remove os aportes gerados também
+            const idsParaRemover = new Set([id]);
+            let cascade = 0;
+            if(op && op.categoria === 'previdencia' && op.recorrente && !op.gerado) {
+                historicoCompras.forEach(o => {
+                    if(o.operacaoOrigem === id) { idsParaRemover.add(o.id); cascade++; }
+                });
+            }
+            historicoCompras = historicoCompras.filter(o => !idsParaRemover.has(o.id));
+            transacoes = transacoes.filter(t => {
+                const tid = t.id;
+                for(const remId of idsParaRemover) {
+                    if(tid === remId.toString() || tid === remId) return false;
+                }
+                return true;
+            });
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             fecharModal();
             atualizarCarteiraAtivos();
             renderizarOperacoes();
-            mostrarToast('Operação excluída.', 'sucesso');
+            mostrarToast(cascade > 0 ? `Operação excluída + ${cascade} aporte${cascade===1?'':'s'} recorrente${cascade===1?'':'s'} cancelado${cascade===1?'':'s'}.` : 'Operação excluída.', 'sucesso');
         }
 
         function obterResumoCarteira() {
             let consolidado = {};
             historicoCompras.forEach(op => {
-                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, corretora: null, vencimento: null, rentabilidade: null };
+                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, subcategoria: null, corretora: null, vencimento: null, rentabilidade: null };
                 let ativo = consolidado[op.ticker]; let tipo = op.tipo || 'compra'; let precoDaOp = op.preco_op || op.preco_pago;
                 if (tipo === 'compra') {
                     ativo.qtdTotal += op.quantidade; ativo.valorTotalInvestido += (op.quantidade * precoDaOp); ativo.precoMedio = ativo.valorTotalInvestido / ativo.qtdTotal;
                     // Última compra define metadados exibidos
                     if(op.categoria) ativo.categoria = op.categoria;
+                    if(op.subcategoria) ativo.subcategoria = op.subcategoria;
                     if(op.corretora) ativo.corretora = op.corretora;
                     if(op.vencimento) ativo.vencimento = op.vencimento;
                     if(op.rentabilidade) ativo.rentabilidade = op.rentabilidade;
@@ -2984,6 +3223,132 @@
                 else if (tipo === 'venda') { ativo.qtdTotal -= op.quantidade; ativo.valorTotalInvestido -= (op.quantidade * ativo.precoMedio); }
             });
             return consolidado;
+        }
+
+        // Mapeia tipo do mockAtivosMercado para subcategoria de RV
+        function tipoMercadoParaSubcategoria(tipo) {
+            if(tipo === 'FII') return 'fiis';
+            if(tipo === 'BDR') return 'bdrs';
+            if(tipo === 'ETF') return 'etfs';
+            if(tipo === 'Ação') return 'acoes';
+            return null;
+        }
+
+        // Subcategoria efetiva (operação > inferência mock > inferência ticker > fallback acoes)
+        function subcategoriaEfetiva(ticker, ativoConsolidado, ativoMercado) {
+            if(ativoConsolidado?.subcategoria) return ativoConsolidado.subcategoria;
+            const m = ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null;
+            if(m) return m;
+            return subcategoriaInferidaDoTicker(ticker) || 'acoes';
+        }
+
+        // ============================================================
+        // === PREVIDÊNCIA — recorrência mensal + saldo composto      ===
+        // ============================================================
+        // Calcula o saldo de um plano de previdência aplicando juros compostos
+        // mensais a partir de cada aporte até a data informada (default: hoje).
+        function calcularSaldoPrevidencia(ticker, ts) {
+            const refTs = ts || Date.now();
+            const aportes = historicoCompras.filter(op => op.ticker === ticker && op.categoria === 'previdencia' && op.data_op);
+            let saldo = 0;
+            aportes.forEach(op => {
+                const dataAporte = new Date(op.data_op).getTime();
+                if(dataAporte > refTs) return;
+                const taxa = (op.taxaMensal != null) ? op.taxaMensal : 0.008;
+                const meses = Math.max(0, (refTs - dataAporte) / (30.4375 * 24 * 60 * 60 * 1000));
+                const valor = op.preco_op || op.preco_pago || 0;
+                const fator = Math.pow(1 + taxa, meses);
+                if((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
+                else saldo += valor * fator;
+            });
+            return Math.max(0, saldo);
+        }
+
+        // Acrescenta um mês ao Date `d` ajustando para o último dia do mês alvo
+        // se o `dia` original (ex: 31) não existir naquele mês.
+        function avancarMesParaDia(d, dia) {
+            const proximo = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            const ultDiaMes = new Date(proximo.getFullYear(), proximo.getMonth() + 1, 0).getDate();
+            proximo.setDate(Math.min(dia, ultDiaMes));
+            proximo.setHours(12, 0, 0, 0);
+            return proximo;
+        }
+
+        // Gera retroativamente os aportes mensais que faltaram para cada plano de
+        // previdência marcado como recorrente. Roda no carregamento do app.
+        function processarAportesRecorrentesPrevidencia() {
+            const hoje = new Date();
+            const grupos = {};
+            historicoCompras.forEach(op => {
+                if(op.categoria !== 'previdencia' || (op.tipo || 'compra') === 'venda') return;
+                if(!grupos[op.ticker]) grupos[op.ticker] = [];
+                grupos[op.ticker].push(op);
+            });
+
+            const novosAportes = [];
+            const novasTransacoes = [];
+
+            Object.entries(grupos).forEach(([ticker, ops]) => {
+                // Template = aporte manual marcado como recorrente
+                const templates = ops.filter(o => !o.gerado && o.recorrente).sort((a,b) => new Date(a.data_op) - new Date(b.data_op));
+                if(templates.length === 0) return;
+                const template = templates[0];
+                const diaRec = template.diaRecorrencia || new Date(template.data_op).getDate();
+                const valorAporte = template.preco_op || template.preco_pago || 0;
+                if(valorAporte <= 0) return;
+                const taxa = (template.taxaMensal != null) ? template.taxaMensal : 0.008;
+
+                // Cursor = mês imediatamente após o último aporte existente para o ticker
+                const todasOrdenadas = [...ops].sort((a,b) => new Date(a.data_op) - new Date(b.data_op));
+                const ultimo = todasOrdenadas[todasOrdenadas.length - 1];
+                let cursor = avancarMesParaDia(new Date(ultimo.data_op), diaRec);
+
+                let safety = 0;
+                while(cursor <= hoje && safety < 240) {
+                    safety++;
+                    const id = Date.now() + Math.floor(Math.random() * 100000) + safety;
+                    novosAportes.push({
+                        id,
+                        ticker,
+                        quantidade: 1,
+                        preco_op: valorAporte,
+                        tipo: 'compra',
+                        data_op: cursor.toISOString(),
+                        categoria: 'previdencia',
+                        subcategoria: null,
+                        corretora: template.corretora || null,
+                        recorrente: true,
+                        diaRecorrencia: diaRec,
+                        taxaMensal: taxa,
+                        gerado: true,
+                        operacaoOrigem: template.id
+                    });
+                    novasTransacoes.push({
+                        id: id.toString(),
+                        operacaoId: id,
+                        descricao: `Aporte previdência: ${ticker}`,
+                        valor: valorAporte,
+                        categoria: 'investimento_fixo',
+                        mes: cursor.getMonth(),
+                        ano: cursor.getFullYear(),
+                        data: cursor.toISOString(),
+                        pago: true,
+                        gerado: true
+                    });
+                    cursor = avancarMesParaDia(cursor, diaRec);
+                }
+            });
+
+            if(novosAportes.length > 0) {
+                historicoCompras.push(...novosAportes);
+                transacoes.push(...novasTransacoes);
+                localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+                localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+                if(typeof mostrarToast === 'function') {
+                    mostrarToast(`${novosAportes.length} aporte${novosAportes.length === 1 ? '' : 's'} de previdência lançado${novosAportes.length === 1 ? '' : 's'} retroativamente.`, 'info');
+                }
+            }
+            return novosAportes.length;
         }
 
         const ROTULOS_CATEGORIA = {
@@ -3015,31 +3380,20 @@
             return 'renda_variavel';
         }
 
-        // Calcula a próxima "coisa importante" a acontecer na carteira:
-        // próximo vencimento de RF ou próximo dividendo previsto (com base na frequência).
+        // ============================================================
+        // === KPI: Próximo evento (foco em dividendos do mês corrente) ===
+        // ============================================================
         function atualizarProximoEvento(carteiraConsolidada) {
             const valorEl = document.getElementById('resumoProximoEvento');
             const detEl = document.getElementById('resumoProximoEventoDetalhe');
             const titEl = document.getElementById('tituloProximoEvento');
             if(!valorEl) return;
-            const candidatos = [];
-            const hoje = Date.now();
+            const hoje = new Date();
+            const mesIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime();
+            const mesFim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59).getTime();
 
-            // 1) Vencimentos de Renda Fixa
-            for(const ticker in carteiraConsolidada) {
-                const ativo = carteiraConsolidada[ticker];
-                if(ativo.qtdTotal <= 0 || !ativo.vencimento) continue;
-                const tsVenc = new Date(ativo.vencimento + 'T12:00:00').getTime();
-                if(tsVenc < hoje) continue;
-                candidatos.push({
-                    tipo: 'vencimento',
-                    ts: tsVenc,
-                    label: `${ticker}`,
-                    detalhe: `Vencimento RF · ${new Date(tsVenc).toLocaleDateString('pt-BR')}`
-                });
-            }
-
-            // 2) Próximo dividendo estimado a partir do cache (último pagamento + intervalo médio)
+            // Dividendos previstos no mês corrente
+            const previstos = [];
             for(const ticker in carteiraConsolidada) {
                 const ativo = carteiraConsolidada[ticker];
                 if(ativo.qtdTotal <= 0) continue;
@@ -3052,68 +3406,376 @@
                 if(datasOrd.length >= 2) {
                     const diffs = [];
                     for(let i = 1; i < datasOrd.length; i++) diffs.push(datasOrd[i] - datasOrd[i-1]);
-                    const mediaMs = diffs.reduce((a,b)=>a+b,0)/diffs.length;
-                    intervaloDias = Math.round(mediaMs / (24*60*60*1000));
+                    intervaloDias = Math.round((diffs.reduce((a,b)=>a+b,0)/diffs.length) / (24*60*60*1000));
                 }
-                const proximoTs = ultimo + intervaloDias * 24*60*60*1000;
-                if(proximoTs < hoje) continue;
+                let proximoTs = ultimo + intervaloDias * 24*60*60*1000;
+                while(proximoTs < mesIni) proximoTs += intervaloDias * 24*60*60*1000;
+                if(proximoTs > mesFim) continue;
                 const ultimoPag = cache.pagamentos.find(p => new Date(p.data).getTime() === ultimo);
                 const valorEstim = ultimoPag ? ultimoPag.valor * ativo.qtdTotal : 0;
-                candidatos.push({
-                    tipo: 'dividendo',
-                    ts: proximoTs,
-                    label: `${ticker}`,
-                    detalhe: `Dividendo previsto · ~${formatarMoeda(valorEstim)} em ${new Date(proximoTs).toLocaleDateString('pt-BR')}`
-                });
+                previstos.push({ ticker, ts: proximoTs, valor: valorEstim });
             }
 
-            if(candidatos.length === 0) {
-                valorEl.innerText = '—';
-                detEl.innerText = 'Sem vencimentos ou proventos previstos.';
-                titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Próximo evento';
-                return;
+            // Vencimentos no mês
+            const vencimentosMes = [];
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0 || !ativo.vencimento) continue;
+                const tsVenc = new Date(ativo.vencimento + 'T12:00:00').getTime();
+                if(tsVenc < mesIni || tsVenc > mesFim) continue;
+                vencimentosMes.push({ ticker, ts: tsVenc });
             }
-            candidatos.sort((a,b) => a.ts - b.ts);
-            const prox = candidatos[0];
-            const diasFalta = Math.max(0, Math.round((prox.ts - hoje) / (24*60*60*1000)));
-            valorEl.innerText = prox.label;
-            detEl.innerText = prox.detalhe + ` (em ${diasFalta} dia${diasFalta === 1 ? '' : 's'})`;
-            titEl.innerHTML = prox.tipo === 'vencimento'
-                ? '<i class="ph ph-calendar-check"></i> Próximo vencimento'
-                : '<i class="ph ph-coins"></i> Próximo dividendo';
+
+            const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long' });
+            const totalPrevisto = previstos.reduce((a,b)=>a+b.valor, 0);
+            if(previstos.length > 0) {
+                titEl.innerHTML = '<i class="ph ph-coins"></i> Dividendos do mês';
+                valorEl.innerText = formatarMoeda(totalPrevisto);
+                const tickersResumo = previstos.map(p => p.ticker).slice(0,3).join(', ');
+                const sufixo = previstos.length > 3 ? ` +${previstos.length - 3}` : '';
+                detEl.innerText = `${previstos.length} ativo${previstos.length===1?'':'s'} previsto${previstos.length===1?'':'s'} em ${nomeMes} · ${tickersResumo}${sufixo}`;
+            } else if(vencimentosMes.length > 0) {
+                titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Vencimento RF';
+                vencimentosMes.sort((a,b) => a.ts - b.ts);
+                const prox = vencimentosMes[0];
+                valorEl.innerText = prox.ticker;
+                detEl.innerText = `Vence ${new Date(prox.ts).toLocaleDateString('pt-BR')} · ${vencimentosMes.length} no mês`;
+            } else {
+                titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Próximo evento';
+                valorEl.innerText = '—';
+                detEl.innerText = `Sem dividendos previstos em ${nomeMes}.`;
+            }
         }
 
-        function atualizarBarraAlocacao(carteiraConsolidada) {
-            const box = document.getElementById('alocacaoBox');
-            const barra = document.getElementById('alocacaoBarra');
-            const legenda = document.getElementById('alocacaoLegenda');
-            if(!box || !barra || !legenda) return;
+        // ============================================================
+        // === EVOLUÇÃO MENSAL — calcula séries a partir do histórico ===
+        // ============================================================
+        // Período do gráfico: 3, 6, 12 meses ou 0 (todos)
+        let periodoEvolucao = 3;
+        let chartEvolucaoCarteira = null;
+        let chartDistribuicaoCarteira = null;
 
-            const totaisPorCategoria = { renda_variavel: 0, renda_fixa: 0, previdencia: 0, reserva_emergencia: 0 };
+        function setPeriodoEvolucao(meses) {
+            periodoEvolucao = meses;
+            document.querySelectorAll('.btn-periodo-evolucao').forEach(b => {
+                const ativo = parseInt(b.dataset.periodo,10) === meses;
+                b.classList.toggle('ativo', ativo);
+                b.style.background = ativo ? 'var(--cor-bg-primaria)' : 'transparent';
+                b.style.color = ativo ? 'var(--cor-txt-primaria)' : 'var(--cor-texto-secundario)';
+            });
+            renderizarGraficoEvolucao();
+        }
+
+        // Acumula posição (qtd) por ticker até o final de cada mês
+        function calcularSerieEvolucao(filtroTipo) {
+            // Decide se uma operação entra no filtro escolhido
+            function opEntraNoFiltro(op) {
+                if(!filtroTipo || filtroTipo === 'todos') return true;
+                const cat = op.categoria || 'renda_variavel';
+                if(filtroTipo === 'renda_fixa') return cat === 'renda_fixa';
+                if(filtroTipo === 'previdencia') return cat === 'previdencia';
+                if(filtroTipo === 'reserva_emergencia') return cat === 'reserva_emergencia';
+                // Demais: subcategorias de RV
+                if(cat !== 'renda_variavel') return false;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === op.ticker);
+                const sub = op.subcategoria || subcategoriaInferidaDoTicker(op.ticker) || (ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null);
+                return sub === filtroTipo;
+            }
+            const opsFiltradas = historicoCompras.filter(op => op.data_op && opEntraNoFiltro(op));
+            if(opsFiltradas.length === 0) return { meses: [], investido: [], mercado: [], dividendos: [] };
+
+            // Determina mês inicial e final
+            const tsPrimeira = Math.min(...opsFiltradas.map(op => new Date(op.data_op).getTime()));
+            const dPrimeira = new Date(tsPrimeira);
+            let mesIni = new Date(dPrimeira.getFullYear(), dPrimeira.getMonth(), 1);
+            const hoje = new Date();
+            const mesFim = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+
+            // Limitar pelo período selecionado
+            if(periodoEvolucao > 0) {
+                const limite = new Date(hoje.getFullYear(), hoje.getMonth() - (periodoEvolucao - 1), 1);
+                if(limite > mesIni) mesIni = limite;
+            }
+
+            const meses = [];
+            const cursor = new Date(mesIni);
+            while(cursor <= mesFim) {
+                meses.push(new Date(cursor));
+                cursor.setMonth(cursor.getMonth() + 1);
+            }
+
+            const investido = []; const mercado = []; const dividendos = [];
+            meses.forEach(m => {
+                const fimMes = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59).getTime();
+                // Posição cumulativa por ticker até o fim do mês
+                const posicao = {}; let invest = 0;
+                opsFiltradas.forEach(op => {
+                    const tsOp = new Date(op.data_op).getTime();
+                    if(tsOp > fimMes) return;
+                    const tipo = op.tipo || 'compra';
+                    const preco = op.preco_op || op.preco_pago || 0;
+                    if(!posicao[op.ticker]) posicao[op.ticker] = { qtd: 0, custo: 0, pm: 0 };
+                    const p = posicao[op.ticker];
+                    if(tipo === 'compra') {
+                        p.qtd += op.quantidade;
+                        p.custo += op.quantidade * preco;
+                        p.pm = p.qtd > 0 ? p.custo / p.qtd : 0;
+                        invest += op.quantidade * preco;
+                    } else if(tipo === 'venda') {
+                        invest -= op.quantidade * p.pm;
+                        p.qtd -= op.quantidade;
+                        p.custo -= op.quantidade * p.pm;
+                    }
+                });
+                // Valor de mercado — usa preço atual (limitação: sem histórico de preços)
+                let valorMercado = 0;
+                Object.entries(posicao).forEach(([ticker, p]) => {
+                    if(p.qtd <= 0) return;
+                    const opTicker = opsFiltradas.find(o => o.ticker === ticker);
+                    const cat = opTicker?.categoria;
+                    if(cat === 'previdencia') {
+                        valorMercado += calcularSaldoPrevidencia(ticker, fimMes);
+                    } else {
+                        const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                        const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
+                        valorMercado += p.qtd * precoAtual;
+                    }
+                });
+                investido.push(Math.max(0, invest));
+                mercado.push(Math.max(0, valorMercado));
+
+                // Dividendos do mês: pagamentos do cacheDividendos onde data está no mês e o ticker está nas opsFiltradas
+                let div = 0;
+                const tickersFiltrados = new Set(opsFiltradas.map(o => o.ticker));
+                tickersFiltrados.forEach(ticker => {
+                    const cache = cacheDividendos[ticker];
+                    if(!cache || !cache.pagamentos) return;
+                    cache.pagamentos.forEach(pag => {
+                        const tsPag = new Date(pag.data).getTime();
+                        const iniMes = new Date(m.getFullYear(), m.getMonth(), 1).getTime();
+                        if(tsPag < iniMes || tsPag > fimMes) return;
+                        const qtdNaData = (posicao[ticker]?.qtd) || 0;
+                        div += qtdNaData * pag.valor;
+                    });
+                });
+                dividendos.push(div);
+            });
+
+            return { meses, investido, mercado, dividendos };
+        }
+
+        function renderizarGraficoEvolucao() {
+            const canvas = document.getElementById('graficoEvolucaoCarteira');
+            const msgVazia = document.getElementById('msgEvolucaoVazia');
+            if(!canvas) return;
+
+            const filtro = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
+            const serie = calcularSerieEvolucao(filtro);
+
+            if(serie.meses.length === 0) {
+                if(chartEvolucaoCarteira) { chartEvolucaoCarteira.destroy(); chartEvolucaoCarteira = null; }
+                canvas.style.display = 'none';
+                if(msgVazia) msgVazia.style.display = 'block';
+                return;
+            }
+            canvas.style.display = 'block';
+            if(msgVazia) msgVazia.style.display = 'none';
+
+            const labels = serie.meses.map(d => d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase());
+            const ganhoPerda = serie.mercado.map((v,i) => v - serie.investido[i]);
+            const corGanhoPerda = ganhoPerda.map(v => v >= 0 ? '#059669' : '#dc2626');
+
+            if(chartEvolucaoCarteira) chartEvolucaoCarteira.destroy();
+            chartEvolucaoCarteira = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Capital investido', data: serie.investido, backgroundColor: '#94a3b8', borderRadius: 4, yAxisID: 'y', order: 2 },
+                        { label: 'Ganho / Perda', data: ganhoPerda, backgroundColor: corGanhoPerda, borderRadius: 4, yAxisID: 'y', order: 1 },
+                        { label: 'Dividendos', data: serie.dividendos, backgroundColor: '#7c3aed', borderRadius: 4, yAxisID: 'y2', order: 0 }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${formatarMoeda(ctx.parsed.y)}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { position: 'left', ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)), font: { size: 10 } }, grid: { color: '#f1f5f9' } },
+                        y2: { position: 'right', display: serie.dividendos.some(v => v > 0), ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(1) + 'k' : v.toFixed(0)), font: { size: 10 } }, grid: { display: false }, beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // ============================================================
+        // === DISTRIBUIÇÃO — pizza por subcategoria/categoria        ===
+        // ============================================================
+        const ROTULOS_SUB = {
+            acoes: 'Ações', fiis: 'FIIs', bdrs: 'BDRs', etfs: 'ETFs', cripto: 'Criptomoedas',
+            renda_fixa: 'Renda Fixa', previdencia: 'Previdência', reserva_emergencia: 'Reserva de Emergência'
+        };
+        const CORES_SUB = {
+            acoes: '#2563eb', fiis: '#0ea5e9', bdrs: '#6366f1', etfs: '#14b8a6', cripto: '#f59e0b',
+            renda_fixa: '#059669', previdencia: '#7c3aed', reserva_emergencia: '#d97706'
+        };
+
+        // Agrupa carteira em "categorias" finais (subcategorias de RV + RF/Prev/Reserva)
+        function agruparCarteiraPorCategoria(carteiraConsolidada) {
+            const grupos = {};
             for(const ticker in carteiraConsolidada) {
                 const ativo = carteiraConsolidada[ticker];
                 if(ativo.qtdTotal <= 0) continue;
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
                 const cat = inferirCategoria(ticker, ativo, ativoMercado);
-                const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
-                totaisPorCategoria[cat] += ativo.qtdTotal * precoAtual;
+                let chave;
+                if(cat === 'renda_variavel') chave = subcategoriaEfetiva(ticker, ativo, ativoMercado);
+                else chave = cat;
+                if(!grupos[chave]) grupos[chave] = { investido: 0, saldo: 0, ativos: [] };
+                let saldo;
+                if(cat === 'previdencia') {
+                    saldo = calcularSaldoPrevidencia(ticker);
+                } else {
+                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                    saldo = ativo.qtdTotal * precoAtual;
+                }
+                grupos[chave].investido += ativo.valorTotalInvestido;
+                grupos[chave].saldo += saldo;
+                grupos[chave].ativos.push(ticker);
             }
-            const total = Object.values(totaisPorCategoria).reduce((a,b)=>a+b,0);
-            if(total <= 0) { box.style.display = 'none'; return; }
-            box.style.display = 'block';
+            return grupos;
+        }
 
-            const segmentos = [];
-            const itensLegenda = [];
-            Object.keys(totaisPorCategoria).forEach(k => {
-                const v = totaisPorCategoria[k];
-                if(v <= 0) return;
-                const perc = (v/total*100);
-                const cor = CORES_CATEGORIA[k];
-                segmentos.push(`<div title="${ROTULOS_CATEGORIA[k]}: ${formatarMoeda(v)} (${perc.toFixed(1)}%)" style="flex: ${v}; background: ${cor};"></div>`);
-                itensLegenda.push(`<span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:${cor};"></span><strong style="color: var(--cor-texto-principal); font-weight:600;">${ROTULOS_CATEGORIA[k]}</strong> · ${perc.toFixed(1)}%</span>`);
+        function renderizarGraficoDistribuicao(carteiraConsolidada) {
+            const canvas = document.getElementById('graficoDistribuicaoCarteira');
+            const msgVazia = document.getElementById('msgDistribuicaoVazia');
+            if(!canvas) return;
+            const grupos = agruparCarteiraPorCategoria(carteiraConsolidada);
+            const entries = Object.entries(grupos).filter(([,v]) => v.saldo > 0);
+            if(entries.length === 0) {
+                if(chartDistribuicaoCarteira) { chartDistribuicaoCarteira.destroy(); chartDistribuicaoCarteira = null; }
+                canvas.style.display = 'none';
+                if(msgVazia) msgVazia.style.display = 'block';
+                return;
+            }
+            canvas.style.display = 'block';
+            if(msgVazia) msgVazia.style.display = 'none';
+
+            const labels = entries.map(([k]) => ROTULOS_SUB[k] || k);
+            const data = entries.map(([,v]) => v.saldo);
+            const cores = entries.map(([k]) => CORES_SUB[k] || '#64748b');
+            const total = data.reduce((a,b)=>a+b, 0);
+
+            if(chartDistribuicaoCarteira) chartDistribuicaoCarteira.destroy();
+            chartDistribuicaoCarteira = new Chart(canvas.getContext('2d'), {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 2, borderColor: '#fff' }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 8 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: '700', size: 11 },
+                            formatter: (v) => total > 0 ? `${(v/total*100).toFixed(1)}%` : '',
+                            display: ctx => ctx.parsed > total * 0.05
+                        },
+                        tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarMoeda(ctx.parsed)} (${(ctx.parsed/total*100).toFixed(1)}%)` } }
+                    },
+                    cutout: '55%'
+                }
             });
-            barra.innerHTML = segmentos.join('');
-            legenda.innerHTML = itensLegenda.join('');
+        }
+
+        // ============================================================
+        // === QUADRO INFERIOR — categorias com variação no mês       ===
+        // ============================================================
+        // Snapshot mensal: { "YYYY-MM": { saldoTotal, investidoTotal, porGrupo: { [chave]: saldo } } }
+        function carregarSnapshotsCarteira() {
+            try { return JSON.parse(localStorage.getItem('futurorico_carteira_snapshots') || '{}'); } catch { return {}; }
+        }
+        function salvarSnapshotsCarteira(snaps) {
+            localStorage.setItem('futurorico_carteira_snapshots', JSON.stringify(snaps));
+        }
+        function chaveMesAtual() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        }
+        function atualizarSnapshotMesAtual(carteiraConsolidada) {
+            const snaps = carregarSnapshotsCarteira();
+            const chave = chaveMesAtual();
+            const grupos = agruparCarteiraPorCategoria(carteiraConsolidada);
+            const porGrupo = {}; let saldoTotal = 0; let investidoTotal = 0;
+            Object.entries(grupos).forEach(([k,v]) => { porGrupo[k] = v.saldo; saldoTotal += v.saldo; investidoTotal += v.investido; });
+            // Atualiza só o mês atual (preserva snapshots passados)
+            snaps[chave] = { saldoTotal, investidoTotal, porGrupo, atualizadoEm: new Date().toISOString() };
+            salvarSnapshotsCarteira(snaps);
+        }
+
+        function renderizarCardsCategoriaInferior(carteiraConsolidada) {
+            const container = document.getElementById('cardsCategoriaInferior');
+            const wrapper = document.getElementById('quadroCategoriasInferior');
+            const lblMes = document.getElementById('lblMesQuadroCategorias');
+            if(!container || !wrapper) return;
+            const grupos = agruparCarteiraPorCategoria(carteiraConsolidada);
+            const entries = Object.entries(grupos).filter(([,v]) => v.saldo > 0);
+            if(entries.length === 0) { wrapper.style.display = 'none'; return; }
+            wrapper.style.display = 'block';
+
+            const hoje = new Date();
+            const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            if(lblMes) lblMes.innerText = `· variação em ${nomeMes}`;
+
+            const snaps = carregarSnapshotsCarteira();
+            const chaveAtual = chaveMesAtual();
+            // Pega o snapshot mais recente anterior ao mês atual
+            const chavesAnteriores = Object.keys(snaps).filter(k => k < chaveAtual).sort();
+            const snapAnterior = chavesAnteriores.length ? snaps[chavesAnteriores[chavesAnteriores.length - 1]] : null;
+
+            // Ordem fixa para apresentação consistente
+            const ordem = ['acoes','fiis','bdrs','etfs','cripto','renda_fixa','previdencia','reserva_emergencia'];
+            entries.sort((a,b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
+
+            container.innerHTML = entries.map(([k, v]) => {
+                const cor = CORES_SUB[k] || '#64748b';
+                const rotulo = ROTULOS_SUB[k] || k;
+                const saldoAnterior = snapAnterior?.porGrupo?.[k] || 0;
+                let variacaoR$ = 0; let variacaoPerc = 0; let labelVariacao = 'Sem histórico';
+                if(saldoAnterior > 0) {
+                    variacaoR$ = v.saldo - saldoAnterior;
+                    variacaoPerc = (variacaoR$ / saldoAnterior) * 100;
+                    const sinal = variacaoR$ >= 0 ? '+' : '';
+                    labelVariacao = `${sinal}${formatarMoeda(variacaoR$)} (${sinal}${variacaoPerc.toFixed(2)}%)`;
+                }
+                const corVariacao = variacaoR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+                const corLabel = saldoAnterior > 0 ? corVariacao : 'var(--cor-texto-mutado)';
+                return `
+                    <div class="card-container" style="padding: 14px 16px; border-left: 3px solid ${cor};">
+                        <div style="font-size: 11px; font-weight:600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">${rotulo}</div>
+                        <div style="font-size: 18px; font-weight:700; color: var(--cor-texto-principal); font-family: 'DM Mono', monospace;">${formatarMoeda(v.saldo)}</div>
+                        <div style="font-size: 12px; font-weight:600; color: ${corLabel}; margin-top: 4px; font-family: 'DM Mono', monospace;">${labelVariacao}</div>
+                        <div style="font-size: 10.5px; color: var(--cor-texto-mutado); margin-top: 4px;">${v.ativos.length} ativo${v.ativos.length===1?'':'s'} · invest. ${formatarMoeda(v.investido)}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        // Mantida como ponto de entrada (chamado por atualizarCarteiraAtivos). Encaminha às novas funções.
+        function atualizarBarraAlocacao(carteiraConsolidada) {
+            atualizarSnapshotMesAtual(carteiraConsolidada);
+            renderizarGraficoDistribuicao(carteiraConsolidada);
+            renderizarCardsCategoriaInferior(carteiraConsolidada);
+            renderizarGraficoEvolucao();
         }
 
         function atualizarCarteiraAtivos() {
@@ -3127,9 +3789,15 @@
                 totalAtivosValidos++;
                 let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
 
-                const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${ativo.qtdTotal} un.`; datalistCarteira.appendChild(option);
+                const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
 
-                let saldoAtualAtivo = ativo.qtdTotal * precoAtual; let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
+                let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
+                // Previdência: aplica juros compostos mensais sobre cada aporte
+                if(ativo.categoria === 'previdencia') {
+                    saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
+                    precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
+                }
+                let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
                 let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
 
@@ -3165,7 +3833,9 @@
                     <div style="font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</div>
                     <div style="font-weight: 500; font-size: 10.5px; color: var(--cor-texto-mutado); margin-top:3px;">${categoriaLbl}${corretoraTag}</div>
                     ${extraRF}`;
-                tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align: right; font-family: 'DM Mono', monospace;">${ativo.qtdTotal}</td><td class="col-extra" style="text-align: right; color: var(--cor-texto-secundario); font-family: 'DM Mono', monospace;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro}; font-family: 'DM Mono', monospace;">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                const semQtdAtivo = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia' || ativo.categoria === 'previdencia';
+                const qtdCell = semQtdAtivo ? '—' : formatarQtd(ativo.qtdTotal);
+                tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align: right; font-family: 'DM Mono', monospace;">${qtdCell}</td><td class="col-extra" style="text-align: right; color: var(--cor-texto-secundario); font-family: 'DM Mono', monospace;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro}; font-family: 'DM Mono', monospace;">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
             }
 
             if(totalAtivosValidos === 0) {
@@ -3416,7 +4086,7 @@
                     const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
                     return `<tr>
                         <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
-                        <td style="text-align: right; font-family:'DM Mono', monospace;">${l.qtdAtual}</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
                         <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
                         <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
                         <td style="text-align: right; font-family:'DM Mono', monospace;">${yocAtivo.toFixed(2)}%</td>
@@ -3431,7 +4101,7 @@
                 tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
                     <td style="font-family:'DM Mono', monospace;">${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
                     <td style="font-weight: 600;">${p.ticker}</td>
-                    <td style="text-align: right; font-family:'DM Mono', monospace;">${p.qtd}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(p.qtd)}</td>
                     <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(p.valorCota)}</td>
                     <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(p.total)}</td>
                 </tr>`).join('');
@@ -3441,6 +4111,10 @@
             card12m.innerText = formatarMoeda(total12m);
             cardYOC.innerText = totalInvestidoYOC > 0 ? `${(totalGeral / totalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
             cardMedia.innerText = formatarMoeda(total12m / 12);
+
+            // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
+            renderizarGraficoEvolucao();
+            atualizarProximoEvento(carteira);
         }
 
         // --- ABA 2: CONTROLE FINANCEIRO E DRE ---
@@ -5004,6 +5678,8 @@
             carregarMetas();
             inicializarMascarasBRL();
             atualizarDatalistDescricoes();
+            // Lança automaticamente os aportes mensais de previdência que ficaram pendentes
+            processarAportesRecorrentesPrevidencia();
             atualizarTelaControle();
             atualizarCarteiraAtivos();
             carregarCarteiraCliente();
@@ -5013,6 +5689,8 @@
             // Estado inicial do form de operação
             const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
             ajustarCamposPorCategoria();
+            // Estado inicial do gráfico de evolução
+            setPeriodoEvolucao(3);
             // Restaura preferência do usuário sobre colunas extras
             try {
                 if(localStorage.getItem('appliquei_carteira_extras') === '1') {
