@@ -1480,11 +1480,12 @@
 
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-size:15px;font-weight:600;color:var(--cor-texto-principal);margin:0;display:flex;align-items:center;gap:7px;"><i class="ph ph-calendar-check" style="color:var(--cor-info);font-size:18px;"></i> Projeção de caixa (DRE)</h2>
-                <div style="display:flex;gap:6px;">
-                    <button class="btn-tab-dre ativo" onclick="mudarMesesDRE(event,12)">12 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,24)">24 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,36)">36 meses</button>
-                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48)">48 meses</button>
+                <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,12,-11)"><i class="ph ph-clock-counter-clockwise"></i> 12 passados</button>
+                    <button class="btn-tab-dre ativo" onclick="mudarMesesDRE(event,12,0)">12 meses</button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,24,0)">24 meses</button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,36,0)">36 meses</button>
+                    <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48,0)">48 meses</button>
                 </div>
             </div>
             <div class="card-container" style="padding:0;overflow:hidden;margin-bottom:40px;">
@@ -3249,6 +3250,7 @@
         let visaoMes = new Date().getMonth();
         let visaoAno = new Date().getFullYear();
         let qtdMesesDRE = 12; // Variável de controle das abas do DRE
+        let offsetMesesDRE = 0; // Deslocamento em meses do início do DRE (negativo = passado)
         let chartComposicao = null;
 
         function mudarMesVisao(delta) {
@@ -3275,9 +3277,12 @@
             }
         }
         
-        function mudarMesesDRE(e, meses) {
+        function mudarMesesDRE(e, meses, offset = 0) {
             qtdMesesDRE = meses;
-            document.querySelectorAll('.btn-tab-dre').forEach(btn => btn.classList.remove('ativo'));
+            offsetMesesDRE = offset;
+            const grupoBotoes = e.currentTarget.parentElement;
+            const escopo = grupoBotoes || document;
+            escopo.querySelectorAll('.btn-tab-dre').forEach(btn => btn.classList.remove('ativo'));
             e.currentTarget.classList.add('ativo');
             atualizarTelaControle();
         }
@@ -4080,56 +4085,62 @@
             const metaVerde = parseBRL(document.getElementById('metaVerde').value) || 3000;
             const metaVermelha = parseBRL(document.getElementById('metaVermelha').value) || 1000;
             
+            let inicioMes = visaoMes + offsetMesesDRE;
+            let inicioAno = visaoAno;
+            while(inicioMes < 0) { inicioMes += 12; inicioAno--; }
+            while(inicioMes > 11) { inicioMes -= 12; inicioAno++; }
+            const indiceMesAtual = -offsetMesesDRE;
+
             let saldoAcumulado = 0;
             transacoes.forEach(t => {
-                if (t.ano < visaoAno || (t.ano === visaoAno && t.mes < visaoMes)) {
+                if (t.ano < inicioAno || (t.ano === inicioAno && t.mes < inicioMes)) {
                     if(t.categoria === 'receita' || t.categoria === 'resgate_investimento') saldoAcumulado += t.valor; else saldoAcumulado -= t.valor;
                 }
             });
 
             let labelsMeses = []; let dreDados = [];
             for(let i=0; i<qtdMesesDRE; i++) {
-                let m = visaoMes + i; let a = visaoAno;
+                let m = inicioMes + i; let a = inicioAno;
                 while(m > 11) { m -= 12; a++; }
                 let r = calcularResumoMes(m, a);
                 let despesas = r.despFixa + r.despVar + r.cartao;
-                saldoAcumulado += r.receita + r.resgate - despesas - (r.invFixo + r.invVar); 
+                saldoAcumulado += r.receita + r.resgate - despesas - (r.invFixo + r.invVar);
                 dreDados.push({ receita: r.receita, resgate: r.resgate, invFixo: r.invFixo, invVar: r.invVar, despesas: despesas, saldoAcumulado: saldoAcumulado });
                 labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
             }
 
             let htmlThead = `<tr><th class="coluna-fixa" style="min-width: 190px;">Demonstrativo contábil</th>`;
-            labelsMeses.forEach((lbl, index) => { htmlThead += `<th style="text-align: right; min-width: 120px; ${index === 0 ? 'background-color: var(--cor-bg-info);' : ''}">${lbl}</th>`; });
+            labelsMeses.forEach((lbl, index) => { htmlThead += `<th style="text-align: right; min-width: 120px; ${index === indiceMesAtual ? 'background-color: var(--cor-bg-info);' : ''}">${lbl}</th>`; });
             htmlThead += `</tr>`; theadDRE.innerHTML = htmlThead;
 
             let htmlLinhas = '';
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita Total</td>`;
-            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === 0 ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.receita)}</td>`; });
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.receita)}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (Venda de Ativos)</td>`;
-            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === 0 ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.resgate)}</td>`; });
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.resgate)}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Fixa)</td>`;
-            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === 0 ? 'background-color: #eff6ff;' : ''}">${d.invFixo > 0 ? '-'+formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`; });
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.invFixo > 0 ? '-'+formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
-            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === 0 ? 'background-color: #eff6ff;' : ''}">${d.invVar > 0 ? '-'+formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`; });
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.invVar > 0 ? '-'+formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
-            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-erro); font-weight: 600; ${i === 0 ? 'background-color: #eff6ff;' : ''}">${d.despesas > 0 ? '-'+formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`; });
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-erro); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.despesas > 0 ? '-'+formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);">Saldo Final da Conta</td>`;
             dreDados.forEach((d, i) => {
                 let corSaldo = 'var(--cor-texto-principal)'; let fontW = '600'; let alertaBadget = '';
-                if (d.saldoAcumulado < 0) { corSaldo = 'var(--cor-erro)'; fontW = '800'; alertaBadget = `<br><span style="font-size: 10px; background: var(--cor-erro); color: white; padding: 2px 4px; border-radius: 4px;">NEGATIVO</span>`; } 
-                else if (d.saldoAcumulado < metaVermelha) { corSaldo = 'var(--cor-erro)'; fontW = '700'; } 
+                if (d.saldoAcumulado < 0) { corSaldo = 'var(--cor-erro)'; fontW = '800'; alertaBadget = `<br><span style="font-size: 10px; background: var(--cor-erro); color: white; padding: 2px 4px; border-radius: 4px;">NEGATIVO</span>`; }
+                else if (d.saldoAcumulado < metaVermelha) { corSaldo = 'var(--cor-erro)'; fontW = '700'; }
                 else if (d.saldoAcumulado >= metaVerde) { corSaldo = 'var(--cor-primaria)'; fontW = '700'; }
-                htmlLinhas += `<td style="text-align: right; color: ${corSaldo} !important; font-weight: ${fontW}; ${i === 0 ? 'background-color: #d1fae5;' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
+                htmlLinhas += `<td style="text-align: right; color: ${corSaldo} !important; font-weight: ${fontW}; ${i === indiceMesAtual ? 'background-color: #d1fae5;' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
             });
             htmlLinhas += `</tr>`;
 
