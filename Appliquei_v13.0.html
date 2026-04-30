@@ -889,6 +889,21 @@
         </div>
     </div>
 
+    <div id="modalGrupoCartao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalGrupoCartao()">
+        <div style="max-width:480px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+                <h3 id="tituloModalGrupoCartao" style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);"></i> <span></span></h3>
+                <button class="drawer-fechar" onclick="fecharModalGrupoCartao()" aria-label="Fechar" style="background:none;border:none;cursor:pointer;color:var(--cor-texto-mutado);font-size:18px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="subtituloModalGrupoCartao" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:14px;"></div>
+            <div id="conteudoModalGrupoCartao" style="overflow-y:auto;flex:1;border-top:1px solid var(--cor-borda);padding-top:10px;"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secundario" style="flex:1;" onclick="fecharModalGrupoCartao()">Fechar</button>
+                <button class="btn-acao" id="btnBaixarModalGrupoCartao" style="flex:1;background:var(--cor-primaria);"><i class="ph-bold ph-check"></i> Baixar tudo</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
@@ -899,9 +914,10 @@
                 <div id="listaCartoesConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
                 <div id="formNovoCartaoConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                     <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="novoCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
-                    <div class="grid-2-iguais" style="gap:8px;margin-bottom:8px;">
+                    <div class="grid-3-iguais" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Limite (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="novoCartaoLimite" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)" style="padding:8px;font-size:13px;"></span></div>
-                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc. (opcional)</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="novoCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
                     </div>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoConfig()">Cancelar</button>
@@ -1404,7 +1420,7 @@
                             <input type="date" id="dataVencimento">
                         </div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;">
+                    <div class="grid-2-iguais" style="gap:12px;align-items:end;">
                         <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
                     </div>
@@ -1416,9 +1432,10 @@
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
-                            <div class="grid-2-iguais" style="gap:8px;margin-bottom:8px;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
                                 <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Limite (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="inlineCartaoLimite" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)" style="padding:8px;font-size:13px;"></span></div>
-                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc. (opcional)</label><input type="number" id="inlineCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="inlineCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="inlineCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
                             </div>
                             <div style="display:flex;gap:6px;">
                                 <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoInline()">Cancelar</button>
@@ -2065,13 +2082,14 @@
                 return;
             }
             container.innerHTML = cartoes.map(c => {
-                const venc = c.diaVencimento ? `Venc. dia ${c.diaVencimento}` : 'Sem dia de vencimento';
+                const fech = c.diaFechamento ? `Fech. dia ${c.diaFechamento}` : 'Sem fechamento';
+                const venc = c.diaVencimento ? `Venc. dia ${c.diaVencimento}` : 'Sem vencimento';
                 return `
                     <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
                         <i class="ph ph-credit-card" style="color:var(--cor-cartao);font-size:18px;"></i>
                         <div style="flex:1;min-width:0;">
                             <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.nome}</div>
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${venc}</div>
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${fech} • ${venc}</div>
                         </div>
                         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCartaoConfig('${c.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="excluirCartaoConfig('${c.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
@@ -2084,6 +2102,7 @@
             document.getElementById('btnAbrirNovoCartao').style.display = 'none';
             document.getElementById('novoCartaoNome').value = '';
             document.getElementById('novoCartaoLimite').value = '';
+            document.getElementById('novoCartaoDiaFech').value = '';
             document.getElementById('novoCartaoDiaVenc').value = '';
             document.getElementById('novoCartaoNome').dataset.editandoId = '';
             document.getElementById('novoCartaoNome').focus();
@@ -2097,16 +2116,19 @@
         function salvarNovoCartaoConfig() {
             const nome = document.getElementById('novoCartaoNome').value.trim();
             const limite = parseBRL(document.getElementById('novoCartaoLimite').value) || 0;
-            const diaVenc = parseInt(document.getElementById('novoCartaoDiaVenc').value) || null;
+            const diaFech = parseInt(document.getElementById('novoCartaoDiaFech').value);
+            const diaVenc = parseInt(document.getElementById('novoCartaoDiaVenc').value);
             const editandoId = document.getElementById('novoCartaoNome').dataset.editandoId;
 
             if (!nome) return mostrarToast("Informe o nome do cartão.", "erro");
+            if (!diaFech || diaFech < 1 || diaFech > 31) return mostrarToast("Informe o dia de fechamento (1 a 31).", "erro");
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return mostrarToast("Informe o dia de vencimento (1 a 31).", "erro");
 
             if (editandoId) {
                 const c = cartoes.find(x => x.id === editandoId);
-                if (c) { c.nome = nome; c.limite = limite; c.diaVencimento = diaVenc; }
+                if (c) { c.nome = nome; c.limite = limite; c.diaFechamento = diaFech; c.diaVencimento = diaVenc; }
             } else {
-                cartoes.push({ id: 'card_' + Date.now(), nome, limite, diaVencimento: diaVenc });
+                cartoes.push({ id: 'card_' + Date.now(), nome, limite, diaFechamento: diaFech, diaVencimento: diaVenc });
             }
             salvarCartoes();
             cancelarNovoCartaoConfig();
@@ -2122,6 +2144,7 @@
             document.getElementById('btnAbrirNovoCartao').style.display = 'none';
             document.getElementById('novoCartaoNome').value = c.nome;
             setValorBRLInput(document.getElementById('novoCartaoLimite'), c.limite || 0);
+            document.getElementById('novoCartaoDiaFech').value = c.diaFechamento || '';
             document.getElementById('novoCartaoDiaVenc').value = c.diaVencimento || '';
             document.getElementById('novoCartaoNome').dataset.editandoId = id;
             document.getElementById('novoCartaoNome').focus();
@@ -3267,6 +3290,7 @@
                 document.getElementById('formNovoCartaoInline').style.display = 'block';
                 document.getElementById('inlineCartaoNome').value = '';
                 document.getElementById('inlineCartaoLimite').value = '';
+                document.getElementById('inlineCartaoDiaFech').value = '';
                 document.getElementById('inlineCartaoDiaVenc').value = '';
                 document.getElementById('inlineCartaoNome').focus();
             } else {
@@ -3281,15 +3305,19 @@
             if (!sel || !inputVenc) return;
             if (!sel.value || sel.value === '__novo__') return;
             const cartao = obterCartao(sel.value);
-            const dia = parseInt(cartao?.diaVencimento, 10);
-            if (!dia || dia < 1 || dia > 31) return;
+            const diaVenc = parseInt(cartao?.diaVencimento, 10);
+            const diaFech = parseInt(cartao?.diaFechamento, 10);
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return;
 
+            // Se compra é após o fechamento do mês corrente, vai pra fatura do mês seguinte.
+            // Caso contrário, fica na fatura do mês corrente (vencimento deste mês).
             const hoje = new Date();
             let ano = hoje.getFullYear();
             let mes = hoje.getMonth();
-            if (hoje.getDate() > dia) mes += 1;
+            const usarProxFatura = diaFech ? hoje.getDate() > diaFech : hoje.getDate() > diaVenc;
+            if (usarProxFatura) mes += 1;
             const ultimoDia = new Date(ano, mes + 1, 0).getDate();
-            const diaFinal = Math.min(dia, ultimoDia);
+            const diaFinal = Math.min(diaVenc, ultimoDia);
             const data = new Date(ano, mes, diaFinal);
             const yyyy = data.getFullYear();
             const mm = String(data.getMonth() + 1).padStart(2, '0');
@@ -3305,9 +3333,12 @@
         function salvarNovoCartaoInline() {
             const nome = document.getElementById('inlineCartaoNome').value.trim();
             const limite = parseBRL(document.getElementById('inlineCartaoLimite').value) || 0;
-            const diaVenc = parseInt(document.getElementById('inlineCartaoDiaVenc').value) || null;
+            const diaFech = parseInt(document.getElementById('inlineCartaoDiaFech').value);
+            const diaVenc = parseInt(document.getElementById('inlineCartaoDiaVenc').value);
             if (!nome) return mostrarToast("Informe o nome do cartão.", "erro");
-            const novo = { id: 'card_' + Date.now(), nome, limite, diaVencimento: diaVenc };
+            if (!diaFech || diaFech < 1 || diaFech > 31) return mostrarToast("Informe o dia de fechamento (1 a 31).", "erro");
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return mostrarToast("Informe o dia de vencimento (1 a 31).", "erro");
+            const novo = { id: 'card_' + Date.now(), nome, limite, diaFechamento: diaFech, diaVencimento: diaVenc };
             cartoes.push(novo);
             salvarCartoes();
             atualizarSelectCartoesForm();
@@ -3605,13 +3636,34 @@
             atualizarDatalistDescricoes();
         }
 
-        function toggleGrupoCartao(key) {
-            const det = document.getElementById(`detalhe-grupo-${key}`);
-            const caret = document.getElementById(`caret-${key}`);
-            if (!det) return;
-            const aberto = det.style.display === 'block';
-            det.style.display = aberto ? 'none' : 'block';
-            if (caret) caret.className = aberto ? 'ph ph-caret-down' : 'ph ph-caret-up';
+        function abrirModalGrupoCartao(key) {
+            const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
+            if (!grupo) return mostrarToast("Grupo não encontrado.", "erro");
+            const cartaoInfo = obterCartao(grupo.cartaoId);
+            const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
+            const [vAno, vMes, vDia] = grupo.dataVencimento.split('-');
+            const titulo = document.querySelector('#tituloModalGrupoCartao span');
+            if (titulo) titulo.innerText = nomeCartao;
+            document.getElementById('subtituloModalGrupoCartao').innerHTML =
+                `Vence ${vDia}/${vMes}/${vAno} • ${grupo.itens.length} ${grupo.itens.length === 1 ? 'lançamento' : 'lançamentos'} • <strong style="color:var(--cor-texto-principal);">${formatarMoeda(grupo.total)}</strong>`;
+            const corpo = document.getElementById('conteudoModalGrupoCartao');
+            corpo.innerHTML = grupo.itens.map(it => {
+                const obsHint = it.obs ? `<div style="font-size:11px;color:var(--cor-texto-mutado);font-style:italic;margin-top:3px;">${it.obs}</div>` : '';
+                return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px dashed var(--cor-borda);">
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:13px;color:var(--cor-texto-principal);font-weight:500;">${it.descricao}</div>
+                        ${obsHint}
+                    </div>
+                    <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);white-space:nowrap;">${formatarMoeda(it.valor)}</div>
+                </div>`;
+            }).join('');
+            const btnBaixar = document.getElementById('btnBaixarModalGrupoCartao');
+            btnBaixar.onclick = () => { fecharModalGrupoCartao(); baixarGrupoCartao(key); };
+            document.getElementById('modalGrupoCartao').style.display = 'flex';
+        }
+
+        function fecharModalGrupoCartao() {
+            document.getElementById('modalGrupoCartao').style.display = 'none';
         }
 
         function baixarGrupoCartao(key) {
@@ -3814,26 +3866,17 @@
                     const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
                     const grupoKey = `${g.cartaoId || 'sem'}_${g.dataVencimento}`;
                     containerVenc.innerHTML += `
-                        <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="toggleGrupoCartao('${grupoKey}')">
+                        <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="abrirModalGrupoCartao('${grupoKey}')">
                             <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
                             <div style="flex:1;min-width:0;">
-                                <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);"></i> Cartão ${nomeCartao}${badgeAtraso}</div>
-                                <div class="venc-val">${formatarMoeda(g.total)} • ${g.itens.length} ${g.itens.length === 1 ? 'lançamento' : 'lançamentos'} <i class="ph ph-caret-down" id="caret-${grupoKey}" style="font-size:10px;margin-left:4px;"></i></div>
+                                <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);"></i> ${nomeCartao}${badgeAtraso}</div>
+                                <div class="venc-val">${formatarMoeda(g.total)} • ${g.itens.length} ${g.itens.length === 1 ? 'lançamento' : 'lançamentos'} <i class="ph ph-arrow-square-out" style="font-size:11px;margin-left:4px;color:var(--cor-info);"></i></div>
                             </div>
                             <div class="venc-badge">
                                 <button onclick="event.stopPropagation(); baixarGrupoCartao('${grupoKey}')" class="btn-secundario" style="padding:5px 10px;font-size:11px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
                                     <i class="ph-bold ph-check"></i> Baixar
                                 </button>
                             </div>
-                        </div>
-                        <div id="detalhe-grupo-${grupoKey}" style="display:none;grid-column:1/-1;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 14px;margin-top:-6px;">
-                            ${g.itens.map(it => {
-                                const obsHint = it.obs ? `<div style="font-size:10.5px;color:var(--cor-texto-mutado);font-style:italic;margin-top:2px;">${it.obs}</div>` : '';
-                                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--cor-borda);">
-                                    <div style="font-size:12.5px;color:var(--cor-texto-principal);">${it.descricao}${obsHint}</div>
-                                    <div style="font-size:12.5px;font-weight:600;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${formatarMoeda(it.valor)}</div>
-                                </div>`;
-                            }).join('')}
                         </div>`;
                     qtdVencimentos++;
                 }
@@ -4674,7 +4717,8 @@
             if(e.key === 'Escape') {
                 const drawer = document.getElementById('drawerOperacao');
                 if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
-                const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes');
+                const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
+                if(mgrp && mgrp.style.display === 'flex') { fecharModalGrupoCartao(); return; }
                 if(mc && mc.style.display === 'flex') fecharModal();
                 if(mconf && mconf.style.display === 'flex') fecharModalConfig();
             }
