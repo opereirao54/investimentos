@@ -3239,6 +3239,7 @@
                 chkFixa.checked = false;
                 atualizarSelectCartoesForm();
                 aplicarTipoCartaoUI();
+                preencherVencimentoPorCartao();
             } else {
                 divCartao.style.display = 'none';
                 divParcelas.style.display = 'none';
@@ -3270,7 +3271,30 @@
                 document.getElementById('inlineCartaoNome').focus();
             } else {
                 document.getElementById('formNovoCartaoInline').style.display = 'none';
+                preencherVencimentoPorCartao();
             }
+        }
+
+        function preencherVencimentoPorCartao() {
+            const sel = document.getElementById('selectCartao');
+            const inputVenc = document.getElementById('dataVencimento');
+            if (!sel || !inputVenc) return;
+            if (!sel.value || sel.value === '__novo__') return;
+            const cartao = obterCartao(sel.value);
+            const dia = parseInt(cartao?.diaVencimento, 10);
+            if (!dia || dia < 1 || dia > 31) return;
+
+            const hoje = new Date();
+            let ano = hoje.getFullYear();
+            let mes = hoje.getMonth();
+            if (hoje.getDate() > dia) mes += 1;
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            const diaFinal = Math.min(dia, ultimoDia);
+            const data = new Date(ano, mes, diaFinal);
+            const yyyy = data.getFullYear();
+            const mm = String(data.getMonth() + 1).padStart(2, '0');
+            const dd = String(data.getDate()).padStart(2, '0');
+            inputVenc.value = `${yyyy}-${mm}-${dd}`;
         }
 
         function cancelarNovoCartaoInline() {
@@ -3289,6 +3313,7 @@
             atualizarSelectCartoesForm();
             document.getElementById('selectCartao').value = novo.id;
             document.getElementById('formNovoCartaoInline').style.display = 'none';
+            preencherVencimentoPorCartao();
             renderizarListaCartoesConfig();
             mostrarToast("Cartão adicionado.", "sucesso");
         }
