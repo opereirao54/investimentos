@@ -223,6 +223,27 @@
         .btn-theme:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-theme i { font-size: 16px; }
 
+        .btn-eye { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
+        .btn-eye:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .btn-eye i { font-size: 16px; }
+        .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
+
+        /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
+        body.valores-ocultos .valor-mascarado,
+        body.valores-ocultos #patrimonio .valor,
+        body.valores-ocultos #controle .valor,
+        body.valores-ocultos #carteira .valor,
+        body.valores-ocultos #patrimonio .tabela-dashboard tbody td:not(.coluna-fixa),
+        body.valores-ocultos #controle .tabela-dashboard tbody td:not(.coluna-fixa),
+        body.valores-ocultos #carteira .tabela-dashboard tbody td:not(.coluna-fixa),
+        body.valores-ocultos #patrimonio canvas,
+        body.valores-ocultos #controle canvas,
+        body.valores-ocultos #carteira canvas {
+            filter: blur(9px) !important;
+            user-select: none;
+            transition: filter 0.25s ease;
+        }
+
         /* === COMPONENTES === */
         .card-container {
             background: var(--cor-branco);
@@ -1065,6 +1086,7 @@
                     <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
                     <button class="btn-secundario" onclick="exportarDados()" title="Backup JSON dos seus dados (ficam só no navegador)"><i class="ph ph-download-simple"></i> Backup</button>
                     <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
+                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
                     <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
                 </div>
             </div>
@@ -1078,7 +1100,7 @@
                     <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
                     <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
                         <span class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</span>
-                        <span id="resumoRentabilidade" style="font-size: 14px; font-weight: 600; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">0,00%</span>
+                        <span id="resumoRentabilidade" class="valor-mascarado" style="font-size: 14px; font-weight: 600; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">0,00%</span>
                     </div>
                 </div>
                 <div class="card-destaque">
@@ -1286,6 +1308,7 @@
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
+                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
 
@@ -1541,6 +1564,7 @@
                 </div>
                 <div class="page-actions">
                     <button onclick="toggleModoAdmin()" class="btn-secundario"><i class="ph ph-gear"></i> Painel do consultor</button>
+                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
                 </div>
             </div>
 
@@ -1626,9 +1650,9 @@
 
                 <!-- KPI Cards Row 1 (existing 3) -->
                 <div class="grid-3" style="margin-bottom: 16px;">
-                    <div class="card-destaque" style="border-left-color: var(--cor-primaria);"><h3 style="color: var(--cor-primaria);"><i class="ph ph-shield-check"></i> Renda Fixa (<span id="lblPercRF">0</span>%)</h3><div class="valor" id="fatiaRF">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-info);"><h3 style="color: var(--cor-info);"><i class="ph ph-buildings"></i> FIIs (<span id="lblPercFII">0</span>%)</h3><div class="valor" id="fatiaFII">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-patrimonio);"><h3 style="color: var(--cor-patrimonio);"><i class="ph ph-chart-line-up"></i> Ações (<span id="lblPercAcoes">0</span>%)</h3><div class="valor" id="fatiaAcoes">R$ 0,00</div></div>
+                    <div class="card-destaque" style="border-left-color: var(--cor-primaria);"><h3 style="color: var(--cor-primaria);"><i class="ph ph-shield-check"></i> Renda Fixa (<span id="lblPercRF" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaRF">R$ 0,00</div></div>
+                    <div class="card-destaque" style="border-left-color: var(--cor-info);"><h3 style="color: var(--cor-info);"><i class="ph ph-buildings"></i> FIIs (<span id="lblPercFII" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaFII">R$ 0,00</div></div>
+                    <div class="card-destaque" style="border-left-color: var(--cor-patrimonio);"><h3 style="color: var(--cor-patrimonio);"><i class="ph ph-chart-line-up"></i> Ações (<span id="lblPercAcoes" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaAcoes">R$ 0,00</div></div>
                 </div>
 
                 <!-- KPI Cards Row 2 (new 2) -->
@@ -1645,8 +1669,8 @@
 
                 <!-- ETF + BDR KPIs -->
                 <div class="grid-2-iguais" style="margin-bottom: 20px;">
-                    <div class="card-destaque" style="border-left-color: var(--cor-txt-primaria);"><h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-chart-pie-slice"></i> ETFs (<span id="lblPercETF">0</span>%)</h3><div class="valor" id="fatiaETF">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-txt-info);"><h3 style="color: var(--cor-txt-info);"><i class="ph ph-globe-hemisphere-west"></i> BDRs (<span id="lblPercBDR">0</span>%)</h3><div class="valor" id="fatiaBDR">R$ 0,00</div></div>
+                    <div class="card-destaque" style="border-left-color: var(--cor-txt-primaria);"><h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-chart-pie-slice"></i> ETFs (<span id="lblPercETF" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaETF">R$ 0,00</div></div>
+                    <div class="card-destaque" style="border-left-color: var(--cor-txt-info);"><h3 style="color: var(--cor-txt-info);"><i class="ph ph-globe-hemisphere-west"></i> BDRs (<span id="lblPercBDR" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaBDR">R$ 0,00</div></div>
                 </div>
 
                 <!-- Concentration Alert Banner -->
@@ -2002,6 +2026,26 @@
             const icon = document.getElementById('iconTheme');
             if(icon) icon.className = document.body.classList.contains('dark') ? 'ph ph-moon' : 'ph ph-sun';
         }
+
+        function aplicarEstadoValoresOcultos(oculto) {
+            document.body.classList.toggle('valores-ocultos', oculto);
+            document.querySelectorAll('.btn-eye').forEach(btn => {
+                btn.classList.toggle('ativo', oculto);
+                btn.title = oculto ? 'Mostrar valores' : 'Ocultar valores';
+                const icone = btn.querySelector('i');
+                if (icone) icone.className = oculto ? 'ph ph-eye-slash' : 'ph ph-eye';
+            });
+        }
+        function toggleValoresOcultos() {
+            const oculto = !document.body.classList.contains('valores-ocultos');
+            aplicarEstadoValoresOcultos(oculto);
+            try { localStorage.setItem('appliquei_valores_ocultos', oculto ? '1' : '0'); } catch(e) {}
+        }
+        (function inicializarValoresOcultos() {
+            let salvo = '0';
+            try { salvo = localStorage.getItem('appliquei_valores_ocultos') || '0'; } catch(e) {}
+            if (salvo === '1') aplicarEstadoValoresOcultos(true);
+        })();
 
         // === CHIPS DE TIPO DE LANÇAMENTO ===
         function selecionarChipTipo(tipo) {
