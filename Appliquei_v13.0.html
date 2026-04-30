@@ -690,6 +690,13 @@
         .venc-val { font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; margin-top: 2px; }
         .venc-badge { margin-left: auto; flex-shrink: 0; }
 
+        /* Cards de fatura de cartão: mais compactos, valor em destaque */
+        .venc-card.venc-card-grupo { padding: 9px 12px; gap: 9px; }
+        .venc-card.venc-card-grupo .venc-day { font-size: 18px; min-width: 26px; }
+        .venc-card.venc-card-grupo .venc-name { font-size: 11px; font-weight: 600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; }
+        .venc-card.venc-card-grupo .venc-val { font-size: 16px; font-weight: 700; color: var(--cor-texto-principal); margin-top: 1px; line-height: 1.15; }
+        .venc-card.venc-card-grupo .venc-val .venc-meta { font-size: 10px; font-weight: 500; color: var(--cor-texto-mutado); margin-left: 6px; font-family: 'Figtree', sans-serif; }
+
         /* === TERMÔMETRO 60% === */
         .thermo-card {
             background: var(--cor-branco);
@@ -2081,18 +2088,24 @@
                 container.innerHTML = '<div style="font-size:12px;color:var(--cor-texto-mutado);font-style:italic;padding:8px;">Nenhum cartão cadastrado.</div>';
                 return;
             }
-            container.innerHTML = cartoes.map(c => {
+            const ordenados = [...cartoes].sort((a, b) => (a.arquivado === b.arquivado) ? 0 : (a.arquivado ? 1 : -1));
+            container.innerHTML = ordenados.map(c => {
                 const fech = c.diaFechamento ? `Fech. dia ${c.diaFechamento}` : 'Sem fechamento';
                 const venc = c.diaVencimento ? `Venc. dia ${c.diaVencimento}` : 'Sem vencimento';
+                const arq = c.arquivado;
+                const acaoBtn = arq
+                    ? `<button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-primaria);border-color:var(--cor-primaria);" onclick="restaurarCartaoConfig('${c.id}')" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i></button>`
+                    : `<button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="arquivarCartaoConfig('${c.id}')" title="Arquivar (mantém histórico)"><i class="ph ph-archive"></i></button>`;
+                const badge = arq ? `<span style="background:var(--cor-borda);color:var(--cor-texto-mutado);padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-left:6px;">Arquivado</span>` : '';
                 return `
-                    <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;${arq ? 'opacity:0.6;' : ''}">
                         <i class="ph ph-credit-card" style="color:var(--cor-cartao);font-size:18px;"></i>
                         <div style="flex:1;min-width:0;">
-                            <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.nome}</div>
+                            <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.nome}${badge}</div>
                             <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${fech} • ${venc}</div>
                         </div>
                         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCartaoConfig('${c.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                        <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="excluirCartaoConfig('${c.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
+                        ${acaoBtn}
                     </div>`;
             }).join('');
         }
@@ -2150,22 +2163,35 @@
             document.getElementById('novoCartaoNome').focus();
         }
 
-        function excluirCartaoConfig(id) {
-            if (cartoes.length <= 1) return mostrarToast("Você precisa ter pelo menos um cartão cadastrado.", "erro");
+        function arquivarCartaoConfig(id) {
+            const ativos = cartoesAtivos();
+            if (ativos.length <= 1 && ativos[0]?.id === id) {
+                return mostrarToast("Você precisa manter pelo menos um cartão ativo.", "erro");
+            }
+            const c = cartoes.find(x => x.id === id);
+            if (!c) return;
             const usados = transacoes.some(t => t.cartaoId === id);
             const msg = usados
-                ? "Este cartão tem lançamentos vinculados. Eles serão movidos para o primeiro cartão restante. Continuar?"
-                : "Excluir este cartão?";
+                ? `Arquivar "${c.nome}"? O histórico de lançamentos será preservado e continuará vinculado a este cartão. O cartão deixa de aparecer no formulário de novas despesas, mas pode ser restaurado a qualquer momento.`
+                : `Arquivar "${c.nome}"?`;
             if (!confirm(msg)) return;
-            const restantes = cartoes.filter(c => c.id !== id);
-            transacoes = transacoes.map(t => t.cartaoId === id ? { ...t, cartaoId: restantes[0].id } : t);
-            cartoes = restantes;
+            c.arquivado = true;
             salvarCartoes();
-            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             renderizarListaCartoesConfig();
             atualizarSelectCartoesForm();
             atualizarTelaControle();
-            mostrarToast("Cartão excluído.", "aviso");
+            mostrarToast("Cartão arquivado. Histórico preservado.", "sucesso");
+        }
+
+        function restaurarCartaoConfig(id) {
+            const c = cartoes.find(x => x.id === id);
+            if (!c) return;
+            c.arquivado = false;
+            salvarCartoes();
+            renderizarListaCartoesConfig();
+            atualizarSelectCartoesForm();
+            atualizarTelaControle();
+            mostrarToast("Cartão restaurado.", "sucesso");
         }
 
         // --- BASE DE DADOS DOS ATIVOS ---
@@ -2332,12 +2358,20 @@
             localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
         }
 
+        // Migração: garante que todo cartão tenha o campo `arquivado`
+        cartoes = cartoes.map(c => ({ ...c, arquivado: c.arquivado === true }));
+        localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
+
         function salvarCartoes() {
             localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
         }
 
         function obterCartao(id) {
             return cartoes.find(c => c.id === id) || cartoes[0];
+        }
+
+        function cartoesAtivos() {
+            return cartoes.filter(c => !c.arquivado);
         }
 
         // Migração de transações antigas: cartão de crédito sem cartaoId vai pro primeiro cartão; sem obs vira ""
@@ -3279,9 +3313,10 @@
             const sel = document.getElementById('selectCartao');
             if (!sel) return;
             const valorAtual = sel.value;
-            sel.innerHTML = cartoes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('') +
+            const ativos = cartoesAtivos();
+            sel.innerHTML = ativos.map(c => `<option value="${c.id}">${c.nome}</option>`).join('') +
                 `<option value="__novo__">+ Adicionar novo cartão</option>`;
-            if (valorAtual && cartoes.some(c => c.id === valorAtual)) sel.value = valorAtual;
+            if (valorAtual && ativos.some(c => c.id === valorAtual)) sel.value = valorAtual;
         }
 
         function onChangeSelectCartao() {
@@ -3865,15 +3900,16 @@
                     const cartaoInfo = obterCartao(g.cartaoId);
                     const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
                     const grupoKey = `${g.cartaoId || 'sem'}_${g.dataVencimento}`;
+                    const qtdLanc = g.itens.length;
                     containerVenc.innerHTML += `
                         <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="abrirModalGrupoCartao('${grupoKey}')">
                             <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
                             <div style="flex:1;min-width:0;">
-                                <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);"></i> ${nomeCartao}${badgeAtraso}</div>
-                                <div class="venc-val">${formatarMoeda(g.total)} • ${g.itens.length} ${g.itens.length === 1 ? 'lançamento' : 'lançamentos'} <i class="ph ph-arrow-square-out" style="font-size:11px;margin-left:4px;color:var(--cor-info);"></i></div>
+                                <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);font-size:11px;"></i> ${nomeCartao}${badgeAtraso}</div>
+                                <div class="venc-val">${formatarMoeda(g.total)}<span class="venc-meta">${qtdLanc} ${qtdLanc === 1 ? 'lançamento' : 'lançamentos'}</span></div>
                             </div>
                             <div class="venc-badge">
-                                <button onclick="event.stopPropagation(); baixarGrupoCartao('${grupoKey}')" class="btn-secundario" style="padding:5px 10px;font-size:11px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
+                                <button onclick="event.stopPropagation(); baixarGrupoCartao('${grupoKey}')" class="btn-secundario" style="padding:4px 8px;font-size:10.5px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
                                     <i class="ph-bold ph-check"></i> Baixar
                                 </button>
                             </div>
