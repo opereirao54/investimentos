@@ -248,21 +248,21 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 17px;
-            height: 17px;
-            border-radius: 6px;
-            background: var(--cor-superficie);
-            border: 1px solid var(--cor-borda);
-            color: var(--cor-texto-secundario);
-            font-size: 11px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            color: var(--cor-primaria);
+            font-size: 12px;
             cursor: help;
             transition: all 0.2s ease;
         }
         .icon-tooltip-premium:hover {
-            background: var(--cor-bg-primaria);
-            color: var(--cor-primaria);
-            border-color: var(--cor-borda-primaria);
-            transform: scale(1.08);
+            background: var(--cor-primaria);
+            color: white;
+            border-color: var(--cor-primaria);
+            transform: scale(1.1);
         }
         .icon-tooltip-premium[data-custom-tooltip]::after {
             content: attr(data-custom-tooltip);
@@ -1881,7 +1881,7 @@
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;align-items:center;">
                             <span style="color:var(--cor-texto-mutado);display:flex;align-items:center;gap:4px;">
                                 Renda passiva estimada 
-                                <i id="iconRendaPassivaReal" class="ph-bold ph-info icon-tooltip-premium" data-custom-tooltip="Você terá o poder de compra de R$ 0,00, baseado no patrimônio corrigido"></i>
+                                <i id="iconRendaPassivaReal" class="ph-fill ph-info icon-tooltip-premium" data-custom-tooltip="Você terá o poder de compra de R$ 0,00, baseado no patrimônio corrigido"></i>
                             </span>
                             <span id="outRendaPassiva" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);font-weight:600;">R$ 0,00/mês</span>
                         </div>
