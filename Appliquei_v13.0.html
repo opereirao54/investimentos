@@ -3706,11 +3706,30 @@
             if (!grupo) return mostrarToast("Grupo não encontrado.", "erro");
             const total = grupo.total;
             const qtd = grupo.itens.length;
-            if (!confirm(`Baixar ${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'} do cartão (${formatarMoeda(total)}) como pago?`)) return;
+            
+            const modal = document.getElementById('modalConfirmacao');
+            const titulo = document.getElementById('modalTitulo');
+            const msg = document.getElementById('modalMensagem');
+            const acoes = document.getElementById('modalAcoes');
+
+            titulo.innerHTML = `<i class="ph-bold ph-credit-card" style="color:var(--cor-cartao);"></i> Baixar Cartão`;
+            msg.innerHTML = `Tem certeza que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
+            
+            acoes.innerHTML = `
+                <button class="btn-acao" style="background-color: var(--cor-primaria);" onclick="confirmarBaixarGrupoCartao('${key}')"><i class="ph-bold ph-check"></i> Sim, baixar fatura</button>
+            `;
+            
+            modal.style.display = 'flex';
+        }
+
+        function confirmarBaixarGrupoCartao(key) {
+            const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
+            if (!grupo) return;
             const ids = new Set(grupo.itens.map(i => i.id));
             transacoes = transacoes.map(t => ids.has(t.id) ? { ...t, pago: true } : t);
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             mostrarToast("Fatura baixada como paga.", "sucesso");
+            fecharModal();
             atualizarTelaControle();
         }
 
