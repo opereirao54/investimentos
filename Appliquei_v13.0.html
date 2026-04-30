@@ -503,6 +503,7 @@
 
         .loader { border: 3px solid var(--cor-borda); border-top: 3px solid var(--cor-primaria); border-radius: 50%; width: 36px; height: 36px; animation: spin 1s linear infinite; margin: 40px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ph-spin { display: inline-block; animation: spin 1s linear infinite; }
         .grafico-container { width: 100%; height: 300px; position: relative; margin-top: 16px; }
 
         .filtro-data {
@@ -556,6 +557,56 @@
             font-family: 'Figtree', sans-serif;
         }
         .btn-tab-dre.ativo { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-color: #1d4ed8; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+        .chip-cat {
+            background-color: var(--cor-branco); color: var(--cor-texto-secundario);
+            border: 1.5px solid var(--cor-borda); padding: 5px 11px; border-radius: 99px;
+            font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.15s;
+            font-family: 'Figtree', sans-serif;
+        }
+        .chip-cat:hover { background: var(--cor-superficie); }
+        .chip-cat.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        /* Colunas avançadas da tabela da carteira — ocultas por padrão */
+        #tabelaCarteira .col-extra { display: none; }
+        #tabelaCarteira.com-extras .col-extra { display: table-cell; }
+        .projecao-rf-box {
+            padding: 10px 12px; border-radius: 9px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            margin-bottom: 14px; font-size: 12.5px; color: var(--cor-txt-info);
+        }
+        .projecao-rf-box.warning {
+            background: var(--cor-bg-amber); border-color: var(--cor-borda-amber); color: var(--cor-txt-amber);
+        }
+        .projecao-rf-box .destaque-liquido { font-weight: 700; color: var(--cor-primaria); }
+
+        /* === DRAWER LATERAL === */
+        .drawer-overlay {
+            position: fixed; inset: 0; background: rgba(15,23,42,0.45);
+            backdrop-filter: blur(3px); z-index: 9998; opacity: 0; pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+        .drawer-overlay.aberto { opacity: 1; pointer-events: auto; }
+        .drawer {
+            position: fixed; top: 0; right: 0; height: 100vh; width: 460px; max-width: 100%;
+            background: var(--cor-branco); border-left: 1px solid var(--cor-borda);
+            box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+            z-index: 9999; transform: translateX(100%); transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+            display: flex; flex-direction: column;
+        }
+        .drawer.aberto { transform: translateX(0); }
+        .drawer-header {
+            padding: 18px 22px; border-bottom: 1px solid var(--cor-borda);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px;
+            background: var(--cor-branco);
+        }
+        .drawer-header h3 { font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); display: flex; align-items: center; gap: 8px; margin: 0; }
+        .drawer-fechar {
+            background: transparent; border: none; cursor: pointer; padding: 6px;
+            color: var(--cor-texto-secundario); border-radius: var(--radius-sm);
+            transition: 0.15s; display: inline-flex; align-items: center;
+        }
+        .drawer-fechar:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        .drawer-body { padding: 20px 22px; overflow-y: auto; flex: 1; }
+        @media (max-width: 600px) { .drawer { width: 100%; } }
 
         /* === TOAST === */
         #toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -620,7 +671,8 @@
         .banner-aviso-mock { display: flex; align-items: flex-start; gap: 12px; background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 18px; font-size: 13px; color: var(--cor-txt-amber); line-height: 1.5; font-weight: 500; }
 
         /* === VENCIMENTOS === */
-        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .vencimentos-grid > [id^="detalhe-grupo-"] { grid-column: 1 / -1; }
         .venc-card {
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
@@ -637,6 +689,13 @@
         .venc-name { font-size: 13px; font-weight: 600; color: var(--cor-texto-principal); }
         .venc-val { font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; margin-top: 2px; }
         .venc-badge { margin-left: auto; flex-shrink: 0; }
+
+        /* Cards de fatura de cartão: mais compactos, valor em destaque */
+        .venc-card.venc-card-grupo { padding: 9px 12px; gap: 9px; }
+        .venc-card.venc-card-grupo .venc-day { font-size: 18px; min-width: 26px; }
+        .venc-card.venc-card-grupo .venc-name { font-size: 11px; font-weight: 600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; }
+        .venc-card.venc-card-grupo .venc-val { font-size: 16px; font-weight: 700; color: var(--cor-texto-principal); margin-top: 1px; line-height: 1.15; }
+        .venc-card.venc-card-grupo .venc-val .venc-meta { font-size: 10px; font-weight: 500; color: var(--cor-texto-mutado); margin-left: 6px; font-family: 'Figtree', sans-serif; }
 
         /* === TERMÔMETRO 60% === */
         .thermo-card {
@@ -837,12 +896,43 @@
         </div>
     </div>
 
+    <div id="modalGrupoCartao" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalGrupoCartao()">
+        <div style="max-width:480px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+                <h3 id="tituloModalGrupoCartao" style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);"></i> <span></span></h3>
+                <button class="drawer-fechar" onclick="fecharModalGrupoCartao()" aria-label="Fechar" style="background:none;border:none;cursor:pointer;color:var(--cor-texto-mutado);font-size:18px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="subtituloModalGrupoCartao" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:14px;"></div>
+            <div id="conteudoModalGrupoCartao" style="overflow-y:auto;flex:1;border-top:1px solid var(--cor-borda);padding-top:10px;"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secundario" style="flex:1;" onclick="fecharModalGrupoCartao()">Fechar</button>
+                <button class="btn-acao" id="btnBaixarModalGrupoCartao" style="flex:1;background:var(--cor-primaria);"><i class="ph-bold ph-check"></i> Baixar tudo</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
             <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Defina seus limites de gastos e metas de saldo.</p>
 
-            <div class="form-group"><label>Limite mensal do cartão de crédito (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="limiteCartao" value="5000" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)"></span></div>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Meus cartões de crédito</label>
+                <div id="listaCartoesConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+                <div id="formNovoCartaoConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="novoCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
+                    <div class="grid-3-iguais" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
+                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Limite (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="novoCartaoLimite" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)" style="padding:8px;font-size:13px;"></span></div>
+                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="novoCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoConfig()">Cancelar</button>
+                        <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarNovoCartaoConfig()"><i class="ph ph-check"></i> Adicionar</button>
+                    </div>
+                </div>
+                <button class="btn-secundario" id="btnAbrirNovoCartao" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovoCartaoConfig()"><i class="ph ph-plus"></i> Adicionar cartão</button>
+            </div>
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
@@ -858,9 +948,79 @@
     <div id="toast-container"></div>
     <input type="file" id="inputImportarJSON" accept=".json" onchange="importarDados(event)">
 
+    <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
+    <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
+        <div class="drawer-header">
+            <h3 id="drawerOperacaoTitulo"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria);" id="iconePainelOp"></i> <span id="tituloPainelOp">Registrar operação</span></h3>
+            <button class="drawer-fechar" onclick="fecharDrawerOperacao()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
+        </div>
+        <div class="drawer-body">
+            <div class="toggle-op">
+                <div class="toggle-btn ativo-compra" id="btnTabCompra" onclick="alternarTipoOperacao('compra')"><i class="ph-bold ph-trend-up"></i> Compra</div>
+                <div class="toggle-btn" id="btnTabVenda" onclick="alternarTipoOperacao('venda')"><i class="ph-bold ph-trend-down"></i> Venda</div>
+            </div>
+
+            <input type="hidden" id="tipoOperacao" value="compra">
+
+            <div class="form-group">
+                <label>Buscar Ativo (Ticker ou Nome)</label>
+                <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
+                <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <select id="compraCategoria" onchange="this.dataset.touched='1'; ajustarCamposPorCategoria()">
+                    <option value="renda_variavel">Renda Variável</option>
+                    <option value="renda_fixa">Renda Fixa</option>
+                    <option value="previdencia">Previdência</option>
+                    <option value="reserva_emergencia">Reserva de Emergência</option>
+                </select>
+            </div>
+            <div class="grid-2-iguais" style="gap: 15px;">
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra(); atualizarProjecaoForm()">
+                </div>
+                <div class="form-group">
+                    <label id="lblPrecoOp">Preço Pago (R$)</label>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
+                </div>
+            </div>
+            <div class="grid-2-iguais" style="gap: 15px;">
+                <div class="form-group">
+                    <label>Data da Operação</label>
+                    <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
+                </div>
+                <div class="form-group">
+                    <label>Banco / Corretora</label>
+                    <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite">
+                </div>
+            </div>
+            <div id="grupoRendaFixa" style="display: none;">
+                <div class="grid-2-iguais" style="gap: 15px;">
+                    <div class="form-group">
+                        <label>Vencimento (prazo)</label>
+                        <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
+                    </div>
+                    <div class="form-group">
+                        <label>Rentabilidade contratada</label>
+                        <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
+                    </div>
+                </div>
+                <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
+                <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>
+                <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">R$ 0,00</strong>
+            </div>
+            <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria); width:100%;" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar</button>
+        </div>
+    </aside>
+
     <datalist id="listaAtivosMercado"></datalist>
     <datalist id="listaAtivosCarteira"></datalist>
     <datalist id="listaDescricoes"></datalist>
+    <datalist id="listaCorretoras"></datalist>
 
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
@@ -902,98 +1062,210 @@
                     <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
                 </div>
                 <div class="page-actions">
-                    <span id="badgeRealTime" style="display:none; align-items:center; gap:5px; padding:5px 12px; border-radius:99px; font-size:12px; font-weight:500; border:1px solid;"></span>
-                    <button class="btn-secundario" onclick="exportarDados()"><i class="ph ph-download-simple"></i> Exportar</button>
+                    <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
+                    <button class="btn-secundario" onclick="exportarDados()" title="Backup JSON dos seus dados (ficam só no navegador)"><i class="ph ph-download-simple"></i> Backup</button>
+                    <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
                     <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
                 </div>
             </div>
 
-            <div class="barra-backup">
-                <i class="ph ph-cloud-arrow-up" style="font-size: 16px; color: var(--cor-texto-mutado);"></i>
-                <span><strong>Seus dados ficam no navegador.</strong> Faça backup regularmente para não perder informações.</span>
-                <button class="btn-backup exportar" onclick="exportarDados()"><i class="ph ph-download-simple"></i> Exportar JSON</button>
-            </div>
-
-            <div class="banner-aviso-mock" role="alert" id="bannerPrecosEstimados" style="display: none;">
-                <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
-                <div><strong>Cotações estimadas.</strong> Não foi possível buscar as cotações do Yahoo Finance. Os preços exibidos são estimativas base.</div>
-            </div>
-
-            <div class="grid-4" style="margin-bottom: 24px;">
-                <div class="card-destaque">
-                    <h3><i class="ph ph-bank"></i> Patrimônio total</h3>
-                    <div class="valor" id="resumoPatrimonio">R$ 0,00</div>
-                </div>
+            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 14px;">
                 <div class="card-destaque">
                     <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
                     <div class="valor" id="resumoInvestido">R$ 0,00</div>
                 </div>
                 <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
                     <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
-                    <div class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</div>
+                    <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
+                        <span class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</span>
+                        <span id="resumoRentabilidade" style="font-size: 14px; font-weight: 600; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">0,00%</span>
+                    </div>
                 </div>
                 <div class="card-destaque">
-                    <h3 id="tituloRentabilidade"><i class="ph ph-percent"></i> Rentabilidade</h3>
-                    <div class="valor" id="resumoRentabilidade">0.00%</div>
+                    <h3 id="tituloProximoEvento"><i class="ph ph-calendar-check"></i> Próximo evento</h3>
+                    <div class="valor" id="resumoProximoEvento" style="font-size: 16px; line-height: 1.3;">—</div>
+                    <div id="resumoProximoEventoDetalhe" style="font-size: 11px; color: var(--cor-texto-mutado); margin-top: 6px; font-family: 'Figtree', sans-serif;"></div>
                 </div>
             </div>
 
-            <h2 style="font-size: 16px; font-weight: 600; color: var(--cor-texto-principal); margin-bottom: 16px;">Minha carteira de ativos</h2>
-            <div class="grid-2">
-                
-                <div class="card-container" id="painelOperacaoCard" style="background: var(--cor-bg-primaria); border-color: #a7f3d0; transition: var(--transicao);">
-                    <h3 style="margin-bottom: 20px; font-size: 16px; display: flex; align-items: center; gap: 8px;" id="tituloPainelOp"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria); font-size: 22px;" id="iconePainelOp"></i> Registrar Operação</h3>
-                    
-                    <div class="toggle-op">
-                        <div class="toggle-btn ativo-compra" id="btnTabCompra" onclick="alternarTipoOperacao('compra')"><i class="ph-bold ph-trend-up"></i> Compra</div>
-                        <div class="toggle-btn" id="btnTabVenda" onclick="alternarTipoOperacao('venda')"><i class="ph-bold ph-trend-down"></i> Venda</div>
-                    </div>
+            <div id="alocacaoBox" style="background: var(--cor-branco); border:1px solid var(--cor-borda); border-radius: var(--radius); padding: 14px 18px; margin-bottom: 24px; box-shadow: var(--shadow-card); display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; flex-wrap:wrap;">
+                    <h3 style="font-size: 12px; font-weight:600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.7px; display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Alocação por categoria</h3>
+                    <div id="alocacaoLegenda" style="display:flex; gap:14px; flex-wrap:wrap; font-size: 12px; color: var(--cor-texto-secundario);"></div>
+                </div>
+                <div id="alocacaoBarra" style="display:flex; height: 10px; border-radius: 99px; overflow: hidden; background: var(--cor-superficie);"></div>
+            </div>
 
-                    <input type="hidden" id="tipoOperacao" value="compra">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn-tab-dre ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                    <button class="btn-tab-dre" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
+                    <button class="btn-tab-dre" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
+                </div>
+                <div id="acoesSubAba" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
+                        <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
+                        <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
+                        <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
+                        <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
+                        <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
+                    </div>
+                    <button class="btn-secundario" id="btnToggleColunas" onclick="toggleColunasExtras()" title="Mostrar/ocultar colunas detalhadas"><i class="ph ph-columns"></i> <span id="lblToggleColunas">Mais colunas</span></button>
+                    <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
+                </div>
+            </div>
 
-                    <div class="form-group">
-                        <label>Buscar Ativo (Ticker ou Nome)</label>
-                        <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" onblur="preencherPrecoAutomatico()">
-                        <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
+            <div id="subAbaCarteira">
+            <div class="card-container" style="padding: 0; overflow: hidden;">
+                <div style="overflow-x: auto; max-height: 540px;">
+                    <table class="tabela-dashboard" id="tabelaCarteira">
+                        <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                            <tr>
+                                <th>Ativo</th>
+                                <th style="text-align: right;">Qtd</th>
+                                <th class="col-extra" style="text-align: right;">Preço Médio</th>
+                                <th class="col-extra" style="text-align: right;">
+                                    Preço Atual
+                                    <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"><i class="ph ph-circle-notch ph-spin"></i> Atualizando...</span>
+                                </th>
+                                <th style="text-align: right;">Saldo Atual</th>
+                                <th class="col-extra" style="text-align: right;">Projeção</th>
+                                <th style="text-align: right;">Lucro/Prej (%)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaCarteiraCorpo"></tbody>
+                    </table>
+                    <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                        <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
+                        <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Use o botão "Registrar operação" acima.</p>
                     </div>
-                    <div class="grid-2-iguais" style="gap: 15px;">
-                        <div class="form-group">
-                            <label>Quantidade</label>
-                            <input type="number" id="compraQtd" placeholder="Ex: 10" oninput="calcularTotalCompra()">
-                        </div>
-                        <div class="form-group">
-                            <label id="lblPrecoOp">Preço Pago (R$)</label>
-                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra();"></span>
-                        </div>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.05);">
-                        <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da Operação:</span>
-                        <strong id="compraTotalOp" style="font-size: 20px; color: var(--cor-primaria);">R$ 0,00</strong>
-                    </div>
-                    <button class="btn-acao" id="btnConfirmarOp" style="background-color: var(--cor-primaria);" onclick="registrarOperacaoAtivo()"><i class="ph-bold ph-check"></i> Confirmar Compra</button>
+                </div>
+            </div>
+            </div>
+
+            <div id="subAbaOperacoes" style="display:none;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                    <input type="text" id="filtroOperacoesTicker" placeholder="Filtrar por ticker..." style="flex:1; min-width:200px; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);" oninput="renderizarOperacoes()">
+                    <select id="filtroOperacoesTipo" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
+                        <option value="">Todos os tipos</option>
+                        <option value="compra">Apenas compras</option>
+                        <option value="venda">Apenas vendas</option>
+                    </select>
+                    <select id="filtroOperacoesCategoria" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
+                        <option value="">Todas as categorias</option>
+                        <option value="renda_variavel">Renda Variável</option>
+                        <option value="renda_fixa">Renda Fixa</option>
+                        <option value="previdencia">Previdência</option>
+                        <option value="reserva_emergencia">Reserva de Emergência</option>
+                    </select>
                 </div>
 
                 <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-x: auto; max-height: 440px;">
+                    <div style="overflow-x: auto; max-height: 540px;">
                         <table class="tabela-dashboard">
                             <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
                                 <tr>
+                                    <th>Data</th>
+                                    <th>Tipo</th>
                                     <th>Ativo</th>
+                                    <th>Categoria</th>
+                                    <th>Corretora</th>
                                     <th style="text-align: right;">Qtd</th>
-                                    <th style="text-align: right;">Preço Médio</th>
-                                    <th style="text-align: right;">
-                                        Preço Atual
-                                        <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;">🔄 Atualizando...</span>
-                                    </th>
-                                    <th style="text-align: right;">Saldo Atual</th>
-                                    <th style="text-align: right;">Lucro/Prej (%)</th>
+                                    <th style="text-align: right;">Preço</th>
+                                    <th style="text-align: right;">Total</th>
+                                    <th style="text-align: center;">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody id="tabelaCarteiraCorpo"></tbody>
+                            <tbody id="tabelaOperacoesCorpo"></tbody>
                         </table>
-                        <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                            <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
-                            <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Registre sua primeira compra ao lado.</p>
+                        <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">Nenhuma operação encontrada</div>
+                                <div class="empty-state-sub">Registre uma operação na aba Carteira ou ajuste os filtros.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="subAbaDividendos" style="display:none;">
+                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
+                    <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
+                    <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
+                </div>
+
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento, com base no seu histórico de operações.</small>
+                    <label style="display:flex; align-items:center; gap:6px; font-size: 13px; color: var(--cor-texto-secundario); cursor:pointer;">
+                        <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;">
+                        Mostrar posições encerradas
+                    </label>
+                </div>
+
+                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 24px;">
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-coins"></i> Recebido total <small style="font-weight:400; color: var(--cor-texto-mutado);">(desde a 1ª compra)</small></h3>
+                        <div class="valor" id="dividendosTotal">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-calendar-blank"></i> Últimos 12 meses</h3>
+                        <div class="valor" id="dividendos12m">R$ 0,00</div>
+                    </div>
+                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
+                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost</h3>
+                        <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
+                    </div>
+                    <div class="card-destaque">
+                        <h3><i class="ph ph-trend-up"></i> Média mensal (12m)</h3>
+                        <div class="valor" id="dividendosMedia">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card-container" style="padding: 0; overflow: hidden;">
+                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
+                        <div style="overflow-x: auto; max-height: 460px;">
+                            <table class="tabela-dashboard">
+                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                    <tr>
+                                        <th>Ativo</th>
+                                        <th style="text-align: right;">Qtd atual</th>
+                                        <th style="text-align: right;">Recebido total</th>
+                                        <th style="text-align: right;">Recebido 12m</th>
+                                        <th style="text-align: right;">YOC</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaDividendosCorpo"></tbody>
+                            </table>
+                            <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                                <div class="empty-state">
+                                    <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                                    <div class="empty-state-titulo">Sem dividendos no período</div>
+                                    <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card-container" style="padding: 0; overflow: hidden;">
+                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
+                        <div style="overflow-x: auto; max-height: 460px;">
+                            <table class="tabela-dashboard">
+                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
+                                    <tr>
+                                        <th>Data</th>
+                                        <th>Ativo</th>
+                                        <th style="text-align: right;">Qtd na data</th>
+                                        <th style="text-align: right;">Valor / cota</th>
+                                        <th style="text-align: right;">Total recebido</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tabelaPagamentosCorpo"></tbody>
+                            </table>
+                            <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                                <p style="font-size: 13px;">Nenhum pagamento encontrado no histórico.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1155,9 +1427,38 @@
                             <input type="date" id="dataVencimento">
                         </div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;">
+                    <div class="grid-2-iguais" style="gap:12px;align-items:end;">
                         <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
+                    </div>
+
+                    <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
+                        <div class="form-group" style="margin-bottom:8px;">
+                            <label>Cartão</label>
+                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        </div>
+                        <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
+                            <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
+                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Limite (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="inlineCartaoLimite" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)" style="padding:8px;font-size:13px;"></span></div>
+                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="inlineCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
+                                <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="inlineCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
+                            </div>
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoInline()">Cancelar</button>
+                                <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarNovoCartaoInline()"><i class="ph ph-check"></i> Adicionar</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:6px;background:var(--cor-superficie);border-radius:9px;padding:4px;margin-bottom:6px;" id="grupoTipoCartao">
+                            <button type="button" id="btnTipoParcelado" onclick="selecionarTipoCartao('parcelado')" style="flex:1;padding:7px;border:none;background:var(--cor-branco);border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"><i class="ph ph-list-numbers"></i> Parcelado</button>
+                            <button type="button" id="btnTipoFixo" onclick="selecionarTipoCartao('fixo')" style="flex:1;padding:7px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-secundario);font-family:'Figtree',sans-serif;"><i class="ph ph-repeat"></i> Fixo mensal</button>
+                        </div>
+                        <input type="hidden" id="tipoCartaoSelecionado" value="parcelado">
+                    </div>
+
+                    <div class="form-group" id="grupoObs">
+                        <label>Observação <span style="font-size:11px;color:var(--cor-texto-mutado);font-weight:400;">(opcional)</span></label>
+                        <textarea id="obsTransacao" placeholder="Ex: lembrete sobre este lançamento" maxlength="500" rows="2" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;resize:vertical;"></textarea>
                     </div>
 
                     <div class="recorrente-toggle" id="grupoFixa">
@@ -1630,11 +1931,69 @@
             document.getElementById(idAba).classList.add('ativa');
             e.currentTarget.classList.add('ativo');
 
-            if(idAba === 'patrimonio') atualizarCarteiraAtivos(); 
+            if(idAba === 'patrimonio') atualizarCarteiraAtivos();
             if(idAba === 'controle') atualizarTelaControle();
-            if(idAba === 'simulador') calcularSimulador(); 
+            if(idAba === 'simulador') calcularSimulador();
             if(idAba === 'carteira') carregarCarteiraCliente();
             if(callback) callback();
+        }
+
+        // Sub-abas dentro de "Meus Investimentos"
+        function mudarSubAbaPatrimonio(qual) {
+            const subs = {
+                carteira: document.getElementById('subAbaCarteira'),
+                operacoes: document.getElementById('subAbaOperacoes'),
+                dividendos: document.getElementById('subAbaDividendos')
+            };
+            const btns = {
+                carteira: document.getElementById('subtabBtnCarteira'),
+                operacoes: document.getElementById('subtabBtnOperacoes'),
+                dividendos: document.getElementById('subtabBtnDividendos')
+            };
+            const btnRefresh = document.getElementById('btnAtualizarDividendos');
+            const filtros = document.getElementById('filtrosCategoria');
+            const btnCols = document.getElementById('btnToggleColunas');
+            Object.keys(subs).forEach(k => {
+                subs[k].style.display = (k === qual) ? 'block' : 'none';
+                btns[k].classList.toggle('ativo', k === qual);
+            });
+            // Filtros de categoria + toggle de colunas só fazem sentido na sub-aba Carteira
+            if(filtros) filtros.style.display = (qual === 'carteira') ? 'flex' : 'none';
+            if(btnCols) btnCols.style.display = (qual === 'carteira') ? 'inline-flex' : 'none';
+            btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
+            if(qual === 'dividendos') carregarDividendos();
+            if(qual === 'operacoes') renderizarOperacoes();
+        }
+
+        function toggleColunasExtras() {
+            const tab = document.getElementById('tabelaCarteira');
+            const lbl = document.getElementById('lblToggleColunas');
+            if(!tab) return;
+            const aberto = tab.classList.toggle('com-extras');
+            if(lbl) lbl.innerText = aberto ? 'Menos colunas' : 'Mais colunas';
+            try { localStorage.setItem('appliquei_carteira_extras', aberto ? '1' : '0'); } catch(_){}
+        }
+
+        // === DRAWER DE OPERAÇÃO ===
+        function abrirDrawerOperacao() {
+            const drawer = document.getElementById('drawerOperacao');
+            const overlay = document.getElementById('drawerOverlay');
+            if(!drawer || !overlay) return;
+            // Garante estado inicial limpo do form
+            const elData = document.getElementById('compraData');
+            if(elData && !elData.value) elData.value = new Date().toISOString().slice(0,10);
+            drawer.classList.add('aberto');
+            overlay.classList.add('aberto');
+            document.body.style.overflow = 'hidden';
+            setTimeout(() => { document.getElementById('compraTicker')?.focus(); }, 240);
+        }
+        function fecharDrawerOperacao() {
+            const drawer = document.getElementById('drawerOperacao');
+            const overlay = document.getElementById('drawerOverlay');
+            if(!drawer || !overlay) return;
+            drawer.classList.remove('aberto');
+            overlay.classList.remove('aberto');
+            document.body.style.overflow = '';
         }
 
         function toggleDarkMode() {
@@ -1701,25 +2060,138 @@
         }
 
         // --- GESTÃO DO MODAL DE CONFIGURAÇÕES ---
-        function abrirModalConfig() { document.getElementById('modalConfiguracoes').style.display = 'flex'; }
+        function abrirModalConfig() {
+            renderizarListaCartoesConfig();
+            document.getElementById('modalConfiguracoes').style.display = 'flex';
+        }
         function fecharModalConfig() { document.getElementById('modalConfiguracoes').style.display = 'none'; }
         function salvarEFecharConfig() { salvarMetasEAtualizar(); fecharModalConfig(); mostrarToast("Configurações atualizadas!", "sucesso"); }
 
         function salvarMetasEAtualizar() {
-            localStorage.setItem('futurorico_limiteCartao', parseBRL(document.getElementById('limiteCartao').value));
             localStorage.setItem('futurorico_metaVerde', parseBRL(document.getElementById('metaVerde').value));
             localStorage.setItem('futurorico_metaVermelha', parseBRL(document.getElementById('metaVermelha').value));
             atualizarTelaControle();
         }
 
         function carregarMetas() {
-            const limite = localStorage.getItem('futurorico_limiteCartao');
             const verde = localStorage.getItem('futurorico_metaVerde');
             const vermelha = localStorage.getItem('futurorico_metaVermelha');
-            
-            if(limite) setValorBRLInput(document.getElementById('limiteCartao'), limite);
             if(verde) setValorBRLInput(document.getElementById('metaVerde'), verde);
             if(vermelha) setValorBRLInput(document.getElementById('metaVermelha'), vermelha);
+        }
+
+        // --- GESTÃO DE CARTÕES ---
+        function renderizarListaCartoesConfig() {
+            const container = document.getElementById('listaCartoesConfig');
+            if (!container) return;
+            if (cartoes.length === 0) {
+                container.innerHTML = '<div style="font-size:12px;color:var(--cor-texto-mutado);font-style:italic;padding:8px;">Nenhum cartão cadastrado.</div>';
+                return;
+            }
+            const ordenados = [...cartoes].sort((a, b) => (a.arquivado === b.arquivado) ? 0 : (a.arquivado ? 1 : -1));
+            container.innerHTML = ordenados.map(c => {
+                const fech = c.diaFechamento ? `Fech. dia ${c.diaFechamento}` : 'Sem fechamento';
+                const venc = c.diaVencimento ? `Venc. dia ${c.diaVencimento}` : 'Sem vencimento';
+                const arq = c.arquivado;
+                const acaoBtn = arq
+                    ? `<button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-primaria);border-color:var(--cor-primaria);" onclick="restaurarCartaoConfig('${c.id}')" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i></button>`
+                    : `<button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="arquivarCartaoConfig('${c.id}')" title="Arquivar (mantém histórico)"><i class="ph ph-archive"></i></button>`;
+                const badge = arq ? `<span style="background:var(--cor-borda);color:var(--cor-texto-mutado);padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-left:6px;">Arquivado</span>` : '';
+                return `
+                    <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;${arq ? 'opacity:0.6;' : ''}">
+                        <i class="ph ph-credit-card" style="color:var(--cor-cartao);font-size:18px;"></i>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.nome}${badge}</div>
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${fech} • ${venc}</div>
+                        </div>
+                        <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCartaoConfig('${c.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                        ${acaoBtn}
+                    </div>`;
+            }).join('');
+        }
+
+        function abrirNovoCartaoConfig() {
+            document.getElementById('formNovoCartaoConfig').style.display = 'block';
+            document.getElementById('btnAbrirNovoCartao').style.display = 'none';
+            document.getElementById('novoCartaoNome').value = '';
+            document.getElementById('novoCartaoLimite').value = '';
+            document.getElementById('novoCartaoDiaFech').value = '';
+            document.getElementById('novoCartaoDiaVenc').value = '';
+            document.getElementById('novoCartaoNome').dataset.editandoId = '';
+            document.getElementById('novoCartaoNome').focus();
+        }
+
+        function cancelarNovoCartaoConfig() {
+            document.getElementById('formNovoCartaoConfig').style.display = 'none';
+            document.getElementById('btnAbrirNovoCartao').style.display = 'block';
+        }
+
+        function salvarNovoCartaoConfig() {
+            const nome = document.getElementById('novoCartaoNome').value.trim();
+            const limite = parseBRL(document.getElementById('novoCartaoLimite').value) || 0;
+            const diaFech = parseInt(document.getElementById('novoCartaoDiaFech').value);
+            const diaVenc = parseInt(document.getElementById('novoCartaoDiaVenc').value);
+            const editandoId = document.getElementById('novoCartaoNome').dataset.editandoId;
+
+            if (!nome) return mostrarToast("Informe o nome do cartão.", "erro");
+            if (!diaFech || diaFech < 1 || diaFech > 31) return mostrarToast("Informe o dia de fechamento (1 a 31).", "erro");
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return mostrarToast("Informe o dia de vencimento (1 a 31).", "erro");
+
+            if (editandoId) {
+                const c = cartoes.find(x => x.id === editandoId);
+                if (c) { c.nome = nome; c.limite = limite; c.diaFechamento = diaFech; c.diaVencimento = diaVenc; }
+            } else {
+                cartoes.push({ id: 'card_' + Date.now(), nome, limite, diaFechamento: diaFech, diaVencimento: diaVenc });
+            }
+            salvarCartoes();
+            cancelarNovoCartaoConfig();
+            renderizarListaCartoesConfig();
+            atualizarSelectCartoesForm();
+            atualizarTelaControle();
+            mostrarToast(editandoId ? "Cartão atualizado." : "Cartão adicionado.", "sucesso");
+        }
+
+        function editarCartaoConfig(id) {
+            const c = cartoes.find(x => x.id === id); if (!c) return;
+            document.getElementById('formNovoCartaoConfig').style.display = 'block';
+            document.getElementById('btnAbrirNovoCartao').style.display = 'none';
+            document.getElementById('novoCartaoNome').value = c.nome;
+            setValorBRLInput(document.getElementById('novoCartaoLimite'), c.limite || 0);
+            document.getElementById('novoCartaoDiaFech').value = c.diaFechamento || '';
+            document.getElementById('novoCartaoDiaVenc').value = c.diaVencimento || '';
+            document.getElementById('novoCartaoNome').dataset.editandoId = id;
+            document.getElementById('novoCartaoNome').focus();
+        }
+
+        function arquivarCartaoConfig(id) {
+            const ativos = cartoesAtivos();
+            if (ativos.length <= 1 && ativos[0]?.id === id) {
+                return mostrarToast("Você precisa manter pelo menos um cartão ativo.", "erro");
+            }
+            const c = cartoes.find(x => x.id === id);
+            if (!c) return;
+            const usados = transacoes.some(t => t.cartaoId === id);
+            const msg = usados
+                ? `Arquivar "${c.nome}"? O histórico de lançamentos será preservado e continuará vinculado a este cartão. O cartão deixa de aparecer no formulário de novas despesas, mas pode ser restaurado a qualquer momento.`
+                : `Arquivar "${c.nome}"?`;
+            if (!confirm(msg)) return;
+            c.arquivado = true;
+            salvarCartoes();
+            renderizarListaCartoesConfig();
+            atualizarSelectCartoesForm();
+            atualizarTelaControle();
+            mostrarToast("Cartão arquivado. Histórico preservado.", "sucesso");
+        }
+
+        function restaurarCartaoConfig(id) {
+            const c = cartoes.find(x => x.id === id);
+            if (!c) return;
+            c.arquivado = false;
+            salvarCartoes();
+            renderizarListaCartoesConfig();
+            atualizarSelectCartoesForm();
+            atualizarTelaControle();
+            mostrarToast("Cartão restaurado.", "sucesso");
         }
 
         // --- BASE DE DADOS DOS ATIVOS ---
@@ -1817,7 +2289,7 @@
                     badgeRealTime.style.background = '#e0f2fe';
                     badgeRealTime.style.color = '#0369a1';
                     badgeRealTime.style.borderColor = '#bae6fd';
-                    badgeRealTime.innerHTML = '🔄 Consultando Yahoo...';
+                    badgeRealTime.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Consultando Yahoo...';
                     badgeRealTime.style.display = 'inline-flex';
                 }
 
@@ -1844,7 +2316,7 @@
                         badgeRealTime.style.background = '#dcfce7'; 
                         badgeRealTime.style.color = '#166534';
                         badgeRealTime.style.borderColor = '#bbf7d0';
-                        badgeRealTime.innerHTML = '✅ Yahoo Atualizado';
+                        badgeRealTime.innerHTML = '<i class="ph-fill ph-check-circle"></i> Yahoo atualizado';
                         setTimeout(() => { badgeRealTime.style.display = 'none'; }, 4000);
                     }
                 } else {
@@ -1853,13 +2325,13 @@
 
             } catch(erroGeral) {
                 console.error("Erro ao atualizar cotações:", erroGeral);
-                document.getElementById('bannerPrecosEstimados').style.display = 'flex';
+                document.getElementById('badgePrecosEstimados').style.display = 'inline-flex';
                 const badgeRealTime = document.getElementById('badgeRealTime');
                 if(badgeRealTime) {
                     badgeRealTime.style.background = '#fef3c7'; 
                     badgeRealTime.style.color = '#92400e';
                     badgeRealTime.style.borderColor = '#fde68a';
-                    badgeRealTime.innerHTML = '⚠ Preços Estimados';
+                    badgeRealTime.innerHTML = '<i class="ph-fill ph-warning"></i> Preços estimados';
                 }
             }
         }
@@ -1874,7 +2346,41 @@
 
         // --- ABA 1: MEUS INVESTIMENTOS ---
         let historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
-        let transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || []; 
+        let transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
+
+        // --- CARTÕES DE CRÉDITO ---
+        let cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes')) || [];
+
+        // Migração: se não há cartões cadastrados, cria um padrão a partir do antigo limiteCartao
+        if (cartoes.length === 0) {
+            const limiteAntigo = parseFloat(localStorage.getItem('futurorico_limiteCartao')) || 5000;
+            cartoes.push({ id: 'card_padrao', nome: 'Cartão principal', limite: limiteAntigo, diaVencimento: null });
+            localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
+        }
+
+        // Migração: garante que todo cartão tenha o campo `arquivado`
+        cartoes = cartoes.map(c => ({ ...c, arquivado: c.arquivado === true }));
+        localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
+
+        function salvarCartoes() {
+            localStorage.setItem('futurorico_cartoes', JSON.stringify(cartoes));
+        }
+
+        function obterCartao(id) {
+            return cartoes.find(c => c.id === id) || cartoes[0];
+        }
+
+        function cartoesAtivos() {
+            return cartoes.filter(c => !c.arquivado);
+        }
+
+        // Migração de transações antigas: cartão de crédito sem cartaoId vai pro primeiro cartão; sem obs vira ""
+        transacoes = transacoes.map(t => {
+            if (t.categoria === 'cartao_credito' && !t.cartaoId) t.cartaoId = cartoes[0].id;
+            if (t.obs === undefined) t.obs = "";
+            return t;
+        });
+        localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
 
         function preencherPrecoAutomatico() {
             const inputTicker = document.getElementById('compraTicker').value.toUpperCase();
@@ -1901,20 +2407,206 @@
             const dicaTicker = document.getElementById('dicaTicker');
 
             inputTicker.value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
+            const elCorretora = document.getElementById('compraCorretora'); if(elCorretora) elCorretora.value = "";
+            const elVenc = document.getElementById('compraVencimento'); if(elVenc) elVenc.value = "";
+            const elRent = document.getElementById('compraRentabilidade'); if(elRent) elRent.value = "";
+            const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
+            const elCat = document.getElementById('compraCategoria'); if(elCat) { elCat.value = 'renda_variavel'; delete elCat.dataset.touched; }
+            ajustarCamposPorCategoria();
 
             if(tipo === 'compra') {
                 btnCompra.classList.add('ativo-compra'); btnVenda.classList.remove('ativo-venda');
                 painelCard.style.background = 'var(--cor-bg-primaria)'; painelCard.style.borderColor = '#a7f3d0';
-                lblPreco.innerText = 'Preço Pago (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar Compra'; btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
+                lblPreco.innerText = 'Preço Pago (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar'; btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
                 iconePainel.className = 'ph-fill ph-plus-circle'; iconePainel.style.color = 'var(--cor-primaria)'; totalTexto.style.color = 'var(--cor-primaria)';
                 inputTicker.setAttribute('list', 'listaAtivosMercado'); inputTicker.placeholder = "Ex: BTLG11 ou Tesouro"; dicaTicker.innerText = "Digite o ativo e preencheremos a cotação (você pode editar).";
             } else {
                 btnVenda.classList.add('ativo-venda'); btnCompra.classList.remove('ativo-compra');
                 painelCard.style.background = 'var(--cor-bg-erro)'; painelCard.style.borderColor = '#fecdd3';
-                lblPreco.innerText = 'Preço de Venda (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar Venda'; btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
+                lblPreco.innerText = 'Preço de Venda (R$)'; btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar'; btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
                 iconePainel.className = 'ph-fill ph-minus-circle'; iconePainel.style.color = 'var(--cor-erro)'; totalTexto.style.color = 'var(--cor-erro)';
                 inputTicker.setAttribute('list', 'listaAtivosCarteira'); inputTicker.placeholder = "Selecione um ativo da sua carteira"; dicaTicker.innerText = "Apenas ativos que você possui estão listados aqui.";
             }
+        }
+
+        // Lista padrão de bancos / corretoras brasileiras
+        const LISTA_CORRETORAS = [
+            'XP Investimentos', 'BTG Pactual', 'Rico', 'Clear Corretora', 'NuInvest',
+            'Inter Invest', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil',
+            'Caixa Econômica', 'Sicredi', 'Sicoob', 'Modalmais', 'Avenue',
+            'Genial Investimentos', 'C6 Bank', 'PicPay', 'Easynvest', 'Mirae Asset',
+            'Toro Investimentos', 'Órama', 'Ágora Investimentos', 'Safra'
+        ];
+
+        function inicializarDatalistCorretoras() {
+            const dl = document.getElementById('listaCorretoras');
+            if(!dl) return;
+            dl.innerHTML = "";
+            // Junta as padrão com qualquer corretora que o usuário já tenha digitado
+            const usadas = [...new Set(historicoCompras.map(op => op.corretora).filter(Boolean))];
+            const todas = [...new Set([...LISTA_CORRETORAS, ...usadas])].sort((a,b) => a.localeCompare(b,'pt-BR'));
+            todas.forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome;
+                dl.appendChild(opt);
+            });
+        }
+
+        function categoriaInferidaDoMercado(ticker) {
+            const ativo = mockAtivosMercado.find(a => a.ticker === (ticker || '').toUpperCase());
+            if(!ativo) return null;
+            return ativo.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel';
+        }
+
+        function ajustarCamposPorCategoria() {
+            const selCat = document.getElementById('compraCategoria');
+            if(!selCat) return;
+            const ticker = (document.getElementById('compraTicker').value || '').toUpperCase();
+            const inferida = categoriaInferidaDoMercado(ticker);
+            // Se o usuário não trocou manualmente e o ticker é conhecido, sincroniza
+            if(inferida && !selCat.dataset.touched) selCat.value = inferida;
+            const grupoRF = document.getElementById('grupoRendaFixa');
+            const ehRF = selCat.value === 'renda_fixa' || selCat.value === 'reserva_emergencia';
+            if(grupoRF) grupoRF.style.display = ehRF ? 'block' : 'none';
+            atualizarProjecaoForm();
+        }
+
+        // ============================================================
+        // === RENDA FIXA — TAXAS DE MERCADO + PROJEÇÃO              ===
+        // ============================================================
+        // Taxas anuais (em fração decimal). Valores conservadores caso o BCB falhe.
+        let taxasMercado = { cdi: 0.105, ipca: 0.045, selic: 0.105, atualizadoEm: null, fonte: 'estimativa' };
+
+        async function buscarTaxasBCB() {
+            // Selic meta (sgs.432) e IPCA 12m (sgs.13522). CDI ≈ Selic.
+            const consultas = [
+                { chave: 'selic', url: 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.432/dados/ultimos/1?formato=json' },
+                { chave: 'ipca', url: 'https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados/ultimos/1?formato=json' }
+            ];
+            try {
+                const resultados = await Promise.all(consultas.map(c => fetch(c.url).then(r => r.ok ? r.json() : null).catch(() => null)));
+                const [selicData, ipcaData] = resultados;
+                let mudou = false;
+                if(selicData && selicData[0] && selicData[0].valor) {
+                    const v = parseFloat(String(selicData[0].valor).replace(',', '.')) / 100;
+                    if(!isNaN(v) && v > 0) { taxasMercado.selic = v; taxasMercado.cdi = v; mudou = true; }
+                }
+                if(ipcaData && ipcaData[0] && ipcaData[0].valor) {
+                    const v = parseFloat(String(ipcaData[0].valor).replace(',', '.')) / 100;
+                    if(!isNaN(v) && v > 0) { taxasMercado.ipca = v; mudou = true; }
+                }
+                if(mudou) { taxasMercado.fonte = 'BCB'; taxasMercado.atualizadoEm = new Date().toISOString(); }
+            } catch(_) { /* mantém estimativas */ }
+            atualizarProjecaoForm();
+            atualizarCarteiraAtivos();
+        }
+
+        // Converte texto livre de rentabilidade em uma taxa anual (decimal).
+        // Suporta: "110% CDI", "CDI + 2%", "IPCA+6%", "12% a.a.", "12,5%", "Selic+1"
+        function parsearRentabilidade(texto) {
+            if(!texto) return null;
+            const t = String(texto).toLowerCase().replace(/\s+/g, '').replace(/,/g, '.');
+            const cdi = taxasMercado.cdi;
+            const ipca = taxasMercado.ipca;
+            const selic = taxasMercado.selic;
+            // Padrões: <num>% <indexador>      ex: 110%cdi
+            let m = t.match(/^(\d+(?:\.\d+)?)%(?:do)?(cdi|selic|ipca)$/);
+            if(m) {
+                const perc = parseFloat(m[1]) / 100;
+                const idx = m[2] === 'ipca' ? ipca : (m[2] === 'selic' ? selic : cdi);
+                return { taxa: perc * idx, descricao: `${(perc*100).toFixed(0)}% do ${m[2].toUpperCase()}`, indexador: m[2] };
+            }
+            // Padrões: <indexador>+<num>%      ex: ipca+6, cdi+2%
+            m = t.match(/^(cdi|selic|ipca)\+(\d+(?:\.\d+)?)%?$/);
+            if(m) {
+                const idx = m[1] === 'ipca' ? ipca : (m[1] === 'selic' ? selic : cdi);
+                const spread = parseFloat(m[2]) / 100;
+                // Combinação multiplicativa (juros compostos sobre o indexador)
+                const taxa = (1 + idx) * (1 + spread) - 1;
+                return { taxa, descricao: `${m[1].toUpperCase()}+${(spread*100).toFixed(2)}%`, indexador: m[1] };
+            }
+            // Padrões prefixados: "12%", "12% a.a.", "12.5%aa"
+            m = t.match(/^(\d+(?:\.\d+)?)%?(?:aa|a\.a\.?)?$/);
+            if(m) {
+                return { taxa: parseFloat(m[1]) / 100, descricao: `${parseFloat(m[1]).toFixed(2)}% a.a. (prefixado)`, indexador: 'pre' };
+            }
+            return null;
+        }
+
+        // Calcula valor projetado no vencimento (juros compostos anuais)
+        function calcularProjecaoRF(valorInicial, dataInicio, dataVencimento, rentabilidadeTexto) {
+            const parsed = parsearRentabilidade(rentabilidadeTexto);
+            if(!parsed || !valorInicial || !dataInicio || !dataVencimento) return null;
+            const inicio = new Date(dataInicio); const fim = new Date(dataVencimento);
+            const diasMs = fim.getTime() - inicio.getTime();
+            if(diasMs <= 0) return null;
+            const anos = diasMs / (365.25 * 24 * 60 * 60 * 1000);
+            const fator = Math.pow(1 + parsed.taxa, anos);
+            const valorFinalBruto = valorInicial * fator;
+            const rendimentoBruto = valorFinalBruto - valorInicial;
+            // IR regressivo (renda fixa privada). Tesouro Selic/IPCA seguem mesma tabela. LCI/LCA são isentos — não diferenciamos aqui.
+            const dias = diasMs / (24*60*60*1000);
+            let aliquotaIR = 0.225;
+            if(dias > 180) aliquotaIR = 0.20;
+            if(dias > 360) aliquotaIR = 0.175;
+            if(dias > 720) aliquotaIR = 0.15;
+            const ir = rendimentoBruto * aliquotaIR;
+            const valorFinalLiquido = valorFinalBruto - ir;
+            return {
+                taxaAnual: parsed.taxa,
+                indexador: parsed.indexador,
+                descricaoTaxa: parsed.descricao,
+                anos,
+                valorInicial,
+                valorFinalBruto,
+                valorFinalLiquido,
+                rendimentoBruto,
+                rendimentoLiquido: valorFinalLiquido - valorInicial,
+                aliquotaIR
+            };
+        }
+
+        function atualizarProjecaoForm() {
+            const preview = document.getElementById('projecaoRfPreview');
+            if(!preview) return;
+            const cat = document.getElementById('compraCategoria').value;
+            const ehRF = cat === 'renda_fixa' || cat === 'reserva_emergencia';
+            if(!ehRF) { preview.style.display = 'none'; return; }
+
+            const rent = document.getElementById('compraRentabilidade').value.trim();
+            // Validação inline da string de rentabilidade (mesmo sem todos os outros campos)
+            if(rent) {
+                const parsed = parsearRentabilidade(rent);
+                const hint = document.getElementById('compraRentabilidade');
+                if(parsed) hint.style.borderColor = '';
+                else hint.style.borderColor = 'var(--cor-erro)';
+            }
+
+            const qtd = parseFloat(document.getElementById('compraQtd').value) || 0;
+            const preco = parseBRL(document.getElementById('compraPreco').value) || 0;
+            const dataOp = document.getElementById('compraData').value;
+            const venc = document.getElementById('compraVencimento').value;
+            const valor = qtd * preco;
+            if(!valor || !dataOp || !venc || !rent) { preview.style.display = 'none'; return; }
+            const proj = calcularProjecaoRF(valor, dataOp, venc, rent);
+            if(!proj) {
+                preview.classList.add('warning');
+                preview.style.display = 'block';
+                preview.innerHTML = `<i class="ph ph-warning"></i> Não consegui interpretar a rentabilidade. Use formatos como <strong>110% CDI</strong>, <strong>IPCA+6%</strong>, <strong>12% a.a.</strong>`;
+                return;
+            }
+            preview.classList.remove('warning');
+            const fonte = taxasMercado.fonte === 'BCB' ? `CDI ${(taxasMercado.cdi*100).toFixed(2)}% · IPCA ${(taxasMercado.ipca*100).toFixed(2)}% (BCB)` : `taxas estimadas`;
+            preview.style.display = 'block';
+            preview.innerHTML = `
+                <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                    <span><i class="ph-fill ph-trend-up"></i> <strong>${proj.descricaoTaxa}</strong> · ${proj.anos.toFixed(2)} anos</span>
+                    <span style="font-weight:600;">Bruto no vencimento: ${formatarMoeda(proj.valorFinalBruto)}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:4px;">
+                    <span style="opacity:.85;">IR ${(proj.aliquotaIR*100).toFixed(1)}% · ${fonte}</span>
+                    <span class="destaque-liquido">Líquido: ${formatarMoeda(proj.valorFinalLiquido)} (+${formatarMoeda(proj.rendimentoLiquido)})</span>
+                </div>`;
         }
 
         function registrarOperacaoAtivo() {
@@ -1922,6 +2614,11 @@
             const qtd = parseFloat(document.getElementById('compraQtd').value);
             const preco = parseBRL(document.getElementById('compraPreco').value);
             const tipoOp = document.getElementById('tipoOperacao').value;
+            const categoria = document.getElementById('compraCategoria').value;
+            const corretora = document.getElementById('compraCorretora').value.trim();
+            const dataInput = document.getElementById('compraData').value;
+            const vencimento = document.getElementById('compraVencimento').value;
+            const rentabilidade = document.getElementById('compraRentabilidade').value.trim();
 
             if (!ticker || isNaN(qtd) || qtd <= 0 || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker, Quantidade e Preço corretamente.", "erro");
 
@@ -1931,33 +2628,294 @@
                 if (!ativoNaCarteira || ativoNaCarteira.qtdTotal < qtd) return mostrarToast(`Saldo insuficiente! Você possui apenas ${ativoNaCarteira ? ativoNaCarteira.qtdTotal : 0} unidades de ${ticker}.`, "erro");
             }
 
-            const valorTotal = qtd * preco; let dataHoje = new Date();
-            historicoCompras.push({ id: Date.now(), ticker: ticker, quantidade: qtd, preco_op: preco, tipo: tipoOp, data_op: dataHoje.toISOString() });
+            const valorTotal = qtd * preco;
+            const dataOp = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
+            const operacao = {
+                id: Date.now(),
+                ticker: ticker,
+                quantidade: qtd,
+                preco_op: preco,
+                tipo: tipoOp,
+                data_op: dataOp.toISOString(),
+                categoria: categoria || null,
+                corretora: corretora || null
+            };
+            if(categoria === 'renda_fixa' || categoria === 'reserva_emergencia') {
+                if(vencimento) operacao.vencimento = vencimento;
+                if(rentabilidade) operacao.rentabilidade = rentabilidade;
+            }
+            historicoCompras.push(operacao);
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
 
             if (tipoOp === 'compra') {
-                let tipoAtivoStr = 'investimento_variavel'; const ativoNoMercado = mockAtivosMercado.find(a => a.ticker === ticker); if(ativoNoMercado && ativoNoMercado.tipo === 'Renda Fixa') tipoAtivoStr = 'investimento_fixo';
-                transacoes.push({ id: Date.now().toString(), descricao: `Compra: ${qtd}x ${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataHoje.getMonth(), ano: dataHoje.getFullYear(), data: dataHoje.toISOString(), pago: true });
+                let tipoAtivoStr = (categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia') ? 'investimento_fixo' : 'investimento_variavel';
+                transacoes.push({ id: Date.now().toString(), descricao: `Compra: ${qtd}x ${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             } else {
-                transacoes.push({ id: Date.now().toString(), descricao: `Venda Resgate: ${qtd}x ${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataHoje.getMonth(), ano: dataHoje.getFullYear(), data: dataHoje.toISOString(), pago: true });
+                transacoes.push({ id: Date.now().toString(), descricao: `Venda Resgate: ${qtd}x ${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             }
-            
+
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             document.getElementById('compraTicker').value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
-            mostrarToast(tipoOp === 'compra' ? `✓ Compra de ${ticker} registrada com sucesso!` : `✓ Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
+            document.getElementById('compraCorretora').value = ""; document.getElementById('compraVencimento').value = ""; document.getElementById('compraRentabilidade').value = "";
+            document.getElementById('compraData').value = new Date().toISOString().slice(0,10);
+            const elCat = document.getElementById('compraCategoria'); elCat.value = 'renda_variavel'; delete elCat.dataset.touched;
+            ajustarCamposPorCategoria();
+            mostrarToast(tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
             atualizarDatalistDescricoes();
+            inicializarDatalistCorretoras();
+            renderizarOperacoes();
+            fecharDrawerOperacao();
+        }
+
+        // --- LISTA DE OPERAÇÕES (sub-aba) ---
+        function renderizarOperacoes() {
+            const tbody = document.getElementById('tabelaOperacoesCorpo');
+            const msgVazia = document.getElementById('operacoesVaziaMsg');
+            if(!tbody) return;
+
+            const filtroTicker = (document.getElementById('filtroOperacoesTicker')?.value || '').toUpperCase();
+            const filtroTipo = document.getElementById('filtroOperacoesTipo')?.value || '';
+            const filtroCat = document.getElementById('filtroOperacoesCategoria')?.value || '';
+
+            const ops = [...historicoCompras]
+                .filter(op => !filtroTicker || (op.ticker || '').includes(filtroTicker))
+                .filter(op => !filtroTipo || (op.tipo || 'compra') === filtroTipo)
+                .filter(op => !filtroCat || op.categoria === filtroCat)
+                .sort((a,b) => new Date(b.data_op || 0) - new Date(a.data_op || 0));
+
+            if(ops.length === 0) {
+                tbody.innerHTML = "";
+                msgVazia.style.display = 'block';
+                return;
+            }
+            msgVazia.style.display = 'none';
+
+            tbody.innerHTML = ops.map(op => {
+                const tipo = op.tipo || 'compra';
+                const tipoLabel = tipo === 'venda'
+                    ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro);"><i class="ph-bold ph-trend-down"></i> Venda</span>`
+                    : `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria);"><i class="ph-bold ph-trend-up"></i> Compra</span>`;
+                const dataLbl = op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—';
+                const catLbl = ROTULOS_CATEGORIA[op.categoria] || '—';
+                const corretoraLbl = op.corretora || '—';
+                const total = op.quantidade * (op.preco_op || op.preco_pago || 0);
+                return `<tr>
+                    <td style="font-family:'DM Mono', monospace;">${dataLbl}</td>
+                    <td>${tipoLabel}</td>
+                    <td style="font-weight:600;">${op.ticker}</td>
+                    <td>${catLbl}</td>
+                    <td>${corretoraLbl}</td>
+                    <td style="text-align:right; font-family:'DM Mono', monospace;">${op.quantidade}</td>
+                    <td style="text-align:right; font-family:'DM Mono', monospace;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
+                    <td style="text-align:right; font-weight:600; font-family:'DM Mono', monospace;">${formatarMoeda(total)}</td>
+                    <td style="text-align:center; white-space:nowrap;">
+                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px;" title="Editar" onclick="editarOperacao(${op.id})"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px; color: var(--cor-erro);" title="Excluir" onclick="excluirOperacao(${op.id})"><i class="ph ph-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function editarOperacao(id) {
+            const op = historicoCompras.find(o => o.id === id);
+            if(!op) return mostrarToast('Operação não encontrada.', 'erro');
+
+            // Abre o drawer com os campos preenchidos
+            abrirDrawerOperacao();
+            alternarTipoOperacao(op.tipo || 'compra');
+            document.getElementById('compraTicker').value = op.ticker || '';
+            document.getElementById('compraQtd').value = op.quantidade || '';
+            setValorBRLInput(document.getElementById('compraPreco'), op.preco_op || op.preco_pago || 0);
+            document.getElementById('compraData').value = (op.data_op || '').slice(0,10) || new Date().toISOString().slice(0,10);
+            document.getElementById('compraCorretora').value = op.corretora || '';
+            const elCat = document.getElementById('compraCategoria');
+            if(op.categoria) { elCat.value = op.categoria; elCat.dataset.touched = '1'; }
+            document.getElementById('compraVencimento').value = op.vencimento || '';
+            document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
+            ajustarCamposPorCategoria();
+            calcularTotalCompra();
+            atualizarProjecaoForm();
+
+            // Remove a versão antiga; o "Confirmar" cria uma nova entrada
+            historicoCompras = historicoCompras.filter(o => o.id !== id);
+            transacoes = transacoes.filter(t => t.id !== id.toString());
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            atualizarCarteiraAtivos();
+            renderizarOperacoes();
+
+            mostrarToast('Edite os campos e clique em Confirmar.', 'info');
+        }
+
+        function excluirOperacao(id) {
+            const op = historicoCompras.find(o => o.id === id);
+            if(!op) return mostrarToast('Operação não encontrada.', 'erro');
+
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-trash" style="color: var(--cor-erro);"></i> Excluir operação`;
+            document.getElementById('modalMensagem').innerHTML = `Tem certeza que deseja excluir a operação:<br><strong>${(op.tipo || 'compra').toUpperCase()}</strong> de <strong>${op.quantidade}x ${op.ticker}</strong> em ${op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—'}?<br><br><span style="color: var(--cor-erro); font-weight: 600;">Esta ação não pode ser desfeita.</span>`;
+            document.getElementById('modalAcoes').innerHTML = `<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="confirmarExclusaoOperacao(${id})"><i class="ph ph-trash"></i> Sim, excluir</button>`;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarExclusaoOperacao(id) {
+            historicoCompras = historicoCompras.filter(o => o.id !== id);
+            transacoes = transacoes.filter(t => t.id !== id.toString());
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            fecharModal();
+            atualizarCarteiraAtivos();
+            renderizarOperacoes();
+            mostrarToast('Operação excluída.', 'sucesso');
         }
 
         function obterResumoCarteira() {
             let consolidado = {};
             historicoCompras.forEach(op => {
-                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0 };
+                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, corretora: null, vencimento: null, rentabilidade: null };
                 let ativo = consolidado[op.ticker]; let tipo = op.tipo || 'compra'; let precoDaOp = op.preco_op || op.preco_pago;
-                if (tipo === 'compra') { ativo.qtdTotal += op.quantidade; ativo.valorTotalInvestido += (op.quantidade * precoDaOp); ativo.precoMedio = ativo.valorTotalInvestido / ativo.qtdTotal; } 
+                if (tipo === 'compra') {
+                    ativo.qtdTotal += op.quantidade; ativo.valorTotalInvestido += (op.quantidade * precoDaOp); ativo.precoMedio = ativo.valorTotalInvestido / ativo.qtdTotal;
+                    // Última compra define metadados exibidos
+                    if(op.categoria) ativo.categoria = op.categoria;
+                    if(op.corretora) ativo.corretora = op.corretora;
+                    if(op.vencimento) ativo.vencimento = op.vencimento;
+                    if(op.rentabilidade) ativo.rentabilidade = op.rentabilidade;
+                }
                 else if (tipo === 'venda') { ativo.qtdTotal -= op.quantidade; ativo.valorTotalInvestido -= (op.quantidade * ativo.precoMedio); }
             });
             return consolidado;
+        }
+
+        const ROTULOS_CATEGORIA = {
+            renda_variavel: 'Renda Variável',
+            renda_fixa: 'Renda Fixa',
+            previdencia: 'Previdência',
+            reserva_emergencia: 'Reserva de Emergência'
+        };
+        const CORES_CATEGORIA = {
+            renda_variavel: '#2563eb',
+            renda_fixa: '#059669',
+            previdencia: '#7c3aed',
+            reserva_emergencia: '#d97706'
+        };
+
+        // Filtro ativo de categoria na sub-aba Carteira
+        let filtroCategoriaAtivo = '';
+
+        function filtrarCarteiraPorCategoria(categoria) {
+            filtroCategoriaAtivo = categoria || '';
+            document.querySelectorAll('.chip-cat').forEach(c => c.classList.toggle('ativo', (c.dataset.cat || '') === filtroCategoriaAtivo));
+            atualizarCarteiraAtivos();
+        }
+
+        // Inferi a categoria efetiva do ativo (operação > mock > fallback)
+        function inferirCategoria(ticker, ativoConsolidado, ativoMercado) {
+            if(ativoConsolidado?.categoria) return ativoConsolidado.categoria;
+            if(ativoMercado?.tipo === 'Renda Fixa') return 'renda_fixa';
+            return 'renda_variavel';
+        }
+
+        // Calcula a próxima "coisa importante" a acontecer na carteira:
+        // próximo vencimento de RF ou próximo dividendo previsto (com base na frequência).
+        function atualizarProximoEvento(carteiraConsolidada) {
+            const valorEl = document.getElementById('resumoProximoEvento');
+            const detEl = document.getElementById('resumoProximoEventoDetalhe');
+            const titEl = document.getElementById('tituloProximoEvento');
+            if(!valorEl) return;
+            const candidatos = [];
+            const hoje = Date.now();
+
+            // 1) Vencimentos de Renda Fixa
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0 || !ativo.vencimento) continue;
+                const tsVenc = new Date(ativo.vencimento + 'T12:00:00').getTime();
+                if(tsVenc < hoje) continue;
+                candidatos.push({
+                    tipo: 'vencimento',
+                    ts: tsVenc,
+                    label: `${ticker}`,
+                    detalhe: `Vencimento RF · ${new Date(tsVenc).toLocaleDateString('pt-BR')}`
+                });
+            }
+
+            // 2) Próximo dividendo estimado a partir do cache (último pagamento + intervalo médio)
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const cache = cacheDividendos[ticker];
+                if(!cache || !cache.pagamentos || cache.pagamentos.length === 0) continue;
+                const datasOrd = cache.pagamentos.map(p => new Date(p.data).getTime()).sort((a,b) => a - b);
+                const ultimo = datasOrd[datasOrd.length - 1];
+                if(!ultimo) continue;
+                let intervaloDias = 30;
+                if(datasOrd.length >= 2) {
+                    const diffs = [];
+                    for(let i = 1; i < datasOrd.length; i++) diffs.push(datasOrd[i] - datasOrd[i-1]);
+                    const mediaMs = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+                    intervaloDias = Math.round(mediaMs / (24*60*60*1000));
+                }
+                const proximoTs = ultimo + intervaloDias * 24*60*60*1000;
+                if(proximoTs < hoje) continue;
+                const ultimoPag = cache.pagamentos.find(p => new Date(p.data).getTime() === ultimo);
+                const valorEstim = ultimoPag ? ultimoPag.valor * ativo.qtdTotal : 0;
+                candidatos.push({
+                    tipo: 'dividendo',
+                    ts: proximoTs,
+                    label: `${ticker}`,
+                    detalhe: `Dividendo previsto · ~${formatarMoeda(valorEstim)} em ${new Date(proximoTs).toLocaleDateString('pt-BR')}`
+                });
+            }
+
+            if(candidatos.length === 0) {
+                valorEl.innerText = '—';
+                detEl.innerText = 'Sem vencimentos ou proventos previstos.';
+                titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Próximo evento';
+                return;
+            }
+            candidatos.sort((a,b) => a.ts - b.ts);
+            const prox = candidatos[0];
+            const diasFalta = Math.max(0, Math.round((prox.ts - hoje) / (24*60*60*1000)));
+            valorEl.innerText = prox.label;
+            detEl.innerText = prox.detalhe + ` (em ${diasFalta} dia${diasFalta === 1 ? '' : 's'})`;
+            titEl.innerHTML = prox.tipo === 'vencimento'
+                ? '<i class="ph ph-calendar-check"></i> Próximo vencimento'
+                : '<i class="ph ph-coins"></i> Próximo dividendo';
+        }
+
+        function atualizarBarraAlocacao(carteiraConsolidada) {
+            const box = document.getElementById('alocacaoBox');
+            const barra = document.getElementById('alocacaoBarra');
+            const legenda = document.getElementById('alocacaoLegenda');
+            if(!box || !barra || !legenda) return;
+
+            const totaisPorCategoria = { renda_variavel: 0, renda_fixa: 0, previdencia: 0, reserva_emergencia: 0 };
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const cat = inferirCategoria(ticker, ativo, ativoMercado);
+                const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                totaisPorCategoria[cat] += ativo.qtdTotal * precoAtual;
+            }
+            const total = Object.values(totaisPorCategoria).reduce((a,b)=>a+b,0);
+            if(total <= 0) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+
+            const segmentos = [];
+            const itensLegenda = [];
+            Object.keys(totaisPorCategoria).forEach(k => {
+                const v = totaisPorCategoria[k];
+                if(v <= 0) return;
+                const perc = (v/total*100);
+                const cor = CORES_CATEGORIA[k];
+                segmentos.push(`<div title="${ROTULOS_CATEGORIA[k]}: ${formatarMoeda(v)} (${perc.toFixed(1)}%)" style="flex: ${v}; background: ${cor};"></div>`);
+                itensLegenda.push(`<span style="display:inline-flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:${cor};"></span><strong style="color: var(--cor-texto-principal); font-weight:600;">${ROTULOS_CATEGORIA[k]}</strong> · ${perc.toFixed(1)}%</span>`);
+            });
+            barra.innerHTML = segmentos.join('');
+            legenda.innerHTML = itensLegenda.join('');
         }
 
         function atualizarCarteiraAtivos() {
@@ -1965,8 +2923,9 @@
             const datalistCarteira = document.getElementById('listaAtivosCarteira'); datalistCarteira.innerHTML = "";
             let carteiraConsolidada = obterResumoCarteira(); let totalAtivosValidos = 0; let totalGeralInvestido = 0; let saldoGeralAtual = 0;
 
+            let linhasRenderizadas = 0;
             for (let ticker in carteiraConsolidada) {
-                let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue; 
+                let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue;
                 totalAtivosValidos++;
                 let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
 
@@ -1976,29 +2935,314 @@
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
                 let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
 
-                tbody.innerHTML += `<tr><td style="font-weight: 600; color: var(--cor-texto-principal);">${ticker} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</span></td><td style="text-align: right;">${ativo.qtdTotal}</td><td style="text-align: right; color: var(--cor-texto-secundario);">${formatarMoeda(precoMedio)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600;">${formatarMoeda(saldoAtualAtivo)}</td><td style="text-align: right; font-weight: 600; color: ${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                // Aplica filtro por categoria (apenas para o que renderiza na tabela)
+                const categoriaEfetiva = inferirCategoria(ticker, ativo, ativoMercado);
+                if(filtroCategoriaAtivo && categoriaEfetiva !== filtroCategoriaAtivo) continue;
+                linhasRenderizadas++;
+
+                let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
+                let corretoraLbl = ativo.corretora || '—';
+                let extraRF = '';
+                let projecaoCelula = '<span style="color: var(--cor-texto-mutado);">—</span>';
+                const ehRF = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia';
+                if(ehRF) {
+                    const partes = [];
+                    if(ativo.vencimento) partes.push(`Venc. ${new Date(ativo.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                    if(ativo.rentabilidade) partes.push(ativo.rentabilidade);
+                    if(partes.length) extraRF = `<span style="display:block; font-weight: 400; font-size: 10.5px; color: var(--cor-texto-mutado);">${partes.join(' · ')}</span>`;
+                    // Projeção: usa a primeira compra de RF deste ticker como data de início
+                    const primeiraCompra = historicoCompras.find(op => op.ticker === ticker && op.tipo !== 'venda' && op.data_op);
+                    if(primeiraCompra && ativo.vencimento && ativo.rentabilidade) {
+                        const dataIni = primeiraCompra.data_op.slice(0,10);
+                        const proj = calcularProjecaoRF(ativo.valorTotalInvestido, dataIni, ativo.vencimento, ativo.rentabilidade);
+                        if(proj) {
+                            const ganho = proj.rendimentoLiquido;
+                            projecaoCelula = `<span style="font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(proj.valorFinalLiquido)}</span><span style="display:block; font-size: 11px; color: var(--cor-texto-mutado);">+${formatarMoeda(ganho)} líquido</span>`;
+                        }
+                    }
+                }
+                const corretoraTag = ativo.corretora ? ` · ${ativo.corretora}` : '';
+                const ativoCell = `
+                    <div style="font-weight: 600; color: var(--cor-texto-principal);">${ticker}</div>
+                    <div style="font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</div>
+                    <div style="font-weight: 500; font-size: 10.5px; color: var(--cor-texto-mutado); margin-top:3px;">${categoriaLbl}${corretoraTag}</div>
+                    ${extraRF}`;
+                tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align: right; font-family: 'DM Mono', monospace;">${ativo.qtdTotal}</td><td class="col-extra" style="text-align: right; color: var(--cor-texto-secundario); font-family: 'DM Mono', monospace;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro}; font-family: 'DM Mono', monospace;">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
             }
 
-            if(totalAtivosValidos === 0) { 
+            if(totalAtivosValidos === 0) {
                 msgVazia.style.display = "block";
                 msgVazia.innerHTML = `<div class="empty-state">
                     <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-wallet" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoPatrimonio').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0.00%"; return; 
+                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0,00%";
+                atualizarBarraAlocacao(carteiraConsolidada);
+                return;
             }
-            msgVazia.style.display = "none";
+            if(linhasRenderizadas === 0 && filtroCategoriaAtivo) {
+                msgVazia.style.display = "block";
+                msgVazia.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-icon" style="background: var(--cor-superficie);"><i class="ph ph-funnel" style="font-size: 26px; color: var(--cor-texto-secundario);"></i></div>
+                    <div class="empty-state-titulo">Nenhum ativo nesta categoria</div>
+                    <div class="empty-state-sub">Selecione "Tudo" ou outra categoria nos filtros acima.</div>
+                </div>`;
+            } else {
+                msgVazia.style.display = "none";
+            }
 
             let lucroGeralR$ = saldoGeralAtual - totalGeralInvestido; let lucroGeralPerc = totalGeralInvestido > 0 ? (lucroGeralR$ / totalGeralInvestido) * 100 : 0;
-            document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido); document.getElementById('resumoPatrimonio').innerText = formatarMoeda(saldoGeralAtual);
-            
+            document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
+
             const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
-            const titRend = document.getElementById('tituloRendimento'); const titRent = document.getElementById('tituloRentabilidade');
+            const titRend = document.getElementById('tituloRendimento');
 
             cardRend.innerText = formatarMoeda(lucroGeralR$); cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
-            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; titRent.style.color = 'var(--cor-erro)'; } 
-            else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; titRent.style.color = 'var(--cor-primaria)'; }
+            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; }
+            else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; }
+
+            atualizarBarraAlocacao(carteiraConsolidada);
+            atualizarProximoEvento(carteiraConsolidada);
+        }
+
+        // ============================================================
+        // === ABA DIVIDENDOS — BRAPI + YAHOO COM FALLBACK            ===
+        // ============================================================
+        // Cache em memória para evitar repetir chamadas no mesmo carregamento.
+        let cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
+        let cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
+
+        function tickerEhFII(ticker) { return /11$/.test(ticker || ''); }
+
+        function tickerElegivelDividendos(ticker, ativoMercado) {
+            if(!ticker) return false;
+            // Renda Fixa não paga dividendos (juros são tratados separadamente)
+            if(ativoMercado && ativoMercado.tipo === 'Renda Fixa') return false;
+            if(/^TESOURO_/.test(ticker)) return false;
+            return true;
+        }
+
+        async function buscarDividendosBrapi(ticker) {
+            try {
+                const url = `https://brapi.dev/api/quote/${ticker}?modules=dividendsHistory&range=1y&interval=1mo`;
+                const res = await fetchTimeout(url, 10000);
+                if(!res.ok) return null;
+                const json = await res.json();
+                const result = json?.results?.[0];
+                const cashDiv = result?.dividendsHistory?.cashDividends || [];
+                const stockDiv = result?.dividendsHistory?.stockDividends || [];
+                const todos = [...cashDiv, ...stockDiv].map(d => ({
+                    data: d.paymentDate || d.lastDatePrior || d.approvedOn,
+                    valor: parseFloat(d.rate || d.factor || 0)
+                })).filter(d => d.data && d.valor > 0);
+                return todos;
+            } catch(err) {
+                console.warn(`BRAPI falhou para ${ticker}:`, err.message);
+                return null;
+            }
+        }
+
+        async function buscarDividendosYahoo(ticker) {
+            try {
+                const inicio = Math.floor((Date.now() - 365*24*60*60*1000) / 1000);
+                const fim = Math.floor(Date.now() / 1000);
+                const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?period1=${inicio}&period2=${fim}&interval=1mo&events=div`;
+                const json = await fetchComFallback(urlYahoo);
+                if(!json) return null;
+                const eventos = json?.chart?.result?.[0]?.events?.dividends || {};
+                const lista = Object.values(eventos).map(d => ({
+                    data: new Date(d.date * 1000).toISOString().slice(0,10),
+                    valor: d.amount
+                })).filter(d => d.valor > 0);
+                return lista;
+            } catch(err) {
+                console.warn(`Yahoo dividendos falhou para ${ticker}:`, err.message);
+                return null;
+            }
+        }
+
+        async function obterDividendosDoAtivo(ticker, forcar = false) {
+            const agora = Date.now();
+            if(!forcar && cacheDividendos[ticker] && (agora - cacheDividendos[ticker].fetchedAt) < cacheDividendosTTLms) {
+                return cacheDividendos[ticker].pagamentos;
+            }
+            // Tenta BRAPI primeiro (mais consistente para BR), Yahoo como fallback
+            let pagamentos = await buscarDividendosBrapi(ticker);
+            if(!pagamentos || pagamentos.length === 0) {
+                pagamentos = await buscarDividendosYahoo(ticker);
+            }
+            pagamentos = pagamentos || [];
+            cacheDividendos[ticker] = { fetchedAt: agora, pagamentos };
+            return pagamentos;
+        }
+
+        function inferirFrequencia(pagamentos) {
+            if(!pagamentos || pagamentos.length < 2) return pagamentos?.length === 1 ? 'Único' : '—';
+            const datasOrd = pagamentos.map(p => new Date(p.data).getTime()).sort((a,b) => a - b);
+            const intervalos = [];
+            for(let i = 1; i < datasOrd.length; i++) intervalos.push(datasOrd[i] - datasOrd[i-1]);
+            const mediaDias = (intervalos.reduce((a,b)=>a+b,0) / intervalos.length) / (24*60*60*1000);
+            if(mediaDias <= 45) return 'Mensal';
+            if(mediaDias <= 100) return 'Trimestral';
+            if(mediaDias <= 200) return 'Semestral';
+            return 'Anual';
+        }
+
+        // Quantos ativos o usuário tinha numa data específica.
+        // dataIso pode ser 'YYYY-MM-DD' ou ISO completo. Compara com data_op das operações.
+        function qtdNaData(ticker, dataIso) {
+            const limite = new Date(dataIso).getTime();
+            let qtd = 0;
+            historicoCompras.forEach(op => {
+                if(op.ticker !== ticker) return;
+                if(!op.data_op) return;
+                if(new Date(op.data_op).getTime() > limite) return;
+                if(op.tipo === 'venda') qtd -= op.quantidade;
+                else qtd += op.quantidade;
+            });
+            return qtd;
+        }
+
+        // Data da primeira compra de um ticker (ISO 'YYYY-MM-DD'); null se nunca comprou.
+        function dataPrimeiraCompra(ticker) {
+            const compras = historicoCompras.filter(op => op.ticker === ticker && op.tipo !== 'venda' && op.data_op);
+            if(!compras.length) return null;
+            return compras.reduce((min, op) => op.data_op < min ? op.data_op : min, compras[0].data_op).slice(0,10);
+        }
+
+        async function carregarDividendos(forcar = false) {
+            const tbodyAtivos = document.getElementById('tabelaDividendosCorpo');
+            const tbodyPagamentos = document.getElementById('tabelaPagamentosCorpo');
+            const msgVaziaAtivos = document.getElementById('dividendosVaziaMsg');
+            const msgVaziaPag = document.getElementById('pagamentosVaziaMsg');
+            const banner = document.getElementById('bannerDividendosAviso');
+            const cardTotal = document.getElementById('dividendosTotal');
+            const card12m = document.getElementById('dividendos12m');
+            const cardYOC = document.getElementById('dividendosYOC');
+            const cardMedia = document.getElementById('dividendosMedia');
+            const incluirEncerradas = document.getElementById('chkIncluirEncerradas')?.checked || false;
+            if(!tbodyAtivos) return;
+
+            tbodyAtivos.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--cor-texto-secundario);"><i class="ph ph-circle-notch ph-spin" style="font-size:20px;"></i> Carregando proventos...</td></tr>`;
+            tbodyPagamentos.innerHTML = "";
+            banner.style.display = 'none';
+
+            const carteira = obterResumoCarteira();
+            // Lista de tickers candidatos: todos que aparecem no histórico (mesmo se posição zerada),
+            // filtrando por elegibilidade (não Renda Fixa) e pela opção do usuário.
+            const tickersHistorico = [...new Set(historicoCompras.map(op => op.ticker))];
+            const tickers = tickersHistorico.filter(t => {
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === t);
+                if(!tickerElegivelDividendos(t, ativoMercado)) return false;
+                const qtdAtual = carteira[t]?.qtdTotal || 0;
+                if(!incluirEncerradas && qtdAtual <= 0) return false;
+                return true;
+            });
+
+            if(tickers.length === 0) {
+                tbodyAtivos.innerHTML = "";
+                msgVaziaAtivos.style.display = 'block';
+                msgVaziaPag.style.display = 'block';
+                cardTotal.innerText = "R$ 0,00"; card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
+                return;
+            }
+            msgVaziaAtivos.style.display = 'none';
+            msgVaziaPag.style.display = 'none';
+
+            // Busca em paralelo
+            const resultados = await Promise.all(tickers.map(async t => {
+                const pagamentos = await obterDividendosDoAtivo(t, forcar);
+                return { ticker: t, pagamentos };
+            }));
+
+            const houveFalha = resultados.some(r => r.pagamentos.length === 0);
+            if(houveFalha) banner.style.display = 'flex';
+
+            const agora = Date.now();
+            const limite12m = agora - 365*24*60*60*1000;
+            let totalGeral = 0;        // Visão A: tudo desde a 1ª compra
+            let total12m = 0;          // Visão B: últimos 12m
+            let totalInvestidoYOC = 0; // Total investido líquido das posições contabilizadas (para YOC)
+            const linhasAtivos = [];
+            const todosPagamentos = [];
+
+            resultados.forEach(({ ticker, pagamentos }) => {
+                const ativo = carteira[ticker] || { qtdTotal: 0, valorTotalInvestido: 0 };
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo";
+                const primeiraCompra = dataPrimeiraCompra(ticker);
+                if(!primeiraCompra) return;
+                const limitePrimeiraCompraMs = new Date(primeiraCompra).getTime();
+
+                let recebidoTotal = 0;
+                let recebido12m = 0;
+
+                // Para cada pagamento, conta apenas as cotas que o usuário possuía na data.
+                pagamentos.forEach(p => {
+                    if(!p.data) return;
+                    const dataMs = new Date(p.data).getTime();
+                    if(dataMs < limitePrimeiraCompraMs) return; // antes da 1ª compra → não recebeu
+                    const qtd = qtdNaData(ticker, p.data);
+                    if(qtd <= 0) return;
+                    const totalPag = qtd * p.valor;
+                    recebidoTotal += totalPag;
+                    if(dataMs >= limite12m) recebido12m += totalPag;
+                    todosPagamentos.push({ data: p.data, ticker, qtd, valorCota: p.valor, total: totalPag });
+                });
+
+                if(recebidoTotal === 0 && pagamentos.length === 0) return; // sem dados nem provento
+
+                totalGeral += recebidoTotal;
+                total12m += recebido12m;
+                totalInvestidoYOC += Math.max(ativo.valorTotalInvestido, 0);
+
+                linhasAtivos.push({
+                    ticker, nomeAtivo,
+                    qtdAtual: ativo.qtdTotal,
+                    encerrada: ativo.qtdTotal <= 0,
+                    investido: ativo.valorTotalInvestido,
+                    recebidoTotal, recebido12m
+                });
+            });
+
+            // Ordena por recebido total desc
+            linhasAtivos.sort((a,b) => b.recebidoTotal - a.recebidoTotal);
+
+            if(linhasAtivos.length === 0) {
+                tbodyAtivos.innerHTML = "";
+                msgVaziaAtivos.style.display = 'block';
+            } else {
+                tbodyAtivos.innerHTML = linhasAtivos.map(l => {
+                    const yocAtivo = l.investido > 0 ? (l.recebidoTotal / l.investido * 100) : 0;
+                    const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
+                    return `<tr>
+                        <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${l.qtdAtual}</td>
+                        <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
+                        <td style="text-align: right; font-family:'DM Mono', monospace;">${yocAtivo.toFixed(2)}%</td>
+                    </tr>`;
+                }).join('');
+            }
+
+            todosPagamentos.sort((a,b) => new Date(b.data) - new Date(a.data));
+            if(todosPagamentos.length === 0) {
+                msgVaziaPag.style.display = 'block';
+            } else {
+                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
+                    <td style="font-family:'DM Mono', monospace;">${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
+                    <td style="font-weight: 600;">${p.ticker}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${p.qtd}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(p.valorCota)}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(p.total)}</td>
+                </tr>`).join('');
+            }
+
+            cardTotal.innerText = formatarMoeda(totalGeral);
+            card12m.innerText = formatarMoeda(total12m);
+            cardYOC.innerText = totalInvestidoYOC > 0 ? `${(totalGeral / totalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
+            cardMedia.innerText = formatarMoeda(total12m / 12);
         }
 
         // --- ABA 2: CONTROLE FINANCEIRO E DRE ---
@@ -2042,18 +3286,131 @@
             const cat = document.getElementById('categoriaTransacao').value;
             const divParcelas = document.getElementById('grupoParcelas');
             const divFixa = document.getElementById('grupoFixa');
+            const divCartao = document.getElementById('grupoCartaoSelect');
             const lblValor = document.getElementById('lblValorOpControle');
             const chkFixa = document.getElementById('transacaoFixa');
 
             if(cat === 'cartao_credito') {
-                divParcelas.style.display = 'block'; divFixa.style.display = 'none';
-                chkFixa.checked = false; lblValor.innerText = "Valor Total da Compra (R$)";
+                divCartao.style.display = 'block';
+                divFixa.style.display = 'none';
+                chkFixa.checked = false;
+                atualizarSelectCartoesForm();
+                aplicarTipoCartaoUI();
+                preencherVencimentoPorCartao();
             } else {
-                divParcelas.style.display = 'none'; divFixa.style.display = 'flex';
-                document.getElementById('qtdParcelas').value = 1; lblValor.innerText = "Valor Monetário (R$)";
-                
-                if (cat === 'receita' || cat === 'despesa_fixa') { chkFixa.checked = true; } 
+                divCartao.style.display = 'none';
+                divParcelas.style.display = 'none';
+                divFixa.style.display = 'flex';
+                document.getElementById('qtdParcelas').value = 1;
+                lblValor.innerText = "Valor Monetário (R$)";
+
+                if (cat === 'receita' || cat === 'despesa_fixa') { chkFixa.checked = true; }
                 else { chkFixa.checked = false; }
+            }
+        }
+
+        function atualizarSelectCartoesForm() {
+            const sel = document.getElementById('selectCartao');
+            if (!sel) return;
+            const valorAtual = sel.value;
+            const ativos = cartoesAtivos();
+            sel.innerHTML = ativos.map(c => `<option value="${c.id}">${c.nome}</option>`).join('') +
+                `<option value="__novo__">+ Adicionar novo cartão</option>`;
+            if (valorAtual && ativos.some(c => c.id === valorAtual)) sel.value = valorAtual;
+        }
+
+        function onChangeSelectCartao() {
+            const sel = document.getElementById('selectCartao');
+            if (sel.value === '__novo__') {
+                document.getElementById('formNovoCartaoInline').style.display = 'block';
+                document.getElementById('inlineCartaoNome').value = '';
+                document.getElementById('inlineCartaoLimite').value = '';
+                document.getElementById('inlineCartaoDiaFech').value = '';
+                document.getElementById('inlineCartaoDiaVenc').value = '';
+                document.getElementById('inlineCartaoNome').focus();
+            } else {
+                document.getElementById('formNovoCartaoInline').style.display = 'none';
+                preencherVencimentoPorCartao();
+            }
+        }
+
+        function preencherVencimentoPorCartao() {
+            const sel = document.getElementById('selectCartao');
+            const inputVenc = document.getElementById('dataVencimento');
+            if (!sel || !inputVenc) return;
+            if (!sel.value || sel.value === '__novo__') return;
+            const cartao = obterCartao(sel.value);
+            const diaVenc = parseInt(cartao?.diaVencimento, 10);
+            const diaFech = parseInt(cartao?.diaFechamento, 10);
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return;
+
+            // Se compra é após o fechamento do mês corrente, vai pra fatura do mês seguinte.
+            // Caso contrário, fica na fatura do mês corrente (vencimento deste mês).
+            const hoje = new Date();
+            let ano = hoje.getFullYear();
+            let mes = hoje.getMonth();
+            const usarProxFatura = diaFech ? hoje.getDate() > diaFech : hoje.getDate() > diaVenc;
+            if (usarProxFatura) mes += 1;
+            const ultimoDia = new Date(ano, mes + 1, 0).getDate();
+            const diaFinal = Math.min(diaVenc, ultimoDia);
+            const data = new Date(ano, mes, diaFinal);
+            const yyyy = data.getFullYear();
+            const mm = String(data.getMonth() + 1).padStart(2, '0');
+            const dd = String(data.getDate()).padStart(2, '0');
+            inputVenc.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        function cancelarNovoCartaoInline() {
+            document.getElementById('formNovoCartaoInline').style.display = 'none';
+            document.getElementById('selectCartao').value = cartoes[0]?.id || '';
+        }
+
+        function salvarNovoCartaoInline() {
+            const nome = document.getElementById('inlineCartaoNome').value.trim();
+            const limite = parseBRL(document.getElementById('inlineCartaoLimite').value) || 0;
+            const diaFech = parseInt(document.getElementById('inlineCartaoDiaFech').value);
+            const diaVenc = parseInt(document.getElementById('inlineCartaoDiaVenc').value);
+            if (!nome) return mostrarToast("Informe o nome do cartão.", "erro");
+            if (!diaFech || diaFech < 1 || diaFech > 31) return mostrarToast("Informe o dia de fechamento (1 a 31).", "erro");
+            if (!diaVenc || diaVenc < 1 || diaVenc > 31) return mostrarToast("Informe o dia de vencimento (1 a 31).", "erro");
+            const novo = { id: 'card_' + Date.now(), nome, limite, diaFechamento: diaFech, diaVencimento: diaVenc };
+            cartoes.push(novo);
+            salvarCartoes();
+            atualizarSelectCartoesForm();
+            document.getElementById('selectCartao').value = novo.id;
+            document.getElementById('formNovoCartaoInline').style.display = 'none';
+            preencherVencimentoPorCartao();
+            renderizarListaCartoesConfig();
+            mostrarToast("Cartão adicionado.", "sucesso");
+        }
+
+        function selecionarTipoCartao(tipo) {
+            document.getElementById('tipoCartaoSelecionado').value = tipo;
+            aplicarTipoCartaoUI();
+        }
+
+        function aplicarTipoCartaoUI() {
+            const tipo = document.getElementById('tipoCartaoSelecionado').value;
+            const btnPar = document.getElementById('btnTipoParcelado');
+            const btnFix = document.getElementById('btnTipoFixo');
+            const divParcelas = document.getElementById('grupoParcelas');
+            const lblValor = document.getElementById('lblValorOpControle');
+
+            if (tipo === 'fixo') {
+                btnFix.style.background = 'var(--cor-branco)';
+                btnFix.style.color = 'var(--cor-texto-principal)';
+                btnPar.style.background = 'transparent';
+                btnPar.style.color = 'var(--cor-texto-secundario)';
+                divParcelas.style.display = 'none';
+                document.getElementById('qtdParcelas').value = 1;
+                lblValor.innerText = "Valor mensal (R$)";
+            } else {
+                btnPar.style.background = 'var(--cor-branco)';
+                btnPar.style.color = 'var(--cor-texto-principal)';
+                btnFix.style.background = 'transparent';
+                btnFix.style.color = 'var(--cor-texto-secundario)';
+                divParcelas.style.display = 'block';
+                lblValor.innerText = "Valor Total da Compra (R$)";
             }
         }
 
@@ -2081,35 +3438,46 @@
 
         function prepararEdicao(id) {
             const trans = transacoes.find(t => t.id === id); if(!trans) return;
-            document.getElementById('descTransacao').value = trans.descricao; 
+            document.getElementById('descTransacao').value = trans.descricao;
             setValorBRLInput(document.getElementById('valorTransacao'), trans.valor);
-            document.getElementById('categoriaTransacao').value = trans.categoria; 
+            document.getElementById('categoriaTransacao').value = trans.categoria;
             document.getElementById('editTransacaoId').value = trans.id;
-            
+            document.getElementById('obsTransacao').value = trans.obs || "";
             document.getElementById('dataVencimento').value = trans.dataVencimento || "";
-            
+
             document.getElementById('btnSalvarControle').style.display = 'flex';
             document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
-            document.getElementById('btnSalvarControle').innerHTML = '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento'; 
-            document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)'; 
+            document.getElementById('btnSalvarControle').innerHTML = '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento';
+            document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)';
             document.getElementById('btnCancelarEdicao').style.display = 'block';
-            verificarRegraCartao(); if(trans.categoria === 'cartao_credito') document.getElementById('grupoParcelas').style.display = 'none'; 
+            verificarRegraCartao();
+            if(trans.categoria === 'cartao_credito') {
+                document.getElementById('grupoParcelas').style.display = 'none';
+                if (trans.cartaoId) {
+                    atualizarSelectCartoesForm();
+                    document.getElementById('selectCartao').value = trans.cartaoId;
+                }
+                selecionarTipoCartao(trans.cartaoFixoMensal ? 'fixo' : 'parcelado');
+                document.getElementById('grupoParcelas').style.display = 'none';
+            }
             document.getElementById('descTransacao').focus();
-            
+
             document.getElementById('tituloPainelControle').innerHTML = '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editando Operação';
         }
 
         function cancelarEdicaoControle() {
-            document.getElementById('editTransacaoId').value = ""; 
-            document.getElementById('descTransacao').value = ""; 
-            document.getElementById('valorTransacao').value = ""; 
+            document.getElementById('editTransacaoId').value = "";
+            document.getElementById('descTransacao').value = "";
+            document.getElementById('valorTransacao').value = "";
             document.getElementById('categoriaTransacao').value = "";
             document.getElementById('dataVencimento').value = "";
-            
+            document.getElementById('obsTransacao').value = "";
+            selecionarTipoCartao('parcelado');
+
             document.getElementById('btnSalvarControle').style.display = 'flex';
             document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
-            document.getElementById('btnSalvarControle').innerHTML = '<i class="ph ph-check-circle"></i> Salvar Lançamento'; 
-            document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-primaria)'; 
+            document.getElementById('btnSalvarControle').innerHTML = '<i class="ph ph-check-circle"></i> Salvar Lançamento';
+            document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-primaria)';
             document.getElementById('btnCancelarEdicao').style.display = 'none';
             document.getElementById('tituloPainelControle').innerHTML = '<i class="ph ph-plus-circle" style="color: var(--cor-primaria);"></i> Registrar Operação';
             verificarRegraCartao();
@@ -2143,27 +3511,33 @@
             const valorTotal = parseBRL(document.getElementById('valorTransacao').value);
             const categoria = document.getElementById('categoriaTransacao').value;
             const dataVencInput = document.getElementById('dataVencimento').value;
+            const obs = document.getElementById('obsTransacao').value.trim();
             const editId = document.getElementById('editTransacaoId').value;
             const transAtual = transacoes.find(t => t.id === editId);
+            const cartaoIdNovo = (categoria === 'cartao_credito') ? document.getElementById('selectCartao').value : null;
 
             if(modo === 'todas') {
                 transacoes = transacoes.map(t => {
                     if(t.groupId === transAtual.groupId && (t.ano > transAtual.ano || (t.ano === transAtual.ano && t.mes >= transAtual.mes))) {
                         t.descricao = desc; t.valor = valorTotal; t.categoria = categoria;
+                        t.obs = obs;
+                        if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__') t.cartaoId = cartaoIdNovo;
                     }
                     return t;
                 });
             } else {
-                transAtual.descricao = desc; 
-                transAtual.valor = valorTotal; 
+                transAtual.descricao = desc;
+                transAtual.valor = valorTotal;
                 transAtual.categoria = categoria;
                 transAtual.dataVencimento = dataVencInput;
-                if(transAtual.groupId) transAtual.groupId = null; 
+                transAtual.obs = obs;
+                if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__') transAtual.cartaoId = cartaoIdNovo;
+                if(transAtual.groupId) transAtual.groupId = null;
             }
 
             cancelarEdicaoControle();
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes)); 
-            mostrarToast("✓ Lançamento atualizado!", "sucesso");
+            mostrarToast("Lançamento atualizado!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
         }
@@ -2175,19 +3549,32 @@
             const ehFixo = document.getElementById('transacaoFixa').checked;
             const parcelas = parseInt(document.getElementById('qtdParcelas').value) || 1;
             const dataVencInput = document.getElementById('dataVencimento').value;
+            const obs = document.getElementById('obsTransacao').value.trim();
+            const tipoCartao = document.getElementById('tipoCartaoSelecionado').value; // 'parcelado' | 'fixo'
+            const cartaoId = (categoria === 'cartao_credito') ? document.getElementById('selectCartao').value : null;
 
+            if (categoria === 'cartao_credito' && (!cartaoId || cartaoId === '__novo__')) {
+                return mostrarToast("Selecione um cartão válido.", "erro");
+            }
+
+            const cartaoFixoMensal = categoria === 'cartao_credito' && tipoCartao === 'fixo';
             const groupId = (ehFixo || categoria === 'cartao_credito') ? Date.now().toString() : null;
             let mesesGerar = 1; let valorLancamento = valorTotal;
 
-            if(categoria === 'cartao_credito' && parcelas > 1) { mesesGerar = parcelas; valorLancamento = valorTotal / parcelas; } 
-            else if (ehFixo) { mesesGerar = 60; } 
+            if(categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
+                mesesGerar = parcelas; valorLancamento = valorTotal / parcelas;
+            } else if (cartaoFixoMensal) {
+                mesesGerar = 60;
+            } else if (ehFixo) {
+                mesesGerar = 60;
+            }
 
             for(let i=0; i<mesesGerar; i++) {
                 let m = visaoMes + i; let a = visaoAno;
-                while(m > 11) { m -= 12; a++; } 
+                while(m > 11) { m -= 12; a++; }
                 let descFinal = desc;
-                if(categoria === 'cartao_credito' && parcelas > 1) descFinal += ` (${i+1}/${parcelas})`;
-                
+                if(categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) descFinal += ` (${i+1}/${parcelas})`;
+
                 let dataVencFinal = null;
                 if(dataVencInput) {
                     let [vAno, vMes, vDia] = dataVencInput.split('-');
@@ -2196,12 +3583,26 @@
                     dataVencFinal = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, '0')}-${String(dVenc.getDate()).padStart(2, '0')}`;
                 }
 
-                transacoes.push({ id: Date.now().toString() + i, groupId: groupId, descricao: descFinal, valor: valorLancamento, categoria: categoria, mes: m, ano: a, data: new Date().toISOString(), dataVencimento: dataVencFinal, pago: false });
+                transacoes.push({
+                    id: Date.now().toString() + i,
+                    groupId: groupId,
+                    descricao: descFinal,
+                    valor: valorLancamento,
+                    categoria: categoria,
+                    cartaoId: cartaoId,
+                    cartaoFixoMensal: cartaoFixoMensal || undefined,
+                    obs: obs,
+                    mes: m, ano: a,
+                    data: new Date().toISOString(),
+                    dataVencimento: dataVencFinal,
+                    pago: false
+                });
             }
 
-            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes)); 
-            document.getElementById('descTransacao').value = ""; document.getElementById('valorTransacao').value = ""; document.getElementById('transacaoFixa').checked = false; document.getElementById('qtdParcelas').value = 1; document.getElementById('dataVencimento').value = ""; document.getElementById('categoriaTransacao').value = "";
-            mostrarToast("✓ Lançamento salvo com sucesso!", "sucesso");
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            document.getElementById('descTransacao').value = ""; document.getElementById('valorTransacao').value = ""; document.getElementById('transacaoFixa').checked = false; document.getElementById('qtdParcelas').value = 1; document.getElementById('dataVencimento').value = ""; document.getElementById('categoriaTransacao').value = ""; document.getElementById('obsTransacao').value = "";
+            selecionarTipoCartao('parcelado');
+            mostrarToast("Lançamento salvo com sucesso!", "sucesso");
             atualizarTelaControle(); 
             atualizarDatalistDescricoes();
         }
@@ -2270,6 +3671,49 @@
             atualizarDatalistDescricoes();
         }
 
+        function abrirModalGrupoCartao(key) {
+            const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
+            if (!grupo) return mostrarToast("Grupo não encontrado.", "erro");
+            const cartaoInfo = obterCartao(grupo.cartaoId);
+            const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
+            const [vAno, vMes, vDia] = grupo.dataVencimento.split('-');
+            const titulo = document.querySelector('#tituloModalGrupoCartao span');
+            if (titulo) titulo.innerText = nomeCartao;
+            document.getElementById('subtituloModalGrupoCartao').innerHTML =
+                `Vence ${vDia}/${vMes}/${vAno} • ${grupo.itens.length} ${grupo.itens.length === 1 ? 'lançamento' : 'lançamentos'} • <strong style="color:var(--cor-texto-principal);">${formatarMoeda(grupo.total)}</strong>`;
+            const corpo = document.getElementById('conteudoModalGrupoCartao');
+            corpo.innerHTML = grupo.itens.map(it => {
+                const obsHint = it.obs ? `<div style="font-size:11px;color:var(--cor-texto-mutado);font-style:italic;margin-top:3px;">${it.obs}</div>` : '';
+                return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 4px;border-bottom:1px dashed var(--cor-borda);">
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:13px;color:var(--cor-texto-principal);font-weight:500;">${it.descricao}</div>
+                        ${obsHint}
+                    </div>
+                    <div style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);white-space:nowrap;">${formatarMoeda(it.valor)}</div>
+                </div>`;
+            }).join('');
+            const btnBaixar = document.getElementById('btnBaixarModalGrupoCartao');
+            btnBaixar.onclick = () => { fecharModalGrupoCartao(); baixarGrupoCartao(key); };
+            document.getElementById('modalGrupoCartao').style.display = 'flex';
+        }
+
+        function fecharModalGrupoCartao() {
+            document.getElementById('modalGrupoCartao').style.display = 'none';
+        }
+
+        function baixarGrupoCartao(key) {
+            const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
+            if (!grupo) return mostrarToast("Grupo não encontrado.", "erro");
+            const total = grupo.total;
+            const qtd = grupo.itens.length;
+            if (!confirm(`Baixar ${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'} do cartão (${formatarMoeda(total)}) como pago?`)) return;
+            const ids = new Set(grupo.itens.map(i => i.id));
+            transacoes = transacoes.map(t => ids.has(t.id) ? { ...t, pago: true } : t);
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            mostrarToast("Fatura baixada como paga.", "sucesso");
+            atualizarTelaControle();
+        }
+
         function prepararPagamento(id, contexto) {
             const t = transacoes.find(t => t.id === id);
             if(!t) return;
@@ -2302,7 +3746,7 @@
                 return t;
             });
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-            mostrarToast("✓ Pagamento confirmado!", "sucesso");
+            mostrarToast("Pagamento confirmado!", "sucesso");
             atualizarTelaControle(); 
         }
 
@@ -2387,43 +3831,96 @@
             const bannerAlertaAtraso = document.getElementById('alertaContaVencida');
 
             containerVenc.innerHTML = "";
-            let qtdVencimentos = 0, temVencimentoHoje = false, temContaVencida = false; 
+            let qtdVencimentos = 0, temVencimentoHoje = false, temContaVencida = false;
 
             const hojeObj = new Date();
             const hojeStr = `${hojeObj.getFullYear()}-${String(hojeObj.getMonth()+1).padStart(2,'0')}-${String(hojeObj.getDate()).padStart(2,'0')}`;
 
-            let contasComVencimento = transacoes.filter(t => t.mes === visaoMes && t.ano === visaoAno && t.dataVencimento && !t.pago);
-            contasComVencimento.sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
-
-            contasComVencimento.forEach(conta => {
-                let [vAno, vMes, vDia] = conta.dataVencimento.split('-');
-                let dataFormatada = `${vDia}/${vMes}`;
-                let corBorda = 'var(--cor-borda)'; let corTextoData = 'var(--cor-texto-secundario)'; let icone = '<i class="ph ph-calendar-blank"></i>';
-                
-                if (conta.dataVencimento === hojeStr) {
-                    corBorda = 'var(--cor-erro)'; corTextoData = 'var(--cor-erro)'; icone = '<i class="ph-fill ph-warning-circle"></i>';
-                    temVencimentoHoje = true; dataFormatada = `HOJE: ${dataFormatada}`;
-                } else if (conta.dataVencimento < hojeStr) {
-                    corBorda = 'var(--cor-erro)'; corTextoData = 'var(--cor-erro)'; icone = '<i class="ph-fill ph-warning"></i>';
-                    temContaVencida = true; dataFormatada = `VENCEU: ${dataFormatada} <span style="background: var(--cor-erro); color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px;">ATRASADO</span>`;
-                }
-
-                containerVenc.innerHTML += `
-                    <div class="venc-card" style="border-color:${corBorda}">
-                        <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
-                        <div>
-                            <div class="venc-name">${conta.descricao}</div>
-                            <div class="venc-val">${formatarMoeda(conta.valor)}</div>
-                        </div>
-                        <div class="venc-badge" id="acao-pagar-card-${conta.id}">
-                            <button onclick="prepararPagamento('${conta.id}', 'card')" class="btn-secundario" style="padding:5px 10px;font-size:11px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
-                                <i class="ph-bold ph-check"></i> Baixar
-                            </button>
-                        </div>
-                    </div>
-                `;
-                qtdVencimentos++;
+            // Filtro robusto: usa o mês/ano efetivo de dataVencimento (não a competência)
+            const mesVisaoStr = `${visaoAno}-${String(visaoMes+1).padStart(2,'0')}`;
+            let contasComVencimento = transacoes.filter(t => {
+                if (!t.dataVencimento || t.pago) return false;
+                return t.dataVencimento.startsWith(mesVisaoStr);
             });
+            // Ordena por string YYYY-MM-DD (sem timezone) — sempre ascendente
+            contasComVencimento.sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
+
+            // Separa cartão de crédito do restante e agrupa por (cartaoId + dataVencimento)
+            const naoCartao = contasComVencimento.filter(t => t.categoria !== 'cartao_credito');
+            const cartao = contasComVencimento.filter(t => t.categoria === 'cartao_credito');
+            const grupos = {};
+            cartao.forEach(t => {
+                const key = `${t.cartaoId || 'sem'}__${t.dataVencimento}`;
+                if (!grupos[key]) grupos[key] = { cartaoId: t.cartaoId, dataVencimento: t.dataVencimento, itens: [], total: 0 };
+                grupos[key].itens.push(t);
+                grupos[key].total += t.valor;
+            });
+
+            // Combina não-cartão e grupos consolidados, ordenados por dataVencimento
+            const itensRender = [
+                ...naoCartao.map(t => ({ tipo: 'individual', dataVencimento: t.dataVencimento, conta: t })),
+                ...Object.values(grupos).map(g => ({ tipo: 'cartao', dataVencimento: g.dataVencimento, grupo: g }))
+            ];
+            itensRender.sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
+
+            const renderEstadoVenc = (dataVencimento) => {
+                let corBorda = 'var(--cor-borda)', corTextoData = 'var(--cor-texto-secundario)', badgeAtraso = '';
+                if (dataVencimento === hojeStr) {
+                    corBorda = 'var(--cor-erro)'; corTextoData = 'var(--cor-erro)'; temVencimentoHoje = true;
+                } else if (dataVencimento < hojeStr) {
+                    corBorda = 'var(--cor-erro)'; corTextoData = 'var(--cor-erro)'; temContaVencida = true;
+                    badgeAtraso = ` <span style="background: var(--cor-erro); color: white; padding: 1px 5px; border-radius: 4px; font-size: 9px; margin-left: 4px; font-weight:700;">ATRASADO</span>`;
+                }
+                return { corBorda, corTextoData, badgeAtraso };
+            };
+
+            itensRender.forEach(item => {
+                const [vAno, vMes, vDia] = item.dataVencimento.split('-');
+                const { corBorda, corTextoData, badgeAtraso } = renderEstadoVenc(item.dataVencimento);
+
+                if (item.tipo === 'individual') {
+                    const conta = item.conta;
+                    const obsIcone = conta.obs ? ` <i class="ph ph-note-pencil" title="${conta.obs.replace(/"/g,'&quot;')}" style="color:var(--cor-info);font-size:11px;cursor:help;"></i>` : '';
+                    containerVenc.innerHTML += `
+                        <div class="venc-card" style="border-color:${corBorda}">
+                            <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="venc-name">${conta.descricao}${obsIcone}${badgeAtraso}</div>
+                                <div class="venc-val">${formatarMoeda(conta.valor)}</div>
+                            </div>
+                            <div class="venc-badge" id="acao-pagar-card-${conta.id}">
+                                <button onclick="prepararPagamento('${conta.id}', 'card')" class="btn-secundario" style="padding:5px 10px;font-size:11px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
+                                    <i class="ph-bold ph-check"></i> Baixar
+                                </button>
+                            </div>
+                        </div>`;
+                    qtdVencimentos++;
+                } else {
+                    const g = item.grupo;
+                    const cartaoInfo = obterCartao(g.cartaoId);
+                    const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
+                    const grupoKey = `${g.cartaoId || 'sem'}_${g.dataVencimento}`;
+                    const qtdLanc = g.itens.length;
+                    containerVenc.innerHTML += `
+                        <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="abrirModalGrupoCartao('${grupoKey}')">
+                            <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);font-size:11px;"></i> ${nomeCartao}${badgeAtraso}</div>
+                                <div class="venc-val">${formatarMoeda(g.total)}<span class="venc-meta">${qtdLanc} ${qtdLanc === 1 ? 'lançamento' : 'lançamentos'}</span></div>
+                            </div>
+                            <div class="venc-badge">
+                                <button onclick="event.stopPropagation(); baixarGrupoCartao('${grupoKey}')" class="btn-secundario" style="padding:4px 8px;font-size:10.5px;border-color:var(--cor-primaria);color:var(--cor-primaria);">
+                                    <i class="ph-bold ph-check"></i> Baixar
+                                </button>
+                            </div>
+                        </div>`;
+                    qtdVencimentos++;
+                }
+            });
+
+            // Guarda mapa de grupos para uso nas funções de toggle/baixar
+            window._gruposCartaoVenc = {};
+            Object.entries(grupos).forEach(([k, g]) => { window._gruposCartaoVenc[`${g.cartaoId || 'sem'}_${g.dataVencimento}`] = g; });
 
             painelVenc.style.display = (qtdVencimentos > 0) ? 'block' : 'none';
             if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
@@ -2436,6 +3933,8 @@
             transacoes.forEach((t) => {
                 if (t.mes === visaoMes && t.ano === visaoAno) {
                     let iconFixo = (t.groupId && t.categoria !== 'cartao_credito') ? ' <i class="ph ph-arrows-clockwise" title="Recorrente"></i>' : '';
+                    let iconFixoCartao = (t.cartaoFixoMensal) ? ' <i class="ph ph-repeat" title="Fixo mensal no cartão" style="color:var(--cor-cartao);"></i>' : '';
+                    let iconObs = t.obs ? ` <i class="ph ph-note-pencil" title="${t.obs.replace(/"/g,'&quot;')}" style="color:var(--cor-info);cursor:help;"></i>` : '';
                     let vencimentoHtml = '';
                     if (t.dataVencimento) {
                         let [vAno, vMes, vDia] = t.dataVencimento.split('-');
@@ -2445,11 +3944,16 @@
                         else { vencimentoHtml = ` <span style="color: #94a3b8; font-size: 10px; margin-left: 5px;">• Vence: ${vDia}/${vMes}</span>`; }
                     }
 
+                    let nomeCartaoExtrato = '';
+                    if (t.categoria === 'cartao_credito' && t.cartaoId) {
+                        const c = obterCartao(t.cartaoId);
+                        if (c) nomeCartaoExtrato = ` • ${c.nome}`;
+                    }
                     let itemHtml = `
                     <div class="extrato-item">
                         <div>
-                            <span class="desc">${t.descricao}${iconFixo}</span>
-                            <span class="cat">${nomesCat[t.categoria] || 'Outros'}${vencimentoHtml}</span>
+                            <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
+                            <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${vencimentoHtml}</span>
                         </div>
                         <div style="text-align: right;">
                             <span class="valor">${formatarMoeda(t.valor)}</span>
@@ -2489,13 +3993,13 @@
             if(kpiSaldo) { const saldo = totRec - totDesp - totCartao - totInv; kpiSaldo.innerText = formatarMoeda(saldo); kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; }
 
             // ALERTA CARTÃO
-            const limitCartao = parseBRL(document.getElementById('limiteCartao').value) || 0;
+            const limitCartao = cartoes.reduce((sum, c) => sum + (c.limite || 0), 0);
             const alertaCartao = document.getElementById('alertaCartaoKanban');
-            
+
             if(limitCartao > 0) {
                 let percCartao = (totCartao / limitCartao) * 100;
                 document.getElementById('barCartao').style.width = Math.min(100, percCartao) + '%';
-                
+
                 if(percCartao > 100) {
                     document.getElementById('barCartao').style.background = 'var(--cor-erro)';
                     let extrapolouReais = totCartao - limitCartao;
@@ -2755,7 +4259,7 @@
                 ativos: ativosTemp
             };
             localStorage.setItem('futurorico_carteira_admin', JSON.stringify(dbCarteira));
-            mostrarToast("✓ Diretriz de carteira publicada com sucesso!", "sucesso"); toggleModoAdmin(); carregarCarteiraCliente();
+            mostrarToast("Diretriz de carteira publicada com sucesso!", "sucesso"); toggleModoAdmin(); carregarCarteiraCliente();
         }
 
         // === Client View ===
@@ -3155,10 +4659,10 @@
 
         // --- EXPORTAÇÃO / IMPORTAÇÃO ---
         function exportarDados() {
-            const dados = { versao: 'v6', exportadoEm: new Date().toISOString(), compras: JSON.parse(localStorage.getItem('futurorico_compras') || '[]'), transacoes: JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]'), carteira_admin: JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null'), limiteCartao: localStorage.getItem('futurorico_limiteCartao'), metaVerde: localStorage.getItem('futurorico_metaVerde'), metaVermelha: localStorage.getItem('futurorico_metaVermelha') };
+            const dados = { versao: 'v7', exportadoEm: new Date().toISOString(), compras: JSON.parse(localStorage.getItem('futurorico_compras') || '[]'), transacoes: JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]'), carteira_admin: JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null'), cartoes: JSON.parse(localStorage.getItem('futurorico_cartoes') || '[]'), limiteCartao: localStorage.getItem('futurorico_limiteCartao'), metaVerde: localStorage.getItem('futurorico_metaVerde'), metaVermelha: localStorage.getItem('futurorico_metaVermelha') };
             const json = JSON.stringify(dados, null, 2); const blob = new Blob([json], { type: 'application/json' }); const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = `appliquei_backup_${new Date().toISOString().slice(0, 10)}.json`; a.click(); URL.revokeObjectURL(url);
-            mostrarToast('✓ Backup exportado com sucesso!', 'sucesso');
+            mostrarToast('Backup exportado com sucesso!', 'sucesso');
         }
 
         function importarDados(event) {
@@ -3184,12 +4688,15 @@
                 if (dados.compras) localStorage.setItem('futurorico_compras', JSON.stringify(dados.compras));
                 if (dados.transacoes) localStorage.setItem('futurorico_transacoes', JSON.stringify(dados.transacoes));
                 if (dados.carteira_admin) localStorage.setItem('futurorico_carteira_admin', JSON.stringify(dados.carteira_admin));
+                if (dados.cartoes) localStorage.setItem('futurorico_cartoes', JSON.stringify(dados.cartoes));
                 if (dados.limiteCartao) localStorage.setItem('futurorico_limiteCartao', dados.limiteCartao);
                 if (dados.metaVerde) localStorage.setItem('futurorico_metaVerde', dados.metaVerde);
                 if (dados.metaVermelha) localStorage.setItem('futurorico_metaVermelha', dados.metaVermelha);
 
                 historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras') || '[]');
                 transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]');
+                cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes') || '[]');
+                if (cartoes.length === 0) cartoes.push({ id: 'card_padrao', nome: 'Cartão principal', limite: 5000, diaVencimento: null });
                 dbCarteira = JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null') || carteiraDefault;
                 // Backward compat for imported data
                 dbCarteira.percETF = dbCarteira.percETF || 0;
@@ -3197,7 +4704,7 @@
                 dbCarteira.ativos = (dbCarteira.ativos || []).map(a => ({ ...a, classe: a.classe || 'rf' }));
 
                 fecharModal(); carregarMetas(); atualizarCarteiraAtivos(); atualizarTelaControle(); atualizarDatalistDescricoes();
-                mostrarToast('✓ Dados importados com sucesso!', 'sucesso');
+                mostrarToast('Dados importados com sucesso!', 'sucesso');
             } catch(err) { fecharModal(); mostrarToast('Erro ao importar. O arquivo pode estar corrompido.', 'erro'); }
         }
 
@@ -3244,7 +4751,10 @@
         // --- TECLADO E ARIA ---
         document.addEventListener('keydown', function(e) {
             if(e.key === 'Escape') {
-                const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes');
+                const drawer = document.getElementById('drawerOperacao');
+                if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
+                const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
+                if(mgrp && mgrp.style.display === 'flex') { fecharModalGrupoCartao(); return; }
                 if(mc && mc.style.display === 'flex') fecharModal();
                 if(mconf && mconf.style.display === 'flex') fecharModalConfig();
             }
@@ -3258,6 +4768,7 @@
         // --- INICIALIZAÇÃO ---
         window.onload = function() {
             inicializarDatalistAtivos();
+            inicializarDatalistCorretoras();
             carregarMetas();
             inicializarMascarasBRL();
             atualizarDatalistDescricoes();
@@ -3265,7 +4776,18 @@
             atualizarCarteiraAtivos();
             carregarCarteiraCliente();
             buscarInflacaoBCB();
+            buscarTaxasBCB(); // CDI/Selic/IPCA para projeção de Renda Fixa
             buscarCotacoesReais(); // Roda a nossa rotina paralela do Yahoo v8
+            // Estado inicial do form de operação
+            const elData = document.getElementById('compraData'); if(elData) elData.value = new Date().toISOString().slice(0,10);
+            ajustarCamposPorCategoria();
+            // Restaura preferência do usuário sobre colunas extras
+            try {
+                if(localStorage.getItem('appliquei_carteira_extras') === '1') {
+                    document.getElementById('tabelaCarteira')?.classList.add('com-extras');
+                    const lbl = document.getElementById('lblToggleColunas'); if(lbl) lbl.innerText = 'Menos colunas';
+                }
+            } catch(_){}
         };
     </script>
 </body>
