@@ -244,6 +244,7 @@
         }
 
         .icon-tooltip-premium {
+            position: relative;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -262,6 +263,53 @@
             color: var(--cor-primaria);
             border-color: var(--cor-borda-primaria);
             transform: scale(1.08);
+        }
+        .icon-tooltip-premium[data-custom-tooltip]::after {
+            content: attr(data-custom-tooltip);
+            position: absolute;
+            bottom: 145%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px) scale(0.95);
+            background: #111c17;
+            color: #f0faf4;
+            padding: 9px 13px;
+            border-radius: 9px;
+            font-size: 11.5px;
+            font-weight: 500;
+            width: 200px;
+            text-align: center;
+            line-height: 1.45;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            border: 1px solid #1c2e24;
+            z-index: 9999;
+            font-family: 'Figtree', sans-serif;
+            font-style: normal;
+            letter-spacing: 0;
+        }
+        .icon-tooltip-premium[data-custom-tooltip]::before {
+            content: '';
+            position: absolute;
+            bottom: 118%;
+            left: 50%;
+            transform: translateX(-50%) translateY(8px) scale(0.95);
+            border-width: 6px;
+            border-style: solid;
+            border-color: #111c17 transparent transparent transparent;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 9999;
+        }
+        .icon-tooltip-premium:hover::after,
+        .icon-tooltip-premium:hover::before {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0) scale(1);
         }
 
         /* === COMPONENTES === */
@@ -1833,7 +1881,7 @@
                         <div style="display:flex;justify-content:space-between;font-size:12.5px;align-items:center;">
                             <span style="color:var(--cor-texto-mutado);display:flex;align-items:center;gap:4px;">
                                 Renda passiva estimada 
-                                <i id="iconRendaPassivaReal" class="ph-bold ph-info icon-tooltip-premium" title="Você terá o poder de compra de R$ 0,00, baseado no patrimônio corrigido"></i>
+                                <i id="iconRendaPassivaReal" class="ph-bold ph-info icon-tooltip-premium" data-custom-tooltip="Você terá o poder de compra de R$ 0,00, baseado no patrimônio corrigido"></i>
                             </span>
                             <span id="outRendaPassiva" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);font-weight:600;">R$ 0,00/mês</span>
                         </div>
@@ -4747,7 +4795,7 @@
             document.getElementById('outRendaPassiva').innerText = formatarMoeda(rendaPassivaMensal) + '/mês';
             const iconRendaPassivaReal = document.getElementById('iconRendaPassivaReal');
             if(iconRendaPassivaReal) {
-                iconRendaPassivaReal.title = `Você terá o poder de compra de ${formatarMoeda(rendaPassivaRealMensal)}, baseado no patrimônio corrigido`;
+                iconRendaPassivaReal.setAttribute('data-custom-tooltip', `Você terá o poder de compra de ${formatarMoeda(rendaPassivaRealMensal)}, baseado no patrimônio corrigido`);
             }
             document.getElementById('legPizzaInvestido').innerText = `${formatarMoeda(investidoTotal)} (${(investidoTotal/montante*100).toFixed(0)}%)`;
             document.getElementById('legPizzaJuros').innerText = `${formatarMoeda(jurosGerados)} (${(jurosGerados/montante*100).toFixed(0)}%)`;
