@@ -633,19 +633,286 @@
         .toggle-btn.ativo-venda { background: linear-gradient(135deg, #dc2626,#b91c1c); color: white; border-color: #b91c1c; box-shadow: 0 2px 8px rgba(220,38,38,0.25); }
 
         .coluna-fixa { position: sticky; left: 0; z-index: 2; border-right: 1px solid var(--cor-borda); background: var(--cor-branco); }
+        /* === SEGMENTED CONTROL — SUB-ABAS INVESTIMENTOS === */
+        .subtab-segmented {
+            display: inline-flex; gap: 2px; padding: 3px;
+            background: var(--cor-superficie); border-radius: 12px;
+            border: 1px solid var(--cor-borda);
+        }
+        .subtab-pill {
+            padding: 8px 18px; border: none; background: transparent;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            color: var(--cor-texto-secundario); border-radius: 10px;
+            font-family: 'Figtree', sans-serif; transition: all 0.2s ease;
+            display: flex; align-items: center; gap: 7px;
+            position: relative;
+        }
+        .subtab-pill:hover { color: var(--cor-texto-principal); }
+        .subtab-pill.ativo {
+            background: var(--cor-branco); color: var(--cor-primaria);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0 0 1px rgba(5,150,105,0.08);
+        }
+        .subtab-pill.ativo::after {
+            content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%);
+            width: 16px; height: 2px; background: var(--cor-primaria); border-radius: 99px;
+            animation: subtabUnderline 0.25s ease;
+        }
+        @keyframes subtabUnderline { from { width: 0; opacity: 0; } to { width: 16px; opacity: 1; } }
+        .subtab-pill i { font-size: 15px; }
+        .subtab-mini-stat {
+            font-size: 11px; font-weight: 600; color: var(--cor-texto-mutado);
+            font-family: 'Figtree', sans-serif; white-space: nowrap;
+            display: flex; align-items: center; gap: 6px;
+        }
+
+        /* Compat: keep btn-tab-dre for other sections that still use it */
         .btn-tab-dre {
-            background-color: var(--cor-branco);
-            color: var(--cor-texto-secundario);
-            border: 1.5px solid var(--cor-borda);
-            padding: 7px 14px;
-            border-radius: 9px;
-            font-size: 12.5px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.2s;
+            background-color: var(--cor-branco); color: var(--cor-texto-secundario);
+            border: 1.5px solid var(--cor-borda); padding: 7px 14px; border-radius: 9px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; transition: 0.2s;
             font-family: 'Figtree', sans-serif;
         }
-        .btn-tab-dre.ativo { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border-color: #1d4ed8; box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
+        .btn-tab-dre.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); box-shadow: 0 2px 8px rgba(5,150,105,0.15); }
+
+        /* === RICH ROWS — CARTEIRA === */
+        .rich-category-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 20px; background: var(--cor-superficie);
+            border-bottom: 1.5px solid var(--cor-borda); position: sticky; top: 0; z-index: 4;
+            gap: 12px;
+        }
+        .rich-category-header .cat-accent {
+            width: 4px; height: 28px; border-radius: 99px; flex-shrink: 0;
+        }
+        .rich-category-header .cat-label {
+            font-size: 12px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--cor-texto-principal);
+            font-family: 'Figtree', sans-serif;
+        }
+        .rich-category-header .cat-stats {
+            font-size: 11.5px; font-weight: 600; color: var(--cor-texto-mutado);
+            font-family: 'DM Mono', monospace; display: flex; gap: 12px; align-items: center;
+        }
+
+        .rich-row {
+            display: grid;
+            grid-template-columns: 48px 1fr 100px 80px 120px 100px;
+            gap: 0; padding: 14px 20px; align-items: center;
+            border-bottom: 1px solid var(--cor-borda); transition: background 0.15s;
+            cursor: pointer;
+        }
+        .rich-row:hover { background: var(--cor-bg-primaria); }
+        .rich-row:last-child { border-bottom: none; }
+
+        .rich-avatar {
+            width: 40px; height: 40px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: white; flex-shrink: 0;
+        }
+        .rich-row-info { padding: 0 14px; min-width: 0; }
+        .rich-ticker {
+            font-size: 14px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .rich-nome {
+            font-size: 11.5px; font-weight: 500; color: var(--cor-texto-secundario);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .rich-meta {
+            font-size: 10.5px; color: var(--cor-texto-mutado); margin-top: 3px;
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .rich-alloc-bar {
+            height: 4px; background: var(--cor-borda); border-radius: 99px;
+            overflow: hidden; width: 60px; display: inline-block; vertical-align: middle;
+        }
+        .rich-alloc-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+        .rich-saldo {
+            text-align: right; font-size: 14px; font-weight: 700;
+            font-family: 'DM Mono', monospace; color: var(--cor-texto-principal);
+        }
+        .rich-sparkline { display: flex; align-items: center; justify-content: center; }
+        .rich-sparkline canvas { width: 72px !important; height: 28px !important; }
+        .rich-lucro {
+            text-align: right; display: flex; flex-direction: column; gap: 1px;
+        }
+        .rich-lucro-rs {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+        }
+        .rich-lucro-pct {
+            font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace;
+        }
+        .rich-overflow {
+            width: 28px; height: 28px; border-radius: 8px; border: none;
+            background: transparent; color: var(--cor-texto-mutado); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; transition: 0.15s;
+        }
+        .rich-overflow:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+
+        /* Expanded detail row */
+        .rich-expand {
+            display: none; padding: 0 20px 16px 82px;
+            border-bottom: 1px solid var(--cor-borda);
+            animation: fadeIn 0.2s ease;
+        }
+        .rich-expand.aberto { display: block; }
+        .rich-expand-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 8px; margin-bottom: 12px;
+        }
+        .rich-expand-stat {
+            padding: 8px 10px; background: var(--cor-superficie);
+            border-radius: 8px; border: 1px solid var(--cor-borda);
+        }
+        .rich-expand-stat .re-label {
+            font-size: 9.5px; font-weight: 600; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px;
+        }
+        .rich-expand-stat .re-value {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+        }
+        .rich-expand-actions { display: flex; gap: 6px; }
+
+        /* === TIMELINE — OPERAÇÕES === */
+        .ops-toolbar {
+            display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center;
+        }
+        .ops-chip {
+            padding: 6px 14px; border-radius: 99px; font-size: 12px; font-weight: 600;
+            cursor: pointer; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); font-family: 'Figtree', sans-serif; transition: 0.15s;
+        }
+        .ops-chip:hover { background: var(--cor-superficie); }
+        .ops-chip.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .ops-chip-danger.ativo { background: var(--cor-bg-erro); color: var(--cor-txt-erro); border-color: var(--cor-borda-erro); }
+        .ops-search {
+            flex: 1; min-width: 160px; padding: 7px 12px 7px 32px; border: 1.5px solid var(--cor-borda);
+            border-radius: 99px; font-size: 12.5px; font-family: 'Figtree', sans-serif;
+            background: var(--cor-branco); color: var(--cor-texto-principal);
+        }
+        .ops-search-wrap { position: relative; flex: 1; min-width: 160px; }
+        .ops-search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 14px; color: var(--cor-texto-mutado); }
+        .ops-summary {
+            display: flex; gap: 16px; padding: 12px 18px; background: var(--cor-superficie);
+            border-radius: 10px; border: 1px solid var(--cor-borda); margin-bottom: 14px;
+            font-size: 12.5px; font-weight: 600; color: var(--cor-texto-secundario);
+            font-family: 'Figtree', sans-serif; align-items: center; flex-wrap: wrap;
+        }
+        .ops-summary strong { font-family: 'DM Mono', monospace; color: var(--cor-texto-principal); }
+
+        .timeline-date-header {
+            padding: 10px 20px 6px; font-size: 10.5px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.7px;
+            color: var(--cor-texto-mutado); font-family: 'Figtree', sans-serif;
+            position: sticky; top: 0; background: var(--cor-branco); z-index: 3;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        body.dark .timeline-date-header { background: var(--cor-branco); }
+
+        .timeline-item {
+            display: flex; gap: 0; padding: 12px 20px; align-items: stretch;
+            border-bottom: 1px solid var(--cor-borda); transition: background 0.15s;
+        }
+        .timeline-item:hover { background: var(--cor-bg-primaria); }
+        .timeline-accent {
+            width: 4px; border-radius: 99px; flex-shrink: 0; margin-right: 14px;
+        }
+        .timeline-accent.compra { background: var(--cor-primaria); }
+        .timeline-accent.venda { background: var(--cor-erro); }
+        .timeline-icon {
+            width: 32px; height: 32px; border-radius: 9px; display: flex;
+            align-items: center; justify-content: center; font-size: 14px;
+            flex-shrink: 0; margin-right: 12px;
+        }
+        .timeline-icon.compra { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .timeline-icon.venda { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .timeline-body { flex: 1; min-width: 0; }
+        .timeline-line1 {
+            display: flex; align-items: center; gap: 8px; font-size: 13px;
+            font-weight: 600; color: var(--cor-texto-principal);
+        }
+        .timeline-line1 .tl-tipo { font-weight: 700; }
+        .timeline-line1 .tl-ticker { font-family: 'DM Mono', monospace; font-weight: 700; }
+        .timeline-line1 .tl-nome { color: var(--cor-texto-secundario); font-weight: 500; }
+        .timeline-line1 .tl-qtd { color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; }
+        .timeline-line2 {
+            font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 3px;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .timeline-total {
+            text-align: right; font-size: 14px; font-weight: 700;
+            font-family: 'DM Mono', monospace; color: var(--cor-texto-principal);
+            flex-shrink: 0; padding-left: 12px;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .timeline-total .tl-date {
+            font-size: 11px; font-weight: 500; color: var(--cor-texto-mutado);
+            font-family: 'Figtree', sans-serif;
+        }
+        .timeline-actions {
+            display: flex; align-items: center; gap: 4px; margin-left: 8px;
+        }
+
+        /* === DIVIDENDOS REDESIGN === */
+        .div-chart-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 18px 20px;
+            box-shadow: var(--shadow-card); margin-bottom: 16px;
+        }
+        .div-chart-title {
+            font-size: 13px; font-weight: 700; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 7px; margin-bottom: 14px;
+        }
+        .div-chart-title i { color: var(--cor-primaria); font-size: 16px; }
+        .div-ranking {
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .div-rank-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+            background: var(--cor-superficie); border-radius: 9px;
+            border: 1px solid var(--cor-borda); transition: 0.15s;
+        }
+        .div-rank-item:hover { border-color: var(--cor-borda-primaria); }
+        .div-rank-pos {
+            font-size: 11px; font-weight: 800; color: var(--cor-texto-mutado);
+            width: 20px; text-align: center;
+        }
+        .div-rank-ticker {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); flex: 1;
+        }
+        .div-rank-valor {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-primaria);
+        }
+        .div-heatmap {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+        }
+        .div-heat-cell {
+            aspect-ratio: 1; border-radius: 3px; background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda); position: relative; cursor: default;
+            transition: 0.15s; min-width: 0;
+        }
+        .div-heat-cell:hover { border-color: var(--cor-borda-primaria); transform: scale(1.15); z-index: 2; }
+        .div-heat-cell[title]:hover::after {
+            content: attr(title); position: absolute; bottom: 110%; left: 50%;
+            transform: translateX(-50%); background: #111c17; color: #f0faf4;
+            padding: 4px 8px; border-radius: 6px; font-size: 10px; white-space: nowrap;
+            z-index: 99; pointer-events: none;
+        }
+
+        /* Responsive adjustments for rich rows */
+        @media (max-width: 900px) {
+            .rich-row { grid-template-columns: 40px 1fr 90px 80px; }
+            .rich-sparkline, .rich-overflow { display: none; }
+        }
+        @media (max-width: 600px) {
+            .rich-row { grid-template-columns: 36px 1fr 70px; padding: 10px 14px; }
+            .rich-saldo { display: none; }
+        }
         .chip-cat {
             background-color: var(--cor-branco); color: var(--cor-texto-secundario);
             border: 1.5px solid var(--cor-borda); padding: 5px 11px; border-radius: 99px;
@@ -1435,10 +1702,13 @@
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-                <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn-tab-dre ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
-                    <button class="btn-tab-dre" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
-                    <button class="btn-tab-dre" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
+                <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                    <div class="subtab-segmented">
+                        <button class="subtab-pill ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                        <button class="subtab-pill" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
+                        <button class="subtab-pill" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
+                    </div>
+                    <span class="subtab-mini-stat" id="subtabMiniStat"></span>
                 </div>
                 <div id="acoesSubAba" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                     <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
@@ -1448,85 +1718,56 @@
                         <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
                         <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
                     </div>
-                    <button class="btn-secundario" id="btnToggleColunas" onclick="toggleColunasExtras()" title="Mostrar/ocultar colunas detalhadas"><i class="ph ph-columns"></i> <span id="lblToggleColunas">Mais colunas</span></button>
                     <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
                 </div>
             </div>
 
+            <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
             <div id="subAbaCarteira">
-            <div class="card-container" style="padding: 0; overflow: hidden;">
-                <div style="overflow-x: auto; max-height: 540px;">
-                    <table class="tabela-dashboard" id="tabelaCarteira">
-                        <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                            <tr>
-                                <th>Ativo</th>
-                                <th style="text-align: right;">Qtd</th>
-                                <th class="col-extra" style="text-align: right;">Preço Médio</th>
-                                <th class="col-extra" style="text-align: right;">
-                                    Preço Atual
-                                    <span class="badge-mock" id="badgeRealTime" style="display:none; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;"><i class="ph ph-circle-notch ph-spin"></i> Atualizando...</span>
-                                </th>
-                                <th style="text-align: right;">Saldo Atual</th>
-                                <th class="col-extra" style="text-align: right;">Projeção</th>
-                                <th style="text-align: right;">Lucro/Prej (%)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelaCarteiraCorpo"></tbody>
-                    </table>
+                <div class="card-container" style="padding: 0; overflow: hidden;">
+                    <div style="overflow-x: auto; max-height: 640px;" id="richRowsContainer">
+                        <!-- Rich rows rendered by JS -->
+                    </div>
                     <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
                         <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
                         <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Use o botão "Registrar operação" acima.</p>
                     </div>
                 </div>
-            </div>
+                <!-- Hidden table for backwards compat with toggle colunas -->
+                <table class="tabela-dashboard" id="tabelaCarteira" style="display:none;">
+                    <thead><tr><th>Ativo</th><th style="text-align:right;">Qtd</th><th class="col-extra" style="text-align:right;">Preço Médio</th><th class="col-extra" style="text-align:right;">Preço Atual</th><th style="text-align:right;">Saldo Atual</th><th class="col-extra" style="text-align:right;">Projeção</th><th style="text-align:right;">Lucro/Prej (%)</th></tr></thead>
+                    <tbody id="tabelaCarteiraCorpo"></tbody>
+                </table>
             </div>
 
+            <!-- SUB-ABA: OPERAÇÕES (Timeline) -->
             <div id="subAbaOperacoes" style="display:none;">
-                <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-                    <input type="text" id="filtroOperacoesTicker" placeholder="Filtrar por ticker..." style="flex:1; min-width:200px; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);" oninput="renderizarOperacoes()">
-                    <select id="filtroOperacoesTipo" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
-                        <option value="">Todos os tipos</option>
-                        <option value="compra">Apenas compras</option>
-                        <option value="venda">Apenas vendas</option>
-                    </select>
-                    <select id="filtroOperacoesCategoria" onchange="renderizarOperacoes()" style="padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:13px; font-family:'Figtree',sans-serif; background:var(--cor-branco); color:var(--cor-texto-principal);">
-                        <option value="">Todas as categorias</option>
-                        <option value="renda_variavel">Renda Variável</option>
-                        <option value="renda_fixa">Renda Fixa</option>
-                        <option value="previdencia">Previdência</option>
-                        <option value="reserva_emergencia">Reserva de Emergência</option>
-                    </select>
+                <div class="ops-toolbar" id="opsToolbar">
+                    <button class="ops-chip ativo" data-ops-filtro="todos" onclick="filtrarOpsTimeline('todos', this)">Tudo</button>
+                    <button class="ops-chip" data-ops-filtro="compra" onclick="filtrarOpsTimeline('compra', this)"><i class="ph-bold ph-trend-up"></i> Compras</button>
+                    <button class="ops-chip ops-chip-danger" data-ops-filtro="venda" onclick="filtrarOpsTimeline('venda', this)"><i class="ph-bold ph-trend-down"></i> Vendas</button>
+                    <div class="ops-search-wrap">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" class="ops-search" id="filtroOperacoesTicker" placeholder="Buscar ticker..." oninput="renderizarOperacoes()">
+                    </div>
+                    <button class="btn-secundario" onclick="exportarOperacoesCSV()" title="Exportar operações como CSV"><i class="ph ph-file-csv"></i> CSV</button>
                 </div>
-
+                <div class="ops-summary" id="opsSummary" style="display:none;"></div>
                 <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-x: auto; max-height: 540px;">
-                        <table class="tabela-dashboard">
-                            <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                <tr>
-                                    <th>Data</th>
-                                    <th>Tipo</th>
-                                    <th>Ativo</th>
-                                    <th>Categoria</th>
-                                    <th>Corretora</th>
-                                    <th style="text-align: right;">Qtd</th>
-                                    <th style="text-align: right;">Preço</th>
-                                    <th style="text-align: right;">Total</th>
-                                    <th style="text-align: center;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tabelaOperacoesCorpo"></tbody>
-                        </table>
-                        <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                            <div class="empty-state">
-                                <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
-                                <div class="empty-state-titulo">Nenhuma operação encontrada</div>
-                                <div class="empty-state-sub">Registre uma operação na aba Carteira ou ajuste os filtros.</div>
-                            </div>
+                    <div style="overflow-y: auto; max-height: 540px;" id="timelineContainer">
+                        <!-- Timeline rendered by JS -->
+                    </div>
+                    <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                            <div class="empty-state-titulo">Nenhuma operação encontrada</div>
+                            <div class="empty-state-sub">Registre uma operação ou ajuste os filtros.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- SUB-ABA: DIVIDENDOS (Enhanced) -->
             <div id="subAbaDividendos" style="display:none;">
                 <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
                     <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
@@ -1534,16 +1775,17 @@
                 </div>
 
                 <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento, com base no seu histórico de operações.</small>
+                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento.</small>
                     <label style="display:flex; align-items:center; gap:6px; font-size: 13px; color: var(--cor-texto-secundario); cursor:pointer;">
                         <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;">
                         Mostrar posições encerradas
                     </label>
                 </div>
 
-                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 24px;">
+                <!-- KPIs -->
+                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 20px;">
                     <div class="card-destaque">
-                        <h3><i class="ph ph-coins"></i> Recebido total <small style="font-weight:400; color: var(--cor-texto-mutado);">(desde a 1ª compra)</small></h3>
+                        <h3><i class="ph ph-coins"></i> Recebido total</h3>
                         <div class="valor" id="dividendosTotal">R$ 0,00</div>
                     </div>
                     <div class="card-destaque">
@@ -1560,6 +1802,27 @@
                     </div>
                 </div>
 
+                <!-- Bar chart + Ranking -->
+                <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div class="div-chart-card">
+                        <div class="div-chart-title"><i class="ph ph-chart-bar"></i> Recebimentos por mês</div>
+                        <div style="position: relative; height: 200px;">
+                            <canvas id="graficoDividendosMensal"></canvas>
+                        </div>
+                        <div id="msgDivChartVazio" style="display:none; padding:30px; text-align:center; color: var(--cor-texto-mutado); font-size:12px;">
+                            <i class="ph ph-chart-bar" style="font-size:24px; opacity:0.4; display:block; margin-bottom:6px;"></i>
+                            Registre ativos pagadores de proventos para ver o gráfico.
+                        </div>
+                    </div>
+                    <div class="div-chart-card">
+                        <div class="div-chart-title"><i class="ph ph-trophy"></i> Top pagadores (12m)</div>
+                        <div class="div-ranking" id="divRanking">
+                            <div style="padding:20px; text-align:center; color:var(--cor-texto-mutado); font-size:12px;">Sem dados</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tables: Por ativo + Pagamentos recentes -->
                 <div class="grid-2">
                     <div class="card-container" style="padding: 0; overflow: hidden;">
                         <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
@@ -2359,6 +2622,7 @@
         }
 
         // Sub-abas dentro de "Meus Investimentos"
+        let filtroOpsTimeline = 'todos';
         function mudarSubAbaPatrimonio(qual) {
             const subs = {
                 carteira: document.getElementById('subAbaCarteira'),
@@ -2372,17 +2636,60 @@
             };
             const btnRefresh = document.getElementById('btnAtualizarDividendos');
             const filtros = document.getElementById('filtrosCategoria');
-            const btnCols = document.getElementById('btnToggleColunas');
             Object.keys(subs).forEach(k => {
                 subs[k].style.display = (k === qual) ? 'block' : 'none';
                 btns[k].classList.toggle('ativo', k === qual);
             });
-            // Filtros de categoria + toggle de colunas só fazem sentido na sub-aba Carteira
             if(filtros) filtros.style.display = (qual === 'carteira') ? 'flex' : 'none';
-            if(btnCols) btnCols.style.display = (qual === 'carteira') ? 'inline-flex' : 'none';
             btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
             if(qual === 'dividendos') carregarDividendos();
             if(qual === 'operacoes') renderizarOperacoes();
+            atualizarMiniStats(qual);
+        }
+
+        function filtrarOpsTimeline(tipo, btn) {
+            filtroOpsTimeline = tipo;
+            document.querySelectorAll('#opsToolbar .ops-chip').forEach(c => c.classList.remove('ativo'));
+            if(btn) btn.classList.add('ativo');
+            renderizarOperacoes();
+        }
+
+        function atualizarMiniStats(aba) {
+            const el = document.getElementById('subtabMiniStat');
+            if(!el) return;
+            const carteira = obterResumoCarteira();
+            const totalAtivos = Object.keys(carteira).filter(t => carteira[t].qtdTotal > 0).length;
+            const totalOps = historicoCompras.length;
+
+            if(aba === 'carteira') {
+                let saldoTotal = 0;
+                for(const t in carteira) {
+                    if(carteira[t].qtdTotal <= 0) continue;
+                    const am = mockAtivosMercado.find(a => a.ticker === t);
+                    const p = am ? am.preco_atual : carteira[t].precoMedio;
+                    saldoTotal += carteira[t].qtdTotal * p;
+                }
+                el.innerHTML = `<i class="ph ph-briefcase" style="font-size:13px;"></i> ${totalAtivos} ativo${totalAtivos !== 1 ? 's' : ''} · <span class="valor-mascarado" style="font-family:'DM Mono',monospace;">${formatarMoeda(saldoTotal)}</span>`;
+            } else if(aba === 'operacoes') {
+                el.innerHTML = `<i class="ph ph-list-bullets" style="font-size:13px;"></i> ${totalOps} operaç${totalOps !== 1 ? 'ões' : 'ão'}`;
+            } else if(aba === 'dividendos') {
+                el.innerHTML = `<i class="ph ph-coins" style="font-size:13px;"></i> Proventos 12m`;
+            }
+        }
+
+        function exportarOperacoesCSV() {
+            if(historicoCompras.length === 0) return mostrarToast('Nenhuma operação para exportar.', 'aviso');
+            const headers = ['Data','Tipo','Ticker','Categoria','Corretora','Qtd','Preço','Total'];
+            const rows = historicoCompras.map(op => {
+                const total = (op.quantidade || 1) * (op.preco || 0);
+                return [op.data_op || '', op.tipo || 'compra', op.ticker, op.categoria || '', op.corretora || '', op.quantidade || 1, op.preco || 0, total.toFixed(2)];
+            });
+            let csv = headers.join(';') + '\n' + rows.map(r => r.join(';')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = `operacoes_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+            URL.revokeObjectURL(url);
+            mostrarToast('Operações exportadas!', 'sucesso');
         }
 
         function toggleColunasExtras() {
@@ -3251,55 +3558,112 @@
             fecharDrawerOperacao();
         }
 
-        // --- LISTA DE OPERAÇÕES (sub-aba) ---
+        // --- LISTA DE OPERAÇÕES (sub-aba) — TIMELINE ---
         function renderizarOperacoes() {
-            const tbody = document.getElementById('tabelaOperacoesCorpo');
+            const container = document.getElementById('timelineContainer');
             const msgVazia = document.getElementById('operacoesVaziaMsg');
-            if(!tbody) return;
+            const summaryEl = document.getElementById('opsSummary');
+            if(!container) return;
 
             const filtroTicker = (document.getElementById('filtroOperacoesTicker')?.value || '').toUpperCase();
-            const filtroTipo = document.getElementById('filtroOperacoesTipo')?.value || '';
-            const filtroCat = document.getElementById('filtroOperacoesCategoria')?.value || '';
 
             const ops = [...historicoCompras]
                 .filter(op => !filtroTicker || (op.ticker || '').includes(filtroTicker))
-                .filter(op => !filtroTipo || (op.tipo || 'compra') === filtroTipo)
-                .filter(op => !filtroCat || op.categoria === filtroCat)
+                .filter(op => {
+                    if(filtroOpsTimeline === 'todos') return true;
+                    return (op.tipo || 'compra') === filtroOpsTimeline;
+                })
                 .sort((a,b) => new Date(b.data_op || 0) - new Date(a.data_op || 0));
 
             if(ops.length === 0) {
-                tbody.innerHTML = "";
+                container.innerHTML = "";
                 msgVazia.style.display = 'block';
+                if(summaryEl) summaryEl.style.display = 'none';
                 return;
             }
             msgVazia.style.display = 'none';
 
-            tbody.innerHTML = ops.map(op => {
+            // Summary stats
+            const totalCompras = ops.filter(o => (o.tipo || 'compra') === 'compra').length;
+            const totalVendas = ops.filter(o => o.tipo === 'venda').length;
+            const valorCompras = ops.filter(o => (o.tipo || 'compra') === 'compra').reduce((s, o) => s + (o.quantidade || 1) * (o.preco_op || o.preco_pago || 0), 0);
+            const valorVendas = ops.filter(o => o.tipo === 'venda').reduce((s, o) => s + (o.quantidade || 1) * (o.preco_op || o.preco_pago || 0), 0);
+            if(summaryEl) {
+                summaryEl.style.display = 'flex';
+                summaryEl.innerHTML = `
+                    <span><i class="ph-bold ph-trend-up" style="color:var(--cor-primaria);"></i> ${totalCompras} compra${totalCompras !== 1 ? 's' : ''} · <strong class="valor-mascarado">${formatarMoeda(valorCompras)}</strong></span>
+                    ${totalVendas > 0 ? `<span><i class="ph-bold ph-trend-down" style="color:var(--cor-erro);"></i> ${totalVendas} venda${totalVendas !== 1 ? 's' : ''} · <strong class="valor-mascarado">${formatarMoeda(valorVendas)}</strong></span>` : ''}
+                    <span style="margin-left:auto;color:var(--cor-texto-mutado);">${ops.length} operaç${ops.length !== 1 ? 'ões' : 'ão'}</span>`;
+            }
+
+            // Group by date label
+            const hoje = new Date(); const ontem = new Date(hoje); ontem.setDate(ontem.getDate() - 1);
+            const hojeStr = hoje.toISOString().slice(0,10);
+            const ontemStr = ontem.toISOString().slice(0,10);
+
+            let html = '';
+            let lastGroup = '';
+
+            ops.forEach(op => {
                 const tipo = op.tipo || 'compra';
-                const tipoLabel = tipo === 'venda'
-                    ? `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro);"><i class="ph-bold ph-trend-down"></i> Venda</span>`
-                    : `<span style="display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; font-size:11px; font-weight:600; background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria);"><i class="ph-bold ph-trend-up"></i> Compra</span>`;
-                const dataLbl = op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—';
-                const catLbl = ROTULOS_CATEGORIA[op.categoria] || '—';
-                const corretoraLbl = op.corretora || '—';
-                const total = op.quantidade * (op.preco_op || op.preco_pago || 0);
+                const dataStr = (op.data_op || '').slice(0,10);
+                const dataObj = dataStr ? new Date(dataStr + 'T12:00:00') : null;
+
+                // Date group header
+                let groupLabel = '';
+                if(dataStr === hojeStr) groupLabel = 'Hoje';
+                else if(dataStr === ontemStr) groupLabel = 'Ontem';
+                else if(dataObj) groupLabel = dataObj.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+                else groupLabel = 'Sem data';
+
+                if(groupLabel !== lastGroup) {
+                    html += `<div class="timeline-date-header">${groupLabel}</div>`;
+                    lastGroup = groupLabel;
+                }
+
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === op.ticker);
+                const nomeAtivo = ativoMercado ? ativoMercado.nome : '';
+                const total = (op.quantidade || 1) * (op.preco_op || op.preco_pago || 0);
                 const semQtd = op.categoria === 'renda_fixa' || op.categoria === 'reserva_emergencia' || op.categoria === 'previdencia';
-                const qtdCelula = semQtd ? '—' : formatarQtd(op.quantidade);
-                return `<tr>
-                    <td style="font-family:'DM Mono', monospace;">${dataLbl}</td>
-                    <td>${tipoLabel}</td>
-                    <td style="font-weight:600;">${op.ticker}</td>
-                    <td>${catLbl}</td>
-                    <td>${corretoraLbl}</td>
-                    <td style="text-align:right; font-family:'DM Mono', monospace;">${qtdCelula}</td>
-                    <td style="text-align:right; font-family:'DM Mono', monospace;">${formatarMoeda(op.preco_op || op.preco_pago || 0)}</td>
-                    <td style="text-align:right; font-weight:600; font-family:'DM Mono', monospace;">${formatarMoeda(total)}</td>
-                    <td style="text-align:center; white-space:nowrap;">
-                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px;" title="Editar" onclick="editarOperacao(${op.id})"><i class="ph ph-pencil-simple"></i></button>
-                        <button class="btn-secundario" style="padding:4px 8px; font-size:12px; color: var(--cor-erro);" title="Excluir" onclick="excluirOperacao(${op.id})"><i class="ph ph-trash"></i></button>
-                    </td>
-                </tr>`;
-            }).join('');
+                const qtdLabel = semQtd ? '' : `${formatarQtd(op.quantidade)} un`;
+                const precoLabel = formatarMoeda(op.preco_op || op.preco_pago || 0);
+                const catLabel = ROTULOS_CATEGORIA[op.categoria] || '';
+                const corretoraLabel = op.corretora ? `· ${op.corretora}` : '';
+                const tipoIcon = tipo === 'venda' ? 'ph-bold ph-trend-down' : 'ph-bold ph-trend-up';
+                const tipoWord = tipo === 'venda' ? 'Venda' : 'Compra';
+
+                html += `<div class="timeline-item">
+                    <div class="timeline-accent ${tipo}"></div>
+                    <div class="timeline-icon ${tipo}"><i class="${tipoIcon}"></i></div>
+                    <div class="timeline-body">
+                        <div class="timeline-line1">
+                            <span class="tl-tipo">${tipoWord}</span>
+                            <span class="tl-ticker">${op.ticker}</span>
+                            ${nomeAtivo ? `<span class="tl-nome">${nomeAtivo}</span>` : ''}
+                        </div>
+                        <div class="timeline-line2">
+                            ${qtdLabel ? `<span>${qtdLabel} × ${precoLabel}</span>` : `<span>${precoLabel}</span>`}
+                            ${catLabel ? `<span>${catLabel}</span>` : ''}
+                            ${corretoraLabel ? `<span>${corretoraLabel}</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="timeline-total">
+                        <span class="valor-mascarado">${formatarMoeda(total)}</span>
+                    </div>
+                    <div class="timeline-actions">
+                        <button class="rich-overflow" onclick="editarOperacao(${op.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="rich-overflow" onclick="excluirOperacao(${op.id})" title="Excluir" style="color:var(--cor-erro);"><i class="ph ph-trash"></i></button>
+                    </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleRichExpand(ticker) {
+            const el = document.getElementById('expand_' + ticker);
+            if(!el) return;
+            el.classList.toggle('aberto');
         }
 
         function editarOperacao(id) {
@@ -4200,63 +4564,135 @@
 
         function atualizarCarteiraAtivos() {
             const tbody = document.getElementById('tabelaCarteiraCorpo'); const msgVazia = document.getElementById('carteiraVaziaMsg'); tbody.innerHTML = "";
+            const richContainer = document.getElementById('richRowsContainer');
             const datalistCarteira = document.getElementById('listaAtivosCarteira'); datalistCarteira.innerHTML = "";
             let carteiraConsolidada = obterResumoCarteira(); let totalAtivosValidos = 0; let totalGeralInvestido = 0; let saldoGeralAtual = 0;
 
-            let linhasRenderizadas = 0;
+            // First pass: compute totals
+            const ativos = [];
             for (let ticker in carteiraConsolidada) {
                 let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue;
                 totalAtivosValidos++;
                 let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
-
                 const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
-
                 let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
-                // Previdência: aplica juros compostos mensais sobre cada aporte
                 if(ativo.categoria === 'previdencia') {
                     saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
                     precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
                 }
                 let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
                 totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
-                let corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; let sinalLucro = lucroR$ >= 0 ? '+' : '';
-
-                // Aplica filtro por categoria (apenas para o que renderiza na tabela)
                 const categoriaEfetiva = inferirCategoria(ticker, ativo, ativoMercado);
-                if(filtroCategoriaAtivo && categoriaEfetiva !== filtroCategoriaAtivo) continue;
-                linhasRenderizadas++;
-
-                let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
-                let corretoraLbl = ativo.corretora || '—';
-                let extraRF = '';
-                let projecaoCelula = '<span style="color: var(--cor-texto-mutado);">—</span>';
-                const ehRF = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia';
-                if(ehRF) {
-                    const partes = [];
-                    if(ativo.vencimento) partes.push(`Venc. ${new Date(ativo.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`);
-                    if(ativo.rentabilidade) partes.push(ativo.rentabilidade);
-                    if(partes.length) extraRF = `<span style="display:block; font-weight: 400; font-size: 10.5px; color: var(--cor-texto-mutado);">${partes.join(' · ')}</span>`;
-                    // Projeção: usa a primeira compra de RF deste ticker como data de início
-                    const primeiraCompra = historicoCompras.find(op => op.ticker === ticker && op.tipo !== 'venda' && op.data_op);
-                    if(primeiraCompra && ativo.vencimento && ativo.rentabilidade) {
-                        const dataIni = primeiraCompra.data_op.slice(0,10);
-                        const proj = calcularProjecaoRF(ativo.valorTotalInvestido, dataIni, ativo.vencimento, ativo.rentabilidade);
-                        if(proj) {
-                            const ganho = proj.rendimentoLiquido;
-                            projecaoCelula = `<span style="font-weight: 600; color: var(--cor-primaria);">${formatarMoeda(proj.valorFinalLiquido)}</span><span style="display:block; font-size: 11px; color: var(--cor-texto-mutado);">+${formatarMoeda(ganho)} líquido</span>`;
-                        }
-                    }
-                }
-                const corretoraTag = ativo.corretora ? ` · ${ativo.corretora}` : '';
-                const ativoCell = `
-                    <div style="font-weight: 600; color: var(--cor-texto-principal);">${ticker}</div>
-                    <div style="font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${nomeAtivo}</div>
-                    <div style="font-weight: 500; font-size: 10.5px; color: var(--cor-texto-mutado); margin-top:3px;">${categoriaLbl}${corretoraTag}</div>
-                    ${extraRF}`;
-                const semQtdAtivo = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia' || ativo.categoria === 'previdencia';
-                const qtdCell = semQtdAtivo ? '—' : formatarQtd(ativo.qtdTotal);
-                tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align: right; font-family: 'DM Mono', monospace;">${qtdCell}</td><td class="col-extra" style="text-align: right; color: var(--cor-texto-secundario); font-family: 'DM Mono', monospace;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(precoAtual)}</td><td style="text-align: right; font-weight: 600; font-family: 'DM Mono', monospace;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align: right;">${projecaoCelula}</td><td style="text-align: right; font-weight: 600; color: ${corLucro}; font-family: 'DM Mono', monospace;">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                ativos.push({ ticker, ativo, ativoMercado, precoMedio, precoAtual, nomeAtivo, saldoAtualAtivo, lucroR$, lucroPerc, categoriaEfetiva });
             }
+
+            // Rich rows: group by category
+            const paleta = paletaCarteira();
+            const ORDEM_CAT = ['renda_variavel','renda_fixa','previdencia','reserva_emergencia'];
+            const ROTULOS_CAT_INLINE = { renda_variavel: 'Renda Variável', renda_fixa: 'Renda Fixa', previdencia: 'Previdência', reserva_emergencia: 'Reserva de Emergência' };
+            const CORES_CAT = { renda_variavel: '#10b981', renda_fixa: '#6366f1', previdencia: '#f59e0b', reserva_emergencia: '#3b82f6' };
+
+            let richHTML = '';
+            let linhasRenderizadas = 0;
+
+            ORDEM_CAT.forEach(cat => {
+                const grupo = ativos.filter(a => {
+                    if(filtroCategoriaAtivo && a.categoriaEfetiva !== filtroCategoriaAtivo) return false;
+                    return a.categoriaEfetiva === cat;
+                });
+                if(grupo.length === 0) return;
+
+                const subtotal = grupo.reduce((s, a) => s + a.saldoAtualAtivo, 0);
+                const subInvestido = grupo.reduce((s, a) => s + a.ativo.valorTotalInvestido, 0);
+                const subLucro = subtotal - subInvestido;
+                const corCat = CORES_CAT[cat] || '#64748b';
+                const sinalSub = subLucro >= 0 ? '+' : '';
+                const corSub = subLucro >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+
+                richHTML += `<div class="rich-category-header">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div class="cat-accent" style="background:${corCat};"></div>
+                        <span class="cat-label">${ROTULOS_CAT_INLINE[cat] || cat}</span>
+                        <span style="font-size:11px;color:var(--cor-texto-mutado);font-weight:500;">${grupo.length} ativo${grupo.length!==1?'s':''}</span>
+                    </div>
+                    <div class="cat-stats">
+                        <span class="valor-mascarado">${formatarMoeda(subtotal)}</span>
+                        <span style="color:${corSub};">${sinalSub}${formatarMoeda(subLucro)}</span>
+                    </div>
+                </div>`;
+
+                grupo.forEach(({ ticker, ativo, ativoMercado, precoMedio, precoAtual, nomeAtivo, saldoAtualAtivo, lucroR$, lucroPerc, categoriaEfetiva }) => {
+                    linhasRenderizadas++;
+                    const corLucro = lucroR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+                    const sinalLucro = lucroR$ >= 0 ? '+' : '';
+                    const allocPerc = saldoGeralAtual > 0 ? (saldoAtualAtivo / saldoGeralAtual * 100) : 0;
+                    const semQtdAtivo = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia' || ativo.categoria === 'previdencia';
+                    const corretoraTag = ativo.corretora ? ` · ${ativo.corretora}` : '';
+                    let categoriaLbl = ROTULOS_CATEGORIA[ativo.categoria] || (ativoMercado && ativoMercado.tipo === 'Renda Fixa' ? 'Renda Fixa' : 'Renda Variável');
+
+                    // Determine avatar color from subcategory
+                    const subcat = subcategoriaInferidaDoTicker(ticker);
+                    const avatarColors = { acoes:'#10b981', fiis:'#059669', bdrs:'#14b8a6', etfs:'#0d9488', cripto:'#f59e0b' };
+                    const avatarBg = avatarColors[subcat] || CORES_CAT[categoriaEfetiva] || '#64748b';
+                    const initial = ticker.substring(0, 2);
+
+                    // Extra info for RF
+                    let metaExtra = '';
+                    if(ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') {
+                        const partes = [];
+                        if(ativo.vencimento) partes.push(`Venc. ${new Date(ativo.vencimento + 'T12:00:00').toLocaleDateString('pt-BR')}`);
+                        if(ativo.rentabilidade) partes.push(ativo.rentabilidade);
+                        if(partes.length) metaExtra = partes.join(' · ');
+                    }
+
+                    richHTML += `<div class="rich-row" onclick="toggleRichExpand('${ticker}')">
+                        <div class="rich-avatar" style="background:${avatarBg};">${initial}</div>
+                        <div class="rich-row-info">
+                            <div class="rich-ticker">${ticker}</div>
+                            <div class="rich-nome">${nomeAtivo}</div>
+                            <div class="rich-meta">
+                                ${!semQtdAtivo ? `<span>${formatarQtd(ativo.qtdTotal)} un</span> ·` : ''}
+                                <span>PM ${formatarMoeda(precoMedio)}</span>
+                                ${metaExtra ? `· <span>${metaExtra}</span>` : ''}
+                                <span class="rich-alloc-bar"><span class="rich-alloc-fill" style="width:${Math.min(allocPerc, 100)}%;background:${avatarBg};"></span></span>
+                                <span>${allocPerc.toFixed(1)}%</span>
+                            </div>
+                        </div>
+                        <div class="rich-saldo"><span class="valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</span></div>
+                        <div class="rich-sparkline" id="spark_${ticker}"></div>
+                        <div class="rich-lucro">
+                            <span class="rich-lucro-rs" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)}</span>
+                            <span class="rich-lucro-pct" style="color:${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</span>
+                        </div>
+                        <div style="display:flex;align-items:center;justify-content:flex-end;">
+                            <button class="rich-overflow" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();" title="Ver operações">
+                                <i class="ph ph-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rich-expand" id="expand_${ticker}">
+                        <div class="rich-expand-grid">
+                            <div class="rich-expand-stat"><div class="re-label">Investido</div><div class="re-value valor-mascarado">${formatarMoeda(ativo.valorTotalInvestido)}</div></div>
+                            <div class="rich-expand-stat"><div class="re-label">Preço Atual</div><div class="re-value">${formatarMoeda(precoAtual)}</div></div>
+                            <div class="rich-expand-stat"><div class="re-label">Saldo</div><div class="re-value valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</div></div>
+                            <div class="rich-expand-stat"><div class="re-label">Resultado</div><div class="re-value" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)} (${sinalLucro}${lucroPerc.toFixed(2)}%)</div></div>
+                            ${corretoraTag ? `<div class="rich-expand-stat"><div class="re-label">Corretora</div><div class="re-value">${ativo.corretora}</div></div>` : ''}
+                        </div>
+                        <div class="rich-expand-actions">
+                            <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();"><i class="ph ph-list-bullets"></i> Operações</button>
+                            <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('dividendos');"><i class="ph ph-coins"></i> Dividendos</button>
+                        </div>
+                    </div>`;
+
+                    // Also populate hidden legacy table
+                    const ativoCell = `<div style="font-weight:600;">${ticker}</div><div style="font-size:11px;color:var(--cor-texto-secundario);">${nomeAtivo}</div>`;
+                    const qtdCell = semQtdAtivo ? '—' : formatarQtd(ativo.qtdTotal);
+                    tbody.innerHTML += `<tr><td>${ativoCell}</td><td style="text-align:right;font-family:'DM Mono',monospace;">${qtdCell}</td><td class="col-extra" style="text-align:right;">${formatarMoeda(precoMedio)}</td><td class="col-extra" style="text-align:right;">${formatarMoeda(precoAtual)}</td><td style="text-align:right;">${formatarMoeda(saldoAtualAtivo)}</td><td class="col-extra" style="text-align:right;">—</td><td style="text-align:right;color:${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</td></tr>`;
+                });
+            });
+
+            if(richContainer) richContainer.innerHTML = richHTML || '';
+            atualizarMiniStats('carteira');
 
             if(totalAtivosValidos === 0) {
                 msgVazia.style.display = "block";
@@ -4581,6 +5017,99 @@
             // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
             renderizarGraficoEvolucao();
             atualizarProximoEvento(carteira);
+            // New: render bar chart and ranking
+            renderizarDividendosMensal(todosPagamentos);
+            renderizarRankingDividendos(linhasAtivos);
+        }
+
+        let chartDivMensal = null;
+        function renderizarDividendosMensal(todosPagamentos) {
+            const canvas = document.getElementById('graficoDividendosMensal');
+            const msgVazio = document.getElementById('msgDivChartVazio');
+            if(!canvas) return;
+
+            const pag12m = todosPagamentos.filter(p => {
+                const ms = new Date(p.data).getTime();
+                return ms >= Date.now() - 365*24*60*60*1000;
+            });
+
+            if(pag12m.length === 0) {
+                if(chartDivMensal) { chartDivMensal.destroy(); chartDivMensal = null; }
+                canvas.style.display = 'none';
+                if(msgVazio) msgVazio.style.display = 'block';
+                return;
+            }
+            canvas.style.display = 'block';
+            if(msgVazio) msgVazio.style.display = 'none';
+
+            // Aggregate by month
+            const meses = {};
+            pag12m.forEach(p => {
+                const d = new Date(p.data);
+                const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                if(!meses[chave]) meses[chave] = 0;
+                meses[chave] += p.total;
+            });
+
+            // Last 12 months labels
+            const labels = [];
+            const data = [];
+            const agora = new Date();
+            for(let i = 11; i >= 0; i--) {
+                const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+                const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                labels.push(d.toLocaleDateString('pt-BR', { month: 'short' }).replace('.',''));
+                data.push(meses[chave] || 0);
+            }
+
+            const corPrimaria = getToken('--cor-primaria');
+            if(chartDivMensal) chartDivMensal.destroy();
+            chartDivMensal = new Chart(canvas.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: data.map(v => v > 0 ? corPrimaria : 'transparent'),
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barPercentage: 0.65,
+                        categoryPercentage: 0.7
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: { display: false },
+                        tooltip: { callbacks: { label: ctx => formatarMoeda(ctx.parsed.y) } }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10, family: "'Figtree', sans-serif" } } },
+                        y: { border: { display: false }, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { font: { size: 10 }, callback: v => 'R$ ' + (v >= 1000 ? (v/1000).toFixed(1)+'k' : v.toFixed(0)) } }
+                    }
+                }
+            });
+        }
+
+        function renderizarRankingDividendos(linhasAtivos) {
+            const container = document.getElementById('divRanking');
+            if(!container) return;
+            const top = linhasAtivos.filter(l => l.recebido12m > 0).sort((a,b) => b.recebido12m - a.recebido12m).slice(0, 6);
+            if(top.length === 0) {
+                container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--cor-texto-mutado);font-size:12px;">Sem dados de proventos nos últimos 12 meses</div>';
+                return;
+            }
+            const medalhas = ['🥇','🥈','🥉'];
+            container.innerHTML = top.map((l, i) => `
+                <div class="div-rank-item">
+                    <span class="div-rank-pos">${medalhas[i] || (i+1)}</span>
+                    <div style="flex:1;min-width:0;">
+                        <span class="div-rank-ticker">${l.ticker}</span>
+                        <div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:1px;">${l.nomeAtivo}</div>
+                    </div>
+                    <span class="div-rank-valor valor-mascarado">${formatarMoeda(l.recebido12m)}</span>
+                </div>`).join('');
         }
 
         // --- ABA 2: CONTROLE FINANCEIRO E DRE ---
