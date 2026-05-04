@@ -1850,15 +1850,23 @@
                     </div>
 
                     <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
+                        <h3 style="padding: 18px 20px 0; font-size: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</span>
+                            <span style="font-size:11px; color:var(--cor-texto-mutado); font-weight:400;">· agregados por mês</span>
+                            <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:600;">
+                                <i class="ph ph-funnel" style="font-size:11px;"></i>
+                                <span id="filtroPagamentosLabel"></span>
+                                <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:13px; line-height:1;" title="Limpar filtro">×</button>
+                            </span>
+                        </h3>
                         <div style="overflow-x: auto; max-height: 460px;">
                             <table class="tabela-dashboard">
                                 <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
                                     <tr>
-                                        <th>Data</th>
+                                        <th>Mês</th>
                                         <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd na data</th>
-                                        <th style="text-align: right;">Valor / cota</th>
+                                        <th style="text-align: right;">Qtd</th>
+                                        <th style="text-align: right;">R$ / cota</th>
                                         <th style="text-align: right;">Total recebido</th>
                                     </tr>
                                 </thead>
@@ -4408,6 +4416,58 @@
             return grupos;
         }
 
+        // Reconstrói a carteira como ela estava no instante `dataLimiteMs`, considerando
+        // apenas operações com `data_op` <= esse instante. Usado para variações por
+        // categoria sem depender de snapshots persistidos (que ficam stale ao excluir ops).
+        function consolidarCarteiraNaData(dataLimiteMs) {
+            const consolidado = {};
+            historicoCompras.forEach(op => {
+                if(!op.data_op) return;
+                if(new Date(op.data_op).getTime() > dataLimiteMs) return;
+                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, subcategoria: null };
+                const ativo = consolidado[op.ticker];
+                const tipo = op.tipo || 'compra';
+                const precoDaOp = op.preco_op || op.preco_pago || 0;
+                if(tipo === 'compra') {
+                    ativo.qtdTotal += op.quantidade;
+                    ativo.valorTotalInvestido += op.quantidade * precoDaOp;
+                    ativo.precoMedio = ativo.qtdTotal > 0 ? ativo.valorTotalInvestido / ativo.qtdTotal : 0;
+                    if(op.categoria) ativo.categoria = op.categoria;
+                    if(op.subcategoria) ativo.subcategoria = op.subcategoria;
+                } else if(tipo === 'venda') {
+                    ativo.qtdTotal -= op.quantidade;
+                    ativo.valorTotalInvestido -= op.quantidade * ativo.precoMedio;
+                }
+            });
+            return consolidado;
+        }
+
+        function agruparCategoriasNaData(dataLimiteMs) {
+            const consolidado = consolidarCarteiraNaData(dataLimiteMs);
+            const grupos = {};
+            for(const ticker in consolidado) {
+                const ativo = consolidado[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const cat = inferirCategoria(ticker, ativo, ativoMercado);
+                let chave;
+                if(cat === 'renda_variavel') chave = subcategoriaEfetiva(ticker, ativo, ativoMercado);
+                else chave = cat;
+                if(!grupos[chave]) grupos[chave] = { investido: 0, saldo: 0, ativos: [] };
+                let saldo;
+                if(cat === 'previdencia') {
+                    saldo = calcularSaldoPrevidencia(ticker, dataLimiteMs);
+                } else {
+                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                    saldo = ativo.qtdTotal * precoAtual;
+                }
+                grupos[chave].investido += ativo.valorTotalInvestido;
+                grupos[chave].saldo += saldo;
+                grupos[chave].ativos.push(ticker);
+            }
+            return grupos;
+        }
+
         function renderizarGraficoDistribuicao(carteiraConsolidada) {
             const canvas = document.getElementById('graficoDistribuicaoCarteira');
             const msgVazia = document.getElementById('msgDistribuicaoVazia');
@@ -4520,11 +4580,11 @@
             const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
             if(lblMes) lblMes.innerText = `· variação em ${nomeMes}`;
 
-            const snaps = carregarSnapshotsCarteira();
-            const chaveAtual = chaveMesAtual();
-            // Pega o snapshot mais recente anterior ao mês atual
-            const chavesAnteriores = Object.keys(snaps).filter(k => k < chaveAtual).sort();
-            const snapAnterior = chavesAnteriores.length ? snaps[chavesAnteriores[chavesAnteriores.length - 1]] : null;
+            // Saldo do mês anterior reconstruído sob demanda a partir de historicoCompras
+            // (não usa snapshots persistidos — esses ficam stale quando o usuário exclui
+            // uma operação, fazendo a variação parecer "venda").
+            const fimMesPassadoMs = new Date(hoje.getFullYear(), hoje.getMonth(), 0, 23, 59, 59).getTime();
+            const gruposAnteriores = agruparCategoriasNaData(fimMesPassadoMs);
 
             // Ordem fixa para apresentação consistente
             const ordem = ['acoes','fiis','bdrs','etfs','cripto','renda_fixa','previdencia','reserva_emergencia'];
@@ -4534,7 +4594,7 @@
             container.innerHTML = entries.map(([k, v]) => {
                 const cor = paleta[k] || getToken('--cor-texto-mutado');
                 const rotulo = ROTULOS_SUB[k] || k;
-                const saldoAnterior = snapAnterior?.porGrupo?.[k] || 0;
+                const saldoAnterior = gruposAnteriores[k]?.saldo || 0;
                 let variacaoR$ = 0; let variacaoPerc = 0; let labelVariacao = 'Sem histórico';
                 if(saldoAnterior > 0) {
                     variacaoR$ = v.saldo - saldoAnterior;
@@ -4783,6 +4843,67 @@
         let cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
         let cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
 
+        // Pagamentos já agregados por (ticker, mês) — alimentado por carregarDividendos.
+        // Cada item: { ticker, ano, mes, qtdMes, somaValorCota, total, eventos, tsMaisRecente }
+        let pagamentosMensaisAgregados = [];
+        // Filtro de ticker da tabela "Pagamentos recentes" (ativado ao clicar em "Por ativo")
+        let filtroPagamentosTicker = '';
+
+        const MES_LABEL_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+        function alternarFiltroPagamentosTicker(ticker) {
+            filtroPagamentosTicker = (filtroPagamentosTicker === ticker) ? '' : (ticker || '');
+            renderizarTabelaPagamentos();
+            // Realça a linha selecionada na tabela "Por ativo"
+            document.querySelectorAll('#tabelaDividendosCorpo tr[data-ticker]').forEach(tr => {
+                const sel = tr.dataset.ticker === filtroPagamentosTicker;
+                tr.style.background = sel ? 'var(--cor-bg-primaria)' : '';
+            });
+            // Atualiza o chip de filtro ativo
+            const chip = document.getElementById('chipFiltroPagamentos');
+            const lbl = document.getElementById('filtroPagamentosLabel');
+            if(chip && lbl) {
+                if(filtroPagamentosTicker) {
+                    lbl.innerText = filtroPagamentosTicker;
+                    chip.style.display = 'inline-flex';
+                } else {
+                    chip.style.display = 'none';
+                }
+            }
+        }
+
+        function renderizarTabelaPagamentos() {
+            const tbody = document.getElementById('tabelaPagamentosCorpo');
+            const msgVazia = document.getElementById('pagamentosVaziaMsg');
+            if(!tbody) return;
+            const linhas = filtroPagamentosTicker
+                ? pagamentosMensaisAgregados.filter(l => l.ticker === filtroPagamentosTicker)
+                : pagamentosMensaisAgregados;
+            if(linhas.length === 0) {
+                tbody.innerHTML = '';
+                if(msgVazia) {
+                    msgVazia.style.display = 'block';
+                    const p = msgVazia.querySelector('p');
+                    if(p) p.innerText = filtroPagamentosTicker
+                        ? `Sem pagamentos registrados para ${filtroPagamentosTicker}.`
+                        : 'Nenhum pagamento encontrado no histórico.';
+                }
+                return;
+            }
+            if(msgVazia) msgVazia.style.display = 'none';
+            tbody.innerHTML = linhas.slice(0, 100).map(l => {
+                const labelMes = `${MES_LABEL_CURTO[l.mes]}/${l.ano}`;
+                const sufixo = l.eventos > 1 ? ` <span style="font-size:10px;color:var(--cor-texto-mutado);font-weight:400;">(${l.eventos})</span>` : '';
+                return `<tr>
+                    <td style="font-family:'DM Mono', monospace;">${labelMes}${sufixo}</td>
+                    <td style="font-weight: 600;">${l.ticker}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdMes)}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.somaValorCota)}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.total)}</td>
+                </tr>`;
+            }).join('');
+        }
+
         function tickerEhFII(ticker) { return /11$/.test(ticker || ''); }
 
         function tickerElegivelDividendos(ticker, ativoMercado) {
@@ -4916,6 +5037,10 @@
                 msgVaziaAtivos.style.display = 'block';
                 msgVaziaPag.style.display = 'block';
                 cardTotal.innerText = "R$ 0,00"; card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
+                pagamentosMensaisAgregados = [];
+                filtroPagamentosTicker = '';
+                const chip = document.getElementById('chipFiltroPagamentos');
+                if(chip) chip.style.display = 'none';
                 return;
             }
             msgVaziaAtivos.style.display = 'none';
@@ -4987,7 +5112,9 @@
                 tbodyAtivos.innerHTML = linhasAtivos.map(l => {
                     const yocAtivo = l.investido > 0 ? (l.recebidoTotal / l.investido * 100) : 0;
                     const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
-                    return `<tr>
+                    const selecionado = filtroPagamentosTicker === l.ticker;
+                    const bg = selecionado ? 'var(--cor-bg-primaria)' : '';
+                    return `<tr data-ticker="${l.ticker}" onclick="alternarFiltroPagamentosTicker('${l.ticker}')" style="cursor:pointer; background:${bg};" title="Clique para filtrar pagamentos por ${l.ticker}">
                         <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
                         <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
                         <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
@@ -4997,18 +5124,38 @@
                 }).join('');
             }
 
-            todosPagamentos.sort((a,b) => new Date(b.data) - new Date(a.data));
-            if(todosPagamentos.length === 0) {
-                msgVaziaPag.style.display = 'block';
-            } else {
-                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
-                    <td style="font-family:'DM Mono', monospace;">${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
-                    <td style="font-weight: 600;">${p.ticker}</td>
-                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(p.qtd)}</td>
-                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(p.valorCota)}</td>
-                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(p.total)}</td>
-                </tr>`).join('');
+            // Agrega pagamentos por (ticker, ano-mês). JCP mensal + dividendos extras
+            // do mesmo mês viram uma única linha — somando o total e o R$/cota.
+            const agregadoMap = new Map();
+            todosPagamentos.forEach(p => {
+                if(!p.data) return;
+                const d = new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : ''));
+                const chave = `${p.ticker}|${d.getFullYear()}-${d.getMonth()}`;
+                if(!agregadoMap.has(chave)) {
+                    agregadoMap.set(chave, {
+                        ticker: p.ticker, ano: d.getFullYear(), mes: d.getMonth(),
+                        qtdMes: p.qtd, tsMaisRecente: d.getTime(),
+                        somaValorCota: 0, total: 0, eventos: 0
+                    });
+                }
+                const acc = agregadoMap.get(chave);
+                if(d.getTime() > acc.tsMaisRecente) {
+                    acc.tsMaisRecente = d.getTime();
+                    acc.qtdMes = p.qtd;
+                }
+                acc.somaValorCota += p.valorCota;
+                acc.total += p.total;
+                acc.eventos += 1;
+            });
+            pagamentosMensaisAgregados = [...agregadoMap.values()].sort((a,b) => b.tsMaisRecente - a.tsMaisRecente);
+
+            // Limpa filtro caso o ticker filtrado tenha sumido (encerrada removida etc.)
+            if(filtroPagamentosTicker && !pagamentosMensaisAgregados.some(p => p.ticker === filtroPagamentosTicker)) {
+                filtroPagamentosTicker = '';
+                const chip = document.getElementById('chipFiltroPagamentos');
+                if(chip) chip.style.display = 'none';
             }
+            renderizarTabelaPagamentos();
 
             cardTotal.innerText = formatarMoeda(totalGeral);
             card12m.innerText = formatarMoeda(total12m);
