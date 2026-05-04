@@ -4020,11 +4020,19 @@
             const elPer = document.getElementById('resumoDividendosPeriodo');
             if(elPer) elPer.innerText = `(${rotuloPeriodoEvolucao()})`;
             if(!elDiv) return;
-            try {
-                const serie = calcularSerieEvolucao('todos');
-                const totalDiv = serie.dividendos.reduce((a,b) => a + b, 0);
-                elDiv.innerText = formatarMoeda(totalDiv);
-            } catch(_) { elDiv.innerText = formatarMoeda(0); }
+            // Soma os mesmos pagamentos exibidos na tabela "Pagamentos recentes",
+            // recortados pelo período do gráfico (3M/6M/12M/Tudo). Garante consistência
+            // entre o KPI e a tabela.
+            let limiteIniMs = 0;
+            if(periodoEvolucao > 0) {
+                const hoje = new Date();
+                const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - (periodoEvolucao - 1), 1);
+                limiteIniMs = inicio.getTime();
+            }
+            const totalDiv = (pagamentosMensaisAgregados || [])
+                .filter(p => limiteIniMs === 0 || new Date(p.ano, p.mes, 1).getTime() >= limiteIniMs)
+                .reduce((s, p) => s + (p.total || 0), 0);
+            elDiv.innerText = formatarMoeda(totalDiv);
         }
 
         // Acumula posição (qtd) por ticker até o final de cada mês
@@ -4832,9 +4840,14 @@
             if(elDesde) {
                 const datas = historicoCompras.filter(o => o.tipo !== 'venda' && o.data_op).map(o => o.data_op).sort();
                 if(datas.length) {
-                    const d = new Date(datas[0] + 'T12:00:00');
-                    const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
-                    elDesde.innerText = `desde ${lbl}`;
+                    // data_op é ISO completo (toISOString); concatenar 'T12:00:00' produz Invalid Date.
+                    const d = new Date(datas[0]);
+                    if(!isNaN(d.getTime())) {
+                        const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                        elDesde.innerText = `desde ${lbl}`;
+                    } else {
+                        elDesde.innerText = 'desde sua 1ª compra';
+                    }
                 } else {
                     elDesde.innerText = 'desde sua 1ª compra';
                 }
@@ -5177,6 +5190,8 @@
             // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
             renderizarGraficoEvolucao();
             atualizarProximoEvento(carteira);
+            // O chip "Dividendos" no KPI usa pagamentosMensaisAgregados — refresha agora.
+            atualizarChipDividendosPeriodo();
             // New: render bar chart and ranking
             renderizarDividendosMensal(todosPagamentos);
             renderizarRankingDividendos(linhasAtivos);
