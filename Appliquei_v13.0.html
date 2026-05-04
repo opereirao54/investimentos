@@ -1388,6 +1388,207 @@
             color: var(--cor-txt-info);
             border: 1px solid var(--cor-borda-info);
         }
+
+        /* === SONHOS — DREAM PLANNER === */
+        .sonho-card {
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 20px;
+            overflow: hidden;
+            transition: box-shadow var(--transicao), transform var(--transicao);
+        }
+        .sonho-card:hover { box-shadow: var(--shadow-hover); }
+        .sonho-card-top {
+            display: flex; align-items: center; gap: 16px;
+            padding: 20px 24px 16px; position: relative;
+        }
+        .sonho-card-top::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .sonho-card-top.cat-viagem::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+        .sonho-card-top.cat-veiculo::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .sonho-card-top.cat-imovel::before { background: linear-gradient(90deg, #10b981, #059669); }
+        .sonho-card-top.cat-educacao::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
+        .sonho-card-top.cat-casamento::before { background: linear-gradient(90deg, #ec4899, #f43f5e); }
+        .sonho-card-top.cat-reserva::before { background: linear-gradient(90deg, #059669, #14b8a6); }
+        .sonho-card-top.cat-tech::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+        .sonho-card-top.cat-saude::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+        .sonho-card-top.cat-outro::before { background: linear-gradient(90deg, var(--cor-primaria), #7c3aed); }
+
+        .sonho-avatar {
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(124,58,237,0.08));
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+        .sonho-card-info { flex: 1; min-width: 0; }
+        .sonho-card-nome {
+            font-size: 16px; font-weight: 700; color: var(--cor-texto-principal);
+            font-family: 'Syne', sans-serif; letter-spacing: -0.3px; margin-bottom: 3px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .sonho-card-meta {
+            font-size: 12px; color: var(--cor-texto-mutado); display: flex;
+            align-items: center; gap: 8px; flex-wrap: wrap;
+        }
+        .sonho-card-actions { display: flex; gap: 4px; flex-shrink: 0; }
+        .sonho-card-actions button {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--cor-borda);
+            background: var(--cor-superficie); color: var(--cor-texto-mutado); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 15px;
+            transition: 0.15s;
+        }
+        .sonho-card-actions button:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .sonho-card-actions button.btn-delete:hover { border-color: var(--cor-erro); color: var(--cor-erro); background: var(--cor-bg-erro); }
+
+        .sonho-body {
+            display: grid; grid-template-columns: 1fr 260px;
+            gap: 0; border-top: 1px solid var(--cor-borda);
+        }
+        @media (max-width: 860px) {
+            .sonho-body { grid-template-columns: 1fr; }
+        }
+
+        /* Passos */
+        .sonho-passos {
+            padding: 20px 24px; border-right: 1px solid var(--cor-borda);
+        }
+        @media (max-width: 860px) {
+            .sonho-passos { border-right: none; border-bottom: 1px solid var(--cor-borda); }
+        }
+        .sonho-passos-title {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.7px; color: var(--cor-texto-mutado); margin-bottom: 14px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .sonho-passos-title i { color: var(--cor-primaria); font-size: 14px; }
+        .sonho-step {
+            display: flex; gap: 12px; padding: 10px 0;
+            position: relative;
+        }
+        .sonho-step::before {
+            content: ''; position: absolute; left: 13px; top: 32px;
+            bottom: -2px; width: 2px; background: var(--cor-borda);
+        }
+        .sonho-step:last-child::before { display: none; }
+        .sonho-step-num {
+            width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 800; font-family: 'DM Mono', monospace;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            border: 1.5px solid var(--cor-borda-primaria);
+            z-index: 1;
+        }
+        .sonho-step.done .sonho-step-num {
+            background: var(--cor-primaria); color: white; border-color: var(--cor-primaria);
+        }
+        .sonho-step-content { flex: 1; min-width: 0; padding-top: 3px; }
+        .sonho-step-label {
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+            margin-bottom: 2px;
+        }
+        .sonho-step.done .sonho-step-label { text-decoration: line-through; color: var(--cor-texto-mutado); }
+        .sonho-step-desc { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.45; }
+
+        /* Progress ring + motivacional */
+        .sonho-right { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+        .sonho-ring-wrap { position: relative; width: 140px; height: 140px; }
+        .sonho-ring-svg { transform: rotate(-90deg); width: 140px; height: 140px; }
+        .sonho-ring-bg { fill: none; stroke: var(--cor-borda); stroke-width: 10; }
+        .sonho-ring-fill {
+            fill: none; stroke-width: 10; stroke-linecap: round;
+            transition: stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1), stroke 0.3s;
+        }
+        .sonho-ring-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .sonho-ring-pct {
+            font-size: 28px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); line-height: 1;
+        }
+        .sonho-ring-label {
+            font-size: 10px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--cor-texto-mutado); margin-top: 4px;
+        }
+        .sonho-stats-mini {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 6px; width: 100%;
+        }
+        .sonho-stat-mini {
+            text-align: center; padding: 8px 6px; background: var(--cor-superficie);
+            border-radius: 9px; border: 1px solid var(--cor-borda);
+        }
+        .sonho-stat-mini-lbl {
+            font-size: 9px; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.4px; color: var(--cor-texto-mutado); margin-bottom: 3px;
+        }
+        .sonho-stat-mini-val {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+        }
+
+        /* Motivação + alerta */
+        .sonho-motivacao {
+            width: 100%; padding: 12px; border-radius: 10px; text-align: center;
+            background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(124,58,237,0.06));
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+        .sonho-motivacao-txt {
+            font-size: 12px; font-weight: 600; color: var(--cor-texto-secundario);
+            font-style: italic; line-height: 1.5;
+        }
+        .sonho-motivacao-autor {
+            font-size: 10px; color: var(--cor-texto-mutado); margin-top: 4px;
+            font-style: normal; font-weight: 500;
+        }
+        .sonho-alerta-bar {
+            display: flex; align-items: center; gap: 10px; padding: 12px 20px;
+            border-top: 1px solid var(--cor-borda); font-size: 12.5px; font-weight: 600;
+            animation: fadeIn 0.3s ease;
+        }
+        .sonho-alerta-bar i { font-size: 16px; flex-shrink: 0; }
+        .sonho-alerta-bar.alerta-warn { background: var(--cor-bg-amber); color: var(--cor-txt-amber); }
+        .sonho-alerta-bar.alerta-danger { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .sonho-alerta-bar.alerta-ok { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+
+        .sonho-esforco-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 9px; border-radius: 99px; font-size: 10.5px; font-weight: 700;
+        }
+        .esforco-baixo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border: 1px solid var(--cor-borda-primaria); }
+        .esforco-medio { background: var(--cor-bg-amber); color: var(--cor-txt-amber); border: 1px solid var(--cor-borda-amber); }
+        .esforco-alto { background: var(--cor-bg-erro); color: var(--cor-txt-erro); border: 1px solid var(--cor-borda-erro); }
+
+        .sonho-caixinha-tip {
+            display: flex; align-items: flex-start; gap: 10px; padding: 12px 20px;
+            border-top: 1px solid var(--cor-borda); font-size: 12px; color: var(--cor-txt-info);
+            background: var(--cor-bg-info); font-weight: 500; line-height: 1.5;
+        }
+        .sonho-caixinha-tip i { font-size: 16px; flex-shrink: 0; margin-top: 1px; color: var(--cor-info); }
+        .sonho-caixinha-tip strong { font-weight: 700; }
+
+        /* Botão aporte */
+        .sonho-btn-aporte {
+            display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px;
+            border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+            border: 1.5px solid var(--cor-borda-primaria); background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria); font-family: 'Figtree', sans-serif; transition: 0.15s;
+        }
+        .sonho-btn-aporte:hover { background: var(--cor-primaria); color: white; border-color: var(--cor-primaria); }
+
+        .sonho-conquistado {
+            position: relative; overflow: hidden;
+        }
+        .sonho-conquistado::after {
+            content: '🎉 CONQUISTADO!'; position: absolute; top: 16px; right: -32px;
+            background: linear-gradient(135deg, #059669, #10b981); color: white;
+            padding: 4px 40px; font-size: 11px; font-weight: 800; letter-spacing: 1px;
+            transform: rotate(45deg); z-index: 5; box-shadow: 0 2px 8px rgba(5,150,105,0.3);
+        }
     </style>
 </head>
 <body>
@@ -1660,7 +1861,7 @@
                         <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
                         <div class="kpi-value" id="resumoRendimento">R$ 0,00</div>
                         <div class="kpi-detail">
-                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
+                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos <span id="resumoDividendosPeriodo" style="font-size:10px;opacity:0.7;font-weight:500;">(3M)</span>: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
                         </div>
                     </div>
                 </div>
@@ -1850,15 +2051,23 @@
                     </div>
 
                     <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</h3>
+                        <h3 style="padding: 18px 20px 0; font-size: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                            <span><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</span>
+                            <span style="font-size:11px; color:var(--cor-texto-mutado); font-weight:400;">· agregados por mês</span>
+                            <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:600;">
+                                <i class="ph ph-funnel" style="font-size:11px;"></i>
+                                <span id="filtroPagamentosLabel"></span>
+                                <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:13px; line-height:1;" title="Limpar filtro">×</button>
+                            </span>
+                        </h3>
                         <div style="overflow-x: auto; max-height: 460px;">
                             <table class="tabela-dashboard">
                                 <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
                                     <tr>
-                                        <th>Data</th>
+                                        <th>Mês</th>
                                         <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd na data</th>
-                                        <th style="text-align: right;">Valor / cota</th>
+                                        <th style="text-align: right;">Qtd</th>
+                                        <th style="text-align: right;">R$ / cota</th>
                                         <th style="text-align: right;">Total recebido</th>
                                     </tr>
                                 </thead>
@@ -2562,14 +2771,132 @@
         <section id="meus_sonhos" class="section">
             <div class="page-header">
                 <div class="page-header-left">
-                    <h1>Meus sonhos</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Metas e objetivos para o seu futuro.</p>
+                    <h1><i class="ph-fill ph-shooting-star" style="color: var(--cor-primaria);"></i> Meus Sonhos</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Planeje, acompanhe e conquiste seus objetivos financeiros — passo a passo.</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-acao" onclick="abrirCadastroSonho()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo sonho</button>
                 </div>
             </div>
-            <div class="card-container" style="text-align: center; padding: 60px 20px;">
-                <i class="ph ph-star" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
-                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
-                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+
+            <!-- LISTA DE SONHOS CADASTRADOS -->
+            <div id="sonhosListaContainer"></div>
+
+            <!-- EMPTY STATE -->
+            <div id="sonhosEmptyState" class="card-container" style="text-align:center;padding:60px 20px;display:none;">
+                <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(124,58,237,0.10));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;">
+                    <i class="ph-duotone ph-shooting-star" style="font-size:36px;color:var(--cor-primaria);"></i>
+                </div>
+                <h3 style="font-size:18px;margin-bottom:8px;">Qual é o seu sonho?</h3>
+                <p style="color:var(--cor-texto-mutado);max-width:420px;margin:0 auto 24px;line-height:1.6;font-size:13.5px;">Cadastre uma meta financeira — seja uma viagem, um carro, uma casa ou qualquer objetivo. Vamos criar um plano personalizado para você chegar lá.</p>
+                <button class="btn-acao" onclick="abrirCadastroSonho()" style="max-width:260px;margin:0 auto;background-color:var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Cadastrar meu primeiro sonho</button>
+            </div>
+
+            <!-- MODAL CADASTRO/EDIÇÃO DE SONHO -->
+            <div id="modalSonho" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalSonho()">
+                <div style="max-width:520px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px;">
+                        <h3 id="tituloModalSonho" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);"></i> <span>Cadastrar novo sonho</span></h3>
+                        <button class="drawer-fechar" onclick="fecharModalSonho()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Qual o seu sonho?</label>
+                        <input type="text" id="sonhoNome" placeholder="Ex: Viagem dos sonhos para Europa">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Descrição (opcional)</label>
+                        <textarea id="sonhoDescricao" rows="2" placeholder="Detalhes sobre o que você deseja alcançar..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;resize:vertical;"></textarea>
+                    </div>
+
+                    <div class="grid-2-iguais" style="gap:14px;">
+                        <div class="form-group">
+                            <label>Valor total necessário (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorTotal" placeholder="15.000,00" oninput="aplicarMascaraBRL(this)"></span>
+                        </div>
+                        <div class="form-group">
+                            <label>Prazo para conquista</label>
+                            <select id="sonhoPrazo" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                <option value="6">6 meses</option>
+                                <option value="12" selected>1 ano</option>
+                                <option value="18">1 ano e meio</option>
+                                <option value="24">2 anos</option>
+                                <option value="36">3 anos</option>
+                                <option value="48">4 anos</option>
+                                <option value="60">5 anos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid-2-iguais" style="gap:14px;">
+                        <div class="form-group">
+                            <label>Já tem algum valor guardado? (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span>
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select id="sonhoCategoria" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                <option value="viagem">✈️ Viagem</option>
+                                <option value="veiculo">🚗 Veículo</option>
+                                <option value="imovel">🏠 Imóvel</option>
+                                <option value="educacao">📚 Educação</option>
+                                <option value="casamento">💍 Casamento</option>
+                                <option value="reserva">🛡️ Reserva financeira</option>
+                                <option value="tech">💻 Tecnologia</option>
+                                <option value="saude">❤️ Saúde & Bem-estar</option>
+                                <option value="outro">🌟 Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Nível de esforço para alcançar</label>
+                        <div id="sonhoEsforcoContainer" style="display:flex;gap:8px;">
+                            <button type="button" class="sonho-esforco-btn" data-nivel="baixo" onclick="selecionarEsforcoSonho('baixo')" style="flex:1;padding:12px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;transition:all 0.2s;font-family:'Figtree',sans-serif;">
+                                <div style="font-size:20px;margin-bottom:4px;">🌱</div>
+                                <div style="font-size:12px;font-weight:700;color:var(--cor-texto-principal);">Leve</div>
+                                <div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:2px;">Guardar sem apertar</div>
+                            </button>
+                            <button type="button" class="sonho-esforco-btn" data-nivel="medio" onclick="selecionarEsforcoSonho('medio')" style="flex:1;padding:12px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;transition:all 0.2s;font-family:'Figtree',sans-serif;">
+                                <div style="font-size:20px;margin-bottom:4px;">⚡</div>
+                                <div style="font-size:12px;font-weight:700;color:var(--cor-texto-principal);">Moderado</div>
+                                <div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:2px;">Alguns ajustes</div>
+                            </button>
+                            <button type="button" class="sonho-esforco-btn" data-nivel="alto" onclick="selecionarEsforcoSonho('alto')" style="flex:1;padding:12px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;transition:all 0.2s;font-family:'Figtree',sans-serif;">
+                                <div style="font-size:20px;margin-bottom:4px;">🔥</div>
+                                <div style="font-size:12px;font-weight:700;color:var(--cor-texto-principal);">Intenso</div>
+                                <div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:2px;">Meta agressiva</div>
+                            </button>
+                        </div>
+                        <input type="hidden" id="sonhoEsforco" value="medio">
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:22px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="fecharModalSonho()">Cancelar</button>
+                        <button class="btn-acao" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="salvarSonho()"><i class="ph-bold ph-shooting-star"></i> Salvar sonho</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODAL REGISTRAR APORTE -->
+            <div id="modalAporteSonho" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalAporteSonho()">
+                <div style="max-width:400px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
+                    <h3 style="font-size:16px;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:18px;color:var(--cor-texto-principal);"><i class="ph-fill ph-piggy-bank" style="color:var(--cor-primaria);"></i> Registrar aporte</h3>
+                    <input type="hidden" id="aportesonhoId">
+                    <div class="form-group">
+                        <label>Valor do aporte (R$)</label>
+                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="aportesonhoValor" placeholder="500,00" oninput="aplicarMascaraBRL(this)"></span>
+                    </div>
+                    <div class="form-group">
+                        <label>Data</label>
+                        <input type="date" id="aportesonhoData">
+                    </div>
+                    <div style="display:flex;gap:10px;margin-top:18px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="fecharModalAporteSonho()">Cancelar</button>
+                        <button class="btn-acao" style="flex:1;background:var(--cor-primaria);" onclick="registrarAporteSonho()"><i class="ph-bold ph-check"></i> Registrar</button>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -2618,6 +2945,7 @@
             if(idAba === 'controle') atualizarTelaControle();
             if(idAba === 'simulador') calcularSimulador();
             if(idAba === 'carteira') carregarCarteiraCliente();
+            if(idAba === 'meus_sonhos') renderizarSonhos();
             if(callback) callback();
         }
 
@@ -3999,6 +4327,32 @@
                 b.classList.toggle('ativo', ativo);
             });
             renderizarGraficoEvolucao();
+            atualizarChipDividendosPeriodo();
+        }
+
+        function rotuloPeriodoEvolucao() {
+            if(periodoEvolucao === 0) return 'tudo';
+            return `${periodoEvolucao}M`;
+        }
+
+        function atualizarChipDividendosPeriodo() {
+            const elDiv = document.getElementById('resumoDividendosAcum');
+            const elPer = document.getElementById('resumoDividendosPeriodo');
+            if(elPer) elPer.innerText = `(${rotuloPeriodoEvolucao()})`;
+            if(!elDiv) return;
+            // Soma os mesmos pagamentos exibidos na tabela "Pagamentos recentes",
+            // recortados pelo período do gráfico (3M/6M/12M/Tudo). Garante consistência
+            // entre o KPI e a tabela.
+            let limiteIniMs = 0;
+            if(periodoEvolucao > 0) {
+                const hoje = new Date();
+                const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - (periodoEvolucao - 1), 1);
+                limiteIniMs = inicio.getTime();
+            }
+            const totalDiv = (pagamentosMensaisAgregados || [])
+                .filter(p => limiteIniMs === 0 || new Date(p.ano, p.mes, 1).getTime() >= limiteIniMs)
+                .reduce((s, p) => s + (p.total || 0), 0);
+            elDiv.innerText = formatarMoeda(totalDiv);
         }
 
         // Acumula posição (qtd) por ticker até o final de cada mês
@@ -4408,6 +4762,58 @@
             return grupos;
         }
 
+        // Reconstrói a carteira como ela estava no instante `dataLimiteMs`, considerando
+        // apenas operações com `data_op` <= esse instante. Usado para variações por
+        // categoria sem depender de snapshots persistidos (que ficam stale ao excluir ops).
+        function consolidarCarteiraNaData(dataLimiteMs) {
+            const consolidado = {};
+            historicoCompras.forEach(op => {
+                if(!op.data_op) return;
+                if(new Date(op.data_op).getTime() > dataLimiteMs) return;
+                if(!consolidado[op.ticker]) consolidado[op.ticker] = { qtdTotal: 0, valorTotalInvestido: 0, precoMedio: 0, categoria: null, subcategoria: null };
+                const ativo = consolidado[op.ticker];
+                const tipo = op.tipo || 'compra';
+                const precoDaOp = op.preco_op || op.preco_pago || 0;
+                if(tipo === 'compra') {
+                    ativo.qtdTotal += op.quantidade;
+                    ativo.valorTotalInvestido += op.quantidade * precoDaOp;
+                    ativo.precoMedio = ativo.qtdTotal > 0 ? ativo.valorTotalInvestido / ativo.qtdTotal : 0;
+                    if(op.categoria) ativo.categoria = op.categoria;
+                    if(op.subcategoria) ativo.subcategoria = op.subcategoria;
+                } else if(tipo === 'venda') {
+                    ativo.qtdTotal -= op.quantidade;
+                    ativo.valorTotalInvestido -= op.quantidade * ativo.precoMedio;
+                }
+            });
+            return consolidado;
+        }
+
+        function agruparCategoriasNaData(dataLimiteMs) {
+            const consolidado = consolidarCarteiraNaData(dataLimiteMs);
+            const grupos = {};
+            for(const ticker in consolidado) {
+                const ativo = consolidado[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                const cat = inferirCategoria(ticker, ativo, ativoMercado);
+                let chave;
+                if(cat === 'renda_variavel') chave = subcategoriaEfetiva(ticker, ativo, ativoMercado);
+                else chave = cat;
+                if(!grupos[chave]) grupos[chave] = { investido: 0, saldo: 0, ativos: [] };
+                let saldo;
+                if(cat === 'previdencia') {
+                    saldo = calcularSaldoPrevidencia(ticker, dataLimiteMs);
+                } else {
+                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                    saldo = ativo.qtdTotal * precoAtual;
+                }
+                grupos[chave].investido += ativo.valorTotalInvestido;
+                grupos[chave].saldo += saldo;
+                grupos[chave].ativos.push(ticker);
+            }
+            return grupos;
+        }
+
         function renderizarGraficoDistribuicao(carteiraConsolidada) {
             const canvas = document.getElementById('graficoDistribuicaoCarteira');
             const msgVazia = document.getElementById('msgDistribuicaoVazia');
@@ -4520,11 +4926,11 @@
             const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
             if(lblMes) lblMes.innerText = `· variação em ${nomeMes}`;
 
-            const snaps = carregarSnapshotsCarteira();
-            const chaveAtual = chaveMesAtual();
-            // Pega o snapshot mais recente anterior ao mês atual
-            const chavesAnteriores = Object.keys(snaps).filter(k => k < chaveAtual).sort();
-            const snapAnterior = chavesAnteriores.length ? snaps[chavesAnteriores[chavesAnteriores.length - 1]] : null;
+            // Saldo do mês anterior reconstruído sob demanda a partir de historicoCompras
+            // (não usa snapshots persistidos — esses ficam stale quando o usuário exclui
+            // uma operação, fazendo a variação parecer "venda").
+            const fimMesPassadoMs = new Date(hoje.getFullYear(), hoje.getMonth(), 0, 23, 59, 59).getTime();
+            const gruposAnteriores = agruparCategoriasNaData(fimMesPassadoMs);
 
             // Ordem fixa para apresentação consistente
             const ordem = ['acoes','fiis','bdrs','etfs','cripto','renda_fixa','previdencia','reserva_emergencia'];
@@ -4534,7 +4940,7 @@
             container.innerHTML = entries.map(([k, v]) => {
                 const cor = paleta[k] || getToken('--cor-texto-mutado');
                 const rotulo = ROTULOS_SUB[k] || k;
-                const saldoAnterior = snapAnterior?.porGrupo?.[k] || 0;
+                const saldoAnterior = gruposAnteriores[k]?.saldo || 0;
                 let variacaoR$ = 0; let variacaoPerc = 0; let labelVariacao = 'Sem histórico';
                 if(saldoAnterior > 0) {
                     variacaoR$ = v.saldo - saldoAnterior;
@@ -4754,23 +5160,22 @@
             if(elDesde) {
                 const datas = historicoCompras.filter(o => o.tipo !== 'venda' && o.data_op).map(o => o.data_op).sort();
                 if(datas.length) {
-                    const d = new Date(datas[0] + 'T12:00:00');
-                    const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
-                    elDesde.innerText = `desde ${lbl}`;
+                    // data_op é ISO completo (toISOString); concatenar 'T12:00:00' produz Invalid Date.
+                    const d = new Date(datas[0]);
+                    if(!isNaN(d.getTime())) {
+                        const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                        elDesde.innerText = `desde ${lbl}`;
+                    } else {
+                        elDesde.innerText = 'desde sua 1ª compra';
+                    }
                 } else {
                     elDesde.innerText = 'desde sua 1ª compra';
                 }
             }
 
-            // Dividendos acumulados (12 meses) — usa a série já calculada pelo gráfico
-            const elDiv = document.getElementById('resumoDividendosAcum');
-            if(elDiv) {
-                try {
-                    const serie = calcularSerieEvolucao('todos');
-                    const totalDiv = serie.dividendos.reduce((a,b) => a + b, 0);
-                    elDiv.innerText = formatarMoeda(totalDiv);
-                } catch(_) { elDiv.innerText = formatarMoeda(0); }
-            }
+            // Dividendos acumulados — soma a série já calculada pelo gráfico,
+            // respeitando o período selecionado (3M/6M/12M/Tudo).
+            atualizarChipDividendosPeriodo();
 
             atualizarBarraAlocacao(carteiraConsolidada);
             atualizarProximoEvento(carteiraConsolidada);
@@ -4782,6 +5187,67 @@
         // Cache em memória para evitar repetir chamadas no mesmo carregamento.
         let cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
         let cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
+
+        // Pagamentos já agregados por (ticker, mês) — alimentado por carregarDividendos.
+        // Cada item: { ticker, ano, mes, qtdMes, somaValorCota, total, eventos, tsMaisRecente }
+        let pagamentosMensaisAgregados = [];
+        // Filtro de ticker da tabela "Pagamentos recentes" (ativado ao clicar em "Por ativo")
+        let filtroPagamentosTicker = '';
+
+        const MES_LABEL_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+        function alternarFiltroPagamentosTicker(ticker) {
+            filtroPagamentosTicker = (filtroPagamentosTicker === ticker) ? '' : (ticker || '');
+            renderizarTabelaPagamentos();
+            // Realça a linha selecionada na tabela "Por ativo"
+            document.querySelectorAll('#tabelaDividendosCorpo tr[data-ticker]').forEach(tr => {
+                const sel = tr.dataset.ticker === filtroPagamentosTicker;
+                tr.style.background = sel ? 'var(--cor-bg-primaria)' : '';
+            });
+            // Atualiza o chip de filtro ativo
+            const chip = document.getElementById('chipFiltroPagamentos');
+            const lbl = document.getElementById('filtroPagamentosLabel');
+            if(chip && lbl) {
+                if(filtroPagamentosTicker) {
+                    lbl.innerText = filtroPagamentosTicker;
+                    chip.style.display = 'inline-flex';
+                } else {
+                    chip.style.display = 'none';
+                }
+            }
+        }
+
+        function renderizarTabelaPagamentos() {
+            const tbody = document.getElementById('tabelaPagamentosCorpo');
+            const msgVazia = document.getElementById('pagamentosVaziaMsg');
+            if(!tbody) return;
+            const linhas = filtroPagamentosTicker
+                ? pagamentosMensaisAgregados.filter(l => l.ticker === filtroPagamentosTicker)
+                : pagamentosMensaisAgregados;
+            if(linhas.length === 0) {
+                tbody.innerHTML = '';
+                if(msgVazia) {
+                    msgVazia.style.display = 'block';
+                    const p = msgVazia.querySelector('p');
+                    if(p) p.innerText = filtroPagamentosTicker
+                        ? `Sem pagamentos registrados para ${filtroPagamentosTicker}.`
+                        : 'Nenhum pagamento encontrado no histórico.';
+                }
+                return;
+            }
+            if(msgVazia) msgVazia.style.display = 'none';
+            tbody.innerHTML = linhas.slice(0, 100).map(l => {
+                const labelMes = `${MES_LABEL_CURTO[l.mes]}/${l.ano}`;
+                const sufixo = l.eventos > 1 ? ` <span style="font-size:10px;color:var(--cor-texto-mutado);font-weight:400;">(${l.eventos})</span>` : '';
+                return `<tr>
+                    <td style="font-family:'DM Mono', monospace;">${labelMes}${sufixo}</td>
+                    <td style="font-weight: 600;">${l.ticker}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdMes)}</td>
+                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.somaValorCota)}</td>
+                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.total)}</td>
+                </tr>`;
+            }).join('');
+        }
 
         function tickerEhFII(ticker) { return /11$/.test(ticker || ''); }
 
@@ -4800,11 +5266,12 @@
                 if(!res.ok) return null;
                 const json = await res.json();
                 const result = json?.results?.[0];
+                // Só dividendos em dinheiro (rate em R$/ação). stockDividends.factor é
+                // multiplicador de bonificação em ações, não valor monetário.
                 const cashDiv = result?.dividendsHistory?.cashDividends || [];
-                const stockDiv = result?.dividendsHistory?.stockDividends || [];
-                const todos = [...cashDiv, ...stockDiv].map(d => ({
+                const todos = cashDiv.map(d => ({
                     data: d.paymentDate || d.lastDatePrior || d.approvedOn,
-                    valor: parseFloat(d.rate || d.factor || 0)
+                    valor: parseFloat(d.rate || 0)
                 })).filter(d => d.data && d.valor > 0);
                 return todos;
             } catch(err) {
@@ -4915,6 +5382,10 @@
                 msgVaziaAtivos.style.display = 'block';
                 msgVaziaPag.style.display = 'block';
                 cardTotal.innerText = "R$ 0,00"; card12m.innerText = "R$ 0,00"; cardYOC.innerText = "0,00%"; cardMedia.innerText = "R$ 0,00";
+                pagamentosMensaisAgregados = [];
+                filtroPagamentosTicker = '';
+                const chip = document.getElementById('chipFiltroPagamentos');
+                if(chip) chip.style.display = 'none';
                 return;
             }
             msgVaziaAtivos.style.display = 'none';
@@ -4986,7 +5457,9 @@
                 tbodyAtivos.innerHTML = linhasAtivos.map(l => {
                     const yocAtivo = l.investido > 0 ? (l.recebidoTotal / l.investido * 100) : 0;
                     const tagEncerrada = l.encerrada ? `<span style="display:inline-block; padding:1px 6px; border-radius:99px; font-size:10px; font-weight:600; background: var(--cor-bg-erro); color: var(--cor-txt-erro); border:1px solid var(--cor-borda-erro); margin-left:4px;">encerrada</span>` : '';
-                    return `<tr>
+                    const selecionado = filtroPagamentosTicker === l.ticker;
+                    const bg = selecionado ? 'var(--cor-bg-primaria)' : '';
+                    return `<tr data-ticker="${l.ticker}" onclick="alternarFiltroPagamentosTicker('${l.ticker}')" style="cursor:pointer; background:${bg};" title="Clique para filtrar pagamentos por ${l.ticker}">
                         <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
                         <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
                         <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
@@ -4996,18 +5469,38 @@
                 }).join('');
             }
 
-            todosPagamentos.sort((a,b) => new Date(b.data) - new Date(a.data));
-            if(todosPagamentos.length === 0) {
-                msgVaziaPag.style.display = 'block';
-            } else {
-                tbodyPagamentos.innerHTML = todosPagamentos.slice(0, 100).map(p => `<tr>
-                    <td style="font-family:'DM Mono', monospace;">${new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : '')).toLocaleDateString('pt-BR')}</td>
-                    <td style="font-weight: 600;">${p.ticker}</td>
-                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(p.qtd)}</td>
-                    <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(p.valorCota)}</td>
-                    <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(p.total)}</td>
-                </tr>`).join('');
+            // Agrega pagamentos por (ticker, ano-mês). JCP mensal + dividendos extras
+            // do mesmo mês viram uma única linha — somando o total e o R$/cota.
+            const agregadoMap = new Map();
+            todosPagamentos.forEach(p => {
+                if(!p.data) return;
+                const d = new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : ''));
+                const chave = `${p.ticker}|${d.getFullYear()}-${d.getMonth()}`;
+                if(!agregadoMap.has(chave)) {
+                    agregadoMap.set(chave, {
+                        ticker: p.ticker, ano: d.getFullYear(), mes: d.getMonth(),
+                        qtdMes: p.qtd, tsMaisRecente: d.getTime(),
+                        somaValorCota: 0, total: 0, eventos: 0
+                    });
+                }
+                const acc = agregadoMap.get(chave);
+                if(d.getTime() > acc.tsMaisRecente) {
+                    acc.tsMaisRecente = d.getTime();
+                    acc.qtdMes = p.qtd;
+                }
+                acc.somaValorCota += p.valorCota;
+                acc.total += p.total;
+                acc.eventos += 1;
+            });
+            pagamentosMensaisAgregados = [...agregadoMap.values()].sort((a,b) => b.tsMaisRecente - a.tsMaisRecente);
+
+            // Limpa filtro caso o ticker filtrado tenha sumido (encerrada removida etc.)
+            if(filtroPagamentosTicker && !pagamentosMensaisAgregados.some(p => p.ticker === filtroPagamentosTicker)) {
+                filtroPagamentosTicker = '';
+                const chip = document.getElementById('chipFiltroPagamentos');
+                if(chip) chip.style.display = 'none';
             }
+            renderizarTabelaPagamentos();
 
             cardTotal.innerText = formatarMoeda(totalGeral);
             card12m.innerText = formatarMoeda(total12m);
@@ -5017,6 +5510,8 @@
             // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
             renderizarGraficoEvolucao();
             atualizarProximoEvento(carteira);
+            // O chip "Dividendos" no KPI usa pagamentosMensaisAgregados — refresha agora.
+            atualizarChipDividendosPeriodo();
             // New: render bar chart and ranking
             renderizarDividendosMensal(todosPagamentos);
             renderizarRankingDividendos(linhasAtivos);
@@ -6666,6 +7161,382 @@
         document.getElementById('modalConfirmacao').addEventListener('click', function(e) { if(e.target === this) fecharModal(); });
         document.getElementById('modalConfiguracoes').addEventListener('click', function(e) { if(e.target === this) fecharModalConfig(); });
 
+        // ============================================================
+        // === MEUS SONHOS — DREAM PLANNER ENGINE                    ===
+        // ============================================================
+        let sonhos = JSON.parse(localStorage.getItem('appliquei_sonhos')) || [];
+        let sonhoEditandoId = null;
+
+        const SONHO_TAXA_MENSAL = 0.008; // 0.8% ao mês
+        const SONHO_CATEGORIAS = {
+            viagem:'✈️', veiculo:'🚗', imovel:'🏠', educacao:'📚',
+            casamento:'💍', reserva:'🛡️', tech:'💻', saude:'❤️', outro:'🌟'
+        };
+        const SONHO_FRASES = [
+            {txt:'"O segredo de ir em frente é começar."', autor:'Mark Twain'},
+            {txt:'"Grandes conquistas são feitas de pequenos passos diários."', autor:'Provérbio'},
+            {txt:'"A disciplina é a ponte entre metas e conquistas."', autor:'Jim Rohn'},
+            {txt:'"Não espere por oportunidades. Crie-as."', autor:'George Bernard Shaw'},
+            {txt:'"O futuro pertence a quem se prepara hoje."', autor:'Malcolm X'},
+            {txt:'"Cada centavo guardado é um passo mais perto do seu sonho."', autor:'Appliquei'},
+            {txt:'"A paciência é amarga, mas seu fruto é doce."', autor:'Jean-Jacques Rousseau'},
+            {txt:'"Invista no seu futuro. Ninguém mais fará isso por você."', autor:'Appliquei'},
+        ];
+
+        function salvarSonhos() {
+            localStorage.setItem('appliquei_sonhos', JSON.stringify(sonhos));
+        }
+
+        function calcSonhoMensal(valorTotal, valorAtual, mesesRestantes) {
+            if(mesesRestantes <= 0) return 0;
+            const falta = valorTotal - valorAtual;
+            if(falta <= 0) return 0;
+            const r = SONHO_TAXA_MENSAL;
+            // PMT para atingir 'falta' com juros compostos
+            const pmt = falta * r / (Math.pow(1+r, mesesRestantes) - 1);
+            return Math.max(0, pmt);
+        }
+
+        function calcSonhoProjecao(valorAtual, aporteMensal, meses) {
+            let saldo = valorAtual;
+            for(let i=0; i<meses; i++) { saldo = saldo * (1+SONHO_TAXA_MENSAL) + aporteMensal; }
+            return saldo;
+        }
+
+        function mesesEntre(dataIni, dataFim) {
+            const d1 = new Date(dataIni), d2 = new Date(dataFim);
+            return (d2.getFullYear()-d1.getFullYear())*12 + (d2.getMonth()-d1.getMonth());
+        }
+
+        function gerarPassosSonho(sonho) {
+            const pct = Math.min(100, (sonho.valorAtual / sonho.valorTotal)*100);
+            const mensal = calcSonhoMensal(sonho.valorTotal, sonho.valorAtual, sonho.mesesRestantes);
+            const mensalFmt = mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+            const esforco = sonho.esforco || 'medio';
+            const passos = [];
+
+            passos.push({
+                label: 'Defina o sonho e o prazo',
+                desc: `Você definiu: "${sonho.nome}" com meta de ${sonho.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})} em ${sonho.prazoMeses} meses.`,
+                done: true
+            });
+
+            passos.push({
+                label: 'Abra uma caixinha no seu banco',
+                desc: `Crie uma caixinha/cofre nomeada "${sonho.nome}" para separar esse dinheiro e ganhar rendimento automático.`,
+                done: pct > 0
+            });
+
+            if(esforco === 'baixo') {
+                passos.push({
+                    label: `Guarde ${mensalFmt}/mês de forma tranquila`,
+                    desc: 'No início do mês, separe esse valor antes de qualquer gasto. Sem pressão — é um ritmo sustentável.',
+                    done: pct >= 25
+                });
+                passos.push({
+                    label: 'Revise seu progresso a cada 3 meses',
+                    desc: 'Confira se está no caminho certo. Pequenos ajustes são normais.',
+                    done: pct >= 50
+                });
+            } else if(esforco === 'medio') {
+                passos.push({
+                    label: `Guarde ${mensalFmt}/mês com disciplina`,
+                    desc: 'Defina um débito automático ou lembrete. Corte 1-2 gastos supérfluos para garantir o aporte.',
+                    done: pct >= 15
+                });
+                passos.push({
+                    label: 'Busque uma renda extra pontual',
+                    desc: 'Venda itens que não usa, faça um freelance ou monetize uma habilidade para acelerar.',
+                    done: pct >= 40
+                });
+                passos.push({
+                    label: 'Revise e ajuste mensalmente',
+                    desc: 'Acompanhe seu progresso todo mês. Redirecione sobras para a caixinha.',
+                    done: pct >= 60
+                });
+            } else {
+                passos.push({
+                    label: `Guarde ${mensalFmt}/mês com foco total`,
+                    desc: 'Trate esse aporte como uma conta fixa. Elimine gastos desnecessários imediatamente.',
+                    done: pct >= 10
+                });
+                passos.push({
+                    label: 'Corte gastos não essenciais',
+                    desc: 'Cancele assinaturas, reduza delivery, negocie contas. Cada real importa nessa meta.',
+                    done: pct >= 25
+                });
+                passos.push({
+                    label: 'Gere renda extra consistente',
+                    desc: 'Freelance, trabalho extra, venda de itens — direcione 100% para o sonho.',
+                    done: pct >= 45
+                });
+                passos.push({
+                    label: 'Revise semanalmente',
+                    desc: 'Com meta agressiva, acompanhe toda semana para garantir que está no ritmo.',
+                    done: pct >= 65
+                });
+            }
+
+            passos.push({
+                label: '🎉 Conquiste seu sonho!',
+                desc: pct >= 100 ? 'Parabéns! Você conquistou esse objetivo!' : `Faltam ${(100-pct).toFixed(0)}% para chegar lá. Continue firme!`,
+                done: pct >= 100
+            });
+
+            return passos;
+        }
+
+        function gerarAlertaSonho(sonho) {
+            const pct = (sonho.valorAtual / sonho.valorTotal)*100;
+            if(pct >= 100) return {tipo:'ok', msg:'🎉 Parabéns! Você atingiu a meta deste sonho!'};
+            if(sonho.mesesRestantes <= 0) return {tipo:'danger', msg:'⏰ O prazo original já expirou! Considere estender o prazo ou aumentar os aportes.'};
+
+            const mesesPassados = sonho.prazoMeses - sonho.mesesRestantes;
+            if(mesesPassados <= 0) return null;
+            const pctTempo = (mesesPassados / sonho.prazoMeses)*100;
+            if(pct < pctTempo * 0.6) return {tipo:'danger', msg:`⚠️ Atenção: você está com ${pct.toFixed(0)}% guardado, mas já se passaram ${pctTempo.toFixed(0)}% do tempo. O plano precisa de ajustes urgentes!`};
+            if(pct < pctTempo * 0.85) return {tipo:'warn', msg:`📊 Seu progresso está um pouco abaixo do esperado. Considere aumentar os aportes ou cortar algum gasto extra.`};
+            return null;
+        }
+
+        function renderSonhoRing(pct) {
+            const r = 58, circ = 2*Math.PI*r;
+            const offset = circ - (Math.min(pct,100)/100)*circ;
+            let cor = '#059669';
+            if(pct >= 100) cor = '#10b981';
+            else if(pct >= 60) cor = '#059669';
+            else if(pct >= 30) cor = '#d97706';
+            else cor = '#ef4444';
+            return `<div class="sonho-ring-wrap">
+                <svg class="sonho-ring-svg" viewBox="0 0 140 140">
+                    <circle class="sonho-ring-bg" cx="70" cy="70" r="${r}"/>
+                    <circle class="sonho-ring-fill" cx="70" cy="70" r="${r}"
+                        stroke="${cor}" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"/>
+                </svg>
+                <div class="sonho-ring-center">
+                    <div class="sonho-ring-pct">${Math.min(pct,100).toFixed(0)}%</div>
+                    <div class="sonho-ring-label">concluído</div>
+                </div>
+            </div>`;
+        }
+
+        function renderizarSonhos() {
+            const container = document.getElementById('sonhosListaContainer');
+            const empty = document.getElementById('sonhosEmptyState');
+            if(!container) return;
+
+            // Atualizar meses restantes
+            const agora = new Date();
+            sonhos.forEach(s => {
+                const fim = new Date(s.dataFim);
+                s.mesesRestantes = Math.max(0, mesesEntre(agora, fim));
+            });
+
+            if(sonhos.length === 0) {
+                container.innerHTML = '';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+
+            container.innerHTML = sonhos.map((s,idx) => {
+                const pct = Math.min(100, (s.valorAtual / s.valorTotal)*100);
+                const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+                const passos = gerarPassosSonho(s);
+                const alerta = gerarAlertaSonho(s);
+                const frase = SONHO_FRASES[idx % SONHO_FRASES.length];
+                const emoji = SONHO_CATEGORIAS[s.categoria] || '🌟';
+                const esforcoLbl = {baixo:'🌱 Leve',medio:'⚡ Moderado',alto:'🔥 Intenso'}[s.esforco||'medio'];
+                const esforcoClass = 'esforco-'+(s.esforco||'medio');
+                const conquistado = pct >= 100;
+
+                return `<div class="sonho-card ${conquistado?'sonho-conquistado':''}">
+                    <div class="sonho-card-top cat-${s.categoria}">
+                        <div class="sonho-avatar">${emoji}</div>
+                        <div class="sonho-card-info">
+                            <div class="sonho-card-nome">${s.nome}</div>
+                            <div class="sonho-card-meta">
+                                <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
+                                <span>${s.mesesRestantes > 0 ? s.mesesRestantes+' meses restantes' : 'Prazo encerrado'}</span>
+                                <span style="font-family:'DM Mono',monospace;font-weight:600;">${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                            </div>
+                        </div>
+                        <div class="sonho-card-actions">
+                            <button onclick="abrirAporteSonho('${s.id}')" title="Registrar aporte"><i class="ph ph-piggy-bank"></i></button>
+                            <button onclick="editarSonho('${s.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                            <button class="btn-delete" onclick="excluirSonho('${s.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="sonho-body">
+                        <div class="sonho-passos">
+                            <div class="sonho-passos-title"><i class="ph ph-list-checks"></i> Passos para conquistar</div>
+                            ${passos.map((p,i) => `<div class="sonho-step ${p.done?'done':''}">
+                                <div class="sonho-step-num">${p.done?'<i class="ph-bold ph-check" style="font-size:12px;"></i>':(i+1)}</div>
+                                <div class="sonho-step-content">
+                                    <div class="sonho-step-label">${p.label}</div>
+                                    <div class="sonho-step-desc">${p.desc}</div>
+                                </div>
+                            </div>`).join('')}
+                            ${!conquistado ? `<div style="margin-top:12px;"><button class="sonho-btn-aporte" onclick="abrirAporteSonho('${s.id}')"><i class="ph-bold ph-plus"></i> Registrar aporte</button></div>` : ''}
+                        </div>
+                        <div class="sonho-right">
+                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--cor-texto-mutado);margin-bottom:2px;">A caminho do meu sonho</div>
+                            ${renderSonhoRing(pct)}
+                            <div class="sonho-stats-mini">
+                                <div class="sonho-stat-mini">
+                                    <div class="sonho-stat-mini-lbl">Guardado</div>
+                                    <div class="sonho-stat-mini-val">${s.valorAtual.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                </div>
+                                <div class="sonho-stat-mini">
+                                    <div class="sonho-stat-mini-lbl">Mensal</div>
+                                    <div class="sonho-stat-mini-val">${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                </div>
+                                <div class="sonho-stat-mini">
+                                    <div class="sonho-stat-mini-lbl">Falta</div>
+                                    <div class="sonho-stat-mini-val">${Math.max(0,s.valorTotal-s.valorAtual).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                </div>
+                                <div class="sonho-stat-mini">
+                                    <div class="sonho-stat-mini-lbl">Rendim. est.</div>
+                                    <div class="sonho-stat-mini-val" style="color:var(--cor-primaria);">+${(calcSonhoProjecao(s.valorAtual,mensal,s.mesesRestantes)-s.valorAtual-(mensal*s.mesesRestantes)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                </div>
+                            </div>
+                            <div class="sonho-motivacao">
+                                <div class="sonho-motivacao-txt">${frase.txt}</div>
+                                <div class="sonho-motivacao-autor">— ${frase.autor}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sonho-caixinha-tip">
+                        <i class="ph-fill ph-info"></i>
+                        <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
+                    </div>
+                    ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        function selecionarEsforcoSonho(nivel) {
+            document.getElementById('sonhoEsforco').value = nivel;
+            document.querySelectorAll('.sonho-esforco-btn').forEach(b => {
+                const n = b.getAttribute('data-nivel');
+                const ativo = n === nivel;
+                b.style.borderColor = ativo ? (n==='baixo'?'var(--cor-borda-primaria)':n==='medio'?'var(--cor-borda-amber)':'var(--cor-borda-erro)') : 'var(--cor-borda)';
+                b.style.background = ativo ? (n==='baixo'?'var(--cor-bg-primaria)':n==='medio'?'var(--cor-bg-amber)':'var(--cor-bg-erro)') : 'var(--cor-superficie)';
+            });
+        }
+
+        function abrirCadastroSonho() {
+            sonhoEditandoId = null;
+            document.getElementById('tituloModalSonho').querySelector('span').textContent = 'Cadastrar novo sonho';
+            document.getElementById('sonhoNome').value = '';
+            document.getElementById('sonhoDescricao').value = '';
+            document.getElementById('sonhoValorTotal').value = '';
+            document.getElementById('sonhoPrazo').value = '12';
+            document.getElementById('sonhoValorInicial').value = '';
+            document.getElementById('sonhoCategoria').value = 'viagem';
+            document.getElementById('sonhoEsforco').value = 'medio';
+            selecionarEsforcoSonho('medio');
+            document.getElementById('modalSonho').style.display = 'flex';
+        }
+
+        function fecharModalSonho() { document.getElementById('modalSonho').style.display = 'none'; }
+
+        function salvarSonho() {
+            const nome = document.getElementById('sonhoNome').value.trim();
+            const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
+            const prazo = parseInt(document.getElementById('sonhoPrazo').value);
+            const valorInicial = parseBRL(document.getElementById('sonhoValorInicial').value);
+            const categoria = document.getElementById('sonhoCategoria').value;
+            const esforco = document.getElementById('sonhoEsforco').value;
+            const descricao = document.getElementById('sonhoDescricao').value.trim();
+
+            if(!nome) { mostrarToast('Dê um nome ao seu sonho!','erro'); return; }
+            if(valorTotal <= 0) { mostrarToast('Informe o valor total da meta.','erro'); return; }
+
+            const agora = new Date();
+            const dataFim = new Date(agora);
+            dataFim.setMonth(dataFim.getMonth() + prazo);
+
+            if(sonhoEditandoId) {
+                const idx = sonhos.findIndex(s => s.id === sonhoEditandoId);
+                if(idx>=0) {
+                    sonhos[idx].nome = nome;
+                    sonhos[idx].descricao = descricao;
+                    sonhos[idx].valorTotal = valorTotal;
+                    sonhos[idx].prazoMeses = prazo;
+                    sonhos[idx].categoria = categoria;
+                    sonhos[idx].esforco = esforco;
+                    sonhos[idx].dataFim = dataFim.toISOString();
+                    // Mantém valorAtual e aportes
+                }
+            } else {
+                sonhos.push({
+                    id: 'sonho_' + Date.now(),
+                    nome, descricao, valorTotal, prazoMeses: prazo,
+                    valorAtual: valorInicial || 0,
+                    categoria, esforco,
+                    dataCriacao: agora.toISOString(),
+                    dataFim: dataFim.toISOString(),
+                    mesesRestantes: prazo,
+                    aportes: valorInicial > 0 ? [{valor: valorInicial, data: agora.toISOString().slice(0,10), tipo:'inicial'}] : []
+                });
+            }
+            salvarSonhos();
+            renderizarSonhos();
+            fecharModalSonho();
+            mostrarToast(sonhoEditandoId ? 'Sonho atualizado!' : 'Sonho cadastrado! Agora siga os passos 🚀', 'sucesso');
+            sonhoEditandoId = null;
+        }
+
+        function editarSonho(id) {
+            const s = sonhos.find(x => x.id === id);
+            if(!s) return;
+            sonhoEditandoId = id;
+            document.getElementById('tituloModalSonho').querySelector('span').textContent = 'Editar sonho';
+            document.getElementById('sonhoNome').value = s.nome;
+            document.getElementById('sonhoDescricao').value = s.descricao || '';
+            setValorBRLInput(document.getElementById('sonhoValorTotal'), s.valorTotal);
+            document.getElementById('sonhoPrazo').value = s.prazoMeses;
+            setValorBRLInput(document.getElementById('sonhoValorInicial'), s.valorAtual);
+            document.getElementById('sonhoCategoria').value = s.categoria;
+            selecionarEsforcoSonho(s.esforco || 'medio');
+            document.getElementById('modalSonho').style.display = 'flex';
+        }
+
+        function excluirSonho(id) {
+            if(!confirm('Tem certeza que deseja excluir este sonho?')) return;
+            sonhos = sonhos.filter(s => s.id !== id);
+            salvarSonhos();
+            renderizarSonhos();
+            mostrarToast('Sonho removido.','aviso');
+        }
+
+        function abrirAporteSonho(id) {
+            document.getElementById('aportesonhoId').value = id;
+            document.getElementById('aportesonhoValor').value = '';
+            document.getElementById('aportesonhoData').value = new Date().toISOString().slice(0,10);
+            document.getElementById('modalAporteSonho').style.display = 'flex';
+        }
+        function fecharModalAporteSonho() { document.getElementById('modalAporteSonho').style.display = 'none'; }
+
+        function registrarAporteSonho() {
+            const id = document.getElementById('aportesonhoId').value;
+            const valor = parseBRL(document.getElementById('aportesonhoValor').value);
+            const data = document.getElementById('aportesonhoData').value;
+            if(valor <= 0) { mostrarToast('Informe o valor do aporte.','erro'); return; }
+            const s = sonhos.find(x => x.id === id);
+            if(!s) return;
+            s.valorAtual += valor;
+            if(!s.aportes) s.aportes = [];
+            s.aportes.push({valor, data, tipo:'aporte'});
+            salvarSonhos();
+            renderizarSonhos();
+            fecharModalAporteSonho();
+            const pct = (s.valorAtual/s.valorTotal)*100;
+            if(pct >= 100) mostrarToast('🎉 Parabéns! Você conquistou seu sonho!','sucesso',5000);
+            else mostrarToast(`Aporte de R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} registrado! Agora ${pct.toFixed(0)}% concluído.`,'sucesso');
+        }
+
         // --- INICIALIZAÇÃO ---
         window.onload = function() {
             aplicarTemaChartJs();
@@ -6687,6 +7558,8 @@
             ajustarCamposPorCategoria();
             // Estado inicial do gráfico de evolução
             setPeriodoEvolucao(3);
+            // Renderiza sonhos salvos
+            renderizarSonhos();
             // Restaura preferência do usuário sobre colunas extras
             try {
                 if(localStorage.getItem('appliquei_carteira_extras') === '1') {
