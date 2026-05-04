@@ -663,6 +663,145 @@
             line-height: 1.4;
         }
         .chip-legenda .dot { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
+
+        /* === HERO CARD: Evolução do Patrimônio === */
+        .hero-evolucao {
+            position: relative;
+            padding: 22px 24px 18px;
+            margin-bottom: 18px;
+            background:
+                radial-gradient(1200px 240px at 0% 0%, var(--cor-bg-primaria) 0%, transparent 60%),
+                var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+        }
+        .hero-header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+        }
+        .hero-header h3 {
+            font-family: 'Figtree', sans-serif; font-size: 16px; font-weight: 700;
+            color: var(--cor-texto-principal); margin: 0; display: flex; align-items: center; gap: 8px;
+        }
+        .hero-header .hero-sub {
+            font-size: 12px; color: var(--cor-texto-mutado); margin-top: 3px;
+        }
+        .hero-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .hero-toolbar select {
+            padding: 6px 10px; border: 1px solid var(--cor-borda); border-radius: 8px;
+            font-size: 12px; font-weight: 600; background: var(--cor-branco);
+            color: var(--cor-texto-secundario); font-family: 'Figtree', sans-serif; cursor: pointer;
+        }
+        .period-pills {
+            display: inline-flex; gap: 2px; padding: 3px;
+            background: var(--cor-superficie); border-radius: 99px;
+            border: 1px solid var(--cor-borda);
+        }
+        .period-pill {
+            padding: 5px 12px; border: none; background: transparent;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            color: var(--cor-texto-secundario); border-radius: 99px;
+            font-family: 'Figtree', sans-serif; transition: 0.15s;
+        }
+        .period-pill:hover { color: var(--cor-texto-principal); }
+        .period-pill.ativo {
+            background: var(--cor-branco); color: var(--cor-primaria);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+
+        .hero-kpis {
+            display: grid; grid-template-columns: 1.5fr 1fr 1fr;
+            gap: 0; margin-bottom: 22px;
+        }
+        .hero-kpi { padding: 4px 18px; border-left: 1px solid var(--cor-borda); }
+        .hero-kpi:first-child { padding-left: 2px; border-left: none; }
+        .kpi-label {
+            font-size: 11px; font-weight: 600; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+        }
+        .kpi-value-big {
+            font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 700;
+            color: var(--cor-texto-principal); line-height: 1.1; letter-spacing: -0.5px;
+        }
+        .kpi-value {
+            font-family: 'DM Mono', monospace; font-size: 19px; font-weight: 700;
+            color: var(--cor-texto-principal); line-height: 1.2;
+        }
+        .kpi-trend {
+            display: inline-flex; align-items: center; gap: 4px; margin-top: 6px;
+            font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
+            padding: 2px 8px; border-radius: 99px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+        }
+        .kpi-trend.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .kpi-detail {
+            font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 6px;
+            font-family: 'Figtree', sans-serif;
+        }
+        .chip-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: var(--cor-bg-info); color: var(--cor-txt-info);
+            border: 1px solid var(--cor-borda-info); padding: 3px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 600;
+        }
+        .chip-mini strong { font-family: 'DM Mono', monospace; font-weight: 700; }
+
+        @media (max-width: 768px) {
+            .hero-kpis { grid-template-columns: 1fr; gap: 14px; }
+            .hero-kpi { padding: 0; border-left: none; border-top: 1px solid var(--cor-borda); padding-top: 12px; }
+            .hero-kpi:first-child { border-top: none; padding-top: 0; }
+        }
+
+        /* === Tooltip HTML do gráfico === */
+        .chart-tooltip-card {
+            position: absolute; pointer-events: none; opacity: 0;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.14);
+            border-radius: 10px; padding: 11px 13px;
+            font-family: 'Figtree', sans-serif; font-size: 12px;
+            color: var(--cor-texto-principal);
+            min-width: 220px; transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 9999;
+        }
+        body.dark .chart-tooltip-card { box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .ttip-titulo {
+            font-weight: 700; font-size: 10.5px; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px;
+        }
+        .ttip-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 14px; padding: 3px 0; font-family: 'DM Mono', monospace; font-size: 12px;
+        }
+        .ttip-row > span:first-child {
+            display: inline-flex; align-items: center; gap: 7px;
+            font-family: 'Figtree', sans-serif; color: var(--cor-texto-secundario); font-weight: 500;
+        }
+        .ttip-total { font-weight: 700; }
+        .ttip-total > span:first-child { color: var(--cor-texto-principal); font-weight: 700; }
+        .ttip-total strong { font-size: 14px; }
+        .ttip-dot { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
+        .ttip-divider { height: 1px; background: var(--cor-borda); margin: 7px -3px; }
+
+        /* === Donut com insight central === */
+        .donut-wrap { position: relative; }
+        .donut-center {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; pointer-events: none; max-width: 60%;
+        }
+        .donut-center-label {
+            font-size: 10px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px;
+        }
+        .donut-center-value {
+            font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 700;
+            color: var(--cor-texto-principal); line-height: 1.1;
+        }
+        .donut-center-detail {
+            font-size: 11px; color: var(--cor-texto-secundario); margin-top: 3px;
+            font-family: 'Figtree', sans-serif;
+        }
         /* Colunas avançadas da tabela da carteira — ocultas por padrão */
         #tabelaCarteira .col-extra { display: none; }
         #tabelaCarteira.com-extras .col-extra { display: table-cell; }
@@ -859,7 +998,6 @@
             .grid-4, .grid-3, .grid-2, .grid-2-iguais, .grid-cards { grid-template-columns: 1fr; gap: 12px; }
             #painelEvolucaoCarteira { grid-template-columns: 1fr !important; }
         }
-        .btn-periodo-evolucao.ativo { background: var(--cor-bg-primaria) !important; color: var(--cor-txt-primaria) !important; }
 
         /* === PERFIL QUESTIONNAIRE === */
         .perfil-questionnaire {
@@ -1213,70 +1351,86 @@
                 </div>
             </div>
 
-            <div class="grid-4" style="grid-template-columns: repeat(3, minmax(0,1fr)); margin-bottom: 14px;">
-                <div class="card-destaque">
-                    <h3><i class="ph ph-piggy-bank"></i> Total investido</h3>
-                    <div class="valor" id="resumoInvestido">R$ 0,00</div>
-                </div>
-                <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                    <h3 style="color: var(--cor-txt-primaria);" id="tituloRendimento"><i class="ph ph-trend-up"></i> Lucro / Prejuízo</h3>
-                    <div style="display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;">
-                        <span class="valor" id="resumoRendimento" style="color: var(--cor-primaria);">R$ 0,00</span>
-                        <span id="resumoRentabilidade" class="valor-mascarado" style="font-size: 14px; font-weight: 600; color: var(--cor-primaria); font-family: 'DM Mono', monospace;">0,00%</span>
+            <div class="hero-evolucao">
+                <div class="hero-header">
+                    <div>
+                        <h3><i class="ph ph-chart-line-up" style="color: var(--cor-primaria);"></i> Evolução do Patrimônio</h3>
+                        <div class="hero-sub">Acompanhe a evolução mensal do seu capital, ganhos e dividendos</div>
+                    </div>
+                    <div class="hero-toolbar">
+                        <select id="filtroEvolucaoTipo" onchange="renderizarGraficoEvolucao()">
+                            <option value="todos">Todos os tipos</option>
+                            <option value="acoes">Ações</option>
+                            <option value="fiis">FIIs</option>
+                            <option value="bdrs">BDRs</option>
+                            <option value="etfs">ETFs</option>
+                            <option value="cripto">Criptomoedas</option>
+                            <option value="renda_fixa">Renda Fixa</option>
+                            <option value="previdencia">Previdência</option>
+                            <option value="reserva_emergencia">Reserva</option>
+                        </select>
+                        <div class="period-pills">
+                            <button class="period-pill ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)">3M</button>
+                            <button class="period-pill" data-periodo="6" onclick="setPeriodoEvolucao(6)">6M</button>
+                            <button class="period-pill" data-periodo="12" onclick="setPeriodoEvolucao(12)">12M</button>
+                            <button class="period-pill" data-periodo="0" onclick="setPeriodoEvolucao(0)">Tudo</button>
+                        </div>
                     </div>
                 </div>
-                <div class="card-destaque">
-                    <h3 id="tituloProximoEvento"><i class="ph ph-calendar-check"></i> Próximo evento</h3>
-                    <div class="valor" id="resumoProximoEvento" style="font-size: 16px; line-height: 1.3;">—</div>
-                    <div id="resumoProximoEventoDetalhe" style="font-size: 11px; color: var(--cor-texto-mutado); margin-top: 6px; font-family: 'Figtree', sans-serif;"></div>
+
+                <div class="hero-kpis">
+                    <div class="hero-kpi">
+                        <div class="kpi-label">Patrimônio atual</div>
+                        <div class="kpi-value-big" id="resumoPatrimonio">R$ 0,00</div>
+                        <div class="kpi-trend" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade" class="valor-mascarado">0,00%</span></div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="kpi-label">Capital aplicado</div>
+                        <div class="kpi-value" id="resumoInvestido">R$ 0,00</div>
+                        <div class="kpi-detail" id="kpiInvestidoDesde">desde sua 1ª compra</div>
+                    </div>
+                    <div class="hero-kpi">
+                        <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
+                        <div class="kpi-value" id="resumoRendimento">R$ 0,00</div>
+                        <div class="kpi-detail">
+                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="position: relative; height: 320px;">
+                    <canvas id="graficoEvolucaoCarteira"></canvas>
+                </div>
+                <div id="legendaEvolucao" class="legenda-chart"></div>
+                <div id="msgEvolucaoVazia" style="display:none; padding:40px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
+                    <i class="ph ph-chart-bar" style="font-size: 32px; opacity:0.4; display:block; margin-bottom:8px;"></i>
+                    Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
                 </div>
             </div>
 
-            <div id="painelEvolucaoCarteira" style="display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div id="painelSecundario" style="display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 24px;">
                 <div class="card-container" style="padding: 16px 18px;">
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-                        <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-bar"></i> Evolução da carteira</h3>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            <select id="filtroEvolucaoTipo" onchange="renderizarGraficoEvolucao()" style="padding:6px 9px; border:1.5px solid var(--cor-borda); border-radius:9px; font-size:12px; background:var(--cor-branco); color:var(--cor-texto-principal); font-family:'Figtree',sans-serif;">
-                                <option value="todos">Todos os tipos</option>
-                                <option value="acoes">Ações</option>
-                                <option value="fiis">FIIs</option>
-                                <option value="bdrs">BDRs</option>
-                                <option value="etfs">ETFs</option>
-                                <option value="cripto">Criptomoedas</option>
-                                <option value="renda_fixa">Renda Fixa</option>
-                                <option value="previdencia">Previdência</option>
-                                <option value="reserva_emergencia">Reserva</option>
-                            </select>
-                            <div style="display:inline-flex; gap:0; border:1.5px solid var(--cor-borda); border-radius:9px; overflow:hidden; background: var(--cor-branco);">
-                                <button class="btn-periodo-evolucao ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">3 m</button>
-                                <button class="btn-periodo-evolucao" data-periodo="6" onclick="setPeriodoEvolucao(6)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">6 m</button>
-                                <button class="btn-periodo-evolucao" data-periodo="12" onclick="setPeriodoEvolucao(12)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">12 m</button>
-                                <button class="btn-periodo-evolucao" data-periodo="0" onclick="setPeriodoEvolucao(0)" style="padding:6px 10px; border:none; background:transparent; font-size:12px; font-weight:600; cursor:pointer; color: var(--cor-texto-secundario);">Todos</button>
-                            </div>
-                        </div>
+                        <h3 style="font-size: 13px; font-weight:700; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice" style="color: var(--cor-primaria);"></i> Distribuição da carteira</h3>
                     </div>
-                    <div style="position: relative; height: 280px;">
-                        <canvas id="graficoEvolucaoCarteira"></canvas>
-                    </div>
-                    <div id="legendaEvolucao" class="legenda-chart"></div>
-                    <div id="msgEvolucaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
-                        <i class="ph ph-chart-bar" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
-                        Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
-                    </div>
-                </div>
-                <div class="card-container" style="padding: 16px 18px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-                        <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Distribuição da carteira</h3>
-                    </div>
-                    <div style="position: relative; height: 280px;">
+                    <div class="donut-wrap" style="height: 240px;">
                         <canvas id="graficoDistribuicaoCarteira"></canvas>
+                        <div class="donut-center" id="donutCenter" style="display:none;">
+                            <div class="donut-center-label">Maior posição</div>
+                            <div class="donut-center-value" id="distMaiorPos">—</div>
+                            <div class="donut-center-detail" id="distMaiorDetalhe"></div>
+                        </div>
                     </div>
                     <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
                     <div id="msgDistribuicaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
                         <i class="ph ph-chart-pie-slice" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
                         Cadastre ativos para ver a distribuição.
                     </div>
+                </div>
+                <div class="card-container" style="padding: 16px 18px;">
+                    <h3 id="tituloProximoEvento" style="font-size: 13px; font-weight:700; margin:0 0 14px; display:flex; align-items:center; gap:6px;"><i class="ph ph-calendar-check" style="color: var(--cor-primaria);"></i> Próximo evento</h3>
+                    <div class="kpi-value" id="resumoProximoEvento" style="font-size: 17px; line-height: 1.3;">—</div>
+                    <div id="resumoProximoEventoDetalhe" style="font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; font-family: 'Figtree', sans-serif;"></div>
                 </div>
             </div>
 
@@ -3476,11 +3630,9 @@
 
         function setPeriodoEvolucao(meses) {
             periodoEvolucao = meses;
-            document.querySelectorAll('.btn-periodo-evolucao').forEach(b => {
+            document.querySelectorAll('.period-pill').forEach(b => {
                 const ativo = parseInt(b.dataset.periodo,10) === meses;
                 b.classList.toggle('ativo', ativo);
-                b.style.background = ativo ? 'var(--cor-bg-primaria)' : 'transparent';
-                b.style.color = ativo ? 'var(--cor-txt-primaria)' : 'var(--cor-texto-secundario)';
             });
             renderizarGraficoEvolucao();
         }
@@ -3637,11 +3789,67 @@
             ).join('');
         }
 
+        // Tooltip HTML do gráfico de evolução
+        function evolucaoHtmlTooltip(context) {
+            const tooltipModel = context.tooltip;
+            let el = document.getElementById('chart-tooltip-evolucao');
+            if(!el) {
+                el = document.createElement('div');
+                el.id = 'chart-tooltip-evolucao';
+                el.className = 'chart-tooltip-card';
+                document.body.appendChild(el);
+            }
+            if(!tooltipModel || tooltipModel.opacity === 0) {
+                el.style.opacity = 0;
+                return;
+            }
+            const idx = tooltipModel.dataPoints?.[0]?.dataIndex;
+            if(idx === undefined) { el.style.opacity = 0; return; }
+
+            const ds = context.chart.data.datasets;
+            const aplicado = ds[0].data[idx] || 0;
+            const ganho    = ds[1].data[idx] || 0;
+            const perda    = ds[2].data[idx] || 0; // negativo
+            const div      = ds[3]?.data[idx]  || 0;
+            const patrimonio = aplicado + ganho + perda;
+            const variacaoR$ = ganho + perda;
+            const variacaoPerc = aplicado > 0 ? (variacaoR$ / aplicado) * 100 : 0;
+            const corVar = variacaoR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+            const sinal = variacaoR$ >= 0 ? '+' : '';
+
+            const linhas = [];
+            linhas.push(`<div class="ttip-row ttip-total"><span>Patrimônio</span><strong>${formatarMoeda(patrimonio)}</strong></div>`);
+            linhas.push(`<div class="ttip-divider"></div>`);
+            linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-primaria)"></span>Capital aplicado</span><span>${formatarMoeda(aplicado)}</span></div>`);
+            if(ganho > 0) linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-primaria);opacity:0.4"></span>Ganho capital</span><span style="color:var(--cor-primaria)">+${formatarMoeda(ganho)}</span></div>`);
+            if(perda < 0) linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-erro)"></span>Perda capital</span><span style="color:var(--cor-erro)">${formatarMoeda(perda)}</span></div>`);
+            if(div > 0)   linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-info)"></span>Dividendos</span><span style="color:var(--cor-info)">+${formatarMoeda(div)}</span></div>`);
+            linhas.push(`<div class="ttip-divider"></div>`);
+            linhas.push(`<div class="ttip-row"><span>Variação no mês</span><strong style="color:${corVar}">${sinal}${variacaoPerc.toFixed(2)}%</strong></div>`);
+
+            el.innerHTML = `<div class="ttip-titulo">${tooltipModel.title?.[0] || ''}</div>${linhas.join('')}`;
+
+            const pos = context.chart.canvas.getBoundingClientRect();
+            el.style.opacity = 1;
+            el.style.left = (pos.left + window.pageXOffset + tooltipModel.caretX) + 'px';
+            el.style.top  = (pos.top  + window.pageYOffset + tooltipModel.caretY) + 'px';
+            el.style.transform = 'translate(-50%, calc(-100% - 12px))';
+        }
+
         function renderizarGraficoEvolucao() {
             const canvas = document.getElementById('graficoEvolucaoCarteira');
             const msgVazia = document.getElementById('msgEvolucaoVazia');
             const legendaEl = document.getElementById('legendaEvolucao');
             if(!canvas) return;
+
+            // Esconde o tooltip HTML quando o mouse sai do canvas
+            if(!canvas.dataset.tooltipBound) {
+                canvas.addEventListener('mouseleave', () => {
+                    const tt = document.getElementById('chart-tooltip-evolucao');
+                    if(tt) tt.style.opacity = 0;
+                });
+                canvas.dataset.tooltipBound = '1';
+            }
 
             const filtro = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
             const serie = calcularSerieEvolucao(filtro);
@@ -3657,26 +3865,104 @@
             if(msgVazia) msgVazia.style.display = 'none';
 
             const labels = serie.meses.map(d => d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase());
-            const ganhoPerda = serie.mercado.map((v,i) => v - serie.investido[i]);
+            const aplicado     = serie.investido.slice();
+            const ganhoCapital = serie.mercado.map((v,i) => Math.max(0, v - serie.investido[i]));
+            const perdaCapital = serie.mercado.map((v,i) => Math.min(0, v - serie.investido[i]));
+            const dividendos   = serie.dividendos.slice();
+            const temDividendos = dividendos.some(v => v > 0);
+            const temPerdas     = perdaCapital.some(v => v < 0);
 
-            const corInvestido = getToken('--cor-texto-mutado');
-            const corPositivo  = getToken('--cor-primaria');
-            const corNegativo  = getToken('--cor-erro');
-            const corDividendo = getToken('--cor-info');
-            const corGrid      = corComAlpha(getToken('--cor-borda'), 0.6);
+            const ctx = canvas.getContext('2d');
+            const corPrimaria = getToken('--cor-primaria');
+            const corErro     = getToken('--cor-erro');
+            const corInfo     = getToken('--cor-info');
+            const corGrid     = corComAlpha(getToken('--cor-borda'), 0.7);
+            const altura = canvas.parentElement.clientHeight || 320;
 
-            const corGanhoPerda = ganhoPerda.map(v => v >= 0 ? corPositivo : corNegativo);
-            const temDividendos = serie.dividendos.some(v => v > 0);
+            // Gradientes verticais para look "premium"
+            const gradAplicado = ctx.createLinearGradient(0, 0, 0, altura);
+            gradAplicado.addColorStop(0, corPrimaria);
+            gradAplicado.addColorStop(1, corComAlpha(corPrimaria, 0.78));
+
+            const gradGanho = ctx.createLinearGradient(0, 0, 0, altura);
+            gradGanho.addColorStop(0, corComAlpha(corPrimaria, 0.55));
+            gradGanho.addColorStop(1, corComAlpha(corPrimaria, 0.18));
+
+            const gradPerda = ctx.createLinearGradient(0, 0, 0, altura);
+            gradPerda.addColorStop(0, corComAlpha(corErro, 0.55));
+            gradPerda.addColorStop(1, corComAlpha(corErro, 0.18));
+
+            // Destaca o mês atual com leve borda na barra "Ganho capital"
+            const hoje = new Date();
+            const idxAtual = serie.meses.findIndex(d => d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth());
+            const bordaTopoGanho = ganhoCapital.map((_, i) => i === idxAtual ? corPrimaria : 'transparent');
+            const bordaTopoAplicado = aplicado.map((_, i) => (i === idxAtual && ganhoCapital[i] === 0) ? corPrimaria : 'transparent');
 
             if(chartEvolucaoCarteira) chartEvolucaoCarteira.destroy();
-            chartEvolucaoCarteira = new Chart(canvas.getContext('2d'), {
+            chartEvolucaoCarteira = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Capital investido', data: serie.investido, backgroundColor: corInvestido, borderRadius: 8, borderSkipped: false, order: 2 },
-                        { label: 'Ganho / Perda', data: ganhoPerda, backgroundColor: corGanhoPerda, borderRadius: 8, borderSkipped: false, order: 1 },
-                        { label: 'Dividendos', data: serie.dividendos, backgroundColor: corDividendo, borderRadius: 8, borderSkipped: false, order: 0 }
+                        {
+                            label: 'Capital aplicado',
+                            data: aplicado,
+                            backgroundColor: gradAplicado,
+                            borderColor: bordaTopoAplicado,
+                            borderWidth: { top: 1.5, right: 0, bottom: 0, left: 0 },
+                            borderRadius: ctxBar => {
+                                const i = ctxBar.dataIndex;
+                                if(ganhoCapital[i] > 0) return 0;
+                                return { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 };
+                            },
+                            borderSkipped: false,
+                            stack: 'patrimonio',
+                            order: 3,
+                            barPercentage: 0.78,
+                            categoryPercentage: 0.85
+                        },
+                        {
+                            label: 'Ganho capital',
+                            data: ganhoCapital,
+                            backgroundColor: gradGanho,
+                            borderColor: bordaTopoGanho,
+                            borderWidth: { top: 1.5, right: 0, bottom: 0, left: 0 },
+                            borderRadius: { topLeft: 8, topRight: 8, bottomLeft: 0, bottomRight: 0 },
+                            borderSkipped: false,
+                            stack: 'patrimonio',
+                            order: 2,
+                            barPercentage: 0.78,
+                            categoryPercentage: 0.85
+                        },
+                        {
+                            label: 'Perda capital',
+                            data: perdaCapital,
+                            backgroundColor: gradPerda,
+                            borderRadius: { bottomLeft: 8, bottomRight: 8, topLeft: 0, topRight: 0 },
+                            borderSkipped: false,
+                            stack: 'patrimonio',
+                            order: 4,
+                            barPercentage: 0.78,
+                            categoryPercentage: 0.85
+                        },
+                        {
+                            type: 'line',
+                            label: 'Dividendos',
+                            data: dividendos,
+                            borderColor: corInfo,
+                            backgroundColor: corComAlpha(corInfo, 0.08),
+                            borderDash: [5, 4],
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 5,
+                            pointBackgroundColor: corInfo,
+                            pointBorderColor: getToken('--cor-branco'),
+                            pointBorderWidth: 1.5,
+                            tension: 0.35,
+                            yAxisID: 'yDividendos',
+                            order: 0,
+                            hidden: !temDividendos
+                        }
                     ]
                 },
                 options: {
@@ -3686,28 +3972,41 @@
                     plugins: {
                         legend: { display: false },
                         datalabels: { display: false },
-                        tooltip: {
-                            callbacks: {
-                                label: ctx => `${ctx.dataset.label}: ${formatarMoeda(ctx.parsed.y)}`
-                            }
-                        }
+                        tooltip: { enabled: false, external: evolucaoHtmlTooltip }
                     },
                     scales: {
-                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10 } } },
+                        x: {
+                            stacked: true,
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { font: { size: 10 }, color: getToken('--cor-texto-mutado') }
+                        },
                         y: {
-                            ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)), font: { size: 10 } },
+                            stacked: true,
+                            ticks: {
+                                callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)),
+                                font: { size: 10 },
+                                color: getToken('--cor-texto-mutado')
+                            },
                             grid: { color: corGrid, drawTicks: false },
                             border: { display: false }
+                        },
+                        yDividendos: {
+                            display: false,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { display: false }
                         }
                     }
                 }
             });
 
             const itensLegenda = [
-                { label: 'Capital investido', cor: corInvestido },
-                { label: 'Ganho / Perda',    cor: corPositivo  }
+                { label: 'Capital aplicado', cor: corPrimaria },
+                { label: 'Ganho capital',    cor: corComAlpha(corPrimaria, 0.45) }
             ];
-            if(temDividendos) itensLegenda.push({ label: 'Dividendos', cor: corDividendo });
+            if(temPerdas)     itensLegenda.push({ label: 'Perda capital', cor: corErro });
+            if(temDividendos) itensLegenda.push({ label: 'Dividendos',    cor: corInfo });
             renderLegendaChart('legendaEvolucao', itensLegenda);
         }
 
@@ -3748,12 +4047,14 @@
         function renderizarGraficoDistribuicao(carteiraConsolidada) {
             const canvas = document.getElementById('graficoDistribuicaoCarteira');
             const msgVazia = document.getElementById('msgDistribuicaoVazia');
+            const donutCenter = document.getElementById('donutCenter');
             if(!canvas) return;
             const grupos = agruparCarteiraPorCategoria(carteiraConsolidada);
             const entries = Object.entries(grupos).filter(([,v]) => v.saldo > 0);
             if(entries.length === 0) {
                 if(chartDistribuicaoCarteira) { chartDistribuicaoCarteira.destroy(); chartDistribuicaoCarteira = null; }
                 canvas.style.display = 'none';
+                if(donutCenter) donutCenter.style.display = 'none';
                 if(msgVazia) msgVazia.style.display = 'block';
                 return;
             }
@@ -3770,7 +4071,7 @@
             if(chartDistribuicaoCarteira) chartDistribuicaoCarteira.destroy();
             chartDistribuicaoCarteira = new Chart(canvas.getContext('2d'), {
                 type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 3, borderColor: corBorda, hoverOffset: 6 }] },
+                data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 3, borderColor: corBorda, hoverOffset: 8 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
@@ -3784,13 +4085,36 @@
                         },
                         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarMoeda(ctx.parsed)} (${(ctx.parsed/total*100).toFixed(1)}%)` } }
                     },
-                    cutout: '62%'
+                    cutout: '68%'
                 }
             });
 
             renderLegendaChart('legendaDistribuicao',
                 entries.map(([k]) => ({ label: ROTULOS_SUB[k] || k, cor: paleta[k] || getToken('--cor-texto-mutado') }))
             );
+
+            // Insight no centro do donut: maior posição individual da carteira
+            if(donutCenter) {
+                let maiorTicker = null, maiorSaldo = 0;
+                for(const ticker in carteiraConsolidada) {
+                    const ativo = carteiraConsolidada[ticker];
+                    if(ativo.qtdTotal <= 0) continue;
+                    const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                    const cat = inferirCategoria(ticker, ativo, ativoMercado);
+                    let saldo;
+                    if(cat === 'previdencia') saldo = calcularSaldoPrevidencia(ticker);
+                    else saldo = ativo.qtdTotal * (ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio);
+                    if(saldo > maiorSaldo) { maiorSaldo = saldo; maiorTicker = ticker; }
+                }
+                if(maiorTicker && total > 0) {
+                    const perc = (maiorSaldo / total) * 100;
+                    document.getElementById('distMaiorPos').innerText = maiorTicker;
+                    document.getElementById('distMaiorDetalhe').innerHTML = `${perc.toFixed(1)}% · <span class="valor-mascarado" style="font-family:'DM Mono',monospace;">${formatarMoeda(maiorSaldo)}</span>`;
+                    donutCenter.style.display = 'block';
+                } else {
+                    donutCenter.style.display = 'none';
+                }
+            }
         }
 
         // ============================================================
@@ -3941,7 +4265,12 @@
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00"; document.getElementById('resumoRendimento').innerText = "R$ 0,00"; document.getElementById('resumoRentabilidade').innerText = "0,00%";
+                document.getElementById('resumoInvestido').innerText = "R$ 0,00";
+                document.getElementById('resumoRendimento').innerText = "R$ 0,00";
+                document.getElementById('resumoRentabilidade').innerText = "0,00%";
+                const elPat0 = document.getElementById('resumoPatrimonio'); if(elPat0) elPat0.innerText = "R$ 0,00";
+                const elDiv0 = document.getElementById('resumoDividendosAcum'); if(elDiv0) elDiv0.innerText = "R$ 0,00";
+                const elDesde0 = document.getElementById('kpiInvestidoDesde'); if(elDesde0) elDesde0.innerText = "Sem operações ainda";
                 atualizarBarraAlocacao(carteiraConsolidada);
                 return;
             }
@@ -3959,12 +4288,53 @@
             let lucroGeralR$ = saldoGeralAtual - totalGeralInvestido; let lucroGeralPerc = totalGeralInvestido > 0 ? (lucroGeralR$ / totalGeralInvestido) * 100 : 0;
             document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
 
+            // Patrimônio atual = capital aplicado + ganho/perda
+            const elPatrimonio = document.getElementById('resumoPatrimonio');
+            if(elPatrimonio) elPatrimonio.innerText = formatarMoeda(saldoGeralAtual);
+
+            // Badge de tendência (KPI primário)
+            const badgeTend = document.getElementById('resumoRentabilidadeBadge');
+            const iconTend = document.getElementById('iconResumoRent');
+            if(badgeTend && iconTend) {
+                badgeTend.classList.toggle('neg', lucroGeralR$ < 0);
+                iconTend.className = lucroGeralR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
+            }
+
             const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
             const titRend = document.getElementById('tituloRendimento');
 
-            cardRend.innerText = formatarMoeda(lucroGeralR$); cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
-            if(lucroGeralR$ < 0) { cardRend.style.color = 'var(--cor-erro)'; cardRent.style.color = 'var(--cor-erro)'; titRend.style.color = 'var(--cor-erro)'; }
-            else { cardRend.style.color = 'var(--cor-primaria)'; cardRent.style.color = 'var(--cor-primaria)'; titRend.style.color = 'var(--cor-primaria)'; }
+            cardRend.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${formatarMoeda(lucroGeralR$)}`;
+            cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
+            if(lucroGeralR$ < 0) {
+                cardRend.style.color = 'var(--cor-erro)';
+                if(titRend) titRend.style.color = '';
+            } else {
+                cardRend.style.color = 'var(--cor-primaria)';
+                if(titRend) titRend.style.color = '';
+            }
+
+            // Detalhe "desde 1ª compra"
+            const elDesde = document.getElementById('kpiInvestidoDesde');
+            if(elDesde) {
+                const datas = historicoCompras.filter(o => o.tipo !== 'venda' && o.data_op).map(o => o.data_op).sort();
+                if(datas.length) {
+                    const d = new Date(datas[0] + 'T12:00:00');
+                    const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                    elDesde.innerText = `desde ${lbl}`;
+                } else {
+                    elDesde.innerText = 'desde sua 1ª compra';
+                }
+            }
+
+            // Dividendos acumulados (12 meses) — usa a série já calculada pelo gráfico
+            const elDiv = document.getElementById('resumoDividendosAcum');
+            if(elDiv) {
+                try {
+                    const serie = calcularSerieEvolucao('todos');
+                    const totalDiv = serie.dividendos.reduce((a,b) => a + b, 0);
+                    elDiv.innerText = formatarMoeda(totalDiv);
+                } catch(_) { elDiv.innerText = formatarMoeda(0); }
+            }
 
             atualizarBarraAlocacao(carteiraConsolidada);
             atualizarProximoEvento(carteiraConsolidada);
