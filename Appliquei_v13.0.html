@@ -2779,6 +2779,9 @@
                 </div>
             </div>
 
+            <!-- PAINEL DE SAÚDE FINANCEIRA + PLANO SUGERIDO -->
+            <div id="painelSaudeSonhos"></div>
+
             <!-- LISTA DE SONHOS CADASTRADOS -->
             <div id="sonhosListaContainer"></div>
 
@@ -2829,12 +2832,12 @@
                         </div>
                     </div>
 
-                    <div class="grid-2-iguais" style="gap:14px;">
-                        <div class="form-group">
+                    <div class="grid-2-iguais" style="gap:14px;align-items:end;">
+                        <div class="form-group" style="margin-bottom:0;">
                             <label>Já tem algum valor guardado? (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group" style="margin-bottom:0;">
                             <label>Categoria</label>
                             <select id="sonhoCategoria" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
                                 <option value="viagem">✈️ Viagem</option>
@@ -7187,6 +7190,172 @@
             localStorage.setItem('appliquei_sonhos', JSON.stringify(sonhos));
         }
 
+        function analisarSaudeFinanceiraSonhos() {
+            // Analisa os últimos 3 meses fechados + mês corrente para inferir saúde financeira
+            const hoje = new Date();
+            let receita = 0, despesa = 0, invest = 0, mesesComDados = 0;
+            for(let i = 0; i < 4; i++) {
+                const ref = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+                const r = calcularResumoMes(ref.getMonth(), ref.getFullYear());
+                const totalMov = r.receita + r.despFixa + r.despVar + r.cartao + r.invFixo + r.invVar + r.resgate;
+                if(totalMov > 0) {
+                    receita += r.receita + r.resgate;
+                    despesa += r.despFixa + r.despVar + r.cartao;
+                    invest  += r.invFixo + r.invVar;
+                    mesesComDados++;
+                }
+            }
+            if(mesesComDados === 0) {
+                return { semDados: true };
+            }
+            const receitaMedia = receita / mesesComDados;
+            const despesaMedia = despesa / mesesComDados;
+            const investMedio  = invest  / mesesComDados;
+            const sobraMedia   = receitaMedia - despesaMedia - investMedio;
+            const taxaPoupanca = receitaMedia > 0 ? (sobraMedia / receitaMedia) * 100 : 0;
+            const compromissoSonhos = sonhos.reduce((acc,s) => {
+                if(s.valorAtual >= s.valorTotal || s.mesesRestantes <= 0) return acc;
+                return acc + calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+            }, 0);
+
+            // Reserva ~30% da sobra como folga; recomenda até 70% para sonhos
+            const recomendadoSonhos = Math.max(0, sobraMedia * 0.7);
+
+            let nivel, cor, titulo, diagnostico;
+            if(sobraMedia <= 0) {
+                nivel = 'critico'; cor = '#ef4444';
+                titulo = 'Atenção: suas despesas estão consumindo toda a renda';
+                diagnostico = 'Antes de acelerar os sonhos, é preciso equilibrar o fluxo do mês. Reveja despesas variáveis e renegocie contas fixas.';
+            } else if(taxaPoupanca < 10) {
+                nivel = 'frágil'; cor = '#f59e0b';
+                titulo = 'Saúde financeira frágil — poupança abaixo de 10%';
+                diagnostico = 'Há sobra, mas pequena. Comece com sonhos de prazo mais longo e foco em construir reserva antes de alvos ousados.';
+            } else if(taxaPoupanca < 25) {
+                nivel = 'estável'; cor = '#0ea5e9';
+                titulo = 'Saúde financeira estável — taxa de poupança saudável';
+                diagnostico = 'Você tem espaço para um plano consistente. Distribua a sobra entre 1-2 sonhos prioritários.';
+            } else {
+                nivel = 'forte'; cor = '#10b981';
+                titulo = 'Saúde financeira forte — alta capacidade de investimento';
+                diagnostico = 'Excelente folga mensal. Pode mirar sonhos maiores ou acelerar prazos com aportes mais agressivos.';
+            }
+
+            return {
+                semDados: false,
+                mesesComDados, receitaMedia, despesaMedia, investMedio, sobraMedia,
+                taxaPoupanca, compromissoSonhos, recomendadoSonhos,
+                nivel, cor, titulo, diagnostico
+            };
+        }
+
+        function gerarPlanoSugerido(saude) {
+            if(saude.semDados) {
+                return [
+                    'Cadastre suas receitas e despesas na aba <strong>Controle de Caixa</strong> para que o app gere um plano sob medida para você.',
+                    'Sem dados de fluxo de caixa, a sugestão padrão é: separar até <strong>20% da renda líquida</strong> para sonhos e <strong>10%</strong> para reserva de emergência.'
+                ];
+            }
+            const passos = [];
+            const fmt = v => formatarMoeda(v);
+            if(saude.sobraMedia <= 0) {
+                passos.push(`Sua despesa média (${fmt(saude.despesaMedia)}) está acima da sua receita média (${fmt(saude.receitaMedia)}). <strong>Primeiro passo: reequilibrar o mês.</strong>`);
+                passos.push('Liste despesas variáveis que podem ser cortadas em até 30 dias e renegocie pelo menos 1 conta fixa (internet, plano, assinaturas).');
+                passos.push('Quando a sobra mensal for positiva, reserve 70% dela para os sonhos e 30% como folga.');
+                return passos;
+            }
+            passos.push(`Sua sobra média é de <strong>${fmt(saude.sobraMedia)}/mês</strong> (taxa de poupança de ${saude.taxaPoupanca.toFixed(1)}%).`);
+            passos.push(`Sugerimos destinar até <strong>${fmt(saude.recomendadoSonhos)}/mês</strong> aos seus sonhos (70% da sobra), mantendo ${fmt(saude.sobraMedia - saude.recomendadoSonhos)} como folga e reserva.`);
+            if(saude.compromissoSonhos > 0) {
+                if(saude.compromissoSonhos > saude.recomendadoSonhos) {
+                    passos.push(`<strong>Alerta:</strong> a soma dos aportes mensais necessários para seus sonhos (${fmt(saude.compromissoSonhos)}) ultrapassa o recomendado. Considere estender prazos ou priorizar 1-2 sonhos.`);
+                } else {
+                    passos.push(`Você está comprometendo <strong>${fmt(saude.compromissoSonhos)}/mês</strong> com seus sonhos atuais — dentro da sua capacidade.`);
+                }
+            }
+            if(saude.taxaPoupanca >= 25) {
+                passos.push('Com sobra robusta, vale aplicar parte em renda fixa (CDB/Tesouro) e ações/FIIs para acelerar a meta.');
+            } else if(saude.taxaPoupanca >= 10) {
+                passos.push('Mantenha a reserva de emergência completa (3-6× despesas) antes de acelerar sonhos com prazo longo.');
+            } else {
+                passos.push('Foque em <strong>aumentar a renda</strong> ou cortar despesas para elevar a taxa de poupança acima de 10% — base para qualquer plano.');
+            }
+            return passos;
+        }
+
+        function renderPainelSaudeSonhos() {
+            const el = document.getElementById('painelSaudeSonhos');
+            if(!el) return;
+            const saude = analisarSaudeFinanceiraSonhos();
+            const passos = gerarPlanoSugerido(saude);
+
+            if(saude.semDados) {
+                el.innerHTML = `<div class="card-container" style="margin-bottom:18px;border-left:4px solid #6366f1;">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                        <i class="ph-fill ph-lightbulb" style="font-size:20px;color:#6366f1;"></i>
+                        <h3 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Plano sugerido pela Appliquei</h3>
+                    </div>
+                    <ul style="margin:8px 0 0 18px;padding:0;color:var(--cor-texto-mutado);font-size:13px;line-height:1.65;">
+                        ${passos.map(p => `<li style="margin-bottom:4px;">${p}</li>`).join('')}
+                    </ul>
+                </div>`;
+                return;
+            }
+
+            const fmt = v => formatarMoeda(v);
+            const corBg = saude.nivel === 'crítico' ? 'rgba(239,68,68,0.08)' :
+                          saude.nivel === 'frágil'  ? 'rgba(245,158,11,0.08)' :
+                          saude.nivel === 'estável' ? 'rgba(14,165,233,0.08)' :
+                                                      'rgba(16,185,129,0.08)';
+
+            el.innerHTML = `<div class="card-container" style="margin-bottom:18px;border-left:4px solid ${saude.cor};">
+                <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px;">
+                    <div style="flex:1;min-width:240px;">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <i class="ph-fill ph-heartbeat" style="font-size:20px;color:${saude.cor};"></i>
+                            <h3 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Análise da sua saúde financeira</h3>
+                            <span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;padding:3px 8px;border-radius:999px;background:${corBg};color:${saude.cor};">${saude.nivel}</span>
+                        </div>
+                        <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);margin-bottom:4px;">${saude.titulo}</div>
+                        <div style="font-size:12.5px;color:var(--cor-texto-mutado);line-height:1.5;">${saude.diagnostico}</div>
+                        <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;">Baseado em ${saude.mesesComDados} ${saude.mesesComDados === 1 ? 'mês' : 'meses'} de dados do Controle de Caixa.</div>
+                    </div>
+                </div>
+
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Receita média</div>
+                        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#10b981;margin-top:2px;">${fmt(saude.receitaMedia)}</div>
+                    </div>
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Despesa média</div>
+                        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#ef4444;margin-top:2px;">${fmt(saude.despesaMedia)}</div>
+                    </div>
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Sobra média</div>
+                        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${saude.sobraMedia >= 0 ? 'var(--cor-primaria)' : '#ef4444'};margin-top:2px;">${fmt(saude.sobraMedia)}</div>
+                    </div>
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Taxa de poupança</div>
+                        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${saude.cor};margin-top:2px;">${saude.taxaPoupanca.toFixed(1)}%</div>
+                    </div>
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:${corBg};">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Recomendado p/ sonhos</div>
+                        <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:${saude.cor};margin-top:2px;">${fmt(saude.recomendadoSonhos)}</div>
+                    </div>
+                </div>
+
+                <div style="padding:14px;border-radius:10px;background:${corBg};border:1px solid ${saude.cor}33;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                        <i class="ph-fill ph-lightbulb" style="font-size:16px;color:${saude.cor};"></i>
+                        <strong style="font-size:12.5px;color:var(--cor-texto-principal);">Plano sugerido para você</strong>
+                    </div>
+                    <ul style="margin:0 0 0 18px;padding:0;color:var(--cor-texto-mutado);font-size:12.5px;line-height:1.65;">
+                        ${passos.map(p => `<li style="margin-bottom:4px;">${p}</li>`).join('')}
+                    </ul>
+                </div>
+            </div>`;
+        }
+
         function calcSonhoMensal(valorTotal, valorAtual, mesesRestantes) {
             if(mesesRestantes <= 0) return 0;
             const falta = valorTotal - valorAtual;
@@ -7331,6 +7500,8 @@
                 const fim = new Date(s.dataFim);
                 s.mesesRestantes = Math.max(0, mesesEntre(agora, fim));
             });
+
+            renderPainelSaudeSonhos();
 
             if(sonhos.length === 0) {
                 container.innerHTML = '';
