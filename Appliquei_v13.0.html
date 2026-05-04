@@ -654,6 +654,15 @@
         }
         .chip-cat:hover { background: var(--cor-superficie); }
         .chip-cat.ativo { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .legenda-chart { display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+        .chip-legenda {
+            display:inline-flex; align-items:center; gap:6px;
+            background-color: var(--cor-branco); color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda); padding: 4px 10px; border-radius: 99px;
+            font-size: 11.5px; font-weight: 600; font-family: 'Figtree', sans-serif;
+            line-height: 1.4;
+        }
+        .chip-legenda .dot { width: 8px; height: 8px; border-radius: 99px; flex-shrink: 0; }
         /* Colunas avançadas da tabela da carteira — ocultas por padrão */
         #tabelaCarteira .col-extra { display: none; }
         #tabelaCarteira.com-extras .col-extra { display: table-cell; }
@@ -1247,9 +1256,10 @@
                             </div>
                         </div>
                     </div>
-                    <div style="position: relative; height: 240px;">
+                    <div style="position: relative; height: 280px;">
                         <canvas id="graficoEvolucaoCarteira"></canvas>
                     </div>
+                    <div id="legendaEvolucao" class="legenda-chart"></div>
                     <div id="msgEvolucaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
                         <i class="ph ph-chart-bar" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
                         Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
@@ -1259,9 +1269,10 @@
                     <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
                         <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice"></i> Distribuição da carteira</h3>
                     </div>
-                    <div style="position: relative; height: 240px;">
+                    <div style="position: relative; height: 280px;">
                         <canvas id="graficoDistribuicaoCarteira"></canvas>
                     </div>
+                    <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
                     <div id="msgDistribuicaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
                         <i class="ph ph-chart-pie-slice" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
                         Cadastre ativos para ver a distribuição.
@@ -2255,6 +2266,14 @@
             document.body.classList.toggle('dark');
             const icon = document.getElementById('iconTheme');
             if(icon) icon.className = document.body.classList.contains('dark') ? 'ph ph-moon' : 'ph ph-sun';
+            // Re-aplica tokens nos gráficos e força re-render
+            if(typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
+            try {
+                if(typeof renderizarGraficoEvolucao === 'function') renderizarGraficoEvolucao();
+                if(typeof obterResumoCarteira === 'function' && typeof renderizarGraficoDistribuicao === 'function') {
+                    renderizarGraficoDistribuicao(obterResumoCarteira());
+                }
+            } catch(_) {}
         }
 
         function aplicarEstadoValoresOcultos(oculto) {
@@ -3564,9 +3583,64 @@
             return { meses, investido, mercado, dividendos };
         }
 
+        // ============================================================
+        // === TEMA DOS GRÁFICOS — alinhado ao design system          ===
+        // ============================================================
+        function getToken(nome) {
+            return getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+        }
+
+        function aplicarTemaChartJs() {
+            if(typeof Chart === 'undefined') return;
+            Chart.defaults.font.family = "'Figtree', system-ui, -apple-system, sans-serif";
+            Chart.defaults.font.size = 11;
+            Chart.defaults.color = getToken('--cor-texto-secundario');
+            Chart.defaults.borderColor = getToken('--cor-borda');
+            Chart.defaults.plugins.tooltip.backgroundColor = getToken('--cor-texto-principal');
+            Chart.defaults.plugins.tooltip.titleColor = getToken('--cor-branco');
+            Chart.defaults.plugins.tooltip.bodyColor = getToken('--cor-branco');
+            Chart.defaults.plugins.tooltip.titleFont = { family: "'Figtree', sans-serif", size: 12, weight: '600' };
+            Chart.defaults.plugins.tooltip.bodyFont = { family: "'DM Mono', monospace", size: 11 };
+            Chart.defaults.plugins.tooltip.padding = 10;
+            Chart.defaults.plugins.tooltip.cornerRadius = 8;
+            Chart.defaults.plugins.tooltip.boxPadding = 4;
+            Chart.defaults.plugins.tooltip.displayColors = true;
+        }
+
+        // Paleta da carteira: verde monocromático para Renda Variável + acentos por classe
+        function paletaCarteira() {
+            const dark = document.body.classList.contains('dark');
+            return {
+                acoes:              dark ? '#34d399' : '#059669',
+                fiis:               dark ? '#6ee7b7' : '#10b981',
+                bdrs:               dark ? '#a7f3d0' : '#047857',
+                etfs:               dark ? '#10b981' : '#34d399',
+                cripto:             getToken('--cor-cartao'),
+                renda_fixa:         getToken('--cor-info'),
+                previdencia:        dark ? '#a78bfa' : '#7c3aed',
+                reserva_emergencia: getToken('--cor-texto-mutado')
+            };
+        }
+
+        function corComAlpha(hex, alpha) {
+            const h = hex.replace('#','');
+            if(h.length !== 6) return hex;
+            const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+            return `rgba(${r},${g},${b},${alpha})`;
+        }
+
+        function renderLegendaChart(containerId, itens) {
+            const c = document.getElementById(containerId);
+            if(!c) return;
+            c.innerHTML = itens.map(it =>
+                `<span class="chip-legenda"><span class="dot" style="background:${it.cor}"></span>${it.label}</span>`
+            ).join('');
+        }
+
         function renderizarGraficoEvolucao() {
             const canvas = document.getElementById('graficoEvolucaoCarteira');
             const msgVazia = document.getElementById('msgEvolucaoVazia');
+            const legendaEl = document.getElementById('legendaEvolucao');
             if(!canvas) return;
 
             const filtro = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
@@ -3575,6 +3649,7 @@
             if(serie.meses.length === 0) {
                 if(chartEvolucaoCarteira) { chartEvolucaoCarteira.destroy(); chartEvolucaoCarteira = null; }
                 canvas.style.display = 'none';
+                if(legendaEl) legendaEl.innerHTML = '';
                 if(msgVazia) msgVazia.style.display = 'block';
                 return;
             }
@@ -3583,7 +3658,15 @@
 
             const labels = serie.meses.map(d => d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }).replace('.', '').toUpperCase());
             const ganhoPerda = serie.mercado.map((v,i) => v - serie.investido[i]);
-            const corGanhoPerda = ganhoPerda.map(v => v >= 0 ? '#059669' : '#dc2626');
+
+            const corInvestido = getToken('--cor-texto-mutado');
+            const corPositivo  = getToken('--cor-primaria');
+            const corNegativo  = getToken('--cor-erro');
+            const corDividendo = getToken('--cor-info');
+            const corGrid      = corComAlpha(getToken('--cor-borda'), 0.6);
+
+            const corGanhoPerda = ganhoPerda.map(v => v >= 0 ? corPositivo : corNegativo);
+            const temDividendos = serie.dividendos.some(v => v > 0);
 
             if(chartEvolucaoCarteira) chartEvolucaoCarteira.destroy();
             chartEvolucaoCarteira = new Chart(canvas.getContext('2d'), {
@@ -3591,9 +3674,9 @@
                 data: {
                     labels: labels,
                     datasets: [
-                        { label: 'Capital investido', data: serie.investido, backgroundColor: '#94a3b8', borderRadius: 4, yAxisID: 'y', order: 2 },
-                        { label: 'Ganho / Perda', data: ganhoPerda, backgroundColor: corGanhoPerda, borderRadius: 4, yAxisID: 'y', order: 1 },
-                        { label: 'Dividendos', data: serie.dividendos, backgroundColor: '#7c3aed', borderRadius: 4, yAxisID: 'y2', order: 0 }
+                        { label: 'Capital investido', data: serie.investido, backgroundColor: corInvestido, borderRadius: 8, borderSkipped: false, order: 2 },
+                        { label: 'Ganho / Perda', data: ganhoPerda, backgroundColor: corGanhoPerda, borderRadius: 8, borderSkipped: false, order: 1 },
+                        { label: 'Dividendos', data: serie.dividendos, backgroundColor: corDividendo, borderRadius: 8, borderSkipped: false, order: 0 }
                     ]
                 },
                 options: {
@@ -3601,7 +3684,7 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
+                        legend: { display: false },
                         datalabels: { display: false },
                         tooltip: {
                             callbacks: {
@@ -3610,12 +3693,22 @@
                         }
                     },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                        y: { position: 'left', ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)), font: { size: 10 } }, grid: { color: '#f1f5f9' } },
-                        y2: { position: 'right', display: serie.dividendos.some(v => v > 0), ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(1) + 'k' : v.toFixed(0)), font: { size: 10 } }, grid: { display: false }, beginAtZero: true }
+                        x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 10 } } },
+                        y: {
+                            ticks: { callback: v => 'R$ ' + (Math.abs(v) >= 1000 ? (v/1000).toFixed(0) + 'k' : v.toFixed(0)), font: { size: 10 } },
+                            grid: { color: corGrid, drawTicks: false },
+                            border: { display: false }
+                        }
                     }
                 }
             });
+
+            const itensLegenda = [
+                { label: 'Capital investido', cor: corInvestido },
+                { label: 'Ganho / Perda',    cor: corPositivo  }
+            ];
+            if(temDividendos) itensLegenda.push({ label: 'Dividendos', cor: corDividendo });
+            renderLegendaChart('legendaEvolucao', itensLegenda);
         }
 
         // ============================================================
@@ -3624,10 +3717,6 @@
         const ROTULOS_SUB = {
             acoes: 'Ações', fiis: 'FIIs', bdrs: 'BDRs', etfs: 'ETFs', cripto: 'Criptomoedas',
             renda_fixa: 'Renda Fixa', previdencia: 'Previdência', reserva_emergencia: 'Reserva de Emergência'
-        };
-        const CORES_SUB = {
-            acoes: '#2563eb', fiis: '#0ea5e9', bdrs: '#6366f1', etfs: '#14b8a6', cripto: '#f59e0b',
-            renda_fixa: '#059669', previdencia: '#7c3aed', reserva_emergencia: '#d97706'
         };
 
         // Agrupa carteira em "categorias" finais (subcategorias de RV + RF/Prev/Reserva)
@@ -3671,31 +3760,37 @@
             canvas.style.display = 'block';
             if(msgVazia) msgVazia.style.display = 'none';
 
+            const paleta = paletaCarteira();
             const labels = entries.map(([k]) => ROTULOS_SUB[k] || k);
             const data = entries.map(([,v]) => v.saldo);
-            const cores = entries.map(([k]) => CORES_SUB[k] || '#64748b');
+            const cores = entries.map(([k]) => paleta[k] || getToken('--cor-texto-mutado'));
             const total = data.reduce((a,b)=>a+b, 0);
+            const corBorda = getToken('--cor-branco');
 
             if(chartDistribuicaoCarteira) chartDistribuicaoCarteira.destroy();
             chartDistribuicaoCarteira = new Chart(canvas.getContext('2d'), {
                 type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 2, borderColor: '#fff' }] },
+                data: { labels, datasets: [{ data, backgroundColor: cores, borderWidth: 3, borderColor: corBorda, hoverOffset: 6 }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11 }, padding: 8 } },
+                        legend: { display: false },
                         datalabels: {
                             color: '#fff',
-                            font: { weight: '700', size: 11 },
+                            font: { family: "'Figtree', sans-serif", weight: '700', size: 11 },
                             formatter: (v) => total > 0 ? `${(v/total*100).toFixed(1)}%` : '',
-                            display: ctx => ctx.parsed > total * 0.05
+                            display: ctx => ctx.parsed > total * 0.06
                         },
                         tooltip: { callbacks: { label: ctx => `${ctx.label}: ${formatarMoeda(ctx.parsed)} (${(ctx.parsed/total*100).toFixed(1)}%)` } }
                     },
-                    cutout: '55%'
+                    cutout: '62%'
                 }
             });
+
+            renderLegendaChart('legendaDistribuicao',
+                entries.map(([k]) => ({ label: ROTULOS_SUB[k] || k, cor: paleta[k] || getToken('--cor-texto-mutado') }))
+            );
         }
 
         // ============================================================
@@ -3747,8 +3842,9 @@
             const ordem = ['acoes','fiis','bdrs','etfs','cripto','renda_fixa','previdencia','reserva_emergencia'];
             entries.sort((a,b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
 
+            const paleta = paletaCarteira();
             container.innerHTML = entries.map(([k, v]) => {
-                const cor = CORES_SUB[k] || '#64748b';
+                const cor = paleta[k] || getToken('--cor-texto-mutado');
                 const rotulo = ROTULOS_SUB[k] || k;
                 const saldoAnterior = snapAnterior?.porGrupo?.[k] || 0;
                 let variacaoR$ = 0; let variacaoPerc = 0; let labelVariacao = 'Sem histórico';
@@ -5673,6 +5769,7 @@
 
         // --- INICIALIZAÇÃO ---
         window.onload = function() {
+            aplicarTemaChartJs();
             inicializarDatalistAtivos();
             inicializarDatalistCorretoras();
             carregarMetas();
