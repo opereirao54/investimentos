@@ -1660,7 +1660,7 @@
                         <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
                         <div class="kpi-value" id="resumoRendimento">R$ 0,00</div>
                         <div class="kpi-detail">
-                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
+                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos <span id="resumoDividendosPeriodo" style="font-size:10px;opacity:0.7;font-weight:500;">(3M)</span>: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
                         </div>
                     </div>
                 </div>
@@ -4007,6 +4007,24 @@
                 b.classList.toggle('ativo', ativo);
             });
             renderizarGraficoEvolucao();
+            atualizarChipDividendosPeriodo();
+        }
+
+        function rotuloPeriodoEvolucao() {
+            if(periodoEvolucao === 0) return 'tudo';
+            return `${periodoEvolucao}M`;
+        }
+
+        function atualizarChipDividendosPeriodo() {
+            const elDiv = document.getElementById('resumoDividendosAcum');
+            const elPer = document.getElementById('resumoDividendosPeriodo');
+            if(elPer) elPer.innerText = `(${rotuloPeriodoEvolucao()})`;
+            if(!elDiv) return;
+            try {
+                const serie = calcularSerieEvolucao('todos');
+                const totalDiv = serie.dividendos.reduce((a,b) => a + b, 0);
+                elDiv.innerText = formatarMoeda(totalDiv);
+            } catch(_) { elDiv.innerText = formatarMoeda(0); }
         }
 
         // Acumula posição (qtd) por ticker até o final de cada mês
@@ -4822,15 +4840,9 @@
                 }
             }
 
-            // Dividendos acumulados (12 meses) — usa a série já calculada pelo gráfico
-            const elDiv = document.getElementById('resumoDividendosAcum');
-            if(elDiv) {
-                try {
-                    const serie = calcularSerieEvolucao('todos');
-                    const totalDiv = serie.dividendos.reduce((a,b) => a + b, 0);
-                    elDiv.innerText = formatarMoeda(totalDiv);
-                } catch(_) { elDiv.innerText = formatarMoeda(0); }
-            }
+            // Dividendos acumulados — soma a série já calculada pelo gráfico,
+            // respeitando o período selecionado (3M/6M/12M/Tudo).
+            atualizarChipDividendosPeriodo();
 
             atualizarBarraAlocacao(carteiraConsolidada);
             atualizarProximoEvento(carteiraConsolidada);
