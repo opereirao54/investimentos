@@ -5717,12 +5717,9 @@
 
         function alternarFiltroPagamentosTicker(ticker) {
             filtroPagamentosTicker = (filtroPagamentosTicker === ticker) ? '' : (ticker || '');
-            renderizarTabelaPagamentos();
-            // Realça a linha selecionada na tabela "Por ativo"
-            document.querySelectorAll('#tabelaDividendosCorpo tr[data-ticker]').forEach(tr => {
-                const sel = tr.dataset.ticker === filtroPagamentosTicker;
-                tr.style.background = sel ? 'var(--cor-bg-primaria)' : '';
-            });
+            // Atualiza também o filtro principal para recalcular cards e gráficos
+            dividendosFiltroAtivo = filtroPagamentosTicker;
+            carregarDividendos();
             // Atualiza o chip de filtro ativo
             const chip = document.getElementById('chipFiltroPagamentos');
             const lbl = document.getElementById('filtroPagamentosLabel');
