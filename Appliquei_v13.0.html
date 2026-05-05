@@ -3331,7 +3331,11 @@
             });
             if(filtros) filtros.style.display = (qual === 'carteira') ? 'flex' : 'none';
             btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
-            if(qual === 'dividendos') carregarDividendos();
+            // Ao mudar para dividendos, limpa o filtro de ativo e recarrega
+            if(qual === 'dividendos') {
+                dividendosFiltroAtivo = '';
+                carregarDividendos();
+            }
             if(qual === 'operacoes') renderizarOperacoes();
             atualizarMiniStats(qual);
         }
@@ -5643,11 +5647,10 @@
                             <div class="rich-expand-stat"><div class="re-label">Preço Atual</div><div class="re-value">${formatarMoeda(precoAtual)}</div></div>
                             <div class="rich-expand-stat"><div class="re-label">Saldo</div><div class="re-value valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</div></div>
                             <div class="rich-expand-stat"><div class="re-label">Resultado</div><div class="re-value" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)} (${sinalLucro}${lucroPerc.toFixed(2)}%)</div></div>
-                            ${corretoraTag ? `<div class="rich-expand-stat"><div class="re-label">Corretora</div><div class="re-value">${ativo.corretora}</div></div>` : ''}
                         </div>
                         <div class="rich-expand-actions">
                             <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();"><i class="ph ph-list-bullets"></i> Operações</button>
-                            <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('dividendos');"><i class="ph ph-coins"></i> Dividendos</button>
+                            <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('dividendos');filtrarDividendosPorAtivo('${ticker}');"><i class="ph ph-coins"></i> Dividendos</button>
                         </div>
                     </div>`;
 
@@ -5702,8 +5705,15 @@
         let pagamentosMensaisAgregados = [];
         // Filtro de ticker da tabela "Pagamentos recentes" (ativado ao clicar em "Por ativo")
         let filtroPagamentosTicker = '';
+        // Filtro global para dividendos (gráficos e cards) - usado quando clica no ativo na carteira
+        let dividendosFiltroAtivo = '';
 
         const MES_LABEL_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+        function filtrarDividendosPorAtivo(ticker) {
+            dividendosFiltroAtivo = ticker || '';
+            carregarDividendos();
+        }
 
         function alternarFiltroPagamentosTicker(ticker) {
             filtroPagamentosTicker = (filtroPagamentosTicker === ticker) ? '' : (ticker || '');
@@ -5978,10 +5988,30 @@
                 }).join('');
             }
 
+            // Filtra por ativo se houver um selecionado (via clicar no ativo na carteira)
+            const todosPagamentosFiltrados = dividendosFiltroAtivo 
+                ? todosPagamentos.filter(p => p.ticker === dividendosFiltroAtivo)
+                : todosPagamentos;
+            const linhasAtivosFiltradas = dividendosFiltroAtivo
+                ? linhasAtivos.filter(l => l.ticker === dividendosFiltroAtivo)
+                : linhasAtivos;
+
+            // Recalcula totais com o filtro aplicado
+            let totalGeralFiltrado = 0;
+            let total12mFiltrado = 0;
+            let totalInvestidoYOCFiltrado = 0;
+            if(dividendosFiltroAtivo) {
+                linhasAtivosFiltradas.forEach(l => {
+                    totalGeralFiltrado += l.recebidoTotal;
+                    total12mFiltrado += l.recebido12m;
+                    totalInvestidoYOCFiltrado += Math.max(l.investido, 0);
+                });
+            }
+
             // Agrega pagamentos por (ticker, ano-mês). JCP mensal + dividendos extras
             // do mesmo mês viram uma única linha — somando o total e o R$/cota.
             const agregadoMap = new Map();
-            todosPagamentos.forEach(p => {
+            todosPagamentosFiltrados.forEach(p => {
                 if(!p.data) return;
                 const d = new Date(p.data + (p.data.length === 10 ? 'T12:00:00' : ''));
                 const chave = `${p.ticker}|${d.getFullYear()}-${d.getMonth()}`;
@@ -6011,10 +6041,15 @@
             }
             renderizarTabelaPagamentos();
 
-            cardTotal.innerText = formatarMoeda(totalGeral);
-            card12m.innerText = formatarMoeda(total12m);
-            cardYOC.innerText = totalInvestidoYOC > 0 ? `${(totalGeral / totalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
-            cardMedia.innerText = formatarMoeda(total12m / 12);
+            // Usa valores filtrados ou globais
+            const displayTotalGeral = dividendosFiltroAtivo ? totalGeralFiltrado : totalGeral;
+            const displayTotal12m = dividendosFiltroAtivo ? total12mFiltrado : total12m;
+            const displayTotalInvestidoYOC = dividendosFiltroAtivo ? totalInvestidoYOCFiltrado : totalInvestidoYOC;
+
+            cardTotal.innerText = formatarMoeda(displayTotalGeral);
+            card12m.innerText = formatarMoeda(displayTotal12m);
+            cardYOC.innerText = displayTotalInvestidoYOC > 0 ? `${(displayTotalGeral / displayTotalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
+            cardMedia.innerText = formatarMoeda(displayTotal12m / 12);
 
             // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
             renderizarGraficoEvolucao();
@@ -6022,8 +6057,8 @@
             // O chip "Dividendos" no KPI usa pagamentosMensaisAgregados — refresha agora.
             atualizarChipDividendosPeriodo();
             // New: render bar chart and ranking
-            renderizarDividendosMensal(todosPagamentos);
-            renderizarRankingDividendos(linhasAtivos);
+            renderizarDividendosMensal(todosPagamentosFiltrados);
+            renderizarRankingDividendos(linhasAtivosFiltradas);
         }
 
         let chartDivMensal = null;
