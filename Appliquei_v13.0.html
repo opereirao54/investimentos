@@ -696,7 +696,7 @@
 
         .rich-row {
             display: grid;
-            grid-template-columns: 48px 1fr 100px 80px 120px 100px;
+            grid-template-columns: 48px 1fr 110px 110px 80px 120px 100px;
             gap: 0; padding: 14px 20px; align-items: center;
             border-bottom: 1px solid var(--cor-borda); transition: background 0.15s;
             cursor: pointer;
@@ -731,6 +731,18 @@
         .rich-saldo {
             text-align: right; font-size: 14px; font-weight: 700;
             font-family: 'DM Mono', monospace; color: var(--cor-texto-principal);
+        }
+        .rich-pm {
+            text-align: right; display: flex; flex-direction: column; gap: 1px;
+            padding-right: 8px;
+        }
+        .rich-pm-label {
+            font-size: 9.5px; font-weight: 600; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .rich-pm-valor {
+            font-size: 13px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-secundario);
         }
         .rich-sparkline { display: flex; align-items: center; justify-content: center; }
         .rich-sparkline canvas { width: 72px !important; height: 28px !important; }
@@ -906,8 +918,8 @@
 
         /* Responsive adjustments for rich rows */
         @media (max-width: 900px) {
-            .rich-row { grid-template-columns: 40px 1fr 90px 80px; }
-            .rich-sparkline, .rich-overflow { display: none; }
+            .rich-row { grid-template-columns: 40px 1fr 90px 90px; }
+            .rich-sparkline, .rich-overflow, .rich-pm { display: none; }
         }
         @media (max-width: 600px) {
             .rich-row { grid-template-columns: 36px 1fr 70px; padding: 10px 14px; }
@@ -1617,6 +1629,37 @@
         </div>
     </div>
 
+    <div id="modalDividendosMes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalDividendosMes()">
+        <div style="max-width:680px;width:94%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+                <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-coins" style="color:var(--cor-primaria);"></i> Dividendos previstos do mês</h3>
+                <button class="drawer-fechar" onclick="fecharModalDividendosMes()" aria-label="Fechar" style="background:none;border:none;cursor:pointer;color:var(--cor-texto-mutado);font-size:18px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div id="subtituloModalDividendosMes" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:14px;"></div>
+            <div style="overflow:auto;flex:1;border-top:1px solid var(--cor-borda);padding-top:10px;">
+                <table class="tabela-dashboard" style="width:100%;font-size:12.5px;">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Ativo</th>
+                            <th style="text-align:right;">Valor por ação</th>
+                            <th style="text-align:right;">Qtd.</th>
+                            <th style="text-align:right;">Total previsto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corpoModalDividendosMes"></tbody>
+                    <tfoot id="rodapeModalDividendosMes"></tfoot>
+                </table>
+                <div id="msgVaziaModalDividendosMes" style="display:none;padding:30px 10px;text-align:center;color:var(--cor-texto-mutado);font-size:13px;">
+                    <i class="ph ph-coins" style="font-size:26px;opacity:0.4;display:block;margin-bottom:6px;"></i>
+                    Sem dividendos previstos no mês corrente.
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secundario" style="flex:1;" onclick="fecharModalDividendosMes()">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
@@ -1837,6 +1880,9 @@
                             <option value="previdencia">Previdência</option>
                             <option value="reserva_emergencia">Reserva</option>
                         </select>
+                        <select id="filtroEvolucaoAtivo" onchange="renderizarGraficoEvolucao()" title="Filtrar por ativo">
+                            <option value="">Todos os ativos</option>
+                        </select>
                         <div class="period-pills">
                             <button class="period-pill ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)">3M</button>
                             <button class="period-pill" data-periodo="6" onclick="setPeriodoEvolucao(6)">6M</button>
@@ -1895,8 +1941,11 @@
                         Cadastre ativos para ver a distribuição.
                     </div>
                 </div>
-                <div class="card-container" style="padding: 16px 18px;">
-                    <h3 id="tituloProximoEvento" style="font-size: 13px; font-weight:700; margin:0 0 14px; display:flex; align-items:center; gap:6px;"><i class="ph ph-calendar-check" style="color: var(--cor-primaria);"></i> Próximo evento</h3>
+                <div class="card-container" id="cardProximoEvento" style="padding: 16px 18px; transition: box-shadow 0.15s, border-color 0.15s;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <h3 id="tituloProximoEvento" style="font-size: 13px; font-weight:700; margin:0 0 14px; display:flex; align-items:center; gap:6px;"><i class="ph ph-calendar-check" style="color: var(--cor-primaria);"></i> Próximo evento</h3>
+                        <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria); font-size: 16px;"></i>
+                    </div>
                     <div class="kpi-value" id="resumoProximoEvento" style="font-size: 17px; line-height: 1.3;">—</div>
                     <div id="resumoProximoEventoDetalhe" style="font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; font-family: 'Figtree', sans-serif;"></div>
                 </div>
@@ -4251,6 +4300,9 @@
         // ============================================================
         // === KPI: Próximo evento (foco em dividendos do mês corrente) ===
         // ============================================================
+        // Cache global dos dividendos previstos do mês corrente, para abrir o modal detalhado.
+        let dividendosPrevistosMes = [];
+
         function atualizarProximoEvento(carteiraConsolidada) {
             const valorEl = document.getElementById('resumoProximoEvento');
             const detEl = document.getElementById('resumoProximoEventoDetalhe');
@@ -4280,9 +4332,11 @@
                 while(proximoTs < mesIni) proximoTs += intervaloDias * 24*60*60*1000;
                 if(proximoTs > mesFim) continue;
                 const ultimoPag = cache.pagamentos.find(p => new Date(p.data).getTime() === ultimo);
-                const valorEstim = ultimoPag ? ultimoPag.valor * ativo.qtdTotal : 0;
-                previstos.push({ ticker, ts: proximoTs, valor: valorEstim });
+                const valorPorAcao = ultimoPag ? ultimoPag.valor : 0;
+                const valorEstim = valorPorAcao * ativo.qtdTotal;
+                previstos.push({ ticker, ts: proximoTs, valor: valorEstim, valorPorAcao, qtd: ativo.qtdTotal });
             }
+            dividendosPrevistosMes = previstos.slice().sort((a,b) => a.ts - b.ts);
 
             // Vencimentos no mês
             const vencimentosMes = [];
@@ -4296,23 +4350,80 @@
 
             const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long' });
             const totalPrevisto = previstos.reduce((a,b)=>a+b.valor, 0);
+            const card = document.getElementById('cardProximoEvento');
+            const iconAbrir = document.getElementById('iconAbrirDividendosMes');
             if(previstos.length > 0) {
                 titEl.innerHTML = '<i class="ph ph-coins"></i> Dividendos do mês';
                 valorEl.innerText = formatarMoeda(totalPrevisto);
                 const tickersResumo = previstos.map(p => p.ticker).slice(0,3).join(', ');
                 const sufixo = previstos.length > 3 ? ` +${previstos.length - 3}` : '';
-                detEl.innerText = `${previstos.length} ativo${previstos.length===1?'':'s'} previsto${previstos.length===1?'':'s'} em ${nomeMes} · ${tickersResumo}${sufixo}`;
+                detEl.innerText = `${previstos.length} ativo${previstos.length===1?'':'s'} previsto${previstos.length===1?'':'s'} em ${nomeMes} · ${tickersResumo}${sufixo} · clique para detalhar`;
+                if(card) {
+                    card.style.cursor = 'pointer';
+                    card.onclick = abrirModalDividendosMes;
+                    card.setAttribute('role', 'button');
+                    card.setAttribute('tabindex', '0');
+                    card.title = 'Ver tabela com os dividendos previstos do mês';
+                }
+                if(iconAbrir) iconAbrir.style.display = 'inline-block';
             } else if(vencimentosMes.length > 0) {
                 titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Vencimento RF';
                 vencimentosMes.sort((a,b) => a.ts - b.ts);
                 const prox = vencimentosMes[0];
                 valorEl.innerText = prox.ticker;
                 detEl.innerText = `Vence ${new Date(prox.ts).toLocaleDateString('pt-BR')} · ${vencimentosMes.length} no mês`;
+                if(card) { card.style.cursor = ''; card.onclick = null; card.removeAttribute('role'); card.removeAttribute('tabindex'); card.title = ''; }
+                if(iconAbrir) iconAbrir.style.display = 'none';
             } else {
                 titEl.innerHTML = '<i class="ph ph-calendar-check"></i> Próximo evento';
                 valorEl.innerText = '—';
                 detEl.innerText = `Sem dividendos previstos em ${nomeMes}.`;
+                if(card) { card.style.cursor = ''; card.onclick = null; card.removeAttribute('role'); card.removeAttribute('tabindex'); card.title = ''; }
+                if(iconAbrir) iconAbrir.style.display = 'none';
             }
+        }
+
+        function abrirModalDividendosMes() {
+            const modal = document.getElementById('modalDividendosMes');
+            if(!modal) return;
+            const corpo = document.getElementById('corpoModalDividendosMes');
+            const rodape = document.getElementById('rodapeModalDividendosMes');
+            const subtitulo = document.getElementById('subtituloModalDividendosMes');
+            const msgVazia = document.getElementById('msgVaziaModalDividendosMes');
+            const lista = (dividendosPrevistosMes || []).slice();
+            const hoje = new Date();
+            const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            if(subtitulo) subtitulo.innerText = `Estimativa baseada no último pagamento de cada ativo · ${nomeMes}`;
+            if(lista.length === 0) {
+                corpo.innerHTML = '';
+                rodape.innerHTML = '';
+                if(msgVazia) msgVazia.style.display = 'block';
+            } else {
+                if(msgVazia) msgVazia.style.display = 'none';
+                corpo.innerHTML = lista.map(p => {
+                    const dataLbl = new Date(p.ts).toLocaleDateString('pt-BR');
+                    return `<tr>
+                        <td>
+                            <div style="font-weight:600;font-family:'DM Mono',monospace;">${p.ticker}</div>
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Pagamento previsto ${dataLbl}</div>
+                        </td>
+                        <td style="text-align:right;font-family:'DM Mono',monospace;">${formatarMoeda(p.valorPorAcao)}</td>
+                        <td style="text-align:right;font-family:'DM Mono',monospace;">${formatarQtd(p.qtd)}</td>
+                        <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--cor-primaria);" class="valor-mascarado">${formatarMoeda(p.valor)}</td>
+                    </tr>`;
+                }).join('');
+                const total = lista.reduce((s,p) => s + p.valor, 0);
+                rodape.innerHTML = `<tr>
+                    <td colspan="3" style="text-align:right;font-weight:700;padding-top:10px;border-top:1px solid var(--cor-borda);">Total previsto</td>
+                    <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:800;color:var(--cor-primaria);padding-top:10px;border-top:1px solid var(--cor-borda);" class="valor-mascarado">${formatarMoeda(total)}</td>
+                </tr>`;
+            }
+            modal.style.display = 'flex';
+        }
+
+        function fecharModalDividendosMes() {
+            const modal = document.getElementById('modalDividendosMes');
+            if(modal) modal.style.display = 'none';
         }
 
         // ============================================================
@@ -4359,9 +4470,10 @@
         }
 
         // Acumula posição (qtd) por ticker até o final de cada mês
-        function calcularSerieEvolucao(filtroTipo) {
+        function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
             // Decide se uma operação entra no filtro escolhido
             function opEntraNoFiltro(op) {
+                if(filtroAtivo && (op.ticker || '').toUpperCase() !== filtroAtivo.toUpperCase()) return false;
                 if(!filtroTipo || filtroTipo === 'todos') return true;
                 const cat = op.categoria || 'renda_variavel';
                 if(filtroTipo === 'renda_fixa') return cat === 'renda_fixa';
@@ -4557,6 +4669,35 @@
             el.style.transform = 'translate(-50%, calc(-100% - 12px))';
         }
 
+        // Popula o dropdown "Filtrar por ativo" com os tickers já operados,
+        // respeitando também o filtro de tipo selecionado.
+        function atualizarOpcoesFiltroAtivoEvolucao() {
+            const sel = document.getElementById('filtroEvolucaoAtivo');
+            if(!sel) return;
+            const filtroTipo = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
+            const valorAtual = sel.value;
+            // Reaproveita a mesma lógica de filtro de tipo
+            function tickerEntraNoTipo(op) {
+                if(!filtroTipo || filtroTipo === 'todos') return true;
+                const cat = op.categoria || 'renda_variavel';
+                if(filtroTipo === 'renda_fixa') return cat === 'renda_fixa';
+                if(filtroTipo === 'previdencia') return cat === 'previdencia';
+                if(filtroTipo === 'reserva_emergencia') return cat === 'reserva_emergencia';
+                if(cat !== 'renda_variavel') return false;
+                const am = mockAtivosMercado.find(a => a.ticker === op.ticker);
+                const sub = op.subcategoria || subcategoriaInferidaDoTicker(op.ticker) || (am ? tipoMercadoParaSubcategoria(am.tipo) : null);
+                return sub === filtroTipo;
+            }
+            const tickers = Array.from(new Set(
+                historicoCompras.filter(o => o.ticker && tickerEntraNoTipo(o)).map(o => (o.ticker || '').toUpperCase())
+            )).sort();
+            sel.innerHTML = '<option value="">Todos os ativos</option>' +
+                tickers.map(t => `<option value="${t}">${t}</option>`).join('');
+            // Mantém seleção se ainda existir; caso contrário, volta a "todos"
+            if(tickers.includes(valorAtual.toUpperCase())) sel.value = valorAtual.toUpperCase();
+            else sel.value = '';
+        }
+
         function renderizarGraficoEvolucao() {
             const canvas = document.getElementById('graficoEvolucaoCarteira');
             const msgVazia = document.getElementById('msgEvolucaoVazia');
@@ -4573,7 +4714,9 @@
             }
 
             const filtro = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
-            const serie = calcularSerieEvolucao(filtro);
+            const filtroAtivo = document.getElementById('filtroEvolucaoAtivo')?.value || '';
+            atualizarOpcoesFiltroAtivoEvolucao();
+            const serie = calcularSerieEvolucao(filtro, filtroAtivo);
 
             if(serie.meses.length === 0) {
                 if(chartEvolucaoCarteira) { chartEvolucaoCarteira.destroy(); chartEvolucaoCarteira = null; }
@@ -5060,12 +5203,15 @@
                             <div class="rich-ticker">${ticker}</div>
                             <div class="rich-nome">${nomeAtivo}</div>
                             <div class="rich-meta">
-                                ${!semQtdAtivo ? `<span>${formatarQtd(ativo.qtdTotal)} un</span> ·` : ''}
-                                <span>PM ${formatarMoeda(precoMedio)}</span>
-                                ${metaExtra ? `· <span>${metaExtra}</span>` : ''}
+                                ${!semQtdAtivo ? `<span>${formatarQtd(ativo.qtdTotal)} un</span>` : ''}
+                                ${metaExtra ? `${!semQtdAtivo ? '· ' : ''}<span>${metaExtra}</span>` : ''}
                                 <span class="rich-alloc-bar"><span class="rich-alloc-fill" style="width:${Math.min(allocPerc, 100)}%;background:${avatarBg};"></span></span>
                                 <span>${allocPerc.toFixed(1)}%</span>
                             </div>
+                        </div>
+                        <div class="rich-pm">
+                            <span class="rich-pm-label">Preço Médio</span>
+                            <span class="rich-pm-valor valor-mascarado">${formatarMoeda(precoMedio)}</span>
                         </div>
                         <div class="rich-saldo"><span class="valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</span></div>
                         <div class="rich-sparkline" id="spark_${ticker}"></div>
@@ -5082,6 +5228,7 @@
                     <div class="rich-expand" id="expand_${ticker}">
                         <div class="rich-expand-grid">
                             <div class="rich-expand-stat"><div class="re-label">Investido</div><div class="re-value valor-mascarado">${formatarMoeda(ativo.valorTotalInvestido)}</div></div>
+                            <div class="rich-expand-stat"><div class="re-label">Preço Médio</div><div class="re-value">${formatarMoeda(precoMedio)}</div></div>
                             <div class="rich-expand-stat"><div class="re-label">Preço Atual</div><div class="re-value">${formatarMoeda(precoAtual)}</div></div>
                             <div class="rich-expand-stat"><div class="re-label">Saldo</div><div class="re-value valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</div></div>
                             <div class="rich-expand-stat"><div class="re-label">Resultado</div><div class="re-value" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)} (${sinalLucro}${lucroPerc.toFixed(2)}%)</div></div>
@@ -7153,6 +7300,8 @@
                 const drawer = document.getElementById('drawerOperacao');
                 if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
                 const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
+                const mDivMes = document.getElementById('modalDividendosMes');
+                if(mDivMes && mDivMes.style.display === 'flex') { fecharModalDividendosMes(); return; }
                 if(mgrp && mgrp.style.display === 'flex') { fecharModalGrupoCartao(); return; }
                 if(mc && mc.style.display === 'flex') fecharModal();
                 if(mconf && mconf.style.display === 'flex') fecharModalConfig();
