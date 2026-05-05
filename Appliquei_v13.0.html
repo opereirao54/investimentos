@@ -5004,6 +5004,56 @@
             return sub === filtroTipo;
         }
 
+        // Início do período de evolução. Retorna null se "Tudo".
+        function dataInicioPeriodoEvolucao() {
+            if(periodoEvolucao <= 0) return null;
+            const hoje = new Date();
+            return new Date(hoje.getFullYear(), hoje.getMonth() - (periodoEvolucao - 1), 1);
+        }
+
+        // Aportes líquidos (compras − vendas) dentro do período, respeitando filtros.
+        function aportesLiquidosNoPeriodo(carteiraConsolidada, dataInicio, filtroTipo, filtroAtivo) {
+            const inicioMs = dataInicio ? dataInicio.getTime() : 0;
+            let aplicado = 0;
+            historicoCompras.forEach(op => {
+                if(!op.data_op) return;
+                const tsOp = new Date(op.data_op).getTime();
+                if(inicioMs > 0 && tsOp < inicioMs) return;
+                const ativoOp = carteiraConsolidada[op.ticker];
+                const am = mockAtivosMercado.find(a => a.ticker === op.ticker);
+                const ativoFake = ativoOp || { categoria: op.categoria, subcategoria: op.subcategoria };
+                if(!ativoEntraNoFiltroEvolucao(op.ticker, ativoFake, am, filtroTipo, filtroAtivo)) return;
+                const tipo = op.tipo || 'compra';
+                const preco = op.preco_op || op.preco_pago || 0;
+                const valor = (op.quantidade || 1) * preco;
+                if(tipo === 'compra') aplicado += valor;
+                else if(tipo === 'venda') aplicado -= valor;
+            });
+            return aplicado;
+        }
+
+        // Patrimônio reconstruído numa data, respeitando filtros (preços usam o atual
+        // de mercado por limitação de séries históricas — assume preços estáveis).
+        function patrimonioNaData(dataLimite, filtroTipo, filtroAtivo) {
+            const limiteMs = dataLimite ? dataLimite.getTime() : 0;
+            if(limiteMs <= 0) return 0;
+            const consolidado = consolidarCarteiraNaData(limiteMs);
+            let patrim = 0;
+            for(const ticker in consolidado) {
+                const ativo = consolidado[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const am = mockAtivosMercado.find(a => a.ticker === ticker);
+                if(!ativoEntraNoFiltroEvolucao(ticker, ativo, am, filtroTipo, filtroAtivo)) continue;
+                if(ativo.categoria === 'previdencia') {
+                    patrim += calcularSaldoPrevidencia(ticker, limiteMs);
+                } else {
+                    const precoAtual = am ? am.preco_atual : ativo.precoMedio;
+                    patrim += ativo.qtdTotal * precoAtual;
+                }
+            }
+            return patrim;
+        }
+
         // Atualiza os KPIs do hero (Patrimônio atual, Capital aplicado, Ganho capital,
         // chip de Dividendos, "desde X") com base nos filtros do bloco Evolução.
         function atualizarKPIsResumo(carteiraConsolidada) {
@@ -5011,14 +5061,14 @@
             const filtroTipo = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
             const filtroAtivo = document.getElementById('filtroEvolucaoAtivo')?.value || '';
 
-            let invest = 0, patrim = 0, totalAtivos = 0;
+            let investTotal = 0, patrim = 0, totalAtivos = 0;
             for(const ticker in carteiraConsolidada) {
                 const ativo = carteiraConsolidada[ticker];
                 if(ativo.qtdTotal <= 0) continue;
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
                 if(!ativoEntraNoFiltroEvolucao(ticker, ativo, ativoMercado, filtroTipo, filtroAtivo)) continue;
                 totalAtivos++;
-                invest += ativo.valorTotalInvestido;
+                investTotal += ativo.valorTotalInvestido;
                 let saldo;
                 if(ativo.categoria === 'previdencia') {
                     saldo = calcularSaldoPrevidencia(ticker);
@@ -5029,54 +5079,79 @@
                 patrim += saldo;
             }
 
-            const lucroR$ = patrim - invest;
-            const lucroPerc = invest > 0 ? (lucroR$ / invest) * 100 : 0;
+            // === Cálculos sensíveis ao período ===========================
+            // "Tudo" (periodoEvolucao = 0): comportamento original (visão lifetime).
+            // Período definido (1M/3M/6M/12M): KPIs refletem só a janela.
+            const dataIni = dataInicioPeriodoEvolucao();
+            let aplicado, ganhoR$, baseRent;
+            if(dataIni) {
+                // Patrimônio no fim do dia anterior ao início do período
+                const dataPreInicio = new Date(dataIni.getTime() - 1);
+                const patrimInicio = patrimonioNaData(dataPreInicio, filtroTipo, filtroAtivo);
+                aplicado = aportesLiquidosNoPeriodo(carteiraConsolidada, dataIni, filtroTipo, filtroAtivo);
+                // Variação de valor das holdings no período, descontando dinheiro novo
+                ganhoR$ = (patrim - patrimInicio) - aplicado;
+                baseRent = patrimInicio + Math.max(0, aplicado);
+            } else {
+                aplicado = investTotal;
+                ganhoR$ = patrim - investTotal;
+                baseRent = investTotal;
+            }
+            const lucroPerc = baseRent > 0 ? (ganhoR$ / baseRent) * 100 : 0;
+            // =============================================================
 
             const elPat = document.getElementById('resumoPatrimonio');
             if(elPat) elPat.innerText = formatarMoeda(patrim);
             const elInv = document.getElementById('resumoInvestido');
-            if(elInv) elInv.innerText = formatarMoeda(invest);
+            if(elInv) elInv.innerText = formatarMoeda(aplicado);
 
             const cardRend = document.getElementById('resumoRendimento');
             const cardRent = document.getElementById('resumoRentabilidade');
             const titRend = document.getElementById('tituloRendimento');
             if(cardRend) {
-                cardRend.innerText = `${lucroR$ >= 0 ? '+' : ''}${formatarMoeda(lucroR$)}`;
-                cardRend.style.color = lucroR$ < 0 ? 'var(--cor-erro)' : 'var(--cor-primaria)';
+                cardRend.innerText = `${ganhoR$ >= 0 ? '+' : ''}${formatarMoeda(ganhoR$)}`;
+                cardRend.style.color = ganhoR$ < 0 ? 'var(--cor-erro)' : 'var(--cor-primaria)';
             }
-            if(cardRent) cardRent.innerText = `${lucroR$ >= 0 ? '+' : ''}${lucroPerc.toFixed(2)}%`;
-            if(titRend) titRend.style.color = '';
+            if(cardRent) cardRent.innerText = `${ganhoR$ >= 0 ? '+' : ''}${lucroPerc.toFixed(2)}%`;
+            if(titRend) {
+                titRend.style.color = '';
+                titRend.innerText = dataIni ? `Ganho capital (${rotuloPeriodoEvolucao()})` : 'Ganho capital';
+            }
 
             const badgeTend = document.getElementById('resumoRentabilidadeBadge');
             const iconTend = document.getElementById('iconResumoRent');
             if(badgeTend && iconTend) {
-                badgeTend.classList.toggle('neg', lucroR$ < 0);
-                iconTend.className = lucroR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
+                badgeTend.classList.toggle('neg', ganhoR$ < 0);
+                iconTend.className = ganhoR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
             }
 
-            // Detalhe "desde 1ª compra" — primeira compra entre os ativos filtrados
+            // Detalhe "desde X" — quando há período, mostra a janela; senão, 1ª compra do filtro
             const elDesde = document.getElementById('kpiInvestidoDesde');
             if(elDesde) {
-                const datasFiltradas = historicoCompras
-                    .filter(o => o.tipo !== 'venda' && o.data_op)
-                    .filter(o => {
-                        const ativoOp = carteiraConsolidada[o.ticker];
-                        const am = mockAtivosMercado.find(a => a.ticker === o.ticker);
-                        // Para o filtro, considera os metadados da própria operação como fallback
-                        const ativoFake = ativoOp || { categoria: o.categoria, subcategoria: o.subcategoria };
-                        return ativoEntraNoFiltroEvolucao(o.ticker, ativoFake, am, filtroTipo, filtroAtivo);
-                    })
-                    .map(o => o.data_op).sort();
-                if(datasFiltradas.length) {
-                    const d = new Date(datasFiltradas[0]);
-                    if(!isNaN(d.getTime())) {
-                        const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
-                        elDesde.innerText = `desde ${lbl}`;
-                    } else {
-                        elDesde.innerText = 'desde sua 1ª compra';
-                    }
+                if(dataIni) {
+                    const lblIni = dataIni.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                    elDesde.innerText = `aportes desde ${lblIni} (${rotuloPeriodoEvolucao()})`;
                 } else {
-                    elDesde.innerText = 'Sem operações ainda';
+                    const datasFiltradas = historicoCompras
+                        .filter(o => o.tipo !== 'venda' && o.data_op)
+                        .filter(o => {
+                            const ativoOp = carteiraConsolidada[o.ticker];
+                            const am = mockAtivosMercado.find(a => a.ticker === o.ticker);
+                            const ativoFake = ativoOp || { categoria: o.categoria, subcategoria: o.subcategoria };
+                            return ativoEntraNoFiltroEvolucao(o.ticker, ativoFake, am, filtroTipo, filtroAtivo);
+                        })
+                        .map(o => o.data_op).sort();
+                    if(datasFiltradas.length) {
+                        const d = new Date(datasFiltradas[0]);
+                        if(!isNaN(d.getTime())) {
+                            const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                            elDesde.innerText = `desde ${lbl}`;
+                        } else {
+                            elDesde.innerText = 'desde sua 1ª compra';
+                        }
+                    } else {
+                        elDesde.innerText = 'Sem operações ainda';
+                    }
                 }
             }
 
