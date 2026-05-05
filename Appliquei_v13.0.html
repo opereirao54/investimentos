@@ -1410,8 +1410,76 @@
             margin-bottom: 20px;
             overflow: hidden;
             transition: box-shadow var(--transicao), transform var(--transicao);
+            cursor: pointer;
         }
         .sonho-card:hover { box-shadow: var(--shadow-hover); }
+        .sonho-card.expanded { cursor: default; }
+        .sonho-card-collapsed {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            position: relative;
+        }
+        .sonho-card-collapsed::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+        .sonho-card-collapsed.cat-viagem::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+        .sonho-card-collapsed.cat-veiculo::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+        .sonho-card-collapsed.cat-imovel::before { background: linear-gradient(90deg, #10b981, #059669); }
+        .sonho-card-collapsed.cat-educacao::before { background: linear-gradient(90deg, #8b5cf6, #6366f1); }
+        .sonho-card-collapsed.cat-casamento::before { background: linear-gradient(90deg, #ec4899, #f43f5e); }
+        .sonho-card-collapsed.cat-reserva::before { background: linear-gradient(90deg, #059669, #14b8a6); }
+        .sonho-card-collapsed.cat-tech::before { background: linear-gradient(90deg, #6366f1, #8b5cf6); }
+        .sonho-card-collapsed.cat-saude::before { background: linear-gradient(90deg, #ef4444, #f97316); }
+        .sonho-card-collapsed.cat-outro::before { background: linear-gradient(90deg, var(--cor-primaria), #7c3aed); }
+        .sonho-collapsed-avatar {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; flex-shrink: 0;
+            background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(124,58,237,0.08));
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+        .sonho-collapsed-info { flex: 1; min-width: 0; }
+        .sonho-collapsed-nome {
+            font-size: 15px; font-weight: 700; color: var(--cor-texto-principal);
+            font-family: 'Syne', sans-serif; letter-spacing: -0.3px; margin-bottom: 4px;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .sonho-collapsed-meta {
+            font-size: 11.5px; color: var(--cor-texto-mutado); display: flex;
+            align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .sonho-collapsed-progress {
+            display: flex; align-items: center; gap: 8px; min-width: 140px;
+        }
+        .sonho-collapsed-bar {
+            flex: 1; height: 6px; background: var(--cor-superficie);
+            border-radius: 99px; overflow: hidden; border: 1px solid var(--cor-borda);
+        }
+        .sonho-collapsed-bar-fill {
+            height: 100%; border-radius: 99px;
+            transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+        }
+        .sonho-collapsed-pct {
+            font-size: 12px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); min-width: 42px; text-align: right;
+        }
+        .sonho-collapsed-expand {
+            width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--cor-borda);
+            background: var(--cor-superficie); color: var(--cor-texto-mutado); cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 16px;
+            transition: 0.15s; flex-shrink: 0;
+        }
+        .sonho-collapsed-expand:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .sonho-card-details {
+            display: none;
+            border-top: 1px solid var(--cor-borda);
+            animation: fadeIn 0.25s ease;
+        }
+        .sonho-card.expanded .sonho-card-details { display: block; }
+        .sonho-card.expanded .sonho-collapsed-expand i { transform: rotate(180deg); }
         .sonho-card-top {
             display: flex; align-items: center; gap: 16px;
             padding: 20px 24px 16px; position: relative;
@@ -2889,6 +2957,9 @@
 
             <!-- PAINEL DE SAÚDE FINANCEIRA + PLANO SUGERIDO -->
             <div id="painelSaudeSonhos"></div>
+
+            <!-- RESUMO GERAL DOS SONHOS -->
+            <div id="sonhosResumoContainer"></div>
 
             <!-- LISTA DE SONHOS CADASTRADOS -->
             <div id="sonhosListaContainer"></div>
@@ -8032,6 +8103,7 @@
         function renderizarSonhos() {
             const container = document.getElementById('sonhosListaContainer');
             const empty = document.getElementById('sonhosEmptyState');
+            const resumoContainer = document.getElementById('sonhosResumoContainer');
             if(!container) return;
 
             // Atualizar meses restantes
@@ -8042,6 +8114,7 @@
             });
 
             renderPainelSaudeSonhos();
+            renderResumoSonhos();
 
             if(sonhos.length === 0) {
                 container.innerHTML = '';
@@ -8060,70 +8133,167 @@
                 const esforcoLbl = {baixo:'🌱 Leve',medio:'⚡ Moderado',alto:'🔥 Intenso'}[s.esforco||'medio'];
                 const esforcoClass = 'esforco-'+(s.esforco||'medio');
                 const conquistado = pct >= 100;
+                const falta = Math.max(0, s.valorTotal - s.valorAtual);
+                const barColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#059669' : pct >= 30 ? '#d97706' : '#ef4444';
 
-                return `<div class="sonho-card ${conquistado?'sonho-conquistado':''}">
-                    <div class="sonho-card-top cat-${s.categoria}">
-                        <div class="sonho-avatar">${emoji}</div>
-                        <div class="sonho-card-info">
-                            <div class="sonho-card-nome">${s.nome}</div>
-                            <div class="sonho-card-meta">
+                return `<div class="sonho-card ${conquistado?'sonho-conquistado':''}" id="card_${s.id}" onclick="toggleSonhoCard('${s.id}')">
+                    <div class="sonho-card-collapsed cat-${s.categoria}">
+                        <div class="sonho-collapsed-avatar">${emoji}</div>
+                        <div class="sonho-collapsed-info">
+                            <div class="sonho-collapsed-nome">${s.nome}</div>
+                            <div class="sonho-collapsed-meta">
                                 <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
                                 <span>${s.mesesRestantes > 0 ? s.mesesRestantes+' meses restantes' : 'Prazo encerrado'}</span>
-                                <span style="font-family:'DM Mono',monospace;font-weight:600;">${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                                <span style="font-family:'DM Mono',monospace;font-weight:600;">Meta: ${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
                             </div>
                         </div>
-                        <div class="sonho-card-actions">
-                            <button onclick="abrirAporteSonho('${s.id}')" title="Registrar aporte"><i class="ph ph-piggy-bank"></i></button>
-                            <button onclick="editarSonho('${s.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                            <button class="btn-delete" onclick="excluirSonho('${s.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
+                        <div class="sonho-collapsed-progress">
+                            <div class="sonho-collapsed-bar">
+                                <div class="sonho-collapsed-bar-fill" style="width:${pct}%;background:${barColor};"></div>
+                            </div>
+                            <div class="sonho-collapsed-pct">${pct.toFixed(0)}%</div>
                         </div>
+                        <button class="sonho-collapsed-expand" onclick="event.stopPropagation();toggleSonhoCard('${s.id}')" title="Ver detalhes">
+                            <i class="ph-bold ph-caret-down"></i>
+                        </button>
                     </div>
-                    <div class="sonho-body">
-                        <div class="sonho-passos">
-                            <div class="sonho-passos-title"><i class="ph ph-list-checks"></i> Passos para conquistar</div>
-                            ${passos.map((p,i) => `<div class="sonho-step ${p.done?'done':''}">
-                                <div class="sonho-step-num">${p.done?'<i class="ph-bold ph-check" style="font-size:12px;"></i>':(i+1)}</div>
-                                <div class="sonho-step-content">
-                                    <div class="sonho-step-label">${p.label}</div>
-                                    <div class="sonho-step-desc">${p.desc}</div>
+                    <div class="sonho-card-details">
+                        <div class="sonho-body">
+                            <div class="sonho-passos">
+                                <div class="sonho-passos-title"><i class="ph ph-list-checks"></i> Passos para conquistar</div>
+                                ${passos.map((p,i) => `<div class="sonho-step ${p.done?'done':''}">
+                                    <div class="sonho-step-num">${p.done?'<i class="ph-bold ph-check" style="font-size:12px;"></i>':(i+1)}</div>
+                                    <div class="sonho-step-content">
+                                        <div class="sonho-step-label">${p.label}</div>
+                                        <div class="sonho-step-desc">${p.desc}</div>
+                                    </div>
+                                </div>`).join('')}
+                                ${!conquistado ? `<div style="margin-top:12px;"><button class="sonho-btn-aporte" onclick="abrirAporteSonho('${s.id}')"><i class="ph-bold ph-plus"></i> Registrar aporte</button></div>` : ''}
+                            </div>
+                            <div class="sonho-right">
+                                <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--cor-texto-mutado);margin-bottom:2px;">A caminho do meu sonho</div>
+                                ${renderSonhoRing(pct)}
+                                <div class="sonho-stats-mini">
+                                    <div class="sonho-stat-mini">
+                                        <div class="sonho-stat-mini-lbl">Guardado</div>
+                                        <div class="sonho-stat-mini-val">${s.valorAtual.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                    </div>
+                                    <div class="sonho-stat-mini">
+                                        <div class="sonho-stat-mini-lbl">Mensal</div>
+                                        <div class="sonho-stat-mini-val">${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                    </div>
+                                    <div class="sonho-stat-mini">
+                                        <div class="sonho-stat-mini-lbl">Falta</div>
+                                        <div class="sonho-stat-mini-val">${falta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                    </div>
+                                    <div class="sonho-stat-mini">
+                                        <div class="sonho-stat-mini-lbl">Rendim. est.</div>
+                                        <div class="sonho-stat-mini-val" style="color:var(--cor-primaria);">+${(calcSonhoProjecao(s.valorAtual,mensal,s.mesesRestantes)-s.valorAtual-(mensal*s.mesesRestantes)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                    </div>
                                 </div>
-                            </div>`).join('')}
-                            ${!conquistado ? `<div style="margin-top:12px;"><button class="sonho-btn-aporte" onclick="abrirAporteSonho('${s.id}')"><i class="ph-bold ph-plus"></i> Registrar aporte</button></div>` : ''}
-                        </div>
-                        <div class="sonho-right">
-                            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.7px;color:var(--cor-texto-mutado);margin-bottom:2px;">A caminho do meu sonho</div>
-                            ${renderSonhoRing(pct)}
-                            <div class="sonho-stats-mini">
-                                <div class="sonho-stat-mini">
-                                    <div class="sonho-stat-mini-lbl">Guardado</div>
-                                    <div class="sonho-stat-mini-val">${s.valorAtual.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                                </div>
-                                <div class="sonho-stat-mini">
-                                    <div class="sonho-stat-mini-lbl">Mensal</div>
-                                    <div class="sonho-stat-mini-val">${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                                </div>
-                                <div class="sonho-stat-mini">
-                                    <div class="sonho-stat-mini-lbl">Falta</div>
-                                    <div class="sonho-stat-mini-val">${Math.max(0,s.valorTotal-s.valorAtual).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                                </div>
-                                <div class="sonho-stat-mini">
-                                    <div class="sonho-stat-mini-lbl">Rendim. est.</div>
-                                    <div class="sonho-stat-mini-val" style="color:var(--cor-primaria);">+${(calcSonhoProjecao(s.valorAtual,mensal,s.mesesRestantes)-s.valorAtual-(mensal*s.mesesRestantes)).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                                <div class="sonho-motivacao">
+                                    <div class="sonho-motivacao-txt">${frase.txt}</div>
+                                    <div class="sonho-motivacao-autor">— ${frase.autor}</div>
                                 </div>
                             </div>
-                            <div class="sonho-motivacao">
-                                <div class="sonho-motivacao-txt">${frase.txt}</div>
-                                <div class="sonho-motivacao-autor">— ${frase.autor}</div>
-                            </div>
+                        </div>
+                        <div class="sonho-caixinha-tip">
+                            <i class="ph-fill ph-info"></i>
+                            <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
+                        </div>
+                        ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
+                        <div style="padding:12px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--cor-borda);background:var(--cor-superficie);">
+                            <button onclick="event.stopPropagation();abrirAporteSonho('${s.id}')" class="btn-acao" style="background:var(--cor-primaria);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-piggy-bank"></i> Registrar aporte</button>
+                            <button onclick="event.stopPropagation();editarSonho('${s.id}')" class="btn-acao" style="font-size:12px;padding:8px 14px;"><i class="ph-bold ph-pencil-simple"></i> Editar</button>
+                            <button onclick="event.stopPropagation();excluirSonho('${s.id}')" class="btn-acao" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-trash"></i> Excluir</button>
                         </div>
                     </div>
-                    <div class="sonho-caixinha-tip">
-                        <i class="ph-fill ph-info"></i>
-                        <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
-                    </div>
-                    ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
                 </div>`;
             }).join('');
+        }
+
+        function renderResumoSonhos() {
+            const container = document.getElementById('sonhosResumoContainer');
+            if(!container) return;
+
+            if(sonhos.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const totalMeta = sonhos.reduce((acc, s) => acc + s.valorTotal, 0);
+            const totalGuardado = sonhos.reduce((acc, s) => acc + s.valorAtual, 0);
+            const totalFalta = totalMeta - totalGuardado;
+            const totalMensal = sonhos.reduce((acc, s) => acc + calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes), 0);
+            
+            // Calcular média ponderada de meses restantes
+            let somaMeses = 0;
+            let countAtivos = 0;
+            sonhos.forEach(s => {
+                if(s.mesesRestantes > 0 && (s.valorAtual / s.valorTotal) < 1) {
+                    somaMeses += s.mesesRestantes;
+                    countAtivos++;
+                }
+            });
+            const mediaMeses = countAtivos > 0 ? Math.round(somaMeses / countAtivos) : 0;
+
+            const pctGeral = totalMeta > 0 ? (totalGuardado / totalMeta) * 100 : 0;
+            const barColorGeral = pctGeral >= 100 ? '#10b981' : pctGeral >= 60 ? '#059669' : pctGeral >= 30 ? '#d97706' : '#ef4444';
+
+            container.innerHTML = `<div class="card-container" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(16,185,129,0.04),rgba(124,58,237,0.04));border:1px solid var(--cor-borda);">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+                    <i class="ph-fill ph-chart-pie-slice" style="font-size:18px;color:var(--cor-primaria);"></i>
+                    <h3 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Visão geral dos sonhos</h3>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Total de sonhos</div>
+                        <div style="font-size:20px;font-weight:800;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${sonhos.length}</div>
+                    </div>
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Meta total</div>
+                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${totalMeta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                    </div>
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Já guardado</div>
+                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#10b981;">${totalGuardado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                    </div>
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Falta alcançar</div>
+                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#ef4444;">${totalFalta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                    </div>
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Aporte mensal total</div>
+                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-primaria);">${totalMensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+                    </div>
+                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Média p/ conquista</div>
+                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#8b5cf6;">${mediaMeses > 0 ? mediaMeses+' meses' : '—'}</div>
+                    </div>
+                </div>
+                <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Progresso geral</span>
+                        <span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${pctGeral.toFixed(1)}%</span>
+                    </div>
+                    <div style="height:8px;background:var(--cor-superficie);border-radius:99px;overflow:hidden;border:1px solid var(--cor-borda);">
+                        <div style="height:100%;width:${pctGeral}%;background:${barColorGeral};border-radius:99px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1);"></div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function toggleSonhoCard(id) {
+            const card = document.getElementById(`card_${id}`);
+            if(card) {
+                card.classList.toggle('expanded');
+                // Scroll suave até o plano quando expandir
+                setTimeout(() => {
+                    if(card.classList.contains('expanded')) {
+                        card.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    }
+                }, 100);
+            }
         }
 
         function selecionarEsforcoSonho(nivel) {
