@@ -1601,6 +1601,65 @@
             padding: 4px 40px; font-size: 11px; font-weight: 800; letter-spacing: 1px;
             transform: rotate(45deg); z-index: 5; box-shadow: 0 2px 8px rgba(5,150,105,0.3);
         }
+
+        /* === DÚVIDAS & SUGESTÕES === */
+        .ds-tab-btn { transition: background 0.2s, color 0.2s; }
+        .ds-tab-btn.ativo { background: var(--cor-branco) !important; color: var(--cor-texto-principal) !important; box-shadow: var(--shadow-suave); }
+        .ds-tab-btn:not(.ativo):hover { color: var(--cor-texto-principal); }
+
+        .faq-item {
+            border-bottom: 1px solid var(--cor-borda);
+            transition: background 0.15s;
+        }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-item-cabecalho {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 12px; padding: 16px 22px; cursor: pointer;
+            font-weight: 600; color: var(--cor-texto-principal); font-size: 14px;
+            transition: background 0.15s;
+        }
+        .faq-item-cabecalho:hover { background: var(--cor-superficie); }
+        .faq-item-cabecalho .faq-categoria {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+            font-weight: 700; padding: 3px 8px; border-radius: 99px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            margin-left: 8px; flex-shrink: 0;
+        }
+        .faq-item-cabecalho i.faq-chevron {
+            color: var(--cor-texto-mutado); transition: transform 0.25s; flex-shrink: 0;
+            font-size: 16px;
+        }
+        .faq-item.aberto .faq-item-cabecalho i.faq-chevron { transform: rotate(180deg); color: var(--cor-primaria); }
+        .faq-item-resposta {
+            display: none;
+            padding: 0 22px 18px 22px;
+            font-size: 13.5px; line-height: 1.6; color: var(--cor-texto-secundario);
+        }
+        .faq-item.aberto .faq-item-resposta { display: block; animation: fadeIn 0.2s ease; }
+        .faq-item .faq-titulo-wrap { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+        .faq-item .faq-titulo-texto { flex: 1; min-width: 0; }
+
+        .sug-tipo-btn { transition: all 0.15s; }
+        .sug-tipo-btn.ativo {
+            border-color: var(--cor-primaria) !important;
+            background: var(--cor-bg-primaria) !important;
+            color: var(--cor-txt-primaria) !important;
+        }
+        .sug-historico-item {
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            border-radius: 10px; padding: 12px 14px;
+        }
+        .sug-historico-item .sh-cabecalho {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            margin-bottom: 6px; flex-wrap: wrap;
+        }
+        .sug-historico-item .sh-tag {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+            font-weight: 700; padding: 2px 8px; border-radius: 99px;
+            background: var(--cor-bg-info); color: var(--cor-txt-info);
+        }
+        .sug-historico-item .sh-data { font-size: 11px; color: var(--cor-texto-mutado); }
+        .sug-historico-item .sh-texto { font-size: 13px; color: var(--cor-texto-principal); line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -2956,13 +3015,151 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Applicash $</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Sua central financeira.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e ganhe enquanto seus indicados forem assinantes.</p>
+                </div>
+                <div class="page-actions">
+                    <button class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom" title="Copiar cupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
+                    <button class="btn-acao" style="width:auto;padding:9px 16px;" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
                 </div>
             </div>
-            <div class="card-container" style="text-align: center; padding: 60px 20px;">
-                <i class="ph ph-currency-dollar" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
-                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
-                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+
+            <!-- KPIs topo -->
+            <div class="grid-4" style="margin-bottom:18px;">
+                <div class="card-destaque accent">
+                    <h3><i class="ph-fill ph-users-three"></i> Indicações efetivas</h3>
+                    <div class="valor"><span id="apcIndicacoesEfetivas">0</span></div>
+                    <span class="kpi-delta"><i class="ph-bold ph-arrow-up"></i> <span id="apcIndicacoesNoMes">0</span> neste mês</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-ticket"></i> Seu cupom</h3>
+                    <div class="valor" id="apcCupomCodigo" style="font-size:20px;letter-spacing:0.5px;">—</div>
+                    <span class="kpi-delta delta-neutro" style="margin-top:8px;"><i class="ph ph-tag"></i> 10% de desconto p/ o assinante</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-arrow-circle-down"></i> Você paga (mensal)</h3>
+                    <div class="valor valor-mascarado" id="apcVocePaga" style="color:var(--cor-erro);">R$ 0,00</div>
+                    <span class="kpi-delta delta-negativo"><i class="ph ph-credit-card"></i> Sua assinatura</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-arrow-circle-up"></i> Você recebe (mensal)</h3>
+                    <div class="valor valor-mascarado" id="apcVoceRecebe" style="color:var(--cor-primaria);">R$ 0,00</div>
+                    <span class="kpi-delta delta-positivo"><i class="ph ph-coins"></i> 10% de cada ativo</span>
+                </div>
+            </div>
+
+            <!-- Linha 1: Pizza + Meta -->
+            <div class="grid-2-iguais" style="margin-bottom:18px;">
+                <!-- Pizza paga vs recebe -->
+                <div class="card-container">
+                    <div class="div-chart-title"><i class="ph ph-chart-pie-slice"></i> Paga vs. Recebe (mensal)</div>
+                    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+                        <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
+                            <canvas id="chartApplicash"></canvas>
+                        </div>
+                        <div style="flex:1;min-width:200px;">
+                            <p id="apcFraseCenario" style="font-size:14px;line-height:1.55;color:var(--cor-texto-principal);background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:14px 16px;border-radius:10px;">
+                                Convide amigos para a Appliquei e comece a receber 10% do valor pago por cada indicação ativa.
+                            </p>
+                            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+                                <div style="flex:1;min-width:120px;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);padding:10px 12px;border-radius:9px;">
+                                    <div style="font-size:10.5px;color:var(--cor-txt-erro);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você paga</div>
+                                    <div class="valor-mascarado" id="apcLegendaPaga" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-erro);">R$ 0,00</div>
+                                </div>
+                                <div style="flex:1;min-width:120px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:10px 12px;border-radius:9px;">
+                                    <div style="font-size:10.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você recebe</div>
+                                    <div class="valor-mascarado" id="apcLegendaRecebe" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-primaria);">R$ 0,00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Meta -->
+                <div class="card-container">
+                    <div class="div-chart-title"><i class="ph ph-target"></i> Próxima meta</div>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+                        <div>
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Meta</div>
+                            <div id="apcMetaTitulo" style="font-size:18px;font-weight:700;color:var(--cor-texto-principal);">Indique 30 pessoas</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Recompensa</div>
+                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">+ R$ 40,50/mês</div>
+                        </div>
+                    </div>
+                    <div style="background:var(--cor-superficie);border-radius:99px;height:14px;border:1px solid var(--cor-borda);overflow:hidden;margin:10px 0 8px;">
+                        <div id="apcMetaProgressoBar" style="height:100%;background:linear-gradient(90deg,var(--cor-primaria),#10b981);width:0%;transition:width 0.6s ease;border-radius:99px;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--cor-texto-mutado);">
+                        <span><strong id="apcMetaAtual" style="color:var(--cor-texto-principal);">0</strong> de <strong id="apcMetaAlvo" style="color:var(--cor-texto-principal);">30</strong> indicações</span>
+                        <span><strong id="apcMetaRestante" style="color:var(--cor-primaria);">30</strong> restantes</span>
+                    </div>
+
+                    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;" id="apcMetasLista">
+                        <!-- Lista de marcos preenchida via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Minhas Indicações -->
+            <div class="card-container">
+                <div class="div-chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+                    <span><i class="ph ph-list-checks"></i> Minhas indicações</span>
+                    <span style="font-size:11px;font-weight:600;color:var(--cor-texto-mutado);">Total recebido no mês: <strong class="valor-mascarado" id="apcTotalReceberMes" style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">R$ 0,00</strong></span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="tabela-dashboard" id="apcTabelaIndicacoes">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Plano contratado</th>
+                                <th style="text-align:right;">Valor pago</th>
+                                <th>Periodicidade</th>
+                                <th style="text-align:right;">Lucro p/ você</th>
+                                <th style="text-align:center;">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apcTabelaIndicacoesCorpo">
+                            <!-- preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="apcTabelaVazia" style="display:none;text-align:center;padding:30px 16px;color:var(--cor-texto-mutado);">
+                    <i class="ph ph-users" style="font-size:32px;display:block;margin-bottom:8px;"></i>
+                    Você ainda não tem indicações ativas. Compartilhe seu cupom com amigos e familiares!
+                </div>
+            </div>
+
+            <!-- Como funciona -->
+            <div class="card-container">
+                <div class="div-chart-title"><i class="ph ph-info"></i> Como funciona o programa</div>
+                <div class="grid-3" style="gap:14px;">
+                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">1</span>
+                            <strong style="font-size:13.5px;">Compartilhe seu cupom</strong>
+                        </div>
+                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Seu cupom dá <strong>10% de desconto</strong> ao interessado, em qualquer plano e em qualquer forma de pagamento.</p>
+                    </div>
+                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">2</span>
+                            <strong style="font-size:13.5px;">Indicação efetiva</strong>
+                        </div>
+                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">A partir de uma <strong>indicação efetiva</strong> (usuário cadastrado pelo seu cupom e ativo), você passa a receber <strong>10% do valor pago</strong> enquanto ele permanecer na plataforma.</p>
+                    </div>
+                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">3</span>
+                            <strong style="font-size:13.5px;">Receba todo mês</strong>
+                        </div>
+                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Plano mensal de R$ 15,00 (-10%) → você recebe <strong>R$ 1,35/mês</strong> por indicação. Quanto mais indicações, mais você lucra.</p>
+                    </div>
+                </div>
+                <div style="margin-top:14px;padding:12px 14px;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);border-radius:9px;font-size:12px;color:var(--cor-txt-info);line-height:1.5;">
+                    <i class="ph-fill ph-info" style="margin-right:4px;"></i>
+                    <strong>Indicação efetiva:</strong> todos os usuários cadastrados pelo cupom e ativos na plataforma. Você não recebe por cadastros que cancelam antes da primeira cobrança.
+                </div>
             </div>
         </section>
 
@@ -2970,13 +3167,123 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Dúvidas & Sugestões</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Como podemos ajudar?</p>
+                    <p class="subtitulo" style="margin-bottom:0">Encontre respostas rápidas ou nos diga como podemos melhorar.</p>
                 </div>
             </div>
-            <div class="card-container" style="text-align: center; padding: 60px 20px;">
-                <i class="ph ph-question" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
-                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
-                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+
+            <!-- Tabs -->
+            <div style="display:flex;gap:6px;background:var(--cor-superficie);padding:5px;border-radius:12px;border:1px solid var(--cor-borda);margin-bottom:18px;width:fit-content;">
+                <button id="tabFaq" class="ds-tab-btn ativo" onclick="trocarTabDuvidas('faq')" style="padding:9px 18px;border:none;background:var(--cor-branco);color:var(--cor-texto-principal);font-weight:700;font-size:13px;border-radius:8px;cursor:pointer;font-family:'Figtree',sans-serif;box-shadow:var(--shadow-suave);"><i class="ph ph-question"></i> Dúvidas frequentes</button>
+                <button id="tabSugestao" class="ds-tab-btn" onclick="trocarTabDuvidas('sugestao')" style="padding:9px 18px;border:none;background:transparent;color:var(--cor-texto-mutado);font-weight:700;font-size:13px;border-radius:8px;cursor:pointer;font-family:'Figtree',sans-serif;"><i class="ph ph-lightbulb"></i> Enviar sugestão</button>
+            </div>
+
+            <!-- FAQ -->
+            <div id="dsConteudoFaq">
+                <div class="card-container" style="padding:18px 20px;margin-bottom:14px;">
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <div style="flex:1;min-width:240px;position:relative;">
+                            <i class="ph ph-magnifying-glass" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--cor-texto-mutado);font-size:16px;"></i>
+                            <input type="text" id="faqBuscaInput" placeholder="Buscar uma dúvida (ex.: como cadastrar um ativo)" oninput="filtrarFaq()" style="width:100%;padding:11px 13px 11px 38px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                        </div>
+                        <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
+                            <option value="">Todas as categorias</option>
+                            <option value="conta">Conta & assinatura</option>
+                            <option value="patrimonio">Patrimônio & ativos</option>
+                            <option value="controle">Controle financeiro</option>
+                            <option value="ferramentas">Ferramentas & simulações</option>
+                            <option value="applicash">Applicash $</option>
+                            <option value="dados">Dados & segurança</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-container" style="padding:0;">
+                    <div id="faqLista" style="display:flex;flex-direction:column;">
+                        <!-- preenchido via JS -->
+                    </div>
+                    <div id="faqVazio" style="display:none;text-align:center;padding:40px 16px;color:var(--cor-texto-mutado);">
+                        <i class="ph ph-magnifying-glass-minus" style="font-size:36px;display:block;margin-bottom:8px;"></i>
+                        Nenhuma dúvida encontrada. Que tal nos enviar uma sugestão?
+                    </div>
+                </div>
+
+                <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--cor-texto-mutado);">
+                    Não encontrou o que procurava? <a href="#" onclick="trocarTabDuvidas('sugestao');return false;" style="color:var(--cor-primaria);font-weight:700;text-decoration:none;">Envie uma sugestão →</a>
+                </div>
+            </div>
+
+            <!-- Sugestão -->
+            <div id="dsConteudoSugestao" style="display:none;">
+                <div class="card-container" style="max-width:680px;">
+                    <div class="div-chart-title"><i class="ph ph-lightbulb"></i> Conte para nós sua sugestão</div>
+                    <p style="font-size:13px;color:var(--cor-texto-secundario);margin-bottom:18px;line-height:1.55;">Sua opinião nos ajuda a evoluir a Appliquei. Selecione a aba à qual sua sugestão se aplica e descreva com o máximo de detalhes possível.</p>
+
+                    <div class="form-group">
+                        <label>Aba relacionada</label>
+                        <select id="sugAba">
+                            <option value="">Selecione…</option>
+                            <option value="patrimonio">Visão geral do patrimônio</option>
+                            <option value="controle">Controle financeiro</option>
+                            <option value="carteira">Carteira recomendada</option>
+                            <option value="relatorio_mensal">Relatório mensal</option>
+                            <option value="simulador">Simule sua liberdade</option>
+                            <option value="meus_sonhos">Meus sonhos</option>
+                            <option value="aulas">Jornada Financeira</option>
+                            <option value="noticias">Info Mercado</option>
+                            <option value="applicash">Applicash $</option>
+                            <option value="duvidas_sugestoes">Dúvidas & Sugestões</option>
+                            <option value="outro">🌟 Outro / algo que ainda não existe</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="sugOutroWrapper" style="display:none;">
+                        <label>Sobre o que é a sugestão?</label>
+                        <input type="text" id="sugOutroTema" placeholder="Ex.: integração com banco, app mobile, controle de criptomoedas…" maxlength="80">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="sugTipoContainer">
+                            <button type="button" class="sug-tipo-btn ativo" data-tipo="melhoria" onclick="selecionarTipoSugestao('melhoria')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-primaria);border-radius:10px;background:var(--cor-bg-primaria);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-txt-primaria);">
+                                ✨ Melhoria
+                            </button>
+                            <button type="button" class="sug-tipo-btn" data-tipo="novo" onclick="selecionarTipoSugestao('novo')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-texto-principal);">
+                                🚀 Novo recurso
+                            </button>
+                            <button type="button" class="sug-tipo-btn" data-tipo="bug" onclick="selecionarTipoSugestao('bug')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-texto-principal);">
+                                🐛 Reportar bug
+                            </button>
+                        </div>
+                        <input type="hidden" id="sugTipo" value="melhoria">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Sua sugestão</label>
+                        <textarea id="sugTexto" rows="6" placeholder="Descreva sua ideia, o problema que ela resolve e, se quiser, como você imagina que ela funcionaria…" maxlength="1000" style="resize:vertical;min-height:120px;"></textarea>
+                        <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+                            <span style="font-size:11px;color:var(--cor-texto-mutado);"><span id="sugContador">0</span>/1000</span>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:10px;margin-top:6px;">
+                        <button class="btn-secundario" style="flex:0 0 auto;" onclick="trocarTabDuvidas('faq')"><i class="ph ph-arrow-left"></i> Voltar</button>
+                        <button class="btn-acao" style="flex:1;" onclick="enviarSugestao()"><i class="ph-bold ph-paper-plane-tilt"></i> Enviar sugestão</button>
+                    </div>
+                </div>
+
+                <!-- Histórico -->
+                <div class="card-container" style="max-width:680px;margin-top:16px;" id="sugHistoricoCard">
+                    <div class="div-chart-title" style="display:flex;justify-content:space-between;align-items:center;">
+                        <span><i class="ph ph-clock-counter-clockwise"></i> Suas sugestões enviadas</span>
+                        <span style="font-size:11px;font-weight:600;color:var(--cor-texto-mutado);"><span id="sugTotalEnviadas">0</span> total</span>
+                    </div>
+                    <div id="sugHistoricoLista" style="display:flex;flex-direction:column;gap:10px;">
+                        <!-- preenchido via JS -->
+                    </div>
+                    <div id="sugHistoricoVazio" style="text-align:center;padding:24px 16px;color:var(--cor-texto-mutado);font-size:13px;">
+                        Você ainda não enviou nenhuma sugestão.
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -2998,6 +3305,8 @@
             if(idAba === 'simulador') calcularSimulador();
             if(idAba === 'carteira') carregarCarteiraCliente();
             if(idAba === 'meus_sonhos') renderizarSonhos();
+            if(idAba === 'applicash') atualizarTelaApplicash();
+            if(idAba === 'duvidas_sugestoes') { renderizarFaq(); renderizarHistoricoSugestoes(); }
             if(callback) callback();
         }
 
@@ -7907,6 +8216,482 @@
             else mostrarToast(`Aporte de R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} registrado! Agora ${pct.toFixed(0)}% concluído.`,'sucesso');
         }
 
+        // ============================================================
+        // === APPLICASH $ — programa de indicações                   ===
+        // ============================================================
+        const APPLICASH_CONFIG = {
+            cupomKey: 'appliquei_cupom_codigo',
+            indicacoesKey: 'appliquei_applicash_indicacoes',
+            assinaturaKey: 'appliquei_applicash_assinatura',
+            comissaoPct: 0.10,        // 10% do valor pago
+            descontoCupomPct: 0.10    // 10% de desconto p/ o assinante
+        };
+        const APPLICASH_METAS = [
+            { qtd: 5,  recompensa: 'Cupom de 1 mês grátis na sua assinatura' },
+            { qtd: 10, recompensa: 'Acesso antecipado a novos recursos' },
+            { qtd: 30, recompensa: 'Sua assinatura paga + R$ extra todo mês' },
+            { qtd: 50, recompensa: 'Status Embaixador Appliquei + brindes' },
+            { qtd: 100, recompensa: 'Mentoria 1:1 com nosso time financeiro' }
+        ];
+
+        function gerarCupomPadrao() {
+            // Cria um cupom estável a partir de um id local persistente
+            let id = localStorage.getItem('appliquei_user_id');
+            if(!id) {
+                id = Math.random().toString(36).slice(2, 8).toUpperCase();
+                localStorage.setItem('appliquei_user_id', id);
+            }
+            return `APP-${id}`;
+        }
+        function obterCupomApplicash() {
+            let cupom = localStorage.getItem(APPLICASH_CONFIG.cupomKey);
+            if(!cupom) {
+                cupom = gerarCupomPadrao();
+                localStorage.setItem(APPLICASH_CONFIG.cupomKey, cupom);
+            }
+            return cupom;
+        }
+        function obterAssinaturaApplicash() {
+            try {
+                const raw = localStorage.getItem(APPLICASH_CONFIG.assinaturaKey);
+                if(raw) return JSON.parse(raw);
+            } catch(_) {}
+            // Default: plano mensal R$ 15,00
+            return { plano: 'Mensal', valorMensal: 15.00 };
+        }
+        function carregarIndicacoesApplicash() {
+            try {
+                const raw = localStorage.getItem(APPLICASH_CONFIG.indicacoesKey);
+                if(raw) return JSON.parse(raw);
+            } catch(_) {}
+            // Mock inicial vazio — em produção viria do backend
+            return [];
+        }
+        function mascararNome(nome) {
+            if(!nome) return '—';
+            const partes = nome.trim().split(/\s+/);
+            return partes.map((p, i) => {
+                if(p.length <= 2) return p;
+                if(i === 0) return p[0].toUpperCase() + '*'.repeat(Math.max(1, p.length - 2)) + p.slice(-1);
+                return p[0].toUpperCase() + '.';
+            }).join(' ');
+        }
+
+        let chartApplicash = null;
+        function atualizarTelaApplicash() {
+            const cupom = obterCupomApplicash();
+            const assinatura = obterAssinaturaApplicash();
+            const indicacoes = carregarIndicacoesApplicash();
+
+            // KPIs
+            const elCupom = document.getElementById('apcCupomCodigo');
+            if(elCupom) elCupom.innerText = cupom;
+
+            const ativos = indicacoes.filter(i => i.status === 'ativo');
+            const efetivas = ativos.length;
+            document.getElementById('apcIndicacoesEfetivas').innerText = efetivas;
+
+            // Indicações no mês corrente
+            const hoje = new Date();
+            const noMes = indicacoes.filter(i => {
+                if(!i.dataAdesao) return false;
+                const d = new Date(i.dataAdesao);
+                return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth();
+            }).length;
+            document.getElementById('apcIndicacoesNoMes').innerText = noMes;
+
+            const valorPaga = assinatura.valorMensal || 0;
+            // Recebe = 10% sobre o valor pago por cada indicação ativa (mensal equivalente)
+            const valorRecebe = ativos.reduce((acc, i) => acc + (Number(i.valorPago || 0) * APPLICASH_CONFIG.comissaoPct), 0);
+
+            document.getElementById('apcVocePaga').innerText = formatarMoeda(valorPaga);
+            document.getElementById('apcVoceRecebe').innerText = formatarMoeda(valorRecebe);
+            document.getElementById('apcLegendaPaga').innerText = formatarMoeda(valorPaga);
+            document.getElementById('apcLegendaRecebe').innerText = formatarMoeda(valorRecebe);
+            document.getElementById('apcTotalReceberMes').innerText = formatarMoeda(valorRecebe);
+
+            // Frase condicionada ao cenário
+            const frase = document.getElementById('apcFraseCenario');
+            if(frase) {
+                if(efetivas === 0) {
+                    frase.innerHTML = `Você ainda não tem indicações ativas. Compartilhe seu cupom <strong>${cupom}</strong> e comece a receber 10% do valor pago por cada amigo que assinar a Appliquei.`;
+                    frase.style.background = 'var(--cor-bg-info)';
+                    frase.style.borderColor = 'var(--cor-borda-info)';
+                    frase.style.color = 'var(--cor-txt-info)';
+                } else if(valorRecebe < valorPaga) {
+                    const falta = valorPaga - valorRecebe;
+                    frase.innerHTML = `Faltam <strong>${formatarMoeda(falta)}/mês</strong> para sua assinatura ficar de graça. Continue indicando!`;
+                    frase.style.background = 'var(--cor-bg-amber)';
+                    frase.style.borderColor = 'var(--cor-borda-amber)';
+                    frase.style.color = 'var(--cor-txt-amber)';
+                } else if(Math.abs(valorRecebe - valorPaga) < 0.01) {
+                    frase.innerHTML = `🎯 Sua assinatura está paga! Você recebe exatamente o que paga. A próxima indicação vira lucro líquido.`;
+                    frase.style.background = 'var(--cor-bg-primaria)';
+                    frase.style.borderColor = 'var(--cor-borda-primaria)';
+                    frase.style.color = 'var(--cor-txt-primaria)';
+                } else {
+                    const lucro = valorRecebe - valorPaga;
+                    frase.innerHTML = `🎉 O seu plano está de graça e você ainda lucra <strong>${formatarMoeda(lucro)}/mês</strong>. Continue indicando para multiplicar seus ganhos.`;
+                    frase.style.background = 'var(--cor-bg-primaria)';
+                    frase.style.borderColor = 'var(--cor-borda-primaria)';
+                    frase.style.color = 'var(--cor-txt-primaria)';
+                }
+            }
+
+            // Gráfico pizza
+            const canvas = document.getElementById('chartApplicash');
+            if(canvas) {
+                if(chartApplicash) chartApplicash.destroy();
+                const ctx = canvas.getContext('2d');
+                const dadosPizza = (valorPaga + valorRecebe) > 0
+                    ? [valorRecebe, valorPaga]
+                    : [0.5, 0.5];
+                const corBorda = getToken('--cor-branco');
+                const corPaga = getToken('--cor-erro');
+                const corRecebe = getToken('--cor-primaria');
+                chartApplicash = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Você recebe', 'Você paga'],
+                        datasets: [{
+                            data: dadosPizza,
+                            backgroundColor: [corRecebe, corPaga],
+                            borderWidth: 3,
+                            borderColor: corBorda,
+                            hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: {
+                                color: '#fff',
+                                font: { family: "'Figtree', sans-serif", weight: '700', size: 12 },
+                                formatter: (v) => {
+                                    const total = valorPaga + valorRecebe;
+                                    if(total <= 0) return '';
+                                    return `${(v/total*100).toFixed(0)}%`;
+                                },
+                                display: () => (valorPaga + valorRecebe) > 0
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: (c) => `${c.label}: ${formatarMoeda(c.parsed)}`
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Meta — primeira meta acima do número atual de indicações efetivas
+            const metaAtual = APPLICASH_METAS.find(m => m.qtd > efetivas) || APPLICASH_METAS[APPLICASH_METAS.length - 1];
+            const metaConcluida = efetivas >= metaAtual.qtd;
+            const progresso = Math.min(100, (efetivas / metaAtual.qtd) * 100);
+            const restantes = Math.max(0, metaAtual.qtd - efetivas);
+            document.getElementById('apcMetaTitulo').innerText = `Indique ${metaAtual.qtd} pessoas`;
+            document.getElementById('apcMetaRecompensa').innerText = metaAtual.recompensa;
+            document.getElementById('apcMetaProgressoBar').style.width = progresso + '%';
+            document.getElementById('apcMetaAtual').innerText = efetivas;
+            document.getElementById('apcMetaAlvo').innerText = metaAtual.qtd;
+            document.getElementById('apcMetaRestante').innerText = restantes;
+
+            // Lista de marcos
+            const elLista = document.getElementById('apcMetasLista');
+            if(elLista) {
+                elLista.innerHTML = APPLICASH_METAS.map(m => {
+                    const conquistada = efetivas >= m.qtd;
+                    const cor = conquistada ? 'var(--cor-primaria)' : 'var(--cor-texto-mutado)';
+                    const bg = conquistada ? 'var(--cor-bg-primaria)' : 'var(--cor-superficie)';
+                    const borda = conquistada ? 'var(--cor-borda-primaria)' : 'var(--cor-borda)';
+                    const icone = conquistada ? 'ph-fill ph-check-circle' : 'ph ph-circle';
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bg};border:1px solid ${borda};border-radius:9px;font-size:12.5px;">
+                        <i class="${icone}" style="color:${cor};font-size:18px;flex-shrink:0;"></i>
+                        <strong style="color:var(--cor-texto-principal);min-width:60px;">${m.qtd}</strong>
+                        <span style="color:var(--cor-texto-secundario);flex:1;">${m.recompensa}</span>
+                    </div>`;
+                }).join('');
+            }
+
+            // Tabela de indicações
+            const corpo = document.getElementById('apcTabelaIndicacoesCorpo');
+            const vazia = document.getElementById('apcTabelaVazia');
+            const tabela = document.getElementById('apcTabelaIndicacoes');
+            if(corpo) {
+                if(indicacoes.length === 0) {
+                    corpo.innerHTML = '';
+                    if(tabela) tabela.style.display = 'none';
+                    if(vazia) vazia.style.display = 'block';
+                } else {
+                    if(tabela) tabela.style.display = '';
+                    if(vazia) vazia.style.display = 'none';
+                    corpo.innerHTML = indicacoes.map(i => {
+                        const lucro = (Number(i.valorPago || 0) * APPLICASH_CONFIG.comissaoPct);
+                        const ativo = i.status === 'ativo';
+                        const tagCor = ativo ? 'var(--cor-txt-primaria)' : 'var(--cor-texto-mutado)';
+                        const tagBg = ativo ? 'var(--cor-bg-primaria)' : 'var(--cor-superficie)';
+                        const tagBorda = ativo ? 'var(--cor-borda-primaria)' : 'var(--cor-borda)';
+                        const periodicidade = (i.periodicidade || 'mensal').toLowerCase();
+                        const periodLbl = periodicidade.charAt(0).toUpperCase() + periodicidade.slice(1);
+                        return `<tr>
+                            <td><strong>${mascararNome(i.nome)}</strong></td>
+                            <td>${i.plano || '—'}</td>
+                            <td style="text-align:right;font-family:'DM Mono',monospace;" class="valor-mascarado">${formatarMoeda(i.valorPago || 0)}</td>
+                            <td>${periodLbl}</td>
+                            <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--cor-primaria);" class="valor-mascarado">${formatarMoeda(lucro)}</td>
+                            <td style="text-align:center;"><span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 10px;border-radius:99px;background:${tagBg};color:${tagCor};border:1px solid ${tagBorda};">${ativo ? 'Ativo' : 'Inativo'}</span></td>
+                        </tr>`;
+                    }).join('');
+                }
+            }
+        }
+
+        function copiarCupomApplicash() {
+            const cupom = obterCupomApplicash();
+            const lbl = document.getElementById('lblCupomBtn');
+            const fallback = () => {
+                const ta = document.createElement('textarea');
+                ta.value = cupom; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch(_) {}
+                document.body.removeChild(ta);
+            };
+            const onOk = () => {
+                if(lbl) { lbl.innerText = 'Copiado!'; setTimeout(() => lbl.innerText = 'Copiar cupom', 1800); }
+                mostrarToast(`Cupom ${cupom} copiado!`, 'sucesso');
+            };
+            if(navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(cupom).then(onOk).catch(() => { fallback(); onOk(); });
+            } else {
+                fallback(); onOk();
+            }
+        }
+        function compartilharCupomApplicash() {
+            const cupom = obterCupomApplicash();
+            const texto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto em qualquer plano! 💚`;
+            if(navigator.share) {
+                navigator.share({ title: 'Appliquei', text: texto }).catch(() => {});
+            } else {
+                copiarCupomApplicash();
+                mostrarToast('Texto pronto para compartilhar copiado!', 'sucesso');
+                if(navigator.clipboard) navigator.clipboard.writeText(texto).catch(() => {});
+            }
+        }
+
+        // ============================================================
+        // === DÚVIDAS & SUGESTÕES                                    ===
+        // ============================================================
+        const FAQ_DADOS = [
+            // Conta & assinatura
+            { cat: 'conta', catLbl: 'Conta', p: 'Como faço para criar minha conta na Appliquei?', r: 'Acesse a página inicial, clique em <strong>Cadastrar</strong> e preencha seus dados básicos. Em seguida, escolha um plano (mensal, semestral ou anual) e finalize. Assim que o cadastro for concluído, você já poderá usar todas as ferramentas disponíveis para o seu plano.' },
+            { cat: 'conta', catLbl: 'Conta', p: 'Como cancelar minha assinatura?', r: 'Você pode cancelar a qualquer momento na aba <strong>Configurações → Assinatura</strong>. O cancelamento é imediato e seu acesso permanece ativo até o fim do período já pago. Não há multa.' },
+            { cat: 'conta', catLbl: 'Conta', p: 'Posso mudar de plano depois?', r: 'Sim. Em <strong>Configurações → Assinatura</strong> você pode trocar para qualquer outro plano. Em upgrades, a diferença é cobrada proporcional aos dias restantes. Em downgrades, a alteração passa a valer no próximo ciclo.' },
+            { cat: 'conta', catLbl: 'Conta', p: 'Quais formas de pagamento são aceitas?', r: 'Aceitamos cartão de crédito (parcelamento conforme o plano), Pix e boleto bancário. O cupom de 10% é aplicado em qualquer forma de pagamento.' },
+
+            // Patrimônio & ativos
+            { cat: 'patrimonio', catLbl: 'Patrimônio', p: 'Como cadastrar uma operação de compra ou venda?', r: 'Na aba <strong>Visão geral do patrimônio</strong>, clique em <strong>Registrar operação</strong>. Selecione o ativo, informe quantidade, preço, data, corretora e demais campos. A operação aparece automaticamente na sua carteira e no histórico.' },
+            { cat: 'patrimonio', catLbl: 'Patrimônio', p: 'De onde vêm as cotações dos ativos?', r: 'As cotações são consultadas no Yahoo Finance em tempo quase real. Quando a fonte não responde, usamos a última cotação salva e exibimos o aviso <em>"Preços estimados"</em> no topo da página.' },
+            { cat: 'patrimonio', catLbl: 'Patrimônio', p: 'A plataforma suporta renda fixa, FIIs, ações, ETFs, BDRs e previdência?', r: 'Sim, todos esses tipos são suportados. Para previdência, há cálculo de saldo com aportes recorrentes; para renda fixa, projeção com CDI/Selic/IPCA atualizados pelo Banco Central.' },
+            { cat: 'patrimonio', catLbl: 'Patrimônio', p: 'Como faço backup dos meus dados?', r: 'Clique em <strong>Backup</strong> no canto superior direito da Visão geral. Será baixado um arquivo JSON com todas as suas operações, sonhos, metas e configurações. Guarde-o em local seguro.' },
+
+            // Controle financeiro
+            { cat: 'controle', catLbl: 'Controle', p: 'Para que serve a aba Controle financeiro?', r: 'É onde você acompanha receitas, despesas, cartões de crédito e o fluxo de caixa mensal. Ela alimenta automaticamente o cálculo de quanto sobra para investir e dispara alertas quando o orçamento estoura.' },
+            { cat: 'controle', catLbl: 'Controle', p: 'Posso cadastrar mais de um cartão de crédito?', r: 'Sim, você pode cadastrar quantos cartões quiser, definindo dia de fechamento e dia de vencimento de cada um. As faturas são agrupadas e exibidas em modo separado.' },
+            { cat: 'controle', catLbl: 'Controle', p: 'Como funcionam as metas mensais?', r: 'Você define um valor-meta para cada categoria (ex.: R$ 1.500 em mercado). A barra de progresso mostra quanto já foi gasto no mês e o valor restante. Cores indicam quando você está se aproximando ou ultrapassou a meta.' },
+
+            // Ferramentas
+            { cat: 'ferramentas', catLbl: 'Ferramentas', p: 'Como funciona o Simulador de liberdade financeira?', r: 'Você informa quanto pode investir por mês, sua expectativa de rentabilidade e seu objetivo (renda passiva mensal ou patrimônio total). O simulador projeta a evolução até a sua independência considerando aportes, juros compostos e inflação.' },
+            { cat: 'ferramentas', catLbl: 'Ferramentas', p: 'O que é a Carteira recomendada?', r: 'É uma sugestão personalizada de alocação entre renda fixa, FIIs, ações, ETFs, BDRs e previdência baseada no seu perfil de investidor e nos seus objetivos. As recomendações são revisadas mensalmente.' },
+            { cat: 'ferramentas', catLbl: 'Ferramentas', p: 'O que tem na Jornada Financeira?', r: 'É um conjunto de aulas curtas e práticas, organizadas em trilhas (iniciante → avançado). Cada aula tem vídeo, resumo escrito e um exercício rápido para fixar o conteúdo.' },
+
+            // Applicash
+            { cat: 'applicash', catLbl: 'Applicash $', p: 'Como funciona o Applicash $?', r: 'É o nosso programa de indicações. Seu cupom dá <strong>10% de desconto</strong> ao novo assinante. A partir de uma indicação efetiva (assinante ativo), você passa a receber <strong>10% do valor pago</strong> enquanto ele permanecer na plataforma.' },
+            { cat: 'applicash', catLbl: 'Applicash $', p: 'O que é uma indicação efetiva?', r: 'É um usuário que se cadastrou usando o seu cupom e pagou pelo menos a primeira mensalidade. Cadastros que cancelam antes da primeira cobrança não geram comissão.' },
+            { cat: 'applicash', catLbl: 'Applicash $', p: 'Quando recebo o valor das minhas indicações?', r: 'O valor é creditado mensalmente, junto da fatura do indicado. Você pode acompanhar o total previsto e o histórico em <strong>Applicash $ → Minhas indicações</strong>.' },
+            { cat: 'applicash', catLbl: 'Applicash $', p: 'Existe limite de indicações?', r: 'Não há limite. Quanto mais pessoas usarem seu cupom, maior a sua receita. Existem ainda metas com recompensas extras a cada marco atingido (5, 10, 30, 50 e 100 indicações).' },
+
+            // Dados & segurança
+            { cat: 'dados', catLbl: 'Dados', p: 'Meus dados financeiros ficam seguros?', r: 'Seus dados são armazenados localmente no seu navegador (localStorage) e, quando sincronizados, trafegam por HTTPS criptografado. Não compartilhamos informações pessoais com terceiros.' },
+            { cat: 'dados', catLbl: 'Dados', p: 'Posso exportar e excluir meus dados?', r: 'Sim. A qualquer momento você pode exportar tudo em JSON pelo botão <strong>Backup</strong>, ou solicitar a exclusão total da conta em <strong>Configurações → Privacidade</strong>.' },
+            { cat: 'dados', catLbl: 'Dados', p: 'Como funciona o modo "Ocultar valores"?', r: 'Clique no ícone do olho na barra superior. Os valores monetários e percentuais sensíveis ficam mascarados na tela, útil para usar a plataforma em locais públicos. A preferência é lembrada no seu navegador.' }
+        ];
+
+        function abrirFaqItem(idx) {
+            const item = document.querySelector(`.faq-item[data-idx="${idx}"]`);
+            if(!item) return;
+            item.classList.toggle('aberto');
+        }
+
+        function renderizarFaq() {
+            const lista = document.getElementById('faqLista');
+            if(!lista) return;
+            const termo = (document.getElementById('faqBuscaInput')?.value || '').toLowerCase().trim();
+            const cat = document.getElementById('faqCategoriaFiltro')?.value || '';
+            const filtrados = FAQ_DADOS
+                .map((item, idx) => ({ ...item, idx }))
+                .filter(item => {
+                    if(cat && item.cat !== cat) return false;
+                    if(!termo) return true;
+                    return item.p.toLowerCase().includes(termo) || item.r.toLowerCase().includes(termo);
+                });
+
+            const vazio = document.getElementById('faqVazio');
+            if(filtrados.length === 0) {
+                lista.innerHTML = '';
+                if(vazio) vazio.style.display = 'block';
+                return;
+            }
+            if(vazio) vazio.style.display = 'none';
+
+            lista.innerHTML = filtrados.map(item => `
+                <div class="faq-item" data-idx="${item.idx}">
+                    <div class="faq-item-cabecalho" onclick="abrirFaqItem(${item.idx})">
+                        <div class="faq-titulo-wrap">
+                            <span class="faq-titulo-texto">${item.p}</span>
+                            <span class="faq-categoria">${item.catLbl}</span>
+                        </div>
+                        <i class="ph-bold ph-caret-down faq-chevron"></i>
+                    </div>
+                    <div class="faq-item-resposta">${item.r}</div>
+                </div>
+            `).join('');
+        }
+
+        function filtrarFaq() {
+            renderizarFaq();
+        }
+
+        function trocarTabDuvidas(qual) {
+            const tabFaq = document.getElementById('tabFaq');
+            const tabSug = document.getElementById('tabSugestao');
+            const conteudoFaq = document.getElementById('dsConteudoFaq');
+            const conteudoSug = document.getElementById('dsConteudoSugestao');
+            if(qual === 'faq') {
+                tabFaq.classList.add('ativo');
+                tabSug.classList.remove('ativo');
+                tabFaq.style.background = 'var(--cor-branco)';
+                tabFaq.style.color = 'var(--cor-texto-principal)';
+                tabSug.style.background = 'transparent';
+                tabSug.style.color = 'var(--cor-texto-mutado)';
+                conteudoFaq.style.display = '';
+                conteudoSug.style.display = 'none';
+            } else {
+                tabSug.classList.add('ativo');
+                tabFaq.classList.remove('ativo');
+                tabSug.style.background = 'var(--cor-branco)';
+                tabSug.style.color = 'var(--cor-texto-principal)';
+                tabFaq.style.background = 'transparent';
+                tabFaq.style.color = 'var(--cor-texto-mutado)';
+                conteudoSug.style.display = '';
+                conteudoFaq.style.display = 'none';
+                renderizarHistoricoSugestoes();
+            }
+        }
+
+        function selecionarTipoSugestao(tipo) {
+            document.getElementById('sugTipo').value = tipo;
+            document.querySelectorAll('.sug-tipo-btn').forEach(b => b.classList.remove('ativo'));
+            const btn = document.querySelector(`.sug-tipo-btn[data-tipo="${tipo}"]`);
+            if(btn) btn.classList.add('ativo');
+        }
+
+        function carregarSugestoes() {
+            try { return JSON.parse(localStorage.getItem('appliquei_sugestoes') || '[]'); } catch { return []; }
+        }
+        function salvarSugestoes(arr) {
+            localStorage.setItem('appliquei_sugestoes', JSON.stringify(arr));
+        }
+
+        function enviarSugestao() {
+            const aba = document.getElementById('sugAba').value;
+            const outroTema = document.getElementById('sugOutroTema').value.trim();
+            const tipo = document.getElementById('sugTipo').value;
+            const texto = document.getElementById('sugTexto').value.trim();
+
+            if(!aba) return mostrarToast('Selecione a aba relacionada à sua sugestão.', 'erro');
+            if(aba === 'outro' && !outroTema) return mostrarToast('Diga sobre o que é a sua sugestão.', 'erro');
+            if(texto.length < 10) return mostrarToast('Descreva sua sugestão com pelo menos 10 caracteres.', 'erro');
+
+            const sugestoes = carregarSugestoes();
+            sugestoes.unshift({
+                id: Date.now(),
+                aba,
+                outroTema: aba === 'outro' ? outroTema : '',
+                tipo,
+                texto,
+                data: new Date().toISOString()
+            });
+            salvarSugestoes(sugestoes);
+
+            // Limpar form
+            document.getElementById('sugAba').value = '';
+            document.getElementById('sugOutroTema').value = '';
+            document.getElementById('sugOutroWrapper').style.display = 'none';
+            document.getElementById('sugTexto').value = '';
+            document.getElementById('sugContador').innerText = '0';
+            selecionarTipoSugestao('melhoria');
+
+            mostrarToast('Sugestão enviada! Obrigado por contribuir 💚', 'sucesso');
+            renderizarHistoricoSugestoes();
+        }
+
+        function renderizarHistoricoSugestoes() {
+            const lista = document.getElementById('sugHistoricoLista');
+            const vazio = document.getElementById('sugHistoricoVazio');
+            const total = document.getElementById('sugTotalEnviadas');
+            if(!lista) return;
+            const sugestoes = carregarSugestoes();
+            if(total) total.innerText = sugestoes.length;
+            if(sugestoes.length === 0) {
+                lista.innerHTML = '';
+                if(vazio) vazio.style.display = 'block';
+                return;
+            }
+            if(vazio) vazio.style.display = 'none';
+
+            const labelsAba = {
+                patrimonio: 'Patrimônio',
+                controle: 'Controle financeiro',
+                carteira: 'Carteira recomendada',
+                relatorio_mensal: 'Relatório mensal',
+                simulador: 'Simulador',
+                meus_sonhos: 'Meus sonhos',
+                aulas: 'Jornada',
+                noticias: 'Info Mercado',
+                applicash: 'Applicash $',
+                duvidas_sugestoes: 'Dúvidas & Sugestões',
+                outro: 'Outro'
+            };
+            const labelsTipo = { melhoria: '✨ Melhoria', novo: '🚀 Novo recurso', bug: '🐛 Bug' };
+
+            lista.innerHTML = sugestoes.map(s => {
+                const dt = new Date(s.data);
+                const dataFmt = dt.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) + ' • ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const aba = labelsAba[s.aba] || s.aba;
+                const tema = s.outroTema ? ` · ${s.outroTema}` : '';
+                return `<div class="sug-historico-item">
+                    <div class="sh-cabecalho">
+                        <span class="sh-tag">${labelsTipo[s.tipo] || s.tipo} · ${aba}${tema}</span>
+                        <span class="sh-data">${dataFmt}</span>
+                    </div>
+                    <div class="sh-texto">${(s.texto || '').replace(/</g, '&lt;')}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function inicializarFormSugestao() {
+            const sel = document.getElementById('sugAba');
+            const wrap = document.getElementById('sugOutroWrapper');
+            if(sel) sel.addEventListener('change', () => {
+                if(wrap) wrap.style.display = sel.value === 'outro' ? '' : 'none';
+            });
+            const ta = document.getElementById('sugTexto');
+            const cont = document.getElementById('sugContador');
+            if(ta && cont) ta.addEventListener('input', () => { cont.innerText = ta.value.length; });
+        }
+
         // --- INICIALIZAÇÃO ---
         window.onload = function() {
             aplicarTemaChartJs();
@@ -7937,6 +8722,9 @@
                     const lbl = document.getElementById('lblToggleColunas'); if(lbl) lbl.innerText = 'Menos colunas';
                 }
             } catch(_){}
+            // Applicash & Dúvidas/Sugestões
+            renderizarFaq();
+            inicializarFormSugestao();
         };
     </script>
 </body>
