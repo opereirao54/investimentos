@@ -6602,7 +6602,7 @@
         }
 
         function calcularResumoMes(mesAlvo, anoAlvo) {
-            let res = { receita: 0, resgate: 0, despFixa: 0, despVar: 0, cartao: 0, invFixo: 0, invVar: 0 };
+            let res = { receita: 0, resgate: 0, despFixa: 0, despVar: 0, cartao: 0, invFixo: 0, invVar: 0, sonho: 0 };
             transacoes.forEach(t => {
                 if(t.mes === mesAlvo && t.ano === anoAlvo) {
                     if(t.categoria === 'receita') res.receita += t.valor;
@@ -6612,6 +6612,7 @@
                     else if(t.categoria === 'cartao_credito') res.cartao += t.valor;
                     else if(t.categoria === 'investimento_fixo') res.invFixo += t.valor;
                     else if(t.categoria === 'investimento_variavel') res.invVar += t.valor;
+                    else if(t.categoria === 'sonho') res.sonho += t.valor;
                 }
             });
             return res;
@@ -6941,7 +6942,7 @@
 
 
             let totRec = 0, totDesp = 0, totCartao = 0, totInv = 0;
-            const nomesCat = { 'receita': 'Receita', 'resgate_investimento': 'Resgate', 'despesa_fixa': 'Desp. Fixa', 'despesa_variavel': 'Desp. Variável', 'cartao_credito': 'C. Crédito', 'investimento_fixo': 'Inv. Fixo', 'investimento_variavel': 'Inv. Variável' };
+            const nomesCat = { 'receita': 'Receita', 'resgate_investimento': 'Resgate', 'despesa_fixa': 'Desp. Fixa', 'despesa_variavel': 'Desp. Variável', 'cartao_credito': 'C. Crédito', 'investimento_fixo': 'Inv. Fixo', 'investimento_variavel': 'Inv. Variável', 'sonho': '⭐ Sonho' };
 
             transacoes.forEach((t) => {
                 if (t.mes === visaoMes && t.ano === visaoAno) {
@@ -7032,8 +7033,8 @@
             // GRÁFICO BARRAS
             let rPizza = calcularResumoMes(visaoMes, visaoAno);
             if(chartComposicao) chartComposicao.destroy();
-            let vSobra = rPizza.receita + rPizza.resgate - rPizza.cartao - rPizza.despFixa - rPizza.despVar - (rPizza.invFixo + rPizza.invVar);
-            let somaParaGrafico = rPizza.receita + rPizza.resgate + rPizza.cartao + rPizza.despFixa + rPizza.despVar + rPizza.invFixo + rPizza.invVar;
+            let vSobra = rPizza.receita + rPizza.resgate - rPizza.cartao - rPizza.despFixa - rPizza.despVar - (rPizza.invFixo + rPizza.invVar) - rPizza.sonho;
+            let somaParaGrafico = rPizza.receita + rPizza.resgate + rPizza.cartao + rPizza.despFixa + rPizza.despVar + rPizza.invFixo + rPizza.invVar + rPizza.sonho;
 
             if (somaParaGrafico > 0) {
                 document.getElementById('legendaPizzaVazia').style.display = 'none';
@@ -7044,7 +7045,8 @@
                     { label: 'Cartão', valor: rPizza.cartao, cor: '#f59e0b' },
                     { label: 'Fixa', valor: rPizza.despFixa, cor: '#f97316' },
                     { label: 'Var.', valor: rPizza.despVar, cor: '#e11d48' },
-                    { label: 'Aportes Mês', valor: rPizza.invFixo + rPizza.invVar, cor: '#2563eb' }
+                    { label: 'Aportes Mês', valor: rPizza.invFixo + rPizza.invVar, cor: '#2563eb' },
+                    { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' }
                 ];
                 dadosGrafico.sort((a, b) => b.valor - a.valor);
                 dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
@@ -7093,8 +7095,8 @@
                 while(m > 11) { m -= 12; a++; }
                 let r = calcularResumoMes(m, a);
                 let despesas = r.despFixa + r.despVar + r.cartao;
-                saldoAcumulado += r.receita + r.resgate - despesas - (r.invFixo + r.invVar);
-                dreDados.push({ receita: r.receita, resgate: r.resgate, invFixo: r.invFixo, invVar: r.invVar, despesas: despesas, saldoAcumulado: saldoAcumulado });
+                saldoAcumulado += r.receita + r.resgate - despesas - (r.invFixo + r.invVar) - r.sonho;
+                dreDados.push({ receita: r.receita, resgate: r.resgate, invFixo: r.invFixo, invVar: r.invVar, sonho: r.sonho, despesas: despesas, saldoAcumulado: saldoAcumulado });
                 labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
             }
 
@@ -7117,6 +7119,10 @@
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
             dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.invVar > 0 ? '-'+formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`; });
+            htmlLinhas += `</tr>`;
+
+            htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Sonhos (separado p/ metas)</td>`;
+            dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: #7c3aed; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.sonho > 0 ? '-'+formatarMoeda(d.sonho) : 'R$ 0,00'}</td>`; });
             htmlLinhas += `</tr>`;
 
             htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
@@ -7817,6 +7823,86 @@
             localStorage.setItem('appliquei_sonhos', JSON.stringify(sonhos));
         }
 
+        // === Integração Sonho ↔ Controle Financeiro ==================
+        function gerarLancamentosMensaisSonho(sonho, valorMensal, mesesGerar) {
+            // Cria recorrência de transações com categoria 'sonho' a partir do mês atual
+            if(!sonho || valorMensal <= 0 || mesesGerar <= 0) return 0;
+            const groupId = sonho.groupIdControle || ('sonho_grp_' + sonho.id);
+            sonho.groupIdControle = groupId;
+            const agora = new Date();
+            let criados = 0;
+            for(let i = 0; i < mesesGerar; i++) {
+                let m = agora.getMonth() + i;
+                let a = agora.getFullYear();
+                while(m > 11) { m -= 12; a++; }
+                const jaExiste = transacoes.some(t => t.categoria === 'sonho' && t.sonhoId === sonho.id && t.mes === m && t.ano === a && !t.aporteExtra);
+                if(jaExiste) continue;
+                transacoes.push({
+                    id: 'tx_' + Date.now() + '_' + i,
+                    groupId,
+                    sonhoId: sonho.id,
+                    descricao: `Sonho: ${sonho.nome}`,
+                    valor: Math.round(valorMensal * 100) / 100,
+                    categoria: 'sonho',
+                    obs: 'Compromisso mensal do sonho',
+                    mes: m, ano: a,
+                    data: new Date().toISOString(),
+                    pago: false
+                });
+                criados++;
+            }
+            if(criados > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            return criados;
+        }
+
+        function removerLancamentosFuturosSonho(sonhoId) {
+            const agora = new Date();
+            const m0 = agora.getMonth(), a0 = agora.getFullYear();
+            const antes = transacoes.length;
+            transacoes = transacoes.filter(t => {
+                if(t.categoria !== 'sonho' || t.sonhoId !== sonhoId || t.aporteExtra) return true;
+                const futuro = (t.ano > a0) || (t.ano === a0 && t.mes > m0);
+                if(futuro && !t.pago) return false; // remove apenas mês corrente em diante e não pagos
+                return true;
+            });
+            if(transacoes.length !== antes) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        }
+
+        function pedirConfirmacaoPlanoSonho(sonho) {
+            const mensal = calcSonhoMensal(sonho.valorTotal, sonho.valorAtual, sonho.mesesRestantes);
+            if(mensal <= 0) return;
+            const mesesGerar = Math.min(60, sonho.mesesRestantes || sonho.prazoMeses);
+            const fmt = formatarMoeda(mensal);
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);"></i> Vincular sonho ao Controle?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                Para conquistar <strong>${sonho.nome}</strong> em ${sonho.prazoMeses} meses, você precisa separar
+                <strong style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">${fmt}/mês</strong>.<br><br>
+                Quer que a Appliquei crie automaticamente esse compromisso fixo no seu Controle Financeiro
+                (categoria <strong style="color:#7c3aed;">⭐ Sonho</strong>)? Você poderá pagar/quitar mês a mês como qualquer outra conta.
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-primaria);" onclick="confirmarPlanoSonho('${sonho.id}')"><i class="ph-bold ph-check-circle"></i> Sim, criar compromisso</button>
+                <button class="btn-secundario" onclick="fecharModal()">Agora não</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarPlanoSonho(sonhoId) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) { fecharModal(); return; }
+            const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+            const mesesGerar = Math.min(60, s.mesesRestantes || s.prazoMeses);
+            const criados = gerarLancamentosMensaisSonho(s, mensal, mesesGerar);
+            s.planoVinculado = true;
+            s.aporteMensalPlano = mensal;
+            salvarSonhos();
+            fecharModal();
+            renderizarSonhos();
+            mostrarToast(`Compromisso criado: ${criados} ${criados===1?'lançamento mensal':'lançamentos mensais'} no Controle.`, 'sucesso');
+        }
+        // ============================================================
+
         function analisarSaudeFinanceiraSonhos() {
             // Analisa os últimos 3 meses fechados + mês corrente para inferir saúde financeira
             const hoje = new Date();
@@ -7824,11 +7910,11 @@
             for(let i = 0; i < 4; i++) {
                 const ref = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
                 const r = calcularResumoMes(ref.getMonth(), ref.getFullYear());
-                const totalMov = r.receita + r.despFixa + r.despVar + r.cartao + r.invFixo + r.invVar + r.resgate;
+                const totalMov = r.receita + r.despFixa + r.despVar + r.cartao + r.invFixo + r.invVar + r.resgate + r.sonho;
                 if(totalMov > 0) {
                     receita += r.receita + r.resgate;
                     despesa += r.despFixa + r.despVar + r.cartao;
-                    invest  += r.invFixo + r.invVar;
+                    invest  += r.invFixo + r.invVar + r.sonho;
                     mesesComDados++;
                 }
             }
@@ -8232,7 +8318,11 @@
                             <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
                         </div>
                         ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
-                        <div style="padding:12px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--cor-borda);background:var(--cor-superficie);">
+                        <div style="padding:12px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--cor-borda);background:var(--cor-superficie);flex-wrap:wrap;">
+                            ${conquistado ? '' : (s.planoVinculado
+                                ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
+                                : `<button onclick="event.stopPropagation();pedirConfirmacaoPlanoSonho(sonhos.find(x=>x.id==='${s.id}'))" class="btn-acao" style="background:#7c3aed;font-size:12px;padding:8px 14px;margin-right:auto;"><i class="ph-bold ph-link-simple"></i> Vincular ao Controle</button>`)}
+                            ${conquistado || !s.planoVinculado ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Estende o prazo em 1 mês."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
                             <button onclick="event.stopPropagation();abrirAporteSonho('${s.id}')" class="btn-acao" style="background:var(--cor-primaria);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-piggy-bank"></i> Registrar aporte</button>
                             <button onclick="event.stopPropagation();editarSonho('${s.id}')" class="btn-acao" style="font-size:12px;padding:8px 14px;"><i class="ph-bold ph-pencil-simple"></i> Editar</button>
                             <button onclick="event.stopPropagation();excluirSonho('${s.id}')" class="btn-acao" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-trash"></i> Excluir</button>
@@ -8326,6 +8416,66 @@
             }
         }
 
+        function pularMesSonho(id) {
+            const s = sonhos.find(x => x.id === id);
+            if(!s) return;
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-skip-forward" style="color:#f59e0b;"></i> Não vai conseguir separar este mês?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                Sem problema — vamos recalcular o plano do sonho <strong>${s.nome}</strong>.<br><br>
+                O prazo será estendido em <strong>1 mês</strong> (passa de ${s.prazoMeses} para ${s.prazoMeses+1} meses) e o lançamento do mês corrente no Controle Financeiro será removido.<br><br>
+                <em style="color:var(--cor-texto-mutado);">O novo aporte mensal sugerido será recalculado automaticamente.</em>
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:#f59e0b;" onclick="confirmarPularMes('${s.id}')"><i class="ph-bold ph-check"></i> Sim, pular e recalcular</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarPularMes(id) {
+            const s = sonhos.find(x => x.id === id);
+            if(!s) { fecharModal(); return; }
+            // Remove transação do mês corrente (não paga) e estende prazo em 1 mês
+            const agora = new Date();
+            const m0 = agora.getMonth(), a0 = agora.getFullYear();
+            transacoes = transacoes.filter(t => !(t.categoria === 'sonho' && t.sonhoId === s.id && !t.aporteExtra && !t.pago && t.mes === m0 && t.ano === a0));
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            s.prazoMeses += 1;
+            const novoFim = new Date(s.dataFim);
+            novoFim.setMonth(novoFim.getMonth() + 1);
+            s.dataFim = novoFim.toISOString();
+            s.mesesRestantes = Math.max(0, mesesEntre(new Date(), novoFim));
+            // Regenera lançamentos futuros (a partir do próximo mês) com novo valor
+            removerLancamentosFuturosSonho(s.id);
+            const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+            s.aporteMensalPlano = mensal;
+            const mesesGerar = Math.min(60, s.mesesRestantes);
+            // Pula o mês corrente: gera a partir do próximo mês
+            for(let i = 1; i <= mesesGerar; i++) {
+                let m = m0 + i, a = a0;
+                while(m > 11) { m -= 12; a++; }
+                transacoes.push({
+                    id: 'tx_' + Date.now() + '_' + i,
+                    groupId: s.groupIdControle || ('sonho_grp_' + s.id),
+                    sonhoId: s.id,
+                    descricao: `Sonho: ${s.nome}`,
+                    valor: Math.round(mensal * 100) / 100,
+                    categoria: 'sonho',
+                    obs: 'Compromisso mensal do sonho (recalculado)',
+                    mes: m, ano: a,
+                    data: new Date().toISOString(),
+                    pago: false
+                });
+            }
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            salvarSonhos();
+            fecharModal();
+            renderizarSonhos();
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            mostrarToast(`Plano recalculado: novo aporte ${formatarMoeda(mensal)}/mês.`,'sucesso');
+        }
+
         function toggleAllSonhos(expandir) {
             const cards = document.querySelectorAll('#sonhosListaContainer .sonho-card');
             if(cards.length === 0) return;
@@ -8378,9 +8528,12 @@
             const dataFim = new Date(agora);
             dataFim.setMonth(dataFim.getMonth() + prazo);
 
+            let sonhoCriado = null;
+            let edicaoComMudancaDePlano = false;
             if(sonhoEditandoId) {
                 const idx = sonhos.findIndex(s => s.id === sonhoEditandoId);
                 if(idx>=0) {
+                    const antes = { v: sonhos[idx].valorTotal, p: sonhos[idx].prazoMeses };
                     sonhos[idx].nome = nome;
                     sonhos[idx].descricao = descricao;
                     sonhos[idx].valorTotal = valorTotal;
@@ -8388,10 +8541,12 @@
                     sonhos[idx].categoria = categoria;
                     sonhos[idx].esforco = esforco;
                     sonhos[idx].dataFim = dataFim.toISOString();
-                    // Mantém valorAtual e aportes
+                    sonhos[idx].mesesRestantes = Math.max(0, mesesEntre(new Date(), dataFim));
+                    edicaoComMudancaDePlano = sonhos[idx].planoVinculado && (antes.v !== valorTotal || antes.p !== prazo);
+                    sonhoCriado = sonhos[idx];
                 }
             } else {
-                sonhos.push({
+                sonhoCriado = {
                     id: 'sonho_' + Date.now(),
                     nome, descricao, valorTotal, prazoMeses: prazo,
                     valorAtual: valorInicial || 0,
@@ -8399,14 +8554,33 @@
                     dataCriacao: agora.toISOString(),
                     dataFim: dataFim.toISOString(),
                     mesesRestantes: prazo,
+                    planoVinculado: false,
                     aportes: valorInicial > 0 ? [{valor: valorInicial, data: agora.toISOString().slice(0,10), tipo:'inicial'}] : []
-                });
+                };
+                sonhos.push(sonhoCriado);
             }
             salvarSonhos();
             renderizarSonhos();
             fecharModalSonho();
-            mostrarToast(sonhoEditandoId ? 'Sonho atualizado!' : 'Sonho cadastrado! Agora siga os passos 🚀', 'sucesso');
+            const idEditado = sonhoEditandoId;
             sonhoEditandoId = null;
+
+            if(!idEditado && sonhoCriado) {
+                mostrarToast('Sonho cadastrado! 🚀','sucesso');
+                setTimeout(() => pedirConfirmacaoPlanoSonho(sonhoCriado), 250);
+            } else if(edicaoComMudancaDePlano && sonhoCriado) {
+                mostrarToast('Sonho atualizado!','sucesso');
+                removerLancamentosFuturosSonho(sonhoCriado.id);
+                const mensal = calcSonhoMensal(sonhoCriado.valorTotal, sonhoCriado.valorAtual, sonhoCriado.mesesRestantes);
+                const mesesGerar = Math.min(60, sonhoCriado.mesesRestantes || sonhoCriado.prazoMeses);
+                const criados = gerarLancamentosMensaisSonho(sonhoCriado, mensal, mesesGerar);
+                sonhoCriado.aporteMensalPlano = mensal;
+                salvarSonhos();
+                if(criados > 0) mostrarToast(`Plano recalculado: ${criados} lançamentos atualizados no Controle.`,'sucesso');
+                if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            } else {
+                mostrarToast('Sonho atualizado!','sucesso');
+            }
         }
 
         function editarSonho(id) {
@@ -8425,11 +8599,13 @@
         }
 
         function excluirSonho(id) {
-            if(!confirm('Tem certeza que deseja excluir este sonho?')) return;
+            if(!confirm('Tem certeza que deseja excluir este sonho?\n\n(O histórico de lançamentos passados no Controle Financeiro será mantido — apenas os meses futuros do compromisso serão removidos.)')) return;
+            removerLancamentosFuturosSonho(id);
             sonhos = sonhos.filter(s => s.id !== id);
             salvarSonhos();
             renderizarSonhos();
-            mostrarToast('Sonho removido.','aviso');
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            mostrarToast('Sonho removido. Histórico mantido.','aviso');
         }
 
         function abrirAporteSonho(id) {
@@ -8447,15 +8623,75 @@
             if(valor <= 0) { mostrarToast('Informe o valor do aporte.','erro'); return; }
             const s = sonhos.find(x => x.id === id);
             if(!s) return;
+            // Antes de gravar, perguntar origem do aporte para vincular ao Controle
+            fecharModalAporteSonho();
+            perguntarOrigemAporteSonho(s, valor, data);
+        }
+
+        function perguntarOrigemAporteSonho(sonho, valor, dataStr) {
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-piggy-bank" style="color:var(--cor-primaria);"></i> De onde vem este aporte?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                Aporte de <strong style="font-family:'DM Mono',monospace;color:var(--cor-primaria);">${formatarMoeda(valor)}</strong>
+                para o sonho <strong>${sonho.nome}</strong>.<br><br>
+                Para refletir corretamente no seu Controle Financeiro, escolha a origem do dinheiro:
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-primaria);" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','esporadico')"><i class="ph ph-coin"></i> Esporádico (sobra do mês)</button>
+                <button class="btn-acao" style="background:#0ea5e9;" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','migracao')"><i class="ph ph-arrows-left-right"></i> Migração de investimento</button>
+                <button class="btn-secundario" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','sem_lancar')">Não lançar no Controle</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function finalizarAporteSonho(sonhoId, valor, dataStr, origem) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) { fecharModal(); return; }
             s.valorAtual += valor;
             if(!s.aportes) s.aportes = [];
-            s.aportes.push({valor, data, tipo:'aporte'});
+            s.aportes.push({valor, data: dataStr, tipo:'aporte', origem});
+
+            if(origem !== 'sem_lancar') {
+                const d = dataStr ? new Date(dataStr+'T12:00:00') : new Date();
+                const obs = origem === 'migracao'
+                    ? `Aporte extra (migração de investimento) — ${s.nome}`
+                    : `Aporte extra (esporádico) — ${s.nome}`;
+                transacoes.push({
+                    id: 'tx_' + Date.now(),
+                    sonhoId: s.id,
+                    aporteExtra: true,
+                    descricao: `Sonho: ${s.nome} — aporte extra`,
+                    valor: valor,
+                    categoria: 'sonho',
+                    obs,
+                    mes: d.getMonth(), ano: d.getFullYear(),
+                    data: d.toISOString(),
+                    pago: true
+                });
+                // Se for migração, registra também o resgate para não duplicar impacto no orçamento
+                if(origem === 'migracao') {
+                    transacoes.push({
+                        id: 'tx_' + Date.now() + '_r',
+                        sonhoId: s.id,
+                        descricao: `Resgate p/ sonho: ${s.nome}`,
+                        valor: valor,
+                        categoria: 'resgate_investimento',
+                        obs: `Compensação do aporte extra do sonho ${s.nome}`,
+                        mes: d.getMonth(), ano: d.getFullYear(),
+                        data: d.toISOString(),
+                        pago: true
+                    });
+                }
+                localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+                if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            }
+
             salvarSonhos();
             renderizarSonhos();
-            fecharModalAporteSonho();
+            fecharModal();
             const pct = (s.valorAtual/s.valorTotal)*100;
             if(pct >= 100) mostrarToast('🎉 Parabéns! Você conquistou seu sonho!','sucesso',5000);
-            else mostrarToast(`Aporte de R$ ${valor.toLocaleString('pt-BR',{minimumFractionDigits:2})} registrado! Agora ${pct.toFixed(0)}% concluído.`,'sucesso');
+            else mostrarToast(`Aporte de ${formatarMoeda(valor)} registrado! Agora ${pct.toFixed(0)}% concluído.`,'sucesso');
         }
 
         // ============================================================
