@@ -1879,8 +1879,8 @@
                     <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
                 </div>
                 <div class="form-group">
-                    <label>Banco / Corretora</label>
-                    <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite">
+                    <label>Banco / Corretora <span style="color:var(--cor-erro);">*</span></label>
+                    <input type="text" id="compraCorretora" list="listaCorretoras" placeholder="Selecione ou digite" required>
                 </div>
             </div>
             <div id="grupoRendaFixa" style="display: none;">
@@ -1902,7 +1902,7 @@
                     <input type="checkbox" id="prevRecorrente" checked style="width:18px; height:18px; cursor:pointer; accent-color: var(--cor-primaria);">
                     <label for="prevRecorrente" style="margin:0; cursor:pointer; font-size:13px; font-weight:600; color: var(--cor-texto-principal);">
                         Aporte recorrente todo mês
-                        <small style="display:block; font-weight:400; font-size:11px; color: var(--cor-texto-mutado);">Lança automaticamente o mesmo valor no Controle Financeiro a cada mês.</small>
+                        <small style="display:block; font-weight:400; font-size:11px; color: var(--cor-texto-mutado);">Lança automaticamente o mesmo valor no Controle Financeiro a cada mês — durante todo o período informado abaixo.</small>
                     </label>
                 </div>
                 <div class="grid-2-iguais" style="gap: 15px;">
@@ -1911,10 +1911,15 @@
                         <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
                     </div>
                     <div class="form-group">
-                        <label>Rentabilidade estimada (% ao mês)</label>
-                        <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
-                        <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                        <label>Período do compromisso (anos)</label>
+                        <input type="number" id="prevDuracaoAnos" min="1" max="40" placeholder="Ex: 10">
+                        <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
                     </div>
+                </div>
+                <div class="form-group" id="grupoTaxaMensalPrev">
+                    <label>Rentabilidade estimada (% ao mês)</label>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
+                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
                 </div>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
@@ -2099,6 +2104,12 @@
                 </div>
             </div>
 
+            <!-- POSIÇÃO POR CATEGORIA (movida acima dos ativos da Carteira) -->
+            <div id="quadroCategoriasInferior" style="display:none; margin-bottom: 20px;">
+                <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin: 0 0 12px;"><i class="ph ph-squares-four"></i> Posição por categoria <span id="lblMesQuadroCategorias" style="font-weight:500; color: var(--cor-texto-mutado); margin-left:4px;"></span></h3>
+                <div id="cardsCategoriaInferior" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"></div>
+            </div>
+
             <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
             <div id="subAbaCarteira">
                 <div class="card-container" style="padding: 0; overflow: hidden;">
@@ -2257,10 +2268,6 @@
                 </div>
             </div>
 
-            <div id="quadroCategoriasInferior" style="display:none; margin-top: 28px;">
-                <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin: 0 0 12px;"><i class="ph ph-squares-four"></i> Posição por categoria <span id="lblMesQuadroCategorias" style="font-weight:500; color: var(--cor-texto-mutado); margin-left:4px;"></span></h3>
-                <div id="cardsCategoriaInferior" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"></div>
-            </div>
         </section>
 
         <section id="controle" class="section">
@@ -3417,6 +3424,8 @@
                 btns[k].classList.toggle('ativo', k === qual);
             });
             if(filtros) filtros.style.display = (qual === 'carteira') ? 'flex' : 'none';
+            const quadroCat = document.getElementById('quadroCategoriasInferior');
+            if(quadroCat && qual !== 'carteira') quadroCat.style.display = 'none';
             btnRefresh.style.display = (qual === 'dividendos') ? 'inline-flex' : 'none';
             // Ao mudar para dividendos, limpa o filtro de ativo e recarrega
             if(qual === 'dividendos') {
@@ -4077,16 +4086,22 @@
             if(grupoSubRV) grupoSubRV.style.display = ehRV ? 'block' : 'none';
             if(grupoQtd) grupoQtd.style.display = semQtd ? 'none' : 'block';
             const grupoPrev = document.getElementById('grupoPrevidencia');
-            if(grupoPrev) grupoPrev.style.display = ehPrev ? 'block' : 'none';
+            const grupoTaxaPrev = document.getElementById('grupoTaxaMensalPrev');
+            const ehRecorrente = ehPrev || ehReserva;
+            if(grupoPrev) grupoPrev.style.display = ehRecorrente ? 'block' : 'none';
+            // Reserva: oculta campo de rentabilidade mensal (mantém só dia + duração)
+            if(grupoTaxaPrev) grupoTaxaPrev.style.display = ehPrev ? 'block' : 'none';
             // Default do dia de recorrência: pega o dia da data da operação
-            if(ehPrev) {
+            if(ehRecorrente) {
                 const inpDia = document.getElementById('prevDiaRecorrencia');
                 const inpTaxa = document.getElementById('prevTaxaMensal');
+                const inpDuracao = document.getElementById('prevDuracaoAnos');
                 if(inpDia && !inpDia.value) {
                     const d = document.getElementById('compraData').value;
                     inpDia.value = d ? new Date(d + 'T12:00:00').getDate() : new Date().getDate();
                 }
-                if(inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+                if(ehPrev && inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+                if(inpDuracao && !inpDuracao.value) inpDuracao.value = ehPrev ? '10' : '5';
             }
 
             // Renomear "Preço pago" conforme categoria
@@ -4275,6 +4290,11 @@
 
             if (!ticker || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker e Valor corretamente.", "erro");
             if (!semQtd && (isNaN(qtd) || qtd <= 0)) return mostrarToast("Preencha a Quantidade corretamente.", "erro");
+            if (!corretora) {
+                const elCorr = document.getElementById('compraCorretora');
+                if(elCorr) { elCorr.style.borderColor = 'var(--cor-erro)'; elCorr.focus(); setTimeout(() => { elCorr.style.borderColor = ''; }, 2500); }
+                return mostrarToast("Informe o banco/corretora — campo obrigatório.", "erro");
+            }
 
             if (tipoOp === 'venda') {
                 let carteiraAtual = obterResumoCarteira();
@@ -4302,12 +4322,17 @@
             if(categoria === 'reserva_emergencia') {
                 if(rentabilidade) operacao.rentabilidade = rentabilidade;
             }
-            if(categoria === 'previdencia' && tipoOp === 'compra') {
+            const ehRecorrenteCompra = (categoria === 'previdencia' || categoria === 'reserva_emergencia') && tipoOp === 'compra';
+            if(ehRecorrenteCompra) {
                 operacao.recorrente = !!document.getElementById('prevRecorrente').checked;
                 const diaInp = parseInt(document.getElementById('prevDiaRecorrencia').value, 10);
                 operacao.diaRecorrencia = (diaInp >= 1 && diaInp <= 31) ? diaInp : dataOp.getDate();
-                const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
-                operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
+                const duracaoInp = parseInt(document.getElementById('prevDuracaoAnos').value, 10);
+                operacao.duracaoAnos = (duracaoInp >= 1 && duracaoInp <= 40) ? duracaoInp : (categoria === 'previdencia' ? 10 : 5);
+                if(categoria === 'previdencia') {
+                    const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
+                    operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
+                }
             }
             historicoCompras.push(operacao);
             localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
@@ -4320,6 +4345,12 @@
                 transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Venda Resgate: ${descQtd}${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
             }
 
+            // === COMPROMISSO RECORRENTE: previdência e reserva geram lançamentos futuros no Controle
+            let lancamentosFuturos = 0;
+            if(ehRecorrenteCompra && operacao.recorrente && operacao.duracaoAnos > 0 && valorTotal > 0) {
+                lancamentosFuturos = gerarLancamentosFuturosCompromisso(operacao, valorTotal);
+            }
+
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             document.getElementById('compraTicker').value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
             document.getElementById('compraCorretora').value = ""; document.getElementById('compraVencimento').value = ""; document.getElementById('compraRentabilidade').value = "";
@@ -4328,9 +4359,12 @@
             const elSub = document.getElementById('compraSubcategoria'); if(elSub) { elSub.value = 'acoes'; delete elSub.dataset.touched; }
             const inpDiaPrev = document.getElementById('prevDiaRecorrencia'); if(inpDiaPrev) inpDiaPrev.value = '';
             const inpTaxaPrev = document.getElementById('prevTaxaMensal'); if(inpTaxaPrev) inpTaxaPrev.value = '';
+            const inpDurPrev = document.getElementById('prevDuracaoAnos'); if(inpDurPrev) inpDurPrev.value = '';
             const chkRecPrev = document.getElementById('prevRecorrente'); if(chkRecPrev) chkRecPrev.checked = true;
             ajustarCamposPorCategoria();
-            mostrarToast(tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`, tipoOp === 'compra' ? 'sucesso' : 'aviso');
+            const msgBase = tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`;
+            const msgExtra = lancamentosFuturos > 0 ? ` ${lancamentosFuturos} lançamento${lancamentosFuturos===1?'':'s'} mensal${lancamentosFuturos===1?'':'is'} criado${lancamentosFuturos===1?'':'s'} no Controle.` : '';
+            mostrarToast(msgBase + msgExtra, tipoOp === 'compra' ? 'sucesso' : 'aviso');
             atualizarCarteiraAtivos();
             atualizarDatalistDescricoes();
             inicializarDatalistCorretoras();
@@ -4464,13 +4498,19 @@
             if(elSub && op.subcategoria) { elSub.value = op.subcategoria; elSub.dataset.touched = '1'; }
             document.getElementById('compraVencimento').value = op.vencimento || '';
             document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
-            // Previdência
+            // Previdência / Reserva
             const chkRec = document.getElementById('prevRecorrente');
             const inpDiaRec = document.getElementById('prevDiaRecorrencia');
             const inpTaxaMensal = document.getElementById('prevTaxaMensal');
+            const inpDuracao = document.getElementById('prevDuracaoAnos');
             if(chkRec) chkRec.checked = op.recorrente !== false;
             if(inpDiaRec) inpDiaRec.value = op.diaRecorrencia || '';
             if(inpTaxaMensal) inpTaxaMensal.value = op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
+            if(inpDuracao) inpDuracao.value = op.duracaoAnos || '';
+            // Antes de recriar, limpa lançamentos futuros do compromisso (serão regerados ao Confirmar)
+            if((op.categoria === 'previdencia' || op.categoria === 'reserva_emergencia') && op.recorrente) {
+                removerLancamentosFuturosCompromisso(id);
+            }
             ajustarCamposPorCategoria();
             calcularTotalCompra();
             atualizarProjecaoForm();
@@ -4507,6 +4547,14 @@
                     if(o.operacaoOrigem === id) { idsParaRemover.add(o.id); cascade++; }
                 });
             }
+            // Cascade extra: remove lançamentos futuros do compromisso (previdência ou reserva)
+            // — preserva os meses já pagos/passados conforme regra do produto.
+            let lancFuturosRemovidos = 0;
+            if(op && (op.categoria === 'previdencia' || op.categoria === 'reserva_emergencia') && op.recorrente && !op.gerado) {
+                const antes = transacoes.length;
+                removerLancamentosFuturosCompromisso(id);
+                lancFuturosRemovidos = antes - transacoes.length;
+            }
             historicoCompras = historicoCompras.filter(o => !idsParaRemover.has(o.id));
             transacoes = transacoes.filter(t => {
                 const tid = t.id;
@@ -4520,7 +4568,11 @@
             fecharModal();
             atualizarCarteiraAtivos();
             renderizarOperacoes();
-            mostrarToast(cascade > 0 ? `Operação excluída + ${cascade} aporte${cascade===1?'':'s'} recorrente${cascade===1?'':'s'} cancelado${cascade===1?'':'s'}.` : 'Operação excluída.', 'sucesso');
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            const msgs = ['Operação excluída.'];
+            if(cascade > 0) msgs.push(`${cascade} aporte${cascade===1?'':'s'} recorrente${cascade===1?'':'s'} cancelado${cascade===1?'':'s'}.`);
+            if(lancFuturosRemovidos > 0) msgs.push(`${lancFuturosRemovidos} lançamento${lancFuturosRemovidos===1?'':'s'} futuro${lancFuturosRemovidos===1?'':'s'} removido${lancFuturosRemovidos===1?'':'s'} do Controle (passados preservados).`);
+            mostrarToast(msgs.join(' '), 'sucesso');
         }
 
         function obterResumoCarteira() {
@@ -4592,6 +4644,67 @@
         }
 
         // Gera retroativamente os aportes mensais que faltaram para cada plano de
+        // === COMPROMISSO RECORRENTE — Previdência e Reserva ==========
+        // Gera lançamentos mensais futuros no Controle Financeiro a partir
+        // do mês seguinte ao da operação, durante operacao.duracaoAnos anos.
+        // Esses valores comprometem a renda da pessoa de forma realista.
+        function gerarLancamentosFuturosCompromisso(operacao, valorMensal) {
+            if(!operacao || valorMensal <= 0) return 0;
+            const dur = parseInt(operacao.duracaoAnos, 10);
+            if(!(dur > 0)) return 0;
+            const totalMeses = Math.min(dur * 12, 480); // hardcap 40 anos
+            const dia = (operacao.diaRecorrencia >= 1 && operacao.diaRecorrencia <= 31) ? operacao.diaRecorrencia : new Date(operacao.data_op).getDate();
+            const groupId = 'compromisso_grp_' + operacao.id;
+            const dataIni = new Date(operacao.data_op);
+            const labelCat = operacao.categoria === 'previdencia' ? 'Previdência' : 'Reserva';
+            const descricao = `${labelCat}: ${operacao.ticker || labelCat}`;
+            let criados = 0;
+            // Começa no mês SEGUINTE ao da operação (o mês corrente já foi lançado pela compra)
+            for(let i = 1; i < totalMeses; i++) {
+                const d = new Date(dataIni.getFullYear(), dataIni.getMonth() + i, 1);
+                const m = d.getMonth();
+                const a = d.getFullYear();
+                const jaExiste = transacoes.some(t => t.compromissoId === operacao.id && t.mes === m && t.ano === a);
+                if(jaExiste) continue;
+                let dataVencFinal = null;
+                const ultimoDiaMes = new Date(a, m + 1, 0).getDate();
+                const diaEfetivo = Math.min(dia, ultimoDiaMes);
+                dataVencFinal = `${a}-${String(m+1).padStart(2,'0')}-${String(diaEfetivo).padStart(2,'0')}`;
+                transacoes.push({
+                    id: 'tx_compromisso_' + operacao.id + '_' + i,
+                    groupId,
+                    compromissoId: operacao.id,
+                    compromissoCategoria: operacao.categoria,
+                    descricao,
+                    valor: valorMensal,
+                    categoria: 'investimento_fixo',
+                    obs: `Compromisso recorrente — ${labelCat.toLowerCase()} (${dur} ano${dur===1?'':'s'})`,
+                    mes: m, ano: a,
+                    data: d.toISOString(),
+                    dataVencimento: dataVencFinal,
+                    pago: false,
+                    gerado: true
+                });
+                criados++;
+            }
+            return criados;
+        }
+
+        // Remove lançamentos futuros vinculados a um compromisso (preserva pagos/passados)
+        function removerLancamentosFuturosCompromisso(operacaoId) {
+            const agora = new Date();
+            const m0 = agora.getMonth(), a0 = agora.getFullYear();
+            const antes = transacoes.length;
+            transacoes = transacoes.filter(t => {
+                if(t.compromissoId !== operacaoId) return true;
+                if(t.pago) return true;
+                const futuroOuCorrente = (t.ano > a0) || (t.ano === a0 && t.mes >= m0);
+                return !futuroOuCorrente;
+            });
+            if(transacoes.length !== antes) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        }
+        // ============================================================
+
         // previdência marcado como recorrente. Roda no carregamento do app.
         function processarAportesRecorrentesPrevidencia() {
             const hoje = new Date();
