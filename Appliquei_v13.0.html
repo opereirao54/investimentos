@@ -2961,6 +2961,22 @@
             <!-- RESUMO GERAL DOS SONHOS -->
             <div id="sonhosResumoContainer"></div>
 
+            <!-- BARRA DE AÇÕES DA LISTA (expandir / recolher todos) -->
+            <div id="sonhosToolbar" style="display:none;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px 2px;">
+                <div style="font-size:12px;color:var(--cor-texto-mutado);font-weight:600;">
+                    <i class="ph ph-list-bullets" style="vertical-align:middle;margin-right:4px;"></i>
+                    <span id="sonhosToolbarLabel">Sonhos cadastrados</span>
+                </div>
+                <div style="display:flex;gap:6px;">
+                    <button type="button" id="btnExpandirTodosSonhos" onclick="toggleAllSonhos(true)" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-principal);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--cor-primaria)';this.style.color='var(--cor-primaria)';" onmouseout="this.style.borderColor='var(--cor-borda)';this.style.color='var(--cor-texto-principal)';">
+                        <i class="ph-bold ph-arrows-out-line-vertical"></i> Expandir todos
+                    </button>
+                    <button type="button" id="btnRecolherTodosSonhos" onclick="toggleAllSonhos(false)" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-principal);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.borderColor='var(--cor-primaria)';this.style.color='var(--cor-primaria)';" onmouseout="this.style.borderColor='var(--cor-borda)';this.style.color='var(--cor-texto-principal)';">
+                        <i class="ph-bold ph-arrows-in-line-vertical"></i> Recolher todos
+                    </button>
+                </div>
+            </div>
+
             <!-- LISTA DE SONHOS CADASTRADOS -->
             <div id="sonhosListaContainer"></div>
 
@@ -8116,12 +8132,20 @@
             renderPainelSaudeSonhos();
             renderResumoSonhos();
 
+            const toolbar = document.getElementById('sonhosToolbar');
+            const toolbarLabel = document.getElementById('sonhosToolbarLabel');
+
             if(sonhos.length === 0) {
                 container.innerHTML = '';
                 empty.style.display = 'block';
+                if(toolbar) toolbar.style.display = 'none';
                 return;
             }
             empty.style.display = 'none';
+            if(toolbar) {
+                toolbar.style.display = 'flex';
+                if(toolbarLabel) toolbarLabel.textContent = `${sonhos.length} ${sonhos.length === 1 ? 'sonho cadastrado' : 'sonhos cadastrados'}`;
+            }
 
             container.innerHTML = sonhos.map((s,idx) => {
                 const pct = Math.min(100, (s.valorAtual / s.valorTotal)*100);
@@ -8136,6 +8160,10 @@
                 const falta = Math.max(0, s.valorTotal - s.valorAtual);
                 const barColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#059669' : pct >= 30 ? '#d97706' : '#ef4444';
 
+                const mensalFmtCol = mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                const faltaFmtCol  = falta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+                const tempoLbl = conquistado ? '🏆 Conquistado' : (s.mesesRestantes > 0 ? `⏱ ${s.mesesRestantes} ${s.mesesRestantes===1?'mês restante':'meses restantes'}` : '⏰ Prazo encerrado');
+
                 return `<div class="sonho-card ${conquistado?'sonho-conquistado':''}" id="card_${s.id}" onclick="toggleSonhoCard('${s.id}')">
                     <div class="sonho-card-collapsed cat-${s.categoria}">
                         <div class="sonho-collapsed-avatar">${emoji}</div>
@@ -8143,8 +8171,10 @@
                             <div class="sonho-collapsed-nome">${s.nome}</div>
                             <div class="sonho-collapsed-meta">
                                 <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
-                                <span>${s.mesesRestantes > 0 ? s.mesesRestantes+' meses restantes' : 'Prazo encerrado'}</span>
-                                <span style="font-family:'DM Mono',monospace;font-weight:600;">Meta: ${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                                <span>${tempoLbl}</span>
+                                <span style="font-family:'DM Mono',monospace;font-weight:600;" title="Meta total do sonho">🎯 ${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                                ${conquistado ? '' : `<span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-primaria);" title="Aporte mensal sugerido para bater a meta">💰 ${mensalFmtCol}/mês</span>`}
+                                ${conquistado ? '' : `<span style="font-family:'DM Mono',monospace;font-weight:500;color:var(--cor-texto-mutado);" title="Quanto falta para atingir a meta">Falta ${faltaFmtCol}</span>`}
                             </div>
                         </div>
                         <div class="sonho-collapsed-progress">
@@ -8294,6 +8324,16 @@
                     }
                 }, 100);
             }
+        }
+
+        function toggleAllSonhos(expandir) {
+            const cards = document.querySelectorAll('#sonhosListaContainer .sonho-card');
+            if(cards.length === 0) return;
+            cards.forEach(card => {
+                if(expandir) card.classList.add('expanded');
+                else card.classList.remove('expanded');
+            });
+            mostrarToast(expandir ? 'Todos os sonhos expandidos' : 'Todos os sonhos recolhidos','sucesso');
         }
 
         function selecionarEsforcoSonho(nivel) {
