@@ -4455,18 +4455,118 @@
             if(elPer) elPer.innerText = `(${rotuloPeriodoEvolucao()})`;
             if(!elDiv) return;
             // Soma os mesmos pagamentos exibidos na tabela "Pagamentos recentes",
-            // recortados pelo período do gráfico (3M/6M/12M/Tudo). Garante consistência
-            // entre o KPI e a tabela.
+            // recortados pelo período do gráfico (3M/6M/12M/Tudo) e pelos filtros
+            // de tipo/ativo. Garante consistência entre o KPI, a tabela e o gráfico.
             let limiteIniMs = 0;
             if(periodoEvolucao > 0) {
                 const hoje = new Date();
                 const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - (periodoEvolucao - 1), 1);
                 limiteIniMs = inicio.getTime();
             }
+            const filtroTipo = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
+            const filtroAtivo = document.getElementById('filtroEvolucaoAtivo')?.value || '';
+            const carteiraConsolidada = (typeof obterResumoCarteira === 'function') ? obterResumoCarteira() : {};
             const totalDiv = (pagamentosMensaisAgregados || [])
                 .filter(p => limiteIniMs === 0 || new Date(p.ano, p.mes, 1).getTime() >= limiteIniMs)
+                .filter(p => {
+                    const ativo = carteiraConsolidada[p.ticker];
+                    const am = mockAtivosMercado.find(a => a.ticker === p.ticker);
+                    return ativoEntraNoFiltroEvolucao(p.ticker, ativo, am, filtroTipo, filtroAtivo);
+                })
                 .reduce((s, p) => s + (p.total || 0), 0);
             elDiv.innerText = formatarMoeda(totalDiv);
+        }
+
+        // Critério único de filtro do bloco "Evolução do Patrimônio" (tipo + ativo).
+        function ativoEntraNoFiltroEvolucao(ticker, ativo, ativoMercado, filtroTipo, filtroAtivo) {
+            if(filtroAtivo && (ticker || '').toUpperCase() !== filtroAtivo.toUpperCase()) return false;
+            if(!filtroTipo || filtroTipo === 'todos') return true;
+            const cat = ativo?.categoria || (ativoMercado?.tipo === 'Renda Fixa' ? 'renda_fixa' : 'renda_variavel');
+            if(filtroTipo === 'renda_fixa') return cat === 'renda_fixa';
+            if(filtroTipo === 'previdencia') return cat === 'previdencia';
+            if(filtroTipo === 'reserva_emergencia') return cat === 'reserva_emergencia';
+            if(cat !== 'renda_variavel') return false;
+            const sub = ativo?.subcategoria || subcategoriaInferidaDoTicker(ticker) || (ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null);
+            return sub === filtroTipo;
+        }
+
+        // Atualiza os KPIs do hero (Patrimônio atual, Capital aplicado, Ganho capital,
+        // chip de Dividendos, "desde X") com base nos filtros do bloco Evolução.
+        function atualizarKPIsResumo(carteiraConsolidada) {
+            if(!carteiraConsolidada) carteiraConsolidada = obterResumoCarteira();
+            const filtroTipo = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
+            const filtroAtivo = document.getElementById('filtroEvolucaoAtivo')?.value || '';
+
+            let invest = 0, patrim = 0, totalAtivos = 0;
+            for(const ticker in carteiraConsolidada) {
+                const ativo = carteiraConsolidada[ticker];
+                if(ativo.qtdTotal <= 0) continue;
+                const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
+                if(!ativoEntraNoFiltroEvolucao(ticker, ativo, ativoMercado, filtroTipo, filtroAtivo)) continue;
+                totalAtivos++;
+                invest += ativo.valorTotalInvestido;
+                let saldo;
+                if(ativo.categoria === 'previdencia') {
+                    saldo = calcularSaldoPrevidencia(ticker);
+                } else {
+                    const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
+                    saldo = ativo.qtdTotal * precoAtual;
+                }
+                patrim += saldo;
+            }
+
+            const lucroR$ = patrim - invest;
+            const lucroPerc = invest > 0 ? (lucroR$ / invest) * 100 : 0;
+
+            const elPat = document.getElementById('resumoPatrimonio');
+            if(elPat) elPat.innerText = formatarMoeda(patrim);
+            const elInv = document.getElementById('resumoInvestido');
+            if(elInv) elInv.innerText = formatarMoeda(invest);
+
+            const cardRend = document.getElementById('resumoRendimento');
+            const cardRent = document.getElementById('resumoRentabilidade');
+            const titRend = document.getElementById('tituloRendimento');
+            if(cardRend) {
+                cardRend.innerText = `${lucroR$ >= 0 ? '+' : ''}${formatarMoeda(lucroR$)}`;
+                cardRend.style.color = lucroR$ < 0 ? 'var(--cor-erro)' : 'var(--cor-primaria)';
+            }
+            if(cardRent) cardRent.innerText = `${lucroR$ >= 0 ? '+' : ''}${lucroPerc.toFixed(2)}%`;
+            if(titRend) titRend.style.color = '';
+
+            const badgeTend = document.getElementById('resumoRentabilidadeBadge');
+            const iconTend = document.getElementById('iconResumoRent');
+            if(badgeTend && iconTend) {
+                badgeTend.classList.toggle('neg', lucroR$ < 0);
+                iconTend.className = lucroR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
+            }
+
+            // Detalhe "desde 1ª compra" — primeira compra entre os ativos filtrados
+            const elDesde = document.getElementById('kpiInvestidoDesde');
+            if(elDesde) {
+                const datasFiltradas = historicoCompras
+                    .filter(o => o.tipo !== 'venda' && o.data_op)
+                    .filter(o => {
+                        const ativoOp = carteiraConsolidada[o.ticker];
+                        const am = mockAtivosMercado.find(a => a.ticker === o.ticker);
+                        // Para o filtro, considera os metadados da própria operação como fallback
+                        const ativoFake = ativoOp || { categoria: o.categoria, subcategoria: o.subcategoria };
+                        return ativoEntraNoFiltroEvolucao(o.ticker, ativoFake, am, filtroTipo, filtroAtivo);
+                    })
+                    .map(o => o.data_op).sort();
+                if(datasFiltradas.length) {
+                    const d = new Date(datasFiltradas[0]);
+                    if(!isNaN(d.getTime())) {
+                        const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+                        elDesde.innerText = `desde ${lbl}`;
+                    } else {
+                        elDesde.innerText = 'desde sua 1ª compra';
+                    }
+                } else {
+                    elDesde.innerText = 'Sem operações ainda';
+                }
+            }
+
+            atualizarChipDividendosPeriodo();
         }
 
         // Acumula posição (qtd) por ticker até o final de cada mês
@@ -4716,6 +4816,8 @@
             const filtro = document.getElementById('filtroEvolucaoTipo')?.value || 'todos';
             const filtroAtivo = document.getElementById('filtroEvolucaoAtivo')?.value || '';
             atualizarOpcoesFiltroAtivoEvolucao();
+            // Filtros do gráfico também governam os KPIs do hero
+            if(typeof atualizarKPIsResumo === 'function') atualizarKPIsResumo();
             const serie = calcularSerieEvolucao(filtro, filtroAtivo);
 
             if(serie.meses.length === 0) {
@@ -5257,12 +5359,7 @@
                     <div class="empty-state-titulo">Carteira ainda vazia</div>
                     <div class="empty-state-sub">Registre sua primeira compra de ativo acima<br>e acompanhe sua rentabilidade em tempo real.</div>
                 </div>`;
-                document.getElementById('resumoInvestido').innerText = "R$ 0,00";
-                document.getElementById('resumoRendimento').innerText = "R$ 0,00";
-                document.getElementById('resumoRentabilidade').innerText = "0,00%";
-                const elPat0 = document.getElementById('resumoPatrimonio'); if(elPat0) elPat0.innerText = "R$ 0,00";
-                const elDiv0 = document.getElementById('resumoDividendosAcum'); if(elDiv0) elDiv0.innerText = "R$ 0,00";
-                const elDesde0 = document.getElementById('kpiInvestidoDesde'); if(elDesde0) elDesde0.innerText = "Sem operações ainda";
+                atualizarKPIsResumo(carteiraConsolidada);
                 atualizarBarraAlocacao(carteiraConsolidada);
                 return;
             }
@@ -5277,55 +5374,8 @@
                 msgVazia.style.display = "none";
             }
 
-            let lucroGeralR$ = saldoGeralAtual - totalGeralInvestido; let lucroGeralPerc = totalGeralInvestido > 0 ? (lucroGeralR$ / totalGeralInvestido) * 100 : 0;
-            document.getElementById('resumoInvestido').innerText = formatarMoeda(totalGeralInvestido);
-
-            // Patrimônio atual = capital aplicado + ganho/perda
-            const elPatrimonio = document.getElementById('resumoPatrimonio');
-            if(elPatrimonio) elPatrimonio.innerText = formatarMoeda(saldoGeralAtual);
-
-            // Badge de tendência (KPI primário)
-            const badgeTend = document.getElementById('resumoRentabilidadeBadge');
-            const iconTend = document.getElementById('iconResumoRent');
-            if(badgeTend && iconTend) {
-                badgeTend.classList.toggle('neg', lucroGeralR$ < 0);
-                iconTend.className = lucroGeralR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
-            }
-
-            const cardRend = document.getElementById('resumoRendimento'); const cardRent = document.getElementById('resumoRentabilidade');
-            const titRend = document.getElementById('tituloRendimento');
-
-            cardRend.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${formatarMoeda(lucroGeralR$)}`;
-            cardRent.innerText = `${lucroGeralR$ >= 0 ? '+' : ''}${lucroGeralPerc.toFixed(2)}%`;
-            if(lucroGeralR$ < 0) {
-                cardRend.style.color = 'var(--cor-erro)';
-                if(titRend) titRend.style.color = '';
-            } else {
-                cardRend.style.color = 'var(--cor-primaria)';
-                if(titRend) titRend.style.color = '';
-            }
-
-            // Detalhe "desde 1ª compra"
-            const elDesde = document.getElementById('kpiInvestidoDesde');
-            if(elDesde) {
-                const datas = historicoCompras.filter(o => o.tipo !== 'venda' && o.data_op).map(o => o.data_op).sort();
-                if(datas.length) {
-                    // data_op é ISO completo (toISOString); concatenar 'T12:00:00' produz Invalid Date.
-                    const d = new Date(datas[0]);
-                    if(!isNaN(d.getTime())) {
-                        const lbl = d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
-                        elDesde.innerText = `desde ${lbl}`;
-                    } else {
-                        elDesde.innerText = 'desde sua 1ª compra';
-                    }
-                } else {
-                    elDesde.innerText = 'desde sua 1ª compra';
-                }
-            }
-
-            // Dividendos acumulados — soma a série já calculada pelo gráfico,
-            // respeitando o período selecionado (3M/6M/12M/Tudo).
-            atualizarChipDividendosPeriodo();
+            // KPIs do hero — respeitam os filtros (tipo + ativo) do bloco Evolução.
+            atualizarKPIsResumo(carteiraConsolidada);
 
             atualizarBarraAlocacao(carteiraConsolidada);
             atualizarProximoEvento(carteiraConsolidada);
