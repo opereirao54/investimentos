@@ -4277,6 +4277,20 @@
         // --- ABA 1: MEUS INVESTIMENTOS ---
         let historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
         let transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
+        // Backfill: compromissos mensais de sonho criados antes da feature de "conta a vencer"
+        // não tinham dataVencimento. Preenche com dia 5 (default) para que apareçam no painel.
+        (function backfillVencimentoSonhoCompromisso() {
+            let mudou = false;
+            transacoes.forEach(t => {
+                if(t.categoria === 'sonho' && !t.aporteExtra && !t.pago && !t.dataVencimento && typeof t.mes === 'number' && typeof t.ano === 'number') {
+                    const ultimoDia = new Date(t.ano, t.mes + 1, 0).getDate();
+                    const dia = Math.min(5, ultimoDia);
+                    t.dataVencimento = `${t.ano}-${String(t.mes+1).padStart(2,'0')}-${String(dia).padStart(2,'0')}`;
+                    mudou = true;
+                }
+            });
+            if(mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        })();
 
         // --- CARTÕES DE CRÉDITO ---
         let cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes')) || [];
@@ -8642,6 +8656,11 @@
                 new Date(dIni.getFullYear(), dIni.getMonth(), 1).getTime()
             );
             const base = new Date(baseTs);
+            // Dia de vencimento: hoje se o plano começa este mês; senão, dia 1 do início.
+            // Usuário pode editar depois pelo extrato. Nunca passa do último dia do mês.
+            const diaVencBase = (sonho.diaVencimento && sonho.diaVencimento >= 1 && sonho.diaVencimento <= 31)
+                ? sonho.diaVencimento
+                : agora.getDate();
             let criados = 0;
             for(let i = 0; i < mesesGerar; i++) {
                 let m = base.getMonth() + i;
@@ -8649,6 +8668,9 @@
                 while(m > 11) { m -= 12; a++; }
                 const jaExiste = transacoes.some(t => t.categoria === 'sonho' && t.sonhoId === sonho.id && t.mes === m && t.ano === a && !t.aporteExtra);
                 if(jaExiste) continue;
+                const ultimoDiaMes = new Date(a, m + 1, 0).getDate();
+                const diaVenc = Math.min(diaVencBase, ultimoDiaMes);
+                const dataVenc = `${a}-${String(m+1).padStart(2,'0')}-${String(diaVenc).padStart(2,'0')}`;
                 transacoes.push({
                     id: 'tx_' + Date.now() + '_' + i,
                     groupId,
@@ -8659,6 +8681,7 @@
                     obs: 'Compromisso mensal do sonho',
                     mes: m, ano: a,
                     data: new Date().toISOString(),
+                    dataVencimento: dataVenc,
                     pago: false
                 });
                 criados++;
