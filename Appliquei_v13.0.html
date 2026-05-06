@@ -7480,21 +7480,18 @@
             while(inicioMes > 11) { inicioMes -= 12; inicioAno++; }
             const indiceMesAtual = -offsetMesesDRE;
 
-            let saldoAcumulado = 0;
-            transacoes.forEach(t => {
-                if (t.ano < inicioAno || (t.ano === inicioAno && t.mes < inicioMes)) {
-                    if(t.categoria === 'receita' || t.categoria === 'resgate_investimento') saldoAcumulado += t.valor; else saldoAcumulado -= t.valor;
-                }
-            });
-
+            // DRE mensal: cada coluna mostra o resultado do mês isoladamente.
+            // O carregamento de saldo entre meses é opt-in (banner no topo) e
+            // só afeta o mês destino — nunca é cumulado automaticamente.
             let labelsMeses = []; let dreDados = [];
             for(let i=0; i<qtdMesesDRE; i++) {
                 let m = inicioMes + i; let a = inicioAno;
                 while(m > 11) { m -= 12; a++; }
                 let r = calcularResumoMes(m, a);
                 let despesas = r.despFixa + r.despVar + r.cartao;
-                saldoAcumulado += r.receita + r.resgate - despesas - (r.invFixo + r.invVar) - r.sonho;
-                dreDados.push({ receita: r.receita, resgate: r.resgate, invFixo: r.invFixo, invVar: r.invVar, sonho: r.sonho, despesas: despesas, saldoAcumulado: saldoAcumulado });
+                const saldoCarregadoMes = (typeof obterSaldoCarregadoParaMes === 'function') ? obterSaldoCarregadoParaMes(m, a) : 0;
+                const resultadoMes = r.receita + r.resgate - despesas - (r.invFixo + r.invVar) - r.sonho + saldoCarregadoMes;
+                dreDados.push({ receita: r.receita, resgate: r.resgate, invFixo: r.invFixo, invVar: r.invVar, sonho: r.sonho, despesas: despesas, saldoAcumulado: resultadoMes, saldoCarregado: saldoCarregadoMes });
                 labelsMeses.push(`${nomeMeses[m]}/${a.toString().slice(-2)}`);
             }
 
@@ -7527,7 +7524,19 @@
             dreDados.forEach((d, i) => { htmlLinhas += `<td style="text-align: right; color: var(--cor-erro); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.despesas > 0 ? '-'+formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`; });
             htmlLinhas += `</tr>`;
 
-            htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);">Saldo Final da Conta</td>`;
+            // Linha opcional: saldo trazido do mês anterior (apenas quando o usuário aceitou)
+            const algumCarregado = dreDados.some(d => Math.abs(d.saldoCarregado || 0) > 0.005);
+            if(algumCarregado) {
+                htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);" title="Saldo trazido do mês anterior por opção do usuário">Saldo trazido do mês anterior</td>`;
+                dreDados.forEach((d, i) => {
+                    const v = d.saldoCarregado || 0;
+                    const cor = v >= 0 ? '#7c3aed' : 'var(--cor-erro)';
+                    htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${Math.abs(v) > 0.005 ? formatarMoeda(v) : '—'}</td>`;
+                });
+                htmlLinhas += `</tr>`;
+            }
+
+            htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);" title="Resultado do mês — sem cumular automaticamente entre meses.">Resultado do mês</td>`;
             dreDados.forEach((d, i) => {
                 let corSaldo = 'var(--cor-texto-principal)'; let fontW = '600'; let alertaBadget = '';
                 if (d.saldoAcumulado < 0) { corSaldo = 'var(--cor-erro)'; fontW = '800'; alertaBadget = `<br><span style="font-size: 10px; background: var(--cor-erro); color: white; padding: 2px 4px; border-radius: 4px;">NEGATIVO</span>`; }
@@ -9037,10 +9046,39 @@
         }
 
         function excluirSonho(id) {
-            if(!confirm('Tem certeza que deseja excluir este sonho?\n\n(O histórico de lançamentos passados no Controle Financeiro será mantido — apenas os meses futuros do compromisso serão removidos.)')) return;
+            const s = sonhos.find(x => x.id === id);
+            if(!s) return;
+            const aportesCount = (s.aportes || []).length;
+            const pct = s.valorTotal > 0 ? Math.min(100, (s.valorAtual / s.valorTotal) * 100) : 0;
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-trash" style="color:var(--cor-erro);"></i> Excluir o sonho "${s.nome}"?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <p style="margin:0;">Você está prestes a remover este sonho. Confira o resumo:</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);font-size:12.5px;">
+                        <div><span style="color:var(--cor-texto-mutado);">Meta:</span> <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(s.valorTotal)}</strong></div>
+                        <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:#10b981;">${formatarMoeda(s.valorAtual)}</strong></div>
+                        <div><span style="color:var(--cor-texto-mutado);">Progresso:</span> <strong>${pct.toFixed(0)}%</strong></div>
+                        <div><span style="color:var(--cor-texto-mutado);">Aportes:</span> <strong>${aportesCount}</strong></div>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(245,158,11,0.35);border-radius:9px;background:rgba(245,158,11,0.06);font-size:12.5px;color:var(--cor-texto-principal);">
+                        <i class="ph-fill ph-info" style="font-size:16px;color:#d97706;flex-shrink:0;margin-top:1px;"></i>
+                        <span>O <strong>histórico de lançamentos passados</strong> no Controle Financeiro será mantido. Apenas os meses <strong>futuros do compromisso</strong> serão removidos.</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-erro);" onclick="confirmarExcluirSonho('${id}')"><i class="ph-bold ph-trash"></i> Sim, excluir sonho</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarExcluirSonho(id) {
             removerLancamentosFuturosSonho(id);
             sonhos = sonhos.filter(s => s.id !== id);
             salvarSonhos();
+            fecharModal();
             renderizarSonhos();
             if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
             mostrarToast('Sonho removido. Histórico mantido.','aviso');
