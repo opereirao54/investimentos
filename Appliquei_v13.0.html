@@ -2288,11 +2288,11 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div style="display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
                 <div class="card-destaque" style="background:var(--cor-branco);border:1.5px solid var(--cor-borda);box-shadow:var(--shadow-card);">
-                    <h3 style="color:var(--cor-texto-mutado);"><i class="ph ph-wallet"></i> Saldo livre</h3>
-                    <div class="valor" id="kpiSaldoLivre" style="font-size:28px;">R$ 0,00</div>
-                    <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;font-weight:500;">disponível para investir</div>
+                    <h3 style="color:var(--cor-texto-mutado);"><i class="ph ph-wallet"></i> Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:#8b5cf6;font-weight:600;margin-left:4px;"></span></h3>
+                    <div class="valor" id="kpiSaldoLivre" style="font-size:26px;">R$ 0,00</div>
+                    <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;font-weight:500;">receita − despesas − cartão − investimentos</div>
                 </div>
                 <div class="card-destaque">
                     <h3><i class="ph ph-arrow-down-left"></i> Receita do mês</h3>
@@ -2307,6 +2307,11 @@
                     <div class="valor" id="kpiCartaoMes" style="color:var(--cor-cartao)">R$ 0,00</div>
                     <div id="progressCartao" style="height:4px;background:var(--cor-superficie);border-radius:99px;margin-top:8px;overflow:hidden;"><div id="barCartao" style="height:100%;width:0%;background:var(--cor-cartao);transition:0.3s;border-radius:99px;"></div></div>
                 </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-trend-up"></i> Investimentos</h3>
+                    <div class="valor" id="kpiInvestimentosMes" style="color:#10b981">R$ 0,00</div>
+                    <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;font-weight:500;">aportes do mês</div>
+                </div>
             </div>
 
             <div id="alertaContaVencida" style="display:none;" class="alert-contextual alert-danger">
@@ -2320,6 +2325,14 @@
             <div id="alertaCartaoKanban" style="display:none;" class="alert-contextual alert-warn">
                 <i class="ph ph-credit-card"></i>
                 <span id="txtAlertaCartao"></span>
+            </div>
+
+            <div id="bannerSaldoMesAnterior" style="display:none;margin-bottom:14px;padding:12px 14px;border:1.5px solid #c4b5fd;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(124,58,237,0.04));align-items:center;gap:12px;flex-wrap:wrap;">
+                <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:#7c3aed;flex-shrink:0;"></i>
+                <div style="flex:1;min-width:200px;font-size:13px;color:var(--cor-texto-principal);">
+                    <span id="txtBannerSaldoMesAnt"></span>
+                </div>
+                <div id="acoesBannerSaldoMesAnt" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
             </div>
 
             <div id="painelVencimentos" style="display:none;margin-bottom:16px;">
@@ -6885,6 +6898,103 @@
             return res;
         }
 
+        // ============================================================
+        // === Saldo carregado entre meses (transferência opt-in) =====
+        // ============================================================
+        // Estrutura no localStorage: { "ano-mes": { valor, origemAno, origemMes } }
+        // Apenas o mês destino guarda a flag — não propaga para meses subsequentes.
+        function chaveMes(mes, ano) { return `${ano}-${mes}`; }
+        function obterMapaSaldoCarregado() {
+            try { return JSON.parse(localStorage.getItem('futurorico_saldoCarregado') || '{}'); }
+            catch(e) { return {}; }
+        }
+        function salvarMapaSaldoCarregado(m) { localStorage.setItem('futurorico_saldoCarregado', JSON.stringify(m)); }
+
+        function obterSaldoCarregadoParaMes(mes, ano) {
+            const mapa = obterMapaSaldoCarregado();
+            const reg = mapa[chaveMes(mes, ano)];
+            return reg && typeof reg.valor === 'number' ? reg.valor : 0;
+        }
+
+        // Resultado bruto do mês (sem considerar saldo carregado)
+        function calcularResultadoMes(mes, ano) {
+            const r = calcularResumoMes(mes, ano);
+            const totRec = r.receita + r.resgate;
+            const totDesp = r.despFixa + r.despVar + r.sonho;
+            const totInv = r.invFixo + r.invVar;
+            return totRec - totDesp - r.cartao - totInv;
+        }
+
+        function aceitarSaldoMesAnterior(mesDestino, anoDestino) {
+            const mesAnt = mesDestino === 0 ? 11 : mesDestino - 1;
+            const anoAnt = mesDestino === 0 ? anoDestino - 1 : anoDestino;
+            const valor = calcularResultadoMes(mesAnt, anoAnt);
+            const mapa = obterMapaSaldoCarregado();
+            mapa[chaveMes(mesDestino, anoDestino)] = { valor, origemAno: anoAnt, origemMes: mesAnt };
+            salvarMapaSaldoCarregado(mapa);
+            mostrarToast(`Saldo de ${formatarMoeda(valor)} trazido do mês anterior.`, 'sucesso');
+            atualizarTelaControle();
+        }
+
+        function recusarSaldoMesAnterior(mesDestino, anoDestino) {
+            // Marca explicitamente como "decidido = não trazer" para não reaparecer
+            const mapa = obterMapaSaldoCarregado();
+            mapa[chaveMes(mesDestino, anoDestino)] = { valor: 0, origemAno: null, origemMes: null, recusado: true };
+            salvarMapaSaldoCarregado(mapa);
+            atualizarTelaControle();
+        }
+
+        function desfazerSaldoMesAnterior(mesDestino, anoDestino) {
+            const mapa = obterMapaSaldoCarregado();
+            delete mapa[chaveMes(mesDestino, anoDestino)];
+            salvarMapaSaldoCarregado(mapa);
+            mostrarToast('Transferência de saldo desfeita.', 'aviso');
+            atualizarTelaControle();
+        }
+
+        function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
+            const banner = document.getElementById('bannerSaldoMesAnterior');
+            const txt = document.getElementById('txtBannerSaldoMesAnt');
+            const acoes = document.getElementById('acoesBannerSaldoMesAnt');
+            if(!banner || !txt || !acoes) return;
+            const nomeMeses = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+
+            const mapa = obterMapaSaldoCarregado();
+            const reg = mapa[chaveMes(mesAtual, anoAtual)];
+
+            // Já há decisão registrada para o mês atual
+            if(reg) {
+                if(reg.recusado || reg.valor === 0) {
+                    banner.style.display = 'none';
+                    return;
+                }
+                // Saldo ativo: mostra resumo + botão desfazer
+                const sinal = reg.valor > 0 ? 'crédito' : 'débito';
+                const cor = reg.valor > 0 ? '#10b981' : '#ef4444';
+                txt.innerHTML = `<i class="ph-bold ph-check" style="color:#7c3aed;margin-right:4px;"></i> Saldo de <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(reg.valor)}</strong> (${sinal}) trazido de <strong>${nomeMeses[reg.origemMes]}/${reg.origemAno}</strong>.`;
+                acoes.innerHTML = `<button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;border-color:var(--cor-erro);color:var(--cor-erro);" onclick="desfazerSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph ph-arrow-counter-clockwise"></i> Desfazer</button>`;
+                banner.style.display = 'flex';
+                return;
+            }
+
+            // Sem decisão ainda — verifica se há saldo no mês anterior para oferecer
+            const mesAnt = mesAtual === 0 ? 11 : mesAtual - 1;
+            const anoAnt = mesAtual === 0 ? anoAtual - 1 : anoAtual;
+            const resultadoAnt = calcularResultadoMes(mesAnt, anoAnt);
+            if(Math.abs(resultadoAnt) < 0.01) {
+                banner.style.display = 'none';
+                return;
+            }
+            const sinal = resultadoAnt > 0 ? 'positivo' : 'negativo';
+            const cor = resultadoAnt > 0 ? '#10b981' : '#ef4444';
+            txt.innerHTML = `Em <strong>${nomeMeses[mesAnt]}/${anoAnt}</strong> seu fechamento foi <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(resultadoAnt)}</strong> (${sinal}). Quer trazer esse saldo para <strong>${nomeMeses[mesAtual]}/${anoAtual}</strong>? <em style="color:var(--cor-texto-mutado);font-size:11.5px;">(só este mês — não propaga adiante)</em>`;
+            acoes.innerHTML = `
+                <button class="btn-acao" style="font-size:11.5px;padding:6px 12px;background:#7c3aed;" onclick="aceitarSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph-bold ph-check"></i> Sim, trazer</button>
+                <button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;" onclick="recusarSaldoMesAnterior(${mesAtual},${anoAtual})">Agora não</button>
+            `;
+            banner.style.display = 'flex';
+        }
+
         let itemParaDeletar = null;
 
         function deletarTransacao(idStr) {
@@ -7096,6 +7206,7 @@
             document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
             const nomeMeses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
             document.getElementById('lblMesExtrato').innerText = `(${nomeMeses[visaoMes]} ${visaoAno})`;
+            atualizarBannerSaldoMesAnterior(visaoMes, visaoAno);
             
             const divRec = document.getElementById('extratoReceitas'); divRec.innerHTML = "";
             const divDesp = document.getElementById('extratoDespesas'); divDesp.innerHTML = "";
@@ -7265,15 +7376,33 @@
             document.getElementById('totalColCartao').innerText = formatarMoeda(totCartao);
             document.getElementById('totalColInv').innerText = formatarMoeda(totInv);
 
-            // KPI cards do topo
+            // KPI cards do topo — investimentos/cartão/despesa têm cards próprios e
+            // todos são deduzidos da receita para compor o saldo livre.
             const kpiRec = document.getElementById('kpiReceitaMes');
             const kpiDesp = document.getElementById('kpiDespesasMes');
             const kpiCart = document.getElementById('kpiCartaoMes');
+            const kpiInv = document.getElementById('kpiInvestimentosMes');
             const kpiSaldo = document.getElementById('kpiSaldoLivre');
+            const lblCarregado = document.getElementById('lblSaldoCarregado');
+            const saldoCarregado = obterSaldoCarregadoParaMes(visaoMes, visaoAno);
             if(kpiRec) kpiRec.innerText = formatarMoeda(totRec);
-            if(kpiDesp) kpiDesp.innerText = formatarMoeda(totDesp + totCartao);
+            if(kpiDesp) kpiDesp.innerText = formatarMoeda(totDesp);
             if(kpiCart) kpiCart.innerText = formatarMoeda(totCartao);
-            if(kpiSaldo) { const saldo = totRec - totDesp - totCartao - totInv; kpiSaldo.innerText = formatarMoeda(saldo); kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)'; }
+            if(kpiInv) kpiInv.innerText = formatarMoeda(totInv);
+            if(kpiSaldo) {
+                const saldo = totRec - totDesp - totCartao - totInv + saldoCarregado;
+                kpiSaldo.innerText = formatarMoeda(saldo);
+                kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+            }
+            if(lblCarregado) {
+                if(saldoCarregado !== 0) {
+                    const sinal = saldoCarregado > 0 ? '+' : '';
+                    lblCarregado.style.display = 'inline';
+                    lblCarregado.innerText = `(${sinal}${formatarMoeda(saldoCarregado)} do mês anterior)`;
+                } else {
+                    lblCarregado.style.display = 'none';
+                }
+            }
 
             // ALERTA CARTÃO
             const limitCartao = cartoes.reduce((sum, c) => sum + (c.limite || 0), 0);
@@ -8586,6 +8715,7 @@
                             <i class="ph-fill ph-info"></i>
                             <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
                         </div>
+                        ${renderHistoricoAportesSonho(s)}
                         ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
                         <div style="padding:12px 20px;display:flex;gap:8px;justify-content:flex-end;border-top:1px solid var(--cor-borda);background:var(--cor-superficie);flex-wrap:wrap;">
                             ${conquistado ? '' : (s.planoVinculado
@@ -8614,20 +8744,24 @@
             const totalGuardado = sonhos.reduce((acc, s) => acc + s.valorAtual, 0);
             const totalFalta = totalMeta - totalGuardado;
             const totalMensal = sonhos.reduce((acc, s) => acc + calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes), 0);
-            
-            // Calcular média ponderada de meses restantes
-            let somaMeses = 0;
-            let countAtivos = 0;
-            sonhos.forEach(s => {
-                if(s.mesesRestantes > 0 && (s.valorAtual / s.valorTotal) < 1) {
-                    somaMeses += s.mesesRestantes;
-                    countAtivos++;
-                }
-            });
-            const mediaMeses = countAtivos > 0 ? Math.round(somaMeses / countAtivos) : 0;
+
+            // Lista por sonho ativo (não conquistado) com meses restantes — substitui a média agregada,
+            // que somava meses de planos diferentes e dava uma resposta sem sentido.
+            const ativosOrdenados = sonhos
+                .filter(s => s.mesesRestantes > 0 && (s.valorAtual / s.valorTotal) < 1)
+                .sort((a,b) => a.mesesRestantes - b.mesesRestantes);
 
             const pctGeral = totalMeta > 0 ? (totalGuardado / totalMeta) * 100 : 0;
             const barColorGeral = pctGeral >= 100 ? '#10b981' : pctGeral >= 60 ? '#059669' : pctGeral >= 30 ? '#d97706' : '#ef4444';
+
+            const formatarPrazo = m => {
+                if(m <= 0) return '—';
+                if(m < 12) return `${m} ${m === 1 ? 'mês' : 'meses'}`;
+                const anos = Math.floor(m / 12);
+                const resto = m % 12;
+                if(resto === 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+                return `${anos}a ${resto}m`;
+            };
 
             container.innerHTML = `<div class="card-container" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(16,185,129,0.04),rgba(124,58,237,0.04));border:1px solid var(--cor-borda);">
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
@@ -8655,11 +8789,21 @@
                         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Aporte mensal total</div>
                         <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-primaria);">${totalMensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
                     </div>
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Média p/ conquista</div>
-                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#8b5cf6;">${mediaMeses > 0 ? mediaMeses+' meses' : '—'}</div>
-                    </div>
                 </div>
+                ${ativosOrdenados.length > 0 ? `
+                <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);margin-bottom:10px;">
+                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:8px;">⏳ Tempo para conquistar cada sonho</div>
+                    <div style="display:flex;flex-direction:column;gap:6px;">
+                        ${ativosOrdenados.map(s => {
+                            const pctIndiv = Math.min(100, (s.valorAtual/s.valorTotal)*100);
+                            return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px;">
+                                <span style="flex:1;font-weight:600;color:var(--cor-texto-principal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.nome}</span>
+                                <span style="font-family:'DM Mono',monospace;color:var(--cor-texto-mutado);font-size:11px;">${pctIndiv.toFixed(0)}%</span>
+                                <span style="font-family:'DM Mono',monospace;font-weight:700;color:#8b5cf6;min-width:80px;text-align:right;">${formatarPrazo(s.mesesRestantes)}</span>
+                            </div>`;
+                        }).join('')}
+                    </div>
+                </div>` : ''}
                 <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
                         <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Progresso geral</span>
@@ -8902,6 +9046,158 @@
             mostrarToast('Sonho removido. Histórico mantido.','aviso');
         }
 
+        // ============================================================
+        // === Histórico de aportes do sonho (editar/excluir) ========
+        // ============================================================
+        function renderHistoricoAportesSonho(s) {
+            const aportes = (s.aportes || []).slice();
+            if(aportes.length === 0) return '';
+            // Garante id estável para aportes legados (sem id) — útil para edit/exclude
+            let mudou = false;
+            aportes.forEach((a, i) => {
+                if(!a.id) { a.id = 'aporte_legacy_' + s.id + '_' + i; mudou = true; }
+            });
+            if(mudou) { s.aportes = aportes; salvarSonhos(); }
+            const linhas = aportes.slice().reverse().map(a => {
+                const dataFmt = a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+                const tag = a.tipo === 'inicial' ? '<span style="background:rgba(124,58,237,0.1);color:#7c3aed;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Inicial</span>'
+                    : a.origem === 'migracao' ? '<span style="background:rgba(14,165,233,0.1);color:#0ea5e9;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Migração</span>'
+                    : a.origem === 'esporadico' ? '<span style="background:rgba(16,185,129,0.1);color:#10b981;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Esporádico</span>'
+                    : '<span style="background:var(--cor-superficie);color:var(--cor-texto-mutado);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Aporte</span>';
+                const detalhe = a.origemAtivo ? ` · de ${a.origemAtivo}` : '';
+                return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--cor-borda);font-size:12.5px;">
+                    <span style="color:var(--cor-texto-mutado);font-family:'DM Mono',monospace;font-size:11px;min-width:75px;">${dataFmt}</span>
+                    ${tag}
+                    <span style="flex:1;font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-texto-principal);">${formatarMoeda(a.valor)}<span style="color:var(--cor-texto-mutado);font-weight:400;font-size:11px;">${detalhe}</span></span>
+                    <button onclick="event.stopPropagation();editarAporteSonho('${s.id}','${a.id}')" title="Editar" style="background:none;border:none;cursor:pointer;color:var(--cor-info);font-size:14px;"><i class="ph ph-pencil-simple"></i></button>
+                    <button onclick="event.stopPropagation();excluirAporteSonho('${s.id}','${a.id}')" title="Excluir" style="background:none;border:none;cursor:pointer;color:var(--cor-erro);font-size:14px;"><i class="ph ph-trash"></i></button>
+                </div>`;
+            }).join('');
+            return `<div style="margin:14px 20px;padding:0;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);overflow:hidden;">
+                <div style="padding:10px 12px;background:var(--cor-superficie);border-bottom:1px solid var(--cor-borda);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);"><i class="ph ph-list-bullets"></i> Histórico de aportes (${aportes.length})</div>
+                ${linhas}
+            </div>`;
+        }
+
+        function editarAporteSonho(sonhoId, aporteId) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) return;
+            const aporte = (s.aportes || []).find(a => a.id === aporteId);
+            if(!aporte) return mostrarToast('Aporte não encontrado.','erro');
+
+            const modal = document.getElementById('modalConfirmacao');
+            const tipoTxt = aporte.tipo === 'inicial' ? 'aporte inicial' : 'aporte';
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph ph-pencil-simple" style="color:var(--cor-info);"></i> Editar ${tipoTxt}`;
+            document.getElementById('modalMensagem').innerHTML = `
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);">Valor (R$)</label>
+                <span class="input-brl-wrap" style="margin-bottom:10px;display:block;">
+                    <input id="editAporteValor" type="text" inputmode="decimal" data-brl="1" oninput="aplicarMascaraBRL(this)" value="${formatarBRLInput(aporte.valor)}" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                </span>
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);">Data</label>
+                <input id="editAporteData" type="date" value="${aporte.data || new Date().toISOString().slice(0,10)}" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-info);" onclick="salvarEdicaoAporteSonho('${sonhoId}','${aporteId}')"><i class="ph-bold ph-check"></i> Salvar</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function salvarEdicaoAporteSonho(sonhoId, aporteId) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) { fecharModal(); return; }
+            const aporte = (s.aportes || []).find(a => a.id === aporteId);
+            if(!aporte) { fecharModal(); return; }
+
+            const novoValor = parseBRL(document.getElementById('editAporteValor').value);
+            const novaData = document.getElementById('editAporteData').value;
+            if(novoValor <= 0) { mostrarToast('Informe um valor maior que zero.','erro'); return; }
+
+            const delta = novoValor - aporte.valor;
+            aporte.valor = novoValor;
+            if(novaData) aporte.data = novaData;
+            s.valorAtual = Math.max(0, s.valorAtual + delta);
+
+            // Espelha alteração na transação vinculada (se houver)
+            if(aporte.txId) {
+                const tx = transacoes.find(t => t.id === aporte.txId);
+                if(tx) tx.valor = novoValor;
+            }
+            if(aporte.txResgateId) {
+                const txr = transacoes.find(t => t.id === aporte.txResgateId);
+                if(txr) txr.valor = novoValor;
+            }
+            localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+
+            // Recalcula plano (se vinculado)
+            if(s.planoVinculado && s.valorAtual < s.valorTotal) {
+                const novoMensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes || s.prazoMeses);
+                removerLancamentosFuturosSonho(s.id);
+                gerarLancamentosMensaisSonho(s, novoMensal, Math.min(60, s.mesesRestantes || s.prazoMeses));
+                s.aporteMensalPlano = novoMensal;
+            }
+
+            salvarSonhos();
+            fecharModal();
+            renderizarSonhos();
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            mostrarToast('Aporte atualizado.','sucesso');
+        }
+
+        function excluirAporteSonho(sonhoId, aporteId) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) return;
+            const aporte = (s.aportes || []).find(a => a.id === aporteId);
+            if(!aporte) return;
+
+            const tipoTxt = aporte.tipo === 'inicial' ? 'aporte inicial' : 'aporte';
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph ph-trash" style="color:var(--cor-erro);"></i> Excluir ${tipoTxt}?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                Esta ação vai <strong>remover ${formatarMoeda(aporte.valor)}</strong> do total guardado do sonho <strong>${s.nome}</strong>${aporte.txId ? ', e também os lançamentos vinculados no Controle Financeiro' : ''}.<br><br>
+                <em style="color:var(--cor-texto-mutado);">A próxima parcela mensal será recalculada automaticamente.</em>
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-erro);" onclick="confirmarExcluirAporteSonho('${sonhoId}','${aporteId}')"><i class="ph-bold ph-trash"></i> Sim, excluir</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarExcluirAporteSonho(sonhoId, aporteId) {
+            const s = sonhos.find(x => x.id === sonhoId);
+            if(!s) { fecharModal(); return; }
+            const aporte = (s.aportes || []).find(a => a.id === aporteId);
+            if(!aporte) { fecharModal(); return; }
+
+            // Remove transações vinculadas
+            const idsParaRemover = [];
+            if(aporte.txId) idsParaRemover.push(aporte.txId);
+            if(aporte.txResgateId) idsParaRemover.push(aporte.txResgateId);
+            if(idsParaRemover.length > 0) {
+                transacoes = transacoes.filter(t => !idsParaRemover.includes(t.id));
+                localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            }
+
+            // Reverte o valor
+            s.valorAtual = Math.max(0, s.valorAtual - aporte.valor);
+            s.aportes = (s.aportes || []).filter(a => a.id !== aporteId);
+
+            // Recalcula plano
+            if(s.planoVinculado && s.valorAtual < s.valorTotal) {
+                const novoMensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes || s.prazoMeses);
+                removerLancamentosFuturosSonho(s.id);
+                gerarLancamentosMensaisSonho(s, novoMensal, Math.min(60, s.mesesRestantes || s.prazoMeses));
+                s.aporteMensalPlano = novoMensal;
+            }
+
+            salvarSonhos();
+            fecharModal();
+            renderizarSonhos();
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            mostrarToast('Aporte removido.','aviso');
+        }
+
         function abrirAporteSonho(id) {
             document.getElementById('aportesonhoId').value = id;
             document.getElementById('aportesonhoValor').value = '';
@@ -8932,26 +9228,76 @@
             `;
             document.getElementById('modalAcoes').innerHTML = `
                 <button class="btn-acao" style="background:var(--cor-primaria);" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','esporadico')"><i class="ph ph-coin"></i> Esporádico (sobra do mês)</button>
-                <button class="btn-acao" style="background:#0ea5e9;" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','migracao')"><i class="ph ph-arrows-left-right"></i> Migração de investimento</button>
+                <button class="btn-acao" style="background:#0ea5e9;" onclick="abrirEscolhaAtivoMigracao('${sonho.id}',${valor},'${dataStr}')"><i class="ph ph-arrows-left-right"></i> Migração de investimento</button>
                 <button class="btn-secundario" onclick="finalizarAporteSonho('${sonho.id}',${valor},'${dataStr}','sem_lancar')">Não lançar no Controle</button>
             `;
             modal.style.display = 'flex';
         }
 
-        function finalizarAporteSonho(sonhoId, valor, dataStr, origem) {
+        function abrirEscolhaAtivoMigracao(sonhoId, valor, dataStr) {
+            const sonho = sonhos.find(x => x.id === sonhoId);
+            if(!sonho) return;
+            const carteira = (typeof obterResumoCarteira === 'function') ? obterResumoCarteira() : {};
+            const tickers = Object.keys(carteira)
+                .filter(t => carteira[t].qtdTotal > 0)
+                .sort((a,b) => a.localeCompare(b));
+
+            const opcoesAtivos = tickers.map(t => {
+                const a = carteira[t];
+                const am = (typeof mockAtivosMercado !== 'undefined') ? mockAtivosMercado.find(x => x.ticker === t) : null;
+                const preco = am ? am.preco_atual : a.precoMedio;
+                const saldo = a.qtdTotal * preco;
+                return `<option value="${t}">${t} — ${formatarMoeda(saldo)} (${a.qtdTotal} cotas)</option>`;
+            }).join('');
+
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph ph-arrows-left-right" style="color:#0ea5e9;"></i> De qual investimento veio?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                <p style="margin-bottom:10px;">Indique de onde saiu o dinheiro de <strong style="font-family:'DM Mono',monospace;color:#0ea5e9;">${formatarMoeda(valor)}</strong>:</p>
+                ${tickers.length > 0 ? `
+                    <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);">Ativo</label>
+                    <select id="selOrigemMigracao" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;margin-bottom:10px;">
+                        ${opcoesAtivos}
+                        <option value="__outro__">Outro / não está na carteira</option>
+                    </select>
+                ` : `<p style="color:var(--cor-texto-mutado);font-size:12px;margin-bottom:8px;"><em>Sua carteira está vazia. Descreva manualmente abaixo.</em></p>`}
+                <label style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);">Descrição (opcional)</label>
+                <input id="inputDescOrigemMigracao" type="text" placeholder="Ex: Vendi ações do Bradesco" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:#0ea5e9;" onclick="confirmarOrigemMigracao('${sonhoId}',${valor},'${dataStr}')"><i class="ph-bold ph-check"></i> Confirmar migração</button>
+                <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function confirmarOrigemMigracao(sonhoId, valor, dataStr) {
+            const sel = document.getElementById('selOrigemMigracao');
+            const descIn = document.getElementById('inputDescOrigemMigracao');
+            const ticker = sel ? sel.value : '__outro__';
+            const descLivre = (descIn?.value || '').trim();
+            const origemAtivo = (ticker && ticker !== '__outro__') ? ticker : null;
+            const origemDesc = descLivre || (origemAtivo ? `Resgate de ${origemAtivo}` : 'Resgate (origem não especificada)');
+            finalizarAporteSonho(sonhoId, valor, dataStr, 'migracao', { origemAtivo, origemDesc });
+        }
+
+        function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
             const s = sonhos.find(x => x.id === sonhoId);
             if(!s) { fecharModal(); return; }
+            const origemAtivo = detalhes?.origemAtivo || null;
+            const origemDesc = detalhes?.origemDesc || null;
             s.valorAtual += valor;
             if(!s.aportes) s.aportes = [];
-            s.aportes.push({valor, data: dataStr, tipo:'aporte', origem});
+            s.aportes.push({valor, data: dataStr, tipo:'aporte', origem, origemAtivo, origemDesc, id: 'aporte_' + Date.now()});
 
             if(origem !== 'sem_lancar') {
                 const d = dataStr ? new Date(dataStr+'T12:00:00') : new Date();
                 const obs = origem === 'migracao'
-                    ? `Aporte extra (migração de investimento) — ${s.nome}`
+                    ? `Aporte extra (migração${origemAtivo ? ' de ' + origemAtivo : ''}) — ${s.nome}`
                     : `Aporte extra (esporádico) — ${s.nome}`;
+                const txId = 'tx_' + Date.now();
                 transacoes.push({
-                    id: 'tx_' + Date.now(),
+                    id: txId,
                     sonhoId: s.id,
                     aporteExtra: true,
                     descricao: `Sonho: ${s.nome} — aporte extra`,
@@ -8962,19 +9308,26 @@
                     data: d.toISOString(),
                     pago: true
                 });
+                // Anota o id da transação no aporte para permitir exclusão coordenada
+                s.aportes[s.aportes.length - 1].txId = txId;
                 // Se for migração, registra também o resgate para não duplicar impacto no orçamento
                 if(origem === 'migracao') {
+                    const txResId = 'tx_' + Date.now() + '_r';
                     transacoes.push({
-                        id: 'tx_' + Date.now() + '_r',
+                        id: txResId,
                         sonhoId: s.id,
-                        descricao: `Resgate p/ sonho: ${s.nome}`,
+                        descricao: origemDesc || `Resgate p/ sonho: ${s.nome}`,
                         valor: valor,
                         categoria: 'resgate_investimento',
-                        obs: `Compensação do aporte extra do sonho ${s.nome}`,
+                        obs: origemAtivo
+                            ? `Resgate de ${origemAtivo} — destino: sonho ${s.nome}`
+                            : `Compensação do aporte extra do sonho ${s.nome}`,
                         mes: d.getMonth(), ano: d.getFullYear(),
                         data: d.toISOString(),
-                        pago: true
+                        pago: true,
+                        ativoOrigem: origemAtivo || undefined
                     });
+                    s.aportes[s.aportes.length - 1].txResgateId = txResId;
                 }
                 localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
                 if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
