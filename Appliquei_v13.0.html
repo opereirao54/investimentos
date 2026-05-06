@@ -403,12 +403,14 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
             min-height: 150px;
             transition: box-shadow 0.2s, transform 0.2s;
         }
         .kpi-hero:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-        .kpi-hero-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+        .kpi-hero-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; text-align: center; }
         .kpi-hero-icon {
             width: 36px; height: 36px; border-radius: 10px;
             background: var(--cor-bg-primaria);
@@ -428,6 +430,7 @@
             font-size: 28px; font-weight: 700; letter-spacing: -0.7px;
             font-family: 'DM Mono', monospace; line-height: 1;
             color: var(--cor-primaria);
+            text-align: center;
         }
 
         .kpis-controle-grid {
