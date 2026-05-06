@@ -1651,6 +1651,221 @@
         .sonho-caixinha-tip i { font-size: 16px; flex-shrink: 0; margin-top: 1px; color: var(--cor-info); }
         .sonho-caixinha-tip strong { font-weight: 700; }
 
+        /* === Redesign: visão geral, mini-cards e timeline === */
+        .sonhos-overview {
+            background: linear-gradient(135deg, #fff 0%, rgba(124,58,237,0.03) 50%, rgba(16,185,129,0.04) 100%);
+            border: 1px solid var(--cor-borda); border-radius: 16px; padding: 20px; margin-bottom: 20px;
+            box-shadow: var(--shadow-card);
+        }
+        .sonhos-overview-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .sonhos-overview-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--cor-primaria), #7c3aed);
+            display: flex; align-items: center; justify-content: center; color: #fff;
+            box-shadow: 0 4px 10px rgba(124,58,237,0.25);
+        }
+        .sonhos-overview-icon i { font-size: 18px; }
+        .sonhos-overview-title { font-size: 15px; font-weight: 700; color: var(--cor-texto-principal); margin: 0; line-height: 1.2; }
+        .sonhos-overview-sub { font-size: 11.5px; color: var(--cor-texto-mutado); margin: 0; }
+
+        .sonhos-kpi-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px; margin-bottom: 16px;
+        }
+        .sonhos-kpi {
+            position: relative;
+            padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px;
+            background: var(--cor-branco); overflow: hidden;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+        .sonhos-kpi:hover { transform: translateY(-1px); box-shadow: var(--shadow-hover); }
+        .sonhos-kpi::before {
+            content: ''; position: absolute; top: 0; left: 0; height: 3px; width: 100%;
+            background: var(--kpi-accent, var(--cor-primaria));
+        }
+        .sonhos-kpi-lbl {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--cor-texto-mutado); margin-bottom: 6px;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .sonhos-kpi-lbl i { font-size: 11px; }
+        .sonhos-kpi-val {
+            font-size: 18px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); line-height: 1.1;
+        }
+        .sonhos-kpi-sub { font-size: 10.5px; color: var(--cor-texto-mutado); margin-top: 3px; }
+
+        .sonhos-progresso-geral {
+            padding: 14px 16px; border: 1px solid var(--cor-borda); border-radius: 12px;
+            background: var(--cor-branco);
+        }
+        .sonhos-progresso-bar {
+            height: 10px; background: var(--cor-superficie); border-radius: 99px;
+            overflow: hidden; border: 1px solid var(--cor-borda); margin-top: 8px;
+        }
+        .sonhos-progresso-fill {
+            height: 100%; border-radius: 99px;
+            background: linear-gradient(90deg, #10b981, #059669);
+            transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        .sonhos-progresso-fill::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2.5s infinite;
+        }
+        @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+        /* Mini-cards "Tempo para conquistar" */
+        .tempo-conquistar-section {
+            margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--cor-borda);
+        }
+        .tempo-conquistar-title {
+            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+            color: var(--cor-texto-mutado); margin-bottom: 12px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .tempo-conquistar-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+        .tempo-card {
+            display: flex; flex-direction: column; gap: 10px;
+            padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px;
+            background: var(--cor-branco); cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        }
+        .tempo-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--cor-borda-primaria); }
+        .tempo-card-head { display: flex; align-items: center; gap: 10px; }
+        .tempo-card-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; flex-shrink: 0;
+        }
+        .tempo-card-icon.cat-viagem { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; }
+        .tempo-card-icon.cat-veiculo { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; }
+        .tempo-card-icon.cat-imovel { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+        .tempo-card-icon.cat-educacao { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; }
+        .tempo-card-icon.cat-casamento { background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff; }
+        .tempo-card-icon.cat-reserva { background: linear-gradient(135deg, #059669, #14b8a6); color: #fff; }
+        .tempo-card-icon.cat-tech { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
+        .tempo-card-icon.cat-saude { background: linear-gradient(135deg, #ef4444, #f97316); color: #fff; }
+        .tempo-card-icon.cat-outro { background: linear-gradient(135deg, var(--cor-primaria), #7c3aed); color: #fff; }
+        .tempo-card-info { flex: 1; min-width: 0; }
+        .tempo-card-nome {
+            font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal);
+            line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .tempo-card-status {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            padding: 2px 8px; border-radius: 99px; margin-top: 4px;
+        }
+        .tempo-card-status.st-ativo { background: rgba(16,185,129,0.12); color: #047857; }
+        .tempo-card-status.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; }
+        .tempo-card-status.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; }
+        .tempo-card-status.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; }
+        .tempo-card-prazo {
+            font-family: 'DM Mono', monospace; font-weight: 700;
+            font-size: 14px; color: #8b5cf6; flex-shrink: 0; text-align: right;
+            min-width: 90px;
+        }
+        .tempo-card-prazo.urg-alta { color: #ef4444; }
+        .tempo-card-prazo.urg-media { color: #f59e0b; }
+        .tempo-card-prazo.urg-baixa { color: #10b981; }
+        .tempo-card-prazo.urg-conquistado { color: #047857; }
+        .tempo-card-prazo-lbl { font-size: 9.5px; color: var(--cor-texto-mutado); font-weight: 600; text-transform: uppercase; }
+        .tempo-card-bar {
+            height: 6px; background: var(--cor-superficie); border-radius: 99px;
+            overflow: hidden; border: 1px solid var(--cor-borda);
+        }
+        .tempo-card-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .tempo-card-meta {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; color: var(--cor-texto-mutado);
+        }
+        .tempo-card-meta strong { color: var(--cor-texto-principal); font-family: 'DM Mono', monospace; font-weight: 700; }
+
+        /* Badge de status no header colapsado */
+        .sonho-status-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            padding: 3px 8px; border-radius: 99px; margin-left: 8px;
+        }
+        .sonho-status-badge.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; border: 1px solid rgba(124,58,237,0.3); }
+        .sonho-status-badge.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; border: 1px solid rgba(16,185,129,0.4); }
+        .sonho-status-badge.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; border: 1px solid rgba(239,68,68,0.3); }
+        .sonho-agendado-banner {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; margin: 0 20px 12px;
+            border: 1.5px dashed rgba(124,58,237,0.4); border-radius: 10px;
+            background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(124,58,237,0.04));
+            font-size: 12.5px; color: #6d28d9; font-weight: 600;
+        }
+        .sonho-agendado-banner i { font-size: 18px; color: #7c3aed; }
+
+        /* Timeline de aportes */
+        .aportes-timeline {
+            margin: 14px 20px 0; padding: 0; border: 1px solid var(--cor-borda);
+            border-radius: 12px; background: var(--cor-branco); overflow: hidden;
+        }
+        .aportes-timeline-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 12px 14px; background: linear-gradient(135deg, var(--cor-superficie), rgba(124,58,237,0.04));
+            border-bottom: 1px solid var(--cor-borda);
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--cor-texto-mutado);
+        }
+        .aportes-timeline-head i { color: #7c3aed; }
+        .aportes-timeline-list { padding: 8px 14px; max-height: 280px; overflow-y: auto; }
+        .aporte-item {
+            display: flex; align-items: center; gap: 12px; padding: 10px 0;
+            border-bottom: 1px solid var(--cor-borda); position: relative;
+        }
+        .aporte-item:last-child { border-bottom: none; }
+        .aporte-marker {
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            color: #fff; font-size: 14px;
+        }
+        .aporte-marker.tipo-inicial { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+        .aporte-marker.tipo-esporadico { background: linear-gradient(135deg, #10b981, #059669); }
+        .aporte-marker.tipo-migracao { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+        .aporte-marker.tipo-mensal { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .aporte-marker.tipo-aporte { background: linear-gradient(135deg, #6b7280, #4b5563); }
+        .aporte-info { flex: 1; min-width: 0; }
+        .aporte-titulo-row {
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .aporte-valor {
+            font-family: 'DM Mono', monospace; font-weight: 700;
+            font-size: 13px; color: var(--cor-texto-principal);
+        }
+        .aporte-tipo-tag {
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+            padding: 2px 7px; border-radius: 99px;
+        }
+        .aporte-tipo-tag.t-inicial { background: rgba(124,58,237,0.12); color: #6d28d9; }
+        .aporte-tipo-tag.t-esporadico { background: rgba(16,185,129,0.12); color: #047857; }
+        .aporte-tipo-tag.t-migracao { background: rgba(14,165,233,0.12); color: #0369a1; }
+        .aporte-tipo-tag.t-mensal { background: rgba(245,158,11,0.12); color: #b45309; }
+        .aporte-tipo-tag.t-aporte { background: var(--cor-superficie); color: var(--cor-texto-mutado); }
+        .aporte-meta {
+            font-size: 11px; color: var(--cor-texto-mutado); margin-top: 2px;
+            font-family: 'DM Mono', monospace;
+        }
+        .aporte-acoes { display: flex; gap: 4px; flex-shrink: 0; }
+        .aporte-btn {
+            background: none; border: 1px solid var(--cor-borda); cursor: pointer;
+            width: 28px; height: 28px; border-radius: 6px;
+            display: flex; align-items: center; justify-content: center;
+            color: var(--cor-texto-mutado); transition: 0.15s; font-size: 13px;
+        }
+        .aporte-btn:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        .aporte-btn.danger:hover { color: var(--cor-erro); border-color: var(--cor-erro); background: var(--cor-bg-erro); }
+        .aporte-btn.info:hover { color: var(--cor-info); border-color: var(--cor-info); background: var(--cor-bg-info); }
+
         /* Botão aporte */
         .sonho-btn-aporte {
             display: inline-flex; align-items: center; gap: 5px; padding: 6px 14px;
@@ -3039,6 +3254,14 @@
                             <label>Valor total necessário (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="sonhoValorTotal" placeholder="15.000,00" oninput="aplicarMascaraBRL(this)"></span>
                         </div>
+                        <div class="form-group">
+                            <label>Quando começar?</label>
+                            <input type="month" id="sonhoMesInicio" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                            <span style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Pode adiar — útil pra esperar 13º, férias, etc.</span>
+                        </div>
+                    </div>
+
+                    <div class="grid-2-iguais" style="gap:14px;">
                         <div class="form-group">
                             <label>Prazo para conquista</label>
                             <div style="display:flex;gap:6px;">
@@ -7126,6 +7349,7 @@
             const novoValor = parseBRL(inputVal);
             if(isNaN(novoValor) || novoValor < 0) return mostrarToast("Por favor, informe um valor válido.", "erro");
 
+            let txPaga = null;
             transacoes = transacoes.map(t => {
                 if (t.id === id) {
                     t.pago = true;
@@ -7133,12 +7357,52 @@
                         t.valor = novoValor;
                         if(t.groupId) t.groupId = null; // Isola o registro
                     }
+                    txPaga = t;
                 }
                 return t;
             });
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-            mostrarToast("Pagamento confirmado!", "sucesso");
-            atualizarTelaControle(); 
+
+            // Se for compromisso mensal de sonho, registrar como aporte e atualizar valorAtual
+            let toastMsg = "Pagamento confirmado!";
+            if(txPaga && txPaga.categoria === 'sonho' && !txPaga.aporteExtra && txPaga.sonhoId) {
+                registrarAportePorPagamentoSonho(txPaga);
+                toastMsg = "Pagamento confirmado e aporte registrado no sonho!";
+            }
+
+            mostrarToast(toastMsg, "sucesso");
+            atualizarTelaControle();
+            if(typeof renderizarSonhos === 'function') renderizarSonhos();
+        }
+
+        // Liga um pagamento de compromisso mensal a um aporte registrado no sonho
+        function registrarAportePorPagamentoSonho(tx) {
+            const s = sonhos.find(x => x.id === tx.sonhoId);
+            if(!s) return;
+            // Evita duplicar se já houver aporte vinculado a esta tx
+            if((s.aportes || []).some(a => a.txId === tx.id)) return;
+
+            const dataAporte = new Date().toISOString().slice(0,10);
+            const novoAporte = {
+                id: 'aporte_pago_' + Date.now(),
+                valor: tx.valor,
+                data: dataAporte,
+                tipo: 'mensal_pago',
+                origem: 'compromisso',
+                txId: tx.id
+            };
+            if(!s.aportes) s.aportes = [];
+            s.aportes.push(novoAporte);
+            s.valorAtual = (s.valorAtual || 0) + tx.valor;
+
+            // Recalcula a parcela mensal e regenera lançamentos futuros
+            if(s.planoVinculado && s.valorAtual < s.valorTotal) {
+                const novoMensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes || s.prazoMeses);
+                removerLancamentosFuturosSonho(s.id);
+                gerarLancamentosMensaisSonho(s, novoMensal, Math.min(60, s.mesesRestantes || s.prazoMeses));
+                s.aporteMensalPlano = novoMensal;
+            }
+            salvarSonhos();
         }
 
         function atualizarTermometro60() {
@@ -8208,6 +8472,21 @@
         // === MEUS SONHOS — DREAM PLANNER ENGINE                    ===
         // ============================================================
         let sonhos = JSON.parse(localStorage.getItem('appliquei_sonhos')) || [];
+        // Backfill: sonhos antigos sem dataInicio assumem início = dataCriacao (ou dataFim - prazoMeses)
+        sonhos.forEach(s => {
+            if(!s.dataInicio) {
+                if(s.dataCriacao) {
+                    const d = new Date(s.dataCriacao);
+                    s.dataInicio = new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+                } else if(s.dataFim && s.prazoMeses) {
+                    const dFim = new Date(s.dataFim);
+                    s.dataInicio = new Date(dFim.getFullYear(), dFim.getMonth() - s.prazoMeses + 1, 1).toISOString();
+                } else {
+                    const hoje = new Date();
+                    s.dataInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
+                }
+            }
+        });
         let sonhoEditandoId = null;
 
         const SONHO_TAXA_MENSAL = 0.008; // 0.8% ao mês
@@ -8232,15 +8511,23 @@
 
         // === Integração Sonho ↔ Controle Financeiro ==================
         function gerarLancamentosMensaisSonho(sonho, valorMensal, mesesGerar) {
-            // Cria recorrência de transações com categoria 'sonho' a partir do mês atual
+            // Cria recorrência de transações com categoria 'sonho' a partir do mês de início do sonho
+            // (ou do mês atual, se já tiver iniciado).
             if(!sonho || valorMensal <= 0 || mesesGerar <= 0) return 0;
             const groupId = sonho.groupIdControle || ('sonho_grp_' + sonho.id);
             sonho.groupIdControle = groupId;
             const agora = new Date();
+            const dIni = sonho.dataInicio ? new Date(sonho.dataInicio) : agora;
+            // Começa pelo maior entre mês corrente e mês de início do sonho
+            const baseTs = Math.max(
+                new Date(agora.getFullYear(), agora.getMonth(), 1).getTime(),
+                new Date(dIni.getFullYear(), dIni.getMonth(), 1).getTime()
+            );
+            const base = new Date(baseTs);
             let criados = 0;
             for(let i = 0; i < mesesGerar; i++) {
-                let m = agora.getMonth() + i;
-                let a = agora.getFullYear();
+                let m = base.getMonth() + i;
+                let a = base.getFullYear();
                 while(m > 11) { m -= 12; a++; }
                 const jaExiste = transacoes.some(t => t.categoria === 'sonho' && t.sonhoId === sonho.id && t.mes === m && t.ano === a && !t.aporteExtra);
                 if(jaExiste) continue;
@@ -8476,6 +8763,33 @@
             </div>`;
         }
 
+        // Status do sonho: 'agendado' (ainda não começou), 'ativo', 'conquistado', 'vencido'
+        function statusSonho(s) {
+            if(!s) return 'ativo';
+            const conquistado = (s.valorAtual || 0) >= (s.valorTotal || 0);
+            if(conquistado) return 'conquistado';
+            const hoje = new Date();
+            const hojeMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime();
+            if(s.dataInicio) {
+                const dIni = new Date(s.dataInicio);
+                const iniMes = new Date(dIni.getFullYear(), dIni.getMonth(), 1).getTime();
+                if(hojeMes < iniMes) return 'agendado';
+            }
+            if(s.dataFim) {
+                const dFim = new Date(s.dataFim);
+                if(hoje > dFim) return 'vencido';
+            }
+            return 'ativo';
+        }
+
+        function diasAteInicioSonho(s) {
+            if(!s || !s.dataInicio) return 0;
+            const hoje = new Date();
+            const dIni = new Date(s.dataInicio);
+            const diff = Math.ceil((dIni.getTime() - hoje.getTime()) / (24*60*60*1000));
+            return Math.max(0, diff);
+        }
+
         function calcSonhoMensal(valorTotal, valorAtual, mesesRestantes) {
             if(mesesRestantes <= 0) return 0;
             const falta = valorTotal - valorAtual;
@@ -8650,18 +8964,44 @@
                 const esforcoLbl = {baixo:'🌱 Leve',medio:'⚡ Moderado',alto:'🔥 Intenso'}[s.esforco||'medio'];
                 const esforcoClass = 'esforco-'+(s.esforco||'medio');
                 const conquistado = pct >= 100;
+                const status = statusSonho(s);
                 const falta = Math.max(0, s.valorTotal - s.valorAtual);
                 const barColor = pct >= 100 ? '#10b981' : pct >= 60 ? '#059669' : pct >= 30 ? '#d97706' : '#ef4444';
 
                 const mensalFmtCol = mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
                 const faltaFmtCol  = falta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-                const tempoLbl = conquistado ? '🏆 Conquistado' : (s.mesesRestantes > 0 ? `⏱ ${s.mesesRestantes} ${s.mesesRestantes===1?'mês restante':'meses restantes'}` : '⏰ Prazo encerrado');
+                let tempoLbl;
+                if(conquistado) tempoLbl = '🏆 Conquistado';
+                else if(status === 'agendado') {
+                    const d = diasAteInicioSonho(s);
+                    const dIni = new Date(s.dataInicio);
+                    const mesIniLabel = dIni.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).replace('.','');
+                    tempoLbl = `🕒 Inicia em ${mesIniLabel}${d > 0 ? ` (${d}d)` : ''}`;
+                }
+                else if(status === 'vencido') tempoLbl = '⏰ Prazo encerrado';
+                else tempoLbl = s.mesesRestantes > 0 ? `⏱ ${s.mesesRestantes} ${s.mesesRestantes===1?'mês restante':'meses restantes'}` : '⏰ Prazo encerrado';
+
+                let statusBadge = '';
+                if(status === 'agendado') statusBadge = `<span class="sonho-status-badge st-agendado"><i class="ph-fill ph-clock-clockwise"></i> Agendado</span>`;
+                else if(status === 'conquistado') statusBadge = `<span class="sonho-status-badge st-conquistado"><i class="ph-fill ph-trophy"></i> Conquistado</span>`;
+                else if(status === 'vencido') statusBadge = `<span class="sonho-status-badge st-vencido"><i class="ph-fill ph-warning-circle"></i> Vencido</span>`;
+
+                let agendadoBanner = '';
+                if(status === 'agendado') {
+                    const d = diasAteInicioSonho(s);
+                    const dIni = new Date(s.dataInicio);
+                    const mesIniFmt = dIni.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+                    agendadoBanner = `<div class="sonho-agendado-banner">
+                        <i class="ph-fill ph-clock-clockwise"></i>
+                        <span>Este sonho está <strong>agendado para ${mesIniFmt}</strong>${d > 0 ? ` — faltam <strong>${d} dia${d===1?'':'s'}</strong> para começar` : ' — começa hoje!'}.</span>
+                    </div>`;
+                }
 
                 return `<div class="sonho-card ${conquistado?'sonho-conquistado':''}" id="card_${s.id}" onclick="toggleSonhoCard('${s.id}')">
                     <div class="sonho-card-collapsed cat-${s.categoria}">
                         <div class="sonho-collapsed-avatar">${emoji}</div>
                         <div class="sonho-collapsed-info">
-                            <div class="sonho-collapsed-nome">${s.nome}</div>
+                            <div class="sonho-collapsed-nome">${s.nome}${statusBadge}</div>
                             <div class="sonho-collapsed-meta">
                                 <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
                                 <span>${tempoLbl}</span>
@@ -8681,6 +9021,7 @@
                         </button>
                     </div>
                     <div class="sonho-card-details">
+                        ${agendadoBanner}
                         <div class="sonho-body">
                             <div class="sonho-passos">
                                 <div class="sonho-passos-title"><i class="ph ph-list-checks"></i> Passos para conquistar</div>
@@ -8730,7 +9071,7 @@
                             ${conquistado ? '' : (s.planoVinculado
                                 ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
                                 : `<button onclick="event.stopPropagation();pedirConfirmacaoPlanoSonho(sonhos.find(x=>x.id==='${s.id}'))" class="btn-acao" style="background:#7c3aed;font-size:12px;padding:8px 14px;margin-right:auto;"><i class="ph-bold ph-link-simple"></i> Vincular ao Controle</button>`)}
-                            ${conquistado || !s.planoVinculado ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Estende o prazo em 1 mês."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
+                            ${conquistado || !s.planoVinculado || status === 'agendado' ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Redistribui a falta nos meses restantes."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
                             <button onclick="event.stopPropagation();abrirAporteSonho('${s.id}')" class="btn-acao" style="background:var(--cor-primaria);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-piggy-bank"></i> Registrar aporte</button>
                             <button onclick="event.stopPropagation();editarSonho('${s.id}')" class="btn-acao" style="font-size:12px;padding:8px 14px;"><i class="ph-bold ph-pencil-simple"></i> Editar</button>
                             <button onclick="event.stopPropagation();excluirSonho('${s.id}')" class="btn-acao" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-trash"></i> Excluir</button>
@@ -8738,6 +9079,23 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        // Formata um prazo em meses para "8 meses" / "1 ano" / "1a 6m" / "2 anos"
+        function formatarPrazoMeses(m) {
+            if(m <= 0) return '—';
+            if(m < 12) return `${m} ${m === 1 ? 'mês' : 'meses'}`;
+            const anos = Math.floor(m / 12);
+            const resto = m % 12;
+            if(resto === 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
+            return `${anos}a ${resto}m`;
+        }
+
+        function corUrgenciaPorMeses(m) {
+            if(m <= 0) return 'urg-conquistado';
+            if(m <= 6) return 'urg-alta';
+            if(m <= 12) return 'urg-media';
+            return 'urg-baixa';
         }
 
         function renderResumoSonhos() {
@@ -8751,77 +9109,113 @@
 
             const totalMeta = sonhos.reduce((acc, s) => acc + s.valorTotal, 0);
             const totalGuardado = sonhos.reduce((acc, s) => acc + s.valorAtual, 0);
-            const totalFalta = totalMeta - totalGuardado;
+            const totalFalta = Math.max(0, totalMeta - totalGuardado);
             const totalMensal = sonhos.reduce((acc, s) => acc + calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes), 0);
+            const conquistados = sonhos.filter(s => s.valorAtual >= s.valorTotal).length;
+            const agendados = sonhos.filter(s => statusSonho(s) === 'agendado').length;
 
-            // Lista por sonho ativo (não conquistado) com meses restantes — substitui a média agregada,
-            // que somava meses de planos diferentes e dava uma resposta sem sentido.
-            const ativosOrdenados = sonhos
-                .filter(s => s.mesesRestantes > 0 && (s.valorAtual / s.valorTotal) < 1)
-                .sort((a,b) => a.mesesRestantes - b.mesesRestantes);
+            // Lista por sonho NÃO conquistado, ordenado por urgência (menos meses primeiro,
+            // mas com agendados ao final pois ainda não começaram)
+            const naoConquistados = sonhos
+                .filter(s => (s.valorAtual / s.valorTotal) < 1)
+                .sort((a,b) => {
+                    const sa = statusSonho(a), sb = statusSonho(b);
+                    if(sa === 'agendado' && sb !== 'agendado') return 1;
+                    if(sb === 'agendado' && sa !== 'agendado') return -1;
+                    return (a.mesesRestantes || 0) - (b.mesesRestantes || 0);
+                });
 
             const pctGeral = totalMeta > 0 ? (totalGuardado / totalMeta) * 100 : 0;
-            const barColorGeral = pctGeral >= 100 ? '#10b981' : pctGeral >= 60 ? '#059669' : pctGeral >= 30 ? '#d97706' : '#ef4444';
+            const SONHO_CATS = (typeof SONHO_CATEGORIAS !== 'undefined') ? SONHO_CATEGORIAS : {};
 
-            const formatarPrazo = m => {
-                if(m <= 0) return '—';
-                if(m < 12) return `${m} ${m === 1 ? 'mês' : 'meses'}`;
-                const anos = Math.floor(m / 12);
-                const resto = m % 12;
-                if(resto === 0) return `${anos} ${anos === 1 ? 'ano' : 'anos'}`;
-                return `${anos}a ${resto}m`;
-            };
-
-            container.innerHTML = `<div class="card-container" style="margin-bottom:18px;background:linear-gradient(135deg,rgba(16,185,129,0.04),rgba(124,58,237,0.04));border:1px solid var(--cor-borda);">
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
-                    <i class="ph-fill ph-chart-pie-slice" style="font-size:18px;color:var(--cor-primaria);"></i>
-                    <h3 style="font-size:14px;font-weight:700;color:var(--cor-texto-principal);margin:0;">Visão geral dos sonhos</h3>
-                </div>
-                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Total de sonhos</div>
-                        <div style="font-size:20px;font-weight:800;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${sonhos.length}</div>
-                    </div>
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Meta total</div>
-                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${totalMeta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                    </div>
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Já guardado</div>
-                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#10b981;">${totalGuardado.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                    </div>
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Falta alcançar</div>
-                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:#ef4444;">${totalFalta.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
-                    </div>
-                    <div style="padding:12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:4px;">Aporte mensal total</div>
-                        <div style="font-size:16px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-primaria);">${totalMensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</div>
+            container.innerHTML = `
+            <div class="sonhos-overview">
+                <div class="sonhos-overview-head">
+                    <div class="sonhos-overview-icon"><i class="ph-fill ph-chart-pie-slice"></i></div>
+                    <div>
+                        <h3 class="sonhos-overview-title">Visão geral dos seus sonhos</h3>
+                        <p class="sonhos-overview-sub">${sonhos.length} ${sonhos.length === 1 ? 'sonho' : 'sonhos'} cadastrado${sonhos.length === 1 ? '' : 's'}${conquistados > 0 ? ` · ${conquistados} já conquistado${conquistados === 1 ? '' : 's'}` : ''}${agendados > 0 ? ` · ${agendados} agendado${agendados === 1 ? '' : 's'}` : ''}</p>
                     </div>
                 </div>
-                ${ativosOrdenados.length > 0 ? `
-                <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);margin-bottom:10px;">
-                    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);margin-bottom:8px;">⏳ Tempo para conquistar cada sonho</div>
-                    <div style="display:flex;flex-direction:column;gap:6px;">
-                        ${ativosOrdenados.map(s => {
+
+                <div class="sonhos-kpi-grid">
+                    <div class="sonhos-kpi" style="--kpi-accent: #6366f1;">
+                        <div class="sonhos-kpi-lbl"><i class="ph-fill ph-target"></i> Meta total</div>
+                        <div class="sonhos-kpi-val">${formatarMoeda(totalMeta)}</div>
+                    </div>
+                    <div class="sonhos-kpi" style="--kpi-accent: #10b981;">
+                        <div class="sonhos-kpi-lbl"><i class="ph-fill ph-piggy-bank"></i> Já guardado</div>
+                        <div class="sonhos-kpi-val" style="color:#10b981;">${formatarMoeda(totalGuardado)}</div>
+                        <div class="sonhos-kpi-sub">${pctGeral.toFixed(0)}% do total</div>
+                    </div>
+                    <div class="sonhos-kpi" style="--kpi-accent: #ef4444;">
+                        <div class="sonhos-kpi-lbl"><i class="ph-fill ph-flag"></i> Falta alcançar</div>
+                        <div class="sonhos-kpi-val" style="color:#ef4444;">${formatarMoeda(totalFalta)}</div>
+                    </div>
+                    <div class="sonhos-kpi" style="--kpi-accent: #7c3aed;">
+                        <div class="sonhos-kpi-lbl"><i class="ph-fill ph-calendar-blank"></i> Aporte/mês total</div>
+                        <div class="sonhos-kpi-val" style="color:#7c3aed;">${formatarMoeda(totalMensal)}</div>
+                        <div class="sonhos-kpi-sub">somando todos os planos</div>
+                    </div>
+                </div>
+
+                <div class="sonhos-progresso-geral">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);"><i class="ph ph-trending-up"></i> Progresso geral</span>
+                        <span style="font-size:14px;font-weight:800;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${pctGeral.toFixed(1)}%</span>
+                    </div>
+                    <div class="sonhos-progresso-bar">
+                        <div class="sonhos-progresso-fill" style="width:${Math.min(100,pctGeral)}%;"></div>
+                    </div>
+                </div>
+
+                ${naoConquistados.length > 0 ? `
+                <div class="tempo-conquistar-section">
+                    <div class="tempo-conquistar-title">
+                        <i class="ph-fill ph-hourglass-medium" style="color:#7c3aed;"></i> Tempo para conquistar cada sonho
+                    </div>
+                    <div class="tempo-conquistar-grid">
+                        ${naoConquistados.map(s => {
                             const pctIndiv = Math.min(100, (s.valorAtual/s.valorTotal)*100);
-                            return `<div style="display:flex;align-items:center;gap:10px;font-size:12.5px;">
-                                <span style="flex:1;font-weight:600;color:var(--cor-texto-principal);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.nome}</span>
-                                <span style="font-family:'DM Mono',monospace;color:var(--cor-texto-mutado);font-size:11px;">${pctIndiv.toFixed(0)}%</span>
-                                <span style="font-family:'DM Mono',monospace;font-weight:700;color:#8b5cf6;min-width:80px;text-align:right;">${formatarPrazo(s.mesesRestantes)}</span>
+                            const status = statusSonho(s);
+                            const statusLbl = status === 'agendado' ? 'Agendado' : status === 'vencido' ? 'Vencido' : 'Em andamento';
+                            const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+                            const falta = Math.max(0, s.valorTotal - s.valorAtual);
+                            const emoji = SONHO_CATS[s.categoria] || '🌟';
+                            const corBar = pctIndiv >= 60 ? 'linear-gradient(90deg,#10b981,#059669)' : pctIndiv >= 30 ? 'linear-gradient(90deg,#f59e0b,#d97706)' : 'linear-gradient(90deg,#ef4444,#dc2626)';
+                            const urgClass = corUrgenciaPorMeses(s.mesesRestantes);
+                            let prazoTxt;
+                            if(status === 'agendado') {
+                                const d = diasAteInicioSonho(s);
+                                prazoTxt = d > 30 ? formatarPrazoMeses(Math.ceil(d/30)) : `em ${d}d`;
+                            } else {
+                                prazoTxt = formatarPrazoMeses(s.mesesRestantes);
+                            }
+                            return `
+                            <div class="tempo-card" onclick="document.getElementById('card_${s.id}')?.scrollIntoView({behavior:'smooth',block:'center'});if(!document.getElementById('card_${s.id}')?.classList.contains('expanded'))toggleSonhoCard('${s.id}');">
+                                <div class="tempo-card-head">
+                                    <div class="tempo-card-icon cat-${s.categoria}">${emoji}</div>
+                                    <div class="tempo-card-info">
+                                        <div class="tempo-card-nome">${s.nome}</div>
+                                        <span class="tempo-card-status st-${status}">${statusLbl}</span>
+                                    </div>
+                                    <div>
+                                        <div class="tempo-card-prazo-lbl" style="text-align:right;">${status === 'agendado' ? 'Inicia' : 'Falta'}</div>
+                                        <div class="tempo-card-prazo ${urgClass}">${prazoTxt}</div>
+                                    </div>
+                                </div>
+                                <div class="tempo-card-bar">
+                                    <div class="tempo-card-bar-fill" style="width:${pctIndiv}%;background:${corBar};"></div>
+                                </div>
+                                <div class="tempo-card-meta">
+                                    <span><strong>${formatarMoeda(mensal)}</strong>/mês</span>
+                                    <span>Falta <strong>${formatarMoeda(falta)}</strong></span>
+                                    <span>${pctIndiv.toFixed(0)}%</span>
+                                </div>
                             </div>`;
                         }).join('')}
                     </div>
                 </div>` : ''}
-                <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-                        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Progresso geral</span>
-                        <span style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${pctGeral.toFixed(1)}%</span>
-                    </div>
-                    <div style="height:8px;background:var(--cor-superficie);border-radius:99px;overflow:hidden;border:1px solid var(--cor-borda);">
-                        <div style="height:100%;width:${pctGeral}%;background:${barColorGeral};border-radius:99px;transition:width 0.5s cubic-bezier(0.4,0,0.2,1);"></div>
-                    </div>
-                </div>
             </div>`;
         }
 
@@ -8926,6 +9320,12 @@
             document.getElementById('sonhoPrazo').value = '12';
             const unidadeNovo = document.getElementById('sonhoPrazoUnidade');
             if(unidadeNovo) unidadeNovo.value = 'meses';
+            const mesIniNovo = document.getElementById('sonhoMesInicio');
+            if(mesIniNovo) {
+                const hoje = new Date();
+                mesIniNovo.value = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+                mesIniNovo.min = mesIniNovo.value;
+            }
             document.getElementById('sonhoValorInicial').value = '';
             document.getElementById('sonhoCategoria').value = 'viagem';
             document.getElementById('sonhoEsforco').value = 'medio';
@@ -8945,28 +9345,40 @@
             const categoria = document.getElementById('sonhoCategoria').value;
             const esforco = document.getElementById('sonhoEsforco').value;
             const descricao = document.getElementById('sonhoDescricao').value.trim();
+            const mesInicioRaw = document.getElementById('sonhoMesInicio')?.value;
 
             if(!nome) { mostrarToast('Dê um nome ao seu sonho!','erro'); return; }
             if(valorTotal <= 0) { mostrarToast('Informe o valor total da meta.','erro'); return; }
 
             const agora = new Date();
-            const dataFim = new Date(agora);
-            dataFim.setMonth(dataFim.getMonth() + prazo);
+            // dataInicio: dia 1 do mês escolhido, default = mês corrente. Não pode ser anterior ao mês corrente.
+            const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}`;
+            const mesInicio = (mesInicioRaw && mesInicioRaw >= mesAtual) ? mesInicioRaw : mesAtual;
+            const [iniAno, iniMes] = mesInicio.split('-').map(Number);
+            const dataInicio = new Date(iniAno, iniMes - 1, 1);
+            const dataFim = new Date(iniAno, iniMes - 1 + prazo, 0); // último dia do último mês do plano
+            const mesesAteFim = Math.max(0, mesesEntre(agora, dataFim));
 
             let sonhoCriado = null;
             let edicaoComMudancaDePlano = false;
             if(sonhoEditandoId) {
                 const idx = sonhos.findIndex(s => s.id === sonhoEditandoId);
                 if(idx>=0) {
-                    const antes = { v: sonhos[idx].valorTotal, p: sonhos[idx].prazoMeses, vi: (sonhos[idx].aportes||[]).filter(a=>a.tipo==='inicial').reduce((s,a)=>s+(a.valor||0),0) };
+                    const antes = {
+                        v: sonhos[idx].valorTotal,
+                        p: sonhos[idx].prazoMeses,
+                        di: sonhos[idx].dataInicio || null,
+                        vi: (sonhos[idx].aportes||[]).filter(a=>a.tipo==='inicial').reduce((s,a)=>s+(a.valor||0),0)
+                    };
                     sonhos[idx].nome = nome;
                     sonhos[idx].descricao = descricao;
                     sonhos[idx].valorTotal = valorTotal;
                     sonhos[idx].prazoMeses = prazo;
                     sonhos[idx].categoria = categoria;
                     sonhos[idx].esforco = esforco;
+                    sonhos[idx].dataInicio = dataInicio.toISOString();
                     sonhos[idx].dataFim = dataFim.toISOString();
-                    sonhos[idx].mesesRestantes = Math.max(0, mesesEntre(new Date(), dataFim));
+                    sonhos[idx].mesesRestantes = mesesAteFim;
                     // Atualiza o "valor já guardado" (aporte inicial), preservando aportes posteriores
                     const aportesNaoIniciais = (sonhos[idx].aportes || []).filter(a => a.tipo !== 'inicial');
                     const somaAportesExtras = aportesNaoIniciais.reduce((s,a) => s + (a.valor || 0), 0);
@@ -8978,7 +9390,10 @@
                         aportesAtualizados.unshift({ valor: valorInicial, data: dataInicialOriginal, tipo: 'inicial' });
                     }
                     sonhos[idx].aportes = aportesAtualizados;
-                    edicaoComMudancaDePlano = sonhos[idx].planoVinculado && (antes.v !== valorTotal || antes.p !== prazo || antes.vi !== valorInicial);
+                    edicaoComMudancaDePlano = sonhos[idx].planoVinculado && (
+                        antes.v !== valorTotal || antes.p !== prazo || antes.vi !== valorInicial ||
+                        antes.di !== dataInicio.toISOString()
+                    );
                     sonhoCriado = sonhos[idx];
                 }
             } else {
@@ -8988,8 +9403,9 @@
                     valorAtual: valorInicial || 0,
                     categoria, esforco,
                     dataCriacao: agora.toISOString(),
+                    dataInicio: dataInicio.toISOString(),
                     dataFim: dataFim.toISOString(),
-                    mesesRestantes: prazo,
+                    mesesRestantes: mesesAteFim,
                     planoVinculado: false,
                     aportes: valorInicial > 0 ? [{valor: valorInicial, data: agora.toISOString().slice(0,10), tipo:'inicial'}] : []
                 };
@@ -9038,6 +9454,23 @@
             document.getElementById('sonhoNome').value = s.nome;
             document.getElementById('sonhoDescricao').value = s.descricao || '';
             setValorBRLInput(document.getElementById('sonhoValorTotal'), s.valorTotal);
+            // Mês de início — se o sonho ainda não começou, permite escolher mês futuro;
+            // se já iniciou, fixa no mês original (não permite voltar pro passado).
+            const mesIniEdit = document.getElementById('sonhoMesInicio');
+            if(mesIniEdit) {
+                const hoje = new Date();
+                const mesAtualStr = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,'0')}`;
+                if(s.dataInicio) {
+                    const dIni = new Date(s.dataInicio);
+                    const mesIniSonho = `${dIni.getFullYear()}-${String(dIni.getMonth()+1).padStart(2,'0')}`;
+                    mesIniEdit.value = mesIniSonho;
+                    // Se o sonho já iniciou, não permite mover para o passado (data fixa); senão, mín = mês atual
+                    mesIniEdit.min = (mesIniSonho < mesAtualStr) ? mesIniSonho : mesAtualStr;
+                } else {
+                    mesIniEdit.value = mesAtualStr;
+                    mesIniEdit.min = mesAtualStr;
+                }
+            }
             // Prazo já foi preenchido acima respeitando a unidade selecionada
             setValorBRLInput(document.getElementById('sonhoValorInicial'), s.valorAtual);
             document.getElementById('sonhoCategoria').value = s.categoria;
@@ -9096,24 +9529,41 @@
                 if(!a.id) { a.id = 'aporte_legacy_' + s.id + '_' + i; mudou = true; }
             });
             if(mudou) { s.aportes = aportes; salvarSonhos(); }
-            const linhas = aportes.slice().reverse().map(a => {
+
+            const tipoMeta = (a) => {
+                if(a.tipo === 'inicial') return { cls: 'tipo-inicial', tag: 't-inicial', label: 'Inicial', icon: 'ph-piggy-bank' };
+                if(a.tipo === 'mensal_pago' || a.origem === 'compromisso') return { cls: 'tipo-mensal', tag: 't-mensal', label: 'Mensal pago', icon: 'ph-calendar-check' };
+                if(a.origem === 'migracao') return { cls: 'tipo-migracao', tag: 't-migracao', label: 'Migração', icon: 'ph-arrows-left-right' };
+                if(a.origem === 'esporadico') return { cls: 'tipo-esporadico', tag: 't-esporadico', label: 'Esporádico', icon: 'ph-coin' };
+                return { cls: 'tipo-aporte', tag: 't-aporte', label: 'Aporte', icon: 'ph-plus-circle' };
+            };
+
+            const total = aportes.reduce((acc,a) => acc + (a.valor || 0), 0);
+            const linhas = aportes.slice().sort((a,b) => (b.data || '').localeCompare(a.data || '')).map(a => {
+                const meta = tipoMeta(a);
                 const dataFmt = a.data ? new Date(a.data + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
-                const tag = a.tipo === 'inicial' ? '<span style="background:rgba(124,58,237,0.1);color:#7c3aed;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Inicial</span>'
-                    : a.origem === 'migracao' ? '<span style="background:rgba(14,165,233,0.1);color:#0ea5e9;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Migração</span>'
-                    : a.origem === 'esporadico' ? '<span style="background:rgba(16,185,129,0.1);color:#10b981;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Esporádico</span>'
-                    : '<span style="background:var(--cor-superficie);color:var(--cor-texto-mutado);padding:2px 7px;border-radius:99px;font-size:10px;font-weight:700;">Aporte</span>';
-                const detalhe = a.origemAtivo ? ` · de ${a.origemAtivo}` : '';
-                return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--cor-borda);font-size:12.5px;">
-                    <span style="color:var(--cor-texto-mutado);font-family:'DM Mono',monospace;font-size:11px;min-width:75px;">${dataFmt}</span>
-                    ${tag}
-                    <span style="flex:1;font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-texto-principal);">${formatarMoeda(a.valor)}<span style="color:var(--cor-texto-mutado);font-weight:400;font-size:11px;">${detalhe}</span></span>
-                    <button onclick="event.stopPropagation();editarAporteSonho('${s.id}','${a.id}')" title="Editar" style="background:none;border:none;cursor:pointer;color:var(--cor-info);font-size:14px;"><i class="ph ph-pencil-simple"></i></button>
-                    <button onclick="event.stopPropagation();excluirAporteSonho('${s.id}','${a.id}')" title="Excluir" style="background:none;border:none;cursor:pointer;color:var(--cor-erro);font-size:14px;"><i class="ph ph-trash"></i></button>
+                const detalhe = a.origemAtivo ? ` · de ${a.origemAtivo}` : (a.origemDesc ? ` · ${a.origemDesc}` : '');
+                return `<div class="aporte-item">
+                    <div class="aporte-marker ${meta.cls}" title="${meta.label}"><i class="ph-fill ${meta.icon}"></i></div>
+                    <div class="aporte-info">
+                        <div class="aporte-titulo-row">
+                            <span class="aporte-valor">${formatarMoeda(a.valor)}</span>
+                            <span class="aporte-tipo-tag ${meta.tag}">${meta.label}</span>
+                        </div>
+                        <div class="aporte-meta">${dataFmt}${detalhe}</div>
+                    </div>
+                    <div class="aporte-acoes">
+                        <button class="aporte-btn info" onclick="event.stopPropagation();editarAporteSonho('${s.id}','${a.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                        <button class="aporte-btn danger" onclick="event.stopPropagation();excluirAporteSonho('${s.id}','${a.id}')" title="Excluir"><i class="ph ph-trash"></i></button>
+                    </div>
                 </div>`;
             }).join('');
-            return `<div style="margin:14px 20px;padding:0;border:1px solid var(--cor-borda);border-radius:10px;background:var(--cor-branco);overflow:hidden;">
-                <div style="padding:10px 12px;background:var(--cor-superficie);border-bottom:1px solid var(--cor-borda);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);"><i class="ph ph-list-bullets"></i> Histórico de aportes (${aportes.length})</div>
-                ${linhas}
+            return `<div class="aportes-timeline">
+                <div class="aportes-timeline-head">
+                    <span><i class="ph-fill ph-clock-counter-clockwise"></i> Histórico de aportes (${aportes.length})</span>
+                    <span style="font-family:'DM Mono',monospace;color:var(--cor-texto-principal);font-weight:700;">${formatarMoeda(total)}</span>
+                </div>
+                <div class="aportes-timeline-list">${linhas}</div>
             </div>`;
         }
 
