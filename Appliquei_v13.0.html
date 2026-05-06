@@ -393,45 +393,39 @@
         }
 
         .kpi-hero {
-            background: linear-gradient(135deg, #fff 0%, rgba(124,58,237,0.05) 60%, rgba(16,185,129,0.06) 100%);
-            border: 1.5px solid var(--cor-borda);
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-left: 3px solid var(--cor-primaria);
             border-radius: var(--radius);
-            padding: 22px 24px;
+            padding: 18px 20px;
             box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            min-height: 170px;
+            min-height: 150px;
             transition: box-shadow 0.2s, transform 0.2s;
         }
-        .kpi-hero::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0;
-            height: 4px;
-            background: linear-gradient(90deg, var(--cor-primaria), #7c3aed);
-        }
         .kpi-hero:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-        .kpi-hero-head { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+        .kpi-hero-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
         .kpi-hero-icon {
-            width: 44px; height: 44px; border-radius: 12px;
-            background: linear-gradient(135deg, var(--cor-primaria), #7c3aed);
-            color: #fff; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 6px 14px rgba(124,58,237,0.28);
+            width: 36px; height: 36px; border-radius: 10px;
+            background: var(--cor-bg-primaria);
+            color: var(--cor-primaria); display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
-        .kpi-hero-icon i { font-size: 22px; }
+        .kpi-hero-icon i { font-size: 18px; }
         .kpi-hero-lbl {
-            font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
             color: var(--cor-texto-mutado); line-height: 1.2;
         }
         .kpi-hero-sub {
-            font-size: 11px; color: var(--cor-texto-mutado); margin-top: 4px;
+            font-size: 10.5px; color: var(--cor-texto-mutado); margin-top: 3px;
             font-weight: 500; line-height: 1.3;
         }
         .kpi-hero-valor {
-            font-size: 36px; font-weight: 700; letter-spacing: -1.2px;
+            font-size: 28px; font-weight: 700; letter-spacing: -0.7px;
             font-family: 'DM Mono', monospace; line-height: 1;
             color: var(--cor-primaria);
         }
@@ -9107,11 +9101,14 @@
             const resumoContainer = document.getElementById('sonhosResumoContainer');
             if(!container) return;
 
-            // Atualizar meses restantes
+            // Atualizar meses restantes — desconta meses pulados (s.mesesPulados é cumulativo
+            // e persiste a decisão de "Pular este mês"; sem isso, o render sobrescrevia o efeito).
             const agora = new Date();
             sonhos.forEach(s => {
                 const fim = new Date(s.dataFim);
-                s.mesesRestantes = Math.max(0, mesesEntre(agora, fim));
+                const calendarRestantes = Math.max(0, mesesEntre(agora, fim));
+                const pulados = Math.max(0, s.mesesPulados || 0);
+                s.mesesRestantes = Math.max(0, calendarRestantes - pulados);
             });
 
             renderPainelSaudeSonhos();
@@ -9439,6 +9436,9 @@
             const m0 = agora.getMonth(), a0 = agora.getFullYear();
             transacoes = transacoes.filter(t => !(t.categoria === 'sonho' && t.sonhoId === s.id && !t.aporteExtra && !t.pago && t.mes === m0 && t.ano === a0));
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            // Persiste o "mês pulado" — o render desconta esse contador de mesesEntre(agora, fim),
+            // garantindo que a parcela continue maior nos próximos renders.
+            s.mesesPulados = (s.mesesPulados || 0) + 1;
             const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - 1);
             removerLancamentosFuturosSonho(s.id);
             const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
@@ -9513,6 +9513,126 @@
 
         function fecharModalSonho() { document.getElementById('modalSonho').style.display = 'none'; }
 
+        // Snapshot da edição em curso quando precisamos perguntar ao usuário
+        // (manter aportes posteriores ou sobrescrever). Preenchido em salvarSonho()
+        // e consumido em aplicarEdicaoSonhoComModo().
+        let _sonhoEdicaoPendente = null;
+
+        function abrirConfirmacaoEdicaoSonho() {
+            const p = _sonhoEdicaoPendente;
+            if(!p) return;
+            const sAtual = sonhos[p.idx];
+            const totalManter = (p.valorInicial || 0) + p.somaExtras;
+            const totalSobrescrever = p.valorInicial || 0;
+            const modal = document.getElementById('modalConfirmacao');
+            document.getElementById('modalTitulo').innerHTML = `<i class="ph ph-question" style="color:var(--cor-info);"></i> Manter aportes posteriores?`;
+            document.getElementById('modalMensagem').innerHTML = `
+                Você editou o "valor já guardado" do sonho <strong>${sAtual.nome}</strong>.
+                Esse sonho tem <strong>${p.qtdExtras} ${p.qtdExtras === 1 ? 'aporte posterior' : 'aportes posteriores'}</strong>
+                somando <strong>${formatarMoeda(p.somaExtras)}</strong>.<br><br>
+                Como quer prosseguir?
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:12.5px;">
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);margin-bottom:4px;">Manter aportes</div>
+                        <div>Total = <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(totalManter)}</strong></div>
+                    </div>
+                    <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-branco);">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);margin-bottom:4px;">Sobrescrever</div>
+                        <div>Total = <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(totalSobrescrever)}</strong> · aportes arquivados</div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modalAcoes').innerHTML = `
+                <button class="btn-acao" style="background:var(--cor-info);" onclick="aplicarEdicaoSonhoComModo('manter')"><i class="ph-bold ph-stack"></i> Manter aportes</button>
+                <button class="btn-acao" style="background:var(--cor-erro);" onclick="aplicarEdicaoSonhoComModo('sobrescrever')"><i class="ph-bold ph-arrow-counter-clockwise"></i> Sobrescrever</button>
+                <button class="btn-secundario" onclick="cancelarEdicaoSonhoPendente()">Cancelar</button>
+            `;
+            modal.style.display = 'flex';
+        }
+
+        function cancelarEdicaoSonhoPendente() {
+            _sonhoEdicaoPendente = null;
+            fecharModal();
+        }
+
+        function aplicarEdicaoSonhoComModo(modo) {
+            const p = _sonhoEdicaoPendente;
+            if(!p) { fecharModal(); return; }
+            const idx = p.idx;
+            const sonho = sonhos[idx];
+            if(!sonho) { _sonhoEdicaoPendente = null; fecharModal(); return; }
+
+            const antes = {
+                v: sonho.valorTotal,
+                p: sonho.prazoMeses,
+                di: sonho.dataInicio || null,
+                vi: (sonho.aportes||[]).filter(a=>a.tipo==='inicial').reduce((s,a)=>s+(a.valor||0),0)
+            };
+            sonho.nome = p.nome;
+            sonho.descricao = p.descricao;
+            sonho.valorTotal = p.valorTotal;
+            sonho.prazoMeses = p.prazo;
+            sonho.categoria = p.categoria;
+            sonho.esforco = p.esforco;
+            sonho.dataInicio = p.dataInicioIso;
+            sonho.dataFim = p.dataFimIso;
+            sonho.mesesRestantes = p.mesesAteFim;
+            sonho.mesesPulados = 0;
+
+            const aportesNaoIniciais = (sonho.aportes || []).filter(a => a.tipo !== 'inicial');
+            const valorInicial = p.valorInicial || 0;
+            const dataInicialOriginal = ((sonho.aportes || []).find(a => a.tipo === 'inicial') || {}).data
+                || (sonho.dataCriacao ? new Date(sonho.dataCriacao).toISOString().slice(0,10) : p.agoraIso.slice(0,10));
+
+            if(modo === 'sobrescrever') {
+                // Arquiva aportes posteriores (preserva rastreabilidade) e zera o histórico ativo.
+                if(aportesNaoIniciais.length > 0) {
+                    sonho.aportesArquivados = (sonho.aportesArquivados || []).concat(
+                        aportesNaoIniciais.map(a => ({ ...a, arquivadoEm: p.agoraIso, motivo: 'edicao_valor' }))
+                    );
+                }
+                sonho.valorAtual = valorInicial;
+                sonho.aportes = valorInicial > 0
+                    ? [{ valor: valorInicial, data: dataInicialOriginal, tipo: 'inicial' }]
+                    : [];
+            } else {
+                // 'manter' — comportamento legado: soma extras em cima do novo valorInicial.
+                const somaExtras = aportesNaoIniciais.reduce((s,a) => s + (a.valor || 0), 0);
+                sonho.valorAtual = valorInicial + somaExtras;
+                const aportesAtualizados = [...aportesNaoIniciais];
+                if(valorInicial > 0) {
+                    aportesAtualizados.unshift({ valor: valorInicial, data: dataInicialOriginal, tipo: 'inicial' });
+                }
+                sonho.aportes = aportesAtualizados;
+            }
+
+            const edicaoComMudancaDePlano = sonho.planoVinculado && (
+                antes.v !== p.valorTotal || antes.p !== p.prazo || antes.vi !== valorInicial ||
+                antes.di !== p.dataInicioIso
+            );
+
+            salvarSonhos();
+            renderizarSonhos();
+            fecharModalSonho();
+            sonhoEditandoId = null;
+            _sonhoEdicaoPendente = null;
+            fecharModal();
+
+            if(edicaoComMudancaDePlano) {
+                mostrarToast(modo === 'sobrescrever' ? 'Aportes arquivados, plano recalculado.' : 'Sonho atualizado!', 'sucesso');
+                removerLancamentosFuturosSonho(sonho.id);
+                const mensal = calcSonhoMensal(sonho.valorTotal, sonho.valorAtual, sonho.mesesRestantes);
+                const mesesGerar = Math.min(60, sonho.mesesRestantes || sonho.prazoMeses);
+                const criados = gerarLancamentosMensaisSonho(sonho, mensal, mesesGerar);
+                sonho.aporteMensalPlano = mensal;
+                salvarSonhos();
+                if(criados > 0) mostrarToast(`Plano recalculado: ${criados} lançamentos atualizados no Controle.`, 'sucesso');
+                if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            } else {
+                mostrarToast(modo === 'sobrescrever' ? 'Aportes arquivados.' : 'Sonho atualizado!', 'sucesso');
+            }
+        }
+
         function salvarSonho() {
             const nome = document.getElementById('sonhoNome').value.trim();
             const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
@@ -9542,6 +9662,25 @@
             if(sonhoEditandoId) {
                 const idx = sonhos.findIndex(s => s.id === sonhoEditandoId);
                 if(idx>=0) {
+                    // Quando há aportes posteriores E o usuário mudou o "valor já guardado",
+                    // pergunta se quer manter os aportes (somando) ou sobrescrever (arquivando-os).
+                    const aportesNaoIniciaisPreview = (sonhos[idx].aportes || []).filter(a => a.tipo !== 'inicial');
+                    const somaExtrasPreview = aportesNaoIniciaisPreview.reduce((s,a) => s + (a.valor || 0), 0);
+                    const valorAtualAntes = sonhos[idx].valorAtual || 0;
+                    const mudouValor = Math.abs((valorInicial || 0) - valorAtualAntes) > 0.01;
+                    if(somaExtrasPreview > 0 && mudouValor) {
+                        // Captura o snapshot e abre confirmação. O fluxo será retomado em
+                        // aplicarEdicaoSonhoComModo(modo) com 'manter' ou 'sobrescrever'.
+                        _sonhoEdicaoPendente = {
+                            idx, nome, descricao, valorTotal, prazo, valorInicial, categoria, esforco,
+                            dataInicioIso: dataInicio.toISOString(), dataFimIso: dataFim.toISOString(),
+                            mesesAteFim, somaExtras: somaExtrasPreview,
+                            qtdExtras: aportesNaoIniciaisPreview.length,
+                            agoraIso: agora.toISOString()
+                        };
+                        abrirConfirmacaoEdicaoSonho();
+                        return;
+                    }
                     const antes = {
                         v: sonhos[idx].valorTotal,
                         p: sonhos[idx].prazoMeses,
@@ -9557,6 +9696,8 @@
                     sonhos[idx].dataInicio = dataInicio.toISOString();
                     sonhos[idx].dataFim = dataFim.toISOString();
                     sonhos[idx].mesesRestantes = mesesAteFim;
+                    // Plano novo = contador de meses pulados começa do zero.
+                    sonhos[idx].mesesPulados = 0;
                     // Atualiza o "valor já guardado" (aporte inicial), preservando aportes posteriores
                     const aportesNaoIniciais = (sonhos[idx].aportes || []).filter(a => a.tipo !== 'inicial');
                     const somaAportesExtras = aportesNaoIniciais.reduce((s,a) => s + (a.valor || 0), 0);
