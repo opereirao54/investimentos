@@ -2412,7 +2412,6 @@
                                 <option value="" disabled selected>Selecione...</option>
                                 <optgroup label="ENTRADAS">
                                     <option value="receita">Receita</option>
-                                    <option value="resgate_investimento">Resgate de ativo</option>
                                 </optgroup>
                                 <optgroup label="SAÍDAS">
                                     <option value="despesa_fixa">Despesa fixa</option>
@@ -2429,6 +2428,12 @@
                     <div class="grid-2-iguais" style="gap:12px;align-items:end;">
                         <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
+                    </div>
+
+                    <div class="form-group" id="grupoBancoReceita" style="display:none;">
+                        <label>Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
+                        <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                        <datalist id="listaBancosTransacao"></datalist>
                     </div>
 
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
@@ -3023,15 +3028,13 @@
                         </div>
                         <div class="form-group">
                             <label>Prazo para conquista</label>
-                            <select id="sonhoPrazo" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
-                                <option value="6">6 meses</option>
-                                <option value="12" selected>1 ano</option>
-                                <option value="18">1 ano e meio</option>
-                                <option value="24">2 anos</option>
-                                <option value="36">3 anos</option>
-                                <option value="48">4 anos</option>
-                                <option value="60">5 anos</option>
-                            </select>
+                            <div style="display:flex;gap:6px;">
+                                <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                <select id="sonhoPrazoUnidade" style="flex:1;padding:10px 8px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                    <option value="meses" selected>meses</option>
+                                    <option value="anos">anos</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -3434,6 +3437,9 @@
                 carregarDividendos();
             }
             if(qual === 'operacoes') renderizarOperacoes();
+            // Voltar para carteira precisa re-renderizar a "Posição por categoria",
+            // que foi escondida acima ao trocar de sub-aba.
+            if(qual === 'carteira' && typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
             atualizarMiniStats(qual);
         }
 
@@ -3556,9 +3562,11 @@
             if(tipo === 'entrada') {
                 chips.entrada.style.cssText = estilosBase + 'background:var(--cor-bg-primaria);color:var(--cor-txt-primaria);border-color:var(--cor-borda-primaria);';
                 sel.value = 'receita';
+                verificarRegraCartao();
             } else if(tipo === 'saida') {
                 chips.saida.style.cssText = estilosBase + 'background:var(--cor-bg-erro);color:var(--cor-txt-erro);border-color:var(--cor-borda-erro);';
                 sel.value = 'despesa_variavel';
+                verificarRegraCartao();
             } else if(tipo === 'cartao') {
                 chips.cartao.style.cssText = estilosBase + 'background:var(--cor-bg-amber);color:var(--cor-txt-amber);border-color:var(--cor-borda-amber);';
                 sel.value = 'cartao_credito'; verificarRegraCartao();
@@ -4017,6 +4025,20 @@
             const usadas = [...new Set(historicoCompras.map(op => op.corretora).filter(Boolean))];
             const todas = [...new Set([...LISTA_CORRETORAS, ...usadas])].sort((a,b) => a.localeCompare(b,'pt-BR'));
             todas.forEach(nome => {
+                const opt = document.createElement('option');
+                opt.value = nome;
+                dl.appendChild(opt);
+            });
+        }
+
+        function inicializarDatalistBancosTransacao() {
+            const dl = document.getElementById('listaBancosTransacao');
+            if(!dl) return;
+            dl.innerHTML = "";
+            const usadosCorretora = historicoCompras.map(op => op.corretora).filter(Boolean);
+            const usadosBancoTx = (transacoes || []).map(t => t.banco).filter(Boolean);
+            const todos = [...new Set([...LISTA_CORRETORAS, ...usadosCorretora, ...usadosBancoTx])].sort((a,b) => a.localeCompare(b,'pt-BR'));
+            todos.forEach(nome => {
                 const opt = document.createElement('option');
                 opt.value = nome;
                 dl.appendChild(opt);
@@ -4826,26 +4848,39 @@
             const mesIni = new Date(hoje.getFullYear(), hoje.getMonth(), 1).getTime();
             const mesFim = new Date(hoje.getFullYear(), hoje.getMonth()+1, 0, 23, 59, 59).getTime();
 
-            // Dividendos previstos no mês corrente
+            // Parser à prova de timezone para datas no formato YYYY-MM-DD
+            const parsePagTs = s => new Date(s && s.length === 10 ? s + 'T12:00:00' : s).getTime();
+
+            // Dividendos previstos no mês corrente — considera tanto pagamentos já registrados
+            // no mês quanto a previsão (último pagamento + intervalo médio).
             const previstos = [];
             for(const ticker in carteiraConsolidada) {
                 const ativo = carteiraConsolidada[ticker];
                 if(ativo.qtdTotal <= 0) continue;
                 const cache = cacheDividendos[ticker];
                 if(!cache || !cache.pagamentos || cache.pagamentos.length === 0) continue;
-                const datasOrd = cache.pagamentos.map(p => new Date(p.data).getTime()).sort((a,b) => a - b);
+                const datasOrd = cache.pagamentos.map(p => parsePagTs(p.data)).sort((a,b) => a - b);
                 const ultimo = datasOrd[datasOrd.length - 1];
                 if(!ultimo) continue;
-                let intervaloDias = 30;
-                if(datasOrd.length >= 2) {
-                    const diffs = [];
-                    for(let i = 1; i < datasOrd.length; i++) diffs.push(datasOrd[i] - datasOrd[i-1]);
-                    intervaloDias = Math.round((diffs.reduce((a,b)=>a+b,0)/diffs.length) / (24*60*60*1000));
+
+                // Se o último pagamento já caiu no mês corrente, é o "evento" do mês.
+                let proximoTs;
+                if(ultimo >= mesIni && ultimo <= mesFim) {
+                    proximoTs = ultimo;
+                } else {
+                    let intervaloDias = 30;
+                    if(datasOrd.length >= 2) {
+                        const diffs = [];
+                        for(let i = 1; i < datasOrd.length; i++) diffs.push(datasOrd[i] - datasOrd[i-1]);
+                        intervaloDias = Math.round((diffs.reduce((a,b)=>a+b,0)/diffs.length) / (24*60*60*1000));
+                    }
+                    if(!intervaloDias || intervaloDias < 1) intervaloDias = 30;
+                    proximoTs = ultimo + intervaloDias * 24*60*60*1000;
+                    let guarda = 0;
+                    while(proximoTs < mesIni && guarda++ < 60) proximoTs += intervaloDias * 24*60*60*1000;
+                    if(proximoTs > mesFim) continue;
                 }
-                let proximoTs = ultimo + intervaloDias * 24*60*60*1000;
-                while(proximoTs < mesIni) proximoTs += intervaloDias * 24*60*60*1000;
-                if(proximoTs > mesFim) continue;
-                const ultimoPag = cache.pagamentos.find(p => new Date(p.data).getTime() === ultimo);
+                const ultimoPag = cache.pagamentos.find(p => parsePagTs(p.data) === ultimo);
                 const valorPorAcao = ultimoPag ? ultimoPag.valor : 0;
                 const valorEstim = valorPorAcao * ativo.qtdTotal;
                 previstos.push({ ticker, ts: proximoTs, valor: valorEstim, valorPorAcao, qtd: ativo.qtdTotal });
@@ -5237,14 +5272,16 @@
                 investido.push(Math.max(0, invest));
                 mercado.push(Math.max(0, valorMercado));
 
-                // Dividendos do mês: pagamentos do cacheDividendos onde data está no mês e o ticker está nas opsFiltradas
+                // Dividendos do mês: pagamentos do cacheDividendos onde data está no mês e o ticker está nas opsFiltradas.
+                // Parser fixa hora 12:00 para evitar deslocamento de fuso (ex: 2026-04-01 caindo em março em GMT-3).
                 let div = 0;
                 const tickersFiltrados = new Set(opsFiltradas.map(o => o.ticker));
                 tickersFiltrados.forEach(ticker => {
                     const cache = cacheDividendos[ticker];
                     if(!cache || !cache.pagamentos) return;
                     cache.pagamentos.forEach(pag => {
-                        const tsPag = new Date(pag.data).getTime();
+                        if(!pag.data) return;
+                        const tsPag = new Date(pag.data.length === 10 ? pag.data + 'T12:00:00' : pag.data).getTime();
                         const iniMes = new Date(m.getFullYear(), m.getMonth(), 1).getTime();
                         if(tsPag < iniMes || tsPag > fimMes) return;
                         const qtdNaData = (posicao[ticker]?.qtd) || 0;
@@ -6340,8 +6377,13 @@
             const msgVazio = document.getElementById('msgDivChartVazio');
             if(!canvas) return;
 
+            // Parse YYYY-MM-DD com hora fixa (12:00) para evitar drift de timezone
+            // que jogava pagamentos de abril (ex: 2026-04-01 UTC) para março em GMT-3.
+            const parseDataPag = s => new Date(s && s.length === 10 ? s + 'T12:00:00' : s);
+
             const pag12m = todosPagamentos.filter(p => {
-                const ms = new Date(p.data).getTime();
+                if(!p.data) return false;
+                const ms = parseDataPag(p.data).getTime();
                 return ms >= Date.now() - 365*24*60*60*1000;
             });
 
@@ -6354,11 +6396,12 @@
             canvas.style.display = 'block';
             if(msgVazio) msgVazio.style.display = 'none';
 
-            // Aggregate by month
+            // Aggregate by month — usa o YYYY-MM literal quando disponível
             const meses = {};
             pag12m.forEach(p => {
-                const d = new Date(p.data);
-                const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+                const chave = (typeof p.data === 'string' && p.data.length >= 7)
+                    ? p.data.slice(0, 7)
+                    : (() => { const d = parseDataPag(p.data); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; })();
                 if(!meses[chave]) meses[chave] = 0;
                 meses[chave] += p.total;
             });
@@ -6470,8 +6513,18 @@
             const divParcelas = document.getElementById('grupoParcelas');
             const divFixa = document.getElementById('grupoFixa');
             const divCartao = document.getElementById('grupoCartaoSelect');
+            const divBanco = document.getElementById('grupoBancoReceita');
             const lblValor = document.getElementById('lblValorOpControle');
             const chkFixa = document.getElementById('transacaoFixa');
+
+            if(divBanco) {
+                if(cat === 'receita' || cat === 'resgate_investimento') {
+                    divBanco.style.display = 'block';
+                    inicializarDatalistBancosTransacao();
+                } else {
+                    divBanco.style.display = 'none';
+                }
+            }
 
             if(cat === 'cartao_credito') {
                 divCartao.style.display = 'block';
@@ -6486,6 +6539,8 @@
                 divFixa.style.display = 'flex';
                 document.getElementById('qtdParcelas').value = 1;
                 lblValor.innerText = "Valor Monetário (R$)";
+                const formInlineCart = document.getElementById('formNovoCartaoInline');
+                if(formInlineCart) formInlineCart.style.display = 'none';
 
                 if (cat === 'receita' || cat === 'despesa_fixa') { chkFixa.checked = true; }
                 else { chkFixa.checked = false; }
@@ -6627,6 +6682,8 @@
             document.getElementById('editTransacaoId').value = trans.id;
             document.getElementById('obsTransacao').value = trans.obs || "";
             document.getElementById('dataVencimento').value = trans.dataVencimento || "";
+            const bancoEl = document.getElementById('bancoTransacao');
+            if(bancoEl) bancoEl.value = trans.banco || "";
 
             document.getElementById('btnSalvarControle').style.display = 'flex';
             document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
@@ -6674,6 +6731,16 @@
 
             if (!desc || isNaN(valorTotal) || valorTotal <= 0 || !categoria) return mostrarToast("Preencha a descrição, o valor e escolha uma Classificação Contábil válida!", "erro");
 
+            if (categoria === 'receita' || categoria === 'resgate_investimento') {
+                const bancoEl = document.getElementById('bancoTransacao');
+                const banco = (bancoEl?.value || '').trim();
+                if (!banco) {
+                    mostrarToast("Informe o banco/instituição que recebe.", "erro");
+                    bancoEl?.focus();
+                    return;
+                }
+            }
+
             if(editId) {
                 const transAtual = transacoes.find(t => t.id === editId);
                 // Se for do grupo fixo/recorrente, perguntar como salvar (mostra botões)
@@ -6698,6 +6765,9 @@
             const editId = document.getElementById('editTransacaoId').value;
             const transAtual = transacoes.find(t => t.id === editId);
             const cartaoIdNovo = (categoria === 'cartao_credito') ? document.getElementById('selectCartao').value : null;
+            const bancoNovo = (categoria === 'receita' || categoria === 'resgate_investimento')
+                ? (document.getElementById('bancoTransacao')?.value || '').trim()
+                : null;
 
             if(modo === 'todas') {
                 transacoes = transacoes.map(t => {
@@ -6705,6 +6775,7 @@
                         t.descricao = desc; t.valor = valorTotal; t.categoria = categoria;
                         t.obs = obs;
                         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__') t.cartaoId = cartaoIdNovo;
+                        if (bancoNovo !== null) t.banco = bancoNovo || undefined;
                     }
                     return t;
                 });
@@ -6715,6 +6786,7 @@
                 transAtual.dataVencimento = dataVencInput;
                 transAtual.obs = obs;
                 if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__') transAtual.cartaoId = cartaoIdNovo;
+                if (bancoNovo !== null) transAtual.banco = bancoNovo || undefined;
                 if(transAtual.groupId) transAtual.groupId = null;
             }
 
@@ -6742,6 +6814,9 @@
 
             const cartaoFixoMensal = categoria === 'cartao_credito' && tipoCartao === 'fixo';
             const groupId = (ehFixo || categoria === 'cartao_credito') ? Date.now().toString() : null;
+            const bancoReceita = (categoria === 'receita' || categoria === 'resgate_investimento')
+                ? (document.getElementById('bancoTransacao')?.value || '').trim()
+                : null;
             let mesesGerar = 1; let valorLancamento = valorTotal;
 
             if(categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
@@ -6774,6 +6849,7 @@
                     categoria: categoria,
                     cartaoId: cartaoId,
                     cartaoFixoMensal: cartaoFixoMensal || undefined,
+                    banco: bancoReceita || undefined,
                     obs: obs,
                     mes: m, ano: a,
                     data: new Date().toISOString(),
@@ -6784,6 +6860,8 @@
 
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
             document.getElementById('descTransacao').value = ""; document.getElementById('valorTransacao').value = ""; document.getElementById('transacaoFixa').checked = false; document.getElementById('qtdParcelas').value = 1; document.getElementById('dataVencimento').value = ""; document.getElementById('categoriaTransacao').value = ""; document.getElementById('obsTransacao').value = "";
+            const bancoEl = document.getElementById('bancoTransacao'); if(bancoEl) bancoEl.value = "";
+            const grupoBanco = document.getElementById('grupoBancoReceita'); if(grupoBanco) grupoBanco.style.display = 'none';
             selecionarTipoCartao('parcelado');
             mostrarToast("Lançamento salvo com sucesso!", "sucesso");
             atualizarTelaControle(); 
@@ -7043,6 +7121,8 @@
             const mesVisaoStr = `${visaoAno}-${String(visaoMes+1).padStart(2,'0')}`;
             let contasComVencimento = transacoes.filter(t => {
                 if (!t.dataVencimento || t.pago) return false;
+                // Receitas e resgates são entradas — não devem aparecer como "conta a vencer"
+                if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') return false;
                 return t.dataVencimento.startsWith(mesVisaoStr);
             });
             // Ordena por string YYYY-MM-DD (sem timezone) — sempre ascendente
@@ -7169,7 +7249,7 @@
                     </div>`;
 
                     if(t.categoria === 'receita' || t.categoria === 'resgate_investimento') { totRec += t.valor; divRec.innerHTML += itemHtml; }
-                    else if(t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel') { totDesp += t.valor; divDesp.innerHTML += itemHtml; }
+                    else if(t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel' || t.categoria === 'sonho') { totDesp += t.valor; divDesp.innerHTML += itemHtml; }
                     else if(t.categoria === 'cartao_credito') { totCartao += t.valor; divCartao.innerHTML += itemHtml; }
                     else { totInv += t.valor; divInv.innerHTML += itemHtml; }
                 }
@@ -8608,12 +8688,14 @@
         function pularMesSonho(id) {
             const s = sonhos.find(x => x.id === id);
             if(!s) return;
+            const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - 1);
+            const novaParcelaPrevia = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
             const modal = document.getElementById('modalConfirmacao');
             document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-skip-forward" style="color:#f59e0b;"></i> Não vai conseguir separar este mês?`;
             document.getElementById('modalMensagem').innerHTML = `
                 Sem problema — vamos recalcular o plano do sonho <strong>${s.nome}</strong>.<br><br>
-                O prazo será estendido em <strong>1 mês</strong> (passa de ${s.prazoMeses} para ${s.prazoMeses+1} meses) e o lançamento do mês corrente no Controle Financeiro será removido.<br><br>
-                <em style="color:var(--cor-texto-mutado);">O novo aporte mensal sugerido será recalculado automaticamente.</em>
+                O lançamento deste mês será removido e o valor que faltava será <strong>redistribuído nos meses restantes</strong> (o prazo final continua o mesmo).<br><br>
+                <em style="color:var(--cor-texto-mutado);">Próxima parcela estimada: <strong>${formatarMoeda(novaParcelaPrevia)}/mês</strong>.</em>
             `;
             document.getElementById('modalAcoes').innerHTML = `
                 <button class="btn-acao" style="background:#f59e0b;" onclick="confirmarPularMes('${s.id}')"><i class="ph-bold ph-check"></i> Sim, pular e recalcular</button>
@@ -8625,22 +8707,19 @@
         function confirmarPularMes(id) {
             const s = sonhos.find(x => x.id === id);
             if(!s) { fecharModal(); return; }
-            // Remove transação do mês corrente (não paga) e estende prazo em 1 mês
+            // Remove transação do mês corrente (não paga). Mantém a data final do sonho:
+            // como o usuário não pagou este mês, a falta é redistribuída nos meses restantes,
+            // o que aumenta a próxima parcela.
             const agora = new Date();
             const m0 = agora.getMonth(), a0 = agora.getFullYear();
             transacoes = transacoes.filter(t => !(t.categoria === 'sonho' && t.sonhoId === s.id && !t.aporteExtra && !t.pago && t.mes === m0 && t.ano === a0));
             localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-            s.prazoMeses += 1;
-            const novoFim = new Date(s.dataFim);
-            novoFim.setMonth(novoFim.getMonth() + 1);
-            s.dataFim = novoFim.toISOString();
-            s.mesesRestantes = Math.max(0, mesesEntre(new Date(), novoFim));
-            // Regenera lançamentos futuros (a partir do próximo mês) com novo valor
+            const mesesParaDistribuir = Math.max(1, (s.mesesRestantes || s.prazoMeses) - 1);
             removerLancamentosFuturosSonho(s.id);
-            const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
+            const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
             s.aporteMensalPlano = mensal;
-            const mesesGerar = Math.min(60, s.mesesRestantes);
-            // Pula o mês corrente: gera a partir do próximo mês
+            s.mesesRestantes = mesesParaDistribuir;
+            const mesesGerar = Math.min(60, mesesParaDistribuir);
             for(let i = 1; i <= mesesGerar; i++) {
                 let m = m0 + i, a = a0;
                 while(m > 11) { m -= 12; a++; }
@@ -8662,7 +8741,7 @@
             fecharModal();
             renderizarSonhos();
             if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
-            mostrarToast(`Plano recalculado: novo aporte ${formatarMoeda(mensal)}/mês.`,'sucesso');
+            mostrarToast(`Plano ajustado: próxima parcela ${formatarMoeda(mensal)}/mês.`,'sucesso');
         }
 
         function toggleAllSonhos(expandir) {
@@ -8692,6 +8771,8 @@
             document.getElementById('sonhoDescricao').value = '';
             document.getElementById('sonhoValorTotal').value = '';
             document.getElementById('sonhoPrazo').value = '12';
+            const unidadeNovo = document.getElementById('sonhoPrazoUnidade');
+            if(unidadeNovo) unidadeNovo.value = 'meses';
             document.getElementById('sonhoValorInicial').value = '';
             document.getElementById('sonhoCategoria').value = 'viagem';
             document.getElementById('sonhoEsforco').value = 'medio';
@@ -8704,7 +8785,9 @@
         function salvarSonho() {
             const nome = document.getElementById('sonhoNome').value.trim();
             const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
-            const prazo = parseInt(document.getElementById('sonhoPrazo').value);
+            const prazoBruto = parseInt(document.getElementById('sonhoPrazo').value);
+            const unidadePrazo = document.getElementById('sonhoPrazoUnidade')?.value || 'meses';
+            const prazo = (unidadePrazo === 'anos') ? Math.max(1, prazoBruto) * 12 : Math.max(1, prazoBruto);
             const valorInicial = parseBRL(document.getElementById('sonhoValorInicial').value);
             const categoria = document.getElementById('sonhoCategoria').value;
             const esforco = document.getElementById('sonhoEsforco').value;
@@ -8722,7 +8805,7 @@
             if(sonhoEditandoId) {
                 const idx = sonhos.findIndex(s => s.id === sonhoEditandoId);
                 if(idx>=0) {
-                    const antes = { v: sonhos[idx].valorTotal, p: sonhos[idx].prazoMeses };
+                    const antes = { v: sonhos[idx].valorTotal, p: sonhos[idx].prazoMeses, vi: (sonhos[idx].aportes||[]).filter(a=>a.tipo==='inicial').reduce((s,a)=>s+(a.valor||0),0) };
                     sonhos[idx].nome = nome;
                     sonhos[idx].descricao = descricao;
                     sonhos[idx].valorTotal = valorTotal;
@@ -8731,7 +8814,18 @@
                     sonhos[idx].esforco = esforco;
                     sonhos[idx].dataFim = dataFim.toISOString();
                     sonhos[idx].mesesRestantes = Math.max(0, mesesEntre(new Date(), dataFim));
-                    edicaoComMudancaDePlano = sonhos[idx].planoVinculado && (antes.v !== valorTotal || antes.p !== prazo);
+                    // Atualiza o "valor já guardado" (aporte inicial), preservando aportes posteriores
+                    const aportesNaoIniciais = (sonhos[idx].aportes || []).filter(a => a.tipo !== 'inicial');
+                    const somaAportesExtras = aportesNaoIniciais.reduce((s,a) => s + (a.valor || 0), 0);
+                    sonhos[idx].valorAtual = (valorInicial || 0) + somaAportesExtras;
+                    const aportesAtualizados = [...aportesNaoIniciais];
+                    if(valorInicial > 0) {
+                        const dataInicialOriginal = ((sonhos[idx].aportes || []).find(a => a.tipo === 'inicial') || {}).data
+                            || (sonhos[idx].dataCriacao ? new Date(sonhos[idx].dataCriacao).toISOString().slice(0,10) : agora.toISOString().slice(0,10));
+                        aportesAtualizados.unshift({ valor: valorInicial, data: dataInicialOriginal, tipo: 'inicial' });
+                    }
+                    sonhos[idx].aportes = aportesAtualizados;
+                    edicaoComMudancaDePlano = sonhos[idx].planoVinculado && (antes.v !== valorTotal || antes.p !== prazo || antes.vi !== valorInicial);
                     sonhoCriado = sonhos[idx];
                 }
             } else {
@@ -8777,10 +8871,21 @@
             if(!s) return;
             sonhoEditandoId = id;
             document.getElementById('tituloModalSonho').querySelector('span').textContent = 'Editar sonho';
+            const unidadeEdit = document.getElementById('sonhoPrazoUnidade');
+            if(unidadeEdit) {
+                // Mostra em anos se o prazo é múltiplo exato de 12 e >= 12; senão em meses
+                if(s.prazoMeses && s.prazoMeses >= 12 && s.prazoMeses % 12 === 0) {
+                    unidadeEdit.value = 'anos';
+                    document.getElementById('sonhoPrazo').value = s.prazoMeses / 12;
+                } else {
+                    unidadeEdit.value = 'meses';
+                    document.getElementById('sonhoPrazo').value = s.prazoMeses;
+                }
+            }
             document.getElementById('sonhoNome').value = s.nome;
             document.getElementById('sonhoDescricao').value = s.descricao || '';
             setValorBRLInput(document.getElementById('sonhoValorTotal'), s.valorTotal);
-            document.getElementById('sonhoPrazo').value = s.prazoMeses;
+            // Prazo já foi preenchido acima respeitando a unidade selecionada
             setValorBRLInput(document.getElementById('sonhoValorInicial'), s.valorAtual);
             document.getElementById('sonhoCategoria').value = s.categoria;
             selecionarEsforcoSonho(s.esforco || 'medio');
@@ -8875,11 +8980,24 @@
                 if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
             }
 
+            // Aporte extra reduz a falta — recalcula a parcela mensal e regenera
+            // os lançamentos futuros, para refletir a nova realidade do plano.
+            let novoMensal = 0;
+            if(s.planoVinculado && s.valorAtual < s.valorTotal) {
+                const mesesGerar = Math.min(60, s.mesesRestantes || s.prazoMeses);
+                novoMensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes || s.prazoMeses);
+                removerLancamentosFuturosSonho(s.id);
+                gerarLancamentosMensaisSonho(s, novoMensal, mesesGerar);
+                s.aporteMensalPlano = novoMensal;
+                if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            }
+
             salvarSonhos();
             renderizarSonhos();
             fecharModal();
             const pct = (s.valorAtual/s.valorTotal)*100;
             if(pct >= 100) mostrarToast('🎉 Parabéns! Você conquistou seu sonho!','sucesso',5000);
+            else if(novoMensal > 0) mostrarToast(`Aporte registrado! Próxima parcela: ${formatarMoeda(novoMensal)}/mês (${pct.toFixed(0)}% concluído).`,'sucesso');
             else mostrarToast(`Aporte de ${formatarMoeda(valor)} registrado! Agora ${pct.toFixed(0)}% concluído.`,'sucesso');
         }
 
