@@ -9624,25 +9624,37 @@
             if(!s) return;
             const aportesCount = (s.aportes || []).length;
             const pct = s.valorTotal > 0 ? Math.min(100, (s.valorAtual / s.valorTotal) * 100) : 0;
+            // Conta quantas tx no Controle estão vinculadas (parcelas + aportes extras + resgates)
+            const txsVinculadas = transacoes.filter(t => t.sonhoId === id);
+            const totalTxs = txsVinculadas.length;
+            const txsPagas = txsVinculadas.filter(t => t.pago).length;
+            const totalMovido = txsVinculadas.filter(t => t.pago && t.categoria === 'sonho').reduce((acc,t) => acc + (t.valor || 0), 0);
+
             const modal = document.getElementById('modalConfirmacao');
             document.getElementById('modalTitulo').innerHTML = `<i class="ph-fill ph-trash" style="color:var(--cor-erro);"></i> Excluir o sonho "${s.nome}"?`;
             document.getElementById('modalMensagem').innerHTML = `
-                <div style="display:flex;flex-direction:column;gap:10px;">
-                    <p style="margin:0;">Você está prestes a remover este sonho. Confira o resumo:</p>
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                    <p style="margin:0;">Confira o resumo do sonho antes de decidir:</p>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);font-size:12.5px;">
                         <div><span style="color:var(--cor-texto-mutado);">Meta:</span> <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(s.valorTotal)}</strong></div>
                         <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:#10b981;">${formatarMoeda(s.valorAtual)}</strong></div>
                         <div><span style="color:var(--cor-texto-mutado);">Progresso:</span> <strong>${pct.toFixed(0)}%</strong></div>
                         <div><span style="color:var(--cor-texto-mutado);">Aportes:</span> <strong>${aportesCount}</strong></div>
                     </div>
-                    <div style="display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px solid rgba(245,158,11,0.35);border-radius:9px;background:rgba(245,158,11,0.06);font-size:12.5px;color:var(--cor-texto-principal);">
-                        <i class="ph-fill ph-info" style="font-size:16px;color:#d97706;flex-shrink:0;margin-top:1px;"></i>
-                        <span>O <strong>histórico de lançamentos passados</strong> no Controle Financeiro será mantido. Apenas os meses <strong>futuros do compromisso</strong> serão removidos.</span>
-                    </div>
+                    ${totalTxs > 0 ? `<div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-branco);font-size:12.5px;">
+                        <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);margin-bottom:4px;">Lançamentos vinculados no Controle</div>
+                        <div>${totalTxs} ${totalTxs === 1 ? 'lançamento' : 'lançamentos'} no total — <strong>${txsPagas}</strong> pago${txsPagas === 1 ? '' : 's'} (${formatarMoeda(totalMovido)}) e <strong>${totalTxs - txsPagas}</strong> pendente${totalTxs - txsPagas === 1 ? '' : 's'}.</div>
+                    </div>` : ''}
+                    <p style="margin:0;font-size:12.5px;color:var(--cor-texto-mutado);">Como você quer prosseguir?</p>
                 </div>
             `;
             document.getElementById('modalAcoes').innerHTML = `
-                <button class="btn-acao" style="background:var(--cor-erro);" onclick="confirmarExcluirSonho('${id}')"><i class="ph-bold ph-trash"></i> Sim, excluir sonho</button>
+                <button class="btn-acao" style="background:var(--cor-erro);" onclick="confirmarExcluirSonhoCompleto('${id}')" title="Apaga o sonho e todas as transações vinculadas no Controle (incluindo as já pagas).">
+                    <i class="ph-bold ph-trash"></i> Excluir tudo (sonho + Controle)
+                </button>
+                <button class="btn-acao" style="background:var(--cor-info);" onclick="confirmarExcluirSonho('${id}')" title="Mantém o histórico de pagamentos no Controle. Só remove o sonho e seus compromissos futuros.">
+                    <i class="ph ph-archive-tray"></i> Só o sonho (mantém histórico)
+                </button>
                 <button class="btn-secundario" onclick="fecharModal()">Cancelar</button>
             `;
             modal.style.display = 'flex';
@@ -9656,6 +9668,21 @@
             renderizarSonhos();
             if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
             mostrarToast('Sonho removido. Histórico mantido.','aviso');
+        }
+
+        function confirmarExcluirSonhoCompleto(id) {
+            // Remove tudo: o sonho, suas tx vinculadas no Controle (pagas ou não, em qualquer mês),
+            // incluindo aportes extras e resgates de migração que referenciam este sonho.
+            const txsAntes = transacoes.length;
+            transacoes = transacoes.filter(t => t.sonhoId !== id);
+            const removidas = txsAntes - transacoes.length;
+            if(removidas > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+            sonhos = sonhos.filter(s => s.id !== id);
+            salvarSonhos();
+            fecharModal();
+            renderizarSonhos();
+            if(typeof atualizarTelaControle === 'function') atualizarTelaControle();
+            mostrarToast(`Sonho e ${removidas} ${removidas === 1 ? 'lançamento removido' : 'lançamentos removidos'} do Controle.`,'aviso');
         }
 
         // ============================================================
