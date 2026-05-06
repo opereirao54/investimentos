@@ -5232,9 +5232,14 @@
                 if(!ultimo) continue;
 
                 // Se o último pagamento já caiu no mês corrente, é o "evento" do mês.
+                const ultimoPag = cache.pagamentos.find(p => parsePagTs(p.data) === ultimo);
                 let proximoTs;
+                let qtdEvento;
                 if(ultimo >= mesIni && ultimo <= mesFim) {
                     proximoTs = ultimo;
+                    // Já realizado: usa qty na DATA DO PAGAMENTO (e não a posição atual),
+                    // para refletir o que de fato caiu/cai considerando compras posteriores.
+                    qtdEvento = ultimoPag ? qtdNaData(ticker, ultimoPag.data) : ativo.qtdTotal;
                 } else {
                     let intervaloDias = 30;
                     if(datasOrd.length >= 2) {
@@ -5247,11 +5252,13 @@
                     let guarda = 0;
                     while(proximoTs < mesIni && guarda++ < 60) proximoTs += intervaloDias * 24*60*60*1000;
                     if(proximoTs > mesFim) continue;
+                    // Previsão futura: posição atual é a melhor estimativa.
+                    qtdEvento = ativo.qtdTotal;
                 }
-                const ultimoPag = cache.pagamentos.find(p => parsePagTs(p.data) === ultimo);
+                if(qtdEvento <= 0) continue;
                 const valorPorAcao = ultimoPag ? ultimoPag.valor : 0;
-                const valorEstim = valorPorAcao * ativo.qtdTotal;
-                previstos.push({ ticker, ts: proximoTs, valor: valorEstim, valorPorAcao, qtd: ativo.qtdTotal });
+                const valorEstim = valorPorAcao * qtdEvento;
+                previstos.push({ ticker, ts: proximoTs, valor: valorEstim, valorPorAcao, qtd: qtdEvento });
             }
             dividendosPrevistosMes = previstos.slice().sort((a,b) => a.ts - b.ts);
 
@@ -5642,6 +5649,8 @@
 
                 // Dividendos do mês: pagamentos do cacheDividendos onde data está no mês e o ticker está nas opsFiltradas.
                 // Parser fixa hora 12:00 para evitar deslocamento de fuso (ex: 2026-04-01 caindo em março em GMT-3).
+                // Usa qty na DATA DO PAGAMENTO (não no fim do mês) para não creditar dividendos
+                // sobre cotas compradas após a data-com nem ignorar cotas vendidas após o pagamento.
                 let div = 0;
                 const tickersFiltrados = new Set(opsFiltradas.map(o => o.ticker));
                 tickersFiltrados.forEach(ticker => {
@@ -5652,8 +5661,9 @@
                         const tsPag = new Date(pag.data.length === 10 ? pag.data + 'T12:00:00' : pag.data).getTime();
                         const iniMes = new Date(m.getFullYear(), m.getMonth(), 1).getTime();
                         if(tsPag < iniMes || tsPag > fimMes) return;
-                        const qtdNaData = (posicao[ticker]?.qtd) || 0;
-                        div += qtdNaData * pag.valor;
+                        const qtdNoPag = qtdNaData(ticker, pag.data);
+                        if(qtdNoPag <= 0) return;
+                        div += qtdNoPag * pag.valor;
                     });
                 });
                 dividendos.push(div);
@@ -6485,8 +6495,15 @@
                 const json = await fetchComFallback(urlYahoo);
                 if(!json) return null;
                 const eventos = json?.chart?.result?.[0]?.events?.dividends || {};
+                // Formata a data no fuso da B3 (São Paulo) — toISOString() jogava
+                // pagamentos do início do dia BRT (ex: 01/04 00:00 BRT = 31/03 21:00 UTC)
+                // para o mês anterior, sumindo do bucket correto.
+                const fmtSP = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'America/Sao_Paulo',
+                    year: 'numeric', month: '2-digit', day: '2-digit'
+                });
                 const lista = Object.values(eventos).map(d => ({
-                    data: new Date(d.date * 1000).toISOString().slice(0,10),
+                    data: fmtSP.format(new Date(d.date * 1000)),
                     valor: d.amount
                 })).filter(d => d.valor > 0);
                 return lista;
@@ -6727,7 +6744,22 @@
             cardTotal.innerText = formatarMoeda(displayTotalGeral);
             card12m.innerText = formatarMoeda(displayTotal12m);
             cardYOC.innerText = displayTotalInvestidoYOC > 0 ? `${(displayTotalGeral / displayTotalInvestidoYOC * 100).toFixed(2)}%` : '0,00%';
-            cardMedia.innerText = formatarMoeda(displayTotal12m / 12);
+            // Média mensal: divide pelos meses efetivos de carteira (1ª compra → hoje), capado a 12.
+            // Antes dividia sempre por 12, subdimensionando a média de quem investe há menos de um ano.
+            const linhasParaMedia = dividendosFiltroAtivo ? linhasAtivosFiltradas : linhasAtivos;
+            const primeirasMs = linhasParaMedia
+                .map(l => dataPrimeiraCompra(l.ticker))
+                .filter(Boolean)
+                .map(d => new Date(d + 'T12:00:00').getTime());
+            let mesesParaMedia = 12;
+            if(primeirasMs.length) {
+                const dPrim = new Date(Math.min(...primeirasMs));
+                const hojeMed = new Date();
+                const decorridos = (hojeMed.getFullYear() - dPrim.getFullYear()) * 12
+                    + (hojeMed.getMonth() - dPrim.getMonth()) + 1;
+                mesesParaMedia = Math.min(12, Math.max(1, decorridos));
+            }
+            cardMedia.innerText = formatarMoeda(displayTotal12m / mesesParaMedia);
 
             // Atualiza gráfico de evolução e KPI "próximo evento" agora que temos cacheDividendos preenchido
             renderizarGraficoEvolucao();
@@ -6749,10 +6781,16 @@
             // que jogava pagamentos de abril (ex: 2026-04-01 UTC) para março em GMT-3.
             const parseDataPag = s => new Date(s && s.length === 10 ? s + 'T12:00:00' : s);
 
+            // Janela alinhada aos 12 buckets de calendário (não 365 dias contínuos),
+            // evitando que pagamentos no mês mais antigo "passem" o filtro mas caiam fora dos buckets.
+            const agora = new Date();
+            const inicioJanela = new Date(agora.getFullYear(), agora.getMonth() - 11, 1).getTime();
+            const fimJanela = new Date(agora.getFullYear(), agora.getMonth() + 1, 1).getTime() - 1;
+
             const pag12m = todosPagamentos.filter(p => {
                 if(!p.data) return false;
                 const ms = parseDataPag(p.data).getTime();
-                return ms >= Date.now() - 365*24*60*60*1000;
+                return ms >= inicioJanela && ms <= fimJanela;
             });
 
             if(pag12m.length === 0) {
@@ -6774,10 +6812,9 @@
                 meses[chave] += p.total;
             });
 
-            // Last 12 months labels
+            // Last 12 months labels — reaproveita 'agora' definido acima.
             const labels = [];
             const data = [];
-            const agora = new Date();
             for(let i = 11; i >= 0; i--) {
                 const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
                 const chave = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
