@@ -18,7 +18,7 @@ export {
   getTimestamp
 } from './format';
 
-// Matemática financeira
+// Matemática financeira (Carteira)
 export {
   obterResumoCarteira,
   calcularLucroPrejuizo,
@@ -37,7 +37,15 @@ export {
   ativoEntraNoFiltroEvolucao
 } from './math';
 
-// Types
+// Finanças Pessoais (Controle Mensal)
+export {
+  filtrarTransacoesPorMes,
+  calcularResumoMensal,
+  getNomeMes,
+  getCorTermometro
+} from './finance';
+
+// Types - Carteira
 export type {
   Operacao,
   AtivoCarteira,
@@ -46,3 +54,10 @@ export type {
   GrupoCategoria,
   ResultadoCalculoLucro
 } from '@/types/math';
+
+// Types - Finanças
+export type {
+  TransacaoFinanceira,
+  TipoTransacao,
+  ResumoMensal
+} from '@/types/finance';
