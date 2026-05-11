@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Importação de fontes premium (mesmas do Appliquei v13.0) */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Figtree:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+  /* Cores escuras premium - sidebar tokens */
+  --sb-dark: #0b1410;
+  --sb-dark2: #111c17;
+  --sb-border: #1c2e24;
+  --sb-text: #8aab94;
+  --sb-active: #f0faf4;
+  --sb-text-muted: #466b4d;
+}
+
+body {
+  background: linear-gradient(180deg, var(--sb-dark) 0%, #0d1914 100%);
+  color: var(--sb-active);
+}
+
+/* Estilos globais para inputs e botões */
+input:focus {
+  outline: none;
+}
+
+/* Animação suave para transições */
+* {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}

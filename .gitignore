@@ -1,1 +1,50 @@
-Nothing should be ignored based on the provided file changes. The only modified file is `Appliquei_v13.0.html`, which is a source file and should not be added to .gitignore.
+```
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.ENV
+.python-version
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Runtime data
+.happypack/
+.nyc_output/
+```
