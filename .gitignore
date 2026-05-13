@@ -1,1 +1,8 @@
-Nothing should be ignored based on the provided file changes. The only modified file is `Appliquei_v13.0.html`, which is a source file and should not be added to .gitignore.
+# Saídas do Graphify (grafo de conhecimento; regeneráveis)
+graphify-out/
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+*.swp
+*~

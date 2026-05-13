@@ -53,6 +53,8 @@
 ├── Appliquei_v13.0.html      # Arquivo principal da aplicação
 ├── appliquei_logo_white.jpg  # Logo da aplicação (versão branca)
 ├── appliquei_favicon.jpg     # Ícone/favicon da aplicação
+├── requirements-graphify.txt # Opcional: CLI Graphify (Python)
+├── .cursor/rules/graphify.mdc # Opcional: regra Cursor após `graphify cursor install`
 └── README.md                 # Este arquivo
 ```
 
@@ -101,6 +103,27 @@ Para modificações ou melhorias:
 1. Edite diretamente o arquivo `Appliquei_v13.0.html`
 2. As dependências são carregadas via CDN (Chart.js, Phosphor Icons, Google Fonts)
 3. Teste em múltiplos navegadores para garantir compatibilidade
+
+## 🧠 Graphify (grafo de conhecimento no Cursor)
+
+O [Graphify](https://graphify.homes/) gera um grafo a partir do código e documentação (`graphify-out/graph.html`, `graph.json`, `GRAPH_REPORT.md`), para o assistente responder perguntas de arquitetura com estrutura em vez de adivinhar. **Não substitui o Chart.js** dos dashboards financeiros; é uma camada à parte para desenvolvimento.
+
+### Instalação (Python 3.10+)
+
+```bash
+python -m pip install -r requirements-graphify.txt
+python -m graphify cursor install
+```
+
+O segundo comando cria ou atualiza `.cursor/rules/graphify.mdc` neste repositório.
+
+### Uso
+
+- No Cursor, peça para rodar **Graphify na pasta do projeto** (equivalente ao fluxo `/graphify .` do [README oficial](https://github.com/safishamsi/graphify)), ou use a versão hospedada em [graphify.homes](https://graphify.homes/) (envio de ZIP).
+- Em terminal, extração sem o comando slash do Claude Code: `python -m graphify extract .` (requer variáveis de API do backend escolhido; ver documentação do pacote).
+- Após alterar código: `python -m graphify update .` (atualização AST, sem custo de LLM).
+
+A pasta `graphify-out/` está no `.gitignore` (artefatos locais).
 
 ## 🤝 Contribuição
 
