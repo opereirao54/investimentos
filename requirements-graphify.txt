@@ -1,0 +1,4 @@
+﻿# Graphify (Cursor) - PyPI package name is graphifyy
+# pip install -r requirements-graphify.txt
+# python -m graphify update .
+graphifyy>=0.7

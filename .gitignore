@@ -1,0 +1,11 @@
+# Graphify — cache local (regenerável, pode crescer)
+graphify-out/cache/
+
+# Firebase — chaves do projeto (opcional; o HTML tenta carregar este ficheiro)
+web/firebase-config.local.js
+
+# Editor / SO
+.DS_Store
+Thumbs.db
+*.swp
+*~

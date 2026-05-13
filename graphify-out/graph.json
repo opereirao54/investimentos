@@ -1,0 +1,2108 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "label": "build_plan_pdf.py",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L1",
+      "id": "scripts_build_plan_pdf_py",
+      "community": 2,
+      "norm_label": "build_plan_pdf.py"
+    },
+    {
+      "label": "build_styles()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L31",
+      "id": "scripts_build_plan_pdf_build_styles",
+      "community": 2,
+      "norm_label": "build_styles()"
+    },
+    {
+      "label": "P()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L92",
+      "id": "scripts_build_plan_pdf_p",
+      "community": 4,
+      "norm_label": "p()"
+    },
+    {
+      "label": "cell()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L96",
+      "id": "scripts_build_plan_pdf_cell",
+      "community": 3,
+      "norm_label": "cell()"
+    },
+    {
+      "label": "make_table()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L100",
+      "id": "scripts_build_plan_pdf_make_table",
+      "community": 3,
+      "norm_label": "make_table()"
+    },
+    {
+      "label": "caption()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L122",
+      "id": "scripts_build_plan_pdf_caption",
+      "community": 3,
+      "norm_label": "caption()"
+    },
+    {
+      "label": "callout()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L126",
+      "id": "scripts_build_plan_pdf_callout",
+      "community": 2,
+      "norm_label": "callout()"
+    },
+    {
+      "label": "bullets()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L143",
+      "id": "scripts_build_plan_pdf_bullets",
+      "community": 4,
+      "norm_label": "bullets()"
+    },
+    {
+      "label": "on_page()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L152",
+      "id": "scripts_build_plan_pdf_on_page",
+      "community": 2,
+      "norm_label": "on_page()"
+    },
+    {
+      "label": "cover()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L172",
+      "id": "scripts_build_plan_pdf_cover",
+      "community": 2,
+      "norm_label": "cover()"
+    },
+    {
+      "label": "section_executive_summary()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L218",
+      "id": "scripts_build_plan_pdf_section_executive_summary",
+      "community": 4,
+      "norm_label": "section_executive_summary()"
+    },
+    {
+      "label": "section_architecture()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L276",
+      "id": "scripts_build_plan_pdf_section_architecture",
+      "community": 2,
+      "norm_label": "section_architecture()"
+    },
+    {
+      "label": "section_auth()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L357",
+      "id": "scripts_build_plan_pdf_section_auth",
+      "community": 2,
+      "norm_label": "section_auth()"
+    },
+    {
+      "label": "section_payments()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L442",
+      "id": "scripts_build_plan_pdf_section_payments",
+      "community": 3,
+      "norm_label": "section_payments()"
+    },
+    {
+      "label": "section_applicash()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L492",
+      "id": "scripts_build_plan_pdf_section_applicash",
+      "community": 3,
+      "norm_label": "section_applicash()"
+    },
+    {
+      "label": "section_admin()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L555",
+      "id": "scripts_build_plan_pdf_section_admin",
+      "community": 4,
+      "norm_label": "section_admin()"
+    },
+    {
+      "label": "section_data_model()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L592",
+      "id": "scripts_build_plan_pdf_section_data_model",
+      "community": 2,
+      "norm_label": "section_data_model()"
+    },
+    {
+      "label": "section_deploy()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L705",
+      "id": "scripts_build_plan_pdf_section_deploy",
+      "community": 4,
+      "norm_label": "section_deploy()"
+    },
+    {
+      "label": "section_extras()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L744",
+      "id": "scripts_build_plan_pdf_section_extras",
+      "community": 3,
+      "norm_label": "section_extras()"
+    },
+    {
+      "label": "section_roadmap()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L774",
+      "id": "scripts_build_plan_pdf_section_roadmap",
+      "community": 3,
+      "norm_label": "section_roadmap()"
+    },
+    {
+      "label": "section_pages()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L814",
+      "id": "scripts_build_plan_pdf_section_pages",
+      "community": 3,
+      "norm_label": "section_pages()"
+    },
+    {
+      "label": "section_appendix()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L860",
+      "id": "scripts_build_plan_pdf_section_appendix",
+      "community": 4,
+      "norm_label": "section_appendix()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L899",
+      "id": "scripts_build_plan_pdf_main",
+      "community": 3,
+      "norm_label": "main()"
+    },
+    {
+      "label": "Gera o PDF do plano de publicacao Appliquei v2 (revisado).  Decisoes fechadas ne",
+      "file_type": "rationale",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L1",
+      "id": "scripts_build_plan_pdf_rationale_1",
+      "community": 2,
+      "norm_label": "gera o pdf do plano de publicacao appliquei v2 (revisado).  decisoes fechadas ne"
+    },
+    {
+      "label": "appliquei-cloud-sync.js",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L1",
+      "id": "web_appliquei_cloud_sync_js",
+      "community": 0,
+      "norm_label": "appliquei-cloud-sync.js"
+    },
+    {
+      "label": "shouldSyncKey()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L13",
+      "id": "web_appliquei_cloud_sync_shouldsynckey",
+      "community": 0,
+      "norm_label": "shouldsynckey()"
+    },
+    {
+      "label": "storageValuesEqual()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L21",
+      "id": "web_appliquei_cloud_sync_storagevaluesequal",
+      "community": 0,
+      "norm_label": "storagevaluesequal()"
+    },
+    {
+      "label": "tsMillis()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L33",
+      "id": "web_appliquei_cloud_sync_tsmillis",
+      "community": 0,
+      "norm_label": "tsmillis()"
+    },
+    {
+      "label": "collectKeysPayload()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L40",
+      "id": "web_appliquei_cloud_sync_collectkeyspayload",
+      "community": 0,
+      "norm_label": "collectkeyspayload()"
+    },
+    {
+      "label": "mainRef()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L53",
+      "id": "web_appliquei_cloud_sync_mainref",
+      "community": 0,
+      "norm_label": "mainref()"
+    },
+    {
+      "label": "flushPush()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L59",
+      "id": "web_appliquei_cloud_sync_flushpush",
+      "community": 0,
+      "norm_label": "flushpush()"
+    },
+    {
+      "label": "schedulePush()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L97",
+      "id": "web_appliquei_cloud_sync_schedulepush",
+      "community": 0,
+      "norm_label": "schedulepush()"
+    },
+    {
+      "label": "pullAndApply()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L103",
+      "id": "web_appliquei_cloud_sync_pullandapply",
+      "community": 0,
+      "norm_label": "pullandapply()"
+    },
+    {
+      "label": "onUser()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L182",
+      "id": "web_appliquei_cloud_sync_onuser",
+      "community": 0,
+      "norm_label": "onuser()"
+    },
+    {
+      "label": "attach()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L191",
+      "id": "web_appliquei_cloud_sync_attach",
+      "community": 0,
+      "norm_label": "attach()"
+    },
+    {
+      "label": "attachWhenReady()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L200",
+      "id": "web_appliquei_cloud_sync_attachwhenready",
+      "community": 0,
+      "norm_label": "attachwhenready()"
+    },
+    {
+      "label": "appliquei-firebase-init.js",
+      "file_type": "code",
+      "source_file": "web/appliquei-firebase-init.js",
+      "source_location": "L1",
+      "id": "web_appliquei_firebase_init_js",
+      "community": 9,
+      "norm_label": "appliquei-firebase-init.js"
+    },
+    {
+      "label": "firebase-config.appliquei-prod.js",
+      "file_type": "code",
+      "source_file": "web/firebase-config.appliquei-prod.js",
+      "source_location": "L1",
+      "id": "web_firebase_config_appliquei_prod_js",
+      "community": 10,
+      "norm_label": "firebase-config.appliquei-prod.js"
+    },
+    {
+      "label": "firebase-config.example.js",
+      "file_type": "code",
+      "source_file": "web/firebase-config.example.js",
+      "source_location": "L1",
+      "id": "web_firebase_config_example_js",
+      "community": 11,
+      "norm_label": "firebase-config.example.js"
+    },
+    {
+      "label": "firebase-config.local.js",
+      "file_type": "code",
+      "source_file": "web/firebase-config.local.js",
+      "source_location": "L1",
+      "id": "web_firebase_config_local_js",
+      "community": 12,
+      "norm_label": "firebase-config.local.js"
+    },
+    {
+      "label": "README.md",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "readme_md",
+      "community": 1,
+      "norm_label": "readme.md"
+    },
+    {
+      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "community": 1,
+      "norm_label": "appliquei v13.0 - gestao financeira inteligente"
+    },
+    {
+      "label": "\ud83d\udcd6 Sobre",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre",
+      "community": 1,
+      "norm_label": "\ud83d\udcd6 sobre"
+    },
+    {
+      "label": "\u2728 Funcionalidades",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L10",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades",
+      "community": 1,
+      "norm_label": "\u2728 funcionalidades"
+    },
+    {
+      "label": "\ud83d\udee0\ufe0f Tecnologias Utilizadas",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas",
+      "community": 1,
+      "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas"
+    },
+    {
+      "label": "\ud83d\ude80 Como Usar",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L32",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
+      "community": 7,
+      "norm_label": "\ud83d\ude80 como usar"
+    },
+    {
+      "label": "code:bash (git clone <repositorio>)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L35",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1",
+      "community": 7,
+      "norm_label": "code:bash (git clone <repositorio>)"
+    },
+    {
+      "label": "\ud83d\udcc1 Estrutura do Projeto",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L49",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
+      "community": 8,
+      "norm_label": "\ud83d\udcc1 estrutura do projeto"
+    },
+    {
+      "label": "code:block2 (/workspace)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2",
+      "community": 8,
+      "norm_label": "code:block2 (/workspace)"
+    },
+    {
+      "label": "\ud83c\udfa8 Design System",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L63",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system",
+      "community": 1,
+      "norm_label": "\ud83c\udfa8 design system"
+    },
+    {
+      "label": "\ud83d\udcf8 Recursos Visuais",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L76",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais",
+      "community": 1,
+      "norm_label": "\ud83d\udcf8 recursos visuais"
+    },
+    {
+      "label": "\ud83d\udd27 Personaliza\u00e7\u00e3o",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L84",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
+      "community": 6,
+      "norm_label": "\ud83d\udd27 personalizacao"
+    },
+    {
+      "label": "code:css (:root {)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L88",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3",
+      "community": 6,
+      "norm_label": "code:css (:root {)"
+    },
+    {
+      "label": "\ud83d\udcc4 Licen\u00e7a",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L97",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a",
+      "community": 1,
+      "norm_label": "\ud83d\udcc4 licenca"
+    },
+    {
+      "label": "\ud83d\udc68\u200d\ud83d\udcbb Desenvolvimento",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L101",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento",
+      "community": 1,
+      "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento"
+    },
+    {
+      "label": "\ud83e\udde0 Graphify (grafo de conhecimento no Cursor)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L109",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "community": 5,
+      "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)"
+    },
+    {
+      "label": "Instala\u00e7\u00e3o (Python 3.10+)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L113",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
+      "community": 5,
+      "norm_label": "instalacao (python 3.10+)"
+    },
+    {
+      "label": "code:bash (python -m pip install -r requirements-graphify.txt)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4",
+      "community": 5,
+      "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)"
+    },
+    {
+      "label": "Uso",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso",
+      "community": 5,
+      "norm_label": "uso"
+    },
+    {
+      "label": "Firebase (incremental)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental",
+      "community": 1,
+      "norm_label": "firebase (incremental)"
+    },
+    {
+      "label": "\ud83e\udd1d Contribui\u00e7\u00e3o",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o",
+      "community": 1,
+      "norm_label": "\ud83e\udd1d contribuicao"
+    },
+    {
+      "label": "build_plan_pdf.py",
+      "file_type": "code",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L1",
+      "community": 2,
+      "norm_label": "build_plan_pdf.py",
+      "id": "build_plan_pdf_py"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_build_styles",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_p",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_cell",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_make_table",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_caption",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L126",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_callout",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_bullets",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_on_page",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_cover",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_executive_summary",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L276",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_architecture",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L357",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L442",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_payments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L492",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_applicash",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L555",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_admin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L592",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_data_model",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L705",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_deploy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L744",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_extras",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L774",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_roadmap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L814",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_pages",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L860",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_appendix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L899",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_main",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_rationale_1",
+      "target": "scripts_build_plan_pdf_py",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_build_styles"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_bullets",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L220",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_executive_summary",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L278",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_architecture",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L359",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_auth",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L444",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_payments",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L494",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_applicash",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L557",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_admin",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L594",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_data_model",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L707",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_deploy",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L746",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_extras",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L776",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_roadmap",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L816",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_pages",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L862",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_appendix",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L92",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_p"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L101",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_make_table",
+      "target": "scripts_build_plan_pdf_cell"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_cell"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L255",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_executive_summary",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L313",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_architecture",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L374",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_auth",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L457",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_payments",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L535",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_applicash",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L577",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_admin",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L631",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_data_model",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L718",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_deploy",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L765",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_extras",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L789",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_roadmap",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L851",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_pages",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_make_table"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L257",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_executive_summary",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L315",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_architecture",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L375",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_auth",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L461",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_payments",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L539",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_applicash",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L578",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_admin",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L633",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_data_model",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L720",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_deploy",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L769",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_extras",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L791",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_roadmap",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L855",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_pages",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L122",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_caption"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L188",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_cover",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L284",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_architecture",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L378",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_auth",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L495",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_applicash",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L601",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_data_model",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L863",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_appendix",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L126",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_callout"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L265",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_executive_summary",
+      "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L580",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_admin",
+      "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L723",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_deploy",
+      "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L888",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_section_appendix",
+      "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_on_page"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L908",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_cover"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_cover"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L909",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_executive_summary"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L218",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_executive_summary"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L910",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_architecture"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L276",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_architecture"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L911",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_auth"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L357",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_auth"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L912",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_payments"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L442",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_payments"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L913",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_applicash"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L492",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_applicash"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L914",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_admin"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L555",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_admin"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L915",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_data_model"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L592",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_data_model"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L916",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_deploy"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L705",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_deploy"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L917",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_extras"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L744",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_extras"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L918",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_roadmap"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L774",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_roadmap"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L919",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_pages"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L814",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_pages"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L920",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_main",
+      "target": "scripts_build_plan_pdf_section_appendix"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L860",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_section_appendix"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L899",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "build_plan_pdf_py",
+      "target": "scripts_build_plan_pdf_main"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "build_plan_pdf.py",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "scripts_build_plan_pdf_rationale_1",
+      "target": "build_plan_pdf_py"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_shouldsynckey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_storagevaluesequal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_tsmillis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_collectkeyspayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_mainref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_flushpush",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_schedulepush",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_pullandapply",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L182",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_onuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_attach",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L200",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_attachwhenready",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L45",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_collectkeyspayload",
+      "target": "web_appliquei_cloud_sync_shouldsynckey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_shouldsynckey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L142",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_storagevaluesequal",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_tsmillis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_tsmillis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_collectkeyspayload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_mainref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_mainref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_flushpush",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_onuser",
+      "target": "web_appliquei_cloud_sync_pullandapply",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L204",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_attachwhenready",
+      "target": "web_appliquei_cloud_sync_attach",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "readme_md",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_sobre",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_design_system",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L97",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_uso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4",
+      "confidence_score": 1.0
+    }
+  ],
+  "hyperedges": []
+}

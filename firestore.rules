@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Dados da app por utilizador: só o próprio uid lê/escreve o doc "main".
+    match /users/{userId}/data/{docId} {
+      allow read: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'main';
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'main'
+        && request.resource.data.keys is map
+        && request.resource.data.keys.size() < 450;
+    }
+    // Nada mais é permitido por defeito (negação implícita).
+  }
+}
