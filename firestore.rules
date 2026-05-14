@@ -18,8 +18,19 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
-    match /users/{userId}/billing/{docId}/payments/{paymentId} {
+    match /users/{userId}/billing/{docId}/credits/{creditId} {
       allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/payments/{paymentId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Códigos de indicação: leitura por qualquer utilizador autenticado
+    // (necessário para validar cupom antes do init); escrita só Admin SDK.
+    match /referralCodes/{code} {
+      allow read: if request.auth != null;
       allow write: if false;
     }
 

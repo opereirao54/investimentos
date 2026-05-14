@@ -147,14 +147,104 @@
   }
 
   async function initBilling() {
+    var pending = '';
+    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
+    var bodyObj = pending ? { referralCode: pending } : {};
     try {
-      var r = await authedFetch('/init', { method: 'POST', body: '{}' });
+      var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify(bodyObj) });
+      try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
       applyAccess(r.access);
     } catch (e) {
       console.warn('[billing] init', e);
-      showGate('Não foi possível verificar a sua assinatura', 'Tente novamente. Se persistir, contacte o suporte.');
+      if (e.detail && e.detail.error === 'self_referral_not_allowed') {
+        showGate('Cupom inválido', 'Não é possível usar o seu próprio cupom.');
+      } else if (e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found')) {
+        showGate('Cupom inválido', 'O cupom informado não foi encontrado. Crie a conta sem cupom ou peça outro.');
+      } else {
+        showGate('Não foi possível verificar a sua assinatura', 'Tente novamente. Se persistir, contacte o suporte.');
+      }
       showErr(e.message || 'Erro de rede.');
     }
+  }
+
+  async function fetchMe() {
+    return authedFetch('/me', { method: 'GET' });
+  }
+
+  function fmtBRL(cents) {
+    return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+
+  function ensureMyAccountModal() {
+    if ($('myAccountModal')) return;
+    var div = document.createElement('div');
+    div.id = 'myAccountModal';
+    div.style.cssText = 'position:fixed;inset:0;z-index:10070;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.55);overflow-y:auto;';
+    div.innerHTML = '\
+      <div style="width:100%;max-width:520px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.3);padding:26px;color:#0b1410;font-family:Figtree,sans-serif;">\
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">\
+          <h2 style="font-family:Syne,sans-serif;font-size:1.25rem;margin:0;">Minha assinatura</h2>\
+          <button type="button" id="myAccountClose" style="border:none;background:none;cursor:pointer;font-size:22px;color:#6b7d75;">&times;</button>\
+        </div>\
+        <div id="myAccountBody" style="font-size:13.5px;color:#1d2a23;">A carregar…</div>\
+      </div>';
+    document.body.appendChild(div);
+    div.addEventListener('click', function (e) { if (e.target === div) closeMyAccount(); });
+    $('myAccountClose').addEventListener('click', closeMyAccount);
+  }
+  function closeMyAccount() {
+    var m = $('myAccountModal');
+    if (m) m.style.display = 'none';
+  }
+  async function openMyAccount() {
+    ensureMyAccountModal();
+    $('myAccountModal').style.display = 'flex';
+    $('myAccountBody').innerHTML = 'A carregar…';
+    try {
+      var me = await fetchMe();
+      renderMyAccount(me);
+    } catch (e) {
+      $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
+    }
+  }
+  function renderMyAccount(me) {
+    var code = me.referralCode || '—';
+    var pct = me.recurringDiscountPercent || 0;
+    var creditsRows = (me.credits || []).map(function (c) {
+      return '<tr><td style="padding:4px 0;color:#4a5b53;">' + (c.fromEmail || c.id) +
+        '</td><td style="text-align:right;padding:4px 0;font-weight:600;">' + fmtBRL(c.amountCents) +
+        '</td><td style="text-align:right;padding:4px 0;color:' + (c.appliedAt ? '#059669' : '#a16207') + ';">' +
+        (c.appliedAt ? 'Aplicado' : 'Pendente') + '</td></tr>';
+    }).join('') || '<tr><td colspan="3" style="padding:8px 0;color:#6b7d75;">Sem indicações pagantes ainda.</td></tr>';
+    var copyBtn = '<button type="button" id="myAccountCopy" style="margin-left:6px;border:1px solid #d4dad7;background:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">Copiar</button>';
+    var html =
+      '<div style="background:#f1f5f3;border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
+        '<div style="font-size:11.5px;color:#4a5b53;text-transform:uppercase;letter-spacing:.5px;">Seu cupom</div>' +
+        '<div style="font-family:DM Mono,monospace;font-size:18px;font-weight:700;color:#059669;">' + code + copyBtn + '</div>' +
+        (me.referredByCode ? '<div style="font-size:11.5px;color:#6b7d75;margin-top:6px;">Vinculado a: ' + me.referredByCode + '</div>' : '') +
+      '</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">' +
+        statCard('Indicados ativos', me.activeReferrals + ' / ' + me.totalReferrals) +
+        statCard('Desconto recorrente', pct + '%') +
+        statCard('Pendente p/ próxima fatura', fmtBRL(me.pendingDiscountCents || 0)) +
+        statCard('Próxima cobrança', fmtBRL(me.projectedNextBillCents || 0)) +
+      '</div>' +
+      '<div style="font-size:12px;color:#6b7d75;margin-bottom:4px;">Economia acumulada como indicador: <strong>' + fmtBRL(me.totalReferralEarningsCents || 0) + '</strong></div>' +
+      '<div style="margin-top:14px;">' +
+        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Histórico de descontos recebidos</div>' +
+        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' + creditsRows + '</table>' +
+      '</div>';
+    $('myAccountBody').innerHTML = html;
+    var cb = $('myAccountCopy');
+    if (cb) cb.addEventListener('click', function () {
+      try { navigator.clipboard.writeText(code); cb.textContent = 'Copiado!'; setTimeout(function () { cb.textContent = 'Copiar'; }, 1500); } catch (_) {}
+    });
+  }
+  function statCard(label, value) {
+    return '<div style="background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:10px 12px;">' +
+      '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">' + label + '</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#0b1410;margin-top:2px;">' + value + '</div>' +
+      '</div>';
   }
 
   async function refresh(verbose) {
@@ -270,5 +360,8 @@
     refresh: function () { return refresh(true); },
     subscribe: subscribe,
     getAccess: function () { return lastAccess; },
+    openMyAccount: openMyAccount,
+    closeMyAccount: closeMyAccount,
+    fetchMe: fetchMe,
   };
 })();

@@ -56,16 +56,24 @@ async function updateCustomer(customerId, fields) {
   return call('POST', '/customers/' + encodeURIComponent(customerId), fields);
 }
 
-async function createSubscription({ customerId, uid, nextDueDate }) {
+async function createSubscription({ customerId, uid, nextDueDate, value }) {
   return call('POST', '/subscriptions', {
     customer: customerId,
     billingType: 'UNDEFINED',
-    value: PLAN_VALUE,
+    value: typeof value === 'number' ? value : PLAN_VALUE,
     cycle: PLAN_CYCLE,
     description: PLAN_DESCRIPTION,
     nextDueDate,
     externalReference: uid,
   });
+}
+
+async function updateSubscription(subscriptionId, fields) {
+  return call('POST', '/subscriptions/' + encodeURIComponent(subscriptionId), fields);
+}
+
+async function updatePayment(paymentId, fields) {
+  return call('POST', '/payments/' + encodeURIComponent(paymentId), fields);
 }
 
 async function listPaymentsBySubscription(subscriptionId) {
@@ -81,6 +89,8 @@ module.exports = {
   createCustomer,
   updateCustomer,
   createSubscription,
+  updateSubscription,
+  updatePayment,
   listPaymentsBySubscription,
   getPaymentLink,
   PLAN_VALUE,

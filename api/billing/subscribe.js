@@ -76,16 +76,22 @@ module.exports = async (req, res) => {
       return res.json({ subscriptionId: billing.subscriptionId, alreadyActive: true });
     }
 
+    const monthly = (billing.monthlyPriceCents || 1500) / 100;
+    const pct = billing.recurringDiscountPercent || 0;
+    const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
+
     const nextDue = formatDate(new Date(Date.now() + 24 * 3600 * 1000));
     const sub = await asaas.createSubscription({
       customerId: billing.customerId,
       uid: user.uid,
       nextDueDate: nextDue,
+      value: subscriptionValue,
     });
 
     await ref.set({
       subscriptionId: sub.id,
       subscriptionStatus: sub.status || 'ACTIVE',
+      subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
       updatedAt: fieldValue().serverTimestamp(),
     }, { merge: true });
 

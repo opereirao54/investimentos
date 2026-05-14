@@ -21,6 +21,9 @@ module.exports = async (req, res) => {
         subscriptionStatus: billing.subscriptionStatus || null,
         lastPaymentStatus: billing.lastPaymentStatus || null,
         trialEndsAt: tsToIso(billing.trialEndsAt),
+        referralCode: billing.referralCode || null,
+        referredByCode: billing.referredByCode || null,
+        recurringDiscountPercent: billing.recurringDiscountPercent || 0,
       } : null,
     });
   } catch (e) {

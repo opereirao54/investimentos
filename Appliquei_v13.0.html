@@ -2210,6 +2210,11 @@
                     <label for="authSenha">Senha</label>
                     <input type="password" id="authSenha" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
                 </div>
+                <div class="auth-field" id="authCupomWrap" style="display:none;">
+                    <label for="authCupom">Cupom de indicação (opcional)</label>
+                    <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
+                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Use o cupom de um amigo e ganhe 10% de desconto recorrente.</p>
+                </div>
                 <div class="auth-actions">
                     <button type="button" class="auth-btn-prim" id="authBtnSubmit" onclick="appliqueiAuthSubmit()">Entrar</button>
                     <button type="button" class="auth-btn-sec" id="authBtnForgot" onclick="appliqueiAuthEsqueciSenha()">Esqueci minha senha</button>
@@ -2461,6 +2466,7 @@
         <div class="sidebar-footer">
             <div class="sidebar-auth-mini" id="sidebarAuthMini">
                 <span class="sa-email" id="sidebarAuthEmail" title="">Conta</span>
+                <button type="button" class="sa-btn" id="sidebarMyAccountBtn" onclick="if(window.AppliqueiBilling) AppliqueiBilling.openMyAccount();" style="margin-bottom:6px;"><i class="ph ph-receipt"></i> <span>Minha assinatura</span></button>
                 <button type="button" class="sa-btn" id="sidebarAuthBtn" onclick="appliqueiSidebarAuthClick()"><i class="ph ph-sign-in" id="sidebarAuthIcon"></i> <span id="sidebarAuthBtnLabel">Entrar</span></button>
             </div>
             <div class="ultimo-salvo" id="ultimoSalvoIndicador" title="Último salvamento">
@@ -10985,6 +10991,8 @@
         if (hintReg) hintReg.style.display = login ? 'none' : '';
         if (hintLogin) hintLogin.style.display = login ? '' : 'none';
         if (senha) senha.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
+        var cupomWrap = $('authCupomWrap');
+        if (cupomWrap) cupomWrap.style.display = login ? 'none' : '';
         window.appliqueiAuthErr('');
     };
     function mapAuthErr(err) {
@@ -11015,6 +11023,11 @@
         if (btn) { btn.disabled = true; }
         window.appliqueiAuthErr('');
         var reg = window.__appliqueiAuthModo === 'registro';
+        if (reg) {
+            var cupomEl = $('authCupom');
+            var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';
+            try { sessionStorage.setItem('appliquei_pending_referral', cupom); } catch (_) {}
+        }
         var p = reg
             ? fb.auth.createUserWithEmailAndPassword(email, senha)
             : fb.auth.signInWithEmailAndPassword(email, senha);
