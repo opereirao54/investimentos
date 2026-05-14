@@ -3729,9 +3729,10 @@
                         </div>
                         <div style="text-align:right;">
                             <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Recompensa</div>
-                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">45% de desconto</div>
+                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">9% de desconto</div>
                         </div>
                     </div>
+                    <div id="apcMetaSubtitulo" style="font-size:12px;color:var(--cor-texto-secundario);margin-top:-2px;margin-bottom:6px;">Cashback ativado · economia garantida todo mês</div>
                     <div style="background:var(--cor-superficie);border-radius:99px;height:14px;border:1px solid var(--cor-borda);overflow:hidden;margin:10px 0 8px;">
                         <div id="apcMetaProgressoBar" style="height:100%;background:linear-gradient(90deg,var(--cor-primaria),#10b981);width:0%;transition:width 0.6s ease;border-radius:99px;"></div>
                     </div>
@@ -10401,10 +10402,11 @@
             descontoCupomPct: 0.10    // 10% de desconto p/ o assinante
         };
         const APPLICASH_METAS = [
-            { qtd: 5,  desc: 45,  recompensa: '45% de desconto na mensalidade' },
-            { qtd: 10, desc: 90,  recompensa: '90% de desconto na mensalidade' },
-            { qtd: 15, desc: 100, recompensa: 'Mensalidade zerada (100% de desconto)' },
-            { qtd: 30, desc: 100, recompensa: 'Mensalidade zerada — status Embaixador' }
+            { qtd: 1,  desc: 9,   recompensa: 'Cashback ativado · economia garantida todo mês' },
+            { qtd: 5,  desc: 45,  recompensa: 'Quase metade da mensalidade paga por amigos' },
+            { qtd: 10, desc: 90,  recompensa: 'A 1 amigo da sua mensalidade zerar' },
+            { qtd: 12, desc: 100, recompensa: '🏆 Assinatura ZERADA · Appliquei grátis para sempre' },
+            { qtd: 30, desc: 100, recompensa: '🌟 Status Embaixador · brindes + destaque na comunidade' }
         ];
 
         function gerarCupomPadrao() {
@@ -10586,8 +10588,10 @@
             const metaConcluida = efetivas >= metaAtual.qtd;
             const progresso = Math.min(100, (efetivas / metaAtual.qtd) * 100);
             const restantes = Math.max(0, metaAtual.qtd - efetivas);
-            document.getElementById('apcMetaTitulo').innerText = `Indique ${metaAtual.qtd} pessoas`;
-            document.getElementById('apcMetaRecompensa').innerText = metaAtual.recompensa;
+            document.getElementById('apcMetaTitulo').innerText = `Indique ${metaAtual.qtd} ${metaAtual.qtd === 1 ? 'pessoa' : 'pessoas'}`;
+            document.getElementById('apcMetaRecompensa').innerText = `${metaAtual.desc || 0}% de desconto`;
+            const subT = document.getElementById('apcMetaSubtitulo');
+            if (subT) subT.innerText = metaAtual.recompensa || '';
             document.getElementById('apcMetaProgressoBar').style.width = progresso + '%';
             document.getElementById('apcMetaAtual').innerText = efetivas;
             document.getElementById('apcMetaAlvo').innerText = metaAtual.qtd;
@@ -10602,10 +10606,12 @@
                     const bg = conquistada ? 'var(--cor-bg-primaria)' : 'var(--cor-superficie)';
                     const borda = conquistada ? 'var(--cor-borda-primaria)' : 'var(--cor-borda)';
                     const icone = conquistada ? 'ph-fill ph-check-circle' : 'ph ph-circle';
-                    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bg};border:1px solid ${borda};border-radius:9px;font-size:12.5px;">
-                        <i class="${icone}" style="color:${cor};font-size:18px;flex-shrink:0;"></i>
-                        <strong style="color:var(--cor-texto-principal);min-width:110px;text-transform:uppercase;letter-spacing:0.4px;">${m.qtd} INDICAÇÕES</strong>
-                        <span style="color:var(--cor-texto-secundario);flex:1;text-transform:uppercase;letter-spacing:0.3px;font-weight:600;">${m.desc || 0}% DE DESCONTO</span>
+                    return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${bg};border:1px solid ${borda};border-radius:9px;font-size:12.5px;">
+                        <i class="${icone}" style="color:${cor};font-size:20px;flex-shrink:0;"></i>
+                        <div style="flex:1;min-width:0;">
+                            <div style="color:var(--cor-texto-principal);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;font-size:12px;">${m.qtd} INDICA${m.qtd === 1 ? 'ÇÃO' : 'ÇÕES'} — ${m.desc || 0}% DE DESCONTO</div>
+                            <div style="color:var(--cor-texto-secundario);font-size:11.5px;margin-top:2px;">${m.recompensa}</div>
+                        </div>
                     </div>`;
                 }).join('');
             }
