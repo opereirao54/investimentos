@@ -77,7 +77,7 @@
       b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:#059669;color:#fff;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.12);';
       b.innerHTML = '<span id="trialBannerText"></span><button type="button" id="trialBannerBtn" style="background:#fff;color:#059669;border:none;border-radius:6px;padding:5px 10px;font-weight:600;font-size:12px;cursor:pointer;">Assinar agora</button>';
       document.body.appendChild(b);
-      $('trialBannerBtn').addEventListener('click', subscribe);
+      $('trialBannerBtn').addEventListener('click', openSubscribeForm);
     }
     var txt = daysLeft === 1 ? 'Último dia da avaliação gratuita.' : 'Avaliação gratuita: ' + daysLeft + ' dias restantes.';
     $('trialBannerText').textContent = txt;
@@ -181,6 +181,11 @@
         '</pre><p style="font-size:13px;color:#4a5b53;">Pode fechar esta aba.</p>');
       popup.document.close();
     } catch (_) {}
+  }
+
+  function openSubscribeForm() {
+    showGate('Assine para continuar', 'Preencha os dados para emitir a fatura.');
+    setTimeout(function () { var el = $('billingCpfCnpj'); if (el) el.focus(); }, 50);
   }
 
   async function subscribe() {
