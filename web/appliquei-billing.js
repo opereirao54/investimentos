@@ -68,9 +68,31 @@
     e.style.display = 'block';
   }
 
+  function ensureTrialBannerStyles() {
+    if (document.getElementById('trialBannerStyles')) return;
+    var s = document.createElement('style');
+    s.id = 'trialBannerStyles';
+    s.textContent = 'body.appliquei-trial-banner-open{padding-top:var(--appliquei-trial-banner-h,40px);box-sizing:border-box;}';
+    document.head.appendChild(s);
+  }
+  function syncTrialBannerOffset(b) {
+    if (!b) return;
+    var h = b.offsetHeight || 40;
+    document.documentElement.style.setProperty('--appliquei-trial-banner-h', h + 'px');
+    document.body.classList.add('appliquei-trial-banner-open');
+  }
+  function clearTrialBannerOffset() {
+    document.body.classList.remove('appliquei-trial-banner-open');
+    document.documentElement.style.removeProperty('--appliquei-trial-banner-h');
+  }
   function ensureTrialBanner(daysLeft) {
     var b = $('trialBanner');
-    if (daysLeft <= 0) { if (b) b.remove(); return; }
+    if (daysLeft <= 0) {
+      if (b) b.remove();
+      clearTrialBannerOffset();
+      return;
+    }
+    ensureTrialBannerStyles();
     if (!b) {
       b = document.createElement('div');
       b.id = 'trialBanner';
@@ -78,9 +100,14 @@
       b.innerHTML = '<span id="trialBannerText"></span><button type="button" id="trialBannerBtn" style="background:#fff;color:#059669;border:none;border-radius:6px;padding:5px 10px;font-weight:600;font-size:12px;cursor:pointer;">Assinar agora</button>';
       document.body.appendChild(b);
       $('trialBannerBtn').addEventListener('click', openSubscribeForm);
+      if (typeof ResizeObserver === 'function') {
+        try { new ResizeObserver(function () { syncTrialBannerOffset(b); }).observe(b); } catch (_) {}
+      }
+      window.addEventListener('resize', function () { syncTrialBannerOffset(b); });
     }
     var txt = daysLeft === 1 ? 'Último dia da avaliação gratuita.' : 'Avaliação gratuita: ' + daysLeft + ' dias restantes.';
     $('trialBannerText').textContent = txt;
+    syncTrialBannerOffset(b);
   }
 
   async function authedFetch(path, opts) {
