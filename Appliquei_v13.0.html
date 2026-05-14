@@ -3725,19 +3725,19 @@
                     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
                         <div>
                             <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Meta</div>
-                            <div id="apcMetaTitulo" style="font-size:18px;font-weight:700;color:var(--cor-texto-principal);">Indique 30 pessoas</div>
+                            <div id="apcMetaTitulo" style="font-size:18px;font-weight:700;color:var(--cor-texto-principal);">Indique 5 pessoas</div>
                         </div>
                         <div style="text-align:right;">
                             <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Recompensa</div>
-                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">+ R$ 40,50/mês</div>
+                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">45% de desconto</div>
                         </div>
                     </div>
                     <div style="background:var(--cor-superficie);border-radius:99px;height:14px;border:1px solid var(--cor-borda);overflow:hidden;margin:10px 0 8px;">
                         <div id="apcMetaProgressoBar" style="height:100%;background:linear-gradient(90deg,var(--cor-primaria),#10b981);width:0%;transition:width 0.6s ease;border-radius:99px;"></div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--cor-texto-mutado);">
-                        <span><strong id="apcMetaAtual" style="color:var(--cor-texto-principal);">0</strong> de <strong id="apcMetaAlvo" style="color:var(--cor-texto-principal);">30</strong> indicações</span>
-                        <span><strong id="apcMetaRestante" style="color:var(--cor-primaria);">30</strong> restantes</span>
+                        <span><strong id="apcMetaAtual" style="color:var(--cor-texto-principal);">0</strong> de <strong id="apcMetaAlvo" style="color:var(--cor-texto-principal);">5</strong> indicações</span>
+                        <span><strong id="apcMetaRestante" style="color:var(--cor-primaria);">5</strong> restantes</span>
                     </div>
 
                     <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;" id="apcMetasLista">
@@ -10401,11 +10401,10 @@
             descontoCupomPct: 0.10    // 10% de desconto p/ o assinante
         };
         const APPLICASH_METAS = [
-            { qtd: 5,  recompensa: 'Cupom de 1 mês grátis na sua assinatura' },
-            { qtd: 10, recompensa: 'Acesso antecipado a novos recursos' },
-            { qtd: 30, recompensa: 'Sua assinatura paga + R$ extra todo mês' },
-            { qtd: 50, recompensa: 'Status Embaixador Appliquei + brindes' },
-            { qtd: 100, recompensa: 'Mentoria 1:1 com nosso time financeiro' }
+            { qtd: 5,  desc: 45,  recompensa: '45% de desconto na mensalidade' },
+            { qtd: 10, desc: 90,  recompensa: '90% de desconto na mensalidade' },
+            { qtd: 15, desc: 100, recompensa: 'Mensalidade zerada (100% de desconto)' },
+            { qtd: 30, desc: 100, recompensa: 'Mensalidade zerada — status Embaixador' }
         ];
 
         function gerarCupomPadrao() {
@@ -10605,8 +10604,8 @@
                     const icone = conquistada ? 'ph-fill ph-check-circle' : 'ph ph-circle';
                     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:${bg};border:1px solid ${borda};border-radius:9px;font-size:12.5px;">
                         <i class="${icone}" style="color:${cor};font-size:18px;flex-shrink:0;"></i>
-                        <strong style="color:var(--cor-texto-principal);min-width:60px;">${m.qtd}</strong>
-                        <span style="color:var(--cor-texto-secundario);flex:1;">${m.recompensa}</span>
+                        <strong style="color:var(--cor-texto-principal);min-width:110px;text-transform:uppercase;letter-spacing:0.4px;">${m.qtd} INDICAÇÕES</strong>
+                        <span style="color:var(--cor-texto-secundario);flex:1;text-transform:uppercase;letter-spacing:0.3px;font-weight:600;">${m.desc || 0}% DE DESCONTO</span>
                     </div>`;
                 }).join('');
             }
