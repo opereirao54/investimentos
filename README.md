@@ -143,3 +143,5 @@ Contribuições são bem-vindas! Sinta-se à vontade para:
 ---
 
 **Appliquei v13.0** - Transformando a gestão financeira em uma experiência simples e elegante.
+
+
