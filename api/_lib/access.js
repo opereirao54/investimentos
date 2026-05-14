@@ -14,8 +14,15 @@ function computeAccess(billing, now = Date.now()) {
   }
   const subStatus = billing.subscriptionStatus || null;
   const lastPaymentStatus = billing.lastPaymentStatus || null;
+  const hasPaidBefore = !!toMillis(billing.lastPaidAt);
 
+  // Pagamento confirmado pelo webhook — acesso total
   if (subStatus === 'ACTIVE' && (lastPaymentStatus === 'CONFIRMED' || lastPaymentStatus === 'RECEIVED' || lastPaymentStatus === 'RECEIVED_IN_CASH')) {
+    return { status: 'active', reason: 'paid', trialDaysLeft: 0 };
+  }
+
+  // Assinatura ativa + já pagou antes (fallback se lastPaymentStatus não foi atualizado)
+  if (subStatus === 'ACTIVE' && hasPaidBefore) {
     return { status: 'active', reason: 'paid', trialDaysLeft: 0 };
   }
 

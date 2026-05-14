@@ -143,6 +143,7 @@ module.exports = async (req, res) => {
 
     const billing = doc.data();
     const update = { updatedAt: fieldValue().serverTimestamp(), lastEvent: event || null };
+    console.log('[webhook] event=%s subscription=%s customer=%s uid=%s', event, payment?.subscription || subscription?.id, payment?.customer, billing.uid);
 
     if (event && event.startsWith('PAYMENT_')) {
       update.lastPaymentId = payment.id;
