@@ -89,7 +89,10 @@
     var text = await r.text();
     var data = text ? JSON.parse(text) : {};
     if (!r.ok) {
-      var err = new Error(data.error || ('http_' + r.status));
+      var msg = data.error || ('http_' + r.status);
+      if (data.code) msg += ' (' + data.code + ')';
+      if (data.detail) msg += ': ' + data.detail;
+      var err = new Error(msg);
       err.detail = data;
       throw err;
     }

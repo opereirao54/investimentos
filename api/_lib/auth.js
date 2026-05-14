@@ -11,7 +11,12 @@ async function requireUser(req, res) {
     const decoded = await auth().verifyIdToken(match[1]);
     return decoded;
   } catch (e) {
-    res.status(401).json({ error: 'invalid_token' });
+    console.error('[auth] verifyIdToken failed:', e && e.code, e && e.message);
+    res.status(401).json({
+      error: 'invalid_token',
+      code: (e && e.code) || null,
+      detail: (e && e.message) || null,
+    });
     return null;
   }
 }
