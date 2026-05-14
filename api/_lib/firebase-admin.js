@@ -27,8 +27,18 @@ function init() {
   let json;
   try {
     json = JSON.parse(decoded);
-  } catch (e) {
-    throw new Error('service_account_invalid_json: ' + e.message + ' (decoded length=' + decoded.length + ')');
+  } catch (e1) {
+    let fixed = decoded.replace(
+      /("(?:private_key|private_key_id|client_email)"\s*:\s*")([\s\S]*?)(")/g,
+      function (_, p, val, q) {
+        return p + val.replace(/\r/g, '').replace(/\n/g, '\\n') + q;
+      }
+    );
+    try {
+      json = JSON.parse(fixed);
+    } catch (e2) {
+      throw new Error('service_account_invalid_json: ' + e1.message + ' (decoded length=' + decoded.length + ')');
+    }
   }
   if (json.private_key && json.private_key.indexOf('\\n') !== -1 && json.private_key.indexOf('\n') === -1) {
     json.private_key = json.private_key.replace(/\\n/g, '\n');
