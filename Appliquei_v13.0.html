@@ -11042,6 +11042,9 @@
         if (c === 'auth/weak-password') return 'Senha muito fraca (mínimo 6 caracteres).';
         if (c === 'auth/too-many-requests') return 'Muitas tentativas. Tente mais tarde.';
         if (c === 'auth/network-request-failed') return 'Falha de rede. Verifique a conexão.';
+        if (c === 'auth/unauthorized-domain' || /requests-from-referer-.*-are-blocked/i.test(c) || /requests-from-referer-.*-are-blocked/i.test(err.message || '')) {
+            return 'Este endereço (' + location.hostname + ') não está autorizado no Firebase. Use o domínio oficial do app ou peça ao administrador para adicioná-lo em Authentication › Settings › Authorized domains.';
+        }
         return err.message || 'Erro de autenticação.';
     }
     window.appliqueiAuthSubmit = function () {
