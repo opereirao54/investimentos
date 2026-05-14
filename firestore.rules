@@ -12,6 +12,17 @@ service cloud.firestore {
         && request.resource.data.keys is map
         && request.resource.data.keys.size() < 450;
     }
+
+    // Faturação: leitura só pelo próprio uid; escrita apenas via Admin SDK (backend).
+    match /users/{userId}/billing/{docId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/billing/{docId}/payments/{paymentId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
     // Nada mais é permitido por defeito (negação implícita).
   }
 }

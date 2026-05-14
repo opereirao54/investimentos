@@ -52,6 +52,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js"></script>
+    <script src="web/appliquei-billing.js"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -2194,9 +2195,6 @@
                     O Firebase não arrancou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Consola</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
                     Confirme <em>Authentication → E-mail/senha</em> no Console Firebase. A config embebida no HTML só falha se os scripts <code>gstatic.com/firebasejs</code> não carregarem.
                 </p>
-                <div class="auth-actions">
-                    <button type="button" class="auth-btn-prim" onclick="appliqueiContinuarOffline()">Continuar sem conta (dados só neste navegador)</button>
-                </div>
             </div>
             <div id="authGateForm" class="auth-gate-panel">
                 <div class="auth-tabs" role="tablist">
@@ -2218,9 +2216,7 @@
                 </div>
                 <p class="auth-link" id="authHintReg" style="display:none;">Já tem conta? <button type="button" onclick="appliqueiAuthSetModo('login')">Entrar</button></p>
                 <p class="auth-link" id="authHintLogin" style="display:none;">Não tem conta? <button type="button" onclick="appliqueiAuthSetModo('registro')">Criar conta</button></p>
-                <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--cor-borda);">
-                    <button type="button" class="auth-btn-sec" onclick="appliqueiContinuarOffline()">Continuar sem conta — dados só neste navegador</button>
-                </div>
+                <p class="auth-link" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Após o trial: R$ 15/mês via Asaas (PIX, boleto ou cartão).</p>
             </div>
         </div>
     </div>
@@ -11046,11 +11042,9 @@
         });
     };
     window.appliqueiContinuarOffline = function () {
-        try { localStorage.setItem(GUEST_KEY, '1'); } catch (_) {}
-        window.appliqueiAuthErr('');
-        hideGate();
-        refreshSidebar();
+        window.appliqueiAuthErr('O modo offline foi descontinuado. Crie uma conta para iniciar a avaliação gratuita de 7 dias.');
     };
+    try { localStorage.removeItem(GUEST_KEY); } catch (_) {}
     window.appliqueiSidebarAuthClick = function () {
         var fb = window.AppliqueiFirebase;
         if (fb && fb.ready && fb.auth && fb.auth.currentUser) {
