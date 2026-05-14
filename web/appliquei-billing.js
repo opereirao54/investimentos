@@ -72,7 +72,20 @@
     if (document.getElementById('trialBannerStyles')) return;
     var s = document.createElement('style');
     s.id = 'trialBannerStyles';
-    s.textContent = 'body.appliquei-trial-banner-open{padding-top:var(--appliquei-trial-banner-h,40px);box-sizing:border-box;}';
+    s.textContent = [
+      'body.appliquei-trial-banner-open{',
+        'height:calc(100vh - var(--appliquei-trial-banner-h,40px))!important;',
+        'margin-top:var(--appliquei-trial-banner-h,40px)!important;',
+        'box-sizing:border-box!important;',
+      '}',
+      'body.appliquei-trial-banner-open .sidebar{height:auto!important;}',
+      '@media (max-width: 900px){',
+        'body.appliquei-trial-banner-open{',
+          'height:auto!important;',
+          'min-height:calc(100vh - var(--appliquei-trial-banner-h,40px))!important;',
+        '}',
+      '}',
+    ].join('');
     document.head.appendChild(s);
   }
   function syncTrialBannerOffset(b) {
