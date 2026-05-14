@@ -45,8 +45,13 @@ module.exports = async (req, res) => {
 
     return res.json({ access: computeAccess(data), billing: safeBilling(data) });
   } catch (e) {
-    console.error('[init]', e);
-    return res.status(500).json({ error: 'init_failed', detail: e.message });
+    console.error('[init]', e, e.data);
+    return res.status(500).json({
+      error: 'init_failed',
+      detail: e.message,
+      asaasStatus: e.status || null,
+      asaasErrors: (e.data && e.data.errors) || e.data || null,
+    });
   }
 };
 

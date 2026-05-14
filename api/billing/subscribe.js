@@ -60,6 +60,11 @@ module.exports = async (req, res) => {
     return res.json({ subscriptionId: sub.id, invoiceUrl, status: sub.status });
   } catch (e) {
     console.error('[subscribe]', e, e.data);
-    return res.status(500).json({ error: 'subscribe_failed', detail: e.message });
+    return res.status(500).json({
+      error: 'subscribe_failed',
+      detail: e.message,
+      asaasStatus: e.status || null,
+      asaasErrors: (e.data && e.data.errors) || e.data || null,
+    });
   }
 };

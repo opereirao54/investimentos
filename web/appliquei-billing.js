@@ -92,6 +92,9 @@
       var msg = data.error || ('http_' + r.status);
       if (data.code) msg += ' (' + data.code + ')';
       if (data.detail) msg += ': ' + data.detail;
+      if (data.asaasErrors) {
+        try { msg += ' — Asaas: ' + JSON.stringify(data.asaasErrors); } catch (_) {}
+      }
       var err = new Error(msg);
       err.detail = data;
       throw err;
