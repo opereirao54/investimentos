@@ -11,7 +11,16 @@
                 var host = location.hostname;
                 if (host === canonical) return;
                 if (!/\.vercel\.app$/i.test(host)) return;
-                if (/(\?|&)preview=1(&|$)/.test(location.search)) return;
+                var STICKY_KEY = 'appliquei_preview_ok';
+                if (/(\?|&)preview=1(&|$)/.test(location.search)) {
+                    try { sessionStorage.setItem(STICKY_KEY, '1'); } catch (_) {}
+                    return;
+                }
+                try { if (sessionStorage.getItem(STICKY_KEY) === '1') return; } catch (_) {}
+                if (/^[a-z0-9-]+-git-[a-z0-9-]+-[a-z0-9-]+\.vercel\.app$/i.test(host)) {
+                    try { sessionStorage.setItem(STICKY_KEY, '1'); } catch (_) {}
+                    return;
+                }
                 var target = location.protocol + '//' + canonical + location.pathname + location.search + location.hash;
                 location.replace(target);
             } catch (_) {}
