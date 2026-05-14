@@ -158,12 +158,28 @@
     }
   }
 
+  function writePopupMessage(popup, title, body) {
+    if (!popup || popup.closed) return;
+    try {
+      popup.document.open();
+      popup.document.write('<!doctype html><meta charset="utf-8"><title>' + title + '</title>' +
+        '<body style="font-family:system-ui,sans-serif;padding:32px;max-width:560px;margin:auto;color:#0b1410;">' +
+        '<h2 style="margin:0 0 8px;">' + title + '</h2>' +
+        '<pre style="white-space:pre-wrap;background:#f1f5f3;padding:12px;border-radius:8px;font-size:13px;">' +
+        body.replace(/[<>&]/g, function (c) { return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]; }) +
+        '</pre><p style="font-size:13px;color:#4a5b53;">Pode fechar esta aba.</p>');
+      popup.document.close();
+    } catch (_) {}
+  }
+
   async function subscribe() {
     var btn = $('billingSubscribeBtn');
     if (btn) btn.disabled = true;
     var popup = window.open('about:blank', '_blank');
+    writePopupMessage(popup, 'A criar assinatura…', 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
     try {
       var r = await authedFetch('/subscribe', { method: 'POST', body: '{}' });
+      console.log('[billing] subscribe response', r);
       if (r.invoiceUrl) {
         if (popup && !popup.closed) {
           popup.location.href = r.invoiceUrl;
@@ -173,15 +189,15 @@
         }
         showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
       } else if (r.alreadyActive) {
-        if (popup && !popup.closed) popup.close();
+        writePopupMessage(popup, 'Já tem assinatura ativa', 'A sua assinatura (id: ' + (r.subscriptionId || '?') + ') já existe, mas não há fatura pendente. Verifique no painel Asaas. Resposta:\n\n' + JSON.stringify(r, null, 2));
         await refresh(false);
       } else {
-        if (popup && !popup.closed) popup.close();
+        writePopupMessage(popup, 'Sem link de pagamento', 'O backend respondeu mas não devolveu invoiceUrl. Resposta:\n\n' + JSON.stringify(r, null, 2));
         showErr('Não foi possível obter o link de pagamento.');
       }
     } catch (e) {
-      if (popup && !popup.closed) popup.close();
-      console.warn('[billing] subscribe', e);
+      console.warn('[billing] subscribe', e, e.detail);
+      writePopupMessage(popup, 'Erro ao criar assinatura', (e.message || 'erro') + '\n\n' + JSON.stringify(e.detail || {}, null, 2));
       showErr(e.message || 'Falha ao criar assinatura.');
     } finally {
       if (btn) btn.disabled = false;
