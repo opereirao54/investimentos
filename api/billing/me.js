@@ -17,21 +17,30 @@ module.exports = async (req, res) => {
 
   try {
     const D = db();
-    const billingRef = D.collection('users').doc(user.uid).collection('billing').doc('account');
+    const userRef = D.collection('users').doc(user.uid);
+    const billingRef = userRef.collection('billing').doc('account');
     const snap = await billingRef.get();
     if (!snap.exists) return res.json({ access: computeAccess(null), billing: null });
     const billing = snap.data();
 
-    const activeReferralsQ = await D.collectionGroup('billing')
+    const indicadosQ = await D.collectionGroup('billing')
       .where('referredByUserId', '==', user.uid)
-      .where('subscriptionStatus', '==', 'ACTIVE')
       .get();
-    const activeReferrals = activeReferralsQ.size;
 
-    const totalReferralsQ = await D.collectionGroup('billing')
-      .where('referredByUserId', '==', user.uid)
-      .get();
-    const totalReferrals = totalReferralsQ.size;
+    const referrals = indicadosQ.docs.map(d => {
+      const b = d.data();
+      return {
+        uid: b.uid,
+        email: b.email || null,
+        subscriptionStatus: b.subscriptionStatus || null,
+        lastPaymentStatus: b.lastPaymentStatus || null,
+        baseValueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
+        referralUsedAt: tsToIso(b.referralUsedAt),
+        lastPaidAt: tsToIso(b.lastPaidAt),
+      };
+    });
+    const activeReferrals = referrals.filter(r => r.subscriptionStatus === 'ACTIVE').length;
+    const totalReferrals = referrals.length;
 
     const creditsQ = await billingRef.collection('credits')
       .orderBy('createdAt', 'desc')
@@ -41,9 +50,11 @@ module.exports = async (req, res) => {
       const c = d.data();
       return {
         id: d.id,
+        fromUid: c.fromUid || null,
         fromEmail: c.fromEmail || null,
         amountCents: c.amountCents || 0,
         appliedAt: tsToIso(c.appliedAt),
+        appliedAmountCents: c.appliedAmountCents || null,
         appliedToPaymentId: c.appliedToPaymentId || null,
         createdAt: tsToIso(c.createdAt),
       };
@@ -55,6 +66,26 @@ module.exports = async (req, res) => {
       totalReferralEarningsCents += c.amountCents;
       if (!c.appliedAt) pendingDiscountCents += c.amountCents;
     }
+
+    const paymentsQ = await userRef.collection('payments')
+      .orderBy('receivedAt', 'desc')
+      .limit(20)
+      .get();
+    const payments = paymentsQ.docs.map(d => {
+      const p = d.data();
+      return {
+        id: p.id || d.id,
+        status: p.status || null,
+        value: p.value || null,
+        billingType: p.billingType || null,
+        dueDate: p.dueDate || null,
+        paymentDate: p.paymentDate || null,
+        invoiceUrl: p.invoiceUrl || null,
+        referralAppliedCents: p.referralAppliedCents || 0,
+        event: p.event || null,
+        receivedAt: tsToIso(p.receivedAt),
+      };
+    });
 
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
     const projectedNextCents = Math.max(100, monthlyCents - Math.min(pendingDiscountCents, monthlyCents - 100));
@@ -68,13 +99,19 @@ module.exports = async (req, res) => {
       monthlyPriceCents: billing.monthlyPriceCents || 1500,
       subscriptionBaseValueCents: monthlyCents,
       subscriptionStatus: billing.subscriptionStatus || null,
+      subscriptionId: billing.subscriptionId || null,
+      customerId: billing.customerId || null,
       lastPaymentStatus: billing.lastPaymentStatus || null,
+      lastPaidAt: tsToIso(billing.lastPaidAt),
+      trialEndsAt: tsToIso(billing.trialEndsAt),
       activeReferrals,
       totalReferrals,
       pendingDiscountCents,
       totalReferralEarningsCents,
       projectedNextBillCents: projectedNextCents,
+      referrals,
       credits,
+      payments,
     });
   } catch (e) {
     console.error('[me]', e);

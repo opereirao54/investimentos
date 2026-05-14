@@ -3663,6 +3663,11 @@
                 </div>
             </div>
 
+            <div id="apcResumoServidor" style="display:none;margin-bottom:14px;padding:12px 14px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);border-radius:10px;font-size:13px;color:var(--cor-txt-primaria);line-height:1.5;">
+                <strong id="apcResumoTexto"></strong>
+                <span id="apcResumoDetalhe" style="display:block;font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;"></span>
+            </div>
+
             <!-- KPIs topo -->
             <div class="grid-4" style="margin-bottom:18px;">
                 <div class="card-destaque accent">
@@ -10413,12 +10418,11 @@
             return `APP-${id}`;
         }
         function obterCupomApplicash() {
-            let cupom = localStorage.getItem(APPLICASH_CONFIG.cupomKey);
-            if(!cupom) {
-                cupom = gerarCupomPadrao();
-                localStorage.setItem(APPLICASH_CONFIG.cupomKey, cupom);
-            }
-            return cupom;
+            const cupom = localStorage.getItem(APPLICASH_CONFIG.cupomKey);
+            if (cupom && /^APP-[A-Z0-9]{6}$/.test(cupom)) return cupom;
+            const fb = window.AppliqueiFirebase;
+            const logged = fb && fb.ready && fb.auth && fb.auth.currentUser;
+            return logged ? 'A carregar…' : 'Entre na sua conta';
         }
         function obterAssinaturaApplicash() {
             try {
@@ -10447,7 +10451,12 @@
         }
 
         let chartApplicash = null;
-        function atualizarTelaApplicash() {
+        async function atualizarTelaApplicash() {
+            try {
+                if (window.AppliqueiBilling && typeof AppliqueiBilling.syncApplicash === 'function') {
+                    await AppliqueiBilling.syncApplicash();
+                }
+            } catch (_) {}
             const cupom = obterCupomApplicash();
             const assinatura = obterAssinaturaApplicash();
             const indicacoes = carregarIndicacoesApplicash();
@@ -10455,6 +10464,24 @@
             // KPIs
             const elCupom = document.getElementById('apcCupomCodigo');
             if(elCupom) elCupom.innerText = cupom;
+
+            // Banner resumo do servidor (desconto pendente / próxima cobrança)
+            try {
+                const resumoRaw = localStorage.getItem('appliquei_applicash_resumo');
+                const resumo = resumoRaw ? JSON.parse(resumoRaw) : null;
+                const banner = document.getElementById('apcResumoServidor');
+                if (banner && resumo) {
+                    const pend = (resumo.pendingDiscountCents || 0) / 100;
+                    const prox = (resumo.projectedNextBillCents || 0) / 100;
+                    if (pend > 0) {
+                        document.getElementById('apcResumoTexto').innerText = `Sua próxima mensalidade já tem ${formatarMoeda(pend)} de abatimento.`;
+                        document.getElementById('apcResumoDetalhe').innerText = `Próxima cobrança estimada: ${formatarMoeda(prox)} · ${resumo.activeReferrals || 0} indicado(s) ativo(s).`;
+                        banner.style.display = '';
+                    } else {
+                        banner.style.display = 'none';
+                    }
+                }
+            } catch(_) {}
 
             const ativos = indicacoes.filter(i => i.status === 'ativo');
             const efetivas = ativos.length;
@@ -10617,8 +10644,10 @@
             }
         }
 
+        function cupomValido(c) { return /^APP-[A-Z0-9]{6}$/.test(c || ''); }
         function copiarCupomApplicash() {
             const cupom = obterCupomApplicash();
+            if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
             const lbl = document.getElementById('lblCupomBtn');
             const fallback = () => {
                 const ta = document.createElement('textarea');
@@ -10639,6 +10668,7 @@
         }
         function compartilharCupomApplicash() {
             const cupom = obterCupomApplicash();
+            if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
             const texto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto em qualquer plano! 💚`;
             if(navigator.share) {
                 navigator.share({ title: 'Appliquei', text: texto }).catch(() => {});

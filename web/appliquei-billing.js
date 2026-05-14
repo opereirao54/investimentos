@@ -207,38 +207,129 @@
       $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
     }
   }
+  function statusLabel(s) {
+    if (!s) return 'Sem assinatura';
+    if (s === 'ACTIVE') return 'Ativa';
+    if (s === 'OVERDUE') return 'Em atraso';
+    if (s === 'INACTIVE') return 'Cancelada';
+    return s;
+  }
+  function statusColor(s) {
+    if (s === 'ACTIVE') return '#059669';
+    if (s === 'OVERDUE') return '#a16207';
+    if (s === 'INACTIVE') return '#7f1d1d';
+    return '#6b7d75';
+  }
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString('pt-BR'); } catch (_) { return iso; }
+  }
+  function paymentStatusLabel(s) {
+    var map = {
+      CONFIRMED: 'Confirmado', RECEIVED: 'Recebido', RECEIVED_IN_CASH: 'Recebido',
+      PENDING: 'Pendente', OVERDUE: 'Atrasado', REFUNDED: 'Devolvido', DELETED: 'Cancelado'
+    };
+    return map[s] || s || '—';
+  }
   function renderMyAccount(me) {
-    var code = me.referralCode || '—';
     var pct = me.recurringDiscountPercent || 0;
-    var creditsRows = (me.credits || []).map(function (c) {
-      return '<tr><td style="padding:4px 0;color:#4a5b53;">' + (c.fromEmail || c.id) +
-        '</td><td style="text-align:right;padding:4px 0;font-weight:600;">' + fmtBRL(c.amountCents) +
-        '</td><td style="text-align:right;padding:4px 0;color:' + (c.appliedAt ? '#059669' : '#a16207') + ';">' +
-        (c.appliedAt ? 'Aplicado' : 'Pendente') + '</td></tr>';
-    }).join('') || '<tr><td colspan="3" style="padding:8px 0;color:#6b7d75;">Sem indicações pagantes ainda.</td></tr>';
-    var copyBtn = '<button type="button" id="myAccountCopy" style="margin-left:6px;border:1px solid #d4dad7;background:#fff;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;">Copiar</button>';
-    var html =
-      '<div style="background:#f1f5f3;border-radius:10px;padding:12px 14px;margin-bottom:12px;">' +
-        '<div style="font-size:11.5px;color:#4a5b53;text-transform:uppercase;letter-spacing:.5px;">Seu cupom</div>' +
-        '<div style="font-family:DM Mono,monospace;font-size:18px;font-weight:700;color:#059669;">' + code + copyBtn + '</div>' +
-        (me.referredByCode ? '<div style="font-size:11.5px;color:#6b7d75;margin-top:6px;">Vinculado a: ' + me.referredByCode + '</div>' : '') +
+    var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+    var subStatus = me.subscriptionStatus;
+    var trialEndsAt = me.trialEndsAt;
+    var inTrial = me.access && me.access.status === 'trial';
+
+    var subBlock = '';
+    if (inTrial) {
+      subBlock = '<div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:10px;padding:12px 14px;font-size:13px;">' +
+        'Você está na <strong>avaliação gratuita</strong>. Termina em ' + fmtDate(trialEndsAt) + '.</div>';
+    } else {
+      subBlock = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        statCard('Status', '<span style="color:' + statusColor(subStatus) + ';">' + statusLabel(subStatus) + '</span>') +
+        statCard('Plano', 'Mensal Appliquei') +
+        statCard('Valor cobrado', fmtBRL(baseCents)) +
+        statCard('Próxima cobrança', fmtBRL(me.projectedNextBillCents || baseCents)) +
+        '</div>';
+    }
+
+    var discountNote = pct > 0
+      ? '<div style="margin-top:10px;font-size:12px;color:#059669;"><strong>' + pct + '% off recorrente</strong> aplicado por uso do cupom ' + (me.referredByCode || '') + '.</div>'
+      : '';
+
+    var payments = (me.payments || []);
+    var paymentsRows = payments.length ? payments.map(function (p) {
+      return '<tr>' +
+        '<td style="padding:5px 0;color:#4a5b53;">' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + '</td>' +
+        '<td style="padding:5px 0;">' + (p.billingType || '—') + '</td>' +
+        '<td style="text-align:right;padding:5px 0;font-weight:600;">R$ ' + (p.value || 0).toFixed(2) + '</td>' +
+        '<td style="text-align:right;padding:5px 0;color:' + statusColor(p.status === 'CONFIRMED' || p.status === 'RECEIVED' ? 'ACTIVE' : (p.status === 'OVERDUE' ? 'OVERDUE' : null)) + ';">' + paymentStatusLabel(p.status) + '</td>' +
+        '<td style="text-align:right;padding:5px 0;">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>' : '—') + '</td>' +
+      '</tr>';
+    }).join('') : '<tr><td colspan="5" style="padding:10px 0;color:#6b7d75;text-align:center;">Sem pagamentos ainda.</td></tr>';
+
+    var html = subBlock + discountNote +
+      '<div style="margin-top:18px;">' +
+        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Histórico de cobranças</div>' +
+        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' +
+          '<thead><tr style="color:#6b7d75;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">' +
+          '<th style="text-align:left;padding-bottom:4px;">Data</th>' +
+          '<th style="text-align:left;padding-bottom:4px;">Forma</th>' +
+          '<th style="text-align:right;padding-bottom:4px;">Valor</th>' +
+          '<th style="text-align:right;padding-bottom:4px;">Status</th>' +
+          '<th style="text-align:right;padding-bottom:4px;"></th></tr></thead>' +
+          '<tbody>' + paymentsRows + '</tbody>' +
+        '</table>' +
       '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">' +
-        statCard('Indicados ativos', me.activeReferrals + ' / ' + me.totalReferrals) +
-        statCard('Desconto recorrente', pct + '%') +
-        statCard('Pendente p/ próxima fatura', fmtBRL(me.pendingDiscountCents || 0)) +
-        statCard('Próxima cobrança', fmtBRL(me.projectedNextBillCents || 0)) +
-      '</div>' +
-      '<div style="font-size:12px;color:#6b7d75;margin-bottom:4px;">Economia acumulada como indicador: <strong>' + fmtBRL(me.totalReferralEarningsCents || 0) + '</strong></div>' +
-      '<div style="margin-top:14px;">' +
-        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Histórico de descontos recebidos</div>' +
-        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' + creditsRows + '</table>' +
-      '</div>';
+      '<div style="margin-top:14px;font-size:11.5px;color:#6b7d75;">Programa de indicação (cupom, indicados, créditos) está em <strong>Applicash $</strong>.</div>';
+
     $('myAccountBody').innerHTML = html;
-    var cb = $('myAccountCopy');
-    if (cb) cb.addEventListener('click', function () {
-      try { navigator.clipboard.writeText(code); cb.textContent = 'Copiado!'; setTimeout(function () { cb.textContent = 'Copiar'; }, 1500); } catch (_) {}
-    });
+  }
+
+  async function syncApplicashFromServer() {
+    try {
+      var me = await fetchMe();
+      if (me.referralCode) {
+        try { localStorage.setItem('appliquei_cupom_codigo', me.referralCode); } catch (_) {}
+      }
+      var assin = {
+        plano: 'Mensal',
+        valorMensal: (me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500) / 100,
+        proximaCobranca: (me.projectedNextBillCents || 0) / 100,
+        status: me.subscriptionStatus || null,
+        descontoPct: me.recurringDiscountPercent || 0,
+      };
+      try { localStorage.setItem('appliquei_applicash_assinatura', JSON.stringify(assin)); } catch (_) {}
+
+      var indicacoes = (me.referrals || []).map(function (r) {
+        return {
+          nome: r.email || 'Indicado',
+          plano: 'Mensal',
+          valorPago: (r.baseValueCents || 0) / 100,
+          periodicidade: 'mensal',
+          status: r.subscriptionStatus === 'ACTIVE' ? 'ativo' : 'inativo',
+          dataAdesao: r.referralUsedAt || null,
+        };
+      });
+      try { localStorage.setItem('appliquei_applicash_indicacoes', JSON.stringify(indicacoes)); } catch (_) {}
+
+      try {
+        var creditsLog = (me.credits || []).map(function (c) {
+          return { id: c.id, fromEmail: c.fromEmail, amountCents: c.amountCents, appliedAt: c.appliedAt, createdAt: c.createdAt };
+        });
+        localStorage.setItem('appliquei_applicash_creditos', JSON.stringify(creditsLog));
+        localStorage.setItem('appliquei_applicash_resumo', JSON.stringify({
+          activeReferrals: me.activeReferrals,
+          totalReferrals: me.totalReferrals,
+          pendingDiscountCents: me.pendingDiscountCents,
+          totalReferralEarningsCents: me.totalReferralEarningsCents,
+          projectedNextBillCents: me.projectedNextBillCents,
+        }));
+      } catch (_) {}
+
+      return me;
+    } catch (e) {
+      console.warn('[billing] syncApplicash', e);
+      return null;
+    }
   }
   function statCard(label, value) {
     return '<div style="background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:10px 12px;">' +
@@ -336,7 +427,16 @@
       lastAccess = null;
       return;
     }
-    initBilling();
+    initBilling().then(function () {
+      syncApplicashFromServer().then(function () {
+        if (typeof window.atualizarTelaApplicash === 'function') {
+          try {
+            var sec = document.getElementById('applicash');
+            if (sec && sec.classList && sec.classList.contains('ativa')) window.atualizarTelaApplicash();
+          } catch (_) {}
+        }
+      });
+    });
   }
 
   var attempts = 0;
@@ -363,5 +463,6 @@
     openMyAccount: openMyAccount,
     closeMyAccount: closeMyAccount,
     fetchMe: fetchMe,
+    syncApplicash: syncApplicashFromServer,
   };
 })();
