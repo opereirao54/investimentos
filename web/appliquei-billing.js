@@ -68,35 +68,25 @@
     e.style.display = 'block';
   }
 
-  function ensureTrialBannerStyles() {
-    if (document.getElementById('trialBannerStyles')) return;
-    var s = document.createElement('style');
-    s.id = 'trialBannerStyles';
-    s.textContent = [
-      'body.appliquei-trial-banner-open{',
-        'height:calc(100vh - var(--appliquei-trial-banner-h,40px))!important;',
-        'margin-top:var(--appliquei-trial-banner-h,40px)!important;',
-        'box-sizing:border-box!important;',
-      '}',
-      'body.appliquei-trial-banner-open .sidebar{height:auto!important;}',
-      '@media (max-width: 900px){',
-        'body.appliquei-trial-banner-open{',
-          'height:auto!important;',
-          'min-height:calc(100vh - var(--appliquei-trial-banner-h,40px))!important;',
-        '}',
-      '}',
-    ].join('');
-    document.head.appendChild(s);
-  }
   function syncTrialBannerOffset(b) {
     if (!b) return;
-    var h = b.offsetHeight || 40;
-    document.documentElement.style.setProperty('--appliquei-trial-banner-h', h + 'px');
-    document.body.classList.add('appliquei-trial-banner-open');
+    var apply = function () {
+      var h = b.offsetHeight || 40;
+      var body = document.body;
+      if (!body) return;
+      body.style.setProperty('margin-top', h + 'px', 'important');
+      body.style.setProperty('height', 'calc(100vh - ' + h + 'px)', 'important');
+      body.style.setProperty('box-sizing', 'border-box', 'important');
+    };
+    apply();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
   }
   function clearTrialBannerOffset() {
-    document.body.classList.remove('appliquei-trial-banner-open');
-    document.documentElement.style.removeProperty('--appliquei-trial-banner-h');
+    var body = document.body;
+    if (!body) return;
+    body.style.removeProperty('margin-top');
+    body.style.removeProperty('height');
+    body.style.removeProperty('box-sizing');
   }
   function ensureTrialBanner(daysLeft) {
     var b = $('trialBanner');
@@ -105,7 +95,6 @@
       clearTrialBannerOffset();
       return;
     }
-    ensureTrialBannerStyles();
     if (!b) {
       b = document.createElement('div');
       b.id = 'trialBanner';
