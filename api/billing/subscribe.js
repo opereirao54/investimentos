@@ -9,12 +9,33 @@ function formatDate(d) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function readBody(req) {
+  return new Promise((resolve) => {
+    if (req.body && typeof req.body === 'object') return resolve(req.body);
+    let raw = '';
+    req.on('data', c => { raw += c; });
+    req.on('end', () => {
+      if (!raw) return resolve({});
+      try { resolve(JSON.parse(raw)); } catch (_) { resolve({}); }
+    });
+    req.on('error', () => resolve({}));
+  });
+}
+
+function cleanDigits(s) {
+  return String(s || '').replace(/\D+/g, '');
+}
+
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
   const user = await requireUser(req, res);
   if (!user) return;
+
+  const body = await readBody(req);
+  const cpfCnpj = cleanDigits(body.cpfCnpj);
+  const customerName = (body.name || '').trim();
 
   try {
     const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
@@ -23,6 +44,24 @@ module.exports = async (req, res) => {
       return res.status(400).json({ error: 'billing_not_initialized' });
     }
     const billing = snap.data();
+
+    if (!billing.cpfCnpj && !cpfCnpj) {
+      return res.status(400).json({ error: 'cpfcnpj_required', detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.' });
+    }
+    if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+      return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
+    }
+
+    if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
+      const fields = { cpfCnpj };
+      if (customerName) fields.name = customerName;
+      await asaas.updateCustomer(billing.customerId, fields);
+      await ref.set({
+        cpfCnpj,
+        customerName: customerName || billing.customerName || null,
+        updatedAt: fieldValue().serverTimestamp(),
+      }, { merge: true });
+    }
 
     if (billing.subscriptionId) {
       const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);

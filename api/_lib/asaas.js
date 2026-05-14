@@ -41,13 +41,19 @@ const PLAN_VALUE = 15.0;
 const PLAN_CYCLE = 'MONTHLY';
 const PLAN_DESCRIPTION = 'Appliquei — Acesso mensal';
 
-async function createCustomer({ name, email, uid }) {
-  return call('POST', '/customers', {
+async function createCustomer({ name, email, uid, cpfCnpj }) {
+  const body = {
     name: name || email,
     email,
     externalReference: uid,
     notificationDisabled: false,
-  });
+  };
+  if (cpfCnpj) body.cpfCnpj = cpfCnpj;
+  return call('POST', '/customers', body);
+}
+
+async function updateCustomer(customerId, fields) {
+  return call('POST', '/customers/' + encodeURIComponent(customerId), fields);
 }
 
 async function createSubscription({ customerId, uid, nextDueDate }) {
@@ -73,6 +79,7 @@ async function getPaymentLink(paymentId) {
 module.exports = {
   call,
   createCustomer,
+  updateCustomer,
   createSubscription,
   listPaymentsBySubscription,
   getPaymentLink,

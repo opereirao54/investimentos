@@ -20,10 +20,18 @@
       <div style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
         <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
         <p id="billingSub" style="font-size:14px;color:#4a5b53;line-height:1.5;margin:0 0 18px;">A sua avaliação gratuita terminou.</p>\
-        <div id="billingDetail" style="background:#f1f5f3;border-radius:10px;padding:12px 14px;font-size:13px;color:#1d2a23;margin-bottom:18px;">\
+        <div id="billingDetail" style="background:#f1f5f3;border-radius:10px;padding:12px 14px;font-size:13px;color:#1d2a23;margin-bottom:14px;">\
           <div><strong>Plano:</strong> Mensal Appliquei</div>\
           <div><strong>Valor:</strong> R$ 15,00 / mês</div>\
           <div><strong>Pagamento:</strong> PIX, boleto ou cartão (Asaas)</div>\
+        </div>\
+        <div style="margin-bottom:12px;">\
+          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nome completo</label>\
+          <input id="billingName" type="text" autocomplete="name" placeholder="Como aparece no documento" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;">\
+        </div>\
+        <div style="margin-bottom:12px;">\
+          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CPF ou CNPJ</label>\
+          <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;">\
         </div>\
         <div id="billingErr" style="display:none;font-size:12.5px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>\
         <button id="billingSubscribeBtn" type="button" style="width:100%;border:none;cursor:pointer;padding:13px 16px;border-radius:10px;font-size:14px;font-weight:600;background:#059669;color:#fff;">Assinar agora (R$ 15/mês)</button>\
@@ -177,11 +185,29 @@
 
   async function subscribe() {
     var btn = $('billingSubscribeBtn');
+    var nameEl = $('billingName');
+    var cpfEl = $('billingCpfCnpj');
+    var cpfRaw = cpfEl ? cpfEl.value : '';
+    var cpfDigits = (cpfRaw || '').replace(/\D+/g, '');
+    var nameVal = nameEl ? nameEl.value.trim() : '';
+
+    if (cpfEl && cpfDigits.length !== 11 && cpfDigits.length !== 14) {
+      showErr('Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).');
+      return;
+    }
+    if (nameEl && nameVal.length < 3) {
+      showErr('Informe o seu nome completo.');
+      return;
+    }
+
     if (btn) btn.disabled = true;
     var popup = window.open('about:blank', '_blank');
     writePopupMessage(popup, 'A criar assinatura…', 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
     try {
-      var r = await authedFetch('/subscribe', { method: 'POST', body: '{}' });
+      var r = await authedFetch('/subscribe', {
+        method: 'POST',
+        body: JSON.stringify({ cpfCnpj: cpfDigits, name: nameVal }),
+      });
       console.log('[billing] subscribe response', r);
       if (r.invoiceUrl) {
         if (popup && !popup.closed) {
