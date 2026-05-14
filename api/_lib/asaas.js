@@ -1,13 +1,18 @@
 const DEFAULT_URL = 'https://api.asaas.com/v3';
 
 function baseUrl() {
-  return (process.env.ASAAS_API_URL || DEFAULT_URL).replace(/\/$/, '');
+  let u = process.env.ASAAS_API_URL || DEFAULT_URL;
+  u = String(u).trim().replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '').replace(/\/$/, '');
+  if (!/^https?:\/\//i.test(u)) {
+    throw new Error('ASAAS_API_URL inválida (recebida: "' + u + '"). Use https://api.asaas.com/v3 ou https://sandbox.asaas.com/api/v3.');
+  }
+  return u;
 }
 
 function apiKey() {
   const k = process.env.ASAAS_API_KEY;
   if (!k) throw new Error('ASAAS_API_KEY não definida.');
-  return k;
+  return String(k).trim().replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '');
 }
 
 async function call(method, path, body) {
