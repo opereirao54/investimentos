@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "billing",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "referredByUserId", "order": "ASCENDING" },
+        { "fieldPath": "__name__", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

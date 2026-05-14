@@ -23,42 +23,51 @@ module.exports = async (req, res) => {
     if (!snap.exists) return res.json({ access: computeAccess(null), billing: null });
     const billing = snap.data();
 
-    const indicadosQ = await D.collectionGroup('billing')
-      .where('referredByUserId', '==', user.uid)
-      .get();
-
-    const referrals = indicadosQ.docs.map(d => {
-      const b = d.data();
-      return {
-        uid: b.uid,
-        email: b.email || null,
-        subscriptionStatus: b.subscriptionStatus || null,
-        lastPaymentStatus: b.lastPaymentStatus || null,
-        baseValueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
-        referralUsedAt: tsToIso(b.referralUsedAt),
-        lastPaidAt: tsToIso(b.lastPaidAt),
-      };
-    });
+    let referrals = [];
+    try {
+      const indicadosQ = await D.collectionGroup('billing')
+        .where('referredByUserId', '==', user.uid)
+        .get();
+      referrals = indicadosQ.docs.map(d => {
+        const b = d.data();
+        return {
+          uid: b.uid,
+          email: b.email || null,
+          subscriptionStatus: b.subscriptionStatus || null,
+          lastPaymentStatus: b.lastPaymentStatus || null,
+          baseValueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
+          referralUsedAt: tsToIso(b.referralUsedAt),
+          lastPaidAt: tsToIso(b.lastPaidAt),
+        };
+      });
+    } catch (e) {
+      console.warn('[me] referrals query failed', e.code || '', e.message);
+    }
     const activeReferrals = referrals.filter(r => r.subscriptionStatus === 'ACTIVE').length;
     const totalReferrals = referrals.length;
 
-    const creditsQ = await billingRef.collection('credits')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-    const credits = creditsQ.docs.map(d => {
-      const c = d.data();
-      return {
-        id: d.id,
-        fromUid: c.fromUid || null,
-        fromEmail: c.fromEmail || null,
-        amountCents: c.amountCents || 0,
-        appliedAt: tsToIso(c.appliedAt),
-        appliedAmountCents: c.appliedAmountCents || null,
-        appliedToPaymentId: c.appliedToPaymentId || null,
-        createdAt: tsToIso(c.createdAt),
-      };
-    });
+    let credits = [];
+    try {
+      const creditsQ = await billingRef.collection('credits')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get();
+      credits = creditsQ.docs.map(d => {
+        const c = d.data();
+        return {
+          id: d.id,
+          fromUid: c.fromUid || null,
+          fromEmail: c.fromEmail || null,
+          amountCents: c.amountCents || 0,
+          appliedAt: tsToIso(c.appliedAt),
+          appliedAmountCents: c.appliedAmountCents || null,
+          appliedToPaymentId: c.appliedToPaymentId || null,
+          createdAt: tsToIso(c.createdAt),
+        };
+      });
+    } catch (e) {
+      console.warn('[me] credits query failed', e.code || '', e.message);
+    }
 
     let pendingDiscountCents = 0;
     let totalReferralEarningsCents = 0;
@@ -67,25 +76,30 @@ module.exports = async (req, res) => {
       if (!c.appliedAt) pendingDiscountCents += c.amountCents;
     }
 
-    const paymentsQ = await userRef.collection('payments')
-      .orderBy('receivedAt', 'desc')
-      .limit(20)
-      .get();
-    const payments = paymentsQ.docs.map(d => {
-      const p = d.data();
-      return {
-        id: p.id || d.id,
-        status: p.status || null,
-        value: p.value || null,
-        billingType: p.billingType || null,
-        dueDate: p.dueDate || null,
-        paymentDate: p.paymentDate || null,
-        invoiceUrl: p.invoiceUrl || null,
-        referralAppliedCents: p.referralAppliedCents || 0,
-        event: p.event || null,
-        receivedAt: tsToIso(p.receivedAt),
-      };
-    });
+    let payments = [];
+    try {
+      const paymentsQ = await userRef.collection('payments')
+        .orderBy('receivedAt', 'desc')
+        .limit(20)
+        .get();
+      payments = paymentsQ.docs.map(d => {
+        const p = d.data();
+        return {
+          id: p.id || d.id,
+          status: p.status || null,
+          value: p.value || null,
+          billingType: p.billingType || null,
+          dueDate: p.dueDate || null,
+          paymentDate: p.paymentDate || null,
+          invoiceUrl: p.invoiceUrl || null,
+          referralAppliedCents: p.referralAppliedCents || 0,
+          event: p.event || null,
+          receivedAt: tsToIso(p.receivedAt),
+        };
+      });
+    } catch (e) {
+      console.warn('[me] payments query failed', e.code || '', e.message);
+    }
 
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
     const projectedNextCents = Math.max(100, monthlyCents - Math.min(pendingDiscountCents, monthlyCents - 100));
