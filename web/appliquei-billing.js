@@ -74,9 +74,14 @@
       var h = b.offsetHeight || 40;
       var body = document.body;
       if (!body) return;
-      body.style.setProperty('margin-top', h + 'px', 'important');
-      body.style.setProperty('height', 'calc(100vh - ' + h + 'px)', 'important');
-      body.style.setProperty('box-sizing', 'border-box', 'important');
+      body.style.setProperty('position', 'absolute', 'important');
+      body.style.setProperty('top', h + 'px', 'important');
+      body.style.setProperty('left', '0', 'important');
+      body.style.setProperty('right', '0', 'important');
+      body.style.setProperty('bottom', '0', 'important');
+      body.style.setProperty('height', 'auto', 'important');
+      body.style.setProperty('width', 'auto', 'important');
+      body.style.setProperty('margin', '0', 'important');
     };
     apply();
     if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
@@ -84,9 +89,9 @@
   function clearTrialBannerOffset() {
     var body = document.body;
     if (!body) return;
-    body.style.removeProperty('margin-top');
-    body.style.removeProperty('height');
-    body.style.removeProperty('box-sizing');
+    ['position','top','left','right','bottom','height','width','margin'].forEach(function (k) {
+      body.style.removeProperty(k);
+    });
   }
   function ensureTrialBanner(daysLeft) {
     var b = $('trialBanner');
