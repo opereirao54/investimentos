@@ -1,50 +1,86 @@
 {
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\scripts\\build_plan_pdf.py": {
-    "mtime": 1778638028.846195,
-    "hash": "63692ea5fb3b6a89fa59e7e34f58e9c7"
-  },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\web\\appliquei-cloud-sync.js": {
-    "mtime": 1778642550.9482844,
+  "/home/user/investimentos/web/appliquei-cloud-sync.js": {
+    "mtime": 1778761618.0462642,
     "hash": "53aa89c4c440dcf812f27dcd62014e2f"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\web\\appliquei-firebase-init.js": {
-    "mtime": 1778640283.9334307,
+  "/home/user/investimentos/web/appliquei-billing.js": {
+    "mtime": 1778782081.9651823,
+    "hash": "38c6b0d12d2d290d4bfcd9194dd32f9d"
+  },
+  "/home/user/investimentos/web/appliquei-firebase-init.js": {
+    "mtime": 1778761618.0497036,
     "hash": "9f86c253fdf49ab660d5d830feb64c3a"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\web\\firebase-config.appliquei-prod.js": {
-    "mtime": 1778639116.556692,
-    "hash": "5c07a3c30d1daced60582c98ac93ccde"
-  },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\web\\firebase-config.example.js": {
-    "mtime": 1778638572.771951,
+  "/home/user/investimentos/web/firebase-config.example.js": {
+    "mtime": 1778761618.0497036,
     "hash": "b563a73e43ebd753cbc14e689549ef88"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\web\\firebase-config.local.js": {
-    "mtime": 1778638945.4799936,
-    "hash": "8aa3779b7cc794a90ee1f067a585717d"
+  "/home/user/investimentos/web/firebase-config.appliquei-prod.js": {
+    "mtime": 1778761618.0497036,
+    "hash": "5c07a3c30d1daced60582c98ac93ccde"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\Appliquei_v13.0.html": {
-    "mtime": 1778642489.8375595,
-    "hash": "5d4e07d861b535741f89f00cf7288bec"
+  "/home/user/investimentos/api/_lib/firebase-admin.js": {
+    "mtime": 1778781285.357135,
+    "hash": "4e98d7be657103099bc1c956e8f2255f"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\README.md": {
-    "mtime": 1778638025.8083577,
-    "hash": "79abb89bd319bc3849e9faa9b5d94a8e"
+  "/home/user/investimentos/api/_lib/asaas.js": {
+    "mtime": 1778781884.9451706,
+    "hash": "759be5577937b457e876231a764f1cd0"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\requirements-graphify.txt": {
-    "mtime": 1778638028.1822312,
-    "hash": "09121d60611031fa659aa03863a16b58"
+  "/home/user/investimentos/api/_lib/access.js": {
+    "mtime": 1778761774.9135334,
+    "hash": "464389a46056e94dd56e819b61a131a5"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\Appliquei_Plano_Publicacao_v2.pdf": {
-    "mtime": 1778638025.3694286,
+  "/home/user/investimentos/api/_lib/auth.js": {
+    "mtime": 1778780865.24111,
+    "hash": "f0821d10ec5e37ca377a86d49d3160db"
+  },
+  "/home/user/investimentos/api/billing/subscribe.js": {
+    "mtime": 1778781898.9331715,
+    "hash": "90c53ea742ca23f12b625141666730cd"
+  },
+  "/home/user/investimentos/api/billing/status.js": {
+    "mtime": 1778761791.7975345,
+    "hash": "a0335721ccc2837b14ef215a23300df2"
+  },
+  "/home/user/investimentos/api/billing/init.js": {
+    "mtime": 1778781771.261164,
+    "hash": "8688701082c70c27de312030d3d44220"
+  },
+  "/home/user/investimentos/api/billing/webhook.js": {
+    "mtime": 1778761823.4175363,
+    "hash": "e55b1aecc623d75b5db06069152d2a21"
+  },
+  "/home/user/investimentos/scripts/build_plan_pdf.py": {
+    "mtime": 1778761618.0462642,
+    "hash": "63692ea5fb3b6a89fa59e7e34f58e9c7"
+  },
+  "/home/user/investimentos/README.md": {
+    "mtime": 1778779966.4792085,
+    "hash": "6eaa006c9f43c01f733aa715dfbed3fc"
+  },
+  "/home/user/investimentos/requirements-graphify.txt": {
+    "mtime": 1778761618.0462642,
+    "hash": "858952f21457645ebe95b94a47dc358d"
+  },
+  "/home/user/investimentos/BILLING.md": {
+    "mtime": 1778761971.2375453,
+    "hash": "bacb1c753898385d7fa9292ea308a201"
+  },
+  "/home/user/investimentos/Appliquei_v13.0.html": {
+    "mtime": 1778761920.2215421,
+    "hash": "25bf7d7348708e67d67d099b58c8d2dc"
+  },
+  "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
+    "mtime": 1778761617.9975243,
     "hash": "cb2e9e4e157941c95edc334be193b5ad"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\appliquei_favicon.jpg": {
-    "mtime": 1778638027.9492438,
+  "/home/user/investimentos/appliquei_favicon.jpg": {
+    "mtime": 1778761618.0215242,
     "hash": "1ba3e600e4d1f5694904061aa944a678"
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-finance-app-storage-5W93N\\investimentos-claude-finance-app-storage-5W93N\\appliquei_logo_white.jpg": {
-    "mtime": 1778638028.1182334,
+  "/home/user/investimentos/appliquei_logo_white.jpg": {
+    "mtime": 1778761618.0415242,
     "hash": "7a0408a507e4bcf133941c0adc5b69c5"
   }
 }

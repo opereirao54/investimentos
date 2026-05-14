@@ -1,13 +1,18 @@
-# Graph Report - investimentos-claude-finance-app-storage-5W93N  (2026-05-13)
+# Graph Report - investimentos  (2026-05-14)
 
 ## Corpus Check
-- 7 files · ~386,211 words
+- 16 files · ~389,931 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 62 nodes · 147 edges · 13 communities (10 shown, 3 thin omitted)
+- 173 nodes · 324 edges · 16 communities
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
+
+## Graph Freshness
+- Built from commit: `f12cf679`
+- Run `git rev-parse HEAD` and compare to check if the graph is stale.
+- Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 0|Community 0]]
@@ -19,66 +24,96 @@
 - [[_COMMUNITY_Community 6|Community 6]]
 - [[_COMMUNITY_Community 7|Community 7]]
 - [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `P()` - 15 edges
 2. `main()` - 15 edges
 3. `make_table()` - 14 edges
 4. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
-5. `caption()` - 13 edges
-6. `callout()` - 8 edges
-7. `bullets()` - 7 edges
-8. `section_executive_summary()` - 7 edges
-9. `section_architecture()` - 7 edges
-10. `section_auth()` - 7 edges
+5. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
+6. `caption()` - 13 edges
+7. `Auth + Trial 7 dias + Assinatura Asaas (R$ 15/mês)` - 10 edges
+8. `$()` - 8 edges
+9. `applyAccess()` - 8 edges
+10. `db()` - 8 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `section_architecture()` --calls--> `P()`  [EXTRACTED]
-  scripts/build_plan_pdf.py → scripts/build_plan_pdf.py  _Bridges community 4 → community 2_
-- `section_payments()` --calls--> `P()`  [EXTRACTED]
-  scripts/build_plan_pdf.py → scripts/build_plan_pdf.py  _Bridges community 4 → community 3_
-- `section_architecture()` --calls--> `make_table()`  [EXTRACTED]
-  scripts/build_plan_pdf.py → scripts/build_plan_pdf.py  _Bridges community 3 → community 2_
+- `findBillingByCustomer()` --calls--> `db()`  [EXTRACTED]
+  api/billing/webhook.js → api/_lib/firebase-admin.js
+- `findBillingBySubscription()` --calls--> `db()`  [EXTRACTED]
+  api/billing/webhook.js → api/_lib/firebase-admin.js
+- `requireUser()` --calls--> `auth()`  [EXTRACTED]
+  api/_lib/auth.js → api/_lib/firebase-admin.js
 
-## Communities (13 total, 3 thin omitted)
+## Communities (16 total, 0 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.33
 Nodes (10): attach(), attachWhenReady(), collectKeysPayload(), flushPush(), mainRef(), onUser(), pullAndApply(), shouldSyncKey() (+2 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.18
-Nodes (10): Appliquei v13.0 - Gestão Financeira Inteligente, 🤝 Contribuição, 👨‍💻 Desenvolvimento, 🎨 Design System, Firebase (incremental), ✨ Funcionalidades, 📄 Licença, 📸 Recursos Visuais (+2 more)
+Cohesion: 0.1
+Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
 
 ### Community 2 - "Community 2"
-Cohesion: 0.44
-Nodes (8): build_styles(), callout(), cover(), on_page(), Gera o PDF do plano de publicacao Appliquei v2 (revisado).  Decisoes fechadas ne, section_architecture(), section_auth(), section_data_model()
+Cohesion: 0.35
+Nodes (23): build_styles(), bullets(), callout(), caption(), cell(), cover(), main(), make_table() (+15 more)
 
 ### Community 3 - "Community 3"
-Cohesion: 0.44
-Nodes (9): caption(), cell(), main(), make_table(), section_applicash(), section_extras(), section_pages(), section_payments() (+1 more)
+Cohesion: 0.1
+Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.6
-Nodes (6): bullets(), P(), section_admin(), section_appendix(), section_deploy(), section_executive_summary()
+Cohesion: 0.33
+Nodes (16): $(), applyAccess(), authedFetch(), ensureGate(), ensureTrialBanner(), hideGate(), initBilling(), onUser() (+8 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.5
-Nodes (4): code:bash (python -m pip install -r requirements-graphify.txt), 🧠 Graphify (grafo de conhecimento no Cursor), Instalação (Python 3.10+), Uso
+Cohesion: 0.14
+Nodes (13): Arquitetura, Auth + Trial 7 dias + Assinatura Asaas (R$ 15/mês), code:block1 (┌────────────────────────┐         ┌────────────────────────), code:block2 (users/{uid}/data/main                       (já existente)), code:bash (# 1. Login + link), Configurar webhook Asaas, Deploy Vercel, Endpoints (+5 more)
+
+### Community 6 - "Community 6"
+Cohesion: 0.15
+Nodes (9): asaas, billing, cpfCnpj, customerName, { db, fieldValue }, fields, nextDue, ref (+1 more)
+
+### Community 7 - "Community 7"
+Cohesion: 0.2
+Nodes (10): asaas, billing, { computeAccess, TRIAL_DAYS }, data, { db, fieldValue, timestamp }, now, ref, { requireUser, cors } (+2 more)
+
+### Community 8 - "Community 8"
+Cohesion: 0.25
+Nodes (8): { db, fieldValue }, findBillingByCustomer(), findBillingBySubscription(), update, admin, db(), fieldValue(), timestamp()
+
+### Community 13 - "Community 13"
+Cohesion: 0.28
+Nodes (6): access, { computeAccess }, { db }, { requireUser, cors }, computeAccess(), toMillis()
+
+### Community 14 - "Community 14"
+Cohesion: 0.42
+Nodes (8): apiKey(), baseUrl(), call(), createCustomer(), createSubscription(), getPaymentLink(), listPaymentsBySubscription(), updateCustomer()
+
+### Community 15 - "Community 15"
+Cohesion: 0.4
+Nodes (5): { auth }, cors(), requireUser(), auth(), init()
 
 ## Knowledge Gaps
-- **14 isolated node(s):** `📖 Sobre`, `✨ Funcionalidades`, `🛠️ Tecnologias Utilizadas`, `code:bash (git clone <repositorio>)`, `code:block2 (/workspace)` (+9 more)
+- **62 isolated node(s):** `admin`, `{ auth }`, `{ db, fieldValue }`, `{ requireUser, cors }`, `asaas` (+57 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Appliquei v13.0 - Gestão Financeira Inteligente` connect `Community 1` to `Community 8`, `Community 5`, `Community 6`, `Community 7`?**
-  _High betweenness centrality (0.099) - this node is a cross-community bridge._
-- **Why does `🧠 Graphify (grafo de conhecimento no Cursor)` connect `Community 5` to `Community 1`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
-- **Why does `🚀 Como Usar` connect `Community 7` to `Community 1`?**
-  _High betweenness centrality (0.010) - this node is a cross-community bridge._
-- **What connects `📖 Sobre`, `✨ Funcionalidades`, `🛠️ Tecnologias Utilizadas` to the rest of the system?**
-  _14 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Why does `Appliquei v13.0 - Gestão Financeira Inteligente` connect `Community 3` to `Community 1`?**
+  _High betweenness centrality (0.038) - this node is a cross-community bridge._
+- **Why does `db()` connect `Community 8` to `Community 7`, `Community 13`, `Community 6`, `Community 15`?**
+  _High betweenness centrality (0.017) - this node is a cross-community bridge._
+- **What connects `admin`, `{ auth }`, `{ db, fieldValue }` to the rest of the system?**
+  _62 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 1` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+- **Should `Community 3` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
+- **Should `Community 5` be split into smaller, more focused modules?**
+  _Cohesion score 0.14 - nodes in this community are weakly interconnected._

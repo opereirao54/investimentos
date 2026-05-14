@@ -4,222 +4,6 @@
   "graph": {},
   "nodes": [
     {
-      "label": "build_plan_pdf.py",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L1",
-      "id": "scripts_build_plan_pdf_py",
-      "community": 2,
-      "norm_label": "build_plan_pdf.py"
-    },
-    {
-      "label": "build_styles()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L31",
-      "id": "scripts_build_plan_pdf_build_styles",
-      "community": 2,
-      "norm_label": "build_styles()"
-    },
-    {
-      "label": "P()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L92",
-      "id": "scripts_build_plan_pdf_p",
-      "community": 4,
-      "norm_label": "p()"
-    },
-    {
-      "label": "cell()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L96",
-      "id": "scripts_build_plan_pdf_cell",
-      "community": 3,
-      "norm_label": "cell()"
-    },
-    {
-      "label": "make_table()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L100",
-      "id": "scripts_build_plan_pdf_make_table",
-      "community": 3,
-      "norm_label": "make_table()"
-    },
-    {
-      "label": "caption()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L122",
-      "id": "scripts_build_plan_pdf_caption",
-      "community": 3,
-      "norm_label": "caption()"
-    },
-    {
-      "label": "callout()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L126",
-      "id": "scripts_build_plan_pdf_callout",
-      "community": 2,
-      "norm_label": "callout()"
-    },
-    {
-      "label": "bullets()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L143",
-      "id": "scripts_build_plan_pdf_bullets",
-      "community": 4,
-      "norm_label": "bullets()"
-    },
-    {
-      "label": "on_page()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L152",
-      "id": "scripts_build_plan_pdf_on_page",
-      "community": 2,
-      "norm_label": "on_page()"
-    },
-    {
-      "label": "cover()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L172",
-      "id": "scripts_build_plan_pdf_cover",
-      "community": 2,
-      "norm_label": "cover()"
-    },
-    {
-      "label": "section_executive_summary()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L218",
-      "id": "scripts_build_plan_pdf_section_executive_summary",
-      "community": 4,
-      "norm_label": "section_executive_summary()"
-    },
-    {
-      "label": "section_architecture()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L276",
-      "id": "scripts_build_plan_pdf_section_architecture",
-      "community": 2,
-      "norm_label": "section_architecture()"
-    },
-    {
-      "label": "section_auth()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L357",
-      "id": "scripts_build_plan_pdf_section_auth",
-      "community": 2,
-      "norm_label": "section_auth()"
-    },
-    {
-      "label": "section_payments()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L442",
-      "id": "scripts_build_plan_pdf_section_payments",
-      "community": 3,
-      "norm_label": "section_payments()"
-    },
-    {
-      "label": "section_applicash()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L492",
-      "id": "scripts_build_plan_pdf_section_applicash",
-      "community": 3,
-      "norm_label": "section_applicash()"
-    },
-    {
-      "label": "section_admin()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L555",
-      "id": "scripts_build_plan_pdf_section_admin",
-      "community": 4,
-      "norm_label": "section_admin()"
-    },
-    {
-      "label": "section_data_model()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L592",
-      "id": "scripts_build_plan_pdf_section_data_model",
-      "community": 2,
-      "norm_label": "section_data_model()"
-    },
-    {
-      "label": "section_deploy()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L705",
-      "id": "scripts_build_plan_pdf_section_deploy",
-      "community": 4,
-      "norm_label": "section_deploy()"
-    },
-    {
-      "label": "section_extras()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L744",
-      "id": "scripts_build_plan_pdf_section_extras",
-      "community": 3,
-      "norm_label": "section_extras()"
-    },
-    {
-      "label": "section_roadmap()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L774",
-      "id": "scripts_build_plan_pdf_section_roadmap",
-      "community": 3,
-      "norm_label": "section_roadmap()"
-    },
-    {
-      "label": "section_pages()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L814",
-      "id": "scripts_build_plan_pdf_section_pages",
-      "community": 3,
-      "norm_label": "section_pages()"
-    },
-    {
-      "label": "section_appendix()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L860",
-      "id": "scripts_build_plan_pdf_section_appendix",
-      "community": 4,
-      "norm_label": "section_appendix()"
-    },
-    {
-      "label": "main()",
-      "file_type": "code",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L899",
-      "id": "scripts_build_plan_pdf_main",
-      "community": 3,
-      "norm_label": "main()"
-    },
-    {
-      "label": "Gera o PDF do plano de publicacao Appliquei v2 (revisado).  Decisoes fechadas ne",
-      "file_type": "rationale",
-      "source_file": "scripts/build_plan_pdf.py",
-      "source_location": "L1",
-      "id": "scripts_build_plan_pdf_rationale_1",
-      "community": 2,
-      "norm_label": "gera o pdf do plano de publicacao appliquei v2 (revisado).  decisoes fechadas ne"
-    },
-    {
       "label": "appliquei-cloud-sync.js",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
@@ -328,6 +112,168 @@
       "norm_label": "attachwhenready()"
     },
     {
+      "label": "appliquei-billing.js",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1",
+      "id": "web_appliquei_billing_js",
+      "community": 4,
+      "norm_label": "appliquei-billing.js"
+    },
+    {
+      "label": "$()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L12",
+      "id": "web_appliquei_billing",
+      "community": 4,
+      "norm_label": "$()"
+    },
+    {
+      "label": "ensureGate()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L14",
+      "id": "web_appliquei_billing_ensuregate",
+      "community": 4,
+      "norm_label": "ensuregate()"
+    },
+    {
+      "label": "showGate()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L50",
+      "id": "web_appliquei_billing_showgate",
+      "community": 4,
+      "norm_label": "showgate()"
+    },
+    {
+      "label": "hideGate()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L58",
+      "id": "web_appliquei_billing_hidegate",
+      "community": 4,
+      "norm_label": "hidegate()"
+    },
+    {
+      "label": "showErr()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L64",
+      "id": "web_appliquei_billing_showerr",
+      "community": 4,
+      "norm_label": "showerr()"
+    },
+    {
+      "label": "ensureTrialBanner()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L71",
+      "id": "web_appliquei_billing_ensuretrialbanner",
+      "community": 4,
+      "norm_label": "ensuretrialbanner()"
+    },
+    {
+      "label": "authedFetch()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L86",
+      "id": "web_appliquei_billing_authedfetch",
+      "community": 4,
+      "norm_label": "authedfetch()"
+    },
+    {
+      "label": "applyAccess()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L113",
+      "id": "web_appliquei_billing_applyaccess",
+      "community": 4,
+      "norm_label": "applyaccess()"
+    },
+    {
+      "label": "startPolling()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L141",
+      "id": "web_appliquei_billing_startpolling",
+      "community": 4,
+      "norm_label": "startpolling()"
+    },
+    {
+      "label": "stopPolling()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L145",
+      "id": "web_appliquei_billing_stoppolling",
+      "community": 4,
+      "norm_label": "stoppolling()"
+    },
+    {
+      "label": "initBilling()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L149",
+      "id": "web_appliquei_billing_initbilling",
+      "community": 4,
+      "norm_label": "initbilling()"
+    },
+    {
+      "label": "refresh()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L160",
+      "id": "web_appliquei_billing_refresh",
+      "community": 4,
+      "norm_label": "refresh()"
+    },
+    {
+      "label": "writePopupMessage()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L172",
+      "id": "web_appliquei_billing_writepopupmessage",
+      "community": 4,
+      "norm_label": "writepopupmessage()"
+    },
+    {
+      "label": "openSubscribeForm()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L186",
+      "id": "web_appliquei_billing_opensubscribeform",
+      "community": 4,
+      "norm_label": "opensubscribeform()"
+    },
+    {
+      "label": "subscribe()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L191",
+      "id": "web_appliquei_billing_subscribe",
+      "community": 4,
+      "norm_label": "subscribe()"
+    },
+    {
+      "label": "onUser()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L241",
+      "id": "web_appliquei_billing_onuser",
+      "community": 4,
+      "norm_label": "onuser()"
+    },
+    {
+      "label": "attach()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L253",
+      "id": "web_appliquei_billing_attach",
+      "community": 4,
+      "norm_label": "attach()"
+    },
+    {
       "label": "appliquei-firebase-init.js",
       "file_type": "code",
       "source_file": "web/appliquei-firebase-init.js",
@@ -335,15 +281,6 @@
       "id": "web_appliquei_firebase_init_js",
       "community": 9,
       "norm_label": "appliquei-firebase-init.js"
-    },
-    {
-      "label": "firebase-config.appliquei-prod.js",
-      "file_type": "code",
-      "source_file": "web/firebase-config.appliquei-prod.js",
-      "source_location": "L1",
-      "id": "web_firebase_config_appliquei_prod_js",
-      "community": 10,
-      "norm_label": "firebase-config.appliquei-prod.js"
     },
     {
       "label": "firebase-config.example.js",
@@ -355,13 +292,760 @@
       "norm_label": "firebase-config.example.js"
     },
     {
-      "label": "firebase-config.local.js",
+      "label": "firebase-config.appliquei-prod.js",
       "file_type": "code",
-      "source_file": "web/firebase-config.local.js",
+      "source_file": "web/firebase-config.appliquei-prod.js",
       "source_location": "L1",
-      "id": "web_firebase_config_local_js",
-      "community": 12,
-      "norm_label": "firebase-config.local.js"
+      "id": "web_firebase_config_appliquei_prod_js",
+      "community": 10,
+      "norm_label": "firebase-config.appliquei-prod.js"
+    },
+    {
+      "label": "firebase-admin.js",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L1",
+      "id": "api_lib_firebase_admin_js",
+      "community": 8,
+      "norm_label": "firebase-admin.js"
+    },
+    {
+      "label": "admin",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L1",
+      "id": "lib_firebase_admin_admin",
+      "community": 8,
+      "norm_label": "admin"
+    },
+    {
+      "label": "init()",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L5",
+      "id": "lib_firebase_admin_init",
+      "community": 15,
+      "norm_label": "init()"
+    },
+    {
+      "label": "db()",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L53",
+      "id": "lib_firebase_admin_db",
+      "community": 8,
+      "norm_label": "db()"
+    },
+    {
+      "label": "auth()",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L58",
+      "id": "lib_firebase_admin_auth",
+      "community": 15,
+      "norm_label": "auth()"
+    },
+    {
+      "label": "fieldValue()",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L63",
+      "id": "lib_firebase_admin_fieldvalue",
+      "community": 8,
+      "norm_label": "fieldvalue()"
+    },
+    {
+      "label": "timestamp()",
+      "file_type": "code",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L67",
+      "id": "lib_firebase_admin_timestamp",
+      "community": 8,
+      "norm_label": "timestamp()"
+    },
+    {
+      "label": "asaas.js",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L1",
+      "id": "api_lib_asaas_js",
+      "community": 14,
+      "norm_label": "asaas.js"
+    },
+    {
+      "label": "baseUrl()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L3",
+      "id": "lib_asaas_baseurl",
+      "community": 14,
+      "norm_label": "baseurl()"
+    },
+    {
+      "label": "apiKey()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L12",
+      "id": "lib_asaas_apikey",
+      "community": 14,
+      "norm_label": "apikey()"
+    },
+    {
+      "label": "call()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L18",
+      "id": "lib_asaas_call",
+      "community": 14,
+      "norm_label": "call()"
+    },
+    {
+      "label": "createCustomer()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L44",
+      "id": "lib_asaas_createcustomer",
+      "community": 14,
+      "norm_label": "createcustomer()"
+    },
+    {
+      "label": "updateCustomer()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L55",
+      "id": "lib_asaas_updatecustomer",
+      "community": 14,
+      "norm_label": "updatecustomer()"
+    },
+    {
+      "label": "createSubscription()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L59",
+      "id": "lib_asaas_createsubscription",
+      "community": 14,
+      "norm_label": "createsubscription()"
+    },
+    {
+      "label": "listPaymentsBySubscription()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L71",
+      "id": "lib_asaas_listpaymentsbysubscription",
+      "community": 14,
+      "norm_label": "listpaymentsbysubscription()"
+    },
+    {
+      "label": "getPaymentLink()",
+      "file_type": "code",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L75",
+      "id": "lib_asaas_getpaymentlink",
+      "community": 14,
+      "norm_label": "getpaymentlink()"
+    },
+    {
+      "label": "access.js",
+      "file_type": "code",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L1",
+      "id": "api_lib_access_js",
+      "community": 13,
+      "norm_label": "access.js"
+    },
+    {
+      "label": "toMillis()",
+      "file_type": "code",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L3",
+      "id": "lib_access_tomillis",
+      "community": 13,
+      "norm_label": "tomillis()"
+    },
+    {
+      "label": "computeAccess()",
+      "file_type": "code",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L11",
+      "id": "lib_access_computeaccess",
+      "community": 13,
+      "norm_label": "computeaccess()"
+    },
+    {
+      "label": "auth.js",
+      "file_type": "code",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L1",
+      "id": "api_lib_auth_js",
+      "community": 15,
+      "norm_label": "auth.js"
+    },
+    {
+      "label": "{ auth }",
+      "file_type": "code",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L1",
+      "id": "lib_auth_auth",
+      "community": 15,
+      "norm_label": "{ auth }"
+    },
+    {
+      "label": "requireUser()",
+      "file_type": "code",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L3",
+      "id": "lib_auth_requireuser",
+      "community": 15,
+      "norm_label": "requireuser()"
+    },
+    {
+      "label": "cors()",
+      "file_type": "code",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L24",
+      "id": "lib_auth_cors",
+      "community": 15,
+      "norm_label": "cors()"
+    },
+    {
+      "label": "subscribe.js",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "id": "api_billing_subscribe_js",
+      "community": 6,
+      "norm_label": "subscribe.js"
+    },
+    {
+      "label": "{ db, fieldValue }",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "id": "billing_subscribe_db_fieldvalue",
+      "community": 6,
+      "norm_label": "{ db, fieldvalue }"
+    },
+    {
+      "label": "{ requireUser, cors }",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L2",
+      "id": "billing_subscribe_requireuser_cors",
+      "community": 6,
+      "norm_label": "{ requireuser, cors }"
+    },
+    {
+      "label": "asaas",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L3",
+      "id": "billing_subscribe_asaas",
+      "community": 6,
+      "norm_label": "asaas"
+    },
+    {
+      "label": "formatDate()",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L5",
+      "id": "billing_subscribe_formatdate",
+      "community": 6,
+      "norm_label": "formatdate()"
+    },
+    {
+      "label": "readBody()",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L12",
+      "id": "billing_subscribe_readbody",
+      "community": 6,
+      "norm_label": "readbody()"
+    },
+    {
+      "label": "cleanDigits()",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L25",
+      "id": "billing_subscribe_cleandigits",
+      "community": 6,
+      "norm_label": "cleandigits()"
+    },
+    {
+      "label": "cpfCnpj",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L37",
+      "id": "billing_subscribe_cpfcnpj",
+      "community": 6,
+      "norm_label": "cpfcnpj"
+    },
+    {
+      "label": "customerName",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L38",
+      "id": "billing_subscribe_customername",
+      "community": 6,
+      "norm_label": "customername"
+    },
+    {
+      "label": "ref",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L41",
+      "id": "billing_subscribe_ref",
+      "community": 6,
+      "norm_label": "ref"
+    },
+    {
+      "label": "billing",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L46",
+      "id": "billing_subscribe_billing",
+      "community": 6,
+      "norm_label": "billing"
+    },
+    {
+      "label": "fields",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L56",
+      "id": "billing_subscribe_fields",
+      "community": 6,
+      "norm_label": "fields"
+    },
+    {
+      "label": "nextDue",
+      "file_type": "code",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L79",
+      "id": "billing_subscribe_nextdue",
+      "community": 6,
+      "norm_label": "nextdue"
+    },
+    {
+      "label": "status.js",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "id": "api_billing_status_js",
+      "community": 13,
+      "norm_label": "status.js"
+    },
+    {
+      "label": "{ db }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "id": "billing_status_db",
+      "community": 13,
+      "norm_label": "{ db }"
+    },
+    {
+      "label": "{ requireUser, cors }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "id": "billing_status_requireuser_cors",
+      "community": 13,
+      "norm_label": "{ requireuser, cors }"
+    },
+    {
+      "label": "{ computeAccess }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "id": "billing_status_computeaccess",
+      "community": 13,
+      "norm_label": "{ computeaccess }"
+    },
+    {
+      "label": "access",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L15",
+      "id": "billing_status_access",
+      "community": 13,
+      "norm_label": "access"
+    },
+    {
+      "label": "tsToIso()",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L32",
+      "id": "billing_status_tstoiso",
+      "community": 13,
+      "norm_label": "tstoiso()"
+    },
+    {
+      "label": "init.js",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "id": "api_billing_init_js",
+      "community": 7,
+      "norm_label": "init.js"
+    },
+    {
+      "label": "{ db, fieldValue, timestamp }",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "id": "billing_init_db_fieldvalue_timestamp",
+      "community": 7,
+      "norm_label": "{ db, fieldvalue, timestamp }"
+    },
+    {
+      "label": "{ requireUser, cors }",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L2",
+      "id": "billing_init_requireuser_cors",
+      "community": 7,
+      "norm_label": "{ requireuser, cors }"
+    },
+    {
+      "label": "asaas",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L3",
+      "id": "billing_init_asaas",
+      "community": 7,
+      "norm_label": "asaas"
+    },
+    {
+      "label": "{ computeAccess, TRIAL_DAYS }",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L4",
+      "id": "billing_init_computeaccess_trial_days",
+      "community": 7,
+      "norm_label": "{ computeaccess, trial_days }"
+    },
+    {
+      "label": "ref",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L14",
+      "id": "billing_init_ref",
+      "community": 7,
+      "norm_label": "ref"
+    },
+    {
+      "label": "billing",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L18",
+      "id": "billing_init_billing",
+      "community": 7,
+      "norm_label": "billing"
+    },
+    {
+      "label": "now",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L28",
+      "id": "billing_init_now",
+      "community": 7,
+      "norm_label": "now"
+    },
+    {
+      "label": "data",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L31",
+      "id": "billing_init_data",
+      "community": 7,
+      "norm_label": "data"
+    },
+    {
+      "label": "safeBilling()",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L58",
+      "id": "billing_init_safebilling",
+      "community": 7,
+      "norm_label": "safebilling()"
+    },
+    {
+      "label": "tsToIso()",
+      "file_type": "code",
+      "source_file": "api/billing/init.js",
+      "source_location": "L68",
+      "id": "billing_init_tstoiso",
+      "community": 7,
+      "norm_label": "tstoiso()"
+    },
+    {
+      "label": "webhook.js",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "id": "api_billing_webhook_js",
+      "community": 8,
+      "norm_label": "webhook.js"
+    },
+    {
+      "label": "{ db, fieldValue }",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "id": "billing_webhook_db_fieldvalue",
+      "community": 8,
+      "norm_label": "{ db, fieldvalue }"
+    },
+    {
+      "label": "readBody()",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L3",
+      "id": "billing_webhook_readbody",
+      "community": 8,
+      "norm_label": "readbody()"
+    },
+    {
+      "label": "findBillingByCustomer()",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L16",
+      "id": "billing_webhook_findbillingbycustomer",
+      "community": 8,
+      "norm_label": "findbillingbycustomer()"
+    },
+    {
+      "label": "findBillingBySubscription()",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L22",
+      "id": "billing_webhook_findbillingbysubscription",
+      "community": 8,
+      "norm_label": "findbillingbysubscription()"
+    },
+    {
+      "label": "update",
+      "file_type": "code",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L58",
+      "id": "billing_webhook_update",
+      "community": 8,
+      "norm_label": "update"
+    },
+    {
+      "label": "build_plan_pdf.py",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L1",
+      "id": "scripts_build_plan_pdf_py",
+      "community": 2,
+      "norm_label": "build_plan_pdf.py"
+    },
+    {
+      "label": "build_styles()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L31",
+      "id": "scripts_build_plan_pdf_build_styles",
+      "community": 2,
+      "norm_label": "build_styles()"
+    },
+    {
+      "label": "P()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L92",
+      "id": "scripts_build_plan_pdf_p",
+      "community": 2,
+      "norm_label": "p()"
+    },
+    {
+      "label": "cell()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L96",
+      "id": "scripts_build_plan_pdf_cell",
+      "community": 2,
+      "norm_label": "cell()"
+    },
+    {
+      "label": "make_table()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L100",
+      "id": "scripts_build_plan_pdf_make_table",
+      "community": 2,
+      "norm_label": "make_table()"
+    },
+    {
+      "label": "caption()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L122",
+      "id": "scripts_build_plan_pdf_caption",
+      "community": 2,
+      "norm_label": "caption()"
+    },
+    {
+      "label": "callout()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L126",
+      "id": "scripts_build_plan_pdf_callout",
+      "community": 2,
+      "norm_label": "callout()"
+    },
+    {
+      "label": "bullets()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L143",
+      "id": "scripts_build_plan_pdf_bullets",
+      "community": 2,
+      "norm_label": "bullets()"
+    },
+    {
+      "label": "on_page()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L152",
+      "id": "scripts_build_plan_pdf_on_page",
+      "community": 2,
+      "norm_label": "on_page()"
+    },
+    {
+      "label": "cover()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L172",
+      "id": "scripts_build_plan_pdf_cover",
+      "community": 2,
+      "norm_label": "cover()"
+    },
+    {
+      "label": "section_executive_summary()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L218",
+      "id": "scripts_build_plan_pdf_section_executive_summary",
+      "community": 2,
+      "norm_label": "section_executive_summary()"
+    },
+    {
+      "label": "section_architecture()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L276",
+      "id": "scripts_build_plan_pdf_section_architecture",
+      "community": 2,
+      "norm_label": "section_architecture()"
+    },
+    {
+      "label": "section_auth()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L357",
+      "id": "scripts_build_plan_pdf_section_auth",
+      "community": 2,
+      "norm_label": "section_auth()"
+    },
+    {
+      "label": "section_payments()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L442",
+      "id": "scripts_build_plan_pdf_section_payments",
+      "community": 2,
+      "norm_label": "section_payments()"
+    },
+    {
+      "label": "section_applicash()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L492",
+      "id": "scripts_build_plan_pdf_section_applicash",
+      "community": 2,
+      "norm_label": "section_applicash()"
+    },
+    {
+      "label": "section_admin()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L555",
+      "id": "scripts_build_plan_pdf_section_admin",
+      "community": 2,
+      "norm_label": "section_admin()"
+    },
+    {
+      "label": "section_data_model()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L592",
+      "id": "scripts_build_plan_pdf_section_data_model",
+      "community": 2,
+      "norm_label": "section_data_model()"
+    },
+    {
+      "label": "section_deploy()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L705",
+      "id": "scripts_build_plan_pdf_section_deploy",
+      "community": 2,
+      "norm_label": "section_deploy()"
+    },
+    {
+      "label": "section_extras()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L744",
+      "id": "scripts_build_plan_pdf_section_extras",
+      "community": 2,
+      "norm_label": "section_extras()"
+    },
+    {
+      "label": "section_roadmap()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L774",
+      "id": "scripts_build_plan_pdf_section_roadmap",
+      "community": 2,
+      "norm_label": "section_roadmap()"
+    },
+    {
+      "label": "section_pages()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L814",
+      "id": "scripts_build_plan_pdf_section_pages",
+      "community": 2,
+      "norm_label": "section_pages()"
+    },
+    {
+      "label": "section_appendix()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L860",
+      "id": "scripts_build_plan_pdf_section_appendix",
+      "community": 2,
+      "norm_label": "section_appendix()"
+    },
+    {
+      "label": "main()",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L899",
+      "id": "scripts_build_plan_pdf_main",
+      "community": 2,
+      "norm_label": "main()"
+    },
+    {
+      "label": "Gera o PDF do plano de publicacao Appliquei v2 (revisado).  Decisoes fechadas ne",
+      "file_type": "rationale",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L1",
+      "id": "scripts_build_plan_pdf_rationale_1",
+      "community": 2,
+      "norm_label": "gera o pdf do plano de publicacao appliquei v2 (revisado).  decisoes fechadas ne"
     },
     {
       "label": "README.md",
@@ -377,8 +1061,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "community": 1,
+      "id": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "community": 3,
       "norm_label": "appliquei v13.0 - gestao financeira inteligente"
     },
     {
@@ -386,8 +1070,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L6",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre",
-      "community": 1,
+      "id": "investimentos_readme_sobre",
+      "community": 3,
       "norm_label": "\ud83d\udcd6 sobre"
     },
     {
@@ -395,8 +1079,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L10",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades",
-      "community": 1,
+      "id": "investimentos_readme_funcionalidades",
+      "community": 3,
       "norm_label": "\u2728 funcionalidades"
     },
     {
@@ -404,8 +1088,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L20",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas",
-      "community": 1,
+      "id": "investimentos_readme_tecnologias_utilizadas",
+      "community": 3,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas"
     },
     {
@@ -413,8 +1097,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L32",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
-      "community": 7,
+      "id": "investimentos_readme_como_usar",
+      "community": 3,
       "norm_label": "\ud83d\ude80 como usar"
     },
     {
@@ -422,8 +1106,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L35",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1",
-      "community": 7,
+      "id": "investimentos_readme_codeblock_1",
+      "community": 3,
       "norm_label": "code:bash (git clone <repositorio>)"
     },
     {
@@ -431,8 +1115,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L49",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
-      "community": 8,
+      "id": "investimentos_readme_estrutura_do_projeto",
+      "community": 3,
       "norm_label": "\ud83d\udcc1 estrutura do projeto"
     },
     {
@@ -440,8 +1124,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L51",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2",
-      "community": 8,
+      "id": "investimentos_readme_codeblock_2",
+      "community": 3,
       "norm_label": "code:block2 (/workspace)"
     },
     {
@@ -449,8 +1133,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L63",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system",
-      "community": 1,
+      "id": "investimentos_readme_design_system",
+      "community": 3,
       "norm_label": "\ud83c\udfa8 design system"
     },
     {
@@ -458,8 +1142,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L76",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais",
-      "community": 1,
+      "id": "investimentos_readme_recursos_visuais",
+      "community": 3,
       "norm_label": "\ud83d\udcf8 recursos visuais"
     },
     {
@@ -467,8 +1151,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L84",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
-      "community": 6,
+      "id": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "community": 3,
       "norm_label": "\ud83d\udd27 personalizacao"
     },
     {
@@ -476,8 +1160,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L88",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3",
-      "community": 6,
+      "id": "investimentos_readme_codeblock_3",
+      "community": 3,
       "norm_label": "code:css (:root {)"
     },
     {
@@ -485,8 +1169,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L97",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a",
-      "community": 1,
+      "id": "investimentos_readme_licen\u00e7a",
+      "community": 3,
       "norm_label": "\ud83d\udcc4 licenca"
     },
     {
@@ -494,8 +1178,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L101",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento",
-      "community": 1,
+      "id": "investimentos_readme_desenvolvimento",
+      "community": 3,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento"
     },
     {
@@ -503,8 +1187,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L109",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
-      "community": 5,
+      "id": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "community": 3,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)"
     },
     {
@@ -512,8 +1196,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L113",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
-      "community": 5,
+      "id": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
+      "community": 3,
       "norm_label": "instalacao (python 3.10+)"
     },
     {
@@ -521,8 +1205,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L115",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4",
-      "community": 5,
+      "id": "investimentos_readme_codeblock_4",
+      "community": 3,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)"
     },
     {
@@ -530,8 +1214,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L122",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso",
-      "community": 5,
+      "id": "investimentos_readme_uso",
+      "community": 3,
       "norm_label": "uso"
     },
     {
@@ -539,8 +1223,8 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L130",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental",
-      "community": 1,
+      "id": "investimentos_readme_firebase_incremental",
+      "community": 3,
       "norm_label": "firebase (incremental)"
     },
     {
@@ -548,9 +1232,324 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L136",
-      "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o",
-      "community": 1,
+      "id": "investimentos_readme_contribui\u00e7\u00e3o",
+      "community": 3,
       "norm_label": "\ud83e\udd1d contribuicao"
+    },
+    {
+      "label": "BILLING.md",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L1",
+      "id": "billing_md",
+      "community": 5,
+      "norm_label": "billing.md"
+    },
+    {
+      "label": "Auth + Trial 7 dias + Assinatura Asaas (R$ 15/m\u00eas)",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L1",
+      "id": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "community": 5,
+      "norm_label": "auth + trial 7 dias + assinatura asaas (r$ 15/mes)"
+    },
+    {
+      "label": "Arquitetura",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L3",
+      "id": "investimentos_billing_arquitetura",
+      "community": 5,
+      "norm_label": "arquitetura"
+    },
+    {
+      "label": "code:block1 (\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510         \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500)",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L5",
+      "id": "investimentos_billing_codeblock_1",
+      "community": 5,
+      "norm_label": "code:block1 (\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510         \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500)"
+    },
+    {
+      "label": "Fluxo do utilizador",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L28",
+      "id": "investimentos_billing_fluxo_do_utilizador",
+      "community": 5,
+      "norm_label": "fluxo do utilizador"
+    },
+    {
+      "label": "Estados de acesso (`api/_lib/access.js`)",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L41",
+      "id": "investimentos_billing_estados_de_acesso_api_lib_access_js",
+      "community": 5,
+      "norm_label": "estados de acesso (`api/_lib/access.js`)"
+    },
+    {
+      "label": "Esquema Firestore",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L51",
+      "id": "investimentos_billing_esquema_firestore",
+      "community": 5,
+      "norm_label": "esquema firestore"
+    },
+    {
+      "label": "code:block2 (users/{uid}/data/main                       (j\u00e1 existente))",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L53",
+      "id": "investimentos_billing_codeblock_2",
+      "community": 5,
+      "norm_label": "code:block2 (users/{uid}/data/main                       (ja existente))"
+    },
+    {
+      "label": "Vari\u00e1veis de ambiente",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L68",
+      "id": "investimentos_billing_vari\u00e1veis_de_ambiente",
+      "community": 5,
+      "norm_label": "variaveis de ambiente"
+    },
+    {
+      "label": "Configurar webhook Asaas",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L80",
+      "id": "investimentos_billing_configurar_webhook_asaas",
+      "community": 5,
+      "norm_label": "configurar webhook asaas"
+    },
+    {
+      "label": "Deploy Vercel",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L92",
+      "id": "investimentos_billing_deploy_vercel",
+      "community": 5,
+      "norm_label": "deploy vercel"
+    },
+    {
+      "label": "code:bash (# 1. Login + link)",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L94",
+      "id": "investimentos_billing_codeblock_3",
+      "community": 5,
+      "norm_label": "code:bash (# 1. login + link)"
+    },
+    {
+      "label": "Endpoints",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L115",
+      "id": "investimentos_billing_endpoints",
+      "community": 5,
+      "norm_label": "endpoints"
+    },
+    {
+      "label": "Seguran\u00e7a",
+      "file_type": "document",
+      "source_file": "BILLING.md",
+      "source_location": "L124",
+      "id": "investimentos_billing_seguran\u00e7a",
+      "community": 5,
+      "norm_label": "seguranca"
+    },
+    {
+      "label": "firebase-config.local.js",
+      "file_type": "code",
+      "source_file": "web/firebase-config.local.js",
+      "source_location": "L1",
+      "community": 12,
+      "norm_label": "firebase-config.local.js",
+      "id": "web_firebase_config_local_js"
+    },
+    {
+      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "community": 1,
+      "norm_label": "appliquei v13.0 - gestao financeira inteligente",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
+    },
+    {
+      "label": "\ud83d\udcd6 Sobre",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "community": 1,
+      "norm_label": "\ud83d\udcd6 sobre",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre"
+    },
+    {
+      "label": "\u2728 Funcionalidades",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L10",
+      "community": 1,
+      "norm_label": "\u2728 funcionalidades",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades"
+    },
+    {
+      "label": "\ud83d\udee0\ufe0f Tecnologias Utilizadas",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "community": 1,
+      "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas"
+    },
+    {
+      "label": "\ud83d\ude80 Como Usar",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L32",
+      "community": 1,
+      "norm_label": "\ud83d\ude80 como usar",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar"
+    },
+    {
+      "label": "code:bash (git clone <repositorio>)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L35",
+      "community": 1,
+      "norm_label": "code:bash (git clone <repositorio>)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1"
+    },
+    {
+      "label": "\ud83d\udcc1 Estrutura do Projeto",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L49",
+      "community": 1,
+      "norm_label": "\ud83d\udcc1 estrutura do projeto",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto"
+    },
+    {
+      "label": "code:block2 (/workspace)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "community": 1,
+      "norm_label": "code:block2 (/workspace)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2"
+    },
+    {
+      "label": "\ud83c\udfa8 Design System",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L63",
+      "community": 1,
+      "norm_label": "\ud83c\udfa8 design system",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system"
+    },
+    {
+      "label": "\ud83d\udcf8 Recursos Visuais",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L76",
+      "community": 1,
+      "norm_label": "\ud83d\udcf8 recursos visuais",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais"
+    },
+    {
+      "label": "\ud83d\udd27 Personaliza\u00e7\u00e3o",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L84",
+      "community": 1,
+      "norm_label": "\ud83d\udd27 personalizacao",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o"
+    },
+    {
+      "label": "code:css (:root {)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L88",
+      "community": 1,
+      "norm_label": "code:css (:root {)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3"
+    },
+    {
+      "label": "\ud83d\udcc4 Licen\u00e7a",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L97",
+      "community": 1,
+      "norm_label": "\ud83d\udcc4 licenca",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a"
+    },
+    {
+      "label": "\ud83d\udc68\u200d\ud83d\udcbb Desenvolvimento",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L101",
+      "community": 1,
+      "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento"
+    },
+    {
+      "label": "\ud83e\udde0 Graphify (grafo de conhecimento no Cursor)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L109",
+      "community": 1,
+      "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor"
+    },
+    {
+      "label": "Instala\u00e7\u00e3o (Python 3.10+)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L113",
+      "community": 1,
+      "norm_label": "instalacao (python 3.10+)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10"
+    },
+    {
+      "label": "code:bash (python -m pip install -r requirements-graphify.txt)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "community": 1,
+      "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4"
+    },
+    {
+      "label": "Uso",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "community": 1,
+      "norm_label": "uso",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso"
+    },
+    {
+      "label": "Firebase (incremental)",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "community": 1,
+      "norm_label": "firebase (incremental)",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental"
+    },
+    {
+      "label": "\ud83e\udd1d Contribui\u00e7\u00e3o",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "community": 1,
+      "norm_label": "\ud83e\udd1d contribuicao",
+      "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o"
     },
     {
       "label": "build_plan_pdf.py",
@@ -566,12 +1565,1759 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L13",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L21",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_storagevaluesequal"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L33",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_tsmillis"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L40",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_collectkeyspayload"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L53",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_mainref"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_flushpush"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L97",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_schedulepush"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L103",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_pullandapply"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L182",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_onuser"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L191",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_attach"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L200",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_attachwhenready"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L45",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_collectkeyspayload",
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L137",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L142",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_storagevaluesequal"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_tsmillis"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L120",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_tsmillis"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_collectkeyspayload"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L71",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_flushpush",
+      "target": "web_appliquei_cloud_sync_mainref"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_mainref"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L113",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_flushpush"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L188",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_onuser",
+      "target": "web_appliquei_cloud_sync_pullandapply"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L204",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_attachwhenready",
+      "target": "web_appliquei_cloud_sync_attach"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_ensuregate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_showgate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_hidegate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_showerr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_ensuretrialbanner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_authedfetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L113",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_applyaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_startpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_stoppolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_initbilling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L160",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_writepopupmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L186",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_opensubscribeform",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L191",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_subscribe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_onuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L253",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_attach",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_ensuregate",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_showgate",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_hidegate",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L66",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_showerr",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_ensuretrialbanner",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_opensubscribeform",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_ensuregate",
+      "target": "web_appliquei_billing_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_showgate",
+      "target": "web_appliquei_billing_ensuregate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_showerr",
+      "target": "web_appliquei_billing_ensuregate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_showgate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L155",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_initbilling",
+      "target": "web_appliquei_billing_showgate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_opensubscribeform",
+      "target": "web_appliquei_billing_showgate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L224",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing_showgate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_hidegate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L243",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_onuser",
+      "target": "web_appliquei_billing_hidegate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L156",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_initbilling",
+      "target": "web_appliquei_billing_showerr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_refresh",
+      "target": "web_appliquei_billing_showerr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L200",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing_showerr",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L118",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_ensuretrialbanner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L244",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_onuser",
+      "target": "web_appliquei_billing_ensuretrialbanner",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_initbilling",
+      "target": "web_appliquei_billing_authedfetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_refresh",
+      "target": "web_appliquei_billing_authedfetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing_authedfetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_stoppolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_startpolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_initbilling",
+      "target": "web_appliquei_billing_applyaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L163",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_refresh",
+      "target": "web_appliquei_billing_applyaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_startpolling",
+      "target": "web_appliquei_billing_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L245",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_onuser",
+      "target": "web_appliquei_billing_stoppolling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L249",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_onuser",
+      "target": "web_appliquei_billing_initbilling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L227",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing_refresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L210",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_subscribe",
+      "target": "web_appliquei_billing_writepopupmessage",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_admin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "api_lib_firebase_admin_js",
+      "target": "lib_firebase_admin_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_lib_auth_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "lib_firebase_admin_db",
+      "target": "lib_firebase_admin_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/firebase-admin.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "lib_firebase_admin_auth",
+      "target": "lib_firebase_admin_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "billing_webhook_findbillingbycustomer",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "billing_webhook_findbillingbysubscription",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_lib_auth_js",
+      "target": "lib_firebase_admin_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "lib_auth_requireuser",
+      "target": "lib_firebase_admin_auth"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "lib_firebase_admin_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_firebase_admin_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "lib_firebase_admin_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_firebase_admin_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_baseurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_apikey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L44",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_createcustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_updatecustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_createsubscription",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_listpaymentsbysubscription",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "api_lib_asaas_js",
+      "target": "lib_asaas_getpaymentlink",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "api_lib_asaas_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "api_lib_asaas_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "lib_asaas_call",
+      "target": "lib_asaas_baseurl",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "lib_asaas_call",
+      "target": "lib_asaas_apikey",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "lib_asaas_createcustomer",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "lib_asaas_updatecustomer",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "lib_asaas_createsubscription",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "lib_asaas_listpaymentsbysubscription",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/asaas.js",
+      "source_location": "L76",
+      "weight": 1.0,
+      "source": "lib_asaas_getpaymentlink",
+      "target": "lib_asaas_call",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_lib_access_js",
+      "target": "lib_access_tomillis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "api_lib_access_js",
+      "target": "lib_access_computeaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "api_lib_access_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "api_lib_access_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/access.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "lib_access_computeaccess",
+      "target": "lib_access_tomillis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_access_computeaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_access_computeaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_lib_auth_js",
+      "target": "lib_auth_auth",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_lib_auth_js",
+      "target": "lib_auth_requireuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/auth.js",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "api_lib_auth_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "api_lib_auth_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "api_lib_auth_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "api_lib_auth_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "lib_auth_requireuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_auth_requireuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_auth_requireuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_db_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_requireuser_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_asaas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_formatdate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_readbody",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_cleandigits",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_cpfcnpj",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_customername",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_ref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_fields",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/subscribe.js",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "api_billing_subscribe_js",
+      "target": "billing_subscribe_nextdue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_requireuser_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_computeaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_access",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_tstoiso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_db_fieldvalue_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_requireuser_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_asaas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_computeaccess_trial_days",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_ref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L18",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_now",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_data",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_safebilling",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "api_billing_init_js",
+      "target": "billing_init_tstoiso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/init.js",
+      "source_location": "L64",
+      "weight": 1.0,
+      "source": "billing_init_safebilling",
+      "target": "billing_init_tstoiso",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "billing_webhook_db_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "billing_webhook_readbody",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "billing_webhook_findbillingbycustomer",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "billing_webhook_findbillingbysubscription",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/webhook.js",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "api_billing_webhook_js",
+      "target": "billing_webhook_update",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_build_styles",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_build_styles"
     },
     {
       "relation": "contains",
@@ -579,9 +3325,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_p",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_p"
     },
     {
       "relation": "contains",
@@ -589,9 +3335,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_cell",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_cell"
     },
     {
       "relation": "contains",
@@ -599,9 +3345,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_make_table",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_make_table"
     },
     {
       "relation": "contains",
@@ -609,9 +3355,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L122",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_caption",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_caption"
     },
     {
       "relation": "contains",
@@ -619,9 +3365,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_callout",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_callout"
     },
     {
       "relation": "contains",
@@ -629,9 +3375,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L143",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_bullets",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_bullets"
     },
     {
       "relation": "contains",
@@ -639,9 +3385,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L152",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_on_page",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_on_page"
     },
     {
       "relation": "contains",
@@ -649,9 +3395,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L172",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_cover",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_cover"
     },
     {
       "relation": "contains",
@@ -659,9 +3405,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L218",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_executive_summary",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_executive_summary"
     },
     {
       "relation": "contains",
@@ -669,9 +3415,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L276",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_architecture",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_architecture"
     },
     {
       "relation": "contains",
@@ -679,9 +3425,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L357",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_auth",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_auth"
     },
     {
       "relation": "contains",
@@ -689,9 +3435,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L442",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_payments",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_payments"
     },
     {
       "relation": "contains",
@@ -699,9 +3445,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L492",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_applicash",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_applicash"
     },
     {
       "relation": "contains",
@@ -709,9 +3455,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L555",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_admin",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_admin"
     },
     {
       "relation": "contains",
@@ -719,9 +3465,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L592",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_data_model",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_data_model"
     },
     {
       "relation": "contains",
@@ -729,9 +3475,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L705",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_deploy",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_deploy"
     },
     {
       "relation": "contains",
@@ -739,9 +3485,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L744",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_extras",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_extras"
     },
     {
       "relation": "contains",
@@ -749,9 +3495,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L774",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_roadmap",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_roadmap"
     },
     {
       "relation": "contains",
@@ -759,9 +3505,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L814",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_pages",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_pages"
     },
     {
       "relation": "contains",
@@ -769,9 +3515,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L860",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_section_appendix",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_section_appendix"
     },
     {
       "relation": "contains",
@@ -779,9 +3525,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L899",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_py",
-      "target": "scripts_build_plan_pdf_main",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_main"
     },
     {
       "relation": "rationale_for",
@@ -789,9 +3535,9 @@
       "source_file": "scripts/build_plan_pdf.py",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_build_plan_pdf_rationale_1",
-      "target": "scripts_build_plan_pdf_py",
-      "confidence_score": 1.0
+      "target": "scripts_build_plan_pdf_py"
     },
     {
       "relation": "contains",
@@ -1675,232 +4421,11 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L13",
+      "source_file": "README.md",
+      "source_location": "L1",
       "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L21",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_storagevaluesequal",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L33",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_tsmillis",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L40",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_collectkeyspayload",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L53",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_mainref",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L59",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_flushpush",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L97",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_schedulepush",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L103",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_pullandapply",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L182",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_onuser",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L191",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_attach",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L200",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_attachwhenready",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L45",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_collectkeyspayload",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L137",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L142",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_storagevaluesequal",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L79",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_flushpush",
-      "target": "web_appliquei_cloud_sync_tsmillis",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L120",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_tsmillis",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L65",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_flushpush",
-      "target": "web_appliquei_cloud_sync_collectkeyspayload",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L71",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_flushpush",
-      "target": "web_appliquei_cloud_sync_mainref",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L109",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_mainref",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L113",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_flushpush",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L188",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_onuser",
-      "target": "web_appliquei_cloud_sync_pullandapply",
-      "confidence_score": 1.0
-    },
-    {
-      "relation": "calls",
-      "context": "call",
-      "confidence": "EXTRACTED",
-      "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L204",
-      "weight": 1.0,
-      "source": "web_appliquei_cloud_sync_attachwhenready",
-      "target": "web_appliquei_cloud_sync_attach",
+      "source": "readme_md",
+      "target": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
       "confidence_score": 1.0
     },
     {
@@ -1909,9 +4434,9 @@
       "source_file": "README.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "readme_md",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "confidence_score": 1.0
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
     },
     {
       "relation": "contains",
@@ -1919,8 +4444,8 @@
       "source_file": "README.md",
       "source_location": "L6",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_sobre",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_sobre",
       "confidence_score": 1.0
     },
     {
@@ -1929,8 +4454,8 @@
       "source_file": "README.md",
       "source_location": "L10",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_funcionalidades",
       "confidence_score": 1.0
     },
     {
@@ -1939,8 +4464,8 @@
       "source_file": "README.md",
       "source_location": "L20",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_tecnologias_utilizadas",
       "confidence_score": 1.0
     },
     {
@@ -1949,8 +4474,8 @@
       "source_file": "README.md",
       "source_location": "L32",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_como_usar",
       "confidence_score": 1.0
     },
     {
@@ -1959,8 +4484,8 @@
       "source_file": "README.md",
       "source_location": "L49",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_estrutura_do_projeto",
       "confidence_score": 1.0
     },
     {
@@ -1969,8 +4494,8 @@
       "source_file": "README.md",
       "source_location": "L63",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_design_system",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_design_system",
       "confidence_score": 1.0
     },
     {
@@ -1979,8 +4504,8 @@
       "source_file": "README.md",
       "source_location": "L76",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_recursos_visuais",
       "confidence_score": 1.0
     },
     {
@@ -1989,8 +4514,8 @@
       "source_file": "README.md",
       "source_location": "L84",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_personaliza\u00e7\u00e3o",
       "confidence_score": 1.0
     },
     {
@@ -1999,8 +4524,8 @@
       "source_file": "README.md",
       "source_location": "L97",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_licen\u00e7a",
       "confidence_score": 1.0
     },
     {
@@ -2009,8 +4534,8 @@
       "source_file": "README.md",
       "source_location": "L101",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_desenvolvimento",
       "confidence_score": 1.0
     },
     {
@@ -2019,8 +4544,8 @@
       "source_file": "README.md",
       "source_location": "L109",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
       "confidence_score": 1.0
     },
     {
@@ -2029,8 +4554,8 @@
       "source_file": "README.md",
       "source_location": "L130",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_firebase_incremental",
       "confidence_score": 1.0
     },
     {
@@ -2039,8 +4564,8 @@
       "source_file": "README.md",
       "source_location": "L136",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o",
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_contribui\u00e7\u00e3o",
       "confidence_score": 1.0
     },
     {
@@ -2049,8 +4574,8 @@
       "source_file": "README.md",
       "source_location": "L35",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1",
+      "source": "investimentos_readme_como_usar",
+      "target": "investimentos_readme_codeblock_1",
       "confidence_score": 1.0
     },
     {
@@ -2059,8 +4584,8 @@
       "source_file": "README.md",
       "source_location": "L51",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2",
+      "source": "investimentos_readme_estrutura_do_projeto",
+      "target": "investimentos_readme_codeblock_2",
       "confidence_score": 1.0
     },
     {
@@ -2069,8 +4594,8 @@
       "source_file": "README.md",
       "source_location": "L88",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3",
+      "source": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "target": "investimentos_readme_codeblock_3",
       "confidence_score": 1.0
     },
     {
@@ -2079,8 +4604,8 @@
       "source_file": "README.md",
       "source_location": "L113",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
+      "source": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
       "confidence_score": 1.0
     },
     {
@@ -2089,8 +4614,8 @@
       "source_file": "README.md",
       "source_location": "L122",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_uso",
+      "source": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_readme_uso",
       "confidence_score": 1.0
     },
     {
@@ -2099,10 +4624,331 @@
       "source_file": "README.md",
       "source_location": "L115",
       "weight": 1.0,
-      "source": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
-      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4",
+      "source": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
+      "target": "investimentos_readme_codeblock_4",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "billing_md",
+      "target": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_arquitetura",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_fluxo_do_utilizador",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_estados_de_acesso_api_lib_access_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_esquema_firestore",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_vari\u00e1veis_de_ambiente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_configurar_webhook_asaas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_deploy_vercel",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_endpoints",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L124",
+      "weight": 1.0,
+      "source": "investimentos_billing_auth_trial_7_dias_assinatura_asaas_r_15_m\u00eas",
+      "target": "investimentos_billing_seguran\u00e7a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "investimentos_billing_arquitetura",
+      "target": "investimentos_billing_codeblock_1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "investimentos_billing_esquema_firestore",
+      "target": "investimentos_billing_codeblock_2",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "BILLING.md",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "investimentos_billing_deploy_vercel",
+      "target": "investimentos_billing_codeblock_3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L6",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_sobre"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L10",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L20",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L49",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L63",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_design_system"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L76",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L84",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L97",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L101",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L113",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L122",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_uso"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10",
+      "target": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4"
     }
   ],
-  "hyperedges": []
+  "hyperedges": [],
+  "built_at_commit": "f12cf679e6d593ad995b1788b5303e0f28aa1892"
 }
