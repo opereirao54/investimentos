@@ -161,17 +161,26 @@
   async function subscribe() {
     var btn = $('billingSubscribeBtn');
     if (btn) btn.disabled = true;
+    var popup = window.open('about:blank', '_blank');
     try {
       var r = await authedFetch('/subscribe', { method: 'POST', body: '{}' });
       if (r.invoiceUrl) {
-        window.open(r.invoiceUrl, '_blank', 'noopener');
+        if (popup && !popup.closed) {
+          popup.location.href = r.invoiceUrl;
+        } else {
+          window.location.href = r.invoiceUrl;
+          return;
+        }
         showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
       } else if (r.alreadyActive) {
+        if (popup && !popup.closed) popup.close();
         await refresh(false);
       } else {
+        if (popup && !popup.closed) popup.close();
         showErr('Não foi possível obter o link de pagamento.');
       }
     } catch (e) {
+      if (popup && !popup.closed) popup.close();
       console.warn('[billing] subscribe', e);
       showErr(e.message || 'Falha ao criar assinatura.');
     } finally {
