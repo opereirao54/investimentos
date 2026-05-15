@@ -26,6 +26,35 @@ function cleanDigits(s) {
   return String(s || '').replace(/\D+/g, '');
 }
 
+function clientIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return req.headers['x-real-ip'] || (req.socket && req.socket.remoteAddress) || null;
+}
+
+function brandFromNumber(n) {
+  const d = String(n || '').replace(/\D+/g, '');
+  if (/^4/.test(d)) return 'VISA';
+  if (/^(5[1-5]|2[2-7])/.test(d)) return 'MASTERCARD';
+  if (/^3[47]/.test(d)) return 'AMEX';
+  if (/^(36|30[0-5]|3[89])/.test(d)) return 'DINERS';
+  if (/^(6011|65|64[4-9])/.test(d)) return 'DISCOVER';
+  if (/^(606282|3841)/.test(d)) return 'HIPERCARD';
+  if (/^(4011|4312|4389|4514|4573|5041|5066|5067|6277|6363|6504|6505|6516|6550)/.test(d)) return 'ELO';
+  return 'UNKNOWN';
+}
+
+function cardMetadataFromAsaas(sub, fallbackNumber) {
+  const cc = (sub && sub.creditCard) || {};
+  const masked = cc.creditCardNumber || '';
+  const last4 = masked.replace(/\D+/g, '').slice(-4) || (fallbackNumber ? String(fallbackNumber).replace(/\D+/g, '').slice(-4) : null);
+  return {
+    cardBrand: cc.creditCardBrand || (fallbackNumber ? brandFromNumber(fallbackNumber) : null),
+    cardLast4: last4 || null,
+    cardToken: cc.creditCardToken || null,
+  };
+}
+
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
@@ -36,6 +65,9 @@ module.exports = async (req, res) => {
   const body = await readBody(req);
   const cpfCnpj = cleanDigits(body.cpfCnpj);
   const customerName = (body.name || '').trim();
+  const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
+  const rawHolder = body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object' ? body.creditCardHolderInfo : null;
+  const wantsCard = !!rawCard;
 
   try {
     const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
@@ -81,28 +113,63 @@ module.exports = async (req, res) => {
     const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
 
     const nextDue = formatDate(new Date(Date.now() + 24 * 3600 * 1000));
-    const sub = await asaas.createSubscription({
+    const subPayload = {
       customerId: billing.customerId,
       uid: user.uid,
       nextDueDate: nextDue,
       value: subscriptionValue,
-    });
+    };
+    if (wantsCard) {
+      subPayload.billingType = 'CREDIT_CARD';
+      subPayload.creditCard = rawCard;
+      subPayload.creditCardHolderInfo = rawHolder || {
+        name: customerName || billing.customerName || user.email,
+        email: user.email,
+        cpfCnpj: cpfCnpj || billing.cpfCnpj,
+        postalCode: (rawHolder && rawHolder.postalCode) || null,
+        addressNumber: (rawHolder && rawHolder.addressNumber) || null,
+        phone: (rawHolder && rawHolder.phone) || null,
+      };
+      subPayload.remoteIp = clientIp(req);
+    }
+    const sub = await asaas.createSubscription(subPayload);
 
-    await ref.set({
+    const billingUpdate = {
       subscriptionId: sub.id,
       subscriptionStatus: sub.status || 'ACTIVE',
       subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
+      paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
       updatedAt: fieldValue().serverTimestamp(),
-    }, { merge: true });
+    };
+    if (wantsCard) {
+      const meta = cardMetadataFromAsaas(sub, rawCard.number);
+      billingUpdate.cardBrand = meta.cardBrand;
+      billingUpdate.cardLast4 = meta.cardLast4;
+      if (meta.cardToken) billingUpdate.cardToken = meta.cardToken;
+      billingUpdate.cardHolderName = (rawCard.holderName || '').trim() || null;
+    }
+    await ref.set(billingUpdate, { merge: true });
 
     let invoiceUrl = null;
+    let firstPaymentStatus = null;
     try {
       const payments = await asaas.listPaymentsBySubscription(sub.id);
       const first = payments && payments.data && payments.data[0];
-      if (first) invoiceUrl = first.invoiceUrl;
+      if (first) {
+        invoiceUrl = first.invoiceUrl;
+        firstPaymentStatus = first.status;
+      }
     } catch (_) {}
 
-    return res.json({ subscriptionId: sub.id, invoiceUrl, status: sub.status });
+    return res.json({
+      subscriptionId: sub.id,
+      invoiceUrl,
+      status: sub.status,
+      paymentMethod: billingUpdate.paymentMethod,
+      cardLast4: billingUpdate.cardLast4 || null,
+      cardBrand: billingUpdate.cardBrand || null,
+      firstPaymentStatus,
+    });
   } catch (e) {
     console.error('[subscribe]', e, e.data);
     return res.status(500).json({

@@ -35,8 +35,20 @@ function computeAccess(billing, now = Date.now()) {
   if (subStatus === 'ACTIVE') {
     return { status: 'pending_payment', reason: 'awaiting_payment', trialDaysLeft: 0 };
   }
+  if (subStatus === 'AWAITING_RISK_ANALYSIS') {
+    return { status: 'pending_payment', reason: 'risk_analysis', trialDaysLeft: 0 };
+  }
   if (subStatus === 'OVERDUE') {
     return { status: 'blocked', reason: 'overdue', trialDaysLeft: 0 };
+  }
+  if (subStatus === 'PAYMENT_REPROVED') {
+    return { status: 'blocked', reason: 'card_reproved', trialDaysLeft: 0 };
+  }
+  if (subStatus === 'CHARGEBACK' || subStatus === 'CHARGEBACK_REVERSAL_PENDING') {
+    return { status: 'blocked', reason: 'chargeback', trialDaysLeft: 0 };
+  }
+  if (subStatus === 'INACTIVE') {
+    return { status: 'blocked', reason: 'cancelled', trialDaysLeft: 0 };
   }
   return { status: 'blocked', reason: 'trial_expired', trialDaysLeft: 0 };
 }

@@ -149,13 +149,51 @@ module.exports = async (req, res) => {
       update.lastPaymentId = payment.id;
       update.lastPaymentStatus = payment.status;
 
-      if (event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') {
-        update.subscriptionStatus = 'ACTIVE';
-        update.lastPaidAt = fieldValue().serverTimestamp();
-      } else if (event === 'PAYMENT_OVERDUE') {
-        update.subscriptionStatus = 'OVERDUE';
-      } else if (event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED') {
-        update.subscriptionStatus = 'INACTIVE';
+      switch (event) {
+        case 'PAYMENT_CONFIRMED':
+        case 'PAYMENT_RECEIVED':
+        case 'PAYMENT_RECEIVED_IN_CASH':
+        case 'PAYMENT_APPROVED_BY_RISK_ANALYSIS':
+          update.subscriptionStatus = 'ACTIVE';
+          update.lastPaidAt = fieldValue().serverTimestamp();
+          update.dunningRetryCount = fieldValue().delete();
+          update.lastFailureReason = fieldValue().delete();
+          break;
+        case 'PAYMENT_AUTHORIZED':
+          update.subscriptionStatus = billing.subscriptionStatus === 'ACTIVE' ? 'ACTIVE' : 'PENDING';
+          break;
+        case 'PAYMENT_AWAITING_RISK_ANALYSIS':
+          update.subscriptionStatus = 'AWAITING_RISK_ANALYSIS';
+          break;
+        case 'PAYMENT_REPROVED_BY_RISK_ANALYSIS':
+          update.subscriptionStatus = 'PAYMENT_REPROVED';
+          update.lastFailureReason = 'risk_analysis_reproved';
+          break;
+        case 'PAYMENT_OVERDUE':
+          update.subscriptionStatus = 'OVERDUE';
+          break;
+        case 'PAYMENT_DUNNING_REQUESTED':
+        case 'PAYMENT_DUNNING_RECEIVED':
+          update.dunningRetryCount = fieldValue().increment(1);
+          update.lastDunningAt = fieldValue().serverTimestamp();
+          break;
+        case 'PAYMENT_CHARGEBACK_REQUESTED':
+        case 'PAYMENT_CHARGEBACK_DISPUTE':
+          update.subscriptionStatus = 'CHARGEBACK';
+          update.lastFailureReason = 'chargeback';
+          break;
+        case 'PAYMENT_AWAITING_CHARGEBACK_REVERSAL':
+          update.subscriptionStatus = 'CHARGEBACK_REVERSAL_PENDING';
+          break;
+        case 'PAYMENT_REFUND_IN_PROGRESS':
+          update.subscriptionStatus = 'REFUND_IN_PROGRESS';
+          break;
+        case 'PAYMENT_REFUNDED':
+        case 'PAYMENT_DELETED':
+          update.subscriptionStatus = 'INACTIVE';
+          break;
+        default:
+          break;
       }
 
       const pid = payment.id;
@@ -200,8 +238,16 @@ module.exports = async (req, res) => {
         }, paymentExtra), { merge: true });
       }
     } else if (event && event.startsWith('SUBSCRIPTION_')) {
-      if (event === 'SUBSCRIPTION_DELETED' || event === 'SUBSCRIPTION_INACTIVATED') {
+      if (event === 'SUBSCRIPTION_DELETED' || event === 'SUBSCRIPTION_INACTIVATED' || event === 'SUBSCRIPTION_CANCELLED') {
         update.subscriptionStatus = 'INACTIVE';
+        update.cancelledAt = fieldValue().serverTimestamp();
+      } else if (event === 'SUBSCRIPTION_UPDATED') {
+        if (subscription) {
+          if (subscription.status) update.subscriptionStatus = subscription.status;
+          if (typeof subscription.value === 'number') update.subscriptionBaseValueCents = Math.round(subscription.value * 100);
+          if (subscription.nextDueDate) update.nextDueDate = subscription.nextDueDate;
+          if (subscription.billingType) update.paymentMethod = subscription.billingType;
+        }
       } else if (subscription && subscription.status) {
         update.subscriptionStatus = subscription.status;
       }

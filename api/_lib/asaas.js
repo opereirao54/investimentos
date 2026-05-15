@@ -56,20 +56,48 @@ async function updateCustomer(customerId, fields) {
   return call('POST', '/customers/' + encodeURIComponent(customerId), fields);
 }
 
-async function createSubscription({ customerId, uid, nextDueDate, value }) {
-  return call('POST', '/subscriptions', {
+async function createSubscription({ customerId, uid, nextDueDate, value, billingType, creditCard, creditCardHolderInfo, remoteIp }) {
+  const body = {
     customer: customerId,
-    billingType: 'UNDEFINED',
+    billingType: billingType || 'UNDEFINED',
     value: typeof value === 'number' ? value : PLAN_VALUE,
     cycle: PLAN_CYCLE,
     description: PLAN_DESCRIPTION,
     nextDueDate,
     externalReference: uid,
-  });
+  };
+  if (creditCard) body.creditCard = creditCard;
+  if (creditCardHolderInfo) body.creditCardHolderInfo = creditCardHolderInfo;
+  if (remoteIp) body.remoteIp = remoteIp;
+  return call('POST', '/subscriptions', body);
 }
 
 async function updateSubscription(subscriptionId, fields) {
   return call('POST', '/subscriptions/' + encodeURIComponent(subscriptionId), fields);
+}
+
+async function updateSubscriptionCard(subscriptionId, { creditCard, creditCardHolderInfo, remoteIp, updatePendingPayments }) {
+  const body = { creditCard, creditCardHolderInfo };
+  if (remoteIp) body.remoteIp = remoteIp;
+  if (typeof updatePendingPayments === 'boolean') body.updatePendingPayments = updatePendingPayments;
+  return call('POST', '/subscriptions/' + encodeURIComponent(subscriptionId), body);
+}
+
+async function cancelSubscription(subscriptionId) {
+  return call('DELETE', '/subscriptions/' + encodeURIComponent(subscriptionId));
+}
+
+async function tokenizeCard({ customerId, creditCard, creditCardHolderInfo, remoteIp }) {
+  return call('POST', '/creditCard/tokenizeCreditCard', {
+    customer: customerId,
+    creditCard,
+    creditCardHolderInfo,
+    remoteIp,
+  });
+}
+
+async function getSubscription(subscriptionId) {
+  return call('GET', '/subscriptions/' + encodeURIComponent(subscriptionId));
 }
 
 async function updatePayment(paymentId, fields) {
@@ -90,6 +118,10 @@ module.exports = {
   updateCustomer,
   createSubscription,
   updateSubscription,
+  updateSubscriptionCard,
+  cancelSubscription,
+  tokenizeCard,
+  getSubscription,
   updatePayment,
   listPaymentsBySubscription,
   getPaymentLink,
