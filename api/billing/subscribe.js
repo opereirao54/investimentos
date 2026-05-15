@@ -87,11 +87,18 @@ module.exports = async (req, res) => {
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
       // C4: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids
       // (anti multi-conta para fraudar referral).
-      const dup = await db().collectionGroup('billing')
-        .where('cpfCnpj', '==', cpfCnpj)
-        .limit(5)
-        .get();
-      const conflict = dup.docs.find(d => {
+      let dupDocs = [];
+      try {
+        const dup = await db().collectionGroup('billing')
+          .where('cpfCnpj', '==', cpfCnpj)
+          .limit(5)
+          .get();
+        dupDocs = dup.docs;
+      } catch (err) {
+        console.warn('[subscribe] CPF uniqueness check skipped (missing index)', err.message);
+      }
+
+      const conflict = dupDocs.find(d => {
         const owner = d.ref.parent && d.ref.parent.parent;
         return owner && owner.id !== user.uid;
       });
