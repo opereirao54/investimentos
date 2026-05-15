@@ -37,4 +37,19 @@ async function lookupOwner(db, code) {
   return { code: c, uid: snap.data().uid };
 }
 
-module.exports = { randomCode, normalize, isValid, reserveUniqueCode, lookupOwner };
+// Self-heal: garante que referralCodes/CODE existe e pertence ao uid esperado.
+// Idempotente. Se já existe com o uid correto, no-op. Se existe com outro uid,
+// não sobrescreve (devolve false). Se não existe, cria via transação.
+async function ensureReserved(db, code, uid, timestamp) {
+  const c = normalize(code);
+  if (!isValid(c)) return false;
+  const ref = db.collection('referralCodes').doc(c);
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (snap.exists) return snap.data().uid === uid;
+    tx.set(ref, { uid, createdAt: timestamp.fromMillis(Date.now()) });
+    return true;
+  });
+}
+
+module.exports = { randomCode, normalize, isValid, reserveUniqueCode, lookupOwner, ensureReserved };

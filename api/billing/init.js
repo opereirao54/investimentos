@@ -69,6 +69,19 @@ module.exports = async (req, res) => {
       const existing = claim.existing;
       let billingNow = existing;
 
+      // Self-heal: se billing.referralCode aponta para um doc que não existe
+      // mais em referralCodes/ (estado órfão herdado de versões antigas ou
+      // edição manual), recria a reserva. Sem isto, ninguém consegue usar
+      // o cupom deste utilizador — `lookupOwner` devolve null e o /init de
+      // quem tenta usar bate referral_code_not_found.
+      if (existing.referralCode && codes.isValid(existing.referralCode)) {
+        try {
+          await codes.ensureReserved(D, existing.referralCode, user.uid, timestamp());
+        } catch (e) {
+          console.warn('[init] self-heal referralCodes failed', e.message || e);
+        }
+      }
+
       // Bug #1 fix: aplicar cupom retroativo se o usuário ainda não criou
       // a subscription no Asaas (ou seja, ainda não pagou nenhuma fatura
       // recorrente). Cobre os casos:
@@ -141,9 +154,18 @@ module.exports = async (req, res) => {
         discountPercent = REFERRAL_DISCOUNT_PERCENT;
       }
 
-      const ownCode = (existing && existing.referralCode)
-        ? existing.referralCode
-        : await codes.reserveUniqueCode(D, user.uid, timestamp());
+      let ownCode;
+      if (existing && existing.referralCode) {
+        ownCode = existing.referralCode;
+        // Self-heal: re-cria a reserva se sumiu (mesma razão do bloco
+        // has_customer acima).
+        if (codes.isValid(ownCode)) {
+          try { await codes.ensureReserved(D, ownCode, user.uid, timestamp()); }
+          catch (e) { console.warn('[init] self-heal referralCodes failed', e.message || e); }
+        }
+      } else {
+        ownCode = await codes.reserveUniqueCode(D, user.uid, timestamp());
+      }
 
       const customer = await asaas.createCustomer({
         email: user.email,

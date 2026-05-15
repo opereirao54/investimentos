@@ -154,6 +154,11 @@
     $('billingErr').style.display = 'none';
     $('billingGate').style.display = 'flex';
     document.body.style.overflow = 'hidden';
+    // Sincroniza preço/desconto com lastBilling sempre que o gate aparece.
+    // Sem isto, entradas que pulam o updateGatePrices em applyAccess (trial
+    // banner → openSubscribeForm) mostravam o R$ 15,00 estático do template
+    // ignorando o cupom já aplicado.
+    updateGatePrices();
   }
   function hideGate() {
     var g = $('billingGate');
