@@ -265,6 +265,24 @@
       applyAccess(r.access);
     } catch (e) {
       console.warn('[billing] init', e);
+      var refErr = e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found' || e.detail.error === 'self_referral_not_allowed');
+      if (refErr && pending) {
+        try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
+        try {
+          var r2 = await authedFetch('/init', { method: 'POST', body: JSON.stringify({}) });
+          applyAccess(r2.access);
+          var msg = e.detail.error === 'self_referral_not_allowed'
+            ? 'Não é possível usar o seu próprio cupom — a conta foi criada sem cupom.'
+            : 'O cupom informado não foi encontrado — a conta foi criada sem cupom.';
+          showErr(msg);
+          return;
+        } catch (e2) {
+          console.warn('[billing] init retry', e2);
+          showGate('Não foi possível verificar a sua assinatura', 'Tente novamente. Se persistir, contacte o suporte.');
+          showErr(e2.message || 'Erro de rede.');
+          return;
+        }
+      }
       if (e.detail && e.detail.error === 'self_referral_not_allowed') {
         showGate('Cupom inválido', 'Não é possível usar o seu próprio cupom.');
       } else if (e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found')) {

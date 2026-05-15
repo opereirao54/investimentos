@@ -11415,6 +11415,15 @@
         if (senha) senha.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
         var cupomWrap = $('authCupomWrap');
         if (cupomWrap) cupomWrap.style.display = login ? 'none' : '';
+        if (!login) {
+            var cupomInput = $('authCupom');
+            if (cupomInput && !cupomInput.value) {
+                try {
+                    var pending = sessionStorage.getItem('appliquei_pending_referral') || '';
+                    if (pending) cupomInput.value = pending;
+                } catch (_) {}
+            }
+        }
         window.appliqueiAuthErr('');
     };
     function mapAuthErr(err) {
@@ -11451,7 +11460,9 @@
         if (reg) {
             var cupomEl = $('authCupom');
             var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';
-            try { sessionStorage.setItem('appliquei_pending_referral', cupom); } catch (_) {}
+            if (cupom) {
+                try { sessionStorage.setItem('appliquei_pending_referral', cupom); } catch (_) {}
+            }
         }
         var p = reg
             ? fb.auth.createUserWithEmailAndPassword(email, senha)
