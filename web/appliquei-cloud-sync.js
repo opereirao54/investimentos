@@ -9,6 +9,7 @@
   var applyingPull = false;
   var authHooked = false;
   var pullInFlight = false;
+  var initialPullDone = false; // Previne pushes antes da restauração completa
 
   function shouldSyncKey(key) {
     if (!key || typeof key !== 'string') return false;
@@ -57,6 +58,7 @@
   }
 
   function flushPush() {
+    if (!initialPullDone) return;
     timer = null;
     var fb = window.AppliqueiFirebase;
     if (!fb || !fb.ready || !fb.db || !fb.auth) return;
@@ -95,6 +97,7 @@
   }
 
   function schedulePush() {
+    if (!initialPullDone) return;
     if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready || !AppliqueiFirebase.auth.currentUser) return;
     if (timer) clearTimeout(timer);
     timer = setTimeout(flushPush, DEBOUNCE_MS);
@@ -110,6 +113,7 @@
       .get({ source: 'server' })
       .then(function (snap) {
         if (!snap.exists) {
+          initialPullDone = true;
           flushPush();
           pullInFlight = false;
           if (done) done(false);
@@ -125,6 +129,7 @@
           prevRev = 0;
         }
         if (rev != null && prevRev && rev === prevRev) {
+          initialPullDone = true;
           pullInFlight = false;
           if (done) done(false);
           return;
@@ -155,19 +160,25 @@
           if (rev != null) localStorage.setItem('appliquei_cloud_applied_rev', String(rev));
         } catch (_) {}
 
+        initialPullDone = true;
+
         if (changed > 0) {
           if (typeof window.mostrarToast === 'function') {
             window.mostrarToast(
-              'Dados da nuvem aplicados neste aparelho. Se os totais não baterem, prima F5 uma vez.',
+              'Dados da nuvem restaurados! Atualizando a página para carregar as informações...',
               'sucesso'
             );
           }
+          setTimeout(function() {
+            window.location.reload();
+          }, 1500);
         }
         pullInFlight = false;
         if (done) done(changed > 0);
       })
       .catch(function (err) {
         console.warn('[AppliqueiCloudSync] pull', err);
+        initialPullDone = true;
         pullInFlight = false;
         if (typeof window.mostrarToast === 'function') {
           window.mostrarToast(
