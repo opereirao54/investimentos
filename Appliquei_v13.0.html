@@ -3777,6 +3777,7 @@
                 </div>
                 <div class="page-actions">
                     <button class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom" title="Copiar cupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
+                    <button class="btn-secundario" onclick="copiarLinkApplicash()" id="btnCopiarLink" title="Copiar link com cupom"><i class="ph ph-link"></i> <span id="lblLinkBtn">Copiar link</span></button>
                     <button class="btn-acao" style="width:auto;padding:9px 16px;" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
                 </div>
             </div>
@@ -10823,6 +10824,54 @@
         }
 
         function cupomValido(c) { return /^APP-[A-Z0-9]{6}$/.test(c || ''); }
+
+        // Captura ?ref= da URL no carregamento e guarda em sessionStorage
+        // para que appliquei-billing.js o envie ao /init no momento do signup.
+        // Aceita aliases comuns (?cupom=, ?coupon=). Remove o param da URL depois.
+        (function capturarRefDaUrl() {
+            try {
+                var p = new URLSearchParams(window.location.search);
+                var raw = p.get('ref') || p.get('cupom') || p.get('coupon') || '';
+                if (!raw) return;
+                var c = String(raw).trim().toUpperCase();
+                if (!/^APP-[A-Z0-9]{6}$/.test(c)) return;
+                sessionStorage.setItem('appliquei_pending_referral', c);
+                p.delete('ref'); p.delete('cupom'); p.delete('coupon');
+                var qs = p.toString();
+                var url = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+                window.history.replaceState({}, '', url);
+            } catch (_) {}
+        })();
+
+        function gerarLinkApplicash(cupom) {
+            var origin = window.location.origin || '';
+            var path = window.location.pathname || '/';
+            return origin + path + (path.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(cupom);
+        }
+
+        function copiarLinkApplicash() {
+            var cupom = obterCupomApplicash();
+            if (!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
+            var link = gerarLinkApplicash(cupom);
+            var lbl = document.getElementById('lblLinkBtn');
+            var fallback = function () {
+                var ta = document.createElement('textarea');
+                ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
+                document.body.appendChild(ta); ta.select();
+                try { document.execCommand('copy'); } catch (_) {}
+                document.body.removeChild(ta);
+            };
+            var onOk = function () {
+                if (lbl) { lbl.innerText = 'Copiado!'; setTimeout(function () { lbl.innerText = 'Copiar link'; }, 1800); }
+                mostrarToast('Link copiado!', 'sucesso');
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(link).then(onOk).catch(function () { fallback(); onOk(); });
+            } else {
+                fallback(); onOk();
+            }
+        }
+
         function copiarCupomApplicash() {
             const cupom = obterCupomApplicash();
             if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
@@ -10847,13 +10896,13 @@
         function compartilharCupomApplicash() {
             const cupom = obterCupomApplicash();
             if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
-            const texto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto em qualquer plano! 💚`;
+            const link = gerarLinkApplicash(cupom);
+            const texto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto em qualquer plano! 💚\n${link}`;
             if(navigator.share) {
-                navigator.share({ title: 'Appliquei', text: texto }).catch(() => {});
+                navigator.share({ title: 'Appliquei', text: texto, url: link }).catch(() => {});
             } else {
-                copiarCupomApplicash();
-                mostrarToast('Texto pronto para compartilhar copiado!', 'sucesso');
                 if(navigator.clipboard) navigator.clipboard.writeText(texto).catch(() => {});
+                mostrarToast('Texto + link copiados para compartilhar!', 'sucesso');
             }
         }
 
