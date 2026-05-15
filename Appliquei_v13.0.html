@@ -2293,6 +2293,121 @@
             display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--transicao);
         }
         .sidebar-auth-mini .sa-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--sb-accent-border); }
+
+        /* === APPLICASH — HERO & EMPTY STATES === */
+        .apc-hero {
+            position: relative;
+            border-radius: 16px;
+            padding: 22px 24px;
+            margin-bottom: 18px;
+            background:
+                radial-gradient(120% 140% at 0% 0%, rgba(16,185,129,0.16) 0%, rgba(16,185,129,0) 55%),
+                radial-gradient(80% 100% at 100% 0%, rgba(96,165,250,0.10) 0%, rgba(96,165,250,0) 60%),
+                linear-gradient(135deg, var(--cor-branco) 0%, var(--cor-superficie) 100%);
+            border: 1px solid var(--cor-borda);
+            box-shadow: var(--shadow-card);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 22px;
+            align-items: center;
+            overflow: hidden;
+        }
+        .apc-hero::before {
+            content: ""; position: absolute; inset: 0;
+            background: radial-gradient(circle at 92% 110%, rgba(5,150,105,0.10), transparent 45%);
+            pointer-events: none;
+        }
+        .apc-hero-left { position: relative; min-width: 0; }
+        .apc-hero-eyebrow {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
+            color: var(--cor-primaria);
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--cor-bg-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            margin-bottom: 12px;
+        }
+        .apc-hero-code {
+            font-family: 'DM Mono', monospace;
+            font-size: clamp(26px, 4vw, 36px);
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--cor-texto-principal);
+            line-height: 1.1;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+        .apc-hero-link-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            max-width: 100%;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario);
+            font-family: 'DM Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transicao);
+            overflow: hidden;
+        }
+        .apc-hero-link-pill:hover {
+            background: var(--cor-bg-primaria);
+            border-color: var(--cor-borda-primaria);
+            color: var(--cor-txt-primaria);
+        }
+        .apc-hero-link-pill .pill-url {
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .apc-hero-link-pill i { flex-shrink: 0; font-size: 14px; }
+        .apc-hero-actions {
+            display: flex; flex-direction: column; gap: 8px;
+            position: relative;
+        }
+        .apc-hero-actions .btn-acao,
+        .apc-hero-actions .btn-secundario {
+            min-width: 178px;
+            justify-content: center;
+            padding: 11px 16px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .apc-hero-tagline {
+            margin-top: 10px;
+            font-size: 12.5px;
+            color: var(--cor-texto-secundario);
+            line-height: 1.5;
+        }
+        .apc-hero-tagline strong { color: var(--cor-primaria); }
+        @media (max-width: 768px) {
+            .apc-hero { grid-template-columns: 1fr; padding: 18px; }
+            .apc-hero-actions { flex-direction: row; flex-wrap: wrap; }
+            .apc-hero-actions .btn-acao,
+            .apc-hero-actions .btn-secundario { flex: 1 1 calc(50% - 4px); min-width: 0; }
+        }
+
+        /* Empty state CTA — substitui o gráfico quando 0 indicações */
+        .apc-empty-cta {
+            display: none;
+            text-align: center;
+            padding: 28px 22px;
+            background: linear-gradient(135deg, var(--cor-bg-primaria) 0%, rgba(16,185,129,0.04) 100%);
+            border: 1px dashed var(--cor-borda-primaria);
+            border-radius: 12px;
+            color: var(--cor-txt-primaria);
+        }
+        .apc-empty-cta i.empty-illu {
+            font-size: 40px; display: block; margin-bottom: 8px; color: var(--cor-primaria);
+        }
+        .apc-empty-cta h4 {
+            font-family: 'Syne', sans-serif; font-size: 17px;
+            margin-bottom: 6px; color: var(--cor-texto-principal); font-weight: 700;
+        }
+        .apc-empty-cta p {
+            font-size: 13px; line-height: 1.55; color: var(--cor-texto-secundario);
+            margin-bottom: 16px;
+        }
+        .apc-empty-cta .btn-acao { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; }
     </style>
 </head>
 <body>
@@ -3775,10 +3890,24 @@
                     <h1>Applicash $</h1>
                     <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e ganhe enquanto seus indicados forem assinantes.</p>
                 </div>
-                <div class="page-actions">
-                    <button class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom" title="Copiar cupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
-                    <button class="btn-secundario" onclick="copiarLinkApplicash()" id="btnCopiarLink" title="Copiar link com cupom"><i class="ph ph-link"></i> <span id="lblLinkBtn">Copiar link</span></button>
-                    <button class="btn-acao" style="width:auto;padding:9px 16px;" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
+            </div>
+
+            <!-- HERO: cupom + link + acções -->
+            <div class="apc-hero" id="apcHero">
+                <div class="apc-hero-left">
+                    <span class="apc-hero-eyebrow"><i class="ph-fill ph-ticket"></i> Seu cupom</span>
+                    <div class="apc-hero-code" id="apcCupomCodigo">—</div>
+                    <button type="button" class="apc-hero-link-pill" onclick="copiarLinkApplicash()" id="apcHeroLinkPill" title="Copiar link de convite">
+                        <i class="ph ph-link"></i>
+                        <span class="pill-url" id="apcHeroLinkUrl">—</span>
+                        <i class="ph ph-copy" style="opacity:.7;"></i>
+                    </button>
+                    <p class="apc-hero-tagline"><strong>10% de desconto</strong> para quem se cadastra · você recebe <strong>10% da mensalidade</strong> enquanto ele permanecer assinante.</p>
+                </div>
+                <div class="apc-hero-actions">
+                    <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
+                    <button type="button" class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
+                    <button type="button" class="btn-secundario" onclick="copiarLinkApplicash()" id="btnCopiarLink"><i class="ph ph-link"></i> <span id="lblLinkBtn">Copiar link</span></button>
                 </div>
             </div>
 
@@ -3787,17 +3916,12 @@
                 <span id="apcResumoDetalhe" style="display:block;font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;"></span>
             </div>
 
-            <!-- KPIs topo -->
-            <div class="grid-4" style="margin-bottom:18px;">
+            <!-- KPIs topo (3 cards) -->
+            <div class="grid-3" style="margin-bottom:18px;">
                 <div class="card-destaque accent">
                     <h3><i class="ph-fill ph-users-three"></i> Indicações efetivas</h3>
                     <div class="valor"><span id="apcIndicacoesEfetivas">0</span></div>
                     <span class="kpi-delta"><i class="ph-bold ph-arrow-up"></i> <span id="apcIndicacoesNoMes">0</span> neste mês</span>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-ticket"></i> Seu cupom</h3>
-                    <div class="valor" id="apcCupomCodigo" style="font-size:20px;letter-spacing:0.5px;">—</div>
-                    <span class="kpi-delta delta-neutro" style="margin-top:8px;"><i class="ph ph-tag"></i> 10% de desconto p/ o assinante</span>
                 </div>
                 <div class="card-destaque">
                     <h3><i class="ph ph-arrow-circle-down"></i> Você paga (mensal)</h3>
@@ -3811,12 +3935,12 @@
                 </div>
             </div>
 
-            <!-- Linha 1: Pizza + Meta -->
+            <!-- Linha: Pizza/CTA + Meta -->
             <div class="grid-2-iguais" style="margin-bottom:18px;">
-                <!-- Pizza paga vs recebe -->
-                <div class="card-container">
+                <!-- Pizza paga vs recebe — esconde quando 0 indicações; mostra CTA -->
+                <div class="card-container" id="apcCardPizza">
                     <div class="div-chart-title"><i class="ph ph-chart-pie-slice"></i> Paga vs. Recebe (mensal)</div>
-                    <div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
+                    <div id="apcPizzaContent" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
                         <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
                             <canvas id="chartApplicash"></canvas>
                         </div>
@@ -3835,6 +3959,12 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="apc-empty-cta" id="apcEmptyCta">
+                        <i class="ph-duotone ph-paper-plane-tilt empty-illu"></i>
+                        <h4>Convide o primeiro amigo</h4>
+                        <p>Cada indicação que assina te dá <strong>10% do valor pago</strong> todo mês. Comece a partilhar para começar a receber.</p>
+                        <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar agora</button>
                     </div>
                 </div>
 
@@ -10640,6 +10770,19 @@
             const elCupom = document.getElementById('apcCupomCodigo');
             if(elCupom) elCupom.innerText = cupom;
 
+            // Hero — preenche pill do link
+            const elHeroLink = document.getElementById('apcHeroLinkUrl');
+            const elHeroPill = document.getElementById('apcHeroLinkPill');
+            if (elHeroLink && cupomValido(cupom)) {
+                const link = gerarLinkApplicash(cupom);
+                const displayUrl = link.replace(/^https?:\/\//, '');
+                elHeroLink.innerText = displayUrl;
+                if (elHeroPill) elHeroPill.title = link;
+            } else if (elHeroLink) {
+                elHeroLink.innerText = 'Entre na sua conta para gerar o link';
+                if (elHeroPill) elHeroPill.title = '';
+            }
+
             // Banner resumo do servidor (desconto pendente / próxima cobrança)
             try {
                 const resumoRaw = localStorage.getItem('appliquei_applicash_resumo');
@@ -10709,9 +10852,23 @@
                 }
             }
 
+            // Empty state da pizza: quando 0 indicações efetivas, troca o gráfico por um CTA grande
+            const pizzaContent = document.getElementById('apcPizzaContent');
+            const pizzaEmpty = document.getElementById('apcEmptyCta');
+            if (pizzaContent && pizzaEmpty) {
+                if (efetivas === 0) {
+                    pizzaContent.style.display = 'none';
+                    pizzaEmpty.style.display = 'block';
+                } else {
+                    pizzaContent.style.display = 'flex';
+                    pizzaEmpty.style.display = 'none';
+                }
+            }
+
             // Gráfico pizza
             const canvas = document.getElementById('chartApplicash');
-            if(canvas) {
+            if (efetivas === 0 && chartApplicash) { chartApplicash.destroy(); chartApplicash = null; }
+            if(canvas && efetivas > 0) {
                 if(chartApplicash) chartApplicash.destroy();
                 const ctx = canvas.getContext('2d');
                 const dadosPizza = (valorPaga + valorRecebe) > 0
