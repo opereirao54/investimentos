@@ -314,7 +314,7 @@ module.exports = async (req, res) => {
         }
       }
 
-      if ((event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED') && billing.referredByUserId) {
+      if ((event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_RECEIVED_IN_CASH') && billing.referredByUserId) {
         try {
           const generated = await creditIndicatorFromIndicado(billing, payment);
           if (generated) paymentExtra.referralGeneratedDiscountCents = generated;
