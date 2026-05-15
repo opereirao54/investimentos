@@ -336,9 +336,31 @@
   function paymentStatusLabel(s) {
     var map = {
       CONFIRMED: 'Confirmado', RECEIVED: 'Recebido', RECEIVED_IN_CASH: 'Recebido',
-      PENDING: 'Pendente', OVERDUE: 'Atrasado', REFUNDED: 'Devolvido', DELETED: 'Cancelado'
+      PENDING: 'Pendente', OVERDUE: 'Atrasado', REFUNDED: 'Devolvido', DELETED: 'Cancelado',
+      AWAITING_RISK_ANALYSIS: 'Em análise', APPROVED_BY_RISK_ANALYSIS: 'Aprovado',
+      REPROVED_BY_RISK_ANALYSIS: 'Recusado', AUTHORIZED: 'Autorizado',
+      CHARGEBACK_REQUESTED: 'Chargeback', CHARGEBACK_DISPUTE: 'Chargeback (em disputa)',
+      REFUND_IN_PROGRESS: 'Reembolso em curso',
     };
     return map[s] || s || '—';
+  }
+  function statusBadge(status) {
+    var bg = '#f1f5f3', fg = '#384a42';
+    if (status === 'CONFIRMED' || status === 'RECEIVED' || status === 'RECEIVED_IN_CASH' || status === 'APPROVED_BY_RISK_ANALYSIS') { bg = '#ecfdf5'; fg = '#065f46'; }
+    else if (status === 'PENDING' || status === 'AUTHORIZED' || status === 'AWAITING_RISK_ANALYSIS') { bg = '#fef9c3'; fg = '#854d0e'; }
+    else if (status === 'OVERDUE' || status === 'REPROVED_BY_RISK_ANALYSIS') { bg = '#fee2e2'; fg = '#7f1d1d'; }
+    else if (status === 'REFUNDED' || status === 'DELETED' || status === 'REFUND_IN_PROGRESS') { bg = '#f3f4f6'; fg = '#374151'; }
+    else if (status === 'CHARGEBACK_REQUESTED' || status === 'CHARGEBACK_DISPUTE') { bg = '#fce7f3'; fg = '#9d174d'; }
+    return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + bg + ';color:' + fg + ';font-size:11px;font-weight:600;">' + paymentStatusLabel(status) + '</span>';
+  }
+  function eventNote(p) {
+    if (!p.event) return '';
+    if (p.event === 'PAYMENT_DUNNING_REQUESTED' || p.event === 'PAYMENT_DUNNING_RECEIVED') return 'Re-cobrança automática';
+    if (p.event === 'PAYMENT_REPROVED_BY_RISK_ANALYSIS') return 'Reprovado pela análise de risco';
+    if (p.event === 'PAYMENT_AWAITING_RISK_ANALYSIS') return 'Aguardando análise de risco';
+    if (p.event === 'PAYMENT_CHARGEBACK_REQUESTED') return 'Chargeback aberto';
+    if (p.event === 'SYNC_CONFIRMED' || p.event === 'SYNC_RECEIVED') return 'Confirmado via sync';
+    return '';
   }
   function cardBrandLabel(b) {
     if (!b) return '';
@@ -475,15 +497,14 @@
     // Histórico
     var payments = (me.payments || []);
     var paymentsRows = payments.length ? payments.map(function (p) {
-      var statusColorVal = p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
-        ? statusColor('ACTIVE')
-        : (p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS' ? '#a16207' : '#6b7d75');
+      var note = eventNote(p);
+      var noteLine = note ? '<div style="font-size:11px;color:#6b7d75;margin-top:2px;">' + note + '</div>' : '';
       return '<tr>' +
-        '<td style="padding:5px 0;color:#4a5b53;">' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + '</td>' +
-        '<td style="padding:5px 0;">' + (p.billingType || '—') + '</td>' +
-        '<td style="text-align:right;padding:5px 0;font-weight:600;">R$ ' + (p.value || 0).toFixed(2) + '</td>' +
-        '<td style="text-align:right;padding:5px 0;color:' + statusColorVal + ';">' + paymentStatusLabel(p.status) + '</td>' +
-        '<td style="text-align:right;padding:5px 0;">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>' : '—') + '</td>' +
+        '<td style="padding:6px 0;color:#4a5b53;vertical-align:top;">' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + noteLine + '</td>' +
+        '<td style="padding:6px 0;vertical-align:top;">' + (p.billingType || '—') + '</td>' +
+        '<td style="text-align:right;padding:6px 0;font-weight:600;vertical-align:top;">R$ ' + (p.value || 0).toFixed(2) + '</td>' +
+        '<td style="text-align:right;padding:6px 0;vertical-align:top;">' + statusBadge(p.status) + '</td>' +
+        '<td style="text-align:right;padding:6px 0;vertical-align:top;">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>' : '—') + '</td>' +
       '</tr>';
     }).join('') : '<tr><td colspan="5" style="padding:10px 0;color:#6b7d75;text-align:center;">Sem pagamentos ainda.</td></tr>';
 
