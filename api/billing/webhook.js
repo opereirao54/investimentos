@@ -216,7 +216,7 @@ module.exports = async (req, res) => {
         return true;
       });
       if (!fresh) {
-        console.log('[webhook] duplicate event ignored', eventKey);
+        console.log('[webhook] duplicate event ignored event=%s', event || null);
         return res.json({ ok: true, duplicate: true });
       }
     } catch (e) {
@@ -243,7 +243,8 @@ module.exports = async (req, res) => {
 
     const billing = doc.data();
     const update = { updatedAt: fieldValue().serverTimestamp(), lastEvent: event || null };
-    console.log('[webhook] event=%s subscription=%s customer=%s uid=%s', event, payment?.subscription || subscription?.id, payment?.customer, billing.uid);
+    // B1: log sem PII/IDs Asaas — basta o evento para troubleshooting.
+    console.log('[webhook] event=%s uid=%s', event, billing.uid);
 
     if (event && event.startsWith('PAYMENT_')) {
       update.lastPaymentId = payment.id;
@@ -362,6 +363,18 @@ module.exports = async (req, res) => {
       } else if (subscription && subscription.status) {
         update.subscriptionStatus = subscription.status;
       }
+    }
+
+    // M3: subscriptionStatus INACTIVE só sai via novo /subscribe (criação
+    // de nova subscription, que troca o subscriptionId). Eventos
+    // PAYMENT_* de uma sub antiga não podem revivê-la.
+    if (
+      billing.subscriptionStatus === 'INACTIVE'
+      && update.subscriptionStatus
+      && update.subscriptionStatus !== 'INACTIVE'
+    ) {
+      console.warn('[webhook] refusing to revert INACTIVE -> %s via event %s', update.subscriptionStatus, event);
+      delete update.subscriptionStatus;
     }
 
     await doc.ref.set(update, { merge: true });

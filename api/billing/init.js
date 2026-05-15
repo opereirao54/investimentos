@@ -21,6 +21,12 @@ function readBody(req) {
   });
 }
 
+function signupIp(req) {
+  const xff = req.headers['x-forwarded-for'];
+  if (xff) return String(xff).split(',')[0].trim();
+  return req.headers['x-real-ip'] || (req.socket && req.socket.remoteAddress) || null;
+}
+
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
@@ -114,6 +120,11 @@ module.exports = async (req, res) => {
       const now = Date.now();
       const trialEnd = now + TRIAL_DAYS * 86400000;
 
+      // M6: rastreabilidade de signup (IP + UA). Preserva os valores
+      // originais se já existirem — só grava na primeira criação.
+      const ip = signupIp(req);
+      const ua = (req.headers['user-agent'] || '').slice(0, 256) || null;
+
       const data = {
         uid: user.uid,
         email: user.email || null,
@@ -128,6 +139,8 @@ module.exports = async (req, res) => {
         referralCode: ownCode,
         monthlyPriceCents: MONTHLY_PRICE_CENTS,
         recurringDiscountPercent: discountPercent,
+        signupIp: (existing && existing.signupIp) || ip,
+        signupUserAgent: (existing && existing.signupUserAgent) || ua,
         updatedAt: fieldValue().serverTimestamp(),
         initLock: fieldValue().delete(),
         initLockAt: fieldValue().delete(),
