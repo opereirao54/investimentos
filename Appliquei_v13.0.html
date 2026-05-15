@@ -1506,6 +1506,32 @@
         @media (min-width: 769px) {
             .sidebar-backdrop, .mobile-nav-toggle { display: none !important; }
         }
+        @media (max-width: 768px) {
+            /* Anti-overflow defensivo */
+            img, canvas, svg, video { max-width: 100%; height: auto; }
+            .tabela-dashboard { font-size: 12px; }
+            .tabela-dashboard th, .tabela-dashboard td { padding: 9px 10px; }
+            /* h1 / page-header mais compacto em mobile */
+            h1, .page-header-left h1 { font-size: 18px !important; }
+            .page-header { gap: 8px; margin-bottom: 16px; }
+            .page-actions { flex-wrap: wrap; }
+            .btn-theme, .btn-eye { width: 32px; height: 32px; }
+            /* Cards genéricos respiram melhor */
+            .card, .card-destaque, .kpi-hero, .perfil-questionnaire { padding: 14px !important; }
+            /* Inputs touch-friendly */
+            input, select, textarea, button {
+                font-size: 16px; /* impede zoom no iOS */
+            }
+            input[type="text"], input[type="email"], input[type="number"], input[type="tel"], input[type="password"], select, textarea {
+                min-height: 42px;
+            }
+        }
+        @media (max-width: 480px) {
+            .main-content { padding: 60px 12px 20px; }
+            h1, .page-header-left h1 { font-size: 16px !important; }
+            .tabela-dashboard { font-size: 11.5px; }
+            .tabela-dashboard th, .tabela-dashboard td { padding: 7px 8px; }
+        }
 
         /* === PERFIL QUESTIONNAIRE === */
         .perfil-questionnaire {
