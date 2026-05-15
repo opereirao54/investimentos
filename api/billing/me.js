@@ -9,6 +9,58 @@ function tsToIso(t) {
   return null;
 }
 
+function addMonthsYmd(ymd, months) {
+  // ymd: 'YYYY-MM-DD' (UTC)
+  if (!ymd || typeof ymd !== 'string') return null;
+  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10) - 1;
+  const d = parseInt(m[3], 10);
+  const dt = new Date(Date.UTC(y, mo + months, d));
+  return dt.toISOString().slice(0, 10);
+}
+
+function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
+  // Não há cobranças se não houver subscrição activa.
+  if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return [];
+
+  const pendingByDate = (payments || [])
+    .filter(p => p.status === 'PENDING' || p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS')
+    .map(p => ({
+      date: p.dueDate || null,
+      amountCents: Math.round((p.value || 0) * 100),
+      status: p.status,
+      source: 'invoice',
+      paymentId: p.id,
+      invoiceUrl: p.invoiceUrl || null,
+    }))
+    .filter(p => p.date);
+
+  const seen = new Set(pendingByDate.map(p => p.date));
+  const list = pendingByDate.slice();
+
+  const baseDate = billing.nextDueDate || (pendingByDate[0] && pendingByDate[0].date) || null;
+  if (baseDate) {
+    for (let i = 0; i < 3; i++) {
+      const d = i === 0 && !seen.has(baseDate) ? baseDate : addMonthsYmd(baseDate, i + (seen.has(baseDate) ? 1 : 0));
+      if (!d || seen.has(d)) continue;
+      seen.add(d);
+      list.push({
+        date: d,
+        amountCents: i === 0 ? projectedNextCents : monthlyCents,
+        status: 'FORECAST',
+        source: 'forecast',
+        paymentId: null,
+        invoiceUrl: null,
+      });
+    }
+  }
+
+  list.sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  return list.slice(0, 3);
+}
+
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
@@ -106,6 +158,8 @@ module.exports = async (req, res) => {
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
     const projectedNextCents = Math.max(100, monthlyCents - Math.min(pendingDiscountCents, monthlyCents - 100));
 
+    const upcoming = buildUpcoming(billing, payments, projectedNextCents, monthlyCents);
+
     return res.json({
       access: computeAccess(billing),
       referralCode: billing.referralCode || null,
@@ -128,6 +182,20 @@ module.exports = async (req, res) => {
       dunningRetryCount: billing.dunningRetryCount || 0,
       lastFailureReason: billing.lastFailureReason || null,
       cancelledAt: tsToIso(billing.cancelledAt),
+      customer: {
+        name: billing.customerName || null,
+        email: billing.customerEmail || null,
+        cpfCnpj: billing.cpfCnpj || null,
+        phone: billing.customerPhone || null,
+        postalCode: billing.customerPostalCode || null,
+        address: billing.customerAddress || null,
+        addressNumber: billing.customerAddressNumber || null,
+        complement: billing.customerComplement || null,
+        province: billing.customerProvince || null,
+        city: billing.customerCity || null,
+        state: billing.customerState || null,
+      },
+      upcomingCharges: upcoming,
       activeReferrals,
       totalReferrals,
       pendingDiscountCents,
