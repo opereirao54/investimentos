@@ -34,69 +34,117 @@ module.exports = async (req, res) => {
   try {
     const D = db();
     const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
-    const snap = await ref.get();
-    const existing = snap.exists ? snap.data() : null;
 
-    if (existing && existing.customerId) {
-      const synced = await syncBillingFromAsaas(ref, existing);
+    // A3: lock transacional contra inicializações concorrentes do mesmo uid
+    // (duas abas / app+web simultâneo). Evita criar dois customers no Asaas.
+    const LOCK_TTL_MS = 30000;
+    const claim = await D.runTransaction(async (tx) => {
+      const s = await tx.get(ref);
+      const ex = s.exists ? s.data() : null;
+      if (ex && ex.customerId) return { state: 'has_customer', existing: ex };
+      const lockedAtMs = ex && ex.initLockAt && typeof ex.initLockAt.toMillis === 'function'
+        ? ex.initLockAt.toMillis()
+        : 0;
+      if (ex && ex.initLock && (Date.now() - lockedAtMs) < LOCK_TTL_MS) {
+        return { state: 'locked' };
+      }
+      tx.set(ref, {
+        initLock: true,
+        initLockAt: timestamp().fromMillis(Date.now()),
+      }, { merge: true });
+      return { state: 'acquired', existing: ex };
+    });
+
+    if (claim.state === 'locked') {
+      return res.status(409).json({ error: 'init_in_progress', detail: 'Inicialização em andamento, tente novamente em instantes.' });
+    }
+
+    if (claim.state === 'has_customer') {
+      const synced = await syncBillingFromAsaas(ref, claim.existing);
       return res.json({ access: computeAccess(synced.billing), billing: safeBilling(synced.billing) });
     }
 
-    let referredByUserId = null;
-    let referredByCode = null;
-    let discountPercent = (existing && existing.recurringDiscountPercent) || 0;
-
-    if (rawCode && !(existing && existing.referredByUserId)) {
-      if (!codes.isValid(rawCode)) {
-        return res.status(400).json({ error: 'invalid_referral_code' });
-      }
-      const owner = await codes.lookupOwner(D, rawCode);
-      if (!owner) return res.status(400).json({ error: 'referral_code_not_found' });
-      if (owner.uid === user.uid) {
-        return res.status(400).json({ error: 'self_referral_not_allowed' });
-      }
-      referredByUserId = owner.uid;
-      referredByCode = owner.code;
-      discountPercent = REFERRAL_DISCOUNT_PERCENT;
-    }
-
-    const ownCode = (existing && existing.referralCode)
-      ? existing.referralCode
-      : await codes.reserveUniqueCode(D, user.uid, timestamp());
-
-    const customer = await asaas.createCustomer({
-      email: user.email,
-      name: user.name || user.email,
-      uid: user.uid,
-    });
-
-    const now = Date.now();
-    const trialEnd = now + TRIAL_DAYS * 86400000;
-
-    const data = {
-      uid: user.uid,
-      email: user.email || null,
-      customerId: customer.id,
-      createdAt: (existing && existing.createdAt) || timestamp().fromMillis(now),
-      trialStartsAt: timestamp().fromMillis(now),
-      trialEndsAt: timestamp().fromMillis(trialEnd),
-      subscriptionId: null,
-      subscriptionStatus: null,
-      lastPaymentStatus: null,
-      lastPaymentId: null,
-      referralCode: ownCode,
-      monthlyPriceCents: MONTHLY_PRICE_CENTS,
-      recurringDiscountPercent: discountPercent,
-      updatedAt: fieldValue().serverTimestamp(),
+    const existing = claim.existing;
+    let releasedOnError = false;
+    const releaseLock = async () => {
+      if (releasedOnError) return;
+      releasedOnError = true;
+      try {
+        await ref.set({
+          initLock: fieldValue().delete(),
+          initLockAt: fieldValue().delete(),
+        }, { merge: true });
+      } catch (_) {}
     };
-    if (referredByUserId) {
-      data.referredByUserId = referredByUserId;
-      data.referredByCode = referredByCode;
-      data.referralUsedAt = timestamp().fromMillis(now);
-    }
-    await ref.set(data, { merge: true });
 
-    return res.json({ access: computeAccess(data), billing: safeBilling(data) });
+    try {
+      let referredByUserId = null;
+      let referredByCode = null;
+      let discountPercent = (existing && existing.recurringDiscountPercent) || 0;
+
+      if (rawCode && !(existing && existing.referredByUserId)) {
+        if (!codes.isValid(rawCode)) {
+          await releaseLock();
+          return res.status(400).json({ error: 'invalid_referral_code' });
+        }
+        const owner = await codes.lookupOwner(D, rawCode);
+        if (!owner) {
+          await releaseLock();
+          return res.status(400).json({ error: 'referral_code_not_found' });
+        }
+        if (owner.uid === user.uid) {
+          await releaseLock();
+          return res.status(400).json({ error: 'self_referral_not_allowed' });
+        }
+        referredByUserId = owner.uid;
+        referredByCode = owner.code;
+        discountPercent = REFERRAL_DISCOUNT_PERCENT;
+      }
+
+      const ownCode = (existing && existing.referralCode)
+        ? existing.referralCode
+        : await codes.reserveUniqueCode(D, user.uid, timestamp());
+
+      const customer = await asaas.createCustomer({
+        email: user.email,
+        name: user.name || user.email,
+        uid: user.uid,
+      });
+
+      const now = Date.now();
+      const trialEnd = now + TRIAL_DAYS * 86400000;
+
+      const data = {
+        uid: user.uid,
+        email: user.email || null,
+        customerId: customer.id,
+        createdAt: (existing && existing.createdAt) || timestamp().fromMillis(now),
+        trialStartsAt: timestamp().fromMillis(now),
+        trialEndsAt: timestamp().fromMillis(trialEnd),
+        subscriptionId: null,
+        subscriptionStatus: null,
+        lastPaymentStatus: null,
+        lastPaymentId: null,
+        referralCode: ownCode,
+        monthlyPriceCents: MONTHLY_PRICE_CENTS,
+        recurringDiscountPercent: discountPercent,
+        updatedAt: fieldValue().serverTimestamp(),
+        initLock: fieldValue().delete(),
+        initLockAt: fieldValue().delete(),
+      };
+      if (referredByUserId) {
+        data.referredByUserId = referredByUserId;
+        data.referredByCode = referredByCode;
+        data.referralUsedAt = timestamp().fromMillis(now);
+      }
+      await ref.set(data, { merge: true });
+      releasedOnError = true; // lock já saiu junto com o set acima
+
+      return res.json({ access: computeAccess(data), billing: safeBilling(data) });
+    } catch (innerErr) {
+      await releaseLock();
+      throw innerErr;
+    }
   } catch (e) {
     console.error('[init]', e, e.data);
     return res.status(500).json({

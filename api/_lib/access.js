@@ -1,5 +1,16 @@
 const TRIAL_DAYS = 7;
 
+const PAID_PAYMENT_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
+const BAD_PAYMENT_STATUSES = new Set([
+  'REFUNDED',
+  'REFUND_IN_PROGRESS',
+  'REFUND_REQUESTED',
+  'OVERDUE',
+  'CHARGEBACK_REQUESTED',
+  'CHARGEBACK_DISPUTE',
+  'AWAITING_CHARGEBACK_REVERSAL',
+]);
+
 function toMillis(v) {
   if (!v) return null;
   if (typeof v === 'number') return v;
@@ -16,13 +27,28 @@ function computeAccess(billing, now = Date.now()) {
   const lastPaymentStatus = billing.lastPaymentStatus || null;
   const hasPaidBefore = !!toMillis(billing.lastPaidAt);
 
+  // Defesa em profundidade: se o último pagamento está em estado ruim
+  // (vencido, em chargeback, reembolso), bloqueia mesmo que subStatus
+  // ainda esteja como ACTIVE por dessincronia.
+  if (lastPaymentStatus && BAD_PAYMENT_STATUSES.has(lastPaymentStatus)) {
+    if (lastPaymentStatus === 'OVERDUE') {
+      return { status: 'blocked', reason: 'overdue', trialDaysLeft: 0 };
+    }
+    if (lastPaymentStatus.startsWith('CHARGEBACK') || lastPaymentStatus === 'AWAITING_CHARGEBACK_REVERSAL') {
+      return { status: 'blocked', reason: 'chargeback', trialDaysLeft: 0 };
+    }
+    return { status: 'blocked', reason: 'refunded', trialDaysLeft: 0 };
+  }
+
   // Pagamento confirmado pelo webhook — acesso total
-  if (subStatus === 'ACTIVE' && (lastPaymentStatus === 'CONFIRMED' || lastPaymentStatus === 'RECEIVED' || lastPaymentStatus === 'RECEIVED_IN_CASH')) {
+  if (subStatus === 'ACTIVE' && PAID_PAYMENT_STATUSES.has(lastPaymentStatus)) {
     return { status: 'active', reason: 'paid', trialDaysLeft: 0 };
   }
 
-  // Assinatura ativa + já pagou antes (fallback se lastPaymentStatus não foi atualizado)
-  if (subStatus === 'ACTIVE' && hasPaidBefore) {
+  // Assinatura ativa + já pagou antes (fallback se lastPaymentStatus não foi
+  // atualizado, ex.: durante geração do próximo invoice em PENDING).
+  // Só vale se o último status conhecido não é um estado problemático.
+  if (subStatus === 'ACTIVE' && hasPaidBefore && (!lastPaymentStatus || lastPaymentStatus === 'PENDING' || PAID_PAYMENT_STATUSES.has(lastPaymentStatus))) {
     return { status: 'active', reason: 'paid', trialDaysLeft: 0 };
   }
 

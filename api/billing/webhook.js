@@ -77,6 +77,13 @@ async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValu
   return { applied: appliedCents, used };
 }
 
+const INDICATOR_BLOCKED_STATUSES = new Set([
+  'INACTIVE',
+  'CHARGEBACK',
+  'CHARGEBACK_REVERSAL_PENDING',
+  'PAYMENT_REPROVED',
+]);
+
 async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   const indicatorUid = indicadoBilling.referredByUserId;
   if (!indicatorUid) return null;
@@ -84,13 +91,38 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   const indicatorBillingRef = db().collection('users').doc(indicatorUid).collection('billing').doc('account');
   const indicatorSnap = await indicatorBillingRef.get();
   if (!indicatorSnap.exists) return null;
+  const indicator = indicatorSnap.data();
+
+  // A6: indicador inativo/em chargeback não gera nem recebe novos créditos.
+  if (INDICATOR_BLOCKED_STATUSES.has(indicator.subscriptionStatus)) {
+    console.warn('[webhook] indicator blocked, skipping credit', indicatorUid, indicator.subscriptionStatus);
+    return null;
+  }
+
+  // C4: bloqueia auto-indicação por mesma identidade fiscal (multi-conta).
+  if (
+    indicator.cpfCnpj &&
+    indicadoBilling.cpfCnpj &&
+    indicator.cpfCnpj === indicadoBilling.cpfCnpj
+  ) {
+    console.warn('[webhook] same-CPF referral blocked', indicatorUid, '<-', indicadoBilling.uid);
+    return null;
+  }
 
   const paidCents = Math.round((payment.value || 0) * 100);
   const generated = Math.round(paidCents * REFERRAL_PERCENT / 100);
   if (generated <= 0) return null;
 
+  // Idempotência por payment.id: se já existe crédito para este pagamento,
+  // não duplica nem incrementa stats novamente.
   const creditId = payment.id;
-  await indicatorBillingRef.collection('credits').doc(creditId).set({
+  const creditRef = indicatorBillingRef.collection('credits').doc(creditId);
+  const existingCredit = await creditRef.get();
+  if (existingCredit.exists) {
+    return null;
+  }
+
+  await creditRef.set({
     fromUid: indicadoBilling.uid,
     fromEmail: indicadoBilling.email || null,
     paymentId: payment.id,
@@ -98,7 +130,7 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
     appliedAt: null,
     appliedToPaymentId: null,
     createdAt: fieldValue().serverTimestamp(),
-  }, { merge: true });
+  });
 
   await indicatorBillingRef.set({
     stats: {
@@ -111,12 +143,46 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   return generated;
 }
 
+async function reverseReferralCredit(indicatorUid, paymentId) {
+  if (!indicatorUid || !paymentId) return false;
+  const indicatorBillingRef = db().collection('users').doc(indicatorUid).collection('billing').doc('account');
+  const creditRef = indicatorBillingRef.collection('credits').doc(paymentId);
+  const snap = await creditRef.get();
+  if (!snap.exists) return false;
+  const c = snap.data();
+  if (c.voidedAt) return false; // já revertido
+
+  await creditRef.set({
+    voidedAt: fieldValue().serverTimestamp(),
+    voidedReason: 'payment_refunded',
+  }, { merge: true });
+
+  const updateStats = { updatedAt: fieldValue().serverTimestamp(), stats: {} };
+  const amount = c.amountCents || 0;
+  // Pendente: desconto ainda não aplicado → estorna pending + total.
+  // Já aplicado: o desconto já consumido fica mantido na fatura passada,
+  // mas o earnings total é corrigido para refletir o estorno.
+  updateStats.stats.totalReferralEarningsCents = fieldValue().increment(-amount);
+  if (!c.appliedAt) {
+    updateStats.stats.pendingDiscountCents = fieldValue().increment(-amount);
+  }
+  await indicatorBillingRef.set(updateStats, { merge: true });
+  return true;
+}
+
 module.exports = async (req, res) => {
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
+  // C1: token de webhook é OBRIGATÓRIO. Sem token configurado, recusa
+  // todo o tráfego — evita que um deploy mal configurado permita
+  // que qualquer um forje eventos de pagamento.
   const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+  if (!expected) {
+    console.error('[webhook] ASAAS_WEBHOOK_TOKEN not configured — refusing all events');
+    return res.status(503).json({ error: 'webhook_not_configured' });
+  }
   const received = req.headers['asaas-access-token'] || req.headers['Asaas-Access-Token'];
-  if (expected && received !== expected) {
+  if (received !== expected) {
     return res.status(401).json({ error: 'invalid_webhook_token' });
   }
 
@@ -126,6 +192,40 @@ module.exports = async (req, res) => {
   const event = body.event;
   const payment = body.payment || null;
   const subscription = body.subscription || null;
+
+  // C2: idempotência. Asaas retransmite eventos; sem guard, increments
+  // de créditos referral disparam várias vezes. Usa `body.id` quando
+  // existir (Asaas envia um id único do evento) e cai em uma chave
+  // determinística como fallback.
+  const eventKey = body.id
+    || (event && payment && payment.id ? `${event}:${payment.id}:${payment.status || ''}` : null)
+    || (event && subscription && subscription.id ? `${event}:sub:${subscription.id}` : null);
+  if (eventKey) {
+    try {
+      const eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
+      const fresh = await db().runTransaction(async (tx) => {
+        const snap = await tx.get(eventRef);
+        if (snap.exists) return false;
+        tx.set(eventRef, {
+          event: event || null,
+          paymentId: (payment && payment.id) || null,
+          subscriptionId: (payment && payment.subscription) || (subscription && subscription.id) || null,
+          paymentStatus: (payment && payment.status) || null,
+          receivedAt: fieldValue().serverTimestamp(),
+        });
+        return true;
+      });
+      if (!fresh) {
+        console.log('[webhook] duplicate event ignored', eventKey);
+        return res.json({ ok: true, duplicate: true });
+      }
+    } catch (e) {
+      // Em erro de idempotência (ex.: Firestore transitório), prosseguir é
+      // pior do que falhar — Asaas refaz retry.
+      console.error('[webhook] idempotency guard failed', e && e.message);
+      return res.status(500).json({ error: 'idempotency_check_failed' });
+    }
+  }
 
   try {
     let doc = null;
@@ -219,6 +319,17 @@ module.exports = async (req, res) => {
           if (generated) paymentExtra.referralGeneratedDiscountCents = generated;
         } catch (e) {
           console.error('[webhook] creditIndicatorFromIndicado failed', e);
+        }
+      }
+
+      // A6 + refund handling: estorna crédito do indicador quando o
+      // pagamento do indicado é reembolsado ou apagado.
+      if ((event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED' || event === 'PAYMENT_CHARGEBACK_REQUESTED') && billing.referredByUserId && payment && payment.id) {
+        try {
+          const reversed = await reverseReferralCredit(billing.referredByUserId, payment.id);
+          if (reversed) paymentExtra.referralReversed = true;
+        } catch (e) {
+          console.error('[webhook] reverseReferralCredit failed', e);
         }
       }
 

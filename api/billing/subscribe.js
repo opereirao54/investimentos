@@ -85,6 +85,45 @@ module.exports = async (req, res) => {
     }
 
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
+      // C4: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids
+      // (anti multi-conta para fraudar referral).
+      const dup = await db().collectionGroup('billing')
+        .where('cpfCnpj', '==', cpfCnpj)
+        .limit(5)
+        .get();
+      const conflict = dup.docs.find(d => {
+        const owner = d.ref.parent && d.ref.parent.parent;
+        return owner && owner.id !== user.uid;
+      });
+      if (conflict) {
+        return res.status(409).json({ error: 'cpfcnpj_in_use' });
+      }
+
+      // C4: se o CPF informado é o mesmo do indicador, derruba o vínculo
+      // de referral antes de assinar (evita auto-indicação multi-conta).
+      if (billing.referredByUserId) {
+        try {
+          const indicatorSnap = await db()
+            .collection('users').doc(billing.referredByUserId)
+            .collection('billing').doc('account').get();
+          if (indicatorSnap.exists && indicatorSnap.data().cpfCnpj === cpfCnpj) {
+            await ref.set({
+              referredByUserId: fieldValue().delete(),
+              referredByCode: fieldValue().delete(),
+              referralUsedAt: fieldValue().delete(),
+              recurringDiscountPercent: 0,
+              updatedAt: fieldValue().serverTimestamp(),
+            }, { merge: true });
+            billing.referredByUserId = null;
+            billing.referredByCode = null;
+            billing.recurringDiscountPercent = 0;
+            console.warn('[subscribe] same-CPF referral removed', user.uid);
+          }
+        } catch (e) {
+          console.warn('[subscribe] indicator CPF check failed', e && e.message);
+        }
+      }
+
       const fields = { cpfCnpj };
       if (customerName) fields.name = customerName;
       await asaas.updateCustomer(billing.customerId, fields);

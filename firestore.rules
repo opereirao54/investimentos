@@ -27,10 +27,18 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Códigos de indicação: leitura por qualquer utilizador autenticado
-    // (necessário para validar cupom antes do init); escrita só Admin SDK.
+    // Códigos de indicação: leitura e escrita só pelo Admin SDK (backend).
+    // A validação do cupom acontece via POST /api/billing/init, que usa o
+    // Admin SDK e não depende de leitura via cliente. Fechar a leitura
+    // impede enumeração de cupons válidos por usuários autenticados.
     match /referralCodes/{code} {
-      allow read: if request.auth != null;
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Coleção de eventos de webhook (idempotência): nunca exposta ao cliente.
+    match /webhookEvents/{eventId} {
+      allow read: if false;
       allow write: if false;
     }
 

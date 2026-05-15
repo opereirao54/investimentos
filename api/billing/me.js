@@ -9,6 +9,21 @@ function tsToIso(t) {
   return null;
 }
 
+// Privacidade (LGPD): o indicador vê só uma máscara do e-mail do indicado.
+function maskEmail(e) {
+  if (!e || typeof e !== 'string') return null;
+  const at = e.indexOf('@');
+  if (at <= 0) return '***';
+  const user = e.slice(0, at);
+  const domain = e.slice(at + 1);
+  const visible = user.length <= 2 ? user[0] : user[0] + '*' + user.slice(-1);
+  const domParts = domain.split('.');
+  const dom = domParts[0];
+  const domMasked = dom.length <= 2 ? dom[0] + '*' : dom[0] + '***' + dom.slice(-1);
+  const rest = domParts.slice(1).join('.');
+  return visible + '***@' + domMasked + (rest ? '.' + rest : '');
+}
+
 function addMonthsYmd(ymd, months) {
   // ymd: 'YYYY-MM-DD' (UTC)
   if (!ymd || typeof ymd !== 'string') return null;
@@ -86,7 +101,7 @@ module.exports = async (req, res) => {
         const b = d.data();
         return {
           uid: b.uid,
-          email: b.email || null,
+          email: maskEmail(b.email),
           subscriptionStatus: b.subscriptionStatus || null,
           lastPaymentStatus: b.lastPaymentStatus || null,
           baseValueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
@@ -111,12 +126,13 @@ module.exports = async (req, res) => {
         return {
           id: d.id,
           fromUid: c.fromUid || null,
-          fromEmail: c.fromEmail || null,
+          fromEmail: maskEmail(c.fromEmail),
           amountCents: c.amountCents || 0,
           appliedAt: tsToIso(c.appliedAt),
           appliedAmountCents: c.appliedAmountCents || null,
           appliedToPaymentId: c.appliedToPaymentId || null,
           createdAt: tsToIso(c.createdAt),
+          voidedAt: tsToIso(c.voidedAt),
         };
       });
     } catch (e) {
@@ -126,6 +142,7 @@ module.exports = async (req, res) => {
     let pendingDiscountCents = 0;
     let totalReferralEarningsCents = 0;
     for (const c of credits) {
+      if (c.voidedAt) continue; // créditos revertidos por refund não contam
       totalReferralEarningsCents += c.amountCents;
       if (!c.appliedAt) pendingDiscountCents += c.amountCents;
     }

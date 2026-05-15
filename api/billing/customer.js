@@ -55,6 +55,21 @@ module.exports = async (req, res) => {
     const billing = snap.data();
     if (!billing.customerId) return res.status(400).json({ error: 'no_customer' });
 
+    // Anti-fraude: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids.
+    if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
+      const dup = await db().collectionGroup('billing')
+        .where('cpfCnpj', '==', cpfCnpj)
+        .limit(5)
+        .get();
+      const conflict = dup.docs.find(d => {
+        const owner = d.ref.parent && d.ref.parent.parent;
+        return owner && owner.id !== user.uid;
+      });
+      if (conflict) {
+        return res.status(409).json({ error: 'cpfcnpj_in_use' });
+      }
+    }
+
     const asaasFields = {};
     if (name) asaasFields.name = name;
     if (email) asaasFields.email = email;
