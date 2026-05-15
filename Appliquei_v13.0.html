@@ -1442,13 +1442,69 @@
             .grid-2-iguais { grid-template-columns: 1fr; }
             .sim-grid-2col { grid-template-columns: 1fr !important; }
         }
+        /* === MOBILE DRAWER === */
+        .mobile-nav-toggle {
+            display: none;
+            position: fixed; top: 12px; left: 12px;
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            background: var(--sb-bg, #0d1914);
+            color: #e8f4ec;
+            border: 1px solid var(--sb-border);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            align-items: center; justify-content: center;
+            cursor: pointer;
+            z-index: 110;
+            font-size: 20px;
+            transition: background 0.18s, transform 0.18s;
+        }
+        .mobile-nav-toggle:active { transform: scale(0.95); }
+        .sidebar-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.55);
+            z-index: 95;
+            opacity: 0;
+            transition: opacity 0.22s ease;
+        }
+        .sidebar-backdrop.active { display: block; opacity: 1; }
+
         @media (max-width: 768px) {
-            body { flex-direction: column; overflow-y: auto; }
-            .sidebar { width: 100%; height: auto; padding: 10px; border-right: none; border-bottom: 1px solid var(--sb-border); flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; z-index: 100; }
-            .sidebar.collapsed { width: 100%; }
-            .main-content { padding: 16px 18px; width: 100%; }
+            body { overflow-x: hidden; }
+            .mobile-nav-toggle { display: flex; }
+            .sidebar {
+                position: fixed; top: 0; left: 0;
+                width: 280px !important;
+                height: 100vh;
+                max-width: 86vw;
+                transform: translateX(-100%);
+                transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
+                box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+                border-right: 1px solid var(--sb-border);
+                z-index: 100;
+            }
+            .sidebar.mobile-open { transform: translateX(0); }
+            /* No mobile a sidebar nunca está "collapsed" — ignora a classe */
+            .sidebar.collapsed { width: 280px !important; }
+            .sidebar.collapsed .menu-btn-label,
+            .sidebar.collapsed .logo-txt,
+            .sidebar.collapsed .nav-group-label,
+            .sidebar.collapsed .sa-btn-label,
+            .sidebar.collapsed .sa-email,
+            .sidebar.collapsed #sidebarAuthBtnLabel { display: revert; }
+            .sidebar.collapsed .menu-btn { justify-content: flex-start; padding: 10px 14px; }
+            .sidebar.collapsed .sidebar-auth-mini .sa-btn { padding: 7px 8px; gap: 6px; justify-content: center; }
+            .sidebar.collapsed .menu-btn::after,
+            .sidebar.collapsed .sidebar-auth-mini .sa-btn::after { content: none !important; }
+            .sidebar.collapsed .logo-img { width: 170px; height: auto; }
+            /* Botão de recolher da sidebar não faz sentido em mobile */
+            .sidebar .sidebar-toggle { display: none; }
+            .main-content { padding: 64px 16px 24px; width: 100%; }
             .grid-4, .grid-3, .grid-2, .grid-2-iguais, .grid-cards { grid-template-columns: 1fr; gap: 12px; }
             #painelEvolucaoCarteira { grid-template-columns: 1fr !important; }
+        }
+        @media (min-width: 769px) {
+            .sidebar-backdrop, .mobile-nav-toggle { display: none !important; }
         }
 
         /* === PERFIL QUESTIONNAIRE === */
@@ -2461,6 +2517,9 @@
     <datalist id="listaAtivosCarteira"></datalist>
     <datalist id="listaDescricoes"></datalist>
     <datalist id="listaCorretoras"></datalist>
+
+    <button type="button" class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Abrir menu" onclick="toggleMobileNav()"><i class="ph ph-list"></i></button>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileNav()"></div>
 
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
@@ -3987,6 +4046,7 @@
             if(idAba === 'applicash') atualizarTelaApplicash();
             if(idAba === 'duvidas_sugestoes') { renderizarFaq(); renderizarHistoricoSugestoes(); }
             if(callback) callback();
+            if (typeof closeMobileNav === 'function') closeMobileNav();
         }
 
         // Sub-abas dentro de "Meus Investimentos"
@@ -8805,7 +8865,33 @@
             } catch(err) { fecharModal(); mostrarToast('Erro ao importar. O arquivo pode estar corrompido.', 'erro'); }
         }
 
+        function isMobileViewport() {
+            try { return window.matchMedia('(max-width: 768px)').matches; } catch (_) { return window.innerWidth <= 768; }
+        }
+        function openMobileNav() {
+            document.getElementById('mainSidebar').classList.add('mobile-open');
+            document.getElementById('sidebarBackdrop').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeMobileNav() {
+            document.getElementById('mainSidebar').classList.remove('mobile-open');
+            document.getElementById('sidebarBackdrop').classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        function toggleMobileNav() {
+            const sb = document.getElementById('mainSidebar');
+            if (sb.classList.contains('mobile-open')) closeMobileNav(); else openMobileNav();
+        }
+        window.addEventListener('resize', function () {
+            if (!isMobileViewport()) closeMobileNav();
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeMobileNav();
+        });
+
         function toggleSidebar() {
+            // Em mobile o toggle não recolhe — abre/fecha o drawer
+            if (isMobileViewport()) { toggleMobileNav(); return; }
             const sidebar = document.getElementById('mainSidebar'), icon = document.getElementById('iconToggle');
             const logoImg = document.getElementById('logoPrincipal');
             const collapsed = sidebar.classList.toggle('collapsed');
