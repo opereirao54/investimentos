@@ -1,6 +1,7 @@
 const { db } = require('../_lib/firebase-admin');
 const { requireUser, cors } = require('../_lib/auth');
 const { computeAccess } = require('../_lib/access');
+const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
 function tsToIso(t) {
   if (!t) return null;
@@ -21,7 +22,8 @@ module.exports = async (req, res) => {
     const billingRef = userRef.collection('billing').doc('account');
     const snap = await billingRef.get();
     if (!snap.exists) return res.json({ access: computeAccess(null), billing: null });
-    const billing = snap.data();
+    const synced = await syncBillingFromAsaas(billingRef, snap.data());
+    const billing = synced.billing;
 
     let referrals = [];
     try {

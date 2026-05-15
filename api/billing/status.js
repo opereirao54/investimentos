@@ -1,7 +1,7 @@
-const { db, fieldValue } = require('../_lib/firebase-admin');
+const { db } = require('../_lib/firebase-admin');
 const { requireUser, cors } = require('../_lib/auth');
 const { computeAccess } = require('../_lib/access');
-const asaas = require('../_lib/asaas');
+const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
@@ -12,39 +12,15 @@ module.exports = async (req, res) => {
 
   try {
     const billingRef = db().collection('users').doc(user.uid).collection('billing').doc('account');
-    let snap = await billingRef.get();
+    const snap = await billingRef.get();
     let billing = snap.exists ? snap.data() : null;
-    let access = computeAccess(billing);
 
-    // Fallback: se tem subscriptionId mas acesso não é 'active', sincronizar com Asaas
-    if (billing && billing.subscriptionId && access.status !== 'active' && access.status !== 'trial') {
-      try {
-        console.log('[status] access not active, syncing with Asaas for subscription', billing.subscriptionId);
-        const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId);
-        const paid = payments && payments.data && payments.data.find(p =>
-          p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
-        );
-        if (paid) {
-          console.log('[status] found paid payment from Asaas, updating billing', paid.id, paid.status);
-          const update = {
-            subscriptionStatus: 'ACTIVE',
-            lastPaymentStatus: paid.status,
-            lastPaymentId: paid.id,
-            lastPaidAt: fieldValue().serverTimestamp(),
-            lastEvent: 'PAYMENT_' + paid.status,
-            updatedAt: fieldValue().serverTimestamp(),
-          };
-          await billingRef.set(update, { merge: true });
-
-          // Reler o billing atualizado
-          snap = await billingRef.get();
-          billing = snap.exists ? snap.data() : null;
-          access = computeAccess(billing);
-        }
-      } catch (syncErr) {
-        console.warn('[status] Asaas sync fallback failed', syncErr.message || syncErr);
-      }
-    }
+    // Sync com Asaas se temos subscriptionId mas ainda não confirmámos pagamento.
+    // Acionar mesmo durante o trial: o utilizador pode pagar antes do trial expirar
+    // e o webhook pode falhar — sem este sync, ficaria preso no banner "Assinar agora".
+    const synced = await syncBillingFromAsaas(billingRef, billing);
+    billing = synced.billing;
+    const access = computeAccess(billing);
 
     return res.json({
       access,

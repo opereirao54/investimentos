@@ -2,6 +2,7 @@ const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const { requireUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 const { computeAccess, TRIAL_DAYS } = require('../_lib/access');
+const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const codes = require('../_lib/codes');
 
 const MONTHLY_PRICE_CENTS = 1500;
@@ -37,7 +38,8 @@ module.exports = async (req, res) => {
     const existing = snap.exists ? snap.data() : null;
 
     if (existing && existing.customerId) {
-      return res.json({ access: computeAccess(existing), billing: safeBilling(existing) });
+      const synced = await syncBillingFromAsaas(ref, existing);
+      return res.json({ access: computeAccess(synced.billing), billing: safeBilling(synced.billing) });
     }
 
     let referredByUserId = null;
