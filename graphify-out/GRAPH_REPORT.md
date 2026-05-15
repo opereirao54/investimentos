@@ -1,18 +1,21 @@
 # Graph Report - investimentos  (2026-05-15)
 
 ## Corpus Check
-- 26 files · ~397,900 words
+- 26 files · ~397,900 words (extração original em `e143015e`)
+- 29 files no HEAD `2171440` (3 novos: `scripts/lib/mock-billing.js`, `scripts/test-referral-flow.js`, `scripts/test-subscription-flow.js`)
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
 - 334 nodes · 617 edges · 25 communities (24 shown, 1 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
+- Acrescentado manualmente (Manual Patch abaixo): +9 funções, +1 módulo, +2 scripts de teste
 
 ## Graph Freshness
-- Built from commit: `e143015e`
-- Run `git rev-parse HEAD` and compare to check if the graph is stale.
-- Run `graphify update .` after code changes (no API cost).
+- ⚠️ **STALE** — graph estrutural foi construído em `e143015e`; HEAD atual é `2171440` (+14 commits).
+- Patches manuais aplicados neste relatório cobrem mudanças que afetam hubs / criam nós novos. Métricas exatas (centralidade, comunidades) **não** foram recalculadas.
+- Para regenerar de fato: `graphify update .` (sem custo de API), depois substituir este arquivo.
+- Para comparar: `git rev-parse HEAD` vs `e143015e`.
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Community 0|Community 0]]
@@ -147,6 +150,67 @@ Nodes (18): address, addressNumber, asaas, asaasFields, billing, city, complemen
 - **138 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+133 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **1 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+
+## Manual Patch since `e143015e`
+_Anotações à mão dos 14 commits aplicados após a última extração automática. Cobre apenas estrutura de código (símbolos, arquivos, arestas relevantes); não recalcula centralidade nem comunidades._
+
+### Novos arquivos
+- `scripts/lib/mock-billing.js` — mock em memória de `firebase-admin` + `asaas` para testes. Exporta `setup()`, `call()`, `makeReq()`, `makeRes()`, `store`, `asaasState`, sentinels (`SERVER_TS`, `DELETE`) e `makeTimestamp()`.
+- `scripts/test-referral-flow.js` — harness end-to-end do fluxo de indicação (41 asserções).
+- `scripts/test-subscription-flow.js` — harness de assinatura "pagou usa, não pagou não usa" (57 asserções).
+
+### Novas funções (nós a acrescentar)
+| Função | Arquivo | Comunidade provável |
+|---|---|---|
+| `reverseReferralCredit()` | `api/billing/webhook.js` | Community 8 (créditos referral) |
+| `signupIp()` | `api/billing/init.js` | Community 7 (init/customer) |
+| `maskEmail()` | `api/billing/me.js` | Community 13 (`me` / billing readouts) |
+| `hasActiveAccess()` | `firestore.rules` | Community 22 (firestore) |
+| `billingDoc()` | `firestore.rules` | Community 22 |
+| `setup()` | `scripts/lib/mock-billing.js` | nova Community (testes) |
+| `call()` (helper) | `scripts/lib/mock-billing.js` | nova Community (testes) |
+| `resolveValue()` / `mergeData()` | `scripts/lib/mock-billing.js` | nova Community (testes) |
+
+### Funções modificadas (mantêm o nó; mudam arestas)
+- `creditIndicatorFromIndicado()` (`api/billing/webhook.js`) — agora chama nova guard set `INDICATOR_BLOCKED_STATUSES`, checa CPF do indicador e idempotência por `payment.id`. Arestas novas para `creditsCol()` (idempotency read) e `indicatorBillingRef.collection('credits').doc(creditId).get()`.
+- `module.exports` do webhook — agora consulta `webhookEvents/{eventKey}` em transação (nova chamada a `db().runTransaction`). Nova aresta `webhook.js → webhookEvents` collection.
+- `module.exports` do `init.js` — wrap em `db.runTransaction()` para lock por uid; nova aresta `init.js → fieldValue().delete` para `initLock`/`initLockAt`. Função interna `releaseLock` (closure, não é nó separado).
+- `computeAccess()` (`api/_lib/access.js`) — consome 2 novos sets `PAID_PAYMENT_STATUSES`, `BAD_PAYMENT_STATUSES`.
+- `cors()` (`api/_lib/auth.js`) — lê `process.env.ALLOWED_ORIGINS`; cabeçalho `Vary: Origin` adicionado.
+- `requireUser()` (`api/_lib/auth.js`) — deixa de devolver `e.code`/`e.message` no JSON; aresta para `console.error` mantida, sem nova dependência.
+- `initBilling()` (`web/appliquei-billing.js`) — em erro de referral, agora refaz POST `/init` sem cupom (retry interno); arestas novas para `authedFetch('/init')` chamado em 2 caminhos.
+- `appliqueiAuthSetModo()` (`Appliquei_v13.0.html`) — lê `sessionStorage.appliquei_pending_referral` para pré-popular `#authCupom`.
+- `appliqueiAuthSubmit()` (`Appliquei_v13.0.html`) — só grava cupom em sessionStorage se o campo não estiver vazio (preserva o cupom da URL).
+- `customer.js` e `subscribe.js` — nova aresta para `db().collectionGroup('billing').where('cpfCnpj', '==', ...)`.
+- `subscribe.js` — nova chamada cruzada à billing do indicador para checar CPF idêntico (aresta `subscribe.js → users/{indicatorUid}/billing/account`).
+
+### God Nodes — provável re-ranking
+- `webhook.js` ganhou ~6 arestas novas (idempotência, reverse, INDICATOR_BLOCKED_STATUSES, payment id guard, refund handler). Deve subir no ranking.
+- `init.js` ganhou ~5 arestas (transação, signupIp, releaseLock, initLock fields).
+- `db()` (hub central) provavelmente ultrapassa as 14 arestas anteriores (novas chamadas em webhookEvents, collectionGroup CPF, billing indicador).
+
+### Novas arestas estruturais
+- `webhook.js → fieldValue` (mais usos para void/delete/increment)
+- `webhook.js → db().collection('webhookEvents')` (idempotência C2)
+- `init.js → db().runTransaction` (lock A3)
+- `customer.js → collectionGroup('billing')` (CPF uniqueness)
+- `subscribe.js → collectionGroup('billing')` + `subscribe.js → users/{id}/billing/account` (cross-uid CPF check)
+- `firestore.rules → users/{uid}/billing/account` (rules agora cruzam doc via `get()` em `hasActiveAccess`)
+- novo cluster `scripts/lib/mock-billing.js` ← {`test-referral-flow.js`, `test-subscription-flow.js`}; importam handlers reais via `setup()` (arestas para todos os endpoints de billing)
+
+### Knowledge Gaps — esperado mudar após `graphify update`
+- `webhookEvents` (collection nova) — provavelmente vira nó isolado até as escritas em `webhook.js` serem indexadas.
+- `signupIp`, `signupUserAgent` (campos novos em `users/{uid}/billing/account`) — campos só passam a estar conectados quando o futuro analytics/anti-fraude lê-los.
+- Pelo menos 138 nós isolados anteriores permanecem (não foram tocados).
+
+### Communities — impacto qualitativo
+| Comunidade | Mudança |
+|---|---|
+| Community 7 (`init`/customer) | +signupIp, transação de lock, releaseLock — coesão deve subir |
+| Community 8 (créditos referral / webhook) | +reverseReferralCredit, INDICATOR_BLOCKED_STATUSES, idempotência — coesão deve subir |
+| Community 13 (`me` / billing readouts) | +maskEmail, +cálculo de credits ignorando voidedAt |
+| Community 22 (firestore) | +hasActiveAccess, +billingDoc — antes tinha só `indexes`/`rules`/`firestore` (3 nós); agora deve quase dobrar |
+| Nova Community (testes) | scripts/lib/mock-billing + 2 testes + handlers como dependências |
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
