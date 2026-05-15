@@ -4034,7 +4034,7 @@
                             <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">1</span>
                             <strong style="font-size:13.5px;">Compartilhe seu cupom</strong>
                         </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Seu cupom dá <strong>10% de desconto</strong> ao interessado, em qualquer plano e em qualquer forma de pagamento.</p>
+                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Seu cupom dá <strong>10% de desconto</strong> ao interessado, em qualquer forma de pagamento.</p>
                     </div>
                     <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
                         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
@@ -11054,11 +11054,16 @@
             const cupom = obterCupomApplicash();
             if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
             const link = gerarLinkApplicash(cupom);
-            const texto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto em qualquer plano! 💚\n${link}`;
+            // Texto SEM o link: o navigator.share usa o campo url separadamente, e apps
+            // (WhatsApp, iMessage) acrescentam o link automaticamente — incluí-lo no texto
+            // resultaria em duplicação.
+            const textoCurto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto! 💚`;
             if(navigator.share) {
-                navigator.share({ title: 'Appliquei', text: texto, url: link }).catch(() => {});
+                navigator.share({ title: 'Appliquei', text: textoCurto, url: link }).catch(() => {});
             } else {
-                if(navigator.clipboard) navigator.clipboard.writeText(texto).catch(() => {});
+                // Fallback (desktop sem Web Share API): copia texto + link, uma vez só.
+                const textoCompleto = `${textoCurto}\n${link}`;
+                if(navigator.clipboard) navigator.clipboard.writeText(textoCompleto).catch(() => {});
                 mostrarToast('Texto + link copiados para compartilhar!', 'sucesso');
             }
         }
