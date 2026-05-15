@@ -340,23 +340,54 @@
     };
     return map[s] || s || '—';
   }
+  function cardBrandLabel(b) {
+    if (!b) return '';
+    var map = { VISA: 'Visa', MASTERCARD: 'Mastercard', AMEX: 'Amex', ELO: 'Elo', HIPERCARD: 'Hipercard', DINERS: 'Diners', DISCOVER: 'Discover' };
+    return map[b] || b;
+  }
+  function paymentMethodLabel(m, brand, last4) {
+    if (m === 'CREDIT_CARD') {
+      var parts = ['Cartão recorrente'];
+      if (brand) parts.push(cardBrandLabel(brand));
+      if (last4) parts.push('•••• ' + last4);
+      return parts.join(' · ');
+    }
+    if (m === 'UNDEFINED' || !m) return 'PIX ou boleto (fatura mensal)';
+    return m;
+  }
+  function failureReasonLabel(r) {
+    if (!r) return null;
+    var map = {
+      risk_analysis_reproved: 'Análise de risco reprovou o cartão',
+      chargeback: 'Chargeback registado',
+      card_reproved: 'Cartão recusado',
+    };
+    return map[r] || r;
+  }
+
   function renderMyAccount(me) {
+    lastMe = me;
     var pct = me.recurringDiscountPercent || 0;
     var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
     var subStatus = me.subscriptionStatus;
     var trialEndsAt = me.trialEndsAt;
     var inTrial = me.access && me.access.status === 'trial';
+    var hasSub = !!me.subscriptionId;
+    var isInactive = subStatus === 'INACTIVE';
 
     var subBlock = '';
-    if (inTrial) {
+    if (inTrial && !hasSub) {
       subBlock = '<div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:10px;padding:12px 14px;font-size:13px;">' +
         'Você está na <strong>avaliação gratuita</strong>. Termina em ' + fmtDate(trialEndsAt) + '.</div>';
-    } else {
+    } else if (hasSub) {
+      var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
+      var nextDateStr = nextCharge ? fmtDate(nextCharge.date) : '—';
+      var nextValueStr = nextCharge ? fmtBRL(nextCharge.amountCents) : fmtBRL(me.projectedNextBillCents || baseCents);
       subBlock = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
         statCard('Status', '<span style="color:' + statusColor(subStatus) + ';">' + statusLabel(subStatus) + '</span>') +
         statCard('Plano', 'Mensal Appliquei') +
         statCard('Valor cobrado', fmtBRL(baseCents)) +
-        statCard('Próxima cobrança', fmtBRL(me.projectedNextBillCents || baseCents)) +
+        statCard('Próxima cobrança', nextDateStr + '<div style="font-size:11px;font-weight:500;color:#6b7d75;margin-top:2px;">' + nextValueStr + '</div>') +
         '</div>';
     }
 
@@ -364,19 +395,99 @@
       ? '<div style="margin-top:10px;font-size:12px;color:#059669;"><strong>' + pct + '% off recorrente</strong> aplicado por uso do cupom ' + (me.referredByCode || '') + '.</div>'
       : '';
 
+    // Bloco de método de pagamento (cartão actual)
+    var methodBlock = '';
+    if (hasSub && !isInactive) {
+      var methodLabel = paymentMethodLabel(me.paymentMethod, me.cardBrand, me.cardLast4);
+      var holderLine = me.cardHolderName ? '<div style="font-size:11.5px;color:#6b7d75;margin-top:2px;">Titular: ' + escapeHtml(me.cardHolderName) + '</div>' : '';
+      var changeBtn = '<button type="button" data-act="change-card" style="border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;color:#384a42;">' + (me.paymentMethod === 'CREDIT_CARD' ? 'Trocar cartão' : 'Pagar com cartão') + '</button>';
+      methodBlock = '<div style="margin-top:16px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:12px 14px;">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+          '<div>' +
+            '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">Método de pagamento</div>' +
+            '<div style="font-size:13.5px;font-weight:600;margin-top:2px;">' + methodLabel + '</div>' +
+            holderLine +
+          '</div>' +
+          changeBtn +
+        '</div>' +
+      '</div>';
+    }
+
+    // Próximas cobranças
+    var upcomingBlock = '';
+    if (hasSub && !isInactive && me.upcomingCharges && me.upcomingCharges.length) {
+      var upcomingRows = me.upcomingCharges.map(function (u) {
+        var isForecast = u.source === 'forecast';
+        var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
+        var statusCol = isForecast ? '#6b7d75' : (u.status === 'OVERDUE' ? '#a16207' : '#384a42');
+        var actionCell = u.invoiceUrl
+          ? '<a href="' + u.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>'
+          : '—';
+        return '<tr>' +
+          '<td style="padding:5px 0;color:#4a5b53;">' + fmtDate(u.date) + '</td>' +
+          '<td style="text-align:right;padding:5px 0;font-weight:600;">' + fmtBRL(u.amountCents) + '</td>' +
+          '<td style="text-align:right;padding:5px 0;color:' + statusCol + ';">' + statusTxt + '</td>' +
+          '<td style="text-align:right;padding:5px 0;">' + actionCell + '</td>' +
+        '</tr>';
+      }).join('');
+      upcomingBlock = '<div style="margin-top:16px;">' +
+        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Próximas cobranças</div>' +
+        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' +
+          '<thead><tr style="color:#6b7d75;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">' +
+          '<th style="text-align:left;padding-bottom:4px;">Data</th>' +
+          '<th style="text-align:right;padding-bottom:4px;">Valor</th>' +
+          '<th style="text-align:right;padding-bottom:4px;">Status</th>' +
+          '<th style="text-align:right;padding-bottom:4px;"></th></tr></thead>' +
+          '<tbody>' + upcomingRows + '</tbody>' +
+        '</table>' +
+      '</div>';
+    }
+
+    // Avisos de falha / dunning
+    var alertBlock = '';
+    var failure = failureReasonLabel(me.lastFailureReason);
+    if (failure || (me.dunningRetryCount && me.dunningRetryCount > 0)) {
+      var parts = [];
+      if (failure) parts.push(failure);
+      if (me.dunningRetryCount && me.dunningRetryCount > 0) parts.push(me.dunningRetryCount + ' tentativa(s) de re-cobrança');
+      alertBlock = '<div style="margin-top:12px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;font-size:12.5px;">' +
+        '<strong>Atenção:</strong> ' + parts.join(' · ') +
+      '</div>';
+    }
+
+    // Dados de cobrança
+    var c = me.customer || {};
+    var customerSummary = [];
+    if (c.name) customerSummary.push(escapeHtml(c.name));
+    if (c.cpfCnpj) customerSummary.push(fmtCpfCnpj(c.cpfCnpj));
+    if (c.email) customerSummary.push(escapeHtml(c.email));
+    if (c.phone) customerSummary.push(fmtPhone(c.phone));
+    var customerBlock = '<div style="margin-top:16px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:12px 14px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
+        '<div>' +
+          '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">Dados de cobrança</div>' +
+          '<div style="font-size:13px;color:#1d2a23;margin-top:4px;line-height:1.5;">' + (customerSummary.length ? customerSummary.join('<br>') : '<em style="color:#6b7d75;">Sem dados — adicione para emitir faturas correctamente.</em>') + '</div>' +
+        '</div>' +
+        '<button type="button" data-act="edit-customer" style="border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;color:#384a42;">Editar</button>' +
+      '</div>' +
+    '</div>';
+
+    // Histórico
     var payments = (me.payments || []);
     var paymentsRows = payments.length ? payments.map(function (p) {
+      var statusColorVal = p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
+        ? statusColor('ACTIVE')
+        : (p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS' ? '#a16207' : '#6b7d75');
       return '<tr>' +
         '<td style="padding:5px 0;color:#4a5b53;">' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + '</td>' +
         '<td style="padding:5px 0;">' + (p.billingType || '—') + '</td>' +
         '<td style="text-align:right;padding:5px 0;font-weight:600;">R$ ' + (p.value || 0).toFixed(2) + '</td>' +
-        '<td style="text-align:right;padding:5px 0;color:' + statusColor(p.status === 'CONFIRMED' || p.status === 'RECEIVED' ? 'ACTIVE' : (p.status === 'OVERDUE' ? 'OVERDUE' : null)) + ';">' + paymentStatusLabel(p.status) + '</td>' +
+        '<td style="text-align:right;padding:5px 0;color:' + statusColorVal + ';">' + paymentStatusLabel(p.status) + '</td>' +
         '<td style="text-align:right;padding:5px 0;">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>' : '—') + '</td>' +
       '</tr>';
     }).join('') : '<tr><td colspan="5" style="padding:10px 0;color:#6b7d75;text-align:center;">Sem pagamentos ainda.</td></tr>';
 
-    var html = subBlock + discountNote +
-      '<div style="margin-top:18px;">' +
+    var historyBlock = '<div style="margin-top:18px;">' +
         '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Histórico de cobranças</div>' +
         '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' +
           '<thead><tr style="color:#6b7d75;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">' +
@@ -387,10 +498,269 @@
           '<th style="text-align:right;padding-bottom:4px;"></th></tr></thead>' +
           '<tbody>' + paymentsRows + '</tbody>' +
         '</table>' +
-      '</div>' +
-      '<div style="margin-top:14px;font-size:11.5px;color:#6b7d75;">Programa de indicação (cupom, indicados, créditos) está em <strong>Applicash $</strong>.</div>';
+      '</div>';
 
-    $('myAccountBody').innerHTML = html;
+    // Acções principais
+    var actionsBlock = '';
+    if (hasSub && !isInactive) {
+      actionsBlock = '<div style="margin-top:18px;display:flex;justify-content:flex-end;">' +
+        '<button type="button" data-act="cancel-sub" style="border:none;background:none;cursor:pointer;font-size:12.5px;color:#7f1d1d;text-decoration:underline;">Cancelar assinatura</button>' +
+      '</div>';
+    } else if (isInactive) {
+      actionsBlock = '<div style="margin-top:14px;font-size:12.5px;color:#6b7d75;">Assinatura cancelada' + (me.cancelledAt ? ' em ' + fmtDate(me.cancelledAt) : '') + '. Volte a assinar a partir do gate de acesso.</div>';
+    }
+
+    var footer = '<div style="margin-top:14px;font-size:11.5px;color:#6b7d75;">Programa de indicação (cupom, indicados, créditos) está em <strong>Applicash $</strong>.</div>';
+
+    $('myAccountBody').innerHTML = subBlock + discountNote + methodBlock + alertBlock + upcomingBlock + customerBlock + historyBlock + actionsBlock + footer;
+    bindMyAccountActions();
+  }
+
+  var lastMe = null;
+  function bindMyAccountActions() {
+    var body = $('myAccountBody');
+    if (!body) return;
+    var btns = body.querySelectorAll('[data-act]');
+    for (var i = 0; i < btns.length; i++) {
+      (function (btn) {
+        btn.addEventListener('click', function () {
+          var act = btn.getAttribute('data-act');
+          if (act === 'change-card') openChangeCardModal();
+          else if (act === 'edit-customer') openEditCustomerModal();
+          else if (act === 'cancel-sub') confirmCancelSubscription();
+        });
+      })(btns[i]);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function fmtCpfCnpj(d) {
+    d = String(d || '').replace(/\D+/g, '');
+    if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+    return d;
+  }
+  function fmtPhone(d) {
+    d = String(d || '').replace(/\D+/g, '');
+    if (d.length === 11) return d.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    if (d.length === 10) return d.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+    return d;
+  }
+
+  // -------- Modais de gestão --------
+
+  function ensureSubModal() {
+    if ($('subModal')) return;
+    var div = document.createElement('div');
+    div.id = 'subModal';
+    div.style.cssText = 'position:fixed;inset:0;z-index:10080;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
+    div.innerHTML = '<div id="subModalCard" style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.3);padding:24px;color:#0b1410;font-family:Figtree,sans-serif;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+        '<h3 id="subModalTitle" style="font-family:Syne,sans-serif;font-size:1.1rem;margin:0;"></h3>' +
+        '<button type="button" id="subModalClose" style="border:none;background:none;cursor:pointer;font-size:22px;color:#6b7d75;">&times;</button>' +
+      '</div>' +
+      '<div id="subModalBody" style="font-size:13.5px;color:#1d2a23;"></div>' +
+    '</div>';
+    document.body.appendChild(div);
+    div.addEventListener('click', function (e) { if (e.target === div) closeSubModal(); });
+    $('subModalClose').addEventListener('click', closeSubModal);
+  }
+  function openSubModal(title, body) {
+    ensureSubModal();
+    $('subModalTitle').textContent = title;
+    $('subModalBody').innerHTML = body;
+    $('subModal').style.display = 'flex';
+  }
+  function closeSubModal() {
+    var m = $('subModal');
+    if (m) m.style.display = 'none';
+  }
+
+  function fld() { return 'width:100%;padding:9px 12px;font-size:13.5px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;'; }
+  function lbl() { return 'display:block;font-size:11.5px;font-weight:600;color:#384a42;margin-bottom:3px;'; }
+
+  function openChangeCardModal() {
+    var f = fld(), l = lbl();
+    var html =
+      '<div style="margin-bottom:10px;"><label style="' + l + '">Número do cartão</label><input id="mcNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" style="' + f + '"></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:1;"><label style="' + l + '">Validade</label><input id="mcExp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" style="' + f + '"></div>' +
+        '<div style="flex:1;"><label style="' + l + '">CVV</label><input id="mcCvv" inputmode="numeric" autocomplete="cc-csc" placeholder="000" style="' + f + '"></div>' +
+      '</div>' +
+      '<div style="margin-bottom:10px;"><label style="' + l + '">Nome impresso</label><input id="mcHolder" autocomplete="cc-name" style="' + f + '"></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:1;"><label style="' + l + '">CEP</label><input id="mcZip" inputmode="numeric" autocomplete="postal-code" style="' + f + '"></div>' +
+        '<div style="flex:1;"><label style="' + l + '">Nº endereço</label><input id="mcAddrNum" inputmode="numeric" style="' + f + '"></div>' +
+      '</div>' +
+      '<div style="margin-bottom:10px;"><label style="' + l + '">Telefone</label><input id="mcPhone" type="tel" inputmode="tel" style="' + f + '"></div>' +
+      '<div id="mcErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
+      '<button id="mcSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Confirmar novo cartão</button>' +
+      '<p style="margin:10px 0 0;font-size:11.5px;color:#6b7d75;">As faturas pendentes serão re-cobradas no novo cartão imediatamente.</p>';
+    openSubModal('Trocar cartão', html);
+    $('mcSubmit').addEventListener('click', submitChangeCard);
+  }
+
+  function showSubModalErr(id, msg) {
+    var e = $(id);
+    if (!e) return;
+    e.textContent = msg;
+    e.style.display = 'block';
+  }
+
+  async function submitChangeCard() {
+    var num = ($('mcNumber') || {}).value || '';
+    var exp = parseExpiry(($('mcExp') || {}).value);
+    var cvv = (($('mcCvv') || {}).value || '').replace(/\D+/g, '');
+    var holder = (($('mcHolder') || {}).value || '').trim();
+    var zip = (($('mcZip') || {}).value || '').replace(/\D+/g, '');
+    var addrNum = (($('mcAddrNum') || {}).value || '').replace(/\D+/g, '');
+    var phone = (($('mcPhone') || {}).value || '').replace(/\D+/g, '');
+    var digits = num.replace(/\D+/g, '');
+    if (digits.length < 13 || digits.length > 19) return showSubModalErr('mcErr', 'Número do cartão inválido.');
+    if (!exp) return showSubModalErr('mcErr', 'Validade inválida (MM/AA).');
+    if (cvv.length < 3) return showSubModalErr('mcErr', 'CVV inválido.');
+    if (holder.length < 3) return showSubModalErr('mcErr', 'Nome impresso obrigatório.');
+    if (zip.length !== 8) return showSubModalErr('mcErr', 'CEP inválido.');
+    if (!addrNum) return showSubModalErr('mcErr', 'Número do endereço obrigatório.');
+    if (phone.length < 10) return showSubModalErr('mcErr', 'Telefone inválido.');
+
+    var btn = $('mcSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = 'A enviar…'; }
+    try {
+      var c = (lastMe && lastMe.customer) || {};
+      var cpfCnpj = (c.cpfCnpj || '').replace(/\D+/g, '');
+      if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+        showSubModalErr('mcErr', 'CPF/CNPJ ausente nos dados de cobrança. Edite os dados primeiro.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+        return;
+      }
+      var fb = window.AppliqueiFirebase;
+      var userEmail = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || c.email || null;
+      await authedFetch('/card', {
+        method: 'POST',
+        body: JSON.stringify({
+          creditCard: { holderName: holder, number: digits, expiryMonth: exp.expiryMonth, expiryYear: exp.expiryYear, ccv: cvv },
+          creditCardHolderInfo: { name: c.name || holder, email: userEmail, cpfCnpj: cpfCnpj, postalCode: zip, addressNumber: addrNum, phone: phone },
+        }),
+      });
+      closeSubModal();
+      var me = await fetchMe();
+      renderMyAccount(me);
+      refresh(false);
+    } catch (e) {
+      console.warn('[billing] change card', e, e.detail);
+      showSubModalErr('mcErr', e.message || 'Falha ao actualizar cartão.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+    }
+  }
+
+  function openEditCustomerModal() {
+    var c = (lastMe && lastMe.customer) || {};
+    var f = fld(), l = lbl();
+    var html =
+      '<div style="margin-bottom:10px;"><label style="' + l + '">Nome completo</label><input id="ecName" autocomplete="name" value="' + escapeHtml(c.name || '') + '" style="' + f + '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' + l + '">E-mail</label><input id="ecEmail" type="email" autocomplete="email" value="' + escapeHtml(c.email || '') + '" style="' + f + '"></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:2;"><label style="' + l + '">CPF / CNPJ</label><input id="ecCpf" inputmode="numeric" value="' + escapeHtml(c.cpfCnpj || '') + '" style="' + f + '"></div>' +
+        '<div style="flex:2;"><label style="' + l + '">Telefone</label><input id="ecPhone" type="tel" inputmode="tel" value="' + escapeHtml(c.phone || '') + '" style="' + f + '"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:1;"><label style="' + l + '">CEP</label><input id="ecZip" inputmode="numeric" value="' + escapeHtml(c.postalCode || '') + '" style="' + f + '"></div>' +
+        '<div style="flex:2;"><label style="' + l + '">Endereço</label><input id="ecAddr" value="' + escapeHtml(c.address || '') + '" style="' + f + '"></div>' +
+        '<div style="flex:1;"><label style="' + l + '">Nº</label><input id="ecNum" inputmode="numeric" value="' + escapeHtml(c.addressNumber || '') + '" style="' + f + '"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:1;"><label style="' + l + '">Complemento</label><input id="ecCompl" value="' + escapeHtml(c.complement || '') + '" style="' + f + '"></div>' +
+        '<div style="flex:1;"><label style="' + l + '">Bairro</label><input id="ecProv" value="' + escapeHtml(c.province || '') + '" style="' + f + '"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+        '<div style="flex:2;"><label style="' + l + '">Cidade</label><input id="ecCity" value="' + escapeHtml(c.city || '') + '" style="' + f + '"></div>' +
+        '<div style="flex:1;"><label style="' + l + '">UF</label><input id="ecState" maxlength="2" value="' + escapeHtml(c.state || '') + '" style="' + f + '"></div>' +
+      '</div>' +
+      '<div id="ecErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
+      '<button id="ecSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Guardar alterações</button>';
+    openSubModal('Editar dados de cobrança', html);
+    $('ecSubmit').addEventListener('click', submitEditCustomer);
+  }
+
+  async function submitEditCustomer() {
+    var name = (($('ecName') || {}).value || '').trim();
+    var email = (($('ecEmail') || {}).value || '').trim();
+    var cpf = (($('ecCpf') || {}).value || '').replace(/\D+/g, '');
+    var phone = (($('ecPhone') || {}).value || '').replace(/\D+/g, '');
+    var zip = (($('ecZip') || {}).value || '').replace(/\D+/g, '');
+    var addr = (($('ecAddr') || {}).value || '').trim();
+    var num = (($('ecNum') || {}).value || '').trim();
+    var compl = (($('ecCompl') || {}).value || '').trim();
+    var prov = (($('ecProv') || {}).value || '').trim();
+    var city = (($('ecCity') || {}).value || '').trim();
+    var state = (($('ecState') || {}).value || '').trim().toUpperCase();
+
+    if (name && name.length < 3) return showSubModalErr('ecErr', 'Nome muito curto.');
+    if (cpf && cpf.length !== 11 && cpf.length !== 14) return showSubModalErr('ecErr', 'CPF (11) ou CNPJ (14 dígitos).');
+    if (zip && zip.length !== 8) return showSubModalErr('ecErr', 'CEP precisa ter 8 dígitos.');
+
+    var btn = $('ecSubmit');
+    if (btn) { btn.disabled = true; btn.textContent = 'A guardar…'; }
+    try {
+      await authedFetch('/customer', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name || undefined,
+          email: email || undefined,
+          cpfCnpj: cpf || undefined,
+          mobilePhone: phone || undefined,
+          postalCode: zip || undefined,
+          address: addr || undefined,
+          addressNumber: num || undefined,
+          complement: compl || undefined,
+          province: prov || undefined,
+          city: city || undefined,
+          state: state || undefined,
+        }),
+      });
+      closeSubModal();
+      var me = await fetchMe();
+      renderMyAccount(me);
+    } catch (e) {
+      console.warn('[billing] edit customer', e, e.detail);
+      showSubModalErr('ecErr', e.message || 'Falha ao guardar dados.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar alterações'; }
+    }
+  }
+
+  function confirmCancelSubscription() {
+    var html =
+      '<p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;">Ao cancelar, o acesso à plataforma é interrompido no fim do ciclo actual e nenhuma cobrança futura será emitida.</p>' +
+      '<p style="margin:0 0 14px;font-size:12.5px;color:#6b7d75;">Pode voltar a assinar a qualquer momento.</p>' +
+      '<div id="cancelErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
+      '<div style="display:flex;gap:8px;">' +
+        '<button id="cancelKeep" type="button" style="flex:1;border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:13px;color:#384a42;">Manter assinatura</button>' +
+        '<button id="cancelConfirm" type="button" style="flex:1;border:none;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;background:#7f1d1d;color:#fff;">Confirmar cancelamento</button>' +
+      '</div>';
+    openSubModal('Cancelar assinatura?', html);
+    $('cancelKeep').addEventListener('click', closeSubModal);
+    $('cancelConfirm').addEventListener('click', doCancelSubscription);
+  }
+
+  async function doCancelSubscription() {
+    var btn = $('cancelConfirm');
+    if (btn) { btn.disabled = true; btn.textContent = 'A cancelar…'; }
+    try {
+      await authedFetch('/cancel', { method: 'POST' });
+      closeSubModal();
+      var me = await fetchMe();
+      renderMyAccount(me);
+      refresh(false);
+    } catch (e) {
+      console.warn('[billing] cancel', e, e.detail);
+      showSubModalErr('cancelErr', e.message || 'Falha ao cancelar.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Confirmar cancelamento'; }
+    }
   }
 
   async function syncApplicashFromServer() {
