@@ -33,6 +33,8 @@ module.exports = async (req, res) => {
         referralCode: billing.referralCode || null,
         referredByCode: billing.referredByCode || null,
         recurringDiscountPercent: billing.recurringDiscountPercent || 0,
+        monthlyPriceCents: billing.monthlyPriceCents || 1500,
+        subscriptionBaseValueCents: billing.subscriptionBaseValueCents || null,
       } : null,
     });
   } catch (e) {

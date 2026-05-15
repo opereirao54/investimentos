@@ -66,7 +66,41 @@ module.exports = async (req, res) => {
     }
 
     if (claim.state === 'has_customer') {
-      const synced = await syncBillingFromAsaas(ref, claim.existing);
+      const existing = claim.existing;
+      let billingNow = existing;
+
+      // Bug #1 fix: aplicar cupom retroativo se o usuário ainda não criou
+      // a subscription no Asaas (ou seja, ainda não pagou nenhuma fatura
+      // recorrente). Cobre os casos:
+      //   - Usuário já estava logado e só agora clicou no link de indicação
+      //   - Usuário criou conta sem cupom e depois recebeu o link
+      // Após /subscribe (subscriptionId existe), o cupom não pode mais ser
+      // aplicado retroativamente porque a recorrência no Asaas já foi
+      // criada com valor fixo. Também recusa se já há referral vinculado
+      // (não permite trocar de cupom).
+      if (rawCode && !existing.subscriptionId && !existing.referredByUserId) {
+        if (!codes.isValid(rawCode)) {
+          return res.status(400).json({ error: 'invalid_referral_code' });
+        }
+        const owner = await codes.lookupOwner(D, rawCode);
+        if (!owner) {
+          return res.status(400).json({ error: 'referral_code_not_found' });
+        }
+        if (owner.uid === user.uid) {
+          return res.status(400).json({ error: 'self_referral_not_allowed' });
+        }
+        await ref.set({
+          referredByUserId: owner.uid,
+          referredByCode: owner.code,
+          referralUsedAt: timestamp().fromMillis(Date.now()),
+          recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
+          updatedAt: fieldValue().serverTimestamp(),
+        }, { merge: true });
+        const reread = await ref.get();
+        billingNow = reread.data();
+      }
+
+      const synced = await syncBillingFromAsaas(ref, billingNow);
       return res.json({ access: computeAccess(synced.billing), billing: safeBilling(synced.billing) });
     }
 

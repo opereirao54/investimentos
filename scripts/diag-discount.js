@@ -85,29 +85,27 @@ async function main() {
   // =====================================================================
   // CENÁRIO 3: o que o GATE da UI mostra
   // =====================================================================
-  step(3, 'O QUE A UI MOSTRA — Bob, que tem cupom aplicado (cenário 1)');
-  const me = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + bobTok } });
-  log('me.recurringDiscountPercent      =', me.body.recurringDiscountPercent);
-  log('me.monthlyPriceCents             =', me.body.monthlyPriceCents);
-  log('me.subscriptionBaseValueCents    =', me.body.subscriptionBaseValueCents);
+  step(3, 'O QUE A UI MOSTRA — payload de /status agora carrega o desconto');
+  const stat = await call(H.status, { method: 'GET', headers: { authorization: 'Bearer ' + bobTok } });
+  log('status.billing.recurringDiscountPercent     =', stat.body.billing.recurringDiscountPercent);
+  log('status.billing.monthlyPriceCents            =', stat.body.billing.monthlyPriceCents);
+  log('status.billing.subscriptionBaseValueCents   =', stat.body.billing.subscriptionBaseValueCents);
+  check(stat.body.billing.recurringDiscountPercent === 10, 'status devolve recurringDiscountPercent=10');
+  check(stat.body.billing.monthlyPriceCents === 1500, 'status devolve monthlyPriceCents=1500');
+  check(stat.body.billing.subscriptionBaseValueCents === 1350, 'status devolve subscriptionBaseValueCents=1350');
   log('');
-  log('No appliquei-billing.js, o gate mostra strings hardcoded:');
-  log("   linha 26:  '<strong>Valor:</strong> R$ 15,00 / mês'");
-  log("   linha 76:  'Assinar agora (R$ 15/mês)'");
-  log("   linha 105: 'Assinar com cartão (R$ 15/mês)'");
-  log("   linha 111: 'Gerar fatura (R$ 15/mês)'");
-  log('');
-  log('Mesmo com recurringDiscountPercent=10 vindo do backend, esses textos');
-  log('NÃO consultam o estado — sempre mostram R$ 15.');
-  check(true, '(observação acima — não é assert)');
+  log('No frontend, applyAccess(r.access, r.billing) salva lastBilling e');
+  log('updateGatePrices() atualiza dinamicamente:');
+  log('  - "Valor: R$ 13,50 / mês (10% off com cupom)"');
+  log('  - "Assinar com cartão (R$ 13,50/mês)" ou "Gerar fatura (R$ 13,50/mês)"');
 
   // =====================================================================
   // RESUMO
   // =====================================================================
   console.log('\n\x1b[1m== RESUMO ==\x1b[0m');
-  console.log('  Cenário 1 (novo usuário, cupom no 1º /init): desconto APLICADO no backend ✓');
-  console.log('  Cenário 2 (usuário existente, cupom retroativo): ' + (pass >= 7 ? 'aplicado ✓' : '\x1b[31mFALHA — cupom IGNORADO\x1b[0m'));
-  console.log('  Cenário 3 (display): UI mostra R$ 15 hardcoded mesmo com desconto válido no backend ✗');
+  console.log('  Cenário 1 (novo usuário, cupom no 1º /init): desconto APLICADO ✓');
+  console.log('  Cenário 2 (usuário existente, cupom retroativo): APLICADO (fix Bug #1) ✓');
+  console.log('  Cenário 3 (display): /status carrega billing completo (fix Bug #2) ✓');
 
   console.log('\n' + (fail === 0 ? '\x1b[32m' : '\x1b[31m') + '== ' + pass + ' ok, ' + fail + ' falha(s)\x1b[0m');
   process.exit(0); // exit 0 — este script é diagnóstico, não validação

@@ -8,6 +8,41 @@
   var POLL_MS = 30000;
   var pollTimer = null;
   var lastAccess = null;
+  var lastBilling = null;
+
+  function effectivePriceCents() {
+    if (!lastBilling) return 1500;
+    // Se a subscription já existe, o valor cobrado já está fixado
+    if (lastBilling.subscriptionBaseValueCents) return lastBilling.subscriptionBaseValueCents;
+    // Caso contrário, calcular a partir do desconto registado em /init
+    var base = lastBilling.monthlyPriceCents || 1500;
+    var pct = lastBilling.recurringDiscountPercent || 0;
+    return Math.round(base * (100 - pct) / 100);
+  }
+  function priceLabel() {
+    // fmtBRL é declarada abaixo (hoisting via var/function); evita uso antes de definição
+    return (typeof fmtBRL === 'function')
+      ? fmtBRL(effectivePriceCents())
+      : 'R$ ' + (effectivePriceCents() / 100).toFixed(2).replace('.', ',');
+  }
+  function updateGatePrices() {
+    var pct = (lastBilling && lastBilling.recurringDiscountPercent) || 0;
+    var detail = $('billingDetail');
+    if (detail) {
+      var divs = detail.children;
+      if (divs && divs[1]) {
+        var note = pct > 0
+          ? ' <span style="color:#059669;font-weight:600;">(' + pct + '% off com cupom)</span>'
+          : '';
+        divs[1].innerHTML = '<strong>Valor:</strong> ' + priceLabel() + ' / mês' + note;
+      }
+    }
+    var btn = $('billingSubscribeBtn');
+    if (btn) {
+      var prefix = selectedMethod === 'CREDIT_CARD' ? 'Assinar com cartão' : 'Gerar fatura';
+      btn.textContent = prefix + ' (' + priceLabel() + '/mês)';
+    }
+  }
 
   function $(id) { return document.getElementById(id); }
 
@@ -102,13 +137,13 @@
       if (pix) { pix.style.background = '#fff'; pix.style.color = '#384a42'; pix.style.borderColor = '#d4dad7'; pix.style.fontWeight = '500'; }
       if (fields) fields.style.display = '';
       if (label) label.textContent = 'Cartão recorrente — cobrado automaticamente todo mês';
-      if (btn) btn.textContent = 'Assinar com cartão (R$ 15/mês)';
+      if (btn) btn.textContent = 'Assinar com cartão (' + priceLabel() + '/mês)';
     } else {
       if (pix) { pix.style.background = '#059669'; pix.style.color = '#fff'; pix.style.borderColor = '#059669'; pix.style.fontWeight = '600'; }
       if (card) { card.style.background = '#fff'; card.style.color = '#384a42'; card.style.borderColor = '#d4dad7'; card.style.fontWeight = '500'; }
       if (fields) fields.style.display = 'none';
       if (label) label.textContent = 'PIX ou boleto — fatura nova todo mês';
-      if (btn) btn.textContent = 'Gerar fatura (R$ 15/mês)';
+      if (btn) btn.textContent = 'Gerar fatura (' + priceLabel() + '/mês)';
     }
   }
 
@@ -209,8 +244,9 @@
     return data;
   }
 
-  function applyAccess(access) {
+  function applyAccess(access, billing) {
     lastAccess = access;
+    if (billing !== undefined && billing !== null) lastBilling = billing;
     if (!access) return;
     if (access.status === 'active') {
       hideGate();
@@ -244,6 +280,7 @@
     } else {
       showGate('Assinatura necessária', 'O acesso à plataforma requer uma assinatura ativa.');
     }
+    updateGatePrices();
     startPolling();
   }
 
@@ -262,7 +299,7 @@
     try {
       var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify(bodyObj) });
       try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
-      applyAccess(r.access);
+      applyAccess(r.access, r.billing);
     } catch (e) {
       console.warn('[billing] init', e);
       var refErr = e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found' || e.detail.error === 'self_referral_not_allowed');
@@ -270,7 +307,7 @@
         try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
         try {
           var r2 = await authedFetch('/init', { method: 'POST', body: JSON.stringify({}) });
-          applyAccess(r2.access);
+          applyAccess(r2.access, r2.billing);
           var msg = e.detail.error === 'self_referral_not_allowed'
             ? 'Não é possível usar o seu próprio cupom — a conta foi criada sem cupom.'
             : 'O cupom informado não foi encontrado — a conta foi criada sem cupom.';
@@ -859,7 +896,7 @@
   async function refresh(verbose) {
     try {
       var r = await authedFetch('/status', { method: 'GET' });
-      applyAccess(r.access);
+      applyAccess(r.access, r.billing);
       if (verbose && r.access && r.access.status !== 'active') {
         showErr('Ainda não recebemos a confirmação. Tente novamente em alguns instantes.');
       }
@@ -1011,7 +1048,7 @@
       try {
         var s = await authedFetch('/status', { method: 'GET' });
         if (s.access && s.access.status === 'active') {
-          applyAccess(s.access);
+          applyAccess(s.access, s.billing);
           try { await syncApplicashFromServer(); } catch (_) {}
           return true;
         }
