@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-billing.js": {
-    "mtime": 1778809286.6594431,
-    "ast_hash": "b0dffd2f59cb322a3a0e07d6cae6e0b2",
+    "mtime": 1778809784.4394243,
+    "ast_hash": "1a1dafbe4b589cd1e60712f2d9897146",
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-firebase-init.js": {
@@ -80,8 +80,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/me.js": {
-    "mtime": 1778809093.6234503,
-    "ast_hash": "eff5002c5a0b44ecfc45b008b54cf92a",
+    "mtime": 1778809564.3714325,
+    "ast_hash": "1e5d883c3b736d2f1d56d02cccd572bf",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/subscribe.js": {
@@ -107,6 +107,11 @@
   "/home/user/investimentos/api/billing/cancel.js": {
     "mtime": 1778809152.611448,
     "ast_hash": "6483c88961b66763c7c8a93e65893f52",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/api/billing/customer.js": {
+    "mtime": 1778809537.4834335,
+    "ast_hash": "4310908519c2f9f0f52771400a2a273f",
     "semantic_hash": ""
   },
   "/home/user/investimentos/scripts/build_plan_pdf.py": {

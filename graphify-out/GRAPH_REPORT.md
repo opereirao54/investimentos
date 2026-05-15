@@ -1,16 +1,16 @@
 # Graph Report - investimentos  (2026-05-15)
 
 ## Corpus Check
-- 25 files · ~394,973 words
+- 26 files · ~397,900 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 288 nodes · 512 edges · 24 communities (23 shown, 1 thin omitted)
+- 334 nodes · 617 edges · 25 communities (24 shown, 1 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `1b52c157`
+- Built from commit: `e143015e`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -35,18 +35,19 @@
 - [[_COMMUNITY_Community 21|Community 21]]
 - [[_COMMUNITY_Community 22|Community 22]]
 - [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `P()` - 15 edges
-2. `main()` - 15 edges
-3. `$()` - 14 edges
-4. `call()` - 14 edges
-5. `make_table()` - 14 edges
-6. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
-7. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
-8. `db()` - 13 edges
-9. `caption()` - 13 edges
-10. `subscribe()` - 10 edges
+1. `$()` - 25 edges
+2. `renderMyAccount()` - 20 edges
+3. `P()` - 15 edges
+4. `main()` - 15 edges
+5. `db()` - 14 edges
+6. `call()` - 14 edges
+7. `make_table()` - 14 edges
+8. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
+9. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
+10. `caption()` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `findBillingByCustomer()` --calls--> `db()`  [EXTRACTED]
@@ -60,7 +61,7 @@
 - `syncBillingFromAsaas()` --calls--> `fieldValue()`  [EXTRACTED]
   api/_lib/billing-sync.js → api/_lib/firebase-admin.js
 
-## Communities (24 total, 1 thin omitted)
+## Communities (25 total, 1 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.33
@@ -79,8 +80,8 @@ Cohesion: 0.1
 Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.15
-Nodes (35): $(), applyAccess(), authedFetch(), clearTrialBannerOffset(), closeMyAccount(), collectCardPayload(), ensureGate(), ensureMyAccountModal() (+27 more)
+Cohesion: 0.1
+Nodes (56): $(), applyAccess(), authedFetch(), bindMyAccountActions(), cardBrandLabel(), clearTrialBannerOffset(), closeMyAccount(), closeSubModal() (+48 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.14
@@ -99,8 +100,8 @@ Cohesion: 0.16
 Nodes (15): applyPendingCreditsTo(), asaas, billing, creditIndicatorFromIndicado(), creditsCol(), { db, fieldValue }, { db, fieldValue, timestamp }, findBillingByCustomer() (+7 more)
 
 ### Community 13 - "Community 13"
-Cohesion: 0.12
-Nodes (15): b, billing, billingRef, c, { computeAccess }, credits, D, { db } (+7 more)
+Cohesion: 0.11
+Nodes (18): addMonthsYmd(), b, billing, billingRef, buildUpcoming(), c, { computeAccess }, credits (+10 more)
 
 ### Community 14 - "Community 14"
 Cohesion: 0.26
@@ -138,25 +139,29 @@ Nodes (5): isValid(), lookupOwner(), normalize(), randomCode(), reserveUniqueCod
 Cohesion: 0.5
 Nodes (3): firestore, indexes, rules
 
+### Community 24 - "Community 24"
+Cohesion: 0.09
+Nodes (18): address, addressNumber, asaas, asaasFields, billing, city, complement, cpfCnpj (+10 more)
+
 ## Knowledge Gaps
-- **119 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+114 more)
+- **138 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+133 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **1 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `db()` connect `Community 8` to `Community 6`, `Community 7`, `Community 13`, `Community 15`, `Community 16`, `Community 17`?**
-  _High betweenness centrality (0.027) - this node is a cross-community bridge._
-- **Why does `Appliquei v13.0 - Gestão Financeira Inteligente` connect `Community 1` to `Community 3`?**
-  _High betweenness centrality (0.014) - this node is a cross-community bridge._
+- **Why does `db()` connect `Community 8` to `Community 6`, `Community 7`, `Community 13`, `Community 15`, `Community 16`, `Community 17`, `Community 24`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Why does `fieldValue()` connect `Community 20` to `Community 6`, `Community 7`, `Community 8`, `Community 15`, `Community 17`, `Community 24`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
+- **Why does `requireUser()` connect `Community 15` to `Community 6`, `Community 7`, `Community 13`, `Community 16`, `Community 17`, `Community 24`?**
+  _High betweenness centrality (0.015) - this node is a cross-community bridge._
 - **What connects `indexes`, `fieldOverrides`, `$schema` to the rest of the system?**
-  _119 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _138 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
 - **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.1 - nodes in this community are weakly interconnected._
-- **Should `Community 5` be split into smaller, more focused modules?**
-  _Cohesion score 0.14 - nodes in this community are weakly interconnected._
-- **Should `Community 6` be split into smaller, more focused modules?**
-  _Cohesion score 0.11 - nodes in this community are weakly interconnected._
+- **Should `Community 4` be split into smaller, more focused modules?**
+  _Cohesion score 0.1 - nodes in this community are weakly interconnected._
