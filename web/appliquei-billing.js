@@ -226,9 +226,19 @@
     }
     ensureTrialBanner(0);
     if (access.status === 'pending_payment') {
-      showGate('Aguardando confirmação de pagamento', 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.');
+      if (access.reason === 'risk_analysis') {
+        showGate('Cartão em análise', 'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.');
+      } else {
+        showGate('Aguardando confirmação de pagamento', 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.');
+      }
     } else if (access.reason === 'overdue') {
-      showGate('Assinatura em atraso', 'Identificámos um pagamento em atraso. Regularize para reactivar o acesso.');
+      showGate('Assinatura em atraso', 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.');
+    } else if (access.reason === 'card_reproved') {
+      showGate('Cartão recusado', 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.');
+    } else if (access.reason === 'chargeback') {
+      showGate('Chargeback em curso', 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.');
+    } else if (access.reason === 'cancelled') {
+      showGate('Assinatura cancelada', 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.');
     } else if (access.reason === 'trial_expired') {
       showGate('Avaliação gratuita terminou', 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.');
     } else {
