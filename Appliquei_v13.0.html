@@ -189,9 +189,20 @@
         .sidebar.collapsed .menu-btn:hover::after { opacity: 1; }
         .sidebar.collapsed .sidebar-footer { display: flex; justify-content: center; padding: 12px 6px; }
         .sidebar.collapsed .sidebar-footer .ultimo-salvo span { display: none; }
+        .sidebar.collapsed .sidebar-auth-mini { padding: 0 6px 8px; }
         .sidebar.collapsed .sidebar-auth-mini .sa-email { display: none; }
+        .sidebar.collapsed .sidebar-auth-mini .sa-btn-label,
         .sidebar.collapsed .sidebar-auth-mini #sidebarAuthBtnLabel { display: none; }
-        .sidebar.collapsed .sidebar-auth-mini .sa-btn { padding: 8px; justify-content: center; }
+        .sidebar.collapsed .sidebar-auth-mini .sa-btn { padding: 9px 0; gap: 0; justify-content: center; position: relative; overflow: visible; }
+        .sidebar.collapsed .sidebar-auth-mini .sa-btn i { font-size: 18px; }
+        .sidebar.collapsed .sidebar-auth-mini .sa-btn[data-tooltip]::after {
+            content: attr(data-tooltip); position: fixed; left: 72px;
+            background: #1a2e22; color: #e8f4ec; padding: 5px 12px; border-radius: 8px;
+            font-size: 12px; font-weight: 500; white-space: nowrap;
+            opacity: 0; pointer-events: none; transition: opacity 0.15s;
+            z-index: 9000; border: 1px solid var(--sb-border); box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+        }
+        .sidebar.collapsed .sidebar-auth-mini .sa-btn[data-tooltip]:hover::after { opacity: 1; }
 
         .sidebar-toggle {
             background: none;
@@ -2488,8 +2499,8 @@
         <div class="sidebar-footer">
             <div class="sidebar-auth-mini" id="sidebarAuthMini">
                 <span class="sa-email" id="sidebarAuthEmail" title="">Conta</span>
-                <button type="button" class="sa-btn" id="sidebarMyAccountBtn" onclick="if(window.AppliqueiBilling) AppliqueiBilling.openMyAccount();" style="margin-bottom:6px;"><i class="ph ph-receipt"></i> <span>Minha assinatura</span></button>
-                <button type="button" class="sa-btn" id="sidebarAuthBtn" onclick="appliqueiSidebarAuthClick()"><i class="ph ph-sign-in" id="sidebarAuthIcon"></i> <span id="sidebarAuthBtnLabel">Entrar</span></button>
+                <button type="button" class="sa-btn" id="sidebarMyAccountBtn" data-tooltip="Minha assinatura" onclick="if(window.AppliqueiBilling) AppliqueiBilling.openMyAccount();" style="margin-bottom:6px;"><i class="ph ph-receipt"></i> <span class="sa-btn-label">Minha assinatura</span></button>
+                <button type="button" class="sa-btn" id="sidebarAuthBtn" data-tooltip="Entrar" onclick="appliqueiSidebarAuthClick()"><i class="ph ph-sign-in" id="sidebarAuthIcon"></i> <span class="sa-btn-label" id="sidebarAuthBtnLabel">Entrar</span></button>
             </div>
             <div class="ultimo-salvo" id="ultimoSalvoIndicador" title="Último salvamento">
                 <div class="status-dot-sidebar"></div>
@@ -11012,6 +11023,7 @@
         var emailEl = $('sidebarAuthEmail');
         var btnLabel = $('sidebarAuthBtnLabel');
         var icon = $('sidebarAuthIcon');
+        var btn = $('sidebarAuthBtn');
         var fb = window.AppliqueiFirebase;
         var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
         if (u) {
@@ -11021,6 +11033,7 @@
             }
             if (btnLabel) btnLabel.textContent = 'Sair';
             if (icon) icon.className = 'ph ph-sign-out';
+            if (btn) btn.setAttribute('data-tooltip', 'Sair');
             return;
         }
         if (emailEl) {
@@ -11029,6 +11042,7 @@
         }
         if (btnLabel) btnLabel.textContent = 'Entrar';
         if (icon) icon.className = 'ph ph-sign-in';
+        if (btn) btn.setAttribute('data-tooltip', 'Entrar');
     }
     window.__appliqueiAuthModo = 'login';
     window.appliqueiAuthSetModo = function (modo) {
