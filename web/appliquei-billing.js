@@ -16,6 +16,7 @@
     var div = document.createElement('div');
     div.id = 'billingGate';
     div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;';
+    var fld = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;';
     div.innerHTML = '\
       <div style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
         <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
@@ -23,15 +24,53 @@
         <div id="billingDetail" style="background:#f1f5f3;border-radius:10px;padding:12px 14px;font-size:13px;color:#1d2a23;margin-bottom:14px;">\
           <div><strong>Plano:</strong> Mensal Appliquei</div>\
           <div><strong>Valor:</strong> R$ 15,00 / mês</div>\
-          <div><strong>Pagamento:</strong> PIX, boleto ou cartão (Asaas)</div>\
+          <div><strong>Pagamento:</strong> <span id="billingMethodLabel">Cartão (renovação automática) ou PIX/boleto</span></div>\
+        </div>\
+        <div role="tablist" style="display:flex;gap:6px;margin-bottom:14px;">\
+          <button id="billingTabCard" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cartão recorrente</button>\
+          <button id="billingTabPix" type="button" style="flex:1;padding:9px 0;border:1px solid #d4dad7;background:#fff;color:#384a42;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">PIX / Boleto</button>\
         </div>\
         <div style="margin-bottom:12px;">\
           <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nome completo</label>\
-          <input id="billingName" type="text" autocomplete="name" placeholder="Como aparece no documento" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;">\
+          <input id="billingName" type="text" autocomplete="name" placeholder="Como aparece no documento" style="' + fld + '">\
         </div>\
         <div style="margin-bottom:12px;">\
           <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CPF ou CNPJ</label>\
-          <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;">\
+          <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="' + fld + '">\
+        </div>\
+        <div id="billingCardFields">\
+          <div style="margin-bottom:12px;">\
+            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Número do cartão</label>\
+            <input id="ccNumber" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" style="' + fld + '">\
+          </div>\
+          <div style="display:flex;gap:8px;margin-bottom:12px;">\
+            <div style="flex:1;">\
+              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Validade</label>\
+              <input id="ccExp" type="text" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" style="' + fld + '">\
+            </div>\
+            <div style="flex:1;">\
+              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CVV</label>\
+              <input id="ccCvv" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="000" style="' + fld + '">\
+            </div>\
+          </div>\
+          <div style="margin-bottom:12px;">\
+            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nome impresso no cartão</label>\
+            <input id="ccHolder" type="text" autocomplete="cc-name" placeholder="Como impresso no cartão" style="' + fld + '">\
+          </div>\
+          <div style="display:flex;gap:8px;margin-bottom:12px;">\
+            <div style="flex:1;">\
+              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CEP</label>\
+              <input id="ccZip" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" style="' + fld + '">\
+            </div>\
+            <div style="flex:1;">\
+              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nº endereço</label>\
+              <input id="ccAddrNum" type="text" inputmode="numeric" placeholder="123" style="' + fld + '">\
+            </div>\
+          </div>\
+          <div style="margin-bottom:12px;">\
+            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Telefone</label>\
+            <input id="ccPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" style="' + fld + '">\
+          </div>\
         </div>\
         <div id="billingErr" style="display:none;font-size:12.5px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>\
         <button id="billingSubscribeBtn" type="button" style="width:100%;border:none;cursor:pointer;padding:13px 16px;border-radius:10px;font-size:14px;font-weight:600;background:#059669;color:#fff;">Assinar agora (R$ 15/mês)</button>\
@@ -40,11 +79,37 @@
       </div>';
     document.body.appendChild(div);
 
+    selectedMethod = 'CREDIT_CARD';
+    $('billingTabCard').addEventListener('click', function () { setMethod('CREDIT_CARD'); });
+    $('billingTabPix').addEventListener('click', function () { setMethod('UNDEFINED'); });
     $('billingSubscribeBtn').addEventListener('click', subscribe);
     $('billingRefreshBtn').addEventListener('click', function () { refresh(true); });
     $('billingLogoutBtn').addEventListener('click', function () {
       try { window.AppliqueiFirebase.auth.signOut(); } catch (_) {}
     });
+  }
+
+  var selectedMethod = 'CREDIT_CARD';
+  function setMethod(m) {
+    selectedMethod = m;
+    var card = $('billingTabCard');
+    var pix = $('billingTabPix');
+    var fields = $('billingCardFields');
+    var label = $('billingMethodLabel');
+    var btn = $('billingSubscribeBtn');
+    if (m === 'CREDIT_CARD') {
+      if (card) { card.style.background = '#059669'; card.style.color = '#fff'; card.style.borderColor = '#059669'; card.style.fontWeight = '600'; }
+      if (pix) { pix.style.background = '#fff'; pix.style.color = '#384a42'; pix.style.borderColor = '#d4dad7'; pix.style.fontWeight = '500'; }
+      if (fields) fields.style.display = '';
+      if (label) label.textContent = 'Cartão recorrente — cobrado automaticamente todo mês';
+      if (btn) btn.textContent = 'Assinar com cartão (R$ 15/mês)';
+    } else {
+      if (pix) { pix.style.background = '#059669'; pix.style.color = '#fff'; pix.style.borderColor = '#059669'; pix.style.fontWeight = '600'; }
+      if (card) { card.style.background = '#fff'; card.style.color = '#384a42'; card.style.borderColor = '#d4dad7'; card.style.fontWeight = '500'; }
+      if (fields) fields.style.display = 'none';
+      if (label) label.textContent = 'PIX ou boleto — fatura nova todo mês';
+      if (btn) btn.textContent = 'Gerar fatura (R$ 15/mês)';
+    }
   }
 
   function showGate(title, sub) {
@@ -403,6 +468,46 @@
     setTimeout(function () { var el = $('billingCpfCnpj'); if (el) el.focus(); }, 50);
   }
 
+  function parseExpiry(v) {
+    var d = String(v || '').replace(/\D+/g, '');
+    if (d.length < 3) return null;
+    var mm = d.slice(0, 2);
+    var yy = d.slice(2);
+    if (yy.length === 2) yy = '20' + yy;
+    if (yy.length !== 4) return null;
+    var m = parseInt(mm, 10);
+    if (m < 1 || m > 12) return null;
+    return { expiryMonth: mm, expiryYear: yy };
+  }
+
+  function collectCardPayload() {
+    var num = ($('ccNumber') || {}).value || '';
+    var exp = parseExpiry(($('ccExp') || {}).value);
+    var cvv = (($('ccCvv') || {}).value || '').replace(/\D+/g, '');
+    var holder = (($('ccHolder') || {}).value || '').trim();
+    var zip = (($('ccZip') || {}).value || '').replace(/\D+/g, '');
+    var addrNum = (($('ccAddrNum') || {}).value || '').replace(/\D+/g, '');
+    var phone = (($('ccPhone') || {}).value || '').replace(/\D+/g, '');
+    var digits = num.replace(/\D+/g, '');
+    if (digits.length < 13 || digits.length > 19) return { error: 'Número do cartão inválido.' };
+    if (!exp) return { error: 'Validade do cartão inválida (MM/AA).' };
+    if (cvv.length < 3) return { error: 'CVV inválido.' };
+    if (holder.length < 3) return { error: 'Informe o nome impresso no cartão.' };
+    if (zip.length !== 8) return { error: 'CEP inválido (8 dígitos).' };
+    if (!addrNum) return { error: 'Informe o número do endereço.' };
+    if (phone.length < 10) return { error: 'Telefone inválido.' };
+    return {
+      creditCard: {
+        holderName: holder,
+        number: digits,
+        expiryMonth: exp.expiryMonth,
+        expiryYear: exp.expiryYear,
+        ccv: cvv,
+      },
+      holder: { zip: zip, addrNum: addrNum, phone: phone },
+    };
+  }
+
   async function subscribe() {
     var btn = $('billingSubscribeBtn');
     var nameEl = $('billingName');
@@ -420,15 +525,40 @@
       return;
     }
 
+    var payload = { cpfCnpj: cpfDigits, name: nameVal };
+    var fb = window.AppliqueiFirebase;
+    var userEmail = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || null;
+
+    if (selectedMethod === 'CREDIT_CARD') {
+      var card = collectCardPayload();
+      if (card.error) { showErr(card.error); return; }
+      payload.creditCard = card.creditCard;
+      payload.creditCardHolderInfo = {
+        name: nameVal,
+        email: userEmail,
+        cpfCnpj: cpfDigits,
+        postalCode: card.holder.zip,
+        addressNumber: card.holder.addrNum,
+        phone: card.holder.phone,
+      };
+    }
+
     if (btn) btn.disabled = true;
-    var popup = window.open('about:blank', '_blank');
-    writePopupMessage(popup, 'A criar assinatura…', 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
+    var popup = selectedMethod === 'CREDIT_CARD' ? null : window.open('about:blank', '_blank');
+    if (popup) writePopupMessage(popup, 'A criar assinatura…', 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
     try {
       var r = await authedFetch('/subscribe', {
         method: 'POST',
-        body: JSON.stringify({ cpfCnpj: cpfDigits, name: nameVal }),
+        body: JSON.stringify(payload),
       });
       console.log('[billing] subscribe response', r);
+
+      if (r.paymentMethod === 'CREDIT_CARD') {
+        showGate('A processar pagamento', 'Cobrança em curso no cartão terminado em ' + (r.cardLast4 || '••••') + '. Vamos confirmar em instantes.');
+        await waitForActive(20);
+        return;
+      }
+
       if (r.invoiceUrl) {
         if (popup && !popup.closed) {
           popup.location.href = r.invoiceUrl;
@@ -437,6 +567,7 @@
           return;
         }
         showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
+        startActivePolling();
       } else if (r.alreadyActive) {
         writePopupMessage(popup, 'Já tem assinatura ativa', 'A sua assinatura (id: ' + (r.subscriptionId || '?') + ') já existe, mas não há fatura pendente. Verifique no painel Asaas. Resposta:\n\n' + JSON.stringify(r, null, 2));
         await refresh(false);
@@ -446,11 +577,34 @@
       }
     } catch (e) {
       console.warn('[billing] subscribe', e, e.detail);
-      writePopupMessage(popup, 'Erro ao criar assinatura', (e.message || 'erro') + '\n\n' + JSON.stringify(e.detail || {}, null, 2));
+      if (popup) writePopupMessage(popup, 'Erro ao criar assinatura', (e.message || 'erro') + '\n\n' + JSON.stringify(e.detail || {}, null, 2));
       showErr(e.message || 'Falha ao criar assinatura.');
     } finally {
       if (btn) btn.disabled = false;
     }
+  }
+
+  async function waitForActive(maxAttempts) {
+    var attempts = 0;
+    while (attempts < maxAttempts) {
+      await new Promise(function (r) { setTimeout(r, 2500); });
+      attempts++;
+      try {
+        var s = await authedFetch('/status', { method: 'GET' });
+        if (s.access && s.access.status === 'active') {
+          applyAccess(s.access);
+          try { await syncApplicashFromServer(); } catch (_) {}
+          return true;
+        }
+      } catch (_) {}
+    }
+    showErr('Não recebemos confirmação ainda. Use "Já paguei — verificar status".');
+    return false;
+  }
+
+  function startActivePolling() {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    pollTimer = setInterval(function () { refresh(false); }, 5000);
   }
 
   function onUser(user) {
