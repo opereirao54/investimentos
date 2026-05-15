@@ -4637,6 +4637,24 @@
             if (t.obs === undefined) t.obs = "";
             return t;
         });
+
+        // Migração: cartao_credito deve ser atribuído ao mês/ano da fatura (dataVencimento),
+        // não ao mês da compra. Sem isto, despesas de cartão poluem o mês actual.
+        (function migrarCompetenciaCartao() {
+            let mudou = false;
+            transacoes.forEach(t => {
+                if (t.categoria !== 'cartao_credito' || !t.dataVencimento) return;
+                const parts = t.dataVencimento.split('-');
+                if (parts.length !== 3) return;
+                const fAno = parseInt(parts[0], 10);
+                const fMes = parseInt(parts[1], 10) - 1;
+                if (isNaN(fAno) || isNaN(fMes)) return;
+                if (t.mes !== fMes || t.ano !== fAno) {
+                    t.mes = fMes; t.ano = fAno; mudou = true;
+                }
+            });
+            if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        })();
         localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
 
         function preencherPrecoAutomatico() {
@@ -7557,6 +7575,16 @@
                     let dVenc = new Date(vAno, vMes - 1, vDia);
                     dVenc.setMonth(dVenc.getMonth() + i);
                     dataVencFinal = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, '0')}-${String(dVenc.getDate()).padStart(2, '0')}`;
+                }
+
+                // Cartão de crédito: a competência (mes/ano) é a da fatura (dataVencimento),
+                // não a do mês em visão. Assim a compra entra na próxima fatura, não no mês actual.
+                if (categoria === 'cartao_credito' && dataVencFinal) {
+                    const [fAno, fMes] = dataVencFinal.split('-').map(Number);
+                    if (!isNaN(fAno) && !isNaN(fMes)) {
+                        a = fAno;
+                        m = fMes - 1;
+                    }
                 }
 
                 transacoes.push({
