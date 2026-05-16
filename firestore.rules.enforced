@@ -1,10 +1,19 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // M4: gate server-side de acesso pago. Espelha computeAccess() do
-    // backend: permite escrita se o trial ainda está vivo OU se a
-    // subscription está ACTIVE e o último pagamento não está num
-    // estado problemático (overdue/refund/chargeback).
+    // VERSÃO ENFORCE: adiciona checagem request.auth.token.email_verified == true
+    // a TODO acesso (leitura e escrita) de dados do usuário.
+    //
+    // Deploy desta versão SOMENTE após:
+    //   1. Rodar `scripts/backfill-email-verification.js`.
+    //   2. EMAIL_VERIFY_ENFORCE=true em produção há ≥7 dias.
+    //   3. Banner UI avisando legados há ≥14 dias.
+    //
+    // Comando: firebase deploy --only firestore:rules (após renomear
+    // este arquivo para firestore.rules ou ajustar firebase.json).
+    function isVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
     function billingDoc(uid) {
       return get(/databases/$(database)/documents/users/$(uid)/billing/account);
     }
@@ -28,13 +37,11 @@ service cloud.firestore {
         );
     }
 
-    // Dados da app por utilizador: só o próprio uid lê o doc "main";
-    // escrita requer assinatura/ trial ativo (gate server-side).
     match /users/{userId}/data/{docId} {
-      allow read: if request.auth != null
+      allow read: if isVerified()
         && request.auth.uid == userId
         && docId == 'main';
-      allow create, update: if request.auth != null
+      allow create, update: if isVerified()
         && request.auth.uid == userId
         && docId == 'main'
         && request.resource.data.keys is map
@@ -42,41 +49,32 @@ service cloud.firestore {
         && hasActiveAccess(userId);
     }
 
-    // Faturação: leitura só pelo próprio uid; escrita apenas via Admin SDK (backend).
     match /users/{userId}/billing/{docId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isVerified() && request.auth.uid == userId;
       allow write: if false;
     }
     match /users/{userId}/billing/{docId}/credits/{creditId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isVerified() && request.auth.uid == userId;
       allow write: if false;
     }
     match /users/{userId}/payments/{paymentId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
+      allow read: if isVerified() && request.auth.uid == userId;
       allow write: if false;
     }
 
-    // Códigos de indicação: leitura e escrita só pelo Admin SDK (backend).
-    // A validação do cupom acontece via POST /api/billing/init, que usa o
-    // Admin SDK e não depende de leitura via cliente. Fechar a leitura
-    // impede enumeração de cupons válidos por usuários autenticados.
     match /referralCodes/{code} {
       allow read: if false;
       allow write: if false;
     }
 
-    // Coleção de eventos de webhook (idempotência): nunca exposta ao cliente.
     match /webhookEvents/{eventId} {
       allow read: if false;
       allow write: if false;
     }
 
-    // Rate-limit counters: só Admin SDK escreve. Não exposta ao cliente.
     match /rateLimits/{id} {
       allow read: if false;
       allow write: if false;
     }
-
-    // Nada mais é permitido por defeito (negação implícita).
   }
 }
