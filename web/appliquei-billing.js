@@ -143,7 +143,7 @@
           <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CPF ou CNPJ</label>\
           <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="' + fld + '">\
         </div>\
-        <div id="billingCouponSection" style="margin-bottom:12px;display:none;">\
+        <div id="billingCouponSection" style="margin-bottom:12px;">\
           <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Cupom de desconto (opcional)</label>\
           <div id="billingCouponInputRow" style="display:flex;gap:6px;">\
             <input id="billingCoupon" type="text" autocomplete="off" placeholder="APP-XXXXXX" style="flex:1;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;text-transform:uppercase;">\
