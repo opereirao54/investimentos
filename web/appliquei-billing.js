@@ -317,6 +317,42 @@
     var text = await r.text();
     var data = text ? JSON.parse(text) : {};
     if (!r.ok) {
+      // Email não verificado: backend responde 403 email_not_verified quando
+      // EMAIL_VERIFY_ENFORCE=true. Front delega o gate visual ao
+      // onAuthStateChanged (que já força reload em emailVerified), aqui só
+      // sinaliza o estado para quem chamou.
+      if (r.status === 403 && data.error === 'email_not_verified') {
+        try { await u.reload(); } catch (_) {}
+        // Se ainda não está verificado, lança erro estruturado.
+        if (!u.emailVerified) {
+          var ev = new Error('email_not_verified');
+          ev.detail = data;
+          ev.code = 'email_not_verified';
+          throw ev;
+        }
+        // Caso raro: usuário verificou no meio do fetch. Retry com token fresh.
+        var t2 = await u.getIdToken(true);
+        var r2 = await fetch(API + path, Object.assign({}, opts, {
+          headers: Object.assign({
+            'Authorization': 'Bearer ' + t2,
+            'Content-Type': 'application/json',
+          }, (opts && opts.headers) || {}),
+        }));
+        var t2text = await r2.text();
+        var t2data = t2text ? JSON.parse(t2text) : {};
+        if (!r2.ok) {
+          var e2 = new Error(t2data.error || ('http_' + r2.status));
+          e2.detail = t2data;
+          throw e2;
+        }
+        return t2data;
+      }
+      if (r.status === 429 && data.error === 'too_many_trials') {
+        var rl = new Error('too_many_trials');
+        rl.detail = data;
+        rl.code = 'too_many_trials';
+        throw rl;
+      }
       var msg = data.error || ('http_' + r.status);
       if (data.code) msg += ' (' + data.code + ')';
       if (data.detail) msg += ': ' + data.detail;
