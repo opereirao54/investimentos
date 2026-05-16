@@ -1,5 +1,5 @@
 const { db } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const { computeAccess } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
@@ -80,7 +80,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   try {
