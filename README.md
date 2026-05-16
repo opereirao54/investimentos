@@ -55,6 +55,8 @@
 ├── appliquei_favicon.jpg     # Ícone/favicon da aplicação
 ├── requirements-graphify.txt # Opcional: CLI Graphify (Python)
 ├── .cursor/rules/graphify.mdc # Opcional: regra Cursor após `graphify cursor install`
+├── graphify-out/             # Grafo versionado (GRAPH_REPORT.md, graph.html, graph.json)
+├── web/                      # Firebase (init incremental; ver secção Firebase)
 └── README.md                 # Este arquivo
 ```
 
@@ -123,7 +125,13 @@ O segundo comando cria ou atualiza `.cursor/rules/graphify.mdc` neste repositór
 - Em terminal, extração sem o comando slash do Claude Code: `python -m graphify extract .` (requer variáveis de API do backend escolhido; ver documentação do pacote).
 - Após alterar código: `python -m graphify update .` (atualização AST, sem custo de LLM).
 
-A pasta `graphify-out/` está no `.gitignore` (artefatos locais).
+O repositório inclui **`graphify-out/graph.json`**, **`GRAPH_REPORT.md`** e **`graph.html`** para clones e para a regra do Cursor. Apenas **`graphify-out/cache/`** fica ignorada no Git (regenerável). Para atualizar o grafo após mudanças grandes: `python -m graphify extract .` e, se precisar, `python -m graphify cluster-only .`.
+
+## Firebase (incremental)
+
+1. Copie `web/firebase-config.example.js` → `web/firebase-config.local.js` e preencha com o objeto do SDK (ficheiro **gitignored**).
+2. Abra `Appliquei_v13.0.html` a partir da pasta do projeto (para os caminhos `web/*.js` resolverem). Sem `apiKey`, o Firebase **não** inicializa; a app segue só com `localStorage`.
+3. `window.AppliqueiFirebase` expõe `ready`, `auth`, `db` quando a config estiver válida. Próximo passo: login UI + sync Firestore (não incluído neste commit).
 
 ## 🤝 Contribuição
 
@@ -135,3 +143,5 @@ Contribuições são bem-vindas! Sinta-se à vontade para:
 ---
 
 **Appliquei v13.0** - Transformando a gestão financeira em uma experiência simples e elegante.
+
+

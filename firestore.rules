@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // M4: gate server-side de acesso pago. Espelha computeAccess() do
+    // backend: permite escrita se o trial ainda está vivo OU se a
+    // subscription está ACTIVE e o último pagamento não está num
+    // estado problemático (overdue/refund/chargeback).
+    function billingDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)/billing/account);
+    }
+    function hasActiveAccess(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
+        && (
+          (billingDoc(uid).data.trialEndsAt is timestamp
+            && request.time < billingDoc(uid).data.trialEndsAt)
+          || (
+            billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
+            && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [
+              'OVERDUE',
+              'REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'REFUND_REQUESTED',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL'
+            ])
+          )
+        );
+    }
+
+    // Dados da app por utilizador: só o próprio uid lê o doc "main";
+    // escrita requer assinatura/ trial ativo (gate server-side).
+    match /users/{userId}/data/{docId} {
+      allow read: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'main';
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && docId == 'main'
+        && request.resource.data.keys is map
+        && request.resource.data.keys.size() < 450
+        && hasActiveAccess(userId);
+    }
+
+    // Faturação: leitura só pelo próprio uid; escrita apenas via Admin SDK (backend).
+    match /users/{userId}/billing/{docId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/billing/{docId}/credits/{creditId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/payments/{paymentId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Códigos de indicação: leitura e escrita só pelo Admin SDK (backend).
+    // A validação do cupom acontece via POST /api/billing/init, que usa o
+    // Admin SDK e não depende de leitura via cliente. Fechar a leitura
+    // impede enumeração de cupons válidos por usuários autenticados.
+    match /referralCodes/{code} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Coleção de eventos de webhook (idempotência): nunca exposta ao cliente.
+    match /webhookEvents/{eventId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    // Nada mais é permitido por defeito (negação implícita).
+  }
+}

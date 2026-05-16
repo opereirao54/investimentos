@@ -1,0 +1,133 @@
+{
+  "communities": {
+    "0": [
+      "scripts_build_plan_pdf_callout",
+      "scripts_build_plan_pdf_cover",
+      "scripts_build_plan_pdf_main",
+      "scripts_build_plan_pdf_section_applicash",
+      "scripts_build_plan_pdf_section_architecture",
+      "scripts_build_plan_pdf_section_auth",
+      "scripts_build_plan_pdf_section_data_model"
+    ],
+    "1": [
+      "scripts_build_plan_pdf_caption",
+      "scripts_build_plan_pdf_cell",
+      "scripts_build_plan_pdf_make_table",
+      "scripts_build_plan_pdf_section_extras",
+      "scripts_build_plan_pdf_section_pages",
+      "scripts_build_plan_pdf_section_payments",
+      "scripts_build_plan_pdf_section_roadmap"
+    ],
+    "2": [
+      "scripts_build_plan_pdf_bullets",
+      "scripts_build_plan_pdf_p",
+      "scripts_build_plan_pdf_section_admin",
+      "scripts_build_plan_pdf_section_appendix",
+      "scripts_build_plan_pdf_section_deploy",
+      "scripts_build_plan_pdf_section_executive_summary"
+    ],
+    "3": [
+      "build_plan_pdf_py",
+      "scripts_build_plan_pdf_build_styles",
+      "scripts_build_plan_pdf_on_page",
+      "scripts_build_plan_pdf_rationale_1"
+    ]
+  },
+  "cohesion": {
+    "0": 0.48,
+    "1": 0.43,
+    "2": 0.6,
+    "3": 0.5
+  },
+  "gods": [
+    {
+      "id": "scripts_build_plan_pdf_p",
+      "label": "P()",
+      "degree": 14
+    },
+    {
+      "id": "scripts_build_plan_pdf_main",
+      "label": "main()",
+      "degree": 14
+    },
+    {
+      "id": "scripts_build_plan_pdf_make_table",
+      "label": "make_table()",
+      "degree": 13
+    },
+    {
+      "id": "scripts_build_plan_pdf_caption",
+      "label": "caption()",
+      "degree": 12
+    },
+    {
+      "id": "scripts_build_plan_pdf_callout",
+      "label": "callout()",
+      "degree": 7
+    },
+    {
+      "id": "scripts_build_plan_pdf_bullets",
+      "label": "bullets()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_build_plan_pdf_section_executive_summary",
+      "label": "section_executive_summary()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_build_plan_pdf_section_architecture",
+      "label": "section_architecture()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_build_plan_pdf_section_auth",
+      "label": "section_auth()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_build_plan_pdf_section_applicash",
+      "label": "section_applicash()",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "section_architecture()",
+      "target": "P()",
+      "source_files": [
+        "build_plan_pdf.py",
+        "build_plan_pdf.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 2 \u2192 community 0"
+    },
+    {
+      "source": "section_payments()",
+      "target": "P()",
+      "source_files": [
+        "build_plan_pdf.py",
+        "build_plan_pdf.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 2 \u2192 community 1"
+    },
+    {
+      "source": "section_architecture()",
+      "target": "make_table()",
+      "source_files": [
+        "build_plan_pdf.py",
+        "build_plan_pdf.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "note": "Bridges community 1 \u2192 community 0"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}

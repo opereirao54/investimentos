@@ -1,0 +1,33 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "billing",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "referredByUserId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "billing",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "customerId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "billing",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "subscriptionId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "billing",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "cpfCnpj", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

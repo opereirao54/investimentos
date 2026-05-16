@@ -1,0 +1,182 @@
+{
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\firebase.json": {
+    "mtime": 1778897463.3949223,
+    "ast_hash": "329a07d924bb83a4cff275b2a7796050",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\firestore.indexes.json": {
+    "mtime": 1778897463.3949223,
+    "ast_hash": "82e69e67915ab5480dcae7ad08549ef7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\package.json": {
+    "mtime": 1778897463.4101977,
+    "ast_hash": "5f8aff00270747d67845e317950af516",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\vercel.json": {
+    "mtime": 1778897463.4290192,
+    "ast_hash": "76ffefe733585bf1e428c6436ba89486",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\cancel.js": {
+    "mtime": 1778897463.3357415,
+    "ast_hash": "d00cbe456b36d0b02842a4684b145333",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\card.js": {
+    "mtime": 1778897463.337795,
+    "ast_hash": "ddaa3460d453729b2cfd519ebfb00578",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\customer.js": {
+    "mtime": 1778897463.340546,
+    "ast_hash": "1f1d3d3526aeb2f8fdcb51cf5cd702eb",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\init.js": {
+    "mtime": 1778897463.342657,
+    "ast_hash": "3dae5c117aa76b875c13f3b4f691cf32",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\me.js": {
+    "mtime": 1778897463.342657,
+    "ast_hash": "7cdd1da4ffc65305f2faba1b546cf146",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\status.js": {
+    "mtime": 1778897463.3447196,
+    "ast_hash": "23db9e0c71643e407c89c812f8edf55e",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\subscribe.js": {
+    "mtime": 1778897463.3482282,
+    "ast_hash": "208a2c30550348b867a5040194df3a67",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\billing\\webhook.js": {
+    "mtime": 1778897463.350304,
+    "ast_hash": "198d26b3bdf45ba8dbe6b008e393cfec",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\access.js": {
+    "mtime": 1778897463.3213668,
+    "ast_hash": "7946a3167618418ba8a457f0af73eee7",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\asaas.js": {
+    "mtime": 1778897463.3248832,
+    "ast_hash": "1b5f03d884e55a005543c8f5f0d98b4a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\auth.js": {
+    "mtime": 1778897463.3248832,
+    "ast_hash": "249e4edab45329cb1fe761ccbe59065c",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\billing-sync.js": {
+    "mtime": 1778897463.3287425,
+    "ast_hash": "ceadc7e6a67ed1c2d6fbbc6c029ac8de",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\codes.js": {
+    "mtime": 1778897463.3298173,
+    "ast_hash": "11f3ce53ef60854bfa4b9bb9e76f4b30",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\api\\_lib\\firebase-admin.js": {
+    "mtime": 1778897463.3298173,
+    "ast_hash": "f4120fdebb93ec1742c0c5badadf7e73",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\build_plan_pdf.py": {
+    "mtime": 1778897463.4175248,
+    "ast_hash": "9cd7638312fc02a4ed51e8b78aaeee9d",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\diag-discount.js": {
+    "mtime": 1778897463.4191806,
+    "ast_hash": "ebdde95c18df5714deef24d53eaf34ca",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\diag-referral-code.js": {
+    "mtime": 1778897463.4191806,
+    "ast_hash": "5683f0579373a8fd3d06f86fee39e3c0",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\test-referral-flow.js": {
+    "mtime": 1778897463.4191806,
+    "ast_hash": "775e19bdb66ecc1232dc9fe08a66520f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\test-subscription-flow.js": {
+    "mtime": 1778897463.4277847,
+    "ast_hash": "93067acc3e2bf969d0056527238f6b5f",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\scripts\\lib\\mock-billing.js": {
+    "mtime": 1778897463.4191806,
+    "ast_hash": "3678244ea272499616a90f5fe2215ed6",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\web\\appliquei-billing.js": {
+    "mtime": 1778897463.4297357,
+    "ast_hash": "5521884acad85187aaf448274d9a7e48",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\web\\appliquei-cloud-sync.js": {
+    "mtime": 1778897463.4347787,
+    "ast_hash": "3e8c1d4c38cef9699f72d9b6cf90840b",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\web\\appliquei-firebase-init.js": {
+    "mtime": 1778897463.4380715,
+    "ast_hash": "9f86c253fdf49ab660d5d830feb64c3a",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\web\\firebase-config.appliquei-prod.js": {
+    "mtime": 1778897463.4401705,
+    "ast_hash": "6099823740e7ba1561dbc63faf019c94",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\web\\firebase-config.example.js": {
+    "mtime": 1778897463.4401705,
+    "ast_hash": "b563a73e43ebd753cbc14e689549ef88",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\Appliquei_v13.0.html": {
+    "mtime": 1778897463.3145516,
+    "ast_hash": "fe225155b34289ec1cfdd660847b88a4",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\BILLING.md": {
+    "mtime": 1778897463.3175602,
+    "ast_hash": "8497c8e99fc9ff4c11d313ab8de1a745",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\README.md": {
+    "mtime": 1778897463.3203013,
+    "ast_hash": "be02719985830a1c083f1710a4f03679",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\requirements-graphify.txt": {
+    "mtime": 1778897463.4144592,
+    "ast_hash": "eaacb57352d3a6848ff5d74c51831b89",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\Appliquei_Plano_Publicacao_v2.pdf": {
+    "mtime": 1778897463.3089433,
+    "ast_hash": "02932f0799f2f4a4c900a95edb1f3794",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\appliquei_favicon.jpg": {
+    "mtime": 1778897463.3726604,
+    "ast_hash": "1ba3e600e4d1f5694904061aa944a678",
+    "semantic_hash": ""
+  },
+  "C:\\Users\\793375705\\.gemini\\antigravity\\scratch\\new-session-N60N7\\appliquei_logo_white.jpg": {
+    "mtime": 1778897463.3949223,
+    "ast_hash": "7a0408a507e4bcf133941c0adc5b69c5",
+    "semantic_hash": ""
+  }
+}

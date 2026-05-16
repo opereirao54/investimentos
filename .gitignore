@@ -1,5 +1,14 @@
-# Saídas do Graphify (grafo de conhecimento; regeneráveis)
-graphify-out/
+# Graphify — cache local (regenerável, pode crescer)
+graphify-out/cache/
+
+# Firebase — chaves do projeto (opcional; o HTML tenta carregar este ficheiro)
+web/firebase-config.local.js
+
+.env
+.env.local
+.env.*.local
+node_modules/
+.vercel
 
 # Editor / SO
 .DS_Store
