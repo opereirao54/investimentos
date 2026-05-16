@@ -4,9 +4,17 @@ const asaas = require('../_lib/asaas');
 const { computeAccess, TRIAL_DAYS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const codes = require('../_lib/codes');
+const rl = require('../_lib/rate-limit');
 
 const MONTHLY_PRICE_CENTS = 1500;
 const REFERRAL_DISCOUNT_PERCENT = 10;
+
+// Antifraude: limites de criação de billing por IP/device. Conservador para
+// não punir famílias compartilhando IP (NAT). Pode ser endurecido depois.
+const TRIAL_RATE_LIMIT_IP_WINDOW_MS = 24 * 60 * 60 * 1000;
+const TRIAL_RATE_LIMIT_IP_MAX = 5;
+const TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const TRIAL_RATE_LIMIT_DEVICE_MAX = 3;
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -40,6 +48,41 @@ module.exports = async (req, res) => {
   try {
     const D = db();
     const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
+
+    // Antifraude: só aplica rate-limit quando o doc ainda não existe — isto
+    // é, é a PRIMEIRA chamada /init para esta conta. Chamadas subsequentes
+    // (re-fetch de estado, aplicação retroativa de cupom) não disparam.
+    const preSnap = await ref.get();
+    if (!preSnap.exists) {
+      const ip = signupIp(req) || 'unknown';
+      const device = rl.deviceFingerprint(req);
+      const antifraudEnabled = String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
+      const ipCheck = await rl.check({
+        scope: 'init-ip', key: ip,
+        windowMs: TRIAL_RATE_LIMIT_IP_WINDOW_MS,
+        max: TRIAL_RATE_LIMIT_IP_MAX,
+      });
+      const devCheck = await rl.check({
+        scope: 'init-device', key: device,
+        windowMs: TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS,
+        max: TRIAL_RATE_LIMIT_DEVICE_MAX,
+      });
+      if (!ipCheck.allowed || !devCheck.allowed) {
+        console.warn('[init] rate-limit hit', {
+          uid: user.uid, ip, device,
+          ipCount: ipCheck.count, devCount: devCheck.count,
+          enforced: antifraudEnabled,
+        });
+        if (antifraudEnabled) {
+          const retry = Math.max(ipCheck.retryAfterMs || 0, devCheck.retryAfterMs || 0);
+          res.setHeader('Retry-After', Math.ceil(retry / 1000));
+          return res.status(429).json({
+            error: 'too_many_trials',
+            detail: 'Muitas contas criadas a partir deste dispositivo/IP recentemente. Tente novamente mais tarde ou entre em contato com o suporte.',
+          });
+        }
+      }
+    }
 
     // A3: lock transacional contra inicializações concorrentes do mesmo uid
     // (duas abas / app+web simultâneo). Evita criar dois customers no Asaas.
@@ -180,6 +223,7 @@ module.exports = async (req, res) => {
       // originais se já existirem — só grava na primeira criação.
       const ip = signupIp(req);
       const ua = (req.headers['user-agent'] || '').slice(0, 256) || null;
+      const deviceHash = rl.deviceFingerprint(req);
 
       const data = {
         uid: user.uid,
@@ -197,6 +241,7 @@ module.exports = async (req, res) => {
         recurringDiscountPercent: discountPercent,
         signupIp: (existing && existing.signupIp) || ip,
         signupUserAgent: (existing && existing.signupUserAgent) || ua,
+        signupDevice: (existing && existing.signupDevice) || deviceHash,
         updatedAt: fieldValue().serverTimestamp(),
         initLock: fieldValue().delete(),
         initLockAt: fieldValue().delete(),
