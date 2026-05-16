@@ -49,8 +49,6 @@
     var section = $('billingCouponSection');
     if (!section) return;
     var b = lastBilling || {};
-    // Após /subscribe (Asaas com valor fixo) o cupom não pode mais ser aplicado.
-    if (b.subscriptionId) { section.style.display = 'none'; return; }
     section.style.display = '';
     var inputRow = $('billingCouponInputRow');
     var appliedBox = $('billingCouponApplied');
