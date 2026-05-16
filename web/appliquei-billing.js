@@ -42,6 +42,76 @@
       var prefix = selectedMethod === 'CREDIT_CARD' ? 'Assinar com cartão' : 'Gerar fatura';
       btn.textContent = prefix + ' (' + priceLabel() + '/mês)';
     }
+    renderCouponState();
+  }
+
+  function renderCouponState() {
+    var section = $('billingCouponSection');
+    if (!section) return;
+    var b = lastBilling || {};
+    // Após /subscribe (Asaas com valor fixo) o cupom não pode mais ser aplicado.
+    if (b.subscriptionId) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    var inputRow = $('billingCouponInputRow');
+    var appliedBox = $('billingCouponApplied');
+    var msg = $('billingCouponMsg');
+    if (msg) { msg.style.display = 'none'; msg.textContent = ''; }
+    if (b.referredByCode) {
+      if (inputRow) inputRow.style.display = 'none';
+      if (appliedBox) {
+        appliedBox.style.display = 'block';
+        appliedBox.innerHTML = 'Cupom <strong>' + b.referredByCode + '</strong> aplicado — ' +
+          (b.recurringDiscountPercent || 0) + '% de desconto recorrente.';
+      }
+    } else {
+      if (inputRow) inputRow.style.display = 'flex';
+      if (appliedBox) { appliedBox.style.display = 'none'; appliedBox.innerHTML = ''; }
+    }
+  }
+
+  function showCouponMsg(text, ok) {
+    var msg = $('billingCouponMsg');
+    if (!msg) return;
+    msg.textContent = text;
+    msg.style.color = ok ? '#059669' : '#7f1d1d';
+    msg.style.display = 'block';
+  }
+
+  async function applyCoupon() {
+    var inp = $('billingCoupon');
+    var btn = $('billingCouponApply');
+    if (!inp) return;
+    var raw = (inp.value || '').trim().toUpperCase();
+    if (!raw) { showCouponMsg('Informe o código do cupom.', false); return; }
+    if (!/^APP-[A-Z0-9]{6}$/.test(raw)) {
+      showCouponMsg('Formato inválido. Use APP-XXXXXX.', false);
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = 'Aplicando…'; }
+    try {
+      var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify({ referralCode: raw }) });
+      lastBilling = r.billing || lastBilling;
+      lastAccess = r.access || lastAccess;
+      updateGatePrices();
+      if (lastBilling && lastBilling.referredByCode === raw) {
+        showCouponMsg('Cupom aplicado com sucesso.', true);
+      } else {
+        // Back-end aceitou o /init mas não aplicou o cupom (ex.: já havia
+        // referral vinculado ou subscription já criada). renderCouponState
+        // reflete o estado real; só sinalizamos a quem ainda vê o input.
+        showCouponMsg('Não foi possível aplicar este cupom no estado atual da conta.', false);
+      }
+    } catch (e) {
+      var code = e.detail && e.detail.error;
+      var text;
+      if (code === 'invalid_referral_code') text = 'Formato inválido. Use APP-XXXXXX.';
+      else if (code === 'referral_code_not_found') text = 'Cupom não encontrado.';
+      else if (code === 'self_referral_not_allowed') text = 'Não é possível usar o seu próprio cupom.';
+      else text = e.message || 'Erro ao aplicar o cupom. Tente novamente.';
+      showCouponMsg(text, false);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Aplicar'; }
+    }
   }
 
   function $(id) { return document.getElementById(id); }
@@ -72,6 +142,15 @@
         <div style="margin-bottom:12px;">\
           <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CPF ou CNPJ</label>\
           <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="' + fld + '">\
+        </div>\
+        <div id="billingCouponSection" style="margin-bottom:12px;display:none;">\
+          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Cupom de desconto (opcional)</label>\
+          <div id="billingCouponInputRow" style="display:flex;gap:6px;">\
+            <input id="billingCoupon" type="text" autocomplete="off" placeholder="APP-XXXXXX" style="flex:1;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;text-transform:uppercase;">\
+            <button id="billingCouponApply" type="button" style="padding:10px 16px;border:1px solid #059669;background:#fff;color:#059669;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Aplicar</button>\
+          </div>\
+          <div id="billingCouponApplied" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 12px;border-radius:8px;font-size:13px;"></div>\
+          <div id="billingCouponMsg" style="font-size:12px;margin-top:6px;display:none;"></div>\
         </div>\
         <div id="billingCardFields">\
           <div style="margin-bottom:12px;">\
@@ -118,6 +197,10 @@
     $('billingTabCard').addEventListener('click', function () { setMethod('CREDIT_CARD'); });
     $('billingTabPix').addEventListener('click', function () { setMethod('UNDEFINED'); });
     $('billingSubscribeBtn').addEventListener('click', subscribe);
+    $('billingCouponApply').addEventListener('click', applyCoupon);
+    $('billingCoupon').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); }
+    });
     $('billingRefreshBtn').addEventListener('click', function () { refresh(true); });
     $('billingLogoutBtn').addEventListener('click', function () {
       try { window.AppliqueiFirebase.auth.signOut(); } catch (_) {}
