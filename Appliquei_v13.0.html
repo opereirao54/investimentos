@@ -2432,6 +2432,15 @@
                     <button type="button" class="auth-tab" id="authTabReg" onclick="appliqueiAuthSetModo('registro')">Criar conta</button>
                 </div>
                 <div id="authErr" class="auth-err" role="alert"></div>
+                <button type="button" id="authBtnGoogle" onclick="appliqueiAuthGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;border:1px solid var(--cor-borda,#d4dad7);background:#fff;color:#3c4043;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px;">
+                    <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/><path d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
+                    Continuar com Google
+                </button>
+                <div style="display:flex;align-items:center;gap:10px;margin:10px 0 12px;color:var(--cor-texto-mutado,#94a39c);font-size:11.5px;">
+                    <span style="flex:1;height:1px;background:var(--cor-borda,#d4dad7);"></span>
+                    ou
+                    <span style="flex:1;height:1px;background:var(--cor-borda,#d4dad7);"></span>
+                </div>
                 <div class="auth-field">
                     <label for="authEmail">E-mail</label>
                     <input type="email" id="authEmail" autocomplete="email" placeholder="seu@email.com">
@@ -2452,6 +2461,20 @@
                 <p class="auth-link" id="authHintReg" style="display:none;">Já tem conta? <button type="button" onclick="appliqueiAuthSetModo('login')">Entrar</button></p>
                 <p class="auth-link" id="authHintLogin" style="display:none;">Não tem conta? <button type="button" onclick="appliqueiAuthSetModo('registro')">Criar conta</button></p>
                 <p class="auth-link" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Após o trial: R$ 15/mês via Asaas (PIX, boleto ou cartão).</p>
+            </div>
+            <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
+                <div style="text-align:center;padding:8px 0 4px;">
+                    <i class="ph ph-envelope-simple" style="font-size:34px;color:#059669;"></i>
+                </div>
+                <h3 style="text-align:center;font-size:16px;font-weight:600;margin:6px 0 8px;color:var(--cor-texto-primario,#0b1410);">Verifique seu e-mail</h3>
+                <p id="authVerifyMsg" style="font-size:13px;color:var(--cor-texto-secundario,#4a5b53);line-height:1.55;text-align:center;margin-bottom:14px;">Enviamos um link de verificação para <strong id="authVerifyEmail"></strong>. Abra a caixa de entrada e clique no link para liberar o acesso.</p>
+                <div id="authVerifyStatus" style="display:none;font-size:12px;text-align:center;margin-bottom:10px;"></div>
+                <div class="auth-actions" style="display:flex;flex-direction:column;gap:8px;">
+                    <button type="button" class="auth-btn-prim" id="authVerifyCheckBtn" onclick="appliqueiAuthVerifyCheck()">Já verifiquei — entrar</button>
+                    <button type="button" class="auth-btn-sec" id="authVerifyResendBtn" onclick="appliqueiAuthResend()">Reenviar e-mail</button>
+                    <button type="button" class="auth-btn-sec" onclick="appliqueiAuthSignOut()" style="color:var(--cor-texto-mutado,#6b7d75);font-size:12.5px;">Usar outra conta</button>
+                </div>
+                <p style="font-size:11.5px;color:var(--cor-texto-mutado,#94a39c);text-align:center;margin-top:14px;line-height:1.5;">Não recebeu? Confira a pasta de spam. O remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>.</p>
             </div>
         </div>
     </div>
@@ -11355,19 +11378,28 @@
         var load = $('authGateLoading');
         var nc = $('authGateNoConfig');
         var form = $('authGateForm');
+        var verify = $('authGateVerify');
         if (!load || !nc || !form) return;
         if (mode === 'load') {
             load.style.display = '';
             nc.classList.remove('ativo');
             form.classList.remove('ativo');
+            if (verify) verify.style.display = 'none';
         } else if (mode === 'noconf') {
             load.style.display = 'none';
             nc.classList.add('ativo');
             form.classList.remove('ativo');
+            if (verify) verify.style.display = 'none';
         } else if (mode === 'form') {
             load.style.display = 'none';
             nc.classList.remove('ativo');
             form.classList.add('ativo');
+            if (verify) verify.style.display = 'none';
+        } else if (mode === 'verify') {
+            load.style.display = 'none';
+            nc.classList.remove('ativo');
+            form.classList.remove('ativo');
+            if (verify) verify.style.display = '';
         }
     }
     function refreshSidebar() {
@@ -11431,13 +11463,15 @@
         var c = err.code;
         if (c === 'auth/invalid-email') return 'E-mail inválido.';
         if (c === 'auth/user-disabled') return 'Esta conta foi desativada.';
-        if (c === 'auth/user-not-found') return 'Não encontramos este e-mail.';
-        if (c === 'auth/wrong-password') return 'Senha incorreta.';
-        if (c === 'auth/invalid-credential') return 'E-mail ou senha incorretos.';
-        if (c === 'auth/email-already-in-use') return 'Este e-mail já está em uso.';
+        // Mensagens unificadas para mitigar enumeração de contas.
+        if (c === 'auth/user-not-found' || c === 'auth/wrong-password' || c === 'auth/invalid-credential') return 'E-mail ou senha incorretos.';
+        if (c === 'auth/email-already-in-use') return 'Este e-mail já está em uso. Tente entrar ou redefinir a senha.';
         if (c === 'auth/weak-password') return 'Senha muito fraca (mínimo 6 caracteres).';
         if (c === 'auth/too-many-requests') return 'Muitas tentativas. Tente mais tarde.';
         if (c === 'auth/network-request-failed') return 'Falha de rede. Verifique a conexão.';
+        if (c === 'auth/popup-closed-by-user' || c === 'auth/cancelled-popup-request') return 'Login cancelado.';
+        if (c === 'auth/popup-blocked') return 'O navegador bloqueou o popup. Permita popups para este site ou tente novamente.';
+        if (c === 'auth/account-exists-with-different-credential') return 'Já existe uma conta com este e-mail usando outro método (senha). Entre com senha primeiro e depois vincule o Google em Configurações.';
         if (c === 'auth/unauthorized-domain' || /requests-from-referer-.*-are-blocked/i.test(c) || /requests-from-referer-.*-are-blocked/i.test(err.message || '')) {
             return 'Este endereço (' + location.hostname + ') não está autorizado no Firebase. Use o domínio oficial do app ou peça ao administrador para adicioná-lo em Authentication › Settings › Authorized domains.';
         }
@@ -11465,13 +11499,92 @@
             }
         }
         var p = reg
-            ? fb.auth.createUserWithEmailAndPassword(email, senha)
+            ? fb.auth.createUserWithEmailAndPassword(email, senha).then(function (cred) {
+                // Dispara verificação imediatamente; onAuthStateChanged em seguida
+                // detecta emailVerified=false e mostra o painel verify.
+                try {
+                    return cred.user.sendEmailVerification({ url: location.origin + '/' }).then(function () { return cred; });
+                } catch (_) { return cred; }
+            })
             : fb.auth.signInWithEmailAndPassword(email, senha);
         p.catch(function (err) {
             window.appliqueiAuthErr(mapAuthErr(err));
         }).finally(function () {
             if (btn) btn.disabled = false;
         });
+    };
+    window.appliqueiAuthGoogle = function () {
+        var fb = window.AppliqueiFirebase;
+        if (!fb || !fb.ready || !fb.auth) {
+            window.appliqueiAuthErr('Firebase não está configurado.');
+            return;
+        }
+        if (!firebase.auth.GoogleAuthProvider) {
+            window.appliqueiAuthErr('Provedor Google indisponível neste cliente.');
+            return;
+        }
+        var provider = new firebase.auth.GoogleAuthProvider();
+        provider.addScope('email');
+        provider.addScope('profile');
+        // Captura cupom pendente igual ao fluxo email/senha.
+        try {
+            var cupomEl = $('authCupom');
+            var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';
+            if (cupom) sessionStorage.setItem('appliquei_pending_referral', cupom);
+        } catch (_) {}
+        window.appliqueiAuthErr('');
+        var btn = $('authBtnGoogle');
+        if (btn) btn.disabled = true;
+        // Em mobile, popup costuma falhar (ITP iOS). Heurística: usa redirect.
+        var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+        var p = isMobile ? fb.auth.signInWithRedirect(provider) : fb.auth.signInWithPopup(provider);
+        Promise.resolve(p).catch(function (err) {
+            window.appliqueiAuthErr(mapAuthErr(err));
+        }).finally(function () {
+            if (btn) btn.disabled = false;
+        });
+    };
+    window.appliqueiAuthResend = function () {
+        var fb = window.AppliqueiFirebase;
+        var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+        if (!u) return;
+        var btn = $('authVerifyResendBtn');
+        var status = $('authVerifyStatus');
+        if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+        u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+            if (status) { status.textContent = 'E-mail reenviado. Confira a caixa de entrada.'; status.style.color = '#059669'; status.style.display = 'block'; }
+        }).catch(function (err) {
+            if (status) { status.textContent = mapAuthErr(err); status.style.color = '#7f1d1d'; status.style.display = 'block'; }
+        }).finally(function () {
+            if (btn) { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }
+        });
+    };
+    window.appliqueiAuthVerifyCheck = function () {
+        var fb = window.AppliqueiFirebase;
+        var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+        if (!u) return;
+        var btn = $('authVerifyCheckBtn');
+        var status = $('authVerifyStatus');
+        if (btn) { btn.disabled = true; btn.textContent = 'Verificando…'; }
+        u.reload().then(function () {
+            return u.getIdToken(true); // força refresh para email_verified entrar no claim
+        }).then(function () {
+            if (u.emailVerified) {
+                hideGate();
+                refreshSidebar();
+                // initBilling/applyAccess seguem via onAuthStateChanged → guard novo
+            } else {
+                if (status) { status.textContent = 'Ainda não vimos a verificação. Clique no link do e-mail e tente novamente.'; status.style.color = '#7f1d1d'; status.style.display = 'block'; }
+            }
+        }).catch(function (err) {
+            if (status) { status.textContent = mapAuthErr(err); status.style.color = '#7f1d1d'; status.style.display = 'block'; }
+        }).finally(function () {
+            if (btn) { btn.disabled = false; btn.textContent = 'Já verifiquei — entrar'; }
+        });
+    };
+    window.appliqueiAuthSignOut = function () {
+        var fb = window.AppliqueiFirebase;
+        if (fb && fb.ready && fb.auth) fb.auth.signOut().catch(function () {});
     };
     window.appliqueiAuthEsqueciSenha = function () {
         var fb = window.AppliqueiFirebase;
@@ -11535,6 +11648,19 @@
             }
             if (user) {
                 window.appliqueiAuthErr('');
+                // Provedores OAuth (google.com) sempre trazem emailVerified=true.
+                // Para email/senha, exige verificação antes de liberar o app.
+                if (user.emailVerified === false) {
+                    var emEl = $('authVerifyEmail');
+                    if (emEl) emEl.textContent = user.email || '';
+                    var st = $('authVerifyStatus');
+                    if (st) { st.style.display = 'none'; st.textContent = ''; }
+                    showGate();
+                    setSub('Confirme seu e-mail para continuar');
+                    setAuthPanel('verify');
+                    refreshSidebar();
+                    return;
+                }
                 hideGate();
                 try { localStorage.removeItem(GUEST_KEY); } catch (_) {}
                 refreshSidebar();
@@ -11550,7 +11676,7 @@
                 if (AppliqueiFirebase.auth.currentUser || isGuest()) return;
                 showGate();
                 setAuthPanel('form');
-                setSub('Entre com e-mail e senha');
+                setSub('Entre com e-mail e senha ou use o Google');
                 window.appliqueiAuthSetModo('login');
                 refreshSidebar();
             }, 500);
