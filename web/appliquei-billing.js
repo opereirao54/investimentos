@@ -1192,6 +1192,8 @@
     refresh: function () { return refresh(true); },
     subscribe: subscribe,
     getAccess: function () { return lastAccess; },
+    getBilling: function () { return lastBilling; },
+    openSubscribeForm: openSubscribeForm,
     openMyAccount: openMyAccount,
     closeMyAccount: closeMyAccount,
     fetchMe: fetchMe,
