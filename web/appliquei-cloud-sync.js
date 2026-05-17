@@ -194,9 +194,52 @@
     if (!user) {
       if (timer) clearTimeout(timer);
       timer = null;
+      // Logout: limpa dados do usuário deste browser para evitar vazamento
+      // entre contas no mesmo navegador. Próximo signup novo nao vai
+      // empurrar dados antigos para o doc do user novo.
+      clearUserScopedKeys();
+      initialPullDone = false;
+      try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
       return;
     }
+    var last = lastSeenUid();
+    if (last && last !== user.uid) {
+      // Trocou de conta neste browser. Limpa o que sobrou da conta anterior
+      // antes do pull, e zera o initialPullDone para que NÃO ocorra push
+      // de localStorage stale para o doc do user novo.
+      clearUserScopedKeys();
+      initialPullDone = false;
+      try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
+      // Reload para que a UI deixe de mostrar dados em memória da conta
+      // anterior. O pull do user novo ocorre após o reload via attachWhenReady.
+      try {
+        if (window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser) {
+          if (typeof window.mostrarToast === 'function') {
+            window.mostrarToast('Trocando de conta — recarregando…', 'sucesso');
+          }
+          setTimeout(function () { try { location.reload(); } catch (_) {} }, 400);
+        }
+      } catch (_) {}
+      return;
+    }
+    try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
     pullAndApply(user.uid, function () {});
+  }
+
+  var LAST_UID_KEY = 'appliquei_cloud_last_uid';
+  function lastSeenUid() {
+    try { return localStorage.getItem(LAST_UID_KEY) || ''; } catch (_) { return ''; }
+  }
+  function clearUserScopedKeys() {
+    try {
+      var toRemove = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && shouldSyncKey(k)) toRemove.push(k);
+      }
+      toRemove.forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
+      localStorage.removeItem('appliquei_cloud_applied_rev');
+    } catch (_) {}
   }
 
   function attach() {

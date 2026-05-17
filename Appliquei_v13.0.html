@@ -73,8 +73,8 @@
       } catch (e) { console.warn('[AppliqueiFirebase]', e); }
     })();
     </script>
-    <script src="web/appliquei-cloud-sync.js?v=20260514c"></script>
-    <script src="web/appliquei-billing.js?v=20260517d"></script>
+    <script src="web/appliquei-cloud-sync.js?v=20260517a"></script>
+    <script src="web/appliquei-billing.js?v=20260517e"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -11635,18 +11635,26 @@
             // mas não tinha conta. Apaga o user recém-criado no Firebase Auth
             // (não tendo billing.account ainda — graças ao __appliqueiBlockBilling
             // — o cleanup é completo).
+            //
+            // Flag __appliqueiAuthGoogleRejecting: faz o onAuthStateChanged
+            // skipar o setTimeout que mostraria o form e LIMPARIA o erro
+            // que vamos exibir aqui.
+            window.__appliqueiAuthGoogleRejecting = true;
             var u = fb && fb.auth && fb.auth.currentUser;
             var done = function () {
                 window.__appliqueiBlockBilling = false;
                 showGate();
+                setSub('Não encontramos sua conta');
                 setAuthPanel('form');
                 window.appliqueiAuthSetModo('registro');
-                window.appliqueiAuthErr('Não encontramos uma conta Google com este e-mail. Mude para a aba "Criar conta" e clique em "Continuar com Google" para se cadastrar.');
+                window.appliqueiAuthErr('Não encontramos uma conta Google com este e-mail. Clique em "Continuar com Google" para criar sua conta agora.');
                 if (typeof refreshSidebar === 'function') refreshSidebar();
+                // Libera a flag depois que a UI estabilizou — qualquer
+                // onAuthStateChanged que disparar depois disso é fluxo normal.
+                setTimeout(function () { window.__appliqueiAuthGoogleRejecting = false; }, 1200);
             };
             if (u && typeof u.delete === 'function') {
                 u.delete().then(done).catch(function () {
-                    // Sem permissão para deletar (token revogado?). Faz signOut.
                     try { fb.auth.signOut(); } catch (_) {}
                     done();
                 });
@@ -11888,9 +11896,13 @@
                 refreshSidebar();
                 return;
             }
+            // Durante rejeição de signup acidental Google, o handler já
+            // gerencia a UI (modo registro + mensagem). NÃO sobrescrever.
+            if (window.__appliqueiAuthGoogleRejecting) return;
             authUiTimer = setTimeout(function () {
                 authUiTimer = null;
                 if (AppliqueiFirebase.auth.currentUser || isGuest()) return;
+                if (window.__appliqueiAuthGoogleRejecting) return;
                 showGate();
                 setAuthPanel('form');
                 setSub('Entre com e-mail e senha ou use o Google');
