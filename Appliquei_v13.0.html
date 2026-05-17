@@ -74,7 +74,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js?v=20260514c"></script>
-    <script src="web/appliquei-billing.js?v=20260517c"></script>
+    <script src="web/appliquei-billing.js?v=20260517d"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -2449,10 +2449,10 @@
                     <label for="authSenha">Senha</label>
                     <input type="password" id="authSenha" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
                 </div>
-                <div class="auth-field" id="authCupomWrap">
+                <div class="auth-field" id="authCupomWrap" style="display:none;">
                     <label for="authCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
-                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente. Aplicado também ao entrar com Google.</p>
+                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente.</p>
                 </div>
                 <div class="auth-actions">
                     <button type="button" class="auth-btn-prim" id="authBtnSubmit" onclick="appliqueiAuthSubmit()">Entrar</button>
@@ -11549,14 +11549,18 @@
         if (hintReg) hintReg.style.display = login ? 'none' : '';
         if (hintLogin) hintLogin.style.display = login ? '' : 'none';
         if (senha) senha.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
-        // Cupom fica sempre visível (Google também pode criar conta). Pre-fill
-        // com pending_referral vindo de link de indicação, em qualquer modo.
-        var cupomInput = $('authCupom');
-        if (cupomInput && !cupomInput.value) {
-            try {
-                var pending = sessionStorage.getItem('appliquei_pending_referral') || '';
-                if (pending) cupomInput.value = pending;
-            } catch (_) {}
+        // Cupom só na aba "Criar conta" — em "Entrar" não faz sentido pois
+        // signup acidental via Google é rejeitado (ver appliqueiAuthGoogle).
+        var cupomWrap = $('authCupomWrap');
+        if (cupomWrap) cupomWrap.style.display = login ? 'none' : '';
+        if (!login) {
+            var cupomInput = $('authCupom');
+            if (cupomInput && !cupomInput.value) {
+                try {
+                    var pending = sessionStorage.getItem('appliquei_pending_referral') || '';
+                    if (pending) cupomInput.value = pending;
+                } catch (_) {}
+            }
         }
         window.appliqueiAuthErr('');
     };
