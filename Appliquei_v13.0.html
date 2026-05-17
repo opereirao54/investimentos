@@ -74,7 +74,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js?v=20260517b"></script>
-    <script src="web/appliquei-billing.js?v=20260517e"></script>
+    <script src="web/appliquei-billing.js?v=20260517f"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -11442,14 +11442,14 @@
         });
         if (closeBtn) closeBtn.addEventListener('click', function () {
             // Snooze por 24h (apenas visual; backend ainda decide quando bloquear).
-            try { sessionStorage.setItem('appliquei_email_verify_snooze', String(Date.now() + 24*3600*1000)); } catch (_) {}
+            try { localStorage.setItem('appliquei_email_verify_snooze', String(Date.now() + 24*3600*1000)); } catch (_) {}
             hideEmailVerifyBanner();
         });
         return el;
     }
     function showEmailVerifyBanner(email) {
         try {
-            var snoozeUntil = parseInt(sessionStorage.getItem('appliquei_email_verify_snooze') || '0', 10);
+            var snoozeUntil = parseInt(localStorage.getItem('appliquei_email_verify_snooze') || '0', 10);
             if (snoozeUntil && Date.now() < snoozeUntil) return;
         } catch (_) {}
         var el = ensureEmailVerifyBanner();
@@ -11649,9 +11649,11 @@
                 window.appliqueiAuthSetModo('registro');
                 window.appliqueiAuthErr('Não encontramos uma conta Google com este e-mail. Clique em "Continuar com Google" para criar sua conta agora.');
                 if (typeof refreshSidebar === 'function') refreshSidebar();
-                // Libera a flag depois que a UI estabilizou — qualquer
-                // onAuthStateChanged que disparar depois disso é fluxo normal.
-                setTimeout(function () { window.__appliqueiAuthGoogleRejecting = false; }, 1200);
+                // M8: libera a flag SOMENTE depois que o delete/UI terminaram.
+                // Antes era setTimeout paralelo ao delete(), que podia liberar
+                // antes do done() rodar em redes lentas, deixando o
+                // onAuthStateChanged sobrescrever a mensagem de erro.
+                setTimeout(function () { window.__appliqueiAuthGoogleRejecting = false; }, 800);
             };
             if (u && typeof u.delete === 'function') {
                 u.delete().then(done).catch(function () {

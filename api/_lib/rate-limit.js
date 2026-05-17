@@ -67,9 +67,22 @@ async function check(opts) {
   }
 }
 
+// M7: TRUSTED_PROXY_HOPS = quantos proxies confiáveis estão na frente.
+// XFF tem formato "client, proxy1, proxy2". Vercel injeta 1 hop, então
+// default 0 = pega o primeiro (o cliente). Se houver Cloudflare na frente
+// da Vercel, definir TRUSTED_PROXY_HOPS=1 e o IP do client vira o
+// penúltimo do XFF.
 function ipFrom(req) {
   const xff = req && req.headers && req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
+  if (xff) {
+    const parts = String(xff).split(',').map(s => s.trim()).filter(Boolean);
+    if (parts.length > 0) {
+      const hops = parseInt(process.env.TRUSTED_PROXY_HOPS || '0', 10) || 0;
+      // O IP do cliente real está em (length - 1 - hops). Sem hops: 0 (primeiro).
+      const idx = Math.max(0, parts.length - 1 - hops);
+      return parts[idx];
+    }
+  }
   return (req && req.headers && req.headers['x-real-ip'])
     || (req && req.socket && req.socket.remoteAddress)
     || null;

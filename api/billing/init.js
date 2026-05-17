@@ -1,5 +1,5 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
-const { requireVerifiedUser, cors } = require('../_lib/auth');
+const { requireFreshVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 const { computeAccess, TRIAL_DAYS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
@@ -31,16 +31,17 @@ function readBody(req) {
 }
 
 function signupIp(req) {
-  const xff = req.headers['x-forwarded-for'];
-  if (xff) return String(xff).split(',')[0].trim();
-  return req.headers['x-real-ip'] || (req.socket && req.socket.remoteAddress) || null;
+  // Usa o helper compartilhado que respeita TRUSTED_PROXY_HOPS.
+  return rl.ipFrom(req);
 }
 
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireVerifiedUser(req, res);
+  // M2: requireFreshVerifiedUser confirma com auth().getUser() — fecha a
+  // janela do cache LRU em rotas que mutam estado caro (Asaas customer).
+  const user = await requireFreshVerifiedUser(req, res);
   if (!user) return;
 
   // M9: providers OAuth podem não retornar email se o escopo não foi pedido

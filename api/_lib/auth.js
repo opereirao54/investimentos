@@ -72,6 +72,45 @@ async function requireVerifiedUser(req, res) {
   return null;
 }
 
+// requireFreshVerifiedUser: mesmo contrato de requireVerifiedUser mas
+// confirma com auth().getUser(uid) — pega o caso em que a conta foi
+// deletada (ex.: rejeição de signup acidental Google) mas o token
+// ainda está no cache LRU (TTL 60s). Custo: 1 round-trip extra Firebase
+// por hit. Usar em rotas que mutam estado caro (criação Asaas customer
+// em /init). Para rotas read-only, requireVerifiedUser basta.
+async function requireFreshVerifiedUser(req, res) {
+  const decoded = await requireVerifiedUser(req, res);
+  if (!decoded) return null;
+  try {
+    const fresh = await auth().getUser(decoded.uid);
+    if (!fresh || fresh.disabled) {
+      invalidateUid(decoded.uid);
+      res.status(401).json({ error: 'invalid_token' });
+      return null;
+    }
+  } catch (e) {
+    if (e && (e.code === 'auth/user-not-found' || e.errorInfo && e.errorInfo.code === 'auth/user-not-found')) {
+      invalidateUid(decoded.uid);
+      res.status(401).json({ error: 'invalid_token' });
+      return null;
+    }
+    // Outro erro (rede, quota): fail-open. requireVerifiedUser já validou
+    // a assinatura, então o token é legítimo; pior caso, deixa passar um
+    // user que foi deletado dentro da janela de 60s.
+    console.warn('[auth] freshness check failed', e && (e.code || e.message));
+  }
+  return decoded;
+}
+
+function invalidateUid(uid) {
+  if (!uid) return;
+  for (const [tok, entry] of tokenCache) {
+    if (entry && entry.decoded && entry.decoded.uid === uid) {
+      tokenCache.delete(tok);
+    }
+  }
+}
+
 // M1: CORS configurável por ALLOWED_ORIGINS (lista separada por vírgula).
 // Sem env definida, mantém '*' por compatibilidade com deploys atuais.
 function cors(req, res) {
@@ -104,4 +143,4 @@ function cors(req, res) {
   return false;
 }
 
-module.exports = { requireUser, requireVerifiedUser, cors };
+module.exports = { requireUser, requireVerifiedUser, requireFreshVerifiedUser, invalidateUid, cors };

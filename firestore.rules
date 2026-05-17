@@ -29,12 +29,24 @@ service cloud.firestore {
     }
 
     // Dados da app por utilizador: só o próprio uid lê o doc "main";
-    // escrita requer assinatura/ trial ativo (gate server-side).
+    // escrita requer assinatura/ trial ativo (gate server-side) E
+    // email verificado (M3 da auditoria — fecha bypass via DevTools
+    // contornando o gate visual do front).
+    //
+    // OAuth (Google) sempre vem com email_verified=true. Email/senha
+    // precisa passar pelo fluxo de verificação.
+    //
+    // Billing reads continuam SEM exigir email_verified (legados podem
+    // ler o próprio estado durante o período de transição). A versão
+    // mais estrita está em firestore.rules.enforced para deploy quando
+    // o backfill estiver concluído.
     match /users/{userId}/data/{docId} {
       allow read: if request.auth != null
+        && request.auth.token.email_verified == true
         && request.auth.uid == userId
         && docId == 'main';
       allow create, update: if request.auth != null
+        && request.auth.token.email_verified == true
         && request.auth.uid == userId
         && docId == 'main'
         && request.resource.data.keys is map
