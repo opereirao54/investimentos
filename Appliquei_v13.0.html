@@ -74,7 +74,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js?v=20260514c"></script>
-    <script src="web/appliquei-billing.js?v=20260516e"></script>
+    <script src="web/appliquei-billing.js?v=20260517a"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -11341,6 +11341,27 @@
     <script>
 (function () {
     var GUEST_KEY = 'appliquei_auth_guest';
+    // Verificação de e-mail: transição soft → hard.
+    // Antes do deadline: usuário com emailVerified=false entra normalmente, mas
+    // vê banner amarelo persistente com botão de verificar/reenviar.
+    // A partir do deadline: gate hard (painel authGateVerify bloqueia).
+    // Para forçar gate hard antes (ex.: testes), seta window.__APPLIQUEI_FORCE_EMAIL_VERIFY = true.
+    var EMAIL_VERIFY_DEADLINE = '2026-06-01'; // ajustar quando rollout for definido
+    function emailVerifyGateHard() {
+        if (window.__APPLIQUEI_FORCE_EMAIL_VERIFY === true) return true;
+        try {
+            var d = new Date(EMAIL_VERIFY_DEADLINE + 'T00:00:00');
+            if (isNaN(d.getTime())) return false;
+            return Date.now() >= d.getTime();
+        } catch (_) { return false; }
+    }
+    function emailVerifyDeadlineLabel() {
+        try {
+            var d = new Date(EMAIL_VERIFY_DEADLINE + 'T00:00:00');
+            if (isNaN(d.getTime())) return EMAIL_VERIFY_DEADLINE;
+            return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+        } catch (_) { return EMAIL_VERIFY_DEADLINE; }
+    }
     function $(id) { return document.getElementById(id); }
     function isGuest() {
         try { return localStorage.getItem(GUEST_KEY) === '1'; } catch (_) { return false; }
@@ -11358,6 +11379,89 @@
         g.style.display = 'none';
         g.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+    }
+    function ensureEmailVerifyBanner() {
+        var el = $('emailVerifyBanner');
+        if (el) return el;
+        el = document.createElement('div');
+        el.id = 'emailVerifyBanner';
+        el.setAttribute('role', 'alert');
+        el.style.cssText = 'position:sticky;top:0;left:0;right:0;z-index:998;background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;line-height:1.45;';
+        el.innerHTML = ''
+            + '<i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>'
+            + '<span><strong>Verifique seu e-mail.</strong> A partir de <strong id="emailVerifyDeadlineLbl"></strong> o acesso só ficará disponível após a confirmação. Enviamos um link para <strong id="emailVerifyEmailLbl"></strong>.</span>'
+            + '<span style="display:inline-flex;gap:6px;flex-shrink:0;">'
+            +   '<button type="button" id="emailVerifyBannerResend" style="background:#fff;border:1px solid #fcd34d;color:#78350f;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:500;">Reenviar e-mail</button>'
+            +   '<button type="button" id="emailVerifyBannerCheck" style="background:#78350f;border:1px solid #78350f;color:#fef3c7;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:500;">Já verifiquei</button>'
+            +   '<button type="button" id="emailVerifyBannerClose" aria-label="Esconder por agora" style="background:transparent;border:0;color:#78350f;cursor:pointer;font-size:18px;line-height:1;padding:0 4px;">&times;</button>'
+            + '</span>';
+        document.body.insertBefore(el, document.body.firstChild);
+        var resendBtn = el.querySelector('#emailVerifyBannerResend');
+        var checkBtn = el.querySelector('#emailVerifyBannerCheck');
+        var closeBtn = el.querySelector('#emailVerifyBannerClose');
+        if (resendBtn) resendBtn.addEventListener('click', function () {
+            var fb = window.AppliqueiFirebase;
+            var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+            if (!u) return;
+            resendBtn.disabled = true;
+            var orig = resendBtn.textContent;
+            resendBtn.textContent = 'Enviando…';
+            u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+                resendBtn.textContent = 'E-mail enviado';
+                if (typeof mostrarToast === 'function') mostrarToast('E-mail de verificação reenviado.', 'sucesso');
+            }).catch(function (err) {
+                resendBtn.textContent = orig;
+                if (typeof mostrarToast === 'function') mostrarToast(mapAuthErr(err), 'erro');
+            }).finally(function () {
+                setTimeout(function () {
+                    if (!resendBtn) return;
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = orig;
+                }, 4000);
+            });
+        });
+        if (checkBtn) checkBtn.addEventListener('click', function () {
+            var fb = window.AppliqueiFirebase;
+            var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+            if (!u) return;
+            checkBtn.disabled = true;
+            var orig = checkBtn.textContent;
+            checkBtn.textContent = 'Verificando…';
+            u.reload().then(function () { return u.getIdToken(true); }).then(function () {
+                if (u.emailVerified) {
+                    hideEmailVerifyBanner();
+                    if (typeof mostrarToast === 'function') mostrarToast('E-mail verificado com sucesso.', 'sucesso');
+                } else {
+                    if (typeof mostrarToast === 'function') mostrarToast('Ainda não vimos a verificação. Clique no link do e-mail e tente novamente.', 'aviso');
+                }
+            }).catch(function (err) {
+                if (typeof mostrarToast === 'function') mostrarToast(mapAuthErr(err), 'erro');
+            }).finally(function () {
+                if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = orig; }
+            });
+        });
+        if (closeBtn) closeBtn.addEventListener('click', function () {
+            // Snooze por 24h (apenas visual; backend ainda decide quando bloquear).
+            try { sessionStorage.setItem('appliquei_email_verify_snooze', String(Date.now() + 24*3600*1000)); } catch (_) {}
+            hideEmailVerifyBanner();
+        });
+        return el;
+    }
+    function showEmailVerifyBanner(email) {
+        try {
+            var snoozeUntil = parseInt(sessionStorage.getItem('appliquei_email_verify_snooze') || '0', 10);
+            if (snoozeUntil && Date.now() < snoozeUntil) return;
+        } catch (_) {}
+        var el = ensureEmailVerifyBanner();
+        var emLbl = $('emailVerifyEmailLbl');
+        var dlLbl = $('emailVerifyDeadlineLbl');
+        if (emLbl) emLbl.textContent = email;
+        if (dlLbl) dlLbl.textContent = emailVerifyDeadlineLabel();
+        el.style.display = 'flex';
+    }
+    function hideEmailVerifyBanner() {
+        var el = $('emailVerifyBanner');
+        if (el) el.style.display = 'none';
     }
     function setSub(t) {
         var s = $('authGateSub');
@@ -11649,23 +11753,33 @@
             if (user) {
                 window.appliqueiAuthErr('');
                 // Provedores OAuth (google.com) sempre trazem emailVerified=true.
-                // Para email/senha, exige verificação antes de liberar o app.
                 if (user.emailVerified === false) {
-                    var emEl = $('authVerifyEmail');
-                    if (emEl) emEl.textContent = user.email || '';
-                    var st = $('authVerifyStatus');
-                    if (st) { st.style.display = 'none'; st.textContent = ''; }
-                    showGate();
-                    setSub('Confirme seu e-mail para continuar');
-                    setAuthPanel('verify');
+                    if (emailVerifyGateHard()) {
+                        // Modo hard: bloqueia totalmente.
+                        var emEl = $('authVerifyEmail');
+                        if (emEl) emEl.textContent = user.email || '';
+                        var st = $('authVerifyStatus');
+                        if (st) { st.style.display = 'none'; st.textContent = ''; }
+                        showGate();
+                        setSub('Confirme seu e-mail para continuar');
+                        setAuthPanel('verify');
+                        refreshSidebar();
+                        return;
+                    }
+                    // Modo soft: libera o app e mostra banner persistente.
+                    hideGate();
+                    try { localStorage.removeItem(GUEST_KEY); } catch (_) {}
                     refreshSidebar();
+                    showEmailVerifyBanner(user.email || '');
                     return;
                 }
+                hideEmailVerifyBanner();
                 hideGate();
                 try { localStorage.removeItem(GUEST_KEY); } catch (_) {}
                 refreshSidebar();
                 return;
             }
+            hideEmailVerifyBanner();
             if (isGuest()) {
                 hideGate();
                 refreshSidebar();
