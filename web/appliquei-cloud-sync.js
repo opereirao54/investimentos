@@ -192,34 +192,39 @@
 
   function onUser(user) {
     if (!user) {
+      var prevUid = lastSeenUid();
       if (timer) clearTimeout(timer);
       timer = null;
       // Logout: limpa dados do usuário deste browser para evitar vazamento
-      // entre contas no mesmo navegador. Próximo signup novo nao vai
-      // empurrar dados antigos para o doc do user novo.
+      // entre contas no mesmo navegador.
       clearUserScopedKeys();
       initialPullDone = false;
       try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
+      // Se HAVIA usuário antes (sign-out real, não boot inicial sem login),
+      // recarrega para zerar o estado em memória (variáveis JS com carteira,
+      // sonhos etc. ainda renderizadas). Sem reload, o próximo signIn no
+      // mesmo browser veria a UI populada com dados da conta anterior até
+      // o user fazer F5 ou navegar. LAST_UID_KEY já foi removido, então
+      // o onUser(null) após o reload não vai cair aqui de novo.
+      if (prevUid) {
+        setTimeout(function () { try { location.reload(); } catch (_) {} }, 300);
+      }
       return;
     }
     var last = lastSeenUid();
     if (last && last !== user.uid) {
-      // Trocou de conta neste browser. Limpa o que sobrou da conta anterior
-      // antes do pull, e zera o initialPullDone para que NÃO ocorra push
-      // de localStorage stale para o doc do user novo.
+      // Trocou de conta neste browser sem passar por signOut completo
+      // (ex.: link de autenticação direto, troca de provider). Mesma
+      // política: limpa e recarrega.
       clearUserScopedKeys();
       initialPullDone = false;
       try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
-      // Reload para que a UI deixe de mostrar dados em memória da conta
-      // anterior. O pull do user novo ocorre após o reload via attachWhenReady.
       try {
-        if (window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser) {
-          if (typeof window.mostrarToast === 'function') {
-            window.mostrarToast('Trocando de conta — recarregando…', 'sucesso');
-          }
-          setTimeout(function () { try { location.reload(); } catch (_) {} }, 400);
+        if (typeof window.mostrarToast === 'function') {
+          window.mostrarToast('Trocando de conta — recarregando…', 'sucesso');
         }
       } catch (_) {}
+      setTimeout(function () { try { location.reload(); } catch (_) {} }, 400);
       return;
     }
     try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
