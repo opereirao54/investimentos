@@ -5,6 +5,7 @@ const { computeAccess, TRIAL_DAYS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const codes = require('../_lib/codes');
 const rl = require('../_lib/rate-limit');
+const { assertReferralAllowed } = require('../_lib/referral-guard');
 
 const MONTHLY_PRICE_CENTS = 1500;
 const REFERRAL_DISCOUNT_PERCENT = 10;
@@ -42,34 +43,60 @@ module.exports = async (req, res) => {
   const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
+  // M9: providers OAuth podem não retornar email se o escopo não foi pedido
+  // ou o user negou. Sem email, Asaas.createCustomer falha (400). Falha
+  // cedo com mensagem clara.
+  if (!user.email) {
+    return res.status(400).json({
+      error: 'email_required_from_provider',
+      detail: 'Não foi possível obter o e-mail da sua conta. Faça login novamente concedendo permissão de e-mail.',
+    });
+  }
+
   const body = await readBody(req);
-  const rawCode = body.referralCode ? codes.normalize(body.referralCode) : null;
+  // M1: rejeita tipos inválidos antes de normalizar. codes.normalize já
+  // tem guard, mas falhar cedo com erro estruturado é mais claro.
+  let rawCode = null;
+  if (body.referralCode != null) {
+    if (typeof body.referralCode !== 'string') {
+      return res.status(400).json({ error: 'invalid_referral_code' });
+    }
+    rawCode = codes.normalize(body.referralCode) || null;
+  }
 
   try {
     const D = db();
     const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
 
-    // Antifraude: só aplica rate-limit quando o doc ainda não existe — isto
-    // é, é a PRIMEIRA chamada /init para esta conta. Chamadas subsequentes
-    // (re-fetch de estado, aplicação retroativa de cupom) não disparam.
+    // Antifraude:
+    //  - Primeira criação de billing: rate-limit por IP+device (TRIAL_RATE_LIMIT_*).
+    //  - Retro-apply de cupom (billing já existe, ainda sem referredByUserId
+    //    e com rawCode informado): rate-limit menor, escopo separado
+    //    'init-retroref-*'. Evita usar uma conta legítima como sonda de
+    //    enumeração de cupons.
     const preSnap = await ref.get();
-    if (!preSnap.exists) {
+    const isFirstInit = !preSnap.exists;
+    const isRetroRefAttempt = !isFirstInit && !!rawCode && !(preSnap.data() && preSnap.data().referredByUserId);
+    if (isFirstInit || isRetroRefAttempt) {
       const ip = signupIp(req) || 'unknown';
       const device = rl.deviceFingerprint(req);
       const antifraudEnabled = String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
+      const scopePrefix = isFirstInit ? 'init' : 'init-retroref';
+      const windowIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_WINDOW_MS : 60 * 60 * 1000;
+      const maxIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_MAX : 10;
+      const windowDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS : 60 * 60 * 1000;
+      const maxDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_MAX : 10;
       const ipCheck = await rl.check({
-        scope: 'init-ip', key: ip,
-        windowMs: TRIAL_RATE_LIMIT_IP_WINDOW_MS,
-        max: TRIAL_RATE_LIMIT_IP_MAX,
+        scope: scopePrefix + '-ip', key: ip,
+        windowMs: windowIp, max: maxIp,
       });
       const devCheck = await rl.check({
-        scope: 'init-device', key: device,
-        windowMs: TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS,
-        max: TRIAL_RATE_LIMIT_DEVICE_MAX,
+        scope: scopePrefix + '-device', key: device,
+        windowMs: windowDev, max: maxDev,
       });
       if (!ipCheck.allowed || !devCheck.allowed) {
         console.warn('[init] rate-limit hit', {
-          uid: user.uid, ip, device,
+          scope: scopePrefix, uid: user.uid, ip, device,
           ipCount: ipCheck.count, devCount: devCheck.count,
           enforced: antifraudEnabled,
         });
@@ -77,8 +104,10 @@ module.exports = async (req, res) => {
           const retry = Math.max(ipCheck.retryAfterMs || 0, devCheck.retryAfterMs || 0);
           res.setHeader('Retry-After', Math.ceil(retry / 1000));
           return res.status(429).json({
-            error: 'too_many_trials',
-            detail: 'Muitas contas criadas a partir deste dispositivo/IP recentemente. Tente novamente mais tarde ou entre em contato com o suporte.',
+            error: isFirstInit ? 'too_many_trials' : 'too_many_referral_attempts',
+            detail: isFirstInit
+              ? 'Muitas contas criadas a partir deste dispositivo/IP recentemente. Tente novamente mais tarde ou entre em contato com o suporte.'
+              : 'Muitas tentativas de aplicar cupom recentemente. Tente novamente em alguns minutos.',
           });
         }
       }
@@ -142,8 +171,11 @@ module.exports = async (req, res) => {
         if (!owner) {
           return res.status(400).json({ error: 'referral_code_not_found' });
         }
-        if (owner.uid === user.uid) {
-          return res.status(400).json({ error: 'self_referral_not_allowed' });
+        // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
+        // e indicador INACTIVE).
+        const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
+        if (!guard.allowed) {
+          return res.status(400).json({ error: guard.reason });
         }
         await ref.set({
           referredByUserId: owner.uid,
@@ -188,9 +220,12 @@ module.exports = async (req, res) => {
           await releaseLock();
           return res.status(400).json({ error: 'referral_code_not_found' });
         }
-        if (owner.uid === user.uid) {
+        // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
+        // e indicador INACTIVE).
+        const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
+        if (!guard.allowed) {
           await releaseLock();
-          return res.status(400).json({ error: 'self_referral_not_allowed' });
+          return res.status(400).json({ error: guard.reason });
         }
         referredByUserId = owner.uid;
         referredByCode = owner.code;

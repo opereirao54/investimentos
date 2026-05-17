@@ -1,6 +1,7 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
 const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
+const { assertReferralAllowed } = require('../_lib/referral-guard');
 
 function formatDate(d) {
   const yyyy = d.getUTCFullYear();
@@ -106,28 +107,34 @@ module.exports = async (req, res) => {
         return res.status(409).json({ error: 'cpfcnpj_in_use' });
       }
 
-      // C4: se o CPF informado é o mesmo do indicador, derruba o vínculo
-      // de referral antes de assinar (evita auto-indicação multi-conta).
+      // H3/L2: revalida referral com a política unificada. Agora que o CPF
+      // chegou, o guard pode bloquear por CPF, device, IP ou INACTIVE do
+      // indicador. Se o vínculo cair, o desconto e o crédito também.
+      // Persiste o CPF em billing localmente para o guard ler.
+      billing.cpfCnpj = cpfCnpj;
       if (billing.referredByUserId) {
         try {
-          const indicatorSnap = await db()
-            .collection('users').doc(billing.referredByUserId)
-            .collection('billing').doc('account').get();
-          if (indicatorSnap.exists && indicatorSnap.data().cpfCnpj === cpfCnpj) {
+          const guard = await assertReferralAllowed(db(), {
+            indicatorUid: billing.referredByUserId,
+            user: { uid: user.uid, cpfCnpj },
+            req,
+          });
+          if (!guard.allowed) {
             await ref.set({
               referredByUserId: fieldValue().delete(),
               referredByCode: fieldValue().delete(),
               referralUsedAt: fieldValue().delete(),
               recurringDiscountPercent: 0,
+              referralDroppedReason: guard.reason,
               updatedAt: fieldValue().serverTimestamp(),
             }, { merge: true });
             billing.referredByUserId = null;
             billing.referredByCode = null;
             billing.recurringDiscountPercent = 0;
-            console.warn('[subscribe] same-CPF referral removed', user.uid);
+            console.warn('[subscribe] referral dropped at subscribe', { uid: user.uid, reason: guard.reason });
           }
         } catch (e) {
-          console.warn('[subscribe] indicator CPF check failed', e && e.message);
+          console.warn('[subscribe] referral revalidation failed', e && e.message);
         }
       }
 
