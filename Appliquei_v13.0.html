@@ -74,7 +74,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js?v=20260514c"></script>
-    <script src="web/appliquei-billing.js?v=20260517b"></script>
+    <script src="web/appliquei-billing.js?v=20260517c"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -11615,6 +11615,60 @@
             if (btn) btn.disabled = false;
         });
     };
+    // Processa o resultado de signInWithPopup OU getRedirectResult.
+    // Centraliza: detecção isNewUser, política de rejeição de signup
+    // acidental, toast de boas-vindas, kickstart do billing.
+    function handleGoogleAuthResult(result, ctx) {
+        var fb = window.AppliqueiFirebase;
+        var info = result && result.additionalUserInfo;
+        var isNew = !!(info && info.isNewUser);
+        var requireExisting = !!(ctx && ctx.requireExisting);
+        var pending = '';
+        try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
+
+        if (isNew && requireExisting) {
+            // Rejeita signup acidental: usuário clicou Google na aba "Entrar"
+            // mas não tinha conta. Apaga o user recém-criado no Firebase Auth
+            // (não tendo billing.account ainda — graças ao __appliqueiBlockBilling
+            // — o cleanup é completo).
+            var u = fb && fb.auth && fb.auth.currentUser;
+            var done = function () {
+                window.__appliqueiBlockBilling = false;
+                showGate();
+                setAuthPanel('form');
+                window.appliqueiAuthSetModo('registro');
+                window.appliqueiAuthErr('Não encontramos uma conta Google com este e-mail. Mude para a aba "Criar conta" e clique em "Continuar com Google" para se cadastrar.');
+                if (typeof refreshSidebar === 'function') refreshSidebar();
+            };
+            if (u && typeof u.delete === 'function') {
+                u.delete().then(done).catch(function () {
+                    // Sem permissão para deletar (token revogado?). Faz signOut.
+                    try { fb.auth.signOut(); } catch (_) {}
+                    done();
+                });
+            } else {
+                try { fb && fb.auth && fb.auth.signOut(); } catch (_) {}
+                done();
+            }
+            return;
+        }
+
+        // Caminho positivo: libera billing e mostra feedback se for novo.
+        window.__appliqueiBlockBilling = false;
+        try {
+            if (window.AppliqueiBilling && typeof window.AppliqueiBilling.kickstart === 'function') {
+                window.AppliqueiBilling.kickstart();
+            }
+        } catch (_) {}
+        if (isNew && typeof mostrarToast === 'function') {
+            mostrarToast(
+                pending
+                    ? ('Conta criada com Google. Cupom ' + pending + ' será aplicado.')
+                    : 'Conta criada com Google. Sua avaliação de 7 dias começou.',
+                'sucesso'
+            );
+        }
+    }
     window.appliqueiAuthGoogle = function () {
         var fb = window.AppliqueiFirebase;
         if (!fb || !fb.ready || !fb.auth) {
@@ -11639,31 +11693,30 @@
             var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';
             if (cupom) sessionStorage.setItem('appliquei_pending_referral', cupom);
         } catch (_) {}
+
+        // Política: na aba "Entrar", rejeita signup acidental. Na aba
+        // "Criar conta", aceita conta nova normalmente. Salvamos o modo
+        // ANTES do popup, pois durante o redirect (mobile) o tab pode
+        // mudar; persistimos em sessionStorage para o handler de
+        // getRedirectResult ler depois do reload.
+        var requireExisting = window.__appliqueiAuthModo === 'login';
+        try {
+            sessionStorage.setItem('appliquei_google_require_existing', requireExisting ? '1' : '0');
+        } catch (_) {}
+
+        // Bloqueia billing até o handler validar a intenção.
+        window.__appliqueiBlockBilling = true;
+
         window.appliqueiAuthErr('');
         var btn = $('authBtnGoogle');
         if (btn) btn.disabled = true;
-        // Em mobile, popup costuma falhar (ITP iOS). Heurística: usa redirect.
         var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         var p = isMobile ? fb.auth.signInWithRedirect(provider) : fb.auth.signInWithPopup(provider);
         Promise.resolve(p).then(function (result) {
-            // result existe apenas no caminho popup; no redirect, o resultado
-            // chega via getRedirectResult() depois do reload. Em ambos os
-            // casos, o initBilling em onAuthStateChanged consome
-            // sessionStorage['appliquei_pending_referral'] e manda para /init.
-            try {
-                var info = result && result.additionalUserInfo;
-                if (info && info.isNewUser && typeof mostrarToast === 'function') {
-                    var pending = '';
-                    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
-                    mostrarToast(
-                        pending
-                            ? ('Conta criada com Google. Cupom ' + pending + ' será aplicado.')
-                            : 'Conta criada com Google. Sua avaliação de 7 dias começou.',
-                        'sucesso'
-                    );
-                }
-            } catch (_) {}
+            // Caminho popup. Redirect resolve via getRedirectResult em initAppliqueiAuth.
+            handleGoogleAuthResult(result, { requireExisting: requireExisting });
         }).catch(function (err) {
+            window.__appliqueiBlockBilling = false;
             window.appliqueiAuthErr(mapAuthErr(err));
         }).finally(function () {
             if (btn) btn.disabled = false;
@@ -11766,25 +11819,30 @@
             return;
         }
         // Caminho redirect (mobile/iOS): consome o resultado após o reload
-        // de volta do Google. Mostra toast de boas-vindas quando for conta
-        // nova. onAuthStateChanged em seguida cuida do gate/initBilling.
+        // de volta do Google. Recupera a intenção (login vs registro) que
+        // foi persistida em sessionStorage antes do redirect. Bloqueia
+        // billing até validar e o handler libera/rejeita.
         try {
+            var redirectRequireExisting = false;
+            try {
+                redirectRequireExisting = sessionStorage.getItem('appliquei_google_require_existing') === '1';
+                sessionStorage.removeItem('appliquei_google_require_existing');
+            } catch (_) {}
+            window.__appliqueiBlockBilling = true;
             AppliqueiFirebase.auth.getRedirectResult().then(function (result) {
-                var info = result && result.additionalUserInfo;
-                if (info && info.isNewUser && typeof mostrarToast === 'function') {
-                    var pending = '';
-                    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
-                    mostrarToast(
-                        pending
-                            ? ('Conta criada com Google. Cupom ' + pending + ' será aplicado.')
-                            : 'Conta criada com Google. Sua avaliação de 7 dias começou.',
-                        'sucesso'
-                    );
+                if (result && result.user) {
+                    handleGoogleAuthResult(result, { requireExisting: redirectRequireExisting });
+                } else {
+                    // Sem resultado pendente (página carregada sem vir de redirect).
+                    window.__appliqueiBlockBilling = false;
                 }
             }).catch(function (err) {
+                window.__appliqueiBlockBilling = false;
                 if (err && err.code) window.appliqueiAuthErr(mapAuthErr(err));
             });
-        } catch (_) {}
+        } catch (_) {
+            window.__appliqueiBlockBilling = false;
+        }
         var authUiTimer = null;
         AppliqueiFirebase.auth.onAuthStateChanged(function (user) {
             if (authUiTimer) {

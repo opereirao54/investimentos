@@ -1193,6 +1193,11 @@
       lastAccess = null;
       return;
     }
+    // Bloqueio temporário durante verificação de signup Google na aba
+    // "Entrar" — evita criar customer no Asaas se o usuário será
+    // rejeitado e a conta Firebase será apagada. Liberado por
+    // window.AppliqueiBilling.kickstart() quando a verificação aceita.
+    if (window.__appliqueiBlockBilling) return;
     initBilling().then(function () {
       syncApplicashFromServer().then(function () {
         if (typeof window.atualizarTelaApplicash === 'function') {
@@ -1232,5 +1237,14 @@
     closeMyAccount: closeMyAccount,
     fetchMe: fetchMe,
     syncApplicash: syncApplicashFromServer,
+    // Dispara onUser manualmente para o user logado atual. Usado após
+    // o block ser liberado (Google login validado) para iniciar billing.
+    kickstart: function () {
+      try {
+        var fb = window.AppliqueiFirebase;
+        var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+        if (u) onUser(u);
+      } catch (_) {}
+    },
   };
 })();
