@@ -151,6 +151,6 @@ As coleções `rateLimits` e `webhookEvents` crescem indefinidamente sem cleanup
 | Coleção | Campo TTL | Recomendação |
 |---|---|---|
 | `rateLimits` | `expiresAt` | Já gravado pelo código. Ativar TTL. |
-| `webhookEvents` | (adicionar `expiresAt` na escrita) | Pendente: editar `api/billing/webhook.js` para gravar `expiresAt = now + 30d`. |
+| `webhookEvents` | `expiresAt` | Já gravado (TTL 30 dias). Ativar TTL no console. |
 
 Sem TTL ativo, esses docs ficam para sempre — custo de storage cresce linear, custo de leitura inalterado.

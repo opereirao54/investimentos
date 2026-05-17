@@ -2410,7 +2410,7 @@
       "label": "billing",
       "file_type": "code",
       "source_file": "api/billing/webhook.js",
-      "source_location": "L244",
+      "source_location": "L250",
       "id": "billing_webhook_billing",
       "community": 8,
       "norm_label": "billing"
@@ -2419,7 +2419,7 @@
       "label": "update",
       "file_type": "code",
       "source_file": "api/billing/webhook.js",
-      "source_location": "L245",
+      "source_location": "L251",
       "id": "billing_webhook_update",
       "community": 8,
       "norm_label": "update"
@@ -2428,7 +2428,7 @@
       "label": "paymentExtra",
       "file_type": "code",
       "source_file": "api/billing/webhook.js",
-      "source_location": "L301",
+      "source_location": "L307",
       "id": "billing_webhook_paymentextra",
       "community": 8,
       "norm_label": "paymentextra"
@@ -7881,9 +7881,9 @@
       "source_file": "api/_lib/asaas.js",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_asaas_js",
-      "target": "lib_asaas_findcustomerbyexternalreference",
-      "confidence_score": 1.0
+      "target": "lib_asaas_findcustomerbyexternalreference"
     },
     {
       "relation": "contains",
@@ -8090,9 +8090,9 @@
       "source_file": "api/_lib/asaas.js",
       "source_location": "L47",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_asaas_findcustomerbyexternalreference",
-      "target": "lib_asaas_call",
-      "confidence_score": 1.0
+      "target": "lib_asaas_call"
     },
     {
       "relation": "calls",
@@ -8222,9 +8222,9 @@
       "source_file": "api/_lib/asaas.js",
       "source_location": "L60",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_asaas_createcustomer",
-      "target": "lib_asaas_findcustomerbyexternalreference",
-      "confidence_score": 1.0
+      "target": "lib_asaas_findcustomerbyexternalreference"
     },
     {
       "relation": "contains",
@@ -8350,9 +8350,9 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_referral_guard_js",
-      "target": "api_lib_rate_limit_js",
-      "confidence_score": 1.0
+      "target": "api_lib_rate_limit_js"
     },
     {
       "relation": "imports",
@@ -8361,9 +8361,9 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_referral_guard_js",
-      "target": "lib_rate_limit_devicefingerprint",
-      "confidence_score": 1.0
+      "target": "lib_rate_limit_devicefingerprint"
     },
     {
       "relation": "imports",
@@ -8372,9 +8372,9 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_referral_guard_js",
-      "target": "lib_rate_limit_ipfrom",
-      "confidence_score": 1.0
+      "target": "lib_rate_limit_ipfrom"
     },
     {
       "relation": "contains",
@@ -8382,9 +8382,9 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_referral_guard_js",
-      "target": "lib_referral_guard_devicefingerprint_ipfrom",
-      "confidence_score": 1.0
+      "target": "lib_referral_guard_devicefingerprint_ipfrom"
     },
     {
       "relation": "contains",
@@ -8392,9 +8392,9 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_referral_guard_js",
-      "target": "lib_referral_guard_assertreferralallowed",
-      "confidence_score": 1.0
+      "target": "lib_referral_guard_assertreferralallowed"
     },
     {
       "relation": "imports_from",
@@ -8403,9 +8403,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "api_lib_referral_guard_js",
-      "confidence_score": 1.0
+      "target": "api_lib_referral_guard_js"
     },
     {
       "relation": "imports_from",
@@ -8414,9 +8414,9 @@
       "source_file": "api/billing/init.js",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_init_js",
-      "target": "api_lib_referral_guard_js",
-      "confidence_score": 1.0
+      "target": "api_lib_referral_guard_js"
     },
     {
       "relation": "imports",
@@ -8425,9 +8425,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "lib_referral_guard_assertreferralallowed",
-      "confidence_score": 1.0
+      "target": "lib_referral_guard_assertreferralallowed"
     },
     {
       "relation": "imports",
@@ -8436,9 +8436,9 @@
       "source_file": "api/billing/init.js",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_init_js",
-      "target": "lib_referral_guard_assertreferralallowed",
-      "confidence_score": 1.0
+      "target": "lib_referral_guard_assertreferralallowed"
     },
     {
       "relation": "calls",
@@ -8528,9 +8528,9 @@
       "source_file": "api/_lib/auth.js",
       "source_location": "L81",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_auth_js",
-      "target": "lib_auth_requirefreshverifieduser",
-      "confidence_score": 1.0
+      "target": "lib_auth_requirefreshverifieduser"
     },
     {
       "relation": "contains",
@@ -8538,9 +8538,9 @@
       "source_file": "api/_lib/auth.js",
       "source_location": "L105",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_auth_js",
-      "target": "lib_auth_invalidateuid",
-      "confidence_score": 1.0
+      "target": "lib_auth_invalidateuid"
     },
     {
       "relation": "contains",
@@ -8768,9 +8768,9 @@
       "source_file": "api/_lib/auth.js",
       "source_location": "L82",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_auth_requirefreshverifieduser",
-      "target": "lib_auth_requireverifieduser",
-      "confidence_score": 1.0
+      "target": "lib_auth_requireverifieduser"
     },
     {
       "relation": "imports",
@@ -8856,9 +8856,9 @@
       "source_file": "api/_lib/auth.js",
       "source_location": "L87",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_auth_requirefreshverifieduser",
-      "target": "lib_auth_invalidateuid",
-      "confidence_score": 1.0
+      "target": "lib_auth_invalidateuid"
     },
     {
       "relation": "imports",
@@ -8867,9 +8867,9 @@
       "source_file": "api/billing/init.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_init_js",
-      "target": "lib_auth_requirefreshverifieduser",
-      "confidence_score": 1.0
+      "target": "lib_auth_requirefreshverifieduser"
     },
     {
       "relation": "imports",
@@ -9471,9 +9471,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "billing_subscribe_assertreferralallowed",
-      "confidence_score": 1.0
+      "target": "billing_subscribe_assertreferralallowed"
     },
     {
       "relation": "contains",
@@ -9762,9 +9762,9 @@
       "source_file": "api/billing/init.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_init_js",
-      "target": "billing_init_requirefreshverifieduser_cors",
-      "confidence_score": 1.0
+      "target": "billing_init_requirefreshverifieduser_cors"
     },
     {
       "relation": "contains",
@@ -9822,9 +9822,9 @@
       "source_file": "api/billing/init.js",
       "source_location": "L8",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_init_js",
-      "target": "billing_init_assertreferralallowed",
-      "confidence_score": 1.0
+      "target": "billing_init_assertreferralallowed"
     },
     {
       "relation": "contains",
@@ -13261,9 +13261,9 @@
       "source_file": "BILLING.md",
       "source_location": "L136",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "investimentos_billing_seguran\u00e7a",
-      "target": "investimentos_billing_vari\u00e1veis_de_ambiente_adicionais",
-      "confidence_score": 1.0
+      "target": "investimentos_billing_vari\u00e1veis_de_ambiente_adicionais"
     },
     {
       "relation": "contains",
@@ -13271,9 +13271,9 @@
       "source_file": "BILLING.md",
       "source_location": "L147",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "investimentos_billing_seguran\u00e7a",
-      "target": "investimentos_billing_manuten\u00e7\u00e3o_ttl_firestore",
-      "confidence_score": 1.0
+      "target": "investimentos_billing_manuten\u00e7\u00e3o_ttl_firestore"
     },
     {
       "relation": "contains",
@@ -13467,5 +13467,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "806ddf4020713de144fd5c8f9ad69ebc363a8488"
+  "built_at_commit": "7f1f19ef498c9976d9e85349497f9f45f9e57c7e"
 }

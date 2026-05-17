@@ -203,6 +203,11 @@ module.exports = async (req, res) => {
   if (eventKey) {
     try {
       const eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
+      // TTL: doc expira 30 dias após receber. Asaas reenvia eventos por
+      // até alguns dias; 30d é largo o suficiente para idempotência e
+      // ainda permite limpeza automática (configurar TTL policy no
+      // Firebase Console → Firestore → TTL com campo `expiresAt`).
+      const WEBHOOK_EVENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
       const fresh = await db().runTransaction(async (tx) => {
         const snap = await tx.get(eventRef);
         if (snap.exists) return false;
@@ -212,6 +217,7 @@ module.exports = async (req, res) => {
           subscriptionId: (payment && payment.subscription) || (subscription && subscription.id) || null,
           paymentStatus: (payment && payment.status) || null,
           receivedAt: fieldValue().serverTimestamp(),
+          expiresAt: timestamp().fromMillis(Date.now() + WEBHOOK_EVENT_TTL_MS),
         });
         return true;
       });
