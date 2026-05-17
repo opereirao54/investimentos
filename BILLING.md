@@ -123,8 +123,34 @@ Notas:
 
 ## Segurança
 
-- **Validação no backend**: `requireUser` verifica o Firebase ID token em todos os endpoints autenticados; o `uid` vem do token, nunca do body.
+- **Validação no backend**: `requireVerifiedUser` (ou `requireFreshVerifiedUser` em `/init`) verifica o Firebase ID token em todos os endpoints autenticados; o `uid` vem do token, nunca do body. Cache LRU 60s do `verifyIdToken` reduz custo; `/init` força revalidação fresh para fechar a janela.
+- **Email verificado**: backend exige `email_verified=true` quando `EMAIL_VERIFY_ENFORCE=true`; Firestore rules exigem em `users/{uid}/data/main`.
+- **Antifraude /init**: rate-limit por IP (5/24h) e device fingerprint (3/30d) na primeira criação; rate-limit reduzido (10/h) também em retro-apply de cupom. Gated por `ANTIFRAUD_INIT_ENABLED`.
+- **Referral guard unificado**: `api/_lib/referral-guard.js` bloqueia self-referral por uid/device/CPF/IP (IP opt-in via `REFERRAL_BLOCK_SAME_IP`) e indicador `INACTIVE`. Aplicado em `/init` (criação e retro-apply) e em `/subscribe` (revalidação quando CPF chega).
+- **Idempotência Asaas**: `createCustomer` faz lookup por `externalReference=uid` antes de criar — evita customers duplicados após retry de função.
 - **Sem bypass no frontend**: gate é decorativo — todo o estado de acesso depende do que o backend devolve, e as regras Firestore impedem o cliente de escrever o seu próprio `billing/account`.
 - **Webhook**: rejeitado sem `asaas-access-token` correto.
 - **Modo offline removido**: a opção “continuar sem conta” já não existe; força conta + trial.
 - **Service Account**: apenas em env vars (nunca no repo).
+
+### Variáveis de ambiente adicionais
+
+| Variável | Default | Função |
+|---|---|---|
+| `EMAIL_VERIFY_ENFORCE` | `false` | Quando `true`, backend devolve 403 `email_not_verified` se o token não tiver `email_verified=true`. Antes de ativar, rodar `scripts/backfill-email-verification.js` e deixar 7 dias em log-only. |
+| `ANTIFRAUD_INIT_ENABLED` | `false` | Quando `true`, rate-limit em `/init` (IP/device) responde 429. Default só loga. |
+| `REFERRAL_BLOCK_SAME_IP` | `false` | Quando `true`, bloqueia referral quando o IP do indicador é igual ao do indicado. NAT-unsafe (famílias compartilham IP). |
+| `TRUSTED_PROXY_HOPS` | `0` | Quantos proxies confiáveis estão na frente. Vercel sozinha = 0. Cloudflare+Vercel = 1. Usado pelo helper `ipFrom`. |
+| `RATE_LIMIT_SALT` | `appliquei-rl-v1` | Salt para hash do device fingerprint e das chaves de rate-limit. Definir um valor aleatório por ambiente em produção. |
+| `APP_ORIGIN` | (req origin) | Base URL usada nos links de verificação de e-mail. |
+
+### Manutenção: TTL Firestore
+
+As coleções `rateLimits` e `webhookEvents` crescem indefinidamente sem cleanup. Configurar TTL policy no Firebase Console → Firestore → TTL:
+
+| Coleção | Campo TTL | Recomendação |
+|---|---|---|
+| `rateLimits` | `expiresAt` | Já gravado pelo código. Ativar TTL. |
+| `webhookEvents` | (adicionar `expiresAt` na escrita) | Pendente: editar `api/billing/webhook.js` para gravar `expiresAt = now + 30d`. |
+
+Sem TTL ativo, esses docs ficam para sempre — custo de storage cresce linear, custo de leitura inalterado.
