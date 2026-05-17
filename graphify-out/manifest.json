@@ -55,13 +55,13 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/codes.js": {
-    "mtime": 1778894853.1759844,
-    "ast_hash": "ad886d125f0ca689dfcab8cc0e6aa880",
+    "mtime": 1778984561.4691243,
+    "ast_hash": "92724f6822b3c4ae5e48ffcb205a6ad3",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/asaas.js": {
-    "mtime": 1778874051.3831835,
-    "ast_hash": "8fe7074d33854abbd74ad3499a1961a5",
+    "mtime": 1778984573.861125,
+    "ast_hash": "baafb8d76044cc05bcd06f2f86781bfa",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/access.js": {
@@ -69,14 +69,19 @@
     "ast_hash": "16fcec6739a438f4f09962647561f87e",
     "semantic_hash": ""
   },
+  "/home/user/investimentos/api/_lib/referral-guard.js": {
+    "mtime": 1778984554.893124,
+    "ast_hash": "606f5dae8024d0fa3e6bcb17c0b9f1f8",
+    "semantic_hash": ""
+  },
   "/home/user/investimentos/api/_lib/auth.js": {
-    "mtime": 1778898415.2244918,
-    "ast_hash": "e10fe86f816d304f374767ef8faeaef5",
+    "mtime": 1778984634.2211273,
+    "ast_hash": "0a23d92252ecd9a0599e4ab3aebac1da",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/rate-limit.js": {
-    "mtime": 1778898435.7644916,
-    "ast_hash": "dca4895d87a15b8515bcf6ceb6631917",
+    "mtime": 1778984654.121128,
+    "ast_hash": "c1f447a339eb06d2827a74203b9aa385",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/auth/resend-verification.js": {
@@ -95,8 +100,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/subscribe.js": {
-    "mtime": 1778898441.496743,
-    "ast_hash": "098972cc35f1f825076aab7ca77f4100",
+    "mtime": 1778984546.981124,
+    "ast_hash": "38d8202ca548b7b6871d7ba71e645cf9",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/status.js": {
@@ -105,8 +110,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/init.js": {
-    "mtime": 1778898528.4444892,
-    "ast_hash": "c7ee5d8f8b9fe1a6d6317eecec5bfa53",
+    "mtime": 1778984659.0971284,
+    "ast_hash": "5d9ff23bf62bee1d62968ebf58c88b84",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/webhook.js": {
@@ -170,13 +175,13 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/BILLING.md": {
-    "mtime": 1778874051.3783407,
-    "ast_hash": "bacb1c753898385d7fa9292ea308a201",
+    "mtime": 1778984772.613133,
+    "ast_hash": "c9390834e84efdcd4916046f5f74f08b",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_v13.0.html": {
-    "mtime": 1778983345.9156318,
-    "ast_hash": "10f2ed418ee359bc626989b86a0aea7e",
+    "mtime": 1778984716.7611306,
+    "ast_hash": "6778a95d3b65e383c7809b271e6a50d4",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
