@@ -74,7 +74,7 @@
     })();
     </script>
     <script src="web/appliquei-cloud-sync.js?v=20260514c"></script>
-    <script src="web/appliquei-billing.js?v=20260517a"></script>
+    <script src="web/appliquei-billing.js?v=20260517b"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -2449,10 +2449,10 @@
                     <label for="authSenha">Senha</label>
                     <input type="password" id="authSenha" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
                 </div>
-                <div class="auth-field" id="authCupomWrap" style="display:none;">
-                    <label for="authCupom">Cupom de indicação (opcional)</label>
+                <div class="auth-field" id="authCupomWrap">
+                    <label for="authCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
-                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Use o cupom de um amigo e ganhe 10% de desconto recorrente.</p>
+                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente. Aplicado também ao entrar com Google.</p>
                 </div>
                 <div class="auth-actions">
                     <button type="button" class="auth-btn-prim" id="authBtnSubmit" onclick="appliqueiAuthSubmit()">Entrar</button>
@@ -11549,16 +11549,14 @@
         if (hintReg) hintReg.style.display = login ? 'none' : '';
         if (hintLogin) hintLogin.style.display = login ? '' : 'none';
         if (senha) senha.setAttribute('autocomplete', login ? 'current-password' : 'new-password');
-        var cupomWrap = $('authCupomWrap');
-        if (cupomWrap) cupomWrap.style.display = login ? 'none' : '';
-        if (!login) {
-            var cupomInput = $('authCupom');
-            if (cupomInput && !cupomInput.value) {
-                try {
-                    var pending = sessionStorage.getItem('appliquei_pending_referral') || '';
-                    if (pending) cupomInput.value = pending;
-                } catch (_) {}
-            }
+        // Cupom fica sempre visível (Google também pode criar conta). Pre-fill
+        // com pending_referral vindo de link de indicação, em qualquer modo.
+        var cupomInput = $('authCupom');
+        if (cupomInput && !cupomInput.value) {
+            try {
+                var pending = sessionStorage.getItem('appliquei_pending_referral') || '';
+                if (pending) cupomInput.value = pending;
+            } catch (_) {}
         }
         window.appliqueiAuthErr('');
     };
@@ -11630,7 +11628,12 @@
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.addScope('email');
         provider.addScope('profile');
-        // Captura cupom pendente igual ao fluxo email/senha.
+        // Persiste o cupom ANTES do popup. Cobre os 3 cenários:
+        //  (a) usuário existente faz login Google (cupom será aplicado
+        //      retroativamente no /init se ainda não tem subscription);
+        //  (b) usuário novo cria conta Google (cupom usado no signup);
+        //  (c) usuário veio de link ?ref=APP-XXX (já está em sessionStorage
+        //      via outro caminho do código - aqui só não sobrescreve).
         try {
             var cupomEl = $('authCupom');
             var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';
@@ -11642,7 +11645,25 @@
         // Em mobile, popup costuma falhar (ITP iOS). Heurística: usa redirect.
         var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
         var p = isMobile ? fb.auth.signInWithRedirect(provider) : fb.auth.signInWithPopup(provider);
-        Promise.resolve(p).catch(function (err) {
+        Promise.resolve(p).then(function (result) {
+            // result existe apenas no caminho popup; no redirect, o resultado
+            // chega via getRedirectResult() depois do reload. Em ambos os
+            // casos, o initBilling em onAuthStateChanged consome
+            // sessionStorage['appliquei_pending_referral'] e manda para /init.
+            try {
+                var info = result && result.additionalUserInfo;
+                if (info && info.isNewUser && typeof mostrarToast === 'function') {
+                    var pending = '';
+                    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
+                    mostrarToast(
+                        pending
+                            ? ('Conta criada com Google. Cupom ' + pending + ' será aplicado.')
+                            : 'Conta criada com Google. Sua avaliação de 7 dias começou.',
+                        'sucesso'
+                    );
+                }
+            } catch (_) {}
+        }).catch(function (err) {
             window.appliqueiAuthErr(mapAuthErr(err));
         }).finally(function () {
             if (btn) btn.disabled = false;
@@ -11744,6 +11765,26 @@
             }
             return;
         }
+        // Caminho redirect (mobile/iOS): consome o resultado após o reload
+        // de volta do Google. Mostra toast de boas-vindas quando for conta
+        // nova. onAuthStateChanged em seguida cuida do gate/initBilling.
+        try {
+            AppliqueiFirebase.auth.getRedirectResult().then(function (result) {
+                var info = result && result.additionalUserInfo;
+                if (info && info.isNewUser && typeof mostrarToast === 'function') {
+                    var pending = '';
+                    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
+                    mostrarToast(
+                        pending
+                            ? ('Conta criada com Google. Cupom ' + pending + ' será aplicado.')
+                            : 'Conta criada com Google. Sua avaliação de 7 dias começou.',
+                        'sucesso'
+                    );
+                }
+            }).catch(function (err) {
+                if (err && err.code) window.appliqueiAuthErr(mapAuthErr(err));
+            });
+        } catch (_) {}
         var authUiTimer = null;
         AppliqueiFirebase.auth.onAuthStateChanged(function (user) {
             if (authUiTimer) {
