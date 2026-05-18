@@ -149,16 +149,50 @@ module.exports = async (req, res) => {
     }
 
     if (billing.subscriptionId) {
-      const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);
-      const pending = payments && payments.data && payments.data.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
-      if (pending) {
+      // Se a subscription local está INACTIVE, criar uma nova passa por este
+      // endpoint mas com subscriptionId limpo antes. Reativação explícita:
+      // o utilizador clica "Reativar" → frontend faz DELETE local primeiro.
+      // Defensivamente, se INACTIVE chegar aqui, recriamos.
+      if (billing.subscriptionStatus === 'INACTIVE') {
+        // limpa para permitir nova criação no fluxo abaixo
+        await ref.set({
+          subscriptionId: fieldValue().delete(),
+          subscriptionStatus: fieldValue().delete(),
+          lastPaymentStatus: fieldValue().delete(),
+          lastPaymentId: fieldValue().delete(),
+          lastPaidAt: fieldValue().delete(),
+          cancelledAt: fieldValue().delete(),
+          updatedAt: fieldValue().serverTimestamp(),
+        }, { merge: true });
+        billing.subscriptionId = null;
+      } else {
+        const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);
+        const list = (payments && payments.data) || [];
+        const pending = list.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+        if (pending) {
+          return res.json({
+            subscriptionId: billing.subscriptionId,
+            invoiceUrl: pending.invoiceUrl,
+            status: pending.status,
+            paymentMethod: billing.paymentMethod || null,
+            cardLast4: billing.cardLast4 || null,
+            cardBrand: billing.cardBrand || null,
+          });
+        }
+        // Sem fatura pendente: pode ser que esteja active e a próxima ainda
+        // não foi gerada, ou esteja em estado problemático. Devolvemos info
+        // suficiente para o front decidir.
+        const lastPaid = list.find(p => p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH');
         return res.json({
           subscriptionId: billing.subscriptionId,
-          invoiceUrl: pending.invoiceUrl,
-          status: pending.status,
+          alreadyActive: !!lastPaid,
+          subscriptionStatus: billing.subscriptionStatus || null,
+          lastPaymentStatus: billing.lastPaymentStatus || null,
+          paymentMethod: billing.paymentMethod || null,
+          cardLast4: billing.cardLast4 || null,
+          cardBrand: billing.cardBrand || null,
         });
       }
-      return res.json({ subscriptionId: billing.subscriptionId, alreadyActive: true });
     }
 
     const monthly = (billing.monthlyPriceCents || 1500) / 100;
