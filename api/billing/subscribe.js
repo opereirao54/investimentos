@@ -2,6 +2,7 @@ const { db, fieldValue } = require('../_lib/firebase-admin');
 const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
+const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 
 function formatDate(d) {
   const yyyy = d.getUTCFullYear();
@@ -83,6 +84,9 @@ module.exports = async (req, res) => {
     }
     if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
       return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
+    }
+    if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
+      return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
     }
 
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {

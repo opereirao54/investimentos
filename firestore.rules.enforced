@@ -19,6 +19,14 @@ service cloud.firestore {
     }
     function hasActiveAccess(uid) {
       return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
+        && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
+          'INACTIVE',
+          'CHARGEBACK',
+          'CHARGEBACK_REVERSAL_PENDING',
+          'PAYMENT_REPROVED',
+          'OVERDUE',
+          'REFUND_IN_PROGRESS'
+        ])
         && (
           (billingDoc(uid).data.trialEndsAt is timestamp
             && request.time < billingDoc(uid).data.trialEndsAt)

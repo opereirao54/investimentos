@@ -461,6 +461,41 @@
     return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  // Validação CPF/CNPJ com dígito verificador. Espelha api/_lib/cpf-cnpj.js
+  // para falhar cedo no cliente antes de chegar ao Asaas.
+  function isValidCpf(c) {
+    c = String(c || '').replace(/\D+/g, '');
+    if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    var s = 0, i;
+    for (i = 0; i < 9; i++) s += parseInt(c[i], 10) * (10 - i);
+    var d1 = (s * 10) % 11; if (d1 === 10) d1 = 0;
+    if (d1 !== parseInt(c[9], 10)) return false;
+    s = 0;
+    for (i = 0; i < 10; i++) s += parseInt(c[i], 10) * (11 - i);
+    var d2 = (s * 10) % 11; if (d2 === 10) d2 = 0;
+    return d2 === parseInt(c[10], 10);
+  }
+  function isValidCnpj(c) {
+    c = String(c || '').replace(/\D+/g, '');
+    if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+    var w1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+    var w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+    var s = 0, i;
+    for (i = 0; i < 12; i++) s += parseInt(c[i], 10) * w1[i];
+    var d1 = s % 11; d1 = d1 < 2 ? 0 : 11 - d1;
+    if (d1 !== parseInt(c[12], 10)) return false;
+    s = 0;
+    for (i = 0; i < 13; i++) s += parseInt(c[i], 10) * w2[i];
+    var d2 = s % 11; d2 = d2 < 2 ? 0 : 11 - d2;
+    return d2 === parseInt(c[13], 10);
+  }
+  function isValidCpfCnpj(v) {
+    var c = String(v || '').replace(/\D+/g, '');
+    if (c.length === 11) return isValidCpf(c);
+    if (c.length === 14) return isValidCnpj(c);
+    return false;
+  }
+
   function ensureMyAccountStyles() {
     if ($('appliqueiMyAccountStyles')) return;
     var s = document.createElement('style');
@@ -582,12 +617,25 @@
   async function openMyAccount() {
     ensureMyAccountModal();
     $('myAccountModal').style.display = 'flex';
-    $('myAccountBody').innerHTML = 'A carregar…';
+    // Stale-while-revalidate: se já carregámos a tela alguma vez, mostramos
+    // o último snapshot imediatamente e atualizamos em background. Evita o
+    // "A carregar…" branco em ~todos os reopens.
+    var hadCache = !!lastMe;
+    if (hadCache) {
+      renderMyAccount(lastMe);
+      var reloadBtn = $('myAccountReload');
+      if (reloadBtn) { reloadBtn.disabled = true; reloadBtn.textContent = 'A atualizar…'; }
+    } else {
+      $('myAccountBody').innerHTML = '<div class="ma-empty">A carregar…</div>';
+    }
     try {
       var me = await fetchMe();
       renderMyAccount(me);
     } catch (e) {
-      $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
+      if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
+    } finally {
+      var rb = $('myAccountReload');
+      if (rb) { rb.disabled = false; rb.textContent = 'Atualizar'; }
     }
   }
   function statusLabel(s) {
@@ -928,12 +976,24 @@
       var refLine = p.referralAppliedCents && p.referralAppliedCents > 0
         ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' + fmtBRL(p.referralAppliedCents) + ' Applicash</small>'
         : '';
+      // Link mais útil por contexto:
+      //  - Pago: comprovante (transactionReceiptUrl). Fallback: fatura.
+      //  - Boleto pendente: PDF do boleto (bankSlipUrl).
+      //  - Outros: página da fatura.
+      var paid = p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH';
+      var linkUrl = null, linkLabel = null;
+      if (paid && p.transactionReceiptUrl) { linkUrl = p.transactionReceiptUrl; linkLabel = 'Comprovante'; }
+      else if (p.billingType === 'BOLETO' && p.bankSlipUrl) { linkUrl = p.bankSlipUrl; linkLabel = 'Boleto PDF'; }
+      else if (p.invoiceUrl) { linkUrl = p.invoiceUrl; linkLabel = paid ? 'Fatura' : 'Pagar'; }
+      var actionCell = linkUrl
+        ? '<a href="' + linkUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">' + linkLabel + '</a>'
+        : '—';
       return '<tr>' +
         '<td>' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + noteLine + '</td>' +
         '<td>' + (p.billingType ? escapeHtml(String(p.billingType)) : '—') + '</td>' +
         '<td class="num">' + fmtBRL(Math.round((p.value || 0) * 100)) + refLine + '</td>' +
         '<td>' + statusBadge(p.status) + '</td>' +
-        '<td class="num">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">Fatura</a>' : '—') + '</td>' +
+        '<td class="num">' + actionCell + '</td>' +
       '</tr>';
     }).join('');
     return '<div class="ma-section">' +
@@ -1110,6 +1170,11 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
         return;
       }
+      if (!isValidCpfCnpj(cpfCnpj)) {
+        showSubModalErr('mcErr', 'CPF/CNPJ inválido nos dados de cobrança. Edite os dados primeiro.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+        return;
+      }
       var fb = window.AppliqueiFirebase;
       var userEmail = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || c.email || null;
       await authedFetch('/card', {
@@ -1174,6 +1239,7 @@
 
     if (name && name.length < 3) return showSubModalErr('ecErr', 'Nome muito curto.');
     if (cpf && cpf.length !== 11 && cpf.length !== 14) return showSubModalErr('ecErr', 'CPF (11) ou CNPJ (14 dígitos).');
+    if (cpf && !isValidCpfCnpj(cpf)) return showSubModalErr('ecErr', 'CPF/CNPJ inválido — verifique os dígitos.');
     if (zip && zip.length !== 8) return showSubModalErr('ecErr', 'CEP precisa ter 8 dígitos.');
 
     var btn = $('ecSubmit');
@@ -1370,6 +1436,10 @@
 
     if (cpfEl && cpfDigits.length !== 11 && cpfDigits.length !== 14) {
       showErr('Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).');
+      return;
+    }
+    if (cpfEl && !isValidCpfCnpj(cpfDigits)) {
+      showErr('CPF/CNPJ inválido — verifique os dígitos.');
       return;
     }
     if (nameEl && nameVal.length < 3) {

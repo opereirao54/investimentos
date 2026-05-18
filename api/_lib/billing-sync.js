@@ -91,6 +91,8 @@ async function syncBillingFromAsaas(billingRef, billing) {
         dueDate: paid.dueDate || null,
         paymentDate: paid.paymentDate || null,
         invoiceUrl: paid.invoiceUrl || null,
+        bankSlipUrl: paid.bankSlipUrl || null,
+        transactionReceiptUrl: paid.transactionReceiptUrl || null,
         subscriptionId: paid.subscription || billing.subscriptionId,
         event: 'SYNC_' + paid.status,
         receivedAt: fieldValue().serverTimestamp(),

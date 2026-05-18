@@ -354,6 +354,8 @@ module.exports = async (req, res) => {
           dueDate: payment.dueDate || null,
           paymentDate: payment.paymentDate || null,
           invoiceUrl: payment.invoiceUrl || null,
+          bankSlipUrl: payment.bankSlipUrl || null,
+          transactionReceiptUrl: payment.transactionReceiptUrl || null,
           subscriptionId: payment.subscription || null,
           event,
           receivedAt: fieldValue().serverTimestamp(),
