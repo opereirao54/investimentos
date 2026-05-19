@@ -913,15 +913,36 @@
     var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
     var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
 
+    // Distinguir fatura ATUAL em aberto (PENDING/OVERDUE com cobrança real)
+    // de uma simples previsão (FORECAST). O utilizador confunde "Próxima
+    // fatura: 14/07" com "estou pago até 14/07", mesmo quando a fatura
+    // corrente continua em aberto.
+    var isOpenInvoice = nextCharge
+      && nextCharge.source === 'invoice'
+      && (nextCharge.status === 'PENDING' || nextCharge.status === 'OVERDUE' || nextCharge.status === 'AWAITING_RISK_ANALYSIS');
+    var openCents = isOpenInvoice && nextCharge.amountCents ? nextCharge.amountCents : nextCents;
+    var label = isOpenInvoice
+      ? (nextCharge.status === 'OVERDUE' ? 'Fatura em atraso' : 'Fatura em aberto')
+      : 'Próxima fatura';
+    var foot = '';
+    if (isOpenInvoice) {
+      var statusTxt = paymentStatusLabel(nextCharge.status);
+      var badgeCls = nextCharge.status === 'OVERDUE' ? 'bad' : 'warn';
+      foot = '<span class="ma-badge ' + badgeCls + '">' + statusTxt + '</span>' +
+        ' · Vence ' + (nextDate ? fmtDate(nextDate) : '—');
+    } else {
+      foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
+    }
+    var payLink = (isOpenInvoice && nextCharge.invoiceUrl)
+      ? '<a href="' + nextCharge.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="margin-top:8px;text-decoration:none;display:inline-block;">Pagar agora</a>'
+      : '';
+
     var rows = '';
     rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
     rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
       (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
       '</div>';
-    rows += '<div class="ma-card"><div class="ma-card-label">Próxima fatura</div><div class="ma-card-value">' + fmtBRL(nextCents) + '</div><div class="ma-card-foot">' +
-      (nextDate ? fmtDate(nextDate) : '—') +
-      (nextCents < baseCents ? ' · com Applicash' : '') +
-    '</div></div>';
+    rows += '<div class="ma-card"><div class="ma-card-label">' + label + '</div><div class="ma-card-value">' + fmtBRL(openCents) + '</div><div class="ma-card-foot">' + foot + '</div>' + payLink + '</div>';
 
     return '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-receipt"></i> Plano</div>' +
