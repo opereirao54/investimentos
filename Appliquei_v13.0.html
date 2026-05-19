@@ -2773,11 +2773,79 @@
            Controle Financeiro — grids 2fr 1fr empilham no mobile
            Simulador — hero card e fontes responsivas
            ============================================================ */
-        /* Esconde o grab e o close button no desktop sempre */
+        /* Default (estado fora dos breakpoints): tudo escondido */
         .painel-novo-lancamento-grab { display: none; }
         .painel-mobile-close { display: none; }
         #fabNovoLancamento { display: none; }
         #painelLancamentoBackdrop { display: none; }
+
+        /* ============================================================
+           Painel "Novo lançamento" como DRAWER no desktop (>=769px)
+           Slide da direita, igual ao "Registrar operação"
+           ============================================================ */
+        @media (min-width: 769px) {
+            #painelNovoLancamento {
+                position: fixed !important;
+                right: 0; top: 0; bottom: 0;
+                width: 480px;
+                max-width: 92vw;
+                height: 100vh;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border-top: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
+                border-left: 1px solid var(--cor-borda) !important;
+                box-shadow: -8px 0 32px rgba(0,0,0,0.14) !important;
+                z-index: 9995;
+                transform: translateX(110%);
+                transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+                overflow-y: auto;
+                padding: 22px 26px 36px !important;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            #painelNovoLancamento.aberto { transform: translateX(0); }
+
+            /* Botão "X" para fechar — visível também no desktop */
+            .painel-mobile-close {
+                display: inline-flex !important;
+                align-items: center; justify-content: center;
+                width: 34px; height: 34px;
+                border: 1px solid var(--cor-borda);
+                background: var(--cor-superficie);
+                color: var(--cor-texto-secundario);
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+                transition: background 0.15s, color 0.15s;
+            }
+            .painel-mobile-close:hover {
+                background: var(--cor-bg-erro);
+                color: var(--cor-erro);
+                border-color: var(--cor-borda-erro);
+            }
+
+            /* Backdrop também no desktop */
+            #painelLancamentoBackdrop {
+                display: block;
+                position: fixed; inset: 0;
+                background: rgba(15,23,42,0.5);
+                backdrop-filter: blur(3px);
+                z-index: 9994;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.22s ease;
+            }
+            body.painel-lancamento-aberto #painelLancamentoBackdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            body.painel-lancamento-aberto { overflow: hidden; }
+        }
 
         @media (max-width: 768px) {
             /* Quebra os layouts 2-col inline do Controle Financeiro */
@@ -2873,7 +2941,7 @@
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
             }
-            #painelNovoLancamento.mobile-open { transform: translateY(0); }
+            #painelNovoLancamento.aberto { transform: translateY(0); }
 
             .painel-novo-lancamento-grab {
                 display: block !important;
@@ -3114,11 +3182,11 @@
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
 
-    <!-- Mobile FAB + backdrop para "Novo lançamento" (Controle Financeiro) -->
-    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamentoMobile()" aria-label="Novo lançamento">
+    <!-- FAB (mobile) + backdrop (desktop+mobile) para "Novo lançamento" do Controle Financeiro -->
+    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamento()" aria-label="Novo lançamento">
         <i class="ph-bold ph-plus"></i>
     </button>
-    <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamentoMobile()" aria-hidden="true"></div>
+    <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
     <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
         <div class="drawer-header">
             <h3 id="drawerOperacaoTitulo"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria);" id="iconePainelOp"></i> <span id="tituloPainelOp">Registrar operação</span></h3>
@@ -3587,6 +3655,7 @@
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
+                    <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>
 
@@ -3689,7 +3758,7 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+            <div style="margin-bottom:20px;">
 
                 <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;">
@@ -3732,7 +3801,7 @@
                     <div class="painel-novo-lancamento-grab" aria-hidden="true"></div>
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
                         <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
-                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamentoMobile()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
                     </div>
                     <input type="hidden" id="editTransacaoId" value="">
 
@@ -4771,9 +4840,9 @@
 
             // Marca body para que o FAB de "Novo lançamento" apareça só em #controle (mobile)
             document.body.classList.toggle('controle-ativo', idAba === 'controle');
-            // Fecha o drawer mobile se mudar de aba
-            if (idAba !== 'controle' && typeof fecharPainelLancamentoMobile === 'function') {
-                fecharPainelLancamentoMobile();
+            // Fecha o drawer "Novo lançamento" ao trocar de aba
+            if (idAba !== 'controle' && typeof fecharPainelLancamento === 'function') {
+                fecharPainelLancamento();
             }
 
             if(idAba === 'patrimonio') atualizarCarteiraAtivos();
@@ -4898,25 +4967,28 @@
             document.body.style.overflow = '';
         }
 
-        // === DRAWER MOBILE — Novo lançamento (Controle Financeiro) ===
-        // Só age como drawer em telas <=768px (controlado por CSS).
-        function abrirPainelLancamentoMobile() {
+        // === DRAWER — Novo lançamento (Controle Financeiro) ===
+        // Desktop: slide da direita (igual "Registrar operação")
+        // Mobile: bottom-sheet (mesma classe .aberto, presentação muda via CSS)
+        function abrirPainelLancamento() {
             const painel = document.getElementById('painelNovoLancamento');
             if (!painel) return;
-            painel.classList.add('mobile-open');
+            painel.classList.add('aberto');
             document.body.classList.add('painel-lancamento-aberto');
-            // Foca o primeiro chip (Entrada) após a animação para acelerar uso
             setTimeout(() => {
-                const chip = document.getElementById('chipEntrada');
-                if (chip) chip.focus({ preventScroll: true });
-            }, 280);
+                const descEl = document.getElementById('descTransacao');
+                if (descEl) descEl.focus({ preventScroll: true });
+            }, 240);
         }
-        function fecharPainelLancamentoMobile() {
+        function fecharPainelLancamento() {
             const painel = document.getElementById('painelNovoLancamento');
             if (!painel) return;
-            painel.classList.remove('mobile-open');
+            painel.classList.remove('aberto');
             document.body.classList.remove('painel-lancamento-aberto');
         }
+        // Aliases legados — mantidos por segurança caso algum onclick antigo chame
+        function abrirPainelLancamentoMobile() { abrirPainelLancamento(); }
+        function fecharPainelLancamentoMobile() { fecharPainelLancamento(); }
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark');
@@ -8172,10 +8244,8 @@
 
             document.getElementById('tituloPainelControle').innerHTML = '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editando Operação';
 
-            // Em mobile, abre o bottom-sheet ao iniciar edição
-            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-                abrirPainelLancamentoMobile();
-            }
+            // Abre o drawer/bottom-sheet automaticamente ao iniciar edição
+            abrirPainelLancamento();
         }
 
         function cancelarEdicaoControle() {
@@ -8268,9 +8338,7 @@
             mostrarToast("Lançamento atualizado!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
-            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-                fecharPainelLancamentoMobile();
-            }
+            fecharPainelLancamento();
         }
 
         function executarInsercao() {
@@ -8352,10 +8420,7 @@
             mostrarToast("Lançamento salvo com sucesso!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
-            // Em mobile, fecha o bottom-sheet automaticamente após salvar
-            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
-                fecharPainelLancamentoMobile();
-            }
+            fecharPainelLancamento();
         }
 
         function calcularResumoMes(mesAlvo, anoAlvo) {
@@ -9735,7 +9800,7 @@
         // --- TECLADO E ARIA ---
         document.addEventListener('keydown', function(e) {
             if(e.key === 'Escape') {
-                if (document.body.classList.contains('painel-lancamento-aberto')) { fecharPainelLancamentoMobile(); return; }
+                if (document.body.classList.contains('painel-lancamento-aberto')) { fecharPainelLancamento(); return; }
                 const drawer = document.getElementById('drawerOperacao');
                 if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
                 const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
