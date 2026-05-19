@@ -2,6 +2,68 @@ const { fieldValue } = require('./firebase-admin');
 const asaas = require('./asaas');
 
 const PAID_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
+const NON_FINAL_STATUSES = new Set(['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS', 'AUTHORIZED']);
+
+/**
+ * Reconcilia registos locais de pagamentos que ainda estão em estado
+ * não-final (PENDING/OVERDUE/...). Detecta pagamentos que foram
+ * actualizados ou apagados no Asaas sem o webhook correspondente chegar
+ * — caso típico de exclusão manual via painel Asaas, que não dispara
+ * PAYMENT_DELETED em alguns cenários. Sem isto, o histórico continua a
+ * mostrar "Pendente" para uma fatura que já não existe.
+ */
+async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
+  if (!userRef || !subscriptionId) return;
+  const remoteById = new Map();
+  for (const p of (remoteList || [])) {
+    if (p && p.id) remoteById.set(p.id, p);
+  }
+  let snap;
+  try {
+    snap = await userRef.collection('payments').orderBy('receivedAt', 'desc').limit(20).get();
+  } catch (e) {
+    console.warn('[billing-sync] read local payments failed', e && e.message);
+    return;
+  }
+  const writes = [];
+  snap.docs.forEach((d) => {
+    const local = d.data() || {};
+    if (!NON_FINAL_STATUSES.has(local.status)) return;
+    const remote = remoteById.get(local.id || d.id);
+    if (!remote) {
+      // Pagamento desapareceu do Asaas — foi apagado.
+      writes.push(
+        userRef.collection('payments').doc(d.id).set({
+          status: 'DELETED',
+          event: 'SYNC_DELETED',
+          receivedAt: fieldValue().serverTimestamp(),
+        }, { merge: true })
+      );
+      return;
+    }
+    if (remote.status && remote.status !== local.status) {
+      writes.push(
+        userRef.collection('payments').doc(d.id).set({
+          status: remote.status,
+          value: remote.value || null,
+          netValue: remote.netValue || null,
+          billingType: remote.billingType || null,
+          dueDate: remote.dueDate || null,
+          paymentDate: remote.paymentDate || null,
+          invoiceUrl: remote.invoiceUrl || null,
+          bankSlipUrl: remote.bankSlipUrl || null,
+          transactionReceiptUrl: remote.transactionReceiptUrl || null,
+          event: 'SYNC_' + remote.status,
+          receivedAt: fieldValue().serverTimestamp(),
+        }, { merge: true })
+      );
+    }
+  });
+  if (writes.length) {
+    try { await Promise.all(writes); }
+    catch (e) { console.warn('[billing-sync] reconcile payments write failed', e && e.message); }
+  }
+}
 
 /**
  * Garante que o billing local reflete o Asaas quando o webhook não chegou.
@@ -50,6 +112,19 @@ async function syncBillingFromAsaas(billingRef, billing) {
         update.nextDueDate = sub.nextDueDate;
       }
       await billingRef.set(update, { merge: true });
+
+      // Reconcilia status de pagamentos pendentes (fatura apagada/avançada
+      // sem webhook). Só rodamos isto na janela de sync horária acima
+      // para não pesar em cada request.
+      const userRef = billingRef.parent && billingRef.parent.parent;
+      if (userRef) {
+        try {
+          const list = await asaas.listPaymentsBySubscription(billing.subscriptionId);
+          await reconcileNonFinalPayments(userRef, billing.subscriptionId, (list && list.data) || []);
+        } catch (e) {
+          console.warn('[billing-sync] reconcile listPayments failed', e && e.message);
+        }
+      }
     } catch (e) {
       console.warn('[billing-sync] getSubscription failed', e.message || e);
     }
