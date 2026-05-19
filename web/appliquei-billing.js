@@ -279,6 +279,94 @@
       body.style.removeProperty(k);
     });
   }
+  // Banner pró-ativo de verificação de e-mail. Mostra ANTES de
+  // EMAIL_VERIFY_ENFORCE estar ligado, dando ao utilizador tempo de
+  // verificar voluntariamente. Tem prioridade sobre o trial banner
+  // (verificação é mais urgente).
+  function ensureVerifyBanner(show) {
+    var b = $('verifyBanner');
+    if (!show) {
+      if (b) { b.remove(); }
+      return;
+    }
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'verifyBanner';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#f59e0b;color:#1f2937;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-wrap:wrap;';
+      b.innerHTML = '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso à plataforma.</span>' +
+        '<button type="button" id="verifyBannerBtn" style="background:#1f2937;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:600;font-size:12px;cursor:pointer;">Reenviar e-mail</button>' +
+        '<button type="button" id="verifyBannerCheckBtn" style="background:transparent;color:#1f2937;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;cursor:pointer;">Já verifiquei</button>';
+      document.body.appendChild(b);
+      $('verifyBannerBtn').addEventListener('click', resendVerification);
+      $('verifyBannerCheckBtn').addEventListener('click', recheckVerification);
+      if (typeof ResizeObserver === 'function') {
+        try { new ResizeObserver(function () { syncTrialBannerOffset(b); }).observe(b); } catch (_) {}
+      }
+      window.addEventListener('resize', function () { syncTrialBannerOffset(b); });
+    }
+    syncTrialBannerOffset(b);
+  }
+
+  async function resendVerification() {
+    var btn = $('verifyBannerBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A enviar…'; }
+    try {
+      var fb = window.AppliqueiFirebase;
+      var u = fb && fb.auth && fb.auth.currentUser;
+      if (!u) throw new Error('not_authenticated');
+      // Caminho principal: cliente Firebase dispara o e-mail nativo do
+      // template padrão. Faz isto sem precisar de back-end.
+      await u.sendEmailVerification();
+      // Caminho secundário (best-effort): bate no /api/auth/resend-verification
+      // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
+      // primário já foi.
+      try { await authedFetch('/../auth/resend-verification', { method: 'POST' }); } catch (_) {}
+      if (btn) { btn.textContent = 'Enviado!'; }
+      setTimeout(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }
+      }, 4000);
+    } catch (e) {
+      console.warn('[verify] resend failed', e && e.code, e && e.message);
+      if (btn) {
+        var msg = (e && e.code === 'auth/too-many-requests') ? 'Aguarde — limite atingido.' : 'Erro';
+        btn.textContent = msg;
+        setTimeout(function () { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }, 4000);
+      }
+    }
+  }
+
+  async function recheckVerification() {
+    var btn = $('verifyBannerCheckBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A verificar…'; }
+    try {
+      var fb = window.AppliqueiFirebase;
+      var u = fb && fb.auth && fb.auth.currentUser;
+      if (!u) throw new Error('not_authenticated');
+      await u.reload();
+      if (u.emailVerified) {
+        ensureVerifyBanner(false);
+        try { await u.getIdToken(true); } catch (_) {} // força refresh do token
+        await refresh(false);
+      } else if (btn) {
+        btn.textContent = 'Ainda não verificado';
+        setTimeout(function () { btn.disabled = false; btn.textContent = 'Já verifiquei'; }, 3000);
+      }
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Já verifiquei'; }
+    }
+  }
+
+  function needsEmailVerification() {
+    var fb = window.AppliqueiFirebase;
+    var u = fb && fb.auth && fb.auth.currentUser;
+    if (!u || !u.email) return false;
+    // Só mostra para quem entrou via e-mail/senha — provedores OAuth
+    // (Google) sempre vêm com emailVerified=true.
+    var hasPasswordProvider = Array.isArray(u.providerData)
+      && u.providerData.some(function (p) { return p.providerId === 'password'; });
+    return hasPasswordProvider && !u.emailVerified;
+  }
+
   function ensureTrialBanner(daysLeft) {
     var b = $('trialBanner');
     if (daysLeft <= 0) {
@@ -370,18 +458,25 @@
     lastAccess = access;
     if (billing !== undefined && billing !== null) lastBilling = billing;
     if (!access) return;
+    // Verify banner tem prioridade sobre o trial. Quando os dois deveriam
+    // aparecer ao mesmo tempo, mostra só o verify (mais urgente) e o usuário
+    // ainda vê a info do trial dentro do modal Minha assinatura.
+    var needVerify = needsEmailVerification();
     if (access.status === 'active') {
       hideGate();
-      ensureTrialBanner(0);
+      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
+      else { ensureVerifyBanner(false); ensureTrialBanner(0); }
       stopPolling();
       return;
     }
     if (access.status === 'trial') {
       hideGate();
-      ensureTrialBanner(access.trialDaysLeft || 0);
+      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
+      else { ensureVerifyBanner(false); ensureTrialBanner(access.trialDaysLeft || 0); }
       stopPolling();
       return;
     }
+    ensureVerifyBanner(false);
     ensureTrialBanner(0);
     if (access.status === 'pending_payment') {
       if (access.reason === 'risk_analysis') {
@@ -1555,6 +1650,7 @@
     if (!user) {
       hideGate();
       ensureTrialBanner(0);
+      ensureVerifyBanner(false);
       stopPolling();
       lastAccess = null;
       return;

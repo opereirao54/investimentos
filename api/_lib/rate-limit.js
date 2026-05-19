@@ -67,24 +67,40 @@ async function check(opts) {
   }
 }
 
-// M7: TRUSTED_PROXY_HOPS = quantos proxies confiáveis estão na frente.
-// XFF tem formato "client, proxy1, proxy2". Vercel injeta 1 hop, então
-// default 0 = pega o primeiro (o cliente). Se houver Cloudflare na frente
-// da Vercel, definir TRUSTED_PROXY_HOPS=1 e o IP do client vira o
-// penúltimo do XFF.
+// Resolução do IP do cliente. Ordem de prioridade:
+//   1. cf-connecting-ip (Cloudflare) — autoritativo quando há Cloudflare em
+//      frente. Detecta automaticamente sem precisar de env.
+//   2. true-client-ip (Akamai/Cloudflare Enterprise) — fallback.
+//   3. x-forwarded-for[0] (primeiro hop = cliente real). Vercel coloca o
+//      cliente como primeira entrada por contrato.
+//   4. x-real-ip / socket.remoteAddress.
+//
+// TRUSTED_PROXY_HOPS continua respeitado se >0 (override manual para
+// setups customizados — ex.: nginx proxy chain). Default 0 = sem override,
+// usa heurística acima.
 function ipFrom(req) {
-  const xff = req && req.headers && req.headers['x-forwarded-for'];
+  if (!req || !req.headers) return null;
+
+  const cf = req.headers['cf-connecting-ip'] || req.headers['true-client-ip'];
+  if (cf) return String(cf).trim();
+
+  const xff = req.headers['x-forwarded-for'];
   if (xff) {
     const parts = String(xff).split(',').map(s => s.trim()).filter(Boolean);
     if (parts.length > 0) {
       const hops = parseInt(process.env.TRUSTED_PROXY_HOPS || '0', 10) || 0;
-      // O IP do cliente real está em (length - 1 - hops). Sem hops: 0 (primeiro).
-      const idx = Math.max(0, parts.length - 1 - hops);
-      return parts[idx];
+      if (hops > 0) {
+        // Setup customizado: assume que os últimos N hops são proxies
+        // confiáveis e o cliente está em (length - 1 - hops).
+        return parts[Math.max(0, parts.length - 1 - hops)];
+      }
+      // Default: primeiro = cliente real (convenção XFF).
+      return parts[0];
     }
   }
-  return (req && req.headers && req.headers['x-real-ip'])
-    || (req && req.socket && req.socket.remoteAddress)
+
+  return req.headers['x-real-ip']
+    || (req.socket && req.socket.remoteAddress)
     || null;
 }
 
