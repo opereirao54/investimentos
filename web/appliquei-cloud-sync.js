@@ -87,9 +87,14 @@
       })
       .catch(function (err) {
         console.warn('[AppliqueiCloudSync] push', err);
+        // permission-denied = Firestore rules bloquearam o write porque o
+        // utilizador não tem acesso ativo (trial expirado, fatura em aberto,
+        // assinatura cancelada). A UI de "Minha assinatura" já comunica
+        // este estado, portanto não duplicamos com um toast genérico.
+        if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) return;
         if (typeof window.mostrarToast === 'function') {
           window.mostrarToast(
-            'Não foi possível guardar na nuvem. Verifique as regras do Firestore e a rede.',
+            'Não foi possível guardar na nuvem. Verifique a sua ligação à internet.',
             'erro'
           );
         }
@@ -180,9 +185,15 @@
         console.warn('[AppliqueiCloudSync] pull', err);
         initialPullDone = true;
         pullInFlight = false;
+        // Mesmo critério do push: permission-denied/unauthenticated significa
+        // que o acesso pago está fechado — o gate de "Minha assinatura" cobre.
+        if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
+          if (done) done(false);
+          return;
+        }
         if (typeof window.mostrarToast === 'function') {
           window.mostrarToast(
-            'Não foi possível ler dados na nuvem (regras Firestore ou rede).',
+            'Não foi possível ler dados na nuvem. Verifique a sua ligação à internet.',
             'erro'
           );
         }
