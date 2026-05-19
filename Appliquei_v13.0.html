@@ -12042,7 +12042,9 @@
         el = document.createElement('div');
         el.id = 'emailVerifyBanner';
         el.setAttribute('role', 'alert');
-        el.style.cssText = 'position:sticky;top:0;left:0;right:0;z-index:998;background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;line-height:1.45;';
+        // position:fixed (e NÃO sticky) é obrigatório: body é display:flex,
+        // então sticky vira item flex e empurra sidebar/main para o lado.
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:10px 16px;font-size:13px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;line-height:1.45;box-shadow:0 2px 6px rgba(0,0,0,.10);font-family:Figtree,sans-serif;';
         el.innerHTML = ''
             + '<i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>'
             + '<span><strong>Verifique seu e-mail.</strong> A partir de <strong id="emailVerifyDeadlineLbl"></strong> o acesso só ficará disponível após a confirmação. Enviamos um link para <strong id="emailVerifyEmailLbl"></strong>.</span>'
@@ -12051,7 +12053,16 @@
             +   '<button type="button" id="emailVerifyBannerCheck" style="background:#78350f;border:1px solid #78350f;color:#fef3c7;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:500;">Já verifiquei</button>'
             +   '<button type="button" id="emailVerifyBannerClose" aria-label="Esconder por agora" style="background:transparent;border:0;color:#78350f;cursor:pointer;font-size:18px;line-height:1;padding:0 4px;">&times;</button>'
             + '</span>';
-        document.body.insertBefore(el, document.body.firstChild);
+        // Importante: anexa ao FINAL do body, não como primeiro filho.
+        // Como body é display:flex, inserir como filho normal cria layout
+        // horizontal indesejado. O position:fixed do banner já tira ele
+        // do fluxo; appendChild evita "piscar" como item flex antes do
+        // navegador aplicar o fixed.
+        document.body.appendChild(el);
+        if (typeof ResizeObserver === 'function') {
+            try { new ResizeObserver(function () { syncEmailVerifyBannerOffset(el); }).observe(el); } catch (_) {}
+        }
+        window.addEventListener('resize', function () { syncEmailVerifyBannerOffset(el); });
         var resendBtn = el.querySelector('#emailVerifyBannerResend');
         var checkBtn = el.querySelector('#emailVerifyBannerCheck');
         var closeBtn = el.querySelector('#emailVerifyBannerClose');
@@ -12103,6 +12114,34 @@
         });
         return el;
     }
+    // Offset do body para o banner não cobrir sidebar/conteúdo.
+    // Necessário porque body é display:flex; height:100vh; overflow:hidden —
+    // sem offset, o banner fixed se sobrepõe ao topo da sidebar e da main.
+    function syncEmailVerifyBannerOffset(el) {
+        if (!el || el.style.display === 'none') return;
+        var h = el.offsetHeight || 44;
+        var b = document.body;
+        if (!b) return;
+        var apply = function () {
+            b.style.setProperty('position', 'absolute', 'important');
+            b.style.setProperty('top', h + 'px', 'important');
+            b.style.setProperty('left', '0', 'important');
+            b.style.setProperty('right', '0', 'important');
+            b.style.setProperty('bottom', '0', 'important');
+            b.style.setProperty('height', 'auto', 'important');
+            b.style.setProperty('width', 'auto', 'important');
+            b.style.setProperty('margin', '0', 'important');
+        };
+        apply();
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
+    }
+    function clearEmailVerifyBannerOffset() {
+        var b = document.body;
+        if (!b) return;
+        ['position','top','left','right','bottom','height','width','margin'].forEach(function (k) {
+            b.style.removeProperty(k);
+        });
+    }
     function showEmailVerifyBanner(email) {
         try {
             var snoozeUntil = parseInt(localStorage.getItem('appliquei_email_verify_snooze') || '0', 10);
@@ -12114,10 +12153,12 @@
         if (emLbl) emLbl.textContent = email;
         if (dlLbl) dlLbl.textContent = emailVerifyDeadlineLabel();
         el.style.display = 'flex';
+        syncEmailVerifyBannerOffset(el);
     }
     function hideEmailVerifyBanner() {
         var el = $('emailVerifyBanner');
         if (el) el.style.display = 'none';
+        clearEmailVerifyBannerOffset();
     }
     function setSub(t) {
         var s = $('authGateSub');
