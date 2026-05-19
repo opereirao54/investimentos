@@ -2408,6 +2408,377 @@
             margin-bottom: 16px;
         }
         .apc-empty-cta .btn-acao { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; }
+
+        /* ============================================================
+           === MOBILE RESPONSIVE REFACTOR (consolidated overrides) ===
+           Cobre layouts não-cobertos pelas media queries existentes:
+           tabelas com min-width fixo, gráficos com altura fixa,
+           grids com minmax que estouram <360px, modais, page-header
+           e tipografia. Mantém o desktop intacto.
+           ============================================================ */
+
+        /* --- Defesa global de overflow (todas as larguras) --- */
+        html, body { max-width: 100%; }
+        .main-content, .section, .card-container, .hero-evolucao { min-width: 0; }
+        /* Tabelas sempre roláveis quando o conteúdo for maior que o pai */
+        .tabela-dashboard { max-width: 100%; }
+
+        /* ============================================================
+           Tablet/Mobile (<= 980px) — ajustes intermediários
+           ============================================================ */
+        @media (max-width: 980px) {
+            .hero-kpis { grid-template-columns: 1fr 1fr; }
+            .hero-kpi:nth-child(3) {
+                grid-column: 1 / -1;
+                padding-top: 12px;
+                border-top: 1px solid var(--cor-borda);
+                border-left: none;
+                padding-left: 0;
+                margin-top: 4px;
+            }
+        }
+
+        /* ============================================================
+           Mobile principal (<= 768px)
+           ============================================================ */
+        @media (max-width: 768px) {
+            /* Page header: empilha título e ações de forma legível */
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                margin-bottom: 16px !important;
+            }
+            .page-header-left { width: 100%; }
+            .page-header-left h1 {
+                font-size: 18px !important;
+                line-height: 1.25;
+                gap: 6px;
+            }
+            .page-header-left .subtitulo,
+            .subtitulo { font-size: 12.5px; line-height: 1.4; }
+            .page-actions {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: flex-start;
+            }
+            .page-actions .btn-acao,
+            .page-actions .btn-secundario {
+                flex: 1 1 calc(50% - 4px);
+                min-width: 0;
+                font-size: 12.5px;
+                padding: 10px 12px;
+                justify-content: center;
+            }
+            .page-actions .btn-eye,
+            .page-actions .btn-theme {
+                flex: 0 0 auto;
+            }
+            .page-actions #badgePrecosEstimados {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+
+            /* Cards e seções: padding reduzido para ganhar largura útil */
+            .card-container { padding: 16px !important; margin-bottom: 14px; }
+            .hero-evolucao { padding: 16px 14px 14px; }
+
+            /* Hero header / toolbar: empilha e deixa os pills usáveis */
+            .hero-header { gap: 10px; margin-bottom: 14px; }
+            .hero-header h3 { font-size: 14.5px; }
+            .hero-toolbar {
+                width: 100%;
+                gap: 6px;
+            }
+            .hero-toolbar select {
+                flex: 1 1 calc(50% - 4px);
+                min-width: 0;
+                font-size: 12.5px;
+                padding: 8px 10px;
+            }
+            .period-pills {
+                width: 100%;
+                justify-content: space-between;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .period-pills::-webkit-scrollbar { display: none; }
+            .period-pill { flex: 1 0 auto; padding: 7px 12px; font-size: 12px; }
+            .kpi-value-big { font-size: 24px; }
+            .kpi-value { font-size: 17px; }
+            .hero-kpis {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                margin-bottom: 18px;
+            }
+            .hero-kpi {
+                padding: 10px 0 0 !important;
+                border-left: none !important;
+                border-top: 1px solid var(--cor-borda);
+            }
+            .hero-kpi:first-child {
+                padding-top: 0 !important;
+                border-top: none;
+            }
+
+            /* Painéis secundários do dashboard (gráficos lado-a-lado) → empilha */
+            #painelSecundario,
+            #painelEvolucaoCarteira {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            .donut-wrap { height: 220px !important; }
+
+            /* Gráficos com altura fixa (em <style> ou inline) — reduz para mobile */
+            .grafico-container { height: 160px !important; }
+            div[style*="height:220px"][style*="position:relative"],
+            div[style*="height: 220px"] {
+                height: 200px !important;
+            }
+            div[style*="height:240px"][style*="position:relative"],
+            div[style*="height: 240px"] {
+                height: 210px !important;
+            }
+            div[style*="height: 320px"],
+            div[style*="height:320px"] {
+                height: 240px !important;
+            }
+            div[style*="height: 420px"],
+            div[style*="height:420px"] {
+                height: 320px !important;
+            }
+            #painelEvolucaoCarteira .grafico-container,
+            .hero-evolucao + div { min-width: 0; }
+
+            /* Tabelas — força wrapper rolável e tipografia compacta;
+               anula min-width inline em tabelas pequenas */
+            .card-container > div[style*="overflow-x"],
+            div[style*="overflow-x:auto"],
+            div[style*="overflow-x: auto"] {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            /* Tabela de DRE (Jornada) e similares: mantém min-width, mas dá
+               uma dica visual de scroll (sombra na borda direita) */
+            .card-container > div[style*="overflow-x"] {
+                position: relative;
+                background-image: linear-gradient(to right, transparent, transparent),
+                                  linear-gradient(to right, transparent, transparent),
+                                  linear-gradient(to right, rgba(0,0,0,0.08), rgba(255,255,255,0)),
+                                  linear-gradient(to left, rgba(0,0,0,0.08), rgba(255,255,255,0));
+                background-position: left center, right center, left center, right center;
+                background-repeat: no-repeat;
+                background-size: 20px 100%, 20px 100%, 14px 100%, 14px 100%;
+                background-attachment: local, local, scroll, scroll;
+            }
+            /* Admin (Carteira Recomendada): min-width 500px é exagero em mobile */
+            #tabelaAdminAtivos { font-size: 12px; }
+            .tabela-dashboard th, .tabela-dashboard td {
+                padding: 8px 9px !important;
+                font-size: 12px;
+            }
+
+            /* Grids de cards: minmax(280) estoura abaixo de ~320px */
+            .grid-cards {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+            .vencimentos-grid {
+                grid-template-columns: 1fr !important;
+                gap: 8px;
+            }
+            .perfil-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            .operacao-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            .calendario-grid { gap: 2px; }
+
+            /* Forms internos lado-a-lado viram coluna em mobile */
+            .grid-3-iguais,
+            div[style*="grid-template-columns:1fr 1fr 1fr"],
+            div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+                grid-template-columns: 1fr 1fr !important;
+            }
+            div[style*="grid-template-columns: 1fr 1fr"]:not([style*="1fr 1fr 1fr"]) {
+                gap: 10px;
+            }
+
+            /* Modais: ocupam quase toda a tela e respiram melhor */
+            div[id^="modal"] > div {
+                width: 94% !important;
+                max-width: 94% !important;
+                margin: 16px !important;
+                padding: 20px !important;
+                max-height: 88vh !important;
+            }
+            /* Drawer ocupa a tela inteira no mobile */
+            .drawer {
+                width: 100% !important;
+                max-width: 100%;
+            }
+            .drawer-body { padding: 16px 16px 80px; }
+            .drawer-header { padding: 14px 16px; }
+
+            /* DRE / tabs horizontais com botões de período */
+            .btn-tab-dre { padding: 6px 10px !important; font-size: 11.5px !important; }
+
+            /* Ds tabs (Dúvidas) — não estoura em mobile */
+            .ds-tab-btn { padding: 8px 12px !important; font-size: 12px !important; }
+
+            /* Forms gerais: força flex/grid quebrar antes de estourar */
+            .form-group { min-width: 0; }
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Card-destaque (KPIs) — fontes menores, mais respiráveis */
+            .card-destaque { padding: 16px 16px !important; }
+            .card-destaque .valor { font-size: 20px; }
+
+            /* Sidebar backdrop garantido na pilha (acima dos cards, abaixo do drawer) */
+            .sidebar-backdrop.active { z-index: 95; }
+            .sidebar.mobile-open { z-index: 100; }
+            .mobile-nav-toggle { z-index: 110; }
+            .drawer-overlay { z-index: 9990; }
+            .drawer { z-index: 9991; }
+
+            /* Hot-fix: capital calculator (Carteira Recomendada) — botão estoura em telinhas */
+            #carteira .card-container[style*="flex-wrap"] .btn-acao,
+            #carteira .card-container[style*="flex-wrap"] .btn-secundario {
+                width: 100% !important;
+                justify-content: center;
+            }
+            #carteira .card-container[style*="flex-wrap"] .form-group {
+                min-width: 0 !important;
+                flex: 1 1 100% !important;
+            }
+
+            /* Botões de export/backup/registrar empilham antes que o badge */
+            .page-header > .page-actions > button { white-space: nowrap; }
+        }
+
+        /* ============================================================
+           Mobile pequeno (<= 480px) — iPhone SE, Android compact
+           ============================================================ */
+        @media (max-width: 480px) {
+            .main-content { padding: 60px 12px 24px !important; }
+            .page-header-left h1 { font-size: 17px !important; }
+            .hero-evolucao { padding: 14px 12px 12px; }
+            .hero-header h3 { font-size: 13.5px; }
+            .hero-evolucao .hero-header > div:first-child { width: 100%; }
+            .hero-toolbar { gap: 5px; }
+            .hero-toolbar select {
+                flex: 1 1 100%;
+                font-size: 12px;
+            }
+            .period-pill { padding: 6px 10px; font-size: 11.5px; }
+            .kpi-value-big { font-size: 22px; }
+            .kpi-value { font-size: 16px; }
+            .kpi-label { font-size: 10.5px; }
+
+            /* Gráficos ainda menores */
+            div[style*="height: 320px"],
+            div[style*="height:320px"] {
+                height: 220px !important;
+            }
+            .donut-wrap { height: 200px !important; }
+            div[style*="height:220px"],
+            div[style*="height: 220px"] {
+                height: 180px !important;
+            }
+            div[style*="height:240px"],
+            div[style*="height: 240px"] {
+                height: 190px !important;
+            }
+            .grafico-container { height: 150px !important; }
+
+            /* Tabelas: tipografia mínima legível e padding menor */
+            .tabela-dashboard { font-size: 11.5px !important; }
+            .tabela-dashboard th,
+            .tabela-dashboard td {
+                padding: 7px 7px !important;
+                font-size: 11.5px !important;
+            }
+
+            /* Cards e seções */
+            .card-container { padding: 14px !important; }
+            .card-destaque { padding: 14px !important; }
+            .card-destaque .valor { font-size: 18px; }
+            .card-destaque h3 { font-size: 10px; }
+
+            /* Botões da page-actions em mobile pequeno: ocupam linha inteira por padrão */
+            .page-actions .btn-acao,
+            .page-actions .btn-secundario {
+                flex: 1 1 100%;
+            }
+            .page-actions .btn-eye,
+            .page-actions .btn-theme {
+                width: 36px;
+                height: 36px;
+            }
+
+            /* Grupos de 3 colunas em forms viram 1 coluna */
+            .grid-3-iguais,
+            div[style*="grid-template-columns:1fr 1fr 1fr"],
+            div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Modais ainda mais econômicos */
+            div[id^="modal"] > div {
+                padding: 16px !important;
+                margin: 12px !important;
+                width: calc(100% - 24px) !important;
+                max-width: calc(100% - 24px) !important;
+                max-height: 92vh !important;
+            }
+            div[id^="modal"] h3 { font-size: 15px !important; }
+
+            /* APC hero actions: cada botão em linha própria se houver espaço */
+            .apc-hero-actions .btn-acao,
+            .apc-hero-actions .btn-secundario {
+                flex: 1 1 100% !important;
+            }
+
+            /* Drawer: header e form mais compactos */
+            .drawer-header h3 { font-size: 14px; }
+        }
+
+        /* ============================================================
+           Micro mobile (<= 360px) — Galaxy Fold fechado, telas antigas
+           ============================================================ */
+        @media (max-width: 360px) {
+            .main-content { padding: 58px 10px 20px !important; }
+            .page-header-left h1 { font-size: 16px !important; }
+            .kpi-value-big { font-size: 20px; }
+            .card-destaque .valor { font-size: 17px; }
+            .tabela-dashboard,
+            .tabela-dashboard th,
+            .tabela-dashboard td { font-size: 11px !important; padding: 6px 6px !important; }
+            .btn-acao, .btn-secundario { font-size: 12px !important; padding: 9px 10px !important; }
+            .mobile-nav-toggle { width: 38px; height: 38px; font-size: 18px; top: 10px; left: 10px; }
+        }
+
+        /* ============================================================
+           Landscape em telefones (altura baixa) — reduz alturas de gráfico
+           ============================================================ */
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+            div[style*="height: 320px"],
+            div[style*="height:320px"] { height: 200px !important; }
+            .hero-kpis { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
+            .hero-kpi { padding: 4px 8px !important; border-top: none !important; border-left: 1px solid var(--cor-borda); }
+            .hero-kpi:first-child { border-left: none; }
+        }
     </style>
 </head>
 <body>
