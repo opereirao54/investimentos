@@ -2408,6 +2408,615 @@
             margin-bottom: 16px;
         }
         .apc-empty-cta .btn-acao { display: inline-flex; align-items: center; gap: 6px; padding: 11px 22px; }
+
+        /* ============================================================
+           === MOBILE RESPONSIVE REFACTOR (consolidated overrides) ===
+           Cobre layouts não-cobertos pelas media queries existentes:
+           tabelas com min-width fixo, gráficos com altura fixa,
+           grids com minmax que estouram <360px, modais, page-header
+           e tipografia. Mantém o desktop intacto.
+           ============================================================ */
+
+        /* --- Defesa global de overflow (todas as larguras) --- */
+        html, body { max-width: 100%; }
+        .main-content, .section, .card-container, .hero-evolucao { min-width: 0; }
+        /* Tabelas sempre roláveis quando o conteúdo for maior que o pai */
+        .tabela-dashboard { max-width: 100%; }
+
+        /* ============================================================
+           Tablet/Mobile (<= 980px) — ajustes intermediários
+           ============================================================ */
+        @media (max-width: 980px) {
+            .hero-kpis { grid-template-columns: 1fr 1fr; }
+            .hero-kpi:nth-child(3) {
+                grid-column: 1 / -1;
+                padding-top: 12px;
+                border-top: 1px solid var(--cor-borda);
+                border-left: none;
+                padding-left: 0;
+                margin-top: 4px;
+            }
+        }
+
+        /* ============================================================
+           Mobile principal (<= 768px)
+           ============================================================ */
+        @media (max-width: 768px) {
+            /* Page header: empilha título e ações de forma legível */
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                margin-bottom: 16px !important;
+            }
+            .page-header-left { width: 100%; }
+            .page-header-left h1 {
+                font-size: 18px !important;
+                line-height: 1.25;
+                gap: 6px;
+            }
+            .page-header-left .subtitulo,
+            .subtitulo { font-size: 12.5px; line-height: 1.4; }
+            .page-actions {
+                width: 100%;
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: flex-start;
+            }
+            .page-actions .btn-acao,
+            .page-actions .btn-secundario {
+                flex: 1 1 calc(50% - 4px);
+                min-width: 0;
+                font-size: 12.5px;
+                padding: 10px 12px;
+                justify-content: center;
+            }
+            .page-actions .btn-eye,
+            .page-actions .btn-theme {
+                flex: 0 0 auto;
+            }
+            .page-actions #badgePrecosEstimados {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+
+            /* Cards e seções: padding reduzido para ganhar largura útil */
+            .card-container { padding: 16px !important; margin-bottom: 14px; }
+            .hero-evolucao { padding: 16px 14px 14px; }
+
+            /* Hero header / toolbar: empilha e deixa os pills usáveis */
+            .hero-header { gap: 10px; margin-bottom: 14px; }
+            .hero-header h3 { font-size: 14.5px; }
+            .hero-toolbar {
+                width: 100%;
+                gap: 6px;
+            }
+            .hero-toolbar select {
+                flex: 1 1 calc(50% - 4px);
+                min-width: 0;
+                font-size: 12.5px;
+                padding: 8px 10px;
+            }
+            .period-pills {
+                width: 100%;
+                justify-content: space-between;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            .period-pills::-webkit-scrollbar { display: none; }
+            .period-pill { flex: 1 0 auto; padding: 7px 12px; font-size: 12px; }
+            .kpi-value-big { font-size: 24px; }
+            .kpi-value { font-size: 17px; }
+            .hero-kpis {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+                margin-bottom: 18px;
+            }
+            .hero-kpi {
+                padding: 10px 0 0 !important;
+                border-left: none !important;
+                border-top: 1px solid var(--cor-borda);
+            }
+            .hero-kpi:first-child {
+                padding-top: 0 !important;
+                border-top: none;
+            }
+
+            /* Painéis secundários do dashboard (gráficos lado-a-lado) → empilha */
+            #painelSecundario,
+            #painelEvolucaoCarteira {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            .donut-wrap { height: 220px !important; }
+
+            /* Gráficos com altura fixa (em <style> ou inline) — reduz para mobile */
+            .grafico-container { height: 160px !important; }
+            div[style*="height:220px"][style*="position:relative"],
+            div[style*="height: 220px"] {
+                height: 200px !important;
+            }
+            div[style*="height:240px"][style*="position:relative"],
+            div[style*="height: 240px"] {
+                height: 210px !important;
+            }
+            div[style*="height: 320px"],
+            div[style*="height:320px"] {
+                height: 240px !important;
+            }
+            div[style*="height: 420px"],
+            div[style*="height:420px"] {
+                height: 320px !important;
+            }
+            #painelEvolucaoCarteira .grafico-container,
+            .hero-evolucao + div { min-width: 0; }
+
+            /* Tabelas — força wrapper rolável e tipografia compacta;
+               anula min-width inline em tabelas pequenas */
+            .card-container > div[style*="overflow-x"],
+            div[style*="overflow-x:auto"],
+            div[style*="overflow-x: auto"] {
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: thin;
+            }
+            /* Tabela de DRE (Jornada) e similares: mantém min-width, mas dá
+               uma dica visual de scroll (sombra na borda direita) */
+            .card-container > div[style*="overflow-x"] {
+                position: relative;
+                background-image: linear-gradient(to right, transparent, transparent),
+                                  linear-gradient(to right, transparent, transparent),
+                                  linear-gradient(to right, rgba(0,0,0,0.08), rgba(255,255,255,0)),
+                                  linear-gradient(to left, rgba(0,0,0,0.08), rgba(255,255,255,0));
+                background-position: left center, right center, left center, right center;
+                background-repeat: no-repeat;
+                background-size: 20px 100%, 20px 100%, 14px 100%, 14px 100%;
+                background-attachment: local, local, scroll, scroll;
+            }
+            /* Admin (Carteira Recomendada): min-width 500px é exagero em mobile */
+            #tabelaAdminAtivos { font-size: 12px; }
+            .tabela-dashboard th, .tabela-dashboard td {
+                padding: 8px 9px !important;
+                font-size: 12px;
+            }
+
+            /* Grids de cards: minmax(280) estoura abaixo de ~320px */
+            .grid-cards {
+                grid-template-columns: 1fr !important;
+                gap: 12px;
+            }
+            .vencimentos-grid {
+                grid-template-columns: 1fr !important;
+                gap: 8px;
+            }
+            .perfil-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            .operacao-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px;
+            }
+            .calendario-grid { gap: 2px; }
+
+            /* Forms internos lado-a-lado viram coluna em mobile */
+            .grid-3-iguais,
+            div[style*="grid-template-columns:1fr 1fr 1fr"],
+            div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+                grid-template-columns: 1fr 1fr !important;
+            }
+            div[style*="grid-template-columns: 1fr 1fr"]:not([style*="1fr 1fr 1fr"]) {
+                gap: 10px;
+            }
+
+            /* Modais: ocupam quase toda a tela e respiram melhor */
+            div[id^="modal"] > div {
+                width: 94% !important;
+                max-width: 94% !important;
+                margin: 16px !important;
+                padding: 20px !important;
+                max-height: 88vh !important;
+            }
+            /* Drawer ocupa a tela inteira no mobile */
+            .drawer {
+                width: 100% !important;
+                max-width: 100%;
+            }
+            .drawer-body { padding: 16px 16px 80px; }
+            .drawer-header { padding: 14px 16px; }
+
+            /* DRE / tabs horizontais com botões de período */
+            .btn-tab-dre { padding: 6px 10px !important; font-size: 11.5px !important; }
+
+            /* Ds tabs (Dúvidas) — não estoura em mobile */
+            .ds-tab-btn { padding: 8px 12px !important; font-size: 12px !important; }
+
+            /* Forms gerais: força flex/grid quebrar antes de estourar */
+            .form-group { min-width: 0; }
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                width: 100%;
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* Card-destaque (KPIs) — fontes menores, mais respiráveis */
+            .card-destaque { padding: 16px 16px !important; }
+            .card-destaque .valor { font-size: 20px; }
+
+            /* Sidebar backdrop garantido na pilha (acima dos cards, abaixo do drawer) */
+            .sidebar-backdrop.active { z-index: 95; }
+            .sidebar.mobile-open { z-index: 100; }
+            .mobile-nav-toggle { z-index: 110; }
+            .drawer-overlay { z-index: 9990; }
+            .drawer { z-index: 9991; }
+
+            /* Hot-fix: capital calculator (Carteira Recomendada) — botão estoura em telinhas */
+            #carteira .card-container[style*="flex-wrap"] .btn-acao,
+            #carteira .card-container[style*="flex-wrap"] .btn-secundario {
+                width: 100% !important;
+                justify-content: center;
+            }
+            #carteira .card-container[style*="flex-wrap"] .form-group {
+                min-width: 0 !important;
+                flex: 1 1 100% !important;
+            }
+
+            /* Botões de export/backup/registrar empilham antes que o badge */
+            .page-header > .page-actions > button { white-space: nowrap; }
+        }
+
+        /* ============================================================
+           Mobile pequeno (<= 480px) — iPhone SE, Android compact
+           ============================================================ */
+        @media (max-width: 480px) {
+            .main-content { padding: 60px 12px 24px !important; }
+            .page-header-left h1 { font-size: 17px !important; }
+            .hero-evolucao { padding: 14px 12px 12px; }
+            .hero-header h3 { font-size: 13.5px; }
+            .hero-evolucao .hero-header > div:first-child { width: 100%; }
+            .hero-toolbar { gap: 5px; }
+            .hero-toolbar select {
+                flex: 1 1 100%;
+                font-size: 12px;
+            }
+            .period-pill { padding: 6px 10px; font-size: 11.5px; }
+            .kpi-value-big { font-size: 22px; }
+            .kpi-value { font-size: 16px; }
+            .kpi-label { font-size: 10.5px; }
+
+            /* Gráficos ainda menores */
+            div[style*="height: 320px"],
+            div[style*="height:320px"] {
+                height: 220px !important;
+            }
+            .donut-wrap { height: 200px !important; }
+            div[style*="height:220px"],
+            div[style*="height: 220px"] {
+                height: 180px !important;
+            }
+            div[style*="height:240px"],
+            div[style*="height: 240px"] {
+                height: 190px !important;
+            }
+            .grafico-container { height: 150px !important; }
+
+            /* Tabelas: tipografia mínima legível e padding menor */
+            .tabela-dashboard { font-size: 11.5px !important; }
+            .tabela-dashboard th,
+            .tabela-dashboard td {
+                padding: 7px 7px !important;
+                font-size: 11.5px !important;
+            }
+
+            /* Cards e seções */
+            .card-container { padding: 14px !important; }
+            .card-destaque { padding: 14px !important; }
+            .card-destaque .valor { font-size: 18px; }
+            .card-destaque h3 { font-size: 10px; }
+
+            /* Botões da page-actions em mobile pequeno: ocupam linha inteira por padrão */
+            .page-actions .btn-acao,
+            .page-actions .btn-secundario {
+                flex: 1 1 100%;
+            }
+            .page-actions .btn-eye,
+            .page-actions .btn-theme {
+                width: 36px;
+                height: 36px;
+            }
+
+            /* Grupos de 3 colunas em forms viram 1 coluna */
+            .grid-3-iguais,
+            div[style*="grid-template-columns:1fr 1fr 1fr"],
+            div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Modais ainda mais econômicos */
+            div[id^="modal"] > div {
+                padding: 16px !important;
+                margin: 12px !important;
+                width: calc(100% - 24px) !important;
+                max-width: calc(100% - 24px) !important;
+                max-height: 92vh !important;
+            }
+            div[id^="modal"] h3 { font-size: 15px !important; }
+
+            /* APC hero actions: cada botão em linha própria se houver espaço */
+            .apc-hero-actions .btn-acao,
+            .apc-hero-actions .btn-secundario {
+                flex: 1 1 100% !important;
+            }
+
+            /* Drawer: header e form mais compactos */
+            .drawer-header h3 { font-size: 14px; }
+        }
+
+        /* ============================================================
+           Micro mobile (<= 360px) — Galaxy Fold fechado, telas antigas
+           ============================================================ */
+        @media (max-width: 360px) {
+            .main-content { padding: 58px 10px 20px !important; }
+            .page-header-left h1 { font-size: 16px !important; }
+            .kpi-value-big { font-size: 20px; }
+            .card-destaque .valor { font-size: 17px; }
+            .tabela-dashboard,
+            .tabela-dashboard th,
+            .tabela-dashboard td { font-size: 11px !important; padding: 6px 6px !important; }
+            .btn-acao, .btn-secundario { font-size: 12px !important; padding: 9px 10px !important; }
+            .mobile-nav-toggle { width: 38px; height: 38px; font-size: 18px; top: 10px; left: 10px; }
+        }
+
+        /* ============================================================
+           Controle Financeiro — grids 2fr 1fr empilham no mobile
+           Simulador — hero card e fontes responsivas
+           ============================================================ */
+        /* Default (estado fora dos breakpoints): tudo escondido */
+        .painel-novo-lancamento-grab { display: none; }
+        .painel-mobile-close { display: none; }
+        #fabNovoLancamento { display: none; }
+        #painelLancamentoBackdrop { display: none; }
+
+        /* ============================================================
+           Painel "Novo lançamento" como DRAWER no desktop (>=769px)
+           Slide da direita, igual ao "Registrar operação"
+           ============================================================ */
+        @media (min-width: 769px) {
+            #painelNovoLancamento {
+                position: fixed !important;
+                right: 0; top: 0; bottom: 0;
+                width: 480px;
+                max-width: 92vw;
+                height: 100vh;
+                margin: 0 !important;
+                border-radius: 0 !important;
+                border-top: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
+                border-left: 1px solid var(--cor-borda) !important;
+                box-shadow: -8px 0 32px rgba(0,0,0,0.14) !important;
+                z-index: 9995;
+                transform: translateX(110%);
+                transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+                overflow-y: auto;
+                padding: 22px 26px 36px !important;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                display: flex !important;
+                flex-direction: column !important;
+            }
+            #painelNovoLancamento.aberto { transform: translateX(0); }
+
+            /* Botão "X" para fechar — visível também no desktop */
+            .painel-mobile-close {
+                display: inline-flex !important;
+                align-items: center; justify-content: center;
+                width: 34px; height: 34px;
+                border: 1px solid var(--cor-borda);
+                background: var(--cor-superficie);
+                color: var(--cor-texto-secundario);
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+                transition: background 0.15s, color 0.15s;
+            }
+            .painel-mobile-close:hover {
+                background: var(--cor-bg-erro);
+                color: var(--cor-erro);
+                border-color: var(--cor-borda-erro);
+            }
+
+            /* Backdrop também no desktop */
+            #painelLancamentoBackdrop {
+                display: block;
+                position: fixed; inset: 0;
+                background: rgba(15,23,42,0.5);
+                backdrop-filter: blur(3px);
+                z-index: 9994;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.22s ease;
+            }
+            body.painel-lancamento-aberto #painelLancamentoBackdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+            body.painel-lancamento-aberto { overflow: hidden; }
+        }
+
+        @media (max-width: 768px) {
+            /* Quebra os layouts 2-col inline do Controle Financeiro */
+            #controle > div[style*="grid-template-columns:2fr 1fr"],
+            #controle > div[style*="grid-template-columns: 2fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            /* Termômetro: estatísticas em 3 colunas ficam apertadas; deixa wrap */
+            #controle .thermo-stats {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+            #controle .thermo-stats .t-stat:last-child {
+                grid-column: 1 / -1;
+            }
+            #controle .thermo-stats .t-stat-val { font-size: 14px; }
+
+            /* Composição do mês: gráfico de pizza menor */
+            #controle .grafico-container,
+            #controle div[style*="height:180px"] {
+                height: 160px !important;
+            }
+
+            /* Extrato: tabs e totais quebram melhor */
+            #controle .ext-tabs-wrap {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                flex-wrap: nowrap !important;
+            }
+            #controle .ext-tabs-wrap::-webkit-scrollbar { display: none; }
+            #controle .ext-tab { flex: 0 0 auto; white-space: nowrap; font-size: 11.5px; padding: 6px 10px; }
+            #controle div[style*="grid-template-columns:repeat(4,1fr)"] {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            /* Simulador hero (verde) — empilha e reduz tipografia */
+            #simulador > div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
+                grid-template-columns: 1fr !important;
+                padding: 18px 18px !important;
+                gap: 14px !important;
+            }
+            #heroDiff {
+                font-size: 26px !important;
+                letter-spacing: -0.5px !important;
+                line-height: 1.1 !important;
+            }
+            #heroMultiplo {
+                padding: 14px 16px !important;
+            }
+            #heroMultiplo div[style*="font-size:26px"] {
+                font-size: 20px !important;
+                line-height: 1.15 !important;
+            }
+            /* Cards "Investindo" e "INSS" do simulador empilham */
+            #simulador .grid-2-iguais { grid-template-columns: 1fr !important; }
+            #simulador div[style*="font-size:30px"] {
+                font-size: 24px !important;
+                letter-spacing: -0.5px !important;
+            }
+            /* Bloco juros 72x72 + legenda vira coluna em telas estreitas */
+            #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
+
+            /* Parâmetros da simulação (3 cols / 2 cols) → quebra melhor */
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+            }
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
+                grid-column: 1 / -1;
+            }
+
+            /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
+            #painelNovoLancamento {
+                position: fixed !important;
+                left: 0; right: 0; bottom: 0; top: auto;
+                width: 100%;
+                max-width: 100%;
+                margin: 0 !important;
+                padding: 14px 18px 28px !important;
+                border-radius: 18px 18px 0 0 !important;
+                border-left: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
+                box-shadow: 0 -10px 36px rgba(0,0,0,0.22) !important;
+                max-height: 88vh;
+                overflow-y: auto;
+                z-index: 9995;
+                transform: translateY(105%);
+                transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+            #painelNovoLancamento.aberto { transform: translateY(0); }
+
+            .painel-novo-lancamento-grab {
+                display: block !important;
+                width: 42px; height: 4px;
+                background: var(--cor-borda);
+                border-radius: 99px;
+                margin: 0 auto 12px;
+                flex-shrink: 0;
+            }
+            .painel-mobile-close {
+                display: inline-flex !important;
+                align-items: center; justify-content: center;
+                width: 34px; height: 34px;
+                border: 1px solid var(--cor-borda);
+                background: var(--cor-superficie);
+                color: var(--cor-texto-secundario);
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+            .painel-mobile-close:active { transform: scale(0.95); }
+
+            /* FAB visível apenas quando a aba Controle está ativa e o drawer está fechado */
+            #fabNovoLancamento {
+                display: none;
+                position: fixed;
+                bottom: 22px; right: 18px;
+                width: 56px; height: 56px;
+                border-radius: 50%;
+                background: var(--cor-primaria);
+                color: #fff;
+                border: none;
+                box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
+                z-index: 9993;
+                font-size: 24px;
+                cursor: pointer;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+            #fabNovoLancamento:active { transform: scale(0.92); }
+            body.controle-ativo #fabNovoLancamento { display: flex; }
+            body.painel-lancamento-aberto #fabNovoLancamento { display: none; }
+
+            /* Backdrop do drawer */
+            #painelLancamentoBackdrop {
+                display: block;
+                position: fixed; inset: 0;
+                background: rgba(15,23,42,0.55);
+                backdrop-filter: blur(3px);
+                z-index: 9994;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+            body.painel-lancamento-aberto #painelLancamentoBackdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* Quando o drawer está aberto, trava o scroll do body */
+            body.painel-lancamento-aberto { overflow: hidden; }
+        }
+
+        /* ============================================================
+           Landscape em telefones (altura baixa) — reduz alturas de gráfico
+           ============================================================ */
+        @media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+            div[style*="height: 320px"],
+            div[style*="height:320px"] { height: 200px !important; }
+            .hero-kpis { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
+            .hero-kpi { padding: 4px 8px !important; border-top: none !important; border-left: 1px solid var(--cor-borda); }
+            .hero-kpi:first-child { border-left: none; }
+        }
     </style>
 </head>
 <body>
@@ -2572,6 +3181,12 @@
     <input type="file" id="inputImportarJSON" accept=".json" onchange="importarDados(event)">
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
+
+    <!-- FAB (mobile) + backdrop (desktop+mobile) para "Novo lançamento" do Controle Financeiro -->
+    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamento()" aria-label="Novo lançamento">
+        <i class="ph-bold ph-plus"></i>
+    </button>
+    <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
     <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
         <div class="drawer-header">
             <h3 id="drawerOperacaoTitulo"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria);" id="iconePainelOp"></i> <span id="tituloPainelOp">Registrar operação</span></h3>
@@ -3040,6 +3655,7 @@
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
+                    <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>
 
@@ -3142,7 +3758,7 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+            <div style="margin-bottom:20px;">
 
                 <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;">
@@ -3181,8 +3797,12 @@
                     </div>
                 </div>
 
-                <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
-                    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
+                <div class="card-container" id="painelNovoLancamento" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
+                    <div class="painel-novo-lancamento-grab" aria-hidden="true"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+                        <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
+                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamento()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                    </div>
                     <input type="hidden" id="editTransacaoId" value="">
 
                     <div style="display:flex;gap:6px;margin-bottom:14px;" id="chipsLancamento">
@@ -4218,6 +4838,13 @@
             document.getElementById(idAba).classList.add('ativa');
             e.currentTarget.classList.add('ativo');
 
+            // Marca body para que o FAB de "Novo lançamento" apareça só em #controle (mobile)
+            document.body.classList.toggle('controle-ativo', idAba === 'controle');
+            // Fecha o drawer "Novo lançamento" ao trocar de aba
+            if (idAba !== 'controle' && typeof fecharPainelLancamento === 'function') {
+                fecharPainelLancamento();
+            }
+
             if(idAba === 'patrimonio') atualizarCarteiraAtivos();
             if(idAba === 'controle') atualizarTelaControle();
             if(idAba === 'simulador') calcularSimulador();
@@ -4339,6 +4966,29 @@
             overlay.classList.remove('aberto');
             document.body.style.overflow = '';
         }
+
+        // === DRAWER — Novo lançamento (Controle Financeiro) ===
+        // Desktop: slide da direita (igual "Registrar operação")
+        // Mobile: bottom-sheet (mesma classe .aberto, presentação muda via CSS)
+        function abrirPainelLancamento() {
+            const painel = document.getElementById('painelNovoLancamento');
+            if (!painel) return;
+            painel.classList.add('aberto');
+            document.body.classList.add('painel-lancamento-aberto');
+            setTimeout(() => {
+                const descEl = document.getElementById('descTransacao');
+                if (descEl) descEl.focus({ preventScroll: true });
+            }, 240);
+        }
+        function fecharPainelLancamento() {
+            const painel = document.getElementById('painelNovoLancamento');
+            if (!painel) return;
+            painel.classList.remove('aberto');
+            document.body.classList.remove('painel-lancamento-aberto');
+        }
+        // Aliases legados — mantidos por segurança caso algum onclick antigo chame
+        function abrirPainelLancamentoMobile() { abrirPainelLancamento(); }
+        function fecharPainelLancamentoMobile() { fecharPainelLancamento(); }
 
         function toggleDarkMode() {
             document.body.classList.toggle('dark');
@@ -7593,6 +8243,9 @@
             document.getElementById('descTransacao').focus();
 
             document.getElementById('tituloPainelControle').innerHTML = '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editando Operação';
+
+            // Abre o drawer/bottom-sheet automaticamente ao iniciar edição
+            abrirPainelLancamento();
         }
 
         function cancelarEdicaoControle() {
@@ -7685,6 +8338,7 @@
             mostrarToast("Lançamento atualizado!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
+            fecharPainelLancamento();
         }
 
         function executarInsercao() {
@@ -7764,8 +8418,9 @@
             const grupoBanco = document.getElementById('grupoBancoReceita'); if(grupoBanco) grupoBanco.style.display = 'none';
             selecionarTipoCartao('parcelado');
             mostrarToast("Lançamento salvo com sucesso!", "sucesso");
-            atualizarTelaControle(); 
+            atualizarTelaControle();
             atualizarDatalistDescricoes();
+            fecharPainelLancamento();
         }
 
         function calcularResumoMes(mesAlvo, anoAlvo) {
@@ -9145,6 +9800,7 @@
         // --- TECLADO E ARIA ---
         document.addEventListener('keydown', function(e) {
             if(e.key === 'Escape') {
+                if (document.body.classList.contains('painel-lancamento-aberto')) { fecharPainelLancamento(); return; }
                 const drawer = document.getElementById('drawerOperacao');
                 if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
                 const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
@@ -11386,7 +12042,9 @@
         el = document.createElement('div');
         el.id = 'emailVerifyBanner';
         el.setAttribute('role', 'alert');
-        el.style.cssText = 'position:sticky;top:0;left:0;right:0;z-index:998;background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:9px 14px;font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;line-height:1.45;';
+        // position:fixed (e NÃO sticky) é obrigatório: body é display:flex,
+        // então sticky vira item flex e empurra sidebar/main para o lado.
+        el.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#fef3c7;color:#78350f;border-bottom:1px solid #fcd34d;padding:10px 16px;font-size:13px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;line-height:1.45;box-shadow:0 2px 6px rgba(0,0,0,.10);font-family:Figtree,sans-serif;';
         el.innerHTML = ''
             + '<i class="ph ph-warning-circle" style="font-size:16px;flex-shrink:0;"></i>'
             + '<span><strong>Verifique seu e-mail.</strong> A partir de <strong id="emailVerifyDeadlineLbl"></strong> o acesso só ficará disponível após a confirmação. Enviamos um link para <strong id="emailVerifyEmailLbl"></strong>.</span>'
@@ -11395,7 +12053,16 @@
             +   '<button type="button" id="emailVerifyBannerCheck" style="background:#78350f;border:1px solid #78350f;color:#fef3c7;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;font-weight:500;">Já verifiquei</button>'
             +   '<button type="button" id="emailVerifyBannerClose" aria-label="Esconder por agora" style="background:transparent;border:0;color:#78350f;cursor:pointer;font-size:18px;line-height:1;padding:0 4px;">&times;</button>'
             + '</span>';
-        document.body.insertBefore(el, document.body.firstChild);
+        // Importante: anexa ao FINAL do body, não como primeiro filho.
+        // Como body é display:flex, inserir como filho normal cria layout
+        // horizontal indesejado. O position:fixed do banner já tira ele
+        // do fluxo; appendChild evita "piscar" como item flex antes do
+        // navegador aplicar o fixed.
+        document.body.appendChild(el);
+        if (typeof ResizeObserver === 'function') {
+            try { new ResizeObserver(function () { syncEmailVerifyBannerOffset(el); }).observe(el); } catch (_) {}
+        }
+        window.addEventListener('resize', function () { syncEmailVerifyBannerOffset(el); });
         var resendBtn = el.querySelector('#emailVerifyBannerResend');
         var checkBtn = el.querySelector('#emailVerifyBannerCheck');
         var closeBtn = el.querySelector('#emailVerifyBannerClose');
@@ -11447,6 +12114,34 @@
         });
         return el;
     }
+    // Offset do body para o banner não cobrir sidebar/conteúdo.
+    // Necessário porque body é display:flex; height:100vh; overflow:hidden —
+    // sem offset, o banner fixed se sobrepõe ao topo da sidebar e da main.
+    function syncEmailVerifyBannerOffset(el) {
+        if (!el || el.style.display === 'none') return;
+        var h = el.offsetHeight || 44;
+        var b = document.body;
+        if (!b) return;
+        var apply = function () {
+            b.style.setProperty('position', 'absolute', 'important');
+            b.style.setProperty('top', h + 'px', 'important');
+            b.style.setProperty('left', '0', 'important');
+            b.style.setProperty('right', '0', 'important');
+            b.style.setProperty('bottom', '0', 'important');
+            b.style.setProperty('height', 'auto', 'important');
+            b.style.setProperty('width', 'auto', 'important');
+            b.style.setProperty('margin', '0', 'important');
+        };
+        apply();
+        if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply);
+    }
+    function clearEmailVerifyBannerOffset() {
+        var b = document.body;
+        if (!b) return;
+        ['position','top','left','right','bottom','height','width','margin'].forEach(function (k) {
+            b.style.removeProperty(k);
+        });
+    }
     function showEmailVerifyBanner(email) {
         try {
             var snoozeUntil = parseInt(localStorage.getItem('appliquei_email_verify_snooze') || '0', 10);
@@ -11458,10 +12153,12 @@
         if (emLbl) emLbl.textContent = email;
         if (dlLbl) dlLbl.textContent = emailVerifyDeadlineLabel();
         el.style.display = 'flex';
+        syncEmailVerifyBannerOffset(el);
     }
     function hideEmailVerifyBanner() {
         var el = $('emailVerifyBanner');
         if (el) el.style.display = 'none';
+        clearEmailVerifyBannerOffset();
     }
     function setSub(t) {
         var s = $('authGateSub');
