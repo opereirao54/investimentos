@@ -2770,6 +2770,176 @@
         }
 
         /* ============================================================
+           Controle Financeiro — grids 2fr 1fr empilham no mobile
+           Simulador — hero card e fontes responsivas
+           ============================================================ */
+        /* Esconde o grab e o close button no desktop sempre */
+        .painel-novo-lancamento-grab { display: none; }
+        .painel-mobile-close { display: none; }
+        #fabNovoLancamento { display: none; }
+        #painelLancamentoBackdrop { display: none; }
+
+        @media (max-width: 768px) {
+            /* Quebra os layouts 2-col inline do Controle Financeiro */
+            #controle > div[style*="grid-template-columns:2fr 1fr"],
+            #controle > div[style*="grid-template-columns: 2fr 1fr"] {
+                grid-template-columns: 1fr !important;
+                gap: 12px !important;
+            }
+            /* Termômetro: estatísticas em 3 colunas ficam apertadas; deixa wrap */
+            #controle .thermo-stats {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 8px !important;
+            }
+            #controle .thermo-stats .t-stat:last-child {
+                grid-column: 1 / -1;
+            }
+            #controle .thermo-stats .t-stat-val { font-size: 14px; }
+
+            /* Composição do mês: gráfico de pizza menor */
+            #controle .grafico-container,
+            #controle div[style*="height:180px"] {
+                height: 160px !important;
+            }
+
+            /* Extrato: tabs e totais quebram melhor */
+            #controle .ext-tabs-wrap {
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                flex-wrap: nowrap !important;
+            }
+            #controle .ext-tabs-wrap::-webkit-scrollbar { display: none; }
+            #controle .ext-tab { flex: 0 0 auto; white-space: nowrap; font-size: 11.5px; padding: 6px 10px; }
+            #controle div[style*="grid-template-columns:repeat(4,1fr)"] {
+                grid-template-columns: 1fr 1fr !important;
+            }
+
+            /* Simulador hero (verde) — empilha e reduz tipografia */
+            #simulador > div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
+                grid-template-columns: 1fr !important;
+                padding: 18px 18px !important;
+                gap: 14px !important;
+            }
+            #heroDiff {
+                font-size: 26px !important;
+                letter-spacing: -0.5px !important;
+                line-height: 1.1 !important;
+            }
+            #heroMultiplo {
+                padding: 14px 16px !important;
+            }
+            #heroMultiplo div[style*="font-size:26px"] {
+                font-size: 20px !important;
+                line-height: 1.15 !important;
+            }
+            /* Cards "Investindo" e "INSS" do simulador empilham */
+            #simulador .grid-2-iguais { grid-template-columns: 1fr !important; }
+            #simulador div[style*="font-size:30px"] {
+                font-size: 24px !important;
+                letter-spacing: -0.5px !important;
+            }
+            /* Bloco juros 72x72 + legenda vira coluna em telas estreitas */
+            #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
+
+            /* Parâmetros da simulação (3 cols / 2 cols) → quebra melhor */
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+            }
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
+                grid-column: 1 / -1;
+            }
+
+            /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
+            #painelNovoLancamento {
+                position: fixed !important;
+                left: 0; right: 0; bottom: 0; top: auto;
+                width: 100%;
+                max-width: 100%;
+                margin: 0 !important;
+                padding: 14px 18px 28px !important;
+                border-radius: 18px 18px 0 0 !important;
+                border-left: none !important;
+                border-right: none !important;
+                border-bottom: none !important;
+                box-shadow: 0 -10px 36px rgba(0,0,0,0.22) !important;
+                max-height: 88vh;
+                overflow-y: auto;
+                z-index: 9995;
+                transform: translateY(105%);
+                transition: transform 0.32s cubic-bezier(0.4,0,0.2,1);
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+            #painelNovoLancamento.mobile-open { transform: translateY(0); }
+
+            .painel-novo-lancamento-grab {
+                display: block !important;
+                width: 42px; height: 4px;
+                background: var(--cor-borda);
+                border-radius: 99px;
+                margin: 0 auto 12px;
+                flex-shrink: 0;
+            }
+            .painel-mobile-close {
+                display: inline-flex !important;
+                align-items: center; justify-content: center;
+                width: 34px; height: 34px;
+                border: 1px solid var(--cor-borda);
+                background: var(--cor-superficie);
+                color: var(--cor-texto-secundario);
+                border-radius: 8px;
+                font-size: 18px;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+            .painel-mobile-close:active { transform: scale(0.95); }
+
+            /* FAB visível apenas quando a aba Controle está ativa e o drawer está fechado */
+            #fabNovoLancamento {
+                display: none;
+                position: fixed;
+                bottom: 22px; right: 18px;
+                width: 56px; height: 56px;
+                border-radius: 50%;
+                background: var(--cor-primaria);
+                color: #fff;
+                border: none;
+                box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
+                z-index: 9993;
+                font-size: 24px;
+                cursor: pointer;
+                align-items: center;
+                justify-content: center;
+                transition: transform 0.18s ease, box-shadow 0.18s ease;
+            }
+            #fabNovoLancamento:active { transform: scale(0.92); }
+            body.controle-ativo #fabNovoLancamento { display: flex; }
+            body.painel-lancamento-aberto #fabNovoLancamento { display: none; }
+
+            /* Backdrop do drawer */
+            #painelLancamentoBackdrop {
+                display: block;
+                position: fixed; inset: 0;
+                background: rgba(15,23,42,0.55);
+                backdrop-filter: blur(3px);
+                z-index: 9994;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.25s ease;
+            }
+            body.painel-lancamento-aberto #painelLancamentoBackdrop {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            /* Quando o drawer está aberto, trava o scroll do body */
+            body.painel-lancamento-aberto { overflow: hidden; }
+        }
+
+        /* ============================================================
            Landscape em telefones (altura baixa) — reduz alturas de gráfico
            ============================================================ */
         @media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
@@ -2943,6 +3113,12 @@
     <input type="file" id="inputImportarJSON" accept=".json" onchange="importarDados(event)">
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
+
+    <!-- Mobile FAB + backdrop para "Novo lançamento" (Controle Financeiro) -->
+    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamentoMobile()" aria-label="Novo lançamento">
+        <i class="ph-bold ph-plus"></i>
+    </button>
+    <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamentoMobile()" aria-hidden="true"></div>
     <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
         <div class="drawer-header">
             <h3 id="drawerOperacaoTitulo"><i class="ph-fill ph-plus-circle" style="color: var(--cor-primaria);" id="iconePainelOp"></i> <span id="tituloPainelOp">Registrar operação</span></h3>
@@ -3552,8 +3728,12 @@
                     </div>
                 </div>
 
-                <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
-                    <h3 style="font-size:14px;font-weight:700;margin-bottom:14px;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
+                <div class="card-container" id="painelNovoLancamento" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
+                    <div class="painel-novo-lancamento-grab" aria-hidden="true"></div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;">
+                        <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;" id="tituloPainelControle"><i class="ph ph-plus-circle" style="color:var(--cor-primaria);font-size:16px;" id="iconePainelControle"></i> Novo lançamento</h3>
+                        <button type="button" class="painel-mobile-close" onclick="fecharPainelLancamentoMobile()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+                    </div>
                     <input type="hidden" id="editTransacaoId" value="">
 
                     <div style="display:flex;gap:6px;margin-bottom:14px;" id="chipsLancamento">
@@ -4589,6 +4769,13 @@
             document.getElementById(idAba).classList.add('ativa');
             e.currentTarget.classList.add('ativo');
 
+            // Marca body para que o FAB de "Novo lançamento" apareça só em #controle (mobile)
+            document.body.classList.toggle('controle-ativo', idAba === 'controle');
+            // Fecha o drawer mobile se mudar de aba
+            if (idAba !== 'controle' && typeof fecharPainelLancamentoMobile === 'function') {
+                fecharPainelLancamentoMobile();
+            }
+
             if(idAba === 'patrimonio') atualizarCarteiraAtivos();
             if(idAba === 'controle') atualizarTelaControle();
             if(idAba === 'simulador') calcularSimulador();
@@ -4709,6 +4896,26 @@
             drawer.classList.remove('aberto');
             overlay.classList.remove('aberto');
             document.body.style.overflow = '';
+        }
+
+        // === DRAWER MOBILE — Novo lançamento (Controle Financeiro) ===
+        // Só age como drawer em telas <=768px (controlado por CSS).
+        function abrirPainelLancamentoMobile() {
+            const painel = document.getElementById('painelNovoLancamento');
+            if (!painel) return;
+            painel.classList.add('mobile-open');
+            document.body.classList.add('painel-lancamento-aberto');
+            // Foca o primeiro chip (Entrada) após a animação para acelerar uso
+            setTimeout(() => {
+                const chip = document.getElementById('chipEntrada');
+                if (chip) chip.focus({ preventScroll: true });
+            }, 280);
+        }
+        function fecharPainelLancamentoMobile() {
+            const painel = document.getElementById('painelNovoLancamento');
+            if (!painel) return;
+            painel.classList.remove('mobile-open');
+            document.body.classList.remove('painel-lancamento-aberto');
         }
 
         function toggleDarkMode() {
@@ -7964,6 +8171,11 @@
             document.getElementById('descTransacao').focus();
 
             document.getElementById('tituloPainelControle').innerHTML = '<i class="ph ph-pencil-simple" style="color: var(--cor-info);"></i> Editando Operação';
+
+            // Em mobile, abre o bottom-sheet ao iniciar edição
+            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                abrirPainelLancamentoMobile();
+            }
         }
 
         function cancelarEdicaoControle() {
@@ -8056,6 +8268,9 @@
             mostrarToast("Lançamento atualizado!", "sucesso");
             atualizarTelaControle();
             atualizarDatalistDescricoes();
+            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                fecharPainelLancamentoMobile();
+            }
         }
 
         function executarInsercao() {
@@ -8135,8 +8350,12 @@
             const grupoBanco = document.getElementById('grupoBancoReceita'); if(grupoBanco) grupoBanco.style.display = 'none';
             selecionarTipoCartao('parcelado');
             mostrarToast("Lançamento salvo com sucesso!", "sucesso");
-            atualizarTelaControle(); 
+            atualizarTelaControle();
             atualizarDatalistDescricoes();
+            // Em mobile, fecha o bottom-sheet automaticamente após salvar
+            if (window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                fecharPainelLancamentoMobile();
+            }
         }
 
         function calcularResumoMes(mesAlvo, anoAlvo) {
@@ -9516,6 +9735,7 @@
         // --- TECLADO E ARIA ---
         document.addEventListener('keydown', function(e) {
             if(e.key === 'Escape') {
+                if (document.body.classList.contains('painel-lancamento-aberto')) { fecharPainelLancamentoMobile(); return; }
                 const drawer = document.getElementById('drawerOperacao');
                 if(drawer && drawer.classList.contains('aberto')) { fecharDrawerOperacao(); return; }
                 const mc = document.getElementById('modalConfirmacao'), mconf = document.getElementById('modalConfiguracoes'), mgrp = document.getElementById('modalGrupoCartao');
