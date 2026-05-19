@@ -279,6 +279,94 @@
       body.style.removeProperty(k);
     });
   }
+  // Banner pró-ativo de verificação de e-mail. Mostra ANTES de
+  // EMAIL_VERIFY_ENFORCE estar ligado, dando ao utilizador tempo de
+  // verificar voluntariamente. Tem prioridade sobre o trial banner
+  // (verificação é mais urgente).
+  function ensureVerifyBanner(show) {
+    var b = $('verifyBanner');
+    if (!show) {
+      if (b) { b.remove(); }
+      return;
+    }
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'verifyBanner';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#f59e0b;color:#1f2937;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-wrap:wrap;';
+      b.innerHTML = '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso à plataforma.</span>' +
+        '<button type="button" id="verifyBannerBtn" style="background:#1f2937;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:600;font-size:12px;cursor:pointer;">Reenviar e-mail</button>' +
+        '<button type="button" id="verifyBannerCheckBtn" style="background:transparent;color:#1f2937;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;cursor:pointer;">Já verifiquei</button>';
+      document.body.appendChild(b);
+      $('verifyBannerBtn').addEventListener('click', resendVerification);
+      $('verifyBannerCheckBtn').addEventListener('click', recheckVerification);
+      if (typeof ResizeObserver === 'function') {
+        try { new ResizeObserver(function () { syncTrialBannerOffset(b); }).observe(b); } catch (_) {}
+      }
+      window.addEventListener('resize', function () { syncTrialBannerOffset(b); });
+    }
+    syncTrialBannerOffset(b);
+  }
+
+  async function resendVerification() {
+    var btn = $('verifyBannerBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A enviar…'; }
+    try {
+      var fb = window.AppliqueiFirebase;
+      var u = fb && fb.auth && fb.auth.currentUser;
+      if (!u) throw new Error('not_authenticated');
+      // Caminho principal: cliente Firebase dispara o e-mail nativo do
+      // template padrão. Faz isto sem precisar de back-end.
+      await u.sendEmailVerification();
+      // Caminho secundário (best-effort): bate no /api/auth/resend-verification
+      // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
+      // primário já foi.
+      try { await authedFetch('/../auth/resend-verification', { method: 'POST' }); } catch (_) {}
+      if (btn) { btn.textContent = 'Enviado!'; }
+      setTimeout(function () {
+        if (btn) { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }
+      }, 4000);
+    } catch (e) {
+      console.warn('[verify] resend failed', e && e.code, e && e.message);
+      if (btn) {
+        var msg = (e && e.code === 'auth/too-many-requests') ? 'Aguarde — limite atingido.' : 'Erro';
+        btn.textContent = msg;
+        setTimeout(function () { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }, 4000);
+      }
+    }
+  }
+
+  async function recheckVerification() {
+    var btn = $('verifyBannerCheckBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'A verificar…'; }
+    try {
+      var fb = window.AppliqueiFirebase;
+      var u = fb && fb.auth && fb.auth.currentUser;
+      if (!u) throw new Error('not_authenticated');
+      await u.reload();
+      if (u.emailVerified) {
+        ensureVerifyBanner(false);
+        try { await u.getIdToken(true); } catch (_) {} // força refresh do token
+        await refresh(false);
+      } else if (btn) {
+        btn.textContent = 'Ainda não verificado';
+        setTimeout(function () { btn.disabled = false; btn.textContent = 'Já verifiquei'; }, 3000);
+      }
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Já verifiquei'; }
+    }
+  }
+
+  function needsEmailVerification() {
+    var fb = window.AppliqueiFirebase;
+    var u = fb && fb.auth && fb.auth.currentUser;
+    if (!u || !u.email) return false;
+    // Só mostra para quem entrou via e-mail/senha — provedores OAuth
+    // (Google) sempre vêm com emailVerified=true.
+    var hasPasswordProvider = Array.isArray(u.providerData)
+      && u.providerData.some(function (p) { return p.providerId === 'password'; });
+    return hasPasswordProvider && !u.emailVerified;
+  }
+
   function ensureTrialBanner(daysLeft) {
     var b = $('trialBanner');
     if (daysLeft <= 0) {
@@ -370,18 +458,25 @@
     lastAccess = access;
     if (billing !== undefined && billing !== null) lastBilling = billing;
     if (!access) return;
+    // Verify banner tem prioridade sobre o trial. Quando os dois deveriam
+    // aparecer ao mesmo tempo, mostra só o verify (mais urgente) e o usuário
+    // ainda vê a info do trial dentro do modal Minha assinatura.
+    var needVerify = needsEmailVerification();
     if (access.status === 'active') {
       hideGate();
-      ensureTrialBanner(0);
+      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
+      else { ensureVerifyBanner(false); ensureTrialBanner(0); }
       stopPolling();
       return;
     }
     if (access.status === 'trial') {
       hideGate();
-      ensureTrialBanner(access.trialDaysLeft || 0);
+      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
+      else { ensureVerifyBanner(false); ensureTrialBanner(access.trialDaysLeft || 0); }
       stopPolling();
       return;
     }
+    ensureVerifyBanner(false);
     ensureTrialBanner(0);
     if (access.status === 'pending_payment') {
       if (access.reason === 'risk_analysis') {
@@ -461,22 +556,154 @@
     return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
+  // Validação CPF/CNPJ com dígito verificador. Espelha api/_lib/cpf-cnpj.js
+  // para falhar cedo no cliente antes de chegar ao Asaas.
+  function isValidCpf(c) {
+    c = String(c || '').replace(/\D+/g, '');
+    if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    var s = 0, i;
+    for (i = 0; i < 9; i++) s += parseInt(c[i], 10) * (10 - i);
+    var d1 = (s * 10) % 11; if (d1 === 10) d1 = 0;
+    if (d1 !== parseInt(c[9], 10)) return false;
+    s = 0;
+    for (i = 0; i < 10; i++) s += parseInt(c[i], 10) * (11 - i);
+    var d2 = (s * 10) % 11; if (d2 === 10) d2 = 0;
+    return d2 === parseInt(c[10], 10);
+  }
+  function isValidCnpj(c) {
+    c = String(c || '').replace(/\D+/g, '');
+    if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+    var w1 = [5,4,3,2,9,8,7,6,5,4,3,2];
+    var w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
+    var s = 0, i;
+    for (i = 0; i < 12; i++) s += parseInt(c[i], 10) * w1[i];
+    var d1 = s % 11; d1 = d1 < 2 ? 0 : 11 - d1;
+    if (d1 !== parseInt(c[12], 10)) return false;
+    s = 0;
+    for (i = 0; i < 13; i++) s += parseInt(c[i], 10) * w2[i];
+    var d2 = s % 11; d2 = d2 < 2 ? 0 : 11 - d2;
+    return d2 === parseInt(c[13], 10);
+  }
+  function isValidCpfCnpj(v) {
+    var c = String(v || '').replace(/\D+/g, '');
+    if (c.length === 11) return isValidCpf(c);
+    if (c.length === 14) return isValidCnpj(c);
+    return false;
+  }
+
+  function ensureMyAccountStyles() {
+    if ($('appliqueiMyAccountStyles')) return;
+    var s = document.createElement('style');
+    s.id = 'appliqueiMyAccountStyles';
+    s.textContent = [
+      '#myAccountModal .ma-shell{width:100%;max-width:720px;background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.32);color:#0b1410;font-family:Figtree,sans-serif;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 48px);}',
+      '#myAccountModal .ma-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #eef2f0;background:linear-gradient(180deg,#fbfdfc,#f5f8f7);}',
+      '#myAccountModal .ma-head h2{font-family:Syne,sans-serif;font-size:1.2rem;margin:0;letter-spacing:-.01em;}',
+      '#myAccountModal .ma-head .ma-close{border:none;background:transparent;cursor:pointer;font-size:26px;line-height:1;color:#6b7d75;padding:4px 8px;border-radius:8px;}',
+      '#myAccountModal .ma-head .ma-close:hover{background:#eef2f0;}',
+      '#myAccountModal .ma-body{overflow-y:auto;padding:20px 22px 24px;}',
+      '#myAccountModal .ma-hero{position:relative;padding:18px 20px;border-radius:14px;background:linear-gradient(135deg,#064e3b 0%,#065f46 55%,#047857 100%);color:#fff;box-shadow:0 8px 22px rgba(6,95,70,.25);overflow:hidden;}',
+      '#myAccountModal .ma-hero.is-trial{background:linear-gradient(135deg,#075985 0%,#0369a1 55%,#0891b2 100%);box-shadow:0 8px 22px rgba(3,105,161,.25);}',
+      '#myAccountModal .ma-hero.is-blocked{background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 55%,#dc2626 100%);box-shadow:0 8px 22px rgba(185,28,28,.25);}',
+      '#myAccountModal .ma-hero.is-pending{background:linear-gradient(135deg,#854d0e 0%,#a16207 55%,#ca8a04 100%);box-shadow:0 8px 22px rgba(161,98,7,.25);}',
+      '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,#1f2937 0%,#374151 55%,#4b5563 100%);box-shadow:0 8px 22px rgba(31,41,55,.25);}',
+      '#myAccountModal .ma-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:4px 10px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:999px;}',
+      '#myAccountModal .ma-hero-title{font-family:Syne,sans-serif;font-size:1.5rem;font-weight:700;margin:10px 0 4px;letter-spacing:-.01em;}',
+      '#myAccountModal .ma-hero-sub{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.92);margin:0;}',
+      '#myAccountModal .ma-hero-cta{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:10px 16px;background:#fff;color:#064e3b;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;}',
+      '#myAccountModal .ma-hero.is-trial .ma-hero-cta{color:#075985;}',
+      '#myAccountModal .ma-hero.is-blocked .ma-hero-cta{color:#7f1d1d;}',
+      '#myAccountModal .ma-hero.is-pending .ma-hero-cta{color:#854d0e;}',
+      '#myAccountModal .ma-hero.is-inactive .ma-hero-cta{color:#1f2937;}',
+      '#myAccountModal .ma-hero-bar{margin-top:14px;background:rgba(255,255,255,.18);border-radius:999px;height:8px;overflow:hidden;}',
+      '#myAccountModal .ma-hero-bar > span{display:block;height:100%;background:#fff;border-radius:999px;transition:width .6s ease;}',
+      '#myAccountModal .ma-hero-meta{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(255,255,255,.88);margin-top:6px;letter-spacing:.3px;}',
+      '#myAccountModal .ma-section{margin-top:18px;}',
+      '#myAccountModal .ma-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7d75;margin:0 0 8px;display:flex;align-items:center;gap:6px;}',
+      '#myAccountModal .ma-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
+      '#myAccountModal .ma-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}',
+      '#myAccountModal .ma-card{background:#fff;border:1px solid #e4ebe7;border-radius:12px;padding:12px 14px;}',
+      '#myAccountModal .ma-card-label{font-size:10.5px;font-weight:700;color:#6b7d75;text-transform:uppercase;letter-spacing:.5px;}',
+      '#myAccountModal .ma-card-value{font-size:16px;font-weight:700;color:#0b1410;margin-top:3px;line-height:1.25;}',
+      '#myAccountModal .ma-card-foot{font-size:11px;color:#6b7d75;margin-top:3px;}',
+      '#myAccountModal .ma-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;}',
+      '#myAccountModal .ma-badge.ok{background:#ecfdf5;color:#065f46;}',
+      '#myAccountModal .ma-badge.warn{background:#fef3c7;color:#854d0e;}',
+      '#myAccountModal .ma-badge.bad{background:#fee2e2;color:#7f1d1d;}',
+      '#myAccountModal .ma-badge.muted{background:#f1f5f3;color:#384a42;}',
+      '#myAccountModal .ma-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;}',
+      '#myAccountModal .ma-row + .ma-row{margin-top:6px;}',
+      '#myAccountModal .ma-row-main{display:flex;align-items:center;gap:10px;min-width:0;}',
+      '#myAccountModal .ma-row-icon{flex:0 0 32px;height:32px;border-radius:8px;background:#ecfdf5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:16px;}',
+      '#myAccountModal .ma-row-text{font-size:13px;color:#0b1410;min-width:0;}',
+      '#myAccountModal .ma-row-text small{display:block;font-size:11.5px;color:#6b7d75;margin-top:2px;font-weight:500;}',
+      '#myAccountModal .ma-row-action{flex:0 0 auto;}',
+      '#myAccountModal .ma-btn{border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:7px 12px;border-radius:9px;font-size:12px;color:#384a42;font-weight:600;font-family:inherit;}',
+      '#myAccountModal .ma-btn:hover{background:#f1f5f3;}',
+      '#myAccountModal .ma-btn-primary{border:none;background:#059669;color:#fff;}',
+      '#myAccountModal .ma-btn-primary:hover{background:#047857;}',
+      '#myAccountModal .ma-btn-danger{border:none;background:#fff;color:#7f1d1d;text-decoration:underline;padding:6px 8px;}',
+      '#myAccountModal .ma-btn-danger:hover{background:#fee2e2;text-decoration:none;}',
+      '#myAccountModal .ma-table{width:100%;font-size:12.5px;border-collapse:collapse;}',
+      '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:#6b7d75;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:6px 8px;border-bottom:1px solid #eef2f0;}',
+      '#myAccountModal .ma-table td{padding:8px;border-bottom:1px solid #f5f7f6;vertical-align:top;color:#1d2a23;}',
+      '#myAccountModal .ma-table tr:last-child td{border-bottom:none;}',
+      '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}',
+      '#myAccountModal .ma-empty{padding:14px;text-align:center;color:#6b7d75;font-size:12.5px;background:#f9fbfa;border:1px dashed #d4dad7;border-radius:10px;}',
+      '#myAccountModal .ma-collapsible{border:1px solid #e4ebe7;border-radius:12px;overflow:hidden;}',
+      '#myAccountModal .ma-collapsible > summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:13px;font-weight:600;color:#1d2a23;display:flex;align-items:center;justify-content:space-between;background:#fbfdfc;}',
+      '#myAccountModal .ma-collapsible > summary::after{content:"\\25BE";color:#6b7d75;transition:transform .2s;}',
+      '#myAccountModal .ma-collapsible[open] > summary::after{transform:rotate(180deg);}',
+      '#myAccountModal .ma-collapsible > div{padding:8px 14px 14px;}',
+      '#myAccountModal .ma-alert{margin-top:14px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;}',
+      '#myAccountModal .ma-alert.bad{background:#fee2e2;border-color:#fecaca;color:#7f1d1d;}',
+      '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px;border-top:1px solid #eef2f0;background:#fbfdfc;}',
+      '#myAccountModal .ma-foot-link{font-size:11.5px;color:#6b7d75;}',
+      '@media (max-width:560px){',
+      '  #myAccountModal{padding:12px 8px;}',
+      '  #myAccountModal .ma-shell{max-height:calc(100vh - 16px);border-radius:14px;}',
+      '  #myAccountModal .ma-head{padding:14px 16px;}',
+      '  #myAccountModal .ma-body{padding:16px;}',
+      '  #myAccountModal .ma-grid-2,#myAccountModal .ma-grid-3{grid-template-columns:1fr;}',
+      '  #myAccountModal .ma-foot{padding:12px 16px;flex-wrap:wrap;}',
+      '  #myAccountModal .ma-row{flex-wrap:wrap;}',
+      '  #myAccountModal .ma-row-action{width:100%;}',
+      '  #myAccountModal .ma-row-action .ma-btn{width:100%;}',
+      '}',
+    ].join('');
+    document.head.appendChild(s);
+  }
+
   function ensureMyAccountModal() {
+    ensureMyAccountStyles();
     if ($('myAccountModal')) return;
     var div = document.createElement('div');
     div.id = 'myAccountModal';
-    div.style.cssText = 'position:fixed;inset:0;z-index:10070;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.55);overflow-y:auto;';
+    div.style.cssText = 'position:fixed;inset:0;z-index:10070;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
     div.innerHTML = '\
-      <div style="width:100%;max-width:520px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.3);padding:26px;color:#0b1410;font-family:Figtree,sans-serif;">\
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">\
-          <h2 style="font-family:Syne,sans-serif;font-size:1.25rem;margin:0;">Minha assinatura</h2>\
-          <button type="button" id="myAccountClose" style="border:none;background:none;cursor:pointer;font-size:22px;color:#6b7d75;">&times;</button>\
+      <div class="ma-shell" role="dialog" aria-modal="true" aria-labelledby="myAccountTitle">\
+        <div class="ma-head">\
+          <h2 id="myAccountTitle">Minha assinatura</h2>\
+          <button type="button" id="myAccountClose" class="ma-close" aria-label="Fechar">&times;</button>\
         </div>\
-        <div id="myAccountBody" style="font-size:13.5px;color:#1d2a23;">A carregar…</div>\
+        <div id="myAccountBody" class="ma-body">A carregar…</div>\
+        <div class="ma-foot">\
+          <span class="ma-foot-link">Programa Applicash · 10% de cashback recorrente</span>\
+          <button type="button" id="myAccountReload" class="ma-btn">Atualizar</button>\
+        </div>\
       </div>';
     document.body.appendChild(div);
     div.addEventListener('click', function (e) { if (e.target === div) closeMyAccount(); });
     $('myAccountClose').addEventListener('click', closeMyAccount);
+    $('myAccountReload').addEventListener('click', async function () {
+      var btn = $('myAccountReload');
+      if (btn) { btn.disabled = true; btn.textContent = 'A atualizar…'; }
+      try { var me = await fetchMe(); renderMyAccount(me); } catch (e) {}
+      if (btn) { btn.disabled = false; btn.textContent = 'Atualizar'; }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && $('myAccountModal') && $('myAccountModal').style.display === 'flex') closeMyAccount();
+    });
   }
   function closeMyAccount() {
     var m = $('myAccountModal');
@@ -485,12 +712,25 @@
   async function openMyAccount() {
     ensureMyAccountModal();
     $('myAccountModal').style.display = 'flex';
-    $('myAccountBody').innerHTML = 'A carregar…';
+    // Stale-while-revalidate: se já carregámos a tela alguma vez, mostramos
+    // o último snapshot imediatamente e atualizamos em background. Evita o
+    // "A carregar…" branco em ~todos os reopens.
+    var hadCache = !!lastMe;
+    if (hadCache) {
+      renderMyAccount(lastMe);
+      var reloadBtn = $('myAccountReload');
+      if (reloadBtn) { reloadBtn.disabled = true; reloadBtn.textContent = 'A atualizar…'; }
+    } else {
+      $('myAccountBody').innerHTML = '<div class="ma-empty">A carregar…</div>';
+    }
     try {
       var me = await fetchMe();
       renderMyAccount(me);
     } catch (e) {
-      $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
+      if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
+    } finally {
+      var rb = $('myAccountReload');
+      if (rb) { rb.disabled = false; rb.textContent = 'Atualizar'; }
     }
   }
   function statusLabel(s) {
@@ -564,153 +804,328 @@
     return map[r] || r;
   }
 
-  function renderMyAccount(me) {
-    lastMe = me;
-    var pct = me.recurringDiscountPercent || 0;
-    var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+  function daysBetween(isoOrTs, now) {
+    if (!isoOrTs) return null;
+    var t;
+    try { t = new Date(isoOrTs).getTime(); } catch (_) { return null; }
+    if (!t || isNaN(t)) return null;
+    var diff = t - (now || Date.now());
+    return Math.ceil(diff / 86400000);
+  }
+  function pluralDays(n) {
+    return Math.abs(n) === 1 ? 'dia' : 'dias';
+  }
+  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+
+  function renderHeroBlock(me) {
+    var access = me.access || {};
     var subStatus = me.subscriptionStatus;
-    var trialEndsAt = me.trialEndsAt;
-    var inTrial = me.access && me.access.status === 'trial';
     var hasSub = !!me.subscriptionId;
     var isInactive = subStatus === 'INACTIVE';
+    var inTrial = access.status === 'trial';
+    var trialEndsAt = me.trialEndsAt;
+    var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
 
-    var subBlock = '';
-    if (inTrial && !hasSub) {
-      subBlock = '<div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;border-radius:10px;padding:12px 14px;font-size:13px;">' +
-        'Você está na <strong>avaliação gratuita</strong>. Termina em ' + fmtDate(trialEndsAt) + '.</div>';
-    } else if (hasSub) {
+    if (inTrial) {
+      var totalDays = 7;
+      var left = clamp(access.trialDaysLeft || daysBetween(trialEndsAt) || 0, 0, totalDays);
+      var pct = clamp(((totalDays - left) / totalDays) * 100, 0, 100);
+      var titleTxt = left <= 1 ? 'Último dia da avaliação gratuita' : left + ' ' + pluralDays(left) + ' restantes na avaliação';
+      var subTxt = 'Sua avaliação gratuita termina em ' + fmtDate(trialEndsAt) + '. Garanta acesso contínuo assinando antes.';
+      var cta = hasSub
+        ? 'Pagamento já em curso · estamos a confirmar'
+        : '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar agora · ' + fmtBRL(baseCents) + '/mês</button>';
+      return '<div class="ma-hero is-trial">' +
+        '<span class="ma-hero-eyebrow"><i class="ph-fill ph-sparkle"></i> Avaliação gratuita</span>' +
+        '<div class="ma-hero-title">' + titleTxt + '</div>' +
+        '<p class="ma-hero-sub">' + subTxt + '</p>' +
+        '<div class="ma-hero-bar"><span style="width:' + pct.toFixed(1) + '%;"></span></div>' +
+        '<div class="ma-hero-meta"><span>Dia ' + (totalDays - left) + ' de ' + totalDays + '</span><span>Termina ' + fmtDate(trialEndsAt) + '</span></div>' +
+        (typeof cta === 'string' ? cta : '') +
+      '</div>';
+    }
+
+    if (access.status === 'active') {
       var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
-      var nextDateStr = nextCharge ? fmtDate(nextCharge.date) : '—';
-      var nextValueStr = nextCharge ? fmtBRL(nextCharge.amountCents) : fmtBRL(me.projectedNextBillCents || baseCents);
-      subBlock = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-        statCard('Status', '<span style="color:' + statusColor(subStatus) + ';">' + statusLabel(subStatus) + '</span>') +
-        statCard('Plano', 'Mensal Appliquei') +
-        statCard('Valor cobrado', fmtBRL(baseCents)) +
-        statCard('Próxima cobrança', nextDateStr + '<div style="font-size:11px;font-weight:500;color:#6b7d75;margin-top:2px;">' + nextValueStr + '</div>') +
-        '</div>';
+      var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
+      var dleft = daysBetween(nextDate);
+      var dleftTxt = dleft != null
+        ? (dleft <= 0 ? 'hoje' : 'em ' + dleft + ' ' + pluralDays(dleft))
+        : '—';
+      var dpct = dleft != null ? clamp(((30 - clamp(dleft, 0, 30)) / 30) * 100, 0, 100) : 0;
+      return '<div class="ma-hero">' +
+        '<span class="ma-hero-eyebrow"><i class="ph-fill ph-check-circle"></i> Assinatura ativa</span>' +
+        '<div class="ma-hero-title">Appliquei Mensal · ' + fmtBRL(baseCents) + '<span style="font-size:.7em;font-weight:500;color:rgba(255,255,255,.85);">/mês</span></div>' +
+        '<p class="ma-hero-sub">Próxima cobrança ' + dleftTxt + (nextDate ? ' (' + fmtDate(nextDate) + ')' : '') + '. Renovação automática.</p>' +
+        '<div class="ma-hero-bar"><span style="width:' + dpct.toFixed(1) + '%;"></span></div>' +
+        '<div class="ma-hero-meta"><span>Ciclo atual</span><span>' + (nextDate ? 'Renova ' + fmtDate(nextDate) : 'Renova mensalmente') + '</span></div>' +
+      '</div>';
     }
 
-    var discountNote = pct > 0
-      ? '<div style="margin-top:10px;font-size:12px;color:#059669;"><strong>' + pct + '% off recorrente</strong> aplicado por uso do cupom ' + (me.referredByCode || '') + '.</div>'
-      : '';
+    if (access.status === 'pending_payment') {
+      var pendTitle = access.reason === 'risk_analysis' ? 'Cartão em análise de risco' : 'Aguardando confirmação do pagamento';
+      var pendSub = access.reason === 'risk_analysis'
+        ? 'A Asaas está a validar a operação. Esta análise costuma demorar até alguns minutos — atualizamos sozinhos.'
+        : 'Recebemos a sua assinatura. Estamos à espera da confirmação do pagamento pela Asaas.';
+      return '<div class="ma-hero is-pending">' +
+        '<span class="ma-hero-eyebrow"><i class="ph-fill ph-clock-countdown"></i> Pagamento em processamento</span>' +
+        '<div class="ma-hero-title">' + pendTitle + '</div>' +
+        '<p class="ma-hero-sub">' + pendSub + '</p>' +
+        '<button type="button" class="ma-hero-cta" data-act="reload-status"><i class="ph ph-arrow-clockwise"></i> Verificar status agora</button>' +
+      '</div>';
+    }
 
-    // Bloco de método de pagamento (cartão actual)
-    var methodBlock = '';
-    if (hasSub && !isInactive) {
-      var methodLabel = paymentMethodLabel(me.paymentMethod, me.cardBrand, me.cardLast4);
-      var holderLine = me.cardHolderName ? '<div style="font-size:11.5px;color:#6b7d75;margin-top:2px;">Titular: ' + escapeHtml(me.cardHolderName) + '</div>' : '';
-      var changeBtn = '<button type="button" data-act="change-card" style="border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;color:#384a42;">' + (me.paymentMethod === 'CREDIT_CARD' ? 'Trocar cartão' : 'Pagar com cartão') + '</button>';
-      methodBlock = '<div style="margin-top:16px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:12px 14px;">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-          '<div>' +
-            '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">Método de pagamento</div>' +
-            '<div style="font-size:13.5px;font-weight:600;margin-top:2px;">' + methodLabel + '</div>' +
-            holderLine +
-          '</div>' +
-          changeBtn +
+    if (isInactive) {
+      var cancelledTxt = me.cancelledAt
+        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '. O acesso fica disponível até o fim do ciclo já pago.'
+        : 'A sua assinatura está inativa.';
+      return '<div class="ma-hero is-inactive">' +
+        '<span class="ma-hero-eyebrow"><i class="ph-fill ph-prohibit-inset"></i> Assinatura cancelada</span>' +
+        '<div class="ma-hero-title">Reative quando quiser</div>' +
+        '<p class="ma-hero-sub">' + cancelledTxt + ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' + fmtBRL(baseCents) + '/mês</button>' +
+      '</div>';
+    }
+
+    // blocked / overdue / chargeback / card_reproved
+    var bTitle = 'Acesso bloqueado';
+    var bSub = 'A sua assinatura precisa de regularização para continuar.';
+    if (access.reason === 'overdue') { bTitle = 'Pagamento em atraso'; bSub = 'Identificámos uma fatura vencida. Troque o método de pagamento ou liquide a fatura pendente.'; }
+    else if (access.reason === 'card_reproved') { bTitle = 'Cartão recusado'; bSub = 'A Asaas recusou a cobrança no cartão. Atualize os dados para retomar o acesso.'; }
+    else if (access.reason === 'chargeback') { bTitle = 'Chargeback em curso'; bSub = 'Contacte o suporte para regularizar antes de criar uma nova cobrança.'; }
+    else if (access.reason === 'refunded') { bTitle = 'Pagamento estornado'; bSub = 'O último pagamento foi estornado. Crie uma nova assinatura para continuar.'; }
+    else if (access.reason === 'trial_expired') { bTitle = 'Avaliação gratuita terminou'; bSub = 'Os 7 dias gratuitos terminaram. Assine para continuar a usar a Appliquei.'; }
+    return '<div class="ma-hero is-blocked">' +
+      '<span class="ma-hero-eyebrow"><i class="ph-fill ph-warning"></i> ' + bTitle + '</span>' +
+      '<div class="ma-hero-title">' + bTitle + '</div>' +
+      '<p class="ma-hero-sub">' + bSub + '</p>' +
+      (access.reason === 'overdue' || access.reason === 'card_reproved'
+        ? '<button type="button" class="ma-hero-cta" data-act="change-card"><i class="ph-fill ph-credit-card"></i> Atualizar pagamento</button>'
+        : '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Regularizar agora</button>') +
+    '</div>';
+  }
+
+  function renderPlanInfoBlock(me) {
+    var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+    var listCents = me.monthlyPriceCents || 1500;
+    var pct = me.recurringDiscountPercent || 0;
+    var nextCents = me.projectedNextBillCents || baseCents;
+    var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
+    var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
+
+    var rows = '';
+    rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
+    rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
+      (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
+      '</div>';
+    rows += '<div class="ma-card"><div class="ma-card-label">Próxima fatura</div><div class="ma-card-value">' + fmtBRL(nextCents) + '</div><div class="ma-card-foot">' +
+      (nextDate ? fmtDate(nextDate) : '—') +
+      (nextCents < baseCents ? ' · com Applicash' : '') +
+    '</div></div>';
+
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-receipt"></i> Plano</div>' +
+      '<div class="ma-grid-3">' + rows + '</div>' +
+    '</div>';
+  }
+
+  function renderPaymentMethodBlock(me) {
+    var hasSub = !!me.subscriptionId;
+    var isInactive = me.subscriptionStatus === 'INACTIVE';
+    if (!hasSub || isInactive) return '';
+    var label = paymentMethodLabel(me.paymentMethod, me.cardBrand, me.cardLast4);
+    var holder = me.cardHolderName ? '<small>Titular: ' + escapeHtml(me.cardHolderName) + '</small>' : '';
+    var icon = me.paymentMethod === 'CREDIT_CARD' ? 'ph-fill ph-credit-card' : 'ph ph-qr-code';
+    var btnTxt = me.paymentMethod === 'CREDIT_CARD' ? 'Trocar cartão' : 'Pagar com cartão';
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-wallet"></i> Método de pagamento</div>' +
+      '<div class="ma-row">' +
+        '<div class="ma-row-main">' +
+          '<div class="ma-row-icon"><i class="' + icon + '"></i></div>' +
+          '<div class="ma-row-text">' + label + holder + '</div>' +
         '</div>' +
-      '</div>';
-    }
-
-    // Próximas cobranças
-    var upcomingBlock = '';
-    if (hasSub && !isInactive && me.upcomingCharges && me.upcomingCharges.length) {
-      var upcomingRows = me.upcomingCharges.map(function (u) {
-        var isForecast = u.source === 'forecast';
-        var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
-        var statusCol = isForecast ? '#6b7d75' : (u.status === 'OVERDUE' ? '#a16207' : '#384a42');
-        var actionCell = u.invoiceUrl
-          ? '<a href="' + u.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>'
-          : '—';
-        return '<tr>' +
-          '<td style="padding:5px 0;color:#4a5b53;">' + fmtDate(u.date) + '</td>' +
-          '<td style="text-align:right;padding:5px 0;font-weight:600;">' + fmtBRL(u.amountCents) + '</td>' +
-          '<td style="text-align:right;padding:5px 0;color:' + statusCol + ';">' + statusTxt + '</td>' +
-          '<td style="text-align:right;padding:5px 0;">' + actionCell + '</td>' +
-        '</tr>';
-      }).join('');
-      upcomingBlock = '<div style="margin-top:16px;">' +
-        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Próximas cobranças</div>' +
-        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' +
-          '<thead><tr style="color:#6b7d75;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">' +
-          '<th style="text-align:left;padding-bottom:4px;">Data</th>' +
-          '<th style="text-align:right;padding-bottom:4px;">Valor</th>' +
-          '<th style="text-align:right;padding-bottom:4px;">Status</th>' +
-          '<th style="text-align:right;padding-bottom:4px;"></th></tr></thead>' +
-          '<tbody>' + upcomingRows + '</tbody>' +
-        '</table>' +
-      '</div>';
-    }
-
-    // Avisos de falha / dunning
-    var alertBlock = '';
-    var failure = failureReasonLabel(me.lastFailureReason);
-    if (failure || (me.dunningRetryCount && me.dunningRetryCount > 0)) {
-      var parts = [];
-      if (failure) parts.push(failure);
-      if (me.dunningRetryCount && me.dunningRetryCount > 0) parts.push(me.dunningRetryCount + ' tentativa(s) de re-cobrança');
-      alertBlock = '<div style="margin-top:12px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:10px;padding:10px 12px;font-size:12.5px;">' +
-        '<strong>Atenção:</strong> ' + parts.join(' · ') +
-      '</div>';
-    }
-
-    // Dados de cobrança
-    var c = me.customer || {};
-    var customerSummary = [];
-    if (c.name) customerSummary.push(escapeHtml(c.name));
-    if (c.cpfCnpj) customerSummary.push(fmtCpfCnpj(c.cpfCnpj));
-    if (c.email) customerSummary.push(escapeHtml(c.email));
-    if (c.phone) customerSummary.push(fmtPhone(c.phone));
-    var customerBlock = '<div style="margin-top:16px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:12px 14px;">' +
-      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">' +
-        '<div>' +
-          '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">Dados de cobrança</div>' +
-          '<div style="font-size:13px;color:#1d2a23;margin-top:4px;line-height:1.5;">' + (customerSummary.length ? customerSummary.join('<br>') : '<em style="color:#6b7d75;">Sem dados — adicione para emitir faturas correctamente.</em>') + '</div>' +
-        '</div>' +
-        '<button type="button" data-act="edit-customer" style="border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:6px 10px;border-radius:8px;font-size:12px;color:#384a42;">Editar</button>' +
+        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="change-card">' + btnTxt + '</button></div>' +
       '</div>' +
     '</div>';
+  }
 
-    // Histórico
-    var payments = (me.payments || []);
-    var paymentsRows = payments.length ? payments.map(function (p) {
-      var note = eventNote(p);
-      var noteLine = note ? '<div style="font-size:11px;color:#6b7d75;margin-top:2px;">' + note + '</div>' : '';
+  function renderApplicashBlock(me) {
+    var pending = me.pendingDiscountCents || 0;
+    var earned = me.totalReferralEarningsCents || 0;
+    var active = me.activeReferrals || 0;
+    var total = me.totalReferrals || 0;
+    var nextCents = me.projectedNextBillCents || me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+    var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+    var coverage = baseCents > 0 ? clamp((pending / baseCents) * 100, 0, 100) : 0;
+    var code = me.referralCode || '—';
+
+    var statCards =
+      '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' + active + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> / ' + total + '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
+      '<div class="ma-card"><div class="ma-card-label">Saldo a abater</div><div class="ma-card-value" style="color:#059669;">' + fmtBRL(pending) + '</div><div class="ma-card-foot">Aplicado na próxima fatura</div></div>' +
+      '<div class="ma-card"><div class="ma-card-label">Ganhos totais</div><div class="ma-card-value">' + fmtBRL(earned) + '</div><div class="ma-card-foot">Acumulado desde o início</div></div>';
+
+    var coverageBlock = pending > 0
+      ? '<div class="ma-card" style="margin-top:10px;">' +
+          '<div class="ma-card-label">Próxima fatura com Applicash</div>' +
+          '<div style="display:flex;align-items:baseline;gap:6px;margin-top:4px;"><div class="ma-card-value">' + fmtBRL(nextCents) + '</div>' +
+            '<div style="text-decoration:line-through;color:#9ca3af;font-size:12px;">' + fmtBRL(baseCents) + '</div></div>' +
+          '<div style="margin-top:8px;background:#ecfdf5;border-radius:999px;height:8px;overflow:hidden;"><div style="width:' + coverage.toFixed(1) + '%;height:100%;background:linear-gradient(90deg,#059669,#10b981);"></div></div>' +
+          '<div class="ma-card-foot" style="margin-top:6px;">Applicash cobre ' + coverage.toFixed(0) + '% da sua próxima cobrança</div>' +
+        '</div>'
+      : '';
+
+    var codeRow = '<div class="ma-row" style="margin-top:10px;">' +
+      '<div class="ma-row-main">' +
+        '<div class="ma-row-icon" style="background:#fef3c7;color:#854d0e;"><i class="ph-fill ph-ticket"></i></div>' +
+        '<div class="ma-row-text">Seu cupom <strong>' + escapeHtml(code) + '</strong><small>Cada indicado paga 10% menos · você recebe 10% do que ele paga, todo mês.</small></div>' +
+      '</div>' +
+      '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="open-applicash">Ver Applicash</button></div>' +
+    '</div>';
+
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph-fill ph-currency-dollar"></i> Applicash · cashback</div>' +
+      '<div class="ma-grid-3">' + statCards + '</div>' +
+      coverageBlock +
+      codeRow +
+    '</div>';
+  }
+
+  function renderUpcomingBlock(me) {
+    var hasSub = !!me.subscriptionId;
+    var isInactive = me.subscriptionStatus === 'INACTIVE';
+    if (!hasSub || isInactive) return '';
+    var charges = (me.upcomingCharges || []);
+    if (!charges.length) return '';
+    var rows = charges.map(function (u) {
+      var isForecast = u.source === 'forecast';
+      var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
+      var badgeCls = 'muted';
+      if (u.status === 'PENDING') badgeCls = 'warn';
+      else if (u.status === 'OVERDUE') badgeCls = 'bad';
+      var action = u.invoiceUrl
+        ? '<a href="' + u.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">Pagar</a>'
+        : '<span style="color:#9ca3af;">—</span>';
       return '<tr>' +
-        '<td style="padding:6px 0;color:#4a5b53;vertical-align:top;">' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + noteLine + '</td>' +
-        '<td style="padding:6px 0;vertical-align:top;">' + (p.billingType || '—') + '</td>' +
-        '<td style="text-align:right;padding:6px 0;font-weight:600;vertical-align:top;">R$ ' + (p.value || 0).toFixed(2) + '</td>' +
-        '<td style="text-align:right;padding:6px 0;vertical-align:top;">' + statusBadge(p.status) + '</td>' +
-        '<td style="text-align:right;padding:6px 0;vertical-align:top;">' + (p.invoiceUrl ? '<a href="' + p.invoiceUrl + '" target="_blank" rel="noopener" style="color:#059669;">Fatura</a>' : '—') + '</td>' +
+        '<td>' + fmtDate(u.date) + '</td>' +
+        '<td class="num">' + fmtBRL(u.amountCents) + '</td>' +
+        '<td><span class="ma-badge ' + badgeCls + '">' + statusTxt + '</span></td>' +
+        '<td class="num">' + action + '</td>' +
       '</tr>';
-    }).join('') : '<tr><td colspan="5" style="padding:10px 0;color:#6b7d75;text-align:center;">Sem pagamentos ainda.</td></tr>';
+    }).join('');
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-calendar-check"></i> Próximas cobranças</div>' +
+      '<div style="border:1px solid #e4ebe7;border-radius:12px;overflow:hidden;">' +
+        '<table class="ma-table"><thead><tr><th>Data</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }
 
-    var historyBlock = '<div style="margin-top:18px;">' +
-        '<div style="font-size:12px;font-weight:600;color:#384a42;margin-bottom:6px;">Histórico de cobranças</div>' +
-        '<table style="width:100%;font-size:12.5px;border-collapse:collapse;">' +
-          '<thead><tr style="color:#6b7d75;font-size:11px;text-transform:uppercase;letter-spacing:.4px;">' +
-          '<th style="text-align:left;padding-bottom:4px;">Data</th>' +
-          '<th style="text-align:left;padding-bottom:4px;">Forma</th>' +
-          '<th style="text-align:right;padding-bottom:4px;">Valor</th>' +
-          '<th style="text-align:right;padding-bottom:4px;">Status</th>' +
-          '<th style="text-align:right;padding-bottom:4px;"></th></tr></thead>' +
-          '<tbody>' + paymentsRows + '</tbody>' +
-        '</table>' +
-      '</div>';
+  function renderAlertsBlock(me) {
+    var failure = failureReasonLabel(me.lastFailureReason);
+    var dunning = me.dunningRetryCount && me.dunningRetryCount > 0 ? me.dunningRetryCount : 0;
+    if (!failure && !dunning) return '';
+    var parts = [];
+    if (failure) parts.push(failure);
+    if (dunning) parts.push(dunning + ' tentativa(s) de re-cobrança automática');
+    var cls = me.access && me.access.status === 'blocked' ? 'bad' : '';
+    return '<div class="ma-alert ' + cls + '"><strong><i class="ph-fill ph-warning"></i> Atenção:</strong> ' + parts.join(' · ') + '</div>';
+  }
 
-    // Acções principais
-    var actionsBlock = '';
-    if (hasSub && !isInactive) {
-      actionsBlock = '<div style="margin-top:18px;display:flex;justify-content:flex-end;">' +
-        '<button type="button" data-act="cancel-sub" style="border:none;background:none;cursor:pointer;font-size:12.5px;color:#7f1d1d;text-decoration:underline;">Cancelar assinatura</button>' +
-      '</div>';
-    } else if (isInactive) {
-      actionsBlock = '<div style="margin-top:14px;font-size:12.5px;color:#6b7d75;">Assinatura cancelada' + (me.cancelledAt ? ' em ' + fmtDate(me.cancelledAt) : '') + '. Volte a assinar a partir do gate de acesso.</div>';
+  function renderCustomerBlock(me) {
+    var c = me.customer || {};
+    var lines = [];
+    if (c.name) lines.push('<strong>' + escapeHtml(c.name) + '</strong>');
+    if (c.cpfCnpj) lines.push(fmtCpfCnpj(c.cpfCnpj));
+    if (c.email) lines.push(escapeHtml(c.email));
+    if (c.phone) lines.push(fmtPhone(c.phone));
+    if (c.address) {
+      var addr = escapeHtml(c.address) + (c.addressNumber ? ', ' + escapeHtml(c.addressNumber) : '');
+      if (c.city) addr += ' · ' + escapeHtml(c.city);
+      if (c.state) addr += '/' + escapeHtml(c.state);
+      lines.push('<span style="color:#6b7d75;font-size:12px;">' + addr + '</span>');
     }
+    var body = lines.length
+      ? lines.join('<br>')
+      : '<em style="color:#6b7d75;">Sem dados — adicione para emitir faturas correctamente.</em>';
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-user-circle"></i> Dados de cobrança</div>' +
+      '<div class="ma-row">' +
+        '<div class="ma-row-main"><div class="ma-row-icon" style="background:#f1f5f3;color:#384a42;"><i class="ph ph-identification-card"></i></div>' +
+          '<div class="ma-row-text" style="line-height:1.55;">' + body + '</div></div>' +
+        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="edit-customer">Editar</button></div>' +
+      '</div>' +
+    '</div>';
+  }
 
-    var footer = '<div style="margin-top:14px;font-size:11.5px;color:#6b7d75;">Programa de indicação (cupom, indicados, créditos) está em <strong>Applicash $</strong>.</div>';
+  function renderHistoryBlock(me) {
+    var payments = me.payments || [];
+    if (!payments.length) {
+      return '<div class="ma-section">' +
+        '<div class="ma-section-title"><i class="ph ph-clock-counter-clockwise"></i> Histórico</div>' +
+        '<div class="ma-empty">Sem cobranças registadas até ao momento.</div>' +
+      '</div>';
+    }
+    var rows = payments.map(function (p) {
+      var note = eventNote(p);
+      var noteLine = note ? '<small style="display:block;font-size:11px;color:#6b7d75;margin-top:2px;">' + note + '</small>' : '';
+      var refLine = p.referralAppliedCents && p.referralAppliedCents > 0
+        ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' + fmtBRL(p.referralAppliedCents) + ' Applicash</small>'
+        : '';
+      // Link mais útil por contexto:
+      //  - Pago: comprovante (transactionReceiptUrl). Fallback: fatura.
+      //  - Boleto pendente: PDF do boleto (bankSlipUrl).
+      //  - Outros: página da fatura.
+      var paid = p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH';
+      var linkUrl = null, linkLabel = null;
+      if (paid && p.transactionReceiptUrl) { linkUrl = p.transactionReceiptUrl; linkLabel = 'Comprovante'; }
+      else if (p.billingType === 'BOLETO' && p.bankSlipUrl) { linkUrl = p.bankSlipUrl; linkLabel = 'Boleto PDF'; }
+      else if (p.invoiceUrl) { linkUrl = p.invoiceUrl; linkLabel = paid ? 'Fatura' : 'Pagar'; }
+      var actionCell = linkUrl
+        ? '<a href="' + linkUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">' + linkLabel + '</a>'
+        : '—';
+      return '<tr>' +
+        '<td>' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + noteLine + '</td>' +
+        '<td>' + (p.billingType ? escapeHtml(String(p.billingType)) : '—') + '</td>' +
+        '<td class="num">' + fmtBRL(Math.round((p.value || 0) * 100)) + refLine + '</td>' +
+        '<td>' + statusBadge(p.status) + '</td>' +
+        '<td class="num">' + actionCell + '</td>' +
+      '</tr>';
+    }).join('');
+    return '<div class="ma-section">' +
+      '<details class="ma-collapsible"' + (payments.length <= 3 ? ' open' : '') + '>' +
+        '<summary><span><i class="ph ph-clock-counter-clockwise"></i> Histórico (' + payments.length + ')</span></summary>' +
+        '<div><table class="ma-table"><thead><tr><th>Data</th><th>Forma</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '</details>' +
+    '</div>';
+  }
 
-    $('myAccountBody').innerHTML = subBlock + discountNote + methodBlock + alertBlock + upcomingBlock + customerBlock + historyBlock + actionsBlock + footer;
+  function renderActionsBlock(me) {
+    var hasSub = !!me.subscriptionId;
+    var isInactive = me.subscriptionStatus === 'INACTIVE';
+    if (isInactive) return '';
+    if (!hasSub) return '';
+    return '<div class="ma-section" style="display:flex;justify-content:flex-end;">' +
+      '<button type="button" class="ma-btn ma-btn-danger" data-act="cancel-sub">Cancelar assinatura</button>' +
+    '</div>';
+  }
+
+  function renderMyAccount(me) {
+    lastMe = me;
+    if (!me || (!me.subscriptionId && !(me.access && (me.access.status === 'trial' || me.access.status === 'blocked')))) {
+      // Sem billing inicializado — mostra mensagem mínima
+      $('myAccountBody').innerHTML = '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
+      return;
+    }
+    var html = renderHeroBlock(me)
+      + renderAlertsBlock(me)
+      + renderPlanInfoBlock(me)
+      + renderApplicashBlock(me)
+      + renderUpcomingBlock(me)
+      + renderPaymentMethodBlock(me)
+      + renderCustomerBlock(me)
+      + renderHistoryBlock(me)
+      + renderActionsBlock(me);
+    $('myAccountBody').innerHTML = html;
     bindMyAccountActions();
   }
 
@@ -726,9 +1141,23 @@
           if (act === 'change-card') openChangeCardModal();
           else if (act === 'edit-customer') openEditCustomerModal();
           else if (act === 'cancel-sub') confirmCancelSubscription();
+          else if (act === 'subscribe-now') { closeMyAccount(); openSubscribeForm(); }
+          else if (act === 'reactivate') { closeMyAccount(); openSubscribeForm(); }
+          else if (act === 'reload-status') reloadAccountStatus(btn);
+          else if (act === 'open-applicash') {
+            closeMyAccount();
+            try { if (typeof window.mudarAba === 'function') window.mudarAba(new Event('click'), 'applicash'); } catch (_) {}
+          }
         });
       })(btns[i]);
     }
+  }
+
+  async function reloadAccountStatus(btn) {
+    if (btn) { btn.disabled = true; var prev = btn.innerHTML; btn.innerHTML = 'A verificar…'; }
+    try { await refresh(false); var me = await fetchMe(); renderMyAccount(me); }
+    catch (e) {}
+    if (btn) { btn.disabled = false; btn.innerHTML = prev || 'Verificar status agora'; }
   }
 
   function escapeHtml(s) {
@@ -836,6 +1265,11 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
         return;
       }
+      if (!isValidCpfCnpj(cpfCnpj)) {
+        showSubModalErr('mcErr', 'CPF/CNPJ inválido nos dados de cobrança. Edite os dados primeiro.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+        return;
+      }
       var fb = window.AppliqueiFirebase;
       var userEmail = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || c.email || null;
       await authedFetch('/card', {
@@ -900,6 +1334,7 @@
 
     if (name && name.length < 3) return showSubModalErr('ecErr', 'Nome muito curto.');
     if (cpf && cpf.length !== 11 && cpf.length !== 14) return showSubModalErr('ecErr', 'CPF (11) ou CNPJ (14 dígitos).');
+    if (cpf && !isValidCpfCnpj(cpf)) return showSubModalErr('ecErr', 'CPF/CNPJ inválido — verifique os dígitos.');
     if (zip && zip.length !== 8) return showSubModalErr('ecErr', 'CEP precisa ter 8 dígitos.');
 
     var btn = $('ecSubmit');
@@ -1098,6 +1533,10 @@
       showErr('Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).');
       return;
     }
+    if (cpfEl && !isValidCpfCnpj(cpfDigits)) {
+      showErr('CPF/CNPJ inválido — verifique os dígitos.');
+      return;
+    }
     if (nameEl && nameVal.length < 3) {
       showErr('Informe o seu nome completo.');
       return;
@@ -1140,12 +1579,23 @@
       if (r.invoiceUrl) {
         if (popup && !popup.closed) {
           popup.location.href = r.invoiceUrl;
+          showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
+          startActivePolling();
         } else {
-          window.location.href = r.invoiceUrl;
-          return;
+          // Popup bloqueado: oferece link explícito em vez de redirect destruir a sessão.
+          showGate('Conclua o pagamento',
+            'Abra a fatura no link abaixo. Após pagar, volte aqui e prima "Já paguei — verificar status".');
+          var err = $('billingErr');
+          if (err) {
+            err.innerHTML = 'A sua janela bloqueou o popup. <a href="' + r.invoiceUrl +
+              '" target="_blank" rel="noopener" style="color:#059669;text-decoration:underline;font-weight:600;">Abrir fatura</a>';
+            err.style.background = '#ecfdf5';
+            err.style.borderColor = '#a7f3d0';
+            err.style.color = '#065f46';
+            err.style.display = 'block';
+          }
+          startActivePolling();
         }
-        showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
-        startActivePolling();
       } else if (r.alreadyActive) {
         writePopupMessage(popup, 'Já tem assinatura ativa', 'A sua assinatura (id: ' + (r.subscriptionId || '?') + ') já existe, mas não há fatura pendente. Verifique no painel Asaas. Resposta:\n\n' + JSON.stringify(r, null, 2));
         await refresh(false);
@@ -1182,13 +1632,25 @@
 
   function startActivePolling() {
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
-    pollTimer = setInterval(function () { refresh(false); }, 5000);
+    // Polling rápido (5s) por 5 minutos. Depois cai para o ritmo normal (30s)
+    // para não desperdiçar requests se o utilizador deixar a aba aberta.
+    var ticks = 0;
+    var FAST_MAX_TICKS = 60; // 60 × 5s = 5min
+    pollTimer = setInterval(function () {
+      ticks++;
+      refresh(false);
+      if (ticks >= FAST_MAX_TICKS) {
+        clearInterval(pollTimer);
+        pollTimer = setInterval(function () { refresh(false); }, POLL_MS);
+      }
+    }, 5000);
   }
 
   function onUser(user) {
     if (!user) {
       hideGate();
       ensureTrialBanner(0);
+      ensureVerifyBanner(false);
       stopPolling();
       lastAccess = null;
       return;

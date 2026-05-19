@@ -197,9 +197,13 @@ module.exports = async (req, res) => {
   // de créditos referral disparam várias vezes. Usa `body.id` quando
   // existir (Asaas envia um id único do evento) e cai em uma chave
   // determinística como fallback.
+  // Para eventos de subscription sem body.id, incluir status+nextDueDate ajuda
+  // a distinguir múltiplos UPDATED legítimos sem deduplicar incorretamente.
   const eventKey = body.id
     || (event && payment && payment.id ? `${event}:${payment.id}:${payment.status || ''}` : null)
-    || (event && subscription && subscription.id ? `${event}:sub:${subscription.id}` : null);
+    || (event && subscription && subscription.id
+        ? `${event}:sub:${subscription.id}:${subscription.status || ''}:${subscription.nextDueDate || ''}`
+        : null);
   if (eventKey) {
     try {
       const eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
@@ -350,6 +354,8 @@ module.exports = async (req, res) => {
           dueDate: payment.dueDate || null,
           paymentDate: payment.paymentDate || null,
           invoiceUrl: payment.invoiceUrl || null,
+          bankSlipUrl: payment.bankSlipUrl || null,
+          transactionReceiptUrl: payment.transactionReceiptUrl || null,
           subscriptionId: payment.subscription || null,
           event,
           receivedAt: fieldValue().serverTimestamp(),
