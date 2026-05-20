@@ -526,10 +526,19 @@
       "norm_label": "resendverification()"
     },
     {
+      "label": "startResendCooldown()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L344",
+      "id": "web_appliquei_billing_startresendcooldown",
+      "community": 4,
+      "norm_label": "startresendcooldown()"
+    },
+    {
       "label": "recheckVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L338",
+      "source_location": "L360",
       "id": "web_appliquei_billing_recheckverification",
       "community": 4,
       "norm_label": "recheckverification()"
@@ -538,7 +547,7 @@
       "label": "needsEmailVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L359",
+      "source_location": "L381",
       "id": "web_appliquei_billing_needsemailverification",
       "community": 4,
       "norm_label": "needsemailverification()"
@@ -547,7 +556,7 @@
       "label": "ensureTrialBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L370",
+      "source_location": "L392",
       "id": "web_appliquei_billing_ensuretrialbanner",
       "community": 4,
       "norm_label": "ensuretrialbanner()"
@@ -556,7 +565,7 @@
       "label": "authedFetch()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L394",
+      "source_location": "L416",
       "id": "web_appliquei_billing_authedfetch",
       "community": 4,
       "norm_label": "authedfetch()"
@@ -565,7 +574,7 @@
       "label": "applyAccess()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L457",
+      "source_location": "L479",
       "id": "web_appliquei_billing_applyaccess",
       "community": 4,
       "norm_label": "applyaccess()"
@@ -574,7 +583,7 @@
       "label": "startPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L504",
+      "source_location": "L526",
       "id": "web_appliquei_billing_startpolling",
       "community": 4,
       "norm_label": "startpolling()"
@@ -583,7 +592,7 @@
       "label": "stopPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L508",
+      "source_location": "L530",
       "id": "web_appliquei_billing_stoppolling",
       "community": 4,
       "norm_label": "stoppolling()"
@@ -592,7 +601,7 @@
       "label": "initBilling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L512",
+      "source_location": "L534",
       "id": "web_appliquei_billing_initbilling",
       "community": 4,
       "norm_label": "initbilling()"
@@ -601,7 +610,7 @@
       "label": "fetchMe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L551",
+      "source_location": "L573",
       "id": "web_appliquei_billing_fetchme",
       "community": 4,
       "norm_label": "fetchme()"
@@ -610,7 +619,7 @@
       "label": "fmtBRL()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L555",
+      "source_location": "L577",
       "id": "web_appliquei_billing_fmtbrl",
       "community": 4,
       "norm_label": "fmtbrl()"
@@ -619,7 +628,7 @@
       "label": "isValidCpf()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L561",
+      "source_location": "L583",
       "id": "web_appliquei_billing_isvalidcpf",
       "community": 4,
       "norm_label": "isvalidcpf()"
@@ -628,7 +637,7 @@
       "label": "isValidCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L573",
+      "source_location": "L595",
       "id": "web_appliquei_billing_isvalidcnpj",
       "community": 4,
       "norm_label": "isvalidcnpj()"
@@ -637,7 +646,7 @@
       "label": "isValidCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L587",
+      "source_location": "L609",
       "id": "web_appliquei_billing_isvalidcpfcnpj",
       "community": 4,
       "norm_label": "isvalidcpfcnpj()"
@@ -646,7 +655,7 @@
       "label": "ensureMyAccountStyles()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L594",
+      "source_location": "L616",
       "id": "web_appliquei_billing_ensuremyaccountstyles",
       "community": 4,
       "norm_label": "ensuremyaccountstyles()"
@@ -655,7 +664,7 @@
       "label": "ensureMyAccountModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L677",
+      "source_location": "L699",
       "id": "web_appliquei_billing_ensuremyaccountmodal",
       "community": 4,
       "norm_label": "ensuremyaccountmodal()"
@@ -664,7 +673,7 @@
       "label": "closeMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L708",
+      "source_location": "L730",
       "id": "web_appliquei_billing_closemyaccount",
       "community": 4,
       "norm_label": "closemyaccount()"
@@ -673,7 +682,7 @@
       "label": "openMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L712",
+      "source_location": "L734",
       "id": "web_appliquei_billing_openmyaccount",
       "community": 4,
       "norm_label": "openmyaccount()"
@@ -682,7 +691,7 @@
       "label": "statusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L736",
+      "source_location": "L758",
       "id": "web_appliquei_billing_statuslabel",
       "community": 4,
       "norm_label": "statuslabel()"
@@ -691,7 +700,7 @@
       "label": "statusColor()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L743",
+      "source_location": "L765",
       "id": "web_appliquei_billing_statuscolor",
       "community": 4,
       "norm_label": "statuscolor()"
@@ -700,7 +709,7 @@
       "label": "fmtDate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L749",
+      "source_location": "L771",
       "id": "web_appliquei_billing_fmtdate",
       "community": 4,
       "norm_label": "fmtdate()"
@@ -709,7 +718,7 @@
       "label": "paymentStatusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L753",
+      "source_location": "L775",
       "id": "web_appliquei_billing_paymentstatuslabel",
       "community": 4,
       "norm_label": "paymentstatuslabel()"
@@ -718,7 +727,7 @@
       "label": "statusBadge()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L764",
+      "source_location": "L786",
       "id": "web_appliquei_billing_statusbadge",
       "community": 4,
       "norm_label": "statusbadge()"
@@ -727,7 +736,7 @@
       "label": "eventNote()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L773",
+      "source_location": "L795",
       "id": "web_appliquei_billing_eventnote",
       "community": 4,
       "norm_label": "eventnote()"
@@ -736,7 +745,7 @@
       "label": "cardBrandLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L782",
+      "source_location": "L804",
       "id": "web_appliquei_billing_cardbrandlabel",
       "community": 4,
       "norm_label": "cardbrandlabel()"
@@ -745,7 +754,7 @@
       "label": "paymentMethodLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L787",
+      "source_location": "L809",
       "id": "web_appliquei_billing_paymentmethodlabel",
       "community": 4,
       "norm_label": "paymentmethodlabel()"
@@ -754,7 +763,7 @@
       "label": "failureReasonLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L797",
+      "source_location": "L819",
       "id": "web_appliquei_billing_failurereasonlabel",
       "community": 4,
       "norm_label": "failurereasonlabel()"
@@ -763,7 +772,7 @@
       "label": "daysBetween()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L807",
+      "source_location": "L829",
       "id": "web_appliquei_billing_daysbetween",
       "community": 4,
       "norm_label": "daysbetween()"
@@ -772,7 +781,7 @@
       "label": "pluralDays()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L815",
+      "source_location": "L837",
       "id": "web_appliquei_billing_pluraldays",
       "community": 4,
       "norm_label": "pluraldays()"
@@ -781,7 +790,7 @@
       "label": "clamp()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L818",
+      "source_location": "L840",
       "id": "web_appliquei_billing_clamp",
       "community": 4,
       "norm_label": "clamp()"
@@ -790,7 +799,7 @@
       "label": "renderHeroBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L820",
+      "source_location": "L842",
       "id": "web_appliquei_billing_renderheroblock",
       "community": 4,
       "norm_label": "renderheroblock()"
@@ -799,7 +808,7 @@
       "label": "renderPlanInfoBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L950",
+      "source_location": "L972",
       "id": "web_appliquei_billing_renderplaninfoblock",
       "community": 4,
       "norm_label": "renderplaninfoblock()"
@@ -808,7 +817,7 @@
       "label": "renderPaymentMethodBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L995",
+      "source_location": "L1017",
       "id": "web_appliquei_billing_renderpaymentmethodblock",
       "community": 4,
       "norm_label": "renderpaymentmethodblock()"
@@ -817,7 +826,7 @@
       "label": "renderApplicashBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1015",
+      "source_location": "L1037",
       "id": "web_appliquei_billing_renderapplicashblock",
       "community": 4,
       "norm_label": "renderapplicashblock()"
@@ -826,7 +835,7 @@
       "label": "renderUpcomingBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1056",
+      "source_location": "L1078",
       "id": "web_appliquei_billing_renderupcomingblock",
       "community": 4,
       "norm_label": "renderupcomingblock()"
@@ -835,7 +844,7 @@
       "label": "renderAlertsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1086",
+      "source_location": "L1108",
       "id": "web_appliquei_billing_renderalertsblock",
       "community": 4,
       "norm_label": "renderalertsblock()"
@@ -844,7 +853,7 @@
       "label": "renderCustomerBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1097",
+      "source_location": "L1119",
       "id": "web_appliquei_billing_rendercustomerblock",
       "community": 4,
       "norm_label": "rendercustomerblock()"
@@ -853,7 +862,7 @@
       "label": "renderHistoryBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1123",
+      "source_location": "L1145",
       "id": "web_appliquei_billing_renderhistoryblock",
       "community": 4,
       "norm_label": "renderhistoryblock()"
@@ -862,7 +871,7 @@
       "label": "renderActionsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1165",
+      "source_location": "L1187",
       "id": "web_appliquei_billing_renderactionsblock",
       "community": 4,
       "norm_label": "renderactionsblock()"
@@ -871,7 +880,7 @@
       "label": "renderMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1175",
+      "source_location": "L1197",
       "id": "web_appliquei_billing_rendermyaccount",
       "community": 4,
       "norm_label": "rendermyaccount()"
@@ -880,7 +889,7 @@
       "label": "bindMyAccountActions()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1196",
+      "source_location": "L1218",
       "id": "web_appliquei_billing_bindmyaccountactions",
       "community": 4,
       "norm_label": "bindmyaccountactions()"
@@ -889,7 +898,7 @@
       "label": "reloadAccountStatus()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1219",
+      "source_location": "L1241",
       "id": "web_appliquei_billing_reloadaccountstatus",
       "community": 4,
       "norm_label": "reloadaccountstatus()"
@@ -898,7 +907,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1226",
+      "source_location": "L1248",
       "id": "web_appliquei_billing_escapehtml",
       "community": 4,
       "norm_label": "escapehtml()"
@@ -907,7 +916,7 @@
       "label": "fmtCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1231",
+      "source_location": "L1253",
       "id": "web_appliquei_billing_fmtcpfcnpj",
       "community": 4,
       "norm_label": "fmtcpfcnpj()"
@@ -916,7 +925,7 @@
       "label": "fmtPhone()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1237",
+      "source_location": "L1259",
       "id": "web_appliquei_billing_fmtphone",
       "community": 4,
       "norm_label": "fmtphone()"
@@ -925,7 +934,7 @@
       "label": "ensureSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1246",
+      "source_location": "L1268",
       "id": "web_appliquei_billing_ensuresubmodal",
       "community": 4,
       "norm_label": "ensuresubmodal()"
@@ -934,7 +943,7 @@
       "label": "openSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1262",
+      "source_location": "L1284",
       "id": "web_appliquei_billing_opensubmodal",
       "community": 4,
       "norm_label": "opensubmodal()"
@@ -943,7 +952,7 @@
       "label": "closeSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1268",
+      "source_location": "L1290",
       "id": "web_appliquei_billing_closesubmodal",
       "community": 4,
       "norm_label": "closesubmodal()"
@@ -952,7 +961,7 @@
       "label": "fld()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1273",
+      "source_location": "L1295",
       "id": "web_appliquei_billing_fld",
       "community": 4,
       "norm_label": "fld()"
@@ -961,7 +970,7 @@
       "label": "lbl()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1274",
+      "source_location": "L1296",
       "id": "web_appliquei_billing_lbl",
       "community": 4,
       "norm_label": "lbl()"
@@ -970,7 +979,7 @@
       "label": "openChangeCardModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1276",
+      "source_location": "L1298",
       "id": "web_appliquei_billing_openchangecardmodal",
       "community": 4,
       "norm_label": "openchangecardmodal()"
@@ -979,7 +988,7 @@
       "label": "showSubModalErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1297",
+      "source_location": "L1319",
       "id": "web_appliquei_billing_showsubmodalerr",
       "community": 4,
       "norm_label": "showsubmodalerr()"
@@ -988,7 +997,7 @@
       "label": "submitChangeCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1304",
+      "source_location": "L1326",
       "id": "web_appliquei_billing_submitchangecard",
       "community": 4,
       "norm_label": "submitchangecard()"
@@ -997,7 +1006,7 @@
       "label": "openEditCustomerModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1356",
+      "source_location": "L1378",
       "id": "web_appliquei_billing_openeditcustomermodal",
       "community": 4,
       "norm_label": "openeditcustomermodal()"
@@ -1006,7 +1015,7 @@
       "label": "submitEditCustomer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1385",
+      "source_location": "L1407",
       "id": "web_appliquei_billing_submiteditcustomer",
       "community": 4,
       "norm_label": "submiteditcustomer()"
@@ -1015,7 +1024,7 @@
       "label": "confirmCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1432",
+      "source_location": "L1454",
       "id": "web_appliquei_billing_confirmcancelsubscription",
       "community": 4,
       "norm_label": "confirmcancelsubscription()"
@@ -1024,7 +1033,7 @@
       "label": "doCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1446",
+      "source_location": "L1468",
       "id": "web_appliquei_billing_docancelsubscription",
       "community": 4,
       "norm_label": "docancelsubscription()"
@@ -1033,7 +1042,7 @@
       "label": "syncApplicashFromServer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1462",
+      "source_location": "L1484",
       "id": "web_appliquei_billing_syncapplicashfromserver",
       "community": 4,
       "norm_label": "syncapplicashfromserver()"
@@ -1042,7 +1051,7 @@
       "label": "statCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1509",
+      "source_location": "L1531",
       "id": "web_appliquei_billing_statcard",
       "community": 4,
       "norm_label": "statcard()"
@@ -1051,7 +1060,7 @@
       "label": "refresh()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1516",
+      "source_location": "L1538",
       "id": "web_appliquei_billing_refresh",
       "community": 4,
       "norm_label": "refresh()"
@@ -1060,7 +1069,7 @@
       "label": "writePopupMessage()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1528",
+      "source_location": "L1550",
       "id": "web_appliquei_billing_writepopupmessage",
       "community": 4,
       "norm_label": "writepopupmessage()"
@@ -1069,7 +1078,7 @@
       "label": "openSubscribeForm()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1542",
+      "source_location": "L1564",
       "id": "web_appliquei_billing_opensubscribeform",
       "community": 4,
       "norm_label": "opensubscribeform()"
@@ -1078,7 +1087,7 @@
       "label": "parseExpiry()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1547",
+      "source_location": "L1569",
       "id": "web_appliquei_billing_parseexpiry",
       "community": 4,
       "norm_label": "parseexpiry()"
@@ -1087,7 +1096,7 @@
       "label": "collectCardPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1559",
+      "source_location": "L1581",
       "id": "web_appliquei_billing_collectcardpayload",
       "community": 4,
       "norm_label": "collectcardpayload()"
@@ -1096,7 +1105,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1587",
+      "source_location": "L1609",
       "id": "web_appliquei_billing_subscribe",
       "community": 4,
       "norm_label": "subscribe()"
@@ -1105,7 +1114,7 @@
       "label": "waitForActive()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1678",
+      "source_location": "L1700",
       "id": "web_appliquei_billing_waitforactive",
       "community": 4,
       "norm_label": "waitforactive()"
@@ -1114,7 +1123,7 @@
       "label": "startActivePolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1696",
+      "source_location": "L1718",
       "id": "web_appliquei_billing_startactivepolling",
       "community": 4,
       "norm_label": "startactivepolling()"
@@ -1123,7 +1132,7 @@
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1712",
+      "source_location": "L1734",
       "id": "web_appliquei_billing_onuser",
       "community": 4,
       "norm_label": "onuser()"
@@ -1132,7 +1141,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1739",
+      "source_location": "L1761",
       "id": "web_appliquei_billing_attach",
       "community": 4,
       "norm_label": "attach()"
@@ -1233,7 +1242,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L1",
       "id": "api_lib_firebase_admin_js",
-      "community": 32,
+      "community": 26,
       "norm_label": "firebase-admin.js"
     },
     {
@@ -1242,7 +1251,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L1",
       "id": "lib_firebase_admin_admin",
-      "community": 32,
+      "community": 26,
       "norm_label": "admin"
     },
     {
@@ -1260,7 +1269,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L53",
       "id": "lib_firebase_admin_db",
-      "community": 30,
+      "community": 8,
       "norm_label": "db()"
     },
     {
@@ -1593,7 +1602,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "api_lib_referral_guard_js",
-      "community": 6,
+      "community": 32,
       "norm_label": "referral-guard.js"
     },
     {
@@ -1602,7 +1611,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "lib_referral_guard_devicefingerprint_ipfrom",
-      "community": 6,
+      "community": 32,
       "norm_label": "{ devicefingerprint, ipfrom }"
     },
     {
@@ -1611,7 +1620,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L17",
       "id": "lib_referral_guard_assertreferralallowed",
-      "community": 6,
+      "community": 32,
       "norm_label": "assertreferralallowed()"
     },
     {
@@ -1764,7 +1773,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L81",
       "id": "lib_rate_limit_ipfrom",
-      "community": 6,
+      "community": 32,
       "norm_label": "ipfrom()"
     },
     {
@@ -1773,7 +1782,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L107",
       "id": "lib_rate_limit_devicefingerprint",
-      "community": 6,
+      "community": 32,
       "norm_label": "devicefingerprint()"
     },
     {
@@ -2635,7 +2644,7 @@
       "label": "D",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L69",
+      "source_location": "L82",
       "id": "billing_init_d",
       "community": 14,
       "norm_label": "d"
@@ -2644,7 +2653,7 @@
       "label": "ref",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L70",
+      "source_location": "L83",
       "id": "billing_init_ref",
       "community": 14,
       "norm_label": "ref"
@@ -2653,7 +2662,7 @@
       "label": "device",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L83",
+      "source_location": "L96",
       "id": "billing_init_device",
       "community": 14,
       "norm_label": "device"
@@ -2662,7 +2671,7 @@
       "label": "retry",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L105",
+      "source_location": "L118",
       "id": "billing_init_retry",
       "community": 14,
       "norm_label": "retry"
@@ -2671,7 +2680,7 @@
       "label": "releaseLock()",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L198",
+      "source_location": "L211",
       "id": "billing_init_releaselock",
       "community": 8,
       "norm_label": "releaselock()"
@@ -2680,7 +2689,7 @@
       "label": "now",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L255",
+      "source_location": "L268",
       "id": "billing_init_now",
       "community": 14,
       "norm_label": "now"
@@ -2689,7 +2698,7 @@
       "label": "ip",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L260",
+      "source_location": "L273",
       "id": "billing_init_ip",
       "community": 14,
       "norm_label": "ip"
@@ -2698,7 +2707,7 @@
       "label": "deviceHash",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L262",
+      "source_location": "L275",
       "id": "billing_init_devicehash",
       "community": 14,
       "norm_label": "devicehash"
@@ -2707,7 +2716,7 @@
       "label": "data",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L264",
+      "source_location": "L277",
       "id": "billing_init_data",
       "community": 14,
       "norm_label": "data"
@@ -2716,7 +2725,7 @@
       "label": "safeBilling()",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L309",
+      "source_location": "L322",
       "id": "billing_init_safebilling",
       "community": 14,
       "norm_label": "safebilling()"
@@ -2725,7 +2734,7 @@
       "label": "tsToIso()",
       "file_type": "code",
       "source_file": "api/billing/init.js",
-      "source_location": "L323",
+      "source_location": "L336",
       "id": "billing_init_tstoiso",
       "community": 14,
       "norm_label": "tstoiso()"
@@ -2781,7 +2790,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L20",
       "id": "billing_webhook_findbillingbycustomer",
-      "community": 30,
+      "community": 8,
       "norm_label": "findbillingbycustomer()"
     },
     {
@@ -2790,7 +2799,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L25",
       "id": "billing_webhook_findbillingbysubscription",
-      "community": 30,
+      "community": 8,
       "norm_label": "findbillingbysubscription()"
     },
     {
@@ -3825,7 +3834,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L13",
       "id": "lib_mock_billing_isincrement",
-      "community": 7,
+      "community": 38,
       "norm_label": "isincrement()"
     },
     {
@@ -3834,7 +3843,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L14",
       "id": "lib_mock_billing_istimestamp",
-      "community": 7,
+      "community": 38,
       "norm_label": "istimestamp()"
     },
     {
@@ -3843,7 +3852,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L16",
       "id": "lib_mock_billing_maketimestamp",
-      "community": 7,
+      "community": 38,
       "norm_label": "maketimestamp()"
     },
     {
@@ -3852,7 +3861,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L26",
       "id": "lib_mock_billing_deepclone",
-      "community": 7,
+      "community": 38,
       "norm_label": "deepclone()"
     },
     {
@@ -3870,7 +3879,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L41",
       "id": "lib_mock_billing_resolvevalue",
-      "community": 7,
+      "community": 38,
       "norm_label": "resolvevalue()"
     },
     {
@@ -3879,7 +3888,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L61",
       "id": "lib_mock_billing_mergedata",
-      "community": 7,
+      "community": 38,
       "norm_label": "mergedata()"
     },
     {
@@ -3924,7 +3933,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L86",
       "id": "lib_mock_billing_docref_get",
-      "community": 31,
+      "community": 33,
       "norm_label": ".get()"
     },
     {
@@ -3933,7 +3942,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L90",
       "id": "lib_mock_billing_docref_set",
-      "community": 31,
+      "community": 38,
       "norm_label": ".set()"
     },
     {
@@ -4023,7 +4032,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L109",
       "id": "lib_mock_billing_collref_get",
-      "community": 31,
+      "community": 33,
       "norm_label": ".get()"
     },
     {
@@ -4077,7 +4086,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L120",
       "id": "lib_mock_billing_query_get",
-      "community": 31,
+      "community": 33,
       "norm_label": ".get()"
     },
     {
@@ -5555,9 +5564,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L116",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot"
     },
     {
       "relation": "contains",
@@ -5565,9 +5574,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L165",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_startsnapshotlistener",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_startsnapshotlistener"
     },
     {
       "relation": "contains",
@@ -5575,9 +5584,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L194",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener"
     },
     {
       "relation": "contains",
@@ -5657,9 +5666,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L131",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
     },
     {
       "relation": "calls",
@@ -5690,9 +5699,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L136",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_storagevaluesequal",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_storagevaluesequal"
     },
     {
       "relation": "calls",
@@ -5723,9 +5732,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L120",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_tsmillis",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_tsmillis"
     },
     {
       "relation": "calls",
@@ -5767,9 +5776,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L173",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_startsnapshotlistener",
-      "target": "web_appliquei_cloud_sync_mainref",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_mainref"
     },
     {
       "relation": "calls",
@@ -5800,9 +5809,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L179",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_startsnapshotlistener",
-      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot"
     },
     {
       "relation": "calls",
@@ -5811,9 +5820,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L219",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot"
     },
     {
       "relation": "calls",
@@ -5822,9 +5831,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L168",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_startsnapshotlistener",
-      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener"
     },
     {
       "relation": "calls",
@@ -5833,9 +5842,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L215",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_startsnapshotlistener",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_startsnapshotlistener"
     },
     {
       "relation": "calls",
@@ -5844,9 +5853,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L252",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_onuser",
-      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener"
     },
     {
       "relation": "calls",
@@ -6051,6 +6060,16 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
       "target": "web_appliquei_billing_resendverification"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L344",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_startresendcooldown",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -7441,6 +7460,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
+      "source_location": "L333",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_resendverification",
+      "target": "web_appliquei_billing_startresendcooldown",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
       "source_location": "L349",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8015,9 +8045,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L971",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderplaninfoblock",
-      "target": "web_appliquei_billing_paymentstatuslabel",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_paymentstatuslabel"
     },
     {
       "relation": "calls",
@@ -8891,9 +8921,9 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_billing_sync_js",
-      "target": "lib_billing_sync_non_final_statuses",
-      "confidence_score": 1.0
+      "target": "lib_billing_sync_non_final_statuses"
     },
     {
       "relation": "contains",
@@ -8901,9 +8931,9 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_billing_sync_js",
-      "target": "lib_billing_sync_reconcilenonfinalpayments",
-      "confidence_score": 1.0
+      "target": "lib_billing_sync_reconcilenonfinalpayments"
     },
     {
       "relation": "contains",
@@ -8955,9 +8985,9 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_billing_sync_syncbillingfromasaas",
-      "target": "lib_billing_sync_reconcilenonfinalpayments",
-      "confidence_score": 1.0
+      "target": "lib_billing_sync_reconcilenonfinalpayments"
     },
     {
       "relation": "imports",
@@ -15849,9 +15879,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_md",
-      "target": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei"
     },
     {
       "relation": "contains",
@@ -15859,9 +15889,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L213",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_md",
-      "target": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas"
     },
     {
       "relation": "contains",
@@ -15869,9 +15899,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_0_prepara\u00e7\u00e3o_1x",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_0_prepara\u00e7\u00e3o_1x"
     },
     {
       "relation": "contains",
@@ -15879,9 +15909,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado"
     },
     {
       "relation": "contains",
@@ -15889,9 +15919,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_2_trial_de_7_dias",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_2_trial_de_7_dias"
     },
     {
       "relation": "contains",
@@ -15899,9 +15929,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L91",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas"
     },
     {
       "relation": "contains",
@@ -15909,9 +15939,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L143",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es"
     },
     {
       "relation": "contains",
@@ -15919,9 +15949,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L169",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_5_endpoints_admin",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_5_endpoints_admin"
     },
     {
       "relation": "contains",
@@ -15929,9 +15959,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L181",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_6_seguran\u00e7a_rules",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_6_seguran\u00e7a_rules"
     },
     {
       "relation": "contains",
@@ -15939,9 +15969,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L192",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_7_ux_regress\u00f5es",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_7_ux_regress\u00f5es"
     },
     {
       "relation": "contains",
@@ -15949,9 +15979,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L204",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
-      "target": "docs_checklist_testes_pre_venda_8_p\u00f3s_teste_limpeza",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_8_p\u00f3s_teste_limpeza"
     },
     {
       "relation": "contains",
@@ -15959,9 +15989,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_1_cadastro_com_e_mail_e_senha_e1",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_1_cadastro_com_e_mail_e_senha_e1"
     },
     {
       "relation": "contains",
@@ -15969,9 +15999,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_2_login_google_novo_pela_aba_entrar_g1",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_2_login_google_novo_pela_aba_entrar_g1"
     },
     {
       "relation": "contains",
@@ -15979,9 +16009,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_3_cadastro_google_pela_aba_criar_conta_g1",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_3_cadastro_google_pela_aba_criar_conta_g1"
     },
     {
       "relation": "contains",
@@ -15989,9 +16019,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L56",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_4_banner_de_transi\u00e7\u00e3o_e_mails_antigos",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_4_banner_de_transi\u00e7\u00e3o_e_mails_antigos"
     },
     {
       "relation": "contains",
@@ -15999,9 +16029,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L62",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_5_reset_de_senha_e1",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_5_reset_de_senha_e1"
     },
     {
       "relation": "contains",
@@ -16009,9 +16039,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_6_isolamento_entre_contas_commit_fa6d97a",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_6_isolamento_entre_contas_commit_fa6d97a"
     },
     {
       "relation": "contains",
@@ -16019,9 +16049,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L70",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
-      "target": "docs_checklist_testes_pre_venda_1_7_cloud_sync_no_signout_commit_81be8ce",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_1_7_cloud_sync_no_signout_commit_81be8ce"
     },
     {
       "relation": "contains",
@@ -16029,9 +16059,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L93",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_1_fluxo_feliz_com_cart\u00e3o",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_1_fluxo_feliz_com_cart\u00e3o"
     },
     {
       "relation": "contains",
@@ -16039,9 +16069,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L101",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_2_valida\u00e7\u00e3o_cpf_cnpj_commit_177f3fc",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_2_valida\u00e7\u00e3o_cpf_cnpj_commit_177f3fc"
     },
     {
       "relation": "contains",
@@ -16049,9 +16079,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L107",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_3_cupom_no_gate_commits_417bb6e_cf87225_52efe74",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_3_cupom_no_gate_commits_417bb6e_cf87225_52efe74"
     },
     {
       "relation": "contains",
@@ -16059,9 +16089,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L115",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_4_cart\u00e3o_recusado",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_4_cart\u00e3o_recusado"
     },
     {
       "relation": "contains",
@@ -16069,9 +16099,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L119",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_5_webhooks",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_5_webhooks"
     },
     {
       "relation": "contains",
@@ -16079,9 +16109,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L128",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_6_cancelamento",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_6_cancelamento"
     },
     {
       "relation": "contains",
@@ -16089,9 +16119,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L133",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_7_cart\u00e3o_recusado_troca_de_cart\u00e3o",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_7_cart\u00e3o_recusado_troca_de_cart\u00e3o"
     },
     {
       "relation": "contains",
@@ -16099,9 +16129,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L137",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
-      "target": "docs_checklist_testes_pre_venda_3_8_inadimpl\u00eancia",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_3_8_inadimpl\u00eancia"
     },
     {
       "relation": "contains",
@@ -16109,9 +16139,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L145",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
-      "target": "docs_checklist_testes_pre_venda_4_1_gera\u00e7\u00e3o_e_share_commit_d7c6bb7",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_4_1_gera\u00e7\u00e3o_e_share_commit_d7c6bb7"
     },
     {
       "relation": "contains",
@@ -16119,9 +16149,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L151",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
-      "target": "docs_checklist_testes_pre_venda_4_2_uso_do_cupom_por_indicado",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_4_2_uso_do_cupom_por_indicado"
     },
     {
       "relation": "contains",
@@ -16129,9 +16159,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L159",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
-      "target": "docs_checklist_testes_pre_venda_4_3_anti_fraude_commits_a0b477e_8e81500_9d6e594_33202ab",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_4_3_anti_fraude_commits_a0b477e_8e81500_9d6e594_33202ab"
     },
     {
       "relation": "contains",
@@ -16139,9 +16169,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L218",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_a_j\u00e1_em_uso_ou_parcialmente",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_a_j\u00e1_em_uso_ou_parcialmente"
     },
     {
       "relation": "contains",
@@ -16149,9 +16179,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L225",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_b_instalar_antes_de_abrir_vendas_prioridade_alta",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_b_instalar_antes_de_abrir_vendas_prioridade_alta"
     },
     {
       "relation": "contains",
@@ -16159,9 +16189,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L252",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_c_recomendado_baixo_esfor\u00e7o",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_c_recomendado_baixo_esfor\u00e7o"
     },
     {
       "relation": "contains",
@@ -16169,9 +16199,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L269",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_d_operacional_billing",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_d_operacional_billing"
     },
     {
       "relation": "contains",
@@ -16179,9 +16209,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L279",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_e_extens\u00f5es_vs_code_cursor_devex",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_e_extens\u00f5es_vs_code_cursor_devex"
     },
     {
       "relation": "contains",
@@ -16189,9 +16219,9 @@
       "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
       "source_location": "L287",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
-      "target": "docs_checklist_testes_pre_venda_prioridade_pr\u00e1tica_ordem_do_que_eu_faria",
-      "confidence_score": 1.0
+      "target": "docs_checklist_testes_pre_venda_prioridade_pr\u00e1tica_ordem_do_que_eu_faria"
     },
     {
       "relation": "contains",
@@ -16385,5 +16415,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b5272d5353b87caab3f0cd0805f5a16cedb3226c"
+  "built_at_commit": "b6b786e5a02c6bcc01f2d51f42d9baef282dc2a5"
 }
