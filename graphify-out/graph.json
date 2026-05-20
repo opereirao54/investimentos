@@ -1269,7 +1269,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L5",
       "id": "lib_firebase_admin_init",
-      "community": 26,
+      "community": 30,
       "norm_label": "init()"
     },
     {
@@ -1287,7 +1287,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L58",
       "id": "lib_firebase_admin_auth",
-      "community": 26,
+      "community": 16,
       "norm_label": "auth()"
     },
     {
@@ -1521,7 +1521,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L1",
       "id": "api_lib_cpf_cnpj_js",
-      "community": 24,
+      "community": 41,
       "norm_label": "cpf-cnpj.js"
     },
     {
@@ -1530,7 +1530,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L5",
       "id": "lib_cpf_cnpj_onlydigits",
-      "community": 24,
+      "community": 41,
       "norm_label": "onlydigits()"
     },
     {
@@ -1539,7 +1539,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L9",
       "id": "lib_cpf_cnpj_isvalidcpf",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcpf()"
     },
     {
@@ -1548,7 +1548,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L25",
       "id": "lib_cpf_cnpj_isvalidcnpj",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcnpj()"
     },
     {
@@ -1557,7 +1557,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L43",
       "id": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcpfcnpj()"
     },
     {
@@ -1566,7 +1566,7 @@
       "source_file": "api/_lib/access.js",
       "source_location": "L1",
       "id": "api_lib_access_js",
-      "community": 36,
+      "community": 13,
       "norm_label": "access.js"
     },
     {
@@ -1575,7 +1575,7 @@
       "source_file": "api/_lib/access.js",
       "source_location": "L4",
       "id": "lib_access_paid_payment_statuses",
-      "community": 36,
+      "community": 13,
       "norm_label": "paid_payment_statuses"
     },
     {
@@ -1584,7 +1584,7 @@
       "source_file": "api/_lib/access.js",
       "source_location": "L5",
       "id": "lib_access_bad_payment_statuses",
-      "community": 36,
+      "community": 13,
       "norm_label": "bad_payment_statuses"
     },
     {
@@ -1593,7 +1593,7 @@
       "source_file": "api/_lib/access.js",
       "source_location": "L15",
       "id": "lib_access_tomillis",
-      "community": 36,
+      "community": 13,
       "norm_label": "tomillis()"
     },
     {
@@ -1602,7 +1602,7 @@
       "source_file": "api/_lib/access.js",
       "source_location": "L23",
       "id": "lib_access_computeaccess",
-      "community": 36,
+      "community": 13,
       "norm_label": "computeaccess()"
     },
     {
@@ -1611,7 +1611,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "api_lib_referral_guard_js",
-      "community": 6,
+      "community": 32,
       "norm_label": "referral-guard.js"
     },
     {
@@ -1620,7 +1620,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "lib_referral_guard_devicefingerprint_ipfrom",
-      "community": 6,
+      "community": 32,
       "norm_label": "{ devicefingerprint, ipfrom }"
     },
     {
@@ -1629,7 +1629,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L17",
       "id": "lib_referral_guard_assertreferralallowed",
-      "community": 6,
+      "community": 32,
       "norm_label": "assertreferralallowed()"
     },
     {
@@ -1782,7 +1782,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L81",
       "id": "lib_rate_limit_ipfrom",
-      "community": 6,
+      "community": 32,
       "norm_label": "ipfrom()"
     },
     {
@@ -1791,7 +1791,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L107",
       "id": "lib_rate_limit_devicefingerprint",
-      "community": 6,
+      "community": 32,
       "norm_label": "devicefingerprint()"
     },
     {
@@ -2916,7 +2916,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L1",
       "id": "api_billing_cancel_js",
-      "community": 16,
+      "community": 26,
       "norm_label": "cancel.js"
     },
     {
@@ -2925,7 +2925,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L1",
       "id": "billing_cancel_db_fieldvalue",
-      "community": 16,
+      "community": 26,
       "norm_label": "{ db, fieldvalue }"
     },
     {
@@ -2934,7 +2934,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L2",
       "id": "billing_cancel_requireverifieduser_cors",
-      "community": 16,
+      "community": 26,
       "norm_label": "{ requireverifieduser, cors }"
     },
     {
@@ -2943,7 +2943,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L3",
       "id": "billing_cancel_asaas",
-      "community": 16,
+      "community": 26,
       "norm_label": "asaas"
     },
     {
@@ -2952,7 +2952,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L13",
       "id": "billing_cancel_ref",
-      "community": 16,
+      "community": 26,
       "norm_label": "ref"
     },
     {
@@ -2961,7 +2961,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L16",
       "id": "billing_cancel_billing",
-      "community": 16,
+      "community": 26,
       "norm_label": "billing"
     },
     {
@@ -4216,19 +4216,19 @@
       "norm_label": "readme.md"
     },
     {
-      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "label": "Appliquei - Gest\u00e3o Financeira Inteligente",
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "id": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "id": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
       "community": 1,
-      "norm_label": "appliquei v13.0 - gestao financeira inteligente"
+      "norm_label": "appliquei - gestao financeira inteligente"
     },
     {
       "label": "\ud83d\udcd6 Sobre",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L6",
+      "source_location": "L5",
       "id": "investimentos_readme_sobre",
       "community": 1,
       "norm_label": "\ud83d\udcd6 sobre"
@@ -4237,7 +4237,7 @@
       "label": "\u2728 Funcionalidades",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L10",
+      "source_location": "L9",
       "id": "investimentos_readme_funcionalidades",
       "community": 1,
       "norm_label": "\u2728 funcionalidades"
@@ -4246,7 +4246,7 @@
       "label": "\ud83d\udee0\ufe0f Tecnologias Utilizadas",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L20",
+      "source_location": "L19",
       "id": "investimentos_readme_tecnologias_utilizadas",
       "community": 1,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas"
@@ -4255,7 +4255,7 @@
       "label": "\ud83d\ude80 Como Usar",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L32",
+      "source_location": "L31",
       "id": "investimentos_readme_como_usar",
       "community": 1,
       "norm_label": "\ud83d\ude80 como usar"
@@ -4264,7 +4264,7 @@
       "label": "code:bash (git clone <repositorio>)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L35",
+      "source_location": "L34",
       "id": "investimentos_readme_codeblock_1",
       "community": 1,
       "norm_label": "code:bash (git clone <repositorio>)"
@@ -4273,7 +4273,7 @@
       "label": "\ud83d\udcc1 Estrutura do Projeto",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L49",
+      "source_location": "L48",
       "id": "investimentos_readme_estrutura_do_projeto",
       "community": 1,
       "norm_label": "\ud83d\udcc1 estrutura do projeto"
@@ -4282,7 +4282,7 @@
       "label": "code:block2 (/workspace)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L51",
+      "source_location": "L50",
       "id": "investimentos_readme_codeblock_2",
       "community": 1,
       "norm_label": "code:block2 (/workspace)"
@@ -4291,7 +4291,7 @@
       "label": "\ud83c\udfa8 Design System",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L63",
+      "source_location": "L62",
       "id": "investimentos_readme_design_system",
       "community": 1,
       "norm_label": "\ud83c\udfa8 design system"
@@ -4300,7 +4300,7 @@
       "label": "\ud83d\udcf8 Recursos Visuais",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L76",
+      "source_location": "L75",
       "id": "investimentos_readme_recursos_visuais",
       "community": 1,
       "norm_label": "\ud83d\udcf8 recursos visuais"
@@ -4309,7 +4309,7 @@
       "label": "\ud83d\udd27 Personaliza\u00e7\u00e3o",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L84",
+      "source_location": "L83",
       "id": "investimentos_readme_personaliza\u00e7\u00e3o",
       "community": 1,
       "norm_label": "\ud83d\udd27 personalizacao"
@@ -4318,7 +4318,7 @@
       "label": "code:css (:root {)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L88",
+      "source_location": "L87",
       "id": "investimentos_readme_codeblock_3",
       "community": 1,
       "norm_label": "code:css (:root {)"
@@ -4327,7 +4327,7 @@
       "label": "\ud83d\udcc4 Licen\u00e7a",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L97",
+      "source_location": "L96",
       "id": "investimentos_readme_licen\u00e7a",
       "community": 1,
       "norm_label": "\ud83d\udcc4 licenca"
@@ -4336,7 +4336,7 @@
       "label": "\ud83d\udc68\u200d\ud83d\udcbb Desenvolvimento",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L101",
+      "source_location": "L100",
       "id": "investimentos_readme_desenvolvimento",
       "community": 1,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento"
@@ -4345,7 +4345,7 @@
       "label": "\ud83e\udde0 Graphify (grafo de conhecimento no Cursor)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L109",
+      "source_location": "L108",
       "id": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
       "community": 1,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)"
@@ -4354,7 +4354,7 @@
       "label": "Instala\u00e7\u00e3o (Python 3.10+)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L113",
+      "source_location": "L112",
       "id": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
       "community": 1,
       "norm_label": "instalacao (python 3.10+)"
@@ -4363,7 +4363,7 @@
       "label": "code:bash (python -m pip install -r requirements-graphify.txt)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L115",
+      "source_location": "L114",
       "id": "investimentos_readme_codeblock_4",
       "community": 1,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)"
@@ -4372,7 +4372,7 @@
       "label": "Uso",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L122",
+      "source_location": "L121",
       "id": "investimentos_readme_uso",
       "community": 1,
       "norm_label": "uso"
@@ -4381,7 +4381,7 @@
       "label": "Firebase (incremental)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L130",
+      "source_location": "L129",
       "id": "investimentos_readme_firebase_incremental",
       "community": 1,
       "norm_label": "firebase (incremental)"
@@ -4390,7 +4390,7 @@
       "label": "\ud83e\udd1d Contribui\u00e7\u00e3o",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L136",
+      "source_location": "L135",
       "id": "investimentos_readme_contribui\u00e7\u00e3o",
       "community": 1,
       "norm_label": "\ud83e\udd1d contribuicao"
@@ -4999,6 +4999,15 @@
       "norm_label": "prioridade pratica (ordem do que eu faria)"
     },
     {
+      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "community": 1,
+      "norm_label": "appliquei v13.0 - gestao financeira inteligente",
+      "id": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
+    },
+    {
       "label": "{ requireVerifiedUser, cors }",
       "file_type": "code",
       "source_file": "api/billing/init.js",
@@ -5057,7 +5066,7 @@
       "file_type": "code",
       "source_file": "api/billing/cancel.js",
       "source_location": "L2",
-      "community": 16,
+      "community": 26,
       "norm_label": "{ requireuser, cors }",
       "id": "billing_cancel_requireuser_cors"
     },
@@ -5111,7 +5120,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "community": 1,
+      "community": 40,
       "norm_label": "appliquei v13.0 - gestao financeira inteligente",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
     },
@@ -5120,7 +5129,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L6",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcd6 sobre",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre"
     },
@@ -5129,7 +5138,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L10",
-      "community": 1,
+      "community": 40,
       "norm_label": "\u2728 funcionalidades",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades"
     },
@@ -5138,7 +5147,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L20",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas"
     },
@@ -5147,7 +5156,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L32",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\ude80 como usar",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar"
     },
@@ -5156,7 +5165,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L35",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:bash (git clone <repositorio>)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1"
     },
@@ -5165,7 +5174,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L49",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcc1 estrutura do projeto",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto"
     },
@@ -5174,7 +5183,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L51",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:block2 (/workspace)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2"
     },
@@ -5183,7 +5192,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L63",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83c\udfa8 design system",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system"
     },
@@ -5192,7 +5201,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L76",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcf8 recursos visuais",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais"
     },
@@ -5201,7 +5210,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L84",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udd27 personalizacao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o"
     },
@@ -5210,7 +5219,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L88",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:css (:root {)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3"
     },
@@ -5219,7 +5228,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L97",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcc4 licenca",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a"
     },
@@ -5228,7 +5237,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L101",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento"
     },
@@ -5237,7 +5246,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L109",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor"
     },
@@ -5246,7 +5255,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L113",
-      "community": 1,
+      "community": 40,
       "norm_label": "instalacao (python 3.10+)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10"
     },
@@ -5255,7 +5264,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L115",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4"
     },
@@ -5264,7 +5273,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L122",
-      "community": 1,
+      "community": 40,
       "norm_label": "uso",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso"
     },
@@ -5273,7 +5282,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L130",
-      "community": 1,
+      "community": 40,
       "norm_label": "firebase (incremental)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental"
     },
@@ -5282,7 +5291,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L136",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83e\udd1d contribuicao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o"
     },
@@ -6396,9 +6405,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1030",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderplansblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderplansblock"
     },
     {
       "relation": "contains",
@@ -8262,9 +8271,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1242",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderplansblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderplansblock"
     },
     {
       "relation": "calls",
@@ -15409,6 +15418,16 @@
       "source_file": "README.md",
       "source_location": "L1",
       "weight": 1.0,
+      "source": "readme_md",
+      "target": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "weight": 1.0,
       "confidence_score": 1.0,
       "source": "readme_md",
       "target": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
@@ -15422,6 +15441,136 @@
       "confidence_score": 1.0,
       "source": "readme_md",
       "target": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_sobre",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_funcionalidades",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_tecnologias_utilizadas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_como_usar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_estrutura_do_projeto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_design_system",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_recursos_visuais",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_licen\u00e7a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_desenvolvimento",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_firebase_incremental",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_contribui\u00e7\u00e3o",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -15457,11 +15606,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_como_usar",
+      "target": "investimentos_readme_codeblock_1"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L32",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
       "target": "investimentos_readme_como_usar"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_estrutura_do_projeto",
+      "target": "investimentos_readme_codeblock_2"
     },
     {
       "relation": "contains",
@@ -15497,6 +15666,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "target": "investimentos_readme_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L84",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -15527,66 +15706,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L109",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L130",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_firebase_incremental"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L136",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_contribui\u00e7\u00e3o"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L35",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_como_usar",
-      "target": "investimentos_readme_codeblock_1"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L51",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_estrutura_do_projeto",
-      "target": "investimentos_readme_codeblock_2"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L88",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_personaliza\u00e7\u00e3o",
-      "target": "investimentos_readme_codeblock_3"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
       "source_location": "L113",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -15607,11 +15726,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L115",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
       "target": "investimentos_readme_codeblock_4"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_firebase_incremental"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_contribui\u00e7\u00e3o"
     },
     {
       "relation": "contains",
@@ -16445,5 +16594,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "06949da6ed4fad3881b627844954185e23f5cce6"
+  "built_at_commit": "c347965759274b60a676490b5f92352278b17b83"
 }
