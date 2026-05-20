@@ -46,7 +46,7 @@ module.exports = async (req, res) => {
   if (user.email_verified === true) return res.json({ ok: true, alreadyVerified: true });
 
   try {
-    const continueUrl = (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/';
+    const continueUrl = (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/app';
     const link = await auth().generateEmailVerificationLink(user.email, {
       url: continueUrl || undefined,
     });

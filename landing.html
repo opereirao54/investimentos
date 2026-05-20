@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Appliquei — Gestão financeira inteligente</title>
+<meta name="description" content="Controle de patrimônio, investimentos, metas e Applicash em um só lugar. 7 dias grátis, sem cartão de crédito.">
+<link rel="icon" href="appliquei_favicon.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Figtree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+<style>
+  :root {
+    --emerald: #059669;
+    --emerald-dark: #047857;
+    --emerald-deep: #064e3b;
+    --ink: #0b1410;
+    --ink-2: #1d2a23;
+    --muted: #4a5b53;
+    --line: #e3e8e5;
+    --bg: #f7faf8;
+    --white: #fff;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --shadow-sm: 0 1px 2px rgba(11,20,16,.06);
+    --shadow-md: 0 6px 18px rgba(11,20,16,.08);
+    --shadow-lg: 0 18px 40px rgba(11,20,16,.18);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Figtree', system-ui, sans-serif;
+    color: var(--ink);
+    background: var(--white);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  h1, h2, h3 { font-family: 'Syne', sans-serif; font-weight: 700; line-height: 1.15; margin: 0; color: var(--ink); }
+  h1 { font-size: clamp(2.1rem, 4.2vw, 3.4rem); letter-spacing: -.02em; }
+  h2 { font-size: clamp(1.6rem, 2.8vw, 2.2rem); letter-spacing: -.015em; }
+  h3 { font-size: 1.1rem; }
+  p { margin: 0; color: var(--muted); }
+  a { color: inherit; text-decoration: none; }
+  .container { width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+
+  /* Nav */
+  .nav { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  .nav-row { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: -.01em; }
+  .brand-mark { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, var(--emerald) 0%, var(--emerald-dark) 100%); display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; box-shadow: var(--shadow-sm); }
+  .nav-links { display: flex; align-items: center; gap: 26px; }
+  .nav-links a { color: var(--ink-2); font-size: 14px; font-weight: 500; }
+  .nav-links a:hover { color: var(--emerald); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; cursor: pointer; border: 1px solid transparent; transition: transform .12s ease, box-shadow .12s ease, background .12s ease; font-family: inherit; }
+  .btn-primary { background: var(--emerald); color: #fff; box-shadow: var(--shadow-sm); }
+  .btn-primary:hover { background: var(--emerald-dark); box-shadow: var(--shadow-md); transform: translateY(-1px); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { border-color: var(--emerald); color: var(--emerald); }
+  .btn-lg { padding: 14px 22px; font-size: 15px; }
+  @media (max-width: 640px) {
+    .nav-links a:not(.btn) { display: none; }
+  }
+
+  /* Hero */
+  .hero { position: relative; overflow: hidden; background: linear-gradient(150deg, #0b1410 0%, #0f1f18 50%, #112720 100%); color: #fff; padding: 86px 0 96px; }
+  .hero::before { content: ''; position: absolute; inset: -20%; background: radial-gradient(60% 40% at 80% 10%, rgba(16,185,129,.18), transparent 70%), radial-gradient(40% 35% at 10% 90%, rgba(5,150,105,.14), transparent 70%); pointer-events: none; }
+  .hero h1 { color: #fff; }
+  .hero h1 em { color: #34d399; font-style: normal; }
+  .hero p { color: #c8d6cf; font-size: 17px; max-width: 560px; margin-top: 18px; }
+  .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(52,211,153,.12); color: #6ee7b7; font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+  .hero-note { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; color: #9fb3aa; font-size: 13.5px; }
+  .hero-note i { color: #34d399; }
+  .hero-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; position: relative; z-index: 1; }
+  @media (max-width: 880px) { .hero-grid { grid-template-columns: 1fr; gap: 36px; } }
+
+  .preview { background: #0e1a14; border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 18px; box-shadow: var(--shadow-lg); }
+  .preview-head { display: flex; align-items: center; gap: 8px; padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: #1f2937; }
+  .preview-body { display: grid; grid-template-columns: 110px 1fr; gap: 14px; padding-top: 14px; }
+  .preview-side { display: flex; flex-direction: column; gap: 8px; }
+  .preview-side .item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cbd5d0; padding: 6px 8px; border-radius: 6px; }
+  .preview-side .item.active { background: rgba(52,211,153,.12); color: #6ee7b7; }
+  .preview-main { display: grid; gap: 10px; }
+  .stat { background: #111e18; border: 1px solid rgba(255,255,255,.06); padding: 10px 12px; border-radius: 10px; }
+  .stat .k { font-size: 11px; color: #94a39c; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .v { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: #fff; }
+  .stat .v.pos { color: #34d399; }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 64px; padding: 8px 4px 0; }
+  .bars .b { flex: 1; background: linear-gradient(180deg, #34d399, #059669); border-radius: 4px 4px 0 0; opacity: .92; }
+
+  /* Sections */
+  section.block { padding: 80px 0; }
+  .section-head { text-align: center; max-width: 720px; margin: 0 auto 48px; }
+  .section-head .eyebrow { display: inline-block; color: var(--emerald); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
+  .section-head p { font-size: 16px; margin-top: 12px; }
+
+  /* Features grid */
+  .features { background: var(--bg); }
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 880px) { .feat-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .feat-grid { grid-template-columns: 1fr; } }
+  .feat { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
+  .feat:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: #c9e3d8; }
+  .feat-icon { width: 38px; height: 38px; border-radius: 9px; background: #ecfdf5; color: var(--emerald-dark); display: inline-flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 12px; }
+  .feat h3 { font-family: 'Figtree', sans-serif; font-weight: 600; font-size: 15px; margin-bottom: 6px; color: var(--ink); }
+  .feat p { font-size: 13.5px; }
+
+  /* Steps */
+  .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; counter-reset: step; }
+  @media (max-width: 760px) { .steps-grid { grid-template-columns: 1fr; } }
+  .step { position: relative; padding: 22px; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); }
+  .step::before { counter-increment: step; content: counter(step); position: absolute; top: -14px; left: 22px; width: 28px; height: 28px; background: var(--emerald); color: #fff; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; box-shadow: var(--shadow-sm); }
+  .step h3 { font-family: 'Figtree', sans-serif; font-weight: 600; font-size: 15px; margin: 8px 0 6px; }
+  .step p { font-size: 13.5px; }
+
+  /* Plans */
+  .plans { background: var(--bg); }
+  .plans-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; max-width: 880px; margin: 0 auto; align-items: stretch; }
+  @media (max-width: 720px) { .plans-grid { grid-template-columns: 1fr; } }
+  .plan { position: relative; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; display: flex; flex-direction: column; }
+  .plan.popular { border: 2px solid var(--emerald); box-shadow: 0 12px 36px rgba(5,150,105,.18); }
+  .plan-badge { position: absolute; top: -12px; left: 24px; background: var(--emerald); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; box-shadow: var(--shadow-sm); }
+  .plan-soon { position: absolute; top: -12px; left: 24px; background: #1f2937; color: #fef3c7; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+  .plan-name { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; }
+  .plan-tag { color: var(--muted); font-size: 13.5px; margin-top: 4px; min-height: 38px; }
+  .plan-price { display: flex; align-items: baseline; gap: 6px; margin: 18px 0 8px; }
+  .plan-price .cur { font-size: 14px; color: var(--ink-2); }
+  .plan-price .val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 44px; letter-spacing: -.02em; color: var(--ink); }
+  .plan-price .per { color: var(--muted); font-size: 14px; }
+  .plan-list { list-style: none; padding: 0; margin: 18px 0 24px; display: grid; gap: 10px; font-size: 13.5px; color: var(--ink-2); }
+  .plan-list li { display: flex; align-items: flex-start; gap: 10px; }
+  .plan-list li i { color: var(--emerald); font-size: 16px; margin-top: 2px; flex-shrink: 0; }
+  .plan-list li.soon i { color: #f59e0b; }
+  .plan-list li.soon { color: var(--muted); }
+  .plan .btn { width: 100%; justify-content: center; margin-top: auto; }
+  .plan.disabled { background: linear-gradient(180deg, #fafbfa 0%, #f1f5f3 100%); }
+  .plan.disabled .plan-name, .plan.disabled .plan-price .val { color: #6b7d75; }
+  .plan-foot { font-size: 12px; color: var(--muted); margin-top: 10px; text-align: center; }
+
+  /* FAQ */
+  .faq-grid { display: grid; gap: 12px; max-width: 780px; margin: 0 auto; }
+  .faq { background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 18px 20px; }
+  .faq summary { cursor: pointer; font-weight: 600; font-size: 15px; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 12px; color: var(--ink); }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: '+'; font-size: 22px; color: var(--emerald); font-weight: 400; transition: transform .15s ease; }
+  .faq[open] summary::after { content: '−'; }
+  .faq p { font-size: 14px; margin-top: 10px; color: var(--muted); }
+
+  /* CTA */
+  .cta { background: linear-gradient(135deg, var(--emerald-deep) 0%, var(--emerald-dark) 60%, var(--emerald) 100%); color: #fff; text-align: center; padding: 72px 0; }
+  .cta h2 { color: #fff; }
+  .cta p { color: rgba(255,255,255,.85); margin-top: 12px; font-size: 16px; }
+  .cta .btn { margin-top: 24px; background: #fff; color: var(--emerald-dark); }
+  .cta .btn:hover { background: #ecfdf5; }
+  .cta .note { color: rgba(255,255,255,.7); font-size: 13px; margin-top: 14px; }
+
+  /* Footer */
+  footer { background: #0b1410; color: #94a39c; padding: 36px 0 28px; font-size: 13px; }
+  footer .row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; align-items: center; }
+  footer a { color: #cbd5d0; }
+  footer a:hover { color: #34d399; }
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <div class="container nav-row">
+    <a href="/" class="brand" aria-label="Appliquei">
+      <span class="brand-mark"><i class="ph-fill ph-currency-circle-dollar"></i></span>
+      Appliquei
+    </a>
+    <nav class="nav-links" aria-label="Principal">
+      <a href="#funcionalidades">Funcionalidades</a>
+      <a href="#planos">Planos</a>
+      <a href="#faq">Dúvidas</a>
+      <a href="/app" class="btn btn-ghost">Entrar</a>
+      <a href="/app" class="btn btn-primary">Começar grátis</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="hero-eyebrow"><i class="ph-fill ph-sparkle"></i> 7 dias grátis, sem cartão</span>
+      <h1 style="margin-top:18px;">Sua vida financeira <em>em um lugar só</em>.</h1>
+      <p>Patrimônio, investimentos, controle mensal, metas e Applicash em uma única plataforma — pensada para quem quer clareza, não planilhas.</p>
+      <div class="hero-actions">
+        <a href="/app" class="btn btn-primary btn-lg"><i class="ph-fill ph-rocket-launch"></i> Começar grátis 7 dias</a>
+        <a href="#planos" class="btn btn-ghost btn-lg" style="color:#fff;border-color:rgba(255,255,255,.18);">Ver planos</a>
+      </div>
+      <div class="hero-note"><i class="ph-fill ph-check-circle"></i> Sem cartão. Sem cobrança automática no final do trial.</div>
+    </div>
+
+    <div class="preview" aria-hidden="true">
+      <div class="preview-head">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span style="margin-left:auto;font-size:11px;color:#94a39c;">appliquei.app</span>
+      </div>
+      <div class="preview-body">
+        <div class="preview-side">
+          <div class="item active"><i class="ph ph-bank"></i> Patrimônio</div>
+          <div class="item"><i class="ph ph-wallet"></i> Investimentos</div>
+          <div class="item"><i class="ph ph-receipt"></i> Controle</div>
+          <div class="item"><i class="ph ph-chart-pie-slice"></i> Carteira</div>
+          <div class="item"><i class="ph ph-star"></i> Sonhos</div>
+          <div class="item"><i class="ph ph-currency-dollar"></i> Applicash</div>
+        </div>
+        <div class="preview-main">
+          <div class="stat-row">
+            <div class="stat"><div class="k">Patrimônio total</div><div class="v">R$ 184.230</div></div>
+            <div class="stat"><div class="k">Mês atual</div><div class="v pos">+ R$ 2.418</div></div>
+          </div>
+          <div class="stat">
+            <div class="k">Evolução 12 meses</div>
+            <div class="bars">
+              <div class="b" style="height:32%"></div>
+              <div class="b" style="height:46%"></div>
+              <div class="b" style="height:38%"></div>
+              <div class="b" style="height:58%"></div>
+              <div class="b" style="height:52%"></div>
+              <div class="b" style="height:66%"></div>
+              <div class="b" style="height:62%"></div>
+              <div class="b" style="height:74%"></div>
+              <div class="b" style="height:70%"></div>
+              <div class="b" style="height:82%"></div>
+              <div class="b" style="height:78%"></div>
+              <div class="b" style="height:92%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="funcionalidades" class="block features">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Funcionalidades</span>
+      <h2>Tudo que você precisa para decidir com confiança</h2>
+      <p>Dez áreas de uso, todas incluídas no plano Pro desde o primeiro dia.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-bank"></i></div><h3>Meu patrimônio</h3><p>Visão consolidada de tudo que você tem: contas, imóveis, veículos e ativos.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-wallet"></i></div><h3>Meus investimentos</h3><p>Acompanhe rentabilidade, alocação e evolução por classe de ativo.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-receipt"></i></div><h3>Controle financeiro</h3><p>Receitas, despesas, cartões e categorias — sem planilha.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-chart-pie-slice"></i></div><h3>Carteira recomendada</h3><p>Sugestão de alocação que se ajusta ao seu perfil e objetivos.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-file-text"></i></div><h3>Relatório mensal</h3><p>Resumo do mês com o que entrou, saiu e cresceu — pronto para revisar.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-calculator"></i></div><h3>Simule sua liberdade</h3><p>Quanto você precisa juntar para viver de renda — testando vários cenários.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-star"></i></div><h3>Meus sonhos</h3><p>Metas com prazo e aporte mensal — para sair do "um dia" para datas reais.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-graduation-cap"></i></div><h3>Jornada financeira</h3><p>Trilha de aulas curtas para evoluir da organização aos investimentos.</p></div>
+      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-currency-dollar"></i></div><h3>Applicash</h3><p>Convide amigos, acumule crédito e use para custear a sua assinatura.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Como funciona</span>
+      <h2>Em três passos você já está acompanhando o seu dinheiro</h2>
+    </div>
+    <div class="steps-grid">
+      <div class="step"><h3>Crie a conta</h3><p>Email e senha ou Google. Não pedimos cartão para começar.</p></div>
+      <div class="step"><h3>Use por 7 dias</h3><p>Acesso completo a todas as abas durante a avaliação gratuita.</p></div>
+      <div class="step"><h3>Assine se quiser</h3><p>R$ 15/mês via PIX, boleto ou cartão. Cancela quando quiser.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="planos" class="block plans">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Planos</span>
+      <h2>Um plano simples agora, IA chegando em breve</h2>
+      <p>Comece pelo Pro. Quando o Pro + IA for liberado, você migra com um clique.</p>
+    </div>
+
+    <div class="plans-grid">
+      <div class="plan popular">
+        <span class="plan-badge">Disponível hoje</span>
+        <div class="plan-name">Pro</div>
+        <div class="plan-tag">Todas as funcionalidades atuais do Appliquei.</div>
+        <div class="plan-price"><span class="cur">R$</span><span class="val">15</span><span class="per">/mês</span></div>
+        <ul class="plan-list">
+          <li><i class="ph-fill ph-check-circle"></i> Patrimônio, investimentos e controle financeiro</li>
+          <li><i class="ph-fill ph-check-circle"></i> Carteira recomendada e relatório mensal</li>
+          <li><i class="ph-fill ph-check-circle"></i> Simulador de liberdade e metas (Sonhos)</li>
+          <li><i class="ph-fill ph-check-circle"></i> Jornada Financeira (aulas) e Info Mercado</li>
+          <li><i class="ph-fill ph-check-circle"></i> Applicash — crédito por indicações</li>
+          <li><i class="ph-fill ph-check-circle"></i> PIX, boleto ou cartão recorrente (Asaas)</li>
+          <li><i class="ph-fill ph-check-circle"></i> Cancele quando quiser, sem multa</li>
+        </ul>
+        <a href="/app" class="btn btn-primary btn-lg">Começar grátis 7 dias</a>
+        <div class="plan-foot">Sem cartão para iniciar o trial.</div>
+      </div>
+
+      <div class="plan disabled" aria-disabled="true">
+        <span class="plan-soon"><i class="ph ph-wrench"></i> Em construção</span>
+        <div class="plan-name">Pro + IA</div>
+        <div class="plan-tag">Tudo do Pro com uma camada de inteligência artificial.</div>
+        <div class="plan-price"><span class="cur">R$</span><span class="val">—</span><span class="per">/em breve</span></div>
+        <ul class="plan-list">
+          <li><i class="ph-fill ph-check-circle"></i> Tudo do plano Pro</li>
+          <li class="soon"><i class="ph-fill ph-clock"></i> Diagnóstico financeiro automático</li>
+          <li class="soon"><i class="ph-fill ph-clock"></i> Sugestões de aporte por meta</li>
+          <li class="soon"><i class="ph-fill ph-clock"></i> Análise de gastos e oportunidades</li>
+          <li class="soon"><i class="ph-fill ph-clock"></i> Resumo do mês escrito em linguagem clara</li>
+          <li class="soon"><i class="ph-fill ph-clock"></i> Chat para tirar dúvidas sobre suas finanças</li>
+        </ul>
+        <button class="btn btn-ghost btn-lg" disabled style="cursor:not-allowed;opacity:.65;">Avise-me quando lançar</button>
+        <div class="plan-foot">Quem está no Pro migra com um clique no lançamento.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq" class="block">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Dúvidas</span>
+      <h2>Perguntas frequentes</h2>
+    </div>
+    <div class="faq-grid">
+      <details class="faq"><summary>Preciso cadastrar cartão para começar?</summary><p>Não. Os 7 dias são liberados sem cartão. Ao final do trial, você decide se quer assinar — escolhendo PIX, boleto ou cartão recorrente.</p></details>
+      <details class="faq"><summary>O que acontece quando termina o trial?</summary><p>O acesso fica bloqueado e mostramos a tela de assinatura. Nada é cobrado automaticamente.</p></details>
+      <details class="faq"><summary>Posso cancelar quando quiser?</summary><p>Sim. O cancelamento é imediato pelo painel "Minha assinatura". Sem multas, sem fidelidade.</p></details>
+      <details class="faq"><summary>Quais formas de pagamento?</summary><p>PIX, boleto e cartão de crédito recorrente, todos via Asaas — gateway brasileiro com cobrança em real.</p></details>
+      <details class="faq"><summary>Quando o Pro + IA fica disponível?</summary><p>Está em construção. Quem está no Pro recebe aviso e pode migrar no clique quando lançarmos, sem perder histórico.</p></details>
+      <details class="faq"><summary>Meus dados ficam seguros?</summary><p>Autenticação Firebase, armazenamento Firestore e cobrança Asaas — todos brasileiros/Google com criptografia em trânsito e em repouso.</p></details>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="container">
+    <h2>Comece a organizar o seu patrimônio em menos de 2 minutos</h2>
+    <p>7 dias completos, sem cartão. Acesso a todas as funcionalidades do Pro.</p>
+    <a href="/app" class="btn btn-lg"><i class="ph-fill ph-rocket-launch"></i> Criar minha conta grátis</a>
+    <div class="note">Ao continuar você aceita os termos de uso e a política de privacidade.</div>
+  </div>
+</section>
+
+<footer>
+  <div class="container row">
+    <div class="brand" style="color:#fff;">
+      <span class="brand-mark"><i class="ph-fill ph-currency-circle-dollar"></i></span>
+      Appliquei
+    </div>
+    <div>© <span id="year"></span> Appliquei. Todos os direitos reservados.</div>
+    <div style="display:flex;gap:16px;">
+      <a href="/app">Entrar</a>
+      <a href="#planos">Planos</a>
+      <a href="#faq">Dúvidas</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  // Se o usuário já está logado no Firebase, manda direto pro app — evita
+  // que quem só queria abrir o app caia na landing por causa do bookmark "/".
+  try {
+    var hasFbSession = Object.keys(localStorage).some(function (k) {
+      return k.indexOf('firebase:authUser:') === 0;
+    });
+    if (hasFbSession && location.pathname === '/') {
+      location.replace('/app');
+    }
+  } catch (_) {}
+</script>
+
+</body>
+</html>

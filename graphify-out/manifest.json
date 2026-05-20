@@ -5,8 +5,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/vercel.json": {
-    "mtime": 1778874051.482815,
-    "ast_hash": "36b2c279d2d48501a9a554008a8454a4",
+    "mtime": 1779307745.3639917,
+    "ast_hash": "b5ed7b540c90cb83e00a8b121830e289",
     "semantic_hash": ""
   },
   "/home/user/investimentos/package.json": {
@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-billing.js": {
-    "mtime": 1779304607.8870726,
-    "ast_hash": "8b7f2a674ac0ee855330a9a242a539c2",
+    "mtime": 1779307856.9079893,
+    "ast_hash": "653c1429eede9f92578b2a1447d5d967",
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-firebase-init.js": {
@@ -85,8 +85,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/auth/resend-verification.js": {
-    "mtime": 1779300654.8926752,
-    "ast_hash": "120a226b92fbdb48f94a82384a94228d",
+    "mtime": 1779307782.591991,
+    "ast_hash": "762e589fbdfb36270dffcf4a13314974",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/card.js": {
@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_v13.0.html": {
-    "mtime": 1779304549.239069,
-    "ast_hash": "bf276d9e0eafcdc4095cc33db9bcfe00",
+    "mtime": 1779307779.127991,
+    "ast_hash": "18c64b323ec3d79df3336bac2e7d8135",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
@@ -222,6 +222,11 @@
   "/home/user/investimentos/docs/CHECKLIST-TESTES-PRE-VENDA.md": {
     "mtime": 1779300654.896675,
     "ast_hash": "2d18e60397e113500f890c1a5a842dc5",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/landing.html": {
+    "mtime": 1779307739.439992,
+    "ast_hash": "917d979ef5543ec0d1365be7afc62435",
     "semantic_hash": ""
   }
 }

@@ -12073,7 +12073,7 @@
             resendBtn.disabled = true;
             var orig = 'Reenviar e-mail';
             resendBtn.textContent = 'Enviando…';
-            u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+            u.sendEmailVerification({ url: location.origin + '/app' }).then(function () {
                 if (typeof mostrarToast === 'function') mostrarToast('E-mail reenviado. Pode levar alguns minutos — confira também a caixa de spam.', 'sucesso', 8000);
                 // Cooldown 60s alinhado com server-side de Firebase Auth.
                 var secs = 60;
@@ -12314,7 +12314,7 @@
                 // Dispara verificação imediatamente; onAuthStateChanged em seguida
                 // detecta emailVerified=false e mostra o painel verify.
                 try {
-                    return cred.user.sendEmailVerification({ url: location.origin + '/' }).then(function () { return cred; });
+                    return cred.user.sendEmailVerification({ url: location.origin + '/app' }).then(function () { return cred; });
                 } catch (_) { return cred; }
             })
             : fb.auth.signInWithEmailAndPassword(email, senha);
@@ -12481,7 +12481,7 @@
         var btn = $('authVerifyResendBtn');
         var status = $('authVerifyStatus');
         if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-        u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+        u.sendEmailVerification({ url: location.origin + '/app' }).then(function () {
             if (status) {
                 status.innerHTML = 'E-mail reenviado. Pode levar alguns minutos — <strong>confira também a pasta de spam</strong>.';
                 status.style.color = '#059669';
