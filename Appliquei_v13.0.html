@@ -2200,15 +2200,22 @@
         .sug-historico-item .sh-texto { font-size: 13px; color: var(--cor-texto-principal); line-height: 1.5; }
 
         /* === TELA DE LOGIN (Firebase) === */
+        /* U1: NÃO usar flex centrado em overlay scrollável — quando o
+           conteúdo passa a altura do viewport (ecrã pequeno, conteúdo do
+           painel de verificação, etc.), align-items:center empurra o topo
+           para fora da área scrollável e fica inacessível. display:block
+           + margin:auto no inner garante que o topo é sempre alcançável. */
         .auth-gate {
             position: fixed; inset: 0; z-index: 10050;
-            display: flex; align-items: center; justify-content: center;
+            display: block;
             padding: 24px 16px;
             background: linear-gradient(145deg, #0b1410 0%, #0f1f18 45%, #111c17 100%);
             overflow-y: auto;
+            box-sizing: border-box;
         }
         .auth-gate-inner {
             width: 100%; max-width: 420px;
+            margin: 0 auto;
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: var(--radius);
@@ -3021,7 +3028,7 @@
 </head>
 <body>
 
-    <div id="authGate" class="auth-gate" style="display:flex;" aria-hidden="false">
+    <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
                 <img src="appliquei_logo_white.jpg" alt="Appliquei" style="filter: brightness(0) saturate(100%) invert(15%) sepia(15%) saturate(800%) hue-rotate(80deg);">
@@ -12025,7 +12032,7 @@
     function showGate() {
         var g = $('authGate');
         if (!g) return;
-        g.style.display = 'flex';
+        g.style.display = 'block';
         g.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     }

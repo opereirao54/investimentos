@@ -118,10 +118,16 @@
     if ($('billingGate')) return;
     var div = document.createElement('div');
     div.id = 'billingGate';
-    div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;';
+    // U1: NÃO usar flex + align-items:center no overlay scrollável. Quando
+    // o conteúdo é maior que o viewport (form de cartão completo, ou ecrã
+    // pequeno como mobile), o centramento empurra o topo do modal para
+    // fora da área scrollável — o utilizador não chega às opções de plano
+    // no topo do template. display:block + margin:auto no inner mantém o
+    // topo sempre acessível.
+    div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;box-sizing:border-box;';
     var fld = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;';
     div.innerHTML = '\
-      <div style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
+      <div style="width:100%;max-width:460px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
         <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
         <p id="billingSub" style="font-size:14px;color:#4a5b53;line-height:1.5;margin:0 0 18px;">A sua avaliação gratuita terminou.</p>\
         <div role="radiogroup" aria-label="Escolha o plano" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">\
@@ -245,7 +251,7 @@
     $('billingTitle').textContent = title;
     $('billingSub').textContent = sub;
     $('billingErr').style.display = 'none';
-    $('billingGate').style.display = 'flex';
+    $('billingGate').style.display = 'block';
     document.body.style.overflow = 'hidden';
     // Sincroniza preço/desconto com lastBilling sempre que o gate aparece.
     // Sem isto, entradas que pulam o updateGatePrices em applyAccess (trial
