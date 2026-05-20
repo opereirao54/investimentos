@@ -232,7 +232,7 @@
       "label": "shouldSyncKey()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L14",
+      "source_location": "L16",
       "id": "web_appliquei_cloud_sync_shouldsynckey",
       "community": 0,
       "norm_label": "shouldsynckey()"
@@ -241,7 +241,7 @@
       "label": "storageValuesEqual()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L22",
+      "source_location": "L24",
       "id": "web_appliquei_cloud_sync_storagevaluesequal",
       "community": 0,
       "norm_label": "storagevaluesequal()"
@@ -250,7 +250,7 @@
       "label": "tsMillis()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L34",
+      "source_location": "L36",
       "id": "web_appliquei_cloud_sync_tsmillis",
       "community": 0,
       "norm_label": "tsmillis()"
@@ -259,7 +259,7 @@
       "label": "collectKeysPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L41",
+      "source_location": "L43",
       "id": "web_appliquei_cloud_sync_collectkeyspayload",
       "community": 0,
       "norm_label": "collectkeyspayload()"
@@ -268,7 +268,7 @@
       "label": "mainRef()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L54",
+      "source_location": "L56",
       "id": "web_appliquei_cloud_sync_mainref",
       "community": 0,
       "norm_label": "mainref()"
@@ -277,7 +277,7 @@
       "label": "flushPush()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L60",
+      "source_location": "L62",
       "id": "web_appliquei_cloud_sync_flushpush",
       "community": 0,
       "norm_label": "flushpush()"
@@ -286,16 +286,43 @@
       "label": "schedulePush()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L99",
+      "source_location": "L106",
       "id": "web_appliquei_cloud_sync_schedulepush",
       "community": 0,
       "norm_label": "schedulepush()"
     },
     {
+      "label": "applyRemoteSnapshot()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L116",
+      "id": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "community": 0,
+      "norm_label": "applyremotesnapshot()"
+    },
+    {
+      "label": "startSnapshotListener()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L165",
+      "id": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "community": 0,
+      "norm_label": "startsnapshotlistener()"
+    },
+    {
+      "label": "stopSnapshotListener()",
+      "file_type": "code",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L194",
+      "id": "web_appliquei_cloud_sync_stopsnapshotlistener",
+      "community": 0,
+      "norm_label": "stopsnapshotlistener()"
+    },
+    {
       "label": "pullAndApply()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L106",
+      "source_location": "L202",
       "id": "web_appliquei_cloud_sync_pullandapply",
       "community": 0,
       "norm_label": "pullandapply()"
@@ -304,7 +331,7 @@
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L193",
+      "source_location": "L247",
       "id": "web_appliquei_cloud_sync_onuser",
       "community": 0,
       "norm_label": "onuser()"
@@ -313,7 +340,7 @@
       "label": "lastSeenUid()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L235",
+      "source_location": "L291",
       "id": "web_appliquei_cloud_sync_lastseenuid",
       "community": 0,
       "norm_label": "lastseenuid()"
@@ -322,7 +349,7 @@
       "label": "clearUserScopedKeys()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L238",
+      "source_location": "L294",
       "id": "web_appliquei_cloud_sync_clearuserscopedkeys",
       "community": 0,
       "norm_label": "clearuserscopedkeys()"
@@ -331,7 +358,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L250",
+      "source_location": "L306",
       "id": "web_appliquei_cloud_sync_attach",
       "community": 0,
       "norm_label": "attach()"
@@ -340,7 +367,7 @@
       "label": "attachWhenReady()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L259",
+      "source_location": "L315",
       "id": "web_appliquei_cloud_sync_attachwhenready",
       "community": 0,
       "norm_label": "attachwhenready()"
@@ -772,7 +799,7 @@
       "label": "renderPlanInfoBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L908",
+      "source_location": "L950",
       "id": "web_appliquei_billing_renderplaninfoblock",
       "community": 4,
       "norm_label": "renderplaninfoblock()"
@@ -781,7 +808,7 @@
       "label": "renderPaymentMethodBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L932",
+      "source_location": "L995",
       "id": "web_appliquei_billing_renderpaymentmethodblock",
       "community": 4,
       "norm_label": "renderpaymentmethodblock()"
@@ -790,7 +817,7 @@
       "label": "renderApplicashBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L952",
+      "source_location": "L1015",
       "id": "web_appliquei_billing_renderapplicashblock",
       "community": 4,
       "norm_label": "renderapplicashblock()"
@@ -799,7 +826,7 @@
       "label": "renderUpcomingBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L993",
+      "source_location": "L1056",
       "id": "web_appliquei_billing_renderupcomingblock",
       "community": 4,
       "norm_label": "renderupcomingblock()"
@@ -808,7 +835,7 @@
       "label": "renderAlertsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1023",
+      "source_location": "L1086",
       "id": "web_appliquei_billing_renderalertsblock",
       "community": 4,
       "norm_label": "renderalertsblock()"
@@ -817,7 +844,7 @@
       "label": "renderCustomerBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1034",
+      "source_location": "L1097",
       "id": "web_appliquei_billing_rendercustomerblock",
       "community": 4,
       "norm_label": "rendercustomerblock()"
@@ -826,7 +853,7 @@
       "label": "renderHistoryBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1060",
+      "source_location": "L1123",
       "id": "web_appliquei_billing_renderhistoryblock",
       "community": 4,
       "norm_label": "renderhistoryblock()"
@@ -835,7 +862,7 @@
       "label": "renderActionsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1102",
+      "source_location": "L1165",
       "id": "web_appliquei_billing_renderactionsblock",
       "community": 4,
       "norm_label": "renderactionsblock()"
@@ -844,7 +871,7 @@
       "label": "renderMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1112",
+      "source_location": "L1175",
       "id": "web_appliquei_billing_rendermyaccount",
       "community": 4,
       "norm_label": "rendermyaccount()"
@@ -853,7 +880,7 @@
       "label": "bindMyAccountActions()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1133",
+      "source_location": "L1196",
       "id": "web_appliquei_billing_bindmyaccountactions",
       "community": 4,
       "norm_label": "bindmyaccountactions()"
@@ -862,7 +889,7 @@
       "label": "reloadAccountStatus()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1156",
+      "source_location": "L1219",
       "id": "web_appliquei_billing_reloadaccountstatus",
       "community": 4,
       "norm_label": "reloadaccountstatus()"
@@ -871,7 +898,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1163",
+      "source_location": "L1226",
       "id": "web_appliquei_billing_escapehtml",
       "community": 4,
       "norm_label": "escapehtml()"
@@ -880,7 +907,7 @@
       "label": "fmtCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1168",
+      "source_location": "L1231",
       "id": "web_appliquei_billing_fmtcpfcnpj",
       "community": 4,
       "norm_label": "fmtcpfcnpj()"
@@ -889,7 +916,7 @@
       "label": "fmtPhone()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1174",
+      "source_location": "L1237",
       "id": "web_appliquei_billing_fmtphone",
       "community": 4,
       "norm_label": "fmtphone()"
@@ -898,7 +925,7 @@
       "label": "ensureSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1183",
+      "source_location": "L1246",
       "id": "web_appliquei_billing_ensuresubmodal",
       "community": 4,
       "norm_label": "ensuresubmodal()"
@@ -907,7 +934,7 @@
       "label": "openSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1199",
+      "source_location": "L1262",
       "id": "web_appliquei_billing_opensubmodal",
       "community": 4,
       "norm_label": "opensubmodal()"
@@ -916,7 +943,7 @@
       "label": "closeSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1205",
+      "source_location": "L1268",
       "id": "web_appliquei_billing_closesubmodal",
       "community": 4,
       "norm_label": "closesubmodal()"
@@ -925,7 +952,7 @@
       "label": "fld()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1210",
+      "source_location": "L1273",
       "id": "web_appliquei_billing_fld",
       "community": 4,
       "norm_label": "fld()"
@@ -934,7 +961,7 @@
       "label": "lbl()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1211",
+      "source_location": "L1274",
       "id": "web_appliquei_billing_lbl",
       "community": 4,
       "norm_label": "lbl()"
@@ -943,7 +970,7 @@
       "label": "openChangeCardModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1213",
+      "source_location": "L1276",
       "id": "web_appliquei_billing_openchangecardmodal",
       "community": 4,
       "norm_label": "openchangecardmodal()"
@@ -952,7 +979,7 @@
       "label": "showSubModalErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1234",
+      "source_location": "L1297",
       "id": "web_appliquei_billing_showsubmodalerr",
       "community": 4,
       "norm_label": "showsubmodalerr()"
@@ -961,7 +988,7 @@
       "label": "submitChangeCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1241",
+      "source_location": "L1304",
       "id": "web_appliquei_billing_submitchangecard",
       "community": 4,
       "norm_label": "submitchangecard()"
@@ -970,7 +997,7 @@
       "label": "openEditCustomerModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1293",
+      "source_location": "L1356",
       "id": "web_appliquei_billing_openeditcustomermodal",
       "community": 4,
       "norm_label": "openeditcustomermodal()"
@@ -979,7 +1006,7 @@
       "label": "submitEditCustomer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1322",
+      "source_location": "L1385",
       "id": "web_appliquei_billing_submiteditcustomer",
       "community": 4,
       "norm_label": "submiteditcustomer()"
@@ -988,7 +1015,7 @@
       "label": "confirmCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1369",
+      "source_location": "L1432",
       "id": "web_appliquei_billing_confirmcancelsubscription",
       "community": 4,
       "norm_label": "confirmcancelsubscription()"
@@ -997,7 +1024,7 @@
       "label": "doCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1383",
+      "source_location": "L1446",
       "id": "web_appliquei_billing_docancelsubscription",
       "community": 4,
       "norm_label": "docancelsubscription()"
@@ -1006,7 +1033,7 @@
       "label": "syncApplicashFromServer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1399",
+      "source_location": "L1462",
       "id": "web_appliquei_billing_syncapplicashfromserver",
       "community": 4,
       "norm_label": "syncapplicashfromserver()"
@@ -1015,7 +1042,7 @@
       "label": "statCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1446",
+      "source_location": "L1509",
       "id": "web_appliquei_billing_statcard",
       "community": 4,
       "norm_label": "statcard()"
@@ -1024,7 +1051,7 @@
       "label": "refresh()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1453",
+      "source_location": "L1516",
       "id": "web_appliquei_billing_refresh",
       "community": 4,
       "norm_label": "refresh()"
@@ -1033,7 +1060,7 @@
       "label": "writePopupMessage()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1465",
+      "source_location": "L1528",
       "id": "web_appliquei_billing_writepopupmessage",
       "community": 4,
       "norm_label": "writepopupmessage()"
@@ -1042,7 +1069,7 @@
       "label": "openSubscribeForm()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1479",
+      "source_location": "L1542",
       "id": "web_appliquei_billing_opensubscribeform",
       "community": 4,
       "norm_label": "opensubscribeform()"
@@ -1051,7 +1078,7 @@
       "label": "parseExpiry()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1484",
+      "source_location": "L1547",
       "id": "web_appliquei_billing_parseexpiry",
       "community": 4,
       "norm_label": "parseexpiry()"
@@ -1060,7 +1087,7 @@
       "label": "collectCardPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1496",
+      "source_location": "L1559",
       "id": "web_appliquei_billing_collectcardpayload",
       "community": 4,
       "norm_label": "collectcardpayload()"
@@ -1069,7 +1096,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1524",
+      "source_location": "L1587",
       "id": "web_appliquei_billing_subscribe",
       "community": 4,
       "norm_label": "subscribe()"
@@ -1078,7 +1105,7 @@
       "label": "waitForActive()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1615",
+      "source_location": "L1678",
       "id": "web_appliquei_billing_waitforactive",
       "community": 4,
       "norm_label": "waitforactive()"
@@ -1087,7 +1114,7 @@
       "label": "startActivePolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1633",
+      "source_location": "L1696",
       "id": "web_appliquei_billing_startactivepolling",
       "community": 4,
       "norm_label": "startactivepolling()"
@@ -1096,7 +1123,7 @@
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1649",
+      "source_location": "L1712",
       "id": "web_appliquei_billing_onuser",
       "community": 4,
       "norm_label": "onuser()"
@@ -1105,7 +1132,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1676",
+      "source_location": "L1739",
       "id": "web_appliquei_billing_attach",
       "community": 4,
       "norm_label": "attach()"
@@ -1143,7 +1170,7 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L1",
       "id": "api_lib_billing_sync_js",
-      "community": 25,
+      "community": 3,
       "norm_label": "billing-sync.js"
     },
     {
@@ -1152,7 +1179,7 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L1",
       "id": "lib_billing_sync_fieldvalue",
-      "community": 25,
+      "community": 3,
       "norm_label": "{ fieldvalue }"
     },
     {
@@ -1161,7 +1188,7 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L2",
       "id": "lib_billing_sync_asaas",
-      "community": 25,
+      "community": 3,
       "norm_label": "asaas"
     },
     {
@@ -1170,16 +1197,34 @@
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L4",
       "id": "lib_billing_sync_paid_statuses",
-      "community": 25,
+      "community": 3,
       "norm_label": "paid_statuses"
+    },
+    {
+      "label": "NON_FINAL_STATUSES",
+      "file_type": "code",
+      "source_file": "api/_lib/billing-sync.js",
+      "source_location": "L5",
+      "id": "lib_billing_sync_non_final_statuses",
+      "community": 3,
+      "norm_label": "non_final_statuses"
+    },
+    {
+      "label": "reconcileNonFinalPayments()",
+      "file_type": "code",
+      "source_file": "api/_lib/billing-sync.js",
+      "source_location": "L15",
+      "id": "lib_billing_sync_reconcilenonfinalpayments",
+      "community": 3,
+      "norm_label": "reconcilenonfinalpayments()"
     },
     {
       "label": "syncBillingFromAsaas()",
       "file_type": "code",
       "source_file": "api/_lib/billing-sync.js",
-      "source_location": "L14",
+      "source_location": "L76",
       "id": "lib_billing_sync_syncbillingfromasaas",
-      "community": 25,
+      "community": 3,
       "norm_label": "syncbillingfromasaas()"
     },
     {
@@ -1233,7 +1278,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L63",
       "id": "lib_firebase_admin_fieldvalue",
-      "community": 25,
+      "community": 8,
       "norm_label": "fieldvalue()"
     },
     {
@@ -1458,7 +1503,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L1",
       "id": "api_lib_cpf_cnpj_js",
-      "community": 6,
+      "community": 24,
       "norm_label": "cpf-cnpj.js"
     },
     {
@@ -1467,7 +1512,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L5",
       "id": "lib_cpf_cnpj_onlydigits",
-      "community": 6,
+      "community": 24,
       "norm_label": "onlydigits()"
     },
     {
@@ -1476,7 +1521,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L9",
       "id": "lib_cpf_cnpj_isvalidcpf",
-      "community": 6,
+      "community": 24,
       "norm_label": "isvalidcpf()"
     },
     {
@@ -1485,7 +1530,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L25",
       "id": "lib_cpf_cnpj_isvalidcnpj",
-      "community": 6,
+      "community": 24,
       "norm_label": "isvalidcnpj()"
     },
     {
@@ -1494,7 +1539,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L43",
       "id": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "community": 6,
+      "community": 24,
       "norm_label": "isvalidcpfcnpj()"
     },
     {
@@ -1510,7 +1555,7 @@
       "label": "PAID_PAYMENT_STATUSES",
       "file_type": "code",
       "source_file": "api/_lib/access.js",
-      "source_location": "L3",
+      "source_location": "L4",
       "id": "lib_access_paid_payment_statuses",
       "community": 13,
       "norm_label": "paid_payment_statuses"
@@ -1519,7 +1564,7 @@
       "label": "BAD_PAYMENT_STATUSES",
       "file_type": "code",
       "source_file": "api/_lib/access.js",
-      "source_location": "L4",
+      "source_location": "L5",
       "id": "lib_access_bad_payment_statuses",
       "community": 13,
       "norm_label": "bad_payment_statuses"
@@ -1528,7 +1573,7 @@
       "label": "toMillis()",
       "file_type": "code",
       "source_file": "api/_lib/access.js",
-      "source_location": "L14",
+      "source_location": "L15",
       "id": "lib_access_tomillis",
       "community": 13,
       "norm_label": "tomillis()"
@@ -1537,7 +1582,7 @@
       "label": "computeAccess()",
       "file_type": "code",
       "source_file": "api/_lib/access.js",
-      "source_location": "L22",
+      "source_location": "L23",
       "id": "lib_access_computeaccess",
       "community": 13,
       "norm_label": "computeaccess()"
@@ -1548,7 +1593,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "api_lib_referral_guard_js",
-      "community": 38,
+      "community": 6,
       "norm_label": "referral-guard.js"
     },
     {
@@ -1557,7 +1602,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L1",
       "id": "lib_referral_guard_devicefingerprint_ipfrom",
-      "community": 38,
+      "community": 6,
       "norm_label": "{ devicefingerprint, ipfrom }"
     },
     {
@@ -1566,7 +1611,7 @@
       "source_file": "api/_lib/referral-guard.js",
       "source_location": "L17",
       "id": "lib_referral_guard_assertreferralallowed",
-      "community": 38,
+      "community": 6,
       "norm_label": "assertreferralallowed()"
     },
     {
@@ -1719,7 +1764,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L81",
       "id": "lib_rate_limit_ipfrom",
-      "community": 38,
+      "community": 6,
       "norm_label": "ipfrom()"
     },
     {
@@ -1728,7 +1773,7 @@
       "source_file": "api/_lib/rate-limit.js",
       "source_location": "L107",
       "id": "lib_rate_limit_devicefingerprint",
-      "community": 38,
+      "community": 6,
       "norm_label": "devicefingerprint()"
     },
     {
@@ -2421,7 +2466,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L1",
       "id": "api_billing_status_js",
-      "community": 13,
+      "community": 36,
       "norm_label": "status.js"
     },
     {
@@ -2430,7 +2475,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L1",
       "id": "billing_status_db",
-      "community": 13,
+      "community": 36,
       "norm_label": "{ db }"
     },
     {
@@ -2439,7 +2484,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L2",
       "id": "billing_status_requireverifieduser_cors",
-      "community": 13,
+      "community": 36,
       "norm_label": "{ requireverifieduser, cors }"
     },
     {
@@ -2448,7 +2493,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L3",
       "id": "billing_status_computeaccess",
-      "community": 13,
+      "community": 36,
       "norm_label": "{ computeaccess }"
     },
     {
@@ -2457,7 +2502,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L4",
       "id": "billing_status_syncbillingfromasaas",
-      "community": 13,
+      "community": 36,
       "norm_label": "{ syncbillingfromasaas }"
     },
     {
@@ -2466,7 +2511,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L14",
       "id": "billing_status_billingref",
-      "community": 13,
+      "community": 36,
       "norm_label": "billingref"
     },
     {
@@ -2475,7 +2520,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L23",
       "id": "billing_status_access",
-      "community": 13,
+      "community": 36,
       "norm_label": "access"
     },
     {
@@ -2484,7 +2529,7 @@
       "source_file": "api/billing/status.js",
       "source_location": "L46",
       "id": "billing_status_tstoiso",
-      "community": 13,
+      "community": 36,
       "norm_label": "tstoiso()"
     },
     {
@@ -2628,7 +2673,7 @@
       "source_file": "api/billing/init.js",
       "source_location": "L198",
       "id": "billing_init_releaselock",
-      "community": 25,
+      "community": 8,
       "norm_label": "releaselock()"
     },
     {
@@ -2799,7 +2844,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L87",
       "id": "billing_webhook_creditindicatorfromindicado",
-      "community": 25,
+      "community": 8,
       "norm_label": "creditindicatorfromindicado()"
     },
     {
@@ -2808,7 +2853,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L146",
       "id": "billing_webhook_reversereferralcredit",
-      "community": 25,
+      "community": 8,
       "norm_label": "reversereferralcredit()"
     },
     {
@@ -3780,7 +3825,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L13",
       "id": "lib_mock_billing_isincrement",
-      "community": 36,
+      "community": 7,
       "norm_label": "isincrement()"
     },
     {
@@ -3789,7 +3834,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L14",
       "id": "lib_mock_billing_istimestamp",
-      "community": 36,
+      "community": 7,
       "norm_label": "istimestamp()"
     },
     {
@@ -3798,7 +3843,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L16",
       "id": "lib_mock_billing_maketimestamp",
-      "community": 36,
+      "community": 7,
       "norm_label": "maketimestamp()"
     },
     {
@@ -3807,7 +3852,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L26",
       "id": "lib_mock_billing_deepclone",
-      "community": 36,
+      "community": 7,
       "norm_label": "deepclone()"
     },
     {
@@ -3825,7 +3870,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L41",
       "id": "lib_mock_billing_resolvevalue",
-      "community": 36,
+      "community": 7,
       "norm_label": "resolvevalue()"
     },
     {
@@ -3834,7 +3879,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L61",
       "id": "lib_mock_billing_mergedata",
-      "community": 36,
+      "community": 7,
       "norm_label": "mergedata()"
     },
     {
@@ -3879,7 +3924,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L86",
       "id": "lib_mock_billing_docref_get",
-      "community": 33,
+      "community": 31,
       "norm_label": ".get()"
     },
     {
@@ -3888,7 +3933,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L90",
       "id": "lib_mock_billing_docref_set",
-      "community": 36,
+      "community": 31,
       "norm_label": ".set()"
     },
     {
@@ -3978,7 +4023,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L109",
       "id": "lib_mock_billing_collref_get",
-      "community": 33,
+      "community": 31,
       "norm_label": ".get()"
     },
     {
@@ -4032,7 +4077,7 @@
       "source_file": "scripts/lib/mock-billing.js",
       "source_location": "L120",
       "id": "lib_mock_billing_query_get",
-      "community": 33,
+      "community": 31,
       "norm_label": ".get()"
     },
     {
@@ -4612,6 +4657,330 @@
       "norm_label": "4. conclusoes"
     },
     {
+      "label": "CHECKLIST-TESTES-PRE-VENDA.md",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L1",
+      "id": "docs_checklist_testes_pre_venda_md",
+      "community": 25,
+      "norm_label": "checklist-testes-pre-venda.md"
+    },
+    {
+      "label": "Checklist de Testes \u2014 Pr\u00e9-venda Appliquei",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L1",
+      "id": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "community": 25,
+      "norm_label": "checklist de testes \u2014 pre-venda appliquei"
+    },
+    {
+      "label": "0. Prepara\u00e7\u00e3o (1x)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L13",
+      "id": "docs_checklist_testes_pre_venda_0_prepara\u00e7\u00e3o_1x",
+      "community": 25,
+      "norm_label": "0. preparacao (1x)"
+    },
+    {
+      "label": "1. Login / Cadastro / E-mail verificado",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L29",
+      "id": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "community": 25,
+      "norm_label": "1. login / cadastro / e-mail verificado"
+    },
+    {
+      "label": "1.1 Cadastro com e-mail e senha (E1)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L31",
+      "id": "docs_checklist_testes_pre_venda_1_1_cadastro_com_e_mail_e_senha_e1",
+      "community": 25,
+      "norm_label": "1.1 cadastro com e-mail e senha (e1)"
+    },
+    {
+      "label": "1.2 Login Google \"novo\" pela aba **Entrar** (G1)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L43",
+      "id": "docs_checklist_testes_pre_venda_1_2_login_google_novo_pela_aba_entrar_g1",
+      "community": 25,
+      "norm_label": "1.2 login google \"novo\" pela aba **entrar** (g1)"
+    },
+    {
+      "label": "1.3 Cadastro Google pela aba **Criar conta** (G1)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L51",
+      "id": "docs_checklist_testes_pre_venda_1_3_cadastro_google_pela_aba_criar_conta_g1",
+      "community": 25,
+      "norm_label": "1.3 cadastro google pela aba **criar conta** (g1)"
+    },
+    {
+      "label": "1.4 Banner de transi\u00e7\u00e3o (e-mails antigos)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L56",
+      "id": "docs_checklist_testes_pre_venda_1_4_banner_de_transi\u00e7\u00e3o_e_mails_antigos",
+      "community": 25,
+      "norm_label": "1.4 banner de transicao (e-mails antigos)"
+    },
+    {
+      "label": "1.5 Reset de senha (E1)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L62",
+      "id": "docs_checklist_testes_pre_venda_1_5_reset_de_senha_e1",
+      "community": 25,
+      "norm_label": "1.5 reset de senha (e1)"
+    },
+    {
+      "label": "1.6 Isolamento entre contas (commit `fa6d97a`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L65",
+      "id": "docs_checklist_testes_pre_venda_1_6_isolamento_entre_contas_commit_fa6d97a",
+      "community": 25,
+      "norm_label": "1.6 isolamento entre contas (commit `fa6d97a`)"
+    },
+    {
+      "label": "1.7 Cloud sync no signOut (commit `81be8ce`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L70",
+      "id": "docs_checklist_testes_pre_venda_1_7_cloud_sync_no_signout_commit_81be8ce",
+      "community": 25,
+      "norm_label": "1.7 cloud sync no signout (commit `81be8ce`)"
+    },
+    {
+      "label": "2. Trial de 7 dias",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L78",
+      "id": "docs_checklist_testes_pre_venda_2_trial_de_7_dias",
+      "community": 25,
+      "norm_label": "2. trial de 7 dias"
+    },
+    {
+      "label": "3. Assinatura Asaas (R$ 15/m\u00eas)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L91",
+      "id": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "community": 25,
+      "norm_label": "3. assinatura asaas (r$ 15/mes)"
+    },
+    {
+      "label": "3.1 Fluxo feliz com cart\u00e3o",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L93",
+      "id": "docs_checklist_testes_pre_venda_3_1_fluxo_feliz_com_cart\u00e3o",
+      "community": 25,
+      "norm_label": "3.1 fluxo feliz com cartao"
+    },
+    {
+      "label": "3.2 Valida\u00e7\u00e3o CPF/CNPJ (commit `177f3fc`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L101",
+      "id": "docs_checklist_testes_pre_venda_3_2_valida\u00e7\u00e3o_cpf_cnpj_commit_177f3fc",
+      "community": 25,
+      "norm_label": "3.2 validacao cpf/cnpj (commit `177f3fc`)"
+    },
+    {
+      "label": "3.3 Cupom no gate (commits `417bb6e`, `cf87225`, `52efe74`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L107",
+      "id": "docs_checklist_testes_pre_venda_3_3_cupom_no_gate_commits_417bb6e_cf87225_52efe74",
+      "community": 25,
+      "norm_label": "3.3 cupom no gate (commits `417bb6e`, `cf87225`, `52efe74`)"
+    },
+    {
+      "label": "3.4 Cart\u00e3o recusado",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L115",
+      "id": "docs_checklist_testes_pre_venda_3_4_cart\u00e3o_recusado",
+      "community": 25,
+      "norm_label": "3.4 cartao recusado"
+    },
+    {
+      "label": "3.5 Webhooks",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L119",
+      "id": "docs_checklist_testes_pre_venda_3_5_webhooks",
+      "community": 25,
+      "norm_label": "3.5 webhooks"
+    },
+    {
+      "label": "3.6 Cancelamento",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L128",
+      "id": "docs_checklist_testes_pre_venda_3_6_cancelamento",
+      "community": 25,
+      "norm_label": "3.6 cancelamento"
+    },
+    {
+      "label": "3.7 Cart\u00e3o recusado / troca de cart\u00e3o",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L133",
+      "id": "docs_checklist_testes_pre_venda_3_7_cart\u00e3o_recusado_troca_de_cart\u00e3o",
+      "community": 25,
+      "norm_label": "3.7 cartao recusado / troca de cartao"
+    },
+    {
+      "label": "3.8 Inadimpl\u00eancia",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L137",
+      "id": "docs_checklist_testes_pre_venda_3_8_inadimpl\u00eancia",
+      "community": 25,
+      "norm_label": "3.8 inadimplencia"
+    },
+    {
+      "label": "4. Applicash (programa de indica\u00e7\u00f5es)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L143",
+      "id": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
+      "community": 25,
+      "norm_label": "4. applicash (programa de indicacoes)"
+    },
+    {
+      "label": "4.1 Gera\u00e7\u00e3o e share (commit `d7c6bb7`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L145",
+      "id": "docs_checklist_testes_pre_venda_4_1_gera\u00e7\u00e3o_e_share_commit_d7c6bb7",
+      "community": 25,
+      "norm_label": "4.1 geracao e share (commit `d7c6bb7`)"
+    },
+    {
+      "label": "4.2 Uso do cupom por indicado",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L151",
+      "id": "docs_checklist_testes_pre_venda_4_2_uso_do_cupom_por_indicado",
+      "community": 25,
+      "norm_label": "4.2 uso do cupom por indicado"
+    },
+    {
+      "label": "4.3 Anti-fraude (commits `a0b477e`, `8e81500`, `9d6e594`, `33202ab`)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L159",
+      "id": "docs_checklist_testes_pre_venda_4_3_anti_fraude_commits_a0b477e_8e81500_9d6e594_33202ab",
+      "community": 25,
+      "norm_label": "4.3 anti-fraude (commits `a0b477e`, `8e81500`, `9d6e594`, `33202ab`)"
+    },
+    {
+      "label": "5. Endpoints / Admin",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L169",
+      "id": "docs_checklist_testes_pre_venda_5_endpoints_admin",
+      "community": 25,
+      "norm_label": "5. endpoints / admin"
+    },
+    {
+      "label": "6. Seguran\u00e7a / Rules",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L181",
+      "id": "docs_checklist_testes_pre_venda_6_seguran\u00e7a_rules",
+      "community": 25,
+      "norm_label": "6. seguranca / rules"
+    },
+    {
+      "label": "7. UX / Regress\u00f5es",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L192",
+      "id": "docs_checklist_testes_pre_venda_7_ux_regress\u00f5es",
+      "community": 25,
+      "norm_label": "7. ux / regressoes"
+    },
+    {
+      "label": "8. P\u00f3s-teste \u2014 Limpeza",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L204",
+      "id": "docs_checklist_testes_pre_venda_8_p\u00f3s_teste_limpeza",
+      "community": 25,
+      "norm_label": "8. pos-teste \u2014 limpeza"
+    },
+    {
+      "label": "Ferramentas / Extens\u00f5es recomendadas antes de abrir as vendas",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L213",
+      "id": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "community": 25,
+      "norm_label": "ferramentas / extensoes recomendadas antes de abrir as vendas"
+    },
+    {
+      "label": "A. J\u00e1 em uso ou parcialmente",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L218",
+      "id": "docs_checklist_testes_pre_venda_a_j\u00e1_em_uso_ou_parcialmente",
+      "community": 25,
+      "norm_label": "a. ja em uso ou parcialmente"
+    },
+    {
+      "label": "B. **Instalar antes** de abrir vendas (prioridade alta)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L225",
+      "id": "docs_checklist_testes_pre_venda_b_instalar_antes_de_abrir_vendas_prioridade_alta",
+      "community": 25,
+      "norm_label": "b. **instalar antes** de abrir vendas (prioridade alta)"
+    },
+    {
+      "label": "C. Recomendado, baixo esfor\u00e7o",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L252",
+      "id": "docs_checklist_testes_pre_venda_c_recomendado_baixo_esfor\u00e7o",
+      "community": 25,
+      "norm_label": "c. recomendado, baixo esforco"
+    },
+    {
+      "label": "D. Operacional / billing",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L269",
+      "id": "docs_checklist_testes_pre_venda_d_operacional_billing",
+      "community": 25,
+      "norm_label": "d. operacional / billing"
+    },
+    {
+      "label": "E. Extens\u00f5es VS Code / Cursor (DevEx)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L279",
+      "id": "docs_checklist_testes_pre_venda_e_extens\u00f5es_vs_code_cursor_devex",
+      "community": 25,
+      "norm_label": "e. extensoes vs code / cursor (devex)"
+    },
+    {
+      "label": "Prioridade pr\u00e1tica (ordem do que eu faria)",
+      "file_type": "document",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L287",
+      "id": "docs_checklist_testes_pre_venda_prioridade_pr\u00e1tica_ordem_do_que_eu_faria",
+      "community": 25,
+      "norm_label": "prioridade pratica (ordem do que eu faria)"
+    },
+    {
       "label": "{ requireVerifiedUser, cors }",
       "file_type": "code",
       "source_file": "api/billing/init.js",
@@ -4652,7 +5021,7 @@
       "file_type": "code",
       "source_file": "api/billing/status.js",
       "source_location": "L2",
-      "community": 13,
+      "community": 36,
       "norm_label": "{ requireuser, cors }",
       "id": "billing_status_requireuser_cors"
     },
@@ -5184,6 +5553,36 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L116",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L194",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_js",
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L103",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -5256,11 +5655,11 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-cloud-sync.js",
-      "source_location": "L137",
+      "source_location": "L131",
       "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_shouldsynckey"
+      "source": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "target": "web_appliquei_cloud_sync_shouldsynckey",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5272,6 +5671,28 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_clearuserscopedkeys",
       "target": "web_appliquei_cloud_sync_shouldsynckey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L137",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L136",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "target": "web_appliquei_cloud_sync_storagevaluesequal",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5294,6 +5715,17 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_flushpush",
       "target": "web_appliquei_cloud_sync_tsmillis"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "target": "web_appliquei_cloud_sync_tsmillis",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5333,6 +5765,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L173",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "target": "web_appliquei_cloud_sync_mainref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L109",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -5349,6 +5792,61 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
       "target": "web_appliquei_cloud_sync_flushpush"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L179",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_applyremotesnapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L168",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L215",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_pullandapply",
+      "target": "web_appliquei_cloud_sync_startsnapshotlistener",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-cloud-sync.js",
+      "source_location": "L252",
+      "weight": 1.0,
+      "source": "web_appliquei_cloud_sync_onuser",
+      "target": "web_appliquei_cloud_sync_stopsnapshotlistener",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -5540,9 +6038,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L286",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_ensureverifybanner",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensureverifybanner"
     },
     {
       "relation": "contains",
@@ -5550,9 +6048,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L310",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_resendverification",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_resendverification"
     },
     {
       "relation": "contains",
@@ -5560,9 +6058,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L338",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_recheckverification",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_recheckverification"
     },
     {
       "relation": "contains",
@@ -5570,9 +6068,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L359",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_needsemailverification",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_needsemailverification"
     },
     {
       "relation": "contains",
@@ -5660,9 +6158,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L561",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_isvalidcpf",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpf"
     },
     {
       "relation": "contains",
@@ -5670,9 +6168,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L573",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_isvalidcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcnpj"
     },
     {
       "relation": "contains",
@@ -5680,9 +6178,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L587",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpfcnpj"
     },
     {
       "relation": "contains",
@@ -5690,9 +6188,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L594",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_ensuremyaccountstyles",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensuremyaccountstyles"
     },
     {
       "relation": "contains",
@@ -5820,9 +6318,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L807",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_daysbetween",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_daysbetween"
     },
     {
       "relation": "contains",
@@ -5830,9 +6328,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L815",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_pluraldays",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_pluraldays"
     },
     {
       "relation": "contains",
@@ -5840,9 +6338,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L818",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_clamp",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_clamp"
     },
     {
       "relation": "contains",
@@ -5850,9 +6348,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L820",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderheroblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderheroblock"
     },
     {
       "relation": "contains",
@@ -5860,9 +6358,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L908",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderplaninfoblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderplaninfoblock"
     },
     {
       "relation": "contains",
@@ -5870,9 +6368,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L932",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderpaymentmethodblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderpaymentmethodblock"
     },
     {
       "relation": "contains",
@@ -5880,9 +6378,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L952",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderapplicashblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderapplicashblock"
     },
     {
       "relation": "contains",
@@ -5890,9 +6388,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L993",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderupcomingblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderupcomingblock"
     },
     {
       "relation": "contains",
@@ -5900,9 +6398,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1023",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderalertsblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderalertsblock"
     },
     {
       "relation": "contains",
@@ -5910,9 +6408,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1034",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_rendercustomerblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_rendercustomerblock"
     },
     {
       "relation": "contains",
@@ -5920,9 +6418,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1060",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderhistoryblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderhistoryblock"
     },
     {
       "relation": "contains",
@@ -5930,9 +6428,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_renderactionsblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderactionsblock"
     },
     {
       "relation": "contains",
@@ -5960,9 +6458,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1156",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_reloadaccountstatus",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_reloadaccountstatus"
     },
     {
       "relation": "contains",
@@ -6461,9 +6959,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L287",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensureverifybanner",
-      "target": "web_appliquei_billing",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing"
     },
     {
       "relation": "calls",
@@ -6472,9 +6970,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L311",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_resendverification",
-      "target": "web_appliquei_billing",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing"
     },
     {
       "relation": "calls",
@@ -6483,9 +6981,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L339",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_recheckverification",
-      "target": "web_appliquei_billing",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing"
     },
     {
       "relation": "calls",
@@ -6505,9 +7003,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L595",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensuremyaccountstyles",
-      "target": "web_appliquei_billing",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing"
     },
     {
       "relation": "calls",
@@ -6868,9 +7366,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L303",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensureverifybanner",
-      "target": "web_appliquei_billing_synctrialbanneroffset",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_synctrialbanneroffset"
     },
     {
       "relation": "calls",
@@ -6901,9 +7399,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L347",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_recheckverification",
-      "target": "web_appliquei_billing_ensureverifybanner",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensureverifybanner"
     },
     {
       "relation": "calls",
@@ -6912,9 +7410,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L467",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_applyaccess",
-      "target": "web_appliquei_billing_ensureverifybanner",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensureverifybanner"
     },
     {
       "relation": "calls",
@@ -6923,9 +7421,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1653",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_onuser",
-      "target": "web_appliquei_billing_ensureverifybanner",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensureverifybanner"
     },
     {
       "relation": "calls",
@@ -6934,9 +7432,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L323",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_resendverification",
-      "target": "web_appliquei_billing_authedfetch",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_authedfetch"
     },
     {
       "relation": "calls",
@@ -6945,9 +7443,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L349",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_recheckverification",
-      "target": "web_appliquei_billing_refresh",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_refresh"
     },
     {
       "relation": "calls",
@@ -6956,9 +7454,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L464",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_applyaccess",
-      "target": "web_appliquei_billing_needsemailverification",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_needsemailverification"
     },
     {
       "relation": "calls",
@@ -7165,9 +7663,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L701",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensuremyaccountmodal",
-      "target": "web_appliquei_billing_fetchme",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fetchme"
     },
     {
       "relation": "calls",
@@ -7187,9 +7685,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_reloadaccountstatus",
-      "target": "web_appliquei_billing_fetchme",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fetchme"
     },
     {
       "relation": "calls",
@@ -7242,9 +7740,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L837",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -7253,9 +7751,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L918",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderplaninfoblock",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -7264,9 +7762,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L964",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderapplicashblock",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -7275,9 +7773,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1010",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderupcomingblock",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -7286,9 +7784,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1072",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderhistoryblock",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -7308,9 +7806,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L589",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_isvalidcpfcnpj",
-      "target": "web_appliquei_billing_isvalidcpf",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpf"
     },
     {
       "relation": "calls",
@@ -7319,9 +7817,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L590",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_isvalidcpfcnpj",
-      "target": "web_appliquei_billing_isvalidcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcnpj"
     },
     {
       "relation": "calls",
@@ -7330,9 +7828,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1268",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_submitchangecard",
-      "target": "web_appliquei_billing_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpfcnpj"
     },
     {
       "relation": "calls",
@@ -7341,9 +7839,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1337",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_submiteditcustomer",
-      "target": "web_appliquei_billing_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpfcnpj"
     },
     {
       "relation": "calls",
@@ -7352,9 +7850,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1536",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_subscribe",
-      "target": "web_appliquei_billing_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_isvalidcpfcnpj"
     },
     {
       "relation": "calls",
@@ -7363,9 +7861,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L678",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensuremyaccountmodal",
-      "target": "web_appliquei_billing_ensuremyaccountstyles",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_ensuremyaccountstyles"
     },
     {
       "relation": "calls",
@@ -7385,9 +7883,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L701",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensuremyaccountmodal",
-      "target": "web_appliquei_billing_rendermyaccount",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_rendermyaccount"
     },
     {
       "relation": "calls",
@@ -7407,9 +7905,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1144",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_bindmyaccountactions",
-      "target": "web_appliquei_billing_closemyaccount",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_closemyaccount"
     },
     {
       "relation": "calls",
@@ -7451,9 +7949,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L834",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
-      "target": "web_appliquei_billing_fmtdate",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtdate"
     },
     {
       "relation": "calls",
@@ -7462,9 +7960,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L922",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderplaninfoblock",
-      "target": "web_appliquei_billing_fmtdate",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtdate"
     },
     {
       "relation": "calls",
@@ -7473,9 +7971,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1009",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderupcomingblock",
-      "target": "web_appliquei_billing_fmtdate",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtdate"
     },
     {
       "relation": "calls",
@@ -7484,9 +7982,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1087",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderhistoryblock",
-      "target": "web_appliquei_billing_fmtdate",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtdate"
     },
     {
       "relation": "calls",
@@ -7515,11 +8013,22 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1001",
+      "source_location": "L971",
       "weight": 1.0,
-      "source": "web_appliquei_billing_renderupcomingblock",
+      "source": "web_appliquei_billing_renderplaninfoblock",
       "target": "web_appliquei_billing_paymentstatuslabel",
       "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1001",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_billing_renderupcomingblock",
+      "target": "web_appliquei_billing_paymentstatuslabel"
     },
     {
       "relation": "calls",
@@ -7539,9 +8048,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1090",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderhistoryblock",
-      "target": "web_appliquei_billing_statusbadge",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_statusbadge"
     },
     {
       "relation": "calls",
@@ -7561,9 +8070,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1069",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderhistoryblock",
-      "target": "web_appliquei_billing_eventnote",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_eventnote"
     },
     {
       "relation": "calls",
@@ -7594,9 +8103,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L936",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderpaymentmethodblock",
-      "target": "web_appliquei_billing_paymentmethodlabel",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_paymentmethodlabel"
     },
     {
       "relation": "calls",
@@ -7616,9 +8125,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1024",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderalertsblock",
-      "target": "web_appliquei_billing_failurereasonlabel",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_failurereasonlabel"
     },
     {
       "relation": "calls",
@@ -7638,9 +8147,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L831",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
-      "target": "web_appliquei_billing_daysbetween",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_daysbetween"
     },
     {
       "relation": "calls",
@@ -7649,9 +8158,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L833",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
-      "target": "web_appliquei_billing_pluraldays",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_pluraldays"
     },
     {
       "relation": "calls",
@@ -7660,9 +8169,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L831",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
-      "target": "web_appliquei_billing_clamp",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_clamp"
     },
     {
       "relation": "calls",
@@ -7671,9 +8180,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L959",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderapplicashblock",
-      "target": "web_appliquei_billing_clamp",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_clamp"
     },
     {
       "relation": "calls",
@@ -7682,9 +8191,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1119",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderheroblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderheroblock"
     },
     {
       "relation": "calls",
@@ -7693,9 +8202,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1121",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderplaninfoblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderplaninfoblock"
     },
     {
       "relation": "calls",
@@ -7704,9 +8213,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L937",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderpaymentmethodblock",
-      "target": "web_appliquei_billing_escapehtml",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_escapehtml"
     },
     {
       "relation": "calls",
@@ -7715,9 +8224,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1124",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderpaymentmethodblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderpaymentmethodblock"
     },
     {
       "relation": "calls",
@@ -7726,9 +8235,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L980",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderapplicashblock",
-      "target": "web_appliquei_billing_escapehtml",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_escapehtml"
     },
     {
       "relation": "calls",
@@ -7737,9 +8246,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1122",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderapplicashblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderapplicashblock"
     },
     {
       "relation": "calls",
@@ -7748,9 +8257,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1123",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderupcomingblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderupcomingblock"
     },
     {
       "relation": "calls",
@@ -7759,9 +8268,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1120",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderalertsblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderalertsblock"
     },
     {
       "relation": "calls",
@@ -7770,9 +8279,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1037",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendercustomerblock",
-      "target": "web_appliquei_billing_escapehtml",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_escapehtml"
     },
     {
       "relation": "calls",
@@ -7781,9 +8290,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1038",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendercustomerblock",
-      "target": "web_appliquei_billing_fmtcpfcnpj",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtcpfcnpj"
     },
     {
       "relation": "calls",
@@ -7792,9 +8301,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1040",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendercustomerblock",
-      "target": "web_appliquei_billing_fmtphone",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtphone"
     },
     {
       "relation": "calls",
@@ -7803,9 +8312,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1125",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_rendercustomerblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_rendercustomerblock"
     },
     {
       "relation": "calls",
@@ -7814,9 +8323,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1088",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderhistoryblock",
-      "target": "web_appliquei_billing_escapehtml",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_escapehtml"
     },
     {
       "relation": "calls",
@@ -7825,9 +8334,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1126",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderhistoryblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderhistoryblock"
     },
     {
       "relation": "calls",
@@ -7836,9 +8345,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1127",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
-      "target": "web_appliquei_billing_renderactionsblock",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_renderactionsblock"
     },
     {
       "relation": "calls",
@@ -7858,9 +8367,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_reloadaccountstatus",
-      "target": "web_appliquei_billing_rendermyaccount",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_rendermyaccount"
     },
     {
       "relation": "calls",
@@ -7979,9 +8488,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1144",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_bindmyaccountactions",
-      "target": "web_appliquei_billing_opensubscribeform",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_opensubscribeform"
     },
     {
       "relation": "calls",
@@ -7990,9 +8499,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1146",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_bindmyaccountactions",
-      "target": "web_appliquei_billing_reloadaccountstatus",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_reloadaccountstatus"
     },
     {
       "relation": "calls",
@@ -8001,9 +8510,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L1158",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_reloadaccountstatus",
-      "target": "web_appliquei_billing_refresh",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_refresh"
     },
     {
       "relation": "calls",
@@ -8380,6 +8889,26 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/_lib/billing-sync.js",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "api_lib_billing_sync_js",
+      "target": "lib_billing_sync_non_final_statuses",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/billing-sync.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "api_lib_billing_sync_js",
+      "target": "lib_billing_sync_reconcilenonfinalpayments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/billing-sync.js",
       "source_location": "L14",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8418,6 +8947,17 @@
       "confidence_score": 1.0,
       "source": "api_billing_init_js",
       "target": "api_lib_billing_sync_js"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/_lib/billing-sync.js",
+      "source_location": "L123",
+      "weight": 1.0,
+      "source": "lib_billing_sync_syncbillingfromasaas",
+      "target": "lib_billing_sync_reconcilenonfinalpayments",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -8552,9 +9092,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "api_lib_firebase_admin_js",
-      "confidence_score": 1.0
+      "target": "api_lib_firebase_admin_js"
     },
     {
       "relation": "imports_from",
@@ -8706,9 +9246,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "lib_firebase_admin_db",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_db"
     },
     {
       "relation": "imports",
@@ -8926,9 +9466,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "lib_firebase_admin_auth",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_auth"
     },
     {
       "relation": "imports",
@@ -9146,9 +9686,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "lib_firebase_admin_timestamp",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_timestamp"
     },
     {
       "relation": "imports",
@@ -9718,9 +10258,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_cpf_cnpj_js",
-      "target": "lib_cpf_cnpj_onlydigits",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_onlydigits"
     },
     {
       "relation": "contains",
@@ -9728,9 +10268,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_cpf_cnpj_js",
-      "target": "lib_cpf_cnpj_isvalidcpf",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcpf"
     },
     {
       "relation": "contains",
@@ -9738,9 +10278,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_cpf_cnpj_js",
-      "target": "lib_cpf_cnpj_isvalidcnpj",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcnpj"
     },
     {
       "relation": "contains",
@@ -9748,9 +10288,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L43",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_lib_cpf_cnpj_js",
-      "target": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcpfcnpj"
     },
     {
       "relation": "imports_from",
@@ -9759,9 +10299,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "api_lib_cpf_cnpj_js",
-      "confidence_score": 1.0
+      "target": "api_lib_cpf_cnpj_js"
     },
     {
       "relation": "imports_from",
@@ -9770,9 +10310,9 @@
       "source_file": "api/billing/customer.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_customer_js",
-      "target": "api_lib_cpf_cnpj_js",
-      "confidence_score": 1.0
+      "target": "api_lib_cpf_cnpj_js"
     },
     {
       "relation": "calls",
@@ -9781,9 +10321,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L10",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_cpf_cnpj_isvalidcpf",
-      "target": "lib_cpf_cnpj_onlydigits",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_onlydigits"
     },
     {
       "relation": "calls",
@@ -9792,9 +10332,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_cpf_cnpj_isvalidcnpj",
-      "target": "lib_cpf_cnpj_onlydigits",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_onlydigits"
     },
     {
       "relation": "calls",
@@ -9803,9 +10343,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L44",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "target": "lib_cpf_cnpj_onlydigits",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_onlydigits"
     },
     {
       "relation": "calls",
@@ -9814,9 +10354,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L45",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "target": "lib_cpf_cnpj_isvalidcpf",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcpf"
     },
     {
       "relation": "calls",
@@ -9825,9 +10365,9 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L46",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "target": "lib_cpf_cnpj_isvalidcnpj",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcnpj"
     },
     {
       "relation": "imports",
@@ -9836,9 +10376,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcpfcnpj"
     },
     {
       "relation": "imports",
@@ -9847,9 +10387,9 @@
       "source_file": "api/billing/customer.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_customer_js",
-      "target": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "lib_cpf_cnpj_isvalidcpfcnpj"
     },
     {
       "relation": "contains",
@@ -10184,9 +10724,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "api_lib_auth_js",
-      "confidence_score": 1.0
+      "target": "api_lib_auth_js"
     },
     {
       "relation": "imports_from",
@@ -10514,9 +11054,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "lib_auth_cors",
-      "confidence_score": 1.0
+      "target": "lib_auth_cors"
     },
     {
       "relation": "imports",
@@ -10737,9 +11277,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_db_auth",
-      "confidence_score": 1.0
+      "target": "admin_stats_db_auth"
     },
     {
       "relation": "contains",
@@ -10747,9 +11287,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L2",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_cors",
-      "confidence_score": 1.0
+      "target": "admin_stats_cors"
     },
     {
       "relation": "contains",
@@ -10757,9 +11297,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L3",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_timestamp",
-      "confidence_score": 1.0
+      "target": "admin_stats_timestamp"
     },
     {
       "relation": "contains",
@@ -10767,9 +11307,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L18",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_paid_statuses",
-      "confidence_score": 1.0
+      "target": "admin_stats_paid_statuses"
     },
     {
       "relation": "contains",
@@ -10777,9 +11317,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L32",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_m",
-      "confidence_score": 1.0
+      "target": "admin_stats_m"
     },
     {
       "relation": "contains",
@@ -10787,9 +11327,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L39",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_d",
-      "confidence_score": 1.0
+      "target": "admin_stats_d"
     },
     {
       "relation": "contains",
@@ -10797,9 +11337,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L40",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_now",
-      "confidence_score": 1.0
+      "target": "admin_stats_now"
     },
     {
       "relation": "contains",
@@ -10807,9 +11347,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L41",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_dayago",
-      "confidence_score": 1.0
+      "target": "admin_stats_dayago"
     },
     {
       "relation": "contains",
@@ -10817,9 +11357,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L42",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_weekago",
-      "confidence_score": 1.0
+      "target": "admin_stats_weekago"
     },
     {
       "relation": "contains",
@@ -10827,9 +11367,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L52",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_subscriptionstatus",
-      "confidence_score": 1.0
+      "target": "admin_stats_subscriptionstatus"
     },
     {
       "relation": "contains",
@@ -10837,9 +11377,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L53",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_lastpaymentstatus",
-      "confidence_score": 1.0
+      "target": "admin_stats_lastpaymentstatus"
     },
     {
       "relation": "contains",
@@ -10847,9 +11387,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L54",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_paymentmethods",
-      "confidence_score": 1.0
+      "target": "admin_stats_paymentmethods"
     },
     {
       "relation": "contains",
@@ -10857,9 +11397,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_webhookbyevent",
-      "confidence_score": 1.0
+      "target": "admin_stats_webhookbyevent"
     },
     {
       "relation": "contains",
@@ -10867,9 +11407,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_webhook7dbyevent",
-      "confidence_score": 1.0
+      "target": "admin_stats_webhook7dbyevent"
     },
     {
       "relation": "contains",
@@ -10877,9 +11417,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L99",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_ratelimitbyscope",
-      "confidence_score": 1.0
+      "target": "admin_stats_ratelimitbyscope"
     },
     {
       "relation": "contains",
@@ -10887,9 +11427,9 @@
       "source_file": "api/admin/stats.js",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_authusers",
-      "confidence_score": 1.0
+      "target": "admin_stats_authusers"
     },
     {
       "relation": "contains",
@@ -11288,9 +11828,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L5",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "billing_subscribe_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "billing_subscribe_isvalidcpfcnpj"
     },
     {
       "relation": "contains",
@@ -11428,9 +11968,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L175",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "billing_subscribe_pending",
-      "confidence_score": 1.0
+      "target": "billing_subscribe_pending"
     },
     {
       "relation": "contains",
@@ -11438,9 +11978,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L189",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "billing_subscribe_lastpaid",
-      "confidence_score": 1.0
+      "target": "billing_subscribe_lastpaid"
     },
     {
       "relation": "contains",
@@ -12132,9 +12672,9 @@
       "source_file": "api/billing/customer.js",
       "source_location": "L4",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_customer_js",
-      "target": "billing_customer_isvalidcpfcnpj",
-      "confidence_score": 1.0
+      "target": "billing_customer_isvalidcpfcnpj"
     },
     {
       "relation": "contains",
@@ -14141,9 +14681,9 @@
       "source_file": "scripts/seed-ttl-collections.js",
       "source_location": "L13",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_seed_ttl_collections_js",
-      "target": "scripts_seed_ttl_collections_admin",
-      "confidence_score": 1.0
+      "target": "scripts_seed_ttl_collections_admin"
     },
     {
       "relation": "contains",
@@ -14151,9 +14691,9 @@
       "source_file": "scripts/seed-ttl-collections.js",
       "source_location": "L15",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_seed_ttl_collections_js",
-      "target": "scripts_seed_ttl_collections_loadserviceaccount",
-      "confidence_score": 1.0
+      "target": "scripts_seed_ttl_collections_loadserviceaccount"
     },
     {
       "relation": "contains",
@@ -14161,9 +14701,9 @@
       "source_file": "scripts/seed-ttl-collections.js",
       "source_location": "L25",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_seed_ttl_collections_js",
-      "target": "scripts_seed_ttl_collections_main",
-      "confidence_score": 1.0
+      "target": "scripts_seed_ttl_collections_main"
     },
     {
       "relation": "calls",
@@ -14172,9 +14712,9 @@
       "source_file": "scripts/seed-ttl-collections.js",
       "source_location": "L26",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "scripts_seed_ttl_collections_main",
-      "target": "scripts_seed_ttl_collections_loadserviceaccount",
-      "confidence_score": 1.0
+      "target": "scripts_seed_ttl_collections_loadserviceaccount"
     },
     {
       "relation": "contains",
@@ -15169,9 +15709,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L1",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_md",
-      "target": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem"
     },
     {
       "relation": "contains",
@@ -15179,9 +15719,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L7",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem",
-      "target": "docs_scaling_analysis_1_premissas",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_1_premissas"
     },
     {
       "relation": "contains",
@@ -15189,9 +15729,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L65",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem",
-      "target": "docs_scaling_analysis_2_cen\u00e1rios_de_escala_assinantes_pagantes",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_2_cen\u00e1rios_de_escala_assinantes_pagantes"
     },
     {
       "relation": "contains",
@@ -15199,9 +15739,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L108",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem",
-      "target": "docs_scaling_analysis_3_sensibilidades",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_3_sensibilidades"
     },
     {
       "relation": "contains",
@@ -15209,9 +15749,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L139",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_an\u00e1lise_de_escala_custos_receita_e_margem",
-      "target": "docs_scaling_analysis_4_conclus\u00f5es",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_4_conclus\u00f5es"
     },
     {
       "relation": "contains",
@@ -15219,9 +15759,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L9",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_1_premissas",
-      "target": "docs_scaling_analysis_1_1_stack_e_custos_unit\u00e1rios",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_1_1_stack_e_custos_unit\u00e1rios"
     },
     {
       "relation": "contains",
@@ -15229,9 +15769,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L27",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_1_premissas",
-      "target": "docs_scaling_analysis_1_2_din\u00e2mica_do_applicash_lida_em_appliquei_v13_0_html_10724",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_1_2_din\u00e2mica_do_applicash_lida_em_appliquei_v13_0_html_10724"
     },
     {
       "relation": "contains",
@@ -15239,9 +15779,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_1_premissas",
-      "target": "docs_scaling_analysis_1_3_outras_premissas",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_1_3_outras_premissas"
     },
     {
       "relation": "contains",
@@ -15249,9 +15789,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_2_cen\u00e1rios_de_escala_assinantes_pagantes",
-      "target": "docs_scaling_analysis_2_1_quebra_de_custos_mensal",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_2_1_quebra_de_custos_mensal"
     },
     {
       "relation": "contains",
@@ -15259,9 +15799,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L96",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_2_cen\u00e1rios_de_escala_assinantes_pagantes",
-      "target": "docs_scaling_analysis_2_2_faturamento_anualizado_e_marcos",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_2_2_faturamento_anualizado_e_marcos"
     },
     {
       "relation": "contains",
@@ -15269,9 +15809,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_3_sensibilidades",
-      "target": "docs_scaling_analysis_3_1_e_se_o_applicash_for_mais_agressivo_do_que_o_modelado",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_3_1_e_se_o_applicash_for_mais_agressivo_do_que_o_modelado"
     },
     {
       "relation": "contains",
@@ -15279,9 +15819,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_3_sensibilidades",
-      "target": "docs_scaling_analysis_3_2_e_se_o_mix_asaas_pender_para_boleto_cart\u00e3o",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_3_2_e_se_o_mix_asaas_pender_para_boleto_cart\u00e3o"
     },
     {
       "relation": "contains",
@@ -15289,9 +15829,9 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L124",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_3_sensibilidades",
-      "target": "docs_scaling_analysis_3_3_e_se_a_infra_firebase_explodir",
-      "confidence_score": 1.0
+      "target": "docs_scaling_analysis_3_3_e_se_a_infra_firebase_explodir"
     },
     {
       "relation": "contains",
@@ -15299,8 +15839,358 @@
       "source_file": "docs/scaling-analysis.md",
       "source_location": "L131",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "docs_scaling_analysis_3_sensibilidades",
-      "target": "docs_scaling_analysis_3_4_e_se_o_churn_for_8_em_vez_de_5",
+      "target": "docs_scaling_analysis_3_4_e_se_o_churn_for_8_em_vez_de_5"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_md",
+      "target": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L213",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_md",
+      "target": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_0_prepara\u00e7\u00e3o_1x",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L78",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_2_trial_de_7_dias",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_5_endpoints_admin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L181",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_6_seguran\u00e7a_rules",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_7_ux_regress\u00f5es",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L204",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_checklist_de_testes_pr\u00e9_venda_appliquei",
+      "target": "docs_checklist_testes_pre_venda_8_p\u00f3s_teste_limpeza",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_1_cadastro_com_e_mail_e_senha_e1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_2_login_google_novo_pela_aba_entrar_g1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_3_cadastro_google_pela_aba_criar_conta_g1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_4_banner_de_transi\u00e7\u00e3o_e_mails_antigos",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_5_reset_de_senha_e1",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_6_isolamento_entre_contas_commit_fa6d97a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_1_login_cadastro_e_mail_verificado",
+      "target": "docs_checklist_testes_pre_venda_1_7_cloud_sync_no_signout_commit_81be8ce",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L93",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_1_fluxo_feliz_com_cart\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_2_valida\u00e7\u00e3o_cpf_cnpj_commit_177f3fc",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_3_cupom_no_gate_commits_417bb6e_cf87225_52efe74",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_4_cart\u00e3o_recusado",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_5_webhooks",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L128",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_6_cancelamento",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L133",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_7_cart\u00e3o_recusado_troca_de_cart\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L137",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_3_assinatura_asaas_r_15_m\u00eas",
+      "target": "docs_checklist_testes_pre_venda_3_8_inadimpl\u00eancia",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
+      "target": "docs_checklist_testes_pre_venda_4_1_gera\u00e7\u00e3o_e_share_commit_d7c6bb7",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
+      "target": "docs_checklist_testes_pre_venda_4_2_uso_do_cupom_por_indicado",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L159",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_4_applicash_programa_de_indica\u00e7\u00f5es",
+      "target": "docs_checklist_testes_pre_venda_4_3_anti_fraude_commits_a0b477e_8e81500_9d6e594_33202ab",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_a_j\u00e1_em_uso_ou_parcialmente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L225",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_b_instalar_antes_de_abrir_vendas_prioridade_alta",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L252",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_c_recomendado_baixo_esfor\u00e7o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L269",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_d_operacional_billing",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L279",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_e_extens\u00f5es_vs_code_cursor_devex",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "docs/CHECKLIST-TESTES-PRE-VENDA.md",
+      "source_location": "L287",
+      "weight": 1.0,
+      "source": "docs_checklist_testes_pre_venda_ferramentas_extens\u00f5es_recomendadas_antes_de_abrir_as_vendas",
+      "target": "docs_checklist_testes_pre_venda_prioridade_pr\u00e1tica_ordem_do_que_eu_faria",
       "confidence_score": 1.0
     },
     {
@@ -15495,5 +16385,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "dc85bbe46c28b5a08f138501b834bb4a0f247e1e"
+  "built_at_commit": "b5272d5353b87caab3f0cd0805f5a16cedb3226c"
 }
