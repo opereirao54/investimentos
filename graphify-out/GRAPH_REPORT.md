@@ -1,16 +1,16 @@
 # Graph Report - investimentos  (2026-05-20)
 
 ## Corpus Check
-- 40 files · ~426,038 words
+- 40 files · ~433,708 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 587 nodes · 1063 edges · 40 communities (36 shown, 4 thin omitted)
+- 589 nodes · 1079 edges · 42 communities (38 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 9 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b6b786e5`
+- Built from commit: `c3479657`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -51,17 +51,19 @@
 - [[_COMMUNITY_Community 37|Community 37]]
 - [[_COMMUNITY_Community 38|Community 38]]
 - [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `$()` - 33 edges
-2. `renderMyAccount()` - 31 edges
+2. `renderMyAccount()` - 32 edges
 3. `db()` - 22 edges
 4. `fieldValue()` - 16 edges
 5. `call()` - 15 edges
 6. `P()` - 15 edges
 7. `main()` - 15 edges
 8. `make_table()` - 14 edges
-9. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
+9. `Appliquei - Gestão Financeira Inteligente` - 14 edges
 10. `Appliquei v13.0 - Gestão Financeira Inteligente` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
@@ -76,15 +78,15 @@
 - `listAllUsers()` --calls--> `auth()`  [INFERRED]
   scripts/backfill-email-verification.js → api/_lib/firebase-admin.js
 
-## Communities (40 total, 4 thin omitted)
+## Communities (42 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.29
 Nodes (15): applyRemoteSnapshot(), attach(), attachWhenReady(), clearUserScopedKeys(), collectKeysPayload(), flushPush(), lastSeenUid(), mainRef() (+7 more)
 
 ### Community 1 - "Community 1"
-Cohesion: 0.05
-Nodes (40): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+32 more)
+Cohesion: 0.15
+Nodes (21): Appliquei - Gestão Financeira Inteligente, Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição (+13 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.35
@@ -95,8 +97,8 @@ Cohesion: 0.15
 Nodes (21): apiKey(), baseUrl(), call(), cancelSubscription(), createCustomer(), createSubscription(), findCustomerByExternalReference(), getPaymentLink() (+13 more)
 
 ### Community 4 - "Community 4"
-Cohesion: 0.08
-Nodes (84): $(), applyAccess(), applyCoupon(), authedFetch(), bindMyAccountActions(), cardBrandLabel(), clamp(), clearTrialBannerOffset() (+76 more)
+Cohesion: 0.07
+Nodes (85): $(), applyAccess(), applyCoupon(), authedFetch(), bindMyAccountActions(), cardBrandLabel(), clamp(), clearTrialBannerOffset() (+77 more)
 
 ### Community 5 - "Community 5"
 Cohesion: 0.12
@@ -156,7 +158,7 @@ Nodes (3): firestore, indexes, rules
 
 ### Community 24 - "Community 24"
 Cohesion: 0.08
-Nodes (25): address, addressNumber, asaas, asaasFields, billing, city, complement, conflict (+17 more)
+Nodes (21): address, addressNumber, asaas, asaasFields, billing, city, complement, conflict (+13 more)
 
 ### Community 25 - "Community 25"
 Cohesion: 0.06
@@ -206,8 +208,16 @@ Nodes (6): deepClone(), isIncrement(), isTimestamp(), makeTimestamp(), mergeData
 Cohesion: 0.67
 Nodes (3): admin, loadServiceAccount(), main()
 
+### Community 40 - "Community 40"
+Cohesion: 0.10
+Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
+
+### Community 41 - "Community 41"
+Cohesion: 0.90
+Nodes (4): isValidCnpj(), isValidCpf(), isValidCpfCnpj(), onlyDigits()
+
 ## Knowledge Gaps
-- **249 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+244 more)
+- **240 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+235 more)
   These have ≤1 connection - possible missing edges or undocumented components.
 - **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
@@ -223,8 +233,8 @@ _Questions this graph is uniquely positioned to answer:_
 - **Are the 4 inferred relationships involving `db()` (e.g. with `markBilling()` and `diagOne()`) actually correct?**
   _`db()` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `indexes`, `fieldOverrides`, `$schema` to the rest of the system?**
-  _249 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _240 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 1` be split into smaller, more focused modules?**
-  _Cohesion score 0.04878048780487805 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1471861471861472 - nodes in this community are weakly interconnected._
 - **Should `Community 4` be split into smaller, more focused modules?**
-  _Cohesion score 0.07551299589603283 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.07431168136861802 - nodes in this community are weakly interconnected._

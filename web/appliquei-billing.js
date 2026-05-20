@@ -124,6 +124,18 @@
       <div style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
         <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
         <p id="billingSub" style="font-size:14px;color:#4a5b53;line-height:1.5;margin:0 0 18px;">A sua avaliação gratuita terminou.</p>\
+        <div role="radiogroup" aria-label="Escolha o plano" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">\
+          <div role="radio" aria-checked="true" tabindex="0" style="border:2px solid #059669;background:#ecfdf5;border-radius:10px;padding:10px 12px;cursor:default;">\
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.04em;"><i class="ph-fill ph-check-circle"></i> Plano atual</div>\
+            <div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;margin-top:2px;">Pro</div>\
+            <div style="font-size:12px;color:#1d2a23;">Todas as abas do Appliquei • R$ 15/mês</div>\
+          </div>\
+          <div role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" style="border:1px solid #e3e8e5;background:#f8faf9;border-radius:10px;padding:10px 12px;opacity:.85;cursor:not-allowed;">\
+            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.04em;"><i class="ph ph-wrench"></i> Em construção</div>\
+            <div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;margin-top:2px;color:#6b7d75;">Pro + IA</div>\
+            <div style="font-size:12px;color:#6b7d75;">Diagnóstico, sugestões e chat com IA. Em breve.</div>\
+          </div>\
+        </div>\
         <div id="billingDetail" style="background:#f1f5f3;border-radius:10px;padding:12px 14px;font-size:13px;color:#1d2a23;margin-bottom:14px;">\
           <div><strong>Plano:</strong> Mensal Appliquei</div>\
           <div><strong>Valor:</strong> R$ 15,00 / mês</div>\
@@ -315,8 +327,9 @@
       var u = fb && fb.auth && fb.auth.currentUser;
       if (!u) throw new Error('not_authenticated');
       // Caminho principal: cliente Firebase dispara o e-mail nativo do
-      // template padrão. Faz isto sem precisar de back-end.
-      await u.sendEmailVerification();
+      // template padrão. continueUrl aponta para /app (e não para "/",
+      // que agora é a landing) — após verificar, usuário volta ao app.
+      await u.sendEmailVerification({ url: location.origin + '/app' });
       // Caminho secundário (best-effort): bate no /api/auth/resend-verification
       // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
       // primário já foi.
@@ -1014,6 +1027,28 @@
     '</div>';
   }
 
+  function renderPlansBlock(me) {
+    // Mostra Pro (atual) vs Pro+IA (em construção) também dentro do app.
+    // Faz par com a landing — usuário descobre o roadmap sem sair do app.
+    return '<div class="ma-section">' +
+      '<div class="ma-section-title"><i class="ph ph-stack"></i> Planos disponíveis</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
+        '<div style="border:2px solid #059669;background:#ecfdf5;border-radius:12px;padding:14px;">' +
+          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.4px;"><i class="ph-fill ph-check-circle"></i> Plano atual</div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;margin-top:4px;">Pro</div>' +
+          '<div style="font-size:12.5px;color:#1d2a23;margin-top:4px;">Todas as 10 abas do Appliquei.</div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;margin-top:8px;">R$ 15<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
+        '</div>' +
+        '<div style="border:1px solid #e3e8e5;background:#f8faf9;border-radius:12px;padding:14px;opacity:.9;">' +
+          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;"><i class="ph ph-wrench"></i> Em construção</div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;margin-top:4px;color:#6b7d75;">Pro + IA</div>' +
+          '<div style="font-size:12.5px;color:#6b7d75;margin-top:4px;">Diagnóstico, sugestões e chat com IA — em breve.</div>' +
+          '<button type="button" class="ma-btn" disabled style="margin-top:10px;cursor:not-allowed;opacity:.7;width:100%;">Avise-me no lançamento</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   function renderPaymentMethodBlock(me) {
     var hasSub = !!me.subscriptionId;
     var isInactive = me.subscriptionStatus === 'INACTIVE';
@@ -1204,6 +1239,7 @@
     var html = renderHeroBlock(me)
       + renderAlertsBlock(me)
       + renderPlanInfoBlock(me)
+      + renderPlansBlock(me)
       + renderApplicashBlock(me)
       + renderUpcomingBlock(me)
       + renderPaymentMethodBlock(me)

@@ -61,7 +61,7 @@
       "label": "functions",
       "file_type": "code",
       "source_file": "vercel.json",
-      "source_location": "L6",
+      "source_location": "L8",
       "id": "investimentos_vercel_functions",
       "community": 19,
       "norm_label": "functions"
@@ -70,7 +70,7 @@
       "label": "api/**/*.js",
       "file_type": "code",
       "source_file": "vercel.json",
-      "source_location": "L7",
+      "source_location": "L9",
       "id": "investimentos_vercel_functions_api_js",
       "community": 19,
       "norm_label": "api/**/*.js"
@@ -79,7 +79,7 @@
       "label": "memory",
       "file_type": "code",
       "source_file": "vercel.json",
-      "source_location": "L7",
+      "source_location": "L9",
       "id": "investimentos_vercel_api_js_memory",
       "community": 19,
       "norm_label": "memory"
@@ -88,7 +88,7 @@
       "label": "maxDuration",
       "file_type": "code",
       "source_file": "vercel.json",
-      "source_location": "L7",
+      "source_location": "L9",
       "id": "investimentos_vercel_api_js_maxduration",
       "community": 19,
       "norm_label": "maxduration"
@@ -97,7 +97,7 @@
       "label": "headers",
       "file_type": "code",
       "source_file": "vercel.json",
-      "source_location": "L9",
+      "source_location": "L11",
       "id": "investimentos_vercel_headers",
       "community": 19,
       "norm_label": "headers"
@@ -457,7 +457,7 @@
       "label": "setMethod()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L209",
+      "source_location": "L221",
       "id": "web_appliquei_billing_setmethod",
       "community": 4,
       "norm_label": "setmethod()"
@@ -466,7 +466,7 @@
       "label": "showGate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L231",
+      "source_location": "L243",
       "id": "web_appliquei_billing_showgate",
       "community": 4,
       "norm_label": "showgate()"
@@ -475,7 +475,7 @@
       "label": "hideGate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L244",
+      "source_location": "L256",
       "id": "web_appliquei_billing_hidegate",
       "community": 4,
       "norm_label": "hidegate()"
@@ -484,7 +484,7 @@
       "label": "showErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L250",
+      "source_location": "L262",
       "id": "web_appliquei_billing_showerr",
       "community": 4,
       "norm_label": "showerr()"
@@ -493,7 +493,7 @@
       "label": "syncTrialBannerOffset()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L257",
+      "source_location": "L269",
       "id": "web_appliquei_billing_synctrialbanneroffset",
       "community": 4,
       "norm_label": "synctrialbanneroffset()"
@@ -502,7 +502,7 @@
       "label": "clearTrialBannerOffset()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L275",
+      "source_location": "L287",
       "id": "web_appliquei_billing_cleartrialbanneroffset",
       "community": 4,
       "norm_label": "cleartrialbanneroffset()"
@@ -511,7 +511,7 @@
       "label": "ensureVerifyBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L286",
+      "source_location": "L298",
       "id": "web_appliquei_billing_ensureverifybanner",
       "community": 4,
       "norm_label": "ensureverifybanner()"
@@ -520,7 +520,7 @@
       "label": "resendVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L310",
+      "source_location": "L322",
       "id": "web_appliquei_billing_resendverification",
       "community": 4,
       "norm_label": "resendverification()"
@@ -529,7 +529,7 @@
       "label": "startResendCooldown()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L344",
+      "source_location": "L357",
       "id": "web_appliquei_billing_startresendcooldown",
       "community": 4,
       "norm_label": "startresendcooldown()"
@@ -538,7 +538,7 @@
       "label": "recheckVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L360",
+      "source_location": "L373",
       "id": "web_appliquei_billing_recheckverification",
       "community": 4,
       "norm_label": "recheckverification()"
@@ -547,7 +547,7 @@
       "label": "needsEmailVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L381",
+      "source_location": "L394",
       "id": "web_appliquei_billing_needsemailverification",
       "community": 4,
       "norm_label": "needsemailverification()"
@@ -556,7 +556,7 @@
       "label": "ensureTrialBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L392",
+      "source_location": "L405",
       "id": "web_appliquei_billing_ensuretrialbanner",
       "community": 4,
       "norm_label": "ensuretrialbanner()"
@@ -565,7 +565,7 @@
       "label": "authedFetch()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L416",
+      "source_location": "L429",
       "id": "web_appliquei_billing_authedfetch",
       "community": 4,
       "norm_label": "authedfetch()"
@@ -574,7 +574,7 @@
       "label": "applyAccess()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L479",
+      "source_location": "L492",
       "id": "web_appliquei_billing_applyaccess",
       "community": 4,
       "norm_label": "applyaccess()"
@@ -583,7 +583,7 @@
       "label": "startPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L526",
+      "source_location": "L539",
       "id": "web_appliquei_billing_startpolling",
       "community": 4,
       "norm_label": "startpolling()"
@@ -592,7 +592,7 @@
       "label": "stopPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L530",
+      "source_location": "L543",
       "id": "web_appliquei_billing_stoppolling",
       "community": 4,
       "norm_label": "stoppolling()"
@@ -601,7 +601,7 @@
       "label": "initBilling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L534",
+      "source_location": "L547",
       "id": "web_appliquei_billing_initbilling",
       "community": 4,
       "norm_label": "initbilling()"
@@ -610,7 +610,7 @@
       "label": "fetchMe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L573",
+      "source_location": "L586",
       "id": "web_appliquei_billing_fetchme",
       "community": 4,
       "norm_label": "fetchme()"
@@ -619,7 +619,7 @@
       "label": "fmtBRL()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L577",
+      "source_location": "L590",
       "id": "web_appliquei_billing_fmtbrl",
       "community": 4,
       "norm_label": "fmtbrl()"
@@ -628,7 +628,7 @@
       "label": "isValidCpf()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L583",
+      "source_location": "L596",
       "id": "web_appliquei_billing_isvalidcpf",
       "community": 4,
       "norm_label": "isvalidcpf()"
@@ -637,7 +637,7 @@
       "label": "isValidCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L595",
+      "source_location": "L608",
       "id": "web_appliquei_billing_isvalidcnpj",
       "community": 4,
       "norm_label": "isvalidcnpj()"
@@ -646,7 +646,7 @@
       "label": "isValidCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L609",
+      "source_location": "L622",
       "id": "web_appliquei_billing_isvalidcpfcnpj",
       "community": 4,
       "norm_label": "isvalidcpfcnpj()"
@@ -655,7 +655,7 @@
       "label": "ensureMyAccountStyles()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L616",
+      "source_location": "L629",
       "id": "web_appliquei_billing_ensuremyaccountstyles",
       "community": 4,
       "norm_label": "ensuremyaccountstyles()"
@@ -664,7 +664,7 @@
       "label": "ensureMyAccountModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L699",
+      "source_location": "L712",
       "id": "web_appliquei_billing_ensuremyaccountmodal",
       "community": 4,
       "norm_label": "ensuremyaccountmodal()"
@@ -673,7 +673,7 @@
       "label": "closeMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L730",
+      "source_location": "L743",
       "id": "web_appliquei_billing_closemyaccount",
       "community": 4,
       "norm_label": "closemyaccount()"
@@ -682,7 +682,7 @@
       "label": "openMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L734",
+      "source_location": "L747",
       "id": "web_appliquei_billing_openmyaccount",
       "community": 4,
       "norm_label": "openmyaccount()"
@@ -691,7 +691,7 @@
       "label": "statusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L758",
+      "source_location": "L771",
       "id": "web_appliquei_billing_statuslabel",
       "community": 4,
       "norm_label": "statuslabel()"
@@ -700,7 +700,7 @@
       "label": "statusColor()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L765",
+      "source_location": "L778",
       "id": "web_appliquei_billing_statuscolor",
       "community": 4,
       "norm_label": "statuscolor()"
@@ -709,7 +709,7 @@
       "label": "fmtDate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L771",
+      "source_location": "L784",
       "id": "web_appliquei_billing_fmtdate",
       "community": 4,
       "norm_label": "fmtdate()"
@@ -718,7 +718,7 @@
       "label": "paymentStatusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L775",
+      "source_location": "L788",
       "id": "web_appliquei_billing_paymentstatuslabel",
       "community": 4,
       "norm_label": "paymentstatuslabel()"
@@ -727,7 +727,7 @@
       "label": "statusBadge()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L786",
+      "source_location": "L799",
       "id": "web_appliquei_billing_statusbadge",
       "community": 4,
       "norm_label": "statusbadge()"
@@ -736,7 +736,7 @@
       "label": "eventNote()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L795",
+      "source_location": "L808",
       "id": "web_appliquei_billing_eventnote",
       "community": 4,
       "norm_label": "eventnote()"
@@ -745,7 +745,7 @@
       "label": "cardBrandLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L804",
+      "source_location": "L817",
       "id": "web_appliquei_billing_cardbrandlabel",
       "community": 4,
       "norm_label": "cardbrandlabel()"
@@ -754,7 +754,7 @@
       "label": "paymentMethodLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L809",
+      "source_location": "L822",
       "id": "web_appliquei_billing_paymentmethodlabel",
       "community": 4,
       "norm_label": "paymentmethodlabel()"
@@ -763,7 +763,7 @@
       "label": "failureReasonLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L819",
+      "source_location": "L832",
       "id": "web_appliquei_billing_failurereasonlabel",
       "community": 4,
       "norm_label": "failurereasonlabel()"
@@ -772,7 +772,7 @@
       "label": "daysBetween()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L829",
+      "source_location": "L842",
       "id": "web_appliquei_billing_daysbetween",
       "community": 4,
       "norm_label": "daysbetween()"
@@ -781,7 +781,7 @@
       "label": "pluralDays()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L837",
+      "source_location": "L850",
       "id": "web_appliquei_billing_pluraldays",
       "community": 4,
       "norm_label": "pluraldays()"
@@ -790,7 +790,7 @@
       "label": "clamp()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L840",
+      "source_location": "L853",
       "id": "web_appliquei_billing_clamp",
       "community": 4,
       "norm_label": "clamp()"
@@ -799,7 +799,7 @@
       "label": "renderHeroBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L842",
+      "source_location": "L855",
       "id": "web_appliquei_billing_renderheroblock",
       "community": 4,
       "norm_label": "renderheroblock()"
@@ -808,16 +808,25 @@
       "label": "renderPlanInfoBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L972",
+      "source_location": "L985",
       "id": "web_appliquei_billing_renderplaninfoblock",
       "community": 4,
       "norm_label": "renderplaninfoblock()"
     },
     {
+      "label": "renderPlansBlock()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1030",
+      "id": "web_appliquei_billing_renderplansblock",
+      "community": 4,
+      "norm_label": "renderplansblock()"
+    },
+    {
       "label": "renderPaymentMethodBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1017",
+      "source_location": "L1052",
       "id": "web_appliquei_billing_renderpaymentmethodblock",
       "community": 4,
       "norm_label": "renderpaymentmethodblock()"
@@ -826,7 +835,7 @@
       "label": "renderApplicashBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1037",
+      "source_location": "L1072",
       "id": "web_appliquei_billing_renderapplicashblock",
       "community": 4,
       "norm_label": "renderapplicashblock()"
@@ -835,7 +844,7 @@
       "label": "renderUpcomingBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1078",
+      "source_location": "L1113",
       "id": "web_appliquei_billing_renderupcomingblock",
       "community": 4,
       "norm_label": "renderupcomingblock()"
@@ -844,7 +853,7 @@
       "label": "renderAlertsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1108",
+      "source_location": "L1143",
       "id": "web_appliquei_billing_renderalertsblock",
       "community": 4,
       "norm_label": "renderalertsblock()"
@@ -853,7 +862,7 @@
       "label": "renderCustomerBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1119",
+      "source_location": "L1154",
       "id": "web_appliquei_billing_rendercustomerblock",
       "community": 4,
       "norm_label": "rendercustomerblock()"
@@ -862,7 +871,7 @@
       "label": "renderHistoryBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1145",
+      "source_location": "L1180",
       "id": "web_appliquei_billing_renderhistoryblock",
       "community": 4,
       "norm_label": "renderhistoryblock()"
@@ -871,7 +880,7 @@
       "label": "renderActionsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1187",
+      "source_location": "L1222",
       "id": "web_appliquei_billing_renderactionsblock",
       "community": 4,
       "norm_label": "renderactionsblock()"
@@ -880,7 +889,7 @@
       "label": "renderMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1197",
+      "source_location": "L1232",
       "id": "web_appliquei_billing_rendermyaccount",
       "community": 4,
       "norm_label": "rendermyaccount()"
@@ -889,7 +898,7 @@
       "label": "bindMyAccountActions()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1218",
+      "source_location": "L1254",
       "id": "web_appliquei_billing_bindmyaccountactions",
       "community": 4,
       "norm_label": "bindmyaccountactions()"
@@ -898,7 +907,7 @@
       "label": "reloadAccountStatus()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1241",
+      "source_location": "L1277",
       "id": "web_appliquei_billing_reloadaccountstatus",
       "community": 4,
       "norm_label": "reloadaccountstatus()"
@@ -907,7 +916,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1248",
+      "source_location": "L1284",
       "id": "web_appliquei_billing_escapehtml",
       "community": 4,
       "norm_label": "escapehtml()"
@@ -916,7 +925,7 @@
       "label": "fmtCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1253",
+      "source_location": "L1289",
       "id": "web_appliquei_billing_fmtcpfcnpj",
       "community": 4,
       "norm_label": "fmtcpfcnpj()"
@@ -925,7 +934,7 @@
       "label": "fmtPhone()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1259",
+      "source_location": "L1295",
       "id": "web_appliquei_billing_fmtphone",
       "community": 4,
       "norm_label": "fmtphone()"
@@ -934,7 +943,7 @@
       "label": "ensureSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1268",
+      "source_location": "L1304",
       "id": "web_appliquei_billing_ensuresubmodal",
       "community": 4,
       "norm_label": "ensuresubmodal()"
@@ -943,7 +952,7 @@
       "label": "openSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1284",
+      "source_location": "L1320",
       "id": "web_appliquei_billing_opensubmodal",
       "community": 4,
       "norm_label": "opensubmodal()"
@@ -952,7 +961,7 @@
       "label": "closeSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1290",
+      "source_location": "L1326",
       "id": "web_appliquei_billing_closesubmodal",
       "community": 4,
       "norm_label": "closesubmodal()"
@@ -961,7 +970,7 @@
       "label": "fld()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1295",
+      "source_location": "L1331",
       "id": "web_appliquei_billing_fld",
       "community": 4,
       "norm_label": "fld()"
@@ -970,7 +979,7 @@
       "label": "lbl()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1296",
+      "source_location": "L1332",
       "id": "web_appliquei_billing_lbl",
       "community": 4,
       "norm_label": "lbl()"
@@ -979,7 +988,7 @@
       "label": "openChangeCardModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1298",
+      "source_location": "L1334",
       "id": "web_appliquei_billing_openchangecardmodal",
       "community": 4,
       "norm_label": "openchangecardmodal()"
@@ -988,7 +997,7 @@
       "label": "showSubModalErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1319",
+      "source_location": "L1355",
       "id": "web_appliquei_billing_showsubmodalerr",
       "community": 4,
       "norm_label": "showsubmodalerr()"
@@ -997,7 +1006,7 @@
       "label": "submitChangeCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1326",
+      "source_location": "L1362",
       "id": "web_appliquei_billing_submitchangecard",
       "community": 4,
       "norm_label": "submitchangecard()"
@@ -1006,7 +1015,7 @@
       "label": "openEditCustomerModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1378",
+      "source_location": "L1414",
       "id": "web_appliquei_billing_openeditcustomermodal",
       "community": 4,
       "norm_label": "openeditcustomermodal()"
@@ -1015,7 +1024,7 @@
       "label": "submitEditCustomer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1407",
+      "source_location": "L1443",
       "id": "web_appliquei_billing_submiteditcustomer",
       "community": 4,
       "norm_label": "submiteditcustomer()"
@@ -1024,7 +1033,7 @@
       "label": "confirmCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1454",
+      "source_location": "L1490",
       "id": "web_appliquei_billing_confirmcancelsubscription",
       "community": 4,
       "norm_label": "confirmcancelsubscription()"
@@ -1033,7 +1042,7 @@
       "label": "doCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1468",
+      "source_location": "L1504",
       "id": "web_appliquei_billing_docancelsubscription",
       "community": 4,
       "norm_label": "docancelsubscription()"
@@ -1042,7 +1051,7 @@
       "label": "syncApplicashFromServer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1484",
+      "source_location": "L1520",
       "id": "web_appliquei_billing_syncapplicashfromserver",
       "community": 4,
       "norm_label": "syncapplicashfromserver()"
@@ -1051,7 +1060,7 @@
       "label": "statCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1531",
+      "source_location": "L1567",
       "id": "web_appliquei_billing_statcard",
       "community": 4,
       "norm_label": "statcard()"
@@ -1060,7 +1069,7 @@
       "label": "refresh()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1538",
+      "source_location": "L1574",
       "id": "web_appliquei_billing_refresh",
       "community": 4,
       "norm_label": "refresh()"
@@ -1069,7 +1078,7 @@
       "label": "writePopupMessage()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1550",
+      "source_location": "L1586",
       "id": "web_appliquei_billing_writepopupmessage",
       "community": 4,
       "norm_label": "writepopupmessage()"
@@ -1078,7 +1087,7 @@
       "label": "openSubscribeForm()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1564",
+      "source_location": "L1600",
       "id": "web_appliquei_billing_opensubscribeform",
       "community": 4,
       "norm_label": "opensubscribeform()"
@@ -1087,7 +1096,7 @@
       "label": "parseExpiry()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1569",
+      "source_location": "L1605",
       "id": "web_appliquei_billing_parseexpiry",
       "community": 4,
       "norm_label": "parseexpiry()"
@@ -1096,7 +1105,7 @@
       "label": "collectCardPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1581",
+      "source_location": "L1617",
       "id": "web_appliquei_billing_collectcardpayload",
       "community": 4,
       "norm_label": "collectcardpayload()"
@@ -1105,7 +1114,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1609",
+      "source_location": "L1645",
       "id": "web_appliquei_billing_subscribe",
       "community": 4,
       "norm_label": "subscribe()"
@@ -1114,7 +1123,7 @@
       "label": "waitForActive()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1700",
+      "source_location": "L1736",
       "id": "web_appliquei_billing_waitforactive",
       "community": 4,
       "norm_label": "waitforactive()"
@@ -1123,7 +1132,7 @@
       "label": "startActivePolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1718",
+      "source_location": "L1754",
       "id": "web_appliquei_billing_startactivepolling",
       "community": 4,
       "norm_label": "startactivepolling()"
@@ -1132,7 +1141,7 @@
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1734",
+      "source_location": "L1770",
       "id": "web_appliquei_billing_onuser",
       "community": 4,
       "norm_label": "onuser()"
@@ -1141,7 +1150,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1761",
+      "source_location": "L1797",
       "id": "web_appliquei_billing_attach",
       "community": 4,
       "norm_label": "attach()"
@@ -1512,7 +1521,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L1",
       "id": "api_lib_cpf_cnpj_js",
-      "community": 24,
+      "community": 41,
       "norm_label": "cpf-cnpj.js"
     },
     {
@@ -1521,7 +1530,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L5",
       "id": "lib_cpf_cnpj_onlydigits",
-      "community": 24,
+      "community": 41,
       "norm_label": "onlydigits()"
     },
     {
@@ -1530,7 +1539,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L9",
       "id": "lib_cpf_cnpj_isvalidcpf",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcpf()"
     },
     {
@@ -1539,7 +1548,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L25",
       "id": "lib_cpf_cnpj_isvalidcnpj",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcnpj()"
     },
     {
@@ -1548,7 +1557,7 @@
       "source_file": "api/_lib/cpf-cnpj.js",
       "source_location": "L43",
       "id": "lib_cpf_cnpj_isvalidcpfcnpj",
-      "community": 24,
+      "community": 41,
       "norm_label": "isvalidcpfcnpj()"
     },
     {
@@ -4207,19 +4216,19 @@
       "norm_label": "readme.md"
     },
     {
-      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "label": "Appliquei - Gest\u00e3o Financeira Inteligente",
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "id": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "id": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
       "community": 1,
-      "norm_label": "appliquei v13.0 - gestao financeira inteligente"
+      "norm_label": "appliquei - gestao financeira inteligente"
     },
     {
       "label": "\ud83d\udcd6 Sobre",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L6",
+      "source_location": "L5",
       "id": "investimentos_readme_sobre",
       "community": 1,
       "norm_label": "\ud83d\udcd6 sobre"
@@ -4228,7 +4237,7 @@
       "label": "\u2728 Funcionalidades",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L10",
+      "source_location": "L9",
       "id": "investimentos_readme_funcionalidades",
       "community": 1,
       "norm_label": "\u2728 funcionalidades"
@@ -4237,7 +4246,7 @@
       "label": "\ud83d\udee0\ufe0f Tecnologias Utilizadas",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L20",
+      "source_location": "L19",
       "id": "investimentos_readme_tecnologias_utilizadas",
       "community": 1,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas"
@@ -4246,7 +4255,7 @@
       "label": "\ud83d\ude80 Como Usar",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L32",
+      "source_location": "L31",
       "id": "investimentos_readme_como_usar",
       "community": 1,
       "norm_label": "\ud83d\ude80 como usar"
@@ -4255,7 +4264,7 @@
       "label": "code:bash (git clone <repositorio>)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L35",
+      "source_location": "L34",
       "id": "investimentos_readme_codeblock_1",
       "community": 1,
       "norm_label": "code:bash (git clone <repositorio>)"
@@ -4264,7 +4273,7 @@
       "label": "\ud83d\udcc1 Estrutura do Projeto",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L49",
+      "source_location": "L48",
       "id": "investimentos_readme_estrutura_do_projeto",
       "community": 1,
       "norm_label": "\ud83d\udcc1 estrutura do projeto"
@@ -4273,7 +4282,7 @@
       "label": "code:block2 (/workspace)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L51",
+      "source_location": "L50",
       "id": "investimentos_readme_codeblock_2",
       "community": 1,
       "norm_label": "code:block2 (/workspace)"
@@ -4282,7 +4291,7 @@
       "label": "\ud83c\udfa8 Design System",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L63",
+      "source_location": "L62",
       "id": "investimentos_readme_design_system",
       "community": 1,
       "norm_label": "\ud83c\udfa8 design system"
@@ -4291,7 +4300,7 @@
       "label": "\ud83d\udcf8 Recursos Visuais",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L76",
+      "source_location": "L75",
       "id": "investimentos_readme_recursos_visuais",
       "community": 1,
       "norm_label": "\ud83d\udcf8 recursos visuais"
@@ -4300,7 +4309,7 @@
       "label": "\ud83d\udd27 Personaliza\u00e7\u00e3o",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L84",
+      "source_location": "L83",
       "id": "investimentos_readme_personaliza\u00e7\u00e3o",
       "community": 1,
       "norm_label": "\ud83d\udd27 personalizacao"
@@ -4309,7 +4318,7 @@
       "label": "code:css (:root {)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L88",
+      "source_location": "L87",
       "id": "investimentos_readme_codeblock_3",
       "community": 1,
       "norm_label": "code:css (:root {)"
@@ -4318,7 +4327,7 @@
       "label": "\ud83d\udcc4 Licen\u00e7a",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L97",
+      "source_location": "L96",
       "id": "investimentos_readme_licen\u00e7a",
       "community": 1,
       "norm_label": "\ud83d\udcc4 licenca"
@@ -4327,7 +4336,7 @@
       "label": "\ud83d\udc68\u200d\ud83d\udcbb Desenvolvimento",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L101",
+      "source_location": "L100",
       "id": "investimentos_readme_desenvolvimento",
       "community": 1,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento"
@@ -4336,7 +4345,7 @@
       "label": "\ud83e\udde0 Graphify (grafo de conhecimento no Cursor)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L109",
+      "source_location": "L108",
       "id": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
       "community": 1,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)"
@@ -4345,7 +4354,7 @@
       "label": "Instala\u00e7\u00e3o (Python 3.10+)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L113",
+      "source_location": "L112",
       "id": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
       "community": 1,
       "norm_label": "instalacao (python 3.10+)"
@@ -4354,7 +4363,7 @@
       "label": "code:bash (python -m pip install -r requirements-graphify.txt)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L115",
+      "source_location": "L114",
       "id": "investimentos_readme_codeblock_4",
       "community": 1,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)"
@@ -4363,7 +4372,7 @@
       "label": "Uso",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L122",
+      "source_location": "L121",
       "id": "investimentos_readme_uso",
       "community": 1,
       "norm_label": "uso"
@@ -4372,7 +4381,7 @@
       "label": "Firebase (incremental)",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L130",
+      "source_location": "L129",
       "id": "investimentos_readme_firebase_incremental",
       "community": 1,
       "norm_label": "firebase (incremental)"
@@ -4381,7 +4390,7 @@
       "label": "\ud83e\udd1d Contribui\u00e7\u00e3o",
       "file_type": "document",
       "source_file": "README.md",
-      "source_location": "L136",
+      "source_location": "L135",
       "id": "investimentos_readme_contribui\u00e7\u00e3o",
       "community": 1,
       "norm_label": "\ud83e\udd1d contribuicao"
@@ -4990,6 +4999,15 @@
       "norm_label": "prioridade pratica (ordem do que eu faria)"
     },
     {
+      "label": "Appliquei v13.0 - Gest\u00e3o Financeira Inteligente",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "community": 1,
+      "norm_label": "appliquei v13.0 - gestao financeira inteligente",
+      "id": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
+    },
+    {
       "label": "{ requireVerifiedUser, cors }",
       "file_type": "code",
       "source_file": "api/billing/init.js",
@@ -5102,7 +5120,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "community": 1,
+      "community": 40,
       "norm_label": "appliquei v13.0 - gestao financeira inteligente",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
     },
@@ -5111,7 +5129,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L6",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcd6 sobre",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre"
     },
@@ -5120,7 +5138,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L10",
-      "community": 1,
+      "community": 40,
       "norm_label": "\u2728 funcionalidades",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades"
     },
@@ -5129,7 +5147,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L20",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas"
     },
@@ -5138,7 +5156,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L32",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\ude80 como usar",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar"
     },
@@ -5147,7 +5165,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L35",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:bash (git clone <repositorio>)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1"
     },
@@ -5156,7 +5174,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L49",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcc1 estrutura do projeto",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto"
     },
@@ -5165,7 +5183,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L51",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:block2 (/workspace)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2"
     },
@@ -5174,7 +5192,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L63",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83c\udfa8 design system",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system"
     },
@@ -5183,7 +5201,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L76",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcf8 recursos visuais",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais"
     },
@@ -5192,7 +5210,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L84",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udd27 personalizacao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o"
     },
@@ -5201,7 +5219,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L88",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:css (:root {)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3"
     },
@@ -5210,7 +5228,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L97",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udcc4 licenca",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a"
     },
@@ -5219,7 +5237,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L101",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento"
     },
@@ -5228,7 +5246,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L109",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor"
     },
@@ -5237,7 +5255,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L113",
-      "community": 1,
+      "community": 40,
       "norm_label": "instalacao (python 3.10+)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10"
     },
@@ -5246,7 +5264,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L115",
-      "community": 1,
+      "community": 40,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4"
     },
@@ -5255,7 +5273,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L122",
-      "community": 1,
+      "community": 40,
       "norm_label": "uso",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso"
     },
@@ -5264,7 +5282,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L130",
-      "community": 1,
+      "community": 40,
       "norm_label": "firebase (incremental)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental"
     },
@@ -5273,7 +5291,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L136",
-      "community": 1,
+      "community": 40,
       "norm_label": "\ud83e\udd1d contribuicao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o"
     },
@@ -6067,9 +6085,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L344",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_startresendcooldown",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_startresendcooldown"
     },
     {
       "relation": "contains",
@@ -6380,6 +6398,16 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
       "target": "web_appliquei_billing_renderplaninfoblock"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1030",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_renderplansblock"
     },
     {
       "relation": "contains",
@@ -7462,9 +7490,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L333",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_resendverification",
-      "target": "web_appliquei_billing_startresendcooldown",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_startresendcooldown"
     },
     {
       "relation": "calls",
@@ -8235,6 +8263,17 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_rendermyaccount",
       "target": "web_appliquei_billing_renderplaninfoblock"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1242",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "web_appliquei_billing_rendermyaccount",
+      "target": "web_appliquei_billing_renderplansblock"
     },
     {
       "relation": "calls",
@@ -15379,6 +15418,16 @@
       "source_file": "README.md",
       "source_location": "L1",
       "weight": 1.0,
+      "source": "readme_md",
+      "target": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L1",
+      "weight": 1.0,
       "confidence_score": 1.0,
       "source": "readme_md",
       "target": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
@@ -15392,6 +15441,136 @@
       "confidence_score": 1.0,
       "source": "readme_md",
       "target": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_sobre",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_funcionalidades",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_tecnologias_utilizadas",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_como_usar",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_estrutura_do_projeto",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_design_system",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_recursos_visuais",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L83",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_licen\u00e7a",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_desenvolvimento",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_firebase_incremental",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "investimentos_readme_appliquei_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_contribui\u00e7\u00e3o",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -15427,11 +15606,31 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L35",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_como_usar",
+      "target": "investimentos_readme_codeblock_1"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L32",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
       "target": "investimentos_readme_como_usar"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L51",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_estrutura_do_projeto",
+      "target": "investimentos_readme_codeblock_2"
     },
     {
       "relation": "contains",
@@ -15467,6 +15666,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L88",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_personaliza\u00e7\u00e3o",
+      "target": "investimentos_readme_codeblock_3"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L84",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -15497,66 +15706,6 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
-      "source_location": "L109",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L130",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_firebase_incremental"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L136",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
-      "target": "investimentos_readme_contribui\u00e7\u00e3o"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L35",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_como_usar",
-      "target": "investimentos_readme_codeblock_1"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L51",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_estrutura_do_projeto",
-      "target": "investimentos_readme_codeblock_2"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
-      "source_location": "L88",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "investimentos_readme_personaliza\u00e7\u00e3o",
-      "target": "investimentos_readme_codeblock_3"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "README.md",
       "source_location": "L113",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -15577,11 +15726,41 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "README.md",
+      "source_location": "L109",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_graphify_grafo_de_conhecimento_no_cursor"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
       "source_location": "L115",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "investimentos_readme_instala\u00e7\u00e3o_python_3_10",
       "target": "investimentos_readme_codeblock_4"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L130",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_firebase_incremental"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "README.md",
+      "source_location": "L136",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "investimentos_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente",
+      "target": "investimentos_readme_contribui\u00e7\u00e3o"
     },
     {
       "relation": "contains",
@@ -16415,5 +16594,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "b6b786e5a02c6bcc01f2d51f42d9baef282dc2a5"
+  "built_at_commit": "c347965759274b60a676490b5f92352278b17b83"
 }

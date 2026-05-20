@@ -1,7 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/Appliquei_v13.0.html" }
+    { "source": "/", "destination": "/landing.html" },
+    { "source": "/app", "destination": "/Appliquei_v13.0.html" },
+    { "source": "/app/(.*)", "destination": "/Appliquei_v13.0.html" }
   ],
   "functions": {
     "api/**/*.js": { "memory": 256, "maxDuration": 15 }

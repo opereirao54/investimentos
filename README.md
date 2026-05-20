@@ -1,6 +1,5 @@
-# Appliquei v13.0 - Gestão Financeira Inteligente
+# Appliquei - Gestão Financeira Inteligente
 
-![Versão](https://img.shields.io/badge/vers%C3%A3o-13.0-green)
 ![Licença](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)
 
 ## 📖 Sobre
@@ -142,6 +141,6 @@ Contribuições são bem-vindas! Sinta-se à vontade para:
 
 ---
 
-**Appliquei v13.0** - Transformando a gestão financeira em uma experiência simples e elegante.
+**Appliquei** - Transformando a gestão financeira em uma experiência simples e elegante.
 
 

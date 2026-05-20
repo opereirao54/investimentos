@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appliquei v13.0 - Gestão Financeira Inteligente</title>
+    <title>Appliquei - Gestão Financeira Inteligente</title>
     <script>
         (function () {
             try {
@@ -173,12 +173,12 @@
         .sidebar.collapsed .logo-container { justify-content: center; padding: 0; }
         
         /* Ajuste do Favicon na Sidebar encolhida */
-        .sidebar.collapsed .logo-img { 
-            width: 38px; 
-            height: 38px; 
-            object-fit: contain; 
+        .sidebar.collapsed .logo-img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
             object-position: center;
-            border-radius: 10px; 
+            border-radius: 10px;
         }
 
         .sidebar.collapsed .nav-area { padding: 8px 6px; }
@@ -227,16 +227,16 @@
             justify-content: space-between;
         }
         .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; }
-        
+
         /* LOGO ESTICADO PARA PREENCHER O ESPAÇO E COM MISTURA DE COR */
-        .logo-img { 
-            width: 170px; 
-            height: auto; 
-            object-fit: contain; 
-            object-position: left center; 
-            transition: all 0.2s ease; 
-            mix-blend-mode: screen; 
-            opacity: 0.88; 
+        .logo-img {
+            width: 170px;
+            height: auto;
+            object-fit: contain;
+            object-position: left center;
+            transition: all 0.2s ease;
+            mix-blend-mode: screen;
+            opacity: 0.88;
         }
         .logo-img:hover { opacity: 1; }
         .logo-txt { font-size: 15px; font-weight: 700; color: var(--sb-accent); white-space: nowrap; padding-left: 8px; font-family: 'Syne', sans-serif; letter-spacing: -0.3px; }
@@ -9758,17 +9758,17 @@
             const sidebar = document.getElementById('mainSidebar'), icon = document.getElementById('iconToggle');
             const logoImg = document.getElementById('logoPrincipal');
             const collapsed = sidebar.classList.toggle('collapsed');
-            
+
             icon.className = collapsed ? 'ph ph-sidebar' : 'ph ph-sidebar-simple';
             document.getElementById('btnToggleSidebar').title = collapsed ? 'Expandir menu' : 'Recolher menu';
-            
+
             // Troca da imagem principal para o ícone quadrado e vice-versa
             if (collapsed) {
                 logoImg.src = 'appliquei_favicon.jpg';
             } else {
                 logoImg.src = 'appliquei_logo_white.jpg';
             }
-            
+
             localStorage.setItem('appliquei_sidebar_collapsed', collapsed ? '1' : '0');
         }
 
@@ -9776,7 +9776,7 @@
             if(localStorage.getItem('appliquei_sidebar_collapsed') === '1') {
                 const sidebar = document.getElementById('mainSidebar'); sidebar.classList.add('collapsed');
                 const icon = document.getElementById('iconToggle'); if(icon) icon.className = 'ph ph-sidebar';
-                
+
                 // Força o ícone reduzido no carregamento se já estava fechado
                 const logoImg = document.getElementById('logoPrincipal');
                 if(logoImg) logoImg.src = 'appliquei_favicon.jpg';
@@ -12073,7 +12073,7 @@
             resendBtn.disabled = true;
             var orig = 'Reenviar e-mail';
             resendBtn.textContent = 'Enviando…';
-            u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+            u.sendEmailVerification({ url: location.origin + '/app' }).then(function () {
                 if (typeof mostrarToast === 'function') mostrarToast('E-mail reenviado. Pode levar alguns minutos — confira também a caixa de spam.', 'sucesso', 8000);
                 // Cooldown 60s alinhado com server-side de Firebase Auth.
                 var secs = 60;
@@ -12314,7 +12314,7 @@
                 // Dispara verificação imediatamente; onAuthStateChanged em seguida
                 // detecta emailVerified=false e mostra o painel verify.
                 try {
-                    return cred.user.sendEmailVerification({ url: location.origin + '/' }).then(function () { return cred; });
+                    return cred.user.sendEmailVerification({ url: location.origin + '/app' }).then(function () { return cred; });
                 } catch (_) { return cred; }
             })
             : fb.auth.signInWithEmailAndPassword(email, senha);
@@ -12481,7 +12481,7 @@
         var btn = $('authVerifyResendBtn');
         var status = $('authVerifyStatus');
         if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
-        u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
+        u.sendEmailVerification({ url: location.origin + '/app' }).then(function () {
             if (status) {
                 status.innerHTML = 'E-mail reenviado. Pode levar alguns minutos — <strong>confira também a pasta de spam</strong>.';
                 status.style.color = '#059669';
