@@ -2,7 +2,12 @@ const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const asaas = require('../_lib/asaas');
 
 const REFERRAL_PERCENT = 10;
-const MIN_PAYMENT_CENTS = parseInt(process.env.MIN_PAYMENT_CENTS || '100', 10);
+// Valor mínimo após desconto referral. Asaas rejeita faturas abaixo do
+// piso do gateway (≈ R$ 5,00 para PIX/Boleto; cartão tolera menos). O
+// default era R$ 1,00, o que provocava 400 na actualização da fatura
+// para indicadores com muitos créditos acumulados. Pode ser ajustado
+// por env quando se confirma que todos os utilizadores usam cartão.
+const MIN_PAYMENT_CENTS = parseInt(process.env.MIN_PAYMENT_CENTS || '500', 10);
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -44,37 +49,66 @@ async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValu
   const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
   const paymentCents = Math.round((paymentValueReais || (monthlyCents / 100)) * 100);
   const maxDiscountCents = Math.max(0, paymentCents - MIN_PAYMENT_CENTS);
+  if (maxDiscountCents <= 0) return { applied: 0, used: [] };
 
-  const q = await creditsCol(indicatorBillingDoc).where('appliedAt', '==', null).get();
-  if (q.empty) return { applied: 0, used: [] };
+  // C5: reserva atómica dos créditos. Sem isto, dois webhooks paralelos
+  // (ex.: dois indicados a pagar ao mesmo instante) liam ambos os mesmos
+  // créditos com appliedAt=null e cada um aplicava o desconto na sua
+  // fatura — o mesmo crédito gastava-se duas vezes. A transação garante
+  // que apenas um dos commits vê os créditos pendentes; o outro retoma
+  // e encontra-os já marcados.
+  const reservation = await db().runTransaction(async (tx) => {
+    const snap = await tx.get(creditsCol(indicatorBillingDoc).where('appliedAt', '==', null));
+    if (snap.empty) return { applied: 0, used: [] };
+    let appliedCents = 0;
+    const used = [];
+    for (const d of snap.docs) {
+      if (appliedCents >= maxDiscountCents) break;
+      const c = d.data();
+      const room = maxDiscountCents - appliedCents;
+      const take = Math.min(c.amountCents || 0, room);
+      if (take <= 0) continue;
+      appliedCents += take;
+      used.push({ ref: d.ref, partial: take });
+    }
+    if (appliedCents <= 0) return { applied: 0, used: [] };
+    for (const u of used) {
+      tx.set(u.ref, {
+        appliedAt: fieldValue().serverTimestamp(),
+        appliedToPaymentId: paymentId,
+        appliedAmountCents: u.partial,
+      }, { merge: true });
+    }
+    return { applied: appliedCents, used };
+  });
 
-  let appliedCents = 0;
-  const used = [];
-  for (const d of q.docs) {
-    if (appliedCents >= maxDiscountCents) break;
-    const c = d.data();
-    const room = maxDiscountCents - appliedCents;
-    const take = Math.min(c.amountCents || 0, room);
-    if (take <= 0) continue;
-    appliedCents += take;
-    used.push({ ref: d.ref, amountCents: c.amountCents, partial: take });
+  if (reservation.applied <= 0) return reservation;
+
+  const newValueReais = Math.max(MIN_PAYMENT_CENTS, paymentCents - reservation.applied) / 100;
+  try {
+    await asaas.updatePayment(paymentId, { value: newValueReais });
+  } catch (e) {
+    // Compensação: o Asaas rejeitou a actualização do valor (p. ex.,
+    // valor abaixo do mínimo do gateway, fatura já paga, rede). Liberta
+    // os créditos para um próximo retry — caso contrário ficariam
+    // marcados como gastos sem desconto aplicado.
+    try {
+      const batch = db().batch();
+      for (const u of reservation.used) {
+        batch.set(u.ref, {
+          appliedAt: null,
+          appliedToPaymentId: null,
+          appliedAmountCents: fieldValue().delete(),
+        }, { merge: true });
+      }
+      await batch.commit();
+    } catch (rollbackErr) {
+      console.error('[webhook] credit reservation rollback failed', rollbackErr);
+    }
+    throw e;
   }
-  if (appliedCents <= 0) return { applied: 0, used: [] };
 
-  const newValueReais = Math.max(MIN_PAYMENT_CENTS, paymentCents - appliedCents) / 100;
-  await asaas.updatePayment(paymentId, { value: newValueReais });
-
-  const batch = db().batch();
-  for (const u of used) {
-    batch.set(u.ref, {
-      appliedAt: fieldValue().serverTimestamp(),
-      appliedToPaymentId: paymentId,
-      appliedAmountCents: u.partial,
-    }, { merge: true });
-  }
-  await batch.commit();
-
-  return { applied: appliedCents, used };
+  return reservation;
 }
 
 const INDICATOR_BLOCKED_STATUSES = new Set([
@@ -204,30 +238,60 @@ module.exports = async (req, res) => {
     || (event && subscription && subscription.id
         ? `${event}:sub:${subscription.id}:${subscription.status || ''}:${subscription.nextDueDate || ''}`
         : null);
+  // eventRef vive fora do try { } para que o handler de sucesso/erro
+  // mais abaixo possa promover para 'done' ou libertar o lock.
+  let eventRef = null;
   if (eventKey) {
     try {
-      const eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
+      eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
       // TTL: doc expira 30 dias após receber. Asaas reenvia eventos por
       // até alguns dias; 30d é largo o suficiente para idempotência e
       // ainda permite limpeza automática (configurar TTL policy no
       // Firebase Console → Firestore → TTL com campo `expiresAt`).
       const WEBHOOK_EVENT_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-      const fresh = await db().runTransaction(async (tx) => {
+      // C2: idempotência em duas fases.
+      //  - 'processing' marca o início. Não é tratado como duplicado por
+      //    instâncias futuras porque o handler ainda pode falhar.
+      //  - 'done' só é gravado depois do processamento concluir; aí sim
+      //    qualquer retry do Asaas é rejeitado como duplicado.
+      // Se um handler crashar antes de marcar 'done', o lock fica órfão
+      // e é considerado stale após PROCESSING_STALE_MS — o próximo retry
+      // toma posse e tenta de novo.
+      const PROCESSING_STALE_MS = 5 * 60 * 1000;
+      const guard = await db().runTransaction(async (tx) => {
         const snap = await tx.get(eventRef);
-        if (snap.exists) return false;
+        if (snap.exists) {
+          const d = snap.data() || {};
+          if (d.status === 'done') return { state: 'done' };
+          const startedMs = d.receivedAtMs || 0;
+          if (startedMs && Date.now() - startedMs < PROCESSING_STALE_MS) {
+            return { state: 'in_flight' };
+          }
+          // Stale: previous handler crashed before promoting to 'done'.
+          // Take ownership by overwriting receivedAtMs abaixo.
+        }
         tx.set(eventRef, {
           event: event || null,
           paymentId: (payment && payment.id) || null,
           subscriptionId: (payment && payment.subscription) || (subscription && subscription.id) || null,
           paymentStatus: (payment && payment.status) || null,
+          status: 'processing',
           receivedAt: fieldValue().serverTimestamp(),
+          receivedAtMs: Date.now(),
           expiresAt: timestamp().fromMillis(Date.now() + WEBHOOK_EVENT_TTL_MS),
-        });
-        return true;
+        }, { merge: true });
+        return { state: 'fresh' };
       });
-      if (!fresh) {
+      if (guard.state === 'done') {
         console.log('[webhook] duplicate event ignored event=%s', event || null);
         return res.json({ ok: true, duplicate: true });
+      }
+      if (guard.state === 'in_flight') {
+        // Outra instância está a processar o mesmo evento agora. Devolve
+        // 409 para o Asaas voltar a tentar depois — não tratamos como
+        // sucesso porque o trabalho ainda não terminou.
+        console.warn('[webhook] event in flight, asking for retry event=%s', event || null);
+        return res.status(409).json({ error: 'event_in_flight' });
       }
     } catch (e) {
       // Em erro de idempotência (ex.: Firestore transitório), prosseguir é
@@ -390,9 +454,29 @@ module.exports = async (req, res) => {
     }
 
     await doc.ref.set(update, { merge: true });
+    // C2: promove o lock de idempotência só agora que tudo correu bem.
+    // A partir daqui, qualquer retry do Asaas para este eventKey é
+    // rejeitado como duplicado.
+    if (eventRef) {
+      try {
+        await eventRef.set({
+          status: 'done',
+          completedAt: fieldValue().serverTimestamp(),
+        }, { merge: true });
+      } catch (e) {
+        console.error('[webhook] failed to mark event done', e && e.message);
+      }
+    }
     return res.json({ ok: true });
   } catch (e) {
     console.error('[webhook]', e);
+    // C2: liberta o lock de idempotência para permitir um retry limpo
+    // do Asaas. Sem isto, o evento ficaria preso em 'processing' até
+    // ficar stale (5 min) e o utilizador podia perder o desconto/activação.
+    if (eventRef) {
+      try { await eventRef.delete(); }
+      catch (delErr) { console.error('[webhook] failed to release event lock', delErr && delErr.message); }
+    }
     return res.status(500).json({ error: 'webhook_failed' });
   }
 };
