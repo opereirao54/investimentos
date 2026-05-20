@@ -2,8 +2,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // M4: gate server-side de acesso pago. Espelha computeAccess() do
-    // backend: permite escrita se o trial ainda está vivo OU se a
-    // subscription está ACTIVE e o último pagamento não está num
+    // backend: permite escrita se o trial ainda está vivo, OU se o
+    // último pagamento confirmado tem menos de 30 dias (cobre o ciclo
+    // pago mesmo após cancelar a sub — CDC + boa prática SaaS), OU se
+    // a subscription está ACTIVE e o último pagamento não está num
     // estado problemático (overdue/refund/chargeback).
     function billingDoc(uid) {
       return get(/databases/$(database)/documents/users/$(uid)/billing/account);
@@ -11,7 +13,6 @@ service cloud.firestore {
     function hasActiveAccess(uid) {
       return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
         && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
-          'INACTIVE',
           'CHARGEBACK',
           'CHARGEBACK_REVERSAL_PENDING',
           'PAYMENT_REPROVED',
@@ -21,6 +22,14 @@ service cloud.firestore {
         && (
           (billingDoc(uid).data.trialEndsAt is timestamp
             && request.time < billingDoc(uid).data.trialEndsAt)
+          || (
+            // Ciclo pago: lastPaidAt + 30 dias. Cobre usuário que pagou
+            // e cancelou a sub no meio do mês — mantém acesso até o
+            // fim do período já pago. duration.value(30,'d') existe em
+            // Firestore Security Rules.
+            billingDoc(uid).data.lastPaidAt is timestamp
+            && request.time < billingDoc(uid).data.lastPaidAt + duration.value(30, 'd')
+          )
           || (
             billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
             && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [

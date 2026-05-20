@@ -1,4 +1,5 @@
 const TRIAL_DAYS = 7;
+const PAID_PERIOD_MS = 30 * 86400 * 1000;
 
 const PAID_PAYMENT_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
 const BAD_PAYMENT_STATUSES = new Set([
@@ -25,7 +26,8 @@ function computeAccess(billing, now = Date.now()) {
   }
   const subStatus = billing.subscriptionStatus || null;
   const lastPaymentStatus = billing.lastPaymentStatus || null;
-  const hasPaidBefore = !!toMillis(billing.lastPaidAt);
+  const lastPaidAtMs = toMillis(billing.lastPaidAt);
+  const hasPaidBefore = !!lastPaidAtMs;
 
   // Defesa em profundidade: se o último pagamento está em estado ruim
   // (vencido, em chargeback, reembolso), bloqueia mesmo que subStatus
@@ -58,6 +60,14 @@ function computeAccess(billing, now = Date.now()) {
     return { status: 'trial', reason: 'trial_active', trialDaysLeft: left };
   }
 
+  // Ciclo pago: pagou nos últimos 30 dias e nenhum BAD status no topo
+  // foi acionado. Cobre o caso "paguei, cancelei, ainda tenho direito
+  // ao restante do mês" — CDC + prática SaaS padrão. Vem DEPOIS do trial
+  // para preservar o estado "trial" enquanto a avaliação está viva.
+  if (lastPaidAtMs && (now - lastPaidAtMs) < PAID_PERIOD_MS) {
+    return { status: 'active', reason: 'paid_period', trialDaysLeft: 0 };
+  }
+
   if (subStatus === 'ACTIVE') {
     return { status: 'pending_payment', reason: 'awaiting_payment', trialDaysLeft: 0 };
   }
@@ -79,4 +89,4 @@ function computeAccess(billing, now = Date.now()) {
   return { status: 'blocked', reason: 'trial_expired', trialDaysLeft: 0 };
 }
 
-module.exports = { TRIAL_DAYS, computeAccess, toMillis };
+module.exports = { TRIAL_DAYS, PAID_PERIOD_MS, computeAccess, toMillis };

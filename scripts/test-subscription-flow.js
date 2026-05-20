@@ -195,12 +195,19 @@ async function main() {
   const f3a = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + carlosTok } });
   check(f3a.body.access.status === 'trial', 'durante o trial: ainda trial (cancelamento só toma efeito após o trial vencer)');
 
-  step('F4', 'Quando o trial expira após o cancelamento → blocked/cancelled');
+  step('F4', 'Trial expira após cancelamento → mantém acesso paid_period (Carlos pagou há minutos, dentro dos 30 dias)');
   const carlosForExpire = store.docs.get('users/carlos_uid/billing/account');
   carlosForExpire.trialEndsAt = makeTimestamp(Date.now() - 3600 * 1000);
   const f4 = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + carlosTok } });
-  check(f4.body.access.status === 'blocked', 'blocked');
-  check(f4.body.access.reason === 'cancelled', 'cancelled');
+  check(f4.body.access.status === 'active', 'active (CDC: pagou tem direito ao mês)');
+  check(f4.body.access.reason === 'paid_period', 'reason = paid_period');
+
+  step('F5', 'Após 30+ dias de lastPaidAt + trial expirado + INACTIVE → blocked/cancelled');
+  const carlosForFullExpire = store.docs.get('users/carlos_uid/billing/account');
+  carlosForFullExpire.lastPaidAt = makeTimestamp(Date.now() - 31 * 86400 * 1000);
+  const f5 = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + carlosTok } });
+  check(f5.body.access.status === 'blocked', 'blocked');
+  check(f5.body.access.reason === 'cancelled', 'cancelled');
 
   // ============================================================
   // CENÁRIO G: computeAccess direto (espelho do firestore.rules M4)
@@ -243,6 +250,42 @@ async function main() {
   const g8 = H.computeAccess({ trialEndsAt: makeTimestamp(Date.now() - 1000), subscriptionStatus: null });
   check(g8.status === 'blocked', 'blocked');
   check(g8.reason === 'trial_expired', 'trial_expired');
+
+  step('G9', 'computeAccess: INACTIVE + lastPaidAt < 30d → active/paid_period (cancelou mas pagou no ciclo)');
+  const g9 = H.computeAccess({
+    subscriptionStatus: 'INACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 5 * 86400 * 1000),
+    trialEndsAt: makeTimestamp(Date.now() - 1000),
+  });
+  check(g9.status === 'active', 'active');
+  check(g9.reason === 'paid_period', 'reason paid_period');
+
+  step('G10', 'computeAccess: INACTIVE + lastPaidAt > 30d → blocked/cancelled');
+  const g10 = H.computeAccess({
+    subscriptionStatus: 'INACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 31 * 86400 * 1000),
+    trialEndsAt: makeTimestamp(Date.now() - 1000),
+  });
+  check(g10.status === 'blocked', 'blocked');
+  check(g10.reason === 'cancelled', 'cancelled');
+
+  step('G11', 'computeAccess: trial vivo + INACTIVE + lastPaidAt < 30d → trial (trial vence o paid_period)');
+  const g11 = H.computeAccess({
+    subscriptionStatus: 'INACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 1 * 86400 * 1000),
+    trialEndsAt: makeTimestamp(Date.now() + 2 * 86400 * 1000),
+  });
+  check(g11.status === 'trial', 'trial');
+  check(g11.reason === 'trial_active', 'trial_active');
+
+  step('G12', 'computeAccess: INACTIVE + lastPaidAt < 30d + OVERDUE recente → blocked/overdue (BAD payment vence paid_period)');
+  const g12 = H.computeAccess({
+    subscriptionStatus: 'INACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 5 * 86400 * 1000),
+    lastPaymentStatus: 'OVERDUE',
+  });
+  check(g12.status === 'blocked', 'blocked');
+  check(g12.reason === 'overdue', 'overdue');
 
   console.log('\n' + (fail === 0 ? '\x1b[32m' : '\x1b[31m') + '== Resultado: ' + pass + ' ok, ' + fail + ' falha(s)\x1b[0m');
   process.exit(fail === 0 ? 0 : 1);

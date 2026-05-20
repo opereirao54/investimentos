@@ -20,7 +20,6 @@ service cloud.firestore {
     function hasActiveAccess(uid) {
       return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
         && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
-          'INACTIVE',
           'CHARGEBACK',
           'CHARGEBACK_REVERSAL_PENDING',
           'PAYMENT_REPROVED',
@@ -30,6 +29,10 @@ service cloud.firestore {
         && (
           (billingDoc(uid).data.trialEndsAt is timestamp
             && request.time < billingDoc(uid).data.trialEndsAt)
+          || (
+            billingDoc(uid).data.lastPaidAt is timestamp
+            && request.time < billingDoc(uid).data.lastPaidAt + duration.value(30, 'd')
+          )
           || (
             billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
             && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [

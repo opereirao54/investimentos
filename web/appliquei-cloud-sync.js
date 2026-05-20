@@ -10,6 +10,8 @@
   var authHooked = false;
   var pullInFlight = false;
   var initialPullDone = false; // Previne pushes antes da restauração completa
+  var unsubscribeSnapshot = null;
+  var listenerUid = null;
 
   function shouldSyncKey(key) {
     if (!key || typeof key !== 'string') return false;
@@ -108,6 +110,95 @@
     timer = setTimeout(flushPush, DEBOUNCE_MS);
   }
 
+  // Aplica um snapshot do Firestore no localStorage. Usado tanto no pull
+  // inicial (via get) quanto pelo listener em tempo real (onSnapshot).
+  // `opts.reloadMessage` é o toast exibido quando algo realmente muda.
+  function applyRemoteSnapshot(snap, opts) {
+    if (!snap || !snap.exists) return 0;
+    var data = snap.data() || {};
+    var keys = data.keys || {};
+    var rev = tsMillis(data.updatedAt);
+    var prevRev = 0;
+    try {
+      prevRev = parseInt(localStorage.getItem('appliquei_cloud_applied_rev') || '0', 10);
+    } catch (_) {}
+    if (rev != null && prevRev && rev <= prevRev) return 0;
+
+    var changed = 0;
+    applyingPull = true;
+    try {
+      Object.keys(keys).forEach(function (k) {
+        if (!shouldSyncKey(k)) return;
+        try {
+          var next = keys[k];
+          if (next === undefined || next === null) return;
+          var cur = localStorage.getItem(k);
+          if (!storageValuesEqual(cur, next)) {
+            localStorage.setItem(k, String(next));
+            changed++;
+          }
+        } catch (e) {
+          console.warn('[AppliqueiCloudSync] apply key', k, e);
+        }
+      });
+    } finally {
+      applyingPull = false;
+    }
+
+    try {
+      if (rev != null) localStorage.setItem('appliquei_cloud_applied_rev', String(rev));
+    } catch (_) {}
+
+    if (changed > 0) {
+      var msg = (opts && opts.reloadMessage) ||
+        'Dados atualizados em outro dispositivo. Recarregando…';
+      if (typeof window.mostrarToast === 'function') {
+        window.mostrarToast(msg, 'sucesso');
+      }
+      setTimeout(function () {
+        try { window.location.reload(); } catch (_) {}
+      }, 1500);
+    }
+    return changed;
+  }
+
+  function startSnapshotListener(uid) {
+    if (!uid) return;
+    if (unsubscribeSnapshot && listenerUid === uid) return;
+    stopSnapshotListener();
+    var fb = window.AppliqueiFirebase;
+    if (!fb || !fb.db) return;
+    try {
+      listenerUid = uid;
+      unsubscribeSnapshot = mainRef(uid).onSnapshot(
+        function (snap) {
+          // Ignora frames vindos do cache local — só reagimos a confirmações
+          // do servidor para evitar loops com a própria escrita pendente.
+          if (snap && snap.metadata && snap.metadata.fromCache) return;
+          if (snap && snap.metadata && snap.metadata.hasPendingWrites) return;
+          applyRemoteSnapshot(snap);
+        },
+        function (err) {
+          console.warn('[AppliqueiCloudSync] snapshot', err);
+          // permission-denied/unauthenticated: trial expirou, fatura em aberto
+          // ou logout em andamento. O gate de assinatura comunica isso.
+          if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) return;
+        }
+      );
+    } catch (e) {
+      console.warn('[AppliqueiCloudSync] startSnapshotListener', e);
+      listenerUid = null;
+    }
+  }
+
+  function stopSnapshotListener() {
+    if (unsubscribeSnapshot) {
+      try { unsubscribeSnapshot(); } catch (_) {}
+    }
+    unsubscribeSnapshot = null;
+    listenerUid = null;
+  }
+
   function pullAndApply(uid, done) {
     if (pullInFlight) {
       if (done) done(false);
@@ -121,64 +212,16 @@
           initialPullDone = true;
           flushPush();
           pullInFlight = false;
+          startSnapshotListener(uid);
           if (done) done(false);
           return;
         }
-        var data = snap.data() || {};
-        var keys = data.keys || {};
-        var rev = tsMillis(data.updatedAt);
-        var prevRev = null;
-        try {
-          prevRev = parseInt(localStorage.getItem('appliquei_cloud_applied_rev') || '0', 10);
-        } catch (_) {
-          prevRev = 0;
-        }
-        if (rev != null && prevRev && rev === prevRev) {
-          initialPullDone = true;
-          pullInFlight = false;
-          if (done) done(false);
-          return;
-        }
-
-        var changed = 0;
-        applyingPull = true;
-        try {
-          Object.keys(keys).forEach(function (k) {
-            if (!shouldSyncKey(k)) return;
-            try {
-              var next = keys[k];
-              if (next === undefined || next === null) return;
-              var cur = localStorage.getItem(k);
-              if (!storageValuesEqual(cur, next)) {
-                localStorage.setItem(k, String(next));
-                changed++;
-              }
-            } catch (e) {
-              console.warn('[AppliqueiCloudSync] apply key', k, e);
-            }
-          });
-        } finally {
-          applyingPull = false;
-        }
-
-        try {
-          if (rev != null) localStorage.setItem('appliquei_cloud_applied_rev', String(rev));
-        } catch (_) {}
-
+        var changed = applyRemoteSnapshot(snap, {
+          reloadMessage: 'Dados da nuvem restaurados! Atualizando a página para carregar as informações...'
+        });
         initialPullDone = true;
-
-        if (changed > 0) {
-          if (typeof window.mostrarToast === 'function') {
-            window.mostrarToast(
-              'Dados da nuvem restaurados! Atualizando a página para carregar as informações...',
-              'sucesso'
-            );
-          }
-          setTimeout(function() {
-            window.location.reload();
-          }, 1500);
-        }
         pullInFlight = false;
+        startSnapshotListener(uid);
         if (done) done(changed > 0);
       })
       .catch(function (err) {
@@ -206,6 +249,7 @@
       var prevUid = lastSeenUid();
       if (timer) clearTimeout(timer);
       timer = null;
+      stopSnapshotListener();
       // Logout: limpa dados do usuário deste browser para evitar vazamento
       // entre contas no mesmo navegador.
       clearUserScopedKeys();
@@ -227,6 +271,7 @@
       // Trocou de conta neste browser sem passar por signOut completo
       // (ex.: link de autenticação direto, troca de provider). Mesma
       // política: limpa e recarrega.
+      stopSnapshotListener();
       clearUserScopedKeys();
       initialPullDone = false;
       try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}

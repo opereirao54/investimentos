@@ -832,16 +832,48 @@
       var pct = clamp(((totalDays - left) / totalDays) * 100, 0, 100);
       var titleTxt = left <= 1 ? 'Último dia da avaliação gratuita' : left + ' ' + pluralDays(left) + ' restantes na avaliação';
       var subTxt = 'Sua avaliação gratuita termina em ' + fmtDate(trialEndsAt) + '. Garanta acesso contínuo assinando antes.';
-      var cta = hasSub
-        ? 'Pagamento já em curso · estamos a confirmar'
-        : '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar agora · ' + fmtBRL(baseCents) + '/mês</button>';
+      // "Pagamento em curso" só vale quando a sub realmente está aguardando
+      // confirmação. Se a sub foi cancelada (INACTIVE) durante o trial,
+      // mostrar isso seria mentir — oferecemos reativar.
+      var cta;
+      if (hasSub && !isInactive) {
+        cta = 'Pagamento já em curso · estamos a confirmar';
+      } else if (isInactive) {
+        cta = '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Assinatura cancelada · reative · ' + fmtBRL(baseCents) + '/mês</button>';
+      } else {
+        cta = '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar agora · ' + fmtBRL(baseCents) + '/mês</button>';
+      }
       return '<div class="ma-hero is-trial">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-sparkle"></i> Avaliação gratuita</span>' +
         '<div class="ma-hero-title">' + titleTxt + '</div>' +
         '<p class="ma-hero-sub">' + subTxt + '</p>' +
         '<div class="ma-hero-bar"><span style="width:' + pct.toFixed(1) + '%;"></span></div>' +
         '<div class="ma-hero-meta"><span>Dia ' + (totalDays - left) + ' de ' + totalDays + '</span><span>Termina ' + fmtDate(trialEndsAt) + '</span></div>' +
-        (typeof cta === 'string' ? cta : '') +
+        cta +
+      '</div>';
+    }
+
+    // Sub cancelada precisa cair no banner "Cancelada" mesmo quando o
+    // backend devolve access.status='active' por causa do paid_period
+    // (Fix 3). Caso contrário renderizaríamos "Renovação automática"
+    // para alguém que acabou de cancelar.
+    if (isInactive && access.status === 'active') {
+      var paidUntilTxt = '';
+      if (access.reason === 'paid_period' && me.lastPaidAt) {
+        var paidMs = Date.parse(me.lastPaidAt);
+        if (!isNaN(paidMs)) {
+          var paidUntilMs = paidMs + 30 * 86400 * 1000;
+          paidUntilTxt = ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
+        }
+      }
+      var cancelledTxt = me.cancelledAt
+        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '.' + (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
+        : 'A sua assinatura está inativa.' + paidUntilTxt;
+      return '<div class="ma-hero is-inactive">' +
+        '<span class="ma-hero-eyebrow"><i class="ph-fill ph-prohibit-inset"></i> Assinatura cancelada</span>' +
+        '<div class="ma-hero-title">Reative quando quiser</div>' +
+        '<p class="ma-hero-sub">' + cancelledTxt + ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' + fmtBRL(baseCents) + '/mês</button>' +
       '</div>';
     }
 
@@ -876,9 +908,19 @@
     }
 
     if (isInactive) {
+      // Sub cancelada mas ainda dentro do ciclo pago (30 dias após
+      // lastPaidAt). Mostra a data exata até quando o acesso vale.
+      var paidUntilTxt = '';
+      if (access.reason === 'paid_period' && me.lastPaidAt) {
+        var paidMs = Date.parse(me.lastPaidAt);
+        if (!isNaN(paidMs)) {
+          var paidUntilMs = paidMs + 30 * 86400 * 1000;
+          paidUntilTxt = ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
+        }
+      }
       var cancelledTxt = me.cancelledAt
-        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '. O acesso fica disponível até o fim do ciclo já pago.'
-        : 'A sua assinatura está inativa.';
+        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '.' + (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
+        : 'A sua assinatura está inativa.' + paidUntilTxt;
       return '<div class="ma-hero is-inactive">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-prohibit-inset"></i> Assinatura cancelada</span>' +
         '<div class="ma-hero-title">Reative quando quiser</div>' +
