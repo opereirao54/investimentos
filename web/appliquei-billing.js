@@ -293,7 +293,7 @@
       b = document.createElement('div');
       b.id = 'verifyBanner';
       b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#f59e0b;color:#1f2937;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-wrap:wrap;';
-      b.innerHTML = '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso à plataforma.</span>' +
+      b.innerHTML = '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso. <span style="opacity:.85;font-weight:500;">Confira também a pasta de spam.</span></span>' +
         '<button type="button" id="verifyBannerBtn" style="background:#1f2937;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:600;font-size:12px;cursor:pointer;">Reenviar e-mail</button>' +
         '<button type="button" id="verifyBannerCheckBtn" style="background:transparent;color:#1f2937;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;cursor:pointer;">Já verifiquei</button>';
       document.body.appendChild(b);
@@ -321,10 +321,16 @@
       // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
       // primário já foi.
       try { await authedFetch('/../auth/resend-verification', { method: 'POST' }); } catch (_) {}
-      if (btn) { btn.textContent = 'Enviado!'; }
-      setTimeout(function () {
-        if (btn) { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }
-      }, 4000);
+      // Aviso ao usuário sobre spam (sender padrão noreply@*.firebaseapp.com
+      // ainda cai como suspeito em vários provedores).
+      try {
+        if (typeof window.mostrarToast === 'function') {
+          window.mostrarToast('E-mail reenviado. Confira também a caixa de spam.', 'sucesso', 8000);
+        }
+      } catch (_) {}
+      // Cooldown 60s — Firebase Auth throttle server-side é ~1/min por user.
+      // Antes ficava 4s e o usuário re-clicava esperando novo envio.
+      startResendCooldown(btn, 60);
     } catch (e) {
       console.warn('[verify] resend failed', e && e.code, e && e.message);
       if (btn) {
@@ -333,6 +339,22 @@
         setTimeout(function () { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }, 4000);
       }
     }
+  }
+
+  function startResendCooldown(btn, secs) {
+    if (!btn) return;
+    btn.disabled = true;
+    var tick = function () {
+      btn.textContent = 'Aguarde ' + secs + 's';
+      if (secs <= 0) {
+        btn.disabled = false;
+        btn.textContent = 'Reenviar e-mail';
+        return;
+      }
+      secs--;
+      setTimeout(tick, 1000);
+    };
+    tick();
   }
 
   async function recheckVerification() {
@@ -1764,12 +1786,25 @@
     syncApplicash: syncApplicashFromServer,
     // Dispara onUser manualmente para o user logado atual. Usado após
     // o block ser liberado (Google login validado) para iniciar billing.
+    // Repete em 1.5s/4s para cobrir o caso em que onAuthStateChanged
+    // disparou enquanto __appliqueiBlockBilling=true (race no signup Google
+    // novo): sem isto o trial banner só apareceria depois do próximo refresh
+    // manual, pois nenhum re-trigger de onUser aconteceria.
     kickstart: function () {
-      try {
-        var fb = window.AppliqueiFirebase;
-        var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
-        if (u) onUser(u);
-      } catch (_) {}
+      var fb = window.AppliqueiFirebase;
+      var attempt = function () {
+        try {
+          var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
+          if (u && !window.__appliqueiBlockBilling) onUser(u);
+        } catch (_) {}
+      };
+      attempt();
+      // Retry curto só se o primeiro /init ainda não populou lastAccess.
+      // Cobre o race do signup Google novo, em que onAuthStateChanged
+      // disparou com __appliqueiBlockBilling=true e o trial banner ficava
+      // sem aparecer até refresh manual.
+      setTimeout(function () { if (!lastAccess) attempt(); }, 1500);
+      setTimeout(function () { if (!lastAccess) attempt(); }, 4500);
     },
   };
 })();

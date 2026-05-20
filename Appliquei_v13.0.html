@@ -12071,20 +12071,28 @@
             var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
             if (!u) return;
             resendBtn.disabled = true;
-            var orig = resendBtn.textContent;
+            var orig = 'Reenviar e-mail';
             resendBtn.textContent = 'Enviando…';
             u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
-                resendBtn.textContent = 'E-mail enviado';
-                if (typeof mostrarToast === 'function') mostrarToast('E-mail de verificação reenviado.', 'sucesso');
+                if (typeof mostrarToast === 'function') mostrarToast('E-mail reenviado. Pode levar alguns minutos — confira também a caixa de spam.', 'sucesso', 8000);
+                // Cooldown 60s alinhado com server-side de Firebase Auth.
+                var secs = 60;
+                var tick = function () {
+                    if (!resendBtn) return;
+                    resendBtn.textContent = 'Aguarde ' + secs + 's';
+                    if (secs <= 0) {
+                        resendBtn.disabled = false;
+                        resendBtn.textContent = orig;
+                        return;
+                    }
+                    secs--;
+                    setTimeout(tick, 1000);
+                };
+                tick();
             }).catch(function (err) {
+                resendBtn.disabled = false;
                 resendBtn.textContent = orig;
                 if (typeof mostrarToast === 'function') mostrarToast(mapAuthErr(err), 'erro');
-            }).finally(function () {
-                setTimeout(function () {
-                    if (!resendBtn) return;
-                    resendBtn.disabled = false;
-                    resendBtn.textContent = orig;
-                }, 4000);
             });
         });
         if (checkBtn) checkBtn.addEventListener('click', function () {
@@ -12344,13 +12352,26 @@
                 setSub('Não encontramos sua conta');
                 setAuthPanel('form');
                 window.appliqueiAuthSetModo('registro');
-                window.appliqueiAuthErr('Não encontramos uma conta Google com este e-mail. Clique em "Continuar com Google" para criar sua conta agora.');
+                var rejectMsg = 'Não encontramos uma conta Google com este e-mail. Clique em "Continuar com Google" para criar sua conta agora.';
+                window.appliqueiAuthErr(rejectMsg);
                 if (typeof refreshSidebar === 'function') refreshSidebar();
-                // M8: libera a flag SOMENTE depois que o delete/UI terminaram.
-                // Antes era setTimeout paralelo ao delete(), que podia liberar
-                // antes do done() rodar em redes lentas, deixando o
-                // onAuthStateChanged sobrescrever a mensagem de erro.
-                setTimeout(function () { window.__appliqueiAuthGoogleRejecting = false; }, 800);
+                // Sticky: re-afirma a mensagem durante 6s caso outra
+                // rotina (onAuthStateChanged, setModo, getRedirectResult) a
+                // limpe. Antes a flag soltava em 800ms e a mensagem podia
+                // sumir antes do usuário ler.
+                var stickyDeadline = Date.now() + 6000;
+                var stickyTick = setInterval(function () {
+                    var errEl = $('authErr');
+                    if (!errEl) { clearInterval(stickyTick); return; }
+                    if (Date.now() > stickyDeadline) {
+                        clearInterval(stickyTick);
+                        window.__appliqueiAuthGoogleRejecting = false;
+                        return;
+                    }
+                    if (errEl.textContent !== rejectMsg) {
+                        window.appliqueiAuthErr(rejectMsg);
+                    }
+                }, 120);
             };
             if (u && typeof u.delete === 'function') {
                 u.delete().then(done).catch(function () {
@@ -12433,6 +12454,26 @@
             if (btn) btn.disabled = false;
         });
     };
+    // Cooldown local: Firebase Auth limita reenvios server-side (~1/min por
+    // user) e às vezes silencia o erro retornando ok sem enviar. Para evitar
+    // que o tester clique repetidamente esperando outro e-mail, mantemos a
+    // UI bloqueada por 60s e mostramos contagem regressiva.
+    var APPLIQUEI_RESEND_COOLDOWN_MS = 60000;
+    function appliqueiAuthResendCooldown(btn, secs) {
+        if (!btn) return;
+        btn.disabled = true;
+        var tick = function () {
+            btn.textContent = 'Aguarde ' + secs + 's';
+            if (secs <= 0) {
+                btn.disabled = false;
+                btn.textContent = 'Reenviar e-mail';
+                return;
+            }
+            secs--;
+            setTimeout(tick, 1000);
+        };
+        tick();
+    }
     window.appliqueiAuthResend = function () {
         var fb = window.AppliqueiFirebase;
         var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
@@ -12441,10 +12482,14 @@
         var status = $('authVerifyStatus');
         if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
         u.sendEmailVerification({ url: location.origin + '/' }).then(function () {
-            if (status) { status.textContent = 'E-mail reenviado. Confira a caixa de entrada.'; status.style.color = '#059669'; status.style.display = 'block'; }
+            if (status) {
+                status.innerHTML = 'E-mail reenviado. Pode levar alguns minutos — <strong>confira também a pasta de spam</strong>.';
+                status.style.color = '#059669';
+                status.style.display = 'block';
+            }
+            appliqueiAuthResendCooldown(btn, Math.ceil(APPLIQUEI_RESEND_COOLDOWN_MS / 1000));
         }).catch(function (err) {
             if (status) { status.textContent = mapAuthErr(err); status.style.color = '#7f1d1d'; status.style.display = 'block'; }
-        }).finally(function () {
             if (btn) { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }
         });
     };

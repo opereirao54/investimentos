@@ -44,6 +44,19 @@ module.exports = async (req, res) => {
   const user = await requireFreshVerifiedUser(req, res);
   if (!user) return;
 
+  // Defesa em profundidade: /init cria customer no Asaas e marca início de
+  // trial — operação irreversível para um e-mail. Bloqueia explicitamente
+  // qualquer chamada de usuário não verificado, independente do flag
+  // EMAIL_VERIFY_ENFORCE (que governa o gate genérico em requireVerifiedUser).
+  // Google OAuth sempre vem com email_verified=true; só pega bypass de
+  // email/senha sem verificação.
+  if (user.email_verified !== true) {
+    return res.status(403).json({
+      error: 'email_not_verified',
+      detail: 'Verifique o seu e-mail antes de iniciar a avaliação. Reenvie o link de verificação no painel inicial.',
+    });
+  }
+
   // M9: providers OAuth podem não retornar email se o escopo não foi pedido
   // ou o user negou. Sem email, Asaas.createCustomer falha (400). Falha
   // cedo com mensagem clara.
