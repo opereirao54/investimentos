@@ -180,8 +180,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_v13.0.html": {
-    "mtime": 1779307779.127991,
-    "ast_hash": "18c64b323ec3d79df3336bac2e7d8135",
+    "mtime": 1779308433.2599761,
+    "ast_hash": "857f6c05e3a09baf6fb5f37c509e1c4b",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
@@ -225,8 +225,18 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/landing.html": {
-    "mtime": 1779307739.439992,
-    "ast_hash": "917d979ef5543ec0d1365be7afc62435",
+    "mtime": 1779308415.8759763,
+    "ast_hash": "cb0d2796137e3467b663f24eec4b826a",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-favicon.svg": {
+    "mtime": 1779308412.2599766,
+    "ast_hash": "d0e1d8a5a894cc3d5d67a0ef8f140b9e",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/web/appliquei-mark.svg": {
+    "mtime": 1779308287.5639794,
+    "ast_hash": "07c417ca0a93a980df1aebf92f44bc5c",
     "semantic_hash": ""
   }
 }
