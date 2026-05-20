@@ -180,23 +180,13 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_v13.0.html": {
-    "mtime": 1779308433.2599761,
-    "ast_hash": "857f6c05e3a09baf6fb5f37c509e1c4b",
+    "mtime": 1779309040.2159622,
+    "ast_hash": "3d98d912576093c815a09b49c4fa405e",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
     "mtime": 1778874051.3639107,
     "ast_hash": "cb2e9e4e157941c95edc334be193b5ad",
-    "semantic_hash": ""
-  },
-  "/home/user/investimentos/appliquei_favicon.jpg": {
-    "mtime": 1778874051.4343407,
-    "ast_hash": "1ba3e600e4d1f5694904061aa944a678",
-    "semantic_hash": ""
-  },
-  "/home/user/investimentos/appliquei_logo_white.jpg": {
-    "mtime": 1778874051.4703407,
-    "ast_hash": "7a0408a507e4bcf133941c0adc5b69c5",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/cpf-cnpj.js": {
@@ -225,18 +215,38 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/landing.html": {
-    "mtime": 1779308415.8759763,
-    "ast_hash": "cb0d2796137e3467b663f24eec4b826a",
+    "mtime": 1779309002.443963,
+    "ast_hash": "b4dbdffe7e13546c2e7b5be00f306570",
     "semantic_hash": ""
   },
-  "/home/user/investimentos/appliquei-favicon.svg": {
-    "mtime": 1779308412.2599766,
-    "ast_hash": "d0e1d8a5a894cc3d5d67a0ef8f140b9e",
+  "/home/user/investimentos/appliquei-mark.png": {
+    "mtime": 1779308947.7799642,
+    "ast_hash": "ace67447c4a13b82bffbc893fa8189bd",
     "semantic_hash": ""
   },
-  "/home/user/investimentos/web/appliquei-mark.svg": {
-    "mtime": 1779308287.5639794,
-    "ast_hash": "07c417ca0a93a980df1aebf92f44bc5c",
+  "/home/user/investimentos/appliquei-logo-white-small.png": {
+    "mtime": 1779308947.5799644,
+    "ast_hash": "5ce9ab3c9956f8ecc5b0014f459d7af9",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-logo-small.png": {
+    "mtime": 1779308947.4879644,
+    "ast_hash": "81161350635df07782fc4a4faad471bf",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-favicon.png": {
+    "mtime": 1779308947.9759643,
+    "ast_hash": "ace67447c4a13b82bffbc893fa8189bd",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-logo.png": {
+    "mtime": 1779308947.1479642,
+    "ast_hash": "a042a22d31d0ea7d29e30d590ad19d55",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-logo-white.png": {
+    "mtime": 1779308947.3719642,
+    "ast_hash": "6c77bece90e1dc8fc92614141c3f9e44",
     "semantic_hash": ""
   }
 }

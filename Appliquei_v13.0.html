@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appliquei v13.0 - Gestão Financeira Inteligente</title>
-    <link rel="icon" type="image/svg+xml" href="appliquei-favicon.svg">
-    <link rel="alternate icon" href="appliquei_favicon.jpg">
+    <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <script>
         (function () {
             try {
@@ -174,12 +173,12 @@
         .sidebar.collapsed .logo-area { padding: 12px 0; justify-content: center; }
         .sidebar.collapsed .logo-container { justify-content: center; padding: 0; }
         
-        /* Sidebar encolhida: esconde wordmark, mantém só a marca centralizada. */
-        .sidebar.collapsed .appliquei-wordmark { display: none; }
-        .sidebar.collapsed .appliquei-logo { gap: 0; }
+        /* Sidebar encolhida: troca logo completo pela marca isolada. */
+        .sidebar.collapsed .logo-img { display: none; }
+        .sidebar.collapsed .logo-mark { display: block; }
 
-        /* Bloco abaixo preservado por compat — sem efeito após a troca do <img> por SVG. */
-        .sidebar.collapsed .logo-img {
+        /* Bloco legado abaixo é inofensivo — .logo-img tem display:none quando collapsed. */
+        .sidebar.collapsed .logo-img-legacy {
             width: 38px;
             height: 38px;
             object-fit: contain;
@@ -232,15 +231,12 @@
             align-items: center;
             justify-content: space-between;
         }
-        .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; }
+        .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; gap: 0; }
 
-        /* Marca SVG (substitui o JPG antigo de ~4.6MB). Sidebar é escura,
-           então o wordmark fica branco e o $ verde — mesmo desenho da landing. */
-        .appliquei-logo { display: inline-flex; align-items: center; gap: 10px; transition: all .2s ease; }
-        .appliquei-mark { width: 34px; height: 34px; flex-shrink: 0; display: inline-block; }
-        .appliquei-mark svg { display: block; width: 100%; height: 100%; }
-        .appliquei-wordmark { font-family: 'Figtree', sans-serif; font-weight: 800; font-size: 20px; color: #fff; letter-spacing: -.025em; line-height: 1; display: inline-flex; align-items: flex-start; gap: 1px; }
-        .appliquei-wordmark .appliquei-dollar { color: #34d399; font-size: .55em; font-weight: 800; margin-top: .05em; }
+        /* Logo oficial (PNG do logo enviado, com versão em branco para fundo escuro).
+           Sidebar expandida mostra o lockup completo; recolhida mostra só a marca. */
+        .logo-img { height: 36px; width: auto; display: block; transition: all .2s ease; }
+        .logo-mark { height: 32px; width: 32px; display: none; }
         .logo-txt { font-size: 15px; font-weight: 700; color: var(--sb-accent); white-space: nowrap; padding-left: 8px; font-family: 'Syne', sans-serif; letter-spacing: -0.3px; }
 
         .nav-area { padding: 10px 10px; flex: 1; }
@@ -3305,17 +3301,8 @@
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
             <a href="#" class="logo-container" onclick="mudarAba(event,'patrimonio')" style="text-decoration: none;" aria-label="Appliquei">
-                <span class="appliquei-logo" id="logoPrincipal">
-                    <span class="appliquei-mark" aria-hidden="true">
-                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-                            <defs><linearGradient id="sbMarkG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
-                            <rect width="64" height="64" rx="14" fill="url(#sbMarkG)"/>
-                            <path d="M 16 44 L 28 32 L 36 40 L 48 22" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M 40 22 L 48 22 L 48 30" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span class="appliquei-wordmark">Appliquei<span class="appliquei-dollar">$</span></span>
-                </span>
+                <img src="appliquei-logo-white-small.png" alt="Appliquei" class="logo-img" id="logoPrincipal" decoding="async">
+                <img src="appliquei-mark.png" alt="" class="logo-mark" id="logoMark" aria-hidden="true" decoding="async">
             </a>
             <button class="sidebar-toggle" onclick="toggleSidebar()" id="btnToggleSidebar" title="Recolher menu"><i class="ph ph-sidebar-simple" id="iconToggle"></i></button>
         </div>
