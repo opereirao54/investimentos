@@ -1370,6 +1370,7 @@
     var digits = num.replace(/\D+/g, '');
     if (digits.length < 13 || digits.length > 19) return showSubModalErr('mcErr', 'Número do cartão inválido.');
     if (!exp) return showSubModalErr('mcErr', 'Validade inválida (MM/AA).');
+    if (exp.expired) return showSubModalErr('mcErr', 'Este cartão já está expirado. Use um cartão válido.');
     if (cvv.length < 3) return showSubModalErr('mcErr', 'CVV inválido.');
     if (holder.length < 3) return showSubModalErr('mcErr', 'Nome impresso obrigatório.');
     if (zip.length !== 8) return showSubModalErr('mcErr', 'CEP inválido.');
@@ -1611,6 +1612,11 @@
     if (yy.length !== 4) return null;
     var m = parseInt(mm, 10);
     if (m < 1 || m > 12) return null;
+    var y = parseInt(yy, 10);
+    var now = new Date();
+    var curY = now.getFullYear();
+    var curM = now.getMonth() + 1;
+    if (y < curY || (y === curY && m < curM)) return { expired: true };
     return { expiryMonth: mm, expiryYear: yy };
   }
 
@@ -1625,6 +1631,7 @@
     var digits = num.replace(/\D+/g, '');
     if (digits.length < 13 || digits.length > 19) return { error: 'Número do cartão inválido.' };
     if (!exp) return { error: 'Validade do cartão inválida (MM/AA).' };
+    if (exp.expired) return { error: 'Este cartão já está expirado. Use um cartão válido.' };
     if (cvv.length < 3) return { error: 'CVV inválido.' };
     if (holder.length < 3) return { error: 'Informe o nome impresso no cartão.' };
     if (zip.length !== 8) return { error: 'CEP inválido (8 dígitos).' };

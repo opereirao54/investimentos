@@ -120,7 +120,17 @@ async function syncBillingFromAsaas(billingRef, billing) {
       if (userRef) {
         try {
           const list = await asaas.listPaymentsBySubscription(billing.subscriptionId);
-          await reconcileNonFinalPayments(userRef, billing.subscriptionId, (list && list.data) || []);
+          // C7: o reconcile deduz "fatura apagada" pela ausência no array
+          // remoto. Se o Asaas devolver uma resposta sem o campo `data` ou
+          // com `data` não-array (erro HTTP mascarado em 200, body
+          // truncado, mudança de schema), passar `[]` faria com que todas
+          // as faturas locais pendentes virassem DELETED na próxima sync.
+          // Exige forma estrita antes de prosseguir.
+          if (list && Array.isArray(list.data)) {
+            await reconcileNonFinalPayments(userRef, billing.subscriptionId, list.data);
+          } else {
+            console.warn('[billing-sync] skipping reconcile: unexpected listPayments shape');
+          }
         } catch (e) {
           console.warn('[billing-sync] reconcile listPayments failed', e && e.message);
         }
