@@ -1,4 +1,4 @@
-const { db, fieldValue } = require('../_lib/firebase-admin');
+const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
@@ -77,15 +77,62 @@ module.exports = async (req, res) => {
     if (!snap.exists || !snap.data().customerId) {
       return res.status(400).json({ error: 'billing_not_initialized' });
     }
+
+    // C6: lock transacional contra cliques duplicados em /subscribe (mesma
+    // aba a re-submeter, ou app + web em paralelo). Sem isto, dois requests
+    // concorrentes do mesmo uid liam ambos subscriptionId == null e ambos
+    // chamavam asaas.createSubscription — o utilizador ficava com duas
+    // assinaturas a faturar mensalmente. TTL maior que o de /init porque
+    // este endpoint inclui criação Asaas + listPaymentsBySubscription.
+    const SUBSCRIBE_LOCK_TTL_MS = 60 * 1000;
+    const claim = await db().runTransaction(async (tx) => {
+      const s = await tx.get(ref);
+      const ex = s.exists ? s.data() : null;
+      const lockedAtMs = ex && ex.subscribeLockAt && typeof ex.subscribeLockAt.toMillis === 'function'
+        ? ex.subscribeLockAt.toMillis()
+        : 0;
+      if (ex && ex.subscribeLock && (Date.now() - lockedAtMs) < SUBSCRIBE_LOCK_TTL_MS) {
+        return { state: 'locked' };
+      }
+      tx.set(ref, {
+        subscribeLock: true,
+        subscribeLockAt: timestamp().fromMillis(Date.now()),
+      }, { merge: true });
+      return { state: 'acquired' };
+    });
+    if (claim.state === 'locked') {
+      return res.status(409).json({
+        error: 'subscribe_in_progress',
+        detail: 'Inscrição em andamento, tente novamente em instantes.',
+      });
+    }
+
+    let lockReleased = false;
+    const releaseLock = async () => {
+      if (lockReleased) return;
+      lockReleased = true;
+      try {
+        await ref.set({
+          subscribeLock: fieldValue().delete(),
+          subscribeLockAt: fieldValue().delete(),
+        }, { merge: true });
+      } catch (e) {
+        console.warn('[subscribe] failed to release lock', e && e.message);
+      }
+    };
+
     const billing = snap.data();
 
     if (!billing.cpfCnpj && !cpfCnpj) {
+      await releaseLock();
       return res.status(400).json({ error: 'cpfcnpj_required', detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.' });
     }
     if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+      await releaseLock();
       return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
     }
     if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
+      await releaseLock();
       return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
     }
 
@@ -108,6 +155,7 @@ module.exports = async (req, res) => {
         return owner && owner.id !== user.uid;
       });
       if (conflict) {
+        await releaseLock();
         return res.status(409).json({ error: 'cpfcnpj_in_use' });
       }
 
@@ -174,6 +222,7 @@ module.exports = async (req, res) => {
         const list = (payments && payments.data) || [];
         const pending = list.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
         if (pending) {
+          await releaseLock();
           return res.json({
             subscriptionId: billing.subscriptionId,
             invoiceUrl: pending.invoiceUrl,
@@ -187,6 +236,7 @@ module.exports = async (req, res) => {
         // não foi gerada, ou esteja em estado problemático. Devolvemos info
         // suficiente para o front decidir.
         const lastPaid = list.find(p => p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH');
+        await releaseLock();
         return res.json({
           subscriptionId: billing.subscriptionId,
           alreadyActive: !!lastPaid,
@@ -231,6 +281,9 @@ module.exports = async (req, res) => {
       subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
       paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
       updatedAt: fieldValue().serverTimestamp(),
+      // C6: liberta o lock atomicamente com o write da subscriptionId.
+      subscribeLock: fieldValue().delete(),
+      subscribeLockAt: fieldValue().delete(),
     };
     if (wantsCard) {
       const meta = cardMetadataFromAsaas(sub, rawCard.number);
@@ -240,6 +293,7 @@ module.exports = async (req, res) => {
       billingUpdate.cardHolderName = (rawCard.holderName || '').trim() || null;
     }
     await ref.set(billingUpdate, { merge: true });
+    lockReleased = true;
 
     let invoiceUrl = null;
     let firstPaymentStatus = null;
@@ -263,6 +317,19 @@ module.exports = async (req, res) => {
     });
   } catch (e) {
     console.error('[subscribe]', e, e.data);
+    // C6: liberta o lock por best-effort para que um retry imediato do
+    // utilizador não seja recusado durante o TTL. Se a criação no Asaas
+    // tiver chegado a acontecer, o próximo /subscribe entra no ramo
+    // "billing.subscriptionId existe" e devolve os dados sem duplicar.
+    try {
+      const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
+      await ref.set({
+        subscribeLock: fieldValue().delete(),
+        subscribeLockAt: fieldValue().delete(),
+      }, { merge: true });
+    } catch (relErr) {
+      console.warn('[subscribe] failed to release lock on error', relErr && relErr.message);
+    }
     return res.status(500).json({
       error: 'subscribe_failed',
       detail: e.message,
