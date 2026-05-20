@@ -41,7 +41,24 @@ const PLAN_VALUE = 15.0;
 const PLAN_CYCLE = 'MONTHLY';
 const PLAN_DESCRIPTION = 'Appliquei — Acesso mensal';
 
+async function findCustomerByExternalReference(uid) {
+  if (!uid) return null;
+  try {
+    const r = await call('GET', '/customers?externalReference=' + encodeURIComponent(uid) + '&limit=1');
+    if (r && Array.isArray(r.data) && r.data.length > 0) return r.data[0];
+  } catch (e) {
+    console.warn('[asaas] lookup by externalReference failed', e && e.message);
+  }
+  return null;
+}
+
 async function createCustomer({ name, email, uid, cpfCnpj }) {
+  // M5: idempotência. Se uma tentativa anterior criou o customer mas falhou
+  // antes de gravar customerId no Firestore (function timeout, falha de
+  // rede), reusa em vez de criar duplicado. Asaas aceita múltiplos
+  // customers com mesmo email — externalReference=uid é nossa chave única.
+  const existing = await findCustomerByExternalReference(uid);
+  if (existing && existing.id) return existing;
   const body = {
     name: name || email,
     email,
@@ -115,6 +132,7 @@ async function getPaymentLink(paymentId) {
 module.exports = {
   call,
   createCustomer,
+  findCustomerByExternalReference,
   updateCustomer,
   createSubscription,
   updateSubscription,

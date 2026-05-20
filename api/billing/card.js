@@ -1,5 +1,5 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 
 function readBody(req) {
@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   const body = await readBody(req);

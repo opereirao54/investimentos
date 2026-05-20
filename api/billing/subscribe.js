@@ -1,6 +1,8 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
+const { assertReferralAllowed } = require('../_lib/referral-guard');
+const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 
 function formatDate(d) {
   const yyyy = d.getUTCFullYear();
@@ -59,7 +61,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   const body = await readBody(req);
@@ -82,6 +84,9 @@ module.exports = async (req, res) => {
     }
     if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
       return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
+    }
+    if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
+      return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
     }
 
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
@@ -106,28 +111,34 @@ module.exports = async (req, res) => {
         return res.status(409).json({ error: 'cpfcnpj_in_use' });
       }
 
-      // C4: se o CPF informado é o mesmo do indicador, derruba o vínculo
-      // de referral antes de assinar (evita auto-indicação multi-conta).
+      // H3/L2: revalida referral com a política unificada. Agora que o CPF
+      // chegou, o guard pode bloquear por CPF, device, IP ou INACTIVE do
+      // indicador. Se o vínculo cair, o desconto e o crédito também.
+      // Persiste o CPF em billing localmente para o guard ler.
+      billing.cpfCnpj = cpfCnpj;
       if (billing.referredByUserId) {
         try {
-          const indicatorSnap = await db()
-            .collection('users').doc(billing.referredByUserId)
-            .collection('billing').doc('account').get();
-          if (indicatorSnap.exists && indicatorSnap.data().cpfCnpj === cpfCnpj) {
+          const guard = await assertReferralAllowed(db(), {
+            indicatorUid: billing.referredByUserId,
+            user: { uid: user.uid, cpfCnpj },
+            req,
+          });
+          if (!guard.allowed) {
             await ref.set({
               referredByUserId: fieldValue().delete(),
               referredByCode: fieldValue().delete(),
               referralUsedAt: fieldValue().delete(),
               recurringDiscountPercent: 0,
+              referralDroppedReason: guard.reason,
               updatedAt: fieldValue().serverTimestamp(),
             }, { merge: true });
             billing.referredByUserId = null;
             billing.referredByCode = null;
             billing.recurringDiscountPercent = 0;
-            console.warn('[subscribe] same-CPF referral removed', user.uid);
+            console.warn('[subscribe] referral dropped at subscribe', { uid: user.uid, reason: guard.reason });
           }
         } catch (e) {
-          console.warn('[subscribe] indicator CPF check failed', e && e.message);
+          console.warn('[subscribe] referral revalidation failed', e && e.message);
         }
       }
 
@@ -142,16 +153,50 @@ module.exports = async (req, res) => {
     }
 
     if (billing.subscriptionId) {
-      const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);
-      const pending = payments && payments.data && payments.data.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
-      if (pending) {
+      // Se a subscription local está INACTIVE, criar uma nova passa por este
+      // endpoint mas com subscriptionId limpo antes. Reativação explícita:
+      // o utilizador clica "Reativar" → frontend faz DELETE local primeiro.
+      // Defensivamente, se INACTIVE chegar aqui, recriamos.
+      if (billing.subscriptionStatus === 'INACTIVE') {
+        // limpa para permitir nova criação no fluxo abaixo
+        await ref.set({
+          subscriptionId: fieldValue().delete(),
+          subscriptionStatus: fieldValue().delete(),
+          lastPaymentStatus: fieldValue().delete(),
+          lastPaymentId: fieldValue().delete(),
+          lastPaidAt: fieldValue().delete(),
+          cancelledAt: fieldValue().delete(),
+          updatedAt: fieldValue().serverTimestamp(),
+        }, { merge: true });
+        billing.subscriptionId = null;
+      } else {
+        const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);
+        const list = (payments && payments.data) || [];
+        const pending = list.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+        if (pending) {
+          return res.json({
+            subscriptionId: billing.subscriptionId,
+            invoiceUrl: pending.invoiceUrl,
+            status: pending.status,
+            paymentMethod: billing.paymentMethod || null,
+            cardLast4: billing.cardLast4 || null,
+            cardBrand: billing.cardBrand || null,
+          });
+        }
+        // Sem fatura pendente: pode ser que esteja active e a próxima ainda
+        // não foi gerada, ou esteja em estado problemático. Devolvemos info
+        // suficiente para o front decidir.
+        const lastPaid = list.find(p => p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH');
         return res.json({
           subscriptionId: billing.subscriptionId,
-          invoiceUrl: pending.invoiceUrl,
-          status: pending.status,
+          alreadyActive: !!lastPaid,
+          subscriptionStatus: billing.subscriptionStatus || null,
+          lastPaymentStatus: billing.lastPaymentStatus || null,
+          paymentMethod: billing.paymentMethod || null,
+          cardLast4: billing.cardLast4 || null,
+          cardBrand: billing.cardBrand || null,
         });
       }
-      return res.json({ subscriptionId: billing.subscriptionId, alreadyActive: true });
     }
 
     const monthly = (billing.monthlyPriceCents || 1500) / 100;

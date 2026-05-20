@@ -1,6 +1,7 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
+const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 
 function readBody(req) {
   return new Promise((resolve) => {
@@ -22,7 +23,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   const body = await readBody(req);
@@ -40,6 +41,9 @@ module.exports = async (req, res) => {
 
   if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
     return res.status(400).json({ error: 'cpfcnpj_invalid' });
+  }
+  if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
+    return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
   }
   if (postalCode && postalCode.length !== 8) {
     return res.status(400).json({ error: 'postalcode_invalid' });

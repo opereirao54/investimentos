@@ -1,5 +1,5 @@
 const { db } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const { computeAccess } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
@@ -80,7 +80,7 @@ module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   try {
@@ -93,11 +93,29 @@ module.exports = async (req, res) => {
     const billing = synced.billing;
 
     let referrals = [];
-    try {
-      const indicadosQ = await D.collectionGroup('billing')
+    let credits = [];
+    let payments = [];
+
+    // Paraleliza as três queries — antes era serial (~3× a latência).
+    const [refRes, credRes, payRes] = await Promise.all([
+      D.collectionGroup('billing')
         .where('referredByUserId', '==', user.uid)
-        .get();
-      referrals = indicadosQ.docs.map(d => {
+        .get()
+        .catch(e => { console.warn('[me] referrals query failed', e.code || '', e.message); return null; }),
+      billingRef.collection('credits')
+        .orderBy('createdAt', 'desc')
+        .limit(50)
+        .get()
+        .catch(e => { console.warn('[me] credits query failed', e.code || '', e.message); return null; }),
+      userRef.collection('payments')
+        .orderBy('receivedAt', 'desc')
+        .limit(20)
+        .get()
+        .catch(e => { console.warn('[me] payments query failed', e.code || '', e.message); return null; }),
+    ]);
+
+    if (refRes) {
+      referrals = refRes.docs.map(d => {
         const b = d.data();
         return {
           uid: b.uid,
@@ -109,19 +127,12 @@ module.exports = async (req, res) => {
           lastPaidAt: tsToIso(b.lastPaidAt),
         };
       });
-    } catch (e) {
-      console.warn('[me] referrals query failed', e.code || '', e.message);
     }
     const activeReferrals = referrals.filter(r => r.subscriptionStatus === 'ACTIVE').length;
     const totalReferrals = referrals.length;
 
-    let credits = [];
-    try {
-      const creditsQ = await billingRef.collection('credits')
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .get();
-      credits = creditsQ.docs.map(d => {
+    if (credRes) {
+      credits = credRes.docs.map(d => {
         const c = d.data();
         return {
           id: d.id,
@@ -135,25 +146,18 @@ module.exports = async (req, res) => {
           voidedAt: tsToIso(c.voidedAt),
         };
       });
-    } catch (e) {
-      console.warn('[me] credits query failed', e.code || '', e.message);
     }
 
     let pendingDiscountCents = 0;
     let totalReferralEarningsCents = 0;
     for (const c of credits) {
-      if (c.voidedAt) continue; // créditos revertidos por refund não contam
+      if (c.voidedAt) continue;
       totalReferralEarningsCents += c.amountCents;
       if (!c.appliedAt) pendingDiscountCents += c.amountCents;
     }
 
-    let payments = [];
-    try {
-      const paymentsQ = await userRef.collection('payments')
-        .orderBy('receivedAt', 'desc')
-        .limit(20)
-        .get();
-      payments = paymentsQ.docs.map(d => {
+    if (payRes) {
+      payments = payRes.docs.map(d => {
         const p = d.data();
         return {
           id: p.id || d.id,
@@ -163,13 +167,13 @@ module.exports = async (req, res) => {
           dueDate: p.dueDate || null,
           paymentDate: p.paymentDate || null,
           invoiceUrl: p.invoiceUrl || null,
+          bankSlipUrl: p.bankSlipUrl || null,
+          transactionReceiptUrl: p.transactionReceiptUrl || null,
           referralAppliedCents: p.referralAppliedCents || 0,
           event: p.event || null,
           receivedAt: tsToIso(p.receivedAt),
         };
       });
-    } catch (e) {
-      console.warn('[me] payments query failed', e.code || '', e.message);
     }
 
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;

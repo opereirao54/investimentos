@@ -1,12 +1,12 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { requireVerifiedUser, cors } = require('../_lib/auth');
 const asaas = require('../_lib/asaas');
 
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
   if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
 
-  const user = await requireUser(req, res);
+  const user = await requireVerifiedUser(req, res);
   if (!user) return;
 
   try {
@@ -15,19 +15,28 @@ module.exports = async (req, res) => {
     if (!snap.exists) return res.status(400).json({ error: 'billing_not_initialized' });
     const billing = snap.data();
     if (!billing.subscriptionId) return res.status(400).json({ error: 'no_subscription' });
-    if (billing.subscriptionStatus === 'INACTIVE') {
-      return res.json({ ok: true, alreadyInactive: true });
-    }
 
+    // Sempre tenta cancelar no Asaas: o estado local pode estar dessincronizado
+    // (webhook perdido) e o utilizador continuaria a ser cobrado. Asaas DELETE
+    // de uma subscription já cancelada devolve 404, que tratamos como sucesso.
+    let asaasOk = true;
     try {
       await asaas.cancelSubscription(billing.subscriptionId);
     } catch (e) {
-      console.error('[cancel] asaas delete failed', e, e.data);
-      return res.status(e.status || 500).json({
-        error: 'cancel_failed',
-        detail: e.message,
-        asaasErrors: (e.data && e.data.errors) || e.data || null,
-      });
+      if (e.status === 404) {
+        console.warn('[cancel] asaas subscription already gone', billing.subscriptionId);
+        asaasOk = true;
+      } else {
+        console.error('[cancel] asaas delete failed', e, e.data);
+        return res.status(e.status || 500).json({
+          error: 'cancel_failed',
+          detail: e.message,
+          asaasErrors: (e.data && e.data.errors) || e.data || null,
+        });
+      }
+    }
+    if (billing.subscriptionStatus === 'INACTIVE') {
+      return res.json({ ok: true, alreadyInactive: true });
     }
 
     await ref.set({

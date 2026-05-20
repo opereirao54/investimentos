@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // VERSÃO ENFORCE: adiciona checagem request.auth.token.email_verified == true
+    // a TODO acesso (leitura e escrita) de dados do usuário.
+    //
+    // Deploy desta versão SOMENTE após:
+    //   1. Rodar `scripts/backfill-email-verification.js`.
+    //   2. EMAIL_VERIFY_ENFORCE=true em produção há ≥7 dias.
+    //   3. Banner UI avisando legados há ≥14 dias.
+    //
+    // Comando: firebase deploy --only firestore:rules (após renomear
+    // este arquivo para firestore.rules ou ajustar firebase.json).
+    function isVerified() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function billingDoc(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)/billing/account);
+    }
+    function hasActiveAccess(uid) {
+      return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
+        && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
+          'CHARGEBACK',
+          'CHARGEBACK_REVERSAL_PENDING',
+          'PAYMENT_REPROVED',
+          'OVERDUE',
+          'REFUND_IN_PROGRESS'
+        ])
+        && (
+          (billingDoc(uid).data.trialEndsAt is timestamp
+            && request.time < billingDoc(uid).data.trialEndsAt)
+          || (
+            billingDoc(uid).data.lastPaidAt is timestamp
+            && request.time < billingDoc(uid).data.lastPaidAt + duration.value(30, 'd')
+          )
+          || (
+            billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
+            && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [
+              'OVERDUE',
+              'REFUNDED',
+              'REFUND_IN_PROGRESS',
+              'REFUND_REQUESTED',
+              'CHARGEBACK_REQUESTED',
+              'CHARGEBACK_DISPUTE',
+              'AWAITING_CHARGEBACK_REVERSAL'
+            ])
+          )
+        );
+    }
+
+    match /users/{userId}/data/{docId} {
+      allow read: if isVerified()
+        && request.auth.uid == userId
+        && docId == 'main';
+      allow create, update: if isVerified()
+        && request.auth.uid == userId
+        && docId == 'main'
+        && request.resource.data.keys is map
+        && request.resource.data.keys.size() < 450
+        && hasActiveAccess(userId);
+    }
+
+    match /users/{userId}/billing/{docId} {
+      allow read: if isVerified() && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/billing/{docId}/credits/{creditId} {
+      allow read: if isVerified() && request.auth.uid == userId;
+      allow write: if false;
+    }
+    match /users/{userId}/payments/{paymentId} {
+      allow read: if isVerified() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    match /referralCodes/{code} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /webhookEvents/{eventId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /rateLimits/{id} {
+      allow read: if false;
+      allow write: if false;
+    }
+  }
+}

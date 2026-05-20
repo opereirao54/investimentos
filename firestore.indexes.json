@@ -1,33 +1,53 @@
 {
-  "indexes": [
+  "indexes": [],
+  "fieldOverrides": [
     {
       "collectionGroup": "billing",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "referredByUserId", "order": "ASCENDING" }
+      "fieldPath": "referredByUserId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
       "collectionGroup": "billing",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "customerId", "order": "ASCENDING" }
+      "fieldPath": "customerId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
       "collectionGroup": "billing",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "subscriptionId", "order": "ASCENDING" }
+      "fieldPath": "subscriptionId",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
       ]
     },
     {
       "collectionGroup": "billing",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "cpfCnpj", "order": "ASCENDING" }
+      "fieldPath": "cpfCnpj",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
+      "collectionGroup": "webhookEvents",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
+      ]
+    },
+    {
+      "collectionGroup": "rateLimits",
+      "fieldPath": "expiresAt",
+      "ttl": true,
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" }
       ]
     }
-  ],
-  "fieldOverrides": []
+  ]
 }
