@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appliquei v13.0 - Gestão Financeira Inteligente</title>
-    <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <script>
         (function () {
             try {
@@ -173,12 +172,8 @@
         .sidebar.collapsed .logo-area { padding: 12px 0; justify-content: center; }
         .sidebar.collapsed .logo-container { justify-content: center; padding: 0; }
         
-        /* Sidebar encolhida: troca logo completo pela marca isolada. */
-        .sidebar.collapsed .logo-img { display: none; }
-        .sidebar.collapsed .logo-mark { display: block; }
-
-        /* Bloco legado abaixo é inofensivo — .logo-img tem display:none quando collapsed. */
-        .sidebar.collapsed .logo-img-legacy {
+        /* Ajuste do Favicon na Sidebar encolhida */
+        .sidebar.collapsed .logo-img {
             width: 38px;
             height: 38px;
             object-fit: contain;
@@ -231,12 +226,19 @@
             align-items: center;
             justify-content: space-between;
         }
-        .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; gap: 0; }
+        .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; }
 
-        /* Logo oficial (PNG do logo enviado, com versão em branco para fundo escuro).
-           Sidebar expandida mostra o lockup completo; recolhida mostra só a marca. */
-        .logo-img { height: 36px; width: auto; display: block; transition: all .2s ease; }
-        .logo-mark { height: 32px; width: 32px; display: none; }
+        /* LOGO ESTICADO PARA PREENCHER O ESPAÇO E COM MISTURA DE COR */
+        .logo-img {
+            width: 170px;
+            height: auto;
+            object-fit: contain;
+            object-position: left center;
+            transition: all 0.2s ease;
+            mix-blend-mode: screen;
+            opacity: 0.88;
+        }
+        .logo-img:hover { opacity: 1; }
         .logo-txt { font-size: 15px; font-weight: 700; color: var(--sb-accent); white-space: nowrap; padding-left: 8px; font-family: 'Syne', sans-serif; letter-spacing: -0.3px; }
 
         .nav-area { padding: 10px 10px; flex: 1; }
@@ -3300,9 +3302,8 @@
 
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
-            <a href="#" class="logo-container" onclick="mudarAba(event,'patrimonio')" style="text-decoration: none;" aria-label="Appliquei">
-                <img src="appliquei-logo-white-small.png" alt="Appliquei" class="logo-img" id="logoPrincipal" decoding="async">
-                <img src="appliquei-mark.png" alt="" class="logo-mark" id="logoMark" aria-hidden="true" decoding="async">
+            <a href="#" class="logo-container" onclick="mudarAba(event,'patrimonio')" style="text-decoration: none;">
+                <img src="appliquei_logo_white.jpg" alt="Appliquei" class="logo-img" id="logoPrincipal">
             </a>
             <button class="sidebar-toggle" onclick="toggleSidebar()" id="btnToggleSidebar" title="Recolher menu"><i class="ph ph-sidebar-simple" id="iconToggle"></i></button>
         </div>
@@ -9755,10 +9756,19 @@
             // Em mobile o toggle não recolhe — abre/fecha o drawer
             if (isMobileViewport()) { toggleMobileNav(); return; }
             const sidebar = document.getElementById('mainSidebar'), icon = document.getElementById('iconToggle');
+            const logoImg = document.getElementById('logoPrincipal');
             const collapsed = sidebar.classList.toggle('collapsed');
+
             icon.className = collapsed ? 'ph ph-sidebar' : 'ph ph-sidebar-simple';
             document.getElementById('btnToggleSidebar').title = collapsed ? 'Expandir menu' : 'Recolher menu';
-            // Wordmark some via CSS (.sidebar.collapsed .appliquei-wordmark{display:none}).
+
+            // Troca da imagem principal para o ícone quadrado e vice-versa
+            if (collapsed) {
+                logoImg.src = 'appliquei_favicon.jpg';
+            } else {
+                logoImg.src = 'appliquei_logo_white.jpg';
+            }
+
             localStorage.setItem('appliquei_sidebar_collapsed', collapsed ? '1' : '0');
         }
 
@@ -9766,6 +9776,10 @@
             if(localStorage.getItem('appliquei_sidebar_collapsed') === '1') {
                 const sidebar = document.getElementById('mainSidebar'); sidebar.classList.add('collapsed');
                 const icon = document.getElementById('iconToggle'); if(icon) icon.className = 'ph ph-sidebar';
+
+                // Força o ícone reduzido no carregamento se já estava fechado
+                const logoImg = document.getElementById('logoPrincipal');
+                if(logoImg) logoImg.src = 'appliquei_favicon.jpg';
             }
         })();
 
