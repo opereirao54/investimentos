@@ -512,6 +512,23 @@
     }
     if (access.status === 'trial') {
       hideGate();
+      // U2: se o utilizador já assinou (subscriptionId existe e não é
+      // INACTIVE) mas a primeira fatura ainda está PENDING, o backend
+      // devolve trial — a cascata "active" do computeAccess exige
+      // lastPaymentStatus pago. Mostrar "Assinar agora" aqui é enganoso:
+      // a assinatura já está criada, só falta o webhook confirmar.
+      // O hero de Minha assinatura já trata este caso ("Pagamento já em
+      // curso · estamos a confirmar"); aqui apenas escondemos o banner.
+      var hasPendingSub = lastBilling
+        && lastBilling.subscriptionId
+        && lastBilling.subscriptionStatus
+        && lastBilling.subscriptionStatus !== 'INACTIVE';
+      if (hasPendingSub) {
+        ensureTrialBanner(0);
+        if (needVerify) ensureVerifyBanner(true); else ensureVerifyBanner(false);
+        stopPolling();
+        return;
+      }
       if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
       else { ensureVerifyBanner(false); ensureTrialBanner(access.trialDaysLeft || 0); }
       stopPolling();
@@ -767,6 +784,12 @@
     try {
       var me = await fetchMe();
       renderMyAccount(me);
+      // U2: re-sincroniza o estado global do banner. /me devolve access
+      // e billing fresh; sem isto, abrir Minha assinatura nunca corrige
+      // um lastAccess perdido pelo race do kickstart (signup Google novo
+      // em que onAuthStateChanged disparou com __appliqueiBlockBilling=true
+      // e nenhuma das retries chegou a popular o banner).
+      try { applyAccess(me.access, me); } catch (_) {}
     } catch (e) {
       if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
     } finally {
