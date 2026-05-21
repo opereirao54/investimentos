@@ -180,6 +180,71 @@
     if (pendingLocalWrite) flushPush();
   }
 
+  // -------------------------------------------------------------------
+  // Beacon path: garante entrega quando o tab é morto pelo OS no mobile.
+  // O Firestore SDK enfileira a escrita em IndexedDB e tenta enviar via
+  // WebSocket interna — mas o iOS pode suspender o processo antes da
+  // transmissão real. navigator.sendBeacon é desenhado precisamente
+  // para sobreviver ao unload, então duplicamos o envio para /api/sync/push,
+  // que valida o token e faz merge transacional com LWW por-rev.
+  // O endpoint é idempotente, portanto este duplo-envio é seguro.
+  // -------------------------------------------------------------------
+  var cachedIdToken = null;
+  function startIdTokenCache(fb) {
+    if (!fb || !fb.auth || typeof fb.auth.onIdTokenChanged !== 'function') return;
+    try {
+      fb.auth.onIdTokenChanged(function (user) {
+        if (!user) { cachedIdToken = null; return; }
+        try {
+          user.getIdToken().then(function (t) { cachedIdToken = t; })
+            .catch(function () {});
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  function beaconFlushNow() {
+    if (!cachedIdToken) return;
+    if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return;
+    if (!initialPullDone) return;
+
+    var dirty = Object.keys(dirtyKeys);
+    var deletions = getLocalDeletions();
+    if (dirty.length === 0 && Object.keys(deletions).length === 0) return;
+
+    var localRevs = getLocalRevs();
+    var keysOut = {};
+    var revsOut = {};
+
+    dirty.forEach(function (k) {
+      if (!shouldSyncKey(k)) return;
+      var v;
+      try { v = localStorage.getItem(k); } catch (_) { v = null; }
+      if (v === null) return;
+      keysOut[k] = v;
+      revsOut[k] = localRevs[k] || Date.now();
+    });
+
+    Object.keys(deletions).forEach(function (k) {
+      if (!shouldSyncKey(k)) return;
+      // null no JSON é convertido em FieldValue.delete() pelo endpoint.
+      keysOut[k] = null;
+      revsOut[k] = deletions[k];
+    });
+
+    if (Object.keys(keysOut).length === 0) return;
+
+    try {
+      var body = JSON.stringify({ idToken: cachedIdToken, keys: keysOut, keyRevs: revsOut });
+      var blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon('/api/sync/push', blob);
+    } catch (e) {
+      // sendBeacon falha silenciosa não há nada a fazer aqui — o SDK path
+      // ainda pode entregar quando o tab voltar a estar activo.
+      console.warn('[AppliqueiCloudSync] beacon', e && (e.message || e));
+    }
+  }
+
   function schedulePush() {
     if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready || !AppliqueiFirebase.auth.currentUser) return;
     pendingLocalWrite = true;
@@ -463,6 +528,7 @@
     if (authHooked) return;
     authHooked = true;
     fb.auth.onAuthStateChanged(onUser);
+    startIdTokenCache(fb);
   }
 
   var attachAttempts = 0;
@@ -485,6 +551,9 @@
   // ===================================================================
   function onVisibilityChange() {
     if (document.visibilityState === 'hidden') {
+      // Beacon primeiro: dispara o request HTTP que sobrevive ao kill do tab.
+      // forceFlushNow é o caminho rápido enquanto o SDK ainda corre.
+      beaconFlushNow();
       forceFlushNow();
     } else if (document.visibilityState === 'visible') {
       var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
@@ -495,7 +564,10 @@
     }
   }
 
-  function onPageHide() { forceFlushNow(); }
+  function onPageHide() {
+    beaconFlushNow();
+    forceFlushNow();
+  }
 
   try {
     document.addEventListener('visibilitychange', onVisibilityChange);
