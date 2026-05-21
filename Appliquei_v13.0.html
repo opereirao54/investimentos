@@ -9797,18 +9797,33 @@
         }
 
         const _setItemOriginal = localStorage.setItem.bind(localStorage);
+        const _getItemOriginal = localStorage.getItem.bind(localStorage);
         localStorage.setItem = function(key, value) {
+            // Migrações de boot reescrevem várias keys com o MESMO conteúdo (ex.: futurorico_transacoes
+            // na linha 5470, futurorico_cartoes na 5432). Sem este short-circuit, o sync cloud
+            // marcaria essas keys como "alteradas agora" e o pull subsequente perderia escritas
+            // genuínas vindas de outros devices (mobile → web): localRev=Date.now() > remoteRev.
+            var prev = null;
+            var notify = true;
+            if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+                try { prev = _getItemOriginal(key); } catch (_) {}
+                if (prev === String(value)) notify = false;
+            }
             _setItemOriginal(key, value);
             if(key.startsWith('futurorico_') || key.startsWith('appliquei_')) atualizarUltimoSalvo();
-            if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalWrite === 'function') {
+            if (notify && window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalWrite === 'function') {
                 try { AppliqueiCloudSync.onLocalWrite(key); } catch (_) {}
             }
         };
         const _removeItemOriginal = localStorage.removeItem.bind(localStorage);
         localStorage.removeItem = function(key) {
+            var existed = false;
+            if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+                try { existed = _getItemOriginal(key) !== null; } catch (_) {}
+            }
             _removeItemOriginal(key);
             if(key && (key.startsWith('futurorico_') || key.startsWith('appliquei_'))) atualizarUltimoSalvo();
-            if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalDelete === 'function') {
+            if (existed && window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalDelete === 'function') {
                 try { AppliqueiCloudSync.onLocalDelete(key); } catch (_) {}
             }
         };
