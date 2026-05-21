@@ -73,7 +73,7 @@
       } catch (e) { console.warn('[AppliqueiFirebase]', e); }
     })();
     </script>
-    <script src="web/appliquei-cloud-sync.js?v=20260520a"></script>
+    <script src="web/appliquei-cloud-sync.js?v=20260521a"></script>
     <script src="web/appliquei-billing.js?v=20260520b"></script>
 
     <style>
@@ -9801,6 +9801,14 @@
             if(key.startsWith('futurorico_') || key.startsWith('appliquei_')) atualizarUltimoSalvo();
             if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalWrite === 'function') {
                 try { AppliqueiCloudSync.onLocalWrite(key); } catch (_) {}
+            }
+        };
+        const _removeItemOriginal = localStorage.removeItem.bind(localStorage);
+        localStorage.removeItem = function(key) {
+            _removeItemOriginal(key);
+            if(key && (key.startsWith('futurorico_') || key.startsWith('appliquei_'))) atualizarUltimoSalvo();
+            if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalDelete === 'function') {
+                try { AppliqueiCloudSync.onLocalDelete(key); } catch (_) {}
             }
         };
 
