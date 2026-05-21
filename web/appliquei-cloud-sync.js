@@ -12,6 +12,7 @@
   var initialPullDone = false; // Previne pushes antes da restauração completa
   var unsubscribeSnapshot = null;
   var listenerUid = null;
+  var pendingLocalWrite = false; // true quando há escritas locais ainda não enviadas
 
   function shouldSyncKey(key) {
     if (!key || typeof key !== 'string') return false;
@@ -62,6 +63,7 @@
   function flushPush() {
     if (!initialPullDone) return;
     timer = null;
+    pendingLocalWrite = false;
     var fb = window.AppliqueiFirebase;
     if (!fb || !fb.ready || !fb.db || !fb.auth) return;
     var u = fb.auth.currentUser;
@@ -103,9 +105,16 @@
       });
   }
 
+  /** Cancela qualquer debounce pendente e envia imediatamente. */
+  function forceFlushNow() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (pendingLocalWrite) flushPush();
+  }
+
   function schedulePush() {
     if (!initialPullDone) return;
     if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready || !AppliqueiFirebase.auth.currentUser) return;
+    pendingLocalWrite = true;
     if (timer) clearTimeout(timer);
     timer = setTimeout(flushPush, DEBOUNCE_MS);
   }
@@ -323,6 +332,48 @@
   }
   attachWhenReady();
 
+  // ===================================================================
+  // MOBILE FIX: visibilitychange + pagehide
+  // No mobile, quando o usuário troca de app ou fecha a aba, o browser
+  // congela/mata a página rapidamente — o debounce de 4s nunca dispara
+  // e os dados ficam presos no localStorage sem ir pro Firestore.
+  //
+  // Solução:
+  //   hidden  → flush imediato (dados vão pro Firestore antes do freeze)
+  //   visible → pull forçado  (busca dados frescos que outro device enviou)
+  // ===================================================================
+  function onVisibilityChange() {
+    if (document.visibilityState === 'hidden') {
+      // Página está saindo de foco (mobile: troca de app, fecha aba, etc.)
+      // Envia imediatamente qualquer escrita pendente. Com enablePersistence
+      // ativo, mesmo que a request não complete antes do freeze, o Firestore
+      // SDK enfileira a escrita no IndexedDB e sincroniza quando o browser
+      // retomar ou na próxima abertura.
+      forceFlushNow();
+    } else if (document.visibilityState === 'visible') {
+      // Página voltou ao foco — pode ter havido alterações em outro device.
+      // O onSnapshot pode ter se desconectado durante o freeze; um pull
+      // explícito garante dados frescos.
+      var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
+      if (u && initialPullDone) {
+        pullAndApply(u.uid, function () {});
+        // Reconecta o listener se caiu durante o freeze
+        startSnapshotListener(u.uid);
+      }
+    }
+  }
+
+  // pagehide é mais confiável que beforeunload no mobile Safari/Chrome.
+  // Serve como safety-net caso visibilitychange não dispare.
+  function onPageHide() {
+    forceFlushNow();
+  }
+
+  try {
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('pagehide', onPageHide);
+  } catch (_) {}
+
   window.AppliqueiCloudSync = {
     onLocalWrite: function (key) {
       if (applyingPull) return;
@@ -330,6 +381,7 @@
       schedulePush();
     },
     flushNow: flushPush,
+    forceFlush: forceFlushNow,
     pullNow: function (cb) {
       var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u) pullAndApply(u.uid, cb || function () {});
