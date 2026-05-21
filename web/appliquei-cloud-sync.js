@@ -14,7 +14,9 @@
  */
 (function () {
   var DEBOUNCE_MS = 2000;
+  var BEACON_DEBOUNCE_MS = 600;
   var timer = null;
+  var beaconTimer = null;
   var applyingPull = false;
   var authHooked = false;
   var pullInFlight = false;
@@ -190,8 +192,21 @@
   // O endpoint é idempotente, portanto este duplo-envio é seguro.
   // -------------------------------------------------------------------
   var cachedIdToken = null;
+  function refreshIdTokenCache(fb) {
+    try {
+      var u = fb && fb.auth && fb.auth.currentUser;
+      if (!u) { cachedIdToken = null; return; }
+      u.getIdToken().then(function (t) { cachedIdToken = t; })
+        .catch(function () {});
+    } catch (_) {}
+  }
+
   function startIdTokenCache(fb) {
-    if (!fb || !fb.auth || typeof fb.auth.onIdTokenChanged !== 'function') return;
+    if (!fb || !fb.auth) return;
+    // Warm imediato: se já existe currentUser no attach, garante token cacheado
+    // antes do primeiro beacon disparar.
+    refreshIdTokenCache(fb);
+    if (typeof fb.auth.onIdTokenChanged !== 'function') return;
     try {
       fb.auth.onIdTokenChanged(function (user) {
         if (!user) { cachedIdToken = null; return; }
@@ -203,14 +218,10 @@
     } catch (_) {}
   }
 
-  function beaconFlushNow() {
-    if (!cachedIdToken) return;
-    if (typeof navigator === 'undefined' || typeof navigator.sendBeacon !== 'function') return;
-    if (!initialPullDone) return;
-
+  function buildBeaconPayload() {
     var dirty = Object.keys(dirtyKeys);
     var deletions = getLocalDeletions();
-    if (dirty.length === 0 && Object.keys(deletions).length === 0) return;
+    if (dirty.length === 0 && Object.keys(deletions).length === 0) return null;
 
     var localRevs = getLocalRevs();
     var keysOut = {};
@@ -232,17 +243,78 @@
       revsOut[k] = deletions[k];
     });
 
-    if (Object.keys(keysOut).length === 0) return;
+    if (Object.keys(keysOut).length === 0) return null;
+    return { keys: keysOut, keyRevs: revsOut };
+  }
 
-    try {
-      var body = JSON.stringify({ idToken: cachedIdToken, keys: keysOut, keyRevs: revsOut });
-      var blob = new Blob([body], { type: 'application/json' });
-      navigator.sendBeacon('/api/sync/push', blob);
-    } catch (e) {
-      // sendBeacon falha silenciosa não há nada a fazer aqui — o SDK path
-      // ainda pode entregar quando o tab voltar a estar activo.
-      console.warn('[AppliqueiCloudSync] beacon', e && (e.message || e));
+  // Caminho rápido para iOS: dispara um POST que sobrevive ao kill do tab.
+  // Preferimos fetch+keepalive porque permite ler o status e logar erros —
+  // sendBeacon é "fire and forget" e mascarava falhas de auth/billing.
+  // mode:'no-cors' impede leitura de resposta; usamos same-origin para que
+  // o endpoint /api/sync/push devolva JSON e o cliente possa diagnosticar.
+  function beaconFlushNow(reason) {
+    if (!initialPullDone) return;
+    var fb = window.AppliqueiFirebase;
+    if (!fb || !fb.auth || !fb.auth.currentUser) return;
+    if (!cachedIdToken) {
+      // Tenta aquecer e adia para o próximo ciclo do flush (SDK path cobre).
+      refreshIdTokenCache(fb);
+      return;
     }
+
+    var payload = buildBeaconPayload();
+    if (!payload) return;
+
+    var body = JSON.stringify({
+      idToken: cachedIdToken,
+      keys: payload.keys,
+      keyRevs: payload.keyRevs
+    });
+
+    // 1) fetch+keepalive: caminho preferencial — logamos status/erro.
+    // 2) sendBeacon: fallback se fetch keepalive não estiver disponível.
+    var sent = false;
+    try {
+      if (typeof window.fetch === 'function') {
+        sent = true;
+        window.fetch('/api/sync/push', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: body,
+          keepalive: true,
+          credentials: 'same-origin'
+        }).then(function (r) {
+          if (!r.ok) {
+            console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
+            try { r.text().then(function (t) { console.warn('[AppliqueiCloudSync] beacon body', t); }); } catch (_) {}
+          } else {
+            console.log('[AppliqueiCloudSync] beacon ok', reason || '', Object.keys(payload.keys).length, 'keys');
+          }
+        }).catch(function (e) {
+          console.warn('[AppliqueiCloudSync] beacon fetch', e && (e.message || e));
+        });
+      }
+    } catch (e) {
+      sent = false;
+      console.warn('[AppliqueiCloudSync] beacon fetch threw', e && (e.message || e));
+    }
+
+    if (!sent && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+      try {
+        var blob = new Blob([body], { type: 'application/json' });
+        navigator.sendBeacon('/api/sync/push', blob);
+      } catch (e) {
+        console.warn('[AppliqueiCloudSync] sendBeacon', e && (e.message || e));
+      }
+    }
+  }
+
+  function scheduleBeacon(reason) {
+    if (beaconTimer) clearTimeout(beaconTimer);
+    beaconTimer = setTimeout(function () {
+      beaconTimer = null;
+      beaconFlushNow(reason || 'debounced');
+    }, BEACON_DEBOUNCE_MS);
   }
 
   function schedulePush() {
@@ -553,7 +625,8 @@
     if (document.visibilityState === 'hidden') {
       // Beacon primeiro: dispara o request HTTP que sobrevive ao kill do tab.
       // forceFlushNow é o caminho rápido enquanto o SDK ainda corre.
-      beaconFlushNow();
+      if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+      beaconFlushNow('visibility-hidden');
       forceFlushNow();
     } else if (document.visibilityState === 'visible') {
       var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
@@ -565,7 +638,8 @@
   }
 
   function onPageHide() {
-    beaconFlushNow();
+    if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+    beaconFlushNow('pagehide');
     forceFlushNow();
   }
 
@@ -582,6 +656,10 @@
       dirtyKeys[key] = true;
       removeLocalDeletion(key);
       schedulePush();
+      // Beacon eager: garante entrega antes de o iOS suspender o processo.
+      // Esperar pelo visibilitychange é arriscado porque iOS dispara esse
+      // evento depois do freeze em alguns cenários (lock screen rápido).
+      scheduleBeacon('write:' + key);
     },
     onLocalDelete: function (key) {
       if (applyingPull) return;
@@ -591,9 +669,11 @@
       setLocalDeletion(key, now);
       delete dirtyKeys[key];
       schedulePush();
+      scheduleBeacon('delete:' + key);
     },
     flushNow: flushPush,
     forceFlush: forceFlushNow,
+    beaconNow: function () { beaconFlushNow('manual'); },
     pullNow: function (cb) {
       var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u) pullAndApply(u.uid, cb || function () {});
