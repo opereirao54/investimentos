@@ -118,10 +118,16 @@
     if ($('billingGate')) return;
     var div = document.createElement('div');
     div.id = 'billingGate';
-    div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;align-items:center;justify-content:center;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;';
+    // U1: NÃO usar flex + align-items:center no overlay scrollável. Quando
+    // o conteúdo é maior que o viewport (form de cartão completo, ou ecrã
+    // pequeno como mobile), o centramento empurra o topo do modal para
+    // fora da área scrollável — o utilizador não chega às opções de plano
+    // no topo do template. display:block + margin:auto no inner mantém o
+    // topo sempre acessível.
+    div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;box-sizing:border-box;';
     var fld = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;';
     div.innerHTML = '\
-      <div style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
+      <div style="width:100%;max-width:460px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
         <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
         <p id="billingSub" style="font-size:14px;color:#4a5b53;line-height:1.5;margin:0 0 18px;">A sua avaliação gratuita terminou.</p>\
         <div role="radiogroup" aria-label="Escolha o plano" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">\
@@ -245,7 +251,7 @@
     $('billingTitle').textContent = title;
     $('billingSub').textContent = sub;
     $('billingErr').style.display = 'none';
-    $('billingGate').style.display = 'flex';
+    $('billingGate').style.display = 'block';
     document.body.style.overflow = 'hidden';
     // Sincroniza preço/desconto com lastBilling sempre que o gate aparece.
     // Sem isto, entradas que pulam o updateGatePrices em applyAccess (trial
@@ -506,6 +512,23 @@
     }
     if (access.status === 'trial') {
       hideGate();
+      // U2: se o utilizador já assinou (subscriptionId existe e não é
+      // INACTIVE) mas a primeira fatura ainda está PENDING, o backend
+      // devolve trial — a cascata "active" do computeAccess exige
+      // lastPaymentStatus pago. Mostrar "Assinar agora" aqui é enganoso:
+      // a assinatura já está criada, só falta o webhook confirmar.
+      // O hero de Minha assinatura já trata este caso ("Pagamento já em
+      // curso · estamos a confirmar"); aqui apenas escondemos o banner.
+      var hasPendingSub = lastBilling
+        && lastBilling.subscriptionId
+        && lastBilling.subscriptionStatus
+        && lastBilling.subscriptionStatus !== 'INACTIVE';
+      if (hasPendingSub) {
+        ensureTrialBanner(0);
+        if (needVerify) ensureVerifyBanner(true); else ensureVerifyBanner(false);
+        stopPolling();
+        return;
+      }
       if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
       else { ensureVerifyBanner(false); ensureTrialBanner(access.trialDaysLeft || 0); }
       stopPolling();
@@ -761,6 +784,12 @@
     try {
       var me = await fetchMe();
       renderMyAccount(me);
+      // U2: re-sincroniza o estado global do banner. /me devolve access
+      // e billing fresh; sem isto, abrir Minha assinatura nunca corrige
+      // um lastAccess perdido pelo race do kickstart (signup Google novo
+      // em que onAuthStateChanged disparou com __appliqueiBlockBilling=true
+      // e nenhuma das retries chegou a popular o banner).
+      try { applyAccess(me.access, me); } catch (_) {}
     } catch (e) {
       if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
     } finally {
@@ -1370,6 +1399,7 @@
     var digits = num.replace(/\D+/g, '');
     if (digits.length < 13 || digits.length > 19) return showSubModalErr('mcErr', 'Número do cartão inválido.');
     if (!exp) return showSubModalErr('mcErr', 'Validade inválida (MM/AA).');
+    if (exp.expired) return showSubModalErr('mcErr', 'Este cartão já está expirado. Use um cartão válido.');
     if (cvv.length < 3) return showSubModalErr('mcErr', 'CVV inválido.');
     if (holder.length < 3) return showSubModalErr('mcErr', 'Nome impresso obrigatório.');
     if (zip.length !== 8) return showSubModalErr('mcErr', 'CEP inválido.');
@@ -1611,6 +1641,11 @@
     if (yy.length !== 4) return null;
     var m = parseInt(mm, 10);
     if (m < 1 || m > 12) return null;
+    var y = parseInt(yy, 10);
+    var now = new Date();
+    var curY = now.getFullYear();
+    var curM = now.getMonth() + 1;
+    if (y < curY || (y === curY && m < curM)) return { expired: true };
     return { expiryMonth: mm, expiryYear: yy };
   }
 
@@ -1625,6 +1660,7 @@
     var digits = num.replace(/\D+/g, '');
     if (digits.length < 13 || digits.length > 19) return { error: 'Número do cartão inválido.' };
     if (!exp) return { error: 'Validade do cartão inválida (MM/AA).' };
+    if (exp.expired) return { error: 'Este cartão já está expirado. Use um cartão válido.' };
     if (cvv.length < 3) return { error: 'CVV inválido.' };
     if (holder.length < 3) return { error: 'Informe o nome impresso no cartão.' };
     if (zip.length !== 8) return { error: 'CEP inválido (8 dígitos).' };

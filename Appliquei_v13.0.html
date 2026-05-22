@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <title>Appliquei - Gestão Financeira Inteligente</title>
     <script>
         (function () {
@@ -73,7 +74,7 @@
       } catch (e) { console.warn('[AppliqueiFirebase]', e); }
     })();
     </script>
-    <script src="web/appliquei-cloud-sync.js?v=20260520a"></script>
+    <script src="web/appliquei-cloud-sync.js?v=20260521c"></script>
     <script src="web/appliquei-billing.js?v=20260520b"></script>
 
     <style>
@@ -2200,15 +2201,22 @@
         .sug-historico-item .sh-texto { font-size: 13px; color: var(--cor-texto-principal); line-height: 1.5; }
 
         /* === TELA DE LOGIN (Firebase) === */
+        /* U1: NÃO usar flex centrado em overlay scrollável — quando o
+           conteúdo passa a altura do viewport (ecrã pequeno, conteúdo do
+           painel de verificação, etc.), align-items:center empurra o topo
+           para fora da área scrollável e fica inacessível. display:block
+           + margin:auto no inner garante que o topo é sempre alcançável. */
         .auth-gate {
             position: fixed; inset: 0; z-index: 10050;
-            display: flex; align-items: center; justify-content: center;
+            display: block;
             padding: 24px 16px;
             background: linear-gradient(145deg, #0b1410 0%, #0f1f18 45%, #111c17 100%);
             overflow-y: auto;
+            box-sizing: border-box;
         }
         .auth-gate-inner {
             width: 100%; max-width: 420px;
+            margin: 0 auto;
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: var(--radius);
@@ -3021,7 +3029,7 @@
 </head>
 <body>
 
-    <div id="authGate" class="auth-gate" style="display:flex;" aria-hidden="false">
+    <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
                 <img src="appliquei_logo_white.jpg" alt="Appliquei" style="filter: brightness(0) saturate(100%) invert(15%) sepia(15%) saturate(800%) hue-rotate(80deg);">
@@ -9789,11 +9797,34 @@
         }
 
         const _setItemOriginal = localStorage.setItem.bind(localStorage);
+        const _getItemOriginal = localStorage.getItem.bind(localStorage);
         localStorage.setItem = function(key, value) {
+            // Migrações de boot reescrevem várias keys com o MESMO conteúdo (ex.: futurorico_transacoes
+            // na linha 5470, futurorico_cartoes na 5432). Sem este short-circuit, o sync cloud
+            // marcaria essas keys como "alteradas agora" e o pull subsequente perderia escritas
+            // genuínas vindas de outros devices (mobile → web): localRev=Date.now() > remoteRev.
+            var prev = null;
+            var notify = true;
+            if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+                try { prev = _getItemOriginal(key); } catch (_) {}
+                if (prev === String(value)) notify = false;
+            }
             _setItemOriginal(key, value);
             if(key.startsWith('futurorico_') || key.startsWith('appliquei_')) atualizarUltimoSalvo();
-            if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalWrite === 'function') {
+            if (notify && window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalWrite === 'function') {
                 try { AppliqueiCloudSync.onLocalWrite(key); } catch (_) {}
+            }
+        };
+        const _removeItemOriginal = localStorage.removeItem.bind(localStorage);
+        localStorage.removeItem = function(key) {
+            var existed = false;
+            if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+                try { existed = _getItemOriginal(key) !== null; } catch (_) {}
+            }
+            _removeItemOriginal(key);
+            if(key && (key.startsWith('futurorico_') || key.startsWith('appliquei_'))) atualizarUltimoSalvo();
+            if (existed && window.AppliqueiCloudSync && typeof AppliqueiCloudSync.onLocalDelete === 'function') {
+                try { AppliqueiCloudSync.onLocalDelete(key); } catch (_) {}
             }
         };
 
@@ -12025,7 +12056,7 @@
     function showGate() {
         var g = $('authGate');
         if (!g) return;
-        g.style.display = 'flex';
+        g.style.display = 'block';
         g.setAttribute('aria-hidden', 'false');
         document.body.style.overflow = 'hidden';
     }
