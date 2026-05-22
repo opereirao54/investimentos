@@ -1,182 +1,252 @@
 {
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\admin\\stats.js": {
-    "mtime": 1779324407.9609113,
-    "hash": "926ea7cc2a17827e242e52bf6e096dc4"
+  "/home/user/investimentos/firestore.indexes.json": {
+    "mtime": 1779453679.7093997,
+    "ast_hash": "9a26ef171ba3458a620400307c6a34dd",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\auth\\resend-verification.js": {
-    "mtime": 1779324407.9629123,
-    "hash": "645fa5a6c8dff3fec9dbf1ecfc133a67"
+  "/home/user/investimentos/vercel.json": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "b5ed7b540c90cb83e00a8b121830e289",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\cancel.js": {
-    "mtime": 1779324407.964913,
-    "hash": "ffe66070cf309ed74b02bfad88959ba1"
+  "/home/user/investimentos/package.json": {
+    "mtime": 1778874051.4783409,
+    "ast_hash": "058ef263e0363d0c8d1f1b8738ffff0f",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\card.js": {
-    "mtime": 1779324407.9669125,
-    "hash": "fdd199e5b00378d87b6068d39065116e"
+  "/home/user/investimentos/firebase.json": {
+    "mtime": 1778874051.4703407,
+    "ast_hash": "6a7e94c3124e3d2552ee4ec011ae7b1d",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\customer.js": {
-    "mtime": 1779324407.9689114,
-    "hash": "85159f2d498d5e47c60fe4cd2cb4f548"
+  "/home/user/investimentos/web/appliquei-cloud-sync.js": {
+    "mtime": 1779453679.7188983,
+    "ast_hash": "0f81d90f61eff070718f429569770e34",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\init.js": {
-    "mtime": 1779324407.9699135,
-    "hash": "ca2211fc8daacff5fb47be14e31eec8f"
+  "/home/user/investimentos/web/appliquei-billing.js": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "7193c45944fffa131675d3eb6aba6d7b",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\me.js": {
-    "mtime": 1779324407.9719136,
-    "hash": "adc2f74c5d5594b90d59c03e99a222ad"
+  "/home/user/investimentos/web/appliquei-firebase-init.js": {
+    "mtime": 1778874051.485034,
+    "ast_hash": "9f86c253fdf49ab660d5d830feb64c3a",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\status.js": {
-    "mtime": 1779324407.972913,
-    "hash": "8d050c3e7a05ed2772ba68dec64a1e28"
+  "/home/user/investimentos/web/firebase-config.example.js": {
+    "mtime": 1778874051.485034,
+    "ast_hash": "b563a73e43ebd753cbc14e689549ef88",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\subscribe.js": {
-    "mtime": 1779324670.1737,
-    "hash": "00e31f795e536c8bea923094f0b45cec"
+  "/home/user/investimentos/web/firebase-config.appliquei-prod.js": {
+    "mtime": 1778874051.485034,
+    "ast_hash": "5c07a3c30d1daced60582c98ac93ccde",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\billing\\webhook.js": {
-    "mtime": 1779324670.1756976,
-    "hash": "cdc479d9f550e04e773b5530785ba221"
+  "/home/user/investimentos/api/_lib/billing-sync.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "530b5d0e3ba799cfad604f3ad3eae7c0",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\access.js": {
-    "mtime": 1779324407.9419138,
-    "hash": "5930e4afa40cb7d2743dddf7da04047a"
+  "/home/user/investimentos/api/_lib/firebase-admin.js": {
+    "mtime": 1778874051.3831835,
+    "ast_hash": "4e98d7be657103099bc1c956e8f2255f",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\asaas.js": {
-    "mtime": 1779324407.9429138,
-    "hash": "8e3f628f657e3491910058bec415846b"
+  "/home/user/investimentos/api/_lib/codes.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "92724f6822b3c4ae5e48ffcb205a6ad3",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\auth.js": {
-    "mtime": 1779324407.9449143,
-    "hash": "06cec6a5b7da5677a2e0af0ab0215594"
+  "/home/user/investimentos/api/_lib/asaas.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "baafb8d76044cc05bcd06f2f86781bfa",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\billing-sync.js": {
-    "mtime": 1779324670.1707003,
-    "hash": "5903506df0ba23b6c92de76f9d9920f9"
+  "/home/user/investimentos/api/_lib/cpf-cnpj.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "5871e65509fa81f0cd204e755f9dce68",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\codes.js": {
-    "mtime": 1779324407.9469137,
-    "hash": "1bcfc171f6fb1f8aea31eea50488ae94"
+  "/home/user/investimentos/api/_lib/access.js": {
+    "mtime": 1779453679.6948984,
+    "ast_hash": "712ab30ce0498e63b0f3b74e963c96cb",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\cpf-cnpj.js": {
-    "mtime": 1779324407.9499142,
-    "hash": "0bcdbbcd2e34614d9bb085b058dfb3ae"
+  "/home/user/investimentos/api/_lib/referral-guard.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "606f5dae8024d0fa3e6bcb17c0b9f1f8",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\firebase-admin.js": {
-    "mtime": 1779324407.9519136,
-    "hash": "f4120fdebb93ec1742c0c5badadf7e73"
+  "/home/user/investimentos/api/_lib/auth.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "0a23d92252ecd9a0599e4ab3aebac1da",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\rate-limit.js": {
-    "mtime": 1779324407.9529142,
-    "hash": "e918ef654bef49e40f1bf543e66678e4"
+  "/home/user/investimentos/api/_lib/rate-limit.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "dc46df80b1b7442ad19703fb40039ab5",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\api\\_lib\\referral-guard.js": {
-    "mtime": 1779324407.9559135,
-    "hash": "3eb4e0af182841912436809e21d8b5dc"
+  "/home/user/investimentos/api/admin/stats.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "23c07a81b4b206a9197d4b0639bfbc6f",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\backfill-email-verification.js": {
-    "mtime": 1779324408.1289036,
-    "hash": "02e98c1834f6a82ae62074ade0eb5f00"
+  "/home/user/investimentos/api/auth/resend-verification.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "762e589fbdfb36270dffcf4a13314974",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\build_plan_pdf.py": {
-    "mtime": 1779324408.1309037,
-    "hash": "9cd7638312fc02a4ed51e8b78aaeee9d"
+  "/home/user/investimentos/api/billing/card.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "b6e782657e138b2f89cde0ac62288f5c",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\diag-discount.js": {
-    "mtime": 1779324408.131904,
-    "hash": "ebdde95c18df5714deef24d53eaf34ca"
+  "/home/user/investimentos/api/billing/me.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "cda4359cfcab760e9205b9f9420c36e0",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\diag-referral-code.js": {
-    "mtime": 1779324408.1349032,
-    "hash": "5683f0579373a8fd3d06f86fee39e3c0"
+  "/home/user/investimentos/api/billing/subscribe.js": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "d3ab0cd5088c30881ff17e78d0637d39",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\seed-ttl-collections.js": {
-    "mtime": 1779324408.1399035,
-    "hash": "58b898804d1986e66e3267fdd5d33d9c"
+  "/home/user/investimentos/api/billing/status.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "cffc1391f1e6368b49a03ffcd5dfab82",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\test-referral-flow.js": {
-    "mtime": 1779324408.1419032,
-    "hash": "775e19bdb66ecc1232dc9fe08a66520f"
+  "/home/user/investimentos/api/billing/init.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "143e93868142bfe66a8fe10573aefb5b",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\test-subscription-flow.js": {
-    "mtime": 1779324408.1429045,
-    "hash": "c6767fdbc2681b2852c53637f8f2cab6"
+  "/home/user/investimentos/api/billing/webhook.js": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "77da8d8844d300f9ef533615802a38bc",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\scripts\\lib\\mock-billing.js": {
-    "mtime": 1779324408.1369057,
-    "hash": "3678244ea272499616a90f5fe2215ed6"
+  "/home/user/investimentos/api/billing/cancel.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "5a4b2fd82d9c52fa7c49b98d79c33ef0",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\web\\appliquei-billing.js": {
-    "mtime": 1779324670.178698,
-    "hash": "2d1822271d0ec63de87f6523ad12cbc0"
+  "/home/user/investimentos/api/billing/customer.js": {
+    "mtime": 1779453679.6988983,
+    "ast_hash": "2deb5140eaa8152e57235f2b5dec45fb",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\web\\appliquei-cloud-sync.js": {
-    "mtime": 1779327056.3851726,
-    "hash": "ace8718329832c250eba819bd9b6aa53"
+  "/home/user/investimentos/api/sync/push.js": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "78e5ed35f9b52a375069890e148743b5",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\web\\appliquei-firebase-init.js": {
-    "mtime": 1779324408.1529024,
-    "hash": "9f86c253fdf49ab660d5d830feb64c3a"
+  "/home/user/investimentos/scripts/backfill-email-verification.js": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "3b418e149e1ced8b4f8d728b19d6b97f",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\web\\firebase-config.appliquei-prod.js": {
-    "mtime": 1779324408.1539035,
-    "hash": "6099823740e7ba1561dbc63faf019c94"
+  "/home/user/investimentos/scripts/test-subscription-flow.js": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "7dc6f4817ed2d52d392159a32a82a1b5",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\web\\firebase-config.example.js": {
-    "mtime": 1779324408.1559062,
-    "hash": "b563a73e43ebd753cbc14e689549ef88"
+  "/home/user/investimentos/scripts/diag-referral-code.js": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "4386c64f9bd69340f8153b3a965a8105",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\Appliquei_v13.0.html": {
-    "mtime": 1779324670.1674678,
-    "hash": "3f36cf909efb6484be40fde70b2a68f7"
+  "/home/user/investimentos/scripts/build_plan_pdf.py": {
+    "mtime": 1778874051.4783409,
+    "ast_hash": "63692ea5fb3b6a89fa59e7e34f58e9c7",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\BILLING.md": {
-    "mtime": 1779324407.9359148,
-    "hash": "43ea0418a9e3db5c969524e1e672720b"
+  "/home/user/investimentos/scripts/test-referral-flow.js": {
+    "mtime": 1778874051.482815,
+    "ast_hash": "c38b1ae0feed592874b3a11e01f10781",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\landing.html": {
-    "mtime": 1779325936.620424,
-    "hash": "9ebe2661f5880def3d22829f9983102f"
+  "/home/user/investimentos/scripts/diag-discount.js": {
+    "mtime": 1778874051.482815,
+    "ast_hash": "ee3b7210e3c439aacdfa654933be9796",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\README.md": {
-    "mtime": 1779324407.937915,
-    "hash": "a3f5897d4486dda8127bfbe5cb95f6e4"
+  "/home/user/investimentos/scripts/seed-ttl-collections.js": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "99017a83d9b3469abff63d36a5f8ce8f",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\requirements-graphify.txt": {
-    "mtime": 1779324408.1259043,
-    "hash": "eaacb57352d3a6848ff5d74c51831b89"
+  "/home/user/investimentos/scripts/lib/mock-billing.js": {
+    "mtime": 1778874051.482815,
+    "ast_hash": "d649a34251487c5a57ebc0fbe7bb4247",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\docs\\CHECKLIST-TESTES-PRE-VENDA.md": {
-    "mtime": 1779324408.0819068,
-    "hash": "288c997a62e6bb278a25ef235f9626e7"
+  "/home/user/investimentos/landing.html": {
+    "mtime": 1779453679.7148983,
+    "ast_hash": "5e74c4a1dc31bd8053d6bcbc7536c470",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\docs\\scaling-analysis.md": {
-    "mtime": 1779324408.0829067,
-    "hash": "bc4959c309e6ee636759704aab72fedf"
+  "/home/user/investimentos/README.md": {
+    "mtime": 1779453679.6948984,
+    "ast_hash": "d0a2035bb14e1a48b29f5bc246a564be",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\Appliquei_Plano_Publicacao_v2.pdf": {
-    "mtime": 1779324407.9169154,
-    "hash": "02932f0799f2f4a4c900a95edb1f3794"
+  "/home/user/investimentos/requirements-graphify.txt": {
+    "mtime": 1778874051.4783409,
+    "ast_hash": "858952f21457645ebe95b94a47dc358d",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\appliquei-favicon.png": {
-    "mtime": 1779324407.9809134,
-    "hash": "ace67447c4a13b82bffbc893fa8189bd"
+  "/home/user/investimentos/BILLING.md": {
+    "mtime": 1779453679.6948984,
+    "ast_hash": "56991ec4be8fbf2e33f9e42685defbb8",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\appliquei-logo-small.png": {
-    "mtime": 1779324407.983913,
-    "hash": "81161350635df07782fc4a4faad471bf"
+  "/home/user/investimentos/Appliquei_v13.0.html": {
+    "mtime": 1779453679.6948984,
+    "ast_hash": "a03af4ce55501fad8c2345e1c5c3d64e",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\appliquei-logo-white-small.png": {
-    "mtime": 1779324407.986913,
-    "hash": "5ce9ab3c9956f8ecc5b0014f459d7af9"
+  "/home/user/investimentos/docs/scaling-analysis.md": {
+    "mtime": 1779453679.7093997,
+    "ast_hash": "46039aaf5b36834a844e31e7704790ab",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\appliquei_favicon.jpg": {
-    "mtime": 1779324408.027911,
-    "hash": "1ba3e600e4d1f5694904061aa944a678"
+  "/home/user/investimentos/docs/CHECKLIST-TESTES-PRE-VENDA.md": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "2d18e60397e113500f890c1a5a842dc5",
+    "semantic_hash": ""
   },
-  "C:\\Users\\Notebook\\Desktop\\investimentos-claude-fix-credit-race-condition-FvJw7\\investimentos-claude-fix-credit-race-condition-FvJw7\\appliquei_logo_white.jpg": {
-    "mtime": 1779324408.0789113,
-    "hash": "7a0408a507e4bcf133941c0adc5b69c5"
+  "/home/user/investimentos/Appliquei_Plano_Publicacao_v2.pdf": {
+    "mtime": 1778874051.3639107,
+    "ast_hash": "cb2e9e4e157941c95edc334be193b5ad",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-logo-white-small.png": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "613c694140ad8df88289d24fe5a68923",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-logo-small.png": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "031212b579acfd36cc4f4bca7c1949c1",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei-favicon.png": {
+    "mtime": 1779453679.7028985,
+    "ast_hash": "ace67447c4a13b82bffbc893fa8189bd",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei_favicon.jpg": {
+    "mtime": 1778874051.4343407,
+    "ast_hash": "1ba3e600e4d1f5694904061aa944a678",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/appliquei_logo_white.jpg": {
+    "mtime": 1778874051.4703407,
+    "ast_hash": "7a0408a507e4bcf133941c0adc5b69c5",
+    "semantic_hash": ""
   }
 }
