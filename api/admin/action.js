@@ -7,7 +7,7 @@ const { cors } = require('../_lib/auth');
 // Cada ação executada é registada em `adminAuditLog/{autoId}` para rastreio.
 // Custo: 1 lookup auth + 1-2 ops Firestore + 1 write audit por chamada.
 
-const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro']);
+const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro', 'disable_user']);
 
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   try {
@@ -119,6 +119,24 @@ module.exports = async (req, res) => {
       await auth().updateUser(uid, { emailVerified: true });
       await writeAudit({ action, email, uid, actor, after: { emailVerified: true } });
       return res.json({ success: true, message: 'E-mail marcado como verificado.' });
+    }
+
+    if (action === 'password_reset_link') {
+      const link = await auth().generatePasswordResetLink(email);
+      await writeAudit({ action, email, uid, actor, after: { generated: true } });
+      return res.json({ success: true, message: 'Link de reset gerado.', link });
+    }
+
+    if (action === 'disable_user') {
+      await auth().updateUser(uid, { disabled: true });
+      await writeAudit({ action, email, uid, actor, after: { disabled: true } });
+      return res.json({ success: true, message: 'Conta suspensa (utilizador não consegue autenticar-se).' });
+    }
+
+    if (action === 'enable_user') {
+      await auth().updateUser(uid, { disabled: false });
+      await writeAudit({ action, email, uid, actor, after: { disabled: false } });
+      return res.json({ success: true, message: 'Conta reativada.' });
     }
 
     if (action === 'reset_billing') {

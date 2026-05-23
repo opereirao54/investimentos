@@ -21,30 +21,90 @@
                 <h1 class="text-3xl font-bold text-slate-800">Métricas do Sistema</h1>
                 <p class="text-sm text-slate-500 mt-1">Última atualização: <span id="last-update" class="font-medium"></span></p>
             </div>
-            <button id="logout-btn" class="mt-4 md:mt-0 text-sm text-red-600 hover:text-red-800 font-medium">Encerrar Sessão</button>
+            <div class="mt-4 md:mt-0 flex items-center gap-4">
+                <button id="export-btn" class="text-sm text-slate-600 hover:text-slate-900 font-medium border border-slate-300 px-3 py-1.5 rounded">⬇ Exportar CSV</button>
+                <button id="logout-btn" class="text-sm text-red-600 hover:text-red-800 font-medium">Encerrar Sessão</button>
+            </div>
         </div>
 
         <div id="alert-antifraud" class="mb-6 p-4 rounded-md border text-sm font-medium flex items-center"></div>
 
+        <h2 class="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3">Receita</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-emerald-600">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">MRR</h3>
+                <p id="val-mrr" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+                <p class="text-xs text-slate-400 mt-1">Receita mensal recorrente</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-emerald-700">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">ARR</h3>
+                <p id="val-arr" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+                <p class="text-xs text-slate-400 mt-1">MRR × 12</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ganhos c/ Indicações</h3>
+                <p id="val-earnings" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-orange-400">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Cashback Pendente</h3>
+                <p id="val-cashback" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+            </div>
+        </div>
+
+        <h2 class="text-sm uppercase tracking-wider text-slate-500 font-bold mb-3">Utilizadores</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-blue-500">
                 <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ativos Pagantes</h3>
                 <p id="val-active" class="text-4xl font-black mt-2 text-slate-800">0</p>
             </div>
-
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-yellow-400">
                 <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">No Período de Teste</h3>
                 <p id="val-trial" class="text-4xl font-black mt-2 text-slate-800">0</p>
             </div>
-
-            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
-                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Ganhos c/ Indicações</h3>
-                <p id="val-earnings" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-cyan-500">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Novos (7 dias)</h3>
+                <p id="val-new7" class="text-4xl font-black mt-2 text-slate-800">0</p>
             </div>
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-cyan-700">
+                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Novos (30 dias)</h3>
+                <p id="val-new30" class="text-4xl font-black mt-2 text-slate-800">0</p>
+            </div>
+        </div>
 
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+            <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-emerald-500">
+                <h2 class="text-lg font-bold text-slate-800 mb-3">🏆 Top Indicadores</h2>
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-slate-500 border-b">
+                        <th class="py-2">Email</th><th class="py-2 text-right">Ganhos</th>
+                    </tr></thead>
+                    <tbody id="top-referrers"><tr><td colspan="2" class="py-4 text-slate-400 text-center">A carregar...</td></tr></tbody>
+                </table>
+            </div>
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-orange-400">
-                <h3 class="text-slate-500 text-xs uppercase font-bold tracking-wider">Cashback Pendente</h3>
-                <p id="val-cashback" class="text-3xl font-bold mt-2 text-slate-800">R$ 0,00</p>
+                <h2 class="text-lg font-bold text-slate-800 mb-3">💸 Maior Cashback Pendente</h2>
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-slate-500 border-b">
+                        <th class="py-2">Email</th><th class="py-2 text-right">Pendente</th>
+                    </tr></thead>
+                    <tbody id="top-pending"><tr><td colspan="2" class="py-4 text-slate-400 text-center">A carregar...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-white p-6 rounded-lg shadow-sm border border-slate-200 border-t-4 border-t-slate-500">
+            <h2 class="text-lg font-bold text-slate-800 mb-3">👥 Utilizadores Recentes</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead><tr class="text-left text-slate-500 border-b">
+                        <th class="py-2">Email</th>
+                        <th class="py-2">Criado</th>
+                        <th class="py-2">Verificado</th>
+                        <th class="py-2">Estado</th>
+                        <th class="py-2 text-right">Ações</th>
+                    </tr></thead>
+                    <tbody id="recent-users"><tr><td colspan="5" class="py-4 text-slate-400 text-center">A carregar...</td></tr></tbody>
+                </table>
             </div>
         </div>
 
@@ -60,6 +120,9 @@
                     <option value="make_pro">🌟 Tornar Utilizador PRO (Forçar Acesso)</option>
                     <option value="extend_trial">⏳ Estender Trial (+7 dias)</option>
                     <option value="force_verify">🛡️ Forçar E-mail Verificado</option>
+                    <option value="password_reset_link">🔑 Gerar Link de Reset de Senha</option>
+                    <option value="disable_user">⛔ Suspender Conta</option>
+                    <option value="enable_user">✅ Reativar Conta</option>
                     <option value="reset_billing">⚠️ Resetar Doc Billing</option>
                 </select>
 
@@ -73,7 +136,7 @@
     </div>
 
     <script>
-        const DESTRUCTIVE = new Set(['reset_billing', 'make_pro']);
+        const DESTRUCTIVE = new Set(['reset_billing', 'make_pro', 'disable_user']);
 
         const $ = (id) => document.getElementById(id);
         const formatBRL = (cents) => (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -119,6 +182,123 @@
             });
         }
 
+        function renderRanking(tbodyId, rows, valueField) {
+            const tbody = $(tbodyId);
+            tbody.textContent = '';
+            if (!rows.length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 2;
+                td.className = 'py-4 text-slate-400 text-center';
+                td.textContent = 'Sem dados.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            rows.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b last:border-0';
+                const tdEmail = document.createElement('td');
+                tdEmail.className = 'py-2 text-slate-700';
+                tdEmail.textContent = row.email || row.uid;
+                const tdVal = document.createElement('td');
+                tdVal.className = 'py-2 text-right font-semibold text-slate-800';
+                tdVal.textContent = formatBRL(row[valueField] || 0);
+                tr.appendChild(tdEmail);
+                tr.appendChild(tdVal);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderRecentUsers(users) {
+            const tbody = $('recent-users');
+            tbody.textContent = '';
+            if (!users.length) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.className = 'py-4 text-slate-400 text-center';
+                td.textContent = 'Sem utilizadores.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            users.forEach((u) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b last:border-0';
+
+                const tdEmail = document.createElement('td');
+                tdEmail.className = 'py-2 text-slate-700';
+                tdEmail.textContent = u.email || '—';
+
+                const tdDate = document.createElement('td');
+                tdDate.className = 'py-2 text-slate-600 whitespace-nowrap';
+                tdDate.textContent = u.createdAtMs ? new Date(u.createdAtMs).toLocaleDateString('pt-PT') : '—';
+
+                const tdVerified = document.createElement('td');
+                tdVerified.className = 'py-2';
+                tdVerified.textContent = u.emailVerified ? '✅' : '⚠️';
+
+                const tdState = document.createElement('td');
+                tdState.className = 'py-2';
+                const stateBadge = document.createElement('span');
+                stateBadge.className = u.disabled
+                    ? 'inline-block px-2 py-0.5 text-xs rounded bg-red-100 text-red-700'
+                    : 'inline-block px-2 py-0.5 text-xs rounded bg-emerald-100 text-emerald-700';
+                stateBadge.textContent = u.disabled ? 'Suspenso' : 'Ativo';
+                tdState.appendChild(stateBadge);
+
+                const tdActions = document.createElement('td');
+                tdActions.className = 'py-2 text-right';
+                const btn = document.createElement('button');
+                btn.className = 'text-xs text-indigo-600 hover:text-indigo-800 font-medium';
+                btn.textContent = 'Raio-X →';
+                btn.addEventListener('click', () => {
+                    $('action-email').value = u.email || '';
+                    $('action-type').value = 'xray';
+                    toggleValueInput();
+                    executeSuperpower();
+                });
+                tdActions.appendChild(btn);
+
+                tr.appendChild(tdEmail);
+                tr.appendChild(tdDate);
+                tr.appendChild(tdVerified);
+                tr.appendChild(tdState);
+                tr.appendChild(tdActions);
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function downloadCsv() {
+            const token = sessionStorage.getItem('adminToken');
+            if (!token) return;
+            const btn = $('export-btn');
+            const original = btn.textContent;
+            btn.textContent = 'A gerar...';
+            btn.disabled = true;
+            try {
+                const res = await fetch('/api/admin/export', {
+                    headers: { 'Authorization': `Bearer ${token}` },
+                });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `appliquei-billing-${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert('Falha ao exportar CSV: ' + err.message);
+            } finally {
+                btn.textContent = original;
+                btn.disabled = false;
+            }
+        }
+
         async function loadStats() {
             const tokenInput = $('admin-token').value;
             const token = tokenInput || sessionStorage.getItem('adminToken');
@@ -139,6 +319,14 @@
                 $('val-trial').textContent = data.billing.trialActive || 0;
                 $('val-earnings').textContent = formatBRL(data.billing.totalEarningsCents || 0);
                 $('val-cashback').textContent = formatBRL(data.billing.totalPendingCashbackCents || 0);
+                $('val-mrr').textContent = formatBRL(data.billing.mrrCents || 0);
+                $('val-arr').textContent = formatBRL(data.billing.arrCents || 0);
+                $('val-new7').textContent = (data.users && data.users.newUsers7d) || 0;
+                $('val-new30').textContent = (data.users && data.users.newUsers30d) || 0;
+
+                renderRanking('top-referrers', data.billing.topReferrers || [], 'earningsCents');
+                renderRanking('top-pending', data.billing.topPending || [], 'pendingCents');
+                renderRecentUsers(data.recentUsers || []);
 
                 const alertBox = $('alert-antifraud');
                 if (data.readinessHints.antifraudInitSafeToEnable) {
@@ -167,7 +355,12 @@
             }
 
             if (DESTRUCTIVE.has(action)) {
-                const label = action === 'reset_billing' ? 'APAGAR o documento de billing' : 'forçar este utilizador a PRO';
+                const labels = {
+                    reset_billing: 'APAGAR o documento de billing',
+                    make_pro: 'forçar este utilizador a PRO',
+                    disable_user: 'SUSPENDER a conta (não conseguirá autenticar-se)',
+                };
+                const label = labels[action] || 'executar esta ação';
                 if (!confirm(`Tens a certeza que queres ${label} para ${email}?\n\nEsta ação fica registada no audit log.`)) {
                     return;
                 }
@@ -194,8 +387,14 @@
 
                 if (action === 'xray') {
                     renderXray(email, data);
+                } else if (action === 'password_reset_link' && data.link) {
+                    output.textContent += `\n[SUCESSO] ${data.message}\n\nLink (válido durante alguns minutos):\n${data.link}\n\nCopia e envia ao utilizador.`;
                 } else {
                     output.textContent += `\n[SUCESSO] ${data.message}`;
+                    // Refresh recente users em caso de mudança de estado
+                    if (action === 'disable_user' || action === 'enable_user' || action === 'force_verify') {
+                        setTimeout(loadStats, 600);
+                    }
                 }
             } catch (err) {
                 output.textContent += `\n[ERRO FATAL] ${err.message}`;
@@ -212,6 +411,7 @@
         $('logout-btn').addEventListener('click', logout);
         $('action-type').addEventListener('change', toggleValueInput);
         $('execute-btn').addEventListener('click', executeSuperpower);
+        $('export-btn').addEventListener('click', downloadCsv);
 
         if (sessionStorage.getItem('adminToken')) {
             loadStats();

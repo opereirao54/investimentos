@@ -59,6 +59,9 @@ module.exports = async (req, res) => {
     let active = 0;
     let totalPendingCashbackCents = 0;
     let totalEarningsCents = 0;
+    let mrrCents = 0;
+    const topReferrersRaw = [];
+    const topPendingRaw = [];
 
     billingSnap.forEach(d => {
       if (d.id !== 'account') return;
@@ -73,11 +76,40 @@ module.exports = async (req, res) => {
       if (b.trialEndsAt && typeof b.trialEndsAt.toMillis === 'function' && b.trialEndsAt.toMillis() > now) trialActive++;
       if (b.subscriptionId) withSubscription++;
       if (b.referredByUserId) withReferral++;
-      if (ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus)) active++;
+      const isActive = ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus);
+      if (isActive) {
+        active++;
+        mrrCents += b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500;
+      }
       const stats = b.stats || {};
-      totalPendingCashbackCents += stats.pendingDiscountCents || 0;
-      totalEarningsCents += stats.totalReferralEarningsCents || 0;
+      const earnings = stats.totalReferralEarningsCents || 0;
+      const pending = stats.pendingDiscountCents || 0;
+      totalPendingCashbackCents += pending;
+      totalEarningsCents += earnings;
+
+      // path: users/{uid}/billing/account → uid é o avô do doc
+      const uid = d.ref.parent.parent ? d.ref.parent.parent.id : null;
+      if (uid && earnings > 0) topReferrersRaw.push({ uid, earningsCents: earnings });
+      if (uid && pending > 0) topPendingRaw.push({ uid, pendingCents: pending });
     });
+
+    topReferrersRaw.sort((a, b) => b.earningsCents - a.earningsCents);
+    topPendingRaw.sort((a, b) => b.pendingCents - a.pendingCents);
+    const topReferrers = topReferrersRaw.slice(0, 5);
+    const topPending = topPendingRaw.slice(0, 5);
+
+    // Resolve emails para os tops (auth lookups paralelos)
+    async function attachEmails(arr) {
+      await Promise.all(arr.map(async (row) => {
+        try {
+          const u = await auth().getUser(row.uid);
+          row.email = u.email || null;
+        } catch (_) {
+          row.email = null;
+        }
+      }));
+    }
+    await Promise.all([attachEmails(topReferrers), attachEmails(topPending)]);
 
     // Agrega webhooks
     const webhookByEvent = {};
@@ -115,16 +147,34 @@ module.exports = async (req, res) => {
     }
 
     // Auth users (página única — caps a 1000)
-    let authUsers = { totalKnown: 0, unverifiedPassword: 0, truncated: false };
+    let authUsers = { totalKnown: 0, unverifiedPassword: 0, disabled: 0, newUsers7d: 0, newUsers30d: 0, truncated: false };
+    let recentUsers = [];
     try {
       const page = await auth().listUsers(1000);
       authUsers.totalKnown = page.users.length;
       authUsers.truncated = !!page.pageToken;
-      authUsers.unverifiedPassword = page.users.filter(u =>
-        !u.emailVerified && u.email
-        && Array.isArray(u.providerData)
-        && u.providerData.some(p => p.providerId === 'password')
-      ).length;
+      const weekAgoMs = now - 7 * 24 * 3600 * 1000;
+      const monthAgoMs = now - 30 * 24 * 3600 * 1000;
+      page.users.forEach(u => {
+        if (u.disabled) authUsers.disabled++;
+        if (!u.emailVerified && u.email && Array.isArray(u.providerData)
+            && u.providerData.some(p => p.providerId === 'password')) {
+          authUsers.unverifiedPassword++;
+        }
+        const createdAt = u.metadata && u.metadata.creationTime ? Date.parse(u.metadata.creationTime) : 0;
+        if (createdAt >= weekAgoMs) authUsers.newUsers7d++;
+        if (createdAt >= monthAgoMs) authUsers.newUsers30d++;
+      });
+      recentUsers = page.users
+        .map(u => ({
+          uid: u.uid,
+          email: u.email || null,
+          emailVerified: !!u.emailVerified,
+          disabled: !!u.disabled,
+          createdAtMs: u.metadata && u.metadata.creationTime ? Date.parse(u.metadata.creationTime) : 0,
+        }))
+        .sort((a, b) => b.createdAtMs - a.createdAtMs)
+        .slice(0, 20);
     } catch (e) {
       authUsers.error = (e && e.code) || 'list_failed';
     }
@@ -132,9 +182,11 @@ module.exports = async (req, res) => {
     return res.json({
       generatedAt: new Date().toISOString(),
       users: authUsers,
+      recentUsers,
       billing: {
         totalBillingDocs: billingDocs,
         active,
+        inactive: Math.max(0, billingDocs - active),
         trialActive,
         withSubscription,
         withReferral,
@@ -143,6 +195,10 @@ module.exports = async (req, res) => {
         paymentMethods,
         totalPendingCashbackCents,
         totalEarningsCents,
+        mrrCents,
+        arrCents: mrrCents * 12,
+        topReferrers,
+        topPending,
       },
       webhooks: {
         last24h: { total: webhooks24h ? webhooks24h.size : 0, byEvent: webhookByEvent },
