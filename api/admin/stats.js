@@ -60,6 +60,11 @@ module.exports = async (req, res) => {
     let totalPendingCashbackCents = 0;
     let totalEarningsCents = 0;
     let mrrCents = 0;
+    let trialExpiredNoConversion = 0;
+    let converted = 0;
+    let churnedCount = 0;
+    let overdueCount = 0;
+    let trialExpiringSoon48h = 0;
     const topReferrersRaw = [];
     const topPendingRaw = [];
 
@@ -69,12 +74,23 @@ module.exports = async (req, res) => {
       const b = d.data() || {};
       const ss = b.subscriptionStatus || 'NONE';
       subscriptionStatus[ss] = (subscriptionStatus[ss] || 0) + 1;
+      if (ss === 'DELETED' || ss === 'INACTIVATED') churnedCount++;
       const ls = b.lastPaymentStatus || 'NONE';
       lastPaymentStatus[ls] = (lastPaymentStatus[ls] || 0) + 1;
+      if (ls === 'OVERDUE') overdueCount++;
       const pm = b.paymentMethod || 'NONE';
       paymentMethods[pm] = (paymentMethods[pm] || 0) + 1;
-      if (b.trialEndsAt && typeof b.trialEndsAt.toMillis === 'function' && b.trialEndsAt.toMillis() > now) trialActive++;
-      if (b.subscriptionId) withSubscription++;
+      const trialEnds = b.trialEndsAt && typeof b.trialEndsAt.toMillis === 'function' ? b.trialEndsAt.toMillis() : 0;
+      if (trialEnds > now) {
+        trialActive++;
+        if (trialEnds <= now + 48 * 3600 * 1000) trialExpiringSoon48h++;
+      } else if (trialEnds > 0 && trialEnds <= now && !b.subscriptionId) {
+        trialExpiredNoConversion++;
+      }
+      if (b.subscriptionId) {
+        withSubscription++;
+        if (PAID_STATUSES.has(b.lastPaymentStatus)) converted++;
+      }
       if (b.referredByUserId) withReferral++;
       const isActive = ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus);
       if (isActive) {
@@ -147,7 +163,7 @@ module.exports = async (req, res) => {
     }
 
     // Auth users (página única — caps a 1000)
-    let authUsers = { totalKnown: 0, unverifiedPassword: 0, disabled: 0, newUsers7d: 0, newUsers30d: 0, truncated: false };
+    let authUsers = { totalKnown: 0, emailVerifiedCount: 0, unverifiedPassword: 0, disabled: 0, newUsers7d: 0, newUsers30d: 0, truncated: false };
     let recentUsers = [];
     try {
       const page = await auth().listUsers(1000);
@@ -156,6 +172,7 @@ module.exports = async (req, res) => {
       const weekAgoMs = now - 7 * 24 * 3600 * 1000;
       const monthAgoMs = now - 30 * 24 * 3600 * 1000;
       page.users.forEach(u => {
+        if (u.emailVerified) authUsers.emailVerifiedCount++;
         if (u.disabled) authUsers.disabled++;
         if (!u.emailVerified && u.email && Array.isArray(u.providerData)
             && u.providerData.some(p => p.providerId === 'password')) {
@@ -179,8 +196,37 @@ module.exports = async (req, res) => {
       authUsers.error = (e && e.code) || 'list_failed';
     }
 
+    let recentAudit = [];
+    try {
+      const auditSnap = await D.collection('adminAuditLog').orderBy('at', 'desc').limit(20).get();
+      auditSnap.forEach(d => {
+        const data = d.data() || {};
+        recentAudit.push({
+          id: d.id,
+          action: data.action || '',
+          email: data.email || '',
+          actor: data.actor || '',
+          at: data.at && typeof data.at.toDate === 'function' ? data.at.toDate().toISOString() : '',
+          before: data.before || null,
+          after: data.after || null,
+        });
+      });
+    } catch (e) {
+      console.warn('[admin/stats] audit fetch failed', e && e.message);
+    }
+
     return res.json({
       generatedAt: new Date().toISOString(),
+      funnel: {
+        registered: authUsers.totalKnown,
+        emailVerified: authUsers.emailVerifiedCount,
+        billingInitiated: billingDocs,
+        trialActive,
+        trialExpiredNoConversion,
+        converted,
+        churned: churnedCount,
+      },
+      recentAudit,
       users: authUsers,
       recentUsers,
       billing: {
@@ -197,6 +243,12 @@ module.exports = async (req, res) => {
         totalEarningsCents,
         mrrCents,
         arrCents: mrrCents * 12,
+        churnedCount,
+        churnRate: billingDocs > 0 ? churnedCount / billingDocs : 0,
+        overdueCount,
+        arpu: active > 0 ? Math.round(mrrCents / active) : 0,
+        trialExpiringSoon48h,
+        conversionRate: billingDocs > 0 ? converted / billingDocs : 0,
         topReferrers,
         topPending,
       },
