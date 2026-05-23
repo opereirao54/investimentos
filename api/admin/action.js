@@ -147,7 +147,10 @@ module.exports = async (req, res) => {
     }
 
     if (action === 'view_payments') {
-      const snap = await docRef.collection('payments').get();
+      // Pagamentos vivem em users/{uid}/payments (subcoll do user doc),
+      // NÃO em users/{uid}/billing/account/payments. Ver webhook.js:36-42.
+      const userRef = db().collection('users').doc(uid);
+      const snap = await userRef.collection('payments').get();
       const payments = [];
       snap.forEach(d => {
         const p = d.data();
@@ -169,7 +172,9 @@ module.exports = async (req, res) => {
     if (action === 'full_xray') {
       const snap = await docRef.get();
       const b = snap.data() || {};
-      const paySnap = await docRef.collection('payments').get();
+      // Pagamentos em users/{uid}/payments (ver webhook.js:36-42), não dentro de billing/account.
+      const userRef = db().collection('users').doc(uid);
+      const paySnap = await userRef.collection('payments').get();
       const payments = [];
       paySnap.forEach(d => {
         const p = d.data();

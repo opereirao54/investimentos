@@ -111,6 +111,15 @@ async function auditList(req, res) {
     });
   });
 
+  // Enriquece entradas antigas que só têm UID (campo `email` adicionado depois).
+  const missingUids = [...new Set(entries.filter(e => !e.email && e.uid).map(e => e.uid))];
+  await Promise.all(missingUids.map(async (uid) => {
+    try {
+      const u = await auth().getUser(uid);
+      if (u.email) entries.forEach(e => { if (!e.email && e.uid === uid) e.email = u.email; });
+    } catch (_) {}
+  }));
+
   return res.json({ entries, total: entries.length });
 }
 
@@ -339,14 +348,31 @@ async function dashboard(req, res) {
     authUsers.error = (e && e.code) || 'list_failed';
   }
 
-  // Enriquecer rankings e listas com emails
-  function attachEmails(arr) {
-    arr.forEach(row => { row.email = emailByUid.get(row.uid) || null; });
+  // Enriquecer rankings e listas com emails.
+  // Cache via listUsers cobre 99% dos casos. Fallback auth().getUser() trata:
+  //   1) UIDs com billing mas sem auth (deletados) — devolve null silenciosamente
+  //   2) listUsers truncado (>1000 users)
+  // Sem este fallback, frontend mostrava o UID em vez do email.
+  async function attachEmails(arr) {
+    await Promise.all(arr.map(async (row) => {
+      if (row.email) return;
+      const cached = emailByUid.get(row.uid);
+      if (cached) { row.email = cached; return; }
+      try {
+        const u = await auth().getUser(row.uid);
+        row.email = u.email || null;
+        if (u.email) emailByUid.set(row.uid, u.email);
+      } catch (_) {
+        row.email = null;
+      }
+    }));
   }
-  attachEmails(topReferrers);
-  attachEmails(topPending);
-  attachEmails(overdueList);
-  attachEmails(expiringList);
+  await Promise.all([
+    attachEmails(topReferrers),
+    attachEmails(topPending),
+    attachEmails(overdueList),
+    attachEmails(expiringList),
+  ]);
 
   // Top domínios (top 10)
   const topEmailDomains = Object.entries(emailDomainCount)
