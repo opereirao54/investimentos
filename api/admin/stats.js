@@ -155,10 +155,12 @@ async function dashboard(req, res) {
   let churnedCount = 0;
   let overdueCount = 0;
   let trialExpiringSoon48h = 0;
+  let usersWithDiscount = 0;
   const topReferrersRaw = [];
   const topPendingRaw = [];
   const overdueListRaw = [];
   const expiringListRaw = [];
+  const referralCountByUid = {}; // referrerUid → quantos indicou
 
   billingSnap.forEach(d => {
     if (d.id !== 'account') return;
@@ -178,7 +180,8 @@ async function dashboard(req, res) {
       if (uid) overdueListRaw.push({
         uid,
         sinceMs: b.lastPaymentDueAtMs || 0,
-        valueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 0,
+        // Fallback 1500 (R$15) se ambos os campos forem omitidos no doc.
+        valueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
       });
     }
 
@@ -200,7 +203,10 @@ async function dashboard(req, res) {
       withSubscription++;
       if (PAID_STATUSES.has(b.lastPaymentStatus)) converted++;
     }
-    if (b.referredByUserId) withReferral++;
+    if (b.referredByUserId) {
+      withReferral++;
+      referralCountByUid[b.referredByUserId] = (referralCountByUid[b.referredByUserId] || 0) + 1;
+    }
     const isActive = ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus);
     if (isActive) {
       active++;
@@ -211,10 +217,14 @@ async function dashboard(req, res) {
     const pending = stats.pendingDiscountCents || 0;
     totalPendingCashbackCents += pending;
     totalEarningsCents += earnings;
+    if (pending > 0) usersWithDiscount++;
 
     if (uid && earnings > 0) topReferrersRaw.push({ uid, earningsCents: earnings });
     if (uid && pending > 0) topPendingRaw.push({ uid, pendingCents: pending });
   });
+
+  // Enriquece topReferrers com a contagem de pessoas que cada um indicou
+  topReferrersRaw.forEach(r => { r.indications = referralCountByUid[r.uid] || 0; });
 
   topReferrersRaw.sort((a, b) => b.earningsCents - a.earningsCents);
   topPendingRaw.sort((a, b) => b.pendingCents - a.pendingCents);
@@ -224,6 +234,32 @@ async function dashboard(req, res) {
   const topPending = topPendingRaw.slice(0, 8);
   const overdueList = overdueListRaw.slice(0, 10);
   const expiringList = expiringListRaw.slice(0, 10);
+
+  // ── Receita do mês (collectionGroup payments, filtrada por receivedAt no mês corrente)
+  const monthStart = new Date(now); monthStart.setUTCDate(1); monthStart.setUTCHours(0,0,0,0);
+  let revenueThisMonthCents = 0;
+  let paymentsThisMonth = 0;
+  let revenueLast30dCents = 0;
+  let paymentsLast30d = 0;
+  try {
+    const last30 = timestamp().fromMillis(now - 30 * 24 * 3600 * 1000);
+    const paySnap = await D.collectionGroup('payments')
+      .where('receivedAt', '>=', last30).get();
+    paySnap.forEach(p => {
+      const d = p.data() || {};
+      if (!PAID_STATUSES.has(d.status)) return;
+      const valueCents = Math.round((d.value || 0) * 100);
+      const recMs = d.receivedAt && typeof d.receivedAt.toMillis === 'function' ? d.receivedAt.toMillis() : 0;
+      revenueLast30dCents += valueCents;
+      paymentsLast30d++;
+      if (recMs >= monthStart.getTime()) {
+        revenueThisMonthCents += valueCents;
+        paymentsThisMonth++;
+      }
+    });
+  } catch (e) {
+    console.warn('[admin/stats] payments aggregate failed', e && e.message);
+  }
 
   // Agrega webhooks
   const webhookByEvent = {};
@@ -341,6 +377,7 @@ async function dashboard(req, res) {
         pendingDiscountCents: (b.stats && b.stats.pendingDiscountCents) || 0,
         earningsCents: (b.stats && b.stats.totalReferralEarningsCents) || 0,
         hasReferrer: !!b.referredByUserId,
+        indications: referralCountByUid[u.uid] || 0,
       };
     });
     allUsers.sort((a, b) => b.createdAtMs - a.createdAtMs);
@@ -348,16 +385,23 @@ async function dashboard(req, res) {
     authUsers.error = (e && e.code) || 'list_failed';
   }
 
-  // Enriquecer rankings e listas com emails.
-  // Cache via listUsers cobre 99% dos casos. Fallback auth().getUser() trata:
-  //   1) UIDs com billing mas sem auth (deletados) — devolve null silenciosamente
-  //   2) listUsers truncado (>1000 users)
-  // Sem este fallback, frontend mostrava o UID em vez do email.
+  // Enriquecer rankings/listas com emails. 3 níveis:
+  //   1) cache listUsers (sync, free)
+  //   2) email cacheado no próprio doc billing (campos `email` / `customerEmail`
+  //      gravados em init.js e customer.js) — sync, free
+  //   3) auth().getUser(uid) async — trata listUsers truncado ou
+  //      utilizadores deletados da auth com billing residual
   async function attachEmails(arr) {
     await Promise.all(arr.map(async (row) => {
       if (row.email) return;
       const cached = emailByUid.get(row.uid);
       if (cached) { row.email = cached; return; }
+      const b = billingByUid.get(row.uid);
+      if (b && (b.email || b.customerEmail)) {
+        row.email = b.email || b.customerEmail;
+        emailByUid.set(row.uid, row.email);
+        return;
+      }
       try {
         const u = await auth().getUser(row.uid);
         row.email = u.email || null;
@@ -449,6 +493,13 @@ async function dashboard(req, res) {
       topPending,
       overdueList,
       expiringList,
+      // Novos:
+      revenueThisMonthCents,
+      paymentsThisMonth,
+      revenueLast30dCents,
+      paymentsLast30d,
+      usersWithDiscount,
+      discountRate: billingDocs > 0 ? usersWithDiscount / billingDocs : 0,
     },
     series: {
       dailyNewUsers30d: dailyNewUsers,

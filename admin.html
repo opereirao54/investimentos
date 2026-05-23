@@ -463,6 +463,30 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             </div>
         </div>
 
+        <!-- KPIs Receita Realizada -->
+        <div class="kpi-grid">
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-money"></i> Recebido Este Mês</div>
+                <div class="kpi-value" id="val-rev-month"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="val-rev-month-count">0</span> pagamentos confirmados</div>
+            </div>
+            <div class="kpi-card emerald">
+                <div class="kpi-label"><i class="ph-fill ph-cash-register"></i> Recebido 30d</div>
+                <div class="kpi-value" id="val-rev-30d"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="val-rev-30d-count">0</span> pagamentos últimos 30 dias</div>
+            </div>
+            <div class="kpi-card amber">
+                <div class="kpi-label"><i class="ph-fill ph-ticket"></i> % com Cupom</div>
+                <div class="kpi-value" id="val-discount-rate"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub"><span id="val-discount-abs">0</span> utilizadores com desconto pendente</div>
+            </div>
+            <div class="kpi-card cyan">
+                <div class="kpi-label"><i class="ph-fill ph-share-network"></i> Rede de Indicações</div>
+                <div class="kpi-value" id="val-network"><div class="skeleton skeleton-text">0</div></div>
+                <div class="kpi-sub">Utilizadores que vieram por indicação</div>
+            </div>
+        </div>
+
         <!-- KPIs Crescimento -->
         <div class="section-title"><i class="ph-fill ph-users-four"></i> Crescimento</div>
         <div class="kpi-grid">
@@ -592,8 +616,8 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon emerald"><i class="ph-fill ph-trophy"></i></div><div class="card-title">Top Indicadores</div></div>
                 </div>
-                <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Ganhos</th></tr></thead>
-                <tbody id="top-referrers"><tr><td colspan="2" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Indicou</th><th style="text-align:right">Ganhos</th></tr></thead>
+                <tbody id="top-referrers"><tr><td colspan="3" class="tbl-empty">A carregar...</td></tr></tbody></table>
             </div>
             <div class="card">
                 <div class="card-head">
@@ -1200,6 +1224,7 @@ function openDrawer(user) {
             <div class="drawer-field"><span class="drawer-field-label">Desconto pendente</span><span class="drawer-field-value">${formatBRL(u.pendingDiscountCents)}</span></div>
             <div class="drawer-field"><span class="drawer-field-label">Ganhos indicações</span><span class="drawer-field-value">${formatBRL(u.earningsCents)}</span></div>
             <div class="drawer-field"><span class="drawer-field-label">Veio por indicação</span><span class="drawer-field-value">${u.hasReferrer ? 'Sim' : 'Não'}</span></div>
+            <div class="drawer-field"><span class="drawer-field-label">Indicou</span><span class="drawer-field-value">${formatInt(u.indications||0)} pessoa(s)</span></div>
         </div>
         <div class="drawer-section" id="drawer-payments-section">
             <div class="drawer-section-title">Histórico de Pagamentos <button class="qa-pill" style="font-size:11px" onclick="loadDrawerPayments()">Carregar</button></div>
@@ -1261,13 +1286,21 @@ async function loadDrawerPayments() {
    ======================================== */
 function renderRanking(tbodyId, rows, valueField, valueFormatter, opts={}) {
     const tbody = $(tbodyId);
+    const extraCol = opts.extraCol; // {field, format} para coluna extra (indicações)
+    const colCount = extraCol ? 3 : 2;
     tbody.innerHTML = '';
-    if (!rows.length) { tbody.innerHTML = '<tr><td colspan="2" class="tbl-empty">Sem dados.</td></tr>'; return; }
+    if (!rows.length) { tbody.innerHTML = `<tr><td colspan="${colCount}" class="tbl-empty">Sem dados.</td></tr>`; return; }
     rows.forEach(row => {
         const tr = document.createElement('tr');
         tr.className = 'clickable';
         const val = valueFormatter ? valueFormatter(row) : formatBRL(row[valueField]||0);
-        tr.innerHTML = `<td style="font-weight:500">${escHTML(row.email||row.uid)}</td><td class="mono" style="text-align:right">${val}</td>`;
+        let html = `<td style="font-weight:500">${escHTML(row.email||row.uid)}</td>`;
+        if (extraCol) {
+            const ev = extraCol.format ? extraCol.format(row) : (row[extraCol.field] || 0);
+            html += `<td class="mono" style="text-align:right">${ev}</td>`;
+        }
+        html += `<td class="mono" style="text-align:right">${val}</td>`;
+        tr.innerHTML = html;
         tr.addEventListener('click', () => {
             const found = allUsers.find(u => u.uid === row.uid);
             if (found) openDrawer(found);
@@ -1432,6 +1465,15 @@ function renderDashboard(data) {
     $('val-arpu').textContent = formatBRL(b.arpu||0);
     $('val-ltv').textContent = b.ltvCents > 0 ? formatBRL(b.ltvCents) : '—';
 
+    // Receita Realizada + cupom
+    $('val-rev-month').textContent = formatBRL(b.revenueThisMonthCents||0);
+    $('val-rev-month-count').textContent = formatInt(b.paymentsThisMonth);
+    $('val-rev-30d').textContent = formatBRL(b.revenueLast30dCents||0);
+    $('val-rev-30d-count').textContent = formatInt(b.paymentsLast30d);
+    $('val-discount-rate').textContent = formatPct(b.discountRate || 0);
+    $('val-discount-abs').textContent = formatInt(b.usersWithDiscount);
+    $('val-network').textContent = formatInt(b.withReferral);
+
     // Crescimento
     $('val-active').textContent = formatInt(b.active);
     $('val-trial').textContent = formatInt(b.trialActive);
@@ -1468,7 +1510,8 @@ function renderDashboard(data) {
     }
 
     // Rankings
-    renderRanking('top-referrers', b.topReferrers || [], 'earningsCents');
+    renderRanking('top-referrers', b.topReferrers || [], 'earningsCents', null,
+        { extraCol: { field: 'indications', format: r => formatInt(r.indications||0) } });
     renderRanking('top-pending', b.topPending || [], 'pendingCents');
     renderRanking('overdue-list', b.overdueList || [], 'valueCents', r => formatBRL(r.valueCents||0));
     renderRanking('expiring-list', b.expiringList || [], null, r => relativeTime(r.trialEndsMs));
