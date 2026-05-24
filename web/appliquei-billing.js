@@ -246,13 +246,24 @@
     }
   }
 
+  // Estado do gate observado por gateGuard(). Quando true, o
+  // MutationObserver re-aplica display:block / re-insere o elemento se
+  // o cliente tentar removê-lo via DevTools / userscript.
+  var gateLocked = false;
+  var gateUpdating = false;
+  var gateObserver = null;
+
   function showGate(title, sub) {
     ensureGate();
     $('billingTitle').textContent = title;
     $('billingSub').textContent = sub;
     $('billingErr').style.display = 'none';
+    gateUpdating = true;
     $('billingGate').style.display = 'block';
     document.body.style.overflow = 'hidden';
+    gateUpdating = false;
+    gateLocked = true;
+    startGateGuard();
     // Sincroniza preço/desconto com lastBilling sempre que o gate aparece.
     // Sem isto, entradas que pulam o updateGatePrices em applyAccess (trial
     // banner → openSubscribeForm) mostravam o R$ 15,00 estático do template
@@ -260,10 +271,91 @@
     updateGatePrices();
   }
   function hideGate() {
+    gateLocked = false;
+    stopGateGuard();
     var g = $('billingGate');
     if (!g) return;
+    gateUpdating = true;
     g.style.display = 'none';
     document.body.style.overflow = '';
+    gateUpdating = false;
+  }
+
+  // Defesa em profundidade: se algum script externo (extensão, console,
+  // userscript) remover o elemento ou setar display:none enquanto o gate
+  // deveria estar ativo, restauramos. Não impede um atacante determinado
+  // — toda defesa client-side é contornável — mas eleva o esforço acima
+  // do "uma linha no console". A barreira real é firestore.rules e o
+  // /api/sync/push rejeitarem dados de conta bloqueada.
+  function startGateGuard() {
+    if (gateObserver || typeof MutationObserver !== 'function') return;
+    try {
+      gateObserver = new MutationObserver(function (mutations) {
+        if (!gateLocked || gateUpdating) return;
+        var g = $('billingGate');
+        // Removido do DOM → re-injeta e re-aplica os textos atuais.
+        if (!g) {
+          var title = (lastAccess && titleForAccess(lastAccess)) || 'Assinatura necessária';
+          var sub = (lastAccess && subForAccess(lastAccess)) || 'O acesso à plataforma requer uma assinatura ativa.';
+          ensureGate();
+          $('billingTitle').textContent = title;
+          $('billingSub').textContent = sub;
+          gateUpdating = true;
+          $('billingGate').style.display = 'block';
+          document.body.style.overflow = 'hidden';
+          gateUpdating = false;
+          return;
+        }
+        // Display foi forçado para none / hidden — restaura.
+        if (g.style.display !== 'block') {
+          gateUpdating = true;
+          g.style.display = 'block';
+          gateUpdating = false;
+        }
+        if (document.body.style.overflow !== 'hidden') {
+          gateUpdating = true;
+          document.body.style.overflow = 'hidden';
+          gateUpdating = false;
+        }
+      });
+      gateObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style']
+      });
+    } catch (_) { gateObserver = null; }
+  }
+  function stopGateGuard() {
+    if (gateObserver) {
+      try { gateObserver.disconnect(); } catch (_) {}
+      gateObserver = null;
+    }
+  }
+  // Textos canônicos por reason — duplica o switch de applyAccess para
+  // que o guard possa reaplicar sem reentrar em applyAccess (que faria
+  // efeitos colaterais de polling/banners).
+  function titleForAccess(a) {
+    if (a.status === 'pending_payment') return a.reason === 'risk_analysis' ? 'Cartão em análise' : 'Aguardando confirmação de pagamento';
+    if (a.reason === 'overdue') return 'Assinatura em atraso';
+    if (a.reason === 'card_reproved') return 'Cartão recusado';
+    if (a.reason === 'chargeback') return 'Chargeback em curso';
+    if (a.reason === 'cancelled') return 'Assinatura cancelada';
+    if (a.reason === 'trial_expired') return 'Avaliação gratuita terminou';
+    return 'Assinatura necessária';
+  }
+  function subForAccess(a) {
+    if (a.status === 'pending_payment') {
+      return a.reason === 'risk_analysis'
+        ? 'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.'
+        : 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.';
+    }
+    if (a.reason === 'overdue') return 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.';
+    if (a.reason === 'card_reproved') return 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.';
+    if (a.reason === 'chargeback') return 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.';
+    if (a.reason === 'cancelled') return 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.';
+    if (a.reason === 'trial_expired') return 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.';
+    return 'O acesso à plataforma requer uma assinatura ativa.';
   }
   function showErr(msg) {
     ensureGate();
@@ -495,10 +587,29 @@
     return data;
   }
 
+  // Reasons "duras" que indicam ausência de direito de uso. Acionam o
+  // purge do cache local para que remover o modal via DevTools não dê
+  // acesso ao que foi sincronizado antes do bloqueio. NÃO inclui
+  // pending_payment (usuário acabou de assinar, está aguardando webhook).
+  var HARD_BLOCK_REASONS = {
+    trial_expired: 1, overdue: 1, card_reproved: 1,
+    chargeback: 1, cancelled: 1, refunded: 1, no_billing: 1
+  };
+  function purgeLocalCacheIfBlocked(access) {
+    if (!access || access.status !== 'blocked') return;
+    if (!HARD_BLOCK_REASONS[access.reason]) return;
+    try {
+      if (window.AppliqueiCloudSync && typeof window.AppliqueiCloudSync.purgeLocalCache === 'function') {
+        window.AppliqueiCloudSync.purgeLocalCache();
+      }
+    } catch (_) {}
+  }
+
   function applyAccess(access, billing) {
     lastAccess = access;
     if (billing !== undefined && billing !== null) lastBilling = billing;
     if (!access) return;
+    purgeLocalCacheIfBlocked(access);
     // Verify banner tem prioridade sobre o trial. Quando os dois deveriam
     // aparecer ao mesmo tempo, mostra só o verify (mais urgente) e o usuário
     // ainda vê a info do trial dentro do modal Minha assinatura.
@@ -787,8 +898,8 @@
       // U2: re-sincroniza o estado global do banner. /me devolve access
       // e billing fresh; sem isto, abrir Minha assinatura nunca corrige
       // um lastAccess perdido pelo race do kickstart (signup Google novo
-      // em que onAuthStateChanged disparou com __appliqueiBlockBilling=true
-      // e nenhuma das retries chegou a popular o banner).
+      // em que onAuthStateChanged disparou com signupBlocked=true e
+      // nenhuma das retries chegou a popular o banner).
       try { applyAccess(me.access, me); } catch (_) {}
     } catch (e) {
       if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
@@ -1803,6 +1914,16 @@
     }, 5000);
   }
 
+  // Bloqueio temporário durante verificação de signup Google na aba
+  // "Entrar" (evita criar customer no Asaas se o user será rejeitado).
+  // Antes vivia em window.__appliqueiBlockBilling — global público que
+  // qualquer script no console podia setar para impedir o gate. Agora é
+  // closure exposta só via AppliqueiBilling.setSignupBlock(boolean).
+  // Continua "bypassável" via DevTools (toda lógica client é), mas remove
+  // o atalho de uma palavra no console.
+  var signupBlocked = false;
+  function setSignupBlock(v) { signupBlocked = !!v; }
+
   function onUser(user) {
     if (!user) {
       hideGate();
@@ -1812,11 +1933,7 @@
       lastAccess = null;
       return;
     }
-    // Bloqueio temporário durante verificação de signup Google na aba
-    // "Entrar" — evita criar customer no Asaas se o usuário será
-    // rejeitado e a conta Firebase será apagada. Liberado por
-    // window.AppliqueiBilling.kickstart() quando a verificação aceita.
-    if (window.__appliqueiBlockBilling) return;
+    if (signupBlocked) return;
     initBilling().then(function () {
       syncApplicashFromServer().then(function () {
         if (typeof window.atualizarTelaApplicash === 'function') {
@@ -1859,24 +1976,25 @@
     // Dispara onUser manualmente para o user logado atual. Usado após
     // o block ser liberado (Google login validado) para iniciar billing.
     // Repete em 1.5s/4s para cobrir o caso em que onAuthStateChanged
-    // disparou enquanto __appliqueiBlockBilling=true (race no signup Google
-    // novo): sem isto o trial banner só apareceria depois do próximo refresh
+    // disparou enquanto signupBlocked=true (race no signup Google novo):
+    // sem isto o trial banner só apareceria depois do próximo refresh
     // manual, pois nenhum re-trigger de onUser aconteceria.
     kickstart: function () {
       var fb = window.AppliqueiFirebase;
       var attempt = function () {
         try {
           var u = fb && fb.ready && fb.auth && fb.auth.currentUser;
-          if (u && !window.__appliqueiBlockBilling) onUser(u);
+          if (u && !signupBlocked) onUser(u);
         } catch (_) {}
       };
       attempt();
       // Retry curto só se o primeiro /init ainda não populou lastAccess.
       // Cobre o race do signup Google novo, em que onAuthStateChanged
-      // disparou com __appliqueiBlockBilling=true e o trial banner ficava
-      // sem aparecer até refresh manual.
+      // disparou enquanto signupBlocked=true e o trial banner ficava sem
+      // aparecer até refresh manual.
       setTimeout(function () { if (!lastAccess) attempt(); }, 1500);
       setTimeout(function () { if (!lastAccess) attempt(); }, 4500);
     },
+    setSignupBlock: setSignupBlock,
   };
 })();

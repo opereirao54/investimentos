@@ -677,6 +677,19 @@
     pullNow: function (cb) {
       var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u) pullAndApply(u.uid, cb || function () {});
+    },
+    // Limpa todas as chaves sincronizáveis do localStorage. Chamado pelo
+    // gate de billing quando o backend reporta access.status === 'blocked'
+    // para que remover o modal via DevTools não dê acesso ao cache local.
+    // Idempotente; deixa intactas chaves não-sincronizáveis (preferências
+    // de UI puramente locais).
+    purgeLocalCache: function () {
+      stopSnapshotListener();
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+      dirtyKeys = {};
+      initialPullDone = false;
+      clearUserScopedKeys();
     }
   };
 })();
