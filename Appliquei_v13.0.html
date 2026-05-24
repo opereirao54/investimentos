@@ -12516,7 +12516,7 @@
                 const token = (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser)
                     ? await firebase.auth().currentUser.getIdToken() : null;
                 if(!token) throw new Error('sem_token');
-                const url = '/api/market/quote?tickers=' + encodeURIComponent(tickers.join(','));
+                const url = '/api/market?op=quote&tickers=' + encodeURIComponent(tickers.join(','));
                 const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
                 const data = await res.json();
                 if(!res.ok) throw new Error(data.error || 'falha');
