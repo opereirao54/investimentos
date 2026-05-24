@@ -770,6 +770,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <option value="gift_pro_days">🎁 Oferecer PRO (N dias)</option>
                     <option value="make_pro">🌟 Tornar PRO Permanente</option>
                     <option value="extend_trial">⏳ Estender Trial (+7d)</option>
+                    <option value="suspend_trial">⛔ Suspender Trial (expira agora)</option>
                     <option value="force_verify">🛡️ Forçar Verificação E-mail</option>
                     <option value="send_verify_link">📧 Enviar Link Verificação</option>
                     <option value="password_reset_link">🔑 Link de Reset de Senha</option>
@@ -788,6 +789,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <button class="qa-pill" onclick="quickAction('view_payments')"><i class="ph ph-receipt"></i> Pagamentos</button>
                     <button class="qa-pill" onclick="quickAction('gift_pro_days', 30)"><i class="ph ph-gift"></i> Oferecer 30d</button>
                     <button class="qa-pill" onclick="quickAction('extend_trial')"><i class="ph ph-hourglass"></i> +7d Trial</button>
+                    <button class="qa-pill destructive" onclick="quickAction('suspend_trial')"><i class="ph ph-hourglass-low"></i> Suspender Trial</button>
                     <button class="qa-pill" onclick="quickAction('set_discount', 5)"><i class="ph ph-tag"></i> Desconto R$5</button>
                     <button class="qa-pill" onclick="quickAction('set_discount', 10)"><i class="ph ph-tag"></i> Desconto R$10</button>
                     <button class="qa-pill" onclick="quickAction('set_discount', 15)"><i class="ph ph-tag"></i> Desconto R$15</button>
@@ -826,6 +828,7 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
                 <option value="gift_pro_days">gift_pro_days</option>
                 <option value="make_pro">make_pro</option>
                 <option value="extend_trial">extend_trial</option>
+                <option value="suspend_trial">suspend_trial</option>
                 <option value="force_verify">force_verify</option>
                 <option value="send_verify_link">send_verify_link</option>
                 <option value="password_reset_link">password_reset_link</option>
@@ -871,7 +874,7 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
 /* ========================================
    STATE
    ======================================== */
-const DESTRUCTIVE = new Set(['reset_billing','make_pro','disable_user']);
+const DESTRUCTIVE = new Set(['reset_billing','make_pro','disable_user','suspend_trial']);
 let allUsers = [];
 let userFilter = 'all';
 let userSort = { field: 'createdAtMs', dir: 'desc' };
@@ -1236,6 +1239,7 @@ function openDrawer(user) {
         <div class="quick-actions">
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','full_xray')"><i class="ph ph-magnifying-glass"></i> Raio-X</button>
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','extend_trial')"><i class="ph ph-hourglass"></i> +7d Trial</button>
+            ${u.status === 'trial' ? `<button class="qa-pill destructive" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','suspend_trial')"><i class="ph ph-hourglass-low"></i> Suspender Trial</button>` : ''}
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','gift_pro_days','30')"><i class="ph ph-gift"></i> +30d PRO</button>
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','password_reset_link')"><i class="ph ph-key"></i> Reset senha</button>
             ${u.emailVerified ? '' : `<button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','send_verify_link')"><i class="ph ph-envelope"></i> Verificar email</button>`}
@@ -1612,7 +1616,7 @@ async function executeSuperpower() {
     const output = $('action-output');
     if (!email) { output.textContent = '⚠ Erro: insira o e-mail ou UID do utilizador alvo.'; toast('Insira o e-mail/UID alvo.', 'warn'); return; }
     if (DESTRUCTIVE.has(action)) {
-        const labels = { reset_billing:'APAGAR billing', make_pro:'forçar PRO', disable_user:'SUSPENDER conta' };
+        const labels = { reset_billing:'APAGAR billing', make_pro:'forçar PRO', disable_user:'SUSPENDER conta', suspend_trial:'SUSPENDER trial (expira agora)' };
         if (!confirm(`${labels[action]||'ação'} para ${email}?\n\nFica registado no audit log.`)) return;
     }
     output.textContent = '⏳ A contactar o backend...\n';
@@ -1684,7 +1688,7 @@ async function executeSuperpower() {
         } else {
             output.textContent += `\n✅ ${data.message}`;
             toast(data.message, 'success');
-            if (['disable_user','enable_user','force_verify','set_discount','gift_pro_days','make_pro','extend_trial','reset_billing'].includes(action)) {
+            if (['disable_user','enable_user','force_verify','set_discount','gift_pro_days','make_pro','extend_trial','suspend_trial','reset_billing'].includes(action)) {
                 setTimeout(loadStats, 600);
             }
         }

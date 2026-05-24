@@ -7,7 +7,7 @@ const { cors } = require('../_lib/auth');
 // Cada ação executada é registada em `adminAuditLog/{autoId}` para rastreio.
 // Custo: 1 lookup auth + 1-2 ops Firestore + 1 write audit por chamada.
 
-const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro', 'disable_user']);
+const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro', 'disable_user', 'suspend_trial']);
 
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   try {
@@ -123,6 +123,25 @@ module.exports = async (req, res) => {
         after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
       });
       return res.json({ success: true, message: 'Trial estendido por 7 dias.' });
+    }
+
+    if (action === 'suspend_trial') {
+      const beforeSnap = await docRef.get();
+      const beforeData = beforeSnap.data() || {};
+      const beforeTrial = beforeData.trialEndsAt;
+      const beforeMs = beforeTrial && typeof beforeTrial.toMillis === 'function' ? beforeTrial.toMillis() : null;
+      // Idempotente: se trial já expirou (ou não existe), nada a fazer.
+      if (!beforeMs || beforeMs <= Date.now()) {
+        return res.json({ success: true, message: 'Trial já estava expirado/inexistente — nada a alterar.' });
+      }
+      const newTrialEndsAt = timestamp().now();
+      await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
+      await writeAudit({
+        action, email, uid, actor,
+        before: { trialEndsAt: new Date(beforeMs).toISOString() },
+        after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
+      });
+      return res.json({ success: true, message: 'Trial suspenso (expirado agora).' });
     }
 
     if (action === 'gift_pro_days') {

@@ -237,7 +237,6 @@ function setup(opts = {}) {
     subscribe: require(path.join(ROOT, 'api/billing/subscribe')),
     webhook: require(path.join(ROOT, 'api/billing/webhook')),
     me: require(path.join(ROOT, 'api/billing/me')),
-    status: require(path.join(ROOT, 'api/billing/status')),
     cancel: require(path.join(ROOT, 'api/billing/cancel')),
     customer: require(path.join(ROOT, 'api/billing/customer')),
     computeAccess: require(path.join(ROOT, 'api/_lib/access')).computeAccess,

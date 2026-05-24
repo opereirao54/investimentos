@@ -117,7 +117,7 @@ Notas:
 | Método | Rota | Auth | Função |
 |--------|------|------|--------|
 | `POST` | `/api/billing/init` | Bearer ID token | cria cliente Asaas + define `trialEndsAt` |
-| `GET`  | `/api/billing/status` | Bearer ID token | devolve `{ access, billing }` |
+| `GET`  | `/api/billing/me` | Bearer ID token | devolve `{ access, billing, referrals, payments, ... }` (consolida o antigo `/status`) |
 | `POST` | `/api/billing/subscribe` | Bearer ID token | cria assinatura, devolve `invoiceUrl` |
 | `POST` | `/api/billing/webhook` | header `asaas-access-token` | atualiza billing/payments |
 
