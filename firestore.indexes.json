@@ -30,6 +30,14 @@
       ]
     },
     {
+      "collectionGroup": "payments",
+      "fieldPath": "receivedAt",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
+    {
       "collectionGroup": "webhookEvents",
       "fieldPath": "expiresAt",
       "ttl": true,
