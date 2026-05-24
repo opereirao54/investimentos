@@ -8,6 +8,9 @@
   "functions": {
     "api/**/*.js": { "memory": 256, "maxDuration": 15 }
   },
+  "crons": [
+    { "path": "/api/market/warmup", "schedule": "0 22 * * 1-5" }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",

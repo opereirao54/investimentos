@@ -106,6 +106,14 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Cache de cotações de Renda Variável. Cliente acessa via
+    // /api/market/quote (Admin SDK), portanto nega leitura direta —
+    // mantém superfície de ataque mínima.
+    match /marketQuotes/{ticker} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // Nada mais é permitido por defeito (negação implícita).
   }
 }
