@@ -128,7 +128,7 @@ Notas:
 - **Antifraude /init**: rate-limit por IP (5/24h) e device fingerprint (3/30d) na primeira criação; rate-limit reduzido (10/h) também em retro-apply de cupom. Gated por `ANTIFRAUD_INIT_ENABLED`.
 - **Referral guard unificado**: `api/_lib/referral-guard.js` bloqueia self-referral por uid/device/CPF/IP (IP opt-in via `REFERRAL_BLOCK_SAME_IP`) e indicador `INACTIVE`. Aplicado em `/init` (criação e retro-apply) e em `/subscribe` (revalidação quando CPF chega).
 - **Idempotência Asaas**: `createCustomer` faz lookup por `externalReference=uid` antes de criar — evita customers duplicados após retry de função.
-- **Sem bypass no frontend**: gate é decorativo — todo o estado de acesso depende do que o backend devolve, e as regras Firestore impedem o cliente de escrever o seu próprio `billing/account`.
+- **Sem bypass no frontend**: o gate visual é apenas UX; a barreira real é (a) `firestore.rules` exigir `hasActiveAccess(uid)` em LEITURA e ESCRITA de `users/{uid}/data/main` — então mesmo removendo o modal via DevTools o SDK Firestore não devolve dados de conta bloqueada; (b) `/api/sync/push` recusar 403 `access_blocked`; (c) cliente não consegue escrever `billing/account` (`allow write: if false`). Defesa em profundidade no front: `MutationObserver` re-injeta o gate se removido e o cache `localStorage` sincronizado é purgado quando `access.status === 'blocked'` com reason "dura" (trial_expired/overdue/cancelled/chargeback/refunded/card_reproved/no_billing).
 - **Webhook**: rejeitado sem `asaas-access-token` correto.
 - **Modo offline removido**: a opção “continuar sem conta” já não existe; força conta + trial.
 - **Service Account**: apenas em env vars (nunca no repo).

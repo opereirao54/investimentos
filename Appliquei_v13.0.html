@@ -74,8 +74,8 @@
       } catch (e) { console.warn('[AppliqueiFirebase]', e); }
     })();
     </script>
-    <script src="web/appliquei-cloud-sync.js?v=20260521c"></script>
-    <script src="web/appliquei-billing.js?v=20260520b"></script>
+    <script src="web/appliquei-cloud-sync.js?v=20260524a"></script>
+    <script src="web/appliquei-billing.js?v=20260524a"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
@@ -12878,6 +12878,19 @@
     function isGuest() {
         try { return localStorage.getItem(GUEST_KEY) === '1'; } catch (_) { return false; }
     }
+    // Proxy seguro para AppliqueiBilling.setSignupBlock. Antes este bloqueio
+    // vivia em window.__appliqueiBlockBilling — global público que qualquer
+    // script no console podia setar para impedir o gate de aparecer. Agora
+    // o estado é closure interna do módulo de billing; só a API setSignupBlock
+    // o altera. Mantém-se idempotente e tolerante a ordem de carregamento
+    // (se AppliqueiBilling ainda não montou, no-op).
+    function appliqueiSetSignupBlock(v) {
+        try {
+            if (window.AppliqueiBilling && typeof window.AppliqueiBilling.setSignupBlock === 'function') {
+                window.AppliqueiBilling.setSignupBlock(v);
+            }
+        } catch (_) {}
+    }
     function showGate() {
         var g = $('authGate');
         if (!g) return;
@@ -13194,8 +13207,8 @@
         if (isNew && requireExisting) {
             // Rejeita signup acidental: usuário clicou Google na aba "Entrar"
             // mas não tinha conta. Apaga o user recém-criado no Firebase Auth
-            // (não tendo billing.account ainda — graças ao __appliqueiBlockBilling
-            // — o cleanup é completo).
+            // (não tendo billing.account ainda — graças ao signupBlock
+            // mantido até este handler executar — o cleanup é completo).
             //
             // Flag __appliqueiAuthGoogleRejecting: faz o onAuthStateChanged
             // skipar o setTimeout que mostraria o form e LIMPARIA o erro
@@ -13203,7 +13216,7 @@
             window.__appliqueiAuthGoogleRejecting = true;
             var u = fb && fb.auth && fb.auth.currentUser;
             var done = function () {
-                window.__appliqueiBlockBilling = false;
+                appliqueiSetSignupBlock(false);
                 showGate();
                 setSub('Não encontramos sua conta');
                 setAuthPanel('form');
@@ -13242,7 +13255,7 @@
         }
 
         // Caminho positivo: libera billing e mostra feedback se for novo.
-        window.__appliqueiBlockBilling = false;
+        appliqueiSetSignupBlock(false);
         try {
             if (window.AppliqueiBilling && typeof window.AppliqueiBilling.kickstart === 'function') {
                 window.AppliqueiBilling.kickstart();
@@ -13293,7 +13306,7 @@
         } catch (_) {}
 
         // Bloqueia billing até o handler validar a intenção.
-        window.__appliqueiBlockBilling = true;
+        appliqueiSetSignupBlock(true);
 
         window.appliqueiAuthErr('');
         var btn = $('authBtnGoogle');
@@ -13304,7 +13317,7 @@
             // Caminho popup. Redirect resolve via getRedirectResult em initAppliqueiAuth.
             handleGoogleAuthResult(result, { requireExisting: requireExisting });
         }).catch(function (err) {
-            window.__appliqueiBlockBilling = false;
+            appliqueiSetSignupBlock(false);
             window.appliqueiAuthErr(mapAuthErr(err));
         }).finally(function () {
             if (btn) btn.disabled = false;
@@ -13440,20 +13453,20 @@
                 redirectRequireExisting = sessionStorage.getItem('appliquei_google_require_existing') === '1';
                 sessionStorage.removeItem('appliquei_google_require_existing');
             } catch (_) {}
-            window.__appliqueiBlockBilling = true;
+            appliqueiSetSignupBlock(true);
             AppliqueiFirebase.auth.getRedirectResult().then(function (result) {
                 if (result && result.user) {
                     handleGoogleAuthResult(result, { requireExisting: redirectRequireExisting });
                 } else {
                     // Sem resultado pendente (página carregada sem vir de redirect).
-                    window.__appliqueiBlockBilling = false;
+                    appliqueiSetSignupBlock(false);
                 }
             }).catch(function (err) {
-                window.__appliqueiBlockBilling = false;
+                appliqueiSetSignupBlock(false);
                 if (err && err.code) window.appliqueiAuthErr(mapAuthErr(err));
             });
         } catch (_) {
-            window.__appliqueiBlockBilling = false;
+            appliqueiSetSignupBlock(false);
         }
         var authUiTimer = null;
         AppliqueiFirebase.auth.onAuthStateChanged(function (user) {

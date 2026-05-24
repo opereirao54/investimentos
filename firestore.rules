@@ -57,11 +57,18 @@ service cloud.firestore {
     // ler o próprio estado durante o período de transição). A versão
     // mais estrita está em firestore.rules.enforced para deploy quando
     // o backfill estiver concluído.
+    // Leitura também exige hasActiveAccess(userId). Antes a regra só
+    // gateava escrita — um usuário com trial expirado podia abrir o
+    // DevTools, chamar o SDK Firestore direto, e ler todo o portfólio,
+    // contornando o gate visual do front. Bloquear leitura fecha esse
+    // canal: a única forma de obter os dados é via assinatura ativa
+    // (trial vivo, ciclo pago de 30d, ou sub ACTIVE saudável).
     match /users/{userId}/data/{docId} {
       allow read: if request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.uid == userId
-        && docId == 'main';
+        && docId == 'main'
+        && hasActiveAccess(userId);
       allow create, update: if request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.uid == userId

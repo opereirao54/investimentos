@@ -48,10 +48,13 @@ service cloud.firestore {
         );
     }
 
+    // Leitura também exige hasActiveAccess — fecha bypass DevTools que
+    // ignorava o gate visual e lia o doc direto via SDK Firestore.
     match /users/{userId}/data/{docId} {
       allow read: if isVerified()
         && request.auth.uid == userId
-        && docId == 'main';
+        && docId == 'main'
+        && hasActiveAccess(userId);
       allow create, update: if isVerified()
         && request.auth.uid == userId
         && docId == 'main'
