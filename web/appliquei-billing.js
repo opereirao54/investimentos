@@ -932,76 +932,107 @@
     var s = document.createElement('style');
     s.id = 'appliqueiMyAccountStyles';
     s.textContent = [
-      '#myAccountModal .ma-shell{width:100%;max-width:720px;background:#fff;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.32);color:#0b1410;font-family:Figtree,sans-serif;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 48px);}',
-      '#myAccountModal .ma-head{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #eef2f0;background:linear-gradient(180deg,#fbfdfc,#f5f8f7);}',
-      '#myAccountModal .ma-head h2{font-family:Syne,sans-serif;font-size:1.2rem;margin:0;letter-spacing:-.01em;}',
-      '#myAccountModal .ma-head .ma-close{border:none;background:transparent;cursor:pointer;font-size:26px;line-height:1;color:#6b7d75;padding:4px 8px;border-radius:8px;}',
-      '#myAccountModal .ma-head .ma-close:hover{background:#eef2f0;}',
-      '#myAccountModal .ma-body{overflow-y:auto;padding:20px 22px 24px;}',
-      '#myAccountModal .ma-hero{position:relative;padding:18px 20px;border-radius:14px;background:linear-gradient(135deg,#064e3b 0%,#065f46 55%,#047857 100%);color:#fff;box-shadow:0 8px 22px rgba(6,95,70,.25);overflow:hidden;}',
-      '#myAccountModal .ma-hero.is-trial{background:linear-gradient(135deg,#075985 0%,#0369a1 55%,#0891b2 100%);box-shadow:0 8px 22px rgba(3,105,161,.25);}',
-      '#myAccountModal .ma-hero.is-blocked{background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 55%,#dc2626 100%);box-shadow:0 8px 22px rgba(185,28,28,.25);}',
-      '#myAccountModal .ma-hero.is-pending{background:linear-gradient(135deg,#854d0e 0%,#a16207 55%,#ca8a04 100%);box-shadow:0 8px 22px rgba(161,98,7,.25);}',
-      '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,#1f2937 0%,#374151 55%,#4b5563 100%);box-shadow:0 8px 22px rgba(31,41,55,.25);}',
-      '#myAccountModal .ma-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;padding:4px 10px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.25);border-radius:999px;}',
-      '#myAccountModal .ma-hero-title{font-family:Syne,sans-serif;font-size:1.5rem;font-weight:700;margin:10px 0 4px;letter-spacing:-.01em;}',
-      '#myAccountModal .ma-hero-sub{font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.92);margin:0;}',
-      '#myAccountModal .ma-hero-cta{display:inline-flex;align-items:center;justify-content:center;gap:6px;margin-top:14px;padding:10px 16px;background:#fff;color:#064e3b;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;}',
-      '#myAccountModal .ma-hero.is-trial .ma-hero-cta{color:#075985;}',
-      '#myAccountModal .ma-hero.is-blocked .ma-hero-cta{color:#7f1d1d;}',
-      '#myAccountModal .ma-hero.is-pending .ma-hero-cta{color:#854d0e;}',
-      '#myAccountModal .ma-hero.is-inactive .ma-hero-cta{color:#1f2937;}',
-      '#myAccountModal .ma-hero-bar{margin-top:14px;background:rgba(255,255,255,.18);border-radius:999px;height:8px;overflow:hidden;}',
-      '#myAccountModal .ma-hero-bar > span{display:block;height:100%;background:#fff;border-radius:999px;transition:width .6s ease;}',
-      '#myAccountModal .ma-hero-meta{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(255,255,255,.88);margin-top:6px;letter-spacing:.3px;}',
-      '#myAccountModal .ma-section{margin-top:18px;}',
-      '#myAccountModal .ma-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#6b7d75;margin:0 0 8px;display:flex;align-items:center;gap:6px;}',
-      '#myAccountModal .ma-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}',
-      '#myAccountModal .ma-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}',
-      '#myAccountModal .ma-card{background:#fff;border:1px solid #e4ebe7;border-radius:12px;padding:12px 14px;}',
-      '#myAccountModal .ma-card-label{font-size:10.5px;font-weight:700;color:#6b7d75;text-transform:uppercase;letter-spacing:.5px;}',
-      '#myAccountModal .ma-card-value{font-size:16px;font-weight:700;color:#0b1410;margin-top:3px;line-height:1.25;}',
-      '#myAccountModal .ma-card-foot{font-size:11px;color:#6b7d75;margin-top:3px;}',
-      '#myAccountModal .ma-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;}',
+      // Backdrop em vidro: blur + tint escuro com gradiente sutil radial
+      // (mesmo idiom da tela de pagamento) — sensação de overlay premium.
+      '#myAccountModal{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:radial-gradient(1200px 600px at 50% -10%, rgba(26,58,42,.45) 0%, transparent 60%), rgba(15,23,42,.62);}',
+      // Shell: cantos amplos, sombra ampla com tint colorida, divisão clara entre head/body/foot.
+      '#myAccountModal .ma-shell{width:100%;max-width:760px;background:#fff;border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.04);color:#0f172a;font-family:Figtree,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 48px);-webkit-font-smoothing:antialiased;}',
+      '#myAccountModal .ma-head{display:flex;align-items:center;justify-content:space-between;padding:20px 26px;border-bottom:1px solid #f1f5f9;background:#fff;}',
+      '#myAccountModal .ma-head h2{font-family:Syne,sans-serif;font-size:1.3rem;margin:0;letter-spacing:-.02em;font-weight:700;color:#0f172a;}',
+      '#myAccountModal .ma-head .ma-close{border:none;background:transparent;cursor:pointer;width:34px;height:34px;line-height:1;color:#64748b;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;transition:background .15s ease,color .15s ease;}',
+      '#myAccountModal .ma-head .ma-close:hover{background:#f1f5f9;color:#0f172a;}',
+      '#myAccountModal .ma-body{overflow-y:auto;padding:22px 26px 26px;background:#fafbfc;}',
+      // Hero: gradients refinados com sombras tonais; cantos 16px; tipografia maior.
+      '#myAccountModal .ma-hero{position:relative;padding:20px 22px;border-radius:16px;background:linear-gradient(135deg,#047857 0%,#059669 50%,#10b981 100%);color:#fff;box-shadow:0 12px 32px -8px rgba(5,150,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;overflow:hidden;}',
+      '#myAccountModal .ma-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 100% 0%, rgba(255,255,255,.12), transparent 60%);pointer-events:none;}',
+      '#myAccountModal .ma-hero.is-trial{background:linear-gradient(135deg,#0369a1 0%,#0891b2 50%,#06b6d4 100%);box-shadow:0 12px 32px -8px rgba(8,145,178,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+      '#myAccountModal .ma-hero.is-blocked{background:linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#ef4444 100%);box-shadow:0 12px 32px -8px rgba(220,38,38,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+      '#myAccountModal .ma-hero.is-pending{background:linear-gradient(135deg,#a16207 0%,#ca8a04 50%,#eab308 100%);box-shadow:0 12px 32px -8px rgba(202,138,4,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+      '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,#334155 0%,#475569 50%,#64748b 100%);box-shadow:0 12px 32px -8px rgba(71,85,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+      '#myAccountModal .ma-hero.is-oneshot{background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 50%,#8b5cf6 100%);box-shadow:0 12px 32px -8px rgba(124,58,237,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+      '#myAccountModal .ma-hero > *{position:relative;z-index:1;}',
+      '#myAccountModal .ma-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);border-radius:999px;backdrop-filter:blur(4px);}',
+      '#myAccountModal .ma-hero-title{font-family:Syne,sans-serif;font-size:1.6rem;font-weight:700;margin:12px 0 5px;letter-spacing:-.02em;line-height:1.15;}',
+      '#myAccountModal .ma-hero-sub{font-size:13.5px;line-height:1.55;color:rgba(255,255,255,.94);margin:0;}',
+      '#myAccountModal .ma-hero-cta{display:inline-flex;align-items:center;justify-content:center;gap:7px;margin-top:16px;padding:11px 18px;background:#fff;color:#065f46;border:none;border-radius:11px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.01em;box-shadow:0 4px 12px -2px rgba(0,0,0,.18);transition:transform .1s ease,box-shadow .15s ease;}',
+      '#myAccountModal .ma-hero-cta:hover{box-shadow:0 6px 16px -2px rgba(0,0,0,.22);}',
+      '#myAccountModal .ma-hero-cta:active{transform:translateY(1px);}',
+      '#myAccountModal .ma-hero.is-trial .ma-hero-cta{color:#0369a1;}',
+      '#myAccountModal .ma-hero.is-blocked .ma-hero-cta{color:#b91c1c;}',
+      '#myAccountModal .ma-hero.is-pending .ma-hero-cta{color:#a16207;}',
+      '#myAccountModal .ma-hero.is-inactive .ma-hero-cta{color:#334155;}',
+      '#myAccountModal .ma-hero.is-oneshot .ma-hero-cta{color:#5b21b6;}',
+      '#myAccountModal .ma-hero-bar{margin-top:16px;background:rgba(255,255,255,.2);border-radius:999px;height:8px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.1);}',
+      '#myAccountModal .ma-hero-bar > span{display:block;height:100%;background:#fff;border-radius:999px;transition:width .6s ease;box-shadow:0 1px 2px rgba(0,0,0,.08);}',
+      '#myAccountModal .ma-hero-meta{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(255,255,255,.9);margin-top:7px;letter-spacing:.02em;font-weight:500;}',
+      // Section spacing maior; título com letter-spacing maior — visual mais arejado.
+      '#myAccountModal .ma-section{margin-top:24px;}',
+      '#myAccountModal .ma-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 10px;display:flex;align-items:center;gap:7px;}',
+      '#myAccountModal .ma-section-title i{color:#059669;font-size:13px;}',
+      '#myAccountModal .ma-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}',
+      '#myAccountModal .ma-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}',
+      // Cards: padding maior, border slate-200, hover lift sutil. Valores grandes em Syne.
+      '#myAccountModal .ma-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;transition:border-color .15s ease,box-shadow .15s ease;}',
+      '#myAccountModal .ma-card:hover{border-color:#cbd5e1;box-shadow:0 2px 6px rgba(15,23,42,.04);}',
+      '#myAccountModal .ma-card-label{font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;}',
+      '#myAccountModal .ma-card-value{font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#0f172a;margin-top:4px;line-height:1.2;letter-spacing:-.02em;}',
+      '#myAccountModal .ma-card-foot{font-size:11.5px;color:#64748b;margin-top:5px;line-height:1.4;}',
+      '#myAccountModal .ma-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.01em;}',
       '#myAccountModal .ma-badge.ok{background:#ecfdf5;color:#065f46;}',
-      '#myAccountModal .ma-badge.warn{background:#fef3c7;color:#854d0e;}',
-      '#myAccountModal .ma-badge.bad{background:#fee2e2;color:#7f1d1d;}',
-      '#myAccountModal .ma-badge.muted{background:#f1f5f3;color:#384a42;}',
-      '#myAccountModal .ma-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#fff;border:1px solid #e4ebe7;border-radius:10px;}',
-      '#myAccountModal .ma-row + .ma-row{margin-top:6px;}',
-      '#myAccountModal .ma-row-main{display:flex;align-items:center;gap:10px;min-width:0;}',
-      '#myAccountModal .ma-row-icon{flex:0 0 32px;height:32px;border-radius:8px;background:#ecfdf5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:16px;}',
-      '#myAccountModal .ma-row-text{font-size:13px;color:#0b1410;min-width:0;}',
-      '#myAccountModal .ma-row-text small{display:block;font-size:11.5px;color:#6b7d75;margin-top:2px;font-weight:500;}',
+      '#myAccountModal .ma-badge.warn{background:#fef3c7;color:#92400e;}',
+      '#myAccountModal .ma-badge.bad{background:#fee2e2;color:#991b1b;}',
+      '#myAccountModal .ma-badge.muted{background:#f1f5f9;color:#475569;}',
+      // Rows: padding maior, ícone com leve sombra interna, hover state.
+      '#myAccountModal .ma-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;transition:border-color .15s ease;}',
+      '#myAccountModal .ma-row:hover{border-color:#cbd5e1;}',
+      '#myAccountModal .ma-row + .ma-row{margin-top:8px;}',
+      '#myAccountModal .ma-row-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1;}',
+      '#myAccountModal .ma-row-icon{flex:0 0 36px;height:36px;border-radius:10px;background:#ecfdf5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:inset 0 0 0 1px rgba(5,150,105,.1);}',
+      '#myAccountModal .ma-row-text{font-size:13.5px;color:#0f172a;min-width:0;font-weight:600;line-height:1.35;}',
+      '#myAccountModal .ma-row-text small{display:block;font-size:12px;color:#64748b;margin-top:2px;font-weight:500;}',
       '#myAccountModal .ma-row-action{flex:0 0 auto;}',
-      '#myAccountModal .ma-btn{border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:7px 12px;border-radius:9px;font-size:12px;color:#384a42;font-weight:600;font-family:inherit;}',
-      '#myAccountModal .ma-btn:hover{background:#f1f5f3;}',
-      '#myAccountModal .ma-btn-primary{border:none;background:#059669;color:#fff;}',
-      '#myAccountModal .ma-btn-primary:hover{background:#047857;}',
-      '#myAccountModal .ma-btn-danger{border:none;background:#fff;color:#7f1d1d;text-decoration:underline;padding:6px 8px;}',
-      '#myAccountModal .ma-btn-danger:hover{background:#fee2e2;text-decoration:none;}',
+      // Buttons: ghost padrão; primary com gradient verde (alinhado com .bg-cta).
+      '#myAccountModal .ma-btn{border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:8px 14px;border-radius:10px;font-size:12.5px;color:#334155;font-weight:600;font-family:inherit;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center;gap:5px;letter-spacing:.01em;}',
+      '#myAccountModal .ma-btn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a;}',
+      '#myAccountModal .ma-btn:active{transform:translateY(1px);}',
+      '#myAccountModal .ma-btn-primary{border:none;background:linear-gradient(180deg,#10b981 0%,#059669 100%);color:#fff;box-shadow:0 2px 8px -1px rgba(5,150,105,.35),inset 0 1px 0 rgba(255,255,255,.18);padding:9px 16px;}',
+      '#myAccountModal .ma-btn-primary:hover{background:linear-gradient(180deg,#10b981 0%,#047857 100%);color:#fff;border:none;box-shadow:0 4px 12px -2px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,255,.18);}',
+      '#myAccountModal .ma-btn-danger{border:none;background:#fff;color:#991b1b;text-decoration:none;padding:8px 14px;border-radius:10px;font-weight:600;font-size:12.5px;}',
+      '#myAccountModal .ma-btn-danger:hover{background:#fef2f2;color:#7f1d1d;}',
+      // Table: linha hover, mono digits, vertical padding maior.
       '#myAccountModal .ma-table{width:100%;font-size:12.5px;border-collapse:collapse;}',
-      '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:#6b7d75;text-transform:uppercase;letter-spacing:.5px;text-align:left;padding:6px 8px;border-bottom:1px solid #eef2f0;}',
-      '#myAccountModal .ma-table td{padding:8px;border-bottom:1px solid #f5f7f6;vertical-align:top;color:#1d2a23;}',
+      '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;}',
+      '#myAccountModal .ma-table td{padding:11px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;color:#334155;font-size:13px;}',
       '#myAccountModal .ma-table tr:last-child td{border-bottom:none;}',
-      '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;}',
-      '#myAccountModal .ma-empty{padding:14px;text-align:center;color:#6b7d75;font-size:12.5px;background:#f9fbfa;border:1px dashed #d4dad7;border-radius:10px;}',
-      '#myAccountModal .ma-collapsible{border:1px solid #e4ebe7;border-radius:12px;overflow:hidden;}',
-      '#myAccountModal .ma-collapsible > summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:13px;font-weight:600;color:#1d2a23;display:flex;align-items:center;justify-content:space-between;background:#fbfdfc;}',
-      '#myAccountModal .ma-collapsible > summary::after{content:"\\25BE";color:#6b7d75;transition:transform .2s;}',
-      '#myAccountModal .ma-collapsible[open] > summary::after{transform:rotate(180deg);}',
-      '#myAccountModal .ma-collapsible > div{padding:8px 14px 14px;}',
-      '#myAccountModal .ma-alert{margin-top:14px;background:#fef3c7;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 14px;font-size:12.5px;line-height:1.5;}',
-      '#myAccountModal .ma-alert.bad{background:#fee2e2;border-color:#fecaca;color:#7f1d1d;}',
-      '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 22px;border-top:1px solid #eef2f0;background:#fbfdfc;}',
-      '#myAccountModal .ma-foot-link{font-size:11.5px;color:#6b7d75;}',
+      '#myAccountModal .ma-table tr:hover td{background:#f8fafc;}',
+      '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:#0f172a;}',
+      '#myAccountModal .ma-empty{padding:18px;text-align:center;color:#64748b;font-size:13px;background:#fff;border:1.5px dashed #e2e8f0;border-radius:12px;line-height:1.5;}',
+      // Collapsible: visual mais limpo, chevron animado.
+      '#myAccountModal .ma-collapsible{border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;transition:border-color .15s ease;}',
+      '#myAccountModal .ma-collapsible:hover{border-color:#cbd5e1;}',
+      '#myAccountModal .ma-collapsible > summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:13px;font-weight:600;color:#0f172a;display:flex;align-items:center;justify-content:space-between;}',
+      '#myAccountModal .ma-collapsible > summary::-webkit-details-marker{display:none;}',
+      '#myAccountModal .ma-collapsible > summary::after{content:"\\25BE";color:#94a3b8;transition:transform .2s ease;font-size:14px;}',
+      '#myAccountModal .ma-collapsible[open] > summary{border-bottom:1px solid #f1f5f9;}',
+      '#myAccountModal .ma-collapsible[open] > summary::after{transform:rotate(180deg);color:#059669;}',
+      '#myAccountModal .ma-collapsible > div{padding:14px 16px;}',
+      // Alerts: borda mais marcada, ícone, fundo suave.
+      '#myAccountModal .ma-alert{margin-top:16px;background:#fffbeb;border:1px solid #fde68a;color:#854d0e;border-radius:12px;padding:13px 15px;font-size:13px;line-height:1.5;display:flex;gap:9px;align-items:flex-start;}',
+      '#myAccountModal .ma-alert.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b;}',
+      '#myAccountModal .ma-alert i{flex-shrink:0;font-size:17px;margin-top:1px;}',
+      // Foot mais limpo (sem fundo cinza, alinhado com o ma-body).
+      '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 26px;border-top:1px solid #f1f5f9;background:#fff;}',
+      '#myAccountModal .ma-foot-link{font-size:12px;color:#64748b;display:inline-flex;align-items:center;gap:6px;}',
+      '#myAccountModal .ma-foot-link i{color:#059669;}',
       '@media (max-width:560px){',
       '  #myAccountModal{padding:12px 8px;}',
-      '  #myAccountModal .ma-shell{max-height:calc(100vh - 16px);border-radius:14px;}',
-      '  #myAccountModal .ma-head{padding:14px 16px;}',
-      '  #myAccountModal .ma-body{padding:16px;}',
+      '  #myAccountModal .ma-shell{max-height:calc(100vh - 16px);border-radius:18px;}',
+      '  #myAccountModal .ma-head{padding:16px 18px;}',
+      '  #myAccountModal .ma-head h2{font-size:1.15rem;}',
+      '  #myAccountModal .ma-body{padding:18px;}',
+      '  #myAccountModal .ma-hero-title{font-size:1.35rem;}',
       '  #myAccountModal .ma-grid-2,#myAccountModal .ma-grid-3{grid-template-columns:1fr;}',
-      '  #myAccountModal .ma-foot{padding:12px 16px;flex-wrap:wrap;}',
+      '  #myAccountModal .ma-foot{padding:14px 18px;flex-wrap:wrap;}',
       '  #myAccountModal .ma-row{flex-wrap:wrap;}',
       '  #myAccountModal .ma-row-action{width:100%;}',
       '  #myAccountModal .ma-row-action .ma-btn{width:100%;}',
@@ -1024,8 +1055,8 @@
         </div>\
         <div id="myAccountBody" class="ma-body">A carregar…</div>\
         <div class="ma-foot">\
-          <span class="ma-foot-link">Programa Applicash · 10% de cashback recorrente</span>\
-          <button type="button" id="myAccountReload" class="ma-btn">Atualizar</button>\
+          <span class="ma-foot-link"><i class="ph-fill ph-shield-check"></i> Cobranças processadas pela Asaas</span>\
+          <button type="button" id="myAccountReload" class="ma-btn"><i class="ph ph-arrow-clockwise"></i> Atualizar</button>\
         </div>\
       </div>';
     document.body.appendChild(div);
@@ -1104,13 +1135,11 @@
     return map[s] || s || '—';
   }
   function statusBadge(status) {
-    var bg = '#f1f5f3', fg = '#384a42';
-    if (status === 'CONFIRMED' || status === 'RECEIVED' || status === 'RECEIVED_IN_CASH' || status === 'APPROVED_BY_RISK_ANALYSIS') { bg = '#ecfdf5'; fg = '#065f46'; }
-    else if (status === 'PENDING' || status === 'AUTHORIZED' || status === 'AWAITING_RISK_ANALYSIS') { bg = '#fef9c3'; fg = '#854d0e'; }
-    else if (status === 'OVERDUE' || status === 'REPROVED_BY_RISK_ANALYSIS') { bg = '#fee2e2'; fg = '#7f1d1d'; }
-    else if (status === 'REFUNDED' || status === 'DELETED' || status === 'REFUND_IN_PROGRESS') { bg = '#f3f4f6'; fg = '#374151'; }
-    else if (status === 'CHARGEBACK_REQUESTED' || status === 'CHARGEBACK_DISPUTE') { bg = '#fce7f3'; fg = '#9d174d'; }
-    return '<span style="display:inline-block;padding:2px 8px;border-radius:999px;background:' + bg + ';color:' + fg + ';font-size:11px;font-weight:600;">' + paymentStatusLabel(status) + '</span>';
+    var cls = 'muted';
+    if (status === 'CONFIRMED' || status === 'RECEIVED' || status === 'RECEIVED_IN_CASH' || status === 'APPROVED_BY_RISK_ANALYSIS') cls = 'ok';
+    else if (status === 'PENDING' || status === 'AUTHORIZED' || status === 'AWAITING_RISK_ANALYSIS') cls = 'warn';
+    else if (status === 'OVERDUE' || status === 'REPROVED_BY_RISK_ANALYSIS' || status === 'CHARGEBACK_REQUESTED' || status === 'CHARGEBACK_DISPUTE') cls = 'bad';
+    return '<span class="ma-badge ' + cls + '">' + paymentStatusLabel(status) + '</span>';
   }
   function eventNote(p) {
     if (!p.event) return '';
@@ -1220,6 +1249,24 @@
     }
 
     if (access.status === 'active') {
+      // Avulso (one_shot): hero específico — sem "renovação automática".
+      // Mostra a janela de 30 dias pagos como progress bar (dias decorridos).
+      if (me.paymentMode === 'one_shot') {
+        var daysLeftOnce = (me.accessExpiresInDays != null) ? me.accessExpiresInDays : daysBetween(me.accessExpiresAt);
+        var dpctOnce = daysLeftOnce != null ? clamp(((30 - clamp(daysLeftOnce, 0, 30)) / 30) * 100, 0, 100) : 0;
+        var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
+        var dleftLabel = daysLeftOnce != null
+          ? (daysLeftOnce <= 0 ? 'expirou' : daysLeftOnce + ' ' + pluralDays(daysLeftOnce) + ' restantes')
+          : '—';
+        return '<div class="ma-hero is-oneshot">' +
+          '<span class="ma-hero-eyebrow"><i class="ph-fill ph-ticket"></i> Acesso avulso</span>' +
+          '<div class="ma-hero-title">Acesso até ' + expiresFmt + '</div>' +
+          '<p class="ma-hero-sub">Pagamento único de ' + fmtBRL(baseCents) + ' · sem renovação automática. Avisamos quando estiver próximo do fim.</p>' +
+          '<div class="ma-hero-bar"><span style="width:' + dpctOnce.toFixed(1) + '%;"></span></div>' +
+          '<div class="ma-hero-meta"><span>Janela de 30 dias</span><span>' + dleftLabel + '</span></div>' +
+        '</div>';
+      }
+
       var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
       var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
       var dleft = daysBetween(nextDate);
@@ -1334,7 +1381,7 @@
       rows += '<div class="ma-card"><div class="ma-card-label">Acesso até</div><div class="ma-card-value">' + expiresFmt + '</div><div class="ma-card-foot">' + daysFoot + '</div></div>';
     } else {
       rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
-      rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
+      rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> /mês</span></div>' +
         (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
         '</div>';
       rows += '<div class="ma-card"><div class="ma-card-label">' + label + '</div><div class="ma-card-value">' + fmtBRL(openCents) + '</div><div class="ma-card-foot">' + foot + '</div>' + payLink + '</div>';
@@ -1351,18 +1398,19 @@
     // Faz par com a landing — usuário descobre o roadmap sem sair do app.
     return '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-stack"></i> Planos disponíveis</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">' +
-        '<div style="border:2px solid #059669;background:#ecfdf5;border-radius:12px;padding:14px;">' +
-          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.4px;"><i class="ph-fill ph-check-circle"></i> Plano atual</div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;margin-top:4px;">Pro</div>' +
-          '<div style="font-size:12.5px;color:#1d2a23;margin-top:4px;">Todas as 10 abas do Appliquei.</div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:22px;margin-top:8px;">R$ 15<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+        '<div style="position:relative;border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border-radius:14px;padding:16px;box-shadow:0 0 0 4px rgba(5,150,105,.06);">' +
+          '<span style="position:absolute;top:-9px;right:14px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;">Atual</span>' +
+          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.08em;"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#0f172a;">Acesso completo</div>' +
+          '<p style="font-size:12.5px;color:#334155;margin:6px 0 12px;line-height:1.5;">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
+          '<div style="display:flex;align-items:baseline;gap:4px;"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#0f172a;">R$ 15</span><span style="font-size:12px;font-weight:500;color:#64748b;">/mês</span></div>' +
         '</div>' +
-        '<div style="border:1px solid #e3e8e5;background:#f8faf9;border-radius:12px;padding:14px;opacity:.9;">' +
-          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.4px;"><i class="ph ph-wrench"></i> Em construção</div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:18px;margin-top:4px;color:#6b7d75;">Pro + IA</div>' +
-          '<div style="font-size:12.5px;color:#6b7d75;margin-top:4px;">Diagnóstico, sugestões e chat com IA — em breve.</div>' +
-          '<button type="button" class="ma-btn" disabled style="margin-top:10px;cursor:not-allowed;opacity:.7;width:100%;">Avise-me no lançamento</button>' +
+        '<div style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:14px;padding:16px;opacity:.95;">' +
+          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.08em;"><i class="ph ph-wrench"></i> Em construção</div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#475569;">Pro + IA</div>' +
+          '<p style="font-size:12.5px;color:#64748b;margin:6px 0 12px;line-height:1.5;">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
+          '<button type="button" class="ma-btn" disabled style="cursor:not-allowed;opacity:.6;width:100%;">Avise-me no lançamento</button>' +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1399,7 +1447,7 @@
     var code = me.referralCode || '—';
 
     var statCards =
-      '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' + active + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> / ' + total + '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
+      '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' + active + '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> / ' + total + '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
       '<div class="ma-card"><div class="ma-card-label">Saldo a abater</div><div class="ma-card-value" style="color:#059669;">' + fmtBRL(pending) + '</div><div class="ma-card-foot">Aplicado na próxima fatura</div></div>' +
       '<div class="ma-card"><div class="ma-card-label">Ganhos totais</div><div class="ma-card-value">' + fmtBRL(earned) + '</div><div class="ma-card-foot">Acumulado desde o início</div></div>';
 
@@ -1453,16 +1501,16 @@
     }).join('');
     return '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-calendar-check"></i> Próximas cobranças</div>' +
-      '<div style="border:1px solid #e4ebe7;border-radius:12px;overflow:hidden;">' +
+      '<div style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;">' +
         '<table class="ma-table"><thead><tr><th>Data</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
       '</div>' +
     '</div>';
   }
 
-  // Banner "estilo Amazon" para usuário avulso (one_shot): conforme o
-  // acesso pago se aproxima do fim, mostramos um aviso proativo com
-  // botão de renovação. Critério: paymentMode 'one_shot' + acesso a
-  // vencer em ≤ 7 dias. Acima disso o user nem vê o aviso (não polui).
+  // Banner proativo de renovação para usuários avulsos (one_shot).
+  // Visual em "callout card" com ícone à esquerda e CTAs à direita.
+  // Critério: paymentMode 'one_shot' + ≤ 7 dias para expirar. Acima
+  // disso, o hero da Minha Conta já comunica a janela de 30 dias.
   function renderRenewBanner(me) {
     if (me.paymentMode !== 'one_shot') return '';
     var days = me.accessExpiresInDays;
@@ -1470,29 +1518,37 @@
     var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
     var title, sub, tone;
     if (days <= 0) {
-      title = 'O seu acesso terminou';
+      title = 'Seu acesso terminou';
       sub = 'O pagamento de 30 dias venceu em ' + expiresFmt + '. Renove para voltar a usar o Appliquei.';
       tone = 'bad';
     } else if (days <= 3) {
-      title = 'O seu acesso termina em ' + days + (days === 1 ? ' dia' : ' dias');
-      sub = 'Pagou só 1 mês. Renove agora para não perder o acesso em ' + expiresFmt + '.';
-      tone = 'warn';
+      title = 'Faltam ' + days + ' ' + pluralDays(days) + ' para expirar';
+      sub = 'Renove agora para não perder o acesso em ' + expiresFmt + '. Você também pode trocar para assinatura mensal.';
+      tone = 'urgent';
     } else {
-      title = 'Renovação manual: faltam ' + days + ' dias';
-      sub = 'O seu acesso avulso expira em ' + expiresFmt + '. Pode renovar 1 mês ou passar a assinatura recorrente.';
+      title = days + ' dias até o fim do ciclo';
+      sub = 'Seu acesso avulso expira em ' + expiresFmt + '. Renove no seu ritmo ou ative a renovação automática.';
       tone = 'warn';
     }
-    var bg = tone === 'bad' ? '#fef2f2' : '#fff7ed';
-    var border = tone === 'bad' ? '#fecaca' : '#fed7aa';
-    var fg = tone === 'bad' ? '#7f1d1d' : '#7c2d12';
-    var icon = tone === 'bad' ? 'ph-fill ph-warning-octagon' : 'ph-fill ph-clock-countdown';
-    return '<div class="ma-section" style="background:' + bg + ';border:1px solid ' + border + ';border-radius:12px;padding:14px 16px;color:' + fg + ';">' +
-      '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;"><i class="' + icon + '"></i> ' + title + '</div>' +
-      '<p style="font-size:12.5px;margin:6px 0 10px;color:' + fg + ';opacity:.9;line-height:1.45;">' + sub + '</p>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
-        '<button type="button" class="ma-btn" data-act="renew-month" style="background:#059669;color:#fff;border-color:#059669;">' +
+    var palette = tone === 'bad'
+      ? { bg: 'linear-gradient(180deg,#fef2f2 0%,#fee2e2 100%)', border: '#fecaca', fg: '#991b1b', accent: '#dc2626', icon: 'ph-fill ph-warning-octagon' }
+      : tone === 'urgent'
+      ? { bg: 'linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%)', border: '#fed7aa', fg: '#9a3412', accent: '#ea580c', icon: 'ph-fill ph-clock-countdown' }
+      : { bg: 'linear-gradient(180deg,#fffbeb 0%,#fef3c7 100%)', border: '#fde68a', fg: '#92400e', accent: '#d97706', icon: 'ph-fill ph-clock' };
+    var style = 'margin-top:18px;padding:16px 18px;border-radius:16px;background:' + palette.bg +
+      ';border:1px solid ' + palette.border + ';display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;';
+    return '<div style="' + style + '">' +
+      '<div style="flex:0 0 44px;height:44px;border-radius:12px;background:' + palette.accent + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 10px -2px rgba(0,0,0,.15);">' +
+        '<i class="' + palette.icon + '"></i></div>' +
+      '<div style="flex:1;min-width:200px;">' +
+        '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:' + palette.fg + ';letter-spacing:-.01em;">' + title + '</div>' +
+        '<p style="font-size:12.5px;margin:4px 0 0;color:' + palette.fg + ';opacity:.85;line-height:1.5;">' + sub + '</p>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;flex:1 1 100%;margin-top:4px;">' +
+        '<button type="button" class="ma-btn ma-btn-primary" data-act="renew-month">' +
           '<i class="ph-fill ph-arrow-clockwise"></i> Renovar 1 mês</button>' +
-        '<button type="button" class="ma-btn" data-act="switch-to-subscription">Passar a assinatura mensal</button>' +
+        '<button type="button" class="ma-btn" data-act="switch-to-subscription">' +
+          '<i class="ph ph-arrows-clockwise"></i> Ativar renovação automática</button>' +
       '</div>' +
     '</div>';
   }
@@ -1519,17 +1575,17 @@
       var addr = escapeHtml(c.address) + (c.addressNumber ? ', ' + escapeHtml(c.addressNumber) : '');
       if (c.city) addr += ' · ' + escapeHtml(c.city);
       if (c.state) addr += '/' + escapeHtml(c.state);
-      lines.push('<span style="color:#6b7d75;font-size:12px;">' + addr + '</span>');
+      lines.push('<span style="color:#64748b;font-size:12.5px;font-weight:500;">' + addr + '</span>');
     }
     var body = lines.length
       ? lines.join('<br>')
-      : '<em style="color:#6b7d75;">Sem dados — adicione para emitir faturas correctamente.</em>';
+      : '<em style="color:#64748b;font-style:normal;">Sem dados — adicione para emitir faturas correctamente.</em>';
     return '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-user-circle"></i> Dados de cobrança</div>' +
       '<div class="ma-row">' +
-        '<div class="ma-row-main"><div class="ma-row-icon" style="background:#f1f5f3;color:#384a42;"><i class="ph ph-identification-card"></i></div>' +
+        '<div class="ma-row-main"><div class="ma-row-icon" style="background:#f1f5f9;color:#334155;box-shadow:inset 0 0 0 1px rgba(51,65,85,.1);"><i class="ph ph-identification-card"></i></div>' +
           '<div class="ma-row-text" style="line-height:1.55;">' + body + '</div></div>' +
-        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="edit-customer">Editar</button></div>' +
+        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="edit-customer"><i class="ph ph-pencil-simple"></i> Editar</button></div>' +
       '</div>' +
     '</div>';
   }
@@ -1544,7 +1600,7 @@
     }
     var rows = payments.map(function (p) {
       var note = eventNote(p);
-      var noteLine = note ? '<small style="display:block;font-size:11px;color:#6b7d75;margin-top:2px;">' + note + '</small>' : '';
+      var noteLine = note ? '<small style="display:block;font-size:11.5px;color:#64748b;margin-top:2px;font-weight:500;">' + note + '</small>' : '';
       var refLine = p.referralAppliedCents && p.referralAppliedCents > 0
         ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' + fmtBRL(p.referralAppliedCents) + ' Applicash</small>'
         : '';
@@ -1581,8 +1637,8 @@
     var isInactive = me.subscriptionStatus === 'INACTIVE';
     if (isInactive) return '';
     if (!hasSub) return '';
-    return '<div class="ma-section" style="display:flex;justify-content:flex-end;">' +
-      '<button type="button" class="ma-btn ma-btn-danger" data-act="cancel-sub">Cancelar assinatura</button>' +
+    return '<div class="ma-section" style="display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid #e5e7eb;margin-top:24px;">' +
+      '<button type="button" class="ma-btn ma-btn-danger" data-act="cancel-sub"><i class="ph ph-x-circle"></i> Cancelar assinatura</button>' +
     '</div>';
   }
 
@@ -1860,12 +1916,18 @@
 
   function confirmCancelSubscription() {
     var html =
-      '<p style="margin:0 0 12px;font-size:13.5px;line-height:1.5;">Ao cancelar, o acesso à plataforma é interrompido no fim do ciclo actual e nenhuma cobrança futura será emitida.</p>' +
-      '<p style="margin:0 0 14px;font-size:12.5px;color:#6b7d75;">Pode voltar a assinar a qualquer momento.</p>' +
-      '<div id="cancelErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
+      '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start;">' +
+        '<div style="flex:0 0 36px;height:36px;border-radius:10px;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;"><i class="ph-fill ph-warning"></i></div>' +
+        '<div>' +
+          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#991b1b;letter-spacing:-.01em;">Tem certeza?</div>' +
+          '<p style="margin:4px 0 0;font-size:12.5px;color:#7f1d1d;line-height:1.5;opacity:.9;">O acesso fica disponível até o fim do ciclo já pago. Nenhuma cobrança futura é emitida.</p>' +
+        '</div>' +
+      '</div>' +
+      '<p style="margin:0 0 14px;font-size:12.5px;color:#64748b;line-height:1.5;">Pode voltar a assinar a qualquer momento mantendo o mesmo cupom Applicash, se houver.</p>' +
+      '<div id="cancelErr" style="display:none;font-size:12.5px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<button id="cancelKeep" type="button" style="flex:1;border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:13px;color:#384a42;">Manter assinatura</button>' +
-        '<button id="cancelConfirm" type="button" style="flex:1;border:none;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;background:#7f1d1d;color:#fff;">Confirmar cancelamento</button>' +
+        '<button id="cancelKeep" type="button" style="flex:1;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:600;color:#334155;font-family:inherit;">Manter assinatura</button>' +
+        '<button id="cancelConfirm" type="button" style="flex:1;border:none;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:700;background:linear-gradient(180deg,#dc2626 0%,#b91c1c 100%);color:#fff;box-shadow:0 2px 8px -1px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.18);font-family:inherit;">Confirmar cancelamento</button>' +
       '</div>';
     openSubModal('Cancelar assinatura?', html);
     $('cancelKeep').addEventListener('click', closeSubModal);

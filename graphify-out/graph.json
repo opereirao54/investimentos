@@ -898,7 +898,7 @@
       "label": "ensureMyAccountModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1013",
+      "source_location": "L1044",
       "id": "web_appliquei_billing_ensuremyaccountmodal",
       "community": 0,
       "norm_label": "ensuremyaccountmodal()"
@@ -907,7 +907,7 @@
       "label": "closeMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1044",
+      "source_location": "L1075",
       "id": "web_appliquei_billing_closemyaccount",
       "community": 0,
       "norm_label": "closemyaccount()"
@@ -916,7 +916,7 @@
       "label": "openMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1048",
+      "source_location": "L1079",
       "id": "web_appliquei_billing_openmyaccount",
       "community": 0,
       "norm_label": "openmyaccount()"
@@ -925,7 +925,7 @@
       "label": "statusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1078",
+      "source_location": "L1109",
       "id": "web_appliquei_billing_statuslabel",
       "community": 0,
       "norm_label": "statuslabel()"
@@ -934,7 +934,7 @@
       "label": "statusColor()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1085",
+      "source_location": "L1116",
       "id": "web_appliquei_billing_statuscolor",
       "community": 0,
       "norm_label": "statuscolor()"
@@ -943,7 +943,7 @@
       "label": "fmtDate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1091",
+      "source_location": "L1122",
       "id": "web_appliquei_billing_fmtdate",
       "community": 0,
       "norm_label": "fmtdate()"
@@ -952,7 +952,7 @@
       "label": "paymentStatusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1095",
+      "source_location": "L1126",
       "id": "web_appliquei_billing_paymentstatuslabel",
       "community": 0,
       "norm_label": "paymentstatuslabel()"
@@ -961,7 +961,7 @@
       "label": "statusBadge()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1106",
+      "source_location": "L1137",
       "id": "web_appliquei_billing_statusbadge",
       "community": 0,
       "norm_label": "statusbadge()"
@@ -970,7 +970,7 @@
       "label": "eventNote()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1115",
+      "source_location": "L1144",
       "id": "web_appliquei_billing_eventnote",
       "community": 0,
       "norm_label": "eventnote()"
@@ -979,7 +979,7 @@
       "label": "cardBrandLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1124",
+      "source_location": "L1153",
       "id": "web_appliquei_billing_cardbrandlabel",
       "community": 0,
       "norm_label": "cardbrandlabel()"
@@ -988,7 +988,7 @@
       "label": "paymentMethodLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1129",
+      "source_location": "L1158",
       "id": "web_appliquei_billing_paymentmethodlabel",
       "community": 0,
       "norm_label": "paymentmethodlabel()"
@@ -997,7 +997,7 @@
       "label": "failureReasonLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1139",
+      "source_location": "L1168",
       "id": "web_appliquei_billing_failurereasonlabel",
       "community": 0,
       "norm_label": "failurereasonlabel()"
@@ -1006,7 +1006,7 @@
       "label": "daysBetween()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1149",
+      "source_location": "L1178",
       "id": "web_appliquei_billing_daysbetween",
       "community": 0,
       "norm_label": "daysbetween()"
@@ -1015,7 +1015,7 @@
       "label": "pluralDays()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1157",
+      "source_location": "L1186",
       "id": "web_appliquei_billing_pluraldays",
       "community": 0,
       "norm_label": "pluraldays()"
@@ -1024,7 +1024,7 @@
       "label": "clamp()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1160",
+      "source_location": "L1189",
       "id": "web_appliquei_billing_clamp",
       "community": 0,
       "norm_label": "clamp()"
@@ -1033,7 +1033,7 @@
       "label": "renderHeroBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1162",
+      "source_location": "L1191",
       "id": "web_appliquei_billing_renderheroblock",
       "community": 0,
       "norm_label": "renderheroblock()"
@@ -1042,7 +1042,7 @@
       "label": "renderPlanInfoBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1292",
+      "source_location": "L1339",
       "id": "web_appliquei_billing_renderplaninfoblock",
       "community": 0,
       "norm_label": "renderplaninfoblock()"
@@ -1051,7 +1051,7 @@
       "label": "renderPlansBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1349",
+      "source_location": "L1396",
       "id": "web_appliquei_billing_renderplansblock",
       "community": 0,
       "norm_label": "renderplansblock()"
@@ -1060,7 +1060,7 @@
       "label": "renderPaymentMethodBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1371",
+      "source_location": "L1419",
       "id": "web_appliquei_billing_renderpaymentmethodblock",
       "community": 0,
       "norm_label": "renderpaymentmethodblock()"
@@ -1069,7 +1069,7 @@
       "label": "renderApplicashBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1391",
+      "source_location": "L1439",
       "id": "web_appliquei_billing_renderapplicashblock",
       "community": 0,
       "norm_label": "renderapplicashblock()"
@@ -1078,7 +1078,7 @@
       "label": "renderUpcomingBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1432",
+      "source_location": "L1480",
       "id": "web_appliquei_billing_renderupcomingblock",
       "community": 0,
       "norm_label": "renderupcomingblock()"
@@ -1087,7 +1087,7 @@
       "label": "renderRenewBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1466",
+      "source_location": "L1514",
       "id": "web_appliquei_billing_renderrenewbanner",
       "community": 0,
       "norm_label": "renderrenewbanner()"
@@ -1096,7 +1096,7 @@
       "label": "renderAlertsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1500",
+      "source_location": "L1556",
       "id": "web_appliquei_billing_renderalertsblock",
       "community": 0,
       "norm_label": "renderalertsblock()"
@@ -1105,7 +1105,7 @@
       "label": "renderCustomerBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1511",
+      "source_location": "L1567",
       "id": "web_appliquei_billing_rendercustomerblock",
       "community": 0,
       "norm_label": "rendercustomerblock()"
@@ -1114,7 +1114,7 @@
       "label": "renderHistoryBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1537",
+      "source_location": "L1593",
       "id": "web_appliquei_billing_renderhistoryblock",
       "community": 0,
       "norm_label": "renderhistoryblock()"
@@ -1123,7 +1123,7 @@
       "label": "renderActionsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1579",
+      "source_location": "L1635",
       "id": "web_appliquei_billing_renderactionsblock",
       "community": 0,
       "norm_label": "renderactionsblock()"
@@ -1132,7 +1132,7 @@
       "label": "renderMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1589",
+      "source_location": "L1645",
       "id": "web_appliquei_billing_rendermyaccount",
       "community": 0,
       "norm_label": "rendermyaccount()"
@@ -1141,7 +1141,7 @@
       "label": "bindMyAccountActions()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1622",
+      "source_location": "L1678",
       "id": "web_appliquei_billing_bindmyaccountactions",
       "community": 0,
       "norm_label": "bindmyaccountactions()"
@@ -1150,7 +1150,7 @@
       "label": "reloadAccountStatus()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1647",
+      "source_location": "L1703",
       "id": "web_appliquei_billing_reloadaccountstatus",
       "community": 0,
       "norm_label": "reloadaccountstatus()"
@@ -1159,7 +1159,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1654",
+      "source_location": "L1710",
       "id": "web_appliquei_billing_escapehtml",
       "community": 0,
       "norm_label": "escapehtml()"
@@ -1168,7 +1168,7 @@
       "label": "fmtCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1659",
+      "source_location": "L1715",
       "id": "web_appliquei_billing_fmtcpfcnpj",
       "community": 0,
       "norm_label": "fmtcpfcnpj()"
@@ -1177,7 +1177,7 @@
       "label": "fmtPhone()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1665",
+      "source_location": "L1721",
       "id": "web_appliquei_billing_fmtphone",
       "community": 0,
       "norm_label": "fmtphone()"
@@ -1186,7 +1186,7 @@
       "label": "ensureSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1674",
+      "source_location": "L1730",
       "id": "web_appliquei_billing_ensuresubmodal",
       "community": 0,
       "norm_label": "ensuresubmodal()"
@@ -1195,7 +1195,7 @@
       "label": "openSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1690",
+      "source_location": "L1746",
       "id": "web_appliquei_billing_opensubmodal",
       "community": 0,
       "norm_label": "opensubmodal()"
@@ -1204,7 +1204,7 @@
       "label": "closeSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1696",
+      "source_location": "L1752",
       "id": "web_appliquei_billing_closesubmodal",
       "community": 0,
       "norm_label": "closesubmodal()"
@@ -1213,7 +1213,7 @@
       "label": "fld()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1701",
+      "source_location": "L1757",
       "id": "web_appliquei_billing_fld",
       "community": 0,
       "norm_label": "fld()"
@@ -1222,7 +1222,7 @@
       "label": "lbl()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1702",
+      "source_location": "L1758",
       "id": "web_appliquei_billing_lbl",
       "community": 0,
       "norm_label": "lbl()"
@@ -1231,7 +1231,7 @@
       "label": "openChangeCardModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1704",
+      "source_location": "L1760",
       "id": "web_appliquei_billing_openchangecardmodal",
       "community": 0,
       "norm_label": "openchangecardmodal()"
@@ -1240,7 +1240,7 @@
       "label": "showSubModalErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1725",
+      "source_location": "L1781",
       "id": "web_appliquei_billing_showsubmodalerr",
       "community": 0,
       "norm_label": "showsubmodalerr()"
@@ -1249,7 +1249,7 @@
       "label": "submitChangeCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1732",
+      "source_location": "L1788",
       "id": "web_appliquei_billing_submitchangecard",
       "community": 0,
       "norm_label": "submitchangecard()"
@@ -1258,7 +1258,7 @@
       "label": "openEditCustomerModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1785",
+      "source_location": "L1841",
       "id": "web_appliquei_billing_openeditcustomermodal",
       "community": 0,
       "norm_label": "openeditcustomermodal()"
@@ -1267,7 +1267,7 @@
       "label": "submitEditCustomer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1814",
+      "source_location": "L1870",
       "id": "web_appliquei_billing_submiteditcustomer",
       "community": 0,
       "norm_label": "submiteditcustomer()"
@@ -1276,7 +1276,7 @@
       "label": "confirmCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1861",
+      "source_location": "L1917",
       "id": "web_appliquei_billing_confirmcancelsubscription",
       "community": 0,
       "norm_label": "confirmcancelsubscription()"
@@ -1285,7 +1285,7 @@
       "label": "doCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1875",
+      "source_location": "L1937",
       "id": "web_appliquei_billing_docancelsubscription",
       "community": 0,
       "norm_label": "docancelsubscription()"
@@ -1294,7 +1294,7 @@
       "label": "syncApplicashFromServer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1891",
+      "source_location": "L1953",
       "id": "web_appliquei_billing_syncapplicashfromserver",
       "community": 0,
       "norm_label": "syncapplicashfromserver()"
@@ -1303,7 +1303,7 @@
       "label": "statCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1938",
+      "source_location": "L2000",
       "id": "web_appliquei_billing_statcard",
       "community": 0,
       "norm_label": "statcard()"
@@ -1312,7 +1312,7 @@
       "label": "refresh()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1945",
+      "source_location": "L2007",
       "id": "web_appliquei_billing_refresh",
       "community": 0,
       "norm_label": "refresh()"
@@ -1321,7 +1321,7 @@
       "label": "writePopupMessage()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1957",
+      "source_location": "L2019",
       "id": "web_appliquei_billing_writepopupmessage",
       "community": 0,
       "norm_label": "writepopupmessage()"
@@ -1330,7 +1330,7 @@
       "label": "openSubscribeForm()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1971",
+      "source_location": "L2033",
       "id": "web_appliquei_billing_opensubscribeform",
       "community": 0,
       "norm_label": "opensubscribeform()"
@@ -1339,7 +1339,7 @@
       "label": "parseExpiry()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1986",
+      "source_location": "L2048",
       "id": "web_appliquei_billing_parseexpiry",
       "community": 0,
       "norm_label": "parseexpiry()"
@@ -1348,7 +1348,7 @@
       "label": "collectCardPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2003",
+      "source_location": "L2065",
       "id": "web_appliquei_billing_collectcardpayload",
       "community": 0,
       "norm_label": "collectcardpayload()"
@@ -1357,7 +1357,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2032",
+      "source_location": "L2094",
       "id": "web_appliquei_billing_subscribe",
       "community": 0,
       "norm_label": "subscribe()"
@@ -1366,7 +1366,7 @@
       "label": "waitForActive()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2131",
+      "source_location": "L2193",
       "id": "web_appliquei_billing_waitforactive",
       "community": 0,
       "norm_label": "waitforactive()"
@@ -1375,7 +1375,7 @@
       "label": "startActivePolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2149",
+      "source_location": "L2211",
       "id": "web_appliquei_billing_startactivepolling",
       "community": 0,
       "norm_label": "startactivepolling()"
@@ -1384,7 +1384,7 @@
       "label": "setSignupBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2173",
+      "source_location": "L2235",
       "id": "web_appliquei_billing_setsignupblock",
       "community": 0,
       "norm_label": "setsignupblock()"
@@ -1393,7 +1393,7 @@
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2175",
+      "source_location": "L2237",
       "id": "web_appliquei_billing_onuser",
       "community": 0,
       "norm_label": "onuser()"
@@ -1402,7 +1402,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L2198",
+      "source_location": "L2260",
       "id": "web_appliquei_billing_attach",
       "community": 0,
       "norm_label": "attach()"
@@ -6461,7 +6461,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L1",
-      "community": 14,
+      "community": 11,
       "norm_label": "appliquei v13.0 - gestao financeira inteligente",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_appliquei_v13_0_gest\u00e3o_financeira_inteligente"
     },
@@ -6470,7 +6470,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L6",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udcd6 sobre",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_sobre"
     },
@@ -6479,7 +6479,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L10",
-      "community": 14,
+      "community": 11,
       "norm_label": "\u2728 funcionalidades",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_funcionalidades"
     },
@@ -6488,7 +6488,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L20",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udee0\ufe0f tecnologias utilizadas",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_tecnologias_utilizadas"
     },
@@ -6497,7 +6497,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L32",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\ude80 como usar",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_como_usar"
     },
@@ -6506,7 +6506,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L35",
-      "community": 14,
+      "community": 11,
       "norm_label": "code:bash (git clone <repositorio>)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_1"
     },
@@ -6515,7 +6515,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L49",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udcc1 estrutura do projeto",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_estrutura_do_projeto"
     },
@@ -6524,7 +6524,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L51",
-      "community": 14,
+      "community": 11,
       "norm_label": "code:block2 (/workspace)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_2"
     },
@@ -6533,7 +6533,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L63",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83c\udfa8 design system",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_design_system"
     },
@@ -6542,7 +6542,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L76",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udcf8 recursos visuais",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_recursos_visuais"
     },
@@ -6551,7 +6551,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L84",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udd27 personalizacao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_personaliza\u00e7\u00e3o"
     },
@@ -6560,7 +6560,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L88",
-      "community": 14,
+      "community": 11,
       "norm_label": "code:css (:root {)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_3"
     },
@@ -6569,7 +6569,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L97",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udcc4 licenca",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_licen\u00e7a"
     },
@@ -6578,7 +6578,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L101",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83d\udc68\u200d\ud83d\udcbb desenvolvimento",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_desenvolvimento"
     },
@@ -6587,7 +6587,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L109",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83e\udde0 graphify (grafo de conhecimento no cursor)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_graphify_grafo_de_conhecimento_no_cursor"
     },
@@ -6596,7 +6596,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L113",
-      "community": 14,
+      "community": 11,
       "norm_label": "instalacao (python 3.10+)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_instala\u00e7\u00e3o_python_3_10"
     },
@@ -6605,7 +6605,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L115",
-      "community": 14,
+      "community": 11,
       "norm_label": "code:bash (python -m pip install -r requirements-graphify.txt)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_codeblock_4"
     },
@@ -6614,7 +6614,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L122",
-      "community": 14,
+      "community": 11,
       "norm_label": "uso",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_uso"
     },
@@ -6623,7 +6623,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L130",
-      "community": 14,
+      "community": 11,
       "norm_label": "firebase (incremental)",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_firebase_incremental"
     },
@@ -6632,7 +6632,7 @@
       "file_type": "document",
       "source_file": "README.md",
       "source_location": "L136",
-      "community": 14,
+      "community": 11,
       "norm_label": "\ud83e\udd1d contribuicao",
       "id": "investimentos_claude_finance_app_storage_5w93n_readme_contribui\u00e7\u00e3o"
     },
@@ -7945,9 +7945,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L132",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
-      "target": "web_appliquei_billing_injectgatestyles",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_injectgatestyles"
     },
     {
       "relation": "contains",
@@ -8857,9 +8857,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L31",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_updategateprices",
-      "target": "web_appliquei_billing_effectivepricecents",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_effectivepricecents"
     },
     {
       "relation": "calls",
@@ -8923,9 +8923,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L37",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_updategateprices",
-      "target": "web_appliquei_billing_fmtbrl",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_fmtbrl"
     },
     {
       "relation": "calls",
@@ -8934,9 +8934,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L51",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_updategateprices",
-      "target": "web_appliquei_billing_setmethod",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_setmethod"
     },
     {
       "relation": "calls",
@@ -8967,9 +8967,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L410",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_setbillingmode",
-      "target": "web_appliquei_billing_updategateprices",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_updategateprices"
     },
     {
       "relation": "calls",
@@ -9396,9 +9396,9 @@
       "source_file": "web/appliquei-billing.js",
       "source_location": "L209",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_billing_ensuregate",
-      "target": "web_appliquei_billing_injectgatestyles",
-      "confidence_score": 1.0
+      "target": "web_appliquei_billing_injectgatestyles"
     },
     {
       "relation": "calls",
@@ -10521,6 +10521,17 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_renderheroblock",
       "target": "web_appliquei_billing_pluraldays"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1525",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_renderrenewbanner",
+      "target": "web_appliquei_billing_pluraldays",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -15524,9 +15535,9 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L284",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "billing_subscribe_paypayload",
-      "confidence_score": 1.0
+      "target": "billing_subscribe_paypayload"
     },
     {
       "relation": "contains",
@@ -20772,5 +20783,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "2359cc7e72bb273c06dc301c3656dc8e58435350"
+  "built_at_commit": "6440451fa769c3d9ca99c149aacd3768fcc811b2"
 }

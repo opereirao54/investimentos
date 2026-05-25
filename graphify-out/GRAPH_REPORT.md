@@ -1,16 +1,16 @@
 # Graph Report - investimentos  (2026-05-25)
 
 ## Corpus Check
-- 42 files · ~468,434 words
+- 42 files · ~468,957 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 738 nodes · 1350 edges · 38 communities (34 shown, 4 thin omitted)
+- 738 nodes · 1351 edges · 37 communities (33 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 9 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2359cc7e`
+- Built from commit: `6440451f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -29,7 +29,6 @@
 - [[_COMMUNITY_Community 11|Community 11]]
 - [[_COMMUNITY_Community 12|Community 12]]
 - [[_COMMUNITY_Community 13|Community 13]]
-- [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
 - [[_COMMUNITY_Community 17|Community 17]]
@@ -74,7 +73,7 @@
 - `main()` --calls--> `init()`  [INFERRED]
   scripts/diag-referral-code.js → api/_lib/firebase-admin.js
 
-## Communities (38 total, 4 thin omitted)
+## Communities (37 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
@@ -121,8 +120,8 @@ Cohesion: 0.05
 Nodes (41): addMonthsYmd(), all, b, billing, billingRef, buildUpcoming(), c, { computeAccess } (+33 more)
 
 ### Community 11 - "Community 11"
-Cohesion: 0.15
-Nodes (21): Appliquei - Gestão Financeira Inteligente, Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição (+13 more)
+Cohesion: 0.06
+Nodes (41): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+33 more)
 
 ### Community 12 - "Community 12"
 Cohesion: 0.17
@@ -131,10 +130,6 @@ Nodes (33): applyRemoteSnapshot(), attach(), attachWhenReady(), beaconFlushNow()
 ### Community 13 - "Community 13"
 Cohesion: 0.10
 Nodes (20): Appliquei - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
-
-### Community 14 - "Community 14"
-Cohesion: 0.10
-Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
 
 ### Community 15 - "Community 15"
 Cohesion: 0.09
@@ -215,6 +210,6 @@ _Questions this graph is uniquely positioned to answer:_
 - **What connects `indexes`, `fieldOverrides`, `$schema` to the rest of the system?**
   _321 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.06564275194613928 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06585314538186408 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected._
