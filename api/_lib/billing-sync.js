@@ -1,8 +1,58 @@
-const { fieldValue } = require('./firebase-admin');
+const { db, fieldValue } = require('./firebase-admin');
 const asaas = require('./asaas');
 
 const PAID_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
 const NON_FINAL_STATUSES = new Set(['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS', 'AUTHORIZED']);
+
+/**
+ * Liberta créditos referral que tinham sido aplicados a uma fatura que
+ * foi apagada/reembolsada pelo Asaas. Sem isto, o desconto fica preso:
+ * o crédito permanece marcado como `appliedAt`/`appliedToPaymentId` mas
+ * a fatura onde ele ia abater já não existe — o utilizador perde o saldo.
+ *
+ * Repõe também `stats.pendingDiscountCents` para que a próxima fatura
+ * volte a poder consumir esse saldo via `applyPendingCreditsTo`.
+ * Idempotente: créditos já invalidados (`voidedAt`) não voltam, e
+ * créditos sem `appliedAmountCents` ficam fora da soma.
+ */
+async function releaseAppliedCredits(billingRef, paymentId) {
+  if (!billingRef || !paymentId) return 0;
+  let snap;
+  try {
+    snap = await billingRef.collection('credits').where('appliedToPaymentId', '==', paymentId).get();
+  } catch (e) {
+    console.warn('[credits] release lookup failed', e && e.message);
+    return 0;
+  }
+  if (snap.empty) return 0;
+
+  const toRelease = [];
+  let restored = 0;
+  snap.docs.forEach((d) => {
+    const c = d.data() || {};
+    if (c.voidedAt) return; // crédito já anulado: não devolve saldo
+    const amount = c.appliedAmountCents || 0;
+    if (amount <= 0) return;
+    restored += amount;
+    toRelease.push(d.ref);
+  });
+  if (restored <= 0) return 0;
+
+  const batch = db().batch();
+  toRelease.forEach((ref) => {
+    batch.set(ref, {
+      appliedAt: null,
+      appliedToPaymentId: null,
+      appliedAmountCents: fieldValue().delete(),
+    }, { merge: true });
+  });
+  batch.set(billingRef, {
+    stats: { pendingDiscountCents: fieldValue().increment(restored) },
+    updatedAt: fieldValue().serverTimestamp(),
+  }, { merge: true });
+  await batch.commit();
+  return restored;
+}
 
 /**
  * Reconcilia registos locais de pagamentos que ainda estão em estado
@@ -26,6 +76,7 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
     return;
   }
   const writes = [];
+  const deletedPaymentIds = [];
   snap.docs.forEach((d) => {
     const local = d.data() || {};
     if (!NON_FINAL_STATUSES.has(local.status)) return;
@@ -39,6 +90,7 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
           receivedAt: fieldValue().serverTimestamp(),
         }, { merge: true })
       );
+      deletedPaymentIds.push(local.id || d.id);
       return;
     }
     if (remote.status && remote.status !== local.status) {
@@ -62,6 +114,16 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
   if (writes.length) {
     try { await Promise.all(writes); }
     catch (e) { console.warn('[billing-sync] reconcile payments write failed', e && e.message); }
+  }
+  // Devolve qualquer crédito que tinha sido aplicado a faturas apagadas
+  // no Asaas sem webhook PAYMENT_DELETED ter chegado. Sequencial para
+  // não disparar 12 transações batch em paralelo num cancelamento típico.
+  if (deletedPaymentIds.length) {
+    const billingRef = userRef.collection('billing').doc('account');
+    for (const pid of deletedPaymentIds) {
+      try { await releaseAppliedCredits(billingRef, pid); }
+      catch (e) { console.warn('[billing-sync] release credits failed', e && e.message); }
+    }
   }
 }
 
@@ -191,4 +253,4 @@ async function syncBillingFromAsaas(billingRef, billing) {
   return { billing: snap.exists ? snap.data() : billing, updated: true };
 }
 
-module.exports = { syncBillingFromAsaas };
+module.exports = { syncBillingFromAsaas, releaseAppliedCredits };

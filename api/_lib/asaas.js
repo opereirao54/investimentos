@@ -121,6 +121,25 @@ async function updatePayment(paymentId, fields) {
   return call('POST', '/payments/' + encodeURIComponent(paymentId), fields);
 }
 
+// Cobrança avulsa (1 mês) — não cria subscription, não projeta faturas futuras.
+// Usada pelo endpoint /api/billing/pay-month. O cashback do indicador continua
+// a funcionar via webhook PAYMENT_CONFIRMED (creditIndicatorFromIndicado roda
+// para qualquer pagamento confirmado, com ou sem subscription).
+async function createPayment({ customerId, value, billingType, dueDate, description, externalReference, creditCard, creditCardHolderInfo, remoteIp }) {
+  const body = {
+    customer: customerId,
+    billingType: billingType || 'UNDEFINED',
+    value: typeof value === 'number' ? value : PLAN_VALUE,
+    dueDate,
+    description: description || (PLAN_DESCRIPTION + ' (avulso)'),
+    externalReference,
+  };
+  if (creditCard) body.creditCard = creditCard;
+  if (creditCardHolderInfo) body.creditCardHolderInfo = creditCardHolderInfo;
+  if (remoteIp) body.remoteIp = remoteIp;
+  return call('POST', '/payments', body);
+}
+
 async function listPaymentsBySubscription(subscriptionId) {
   return call('GET', `/payments?subscription=${encodeURIComponent(subscriptionId)}&limit=20`);
 }
@@ -141,6 +160,7 @@ module.exports = {
   tokenizeCard,
   getSubscription,
   updatePayment,
+  createPayment,
   listPaymentsBySubscription,
   getPaymentLink,
   PLAN_VALUE,

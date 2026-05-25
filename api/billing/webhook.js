@@ -1,5 +1,6 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const asaas = require('../_lib/asaas');
+const { releaseAppliedCredits } = require('../_lib/billing-sync');
 
 const REFERRAL_PERCENT = 10;
 // Valor mínimo após desconto referral. Asaas rejeita faturas abaixo do
@@ -324,12 +325,28 @@ module.exports = async (req, res) => {
       update.lastPaymentId = payment.id;
       update.lastPaymentStatus = payment.status;
 
+      // Pagamento avulso = este `payment` não pertence a nenhuma
+      // subscription do Asaas. Critério depende SÓ do payload — o
+      // billing local pode ter um subscriptionId residual de uma
+      // assinatura cancelada (INACTIVE) e ainda assim este evento ser
+      // de um pagamento avulso novo. Nesse modo, NÃO tocamos em
+      // subscriptionStatus (não há assinatura para ativar) — o acesso
+      // vem do paid_period em computeAccess (30 dias após lastPaidAt).
+      // Também limpamos trialEndsAt para que o branch "trial" não
+      // esconda o "active".
+      const isOneShot = !payment.subscription;
+
       switch (event) {
         case 'PAYMENT_CONFIRMED':
         case 'PAYMENT_RECEIVED':
         case 'PAYMENT_RECEIVED_IN_CASH':
         case 'PAYMENT_APPROVED_BY_RISK_ANALYSIS':
-          update.subscriptionStatus = 'ACTIVE';
+          if (!isOneShot) {
+            update.subscriptionStatus = 'ACTIVE';
+          } else {
+            update.paymentMode = 'one_shot';
+            update.trialEndsAt = fieldValue().delete();
+          }
           update.lastPaidAt = fieldValue().serverTimestamp();
           update.dunningRetryCount = fieldValue().delete();
           update.lastFailureReason = fieldValue().delete();
@@ -364,11 +381,30 @@ module.exports = async (req, res) => {
           update.subscriptionStatus = 'REFUND_IN_PROGRESS';
           break;
         case 'PAYMENT_REFUNDED':
-        case 'PAYMENT_DELETED':
           update.subscriptionStatus = 'INACTIVE';
+          break;
+        case 'PAYMENT_DELETED':
+          // Asaas dispara PAYMENT_DELETED para cada uma das faturas
+          // projetadas (6-12 meses à frente) quando a assinatura é
+          // cancelada. Marcar INACTIVE aqui era duplo trabalho (o
+          // /api/billing/cancel já o faz) e abria espaço para race
+          // conditions com PAYMENT_CONFIRMED tardio (impedido pela
+          // guarda M3). Confiamos em SUBSCRIPTION_DELETED/INACTIVATED
+          // para a transição de fim de assinatura. Acesso continua
+          // garantido pelo paid_period em computeAccess.
           break;
         default:
           break;
+      }
+
+      // Pagamento avulso: não promovemos subscriptionStatus para nenhum
+      // valor — não há assinatura para "ativar" ou "cancelar". Bloqueios
+      // (OVERDUE, REFUNDED, CHARGEBACK) já são capturados em access.js
+      // via lastPaymentStatus, que foi setado na linha "lastPaymentStatus
+      // = payment.status" acima. Mantém o estado coerente: subscriptionId
+      // null ⇒ subscriptionStatus null.
+      if (isOneShot) {
+        delete update.subscriptionStatus;
       }
 
       const pid = payment.id;
@@ -405,6 +441,19 @@ module.exports = async (req, res) => {
           if (reversed) paymentExtra.referralReversed = true;
         } catch (e) {
           console.error('[webhook] reverseReferralCredit failed', e);
+        }
+      }
+
+      // Devolve créditos que este próprio utilizador tinha aplicado a uma
+      // fatura que foi apagada/reembolsada. Sem isto, o desconto reservado
+      // ficaria preso (appliedAt setado, mas a fatura onde ia abater já
+      // não existe) e o saldo pendente nunca voltaria.
+      if ((event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED' || event === 'PAYMENT_CHARGEBACK_REQUESTED') && payment && payment.id) {
+        try {
+          const released = await releaseAppliedCredits(doc.ref, payment.id);
+          if (released > 0) paymentExtra.referralCreditReleasedCents = released;
+        } catch (e) {
+          console.error('[webhook] releaseAppliedCredits failed', e);
         }
       }
 

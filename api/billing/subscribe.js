@@ -70,6 +70,10 @@ module.exports = async (req, res) => {
   const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
   const rawHolder = body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object' ? body.creditCardHolderInfo : null;
   const wantsCard = !!rawCard;
+  // mode: 'subscription' (padrão, assinatura mensal Asaas) ou 'one_shot'
+  // (cobrança única de 30 dias, sem subscription). Fundido com /subscribe
+  // para caber no limite de 12 functions do Vercel Hobby.
+  const mode = body.mode === 'one_shot' ? 'one_shot' : 'subscription';
 
   try {
     const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
@@ -200,7 +204,17 @@ module.exports = async (req, res) => {
       }, { merge: true });
     }
 
-    if (billing.subscriptionId) {
+    // Avulso: bloqueia se já há assinatura ativa para evitar pagamento
+    // duplicado. Para mudar de modo, o user cancela a sub primeiro.
+    if (mode === 'one_shot' && billing.subscriptionId && billing.subscriptionStatus && billing.subscriptionStatus !== 'INACTIVE') {
+      await releaseLock();
+      return res.status(409).json({
+        error: 'subscription_active',
+        detail: 'Já existe uma assinatura recorrente ativa. Cancele-a antes de optar pelo pagamento avulso.',
+      });
+    }
+
+    if (mode === 'subscription' && billing.subscriptionId) {
       // Se a subscription local está INACTIVE, criar uma nova passa por este
       // endpoint mas com subscriptionId limpo antes. Reativação explícita:
       // o utilizador clica "Reativar" → frontend faz DELETE local primeiro.
@@ -252,8 +266,56 @@ module.exports = async (req, res) => {
     const monthly = (billing.monthlyPriceCents || 1500) / 100;
     const pct = billing.recurringDiscountPercent || 0;
     const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
-
     const nextDue = formatDate(new Date(Date.now() + 24 * 3600 * 1000));
+
+    const holderInfo = wantsCard ? (rawHolder || {
+      name: customerName || billing.customerName || user.email,
+      email: user.email,
+      cpfCnpj: cpfCnpj || billing.cpfCnpj,
+      postalCode: (rawHolder && rawHolder.postalCode) || null,
+      addressNumber: (rawHolder && rawHolder.addressNumber) || null,
+      phone: (rawHolder && rawHolder.phone) || null,
+    }) : null;
+
+    // Branch avulso: cria payment único (POST /payments), sem subscription.
+    // O webhook PAYMENT_CONFIRMED detecta !payment.subscription e aplica
+    // paymentMode='one_shot' + limpa trial — acesso vem do paid_period.
+    if (mode === 'one_shot') {
+      const payPayload = {
+        customerId: billing.customerId,
+        value: subscriptionValue,
+        dueDate: nextDue,
+        externalReference: user.uid,
+        description: 'Appliquei — 1 mês de acesso',
+        billingType: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+      };
+      if (wantsCard) {
+        payPayload.creditCard = rawCard;
+        payPayload.creditCardHolderInfo = holderInfo;
+        payPayload.remoteIp = clientIp(req);
+      }
+      const pay = await asaas.createPayment(payPayload);
+      await ref.set({
+        paymentMode: 'one_shot',
+        lastOneShotPaymentId: pay.id,
+        paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+        updatedAt: fieldValue().serverTimestamp(),
+        subscribeLock: fieldValue().delete(),
+        subscribeLockAt: fieldValue().delete(),
+      }, { merge: true });
+      lockReleased = true;
+      return res.json({
+        mode: 'one_shot',
+        paymentId: pay.id,
+        invoiceUrl: pay.invoiceUrl || null,
+        bankSlipUrl: pay.bankSlipUrl || null,
+        status: pay.status || null,
+        value: pay.value || null,
+        dueDate: pay.dueDate || nextDue,
+        paymentMethod: payPayload.billingType,
+      });
+    }
+
     const subPayload = {
       customerId: billing.customerId,
       uid: user.uid,
@@ -263,14 +325,7 @@ module.exports = async (req, res) => {
     if (wantsCard) {
       subPayload.billingType = 'CREDIT_CARD';
       subPayload.creditCard = rawCard;
-      subPayload.creditCardHolderInfo = rawHolder || {
-        name: customerName || billing.customerName || user.email,
-        email: user.email,
-        cpfCnpj: cpfCnpj || billing.cpfCnpj,
-        postalCode: (rawHolder && rawHolder.postalCode) || null,
-        addressNumber: (rawHolder && rawHolder.addressNumber) || null,
-        phone: (rawHolder && rawHolder.phone) || null,
-      };
+      subPayload.creditCardHolderInfo = holderInfo;
       subPayload.remoteIp = clientIp(req);
     }
     const sub = await asaas.createSubscription(subPayload);
@@ -280,6 +335,7 @@ module.exports = async (req, res) => {
       subscriptionStatus: sub.status || 'ACTIVE',
       subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
       paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+      paymentMode: 'subscription',
       updatedAt: fieldValue().serverTimestamp(),
       // C6: liberta o lock atomicamente com o write da subscriptionId.
       subscribeLock: fieldValue().delete(),

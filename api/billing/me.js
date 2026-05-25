@@ -1,6 +1,6 @@
 const { db } = require('../_lib/firebase-admin');
 const { requireVerifiedUser, cors } = require('../_lib/auth');
-const { computeAccess } = require('../_lib/access');
+const { computeAccess, PAID_PERIOD_MS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
 function tsToIso(t) {
@@ -109,7 +109,7 @@ module.exports = async (req, res) => {
         .catch(e => { console.warn('[me] credits query failed', e.code || '', e.message); return null; }),
       userRef.collection('payments')
         .orderBy('receivedAt', 'desc')
-        .limit(20)
+        .limit(50)
         .get()
         .catch(e => { console.warn('[me] payments query failed', e.code || '', e.message); return null; }),
     ]);
@@ -157,7 +157,7 @@ module.exports = async (req, res) => {
     }
 
     if (payRes) {
-      payments = payRes.docs.map(d => {
+      const all = payRes.docs.map(d => {
         const p = d.data();
         return {
           id: p.id || d.id,
@@ -174,6 +174,26 @@ module.exports = async (req, res) => {
           receivedAt: tsToIso(p.receivedAt),
         };
       });
+
+      // Asaas projeta 6-12 faturas PENDING futuras logo na criação da
+      // assinatura. Sem filtro, o histórico mostra "12 faturas pendentes"
+      // e o utilizador pensa que vai ser cobrado 12 vezes. Mantém apenas
+      // a PENDING/AWAITING mais próxima por dueDate (a do mês corrente)
+      // e oculta as projeções futuras. OVERDUE não entra neste filtro:
+      // é uma cobrança real em atraso e deve permanecer visível.
+      const FUTURE_OPEN = new Set(['PENDING', 'AWAITING_RISK_ANALYSIS', 'AUTHORIZED']);
+      const futurePending = all
+        .filter(p => FUTURE_OPEN.has(p.status))
+        .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
+      const nearestPending = futurePending[0] || null;
+      const visible = all.filter(p => !FUTURE_OPEN.has(p.status));
+      if (nearestPending) visible.push(nearestPending);
+      visible.sort((a, b) => {
+        const ad = a.paymentDate || a.dueDate || '';
+        const bd = b.paymentDate || b.dueDate || '';
+        return bd.localeCompare(ad);
+      });
+      payments = visible.slice(0, 20);
     }
 
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
@@ -181,8 +201,23 @@ module.exports = async (req, res) => {
 
     const upcoming = buildUpcoming(billing, payments, projectedNextCents, monthlyCents);
 
+    // Para o banner "estilo Amazon" de renovação avulsa: calcula quando
+    // o acesso pago expira (lastPaidAt + 30 dias). Front-end mostra o
+    // aviso quando faltam ≤ 7 dias e o user é one_shot (sem assinatura
+    // recorrente que reativa sozinha).
+    let accessExpiresAt = null;
+    let accessExpiresInDays = null;
+    if (billing.lastPaidAt && typeof billing.lastPaidAt.toMillis === 'function') {
+      const expiresMs = billing.lastPaidAt.toMillis() + PAID_PERIOD_MS;
+      accessExpiresAt = new Date(expiresMs).toISOString();
+      accessExpiresInDays = Math.ceil((expiresMs - Date.now()) / 86400000);
+    }
+
     return res.json({
       access: computeAccess(billing),
+      paymentMode: billing.paymentMode || (billing.subscriptionId ? 'subscription' : null),
+      accessExpiresAt,
+      accessExpiresInDays,
       referralCode: billing.referralCode || null,
       referredByCode: billing.referredByCode || null,
       referredByUserId: billing.referredByUserId || null,
