@@ -738,6 +738,8 @@
         .tag-etf { color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria); }
         .tag-bdr { color: var(--cor-txt-info); background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); }
         .tag-rf { color: var(--cor-texto-mutado); background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
+        .tag-cripto { color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; }
+        body.tema-escuro .tag-cripto { color: #fcd34d; background: #422006; border-color: #854f0b; }
 
         /* === EXTRATO === */
         .extrato-item {
@@ -1655,6 +1657,431 @@
             background: var(--cor-bg-info);
             color: var(--cor-txt-info);
             border: 1px solid var(--cor-borda-info);
+        }
+
+        /* ============================================================
+           === CARTEIRA RECOMENDADA v2 — Educação + Interatividade ===
+           ============================================================ */
+        .cart-perfil-header {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; flex-wrap: wrap;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 18px 22px;
+            margin-bottom: 18px; box-shadow: var(--shadow-card);
+        }
+        .cart-perfil-info { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .cart-perfil-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 8px 16px; border-radius: 99px;
+            font-size: 14px; font-weight: 700;
+            border: 1.5px solid;
+        }
+        .cart-perfil-badge .emoji { font-size: 18px; }
+        .cart-perfil-Conservador { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .cart-perfil-Moderado    { background: var(--cor-bg-info);     color: var(--cor-txt-info);     border-color: var(--cor-borda-info); }
+        .cart-perfil-Arrojado    { background: var(--cor-bg-erro);     color: var(--cor-txt-erro);     border-color: var(--cor-borda-erro); }
+        .cart-capital-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            padding: 6px 14px; border-radius: 99px;
+            font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 700;
+            color: var(--cor-texto-principal);
+        }
+        .cart-capital-chip i { color: var(--cor-primaria); font-size: 14px; }
+        .cart-perfil-msg {
+            font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.55;
+            margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--cor-borda);
+            width: 100%;
+        }
+        .cart-btn-mini {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: transparent; border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario); padding: 6px 12px;
+            border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+            transition: var(--transicao); font-family: 'Figtree', sans-serif;
+        }
+        .cart-btn-mini:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+
+        /* Questionnaire (when no profile yet) */
+        .cart-q-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 28px; margin-bottom: 20px;
+            box-shadow: var(--shadow-card);
+        }
+        .cart-q-card h2 {
+            font-size: 19px; font-weight: 700; font-family: 'Syne', sans-serif;
+            margin-bottom: 6px; letter-spacing: -0.4px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .cart-q-card h2 i { color: var(--cor-primaria); }
+        .cart-q-card .lead { font-size: 13.5px; color: var(--cor-texto-mutado); margin-bottom: 22px; }
+        .cart-q-section { margin-bottom: 22px; }
+        .cart-q-section-title {
+            font-size: 11px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px;
+        }
+        .cart-q-opts {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px;
+        }
+        .cart-q-opt {
+            background: var(--cor-superficie); border: 1.5px solid var(--cor-borda);
+            border-radius: 12px; padding: 14px 16px; cursor: pointer;
+            transition: var(--transicao); display: flex; align-items: flex-start; gap: 10px;
+            text-align: left; font-family: 'Figtree', sans-serif;
+        }
+        .cart-q-opt:hover { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .cart-q-opt.selected { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); box-shadow: 0 0 0 3px rgba(5,150,105,0.10); }
+        .cart-q-opt .icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
+        .cart-q-opt .body { flex: 1; }
+        .cart-q-opt .title { font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 2px; }
+        .cart-q-opt .sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.4; }
+
+        .cart-q-capital-row {
+            display: flex; gap: 14px; align-items: flex-end; flex-wrap: wrap;
+            padding-top: 8px; border-top: 1px solid var(--cor-borda);
+        }
+        .cart-q-capital-row .form-group { margin-bottom: 0; flex: 1; min-width: 220px; }
+
+        /* Hero: Distribution */
+        .cart-hero {
+            display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 18px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 920px) { .cart-hero { grid-template-columns: 1fr; } }
+        .cart-edu-panel {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-card);
+            display: flex; flex-direction: column; gap: 10px;
+        }
+        .cart-edu-panel-title {
+            font-size: 14px; font-weight: 700; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 8px; margin-bottom: 4px;
+        }
+        .cart-edu-panel-title i { color: var(--cor-primaria); font-size: 16px; }
+        .cart-edu-item {
+            border: 1px solid var(--cor-borda); border-radius: 10px;
+            overflow: hidden; transition: var(--transicao);
+        }
+        .cart-edu-item.active { border-color: var(--cor-primaria); box-shadow: 0 0 0 2px rgba(5,150,105,0.08); }
+        .cart-edu-item-head {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            cursor: pointer; background: var(--cor-superficie);
+            user-select: none;
+        }
+        .cart-edu-item-dot {
+            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+        }
+        .cart-edu-item-name {
+            font-size: 13px; font-weight: 700; color: var(--cor-texto-principal); flex: 1;
+        }
+        .cart-edu-item-meta {
+            font-size: 11px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace;
+            font-weight: 700;
+        }
+        .cart-edu-item-pct {
+            font-size: 13px; font-weight: 800; color: var(--cor-texto-principal);
+            font-family: 'DM Mono', monospace; padding: 2px 8px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: 6px; min-width: 50px; text-align: center;
+        }
+        .cart-edu-item-body {
+            display: none; padding: 12px 14px; background: var(--cor-branco);
+            font-size: 12.5px; color: var(--cor-texto-secundario); line-height: 1.55;
+        }
+        .cart-edu-item.expanded .cart-edu-item-body { display: block; }
+        .cart-edu-item-body strong { color: var(--cor-texto-principal); }
+
+        .cart-donut-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow-card);
+            display: flex; flex-direction: column;
+        }
+        .cart-donut-title {
+            font-size: 14px; font-weight: 700; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+        }
+        .cart-donut-title i { color: var(--cor-primaria); font-size: 16px; }
+        .cart-donut-wrap {
+            position: relative; height: 280px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .cart-donut-center {
+            position: absolute; pointer-events: none; text-align: center;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+        }
+        .cart-donut-center .label {
+            font-size: 10px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.6px;
+        }
+        .cart-donut-center .value {
+            font-size: 22px; font-weight: 700; color: var(--cor-texto-principal);
+            font-family: 'DM Mono', monospace; letter-spacing: -1px;
+            margin-top: 2px;
+        }
+        .cart-donut-legend {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--cor-borda);
+        }
+        .cart-donut-legend-item {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px;
+        }
+        .cart-donut-legend-item .dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+        .cart-donut-legend-item .meta { flex: 1; min-width: 0; }
+        .cart-donut-legend-item .meta .name {
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-principal);
+        }
+        .cart-donut-legend-item .meta .val {
+            font-size: 10.5px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace;
+        }
+
+        .cart-callout {
+            background: linear-gradient(135deg, var(--cor-bg-primaria), var(--cor-bg-info));
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: var(--radius-sm); padding: 14px 18px;
+            margin-bottom: 22px;
+            display: flex; align-items: flex-start; gap: 12px;
+            font-size: 13px; color: var(--cor-texto-principal); line-height: 1.5;
+        }
+        .cart-callout i { color: var(--cor-primaria); font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+        /* Asset selection grid (the "sketch" zone) */
+        .cart-selecao-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 14px; flex-wrap: wrap; margin-bottom: 14px;
+        }
+        .cart-selecao-header h3 {
+            font-size: 16px; font-weight: 700; font-family: 'Syne', sans-serif;
+            color: var(--cor-texto-principal); display: flex; align-items: center; gap: 8px;
+            margin: 0; letter-spacing: -0.3px;
+        }
+        .cart-selecao-header h3 i { color: var(--cor-primaria); }
+        .cart-selecao-grid {
+            display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px; margin-bottom: 22px;
+        }
+        @media (max-width: 1100px) { .cart-selecao-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 560px)  { .cart-selecao-grid { grid-template-columns: 1fr; } }
+
+        .cart-classe-col {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); box-shadow: var(--shadow-card);
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: var(--transicao);
+        }
+        .cart-classe-col.dimmed { opacity: 0.45; }
+        .cart-classe-col-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--cor-borda);
+            position: relative;
+        }
+        .cart-classe-col-header::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+        }
+        .cart-classe-rf .cart-classe-col-header::before     { background: #059669; }
+        .cart-classe-acao .cart-classe-col-header::before   { background: #7c3aed; }
+        .cart-classe-fii .cart-classe-col-header::before    { background: #d97706; }
+        .cart-classe-cripto .cart-classe-col-header::before { background: #f59e0b; }
+        .cart-classe-col-name {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13px; font-weight: 700; color: var(--cor-texto-principal);
+        }
+        .cart-classe-col-name i { font-size: 16px; }
+        .cart-classe-rf .cart-classe-col-name i     { color: #059669; }
+        .cart-classe-acao .cart-classe-col-name i   { color: #7c3aed; }
+        .cart-classe-fii .cart-classe-col-name i    { color: #d97706; }
+        .cart-classe-cripto .cart-classe-col-name i { color: #f59e0b; }
+        .cart-classe-col-meta {
+            display: flex; justify-content: space-between; align-items: baseline;
+            margin-top: 6px;
+        }
+        .cart-classe-col-pct {
+            font-size: 22px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -1px;
+        }
+        .cart-classe-col-vlr {
+            font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace;
+            font-weight: 600;
+        }
+        .cart-classe-list {
+            list-style: none; padding: 8px; margin: 0;
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        .cart-classe-empty {
+            padding: 18px 12px; text-align: center; font-size: 12px;
+            color: var(--cor-texto-mutado); font-style: italic;
+        }
+        .cart-ativo-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 9px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            transition: var(--transicao); cursor: pointer; user-select: none;
+        }
+        .cart-ativo-item:hover { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .cart-ativo-item.unchecked {
+            opacity: 0.55; background: var(--cor-branco);
+        }
+        .cart-ativo-item.unchecked:hover { opacity: 0.85; }
+        .cart-ativo-check {
+            width: 18px; height: 18px; border-radius: 5px;
+            border: 2px solid var(--cor-borda2); flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cor-branco); transition: var(--transicao);
+        }
+        .cart-ativo-item:not(.unchecked) .cart-ativo-check {
+            background: var(--cor-primaria); border-color: var(--cor-primaria);
+            color: #fff;
+        }
+        .cart-ativo-check i { font-size: 12px; line-height: 1; }
+        .cart-ativo-body { flex: 1; min-width: 0; }
+        .cart-ativo-ticker {
+            font-size: 12.5px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .cart-ativo-nome {
+            font-size: 10.5px; color: var(--cor-texto-mutado);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .cart-ativo-right { text-align: right; flex-shrink: 0; }
+        .cart-ativo-pct {
+            font-size: 12.5px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+        }
+        .cart-ativo-vlr {
+            font-size: 10px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace;
+        }
+        .cart-classe-col-footer {
+            padding: 10px 14px; border-top: 1px solid var(--cor-borda);
+            background: var(--cor-superficie);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11.5px;
+        }
+        .cart-classe-col-footer .lbl { color: var(--cor-texto-mutado); font-weight: 600; }
+        .cart-classe-col-footer .val {
+            font-family: 'DM Mono', monospace; font-weight: 700;
+            color: var(--cor-texto-principal); font-size: 12.5px;
+        }
+
+        /* Historical simulation */
+        .cart-sim-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 22px;
+            box-shadow: var(--shadow-card); margin-bottom: 20px;
+        }
+        .cart-sim-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 14px; flex-wrap: wrap; margin-bottom: 16px;
+        }
+        .cart-sim-header h3 {
+            font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif;
+            margin: 0; display: flex; align-items: center; gap: 8px;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .cart-sim-header h3 i { color: var(--cor-primaria); }
+        .cart-sim-ranges {
+            display: inline-flex; background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda); border-radius: 10px; padding: 3px;
+        }
+        .cart-sim-range-btn {
+            padding: 6px 14px; border: none; background: transparent;
+            font-size: 12px; font-weight: 700; color: var(--cor-texto-mutado);
+            border-radius: 7px; cursor: pointer; transition: var(--transicao);
+            font-family: 'Figtree', sans-serif;
+        }
+        .cart-sim-range-btn.active {
+            background: var(--cor-branco); color: var(--cor-primaria);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        }
+        .cart-sim-chart-wrap { height: 280px; position: relative; margin-bottom: 14px; }
+        .cart-sim-loading {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            background: rgba(255,255,255,0.85); border-radius: 12px;
+            font-size: 13px; color: var(--cor-texto-mutado); gap: 8px;
+        }
+        body.tema-escuro .cart-sim-loading { background: rgba(20,31,22,0.85); }
+        .cart-sim-kpis {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
+        }
+        .cart-sim-kpi {
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            border-radius: 10px; padding: 12px 14px;
+        }
+        .cart-sim-kpi .lbl {
+            font-size: 10px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+        }
+        .cart-sim-kpi .val {
+            font-size: 17px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.5px;
+        }
+        .cart-sim-kpi .val.pos { color: var(--cor-primaria); }
+        .cart-sim-kpi .val.neg { color: var(--cor-erro); }
+        .cart-sim-disclaimer {
+            margin-top: 10px; font-size: 11px; color: var(--cor-texto-mutado);
+            font-style: italic; text-align: center;
+        }
+
+        /* Admin refactored */
+        .cart-admin-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-card);
+            margin-bottom: 18px;
+        }
+        .cart-admin-header {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 14px; flex-wrap: wrap; margin-bottom: 18px;
+            padding-bottom: 14px; border-bottom: 1px solid var(--cor-borda);
+        }
+        .cart-admin-header h2 {
+            font-size: 17px; font-weight: 700; font-family: 'Syne', sans-serif;
+            margin: 0; display: flex; align-items: center; gap: 8px;
+            letter-spacing: -0.3px;
+        }
+        .cart-admin-section-title {
+            font-size: 11px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.6px;
+            margin: 20px 0 10px 0;
+        }
+        .cart-admin-perfil-tabs {
+            display: inline-flex; background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda); border-radius: 10px; padding: 3px;
+            margin-bottom: 14px;
+        }
+        .cart-admin-perfil-tab {
+            padding: 8px 18px; border: none; background: transparent;
+            font-size: 12.5px; font-weight: 700; color: var(--cor-texto-mutado);
+            border-radius: 7px; cursor: pointer; transition: var(--transicao);
+            font-family: 'Figtree', sans-serif;
+        }
+        .cart-admin-perfil-tab.active {
+            background: var(--cor-branco); color: var(--cor-primaria);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        }
+        .cart-admin-alloc-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+            margin-bottom: 8px;
+        }
+        @media (max-width: 720px) { .cart-admin-alloc-grid { grid-template-columns: repeat(2, 1fr); } }
+        .cart-admin-alloc-row {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: var(--cor-texto-mutado);
+            padding: 8px 0; border-top: 1px dashed var(--cor-borda);
+            justify-content: space-between;
+        }
+        .cart-admin-ativos-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
+        }
+        .cart-admin-ativos-table th {
+            text-align: left; padding: 10px 8px; font-size: 11px;
+            color: var(--cor-texto-mutado); text-transform: uppercase;
+            letter-spacing: 0.4px; border-bottom: 1px solid var(--cor-borda);
+            font-weight: 700;
+        }
+        .cart-admin-ativos-table td {
+            padding: 10px 8px; border-bottom: 1px solid var(--cor-borda);
+            color: var(--cor-texto-principal);
         }
 
         /* === SONHOS — DREAM PLANNER === */
@@ -4104,175 +4531,218 @@
         <section id="carteira" class="section">
             <div class="page-header" style="margin-bottom:16px;">
                 <div class="page-header-left">
-                    <h1>Posicionamento estratégico</h1>
-                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Diretriz de alocação mensal para mitigação de risco e busca de prêmios.</p>
+                    <h1>Carteira recomendada</h1>
+                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação personalizada, com educação financeira e simulação histórica real.</p>
                 </div>
                 <div class="page-actions">
-                    <button onclick="toggleModoAdmin()" class="btn-secundario"><i class="ph ph-gear"></i> Painel do consultor</button>
+                    <button onclick="cartAbrirAdmin()" id="btnAdminCart" class="btn-secundario" style="font-size:12px;"><i class="ph ph-gear"></i> Painel do consultor</button>
                 </div>
             </div>
 
+            <!-- =============== CLIENT VIEW =============== -->
             <div id="visaoCliente">
-                <!-- Investor Profile Questionnaire -->
-                <div class="perfil-questionnaire" id="perfilQuestionnaire">
-                    <h3><i class="ph ph-user-circle-gear" style="color:var(--cor-primaria);font-size:18px;"></i> Descubra seu Perfil de Investidor</h3>
-                    <p class="sub">Responda 5 perguntas rápidas para personalizar sua carteira recomendada.</p>
-                    <div class="perfil-grid">
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Tempo de investimento</label>
-                            <select id="qTempoInvest">
-                                <option value="">Selecione...</option>
-                                <option value="menos_1">Menos de 1 ano</option>
-                                <option value="1_3">1 a 3 anos</option>
-                                <option value="3_5">3 a 5 anos</option>
-                                <option value="mais_5">Mais de 5 anos</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Tolerância a perdas</label>
-                            <select id="qTolerancia">
-                                <option value="">Selecione...</option>
-                                <option value="nao_aceito">Não aceito perdas</option>
-                                <option value="ate_10">Aceito até 10%</option>
-                                <option value="ate_25">Aceito até 25%</option>
-                                <option value="mais_25">Aceito mais de 25%</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Conhecimento em investimentos</label>
-                            <select id="qConhecimento">
-                                <option value="">Selecione...</option>
-                                <option value="iniciante">Iniciante</option>
-                                <option value="intermediario">Intermediário</option>
-                                <option value="avancado">Avançado</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Objetivo principal</label>
-                            <select id="qObjetivo">
-                                <option value="">Selecione...</option>
-                                <option value="preservar">Preservar capital</option>
-                                <option value="renda">Renda passiva</option>
-                                <option value="crescimento">Crescimento</option>
-                                <option value="agressivo">Agressivo</option>
-                            </select>
-                        </div>
-                        <div class="form-group" style="margin-bottom:0;">
-                            <label>Idade</label>
-                            <input type="number" id="qIdade" placeholder="Ex: 30" min="18" max="100">
-                        </div>
-                        <div class="form-group" style="margin-bottom:0; display:flex; align-items:flex-end;">
-                            <button class="btn-acao" onclick="calcularPerfilInvestidor()" style="width:100%;"><i class="ph ph-calculator"></i> Calcular meu perfil</button>
+
+                <!-- Profile Questionnaire (shown until profile is set) -->
+                <div class="cart-q-card" id="cartQuestionnaire" style="display:none;">
+                    <h2><i class="ph ph-user-circle-gear"></i> Descubra seu perfil de investidor</h2>
+                    <p class="lead">Responda 2 perguntas rápidas + informe seu capital. A carteira é montada automaticamente.</p>
+
+                    <div class="cart-q-section">
+                        <div class="cart-q-section-title">1 · Tolerância a perdas</div>
+                        <div class="cart-q-opts" id="cartQTolerancia">
+                            <button type="button" class="cart-q-opt" data-q="tolerancia" data-val="nao_aceito">
+                                <span class="icon">🛡️</span>
+                                <span class="body"><span class="title">Não aceito perdas</span><span class="sub">Quero previsibilidade total</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="tolerancia" data-val="ate_15">
+                                <span class="icon">⚖️</span>
+                                <span class="body"><span class="title">Aceito até 15%</span><span class="sub">Equilíbrio entre risco e retorno</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="tolerancia" data-val="acima_25">
+                                <span class="icon">🚀</span>
+                                <span class="body"><span class="title">Aceito acima de 25%</span><span class="sub">Busco crescimento acelerado</span></span>
+                            </button>
                         </div>
                     </div>
-                    <div class="perfil-result" id="perfilResultBox" style="display:none;">
-                        <span class="label-result">Seu perfil de investidor:</span>
-                        <span class="badge-perfil" id="badgePerfilCalculado"></span>
+
+                    <div class="cart-q-section">
+                        <div class="cart-q-section-title">2 · Objetivo principal</div>
+                        <div class="cart-q-opts" id="cartQObjetivo">
+                            <button type="button" class="cart-q-opt" data-q="objetivo" data-val="preservar">
+                                <span class="icon">🏦</span>
+                                <span class="body"><span class="title">Preservar capital</span><span class="sub">Proteger o que já tenho</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="objetivo" data-val="renda">
+                                <span class="icon">💰</span>
+                                <span class="body"><span class="title">Renda passiva</span><span class="sub">Receber dividendos mensais</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="objetivo" data-val="aposentadoria">
+                                <span class="icon">🌴</span>
+                                <span class="body"><span class="title">Aposentadoria</span><span class="sub">Construir reserva de longo prazo</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="objetivo" data-val="aumentar">
+                                <span class="icon">📈</span>
+                                <span class="body"><span class="title">Aumentar patrimônio</span><span class="sub">Crescimento agressivo</span></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="cart-q-capital-row">
+                        <div class="form-group">
+                            <label>Capital de simulação (R$)</label>
+                            <span class="input-brl-wrap" style="display:block;">
+                                <input type="text" inputmode="decimal" data-brl="1" id="cartQCapital" value="10.000,00"
+                                       oninput="aplicarMascaraBRL(this)"
+                                       style="font-weight:700; font-size:17px; color:var(--cor-primaria); padding-left:42px !important;">
+                            </span>
+                        </div>
+                        <button class="btn-acao" onclick="cartConcluirQuestionario()" style="padding:13px 26px;">
+                            <i class="ph ph-arrow-right"></i> Ver minha carteira
+                        </button>
                     </div>
                 </div>
 
-                <!-- Capital Calculator -->
-                <div class="card-container" style="display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; background-color: var(--cor-fundo);">
-                    <div class="form-group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
-                        <label>Capital Disponível para Alocação (R$)</label>
-                        <span class="input-brl-wrap" style="display:block;"><input type="text" inputmode="decimal" data-brl="1" id="valorAporteCalculadora" value="1000" oninput="aplicarMascaraBRL(this)" style="font-weight: 700; font-size: 18px; color: var(--cor-primaria); padding-left: 42px !important;"></span>
+                <!-- Profile + Capital Header (shown after questionnaire) -->
+                <div class="cart-perfil-header" id="cartPerfilHeader" style="display:none;">
+                    <div class="cart-perfil-info">
+                        <span class="cart-perfil-badge" id="cartPerfilBadge"></span>
+                        <span class="cart-capital-chip">
+                            <i class="ph-fill ph-wallet"></i>
+                            <span id="cartCapitalLabel">R$ 0,00</span>
+                        </span>
                     </div>
-                    <button class="btn-acao" style="width: auto; padding: 12px 25px;" onclick="calcularCarteiraRecomendada()"><i class="ph ph-calculator"></i> Calcular Distribuição</button>
+                    <button class="cart-btn-mini" onclick="cartEditarPerfil()">
+                        <i class="ph ph-pencil-simple"></i> Editar perfil ou capital
+                    </button>
+                    <div class="cart-perfil-msg" id="cartPerfilMsg"></div>
                 </div>
 
-                <!-- Donut Chart + Benchmark -->
-                <div class="grid-2" style="margin-bottom: 25px;">
-                    <div class="card-container" style="margin-bottom:0;">
-                        <h3 style="font-size:13px;font-weight:700;margin-bottom:14px;">Distribuição da Carteira</h3>
-                        <div style="height:220px;position:relative;"><canvas id="graficoCarteiraDonut"></canvas></div>
+                <!-- Hero: Educational Panel + Donut Chart -->
+                <div class="cart-hero" id="cartHero" style="display:none;">
+                    <div class="cart-edu-panel">
+                        <div class="cart-edu-panel-title">
+                            <i class="ph ph-graduation-cap"></i> Entenda cada classe
+                        </div>
+                        <div id="cartEduList"></div>
                     </div>
-                    <div class="card-container" style="margin-bottom:0;">
-                        <h3 style="font-size:13px;font-weight:700;margin-bottom:14px;">Comparativo com Benchmarks</h3>
-                        <div style="height:220px;position:relative;"><canvas id="graficoCarteiraBench"></canvas></div>
-                    </div>
-                </div>
 
-                <!-- KPI Cards Row 1 (existing 3) -->
-                <div class="grid-3" style="margin-bottom: 16px;">
-                    <div class="card-destaque" style="border-left-color: var(--cor-primaria);"><h3 style="color: var(--cor-primaria);"><i class="ph ph-shield-check"></i> Renda Fixa (<span id="lblPercRF" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaRF">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-info);"><h3 style="color: var(--cor-info);"><i class="ph ph-buildings"></i> FIIs (<span id="lblPercFII" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaFII">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-patrimonio);"><h3 style="color: var(--cor-patrimonio);"><i class="ph ph-chart-line-up"></i> Ações (<span id="lblPercAcoes" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaAcoes">R$ 0,00</div></div>
-                </div>
-
-                <!-- KPI Cards Row 2 (new 2) -->
-                <div class="grid-2-iguais" style="margin-bottom: 20px;">
-                    <div class="card-destaque" style="border-left-color: var(--cor-erro);">
-                        <h3 style="color: var(--cor-erro);"><i class="ph ph-warning-octagon"></i> Risco estimado</h3>
-                        <div class="valor" id="lblRiscoEstimado" style="font-size:18px;">—</div>
-                    </div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-cartao);">
-                        <h3 style="color: var(--cor-cartao);"><i class="ph ph-percent"></i> Dividend Yield médio</h3>
-                        <div class="valor" id="lblDYMedio" style="font-size:18px;">—</div>
+                    <div class="cart-donut-card">
+                        <div class="cart-donut-title">
+                            <i class="ph ph-chart-pie-slice"></i> Distribuição da carteira
+                        </div>
+                        <div class="cart-donut-wrap">
+                            <canvas id="cartDonutChart"></canvas>
+                            <div class="cart-donut-center">
+                                <div class="label">Capital total</div>
+                                <div class="value" id="cartDonutCenterValue">R$ 0</div>
+                            </div>
+                        </div>
+                        <div class="cart-donut-legend" id="cartDonutLegend"></div>
                     </div>
                 </div>
 
-                <!-- ETF + BDR KPIs -->
-                <div class="grid-2-iguais" style="margin-bottom: 20px;">
-                    <div class="card-destaque" style="border-left-color: var(--cor-txt-primaria);"><h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-chart-pie-slice"></i> ETFs (<span id="lblPercETF" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaETF">R$ 0,00</div></div>
-                    <div class="card-destaque" style="border-left-color: var(--cor-txt-info);"><h3 style="color: var(--cor-txt-info);"><i class="ph ph-globe-hemisphere-west"></i> BDRs (<span id="lblPercBDR" class="valor-mascarado">0</span>%)</h3><div class="valor" id="fatiaBDR">R$ 0,00</div></div>
+                <!-- Diversification callout -->
+                <div class="cart-callout" id="cartCallout" style="display:none;">
+                    <i class="ph-fill ph-lightbulb"></i>
+                    <div><strong>📌 Dica:</strong> Misturar esses investimentos ajuda a reduzir riscos e melhorar seus resultados no longo prazo.</div>
                 </div>
 
-                <!-- Concentration Alert Banner -->
-                <div id="alertaConcentracao" class="alert-contextual alert-warn" style="display:none;">
-                    <i class="ph-fill ph-warning"></i>
-                    <span id="txtAlertaConcentracao"></span>
+                <!-- Asset Selection Grid -->
+                <div id="cartSelecaoWrap" style="display:none;">
+                    <div class="cart-selecao-header">
+                        <h3><i class="ph ph-list-checks"></i> Ativos selecionados — mês atual</h3>
+                        <button class="cart-btn-mini" onclick="cartResetSelecao()" title="Marcar todos novamente">
+                            <i class="ph ph-arrow-counter-clockwise"></i> Resetar seleção
+                        </button>
+                    </div>
+                    <div class="cart-selecao-grid" id="cartSelecaoGrid"></div>
                 </div>
 
-                <!-- Enhanced Asset Cards -->
-                <h3 style="font-size: 16px; margin-bottom: 18px; color: var(--cor-texto-principal); font-weight: 700;">Ativos Selecionados - Mês Atual</h3>
-                <div class="grid-cards" id="listaAtivosCliente"></div>
+                <!-- Historical Simulation -->
+                <div class="cart-sim-card" id="cartSimCard" style="display:none;">
+                    <div class="cart-sim-header">
+                        <h3><i class="ph ph-chart-line"></i> Como essa carteira teria performado?</h3>
+                        <div class="cart-sim-ranges" id="cartSimRanges">
+                            <button class="cart-sim-range-btn" data-range="1y">1 ano</button>
+                            <button class="cart-sim-range-btn active" data-range="3y">3 anos</button>
+                            <button class="cart-sim-range-btn" data-range="5y">5 anos</button>
+                        </div>
+                    </div>
+                    <div class="cart-sim-chart-wrap">
+                        <canvas id="cartSimChart"></canvas>
+                        <div class="cart-sim-loading" id="cartSimLoading" style="display:none;">
+                            <i class="ph ph-circle-notch ph-spin"></i> Buscando preços históricos…
+                        </div>
+                    </div>
+                    <div class="cart-sim-kpis" id="cartSimKpis"></div>
+                    <div class="cart-sim-disclaimer">
+                        Rentabilidade passada não garante rentabilidade futura. Tesouro/CDI são curvas indicativas baseadas em yield anual.
+                    </div>
+                </div>
             </div>
 
-            <!-- Admin Panel (dark mode fixed) -->
-            <div id="visaoAdmin" style="display: none; background: var(--cor-branco); padding: 30px; border-radius: var(--radius); border: 1px solid var(--cor-borda); box-shadow: var(--shadow-media);">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 15px;">
-                    <h2 style="color: var(--cor-texto-principal); margin: 0; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px;"><i class="ph ph-gear" style="color: var(--cor-texto-mutado);"></i> Configuração da Carteira Modelo</h2>
-                    <button onclick="toggleModoAdmin()" class="btn-secundario" style="color: var(--cor-erro); border-color: var(--cor-erro);"><i class="ph ph-trash"></i> Descartar Edição</button>
-                </div>
-                
-                <div class="grid-2-iguais">
-                    <div class="form-group"><label>Mês/Ano de Referência</label><input type="text" id="adminMesAno" placeholder="Ex: Mai/2026"></div>
-                    <div class="form-group"><label>Perfil do Investidor Alvo</label><select id="adminPerfil"><option value="Conservador">Conservador</option><option value="Moderado">Moderado</option><option value="Agressivo">Agressivo</option></select></div>
-                </div>
-                <div class="form-group"><label>Tese de Investimento (Visão Macro)</label><textarea id="adminDesc" rows="2" style="resize: vertical;"></textarea></div>
-                
-                <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 15px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 8px;">Distribuição Macrorecomendada (%)</h3>
-                <div class="grid-3">
-                    <div class="form-group"><label>Renda Fixa</label><input type="number" id="adminPerfRF"></div>
-                    <div class="form-group"><label>FIIs</label><input type="number" id="adminPerfFII"></div>
-                    <div class="form-group"><label>Ações</label><input type="number" id="adminPerfAcoes"></div>
-                </div>
-                <div class="grid-2-iguais" style="margin-bottom: 16px;">
-                    <div class="form-group"><label>ETFs</label><input type="number" id="adminPerfETF"></div>
-                    <div class="form-group"><label>BDRs</label><input type="number" id="adminPerfBDR"></div>
-                </div>
-
-                <h3 style="margin-top: 25px; margin-bottom: 12px; font-size: 15px; border-bottom: 1px solid var(--cor-borda); padding-bottom: 8px;">Manutenção dos Ativos da Carteira</h3>
-                <div style="overflow-x: auto; margin-bottom: 20px;">
-                    <table class="tabela-dashboard" style="min-width: 500px;">
-                        <thead><tr><th>Ticker</th><th>Nome</th><th>Classe</th><th>% Peso</th><th>Ação</th></tr></thead>
-                        <tbody id="tabelaAdminAtivos"></tbody>
-                    </table>
-                </div>
-
-                <div style="background-color: #fbfcfd; padding: 20px; border-radius: var(--radius-sm); border: 1px dashed var(--cor-borda); margin-bottom: 25px;">
-                    <h4 style="margin-bottom: 15px; font-size: 14px; color: var(--cor-texto-principal); font-weight: 600;">Incluir Ativo na Composição</h4>
-                    <div class="grid-2-iguais">
-                        <div class="form-group"><label>Ticker</label><input type="text" id="addTicker" placeholder="Ex: PETR4"></div>
-                        <div class="form-group"><label>Nome</label><input type="text" id="addNome" placeholder="Ex: Petrobras PN"></div>
-                        <div class="form-group"><label>Classe/Tipo</label><select id="addClasse" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"><option value="rf">Renda Fixa</option><option value="fii">FII</option><option value="acao">Ação</option><option value="etf">ETF</option><option value="bdr">BDR</option></select></div>
-                        <div class="form-group"><label>Peso na Carteira (%)</label><input type="number" id="addPerc" placeholder="Ex: 5"></div>
-                        <div class="form-group"><label>Obs/Racional (Curto)</label><input type="text" id="addObs" placeholder="Ex: Dividend Yield"></div>
+            <!-- =============== ADMIN VIEW (refactored) =============== -->
+            <div id="visaoAdmin" style="display:none;">
+                <div class="cart-admin-card">
+                    <div class="cart-admin-header">
+                        <h2><i class="ph ph-gear" style="color:var(--cor-primaria);"></i> Painel do consultor — carteira modelo</h2>
+                        <button onclick="cartFecharAdmin()" class="btn-secundario" style="font-size:12px;color:var(--cor-erro);border-color:var(--cor-erro);">
+                            <i class="ph ph-x"></i> Descartar alterações
+                        </button>
                     </div>
-                    <button class="btn-secundario" onclick="adicionarAtivoMock()" style="width: 100%;"><i class="ph ph-plus-circle"></i> Adicionar à Lista Temporária</button>
+
+                    <div class="grid-2-iguais">
+                        <div class="form-group"><label>Mês/Ano de referência</label><input type="text" id="adminMesAno" placeholder="Ex: Mai/2026"></div>
+                        <div class="form-group"><label>Tese macro (resumo)</label><input type="text" id="adminDesc" placeholder="Ex: Foco em geradores de caixa..."></div>
+                    </div>
+
+                    <div class="cart-admin-section-title">Alocação macro (% por perfil)</div>
+                    <div class="cart-admin-perfil-tabs" id="cartAdminPerfilTabs">
+                        <button class="cart-admin-perfil-tab active" data-perfil="Conservador">🛡️ Conservador</button>
+                        <button class="cart-admin-perfil-tab" data-perfil="Moderado">⚖️ Moderado</button>
+                        <button class="cart-admin-perfil-tab" data-perfil="Arrojado">🚀 Arrojado</button>
+                    </div>
+                    <div class="cart-admin-alloc-grid">
+                        <div class="form-group" style="margin-bottom:0;"><label>Renda Fixa (%)</label><input type="number" id="adminAllocRF" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Ações (%)</label><input type="number" id="adminAllocAcao" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>FIIs (%)</label><input type="number" id="adminAllocFII" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
+                        <div class="form-group" style="margin-bottom:0;"><label>Criptos (%)</label><input type="number" id="adminAllocCripto" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
+                    </div>
+                    <div class="cart-admin-alloc-row">
+                        <span class="lbl">Total da alocação:</span>
+                        <span id="adminAllocTotal" style="font-family:'DM Mono',monospace;font-weight:800;font-size:14px;">100%</span>
+                    </div>
+
+                    <div class="cart-admin-section-title">Ativos pré-recomendados (por classe)</div>
+                    <div class="cart-admin-perfil-tabs" id="cartAdminClasseTabs">
+                        <button class="cart-admin-perfil-tab active" data-classe="rf">Renda Fixa</button>
+                        <button class="cart-admin-perfil-tab" data-classe="acao">Ações</button>
+                        <button class="cart-admin-perfil-tab" data-classe="fii">FIIs</button>
+                        <button class="cart-admin-perfil-tab" data-classe="cripto">Criptos</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="cart-admin-ativos-table">
+                            <thead><tr><th>Ticker</th><th>Nome</th><th>Racional</th><th style="width:80px;">Ação</th></tr></thead>
+                            <tbody id="cartAdminAtivosTbody"></tbody>
+                        </table>
+                    </div>
+
+                    <div style="margin-top:16px; padding:16px; background:var(--cor-superficie); border-radius:10px; border:1px dashed var(--cor-borda);">
+                        <div class="cart-admin-section-title" style="margin-top:0;">Adicionar ativo à classe atual</div>
+                        <div class="grid-3" style="margin-bottom:10px;">
+                            <div class="form-group" style="margin-bottom:0;"><label>Ticker</label><input type="text" id="adminAddTicker" placeholder="Ex: PETR4"></div>
+                            <div class="form-group" style="margin-bottom:0;"><label>Nome</label><input type="text" id="adminAddNome" placeholder="Ex: Petrobras PN"></div>
+                            <div class="form-group" style="margin-bottom:0;"><label>Racional curto</label><input type="text" id="adminAddObs" placeholder="Ex: Dividend Yield"></div>
+                        </div>
+                        <button class="btn-secundario" onclick="cartAdminAddAtivo()" style="width:100%;font-size:13px;">
+                            <i class="ph ph-plus-circle"></i> Adicionar ativo
+                        </button>
+                    </div>
+
+                    <button class="btn-acao" onclick="cartAdminSalvar()" style="width:100%; margin-top:18px;">
+                        <i class="ph ph-floppy-disk"></i> Publicar carteira e atualizar clientes
+                    </button>
                 </div>
-                
-                <button class="btn-acao" onclick="salvarCarteiraAdmin()">💾 Publicar Carteira e Atualizar Clientes</button>
             </div>
         </section>
 
@@ -5481,7 +5951,8 @@
             { ticker: 'PETR4', nome: 'Petrobras PN', tipo: 'Ação', preco_atual: 38.50 }, { ticker: 'PETR3', nome: 'Petrobras ON', tipo: 'Ação', preco_atual: 39.10 }, { ticker: 'VALE3', nome: 'Vale ON', tipo: 'Ação', preco_atual: 62.10 }, { ticker: 'ITUB4', nome: 'Itaú Unibanco PN', tipo: 'Ação', preco_atual: 33.40 }, { ticker: 'BBDC4', nome: 'Bradesco PN', tipo: 'Ação', preco_atual: 14.20 }, { ticker: 'BBAS3', nome: 'Banco do Brasil ON', tipo: 'Ação', preco_atual: 55.80 }, { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'Ação', preco_atual: 38.90 }, { ticker: 'EGIE3', nome: 'Engie Brasil ON', tipo: 'Ação', preco_atual: 41.20 }, { ticker: 'TAEE11', nome: 'Taesa Unit', tipo: 'Ação', preco_atual: 35.60 }, { ticker: 'ABEV3', nome: 'Ambev ON', tipo: 'Ação', preco_atual: 12.50 }, { ticker: 'B3SA3', nome: 'B3 ON', tipo: 'Ação', preco_atual: 11.80 }, { ticker: 'JBSS3', nome: 'JBS ON', tipo: 'Ação', preco_atual: 22.40 }, { ticker: 'SUZB3', nome: 'Suzano ON', tipo: 'Ação', preco_atual: 52.30 }, { ticker: 'RENT3', nome: 'Localiza ON', tipo: 'Ação', preco_atual: 51.20 }, { ticker: 'RADL3', nome: 'RaiaDrogasil ON', tipo: 'Ação', preco_atual: 26.70 },
             { ticker: 'MXRF11', nome: 'Maxi Renda', tipo: 'FII', preco_atual: 10.35 }, { ticker: 'BTLG11', nome: 'BTLG Logística', tipo: 'FII', preco_atual: 104.20 }, { ticker: 'HGLG11', nome: 'CSHG Logística', tipo: 'FII', preco_atual: 162.80 }, { ticker: 'KNRI11', nome: 'Kinea Renda', tipo: 'FII', preco_atual: 158.90 }, { ticker: 'CPTS11', nome: 'Capitania Securities', tipo: 'FII', preco_atual: 8.50 }, { ticker: 'VGHF11', nome: 'Valora Hedge', tipo: 'FII', preco_atual: 9.20 }, { ticker: 'XPLG11', nome: 'XP Log', tipo: 'FII', preco_atual: 108.50 }, { ticker: 'VISC11', nome: 'Vinci Fundo', tipo: 'FII', preco_atual: 11.80 }, { ticker: 'IRDM11', nome: 'Iridium', tipo: 'FII', preco_atual: 78.40 }, { ticker: 'ALZR11', nome: 'Alianza Trust', tipo: 'FII', preco_atual: 114.60 },
             { ticker: 'BOVA11', nome: 'iShares Ibovespa', tipo: 'ETF', preco_atual: 125.40 }, { ticker: 'IVVB11', nome: 'iShares S&P 500', tipo: 'ETF', preco_atual: 295.10 }, { ticker: 'SMAL11', nome: 'iShares Small Cap', tipo: 'ETF', preco_atual: 105.20 }, { ticker: 'HASH11', nome: 'Hashdex Crypto', tipo: 'ETF', preco_atual: 45.30 }, { ticker: 'AAPL34', nome: 'Apple', tipo: 'BDR', preco_atual: 42.10 }, { ticker: 'MSFT34', nome: 'Microsoft', tipo: 'BDR', preco_atual: 58.20 }, { ticker: 'AMZO34', nome: 'Amazon', tipo: 'BDR', preco_atual: 33.50 },
-            { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', tipo: 'Renda Fixa', preco_atual: 2150.00 }, { ticker: 'TESOURO_IPCA_2045', nome: 'Tesouro IPCA+ 2045', tipo: 'Renda Fixa', preco_atual: 1250.00 }, { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', tipo: 'Renda Fixa', preco_atual: 14850.00 }, { ticker: 'TESOURO_SELIC_2029', nome: 'Tesouro Selic 2029', tipo: 'Renda Fixa', preco_atual: 14720.00 }, { ticker: 'TESOURO_PREFIXADO_2027', nome: 'Tesouro Prefixado 2027', tipo: 'Renda Fixa', preco_atual: 780.00 }, { ticker: 'TESOURO_PREFIXADO_2031', nome: 'Tesouro Prefixado 2031', tipo: 'Renda Fixa', preco_atual: 490.00 }
+            { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', tipo: 'Renda Fixa', preco_atual: 2150.00 }, { ticker: 'TESOURO_IPCA_2045', nome: 'Tesouro IPCA+ 2045', tipo: 'Renda Fixa', preco_atual: 1250.00 }, { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', tipo: 'Renda Fixa', preco_atual: 14850.00 }, { ticker: 'TESOURO_SELIC_2029', nome: 'Tesouro Selic 2029', tipo: 'Renda Fixa', preco_atual: 14720.00 }, { ticker: 'TESOURO_PREFIXADO_2027', nome: 'Tesouro Prefixado 2027', tipo: 'Renda Fixa', preco_atual: 780.00 }, { ticker: 'TESOURO_PREFIXADO_2031', nome: 'Tesouro Prefixado 2031', tipo: 'Renda Fixa', preco_atual: 490.00 },
+            { ticker: 'BTC', nome: 'Bitcoin', tipo: 'Cripto', preco_atual: 540000.00 }, { ticker: 'ETH', nome: 'Ethereum', tipo: 'Cripto', preco_atual: 18500.00 }, { ticker: 'SOL', nome: 'Solana', tipo: 'Cripto', preco_atual: 950.00 }, { ticker: 'ADA', nome: 'Cardano', tipo: 'Cripto', preco_atual: 3.20 }, { ticker: 'BNB', nome: 'BNB', tipo: 'Cripto', preco_atual: 3450.00 }
         ];
 
         // ============================================================
@@ -9397,320 +9868,785 @@
             atualizarTermometro60();
         }
 
-        // --- ABA 4: CARTEIRA RECOMENDADA ---
-        let chartCarteiraDonut = null;
-        let chartCarteiraBench = null;
+        // ============================================================
+        // --- ABA 4: CARTEIRA RECOMENDADA v2 ---
+        // ============================================================
 
-        const carteiraDefault = {
-            mesAno: "Mai/2026", perfil: "Moderado", descricao: "Alocação focada em ativos geradores de caixa táticos e diversificação global.",
-            percRF: 35, percFII: 25, percAcoes: 20, percETF: 12, percBDR: 8,
-            ativos: [
-                { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', perc: 15, obs: 'Proteção contra inflação', classe: 'rf' },
-                { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', perc: 20, obs: 'Liquidez e segurança', classe: 'rf' },
-                { ticker: 'MXRF11', nome: 'Maxi Renda FII', perc: 10, obs: 'Dividendos mensais', classe: 'fii' },
-                { ticker: 'BTLG11', nome: 'BTLG Logística FII', perc: 8, obs: 'Logística premium', classe: 'fii' },
-                { ticker: 'HGLG11', nome: 'CSHG Logística FII', perc: 7, obs: 'Gestão ativa', classe: 'fii' },
-                { ticker: 'EGIE3', nome: 'Engie Brasil', perc: 10, obs: 'Energia + dividendos', classe: 'acao' },
-                { ticker: 'BBAS3', nome: 'Banco do Brasil', perc: 5, obs: 'Banco estatal sólido', classe: 'acao' },
-                { ticker: 'WEGE3', nome: 'WEG ON', perc: 5, obs: 'Expansão internacional', classe: 'acao' },
-                { ticker: 'BOVA11', nome: 'iShares Ibovespa ETF', perc: 7, obs: 'Exposição ao IBOV', classe: 'etf' },
-                { ticker: 'IVVB11', nome: 'iShares S&P 500 ETF', perc: 5, obs: 'Diversificação EUA', classe: 'etf' },
-                { ticker: 'AAPL34', nome: 'Apple BDR', perc: 4, obs: 'Tech global', classe: 'bdr' },
-                { ticker: 'MSFT34', nome: 'Microsoft BDR', perc: 4, obs: 'Cloud + IA', classe: 'bdr' }
+        // ── Cores por classe ──
+        const CART_CORES = { rf: '#059669', acao: '#7c3aed', fii: '#d97706', cripto: '#f59e0b' };
+        const CART_ICONS = { rf: 'ph-shield-check', acao: 'ph-chart-line-up', fii: 'ph-buildings', cripto: 'ph-currency-bitcoin' };
+        const CART_NOMES = { rf: 'Renda Fixa', acao: 'Ações', fii: 'FIIs', cripto: 'Criptos' };
+
+        // ── Textos educativos por classe ──
+        const CART_EDU = {
+            rf: { titulo: 'Renda Fixa', icon: 'ph-shield-check', corpo: 'A espinha dorsal da sua carteira. Inclui <strong>Tesouro Direto</strong>, CDBs e LCIs. Você empresta dinheiro ao governo ou bancos e recebe juros. No Brasil, a Selic (13,25% a.a.) torna esses ativos muito competitivos — ideal para preservar capital com liquidez.' },
+            acao: { titulo: 'Ações', icon: 'ph-chart-line-up', corpo: 'Ao comprar ações você vira <strong>sócio de uma empresa</strong>. No longo prazo, ações de qualidade tendem a superar a inflação e gerar dividendos. A volatilidade é maior, mas o potencial de crescimento patrimonial também.' },
+            fii: { titulo: 'Fundos de Investimento Imobiliário (FIIs)', icon: 'ph-buildings', corpo: 'Permite investir em <strong>imóveis sem comprar um apartamento</strong>. Shoppings, galpões logísticos e lajes corporativas geram aluguéis distribuídos mensalmente — <strong>isentos de IR para pessoa física</strong>. Ótimo para construir renda passiva recorrente.' },
+            cripto: { titulo: 'Criptoativos', icon: 'ph-currency-bitcoin', corpo: '<strong>Alta volatilidade, alto potencial de retorno.</strong> Bitcoin e Ethereum são os ativos digitais mais consolidados. Uma pequena exposição (3–10%) pode diversificar a carteira com descorrelação dos mercados tradicionais. Indicado apenas para investidores que entendem e aceitam o risco.' }
+        };
+
+        // ── Mensagens por perfil ──
+        const CART_MENSAGENS = {
+            Conservador: { emoji: '🛡️', texto: 'Você valoriza tranquilidade e segurança acima de tudo. Prefere crescer de forma mais lenta, mas com menos sustos no caminho. Sua estratégia é construída para dar previsibilidade e proteger seu patrimônio.' },
+            Moderado:    { emoji: '⚖️', texto: 'Você não quer apostar tudo… mas também não quer ficar parado. Sua estratégia é crescer com inteligência, equilibrando segurança e oportunidades. É o perfil de quem pensa no longo prazo e toma decisões com consciência.' },
+            Arrojado:    { emoji: '🚀', texto: 'Você não está aqui para pouco. Seu foco é crescimento acelerado, mesmo que isso traga oscilações no caminho. Essa é a estratégia de quem entende que grandes resultados exigem coragem e visão de longo prazo.' }
+        };
+
+        // ── Alocações macro padrão por perfil ──
+        const CART_ALLOC_DEFAULT = {
+            Conservador: { rf: 70, acao: 15, fii: 15, cripto: 0 },
+            Moderado:    { rf: 40, acao: 32, fii: 25, cripto: 3 },
+            Arrojado:    { rf: 15, acao: 50, fii: 25, cripto: 10 }
+        };
+
+        // ── Ativos pré-recomendados padrão por classe ──
+        const CART_ATIVOS_DEFAULT = {
+            rf:     [
+                { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', obs: 'Liquidez e segurança' },
+                { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', obs: 'Proteção contra inflação' },
+                { ticker: 'TESOURO_PREFIXADO_2027', nome: 'Tesouro Prefixado 2027', obs: 'Taxa garantida' }
+            ],
+            acao:   [
+                { ticker: 'EGIE3', nome: 'Engie Brasil', obs: 'Energia + dividendos' },
+                { ticker: 'WEGE3', nome: 'WEG ON', obs: 'Expansão internacional' },
+                { ticker: 'BBAS3', nome: 'Banco do Brasil', obs: 'Banco estatal sólido' },
+                { ticker: 'BOVA11', nome: 'iShares Ibovespa ETF', obs: 'Exposição diversificada' }
+            ],
+            fii:    [
+                { ticker: 'MXRF11', nome: 'Maxi Renda', obs: 'Dividendos mensais' },
+                { ticker: 'BTLG11', nome: 'BTLG Logística', obs: 'Logística premium' },
+                { ticker: 'HGLG11', nome: 'CSHG Logística', obs: 'Gestão ativa' }
+            ],
+            cripto: [
+                { ticker: 'BTC', nome: 'Bitcoin', obs: 'Reserva digital global' },
+                { ticker: 'ETH', nome: 'Ethereum', obs: 'Smart contracts líder' }
             ]
         };
 
-        // Backward compat: ensure ETF/BDR fields exist
-        let _rawCarteira = JSON.parse(localStorage.getItem('futurorico_carteira_admin'));
-        if(_rawCarteira) {
-            _rawCarteira.percETF = _rawCarteira.percETF || 0;
-            _rawCarteira.percBDR = _rawCarteira.percBDR || 0;
-            _rawCarteira.ativos = (_rawCarteira.ativos || []).map(a => ({ ...a, classe: a.classe || 'rf' }));
-        }
-        let dbCarteira = _rawCarteira || carteiraDefault;
-        let ativosTemp = []; 
+        // ── Estrutura do dbCarteira v2 ──
+        const cartDefaultV2 = {
+            versao: 2, mesAno: 'Mai/2026',
+            descricao: 'Alocação focada em geradores de caixa com diversificação tática.',
+            alocacoes: JSON.parse(JSON.stringify(CART_ALLOC_DEFAULT)),
+            ativos: JSON.parse(JSON.stringify(CART_ATIVOS_DEFAULT))
+        };
 
-        // === Profile Questionnaire ===
-        function calcularPerfilInvestidor() {
-            const tempo = document.getElementById('qTempoInvest').value;
-            const tolerancia = document.getElementById('qTolerancia').value;
-            const conhecimento = document.getElementById('qConhecimento').value;
-            const objetivo = document.getElementById('qObjetivo').value;
-            const idade = parseInt(document.getElementById('qIdade').value) || 30;
-            
-            if(!tempo || !tolerancia || !conhecimento || !objetivo) {
-                return mostrarToast("Responda todas as perguntas para calcular seu perfil.", "erro");
-            }
-            
-            let pontuacao = 0;
-            // Tempo
-            if(tempo === 'menos_1') pontuacao += 1;
-            else if(tempo === '1_3') pontuacao += 2;
-            else if(tempo === '3_5') pontuacao += 3;
-            else pontuacao += 4;
-            
-            // Tolerância
-            if(tolerancia === 'nao_aceito') pontuacao += 1;
-            else if(tolerancia === 'ate_10') pontuacao += 2;
-            else if(tolerancia === 'ate_25') pontuacao += 3;
-            else pontuacao += 4;
-            
-            // Conhecimento
-            if(conhecimento === 'iniciante') pontuacao += 1;
-            else if(conhecimento === 'intermediario') pontuacao += 2;
-            else pontuacao += 3;
-            
-            // Objetivo
-            if(objetivo === 'preservar') pontuacao += 1;
-            else if(objetivo === 'renda') pontuacao += 2;
-            else if(objetivo === 'crescimento') pontuacao += 3;
-            else pontuacao += 4;
-            
-            // Idade (younger = more aggressive)
-            if(idade < 30) pontuacao += 4;
-            else if(idade < 40) pontuacao += 3;
-            else if(idade < 50) pontuacao += 2;
-            else pontuacao += 1;
-            
-            let perfil = 'Conservador';
-            if(pontuacao >= 16) perfil = 'Agressivo';
-            else if(pontuacao >= 11) perfil = 'Moderado';
-            
-            // Update UI
-            const badge = document.getElementById('badgePerfilCalculado');
-            const resultBox = document.getElementById('perfilResultBox');
-            resultBox.style.display = 'flex';
-            badge.style.display = 'inline-flex';
-            badge.innerText = perfil;
-            if(perfil === 'Conservador') { badge.style.background = 'var(--cor-bg-primaria)'; badge.style.color = 'var(--cor-txt-primaria)'; badge.style.borderColor = 'var(--cor-borda-primaria)'; }
-            else if(perfil === 'Moderado') { badge.style.background = 'var(--cor-bg-info)'; badge.style.color = 'var(--cor-txt-info)'; badge.style.borderColor = 'var(--cor-borda-info)'; }
-            else { badge.style.background = 'var(--cor-bg-erro)'; badge.style.color = 'var(--cor-txt-erro)'; badge.style.borderColor = 'var(--cor-borda-erro)'; }
-            
-            // Update admin profile dropdown too
-            document.getElementById('adminPerfil').value = perfil;
-            
-            localStorage.setItem('appliquei_perfil_investidor', JSON.stringify({ perfil, pontuacao, respostas: { tempo, tolerancia, conhecimento, objetivo, idade }, calculadoEm: new Date().toISOString() }));
-            mostrarToast(`Perfil calculado: ${perfil}! A carteira foi ajustada.`, "sucesso");
-            carregarCarteiraCliente();
+        function cartCarregarDB() {
+            try {
+                const raw = JSON.parse(localStorage.getItem('appliquei_carteira_v2'));
+                if (raw && raw.versao === 2) return raw;
+                // Migração do formato antigo
+                const old = JSON.parse(localStorage.getItem('futurorico_carteira_admin'));
+                if (old && old.mesAno) {
+                    const migrated = JSON.parse(JSON.stringify(cartDefaultV2));
+                    migrated.mesAno = old.mesAno;
+                    migrated.descricao = old.descricao || migrated.descricao;
+                    // Migra ativos antigos
+                    if (old.ativos) {
+                        ['rf','acao','fii','cripto'].forEach(c => migrated.ativos[c] = []);
+                        old.ativos.forEach(a => {
+                            const c = a.classe || 'rf';
+                            const mc = c === 'etf' || c === 'bdr' ? 'acao' : c;
+                            if (!migrated.ativos[mc]) migrated.ativos[mc] = [];
+                            migrated.ativos[mc].push({ ticker: a.ticker, nome: a.nome, obs: a.obs || '' });
+                        });
+                    }
+                    return migrated;
+                }
+            } catch(e) {}
+            return JSON.parse(JSON.stringify(cartDefaultV2));
         }
 
-        // === Admin Functions ===
-        function toggleModoAdmin() {
-            const vCliente = document.getElementById('visaoCliente'); const vAdmin = document.getElementById('visaoAdmin');
-            if(vAdmin.style.display === 'none' || vAdmin.style.display === '') {
-                vAdmin.style.display = 'block'; vCliente.style.display = 'none';
-                document.getElementById('adminMesAno').value = dbCarteira.mesAno; document.getElementById('adminDesc').value = dbCarteira.descricao;
-                document.getElementById('adminPerfRF').value = dbCarteira.percRF || 0; document.getElementById('adminPerfFII').value = dbCarteira.percFII || 0; document.getElementById('adminPerfAcoes').value = dbCarteira.percAcoes || 0;
-                document.getElementById('adminPerfETF').value = dbCarteira.percETF || 0; document.getElementById('adminPerfBDR').value = dbCarteira.percBDR || 0;
-                ativosTemp = JSON.parse(JSON.stringify(dbCarteira.ativos)); atualizarListaAtivosAdmin();
-            } else { vAdmin.style.display = 'none'; vCliente.style.display = 'block'; }
-        }
+        let dbCarteira = cartCarregarDB();
 
-        function atualizarListaAtivosAdmin() {
-            const tbody = document.getElementById('tabelaAdminAtivos'); tbody.innerHTML = '';
-            const classeLabels = { rf: 'Renda Fixa', fii: 'FII', acao: 'Ação', etf: 'ETF', bdr: 'BDR' };
-            ativosTemp.forEach((ativo, index) => {
-                const tagClasse = ativo.classe ? `<span class="type-tag tag-${ativo.classe}">${classeLabels[ativo.classe] || ativo.classe}</span>` : '';
-                tbody.innerHTML += `<tr><td style="font-weight: 700; font-family:'DM Mono',monospace;">${ativo.ticker}</td><td>${ativo.nome}</td><td>${tagClasse || '—'}</td><td style="font-weight:600;">${ativo.perc}%</td><td><button type="button" class="btn-secundario" style="color: var(--cor-erro); padding: 4px 8px; border-color: transparent; background: transparent;" onclick="removerAtivoAdmin(${index})"><i class="ph ph-trash"></i></button></td></tr>`;
-            });
-        }
+        // ── Estado da sessão ──
+        let cartEstado = {
+            perfil: null,      // 'Conservador' | 'Moderado' | 'Arrojado'
+            capital: 10000,
+            selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
+            simRange: '3y',
+        };
 
-        function removerAtivoAdmin(index) { ativosTemp.splice(index, 1); atualizarListaAtivosAdmin(); }
+        // ── Admin temp state ──
+        let cartAdminPerfilAtivo = 'Conservador';
+        let cartAdminClasseAtiva = 'rf';
+        let cartAdminAtivosTemp = {};
 
-        function adicionarAtivoMock() {
-            const ticker = document.getElementById('addTicker').value; const nome = document.getElementById('addNome').value;
-            const perc = document.getElementById('addPerc').value; const obs = document.getElementById('addObs').value;
-            const classe = document.getElementById('addClasse') ? document.getElementById('addClasse').value : 'rf';
-            if(!ticker || !perc) return mostrarToast("Preencha Ticker e Peso (%)", "erro");
-            ativosTemp.push({ ticker, nome, perc, obs, classe }); atualizarListaAtivosAdmin(); 
-            document.getElementById('addTicker').value = ''; document.getElementById('addNome').value = ''; document.getElementById('addPerc').value = ''; document.getElementById('addObs').value = '';
-        }
+        // ── Chart instances ──
+        let chartCartDonut = null;
+        let chartCartSim = null;
 
-        function salvarCarteiraAdmin() {
-            dbCarteira = {
-                mesAno: document.getElementById('adminMesAno').value, perfil: document.getElementById('adminPerfil').value, descricao: document.getElementById('adminDesc').value,
-                percRF: parseFloat(document.getElementById('adminPerfRF').value) || 0,
-                percFII: parseFloat(document.getElementById('adminPerfFII').value) || 0,
-                percAcoes: parseFloat(document.getElementById('adminPerfAcoes').value) || 0,
-                percETF: parseFloat(document.getElementById('adminPerfETF').value) || 0,
-                percBDR: parseFloat(document.getElementById('adminPerfBDR').value) || 0,
-                ativos: ativosTemp
-            };
-            localStorage.setItem('futurorico_carteira_admin', JSON.stringify(dbCarteira));
-            mostrarToast("Diretriz de carteira publicada com sucesso!", "sucesso"); toggleModoAdmin(); carregarCarteiraCliente();
-        }
-
-        // === Client View ===
+        // ════════════════════════════════
+        // ENTRY POINT
+        // ════════════════════════════════
         function carregarCarteiraCliente() {
-            // Backward compat fill
-            dbCarteira.percETF = dbCarteira.percETF || 0;
-            dbCarteira.percBDR = dbCarteira.percBDR || 0;
-            dbCarteira.ativos = (dbCarteira.ativos || []).map(a => ({ ...a, classe: a.classe || inferirClasse(a.ticker, a.nome) }));
-
-            document.getElementById('carteiraDescricao').innerText = `[Referência: ${dbCarteira.mesAno} | Perfil: ${dbCarteira.perfil}] ${dbCarteira.descricao}`;
-            document.getElementById('lblPercRF').innerText = dbCarteira.percRF; document.getElementById('lblPercFII').innerText = dbCarteira.percFII; document.getElementById('lblPercAcoes').innerText = dbCarteira.percAcoes;
-            document.getElementById('lblPercETF').innerText = dbCarteira.percETF; document.getElementById('lblPercBDR').innerText = dbCarteira.percBDR;
-
-            // Load saved profile from questionnaire
-            const savedPerfil = localStorage.getItem('appliquei_perfil_investidor');
-            if(savedPerfil) {
-                try {
-                    const p = JSON.parse(savedPerfil);
-                    const badge = document.getElementById('badgePerfilCalculado');
-                    const resultBox = document.getElementById('perfilResultBox');
-                    resultBox.style.display = 'flex';
-                    badge.style.display = 'inline-flex';
-                    badge.innerText = p.perfil;
-                    if(p.perfil === 'Conservador') { badge.style.background = 'var(--cor-bg-primaria)'; badge.style.color = 'var(--cor-txt-primaria)'; badge.style.borderColor = 'var(--cor-borda-primaria)'; }
-                    else if(p.perfil === 'Moderado') { badge.style.background = 'var(--cor-bg-info)'; badge.style.color = 'var(--cor-txt-info)'; badge.style.borderColor = 'var(--cor-borda-info)'; }
-                    else { badge.style.background = 'var(--cor-bg-erro)'; badge.style.color = 'var(--cor-txt-erro)'; badge.style.borderColor = 'var(--cor-borda-erro)'; }
-                } catch(e) {}
-            }
-
-            // Render Donut Chart
-            renderizarGraficoDonut();
-
-            // Render Benchmark Chart
-            renderizarGraficoBenchmark();
-
-            // Render enhanced asset cards
-            const listaDiv = document.getElementById('listaAtivosCliente'); listaDiv.innerHTML = "";
-            let totalDY = 0; let countDY = 0;
-            dbCarteira.ativos.forEach(ativo => {
-                const mercado = mockAtivosMercado.find(m => m.ticker === ativo.ticker);
-                const preco = mercado ? mercado.preco_atual : null;
-                const DY = estimarDY(ativo);
-                if(DY > 0) { totalDY += DY; countDY++; }
-
-                const classeLabels = { rf: 'Renda Fixa', fii: 'FII', acao: 'Ação', etf: 'ETF', bdr: 'BDR' };
-                const tagClasse = ativo.classe ? `<span class="type-tag tag-${ativo.classe}" style="font-size:10px;">${classeLabels[ativo.classe] || ativo.classe}</span>` : '';
-
-                listaDiv.innerHTML += `
-                <div class="ativo-card">
-                    <div class="ativo-card-header">
-                        <span class="ativo-card-ticker">${ativo.ticker}</span>
-                        <span class="ativo-peso-badge">${ativo.perc}%</span>
-                    </div>
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
-                        <span style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);">${ativo.nome}</span>
-                        ${tagClasse}
-                    </div>
-                    <div class="ativo-card-dados">
-                        <div class="ativo-dado">
-                            <div class="ativo-dado-label">Cotação</div>
-                            <div class="ativo-dado-valor">${preco ? formatarMoeda(preco) : 'N/A'}</div>
-                        </div>
-                        <div class="ativo-dado">
-                            <div class="ativo-dado-label">Dividend Yield</div>
-                            <div class="ativo-dado-valor" style="color:${DY > 8 ? 'var(--cor-primaria)' : 'var(--cor-texto-principal)'};">${DY > 0 ? DY.toFixed(1) + '%' : '—'}</div>
-                        </div>
-                    </div>
-                    <div class="ativo-card-obs"><i class="ph ph-info" style="font-size:12px;margin-right:4px;"></i>${ativo.obs || ''}</div>
-                    <button class="btn-secundario" style="width:100%;font-size:12px;margin-top:4px;" onclick="mostrarToast('Em breve: detalhes de ${ativo.ticker}', 'info')"><i class="ph ph-eye"></i> Ver detalhes</button>
-                </div>`;
-            });
-
-            // Average DY
-            const avgDY = countDY > 0 ? (totalDY / countDY) : 0;
-            document.getElementById('lblDYMedio').innerText = avgDY > 0 ? avgDY.toFixed(1) + '% a.a.' : '—';
-
-            // Risk estimation
-            const rfW = dbCarteira.percRF || 0;
-            let risco = 'Alto';
-            if(rfW >= 50) risco = 'Baixo';
-            else if(rfW >= 30) risco = 'Médio';
-            const riscoEl = document.getElementById('lblRiscoEstimado');
-            riscoEl.innerText = risco;
-            riscoEl.style.color = risco === 'Baixo' ? 'var(--cor-txt-primaria)' : risco === 'Médio' ? 'var(--cor-txt-amber)' : 'var(--cor-txt-erro)';
-
-            // Concentration alert
-            const alertEl = document.getElementById('alertaConcentracao');
-            const txtEl = document.getElementById('txtAlertaConcentracao');
-            const maxAtivo = dbCarteira.ativos.reduce((max, a) => a.perc > max.perc ? a : max, { perc: 0 });
-            if(maxAtivo.perc > 30) {
-                alertEl.style.display = 'flex';
-                txtEl.innerText = `Atenção: ${maxAtivo.ticker} representa ${maxAtivo.perc}% da carteira. Considere diversificar para reduzir o risco de concentração.`;
+            const saved = (() => { try { return JSON.parse(localStorage.getItem('appliquei_cart_estado')); } catch(e) { return null; } })();
+            if (saved && saved.perfil) {
+                cartEstado.perfil = saved.perfil;
+                cartEstado.capital = saved.capital || 10000;
+                cartEstado.selecionados = saved.selecionados || { rf: null, acao: null, fii: null, cripto: null };
+                cartRenderizarTela();
             } else {
-                alertEl.style.display = 'none';
+                cartMostrarQuestionario();
             }
-
-            calcularCarteiraRecomendada();
         }
 
-        function inferirClasse(ticker, nome) {
-            const t = (ticker || '').toUpperCase(); const n = (nome || '').toLowerCase();
-            if(t.includes('11') && !t.includes('34')) return 'fii';
-            if(n.includes('renda fixa') || n.includes('tesouro') || t.includes('TESOURO')) return 'rf';
-            if(n.includes('etf') || t.includes('11') || t.includes('BOVA') || t.includes('IVVB') || t.includes('SMAL') || t.includes('HASH')) return 'etf';
-            if(t.includes('34')) return 'bdr';
-            if(n.includes('fii') || n.includes('logística') || n.includes('logistica')) return 'fii';
-            return 'acao';
+        function cartSalvarEstado() {
+            localStorage.setItem('appliquei_cart_estado', JSON.stringify({
+                perfil: cartEstado.perfil,
+                capital: cartEstado.capital,
+                selecionados: cartEstado.selecionados
+            }));
         }
 
-        function estimarDY(ativo) {
-            const c = ativo.classe || inferirClasse(ativo.ticker, ativo.nome);
-            if(c === 'fii') return 7 + Math.random() * 5; // ~8-12%
-            if(c === 'acao') return 3 + Math.random() * 5; // ~3-8%
-            if(c === 'rf') return 12.5 + Math.random() * 2; // ~Selic
-            if(c === 'etf') return 2 + Math.random() * 3; // ~2-5%
-            if(c === 'bdr') return 0.5 + Math.random() * 2; // ~0.5-2.5%
-            return 0;
-        }
+        // ════════════════════════════════
+        // QUESTIONNAIRE
+        // ════════════════════════════════
+        function cartMostrarQuestionario() {
+            document.getElementById('cartQuestionnaire').style.display = 'block';
+            document.getElementById('cartPerfilHeader').style.display = 'none';
+            document.getElementById('cartHero').style.display = 'none';
+            document.getElementById('cartCallout').style.display = 'none';
+            document.getElementById('cartSelecaoWrap').style.display = 'none';
+            document.getElementById('cartSimCard').style.display = 'none';
 
-        function renderizarGraficoDonut() {
-            const ctx = document.getElementById('graficoCarteiraDonut');
-            if(!ctx) return;
-            if(chartCarteiraDonut) chartCarteiraDonut.destroy();
-
-            const labels = [], data = [], colors = [];
-            if(dbCarteira.percRF > 0) { labels.push('Renda Fixa'); data.push(dbCarteira.percRF); colors.push('#059669'); }
-            if(dbCarteira.percFII > 0) { labels.push('FIIs'); data.push(dbCarteira.percFII); colors.push('#d97706'); }
-            if(dbCarteira.percAcoes > 0) { labels.push('Ações'); data.push(dbCarteira.percAcoes); colors.push('#7c3aed'); }
-            if(dbCarteira.percETF > 0) { labels.push('ETFs'); data.push(dbCarteira.percETF); colors.push('#2563eb'); }
-            if(dbCarteira.percBDR > 0) { labels.push('BDRs'); data.push(dbCarteira.percBDR); colors.push('#06b6d4'); }
-
-            chartCarteiraDonut = new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 2, borderColor: 'var(--cor-branco)' }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '65%', plugins: { legend: { position: 'right', labels: { font: { size: 11, family: 'Figtree' }, padding: 10, usePointStyle: true, pointStyleWidth: 10 } }, datalabels: { display: false } } }
+            // Wire up option buttons
+            document.querySelectorAll('.cart-q-opt').forEach(btn => {
+                btn.onclick = function() {
+                    const q = this.dataset.q;
+                    document.querySelectorAll(`.cart-q-opt[data-q="${q}"]`).forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                };
             });
         }
 
-        function renderizarGraficoBenchmark() {
-            const ctx = document.getElementById('graficoCarteiraBench');
-            if(!ctx) return;
-            if(chartCarteiraBench) chartCarteiraBench.destroy();
+        function cartConcluirQuestionario() {
+            const tolerancia = document.querySelector('.cart-q-opt[data-q="tolerancia"].selected')?.dataset.val;
+            const objetivo = document.querySelector('.cart-q-opt[data-q="objetivo"].selected')?.dataset.val;
+            if (!tolerancia || !objetivo) return mostrarToast('Responda as 2 perguntas antes de continuar.', 'erro');
 
-            chartCarteiraBench = new Chart(ctx.getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['Sua Carteira', 'IBOV', 'IFIX', 'CDI'],
-                    datasets: [{
-                        label: 'Rent. % a.a.',
-                        data: [12.8, 9.5, 8.2, 12.25],
-                        backgroundColor: ['rgba(5,150,105,0.8)', 'rgba(37,99,235,0.5)', 'rgba(217,119,6,0.5)', 'rgba(100,116,139,0.4)'],
-                        borderRadius: 6,
-                        barThickness: 36
-                    }]
-                },
+            // Calcular perfil
+            let perfil;
+            if (tolerancia === 'nao_aceito') {
+                perfil = 'Conservador';
+            } else if (tolerancia === 'ate_15') {
+                perfil = 'Moderado';
+            } else {
+                perfil = (objetivo === 'aumentar') ? 'Arrojado' : 'Moderado';
+            }
+
+            cartEstado.perfil = perfil;
+            cartEstado.capital = parseBRL(document.getElementById('cartQCapital').value) || 10000;
+            cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
+            cartSalvarEstado();
+
+            document.getElementById('cartQuestionnaire').style.display = 'none';
+            cartRenderizarTela();
+        }
+
+        function cartEditarPerfil() {
+            cartEstado.perfil = null;
+            cartSalvarEstado();
+            cartMostrarQuestionario();
+        }
+
+        // ════════════════════════════════
+        // MAIN RENDER
+        // ════════════════════════════════
+        function cartRenderizarTela() {
+            const p = cartEstado.perfil;
+            if (!p) return cartMostrarQuestionario();
+
+            // Profile header
+            const msg = CART_MENSAGENS[p] || CART_MENSAGENS.Moderado;
+            const badge = document.getElementById('cartPerfilBadge');
+            badge.className = `cart-perfil-badge cart-perfil-${p}`;
+            badge.innerHTML = `<span class="emoji">${msg.emoji}</span> Perfil ${p}`;
+            document.getElementById('cartPerfilMsg').innerHTML = msg.texto;
+            document.getElementById('cartCapitalLabel').textContent = formatarMoeda(cartEstado.capital);
+            document.getElementById('cartPerfilHeader').style.display = 'flex';
+            document.getElementById('cartQuestionnaire').style.display = 'none';
+
+            // Descricao
+            document.getElementById('carteiraDescricao').textContent = `Referência: ${dbCarteira.mesAno} · ${dbCarteira.descricao}`;
+
+            // Hero + callout
+            document.getElementById('cartHero').style.display = 'grid';
+            document.getElementById('cartCallout').style.display = 'flex';
+            document.getElementById('cartSelecaoWrap').style.display = 'block';
+            document.getElementById('cartSimCard').style.display = 'block';
+
+            cartRenderizarEdu();
+            cartRenderizarDonut();
+            cartRenderizarSelecaoGrid();
+            cartIniciarSimulacao();
+        }
+
+        // ════════════════════════════════
+        // EDUCATIONAL PANEL
+        // ════════════════════════════════
+        function cartRenderizarEdu() {
+            const p = cartEstado.perfil;
+            const alloc = (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) || CART_ALLOC_DEFAULT[p] || CART_ALLOC_DEFAULT.Moderado;
+            const list = document.getElementById('cartEduList');
+            list.innerHTML = '';
+
+            ['rf','acao','fii','cripto'].forEach((classe, idx) => {
+                const pct = alloc[classe] || 0;
+                if (pct === 0 && classe === 'cripto') return;
+                const edu = CART_EDU[classe];
+                const cor = CART_CORES[classe];
+                const vlr = formatarMoeda(cartEstado.capital * pct / 100);
+                const div = document.createElement('div');
+                div.className = 'cart-edu-item' + (idx === 0 ? ' expanded' : '');
+                div.innerHTML = `
+                    <div class="cart-edu-item-head" onclick="this.parentElement.classList.toggle('expanded')">
+                        <div class="cart-edu-item-dot" style="background:${cor};"></div>
+                        <span class="cart-edu-item-name">${edu.titulo}</span>
+                        <span class="cart-edu-item-meta">${vlr}</span>
+                        <span class="cart-edu-item-pct">${pct}%</span>
+                    </div>
+                    <div class="cart-edu-item-body">${edu.corpo}</div>`;
+                list.appendChild(div);
+            });
+        }
+
+        // ════════════════════════════════
+        // DONUT CHART
+        // ════════════════════════════════
+        function cartRenderizarDonut() {
+            const p = cartEstado.perfil;
+            const alloc = (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) || CART_ALLOC_DEFAULT[p] || CART_ALLOC_DEFAULT.Moderado;
+            const capital = cartEstado.capital;
+
+            const classes = ['rf','acao','fii','cripto'].filter(c => (alloc[c] || 0) > 0);
+            const data = classes.map(c => alloc[c]);
+            const colors = classes.map(c => CART_CORES[c]);
+            const labels = classes.map(c => CART_NOMES[c]);
+
+            const ctx = document.getElementById('cartDonutChart');
+            if (!ctx) return;
+            if (chartCartDonut) chartCartDonut.destroy();
+
+            chartCartDonut = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: { labels, datasets: [{ data, backgroundColor: colors, borderWidth: 3, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--cor-branco') || '#fff', hoverBorderWidth: 3, hoverOffset: 6 }] },
+                options: {
+                    responsive: true, maintainAspectRatio: false, cutout: '68%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => {
+                                    const pct = ctx.parsed;
+                                    const vlr = formatarMoeda(capital * pct / 100);
+                                    return ` ${pct}% · ${vlr}`;
+                                }
+                            }
+                        },
+                        datalabels: { display: false }
+                    },
+                    onHover: (evt, items) => {
+                        if (items.length) {
+                            const classe = classes[items[0].index];
+                            document.querySelectorAll('.cart-edu-item').forEach(el => el.classList.remove('active'));
+                            const allEdu = document.querySelectorAll('.cart-edu-item');
+                            let i = 0;
+                            ['rf','acao','fii','cripto'].filter(c => (alloc[c] || 0) > 0).forEach((c, idx) => {
+                                if (c === classe && allEdu[idx]) allEdu[idx].classList.add('active');
+                            });
+                        }
+                    }
+                }
+            });
+
+            // Center value
+            document.getElementById('cartDonutCenterValue').textContent = cartFmtShort(capital);
+
+            // Legend
+            const legend = document.getElementById('cartDonutLegend');
+            legend.innerHTML = classes.map((c, i) => {
+                const pct = alloc[c];
+                const vlr = formatarMoeda(capital * pct / 100);
+                return `<div class="cart-donut-legend-item">
+                    <div class="dot" style="background:${colors[i]};"></div>
+                    <div class="meta">
+                        <div class="name">${labels[i]}</div>
+                        <div class="val">${pct}% · ${vlr}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function cartFmtShort(v) {
+            if (v >= 1e6) return 'R$ ' + (v/1e6).toFixed(1) + 'M';
+            if (v >= 1e3) return 'R$ ' + (v/1e3).toFixed(0) + 'k';
+            return formatarMoeda(v);
+        }
+
+        // ════════════════════════════════
+        // ASSET SELECTION GRID
+        // ════════════════════════════════
+        function cartRenderizarSelecaoGrid() {
+            const p = cartEstado.perfil;
+            const alloc = (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) || CART_ALLOC_DEFAULT[p] || CART_ALLOC_DEFAULT.Moderado;
+            const capital = cartEstado.capital;
+            const grid = document.getElementById('cartSelecaoGrid');
+            grid.innerHTML = '';
+
+            const classesVisiveis = ['rf','acao','fii','cripto'].filter(c => (alloc[c] || 0) > 0 || c !== 'cripto');
+
+            classesVisiveis.forEach(classe => {
+                const macropct = alloc[classe] || 0;
+                const macroVlr = capital * macropct / 100;
+                const ativos = (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
+                let selecionados = cartEstado.selecionados[classe];
+                if (!selecionados) selecionados = ativos.map(a => a.ticker);
+
+                const n = selecionados.length || 1;
+                const percPorAtivo = macropct > 0 ? +(macropct / n).toFixed(1) : 0;
+                const vlrPorAtivo = macroVlr / n;
+
+                const col = document.createElement('div');
+                col.className = `cart-classe-col cart-classe-${classe}`;
+                if (macropct === 0) col.classList.add('dimmed');
+
+                const ativosHtml = ativos.length === 0
+                    ? `<div class="cart-classe-empty">Nenhum ativo cadastrado</div>`
+                    : ativos.map(a => {
+                        const checked = selecionados.includes(a.ticker);
+                        const ativoN = checked ? n : 0;
+                        const vlrDisp = checked ? formatarMoeda(vlrPorAtivo) : 'R$ 0,00';
+                        const pctDisp = checked ? percPorAtivo.toFixed(1) + '%' : '—';
+                        return `<li class="cart-ativo-item${checked ? '' : ' unchecked'}"
+                                    onclick="cartToggleAtivo('${classe}','${a.ticker}')"
+                                    data-classe="${classe}" data-ticker="${a.ticker}">
+                            <div class="cart-ativo-check">
+                                ${checked ? '<i class="ph ph-check-bold"></i>' : ''}
+                            </div>
+                            <div class="cart-ativo-body">
+                                <div class="cart-ativo-ticker">${a.ticker}</div>
+                                <div class="cart-ativo-nome">${a.nome}</div>
+                            </div>
+                            <div class="cart-ativo-right">
+                                <div class="cart-ativo-pct">${pctDisp}</div>
+                                <div class="cart-ativo-vlr">${vlrDisp}</div>
+                            </div>
+                        </li>`;
+                    }).join('');
+
+                const totalSelecionadoVlr = selecionados.length > 0 ? formatarMoeda(macroVlr) : 'R$ 0,00';
+                col.innerHTML = `
+                    <div class="cart-classe-col-header">
+                        <div class="cart-classe-col-name">
+                            <i class="ph ${CART_ICONS[classe]}"></i> ${CART_NOMES[classe]}
+                        </div>
+                        <div class="cart-classe-col-meta">
+                            <span class="cart-classe-col-pct">${macropct}%</span>
+                            <span class="cart-classe-col-vlr">${formatarMoeda(macroVlr)}</span>
+                        </div>
+                    </div>
+                    <ul class="cart-classe-list">${ativosHtml}</ul>
+                    <div class="cart-classe-col-footer">
+                        <span class="lbl">Total alocado:</span>
+                        <span class="val">${totalSelecionadoVlr}</span>
+                    </div>`;
+                grid.appendChild(col);
+            });
+        }
+
+        function cartToggleAtivo(classe, ticker) {
+            const ativos = (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
+            let sel = cartEstado.selecionados[classe];
+            if (!sel) sel = ativos.map(a => a.ticker);
+
+            if (sel.includes(ticker)) {
+                if (sel.length <= 1) return mostrarToast('Pelo menos um ativo deve estar selecionado por classe.', 'info');
+                cartEstado.selecionados[classe] = sel.filter(t => t !== ticker);
+            } else {
+                cartEstado.selecionados[classe] = [...sel, ticker];
+            }
+            cartSalvarEstado();
+            cartRenderizarSelecaoGrid();
+            cartRenderizarDonut();
+        }
+
+        function cartResetSelecao() {
+            cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
+            cartSalvarEstado();
+            cartRenderizarSelecaoGrid();
+            cartRenderizarDonut();
+            mostrarToast('Seleção resetada.', 'sucesso');
+        }
+
+        // ════════════════════════════════
+        // HISTORICAL SIMULATION
+        // ════════════════════════════════
+        let cartSimAbortController = null;
+
+        async function cartIniciarSimulacao() {
+            // Wire range buttons
+            document.querySelectorAll('.cart-sim-range-btn').forEach(btn => {
+                btn.onclick = function() {
+                    document.querySelectorAll('.cart-sim-range-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    cartEstado.simRange = this.dataset.range;
+                    cartCarregarSimulacao();
+                };
+            });
+            await cartCarregarSimulacao();
+        }
+
+        async function cartCarregarSimulacao() {
+            if (cartSimAbortController) cartSimAbortController.abort();
+            cartSimAbortController = new AbortController();
+            const signal = cartSimAbortController.signal;
+
+            const loading = document.getElementById('cartSimLoading');
+            const kpisEl = document.getElementById('cartSimKpis');
+            if (loading) loading.style.display = 'flex';
+            if (kpisEl) kpisEl.innerHTML = '';
+
+            const range = cartEstado.simRange;
+            const p = cartEstado.perfil;
+            const alloc = (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) || CART_ALLOC_DEFAULT[p] || CART_ALLOC_DEFAULT.Moderado;
+
+            // Tickers representativos por classe (proxy de retorno)
+            const proxies = {
+                rf: 'TESOURO_SELIC_2027',
+                acao: 'IBOV',
+                fii: 'IFIX',
+                cripto: 'BTC'
+            };
+
+            let token = null;
+            try {
+                if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser) {
+                    token = await firebase.auth().currentUser.getIdToken();
+                }
+            } catch(e) {}
+
+            // Busca CDI como benchmark sempre
+            const tickersNecessarios = ['CDI'];
+            Object.entries(alloc).forEach(([c, pct]) => { if (pct > 0) tickersNecessarios.push(proxies[c]); });
+            const tickersUnicos = [...new Set(tickersNecessarios)];
+
+            async function fetchSerie(ticker) {
+                if (!token) return null;
+                try {
+                    const url = `/api/market?op=history&ticker=${encodeURIComponent(ticker)}&range=${range}`;
+                    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, signal });
+                    if (!res.ok) return null;
+                    const data = await res.json();
+                    return data.series || null;
+                } catch(e) {
+                    if (e.name === 'AbortError') return null;
+                    // Fallback: série sintética determinística
+                    return cartSeriesSintetica(ticker, range);
+                }
+            }
+
+            // Fetch em paralelo
+            const resultados = await Promise.all(tickersUnicos.map(async t => ({ ticker: t, series: await fetchSerie(t) })));
+            if (signal.aborted) return;
+
+            const seriesMap = {};
+            resultados.forEach(r => { if (r.series) seriesMap[r.ticker] = r.series; });
+
+            // Sem token: usa séries sintéticas locais
+            if (!token) {
+                tickersUnicos.forEach(t => {
+                    if (!seriesMap[t]) seriesMap[t] = cartSeriesSintetica(t, range);
+                });
+            }
+
+            if (loading) loading.style.display = 'none';
+
+            // Calcular série blended da carteira
+            const blendedSeries = cartCalcularBlendedSeries(alloc, proxies, seriesMap);
+            const cdiSeries = seriesMap['CDI'];
+            const ibovSeries = seriesMap['IBOV'];
+
+            if (!blendedSeries || blendedSeries.length < 2) {
+                if (kpisEl) kpisEl.innerHTML = '<div style="text-align:center;color:var(--cor-texto-mutado);padding:20px;font-size:13px;">Dados históricos indisponíveis no momento.</div>';
+                return;
+            }
+
+            cartRenderizarSimChart(blendedSeries, cdiSeries, ibovSeries, range);
+            cartRenderizarSimKpis(blendedSeries, cdiSeries);
+        }
+
+        function cartSeriesSintetica(ticker, range) {
+            const meses = { '1y': 12, '3y': 36, '5y': 60 }[range] || 36;
+            const yields = {
+                CDI: 0.1325, IBOV: 0.095, IFIX: 0.082, BTC: 1.2,
+                TESOURO_SELIC_2027: 0.1325, TESOURO_IPCA_2035: 0.115,
+                TESOURO_PREFIXADO_2027: 0.115, TESOURO_SELIC_2029: 0.1325,
+            };
+            const anual = yields[ticker] || 0.12;
+            const mensal = Math.pow(1 + anual, 1/12) - 1;
+            const start = Date.now() - meses * 30 * 86400000;
+            const series = [];
+            let p = 100;
+            for (let i = 0; i <= meses; i++) {
+                series.push({ t: start + i * 30 * 86400000, p: +p.toFixed(4) });
+                p *= (1 + mensal);
+            }
+            return series;
+        }
+
+        function cartCalcularBlendedSeries(alloc, proxies, seriesMap) {
+            const classes = Object.entries(alloc).filter(([c, pct]) => pct > 0 && seriesMap[proxies[c]]);
+            if (!classes.length) return null;
+
+            const totalPct = classes.reduce((s, [, pct]) => s + pct, 0);
+            const weights = classes.map(([, pct]) => pct / totalPct);
+
+            // Normaliza todas as séries para começar em 100
+            const normalized = classes.map(([classe]) => {
+                const s = seriesMap[proxies[classe]];
+                const base = s[0].p;
+                return s.map(pt => ({ t: pt.t, p: pt.p / base * 100 }));
+            });
+
+            const minLen = Math.min(...normalized.map(s => s.length));
+            const blended = [];
+            for (let i = 0; i < minLen; i++) {
+                const t = normalized[0][i].t;
+                const p = normalized.reduce((sum, s, wi) => sum + s[i].p * weights[wi], 0);
+                blended.push({ t, p });
+            }
+            return blended;
+        }
+
+        function cartRenderizarSimChart(blended, cdi, ibov, range) {
+            const ctx = document.getElementById('cartSimChart');
+            if (!ctx) return;
+            if (chartCartSim) chartCartSim.destroy();
+
+            const normalize = (series) => {
+                if (!series || !series.length) return [];
+                const base = series[0].p;
+                return series.map(pt => ({ x: new Date(pt.t).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }), y: +((pt.p / base - 1) * 100).toFixed(2) }));
+            };
+
+            const blendedData = normalize(blended);
+            const labels = blendedData.map(d => d.x);
+
+            const datasets = [
+                { label: 'Sua carteira', data: blendedData.map(d => d.y), borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.08)', fill: true, tension: 0.3, borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 5 },
+            ];
+            if (cdi) {
+                const d = normalize(cdi).slice(0, labels.length);
+                datasets.push({ label: 'CDI', data: d.map(p => p.y), borderColor: '#64748b', borderDash: [5,4], fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+            }
+            if (ibov) {
+                const d = normalize(ibov).slice(0, labels.length);
+                datasets.push({ label: 'IBOV', data: d.map(p => p.y), borderColor: '#2563eb', borderDash: [3,3], fill: false, tension: 0.3, borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 4 });
+            }
+
+            chartCartSim = new Chart(ctx.getContext('2d'), {
+                type: 'line',
+                data: { labels, datasets },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false }, datalabels: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y + '% a.a.' } } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { position: 'top', align: 'end', labels: { font: { size: 11, family: 'Figtree' }, usePointStyle: true, padding: 14, boxWidth: 8 } },
+                        datalabels: { display: false },
+                        tooltip: {
+                            callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y >= 0 ? '+' : ''}${ctx.parsed.y.toFixed(1)}%` }
+                        }
+                    },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 11, family: 'Figtree', weight: 600 } } },
-                        y: { border: { display: false }, ticks: { font: { size: 10 }, callback: v => v + '%' }, grid: { color: 'var(--cor-borda)' } }
+                        x: { grid: { display: false }, ticks: { font: { size: 10, family: 'Figtree' }, maxTicksLimit: 8, maxRotation: 0 } },
+                        y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { font: { size: 10 }, callback: v => (v >= 0 ? '+' : '') + v + '%' } }
                     }
                 }
             });
         }
 
-        function calcularCarteiraRecomendada() {
-            const valorTotal = parseBRL(document.getElementById('valorAporteCalculadora').value) || 0;
-            document.getElementById('fatiaRF').innerText = formatarMoeda(valorTotal * ((dbCarteira.percRF || 0) / 100));
-            document.getElementById('fatiaFII').innerText = formatarMoeda(valorTotal * ((dbCarteira.percFII || 0) / 100));
-            document.getElementById('fatiaAcoes').innerText = formatarMoeda(valorTotal * ((dbCarteira.percAcoes || 0) / 100));
-            document.getElementById('fatiaETF').innerText = formatarMoeda(valorTotal * ((dbCarteira.percETF || 0) / 100));
-            document.getElementById('fatiaBDR').innerText = formatarMoeda(valorTotal * ((dbCarteira.percBDR || 0) / 100));
+        function cartRenderizarSimKpis(blended, cdi) {
+            const el = document.getElementById('cartSimKpis');
+            if (!el || !blended || blended.length < 2) return;
+
+            const base = blended[0].p;
+            const end = blended[blended.length - 1].p;
+            const retorno = +((end / base - 1) * 100).toFixed(1);
+            const capital = cartEstado.capital;
+            const vlrFinal = capital * (1 + retorno / 100);
+
+            let maiorDrawdown = 0, peak = blended[0].p;
+            blended.forEach(pt => {
+                if (pt.p > peak) peak = pt.p;
+                const dd = (peak - pt.p) / peak * 100;
+                if (dd > maiorDrawdown) maiorDrawdown = dd;
+            });
+
+            const months = blended.length - 1;
+            const rentMensal = months > 0 ? +((Math.pow(end / base, 1 / months) - 1) * 100).toFixed(2) : 0;
+
+            let rentCDI = null;
+            if (cdi && cdi.length >= 2) {
+                rentCDI = +((cdi[Math.min(cdi.length - 1, blended.length - 1)].p / cdi[0].p - 1) * 100).toFixed(1);
+            }
+            const alphaCDI = rentCDI !== null ? (retorno - rentCDI) : null;
+
+            el.innerHTML = `
+                <div class="cart-sim-kpi">
+                    <div class="lbl">Retorno no período</div>
+                    <div class="val ${retorno >= 0 ? 'pos' : 'neg'}">${retorno >= 0 ? '+' : ''}${retorno}%</div>
+                </div>
+                <div class="cart-sim-kpi">
+                    <div class="lbl">Capital final estimado</div>
+                    <div class="val">${formatarMoeda(vlrFinal)}</div>
+                </div>
+                <div class="cart-sim-kpi">
+                    <div class="lbl">Retorno médio mensal</div>
+                    <div class="val ${rentMensal >= 0 ? 'pos' : 'neg'}">${rentMensal >= 0 ? '+' : ''}${rentMensal}%/mês</div>
+                </div>
+                <div class="cart-sim-kpi">
+                    <div class="lbl">Drawdown máximo</div>
+                    <div class="val neg">-${maiorDrawdown.toFixed(1)}%</div>
+                </div>
+                ${alphaCDI !== null ? `<div class="cart-sim-kpi">
+                    <div class="lbl">Alpha vs CDI</div>
+                    <div class="val ${alphaCDI >= 0 ? 'pos' : 'neg'}">${alphaCDI >= 0 ? '+' : ''}${alphaCDI.toFixed(1)}%</div>
+                </div>` : ''}`;
+        }
+
+        // ════════════════════════════════
+        // ADMIN PANEL
+        // ════════════════════════════════
+        function cartAbrirAdmin() {
+            document.getElementById('visaoCliente').style.display = 'none';
+            document.getElementById('visaoAdmin').style.display = 'block';
+            cartAdminAtivosTemp = JSON.parse(JSON.stringify(dbCarteira.ativos || CART_ATIVOS_DEFAULT));
+            document.getElementById('adminMesAno').value = dbCarteira.mesAno || '';
+            document.getElementById('adminDesc').value = dbCarteira.descricao || '';
+
+            // Wire perfil tabs
+            document.querySelectorAll('#cartAdminPerfilTabs .cart-admin-perfil-tab').forEach(btn => {
+                btn.onclick = function() {
+                    document.querySelectorAll('#cartAdminPerfilTabs .cart-admin-perfil-tab').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    cartAdminPerfilAtivo = this.dataset.perfil;
+                    cartAdminCarregarAlloc();
+                };
+            });
+
+            // Wire classe tabs
+            document.querySelectorAll('#cartAdminClasseTabs .cart-admin-perfil-tab').forEach(btn => {
+                btn.onclick = function() {
+                    document.querySelectorAll('#cartAdminClasseTabs .cart-admin-perfil-tab').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    cartAdminClasseAtiva = this.dataset.classe;
+                    cartAdminRenderAtivos();
+                };
+            });
+
+            cartAdminPerfilAtivo = 'Conservador';
+            cartAdminClasseAtiva = 'rf';
+            document.querySelector('#cartAdminPerfilTabs .cart-admin-perfil-tab[data-perfil="Conservador"]')?.classList.add('active');
+            document.querySelector('#cartAdminClasseTabs .cart-admin-perfil-tab[data-classe="rf"]')?.classList.add('active');
+            cartAdminCarregarAlloc();
+            cartAdminRenderAtivos();
+        }
+
+        function cartFecharAdmin() {
+            document.getElementById('visaoAdmin').style.display = 'none';
+            document.getElementById('visaoCliente').style.display = 'block';
+        }
+
+        function cartAdminCarregarAlloc() {
+            const alloc = (dbCarteira.alocacoes && dbCarteira.alocacoes[cartAdminPerfilAtivo]) || CART_ALLOC_DEFAULT[cartAdminPerfilAtivo] || {};
+            document.getElementById('adminAllocRF').value = alloc.rf ?? 0;
+            document.getElementById('adminAllocAcao').value = alloc.acao ?? 0;
+            document.getElementById('adminAllocFII').value = alloc.fii ?? 0;
+            document.getElementById('adminAllocCripto').value = alloc.cripto ?? 0;
+            cartAdminAtualizarTotal();
+        }
+
+        function cartAdminAtualizarTotal() {
+            const total = ['adminAllocRF','adminAllocAcao','adminAllocFII','adminAllocCripto']
+                .reduce((s, id) => s + (parseFloat(document.getElementById(id).value) || 0), 0);
+            const el = document.getElementById('adminAllocTotal');
+            el.textContent = total + '%';
+            el.style.color = total === 100 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+        }
+
+        function cartAdminRenderAtivos() {
+            const tbody = document.getElementById('cartAdminAtivosTbody');
+            const ativos = cartAdminAtivosTemp[cartAdminClasseAtiva] || [];
+            tbody.innerHTML = ativos.map((a, i) => `
+                <tr>
+                    <td style="font-weight:700;font-family:'DM Mono',monospace;">${a.ticker}</td>
+                    <td>${a.nome}</td>
+                    <td style="color:var(--cor-texto-mutado);font-size:12px;">${a.obs || ''}</td>
+                    <td><button type="button" onclick="cartAdminRemoveAtivo(${i})" style="background:transparent;border:none;color:var(--cor-erro);cursor:pointer;font-size:14px;padding:4px;"><i class="ph ph-trash"></i></button></td>
+                </tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--cor-texto-mutado);padding:18px;font-size:13px;">Nenhum ativo</td></tr>';
+        }
+
+        function cartAdminRemoveAtivo(idx) {
+            cartAdminAtivosTemp[cartAdminClasseAtiva].splice(idx, 1);
+            cartAdminRenderAtivos();
+        }
+
+        function cartAdminAddAtivo() {
+            const ticker = document.getElementById('adminAddTicker').value.trim().toUpperCase();
+            const nome = document.getElementById('adminAddNome').value.trim();
+            const obs = document.getElementById('adminAddObs').value.trim();
+            if (!ticker) return mostrarToast('Informe o ticker.', 'erro');
+            if (!cartAdminAtivosTemp[cartAdminClasseAtiva]) cartAdminAtivosTemp[cartAdminClasseAtiva] = [];
+            cartAdminAtivosTemp[cartAdminClasseAtiva].push({ ticker, nome, obs });
+            document.getElementById('adminAddTicker').value = '';
+            document.getElementById('adminAddNome').value = '';
+            document.getElementById('adminAddObs').value = '';
+            cartAdminRenderAtivos();
+        }
+
+        function cartAdminSalvar() {
+            // Salvar alloc para perfil atual antes de persistir
+            const salvarAllocPerfil = (perfil) => {
+                if (!dbCarteira.alocacoes) dbCarteira.alocacoes = {};
+                dbCarteira.alocacoes[perfil] = {
+                    rf:     parseFloat(document.getElementById('adminAllocRF').value) || 0,
+                    acao:   parseFloat(document.getElementById('adminAllocAcao').value) || 0,
+                    fii:    parseFloat(document.getElementById('adminAllocFII').value) || 0,
+                    cripto: parseFloat(document.getElementById('adminAllocCripto').value) || 0,
+                };
+            };
+            salvarAllocPerfil(cartAdminPerfilAtivo);
+
+            const total = Object.values(dbCarteira.alocacoes[cartAdminPerfilAtivo]).reduce((s, v) => s + v, 0);
+            if (total !== 100) return mostrarToast(`A soma das alocações do perfil ${cartAdminPerfilAtivo} deve ser 100%. Atual: ${total}%`, 'erro');
+
+            dbCarteira.mesAno = document.getElementById('adminMesAno').value;
+            dbCarteira.descricao = document.getElementById('adminDesc').value;
+            dbCarteira.ativos = JSON.parse(JSON.stringify(cartAdminAtivosTemp));
+            dbCarteira.versao = 2;
+
+            localStorage.setItem('appliquei_carteira_v2', JSON.stringify(dbCarteira));
+            mostrarToast('Carteira publicada com sucesso!', 'sucesso');
+            cartFecharAdmin();
+            carregarCarteiraCliente();
+        }
+
+        // Legacy shim — necessário para calls que ainda referenciam calcularCarteiraRecomendada
+        function calcularCarteiraRecomendada() { /* no-op — lógica migrada para cartRenderizarTela() */ }
+
+        // ════════════════════════════════
+        // COMPAT: inferirClasse (usada em outros módulos)
+        // ════════════════════════════════
+        function inferirClasse(ticker, nome) {
+            const t = (ticker || '').toUpperCase();
+            const n = (nome || '').toLowerCase();
+            if (['BTC','ETH','SOL','ADA','BNB','XRP','DOT','AVAX','LINK','MATIC'].includes(t)) return 'cripto';
+            if (t.startsWith('TESOURO_') || n.includes('tesouro') || n.includes('renda fixa') || n.includes('cdb') || n.includes('lci') || n.includes('lca')) return 'rf';
+            if ((t.endsWith('11') && !t.endsWith('34')) && (n.includes('fii') || n.includes('fundo imobiliário') || n.includes('logística') || n.includes('renda') || t.startsWith('M') || t.startsWith('B') || t.startsWith('H') || t.startsWith('K') || t.startsWith('V') || t.startsWith('I') || t.startsWith('A'))) return 'fii';
+            if (t.endsWith('34') || t.endsWith('32') || t.endsWith('33') || t.endsWith('35')) return 'bdr';
+            if (n.includes('etf') || t === 'BOVA11' || t === 'IVVB11' || t === 'SMAL11' || t === 'HASH11') return 'etf';
+            return 'acao';
         }
 
         // --- ABA 5: SIMULADOR ---
@@ -9980,11 +10916,7 @@
                 transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes') || '[]');
                 cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes') || '[]');
                 if (cartoes.length === 0) cartoes.push({ id: 'card_padrao', nome: 'Cartão principal', limite: 5000, diaVencimento: null });
-                dbCarteira = JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null') || carteiraDefault;
-                // Backward compat for imported data
-                dbCarteira.percETF = dbCarteira.percETF || 0;
-                dbCarteira.percBDR = dbCarteira.percBDR || 0;
-                dbCarteira.ativos = (dbCarteira.ativos || []).map(a => ({ ...a, classe: a.classe || 'rf' }));
+                dbCarteira = cartCarregarDB();
 
                 fecharModal(); carregarMetas(); atualizarCarteiraAtivos(); atualizarTelaControle(); atualizarDatalistDescricoes();
                 mostrarToast('Dados importados com sucesso!', 'sucesso');
