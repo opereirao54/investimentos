@@ -144,6 +144,17 @@
       '.bg-sub{font-size:14px;color:#475569;line-height:1.55;margin:0 0 22px;}',
       '.bg-section{margin-bottom:22px;}',
       '.bg-section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}',
+      '.bg-tiers{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
+      '.bg-tier{position:relative;border:1.5px solid #e5e7eb;background:#fff;border-radius:14px;padding:14px 14px 12px;}',
+      '.bg-tier-current{border-color:#059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);box-shadow:0 0 0 4px rgba(5,150,105,.06);}',
+      '.bg-tier-soon{opacity:.85;background:#f8fafc;}',
+      '.bg-tier-pill{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;}',
+      '.bg-tier-pill-current{background:#059669;color:#fff;}',
+      '.bg-tier-pill-soon{background:#fef3c7;color:#92400e;}',
+      '.bg-tier-title{font-family:Syne,sans-serif;font-weight:700;font-size:18px;color:#0f172a;margin-top:8px;letter-spacing:-.02em;}',
+      '.bg-tier-soon .bg-tier-title{color:#64748b;}',
+      '.bg-tier-sub{font-size:12.5px;color:#334155;margin-top:4px;line-height:1.45;}',
+      '.bg-tier-soon .bg-tier-sub{color:#64748b;}',
       '.bg-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
       '.bg-mode{position:relative;text-align:left;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 14px 12px;cursor:pointer;transition:all .15s ease;font-family:inherit;}',
       '.bg-mode:hover{border-color:#cbd5e1;}',
@@ -160,6 +171,9 @@
       '.bg-segment[aria-checked="true"]{background:#fff;color:#059669;box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);}',
       '.bg-segment i{font-size:15px;}',
       '.bg-hint{font-size:12px;color:#64748b;margin:8px 0 0;line-height:1.45;}',
+      '.bg-parity{display:flex;gap:9px;align-items:flex-start;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:11px;padding:10px 12px;margin-top:10px;font-size:12px;color:#065f46;line-height:1.5;}',
+      '.bg-parity i{color:#059669;font-size:16px;flex-shrink:0;margin-top:1px;}',
+      '.bg-parity strong{font-weight:700;}',
       '.bg-field{margin-bottom:12px;}',
       '.bg-field label{display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:5px;}',
       '.bg-input{width:100%;padding:11px 13px;font-size:14px;border:1.5px solid #e2e8f0;border-radius:10px;box-sizing:border-box;background:#fff;color:#0f172a;font-family:inherit;transition:border-color .15s ease,box-shadow .15s ease;}',
@@ -199,7 +213,7 @@
       '.bg-link{background:none;border:none;color:#475569;font-size:12.5px;font-weight:500;cursor:pointer;padding:6px 10px;border-radius:6px;font-family:inherit;transition:background .15s ease;}',
       '.bg-link:hover{background:#f1f5f9;color:#0f172a;}',
       '.bg-link-muted{color:#94a3b8;font-size:11.5px;}',
-      '@media (max-width:480px){.bg-modes{grid-template-columns:1fr;}.bg-inner{padding:24px 20px 20px;}.bg-summary{padding:16px 20px 18px;}.bg-footer{padding:12px 20px 18px;}.bg-h1{font-size:21px;}}',
+      '@media (max-width:480px){.bg-modes{grid-template-columns:1fr;}.bg-tiers{grid-template-columns:1fr;}.bg-inner{padding:24px 20px 20px;}.bg-summary{padding:16px 20px 18px;}.bg-footer{padding:12px 20px 18px;}.bg-h1{font-size:21px;}}',
     ].join('\n');
     document.head.appendChild(st);
   }
@@ -216,24 +230,41 @@
       '    <h2 id="billingTitle" class="bg-h1">Acesso completo ao Appliquei</h2>',
       '    <p id="billingSub" class="bg-sub">Carteira recomendada, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
       '    <div class="bg-section">',
+      '      <div class="bg-section-title">Plano</div>',
+      '      <div class="bg-tiers">',
+      '        <div class="bg-tier bg-tier-current">',
+      '          <span class="bg-tier-pill bg-tier-pill-current"><i class="ph-fill ph-check-circle"></i> Plano atual</span>',
+      '          <div class="bg-tier-title">Pro</div>',
+      '          <div class="bg-tier-sub">Todas as 10 abas do Appliquei · Applicash · suporte.</div>',
+      '        </div>',
+      '        <div class="bg-tier bg-tier-soon" aria-disabled="true">',
+      '          <span class="bg-tier-pill bg-tier-pill-soon"><i class="ph ph-wrench"></i> Em construção</span>',
+      '          <div class="bg-tier-title">Pro + IA</div>',
+      '          <div class="bg-tier-sub">Diagnóstico, sugestões e chat com IA. Em breve.</div>',
+      '        </div>',
+      '      </div>',
+      '    </div>',
+      '    <div class="bg-section">',
+      '      <div class="bg-section-title">Como deseja pagar</div>',
       '      <div class="bg-modes" role="radiogroup" aria-label="Tipo de cobrança">',
       '        <button id="billingModeSub" type="button" class="bg-mode" aria-checked="true">',
       '          <span class="bg-mode-pill">Recomendado</span>',
       '          <span class="bg-mode-title">Assinatura mensal</span>',
       '          <span class="bg-mode-price"><strong>R$ 15</strong><small>/mês</small></span>',
-      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renovação automática</span>',
-      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cashback Applicash</span>',
-      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cancele quando quiser</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cobrança automática mensal</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cancele a qualquer hora</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Sem se preocupar com renovação</span>',
       '        </button>',
       '        <button id="billingModeOnce" type="button" class="bg-mode" aria-checked="false">',
       '          <span class="bg-mode-title">Pagar 1 mês</span>',
       '          <span class="bg-mode-price"><strong>R$ 15</strong><small>/30 dias</small></span>',
-      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Sem renovação</span>',
-      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Avisamos antes de vencer</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Sem compromisso recorrente</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Avisamos antes do fim</span>',
       '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renove no seu ritmo</span>',
       '        </button>',
       '      </div>',
       '      <p id="billingModeHint" class="bg-hint">Renovação automática. Cancele quando quiser.</p>',
+      '      <div class="bg-parity"><i class="ph-fill ph-gift"></i> <span><strong>Applicash funciona igual nos dois:</strong> entrou com cupom de indicação? Paga 10% menos sempre. Indica alguém? Recebe 10% por cada pagamento dele — assinatura ou avulso.</span></div>',
       '    </div>',
       '    <div class="bg-section">',
       '      <div class="bg-section-title">Forma de pagamento</div>',
@@ -703,7 +734,20 @@
       }, (opts && opts.headers) || {}),
     }));
     var text = await r.text();
-    var data = text ? JSON.parse(text) : {};
+    var data;
+    try {
+      data = text ? JSON.parse(text) : {};
+    } catch (parseErr) {
+      // Resposta não-JSON (ex.: 404 do Vercel devolve HTML "The page
+      // could not be found"). Erro genérico estruturado em vez do
+      // críptico "Unexpected token 'T'" — mensagem útil pro usuário.
+      var pe = new Error(r.status === 404
+        ? 'Recurso indisponível no momento. Tente novamente em instantes.'
+        : 'Resposta inválida do servidor. Atualize a página e tente outra vez.');
+      pe.detail = { error: 'invalid_response', status: r.status, body: text.slice(0, 200) };
+      pe.code = 'invalid_response';
+      throw pe;
+    }
     if (!r.ok) {
       // Email não verificado: backend responde 403 email_not_verified quando
       // EMAIL_VERIFY_ENFORCE=true. Front delega o gate visual ao
@@ -727,7 +771,9 @@
           }, (opts && opts.headers) || {}),
         }));
         var t2text = await r2.text();
-        var t2data = t2text ? JSON.parse(t2text) : {};
+        var t2data;
+        try { t2data = t2text ? JSON.parse(t2text) : {}; }
+        catch (_) { t2data = { error: 'invalid_response' }; }
         if (!r2.ok) {
           var e2 = new Error(t2data.error || ('http_' + r2.status));
           e2.detail = t2data;
@@ -2006,13 +2052,18 @@
 
   async function refresh(verbose) {
     try {
-      var r = await authedFetch('/status', { method: 'GET' });
-      applyAccess(r.access, r.billing);
+      // /me devolve access + billing + tudo da conta. Não há endpoint
+      // /status — usar /me garante uma fonte única de verdade para
+      // estado de acesso (caso contrário polling silencioso quebra e
+      // o gate só atualiza ao abrir Minha assinatura, deixando user
+      // bloqueado usando a app por inércia até clicar lá).
+      var r = await authedFetch('/me', { method: 'GET' });
+      applyAccess(r.access, r);
       if (verbose && r.access && r.access.status !== 'active') {
-        showErr('Ainda não recebemos a confirmação. Tente novamente em alguns instantes.');
+        showErr('Ainda não recebemos a confirmação do pagamento. Aguarde alguns instantes e tente novamente — confirmações por PIX/boleto podem levar até 3 horas.');
       }
     } catch (e) {
-      if (verbose) showErr(e.message || 'Erro de rede.');
+      if (verbose) showErr(e.message || 'Não foi possível verificar agora. Tente novamente em instantes.');
     }
   }
 
@@ -2196,9 +2247,9 @@
       await new Promise(function (r) { setTimeout(r, 2500); });
       attempts++;
       try {
-        var s = await authedFetch('/status', { method: 'GET' });
+        var s = await authedFetch('/me', { method: 'GET' });
         if (s.access && s.access.status === 'active') {
-          applyAccess(s.access, s.billing);
+          applyAccess(s.access, s);
           try { await syncApplicashFromServer(); } catch (_) {}
           return true;
         }
@@ -2272,6 +2323,34 @@
   } else {
     attach();
   }
+
+  // Defesa em profundidade contra acesso indevido:
+  //   1) Re-checa o status ao voltar para a aba — pega trial que expirou
+  //      enquanto o user estava noutra aba, ou conta que foi bloqueada
+  //      server-side por chargeback/refund sem o front saber.
+  //   2) Se o app subiu sem nunca ter aplicado access (race de auth,
+  //      /init que falhou silenciosamente, etc.), força uma tentativa.
+  //   3) Sanity check a cada 5 min mesmo com a aba aberta — captura
+  //      mudanças server-side dentro de uma sessão longa.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    var fb = window.AppliqueiFirebase;
+    var u = fb && fb.auth && fb.auth.currentUser;
+    if (!u) return;
+    if (lastAccess == null) {
+      // Nunca aplicou: re-inicia a partir do zero.
+      try { initBilling(); } catch (_) {}
+    } else {
+      // Já aplicou: revalida o estado atual.
+      try { refresh(false); } catch (_) {}
+    }
+  });
+  setInterval(function () {
+    if (document.visibilityState !== 'visible') return;
+    var fb = window.AppliqueiFirebase;
+    if (!fb || !fb.auth || !fb.auth.currentUser) return;
+    if (lastAccess) { try { refresh(false); } catch (_) {} }
+  }, 5 * 60 * 1000);
 
   window.AppliqueiBilling = {
     refresh: function () { return refresh(true); },
