@@ -2023,6 +2023,490 @@
             font-style: italic; text-align: center;
         }
 
+        /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
+        #carteira {
+            --cart-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
+            --cart-shadow-hover: 0 2px 4px rgba(15,23,42,0.05), 0 14px 36px rgba(15,23,42,0.08);
+            --cart-radius: 16px;
+            --cart-radius-lg: 22px;
+            --cart-rf: #059669;
+            --cart-rf-bg: rgba(5,150,105,0.08);
+            --cart-acao: #7c3aed;
+            --cart-acao-bg: rgba(124,58,237,0.10);
+            --cart-fii: #d97706;
+            --cart-fii-bg: rgba(217,119,6,0.10);
+            --cart-cripto: #f59e0b;
+            --cart-cripto-bg: rgba(245,158,11,0.10);
+        }
+
+        /* Questionário — hero premium */
+        #carteira .cart-q-card {
+            background:
+                radial-gradient(800px 240px at 100% 0%, rgba(16,185,129,0.06), transparent 60%),
+                radial-gradient(600px 280px at 0% 100%, rgba(124,58,237,0.05), transparent 70%),
+                linear-gradient(135deg, #ffffff, #fafbfc);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--cart-radius-lg);
+            padding: 32px;
+            box-shadow: var(--cart-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        #carteira .cart-q-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--cart-rf), var(--cart-acao), var(--cart-fii));
+        }
+        #carteira .cart-q-card h2 {
+            font-size: 22px;
+            margin-bottom: 4px;
+            letter-spacing: -0.5px;
+        }
+        #carteira .cart-q-card h2 i {
+            width: 38px; height: 38px;
+            background: var(--cart-rf-bg);
+            border-radius: 11px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 20px;
+        }
+        #carteira .cart-q-card .lead {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            margin-bottom: 26px;
+            line-height: 1.55;
+        }
+        #carteira .cart-q-section-title {
+            font-size: 11.5px;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-q-section-title::before {
+            content: attr(data-step);
+            width: 22px; height: 22px;
+            background: var(--cart-rf);
+            color: #fff;
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            font-weight: 800;
+        }
+        #carteira .cart-q-opt {
+            background: #fff;
+            border-radius: 14px;
+            padding: 16px 18px;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+            position: relative;
+        }
+        #carteira .cart-q-opt:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--cart-shadow);
+            background: #fff;
+        }
+        #carteira .cart-q-opt.selected {
+            border-color: var(--cart-rf);
+            background: linear-gradient(135deg, #ffffff, rgba(16,185,129,0.05));
+            box-shadow: 0 0 0 3px rgba(16,185,129,0.12), var(--cart-shadow);
+        }
+        #carteira .cart-q-opt.selected::after {
+            content: '✓';
+            position: absolute; top: 12px; right: 12px;
+            width: 22px; height: 22px;
+            background: var(--cart-rf);
+            color: #fff;
+            border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800;
+        }
+        #carteira .cart-q-opt .icon {
+            width: 40px; height: 40px;
+            background: var(--cor-superficie);
+            border-radius: 11px;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        #carteira .cart-q-opt .title { font-size: 14px; }
+        #carteira .cart-q-opt .sub { font-size: 12px; line-height: 1.45; }
+        #carteira .cart-q-capital-row {
+            margin-top: 8px;
+            padding: 18px 20px;
+            background: linear-gradient(135deg, var(--cor-superficie), #ffffff);
+            border: 1px solid var(--cor-borda);
+            border-radius: 14px;
+            border-top: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-q-capital-row label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-q-capital-row .btn-acao {
+            background: linear-gradient(135deg, var(--cart-rf), #047857);
+            border: none;
+            box-shadow: 0 6px 18px rgba(5,150,105,0.28);
+            font-weight: 700;
+            letter-spacing: -0.2px;
+        }
+
+        /* Profile header — luxe */
+        #carteira .cart-perfil-header {
+            background:
+                radial-gradient(600px 200px at 100% 0%, rgba(16,185,129,0.06), transparent 70%),
+                linear-gradient(135deg, #ffffff, #fafbfc);
+            border-radius: var(--cart-radius);
+            padding: 20px 24px;
+            box-shadow: var(--cart-shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        #carteira .cart-perfil-header::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cart-rf), var(--cart-acao));
+        }
+        #carteira .cart-perfil-badge {
+            padding: 10px 18px;
+            font-size: 15px;
+            box-shadow: var(--cart-shadow);
+        }
+        #carteira .cart-perfil-badge .emoji { font-size: 20px; }
+        #carteira .cart-capital-chip {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #fff;
+            box-shadow: var(--cart-shadow);
+        }
+        #carteira .cart-capital-chip i { font-size: 16px; }
+        #carteira .cart-btn-mini {
+            padding: 8px 14px;
+            font-size: 12.5px;
+            border-radius: 10px;
+        }
+        #carteira .cart-perfil-msg {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            line-height: 1.6;
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-top: none;
+            background: var(--cor-bg-info);
+            border-radius: 12px;
+            border-left: 3px solid var(--cor-info);
+        }
+
+        /* Hero (educational + donut) — premium */
+        #carteira .cart-hero {
+            grid-template-columns: 1fr 1.15fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 980px) {
+            #carteira .cart-hero { grid-template-columns: 1fr; }
+        }
+        #carteira .cart-edu-panel,
+        #carteira .cart-donut-card {
+            border-radius: var(--cart-radius);
+            box-shadow: var(--cart-shadow);
+            padding: 22px 24px;
+            background: #fff;
+        }
+        #carteira .cart-edu-panel-title,
+        #carteira .cart-donut-title {
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: -0.2px;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-edu-panel-title i,
+        #carteira .cart-donut-title i {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: var(--cart-rf-bg);
+            color: var(--cart-rf);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        #carteira .cart-edu-item {
+            border-radius: 12px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            border-color: var(--cor-borda);
+            background: #fff;
+        }
+        #carteira .cart-edu-item:hover { box-shadow: var(--cart-shadow); }
+        #carteira .cart-edu-item.active {
+            border-color: transparent;
+            box-shadow: 0 0 0 2px var(--cart-rf), var(--cart-shadow);
+        }
+        #carteira .cart-edu-item-head {
+            padding: 14px 16px;
+            background: #fff;
+        }
+        #carteira .cart-edu-item.expanded .cart-edu-item-head {
+            background: var(--cor-superficie);
+        }
+        #carteira .cart-edu-item-dot {
+            width: 12px; height: 12px;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+        }
+        #carteira .cart-edu-item-name { font-size: 14px; font-weight: 800; }
+        #carteira .cart-edu-item-pct {
+            min-width: 56px;
+            padding: 4px 10px;
+            font-size: 14px;
+            background: var(--cor-superficie);
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-edu-item-meta { font-size: 11.5px; }
+        #carteira .cart-edu-item-body {
+            padding: 14px 16px 16px;
+            font-size: 13px; line-height: 1.65;
+            background: linear-gradient(180deg, var(--cor-superficie), #fff);
+            border-top: 1px dashed var(--cor-borda);
+        }
+        #carteira .cart-donut-wrap {
+            height: 260px;
+        }
+        #carteira .cart-donut-center .label {
+            font-size: 10.5px;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+        #carteira .cart-donut-center .value {
+            font-size: 28px;
+            letter-spacing: -1.5px;
+            margin-top: 5px;
+        }
+        #carteira .cart-donut-legend {
+            grid-template-columns: 1fr 1fr;
+            gap: 10px 14px;
+            padding-top: 16px;
+        }
+        #carteira .cart-donut-legend-item .dot {
+            width: 12px; height: 12px;
+            border-radius: 4px;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+        }
+        #carteira .cart-donut-legend-item .meta .name { font-size: 12.5px; }
+        #carteira .cart-donut-legend-item .meta .val { font-size: 11.5px; font-weight: 700; }
+
+        /* Diversification callout */
+        #carteira .cart-callout {
+            background: linear-gradient(135deg, rgba(16,185,129,0.10), rgba(124,58,237,0.06));
+            border: 1px solid rgba(16,185,129,0.18);
+            border-radius: var(--cart-radius);
+            padding: 16px 20px;
+            font-size: 13.5px;
+            line-height: 1.55;
+            gap: 14px;
+        }
+        #carteira .cart-callout i {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--cart-rf), var(--cart-acao));
+            color: #fff;
+            border-radius: 10px;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            margin-top: 0;
+            box-shadow: 0 4px 12px rgba(5,150,105,0.20);
+        }
+
+        /* Asset selection — premium columns */
+        #carteira .cart-selecao-header h3 {
+            font-size: 17px;
+            letter-spacing: -0.3px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        #carteira .cart-selecao-header h3 i {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: var(--cart-rf-bg);
+            color: var(--cart-rf);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        #carteira .cart-selecao-grid { gap: 16px; }
+        #carteira .cart-classe-col {
+            border-radius: var(--cart-radius);
+            box-shadow: var(--cart-shadow);
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        #carteira .cart-classe-col:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--cart-shadow-hover);
+        }
+        #carteira .cart-classe-col-header {
+            padding: 18px 20px 16px;
+            background: linear-gradient(180deg, var(--cart-col-bg, transparent), #ffffff);
+        }
+        #carteira .cart-classe-rf     { --cart-col-bg: var(--cart-rf-bg); }
+        #carteira .cart-classe-acao   { --cart-col-bg: var(--cart-acao-bg); }
+        #carteira .cart-classe-fii    { --cart-col-bg: var(--cart-fii-bg); }
+        #carteira .cart-classe-cripto { --cart-col-bg: var(--cart-cripto-bg); }
+        #carteira .cart-classe-col-header::before { height: 4px; }
+        #carteira .cart-classe-col-name {
+            font-size: 14px;
+            letter-spacing: -0.2px;
+            margin-bottom: 14px;
+        }
+        #carteira .cart-classe-col-name i {
+            width: 30px; height: 30px;
+            border-radius: 9px;
+            background: var(--cart-col-icon-bg, var(--cor-superficie));
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        #carteira .cart-classe-rf     .cart-classe-col-name i { background: var(--cart-rf-bg); color: var(--cart-rf); }
+        #carteira .cart-classe-acao   .cart-classe-col-name i { background: var(--cart-acao-bg); color: var(--cart-acao); }
+        #carteira .cart-classe-fii    .cart-classe-col-name i { background: var(--cart-fii-bg); color: var(--cart-fii); }
+        #carteira .cart-classe-cripto .cart-classe-col-name i { background: var(--cart-cripto-bg); color: var(--cart-cripto); }
+        #carteira .cart-classe-col-pct {
+            font-size: 28px;
+            letter-spacing: -1.2px;
+        }
+        #carteira .cart-classe-rf     .cart-classe-col-pct { color: var(--cart-rf); }
+        #carteira .cart-classe-acao   .cart-classe-col-pct { color: var(--cart-acao); }
+        #carteira .cart-classe-fii    .cart-classe-col-pct { color: var(--cart-fii); }
+        #carteira .cart-classe-cripto .cart-classe-col-pct { color: var(--cart-cripto); }
+        #carteira .cart-classe-col-vlr {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            font-weight: 700;
+        }
+        #carteira .cart-classe-list { padding: 10px; gap: 7px; }
+        #carteira .cart-ativo-item {
+            border-radius: 10px;
+            padding: 11px 13px;
+            background: #fff;
+            border-color: var(--cor-borda);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        }
+        #carteira .cart-ativo-item:hover {
+            transform: translateX(2px);
+            box-shadow: var(--cart-shadow);
+            background: var(--cor-superficie);
+        }
+        #carteira .cart-ativo-item:not(.unchecked) {
+            border-color: var(--cor-borda);
+            background: linear-gradient(135deg, #ffffff, var(--cor-superficie));
+        }
+        #carteira .cart-classe-rf     .cart-ativo-item:not(.unchecked) { border-left: 3px solid var(--cart-rf); }
+        #carteira .cart-classe-acao   .cart-ativo-item:not(.unchecked) { border-left: 3px solid var(--cart-acao); }
+        #carteira .cart-classe-fii    .cart-ativo-item:not(.unchecked) { border-left: 3px solid var(--cart-fii); }
+        #carteira .cart-classe-cripto .cart-ativo-item:not(.unchecked) { border-left: 3px solid var(--cart-cripto); }
+        #carteira .cart-ativo-check {
+            width: 20px; height: 20px;
+            border-radius: 6px;
+            border-width: 2px;
+        }
+        #carteira .cart-classe-rf     .cart-ativo-item:not(.unchecked) .cart-ativo-check { background: var(--cart-rf); border-color: var(--cart-rf); }
+        #carteira .cart-classe-acao   .cart-ativo-item:not(.unchecked) .cart-ativo-check { background: var(--cart-acao); border-color: var(--cart-acao); }
+        #carteira .cart-classe-fii    .cart-ativo-item:not(.unchecked) .cart-ativo-check { background: var(--cart-fii); border-color: var(--cart-fii); }
+        #carteira .cart-classe-cripto .cart-ativo-item:not(.unchecked) .cart-ativo-check { background: var(--cart-cripto); border-color: var(--cart-cripto); }
+        #carteira .cart-ativo-ticker { font-size: 13px; }
+        #carteira .cart-ativo-nome { font-size: 11px; margin-top: 2px; }
+        #carteira .cart-ativo-pct { font-size: 13px; }
+        #carteira .cart-classe-col-footer {
+            padding: 12px 16px;
+            background: linear-gradient(180deg, #ffffff, var(--cor-superficie));
+            border-top: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-classe-col-footer .lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+        #carteira .cart-classe-col-footer .val { font-size: 13.5px; font-weight: 800; }
+
+        /* Historical simulation — premium */
+        #carteira .cart-sim-card {
+            border-radius: var(--cart-radius);
+            box-shadow: var(--cart-shadow);
+            padding: 24px;
+            background: #fff;
+        }
+        #carteira .cart-sim-header h3 {
+            font-size: 17px;
+            letter-spacing: -0.3px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        #carteira .cart-sim-header h3 i {
+            width: 32px; height: 32px;
+            border-radius: 9px;
+            background: var(--cart-rf-bg);
+            color: var(--cart-rf);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+        #carteira .cart-sim-ranges {
+            background: var(--cor-superficie);
+            padding: 4px;
+            border-radius: 12px;
+        }
+        #carteira .cart-sim-range-btn {
+            padding: 7px 16px;
+            font-size: 12.5px;
+            font-weight: 700;
+            border-radius: 9px;
+        }
+        #carteira .cart-sim-range-btn.active {
+            background: #fff;
+            color: var(--cart-rf);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08), 0 0 0 1px rgba(5,150,105,0.18);
+        }
+        #carteira .cart-sim-chart-wrap { height: 300px; }
+        #carteira .cart-sim-kpis { gap: 14px; }
+        #carteira .cart-sim-kpi {
+            background: linear-gradient(135deg, #ffffff, var(--cor-superficie));
+            border-radius: 12px;
+            padding: 14px 16px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        #carteira .cart-sim-kpi:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--cart-shadow);
+        }
+        #carteira .cart-sim-kpi .lbl {
+            font-size: 10.5px;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+            margin-bottom: 6px;
+        }
+        #carteira .cart-sim-kpi .val {
+            font-size: 22px;
+            letter-spacing: -0.8px;
+        }
+        #carteira .cart-sim-disclaimer {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: var(--cor-superficie);
+            border-radius: 10px;
+            border: 1px dashed var(--cor-borda);
+            font-size: 11.5px;
+            font-style: normal;
+            line-height: 1.5;
+        }
+
+        body.valores-ocultos #carteira .cart-donut-center .value,
+        body.valores-ocultos #carteira .cart-capital-chip,
+        body.valores-ocultos #carteira .cart-classe-col-pct,
+        body.valores-ocultos #carteira .cart-classe-col-vlr,
+        body.valores-ocultos #carteira .cart-ativo-pct,
+        body.valores-ocultos #carteira .cart-ativo-vlr,
+        body.valores-ocultos #carteira .cart-classe-col-footer .val,
+        body.valores-ocultos #carteira .cart-sim-kpi .val,
+        body.valores-ocultos #carteira canvas { filter: blur(6px); }
+
         /* Admin refactored */
         .cart-admin-card {
             background: var(--cor-branco); border: 1px solid var(--cor-borda);
@@ -3589,6 +4073,576 @@
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
         body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
+
+        /* ===== RELATÓRIO MENSAL — premium UI ===== */
+        #relatorio_mensal {
+            --rm-radius: 16px;
+            --rm-radius-lg: 22px;
+            --rm-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
+            --rm-shadow-hover: 0 2px 4px rgba(15,23,42,0.05), 0 12px 32px rgba(15,23,42,0.08);
+            --rm-verde: #10b981;
+            --rm-amarelo: #f59e0b;
+            --rm-vermelho: #ef4444;
+            --rm-roxo: #7c3aed;
+            --rm-azul: #0ea5e9;
+        }
+
+        /* Comparação bar */
+        #relatorio_mensal .rm-compare-bar {
+            background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(16,185,129,0.04));
+            border: 1px solid rgba(124,58,237,0.18);
+            border-radius: var(--rm-radius);
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-compare-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--rm-roxo), var(--rm-verde));
+            color: #fff;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.25);
+        }
+
+        /* Hero do termômetro */
+        #relatorio_mensal .rm-hero {
+            position: relative;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius-lg);
+            box-shadow: var(--rm-shadow);
+            padding: 28px;
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: minmax(260px, 360px) 1fr;
+            gap: 32px;
+            align-items: center;
+            overflow: hidden;
+        }
+        #relatorio_mensal .rm-hero::before {
+            content: ''; position: absolute; inset: 0;
+            background:
+                radial-gradient(800px 200px at 100% 0%, rgba(16,185,129,0.06), transparent 60%),
+                radial-gradient(600px 240px at 0% 100%, rgba(124,58,237,0.05), transparent 70%);
+            pointer-events: none;
+        }
+        #relatorio_mensal .rm-hero > * { position: relative; z-index: 1; }
+        #relatorio_mensal .rm-hero-gauge {
+            position: relative;
+            aspect-ratio: 220 / 130;
+            max-width: 320px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        #relatorio_mensal .rm-hero-score-block {
+            position: absolute;
+            left: 0; right: 0; bottom: 8%;
+            text-align: center;
+            pointer-events: none;
+        }
+        #relatorio_mensal .rm-hero-score {
+            font-size: 52px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            line-height: 1;
+            color: var(--cor-texto-principal);
+            letter-spacing: -1.5px;
+            transition: color 0.3s;
+        }
+        #relatorio_mensal .rm-hero-status {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            margin-top: 4px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-hero-mes {
+            display: inline-block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+            padding: 4px 10px;
+            background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda);
+            border-radius: 99px;
+            margin-bottom: 12px;
+        }
+        #relatorio_mensal .rm-hero-titulo {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--cor-texto-principal);
+            margin: 0 0 8px;
+            display: flex; align-items: center; gap: 10px;
+            letter-spacing: -0.3px;
+        }
+        #relatorio_mensal .rm-hero-titulo i { color: var(--cor-primaria); font-size: 26px; }
+        #relatorio_mensal .rm-hero-resumo {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            line-height: 1.55;
+            margin: 0 0 18px;
+            max-width: 540px;
+        }
+        #relatorio_mensal .rm-hero-stats {
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-hero-stat {
+            flex: 1; min-width: 160px;
+            background: rgba(255,255,255,0.75);
+            border: 1px solid var(--cor-borda);
+            border-radius: 12px;
+            padding: 12px 14px;
+            backdrop-filter: blur(8px);
+        }
+        #relatorio_mensal .rm-hero-stat-label {
+            display: block;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+            margin-bottom: 4px;
+        }
+        #relatorio_mensal .rm-hero-stat-valor {
+            display: block;
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        #relatorio_mensal .rm-hero-stat-delta {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-top: 4px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* Strip de critérios */
+        #relatorio_mensal .rm-criterios-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 980px) {
+            #relatorio_mensal .rm-criterios-strip { grid-template-columns: repeat(2, 1fr); }
+            #relatorio_mensal .rm-hero { grid-template-columns: 1fr; gap: 18px; padding: 22px; }
+            #relatorio_mensal .rm-hero-gauge { max-width: 260px; }
+        }
+        #relatorio_mensal .rm-criterio {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: 14px;
+            padding: 14px 14px 12px;
+            box-shadow: var(--rm-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        #relatorio_mensal .rm-criterio:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-criterio::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--rm-crit-cor, var(--cor-texto-mutado));
+        }
+        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-bg: rgba(245,158,11,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
+        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;           --rm-crit-bg: rgba(148,163,184,0.06); }
+        #relatorio_mensal .rm-criterio-top {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        #relatorio_mensal .rm-criterio-icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            background: var(--rm-crit-bg);
+            color: var(--rm-crit-cor);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+        }
+        #relatorio_mensal .rm-criterio-badge {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 8px;
+            border-radius: 99px;
+            background: var(--rm-crit-bg);
+            color: var(--rm-crit-cor);
+        }
+        #relatorio_mensal .rm-criterio-label {
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        #relatorio_mensal .rm-criterio-valor {
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1.1;
+            letter-spacing: -0.4px;
+        }
+        #relatorio_mensal .rm-criterio-meta {
+            font-size: 10.5px;
+            color: var(--cor-texto-mutado);
+            margin-top: 4px;
+        }
+
+        /* KPI cards (4) */
+        #relatorio_mensal .rm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-kpi {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            padding: 18px 18px 0;
+            box-shadow: var(--rm-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        #relatorio_mensal .rm-kpi:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-kpi-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 12px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-label {
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-kpi-icone {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            background: var(--rm-kpi-bg, var(--cor-superficie));
+            color: var(--rm-kpi-cor, var(--cor-texto-secundario));
+        }
+        #relatorio_mensal .rm-kpi-valor {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--rm-kpi-cor, var(--cor-texto-principal));
+            line-height: 1.1;
+            letter-spacing: -0.8px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-delta {
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-top: 6px;
+            font-family: 'DM Mono', monospace;
+            display: flex; align-items: center; gap: 4px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-delta.pos { color: var(--rm-verde); }
+        #relatorio_mensal .rm-kpi-delta.neg { color: var(--rm-vermelho); }
+        #relatorio_mensal .rm-kpi-delta.neu { color: var(--cor-texto-mutado); }
+        #relatorio_mensal .rm-kpi-spark {
+            margin: 10px -18px -1px;
+            height: 56px;
+            position: relative;
+            z-index: 0;
+        }
+        #relatorio_mensal .rm-kpi-spark svg { width: 100%; height: 100%; display: block; }
+
+        /* Cards de gráfico */
+        #relatorio_mensal .rm-chart-card {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            box-shadow: var(--rm-shadow);
+            padding: 20px 22px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-chart-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-chart-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin: 0 0 3px;
+            display: flex; align-items: center; gap: 8px;
+            color: var(--cor-texto-principal);
+            letter-spacing: -0.2px;
+        }
+        #relatorio_mensal .rm-chart-title i { color: var(--cor-primaria); font-size: 18px; }
+        #relatorio_mensal .rm-chart-sub {
+            font-size: 12px;
+            color: var(--cor-texto-mutado);
+            margin: 0;
+        }
+        #relatorio_mensal .rm-chart-legend {
+            display: flex; gap: 14px; flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-chart-legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+        }
+        #relatorio_mensal .rm-chart-legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--dot-cor, #94a3b8);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+        }
+        #relatorio_mensal .rm-chart-canvas {
+            position: relative;
+            height: 280px;
+        }
+        #relatorio_mensal .rm-chart-pill {
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 5px 11px;
+            border-radius: 99px;
+            background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            font-family: 'DM Mono', monospace;
+        }
+        #relatorio_mensal .rm-chart-pill.neg {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        /* Dual grid (donut + patrimônio) */
+        #relatorio_mensal .rm-dual-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.4fr);
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 980px) {
+            #relatorio_mensal .rm-dual-grid { grid-template-columns: 1fr; }
+        }
+        #relatorio_mensal .rm-donut-wrap {
+            display: block;
+            text-align: center;
+        }
+        #relatorio_mensal .rm-donut-canvas {
+            position: relative;
+            width: 180px; height: 180px;
+            margin: 6px auto 18px;
+            display: block;
+        }
+        #relatorio_mensal .rm-donut-canvas canvas {
+            width: 180px !important;
+            height: 180px !important;
+            display: block;
+        }
+        #relatorio_mensal .rm-donut-legend {
+            text-align: left;
+        }
+        #relatorio_mensal .rm-donut-legend {
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        #relatorio_mensal .rm-donut-leg-item {
+            display: grid;
+            grid-template-columns: 10px 1fr auto;
+            gap: 8px;
+            align-items: center;
+            font-size: 11.5px;
+            padding: 4px 0;
+        }
+        #relatorio_mensal .rm-donut-leg-dot {
+            width: 10px; height: 10px; border-radius: 3px;
+        }
+        #relatorio_mensal .rm-donut-leg-label {
+            color: var(--cor-texto-secundario);
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #relatorio_mensal .rm-donut-leg-valor {
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            font-weight: 700;
+            font-size: 11.5px;
+            text-align: right;
+        }
+        #relatorio_mensal .rm-donut-leg-pct {
+            font-size: 10px;
+            color: var(--cor-texto-mutado);
+            font-family: 'DM Mono', monospace;
+            display: none; /* já mostramos valor; pct fica no tooltip */
+        }
+        /* Total no centro do donut */
+        #relatorio_mensal .rm-donut-canvas {
+            position: relative;
+        }
+        #relatorio_mensal .rm-donut-total {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            line-height: 1;
+        }
+        #relatorio_mensal .rm-donut-total-label {
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-donut-total-valor {
+            font-size: 17px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            margin-top: 3px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Cards secundários */
+        #relatorio_mensal .rm-sec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-sec-card {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            box-shadow: var(--rm-shadow);
+            padding: 0;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        #relatorio_mensal .rm-sec-card:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-sec-header {
+            padding: 16px 18px 14px;
+            background: linear-gradient(135deg, var(--rm-sec-bg-from), var(--rm-sec-bg-to));
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        #relatorio_mensal .rm-sec-header::before {
+            content: ''; position: absolute; right: -20px; top: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+        #relatorio_mensal .rm-sec-header-row {
+            display: flex; align-items: center; gap: 10px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-sec-header-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.18);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            color: #fff;
+        }
+        #relatorio_mensal .rm-sec-header-title {
+            font-size: 14px; font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+        #relatorio_mensal .rm-sec-header-sub {
+            font-size: 11px;
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+        #relatorio_mensal .rm-sec-body { padding: 14px 18px 16px; }
+        #relatorio_mensal .rm-sec-card[data-tipo="sonhos"]    { --rm-sec-bg-from: #10b981; --rm-sec-bg-to: #059669; }
+        #relatorio_mensal .rm-sec-card[data-tipo="jornada"]   { --rm-sec-bg-from: #7c3aed; --rm-sec-bg-to: #5b21b6; }
+        #relatorio_mensal .rm-sec-card[data-tipo="applicash"] { --rm-sec-bg-from: #0ea5e9; --rm-sec-bg-to: #0369a1; }
+
+        /* Linha de meta dentro de secundários */
+        #relatorio_mensal .rm-sec-meta-row {
+            display: flex; justify-content: space-between; font-size: 12px;
+            margin-bottom: 5px;
+        }
+        #relatorio_mensal .rm-sec-bar {
+            height: 6px; background: var(--cor-superficie);
+            border-radius: 99px; overflow: hidden;
+            border: 1px solid var(--cor-borda);
+        }
+        #relatorio_mensal .rm-sec-bar-fill {
+            height: 100%; transition: width 0.5s ease;
+            border-radius: 99px;
+        }
+        #relatorio_mensal .rm-sec-kpi-row {
+            display: flex; gap: 14px; margin-bottom: 14px;
+        }
+        #relatorio_mensal .rm-sec-kpi {
+            flex: 1;
+            border-right: 1px solid var(--cor-borda);
+            padding-right: 14px;
+        }
+        #relatorio_mensal .rm-sec-kpi:last-child { border-right: none; padding-right: 0; }
+        #relatorio_mensal .rm-sec-kpi-num {
+            font-size: 24px; font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1; letter-spacing: -0.6px;
+        }
+        #relatorio_mensal .rm-sec-kpi-label {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-mutado);
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        #relatorio_mensal .rm-sec-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 9px;
+            border-radius: 99px;
+        }
+        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: #047857; }
+        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: #b45309; }
+        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: #b91c1c; }
+
+        /* Sparkline backgrounds nos KPIs */
+        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: #047857; --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+
+        body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
+        body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
+        body.valores-ocultos #relatorio_mensal .rm-criterio-valor,
+        body.valores-ocultos #relatorio_mensal .rm-sec-kpi-num,
+        body.valores-ocultos #relatorio_mensal .rm-donut-leg-valor,
+        body.valores-ocultos #relatorio_mensal canvas { filter: blur(6px); }
     </style>
 </head>
 <body>
@@ -4497,33 +5551,55 @@
             <div class="page-header" style="margin-bottom:20px;">
                 <div class="page-header-left">
                     <h1>Jornada Financeira</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Trilhas de capacitação financeira focadas em execução prática.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Trilhas de capacitação financeira focadas em execução prática. Marque cada módulo conforme você o conclui.</p>
+                </div>
+                <div class="page-actions" id="jornadaResumoChip" style="display:none;">
+                    <span class="cart-capital-chip" style="font-size:13px;">
+                        <i class="ph-fill ph-graduation-cap"></i>
+                        <span id="jornadaResumoTexto">0 de 8 módulos</span>
+                    </span>
                 </div>
             </div>
-            <div class="grid-cards">
-                <div class="card-container" style="display:flex; flex-direction:column; border-top: 4px solid var(--cor-texto-mutado); opacity: 0.7;">
-                    <span class="badge" style="background: #f1f5f9; color: var(--cor-texto-secundario); border: 1px solid var(--cor-borda); width: fit-content; margin-bottom: 10px;"><i class="ph ph-clock"></i> Em breve</span>
-                    <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 700;">1. Alinhamento de Mindset</h3>
-                    <p style="font-size:14px; margin-bottom:25px; color: var(--cor-texto-secundario); flex:1; line-height:1.5;">Conceitos base sobre finanças comportamentais e tese de longo prazo.</p>
-                    <button class="btn-secundario" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled><i class="ph ph-lock"></i> Indisponível</button>
+
+            <!-- BARRA DE PROGRESSO GERAL -->
+            <div class="card-container" id="jornadaProgressoCard" style="margin-bottom:20px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:240px;">
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+                        <strong style="font-size:14px;">Seu progresso</strong>
+                        <span id="jornadaPctTexto" style="font-size:13px;color:var(--cor-texto-mutado);font-family:'DM Mono',monospace;">0%</span>
+                    </div>
+                    <div style="height:10px;background:var(--cor-superficie);border-radius:99px;overflow:hidden;border:1px solid var(--cor-borda);">
+                        <div id="jornadaProgressoBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--cor-primaria),#7c3aed);transition:width 0.5s ease;"></div>
+                    </div>
+                    <p id="jornadaMensagem" style="font-size:12.5px;color:var(--cor-texto-mutado);margin-top:8px;line-height:1.5;">Comece pelo primeiro módulo e vá no seu ritmo. A meta sugerida é concluir <strong>1 módulo por mês</strong> — vira critério verde no Relatório mensal.</p>
                 </div>
-                <div class="card-container" style="display:flex; flex-direction:column; border-top: 4px solid var(--cor-texto-mutado); opacity: 0.7;">
-                    <span class="badge" style="background: #f1f5f9; color: var(--cor-texto-secundario); border: 1px solid var(--cor-borda); width: fit-content; margin-bottom: 10px;"><i class="ph ph-clock"></i> Em breve</span>
-                    <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 700;">2. Otimização de Caixa</h3>
-                    <p style="font-size:14px; margin-bottom:25px; color: var(--cor-texto-secundario); flex:1; line-height:1.5;">Técnicas de engenharia financeira pessoal para provisionar aportes mensais.</p>
-                    <button class="btn-secundario" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled><i class="ph ph-lock"></i> Indisponível</button>
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 16px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);border-radius:12px;">
+                    <span style="font-size:11px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Mês atual</span>
+                    <span id="jornadaModulosMes" style="font-family:'DM Mono',monospace;font-size:22px;color:var(--cor-primaria);font-weight:700;">0</span>
+                    <span style="font-size:10.5px;color:var(--cor-texto-mutado);">módulo(s) concluído(s)</span>
                 </div>
-                <div class="card-container" style="display:flex; flex-direction:column; border-top: 4px solid var(--cor-texto-mutado); opacity: 0.7;">
-                    <span class="badge" style="background: #f1f5f9; color: var(--cor-texto-secundario); border: 1px solid var(--cor-borda); width: fit-content; margin-bottom: 10px;"><i class="ph ph-clock"></i> Em breve</span>
-                    <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 700;">3. Colchão de Liquidez</h3>
-                    <p style="font-size:14px; margin-bottom:25px; color: var(--cor-texto-secundario); flex:1; line-height:1.5;">Estruturação da Reserva de Emergência: Onde e como alocar.</p>
-                    <button class="btn-secundario" style="width: 100%; opacity: 0.5; cursor: not-allowed;" disabled><i class="ph ph-lock"></i> Indisponível</button>
-                </div>
-                <div class="card-container" style="display:flex; flex-direction:column; border-top: 4px solid var(--cor-primaria);">
-                    <span class="badge" style="background: var(--cor-primaria); width: fit-content; margin-bottom: 10px;"><i class="ph ph-star"></i> Disponível agora</span>
-                    <h3 style="font-size: 16px; margin-bottom: 12px; font-weight: 700; color: var(--cor-primaria);">4. Execução no Broker</h3>
-                    <p style="font-size:14px; margin-bottom:25px; color: var(--cor-texto-secundario); flex:1; line-height:1.5;">Tutorial técnico de compra de ativos reais passo a passo.</p>
-                    <button class="btn-acao" style="width: 100%;"><i class="ph ph-arrow-right"></i> Acessar</button>
+            </div>
+
+            <!-- GRID DE MÓDULOS (renderizado por JS) -->
+            <div class="grid-cards" id="jornadaModulosGrid"></div>
+
+            <!-- MODAL DE DETALHE DO MÓDULO -->
+            <div id="modalJornadaModulo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalJornada()">
+                <div style="max-width:540px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
+                        <h3 id="jornadaModalTitulo" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-graduation-cap" style="color:var(--cor-primaria);"></i> <span></span></h3>
+                        <button class="drawer-fechar" onclick="fecharModalJornada()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
+                    </div>
+                    <p id="jornadaModalDescricao" style="font-size:13.5px;color:var(--cor-texto-secundario);line-height:1.6;margin-bottom:18px;"></p>
+                    <div id="jornadaModalObjetivos" style="background:var(--cor-bg-info);border:1px solid var(--cor-borda);border-radius:10px;padding:14px 16px;margin-bottom:18px;"></div>
+                    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12.5px;color:#92400e;line-height:1.5;">
+                        <i class="ph-fill ph-lightbulb" style="vertical-align:middle;margin-right:4px;"></i>
+                        <strong>Conteúdo em desenvolvimento.</strong> Em breve teremos vídeo, leituras e exercícios para este módulo. Por enquanto, leia o resumo, execute o objetivo e marque como concluído.
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button id="jornadaModalBtnConcluir" class="btn-acao" style="flex:1;min-width:160px;"><i class="ph-bold ph-check-circle"></i> <span>Marcar como concluído</span></button>
+                        <button class="btn-secundario" onclick="fecharModalJornada()" style="flex:0 0 auto;">Fechar</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -4548,7 +5624,7 @@
                     <p class="lead">Responda 2 perguntas rápidas + informe seu capital. A carteira é montada automaticamente.</p>
 
                     <div class="cart-q-section">
-                        <div class="cart-q-section-title">1 · Tolerância a perdas</div>
+                        <div class="cart-q-section-title" data-step="1">Tolerância a perdas</div>
                         <div class="cart-q-opts" id="cartQTolerancia">
                             <button type="button" class="cart-q-opt" data-q="tolerancia" data-val="nao_aceito">
                                 <span class="icon">🛡️</span>
@@ -4566,7 +5642,7 @@
                     </div>
 
                     <div class="cart-q-section">
-                        <div class="cart-q-section-title">2 · Objetivo principal</div>
+                        <div class="cart-q-section-title" data-step="2">Objetivo principal</div>
                         <div class="cart-q-opts" id="cartQObjetivo">
                             <button type="button" class="cart-q-opt" data-q="objetivo" data-val="preservar">
                                 <span class="icon">🏦</span>
@@ -5061,13 +6137,139 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Relatório mensal</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Análise e consolidação do seu mês.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Consolidação financeira do mês — termômetro, métricas-chave e comparativo histórico.</p>
+                </div>
+                <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
+                    <input type="month" id="rmSeletorMes" onchange="renderRelatorioMensal()" style="padding:9px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13.5px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;cursor:pointer;font-weight:600;">
+                    <button class="btn-secundario" id="rmBtnComparar" onclick="rmToggleComparacao()" style="font-size:12.5px;"><i class="ph ph-git-diff"></i> <span id="rmBtnCompararLabel">Comparar com…</span></button>
+                    <button class="btn-acao" onclick="rmExportarPDF()" style="font-size:12.5px;background-color:var(--cor-primaria);"><i class="ph-bold ph-file-pdf"></i> Exportar PDF</button>
                 </div>
             </div>
-            <div class="card-container" style="text-align: center; padding: 60px 20px;">
-                <i class="ph ph-file-text" style="font-size: 48px; color: var(--cor-texto-mutado); margin-bottom: 16px;"></i>
-                <h3 style="font-size: 18px; margin-bottom: 8px;">Em breve</h3>
-                <p style="color: var(--cor-texto-mutado); max-width: 400px; margin: 0 auto;">Página em construção.</p>
+
+            <!-- BLOCO COMPARAÇÃO (oculto por padrão) -->
+            <div id="rmComparacaoBar" class="rm-compare-bar" style="display:none;">
+                <div class="rm-compare-icon"><i class="ph-bold ph-git-diff"></i></div>
+                <div style="flex:1;min-width:200px;">
+                    <strong style="font-size:13.5px;display:block;margin-bottom:2px;">Modo comparação</strong>
+                    <span style="font-size:11.5px;color:var(--cor-texto-mutado);">Veja dois meses lado-a-lado com delta % em cada métrica.</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <label style="font-size:12px;color:var(--cor-texto-mutado);font-weight:600;">Comparar com:</label>
+                    <input type="month" id="rmSeletorMesB" onchange="renderRelatorioMensal()" style="padding:7px 10px;border:1.5px solid var(--cor-borda);border-radius:8px;font-size:13px;color:var(--cor-texto-principal);background-color:var(--cor-branco);font-weight:600;">
+                </div>
+            </div>
+
+            <!-- WRAPPER capturado pelo PDF -->
+            <div id="rmConteudo">
+
+                <!-- HERO: termômetro + KPIs primários -->
+                <div class="rm-hero">
+                    <div class="rm-hero-gauge">
+                        <svg id="rmGaugeSvg" viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+                            <defs>
+                                <linearGradient id="rmGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ef4444"/>
+                                    <stop offset="50%" stop-color="#f59e0b"/>
+                                    <stop offset="100%" stop-color="#10b981"/>
+                                </linearGradient>
+                                <filter id="rmGaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.18"/>
+                                </filter>
+                            </defs>
+                            <!-- Trilho de fundo -->
+                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#eef2f7" stroke-width="16" stroke-linecap="round"/>
+                            <!-- Preenchimento progresso -->
+                            <path id="rmGaugePath" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#rmGaugeGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.8s cubic-bezier(.22,1,.36,1);"/>
+                            <!-- Ponteiro -->
+                            <g id="rmGaugePointer" transform="rotate(-90 110 110)" style="transition:transform 0.8s cubic-bezier(.22,1,.36,1);">
+                                <circle cx="110" cy="110" r="9" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
+                                <line x1="110" y1="110" x2="110" y2="35" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="110" cy="110" r="4" fill="#0f172a"/>
+                            </g>
+                        </svg>
+                        <div class="rm-hero-score-block">
+                            <div id="rmTermometroScore" class="rm-hero-score">—</div>
+                            <div id="rmTermometroStatus" class="rm-hero-status">aguardando</div>
+                        </div>
+                    </div>
+                    <div class="rm-hero-info">
+                        <span class="rm-hero-mes" id="rmHeroMesLabel">—</span>
+                        <h2 class="rm-hero-titulo"><i class="ph-fill ph-thermometer-hot"></i> Termômetro financeiro</h2>
+                        <p id="rmTermometroResumo" class="rm-hero-resumo">Selecione um mês para ver o termômetro.</p>
+                        <div class="rm-hero-stats">
+                            <div class="rm-hero-stat">
+                                <span class="rm-hero-stat-label">Saldo final</span>
+                                <span class="rm-hero-stat-valor" id="rmHeroSaldo">—</span>
+                                <span class="rm-hero-stat-delta" id="rmHeroSaldoDelta"></span>
+                            </div>
+                            <div class="rm-hero-stat">
+                                <span class="rm-hero-stat-label">Patrimônio</span>
+                                <span class="rm-hero-stat-valor" id="rmHeroPatrimonio">—</span>
+                                <span class="rm-hero-stat-delta" id="rmHeroPatrimonioDelta"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STRIP DE CRITÉRIOS -->
+                <div class="rm-criterios-strip" id="rmTermometroCriterios"></div>
+
+                <!-- KPIs SECUNDÁRIOS com sparklines -->
+                <div class="rm-kpi-grid" id="rmKpisGrid"></div>
+
+                <!-- GRÁFICO HERO: fluxo financeiro -->
+                <div class="rm-chart-card">
+                    <div class="rm-chart-header">
+                        <div>
+                            <h3 class="rm-chart-title"><i class="ph-fill ph-chart-line-up"></i> Fluxo financeiro</h3>
+                            <p class="rm-chart-sub">Entradas, despesas e investimentos — últimos 12 meses</p>
+                        </div>
+                        <div class="rm-chart-legend" id="rmFluxoLegenda"></div>
+                    </div>
+                    <div class="rm-chart-canvas"><canvas id="rmChartSerie"></canvas></div>
+                </div>
+
+                <!-- Donut + Patrimônio em 2 colunas -->
+                <div class="rm-dual-grid">
+                    <div class="rm-chart-card">
+                        <div class="rm-chart-header">
+                            <div>
+                                <h3 class="rm-chart-title"><i class="ph-fill ph-chart-donut"></i> Para onde foi o dinheiro</h3>
+                                <p class="rm-chart-sub">Composição das saídas do mês</p>
+                            </div>
+                        </div>
+                        <div class="rm-donut-wrap">
+                            <div class="rm-donut-canvas">
+                                <canvas id="rmChartDonut"></canvas>
+                                <div class="rm-donut-total">
+                                    <div class="rm-donut-total-label">Total saídas</div>
+                                    <div class="rm-donut-total-valor valor-mascarado" id="rmDonutTotal">—</div>
+                                </div>
+                            </div>
+                            <div class="rm-donut-legend" id="rmDonutLegenda"></div>
+                        </div>
+                    </div>
+                    <div class="rm-chart-card">
+                        <div class="rm-chart-header">
+                            <div>
+                                <h3 class="rm-chart-title"><i class="ph-fill ph-trending-up"></i> Evolução do patrimônio</h3>
+                                <p class="rm-chart-sub">Valor aplicado vs valor de mercado</p>
+                            </div>
+                            <div class="rm-chart-pill" id="rmPatrimonioVariacao"></div>
+                        </div>
+                        <div class="rm-chart-canvas"><canvas id="rmChartPatrimonio"></canvas></div>
+                    </div>
+                </div>
+
+                <!-- CARDS SECUNDÁRIOS -->
+                <div class="rm-sec-grid" id="rmSecundariosGrid"></div>
+
+                <!-- EMPTY STATE -->
+                <div id="rmEmptyState" class="card-container" style="display:none;text-align:center;padding:50px 20px;">
+                    <i class="ph ph-file-dashed" style="font-size:40px;color:var(--cor-texto-mutado);margin-bottom:12px;"></i>
+                    <h3 style="font-size:16px;margin-bottom:6px;">Sem dados neste mês</h3>
+                    <p style="color:var(--cor-texto-mutado);max-width:380px;margin:0 auto;font-size:13px;">Registre transações, contas pagas, aportes ou indicações para ver o relatório consolidado.</p>
+                </div>
             </div>
         </section>
 
@@ -5557,6 +6759,8 @@
             if(idAba === 'applicash') atualizarTelaApplicash();
             if(idAba === 'duvidas_sugestoes') { renderizarFaq(); renderizarHistoricoSugestoes(); }
             if(idAba === 'meu_patrimonio') renderMeuPatrimonio();
+            if(idAba === 'aulas') renderizarJornada();
+            if(idAba === 'relatorio_mensal') renderRelatorioMensal();
             if(callback) callback();
             if (typeof closeMobileNav === 'function') closeMobileNav();
         }
@@ -13781,6 +14985,870 @@
             mpRenderDonut(consolidado);
             mpRenderCartaoSnap();
         }
+
+        // ============================================================
+        // === JORNADA FINANCEIRA — módulos com progresso             ===
+        // ============================================================
+        const JORNADA_MODULOS = [
+            { id: 'm1', titulo: '1. Alinhamento de mindset',      icone: 'ph-brain',          descricao: 'Conceitos base sobre finanças comportamentais e tese de longo prazo. Entenda por que disciplina vale mais que retorno.', objetivos: ['Identificar 3 gatilhos pessoais de gasto impulsivo','Definir sua tese de investimento em 1 frase'] },
+            { id: 'm2', titulo: '2. Otimização de caixa',         icone: 'ph-piggy-bank',     descricao: 'Técnicas de engenharia financeira pessoal para provisionar aportes mensais consistentes.',                                    objetivos: ['Mapear receitas e despesas fixas','Definir % de aporte alvo (mín. 10% da receita)'] },
+            { id: 'm3', titulo: '3. Colchão de liquidez',         icone: 'ph-shield-check',   descricao: 'Estruturação da reserva de emergência: quanto, onde e como alocar para acesso rápido sem perder rentabilidade.',          objetivos: ['Calcular 6× despesas fixas mensais','Alocar em Tesouro Selic ou CDB de liquidez diária'] },
+            { id: 'm4', titulo: '4. Execução no broker',          icone: 'ph-storefront',     descricao: 'Tutorial técnico de compra de ativos reais passo a passo. Da escolha da corretora até o primeiro boletim de compra.',     objetivos: ['Abrir conta em corretora','Executar primeira compra de ativo'] },
+            { id: 'm5', titulo: '5. Renda fixa avançada',         icone: 'ph-bank',           descricao: 'CDB, LCI, LCA, debêntures, Tesouro Direto: como comparar, indexadores e armadilhas comuns.',                                  objetivos: ['Comparar CDI vs IPCA+ vs prefixado','Montar uma escada de vencimentos'] },
+            { id: 'm6', titulo: '6. Renda variável & dividendos', icone: 'ph-chart-line-up',  descricao: 'Ações brasileiras, FIIs, dividend yield, payout. Como avaliar uma empresa antes de comprar.',                                objetivos: ['Selecionar 5 ativos pagadores consistentes','Calcular dividend yield ponderado da carteira'] },
+            { id: 'm7', titulo: '7. Diversificação internacional',icone: 'ph-globe-hemisphere-west', descricao: 'BDRs, ETFs internacionais, exposição cambial. Por que e quanto alocar fora do real.',                          objetivos: ['Definir % alvo de exposição internacional','Escolher veículo (BDR vs ETF vs conta global)'] },
+            { id: 'm8', titulo: '8. Aposentadoria & longo prazo', icone: 'ph-tree-palm',      descricao: 'Previdência privada, regime de tributação, planejamento sucessório e o cálculo da sua liberdade financeira.',                  objetivos: ['Simular patrimônio-alvo para liberdade','Comparar PGBL vs VGBL pro seu caso'] },
+        ];
+        const JORNADA_STORAGE_KEY = 'appliquei_jornada_progresso';
+
+        function carregarJornadaProgresso() {
+            try { return JSON.parse(localStorage.getItem(JORNADA_STORAGE_KEY) || '{}'); }
+            catch(_) { return {}; }
+        }
+        function salvarJornadaProgresso(p) {
+            localStorage.setItem(JORNADA_STORAGE_KEY, JSON.stringify(p || {}));
+        }
+
+        function jornadaModulosConcluidosNoMes(yyyymm) {
+            // yyyymm = "YYYY-MM"; conta módulos cujo concluidoEm cai dentro desse mês
+            const prog = carregarJornadaProgresso();
+            return Object.values(prog).filter(p => {
+                if(!p || !p.concluidoEm) return false;
+                return p.concluidoEm.slice(0, 7) === yyyymm;
+            }).length;
+        }
+
+        let jornadaModuloAberto = null;
+        function abrirModalJornada(id) {
+            const mod = JORNADA_MODULOS.find(m => m.id === id);
+            if(!mod) return;
+            jornadaModuloAberto = id;
+            const modal = document.getElementById('modalJornadaModulo');
+            modal.querySelector('#jornadaModalTitulo span').innerText = mod.titulo;
+            document.getElementById('jornadaModalDescricao').innerText = mod.descricao;
+            const objetivos = document.getElementById('jornadaModalObjetivos');
+            objetivos.innerHTML = '<strong style="font-size:12px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:8px;">Ao concluir este módulo, você terá:</strong>' +
+                '<ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.7;color:var(--cor-texto-principal);">' +
+                mod.objetivos.map(o => '<li>' + o + '</li>').join('') + '</ul>';
+            const prog = carregarJornadaProgresso();
+            const btn = document.getElementById('jornadaModalBtnConcluir');
+            const concluido = !!(prog[id] && prog[id].concluidoEm);
+            if(concluido) {
+                btn.innerHTML = '<i class="ph-bold ph-arrow-counter-clockwise"></i> <span>Desmarcar conclusão</span>';
+                btn.style.background = 'var(--cor-texto-mutado)';
+            } else {
+                btn.innerHTML = '<i class="ph-bold ph-check-circle"></i> <span>Marcar como concluído</span>';
+                btn.style.background = 'var(--cor-primaria)';
+            }
+            btn.onclick = () => toggleJornadaModulo(id);
+            modal.style.display = 'flex';
+        }
+        function fecharModalJornada() {
+            document.getElementById('modalJornadaModulo').style.display = 'none';
+            jornadaModuloAberto = null;
+        }
+        function toggleJornadaModulo(id) {
+            const prog = carregarJornadaProgresso();
+            if(prog[id] && prog[id].concluidoEm) {
+                delete prog[id];
+                mostrarToast('Módulo desmarcado.', 'aviso');
+            } else {
+                prog[id] = { concluidoEm: new Date().toISOString() };
+                mostrarToast('Módulo concluído! 🎓', 'sucesso');
+            }
+            salvarJornadaProgresso(prog);
+            fecharModalJornada();
+            renderizarJornada();
+        }
+
+        function renderizarJornada() {
+            const grid = document.getElementById('jornadaModulosGrid');
+            if(!grid) return;
+            const prog = carregarJornadaProgresso();
+            const total = JORNADA_MODULOS.length;
+            const concluidos = JORNADA_MODULOS.filter(m => prog[m.id] && prog[m.id].concluidoEm).length;
+            const pct = total ? Math.round((concluidos / total) * 100) : 0;
+
+            // Cards
+            grid.innerHTML = JORNADA_MODULOS.map(m => {
+                const ok = !!(prog[m.id] && prog[m.id].concluidoEm);
+                const corBorda = ok ? 'var(--cor-primaria)' : 'var(--cor-texto-mutado)';
+                const badge = ok
+                    ? '<span class="badge" style="background:var(--cor-primaria);color:var(--cor-branco);width:fit-content;margin-bottom:10px;"><i class="ph-fill ph-check-circle"></i> Concluído</span>'
+                    : '<span class="badge" style="background:var(--cor-bg-info);color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);width:fit-content;margin-bottom:10px;"><i class="ph ph-circle"></i> Não iniciado</span>';
+                const dataLbl = ok ? '<div style="font-size:11px;color:var(--cor-texto-mutado);margin-bottom:8px;">Concluído em ' + new Date(prog[m.id].concluidoEm).toLocaleDateString('pt-BR') + '</div>' : '';
+                const corIcone = ok ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)';
+                return '<div class="card-container" style="display:flex;flex-direction:column;border-top:4px solid ' + corBorda + ';cursor:pointer;transition:transform 0.15s ease,box-shadow 0.15s ease;" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 4px 14px rgba(0,0,0,0.06)\';" onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\';" onclick="abrirModalJornada(\'' + m.id + '\')">'
+                    + badge
+                    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><i class="ph-duotone ' + m.icone + '" style="font-size:28px;color:' + corIcone + ';"></i><h3 style="font-size:15px;font-weight:700;margin:0;line-height:1.3;">' + m.titulo + '</h3></div>'
+                    + '<p style="font-size:13px;margin-bottom:12px;color:var(--cor-texto-secundario);flex:1;line-height:1.5;">' + m.descricao + '</p>'
+                    + dataLbl
+                    + '<button class="' + (ok ? 'btn-secundario' : 'btn-acao') + '" style="width:100%;" onclick="event.stopPropagation();abrirModalJornada(\'' + m.id + '\')">'
+                    + (ok ? '<i class="ph ph-eye"></i> Ver detalhes' : '<i class="ph-bold ph-arrow-right"></i> Iniciar módulo')
+                    + '</button></div>';
+            }).join('');
+
+            // Barra de progresso
+            const bar = document.getElementById('jornadaProgressoBar');
+            const pctTxt = document.getElementById('jornadaPctTexto');
+            const resumo = document.getElementById('jornadaResumoTexto');
+            const chip = document.getElementById('jornadaResumoChip');
+            const msg = document.getElementById('jornadaMensagem');
+            if(bar) bar.style.width = pct + '%';
+            if(pctTxt) pctTxt.innerText = pct + '%';
+            if(resumo) resumo.innerText = concluidos + ' de ' + total + ' módulos';
+            if(chip) chip.style.display = '';
+            if(msg) {
+                if(concluidos === 0) msg.innerHTML = 'Comece pelo primeiro módulo e vá no seu ritmo. A meta sugerida é concluir <strong>1 módulo por mês</strong> — vira critério verde no Relatório mensal.';
+                else if(concluidos === total) msg.innerHTML = '🎉 <strong>Trilha completa.</strong> Releia os módulos sempre que precisar revisar um conceito.';
+                else msg.innerHTML = '<strong>' + concluidos + ' módulo(s) concluído(s).</strong> Faltam ' + (total - concluidos) + ' para completar a trilha. Lembre-se: o critério "verde" no termômetro mensal é <strong>≥ 1 módulo no mês</strong>.';
+            }
+
+            // Módulos concluídos no mês corrente
+            const hoje = new Date();
+            const yyyymm = hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0');
+            const noMes = jornadaModulosConcluidosNoMes(yyyymm);
+            const elMes = document.getElementById('jornadaModulosMes');
+            if(elMes) elMes.innerText = noMes;
+        }
+
+        // ============================================================
+        // === RELATÓRIO MENSAL — BI consolidado                       ===
+        // ============================================================
+        const RM_NOMES_MESES_LONG = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+        const RM_NOMES_MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const RM_HTML2PDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js';
+
+        function rmYyyymmToMesAno(yyyymm) {
+            const [a, m] = (yyyymm || '').split('-').map(Number);
+            return { mes: (m || 1) - 1, ano: a || 0 };
+        }
+        function rmMesAnoToYyyymm(mes, ano) {
+            return ano + '-' + String(mes + 1).padStart(2, '0');
+        }
+        function rmFormatarMesLabel(yyyymm) {
+            const { mes, ano } = rmYyyymmToMesAno(yyyymm);
+            return RM_NOMES_MESES_LONG[mes] + '/' + ano;
+        }
+        function rmAddMonths(yyyymm, delta) {
+            const { mes, ano } = rmYyyymmToMesAno(yyyymm);
+            const d = new Date(ano, mes + delta, 1);
+            return rmMesAnoToYyyymm(d.getMonth(), d.getFullYear());
+        }
+        function rmMesEhFuturo(yyyymm) {
+            const hoje = new Date();
+            const cur = rmMesAnoToYyyymm(hoje.getMonth(), hoje.getFullYear());
+            return yyyymm > cur;
+        }
+
+        // Constrói o objeto bruto do mês a partir das fontes existentes
+        function buildMonthlyReport(yyyymm) {
+            const { mes, ano } = rmYyyymmToMesAno(yyyymm);
+            const r = (typeof calcularResumoMes === 'function') ? calcularResumoMes(mes, ano) : { receita:0, resgate:0, despFixa:0, despVar:0, cartao:0, invFixo:0, invVar:0, sonho:0 };
+
+            const entradas = (r.receita || 0) + (r.resgate || 0);
+            const despesasContas = (r.despFixa || 0) + (r.despVar || 0) + (r.cartao || 0) + (r.sonho || 0);
+            const investimentos = (r.invFixo || 0) + (r.invVar || 0);
+            const despesasTotais = despesasContas + investimentos;
+            const saldoFinal = entradas - despesasTotais;
+
+            // Patrimônio (snapshot do mês)
+            let patrimonioAplicado = 0, patrimonioMercado = 0;
+            try {
+                const snaps = (typeof carregarSnapshotsCarteira === 'function') ? carregarSnapshotsCarteira() : {};
+                const snap = snaps[yyyymm];
+                if(snap) {
+                    patrimonioAplicado = snap.investidoTotal || 0;
+                    patrimonioMercado = snap.saldoTotal || 0;
+                }
+            } catch(_) {}
+
+            // Dividendos do mês (usa cacheDividendos se disponível)
+            let dividendos = 0;
+            try {
+                if(typeof cacheDividendos !== 'undefined' && cacheDividendos && typeof historicoCompras !== 'undefined') {
+                    const iniMs = new Date(ano, mes, 1).getTime();
+                    const fimMs = new Date(ano, mes + 1, 0, 23, 59, 59).getTime();
+                    const tickers = new Set(historicoCompras.map(o => o.ticker).filter(Boolean));
+                    tickers.forEach(ticker => {
+                        const cache = cacheDividendos[ticker];
+                        if(!cache || !cache.pagamentos) return;
+                        cache.pagamentos.forEach(p => {
+                            if(!p.data) return;
+                            const ts = new Date(p.data.length === 10 ? p.data + 'T12:00:00' : p.data).getTime();
+                            if(ts < iniMs || ts > fimMs) return;
+                            // Quantidade na data do pagamento
+                            let qtd = 0;
+                            historicoCompras.forEach(op => {
+                                if(op.ticker !== ticker || !op.data) return;
+                                const tsOp = new Date(op.data).getTime();
+                                if(tsOp > ts) return;
+                                if(op.tipo === 'compra') qtd += (op.qtd || 0);
+                                else if(op.tipo === 'venda') qtd -= (op.qtd || 0);
+                            });
+                            if(qtd > 0) dividendos += qtd * (p.valor || 0);
+                        });
+                    });
+                }
+            } catch(_) {}
+
+            // Sonhos — progresso médio dos sonhos ativos
+            let sonhosAtivos = 0, sonhosNoPrazo = 0, sonhosProgressoMedio = 0, sonhosLista = [];
+            try {
+                const lista = JSON.parse(localStorage.getItem('appliquei_sonhos') || '[]');
+                lista.forEach(s => {
+                    const valTot = s.valorTotal || 0;
+                    const valAtu = s.valorAtual || 0;
+                    if(valTot <= 0) return;
+                    const pct = Math.min(100, (valAtu / valTot) * 100);
+                    sonhosAtivos += 1;
+                    sonhosProgressoMedio += pct;
+                    // "No prazo" = pct atual >= % de tempo decorrido
+                    const prazo = s.prazoMeses || 12;
+                    const mesesPassados = Math.max(0, prazo - (s.mesesRestantes || 0));
+                    const pctTempo = (mesesPassados / prazo) * 100;
+                    if(pct >= pctTempo - 5) sonhosNoPrazo += 1; // 5% de tolerância
+                    sonhosLista.push({ nome: s.nome || 'Sonho', pct, prazo, mesesRestantes: s.mesesRestantes });
+                });
+                if(sonhosAtivos > 0) sonhosProgressoMedio = sonhosProgressoMedio / sonhosAtivos;
+            } catch(_) {}
+
+            // Jornada — módulos concluídos no mês
+            const jornadaModulosMes = jornadaModulosConcluidosNoMes(yyyymm);
+
+            // Applicash — indicações ativas + receita estimada
+            let applicashIndicacoes = 0, applicashReceita = 0;
+            try {
+                const inds = JSON.parse(localStorage.getItem('appliquei_applicash_indicacoes') || '[]');
+                const ativos = inds.filter(i => i.status === 'ativo');
+                applicashIndicacoes = ativos.length;
+                applicashReceita = ativos.reduce((acc, i) => acc + ((i.valorPago || 0) * 0.10), 0);
+            } catch(_) {}
+
+            return {
+                yyyymm,
+                mes, ano,
+                label: rmFormatarMesLabel(yyyymm),
+                entradas,
+                receita: r.receita || 0,
+                resgate: r.resgate || 0,
+                despesasContas,
+                despesasTotais,
+                investimentos,
+                saldoFinal,
+                pctDespesas: entradas > 0 ? (despesasContas / entradas) * 100 : 0,
+                pctInvestimentos: entradas > 0 ? (investimentos / entradas) * 100 : 0,
+                patrimonioAplicado,
+                patrimonioMercado,
+                patrimonioGanho: patrimonioMercado - patrimonioAplicado,
+                dividendos,
+                sonhos: { ativos: sonhosAtivos, noPrazo: sonhosNoPrazo, progressoMedio: sonhosProgressoMedio, lista: sonhosLista },
+                jornadaModulosMes,
+                applicash: { indicacoes: applicashIndicacoes, receita: applicashReceita },
+                hasData: (entradas + despesasTotais + patrimonioMercado + dividendos + sonhosAtivos + jornadaModulosMes + applicashIndicacoes) > 0
+            };
+        }
+
+        // Termômetro — 5 critérios → score 0-100 + status por critério
+        function rmCalcularTermometro(rep) {
+            const criterios = [];
+            // 1. Despesas ≤ 60% (verde), 60-75% (amarelo), >75% (vermelho)
+            const cDesp = rep.pctDespesas;
+            let stDesp = 'verde';
+            if(rep.entradas === 0) stDesp = 'cinza';
+            else if(cDesp > 75) stDesp = 'vermelho';
+            else if(cDesp > 60) stDesp = 'amarelo';
+            criterios.push({ label: 'Despesas ≤ 60% da entrada', valor: rep.entradas > 0 ? cDesp.toFixed(1) + '%' : '—', meta: '≤ 60%', status: stDesp, icone: 'ph-receipt' });
+            // 2. Investimentos ≥ 30% (verde), 20-30% (amarelo), <20% (vermelho)
+            const cInv = rep.pctInvestimentos;
+            let stInv = 'verde';
+            if(rep.entradas === 0) stInv = 'cinza';
+            else if(cInv < 20) stInv = 'vermelho';
+            else if(cInv < 30) stInv = 'amarelo';
+            criterios.push({ label: 'Investimentos ≥ 30% da entrada', valor: rep.entradas > 0 ? cInv.toFixed(1) + '%' : '—', meta: '≥ 30%', status: stInv, icone: 'ph-trending-up' });
+            // 3. Sonhos no prazo: ≥80% no prazo (verde), 50-80% (amarelo), <50% (vermelho)
+            let stSon = 'cinza';
+            let pctSon = 0;
+            if(rep.sonhos.ativos > 0) {
+                pctSon = (rep.sonhos.noPrazo / rep.sonhos.ativos) * 100;
+                if(pctSon < 50) stSon = 'vermelho';
+                else if(pctSon < 80) stSon = 'amarelo';
+                else stSon = 'verde';
+            }
+            criterios.push({ label: 'Sonhos no prazo', valor: rep.sonhos.ativos > 0 ? rep.sonhos.noPrazo + '/' + rep.sonhos.ativos : 'Sem sonhos', meta: '≥ 80%', status: stSon, icone: 'ph-shooting-star' });
+            // 4. Jornada: ≥1 módulo (verde) senão vermelho
+            const stJor = rep.jornadaModulosMes >= 1 ? 'verde' : 'vermelho';
+            criterios.push({ label: 'Jornada Financeira', valor: rep.jornadaModulosMes + ' módulo(s)', meta: '≥ 1/mês', status: stJor, icone: 'ph-graduation-cap' });
+            // 5. Applicash: ≥2 (verde), 1 (amarelo), 0 (vermelho)
+            let stApp = 'vermelho';
+            if(rep.applicash.indicacoes >= 2) stApp = 'verde';
+            else if(rep.applicash.indicacoes === 1) stApp = 'amarelo';
+            criterios.push({ label: 'Applicash — indicações ativas', valor: rep.applicash.indicacoes + ' ativa(s)', meta: '≥ 2', status: stApp, icone: 'ph-currency-dollar' });
+
+            // Score = média ponderada (cada critério vale 20 pontos; verde=100%, amarelo=50%, vermelho=0%, cinza=neutro)
+            const pesos = { verde: 100, amarelo: 50, vermelho: 0, cinza: 50 };
+            let score = 0, pontosVal = 0;
+            criterios.forEach(c => { score += pesos[c.status]; pontosVal += 1; });
+            const finalScore = pontosVal > 0 ? Math.round(score / pontosVal) : 0;
+            let statusGeral = 'verde';
+            if(finalScore < 40) statusGeral = 'vermelho';
+            else if(finalScore < 70) statusGeral = 'amarelo';
+            return { criterios, score: finalScore, statusGeral };
+        }
+
+        function rmCorStatus(s) {
+            if(s === 'verde') return { bg: 'var(--cor-bg-primaria)', borda: 'var(--cor-borda-primaria)', txt: 'var(--cor-txt-primaria)', dot: '#10b981' };
+            if(s === 'amarelo') return { bg: '#fffbeb', borda: '#fcd34d', txt: '#92400e', dot: '#f59e0b' };
+            if(s === 'vermelho') return { bg: '#fef2f2', borda: '#fecaca', txt: '#991b1b', dot: '#ef4444' };
+            return { bg: 'var(--cor-superficie)', borda: 'var(--cor-borda)', txt: 'var(--cor-texto-mutado)', dot: '#94a3b8' };
+        }
+
+        // ====== Helpers visuais ======
+        function rmFormatarMoedaCompacta(v) {
+            const abs = Math.abs(v || 0);
+            if(abs >= 1e6) return 'R$ ' + (v / 1e6).toFixed(1).replace('.', ',') + 'M';
+            if(abs >= 1e3) return 'R$ ' + (v / 1e3).toFixed(abs >= 1e4 ? 0 : 1).replace('.', ',') + 'k';
+            return 'R$ ' + (v || 0).toFixed(0);
+        }
+
+        function rmSparklineSvg(values, opts) {
+            opts = opts || {};
+            const w = opts.width || 240;
+            const h = opts.height || 56;
+            const pad = 4;
+            if(!values || values.length < 2) return '';
+            const max = Math.max(...values, 0);
+            const min = Math.min(...values, 0);
+            const range = max - min || 1;
+            const dx = (w - pad * 2) / (values.length - 1);
+            const y = v => h - pad - ((v - min) / range) * (h - pad * 2);
+            const pts = values.map((v, i) => [pad + i * dx, y(v)]);
+            // Smooth path com curva quadrática
+            let d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+            for(let i = 1; i < pts.length; i++) {
+                const p0 = pts[i-1], p1 = pts[i];
+                const mx = (p0[0] + p1[0]) / 2;
+                d += ' Q ' + mx + ' ' + p0[1] + ' ' + mx + ' ' + ((p0[1]+p1[1])/2);
+                d += ' T ' + p1[0] + ' ' + p1[1];
+            }
+            const area = d + ' L ' + pts[pts.length-1][0] + ' ' + h + ' L ' + pts[0][0] + ' ' + h + ' Z';
+            const gradId = 'rmsg_' + Math.random().toString(36).slice(2,8);
+            return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">'
+                + '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
+                + '<stop offset="0%" stop-color="var(--rm-kpi-fill-from)"/>'
+                + '<stop offset="100%" stop-color="var(--rm-kpi-fill-to)"/>'
+                + '</linearGradient></defs>'
+                + '<path d="' + area + '" fill="url(#' + gradId + ')"/>'
+                + '<path d="' + d + '" fill="none" stroke="var(--rm-kpi-stroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                + '<circle cx="' + pts[pts.length-1][0] + '" cy="' + pts[pts.length-1][1] + '" r="3" fill="var(--rm-kpi-stroke)" stroke="#fff" stroke-width="1.5"/>'
+                + '</svg>';
+        }
+
+        function rmDeltaHtml(valorA, valorB, mesBLabel) {
+            if(valorB === null || valorB === undefined) return '';
+            const delta = valorA - valorB;
+            const pct = valorB !== 0 ? (delta / Math.abs(valorB)) * 100 : (delta !== 0 ? 100 : 0);
+            const cls = Math.abs(pct) < 0.1 ? 'neu' : (delta > 0 ? 'pos' : 'neg');
+            const seta = Math.abs(pct) < 0.1 ? '·' : (delta > 0 ? '▲' : '▼');
+            const mesShort = (mesBLabel || '').split('/')[0];
+            return '<div class="rm-kpi-delta ' + cls + '">' + seta + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '% <span style="color:var(--cor-texto-mutado);font-weight:600;">vs ' + mesShort + '</span></div>';
+        }
+
+        // SVG gauge — atualiza arc + pointer
+        function rmAtualizarGauge(score, statusGeral) {
+            const path = document.getElementById('rmGaugePath');
+            const pointer = document.getElementById('rmGaugePointer');
+            if(path) {
+                const pct = Math.max(0, Math.min(100, score)) / 100;
+                const total = 283; // ~ length aprox do arco
+                path.setAttribute('stroke-dashoffset', String(total - total * pct));
+            }
+            if(pointer) {
+                const ang = -90 + (Math.max(0, Math.min(100, score)) / 100) * 180;
+                pointer.setAttribute('transform', 'rotate(' + ang + ' 110 110)');
+            }
+            // Cor do score numérico
+            const scoreEl = document.getElementById('rmTermometroScore');
+            const statusEl = document.getElementById('rmTermometroStatus');
+            const cores = rmCorStatus(statusGeral);
+            if(scoreEl) scoreEl.style.color = cores.dot;
+            if(statusEl) {
+                statusEl.style.color = cores.dot;
+                statusEl.innerText = statusGeral === 'verde' ? 'Saudável' : statusGeral === 'amarelo' ? 'Atenção' : statusGeral === 'vermelho' ? 'Crítico' : 'Aguardando';
+            }
+        }
+
+        // Termômetro UI: hero + criterios strip
+        function rmRenderTermometro(rep, repB) {
+            const t = rmCalcularTermometro(rep);
+            const cores = rmCorStatus(t.statusGeral);
+
+            const scoreEl = document.getElementById('rmTermometroScore');
+            if(scoreEl) scoreEl.innerText = t.score;
+            rmAtualizarGauge(t.score, t.statusGeral);
+
+            const mesLbl = document.getElementById('rmHeroMesLabel');
+            if(mesLbl) mesLbl.innerText = rep.label.toUpperCase();
+
+            const resumo = document.getElementById('rmTermometroResumo');
+            if(resumo) {
+                let txt = '';
+                if(t.statusGeral === 'verde') txt = '<strong>Saudável.</strong> Você está cumprindo a maior parte dos pilares deste mês. Mantenha o ritmo.';
+                else if(t.statusGeral === 'amarelo') txt = '<strong>Atenção.</strong> Alguns critérios estão fora do alvo — ajuste antes que vire tendência.';
+                else txt = '<strong>Crítico.</strong> Vários pilares fora do alvo. Foque em revisar despesas e retomar aportes.';
+                resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo.';
+            }
+
+            // Saldo e patrimônio nos hero stats
+            const saldoEl = document.getElementById('rmHeroSaldo');
+            if(saldoEl) {
+                saldoEl.innerText = formatarMoeda(rep.saldoFinal);
+                saldoEl.style.color = rep.saldoFinal >= 0 ? 'var(--rm-verde)' : 'var(--rm-vermelho)';
+            }
+            const patEl = document.getElementById('rmHeroPatrimonio');
+            if(patEl) patEl.innerText = formatarMoeda(rep.patrimonioMercado);
+
+            const saldoDeltaEl = document.getElementById('rmHeroSaldoDelta');
+            const patDeltaEl = document.getElementById('rmHeroPatrimonioDelta');
+            if(saldoDeltaEl) saldoDeltaEl.innerHTML = repB ? rmDeltaHtml(rep.saldoFinal, repB.saldoFinal, repB.label).replace('rm-kpi-delta', 'rm-kpi-delta') : '';
+            if(patDeltaEl) patDeltaEl.innerHTML = repB ? rmDeltaHtml(rep.patrimonioMercado, repB.patrimonioMercado, repB.label).replace('rm-kpi-delta', 'rm-kpi-delta') : '';
+
+            // Strip de critérios
+            const grid = document.getElementById('rmTermometroCriterios');
+            if(grid) {
+                const badgeTxt = s => s === 'verde' ? 'OK' : s === 'amarelo' ? 'ATENÇÃO' : s === 'vermelho' ? 'FORA' : '—';
+                grid.innerHTML = t.criterios.map(c =>
+                    '<div class="rm-criterio" data-status="' + c.status + '">'
+                    + '<div class="rm-criterio-top">'
+                    + '<div class="rm-criterio-icon"><i class="ph-fill ' + c.icone + '"></i></div>'
+                    + '<span class="rm-criterio-badge">' + badgeTxt(c.status) + '</span>'
+                    + '</div>'
+                    + '<div class="rm-criterio-label">' + c.label + '</div>'
+                    + '<div class="rm-criterio-valor">' + c.valor + '</div>'
+                    + '<div class="rm-criterio-meta">Meta: ' + c.meta + '</div>'
+                    + '</div>'
+                ).join('');
+            }
+        }
+
+        // Cards KPI (4 secundários com sparkline)
+        function rmRenderKpis(rep, repB, serie12) {
+            const grid = document.getElementById('rmKpisGrid');
+            if(!grid) return;
+            const items = [
+                { tipo: 'entradas',      label: 'Entradas',          valor: rep.entradas,      valorB: repB ? repB.entradas : null,      icone: 'ph-arrow-down-left',  spark: serie12.entradas },
+                { tipo: 'despesas',      label: 'Despesas totais',   valor: rep.despesasTotais,valorB: repB ? repB.despesasTotais : null,icone: 'ph-arrow-up-right',   spark: serie12.despesas },
+                { tipo: 'investimentos', label: 'Investimentos',     valor: rep.investimentos, valorB: repB ? repB.investimentos : null, icone: 'ph-trending-up',      spark: serie12.investimentos },
+                { tipo: 'dividendos',    label: 'Dividendos do mês', valor: rep.dividendos,    valorB: repB ? repB.dividendos : null,    icone: 'ph-coins',            spark: serie12.dividendos }
+            ];
+            grid.innerHTML = items.map(it =>
+                '<div class="rm-kpi" data-tipo="' + it.tipo + '">'
+                + '<div class="rm-kpi-top">'
+                + '<span class="rm-kpi-label">' + it.label + '</span>'
+                + '<div class="rm-kpi-icone"><i class="ph-fill ' + it.icone + '"></i></div>'
+                + '</div>'
+                + '<div class="rm-kpi-valor valor-mascarado">' + formatarMoeda(it.valor) + '</div>'
+                + rmDeltaHtml(it.valor, it.valorB, repB ? repB.label : '')
+                + '<div class="rm-kpi-spark">' + rmSparklineSvg(it.spark) + '</div>'
+                + '</div>'
+            ).join('');
+        }
+
+        // Cards secundários (Sonhos, Jornada, Applicash) — premium
+        function rmRenderSecundarios(rep) {
+            const grid = document.getElementById('rmSecundariosGrid');
+            if(!grid) return;
+
+            // === Sonhos ===
+            const sonhosBody = (rep.sonhos.ativos === 0)
+                ? '<div style="text-align:center;padding:8px 0;font-size:13px;color:var(--cor-texto-mutado);"><i class="ph ph-shooting-star" style="font-size:28px;display:block;margin:0 auto 8px;opacity:0.4;"></i>Nenhum sonho cadastrado.</div>'
+                : (
+                    '<div class="rm-sec-kpi-row">'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' + rep.sonhos.ativos + '</div><div class="rm-sec-kpi-label">Ativos</div></div>'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-verde);">' + rep.sonhos.noPrazo + '</div><div class="rm-sec-kpi-label">No prazo</div></div>'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' + rep.sonhos.progressoMedio.toFixed(0) + '%</div><div class="rm-sec-kpi-label">Progresso</div></div>'
+                    + '</div>'
+                    + rep.sonhos.lista.slice(0, 3).map(s =>
+                        '<div style="margin-bottom:10px;">'
+                        + '<div class="rm-sec-meta-row"><span style="color:var(--cor-texto-principal);font-weight:600;">' + (s.nome || 'Sonho') + '</span><span style="font-family:\'DM Mono\',monospace;color:var(--cor-texto-mutado);font-size:11.5px;">' + s.pct.toFixed(0) + '%</span></div>'
+                        + '<div class="rm-sec-bar"><div class="rm-sec-bar-fill" style="width:' + Math.min(100, s.pct) + '%;background:linear-gradient(90deg,var(--rm-verde),#34d399);"></div></div>'
+                        + '</div>'
+                    ).join('')
+                    + (rep.sonhos.lista.length > 3 ? '<div style="font-size:11px;color:var(--cor-texto-mutado);text-align:center;margin-top:6px;">+ ' + (rep.sonhos.lista.length - 3) + ' sonho(s)</div>' : '')
+                );
+            const sonhosHtml = '<div class="rm-sec-card" data-tipo="sonhos">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-shooting-star"></i></div>'
+                + '<div><div class="rm-sec-header-title">Meus sonhos</div><div class="rm-sec-header-sub">Metas em andamento</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">' + sonhosBody + '</div></div>';
+
+            // === Jornada ===
+            const totalMods = JORNADA_MODULOS.length;
+            const prog = carregarJornadaProgresso();
+            const concluidosTotal = JORNADA_MODULOS.filter(m => prog[m.id] && prog[m.id].concluidoEm).length;
+            const pctTrilha = totalMods ? (concluidosTotal / totalMods) * 100 : 0;
+            const tagJornada = rep.jornadaModulosMes >= 1
+                ? '<span class="rm-sec-tag ok"><i class="ph-bold ph-check-circle"></i> Meta do mês atingida</span>'
+                : '<span class="rm-sec-tag bad"><i class="ph-bold ph-warning"></i> Sem módulo no mês</span>';
+            const jornadaHtml = '<div class="rm-sec-card" data-tipo="jornada">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-graduation-cap"></i></div>'
+                + '<div><div class="rm-sec-header-title">Jornada Financeira</div><div class="rm-sec-header-sub">Capacitação prática</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">'
+                + '<div class="rm-sec-kpi-row">'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' + rep.jornadaModulosMes + '</div><div class="rm-sec-kpi-label">No mês</div></div>'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' + concluidosTotal + '/' + totalMods + '</div><div class="rm-sec-kpi-label">Trilha geral</div></div>'
+                + '</div>'
+                + '<div class="rm-sec-meta-row"><span style="color:var(--cor-texto-mutado);">Progresso da trilha</span><span style="font-family:\'DM Mono\',monospace;color:var(--rm-roxo);font-weight:700;font-size:11.5px;">' + pctTrilha.toFixed(0) + '%</span></div>'
+                + '<div class="rm-sec-bar" style="margin-bottom:12px;"><div class="rm-sec-bar-fill" style="width:' + pctTrilha + '%;background:linear-gradient(90deg,var(--rm-roxo),#a78bfa);"></div></div>'
+                + tagJornada
+                + '</div></div>';
+
+            // === Applicash ===
+            const tagApp = rep.applicash.indicacoes >= 2
+                ? '<span class="rm-sec-tag ok"><i class="ph-bold ph-check-circle"></i> Meta atingida (≥2)</span>'
+                : rep.applicash.indicacoes === 1
+                    ? '<span class="rm-sec-tag warn"><i class="ph-bold ph-arrow-up"></i> Quase lá</span>'
+                    : '<span class="rm-sec-tag bad"><i class="ph-bold ph-warning"></i> Sem indicações ativas</span>';
+            const appHtml = '<div class="rm-sec-card" data-tipo="applicash">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-currency-dollar"></i></div>'
+                + '<div><div class="rm-sec-header-title">Applicash $</div><div class="rm-sec-header-sub">Programa de indicações</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">'
+                + '<div class="rm-sec-kpi-row">'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-azul);">' + rep.applicash.indicacoes + '</div><div class="rm-sec-kpi-label">Ativas</div></div>'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num valor-mascarado" style="font-size:18px;color:var(--rm-azul);">' + formatarMoeda(rep.applicash.receita) + '</div><div class="rm-sec-kpi-label">Cashback</div></div>'
+                + '</div>'
+                + tagApp
+                + '</div></div>';
+
+            grid.innerHTML = sonhosHtml + jornadaHtml + appHtml;
+        }
+
+        // ====== Gráficos premium ======
+        let rmChartSerieInst = null;
+        let rmChartPatrimonioInst = null;
+        let rmChartDonutInst = null;
+
+        function rmGradient(ctx, area, hexFrom, hexTo) {
+            if(!ctx || !area) return hexFrom;
+            const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            g.addColorStop(0, hexFrom);
+            g.addColorStop(1, hexTo);
+            return g;
+        }
+
+        function rmRenderGraficos(yyyymmAtual, rep) {
+            // Coleta série de 12 meses
+            const labels = [];
+            const arrEntr = [], arrDesp = [], arrInv = [], arrDiv = [], arrAplic = [], arrMerc = [];
+            for(let i = 11; i >= 0; i--) {
+                const ym = rmAddMonths(yyyymmAtual, -i);
+                const { mes, ano } = rmYyyymmToMesAno(ym);
+                labels.push(RM_NOMES_MESES_SHORT[mes] + '/' + String(ano).slice(2));
+                const r = buildMonthlyReport(ym);
+                arrEntr.push(r.entradas);
+                arrDesp.push(r.despesasTotais);
+                arrInv.push(r.investimentos);
+                arrDiv.push(r.dividendos);
+                arrAplic.push(r.patrimonioAplicado);
+                arrMerc.push(r.patrimonioMercado);
+            }
+            const serie12 = { entradas: arrEntr, despesas: arrDesp, investimentos: arrInv, dividendos: arrDiv, aplicado: arrAplic, mercado: arrMerc };
+
+            // Legenda do fluxo (HTML)
+            const leg = document.getElementById('rmFluxoLegenda');
+            if(leg) leg.innerHTML = [
+                { lbl: 'Entradas', cor: '#10b981' },
+                { lbl: 'Despesas', cor: '#ef4444' },
+                { lbl: 'Investimentos', cor: '#7c3aed' }
+            ].map(l => '<div class="rm-chart-legend-item"><span class="rm-chart-legend-dot" style="--dot-cor:' + l.cor + ';"></span>' + l.lbl + '</div>').join('');
+
+            // ===== Fluxo (linhas com gradient area) =====
+            const ctx1 = document.getElementById('rmChartSerie');
+            if(ctx1 && window.Chart) {
+                if(rmChartSerieInst) try { rmChartSerieInst.destroy(); } catch(_) {}
+                rmChartSerieInst = new Chart(ctx1.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Entradas', data: arrEntr,
+                                borderColor: '#10b981', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(16,185,129,0.30)', 'rgba(16,185,129,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Despesas', data: arrDesp,
+                                borderColor: '#ef4444', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(239,68,68,0.22)', 'rgba(239,68,68,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#ef4444', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Investimentos', data: arrInv,
+                                borderColor: '#7c3aed', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(124,58,237,0.22)', 'rgba(124,58,237,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#7c3aed', pointBorderColor: '#fff', pointBorderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4,
+                                titleFont: { size: 12, weight: 'bold' }, bodyFont: { size: 12 },
+                                callbacks: { label: c => '  ' + c.dataset.label + ': ' + formatarMoeda(c.parsed.y) }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(148,163,184,0.15)', drawBorder: false },
+                                ticks: { callback: v => rmFormatarMoedaCompacta(v), font: { size: 10.5 }, color: '#94a3b8', padding: 8 }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10.5, weight: '600' }, color: '#64748b' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // ===== Patrimônio (área aplicado + área mercado por cima) =====
+            const ctx2 = document.getElementById('rmChartPatrimonio');
+            if(ctx2 && window.Chart) {
+                if(rmChartPatrimonioInst) try { rmChartPatrimonioInst.destroy(); } catch(_) {}
+                rmChartPatrimonioInst = new Chart(ctx2.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            {
+                                label: 'Valor de mercado', data: arrMerc,
+                                borderColor: '#10b981',
+                                backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(16,185,129,0.30)', 'rgba(16,185,129,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Valor aplicado', data: arrAplic,
+                                borderColor: '#7c3aed', borderDash: [4, 4],
+                                backgroundColor: 'transparent',
+                                fill: false, tension: 0.4, borderWidth: 2,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#7c3aed', pointBorderColor: '#fff', pointBorderWidth: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11, weight: '600' }, color: '#64748b', usePointStyle: true, pointStyle: 'circle', padding: 14 } },
+                            datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4,
+                                callbacks: { label: c => '  ' + c.dataset.label + ': ' + formatarMoeda(c.parsed.y) }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: false, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { callback: v => rmFormatarMoedaCompacta(v), font: { size: 10.5 }, color: '#94a3b8', padding: 8 } },
+                            x: { grid: { display: false }, ticks: { font: { size: 10.5, weight: '600' }, color: '#64748b' } }
+                        }
+                    }
+                });
+            }
+            // Pill de variação no header do gráfico de patrimônio
+            const pill = document.getElementById('rmPatrimonioVariacao');
+            if(pill) {
+                const ganho = (rep.patrimonioMercado || 0) - (rep.patrimonioAplicado || 0);
+                if(rep.patrimonioAplicado > 0) {
+                    const pct = (ganho / rep.patrimonioAplicado) * 100;
+                    pill.className = 'rm-chart-pill ' + (ganho < 0 ? 'neg' : '');
+                    pill.innerHTML = (ganho >= 0 ? '▲ +' : '▼ ') + pct.toFixed(1) + '%';
+                    pill.style.display = '';
+                } else { pill.style.display = 'none'; }
+            }
+
+            // ===== Donut: para onde foi o dinheiro =====
+            rmRenderDonut(rep);
+
+            return serie12;
+        }
+
+        function rmRenderDonut(rep) {
+            const ctx = document.getElementById('rmChartDonut');
+            if(!ctx) return;
+            // Reconstrói categorias a partir de transações do mês
+            const slices = [];
+            try {
+                const r = (typeof calcularResumoMes === 'function') ? calcularResumoMes(rep.mes, rep.ano) : { despFixa:0, despVar:0, cartao:0, sonho:0, invFixo:0, invVar:0 };
+                slices.push({ lbl: 'Despesas fixas',    val: r.despFixa || 0, cor: '#ef4444' });
+                slices.push({ lbl: 'Despesas variáveis',val: r.despVar  || 0, cor: '#f97316' });
+                slices.push({ lbl: 'Cartão de crédito', val: r.cartao   || 0, cor: '#f59e0b' });
+                slices.push({ lbl: 'Sonhos',            val: r.sonho    || 0, cor: '#ec4899' });
+                slices.push({ lbl: 'Investimentos',     val: (r.invFixo||0)+(r.invVar||0), cor: '#7c3aed' });
+            } catch(_) {}
+            const filtrados = slices.filter(s => s.val > 0);
+            const totalSaidas = filtrados.reduce((a, b) => a + b.val, 0);
+
+            const legenda = document.getElementById('rmDonutLegenda');
+            const totalEl = document.getElementById('rmDonutTotal');
+            if(totalEl) totalEl.innerText = formatarMoeda(totalSaidas);
+            if(filtrados.length === 0) {
+                if(rmChartDonutInst) try { rmChartDonutInst.destroy(); } catch(_) {}
+                if(legenda) legenda.innerHTML = '<div style="font-size:13px;color:var(--cor-texto-mutado);text-align:center;padding:30px 0;"><i class="ph ph-chart-donut" style="font-size:30px;display:block;margin:0 auto 8px;opacity:0.4;"></i>Sem saídas neste mês</div>';
+                if(ctx) ctx.style.opacity = '0.3';
+                if(totalEl) totalEl.innerText = '—';
+                return;
+            }
+            if(ctx) ctx.style.opacity = '1';
+
+            if(window.Chart) {
+                if(rmChartDonutInst) try { rmChartDonutInst.destroy(); } catch(_) {}
+                rmChartDonutInst = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: filtrados.map(s => s.lbl),
+                        datasets: [{
+                            data: filtrados.map(s => s.val),
+                            backgroundColor: filtrados.map(s => s.cor),
+                            borderColor: '#fff', borderWidth: 3,
+                            hoverOffset: 8, hoverBorderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '68%',
+                        plugins: {
+                            legend: { display: false },
+                            datalabels: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10,
+                                callbacks: {
+                                    label: c => '  ' + c.label + ': ' + formatarMoeda(c.parsed) + ' (' + (c.parsed / totalSaidas * 100).toFixed(1) + '%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            if(legenda) {
+                legenda.innerHTML = filtrados.map(s =>
+                    '<div class="rm-donut-leg-item">'
+                    + '<span class="rm-donut-leg-dot" style="background:' + s.cor + ';"></span>'
+                    + '<span class="rm-donut-leg-label">' + s.lbl + '</span>'
+                    + '<span class="rm-donut-leg-valor valor-mascarado">' + formatarMoeda(s.val) + '</span>'
+                    + '<span class="rm-donut-leg-pct">' + (s.val / totalSaidas * 100).toFixed(0) + '%</span>'
+                    + '</div>'
+                ).join('');
+            }
+        }
+
+        // Comparação on/off
+        let rmModoComparacao = false;
+        function rmToggleComparacao() {
+            rmModoComparacao = !rmModoComparacao;
+            const bar = document.getElementById('rmComparacaoBar');
+            const lbl = document.getElementById('rmBtnCompararLabel');
+            if(bar) bar.style.display = rmModoComparacao ? 'flex' : 'none';
+            if(lbl) lbl.innerText = rmModoComparacao ? 'Sair da comparação' : 'Comparar com…';
+            // Default mês B = mês anterior ao atual
+            if(rmModoComparacao) {
+                const seletor = document.getElementById('rmSeletorMes');
+                const selB = document.getElementById('rmSeletorMesB');
+                if(selB && !selB.value && seletor.value) selB.value = rmAddMonths(seletor.value, -1);
+            }
+            renderRelatorioMensal();
+        }
+
+        // Render principal
+        function renderRelatorioMensal() {
+            const seletor = document.getElementById('rmSeletorMes');
+            if(!seletor) return;
+            if(!seletor.value) {
+                const hoje = new Date();
+                seletor.value = rmMesAnoToYyyymm(hoje.getMonth(), hoje.getFullYear());
+            }
+            const yyyymm = seletor.value;
+            const rep = buildMonthlyReport(yyyymm);
+
+            let repB = null;
+            if(rmModoComparacao) {
+                const yyyymmB = document.getElementById('rmSeletorMesB').value;
+                if(yyyymmB) repB = buildMonthlyReport(yyyymmB);
+            }
+
+            // Empty state
+            const empty = document.getElementById('rmEmptyState');
+            const isFuturo = rmMesEhFuturo(yyyymm);
+            if(!rep.hasData && isFuturo) {
+                if(empty) {
+                    empty.style.display = '';
+                    empty.querySelector('h3').innerText = 'Mês futuro';
+                    empty.querySelector('p').innerText = 'Este mês ainda não chegou. Selecione um mês atual ou passado.';
+                }
+            } else if(empty) {
+                empty.style.display = 'none';
+            }
+
+            rmRenderTermometro(rep, repB);
+            const serie12 = rmRenderGraficos(yyyymm, rep) || { entradas:[], despesas:[], investimentos:[], dividendos:[] };
+            rmRenderKpis(rep, repB, serie12);
+            rmRenderSecundarios(rep);
+        }
+
+        // PDF — carrega html2pdf sob demanda
+        function rmCarregarHtml2pdf() {
+            return new Promise((resolve, reject) => {
+                if(window.html2pdf) return resolve(window.html2pdf);
+                const s = document.createElement('script');
+                s.src = RM_HTML2PDF_CDN;
+                s.onload = () => resolve(window.html2pdf);
+                s.onerror = () => reject(new Error('Falha ao carregar html2pdf'));
+                document.head.appendChild(s);
+            });
+        }
+        async function rmExportarPDF() {
+            const btnLabel = 'Exportar PDF';
+            try {
+                if(typeof mostrarToast === 'function') mostrarToast('Gerando PDF…', 'info');
+                const html2pdf = await rmCarregarHtml2pdf();
+                const seletor = document.getElementById('rmSeletorMes');
+                const ym = seletor ? seletor.value : 'mes';
+                const conteudo = document.getElementById('rmConteudo');
+                if(!conteudo) return;
+                const filename = 'relatorio-mensal-' + ym + '.pdf';
+                await html2pdf().set({
+                    margin: [10, 10, 10, 10],
+                    filename,
+                    image: { type: 'jpeg', quality: 0.95 },
+                    html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff' },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                }).from(conteudo).save();
+                if(typeof mostrarToast === 'function') mostrarToast('PDF gerado com sucesso.', 'sucesso');
+            } catch(err) {
+                console.error('[rmExportarPDF]', err);
+                if(typeof mostrarToast === 'function') mostrarToast('Não foi possível gerar o PDF.', 'erro');
+            }
+        }
+
+        // Inicialização defensiva: pré-renderiza a jornada para que o card chip apareça
+        document.addEventListener('DOMContentLoaded', () => {
+            try { renderizarJornada(); } catch(_) {}
+        });
     </script>
     <script>
 (function () {

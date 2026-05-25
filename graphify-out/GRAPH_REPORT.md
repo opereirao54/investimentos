@@ -1,16 +1,16 @@
-# Graph Report - investimentos  (2026-05-22)
+# Graph Report - investimentos  (2026-05-25)
 
 ## Corpus Check
-- 41 files · ~437,136 words
+- 42 files · ~457,491 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 659 nodes · 1196 edges · 43 communities (38 shown, 5 thin omitted)
+- 704 nodes · 1284 edges · 43 communities (39 shown, 4 thin omitted)
 - Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 9 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4ff56ad7`
+- Built from commit: `d0b8a7f8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -56,34 +56,34 @@
 - [[_COMMUNITY_Community 42|Community 42]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `$()` - 33 edges
+1. `$()` - 34 edges
 2. `renderMyAccount()` - 32 edges
-3. `db()` - 23 edges
-4. `fieldValue()` - 18 edges
-5. `call()` - 15 edges
-6. `P()` - 15 edges
-7. `main()` - 15 edges
-8. `make_table()` - 14 edges
-9. `Appliquei - Gestão Financeira Inteligente` - 14 edges
-10. `Appliquei - Gestão Financeira Inteligente` - 14 edges
+3. `db()` - 32 edges
+4. `fieldValue()` - 19 edges
+5. `timestamp()` - 16 edges
+6. `requireUser()` - 16 edges
+7. `call()` - 15 edges
+8. `P()` - 15 edges
+9. `main()` - 15 edges
+10. `applyAccess()` - 14 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `main()` --calls--> `init()`  [INFERRED]
-  scripts/diag-referral-code.js → api/_lib/firebase-admin.js
 - `markBilling()` --calls--> `db()`  [INFERRED]
   scripts/backfill-email-verification.js → api/_lib/firebase-admin.js
-- `diagOne()` --calls--> `db()`  [INFERRED]
-  scripts/diag-referral-code.js → api/_lib/firebase-admin.js
-- `scanAll()` --calls--> `db()`  [INFERRED]
-  scripts/diag-referral-code.js → api/_lib/firebase-admin.js
-- `fixOne()` --calls--> `db()`  [INFERRED]
+- `listAllUsers()` --calls--> `auth()`  [INFERRED]
+  scripts/backfill-email-verification.js → api/_lib/firebase-admin.js
+- `main()` --calls--> `auth()`  [INFERRED]
+  scripts/backfill-email-verification.js → api/_lib/firebase-admin.js
+- `markBilling()` --calls--> `fieldValue()`  [INFERRED]
+  scripts/backfill-email-verification.js → api/_lib/firebase-admin.js
+- `main()` --calls--> `init()`  [INFERRED]
   scripts/diag-referral-code.js → api/_lib/firebase-admin.js
 
-## Communities (43 total, 5 thin omitted)
+## Communities (43 total, 4 thin omitted)
 
 ### Community 0 - "Community 0"
 Cohesion: 0.07
-Nodes (85): $(), applyAccess(), applyCoupon(), authedFetch(), bindMyAccountActions(), cardBrandLabel(), clamp(), clearTrialBannerOffset() (+77 more)
+Nodes (90): $(), applyAccess(), applyCoupon(), authedFetch(), bindMyAccountActions(), cardBrandLabel(), clamp(), clearTrialBannerOffset() (+82 more)
 
 ### Community 1 - "Community 1"
 Cohesion: 0.18
@@ -102,16 +102,16 @@ Cohesion: 0.08
 Nodes (25): address, addressNumber, asaas, asaasFields, billing, city, complement, conflict (+17 more)
 
 ### Community 5 - "Community 5"
-Cohesion: 0.07
-Nodes (23): asaas, { assertReferralAllowed }, billing, billingUpdate, brandFromNumber(), cardMetadataFromAsaas(), conflict, cpfCnpj (+15 more)
+Cohesion: 0.08
+Nodes (22): asaas, { assertReferralAllowed }, billing, billingUpdate, brandFromNumber(), cardMetadataFromAsaas(), conflict, cpfCnpj (+14 more)
 
 ### Community 6 - "Community 6"
 Cohesion: 0.13
-Nodes (20): releaseLock(), applyPendingCreditsTo(), asaas, billing, creditIndicatorFromIndicado(), creditsCol(), { db, fieldValue }, { db, fieldValue, timestamp } (+12 more)
+Nodes (15): applyPendingCreditsTo(), asaas, billing, creditsCol(), { db, fieldValue }, { db, fieldValue, timestamp }, eventRef, findBillingByCustomer() (+7 more)
 
 ### Community 7 - "Community 7"
-Cohesion: 0.35
-Nodes (23): build_styles(), bullets(), callout(), caption(), cell(), cover(), main(), make_table() (+15 more)
+Cohesion: 0.33
+Nodes (24): Canvas, build_styles(), bullets(), callout(), caption(), cell(), cover(), main() (+16 more)
 
 ### Community 8 - "Community 8"
 Cohesion: 0.09
@@ -142,8 +142,8 @@ Cohesion: 0.10
 Nodes (20): Appliquei v13.0 - Gestão Financeira Inteligente, code:bash (git clone <repositorio>), code:block2 (/workspace), code:css (:root {), code:bash (python -m pip install -r requirements-graphify.txt), 🚀 Como Usar, 🤝 Contribuição, 👨‍💻 Desenvolvimento (+12 more)
 
 ### Community 15 - "Community 15"
-Cohesion: 0.12
-Nodes (16): authUsers, { cors }, D, dayAgo, { db, auth }, lastPaymentStatus, m, now (+8 more)
+Cohesion: 0.09
+Nodes (19): auditList(), authUsers, { cors }, D, dayAgo, { db, auth }, { db, auth, timestamp }, err (+11 more)
 
 ### Community 16 - "Community 16"
 Cohesion: 0.13
@@ -154,8 +154,8 @@ Cohesion: 0.22
 Nodes (7): access, billingRef, { computeAccess }, { db }, { requireUser, cors }, { requireVerifiedUser, cors }, { syncBillingFromAsaas }
 
 ### Community 18 - "Community 18"
-Cohesion: 0.29
-Nodes (10): timestamp(), check(), crypto, { db, fieldValue, timestamp }, deviceFingerprint(), hashKey(), ipFrom(), windowStart() (+2 more)
+Cohesion: 0.31
+Nodes (9): check(), crypto, { db, fieldValue, timestamp }, deviceFingerprint(), hashKey(), ipFrom(), windowStart(), assertReferralAllowed() (+1 more)
 
 ### Community 19 - "Community 19"
 Cohesion: 0.18
@@ -166,24 +166,24 @@ Cohesion: 0.29
 Nodes (8): APP_ORIGIN, { auth, db, fieldValue }, color(), listAllUsers(), main(), markBilling(), path, sendMail()
 
 ### Community 21 - "Community 21"
-Cohesion: 0.39
-Nodes (8): codes, color(), { db, init, timestamp }, diagOne(), fixOne(), main(), path, scanAll()
+Cohesion: 0.25
+Nodes (14): writeAudit(), dashboard(), exportCsv(), db(), init(), timestamp(), codes, color() (+6 more)
 
 ### Community 22 - "Community 22"
-Cohesion: 0.36
-Nodes (9): { auth }, cacheGet(), cacheSet(), invalidateUid(), requireFreshVerifiedUser(), requireUser(), requireVerifiedUser(), tokenCache (+1 more)
+Cohesion: 0.14
+Nodes (20): { auth }, { requireUser, cors }, rl, asaas, billing, { db, fieldValue }, ref, { requireUser, cors } (+12 more)
 
 ### Community 23 - "Community 23"
 Cohesion: 0.22
 Nodes (8): dependencies, firebase-admin, engines, node, name, private, type, version
 
 ### Community 24 - "Community 24"
-Cohesion: 0.25
-Nodes (7): maxDuration, memory, functions, api/**/*.js, headers, rewrites, $schema
+Cohesion: 0.22
+Nodes (8): maxDuration, memory, crons, functions, api/**/*.js, headers, rewrites, $schema
 
 ### Community 25 - "Community 25"
-Cohesion: 0.29
-Nodes (6): asaas, billing, { db, fieldValue }, ref, { requireUser, cors }, { requireVerifiedUser, cors }
+Cohesion: 0.21
+Nodes (13): buildSyntheticSeries(), CRYPTO_MAP, { db, timestamp }, downsampleMonthly(), fetchBrapi(), fetchHistorySource(), handleHistory(), handleQuote() (+5 more)
 
 ### Community 26 - "Community 26"
 Cohesion: 0.57
@@ -198,8 +198,8 @@ Cohesion: 0.52
 Nodes (6): check(), H, log(), M, main(), step()
 
 ### Community 29 - "Community 29"
-Cohesion: 0.40
-Nodes (4): { auth }, { requireUser, cors }, rl, cors()
+Cohesion: 0.14
+Nodes (13): authInfo, cents, { cors }, { db, auth, timestamp, fieldValue }, DESTRUCTIVE_ACTIONS, docRef, newTrialEndsAt, p (+5 more)
 
 ### Community 30 - "Community 30"
 Cohesion: 0.67
@@ -217,25 +217,29 @@ Nodes (7): check(), getPayment(), H, log(), M, main(), step()
 Cohesion: 0.43
 Nodes (6): deepClone(), isIncrement(), isTimestamp(), makeTimestamp(), mergeData(), resolveValue()
 
+### Community 42 - "Community 42"
+Cohesion: 0.40
+Nodes (5): releaseLock(), releaseLock(), creditIndicatorFromIndicado(), reverseReferralCredit(), fieldValue()
+
 ## Knowledge Gaps
-- **278 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+273 more)
+- **300 isolated node(s):** `indexes`, `fieldOverrides`, `$schema`, `rewrites`, `memory` (+295 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `db()` connect `Community 6` to `Community 4`, `Community 5`, `Community 8`, `Community 10`, `Community 42`, `Community 15`, `Community 17`, `Community 18`, `Community 19`, `Community 20`, `Community 21`, `Community 25`?**
-  _High betweenness centrality (0.035) - this node is a cross-community bridge._
-- **Why does `fieldValue()` connect `Community 6` to `Community 4`, `Community 5`, `Community 8`, `Community 9`, `Community 42`, `Community 10`, `Community 18`, `Community 19`, `Community 20`, `Community 25`?**
+- **Why does `db()` connect `Community 21` to `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 10`, `Community 42`, `Community 15`, `Community 17`, `Community 18`, `Community 19`, `Community 20`, `Community 22`, `Community 25`, `Community 29`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
+- **Why does `fieldValue()` connect `Community 42` to `Community 4`, `Community 5`, `Community 6`, `Community 8`, `Community 9`, `Community 10`, `Community 18`, `Community 19`, `Community 20`, `Community 22`, `Community 29`?**
   _High betweenness centrality (0.016) - this node is a cross-community bridge._
-- **Why does `cors()` connect `Community 29` to `Community 4`, `Community 5`, `Community 8`, `Community 10`, `Community 15`, `Community 17`, `Community 19`, `Community 22`, `Community 25`?**
-  _High betweenness centrality (0.008) - this node is a cross-community bridge._
+- **Why does `cors()` connect `Community 22` to `Community 4`, `Community 5`, `Community 8`, `Community 10`, `Community 15`, `Community 17`, `Community 19`, `Community 25`, `Community 29`?**
+  _High betweenness centrality (0.012) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `db()` (e.g. with `markBilling()` and `diagOne()`) actually correct?**
   _`db()` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `indexes`, `fieldOverrides`, `$schema` to the rest of the system?**
-  _278 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _300 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
-  _Cohesion score 0.07457898957497995 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06825619448340346 - nodes in this community are weakly interconnected._
 - **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.05555555555555555 - nodes in this community are weakly interconnected._
