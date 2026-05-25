@@ -1,11 +1,11 @@
 {
   "/home/user/investimentos/firestore.indexes.json": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.554645,
     "ast_hash": "ed34999520a39115f7e91e90a3e24b64",
     "semantic_hash": ""
   },
   "/home/user/investimentos/vercel.json": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.5743964,
     "ast_hash": "4c4e99172b41300e40c77b30b00794dd",
     "semantic_hash": ""
   },
@@ -20,12 +20,12 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-cloud-sync.js": {
-    "mtime": 1779714972.2481506,
+    "mtime": 1779732624.5783963,
     "ast_hash": "a752f6dcd2dad7b2ee24fff24cb388a0",
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-billing.js": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.5743964,
     "ast_hash": "afc33a5532b948d86e7f185ad648e1c3",
     "semantic_hash": ""
   },
@@ -45,8 +45,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/billing-sync.js": {
-    "mtime": 1779480846.038272,
-    "ast_hash": "530b5d0e3ba799cfad604f3ad3eae7c0",
+    "mtime": 1779733334.4256587,
+    "ast_hash": "c65a9202faa6784c0226086405c94bf6",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/firebase-admin.js": {
@@ -90,7 +90,7 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/admin/stats.js": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.554645,
     "ast_hash": "b7074dab92cac31a22b80918e0574b18",
     "semantic_hash": ""
   },
@@ -105,8 +105,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/me.js": {
-    "mtime": 1779480846.041428,
-    "ast_hash": "cda4359cfcab760e9205b9f9420c36e0",
+    "mtime": 1779733334.4256587,
+    "ast_hash": "7f1970fe87c8e04788bd71948ad54c73",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/subscribe.js": {
@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/webhook.js": {
-    "mtime": 1779480846.041428,
-    "ast_hash": "77da8d8844d300f9ef533615802a38bc",
+    "mtime": 1779733334.4256587,
+    "ast_hash": "17ec97f54cbf023198088e88e531f296",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/cancel.js": {
@@ -175,7 +175,7 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/scripts/lib/mock-billing.js": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.5743964,
     "ast_hash": "65bfcd05ece21b0771e7d92319105974",
     "semantic_hash": ""
   },
@@ -195,13 +195,13 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/BILLING.md": {
-    "mtime": 1779714972.2401507,
+    "mtime": 1779732624.5503962,
     "ast_hash": "0ebfdd86a11a4dd975a8c4fc057e2e68",
     "semantic_hash": ""
   },
   "/home/user/investimentos/Appliquei_v13.0.html": {
-    "mtime": 1779714972.2401507,
-    "ast_hash": "9bb24c5082ba05cd632433fdb3c3d2e6",
+    "mtime": 1779732624.5463963,
+    "ast_hash": "22a73d7e27503c45159f71f401303ef4",
     "semantic_hash": ""
   },
   "/home/user/investimentos/docs/scaling-analysis.md": {
@@ -245,17 +245,17 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/market.js": {
-    "mtime": 1779714972.2466073,
+    "mtime": 1779732624.554645,
     "ast_hash": "6fc410f7e8b3eeba008aeae60a3aa069",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/admin/action.js": {
-    "mtime": 1779714972.2401507,
+    "mtime": 1779732624.5503962,
     "ast_hash": "a0edd176434be1bead66ebbb3f402cdf",
     "semantic_hash": ""
   },
   "/home/user/investimentos/admin.html": {
-    "mtime": 1779714972.2401507,
+    "mtime": 1779732624.5503962,
     "ast_hash": "e00edab8514091f9c7c06d42377aabb2",
     "semantic_hash": ""
   }
