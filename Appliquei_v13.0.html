@@ -3589,6 +3589,576 @@
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
         body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
+
+        /* ===== RELATÓRIO MENSAL — premium UI ===== */
+        #relatorio_mensal {
+            --rm-radius: 16px;
+            --rm-radius-lg: 22px;
+            --rm-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
+            --rm-shadow-hover: 0 2px 4px rgba(15,23,42,0.05), 0 12px 32px rgba(15,23,42,0.08);
+            --rm-verde: #10b981;
+            --rm-amarelo: #f59e0b;
+            --rm-vermelho: #ef4444;
+            --rm-roxo: #7c3aed;
+            --rm-azul: #0ea5e9;
+        }
+
+        /* Comparação bar */
+        #relatorio_mensal .rm-compare-bar {
+            background: linear-gradient(135deg, rgba(124,58,237,0.06), rgba(16,185,129,0.04));
+            border: 1px solid rgba(124,58,237,0.18);
+            border-radius: var(--rm-radius);
+            padding: 14px 18px;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-compare-icon {
+            width: 36px; height: 36px;
+            background: linear-gradient(135deg, var(--rm-roxo), var(--rm-verde));
+            color: #fff;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 4px 12px rgba(124,58,237,0.25);
+        }
+
+        /* Hero do termômetro */
+        #relatorio_mensal .rm-hero {
+            position: relative;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius-lg);
+            box-shadow: var(--rm-shadow);
+            padding: 28px;
+            margin-bottom: 18px;
+            display: grid;
+            grid-template-columns: minmax(260px, 360px) 1fr;
+            gap: 32px;
+            align-items: center;
+            overflow: hidden;
+        }
+        #relatorio_mensal .rm-hero::before {
+            content: ''; position: absolute; inset: 0;
+            background:
+                radial-gradient(800px 200px at 100% 0%, rgba(16,185,129,0.06), transparent 60%),
+                radial-gradient(600px 240px at 0% 100%, rgba(124,58,237,0.05), transparent 70%);
+            pointer-events: none;
+        }
+        #relatorio_mensal .rm-hero > * { position: relative; z-index: 1; }
+        #relatorio_mensal .rm-hero-gauge {
+            position: relative;
+            aspect-ratio: 220 / 130;
+            max-width: 320px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        #relatorio_mensal .rm-hero-score-block {
+            position: absolute;
+            left: 0; right: 0; bottom: 8%;
+            text-align: center;
+            pointer-events: none;
+        }
+        #relatorio_mensal .rm-hero-score {
+            font-size: 52px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            line-height: 1;
+            color: var(--cor-texto-principal);
+            letter-spacing: -1.5px;
+            transition: color 0.3s;
+        }
+        #relatorio_mensal .rm-hero-status {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            margin-top: 4px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-hero-mes {
+            display: inline-block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+            padding: 4px 10px;
+            background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda);
+            border-radius: 99px;
+            margin-bottom: 12px;
+        }
+        #relatorio_mensal .rm-hero-titulo {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--cor-texto-principal);
+            margin: 0 0 8px;
+            display: flex; align-items: center; gap: 10px;
+            letter-spacing: -0.3px;
+        }
+        #relatorio_mensal .rm-hero-titulo i { color: var(--cor-primaria); font-size: 26px; }
+        #relatorio_mensal .rm-hero-resumo {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            line-height: 1.55;
+            margin: 0 0 18px;
+            max-width: 540px;
+        }
+        #relatorio_mensal .rm-hero-stats {
+            display: flex; gap: 12px; flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-hero-stat {
+            flex: 1; min-width: 160px;
+            background: rgba(255,255,255,0.75);
+            border: 1px solid var(--cor-borda);
+            border-radius: 12px;
+            padding: 12px 14px;
+            backdrop-filter: blur(8px);
+        }
+        #relatorio_mensal .rm-hero-stat-label {
+            display: block;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+            margin-bottom: 4px;
+        }
+        #relatorio_mensal .rm-hero-stat-valor {
+            display: block;
+            font-size: 22px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        #relatorio_mensal .rm-hero-stat-delta {
+            display: block;
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-top: 4px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        /* Strip de critérios */
+        #relatorio_mensal .rm-criterios-strip {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 980px) {
+            #relatorio_mensal .rm-criterios-strip { grid-template-columns: repeat(2, 1fr); }
+            #relatorio_mensal .rm-hero { grid-template-columns: 1fr; gap: 18px; padding: 22px; }
+            #relatorio_mensal .rm-hero-gauge { max-width: 260px; }
+        }
+        #relatorio_mensal .rm-criterio {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: 14px;
+            padding: 14px 14px 12px;
+            box-shadow: var(--rm-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        #relatorio_mensal .rm-criterio:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-criterio::before {
+            content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+            background: var(--rm-crit-cor, var(--cor-texto-mutado));
+        }
+        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-bg: rgba(245,158,11,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
+        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;           --rm-crit-bg: rgba(148,163,184,0.06); }
+        #relatorio_mensal .rm-criterio-top {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        #relatorio_mensal .rm-criterio-icon {
+            width: 28px; height: 28px;
+            border-radius: 8px;
+            background: var(--rm-crit-bg);
+            color: var(--rm-crit-cor);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 15px;
+        }
+        #relatorio_mensal .rm-criterio-badge {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 8px;
+            border-radius: 99px;
+            background: var(--rm-crit-bg);
+            color: var(--rm-crit-cor);
+        }
+        #relatorio_mensal .rm-criterio-label {
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 4px;
+            line-height: 1.3;
+        }
+        #relatorio_mensal .rm-criterio-valor {
+            font-size: 18px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1.1;
+            letter-spacing: -0.4px;
+        }
+        #relatorio_mensal .rm-criterio-meta {
+            font-size: 10.5px;
+            color: var(--cor-texto-mutado);
+            margin-top: 4px;
+        }
+
+        /* KPI cards (4) */
+        #relatorio_mensal .rm-kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-kpi {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            padding: 18px 18px 0;
+            box-shadow: var(--rm-shadow);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        #relatorio_mensal .rm-kpi:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-kpi-top {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 12px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-label {
+            font-size: 10.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-kpi-icone {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            background: var(--rm-kpi-bg, var(--cor-superficie));
+            color: var(--rm-kpi-cor, var(--cor-texto-secundario));
+        }
+        #relatorio_mensal .rm-kpi-valor {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--rm-kpi-cor, var(--cor-texto-principal));
+            line-height: 1.1;
+            letter-spacing: -0.8px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-delta {
+            font-size: 11.5px;
+            font-weight: 700;
+            margin-top: 6px;
+            font-family: 'DM Mono', monospace;
+            display: flex; align-items: center; gap: 4px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-kpi-delta.pos { color: var(--rm-verde); }
+        #relatorio_mensal .rm-kpi-delta.neg { color: var(--rm-vermelho); }
+        #relatorio_mensal .rm-kpi-delta.neu { color: var(--cor-texto-mutado); }
+        #relatorio_mensal .rm-kpi-spark {
+            margin: 10px -18px -1px;
+            height: 56px;
+            position: relative;
+            z-index: 0;
+        }
+        #relatorio_mensal .rm-kpi-spark svg { width: 100%; height: 100%; display: block; }
+
+        /* Cards de gráfico */
+        #relatorio_mensal .rm-chart-card {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            box-shadow: var(--rm-shadow);
+            padding: 20px 22px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-chart-header {
+            display: flex; justify-content: space-between; align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-chart-title {
+            font-size: 15px;
+            font-weight: 800;
+            margin: 0 0 3px;
+            display: flex; align-items: center; gap: 8px;
+            color: var(--cor-texto-principal);
+            letter-spacing: -0.2px;
+        }
+        #relatorio_mensal .rm-chart-title i { color: var(--cor-primaria); font-size: 18px; }
+        #relatorio_mensal .rm-chart-sub {
+            font-size: 12px;
+            color: var(--cor-texto-mutado);
+            margin: 0;
+        }
+        #relatorio_mensal .rm-chart-legend {
+            display: flex; gap: 14px; flex-wrap: wrap;
+        }
+        #relatorio_mensal .rm-chart-legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+        }
+        #relatorio_mensal .rm-chart-legend-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: var(--dot-cor, #94a3b8);
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.04);
+        }
+        #relatorio_mensal .rm-chart-canvas {
+            position: relative;
+            height: 280px;
+        }
+        #relatorio_mensal .rm-chart-pill {
+            font-size: 11.5px;
+            font-weight: 800;
+            padding: 5px 11px;
+            border-radius: 99px;
+            background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            font-family: 'DM Mono', monospace;
+        }
+        #relatorio_mensal .rm-chart-pill.neg {
+            background: #fef2f2;
+            color: #991b1b;
+            border-color: #fecaca;
+        }
+
+        /* Dual grid (donut + patrimônio) */
+        #relatorio_mensal .rm-dual-grid {
+            display: grid;
+            grid-template-columns: minmax(320px, 1fr) minmax(380px, 1.4fr);
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        @media (max-width: 980px) {
+            #relatorio_mensal .rm-dual-grid { grid-template-columns: 1fr; }
+        }
+        #relatorio_mensal .rm-donut-wrap {
+            display: block;
+            text-align: center;
+        }
+        #relatorio_mensal .rm-donut-canvas {
+            position: relative;
+            width: 180px; height: 180px;
+            margin: 6px auto 18px;
+            display: block;
+        }
+        #relatorio_mensal .rm-donut-canvas canvas {
+            width: 180px !important;
+            height: 180px !important;
+            display: block;
+        }
+        #relatorio_mensal .rm-donut-legend {
+            text-align: left;
+        }
+        #relatorio_mensal .rm-donut-legend {
+            display: flex; flex-direction: column; gap: 6px;
+        }
+        #relatorio_mensal .rm-donut-leg-item {
+            display: grid;
+            grid-template-columns: 10px 1fr auto;
+            gap: 8px;
+            align-items: center;
+            font-size: 11.5px;
+            padding: 4px 0;
+        }
+        #relatorio_mensal .rm-donut-leg-dot {
+            width: 10px; height: 10px; border-radius: 3px;
+        }
+        #relatorio_mensal .rm-donut-leg-label {
+            color: var(--cor-texto-secundario);
+            font-weight: 600;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #relatorio_mensal .rm-donut-leg-valor {
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            font-weight: 700;
+            font-size: 11.5px;
+            text-align: right;
+        }
+        #relatorio_mensal .rm-donut-leg-pct {
+            font-size: 10px;
+            color: var(--cor-texto-mutado);
+            font-family: 'DM Mono', monospace;
+            display: none; /* já mostramos valor; pct fica no tooltip */
+        }
+        /* Total no centro do donut */
+        #relatorio_mensal .rm-donut-canvas {
+            position: relative;
+        }
+        #relatorio_mensal .rm-donut-total {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            line-height: 1;
+        }
+        #relatorio_mensal .rm-donut-total-label {
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-donut-total-valor {
+            font-size: 17px;
+            font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            margin-top: 3px;
+            letter-spacing: -0.5px;
+        }
+
+        /* Cards secundários */
+        #relatorio_mensal .rm-sec-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+        #relatorio_mensal .rm-sec-card {
+            background: #fff;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--rm-radius);
+            box-shadow: var(--rm-shadow);
+            padding: 0;
+            overflow: hidden;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+        #relatorio_mensal .rm-sec-card:hover { transform: translateY(-2px); box-shadow: var(--rm-shadow-hover); }
+        #relatorio_mensal .rm-sec-header {
+            padding: 16px 18px 14px;
+            background: linear-gradient(135deg, var(--rm-sec-bg-from), var(--rm-sec-bg-to));
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        #relatorio_mensal .rm-sec-header::before {
+            content: ''; position: absolute; right: -20px; top: -30px;
+            width: 120px; height: 120px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.08);
+        }
+        #relatorio_mensal .rm-sec-header-row {
+            display: flex; align-items: center; gap: 10px;
+            position: relative; z-index: 1;
+        }
+        #relatorio_mensal .rm-sec-header-icon {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.18);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            color: #fff;
+        }
+        #relatorio_mensal .rm-sec-header-title {
+            font-size: 14px; font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.2;
+        }
+        #relatorio_mensal .rm-sec-header-sub {
+            font-size: 11px;
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+        #relatorio_mensal .rm-sec-body { padding: 14px 18px 16px; }
+        #relatorio_mensal .rm-sec-card[data-tipo="sonhos"]    { --rm-sec-bg-from: #10b981; --rm-sec-bg-to: #059669; }
+        #relatorio_mensal .rm-sec-card[data-tipo="jornada"]   { --rm-sec-bg-from: #7c3aed; --rm-sec-bg-to: #5b21b6; }
+        #relatorio_mensal .rm-sec-card[data-tipo="applicash"] { --rm-sec-bg-from: #0ea5e9; --rm-sec-bg-to: #0369a1; }
+
+        /* Linha de meta dentro de secundários */
+        #relatorio_mensal .rm-sec-meta-row {
+            display: flex; justify-content: space-between; font-size: 12px;
+            margin-bottom: 5px;
+        }
+        #relatorio_mensal .rm-sec-bar {
+            height: 6px; background: var(--cor-superficie);
+            border-radius: 99px; overflow: hidden;
+            border: 1px solid var(--cor-borda);
+        }
+        #relatorio_mensal .rm-sec-bar-fill {
+            height: 100%; transition: width 0.5s ease;
+            border-radius: 99px;
+        }
+        #relatorio_mensal .rm-sec-kpi-row {
+            display: flex; gap: 14px; margin-bottom: 14px;
+        }
+        #relatorio_mensal .rm-sec-kpi {
+            flex: 1;
+            border-right: 1px solid var(--cor-borda);
+            padding-right: 14px;
+        }
+        #relatorio_mensal .rm-sec-kpi:last-child { border-right: none; padding-right: 0; }
+        #relatorio_mensal .rm-sec-kpi-num {
+            font-size: 24px; font-weight: 800;
+            font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+            line-height: 1; letter-spacing: -0.6px;
+        }
+        #relatorio_mensal .rm-sec-kpi-label {
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-mutado);
+            font-weight: 700;
+            margin-top: 4px;
+        }
+        #relatorio_mensal .rm-sec-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 700;
+            padding: 4px 9px;
+            border-radius: 99px;
+        }
+        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: #047857; }
+        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: #b45309; }
+        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: #b91c1c; }
+
+        /* Sparkline backgrounds nos KPIs */
+        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: #047857; --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+
+        body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
+        body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
+        body.valores-ocultos #relatorio_mensal .rm-criterio-valor,
+        body.valores-ocultos #relatorio_mensal .rm-sec-kpi-num,
+        body.valores-ocultos #relatorio_mensal .rm-donut-leg-valor,
+        body.valores-ocultos #relatorio_mensal canvas { filter: blur(6px); }
     </style>
 </head>
 <body>
@@ -5086,63 +5656,129 @@
                     <p class="subtitulo" style="margin-bottom:0">Consolidação financeira do mês — termômetro, métricas-chave e comparativo histórico.</p>
                 </div>
                 <div class="page-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
-                    <input type="month" id="rmSeletorMes" onchange="renderRelatorioMensal()" style="padding:9px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13.5px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;cursor:pointer;">
+                    <input type="month" id="rmSeletorMes" onchange="renderRelatorioMensal()" style="padding:9px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13.5px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;cursor:pointer;font-weight:600;">
                     <button class="btn-secundario" id="rmBtnComparar" onclick="rmToggleComparacao()" style="font-size:12.5px;"><i class="ph ph-git-diff"></i> <span id="rmBtnCompararLabel">Comparar com…</span></button>
                     <button class="btn-acao" onclick="rmExportarPDF()" style="font-size:12.5px;background-color:var(--cor-primaria);"><i class="ph-bold ph-file-pdf"></i> Exportar PDF</button>
                 </div>
             </div>
 
             <!-- BLOCO COMPARAÇÃO (oculto por padrão) -->
-            <div id="rmComparacaoBar" class="card-container" style="display:none;margin-bottom:18px;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;">
-                <i class="ph-bold ph-git-diff" style="font-size:18px;color:var(--cor-primaria);"></i>
+            <div id="rmComparacaoBar" class="rm-compare-bar" style="display:none;">
+                <div class="rm-compare-icon"><i class="ph-bold ph-git-diff"></i></div>
                 <div style="flex:1;min-width:200px;">
                     <strong style="font-size:13.5px;display:block;margin-bottom:2px;">Modo comparação</strong>
                     <span style="font-size:11.5px;color:var(--cor-texto-mutado);">Veja dois meses lado-a-lado com delta % em cada métrica.</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;">
                     <label style="font-size:12px;color:var(--cor-texto-mutado);font-weight:600;">Comparar com:</label>
-                    <input type="month" id="rmSeletorMesB" onchange="renderRelatorioMensal()" style="padding:7px 10px;border:1.5px solid var(--cor-borda);border-radius:8px;font-size:13px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);">
+                    <input type="month" id="rmSeletorMesB" onchange="renderRelatorioMensal()" style="padding:7px 10px;border:1.5px solid var(--cor-borda);border-radius:8px;font-size:13px;color:var(--cor-texto-principal);background-color:var(--cor-branco);font-weight:600;">
                 </div>
             </div>
 
             <!-- WRAPPER capturado pelo PDF -->
             <div id="rmConteudo">
 
-                <!-- TERMÔMETRO -->
-                <div class="card-container" id="rmTermometroCard" style="margin-bottom:18px;padding:22px;">
-                    <div style="display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:18px;">
-                        <div style="position:relative;width:140px;height:80px;flex-shrink:0;">
-                            <canvas id="rmGauge" width="280" height="160" style="width:140px;height:80px;"></canvas>
-                            <div style="position:absolute;top:38px;left:0;right:0;text-align:center;">
-                                <div id="rmTermometroScore" style="font-size:28px;font-weight:800;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);line-height:1;">—</div>
-                                <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.5px;font-weight:700;margin-top:2px;">de 100</div>
+                <!-- HERO: termômetro + KPIs primários -->
+                <div class="rm-hero">
+                    <div class="rm-hero-gauge">
+                        <svg id="rmGaugeSvg" viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:100%;display:block;">
+                            <defs>
+                                <linearGradient id="rmGaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stop-color="#ef4444"/>
+                                    <stop offset="50%" stop-color="#f59e0b"/>
+                                    <stop offset="100%" stop-color="#10b981"/>
+                                </linearGradient>
+                                <filter id="rmGaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                    <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.18"/>
+                                </filter>
+                            </defs>
+                            <!-- Trilho de fundo -->
+                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#eef2f7" stroke-width="16" stroke-linecap="round"/>
+                            <!-- Preenchimento progresso -->
+                            <path id="rmGaugePath" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#rmGaugeGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.8s cubic-bezier(.22,1,.36,1);"/>
+                            <!-- Ponteiro -->
+                            <g id="rmGaugePointer" transform="rotate(-90 110 110)" style="transition:transform 0.8s cubic-bezier(.22,1,.36,1);">
+                                <circle cx="110" cy="110" r="9" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
+                                <line x1="110" y1="110" x2="110" y2="35" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="110" cy="110" r="4" fill="#0f172a"/>
+                            </g>
+                        </svg>
+                        <div class="rm-hero-score-block">
+                            <div id="rmTermometroScore" class="rm-hero-score">—</div>
+                            <div id="rmTermometroStatus" class="rm-hero-status">aguardando</div>
+                        </div>
+                    </div>
+                    <div class="rm-hero-info">
+                        <span class="rm-hero-mes" id="rmHeroMesLabel">—</span>
+                        <h2 class="rm-hero-titulo"><i class="ph-fill ph-thermometer-hot"></i> Termômetro financeiro</h2>
+                        <p id="rmTermometroResumo" class="rm-hero-resumo">Selecione um mês para ver o termômetro.</p>
+                        <div class="rm-hero-stats">
+                            <div class="rm-hero-stat">
+                                <span class="rm-hero-stat-label">Saldo final</span>
+                                <span class="rm-hero-stat-valor" id="rmHeroSaldo">—</span>
+                                <span class="rm-hero-stat-delta" id="rmHeroSaldoDelta"></span>
+                            </div>
+                            <div class="rm-hero-stat">
+                                <span class="rm-hero-stat-label">Patrimônio</span>
+                                <span class="rm-hero-stat-valor" id="rmHeroPatrimonio">—</span>
+                                <span class="rm-hero-stat-delta" id="rmHeroPatrimonioDelta"></span>
                             </div>
                         </div>
-                        <div style="flex:1;min-width:220px;">
-                            <h2 style="font-size:16px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px;"><i class="ph-fill ph-thermometer" id="rmTermometroIcone" style="color:var(--cor-primaria);"></i> <span>Termômetro financeiro</span></h2>
-                            <p id="rmTermometroResumo" style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.5;margin:0;">Selecione um mês para ver o termômetro.</p>
-                        </div>
                     </div>
-                    <div class="grid-cards" id="rmTermometroCriterios" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;"></div>
                 </div>
 
-                <!-- KPIs PRINCIPAIS (cards) -->
-                <div class="grid-cards" id="rmKpisGrid" style="margin-bottom:18px;"></div>
+                <!-- STRIP DE CRITÉRIOS -->
+                <div class="rm-criterios-strip" id="rmTermometroCriterios"></div>
 
-                <!-- GRÁFICOS LADO A LADO -->
-                <div class="grid-cards" style="grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px;margin-bottom:18px;">
-                    <div class="card-container">
-                        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i class="ph ph-chart-line"></i> Série dos últimos 12 meses</h3>
-                        <div style="position:relative;height:240px;"><canvas id="rmChartSerie"></canvas></div>
+                <!-- KPIs SECUNDÁRIOS com sparklines -->
+                <div class="rm-kpi-grid" id="rmKpisGrid"></div>
+
+                <!-- GRÁFICO HERO: fluxo financeiro -->
+                <div class="rm-chart-card">
+                    <div class="rm-chart-header">
+                        <div>
+                            <h3 class="rm-chart-title"><i class="ph-fill ph-chart-line-up"></i> Fluxo financeiro</h3>
+                            <p class="rm-chart-sub">Entradas, despesas e investimentos — últimos 12 meses</p>
+                        </div>
+                        <div class="rm-chart-legend" id="rmFluxoLegenda"></div>
                     </div>
-                    <div class="card-container">
-                        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px;"><i class="ph ph-trending-up"></i> Evolução patrimônio (aplicado vs mercado)</h3>
-                        <div style="position:relative;height:240px;"><canvas id="rmChartPatrimonio"></canvas></div>
+                    <div class="rm-chart-canvas"><canvas id="rmChartSerie"></canvas></div>
+                </div>
+
+                <!-- Donut + Patrimônio em 2 colunas -->
+                <div class="rm-dual-grid">
+                    <div class="rm-chart-card">
+                        <div class="rm-chart-header">
+                            <div>
+                                <h3 class="rm-chart-title"><i class="ph-fill ph-chart-donut"></i> Para onde foi o dinheiro</h3>
+                                <p class="rm-chart-sub">Composição das saídas do mês</p>
+                            </div>
+                        </div>
+                        <div class="rm-donut-wrap">
+                            <div class="rm-donut-canvas">
+                                <canvas id="rmChartDonut"></canvas>
+                                <div class="rm-donut-total">
+                                    <div class="rm-donut-total-label">Total saídas</div>
+                                    <div class="rm-donut-total-valor valor-mascarado" id="rmDonutTotal">—</div>
+                                </div>
+                            </div>
+                            <div class="rm-donut-legend" id="rmDonutLegenda"></div>
+                        </div>
+                    </div>
+                    <div class="rm-chart-card">
+                        <div class="rm-chart-header">
+                            <div>
+                                <h3 class="rm-chart-title"><i class="ph-fill ph-trending-up"></i> Evolução do patrimônio</h3>
+                                <p class="rm-chart-sub">Valor aplicado vs valor de mercado</p>
+                            </div>
+                            <div class="rm-chart-pill" id="rmPatrimonioVariacao"></div>
+                        </div>
+                        <div class="rm-chart-canvas"><canvas id="rmChartPatrimonio"></canvas></div>
                     </div>
                 </div>
 
                 <!-- CARDS SECUNDÁRIOS -->
-                <div class="grid-cards" id="rmSecundariosGrid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:18px;"></div>
+                <div class="rm-sec-grid" id="rmSecundariosGrid"></div>
 
                 <!-- EMPTY STATE -->
                 <div id="rmEmptyState" class="card-container" style="display:none;text-align:center;padding:50px 20px;">
@@ -14183,195 +14819,453 @@
             return { bg: 'var(--cor-superficie)', borda: 'var(--cor-borda)', txt: 'var(--cor-texto-mutado)', dot: '#94a3b8' };
         }
 
-        // Desenha gauge semi-circular no canvas
-        function rmDesenharGauge(canvas, score, statusGeral) {
-            if(!canvas || !canvas.getContext) return;
-            const ctx = canvas.getContext('2d');
-            const w = canvas.width, h = canvas.height;
-            ctx.clearRect(0, 0, w, h);
-            const cx = w / 2, cy = h - 10, raio = Math.min(w, h * 2) / 2 - 12;
-            // Trilho
-            ctx.lineWidth = 14;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.beginPath();
-            ctx.arc(cx, cy, raio, Math.PI, 0, false);
-            ctx.stroke();
-            // Preenchimento
-            const cor = rmCorStatus(statusGeral).dot;
-            const angFinal = Math.PI + (score / 100) * Math.PI;
-            ctx.strokeStyle = cor;
-            ctx.beginPath();
-            ctx.arc(cx, cy, raio, Math.PI, angFinal, false);
-            ctx.stroke();
+        // ====== Helpers visuais ======
+        function rmFormatarMoedaCompacta(v) {
+            const abs = Math.abs(v || 0);
+            if(abs >= 1e6) return 'R$ ' + (v / 1e6).toFixed(1).replace('.', ',') + 'M';
+            if(abs >= 1e3) return 'R$ ' + (v / 1e3).toFixed(abs >= 1e4 ? 0 : 1).replace('.', ',') + 'k';
+            return 'R$ ' + (v || 0).toFixed(0);
         }
 
-        // Cards KPI principais
-        function rmRenderKpis(rep, repB) {
+        function rmSparklineSvg(values, opts) {
+            opts = opts || {};
+            const w = opts.width || 240;
+            const h = opts.height || 56;
+            const pad = 4;
+            if(!values || values.length < 2) return '';
+            const max = Math.max(...values, 0);
+            const min = Math.min(...values, 0);
+            const range = max - min || 1;
+            const dx = (w - pad * 2) / (values.length - 1);
+            const y = v => h - pad - ((v - min) / range) * (h - pad * 2);
+            const pts = values.map((v, i) => [pad + i * dx, y(v)]);
+            // Smooth path com curva quadrática
+            let d = 'M ' + pts[0][0] + ' ' + pts[0][1];
+            for(let i = 1; i < pts.length; i++) {
+                const p0 = pts[i-1], p1 = pts[i];
+                const mx = (p0[0] + p1[0]) / 2;
+                d += ' Q ' + mx + ' ' + p0[1] + ' ' + mx + ' ' + ((p0[1]+p1[1])/2);
+                d += ' T ' + p1[0] + ' ' + p1[1];
+            }
+            const area = d + ' L ' + pts[pts.length-1][0] + ' ' + h + ' L ' + pts[0][0] + ' ' + h + ' Z';
+            const gradId = 'rmsg_' + Math.random().toString(36).slice(2,8);
+            return '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">'
+                + '<defs><linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">'
+                + '<stop offset="0%" stop-color="var(--rm-kpi-fill-from)"/>'
+                + '<stop offset="100%" stop-color="var(--rm-kpi-fill-to)"/>'
+                + '</linearGradient></defs>'
+                + '<path d="' + area + '" fill="url(#' + gradId + ')"/>'
+                + '<path d="' + d + '" fill="none" stroke="var(--rm-kpi-stroke)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+                + '<circle cx="' + pts[pts.length-1][0] + '" cy="' + pts[pts.length-1][1] + '" r="3" fill="var(--rm-kpi-stroke)" stroke="#fff" stroke-width="1.5"/>'
+                + '</svg>';
+        }
+
+        function rmDeltaHtml(valorA, valorB, mesBLabel) {
+            if(valorB === null || valorB === undefined) return '';
+            const delta = valorA - valorB;
+            const pct = valorB !== 0 ? (delta / Math.abs(valorB)) * 100 : (delta !== 0 ? 100 : 0);
+            const cls = Math.abs(pct) < 0.1 ? 'neu' : (delta > 0 ? 'pos' : 'neg');
+            const seta = Math.abs(pct) < 0.1 ? '·' : (delta > 0 ? '▲' : '▼');
+            const mesShort = (mesBLabel || '').split('/')[0];
+            return '<div class="rm-kpi-delta ' + cls + '">' + seta + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '% <span style="color:var(--cor-texto-mutado);font-weight:600;">vs ' + mesShort + '</span></div>';
+        }
+
+        // SVG gauge — atualiza arc + pointer
+        function rmAtualizarGauge(score, statusGeral) {
+            const path = document.getElementById('rmGaugePath');
+            const pointer = document.getElementById('rmGaugePointer');
+            if(path) {
+                const pct = Math.max(0, Math.min(100, score)) / 100;
+                const total = 283; // ~ length aprox do arco
+                path.setAttribute('stroke-dashoffset', String(total - total * pct));
+            }
+            if(pointer) {
+                const ang = -90 + (Math.max(0, Math.min(100, score)) / 100) * 180;
+                pointer.setAttribute('transform', 'rotate(' + ang + ' 110 110)');
+            }
+            // Cor do score numérico
+            const scoreEl = document.getElementById('rmTermometroScore');
+            const statusEl = document.getElementById('rmTermometroStatus');
+            const cores = rmCorStatus(statusGeral);
+            if(scoreEl) scoreEl.style.color = cores.dot;
+            if(statusEl) {
+                statusEl.style.color = cores.dot;
+                statusEl.innerText = statusGeral === 'verde' ? 'Saudável' : statusGeral === 'amarelo' ? 'Atenção' : statusGeral === 'vermelho' ? 'Crítico' : 'Aguardando';
+            }
+        }
+
+        // Termômetro UI: hero + criterios strip
+        function rmRenderTermometro(rep, repB) {
+            const t = rmCalcularTermometro(rep);
+            const cores = rmCorStatus(t.statusGeral);
+
+            const scoreEl = document.getElementById('rmTermometroScore');
+            if(scoreEl) scoreEl.innerText = t.score;
+            rmAtualizarGauge(t.score, t.statusGeral);
+
+            const mesLbl = document.getElementById('rmHeroMesLabel');
+            if(mesLbl) mesLbl.innerText = rep.label.toUpperCase();
+
+            const resumo = document.getElementById('rmTermometroResumo');
+            if(resumo) {
+                let txt = '';
+                if(t.statusGeral === 'verde') txt = '<strong>Saudável.</strong> Você está cumprindo a maior parte dos pilares deste mês. Mantenha o ritmo.';
+                else if(t.statusGeral === 'amarelo') txt = '<strong>Atenção.</strong> Alguns critérios estão fora do alvo — ajuste antes que vire tendência.';
+                else txt = '<strong>Crítico.</strong> Vários pilares fora do alvo. Foque em revisar despesas e retomar aportes.';
+                resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo.';
+            }
+
+            // Saldo e patrimônio nos hero stats
+            const saldoEl = document.getElementById('rmHeroSaldo');
+            if(saldoEl) {
+                saldoEl.innerText = formatarMoeda(rep.saldoFinal);
+                saldoEl.style.color = rep.saldoFinal >= 0 ? 'var(--rm-verde)' : 'var(--rm-vermelho)';
+            }
+            const patEl = document.getElementById('rmHeroPatrimonio');
+            if(patEl) patEl.innerText = formatarMoeda(rep.patrimonioMercado);
+
+            const saldoDeltaEl = document.getElementById('rmHeroSaldoDelta');
+            const patDeltaEl = document.getElementById('rmHeroPatrimonioDelta');
+            if(saldoDeltaEl) saldoDeltaEl.innerHTML = repB ? rmDeltaHtml(rep.saldoFinal, repB.saldoFinal, repB.label).replace('rm-kpi-delta', 'rm-kpi-delta') : '';
+            if(patDeltaEl) patDeltaEl.innerHTML = repB ? rmDeltaHtml(rep.patrimonioMercado, repB.patrimonioMercado, repB.label).replace('rm-kpi-delta', 'rm-kpi-delta') : '';
+
+            // Strip de critérios
+            const grid = document.getElementById('rmTermometroCriterios');
+            if(grid) {
+                const badgeTxt = s => s === 'verde' ? 'OK' : s === 'amarelo' ? 'ATENÇÃO' : s === 'vermelho' ? 'FORA' : '—';
+                grid.innerHTML = t.criterios.map(c =>
+                    '<div class="rm-criterio" data-status="' + c.status + '">'
+                    + '<div class="rm-criterio-top">'
+                    + '<div class="rm-criterio-icon"><i class="ph-fill ' + c.icone + '"></i></div>'
+                    + '<span class="rm-criterio-badge">' + badgeTxt(c.status) + '</span>'
+                    + '</div>'
+                    + '<div class="rm-criterio-label">' + c.label + '</div>'
+                    + '<div class="rm-criterio-valor">' + c.valor + '</div>'
+                    + '<div class="rm-criterio-meta">Meta: ' + c.meta + '</div>'
+                    + '</div>'
+                ).join('');
+            }
+        }
+
+        // Cards KPI (4 secundários com sparkline)
+        function rmRenderKpis(rep, repB, serie12) {
             const grid = document.getElementById('rmKpisGrid');
             if(!grid) return;
             const items = [
-                { label: 'Saldo final', valor: rep.saldoFinal, formato: 'moeda', icone: 'ph-wallet',         cor: rep.saldoFinal >= 0 ? 'var(--cor-primaria)' : '#ef4444', valorB: repB ? repB.saldoFinal : null },
-                { label: 'Entradas',    valor: rep.entradas,   formato: 'moeda', icone: 'ph-arrow-down-left', cor: 'var(--cor-primaria)', valorB: repB ? repB.entradas : null },
-                { label: 'Despesas totais', valor: rep.despesasTotais, formato: 'moeda', icone: 'ph-arrow-up-right', cor: '#ef4444', valorB: repB ? repB.despesasTotais : null },
-                { label: 'Investimentos', valor: rep.investimentos, formato: 'moeda', icone: 'ph-trending-up', cor: '#7c3aed', valorB: repB ? repB.investimentos : null },
-                { label: 'Dividendos do mês', valor: rep.dividendos, formato: 'moeda', icone: 'ph-coins', cor: '#0ea5e9', valorB: repB ? repB.dividendos : null },
-                { label: 'Patrimônio (mercado)', valor: rep.patrimonioMercado, formato: 'moeda', icone: 'ph-bank', cor: 'var(--cor-primaria)', valorB: repB ? repB.patrimonioMercado : null, sub: rep.patrimonioAplicado > 0 ? ('Aplicado: ' + formatarMoeda(rep.patrimonioAplicado)) : null },
+                { tipo: 'entradas',      label: 'Entradas',          valor: rep.entradas,      valorB: repB ? repB.entradas : null,      icone: 'ph-arrow-down-left',  spark: serie12.entradas },
+                { tipo: 'despesas',      label: 'Despesas totais',   valor: rep.despesasTotais,valorB: repB ? repB.despesasTotais : null,icone: 'ph-arrow-up-right',   spark: serie12.despesas },
+                { tipo: 'investimentos', label: 'Investimentos',     valor: rep.investimentos, valorB: repB ? repB.investimentos : null, icone: 'ph-trending-up',      spark: serie12.investimentos },
+                { tipo: 'dividendos',    label: 'Dividendos do mês', valor: rep.dividendos,    valorB: repB ? repB.dividendos : null,    icone: 'ph-coins',            spark: serie12.dividendos }
             ];
-            grid.innerHTML = items.map(it => {
-                let deltaHtml = '';
-                if(it.valorB !== null && it.valorB !== undefined) {
-                    const delta = it.valor - it.valorB;
-                    const pct = it.valorB !== 0 ? (delta / Math.abs(it.valorB)) * 100 : (delta !== 0 ? 100 : 0);
-                    const corDelta = delta > 0 ? '#10b981' : (delta < 0 ? '#ef4444' : '#94a3b8');
-                    const seta = delta > 0 ? '↑' : (delta < 0 ? '↓' : '·');
-                    deltaHtml = '<div style="margin-top:6px;font-size:11.5px;color:' + corDelta + ';font-weight:700;font-family:\'DM Mono\',monospace;">' + seta + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(1) + '% vs ' + repB.label.split('/')[0] + '</div>';
-                }
-                const subHtml = it.sub ? '<div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;">' + it.sub + '</div>' : '';
-                return '<div class="card-container" style="padding:18px;">'
-                    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;"><span style="font-size:11.5px;color:var(--cor-texto-mutado);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">' + it.label + '</span><i class="ph-duotone ' + it.icone + '" style="font-size:22px;color:' + it.cor + ';"></i></div>'
-                    + '<div style="font-size:22px;font-weight:800;font-family:\'DM Mono\',monospace;color:' + it.cor + ';" class="valor-mascarado">' + formatarMoeda(it.valor) + '</div>'
-                    + subHtml
-                    + deltaHtml
-                    + '</div>';
-            }).join('');
+            grid.innerHTML = items.map(it =>
+                '<div class="rm-kpi" data-tipo="' + it.tipo + '">'
+                + '<div class="rm-kpi-top">'
+                + '<span class="rm-kpi-label">' + it.label + '</span>'
+                + '<div class="rm-kpi-icone"><i class="ph-fill ' + it.icone + '"></i></div>'
+                + '</div>'
+                + '<div class="rm-kpi-valor valor-mascarado">' + formatarMoeda(it.valor) + '</div>'
+                + rmDeltaHtml(it.valor, it.valorB, repB ? repB.label : '')
+                + '<div class="rm-kpi-spark">' + rmSparklineSvg(it.spark) + '</div>'
+                + '</div>'
+            ).join('');
         }
 
-        // Cards secundários (Sonhos, Jornada, Applicash)
-        function rmRenderSecundarios(rep, repB) {
+        // Cards secundários (Sonhos, Jornada, Applicash) — premium
+        function rmRenderSecundarios(rep) {
             const grid = document.getElementById('rmSecundariosGrid');
             if(!grid) return;
-            // Sonhos
-            let sonhosHtml = '<div class="card-container" style="padding:18px;">'
-                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);font-size:20px;"></i><strong style="font-size:14px;">Meus sonhos</strong></div>';
-            if(rep.sonhos.ativos === 0) sonhosHtml += '<p style="font-size:13px;color:var(--cor-texto-mutado);margin:0;">Nenhum sonho cadastrado.</p>';
-            else {
-                sonhosHtml += '<div style="font-size:11.5px;color:var(--cor-texto-mutado);margin-bottom:8px;"><strong style="color:var(--cor-texto-principal);">' + rep.sonhos.ativos + '</strong> sonho(s) · <strong style="color:var(--cor-primaria);">' + rep.sonhos.noPrazo + '</strong> no prazo · progresso médio <strong>' + rep.sonhos.progressoMedio.toFixed(0) + '%</strong></div>';
-                sonhosHtml += rep.sonhos.lista.slice(0, 4).map(s =>
-                    '<div style="margin-bottom:10px;">'
-                    + '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;"><span style="color:var(--cor-texto-principal);font-weight:600;">' + s.nome + '</span><span style="font-family:\'DM Mono\',monospace;color:var(--cor-texto-mutado);">' + s.pct.toFixed(0) + '%</span></div>'
-                    + '<div style="height:6px;background:var(--cor-superficie);border-radius:99px;overflow:hidden;border:1px solid var(--cor-borda);"><div style="height:100%;width:' + Math.min(100, s.pct) + '%;background:var(--cor-primaria);"></div></div>'
-                    + '</div>'
-                ).join('');
-                if(rep.sonhos.lista.length > 4) sonhosHtml += '<div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;">+ ' + (rep.sonhos.lista.length - 4) + ' sonho(s)</div>';
-            }
-            sonhosHtml += '</div>';
 
-            // Jornada
+            // === Sonhos ===
+            const sonhosBody = (rep.sonhos.ativos === 0)
+                ? '<div style="text-align:center;padding:8px 0;font-size:13px;color:var(--cor-texto-mutado);"><i class="ph ph-shooting-star" style="font-size:28px;display:block;margin:0 auto 8px;opacity:0.4;"></i>Nenhum sonho cadastrado.</div>'
+                : (
+                    '<div class="rm-sec-kpi-row">'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' + rep.sonhos.ativos + '</div><div class="rm-sec-kpi-label">Ativos</div></div>'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-verde);">' + rep.sonhos.noPrazo + '</div><div class="rm-sec-kpi-label">No prazo</div></div>'
+                    + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' + rep.sonhos.progressoMedio.toFixed(0) + '%</div><div class="rm-sec-kpi-label">Progresso</div></div>'
+                    + '</div>'
+                    + rep.sonhos.lista.slice(0, 3).map(s =>
+                        '<div style="margin-bottom:10px;">'
+                        + '<div class="rm-sec-meta-row"><span style="color:var(--cor-texto-principal);font-weight:600;">' + (s.nome || 'Sonho') + '</span><span style="font-family:\'DM Mono\',monospace;color:var(--cor-texto-mutado);font-size:11.5px;">' + s.pct.toFixed(0) + '%</span></div>'
+                        + '<div class="rm-sec-bar"><div class="rm-sec-bar-fill" style="width:' + Math.min(100, s.pct) + '%;background:linear-gradient(90deg,var(--rm-verde),#34d399);"></div></div>'
+                        + '</div>'
+                    ).join('')
+                    + (rep.sonhos.lista.length > 3 ? '<div style="font-size:11px;color:var(--cor-texto-mutado);text-align:center;margin-top:6px;">+ ' + (rep.sonhos.lista.length - 3) + ' sonho(s)</div>' : '')
+                );
+            const sonhosHtml = '<div class="rm-sec-card" data-tipo="sonhos">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-shooting-star"></i></div>'
+                + '<div><div class="rm-sec-header-title">Meus sonhos</div><div class="rm-sec-header-sub">Metas em andamento</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">' + sonhosBody + '</div></div>';
+
+            // === Jornada ===
             const totalMods = JORNADA_MODULOS.length;
             const prog = carregarJornadaProgresso();
             const concluidosTotal = JORNADA_MODULOS.filter(m => prog[m.id] && prog[m.id].concluidoEm).length;
-            let jornadaHtml = '<div class="card-container" style="padding:18px;">'
-                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><i class="ph-fill ph-graduation-cap" style="color:#7c3aed;font-size:20px;"></i><strong style="font-size:14px;">Jornada Financeira</strong></div>'
-                + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"><span style="font-size:12px;color:var(--cor-texto-mutado);">No mês</span><span style="font-size:20px;font-weight:800;font-family:\'DM Mono\',monospace;color:var(--cor-primaria);">' + rep.jornadaModulosMes + '</span></div>'
-                + '<div style="font-size:11.5px;color:var(--cor-texto-mutado);margin-bottom:10px;">módulo(s) concluído(s) neste mês</div>'
-                + '<div style="height:6px;background:var(--cor-superficie);border-radius:99px;overflow:hidden;border:1px solid var(--cor-borda);margin-bottom:6px;"><div style="height:100%;width:' + (totalMods ? (concluidosTotal / totalMods) * 100 : 0) + '%;background:linear-gradient(90deg,var(--cor-primaria),#7c3aed);"></div></div>'
-                + '<div style="font-size:11px;color:var(--cor-texto-mutado);">Trilha geral: ' + concluidosTotal + '/' + totalMods + ' módulos</div>'
-                + '</div>';
+            const pctTrilha = totalMods ? (concluidosTotal / totalMods) * 100 : 0;
+            const tagJornada = rep.jornadaModulosMes >= 1
+                ? '<span class="rm-sec-tag ok"><i class="ph-bold ph-check-circle"></i> Meta do mês atingida</span>'
+                : '<span class="rm-sec-tag bad"><i class="ph-bold ph-warning"></i> Sem módulo no mês</span>';
+            const jornadaHtml = '<div class="rm-sec-card" data-tipo="jornada">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-graduation-cap"></i></div>'
+                + '<div><div class="rm-sec-header-title">Jornada Financeira</div><div class="rm-sec-header-sub">Capacitação prática</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">'
+                + '<div class="rm-sec-kpi-row">'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' + rep.jornadaModulosMes + '</div><div class="rm-sec-kpi-label">No mês</div></div>'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' + concluidosTotal + '/' + totalMods + '</div><div class="rm-sec-kpi-label">Trilha geral</div></div>'
+                + '</div>'
+                + '<div class="rm-sec-meta-row"><span style="color:var(--cor-texto-mutado);">Progresso da trilha</span><span style="font-family:\'DM Mono\',monospace;color:var(--rm-roxo);font-weight:700;font-size:11.5px;">' + pctTrilha.toFixed(0) + '%</span></div>'
+                + '<div class="rm-sec-bar" style="margin-bottom:12px;"><div class="rm-sec-bar-fill" style="width:' + pctTrilha + '%;background:linear-gradient(90deg,var(--rm-roxo),#a78bfa);"></div></div>'
+                + tagJornada
+                + '</div></div>';
 
-            // Applicash
-            let appHtml = '<div class="card-container" style="padding:18px;">'
-                + '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;"><i class="ph-fill ph-currency-dollar" style="color:#0ea5e9;font-size:20px;"></i><strong style="font-size:14px;">Applicash $</strong></div>'
-                + '<div style="display:flex;justify-content:space-between;margin-bottom:10px;"><div><div style="font-size:11.5px;color:var(--cor-texto-mutado);text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Indicações ativas</div><div style="font-size:22px;font-weight:800;font-family:\'DM Mono\',monospace;color:var(--cor-primaria);">' + rep.applicash.indicacoes + '</div></div>'
-                + '<div style="text-align:right;"><div style="font-size:11.5px;color:var(--cor-texto-mutado);text-transform:uppercase;font-weight:700;letter-spacing:0.4px;">Cashback estimado</div><div style="font-size:18px;font-weight:800;font-family:\'DM Mono\',monospace;color:#0ea5e9;" class="valor-mascarado">' + formatarMoeda(rep.applicash.receita) + '</div></div></div>'
-                + '<div style="font-size:11px;color:var(--cor-texto-mutado);background:var(--cor-bg-info);padding:8px 10px;border-radius:8px;">Meta mensal: <strong>≥ 2 indicações</strong> · ' + (rep.applicash.indicacoes >= 2 ? '✅ Atingida' : rep.applicash.indicacoes === 1 ? '⚠️ Quase lá' : '❌ Falta atingir') + '</div>'
-                + '</div>';
+            // === Applicash ===
+            const tagApp = rep.applicash.indicacoes >= 2
+                ? '<span class="rm-sec-tag ok"><i class="ph-bold ph-check-circle"></i> Meta atingida (≥2)</span>'
+                : rep.applicash.indicacoes === 1
+                    ? '<span class="rm-sec-tag warn"><i class="ph-bold ph-arrow-up"></i> Quase lá</span>'
+                    : '<span class="rm-sec-tag bad"><i class="ph-bold ph-warning"></i> Sem indicações ativas</span>';
+            const appHtml = '<div class="rm-sec-card" data-tipo="applicash">'
+                + '<div class="rm-sec-header"><div class="rm-sec-header-row">'
+                + '<div class="rm-sec-header-icon"><i class="ph-fill ph-currency-dollar"></i></div>'
+                + '<div><div class="rm-sec-header-title">Applicash $</div><div class="rm-sec-header-sub">Programa de indicações</div></div>'
+                + '</div></div>'
+                + '<div class="rm-sec-body">'
+                + '<div class="rm-sec-kpi-row">'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-azul);">' + rep.applicash.indicacoes + '</div><div class="rm-sec-kpi-label">Ativas</div></div>'
+                + '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num valor-mascarado" style="font-size:18px;color:var(--rm-azul);">' + formatarMoeda(rep.applicash.receita) + '</div><div class="rm-sec-kpi-label">Cashback</div></div>'
+                + '</div>'
+                + tagApp
+                + '</div></div>';
 
             grid.innerHTML = sonhosHtml + jornadaHtml + appHtml;
         }
 
-        // Termômetro UI
-        function rmRenderTermometro(rep) {
-            const t = rmCalcularTermometro(rep);
-            const cores = rmCorStatus(t.statusGeral);
-            const scoreEl = document.getElementById('rmTermometroScore');
-            if(scoreEl) { scoreEl.innerText = t.score; scoreEl.style.color = cores.dot; }
-            const resumo = document.getElementById('rmTermometroResumo');
-            if(resumo) {
-                let txt = '';
-                if(t.statusGeral === 'verde') txt = '🟢 <strong>Saudável.</strong> Você está cumprindo a maior parte dos pilares deste mês. Mantenha o ritmo.';
-                else if(t.statusGeral === 'amarelo') txt = '🟡 <strong>Atenção.</strong> Alguns critérios estão fora do alvo — ajuste antes que vire tendência.';
-                else txt = '🔴 <strong>Crítico.</strong> Vários pilares fora do alvo. Foque em revisar despesas e retomar aportes.';
-                resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo.';
-            }
-            const grid = document.getElementById('rmTermometroCriterios');
-            if(grid) {
-                grid.innerHTML = t.criterios.map(c => {
-                    const cs = rmCorStatus(c.status);
-                    return '<div style="background:' + cs.bg + ';border:1px solid ' + cs.borda + ';border-radius:10px;padding:12px;">'
-                        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + cs.dot + ';"></span><i class="ph ' + c.icone + '" style="color:' + cs.txt + ';font-size:14px;"></i><span style="font-size:11px;color:' + cs.txt + ';font-weight:700;text-transform:uppercase;letter-spacing:0.4px;">' + c.label + '</span></div>'
-                        + '<div style="font-family:\'DM Mono\',monospace;font-size:18px;font-weight:800;color:' + cs.txt + ';line-height:1.1;">' + c.valor + '</div>'
-                        + '<div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:3px;">Meta: ' + c.meta + '</div>'
-                        + '</div>';
-                }).join('');
-            }
-            // Gauge canvas
-            const canvas = document.getElementById('rmGauge');
-            rmDesenharGauge(canvas, t.score, t.statusGeral);
-        }
-
-        // Gráficos (Chart.js)
+        // ====== Gráficos premium ======
         let rmChartSerieInst = null;
         let rmChartPatrimonioInst = null;
-        function rmRenderGraficos(yyyymmAtual, repAtual) {
-            // Série de 12 meses (entradas, despesas, investimentos)
-            const meses = [];
+        let rmChartDonutInst = null;
+
+        function rmGradient(ctx, area, hexFrom, hexTo) {
+            if(!ctx || !area) return hexFrom;
+            const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+            g.addColorStop(0, hexFrom);
+            g.addColorStop(1, hexTo);
+            return g;
+        }
+
+        function rmRenderGraficos(yyyymmAtual, rep) {
+            // Coleta série de 12 meses
             const labels = [];
-            const arrEntr = [], arrDesp = [], arrInv = [], arrSaldo = [];
-            const arrAplic = [], arrMerc = [];
+            const arrEntr = [], arrDesp = [], arrInv = [], arrDiv = [], arrAplic = [], arrMerc = [];
             for(let i = 11; i >= 0; i--) {
                 const ym = rmAddMonths(yyyymmAtual, -i);
-                meses.push(ym);
                 const { mes, ano } = rmYyyymmToMesAno(ym);
                 labels.push(RM_NOMES_MESES_SHORT[mes] + '/' + String(ano).slice(2));
-                const rep = buildMonthlyReport(ym);
-                arrEntr.push(rep.entradas);
-                arrDesp.push(rep.despesasTotais);
-                arrInv.push(rep.investimentos);
-                arrSaldo.push(rep.saldoFinal);
-                arrAplic.push(rep.patrimonioAplicado);
-                arrMerc.push(rep.patrimonioMercado);
+                const r = buildMonthlyReport(ym);
+                arrEntr.push(r.entradas);
+                arrDesp.push(r.despesasTotais);
+                arrInv.push(r.investimentos);
+                arrDiv.push(r.dividendos);
+                arrAplic.push(r.patrimonioAplicado);
+                arrMerc.push(r.patrimonioMercado);
             }
-            // Série
+            const serie12 = { entradas: arrEntr, despesas: arrDesp, investimentos: arrInv, dividendos: arrDiv, aplicado: arrAplic, mercado: arrMerc };
+
+            // Legenda do fluxo (HTML)
+            const leg = document.getElementById('rmFluxoLegenda');
+            if(leg) leg.innerHTML = [
+                { lbl: 'Entradas', cor: '#10b981' },
+                { lbl: 'Despesas', cor: '#ef4444' },
+                { lbl: 'Investimentos', cor: '#7c3aed' }
+            ].map(l => '<div class="rm-chart-legend-item"><span class="rm-chart-legend-dot" style="--dot-cor:' + l.cor + ';"></span>' + l.lbl + '</div>').join('');
+
+            // ===== Fluxo (linhas com gradient area) =====
             const ctx1 = document.getElementById('rmChartSerie');
             if(ctx1 && window.Chart) {
-                if(rmChartSerieInst) rmChartSerieInst.destroy();
+                if(rmChartSerieInst) try { rmChartSerieInst.destroy(); } catch(_) {}
                 rmChartSerieInst = new Chart(ctx1.getContext('2d'), {
-                    type: 'bar',
+                    type: 'line',
                     data: {
                         labels,
                         datasets: [
-                            { label: 'Entradas',    data: arrEntr, backgroundColor: 'rgba(16,185,129,0.85)' },
-                            { label: 'Despesas',    data: arrDesp, backgroundColor: 'rgba(239,68,68,0.85)' },
-                            { label: 'Investimentos', data: arrInv, backgroundColor: 'rgba(124,58,237,0.85)' }
+                            {
+                                label: 'Entradas', data: arrEntr,
+                                borderColor: '#10b981', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(16,185,129,0.30)', 'rgba(16,185,129,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Despesas', data: arrDesp,
+                                borderColor: '#ef4444', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(239,68,68,0.22)', 'rgba(239,68,68,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#ef4444', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Investimentos', data: arrInv,
+                                borderColor: '#7c3aed', backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(124,58,237,0.22)', 'rgba(124,58,237,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#7c3aed', pointBorderColor: '#fff', pointBorderWidth: 2
+                            }
                         ]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + formatarMoeda(c.parsed.y) } } },
-                        scales: { y: { ticks: { callback: v => 'R$ ' + (v / 1000).toFixed(0) + 'k', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4,
+                                titleFont: { size: 12, weight: 'bold' }, bodyFont: { size: 12 },
+                                callbacks: { label: c => '  ' + c.dataset.label + ': ' + formatarMoeda(c.parsed.y) }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(148,163,184,0.15)', drawBorder: false },
+                                ticks: { callback: v => rmFormatarMoedaCompacta(v), font: { size: 10.5 }, color: '#94a3b8', padding: 8 }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { size: 10.5, weight: '600' }, color: '#64748b' }
+                            }
+                        }
                     }
                 });
             }
-            // Patrimônio
+
+            // ===== Patrimônio (área aplicado + área mercado por cima) =====
             const ctx2 = document.getElementById('rmChartPatrimonio');
             if(ctx2 && window.Chart) {
-                if(rmChartPatrimonioInst) rmChartPatrimonioInst.destroy();
+                if(rmChartPatrimonioInst) try { rmChartPatrimonioInst.destroy(); } catch(_) {}
                 rmChartPatrimonioInst = new Chart(ctx2.getContext('2d'), {
                     type: 'line',
                     data: {
                         labels,
                         datasets: [
-                            { label: 'Valor aplicado', data: arrAplic, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,0.10)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 },
-                            { label: 'Valor de mercado', data: arrMerc, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)', fill: true, tension: 0.3, borderWidth: 2, pointRadius: 3 }
+                            {
+                                label: 'Valor de mercado', data: arrMerc,
+                                borderColor: '#10b981',
+                                backgroundColor: ctx => rmGradient(ctx.chart.ctx, ctx.chart.chartArea, 'rgba(16,185,129,0.30)', 'rgba(16,185,129,0)'),
+                                fill: true, tension: 0.4, borderWidth: 2.5,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#10b981', pointBorderColor: '#fff', pointBorderWidth: 2
+                            },
+                            {
+                                label: 'Valor aplicado', data: arrAplic,
+                                borderColor: '#7c3aed', borderDash: [4, 4],
+                                backgroundColor: 'transparent',
+                                fill: false, tension: 0.4, borderWidth: 2,
+                                pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#7c3aed', pointBorderColor: '#fff', pointBorderWidth: 2
+                            }
                         ]
                     },
                     options: {
                         responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + formatarMoeda(c.parsed.y) } } },
-                        scales: { y: { ticks: { callback: v => 'R$ ' + (v / 1000).toFixed(0) + 'k', font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 10, boxHeight: 10, font: { size: 11, weight: '600' }, color: '#64748b', usePointStyle: true, pointStyle: 'circle', padding: 14 } },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10, displayColors: true, boxPadding: 4,
+                                callbacks: { label: c => '  ' + c.dataset.label + ': ' + formatarMoeda(c.parsed.y) }
+                            }
+                        },
+                        scales: {
+                            y: { beginAtZero: false, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { callback: v => rmFormatarMoedaCompacta(v), font: { size: 10.5 }, color: '#94a3b8', padding: 8 } },
+                            x: { grid: { display: false }, ticks: { font: { size: 10.5, weight: '600' }, color: '#64748b' } }
+                        }
                     }
                 });
+            }
+            // Pill de variação no header do gráfico de patrimônio
+            const pill = document.getElementById('rmPatrimonioVariacao');
+            if(pill) {
+                const ganho = (rep.patrimonioMercado || 0) - (rep.patrimonioAplicado || 0);
+                if(rep.patrimonioAplicado > 0) {
+                    const pct = (ganho / rep.patrimonioAplicado) * 100;
+                    pill.className = 'rm-chart-pill ' + (ganho < 0 ? 'neg' : '');
+                    pill.innerHTML = (ganho >= 0 ? '▲ +' : '▼ ') + pct.toFixed(1) + '%';
+                    pill.style.display = '';
+                } else { pill.style.display = 'none'; }
+            }
+
+            // ===== Donut: para onde foi o dinheiro =====
+            rmRenderDonut(rep);
+
+            return serie12;
+        }
+
+        function rmRenderDonut(rep) {
+            const ctx = document.getElementById('rmChartDonut');
+            if(!ctx) return;
+            // Reconstrói categorias a partir de transações do mês
+            const slices = [];
+            try {
+                const r = (typeof calcularResumoMes === 'function') ? calcularResumoMes(rep.mes, rep.ano) : { despFixa:0, despVar:0, cartao:0, sonho:0, invFixo:0, invVar:0 };
+                slices.push({ lbl: 'Despesas fixas',    val: r.despFixa || 0, cor: '#ef4444' });
+                slices.push({ lbl: 'Despesas variáveis',val: r.despVar  || 0, cor: '#f97316' });
+                slices.push({ lbl: 'Cartão de crédito', val: r.cartao   || 0, cor: '#f59e0b' });
+                slices.push({ lbl: 'Sonhos',            val: r.sonho    || 0, cor: '#ec4899' });
+                slices.push({ lbl: 'Investimentos',     val: (r.invFixo||0)+(r.invVar||0), cor: '#7c3aed' });
+            } catch(_) {}
+            const filtrados = slices.filter(s => s.val > 0);
+            const totalSaidas = filtrados.reduce((a, b) => a + b.val, 0);
+
+            const legenda = document.getElementById('rmDonutLegenda');
+            const totalEl = document.getElementById('rmDonutTotal');
+            if(totalEl) totalEl.innerText = formatarMoeda(totalSaidas);
+            if(filtrados.length === 0) {
+                if(rmChartDonutInst) try { rmChartDonutInst.destroy(); } catch(_) {}
+                if(legenda) legenda.innerHTML = '<div style="font-size:13px;color:var(--cor-texto-mutado);text-align:center;padding:30px 0;"><i class="ph ph-chart-donut" style="font-size:30px;display:block;margin:0 auto 8px;opacity:0.4;"></i>Sem saídas neste mês</div>';
+                if(ctx) ctx.style.opacity = '0.3';
+                if(totalEl) totalEl.innerText = '—';
+                return;
+            }
+            if(ctx) ctx.style.opacity = '1';
+
+            if(window.Chart) {
+                if(rmChartDonutInst) try { rmChartDonutInst.destroy(); } catch(_) {}
+                rmChartDonutInst = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: filtrados.map(s => s.lbl),
+                        datasets: [{
+                            data: filtrados.map(s => s.val),
+                            backgroundColor: filtrados.map(s => s.cor),
+                            borderColor: '#fff', borderWidth: 3,
+                            hoverOffset: 8, hoverBorderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        cutout: '68%',
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(15,23,42,0.95)', titleColor: '#fff', bodyColor: '#e2e8f0',
+                                padding: 12, cornerRadius: 10,
+                                callbacks: {
+                                    label: c => '  ' + c.label + ': ' + formatarMoeda(c.parsed) + ' (' + (c.parsed / totalSaidas * 100).toFixed(1) + '%)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+            if(legenda) {
+                legenda.innerHTML = filtrados.map(s =>
+                    '<div class="rm-donut-leg-item">'
+                    + '<span class="rm-donut-leg-dot" style="background:' + s.cor + ';"></span>'
+                    + '<span class="rm-donut-leg-label">' + s.lbl + '</span>'
+                    + '<span class="rm-donut-leg-valor valor-mascarado">' + formatarMoeda(s.val) + '</span>'
+                    + '<span class="rm-donut-leg-pct">' + (s.val / totalSaidas * 100).toFixed(0) + '%</span>'
+                    + '</div>'
+                ).join('');
             }
         }
 
@@ -14422,10 +15316,10 @@
                 empty.style.display = 'none';
             }
 
-            rmRenderTermometro(rep);
-            rmRenderKpis(rep, repB);
-            rmRenderSecundarios(rep, repB);
-            rmRenderGraficos(yyyymm, rep);
+            rmRenderTermometro(rep, repB);
+            const serie12 = rmRenderGraficos(yyyymm, rep) || { entradas:[], despesas:[], investimentos:[], dividendos:[] };
+            rmRenderKpis(rep, repB, serie12);
+            rmRenderSecundarios(rep);
         }
 
         // PDF — carrega html2pdf sob demanda
