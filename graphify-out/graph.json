@@ -94,10 +94,19 @@
       "norm_label": "maxduration"
     },
     {
-      "label": "headers",
+      "label": "crons",
       "file_type": "code",
       "source_file": "vercel.json",
       "source_location": "L11",
+      "id": "investimentos_vercel_crons",
+      "community": 24,
+      "norm_label": "crons"
+    },
+    {
+      "label": "headers",
+      "file_type": "code",
+      "source_file": "vercel.json",
+      "source_location": "L14",
       "id": "investimentos_vercel_headers",
       "community": 24,
       "norm_label": "headers"
@@ -610,7 +619,7 @@
       "label": "showGate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L249",
+      "source_location": "L256",
       "id": "web_appliquei_billing_showgate",
       "community": 0,
       "norm_label": "showgate()"
@@ -619,16 +628,52 @@
       "label": "hideGate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L262",
+      "source_location": "L273",
       "id": "web_appliquei_billing_hidegate",
       "community": 0,
       "norm_label": "hidegate()"
     },
     {
+      "label": "startGateGuard()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L290",
+      "id": "web_appliquei_billing_startgateguard",
+      "community": 0,
+      "norm_label": "startgateguard()"
+    },
+    {
+      "label": "stopGateGuard()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L329",
+      "id": "web_appliquei_billing_stopgateguard",
+      "community": 0,
+      "norm_label": "stopgateguard()"
+    },
+    {
+      "label": "titleForAccess()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L338",
+      "id": "web_appliquei_billing_titleforaccess",
+      "community": 0,
+      "norm_label": "titleforaccess()"
+    },
+    {
+      "label": "subForAccess()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L347",
+      "id": "web_appliquei_billing_subforaccess",
+      "community": 0,
+      "norm_label": "subforaccess()"
+    },
+    {
       "label": "showErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L268",
+      "source_location": "L360",
       "id": "web_appliquei_billing_showerr",
       "community": 0,
       "norm_label": "showerr()"
@@ -637,7 +682,7 @@
       "label": "syncTrialBannerOffset()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L275",
+      "source_location": "L367",
       "id": "web_appliquei_billing_synctrialbanneroffset",
       "community": 0,
       "norm_label": "synctrialbanneroffset()"
@@ -646,7 +691,7 @@
       "label": "clearTrialBannerOffset()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L293",
+      "source_location": "L385",
       "id": "web_appliquei_billing_cleartrialbanneroffset",
       "community": 0,
       "norm_label": "cleartrialbanneroffset()"
@@ -655,7 +700,7 @@
       "label": "ensureVerifyBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L304",
+      "source_location": "L396",
       "id": "web_appliquei_billing_ensureverifybanner",
       "community": 0,
       "norm_label": "ensureverifybanner()"
@@ -664,7 +709,7 @@
       "label": "resendVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L328",
+      "source_location": "L420",
       "id": "web_appliquei_billing_resendverification",
       "community": 0,
       "norm_label": "resendverification()"
@@ -673,7 +718,7 @@
       "label": "startResendCooldown()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L363",
+      "source_location": "L455",
       "id": "web_appliquei_billing_startresendcooldown",
       "community": 0,
       "norm_label": "startresendcooldown()"
@@ -682,7 +727,7 @@
       "label": "recheckVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L379",
+      "source_location": "L471",
       "id": "web_appliquei_billing_recheckverification",
       "community": 0,
       "norm_label": "recheckverification()"
@@ -691,7 +736,7 @@
       "label": "needsEmailVerification()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L400",
+      "source_location": "L492",
       "id": "web_appliquei_billing_needsemailverification",
       "community": 0,
       "norm_label": "needsemailverification()"
@@ -700,7 +745,7 @@
       "label": "ensureTrialBanner()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L411",
+      "source_location": "L503",
       "id": "web_appliquei_billing_ensuretrialbanner",
       "community": 0,
       "norm_label": "ensuretrialbanner()"
@@ -709,16 +754,25 @@
       "label": "authedFetch()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L435",
+      "source_location": "L527",
       "id": "web_appliquei_billing_authedfetch",
       "community": 0,
       "norm_label": "authedfetch()"
     },
     {
+      "label": "purgeLocalCacheIfBlocked()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L598",
+      "id": "web_appliquei_billing_purgelocalcacheifblocked",
+      "community": 0,
+      "norm_label": "purgelocalcacheifblocked()"
+    },
+    {
       "label": "applyAccess()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L498",
+      "source_location": "L608",
       "id": "web_appliquei_billing_applyaccess",
       "community": 0,
       "norm_label": "applyaccess()"
@@ -727,7 +781,7 @@
       "label": "startPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L562",
+      "source_location": "L673",
       "id": "web_appliquei_billing_startpolling",
       "community": 0,
       "norm_label": "startpolling()"
@@ -736,7 +790,7 @@
       "label": "stopPolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L566",
+      "source_location": "L677",
       "id": "web_appliquei_billing_stoppolling",
       "community": 0,
       "norm_label": "stoppolling()"
@@ -745,7 +799,7 @@
       "label": "initBilling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L570",
+      "source_location": "L681",
       "id": "web_appliquei_billing_initbilling",
       "community": 0,
       "norm_label": "initbilling()"
@@ -754,7 +808,7 @@
       "label": "fetchMe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L609",
+      "source_location": "L720",
       "id": "web_appliquei_billing_fetchme",
       "community": 0,
       "norm_label": "fetchme()"
@@ -763,7 +817,7 @@
       "label": "fmtBRL()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L613",
+      "source_location": "L724",
       "id": "web_appliquei_billing_fmtbrl",
       "community": 0,
       "norm_label": "fmtbrl()"
@@ -772,7 +826,7 @@
       "label": "isValidCpf()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L619",
+      "source_location": "L730",
       "id": "web_appliquei_billing_isvalidcpf",
       "community": 0,
       "norm_label": "isvalidcpf()"
@@ -781,7 +835,7 @@
       "label": "isValidCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L631",
+      "source_location": "L742",
       "id": "web_appliquei_billing_isvalidcnpj",
       "community": 0,
       "norm_label": "isvalidcnpj()"
@@ -790,7 +844,7 @@
       "label": "isValidCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L645",
+      "source_location": "L756",
       "id": "web_appliquei_billing_isvalidcpfcnpj",
       "community": 0,
       "norm_label": "isvalidcpfcnpj()"
@@ -799,7 +853,7 @@
       "label": "ensureMyAccountStyles()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L652",
+      "source_location": "L763",
       "id": "web_appliquei_billing_ensuremyaccountstyles",
       "community": 0,
       "norm_label": "ensuremyaccountstyles()"
@@ -808,7 +862,7 @@
       "label": "ensureMyAccountModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L735",
+      "source_location": "L846",
       "id": "web_appliquei_billing_ensuremyaccountmodal",
       "community": 0,
       "norm_label": "ensuremyaccountmodal()"
@@ -817,7 +871,7 @@
       "label": "closeMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L766",
+      "source_location": "L877",
       "id": "web_appliquei_billing_closemyaccount",
       "community": 0,
       "norm_label": "closemyaccount()"
@@ -826,7 +880,7 @@
       "label": "openMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L770",
+      "source_location": "L881",
       "id": "web_appliquei_billing_openmyaccount",
       "community": 0,
       "norm_label": "openmyaccount()"
@@ -835,7 +889,7 @@
       "label": "statusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L800",
+      "source_location": "L911",
       "id": "web_appliquei_billing_statuslabel",
       "community": 0,
       "norm_label": "statuslabel()"
@@ -844,7 +898,7 @@
       "label": "statusColor()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L807",
+      "source_location": "L918",
       "id": "web_appliquei_billing_statuscolor",
       "community": 0,
       "norm_label": "statuscolor()"
@@ -853,7 +907,7 @@
       "label": "fmtDate()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L813",
+      "source_location": "L924",
       "id": "web_appliquei_billing_fmtdate",
       "community": 0,
       "norm_label": "fmtdate()"
@@ -862,7 +916,7 @@
       "label": "paymentStatusLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L817",
+      "source_location": "L928",
       "id": "web_appliquei_billing_paymentstatuslabel",
       "community": 0,
       "norm_label": "paymentstatuslabel()"
@@ -871,7 +925,7 @@
       "label": "statusBadge()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L828",
+      "source_location": "L939",
       "id": "web_appliquei_billing_statusbadge",
       "community": 0,
       "norm_label": "statusbadge()"
@@ -880,7 +934,7 @@
       "label": "eventNote()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L837",
+      "source_location": "L948",
       "id": "web_appliquei_billing_eventnote",
       "community": 0,
       "norm_label": "eventnote()"
@@ -889,7 +943,7 @@
       "label": "cardBrandLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L846",
+      "source_location": "L957",
       "id": "web_appliquei_billing_cardbrandlabel",
       "community": 0,
       "norm_label": "cardbrandlabel()"
@@ -898,7 +952,7 @@
       "label": "paymentMethodLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L851",
+      "source_location": "L962",
       "id": "web_appliquei_billing_paymentmethodlabel",
       "community": 0,
       "norm_label": "paymentmethodlabel()"
@@ -907,7 +961,7 @@
       "label": "failureReasonLabel()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L861",
+      "source_location": "L972",
       "id": "web_appliquei_billing_failurereasonlabel",
       "community": 0,
       "norm_label": "failurereasonlabel()"
@@ -916,7 +970,7 @@
       "label": "daysBetween()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L871",
+      "source_location": "L982",
       "id": "web_appliquei_billing_daysbetween",
       "community": 0,
       "norm_label": "daysbetween()"
@@ -925,7 +979,7 @@
       "label": "pluralDays()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L879",
+      "source_location": "L990",
       "id": "web_appliquei_billing_pluraldays",
       "community": 0,
       "norm_label": "pluraldays()"
@@ -934,7 +988,7 @@
       "label": "clamp()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L882",
+      "source_location": "L993",
       "id": "web_appliquei_billing_clamp",
       "community": 0,
       "norm_label": "clamp()"
@@ -943,7 +997,7 @@
       "label": "renderHeroBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L884",
+      "source_location": "L995",
       "id": "web_appliquei_billing_renderheroblock",
       "community": 0,
       "norm_label": "renderheroblock()"
@@ -952,7 +1006,7 @@
       "label": "renderPlanInfoBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1014",
+      "source_location": "L1125",
       "id": "web_appliquei_billing_renderplaninfoblock",
       "community": 0,
       "norm_label": "renderplaninfoblock()"
@@ -961,7 +1015,7 @@
       "label": "renderPlansBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1059",
+      "source_location": "L1170",
       "id": "web_appliquei_billing_renderplansblock",
       "community": 0,
       "norm_label": "renderplansblock()"
@@ -970,7 +1024,7 @@
       "label": "renderPaymentMethodBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1081",
+      "source_location": "L1192",
       "id": "web_appliquei_billing_renderpaymentmethodblock",
       "community": 0,
       "norm_label": "renderpaymentmethodblock()"
@@ -979,7 +1033,7 @@
       "label": "renderApplicashBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1101",
+      "source_location": "L1212",
       "id": "web_appliquei_billing_renderapplicashblock",
       "community": 0,
       "norm_label": "renderapplicashblock()"
@@ -988,7 +1042,7 @@
       "label": "renderUpcomingBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1142",
+      "source_location": "L1253",
       "id": "web_appliquei_billing_renderupcomingblock",
       "community": 0,
       "norm_label": "renderupcomingblock()"
@@ -997,7 +1051,7 @@
       "label": "renderAlertsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1172",
+      "source_location": "L1283",
       "id": "web_appliquei_billing_renderalertsblock",
       "community": 0,
       "norm_label": "renderalertsblock()"
@@ -1006,7 +1060,7 @@
       "label": "renderCustomerBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1183",
+      "source_location": "L1294",
       "id": "web_appliquei_billing_rendercustomerblock",
       "community": 0,
       "norm_label": "rendercustomerblock()"
@@ -1015,7 +1069,7 @@
       "label": "renderHistoryBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1209",
+      "source_location": "L1320",
       "id": "web_appliquei_billing_renderhistoryblock",
       "community": 0,
       "norm_label": "renderhistoryblock()"
@@ -1024,7 +1078,7 @@
       "label": "renderActionsBlock()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1251",
+      "source_location": "L1362",
       "id": "web_appliquei_billing_renderactionsblock",
       "community": 0,
       "norm_label": "renderactionsblock()"
@@ -1033,7 +1087,7 @@
       "label": "renderMyAccount()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1261",
+      "source_location": "L1372",
       "id": "web_appliquei_billing_rendermyaccount",
       "community": 0,
       "norm_label": "rendermyaccount()"
@@ -1042,7 +1096,7 @@
       "label": "bindMyAccountActions()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1283",
+      "source_location": "L1394",
       "id": "web_appliquei_billing_bindmyaccountactions",
       "community": 0,
       "norm_label": "bindmyaccountactions()"
@@ -1051,7 +1105,7 @@
       "label": "reloadAccountStatus()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1306",
+      "source_location": "L1417",
       "id": "web_appliquei_billing_reloadaccountstatus",
       "community": 0,
       "norm_label": "reloadaccountstatus()"
@@ -1060,7 +1114,7 @@
       "label": "escapeHtml()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1313",
+      "source_location": "L1424",
       "id": "web_appliquei_billing_escapehtml",
       "community": 0,
       "norm_label": "escapehtml()"
@@ -1069,7 +1123,7 @@
       "label": "fmtCpfCnpj()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1318",
+      "source_location": "L1429",
       "id": "web_appliquei_billing_fmtcpfcnpj",
       "community": 0,
       "norm_label": "fmtcpfcnpj()"
@@ -1078,7 +1132,7 @@
       "label": "fmtPhone()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1324",
+      "source_location": "L1435",
       "id": "web_appliquei_billing_fmtphone",
       "community": 0,
       "norm_label": "fmtphone()"
@@ -1087,7 +1141,7 @@
       "label": "ensureSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1333",
+      "source_location": "L1444",
       "id": "web_appliquei_billing_ensuresubmodal",
       "community": 0,
       "norm_label": "ensuresubmodal()"
@@ -1096,7 +1150,7 @@
       "label": "openSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1349",
+      "source_location": "L1460",
       "id": "web_appliquei_billing_opensubmodal",
       "community": 0,
       "norm_label": "opensubmodal()"
@@ -1105,7 +1159,7 @@
       "label": "closeSubModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1355",
+      "source_location": "L1466",
       "id": "web_appliquei_billing_closesubmodal",
       "community": 0,
       "norm_label": "closesubmodal()"
@@ -1114,7 +1168,7 @@
       "label": "fld()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1360",
+      "source_location": "L1471",
       "id": "web_appliquei_billing_fld",
       "community": 0,
       "norm_label": "fld()"
@@ -1123,7 +1177,7 @@
       "label": "lbl()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1361",
+      "source_location": "L1472",
       "id": "web_appliquei_billing_lbl",
       "community": 0,
       "norm_label": "lbl()"
@@ -1132,7 +1186,7 @@
       "label": "openChangeCardModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1363",
+      "source_location": "L1474",
       "id": "web_appliquei_billing_openchangecardmodal",
       "community": 0,
       "norm_label": "openchangecardmodal()"
@@ -1141,7 +1195,7 @@
       "label": "showSubModalErr()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1384",
+      "source_location": "L1495",
       "id": "web_appliquei_billing_showsubmodalerr",
       "community": 0,
       "norm_label": "showsubmodalerr()"
@@ -1150,7 +1204,7 @@
       "label": "submitChangeCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1391",
+      "source_location": "L1502",
       "id": "web_appliquei_billing_submitchangecard",
       "community": 0,
       "norm_label": "submitchangecard()"
@@ -1159,7 +1213,7 @@
       "label": "openEditCustomerModal()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1444",
+      "source_location": "L1555",
       "id": "web_appliquei_billing_openeditcustomermodal",
       "community": 0,
       "norm_label": "openeditcustomermodal()"
@@ -1168,7 +1222,7 @@
       "label": "submitEditCustomer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1473",
+      "source_location": "L1584",
       "id": "web_appliquei_billing_submiteditcustomer",
       "community": 0,
       "norm_label": "submiteditcustomer()"
@@ -1177,7 +1231,7 @@
       "label": "confirmCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1520",
+      "source_location": "L1631",
       "id": "web_appliquei_billing_confirmcancelsubscription",
       "community": 0,
       "norm_label": "confirmcancelsubscription()"
@@ -1186,7 +1240,7 @@
       "label": "doCancelSubscription()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1534",
+      "source_location": "L1645",
       "id": "web_appliquei_billing_docancelsubscription",
       "community": 0,
       "norm_label": "docancelsubscription()"
@@ -1195,7 +1249,7 @@
       "label": "syncApplicashFromServer()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1550",
+      "source_location": "L1661",
       "id": "web_appliquei_billing_syncapplicashfromserver",
       "community": 0,
       "norm_label": "syncapplicashfromserver()"
@@ -1204,7 +1258,7 @@
       "label": "statCard()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1597",
+      "source_location": "L1708",
       "id": "web_appliquei_billing_statcard",
       "community": 0,
       "norm_label": "statcard()"
@@ -1213,7 +1267,7 @@
       "label": "refresh()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1604",
+      "source_location": "L1715",
       "id": "web_appliquei_billing_refresh",
       "community": 0,
       "norm_label": "refresh()"
@@ -1222,7 +1276,7 @@
       "label": "writePopupMessage()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1616",
+      "source_location": "L1727",
       "id": "web_appliquei_billing_writepopupmessage",
       "community": 0,
       "norm_label": "writepopupmessage()"
@@ -1231,7 +1285,7 @@
       "label": "openSubscribeForm()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1630",
+      "source_location": "L1741",
       "id": "web_appliquei_billing_opensubscribeform",
       "community": 0,
       "norm_label": "opensubscribeform()"
@@ -1240,7 +1294,7 @@
       "label": "parseExpiry()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1635",
+      "source_location": "L1746",
       "id": "web_appliquei_billing_parseexpiry",
       "community": 0,
       "norm_label": "parseexpiry()"
@@ -1249,7 +1303,7 @@
       "label": "collectCardPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1652",
+      "source_location": "L1763",
       "id": "web_appliquei_billing_collectcardpayload",
       "community": 0,
       "norm_label": "collectcardpayload()"
@@ -1258,7 +1312,7 @@
       "label": "subscribe()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1681",
+      "source_location": "L1792",
       "id": "web_appliquei_billing_subscribe",
       "community": 0,
       "norm_label": "subscribe()"
@@ -1267,7 +1321,7 @@
       "label": "waitForActive()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1772",
+      "source_location": "L1883",
       "id": "web_appliquei_billing_waitforactive",
       "community": 0,
       "norm_label": "waitforactive()"
@@ -1276,16 +1330,25 @@
       "label": "startActivePolling()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1790",
+      "source_location": "L1901",
       "id": "web_appliquei_billing_startactivepolling",
       "community": 0,
       "norm_label": "startactivepolling()"
     },
     {
+      "label": "setSignupBlock()",
+      "file_type": "code",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L1925",
+      "id": "web_appliquei_billing_setsignupblock",
+      "community": 0,
+      "norm_label": "setsignupblock()"
+    },
+    {
       "label": "onUser()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1806",
+      "source_location": "L1927",
       "id": "web_appliquei_billing_onuser",
       "community": 0,
       "norm_label": "onuser()"
@@ -1294,7 +1357,7 @@
       "label": "attach()",
       "file_type": "code",
       "source_file": "web/appliquei-billing.js",
-      "source_location": "L1833",
+      "source_location": "L1950",
       "id": "web_appliquei_billing_attach",
       "community": 0,
       "norm_label": "attach()"
@@ -1325,6 +1388,141 @@
       "id": "web_firebase_config_appliquei_prod_js",
       "community": 34,
       "norm_label": "firebase-config.appliquei-prod.js"
+    },
+    {
+      "label": "market.js",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "id": "api_market_js",
+      "community": 25,
+      "norm_label": "market.js"
+    },
+    {
+      "label": "{ db, timestamp }",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "id": "api_market_db_timestamp",
+      "community": 25,
+      "norm_label": "{ db, timestamp }"
+    },
+    {
+      "label": "{ requireUser, cors }",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L2",
+      "id": "api_market_requireuser_cors",
+      "community": 25,
+      "norm_label": "{ requireuser, cors }"
+    },
+    {
+      "label": "CRYPTO_MAP",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L22",
+      "id": "api_market_crypto_map",
+      "community": 25,
+      "norm_label": "crypto_map"
+    },
+    {
+      "label": "RANGE_MONTHS",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L36",
+      "id": "api_market_range_months",
+      "community": 25,
+      "norm_label": "range_months"
+    },
+    {
+      "label": "todayYmdBRT()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L38",
+      "id": "api_market_todayymdbrt",
+      "community": 25,
+      "norm_label": "todayymdbrt()"
+    },
+    {
+      "label": "sanitizeTicker()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L47",
+      "id": "api_market_sanitizeticker",
+      "community": 25,
+      "norm_label": "sanitizeticker()"
+    },
+    {
+      "label": "fetchBrapi()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L54",
+      "id": "api_market_fetchbrapi",
+      "community": 25,
+      "norm_label": "fetchbrapi()"
+    },
+    {
+      "label": "handleQuote()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L91",
+      "id": "api_market_handlequote",
+      "community": 25,
+      "norm_label": "handlequote()"
+    },
+    {
+      "label": "fetchHistorySource()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L165",
+      "id": "api_market_fetchhistorysource",
+      "community": 25,
+      "norm_label": "fetchhistorysource()"
+    },
+    {
+      "label": "downsampleMonthly()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L241",
+      "id": "api_market_downsamplemonthly",
+      "community": 25,
+      "norm_label": "downsamplemonthly()"
+    },
+    {
+      "label": "buildSyntheticSeries()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L253",
+      "id": "api_market_buildsyntheticseries",
+      "community": 25,
+      "norm_label": "buildsyntheticseries()"
+    },
+    {
+      "label": "handleHistory()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L265",
+      "id": "api_market_handlehistory",
+      "community": 25,
+      "norm_label": "handlehistory()"
+    },
+    {
+      "label": "handleWarmup()",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L310",
+      "id": "api_market_handlewarmup",
+      "community": 25,
+      "norm_label": "handlewarmup()"
+    },
+    {
+      "label": "op",
+      "file_type": "code",
+      "source_file": "api/market.js",
+      "source_location": "L385",
+      "id": "api_market_op",
+      "community": 25,
+      "norm_label": "op"
     },
     {
       "label": "billing-sync.js",
@@ -1395,7 +1593,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L1",
       "id": "api_lib_firebase_admin_js",
-      "community": 42,
+      "community": 22,
       "norm_label": "firebase-admin.js"
     },
     {
@@ -1404,7 +1602,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L1",
       "id": "lib_firebase_admin_admin",
-      "community": 42,
+      "community": 22,
       "norm_label": "admin"
     },
     {
@@ -1413,7 +1611,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L5",
       "id": "lib_firebase_admin_init",
-      "community": 42,
+      "community": 21,
       "norm_label": "init()"
     },
     {
@@ -1422,7 +1620,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L53",
       "id": "lib_firebase_admin_db",
-      "community": 6,
+      "community": 21,
       "norm_label": "db()"
     },
     {
@@ -1440,7 +1638,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L63",
       "id": "lib_firebase_admin_fieldvalue",
-      "community": 6,
+      "community": 42,
       "norm_label": "fieldvalue()"
     },
     {
@@ -1449,7 +1647,7 @@
       "source_file": "api/_lib/firebase-admin.js",
       "source_location": "L67",
       "id": "lib_firebase_admin_timestamp",
-      "community": 18,
+      "community": 21,
       "norm_label": "timestamp()"
     },
     {
@@ -1863,7 +2061,7 @@
       "source_file": "api/_lib/auth.js",
       "source_location": "L116",
       "id": "lib_auth_cors",
-      "community": 29,
+      "community": 22,
       "norm_label": "cors()"
     },
     {
@@ -1939,6 +2137,141 @@
       "norm_label": "devicefingerprint()"
     },
     {
+      "label": "action.js",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "id": "api_admin_action_js",
+      "community": 29,
+      "norm_label": "action.js"
+    },
+    {
+      "label": "{ db, auth, timestamp, fieldValue }",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "id": "admin_action_db_auth_timestamp_fieldvalue",
+      "community": 29,
+      "norm_label": "{ db, auth, timestamp, fieldvalue }"
+    },
+    {
+      "label": "{ cors }",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L2",
+      "id": "admin_action_cors",
+      "community": 29,
+      "norm_label": "{ cors }"
+    },
+    {
+      "label": "DESTRUCTIVE_ACTIONS",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L10",
+      "id": "admin_action_destructive_actions",
+      "community": 29,
+      "norm_label": "destructive_actions"
+    },
+    {
+      "label": "writeAudit()",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L12",
+      "id": "admin_action_writeaudit",
+      "community": 21,
+      "norm_label": "writeaudit()"
+    },
+    {
+      "label": "token",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L41",
+      "id": "admin_action_token",
+      "community": 29,
+      "norm_label": "token"
+    },
+    {
+      "label": "docRef",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L65",
+      "id": "admin_action_docref",
+      "community": 29,
+      "norm_label": "docref"
+    },
+    {
+      "label": "resumo",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L70",
+      "id": "admin_action_resumo",
+      "community": 29,
+      "norm_label": "resumo"
+    },
+    {
+      "label": "reais",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L86",
+      "id": "admin_action_reais",
+      "community": 29,
+      "norm_label": "reais"
+    },
+    {
+      "label": "cents",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L88",
+      "id": "admin_action_cents",
+      "community": 29,
+      "norm_label": "cents"
+    },
+    {
+      "label": "newTrialEndsAt",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L116",
+      "id": "admin_action_newtrialendsat",
+      "community": 29,
+      "norm_label": "newtrialendsat"
+    },
+    {
+      "label": "userRef",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L171",
+      "id": "admin_action_userref",
+      "community": 29,
+      "norm_label": "userref"
+    },
+    {
+      "label": "payments",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L173",
+      "id": "admin_action_payments",
+      "community": 29,
+      "norm_label": "payments"
+    },
+    {
+      "label": "p",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L175",
+      "id": "admin_action_p",
+      "community": 29,
+      "norm_label": "p"
+    },
+    {
+      "label": "authInfo",
+      "file_type": "code",
+      "source_file": "api/admin/action.js",
+      "source_location": "L224",
+      "id": "admin_action_authinfo",
+      "community": 29,
+      "norm_label": "authinfo"
+    },
+    {
       "label": "stats.js",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
@@ -1948,13 +2281,13 @@
       "norm_label": "stats.js"
     },
     {
-      "label": "{ db, auth }",
+      "label": "{ db, auth, timestamp }",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
-      "id": "admin_stats_db_auth",
+      "id": "admin_stats_db_auth_timestamp",
       "community": 15,
-      "norm_label": "{ db, auth }"
+      "norm_label": "{ db, auth, timestamp }"
     },
     {
       "label": "{ cors }",
@@ -1966,130 +2299,67 @@
       "norm_label": "{ cors }"
     },
     {
-      "label": "{ timestamp }",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L3",
-      "id": "admin_stats_timestamp",
-      "community": 15,
-      "norm_label": "{ timestamp }"
-    },
-    {
       "label": "PAID_STATUSES",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L18",
+      "source_location": "L13",
       "id": "admin_stats_paid_statuses",
       "community": 15,
       "norm_label": "paid_statuses"
     },
     {
-      "label": "m",
+      "label": "authCheck()",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L32",
-      "id": "admin_stats_m",
+      "source_location": "L15",
+      "id": "admin_stats_authcheck",
       "community": 15,
-      "norm_label": "m"
+      "norm_label": "authcheck()"
     },
     {
-      "label": "D",
+      "label": "csvEscape()",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L39",
-      "id": "admin_stats_d",
+      "source_location": "L25",
+      "id": "admin_stats_csvescape",
       "community": 15,
-      "norm_label": "d"
+      "norm_label": "csvescape()"
     },
     {
-      "label": "now",
+      "label": "exportCsv()",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L40",
-      "id": "admin_stats_now",
-      "community": 15,
-      "norm_label": "now"
+      "source_location": "L33",
+      "id": "admin_stats_exportcsv",
+      "community": 21,
+      "norm_label": "exportcsv()"
     },
     {
-      "label": "dayAgo",
+      "label": "auditList()",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L41",
-      "id": "admin_stats_dayago",
+      "source_location": "L84",
+      "id": "admin_stats_auditlist",
       "community": 15,
-      "norm_label": "dayago"
+      "norm_label": "auditlist()"
     },
     {
-      "label": "weekAgo",
+      "label": "dashboard()",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L42",
-      "id": "admin_stats_weekago",
-      "community": 15,
-      "norm_label": "weekago"
+      "source_location": "L127",
+      "id": "admin_stats_dashboard",
+      "community": 21,
+      "norm_label": "dashboard()"
     },
     {
-      "label": "subscriptionStatus",
+      "label": "err",
       "file_type": "code",
       "source_file": "api/admin/stats.js",
-      "source_location": "L52",
-      "id": "admin_stats_subscriptionstatus",
+      "source_location": "L529",
+      "id": "admin_stats_err",
       "community": 15,
-      "norm_label": "subscriptionstatus"
-    },
-    {
-      "label": "lastPaymentStatus",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L53",
-      "id": "admin_stats_lastpaymentstatus",
-      "community": 15,
-      "norm_label": "lastpaymentstatus"
-    },
-    {
-      "label": "paymentMethods",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L54",
-      "id": "admin_stats_paymentmethods",
-      "community": 15,
-      "norm_label": "paymentmethods"
-    },
-    {
-      "label": "webhookByEvent",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L83",
-      "id": "admin_stats_webhookbyevent",
-      "community": 15,
-      "norm_label": "webhookbyevent"
-    },
-    {
-      "label": "webhook7dByEvent",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L90",
-      "id": "admin_stats_webhook7dbyevent",
-      "community": 15,
-      "norm_label": "webhook7dbyevent"
-    },
-    {
-      "label": "rateLimitByScope",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L99",
-      "id": "admin_stats_ratelimitbyscope",
-      "community": 15,
-      "norm_label": "ratelimitbyscope"
-    },
-    {
-      "label": "authUsers",
-      "file_type": "code",
-      "source_file": "api/admin/stats.js",
-      "source_location": "L118",
-      "id": "admin_stats_authusers",
-      "community": 15,
-      "norm_label": "authusers"
+      "norm_label": "err"
     },
     {
       "label": "resend-verification.js",
@@ -2097,7 +2367,7 @@
       "source_file": "api/auth/resend-verification.js",
       "source_location": "L1",
       "id": "api_auth_resend_verification_js",
-      "community": 29,
+      "community": 22,
       "norm_label": "resend-verification.js"
     },
     {
@@ -2106,7 +2376,7 @@
       "source_file": "api/auth/resend-verification.js",
       "source_location": "L1",
       "id": "auth_resend_verification_auth",
-      "community": 29,
+      "community": 22,
       "norm_label": "{ auth }"
     },
     {
@@ -2115,7 +2385,7 @@
       "source_file": "api/auth/resend-verification.js",
       "source_location": "L2",
       "id": "auth_resend_verification_requireuser_cors",
-      "community": 29,
+      "community": 22,
       "norm_label": "{ requireuser, cors }"
     },
     {
@@ -2124,7 +2394,7 @@
       "source_file": "api/auth/resend-verification.js",
       "source_location": "L3",
       "id": "auth_resend_verification_rl",
-      "community": 29,
+      "community": 22,
       "norm_label": "rl"
     },
     {
@@ -2538,7 +2808,7 @@
       "source_file": "api/billing/subscribe.js",
       "source_location": "L111",
       "id": "billing_subscribe_releaselock",
-      "community": 5,
+      "community": 42,
       "norm_label": "releaselock()"
     },
     {
@@ -2630,78 +2900,6 @@
       "id": "billing_subscribe_meta",
       "community": 5,
       "norm_label": "meta"
-    },
-    {
-      "label": "status.js",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L1",
-      "id": "api_billing_status_js",
-      "community": 17,
-      "norm_label": "status.js"
-    },
-    {
-      "label": "{ db }",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L1",
-      "id": "billing_status_db",
-      "community": 17,
-      "norm_label": "{ db }"
-    },
-    {
-      "label": "{ requireVerifiedUser, cors }",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "id": "billing_status_requireverifieduser_cors",
-      "community": 17,
-      "norm_label": "{ requireverifieduser, cors }"
-    },
-    {
-      "label": "{ computeAccess }",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L3",
-      "id": "billing_status_computeaccess",
-      "community": 17,
-      "norm_label": "{ computeaccess }"
-    },
-    {
-      "label": "{ syncBillingFromAsaas }",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L4",
-      "id": "billing_status_syncbillingfromasaas",
-      "community": 17,
-      "norm_label": "{ syncbillingfromasaas }"
-    },
-    {
-      "label": "billingRef",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L14",
-      "id": "billing_status_billingref",
-      "community": 17,
-      "norm_label": "billingref"
-    },
-    {
-      "label": "access",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L23",
-      "id": "billing_status_access",
-      "community": 17,
-      "norm_label": "access"
-    },
-    {
-      "label": "tsToIso()",
-      "file_type": "code",
-      "source_file": "api/billing/status.js",
-      "source_location": "L46",
-      "id": "billing_status_tstoiso",
-      "community": 17,
-      "norm_label": "tstoiso()"
     },
     {
       "label": "init.js",
@@ -2844,7 +3042,7 @@
       "source_file": "api/billing/init.js",
       "source_location": "L211",
       "id": "billing_init_releaselock",
-      "community": 6,
+      "community": 42,
       "norm_label": "releaselock()"
     },
     {
@@ -3015,7 +3213,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L121",
       "id": "billing_webhook_creditindicatorfromindicado",
-      "community": 6,
+      "community": 42,
       "norm_label": "creditindicatorfromindicado()"
     },
     {
@@ -3024,7 +3222,7 @@
       "source_file": "api/billing/webhook.js",
       "source_location": "L180",
       "id": "billing_webhook_reversereferralcredit",
-      "community": 6,
+      "community": 42,
       "norm_label": "reversereferralcredit()"
     },
     {
@@ -3060,7 +3258,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L1",
       "id": "api_billing_cancel_js",
-      "community": 25,
+      "community": 22,
       "norm_label": "cancel.js"
     },
     {
@@ -3069,7 +3267,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L1",
       "id": "billing_cancel_db_fieldvalue",
-      "community": 25,
+      "community": 22,
       "norm_label": "{ db, fieldvalue }"
     },
     {
@@ -3078,7 +3276,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L2",
       "id": "billing_cancel_requireverifieduser_cors",
-      "community": 25,
+      "community": 22,
       "norm_label": "{ requireverifieduser, cors }"
     },
     {
@@ -3087,7 +3285,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L3",
       "id": "billing_cancel_asaas",
-      "community": 25,
+      "community": 22,
       "norm_label": "asaas"
     },
     {
@@ -3096,7 +3294,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L13",
       "id": "billing_cancel_ref",
-      "community": 25,
+      "community": 22,
       "norm_label": "ref"
     },
     {
@@ -3105,7 +3303,7 @@
       "source_file": "api/billing/cancel.js",
       "source_location": "L16",
       "id": "billing_cancel_billing",
-      "community": 25,
+      "community": 22,
       "norm_label": "billing"
     },
     {
@@ -3793,6 +3991,15 @@
       "norm_label": "on_page()"
     },
     {
+      "label": "Canvas",
+      "file_type": "code",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L152",
+      "id": "canvas",
+      "community": 7,
+      "norm_label": "canvas"
+    },
+    {
       "label": "cover()",
       "file_type": "code",
       "source_file": "scripts/build_plan_pdf.py",
@@ -4471,7 +4678,7 @@
       "label": "makeReq()",
       "file_type": "code",
       "source_file": "scripts/lib/mock-billing.js",
-      "source_location": "L248",
+      "source_location": "L247",
       "id": "lib_mock_billing_makereq",
       "community": 1,
       "norm_label": "makereq()"
@@ -4480,7 +4687,7 @@
       "label": "makeRes()",
       "file_type": "code",
       "source_file": "scripts/lib/mock-billing.js",
-      "source_location": "L251",
+      "source_location": "L250",
       "id": "lib_mock_billing_makeres",
       "community": 1,
       "norm_label": "makeres()"
@@ -4489,7 +4696,7 @@
       "label": "call()",
       "file_type": "code",
       "source_file": "scripts/lib/mock-billing.js",
-      "source_location": "L260",
+      "source_location": "L259",
       "id": "lib_mock_billing_call",
       "community": 1,
       "norm_label": "call()"
@@ -5287,6 +5494,204 @@
       "norm_label": "prioridade pratica (ordem do que eu faria)"
     },
     {
+      "label": "{ db, auth }",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L1",
+      "community": 15,
+      "norm_label": "{ db, auth }",
+      "id": "admin_stats_db_auth"
+    },
+    {
+      "label": "{ timestamp }",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L3",
+      "community": 15,
+      "norm_label": "{ timestamp }",
+      "id": "admin_stats_timestamp"
+    },
+    {
+      "label": "m",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L32",
+      "community": 15,
+      "norm_label": "m",
+      "id": "admin_stats_m"
+    },
+    {
+      "label": "D",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L39",
+      "community": 15,
+      "norm_label": "d",
+      "id": "admin_stats_d"
+    },
+    {
+      "label": "now",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L40",
+      "community": 15,
+      "norm_label": "now",
+      "id": "admin_stats_now"
+    },
+    {
+      "label": "dayAgo",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L41",
+      "community": 15,
+      "norm_label": "dayago",
+      "id": "admin_stats_dayago"
+    },
+    {
+      "label": "weekAgo",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L42",
+      "community": 15,
+      "norm_label": "weekago",
+      "id": "admin_stats_weekago"
+    },
+    {
+      "label": "subscriptionStatus",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L52",
+      "community": 15,
+      "norm_label": "subscriptionstatus",
+      "id": "admin_stats_subscriptionstatus"
+    },
+    {
+      "label": "lastPaymentStatus",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L53",
+      "community": 15,
+      "norm_label": "lastpaymentstatus",
+      "id": "admin_stats_lastpaymentstatus"
+    },
+    {
+      "label": "paymentMethods",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L54",
+      "community": 15,
+      "norm_label": "paymentmethods",
+      "id": "admin_stats_paymentmethods"
+    },
+    {
+      "label": "webhookByEvent",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L83",
+      "community": 15,
+      "norm_label": "webhookbyevent",
+      "id": "admin_stats_webhookbyevent"
+    },
+    {
+      "label": "webhook7dByEvent",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L90",
+      "community": 15,
+      "norm_label": "webhook7dbyevent",
+      "id": "admin_stats_webhook7dbyevent"
+    },
+    {
+      "label": "rateLimitByScope",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L99",
+      "community": 15,
+      "norm_label": "ratelimitbyscope",
+      "id": "admin_stats_ratelimitbyscope"
+    },
+    {
+      "label": "authUsers",
+      "file_type": "code",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L118",
+      "community": 15,
+      "norm_label": "authusers",
+      "id": "admin_stats_authusers"
+    },
+    {
+      "label": "status.js",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "community": 17,
+      "norm_label": "status.js",
+      "id": "api_billing_status_js"
+    },
+    {
+      "label": "{ db }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "community": 17,
+      "norm_label": "{ db }",
+      "id": "billing_status_db"
+    },
+    {
+      "label": "{ requireVerifiedUser, cors }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "community": 17,
+      "norm_label": "{ requireverifieduser, cors }",
+      "id": "billing_status_requireverifieduser_cors"
+    },
+    {
+      "label": "{ computeAccess }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "community": 17,
+      "norm_label": "{ computeaccess }",
+      "id": "billing_status_computeaccess"
+    },
+    {
+      "label": "{ syncBillingFromAsaas }",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L4",
+      "community": 17,
+      "norm_label": "{ syncbillingfromasaas }",
+      "id": "billing_status_syncbillingfromasaas"
+    },
+    {
+      "label": "billingRef",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L14",
+      "community": 17,
+      "norm_label": "billingref",
+      "id": "billing_status_billingref"
+    },
+    {
+      "label": "access",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L23",
+      "community": 17,
+      "norm_label": "access",
+      "id": "billing_status_access"
+    },
+    {
+      "label": "tsToIso()",
+      "file_type": "code",
+      "source_file": "api/billing/status.js",
+      "source_location": "L46",
+      "community": 17,
+      "norm_label": "tstoiso()",
+      "id": "billing_status_tstoiso"
+    },
+    {
       "label": "collectKeysPayload()",
       "file_type": "code",
       "source_file": "web/appliquei-cloud-sync.js",
@@ -5696,7 +6101,7 @@
       "file_type": "code",
       "source_file": "api/billing/cancel.js",
       "source_location": "L2",
-      "community": 25,
+      "community": 22,
       "norm_label": "{ requireuser, cors }",
       "id": "billing_cancel_requireuser_cors"
     },
@@ -5990,6 +6395,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "vercel.json",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "vercel_json",
+      "target": "investimentos_vercel_crons",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "vercel.json",
       "source_location": "L9",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -6172,9 +6587,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L61",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_readjsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_readjsonmap"
     },
     {
       "relation": "contains",
@@ -6182,9 +6597,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L70",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "contains",
@@ -6192,9 +6607,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "contains",
@@ -6202,9 +6617,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L75",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "contains",
@@ -6212,9 +6627,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L77",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_setlocalrev",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_setlocalrev"
     },
     {
       "relation": "contains",
@@ -6222,9 +6637,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L83",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_setlocaldeletion",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_setlocaldeletion"
     },
     {
       "relation": "contains",
@@ -6232,9 +6647,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L89",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_removelocaldeletion",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_removelocaldeletion"
     },
     {
       "relation": "contains",
@@ -6252,9 +6667,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_collectdirtypayload",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_collectdirtypayload"
     },
     {
       "relation": "contains",
@@ -6282,9 +6697,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L195",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_refreshidtokencache",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_refreshidtokencache"
     },
     {
       "relation": "contains",
@@ -6292,9 +6707,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L204",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_startidtokencache",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_startidtokencache"
     },
     {
       "relation": "contains",
@@ -6302,9 +6717,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L221",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_buildbeaconpayload",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_buildbeaconpayload"
     },
     {
       "relation": "contains",
@@ -6312,9 +6727,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L255",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_beaconflushnow",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_beaconflushnow"
     },
     {
       "relation": "contains",
@@ -6322,9 +6737,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L312",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_schedulebeacon",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_schedulebeacon"
     },
     {
       "relation": "contains",
@@ -6372,9 +6787,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L470",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_js",
-      "target": "web_appliquei_cloud_sync_reconcileagainstemptyremote",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_reconcileagainstemptyremote"
     },
     {
       "relation": "contains",
@@ -6473,9 +6888,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L108",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_collectdirtypayload",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
     },
     {
       "relation": "calls",
@@ -6484,9 +6899,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L231",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_buildbeaconpayload",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
     },
     {
       "relation": "calls",
@@ -6506,9 +6921,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L475",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_reconcileagainstemptyremote",
-      "target": "web_appliquei_cloud_sync_shouldsynckey",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_shouldsynckey"
     },
     {
       "relation": "calls",
@@ -6605,9 +7020,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L74",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_getlocalrevs",
-      "target": "web_appliquei_cloud_sync_readjsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_readjsonmap"
     },
     {
       "relation": "calls",
@@ -6616,9 +7031,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L75",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_getlocaldeletions",
-      "target": "web_appliquei_cloud_sync_readjsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_readjsonmap"
     },
     {
       "relation": "calls",
@@ -6627,9 +7042,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L80",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_setlocalrev",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "calls",
@@ -6638,9 +7053,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L86",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_setlocaldeletion",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "calls",
@@ -6649,9 +7064,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L91",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_removelocaldeletion",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "calls",
@@ -6660,9 +7075,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L403",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "calls",
@@ -6671,9 +7086,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L496",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_reconcileagainstemptyremote",
-      "target": "web_appliquei_cloud_sync_writejsonmap",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_writejsonmap"
     },
     {
       "relation": "calls",
@@ -6682,9 +7097,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L78",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_setlocalrev",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "calls",
@@ -6693,9 +7108,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L105",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_collectdirtypayload",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "calls",
@@ -6704,9 +7119,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L226",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_buildbeaconpayload",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "calls",
@@ -6715,9 +7130,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L337",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "calls",
@@ -6726,9 +7141,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L473",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_reconcileagainstemptyremote",
-      "target": "web_appliquei_cloud_sync_getlocalrevs",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocalrevs"
     },
     {
       "relation": "calls",
@@ -6737,9 +7152,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L84",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_setlocaldeletion",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6748,9 +7163,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_removelocaldeletion",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6759,9 +7174,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L102",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_collectdirtypayload",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6770,9 +7185,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L223",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_buildbeaconpayload",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6781,9 +7196,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L338",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6792,9 +7207,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L511",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_getlocaldeletions",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_getlocaldeletions"
     },
     {
       "relation": "calls",
@@ -6803,9 +7218,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L162",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_flushpush",
-      "target": "web_appliquei_cloud_sync_removelocaldeletion",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_removelocaldeletion"
     },
     {
       "relation": "calls",
@@ -6814,9 +7229,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L383",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_removelocaldeletion",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_removelocaldeletion"
     },
     {
       "relation": "calls",
@@ -6858,9 +7273,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L144",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_flushpush",
-      "target": "web_appliquei_cloud_sync_collectdirtypayload",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_collectdirtypayload"
     },
     {
       "relation": "calls",
@@ -6924,9 +7339,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L208",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_startidtokencache",
-      "target": "web_appliquei_cloud_sync_refreshidtokencache",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_refreshidtokencache"
     },
     {
       "relation": "calls",
@@ -6935,9 +7350,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L261",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_beaconflushnow",
-      "target": "web_appliquei_cloud_sync_refreshidtokencache",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_refreshidtokencache"
     },
     {
       "relation": "calls",
@@ -6946,9 +7361,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L603",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_attach",
-      "target": "web_appliquei_cloud_sync_startidtokencache",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_startidtokencache"
     },
     {
       "relation": "calls",
@@ -6957,9 +7372,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L265",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_beaconflushnow",
-      "target": "web_appliquei_cloud_sync_buildbeaconpayload",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_buildbeaconpayload"
     },
     {
       "relation": "calls",
@@ -6968,9 +7383,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L316",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_schedulebeacon",
-      "target": "web_appliquei_cloud_sync_beaconflushnow",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_beaconflushnow"
     },
     {
       "relation": "calls",
@@ -6979,9 +7394,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L629",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_onvisibilitychange",
-      "target": "web_appliquei_cloud_sync_beaconflushnow",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_beaconflushnow"
     },
     {
       "relation": "calls",
@@ -6990,9 +7405,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L642",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_onpagehide",
-      "target": "web_appliquei_cloud_sync_beaconflushnow",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_beaconflushnow"
     },
     {
       "relation": "calls",
@@ -7001,9 +7416,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L421",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_applyremotesnapshot",
-      "target": "web_appliquei_cloud_sync_schedulepush",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_schedulepush"
     },
     {
       "relation": "calls",
@@ -7012,9 +7427,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L512",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_schedulepush",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_schedulepush"
     },
     {
       "relation": "calls",
@@ -7089,9 +7504,9 @@
       "source_file": "web/appliquei-cloud-sync.js",
       "source_location": "L507",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "web_appliquei_cloud_sync_pullandapply",
-      "target": "web_appliquei_cloud_sync_reconcileagainstemptyremote",
-      "confidence_score": 1.0
+      "target": "web_appliquei_cloud_sync_reconcileagainstemptyremote"
     },
     {
       "relation": "calls",
@@ -7262,6 +7677,46 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
+      "source_location": "L290",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_startgateguard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L329",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_stopgateguard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L338",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_titleforaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L347",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_subforaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
       "source_location": "L64",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -7357,6 +7812,16 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_js",
       "target": "web_appliquei_billing_authedfetch"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L598",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_purgelocalcacheifblocked",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -7992,6 +8457,16 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
+      "source_location": "L1925",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_js",
+      "target": "web_appliquei_billing_setsignupblock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
       "source_location": "L241",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8216,6 +8691,17 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_hidegate",
       "target": "web_appliquei_billing"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L295",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_startgateguard",
+      "target": "web_appliquei_billing",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -8519,11 +9005,33 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
+      "source_location": "L300",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_startgateguard",
+      "target": "web_appliquei_billing_ensuregate",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
       "source_location": "L65",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_showerr",
       "target": "web_appliquei_billing_ensuregate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L266",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_showgate",
+      "target": "web_appliquei_billing_startgateguard",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -8574,6 +9082,17 @@
       "context": "call",
       "confidence": "EXTRACTED",
       "source_file": "web/appliquei-billing.js",
+      "source_location": "L275",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_hidegate",
+      "target": "web_appliquei_billing_stopgateguard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
       "source_location": "L117",
       "weight": 1.0,
       "confidence_score": 1.0,
@@ -8590,6 +9109,28 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_onuser",
       "target": "web_appliquei_billing_hidegate"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L298",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_startgateguard",
+      "target": "web_appliquei_billing_titleforaccess",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L299",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_startgateguard",
+      "target": "web_appliquei_billing_subforaccess",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -8854,6 +9395,17 @@
       "confidence_score": 1.0,
       "source": "web_appliquei_billing_waitforactive",
       "target": "web_appliquei_billing_authedfetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "web/appliquei-billing.js",
+      "source_location": "L612",
+      "weight": 1.0,
+      "source": "web_appliquei_billing_applyaccess",
+      "target": "web_appliquei_billing_purgelocalcacheifblocked",
+      "confidence_score": 1.0
     },
     {
       "relation": "calls",
@@ -10135,6 +10687,388 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "lib_firebase_admin_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_db_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_lib_auth_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "lib_auth_requireuser",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_requireuser_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_crypto_map",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_range_months",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_todayymdbrt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_sanitizeticker",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L54",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_fetchbrapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L91",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_handlequote",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L165",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_fetchhistorysource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_downsamplemonthly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L253",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_buildsyntheticseries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L265",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_handlehistory",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L310",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_handlewarmup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L385",
+      "weight": 1.0,
+      "source": "api_market_js",
+      "target": "api_market_op",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "api_market_handlequote",
+      "target": "api_market_todayymdbrt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L278",
+      "weight": 1.0,
+      "source": "api_market_handlehistory",
+      "target": "api_market_todayymdbrt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L341",
+      "weight": 1.0,
+      "source": "api_market_handlewarmup",
+      "target": "api_market_todayymdbrt",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L121",
+      "weight": 1.0,
+      "source": "api_market_handlequote",
+      "target": "api_market_fetchbrapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L348",
+      "weight": 1.0,
+      "source": "api_market_handlewarmup",
+      "target": "api_market_fetchbrapi",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L92",
+      "weight": 1.0,
+      "source": "api_market_handlequote",
+      "target": "lib_auth_requireuser"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L105",
+      "weight": 1.0,
+      "source": "api_market_handlequote",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L129",
+      "weight": 1.0,
+      "source": "api_market_handlequote",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L171",
+      "weight": 1.0,
+      "source": "api_market_fetchhistorysource",
+      "target": "api_market_buildsyntheticseries",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L188",
+      "weight": 1.0,
+      "source": "api_market_fetchhistorysource",
+      "target": "api_market_downsamplemonthly",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "api/market.js",
+      "source_location": "L288",
+      "weight": 1.0,
+      "source": "api_market_handlehistory",
+      "target": "api_market_fetchhistorysource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L266",
+      "weight": 1.0,
+      "source": "api_market_handlehistory",
+      "target": "lib_auth_requireuser"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L279",
+      "weight": 1.0,
+      "source": "api_market_handlehistory",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L303",
+      "weight": 1.0,
+      "source": "api_market_handlehistory",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L317",
+      "weight": 1.0,
+      "source": "api_market_handlewarmup",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/market.js",
+      "source_location": "L361",
+      "weight": 1.0,
+      "source": "api_market_handlewarmup",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/_lib/billing-sync.js",
       "source_location": "L1",
       "weight": 1.0,
@@ -10239,22 +11173,22 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L4",
+      "source_file": "api/billing/init.js",
+      "source_location": "L5",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "api_billing_status_js",
+      "source": "api_billing_init_js",
       "target": "api_lib_billing_sync_js"
     },
     {
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/init.js",
-      "source_location": "L5",
+      "source_file": "api/billing/status.js",
+      "source_location": "L4",
       "weight": 1.0,
       "confidence_score": 1.0,
-      "source": "api_billing_init_js",
+      "source": "api_billing_status_js",
       "target": "api_lib_billing_sync_js"
     },
     {
@@ -10283,17 +11217,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "lib_billing_sync_syncbillingfromasaas"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L5",
       "weight": 1.0,
@@ -10311,6 +11234,17 @@
       "weight": 1.0,
       "source": "lib_billing_sync_syncbillingfromasaas",
       "target": "lib_firebase_admin_fieldvalue"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_billing_sync_syncbillingfromasaas"
     },
     {
       "relation": "contains",
@@ -10398,6 +11332,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "api_lib_firebase_admin_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
       "source_location": "L3",
       "weight": 1.0,
@@ -10453,17 +11398,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "api_lib_firebase_admin_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L1",
       "weight": 1.0,
@@ -10511,9 +11445,20 @@
       "source_file": "api/sync/push.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "api_lib_firebase_admin_js",
-      "confidence_score": 1.0
+      "target": "api_lib_firebase_admin_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "api_lib_firebase_admin_js"
     },
     {
       "relation": "calls",
@@ -10563,6 +11508,17 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "lib_firebase_admin_db",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
       "weight": 1.0,
@@ -10601,17 +11557,6 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_billing_subscribe_js",
-      "target": "lib_firebase_admin_db"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
       "target": "lib_firebase_admin_db"
     },
     {
@@ -10665,9 +11610,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "lib_firebase_admin_db",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_db"
     },
     {
       "relation": "calls",
@@ -10678,6 +11623,50 @@
       "source_location": "L41",
       "weight": 1.0,
       "source": "lib_rate_limit_check",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/action.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "admin_action_writeaudit",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L34",
+      "weight": 1.0,
+      "source": "admin_stats_exportcsv",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "admin_stats_auditlist",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L128",
+      "weight": 1.0,
+      "source": "admin_stats_dashboard",
       "target": "lib_firebase_admin_db"
     },
     {
@@ -10783,12 +11772,34 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_firebase_admin_db"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/_lib/auth.js",
       "source_location": "L1",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_lib_auth_js",
       "target": "lib_firebase_admin_auth"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "lib_firebase_admin_auth",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -10819,9 +11830,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "lib_firebase_admin_auth",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_auth"
     },
     {
       "relation": "calls",
@@ -10843,6 +11854,28 @@
       "source_location": "L85",
       "weight": 1.0,
       "source": "lib_auth_requirefreshverifieduser",
+      "target": "lib_firebase_admin_auth"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "admin_stats_exportcsv",
+      "target": "lib_firebase_admin_auth"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L310",
+      "weight": 1.0,
+      "source": "admin_stats_dashboard",
       "target": "lib_firebase_admin_auth"
     },
     {
@@ -10877,6 +11910,17 @@
       "confidence_score": 1.0,
       "source": "api_lib_rate_limit_js",
       "target": "lib_firebase_admin_fieldvalue"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "lib_firebase_admin_fieldvalue",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -10951,9 +11995,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "lib_firebase_admin_fieldvalue",
-      "confidence_score": 1.0
+      "target": "lib_firebase_admin_fieldvalue"
     },
     {
       "relation": "calls",
@@ -11047,6 +12091,17 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "lib_firebase_admin_timestamp",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
       "source_location": "L3",
       "weight": 1.0,
@@ -11096,6 +12151,39 @@
       "source_location": "L45",
       "weight": 1.0,
       "source": "lib_rate_limit_check",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/action.js",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "admin_action_writeaudit",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "admin_stats_exportcsv",
+      "target": "lib_firebase_admin_timestamp"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "api/admin/stats.js",
+      "source_location": "L130",
+      "weight": 1.0,
+      "source": "admin_stats_dashboard",
       "target": "lib_firebase_admin_timestamp"
     },
     {
@@ -11821,17 +12909,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "api_lib_access_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L4",
       "weight": 1.0,
@@ -11846,9 +12923,20 @@
       "source_file": "api/sync/push.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "api_lib_access_js",
-      "confidence_score": 1.0
+      "target": "api_lib_access_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "api_lib_access_js"
     },
     {
       "relation": "calls",
@@ -11876,17 +12964,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "lib_access_computeaccess"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L4",
       "weight": 1.0,
@@ -11901,9 +12978,20 @@
       "source_file": "api/sync/push.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "lib_access_computeaccess",
-      "confidence_score": 1.0
+      "target": "lib_access_computeaccess"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "lib_access_computeaccess"
     },
     {
       "relation": "imports_from",
@@ -12118,6 +13206,17 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "api_lib_auth_js",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
       "source_location": "L2",
       "weight": 1.0,
@@ -12173,17 +13272,6 @@
       "relation": "imports_from",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "api_lib_auth_js"
-    },
-    {
-      "relation": "imports_from",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L2",
       "weight": 1.0,
@@ -12211,6 +13299,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_billing_customer_js",
+      "target": "api_lib_auth_js"
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
       "target": "api_lib_auth_js"
     },
     {
@@ -12382,17 +13481,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "lib_auth_requireverifieduser"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/cancel.js",
       "source_location": "L2",
       "weight": 1.0,
@@ -12409,6 +13497,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_billing_customer_js",
+      "target": "lib_auth_requireverifieduser"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
       "target": "lib_auth_requireverifieduser"
     },
     {
@@ -12443,6 +13542,17 @@
       "confidence_score": 1.0,
       "source": "api_billing_init_js",
       "target": "lib_auth_requirefreshverifieduser"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "lib_auth_cors",
+      "confidence_score": 1.0
     },
     {
       "relation": "imports",
@@ -12503,17 +13613,6 @@
       "relation": "imports",
       "context": "import",
       "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "lib_auth_cors"
-    },
-    {
-      "relation": "imports",
-      "context": "import",
-      "confidence": "EXTRACTED",
       "source_file": "api/billing/init.js",
       "source_location": "L2",
       "weight": 1.0,
@@ -12541,6 +13640,17 @@
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_billing_customer_js",
+      "target": "lib_auth_cors"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
       "target": "lib_auth_cors"
     },
     {
@@ -12671,12 +13781,152 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_db_auth_timestamp_fieldvalue",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_cors",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_destructive_actions",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_writeaudit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_token",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L65",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_docref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_resumo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L86",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_reais",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L88",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_cents",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_newtrialendsat",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L195",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_userref",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L197",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_payments",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L199",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_p",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/action.js",
+      "source_location": "L224",
+      "weight": 1.0,
+      "source": "api_admin_action_js",
+      "target": "admin_action_authinfo",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
       "source_location": "L1",
       "weight": 1.0,
-      "confidence_score": 1.0,
       "source": "api_admin_stats_js",
-      "target": "admin_stats_db_auth"
+      "target": "admin_stats_db_auth_timestamp",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -12692,21 +13942,91 @@
       "relation": "contains",
       "confidence": "EXTRACTED",
       "source_file": "api/admin/stats.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_admin_stats_js",
-      "target": "admin_stats_timestamp"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/admin/stats.js",
       "source_location": "L18",
       "weight": 1.0,
       "confidence_score": 1.0,
       "source": "api_admin_stats_js",
       "target": "admin_stats_paid_statuses"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_authcheck",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_csvescape",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_exportcsv",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L84",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_auditlist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L127",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_dashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L529",
+      "weight": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_err",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_db_auth"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/admin/stats.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_admin_stats_js",
+      "target": "admin_stats_timestamp"
     },
     {
       "relation": "contains",
@@ -13459,86 +14779,6 @@
       "confidence_score": 1.0,
       "source": "billing_subscribe_cardmetadatafromasaas",
       "target": "billing_subscribe_brandfromnumber"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L1",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_db"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_requireverifieduser_cors"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L3",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_computeaccess"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L4",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_syncbillingfromasaas"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L14",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_billingref"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L15",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_access"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L32",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_tstoiso"
-    },
-    {
-      "relation": "contains",
-      "confidence": "EXTRACTED",
-      "source_file": "api/billing/status.js",
-      "source_location": "L2",
-      "weight": 1.0,
-      "confidence_score": 1.0,
-      "source": "api_billing_status_js",
-      "target": "billing_status_requireuser_cors"
     },
     {
       "relation": "contains",
@@ -14299,9 +15539,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L16",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_db_auth_adminauth_fieldvalue",
-      "confidence_score": 1.0
+      "target": "sync_push_db_auth_adminauth_fieldvalue"
     },
     {
       "relation": "contains",
@@ -14309,9 +15549,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L17",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_computeaccess",
-      "confidence_score": 1.0
+      "target": "sync_push_computeaccess"
     },
     {
       "relation": "contains",
@@ -14319,9 +15559,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L22",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_issynckey",
-      "confidence_score": 1.0
+      "target": "sync_push_issynckey"
     },
     {
       "relation": "contains",
@@ -14329,9 +15569,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L29",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_readjsonbody",
-      "confidence_score": 1.0
+      "target": "sync_push_readjsonbody"
     },
     {
       "relation": "contains",
@@ -14339,9 +15579,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L90",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_d",
-      "confidence_score": 1.0
+      "target": "sync_push_d"
     },
     {
       "relation": "contains",
@@ -14349,9 +15589,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L91",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_userref",
-      "confidence_score": 1.0
+      "target": "sync_push_userref"
     },
     {
       "relation": "contains",
@@ -14359,9 +15599,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L92",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_billingref",
-      "confidence_score": 1.0
+      "target": "sync_push_billingref"
     },
     {
       "relation": "contains",
@@ -14369,9 +15609,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L94",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_access",
-      "confidence_score": 1.0
+      "target": "sync_push_access"
     },
     {
       "relation": "contains",
@@ -14379,9 +15619,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L99",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_dataref",
-      "confidence_score": 1.0
+      "target": "sync_push_dataref"
     },
     {
       "relation": "contains",
@@ -14389,9 +15629,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L100",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_fv",
-      "confidence_score": 1.0
+      "target": "sync_push_fv"
     },
     {
       "relation": "contains",
@@ -14399,9 +15639,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L108",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_updatefields",
-      "confidence_score": 1.0
+      "target": "sync_push_updatefields"
     },
     {
       "relation": "contains",
@@ -14409,9 +15649,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L109",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_initkeys",
-      "confidence_score": 1.0
+      "target": "sync_push_initkeys"
     },
     {
       "relation": "contains",
@@ -14419,9 +15659,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L110",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_initrevs",
-      "confidence_score": 1.0
+      "target": "sync_push_initrevs"
     },
     {
       "relation": "contains",
@@ -14429,9 +15669,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L118",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_rev",
-      "confidence_score": 1.0
+      "target": "sync_push_rev"
     },
     {
       "relation": "contains",
@@ -14439,9 +15679,9 @@
       "source_file": "api/sync/push.js",
       "source_location": "L120",
       "weight": 1.0,
+      "confidence_score": 1.0,
       "source": "api_sync_push_js",
-      "target": "sync_push_currev",
-      "confidence_score": 1.0
+      "target": "sync_push_currev"
     },
     {
       "relation": "contains",
@@ -15686,6 +16926,17 @@
       "confidence_score": 1.0,
       "source": "build_plan_pdf_py",
       "target": "scripts_build_plan_pdf_bullets"
+    },
+    {
+      "relation": "references",
+      "context": "parameter_type",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/build_plan_pdf.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "scripts_build_plan_pdf_on_page",
+      "target": "canvas",
+      "confidence_score": 1.0
     },
     {
       "relation": "contains",
@@ -17923,6 +19174,86 @@
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L1",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_db"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_requireverifieduser_cors"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_computeaccess"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L4",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_syncbillingfromasaas"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_billingref"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L15",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_access"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L32",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_tstoiso"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "api/billing/status.js",
+      "source_location": "L2",
+      "weight": 1.0,
+      "confidence_score": 1.0,
+      "source": "api_billing_status_js",
+      "target": "billing_status_requireuser_cors"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
       "source_file": "BILLING.md",
       "source_location": "L3",
       "weight": 1.0,
@@ -18442,5 +19773,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "4ff56ad7375985eb17e4614299cb6fb96f2d75f1"
+  "built_at_commit": "d0b8a7f8d8997f492b65d1fe29cdb7ac5fd6af27"
 }
