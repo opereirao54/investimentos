@@ -147,8 +147,13 @@
           <div><strong>Valor:</strong> R$ 15,00 / mês</div>\
           <div><strong>Pagamento:</strong> <span id="billingMethodLabel">Cartão (renovação automática) ou PIX/boleto</span></div>\
         </div>\
-        <div role="tablist" style="display:flex;gap:6px;margin-bottom:14px;">\
-          <button id="billingTabCard" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cartão recorrente</button>\
+        <div role="tablist" aria-label="Tipo de cobrança" style="display:flex;gap:6px;margin-bottom:8px;">\
+          <button id="billingModeSub" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Assinar mensal</button>\
+          <button id="billingModeOnce" type="button" style="flex:1;padding:9px 0;border:1px solid #d4dad7;background:#fff;color:#384a42;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">Pagar 1 mês</button>\
+        </div>\
+        <p id="billingModeHint" style="font-size:11.5px;color:#6b7d75;margin:0 0 12px;">Renovação automática. Cancele quando quiser.</p>\
+        <div role="tablist" aria-label="Método de pagamento" style="display:flex;gap:6px;margin-bottom:14px;">\
+          <button id="billingTabCard" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cartão</button>\
           <button id="billingTabPix" type="button" style="flex:1;padding:9px 0;border:1px solid #d4dad7;background:#fff;color:#384a42;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">PIX / Boleto</button>\
         </div>\
         <div style="margin-bottom:12px;">\
@@ -210,8 +215,11 @@
     document.body.appendChild(div);
 
     selectedMethod = 'CREDIT_CARD';
+    selectedBillingMode = 'subscription';
     $('billingTabCard').addEventListener('click', function () { setMethod('CREDIT_CARD'); });
     $('billingTabPix').addEventListener('click', function () { setMethod('UNDEFINED'); });
+    $('billingModeSub').addEventListener('click', function () { setBillingMode('subscription'); });
+    $('billingModeOnce').addEventListener('click', function () { setBillingMode('one_shot'); });
     $('billingSubscribeBtn').addEventListener('click', subscribe);
     $('billingCouponApply').addEventListener('click', applyCoupon);
     $('billingCoupon').addEventListener('keydown', function (e) {
@@ -224,6 +232,31 @@
   }
 
   var selectedMethod = 'CREDIT_CARD';
+  var selectedBillingMode = 'subscription'; // 'subscription' | 'one_shot'
+
+  function ctaText() {
+    var p = priceLabel();
+    if (selectedBillingMode === 'one_shot') {
+      return selectedMethod === 'CREDIT_CARD'
+        ? 'Pagar ' + p + ' (1 mês)'
+        : 'Gerar fatura única (' + p + ')';
+    }
+    return selectedMethod === 'CREDIT_CARD'
+      ? 'Assinar com cartão (' + p + '/mês)'
+      : 'Gerar fatura (' + p + '/mês)';
+  }
+
+  function methodHintText() {
+    if (selectedBillingMode === 'one_shot') {
+      return selectedMethod === 'CREDIT_CARD'
+        ? 'Cartão cobrado uma vez. Sem renovação automática.'
+        : 'PIX ou boleto avulso — válido por 30 dias após o pagamento.';
+    }
+    return selectedMethod === 'CREDIT_CARD'
+      ? 'Cartão recorrente — cobrado automaticamente todo mês'
+      : 'PIX ou boleto — fatura nova todo mês';
+  }
+
   function setMethod(m) {
     selectedMethod = m;
     var card = $('billingTabCard');
@@ -235,15 +268,33 @@
       if (card) { card.style.background = '#059669'; card.style.color = '#fff'; card.style.borderColor = '#059669'; card.style.fontWeight = '600'; }
       if (pix) { pix.style.background = '#fff'; pix.style.color = '#384a42'; pix.style.borderColor = '#d4dad7'; pix.style.fontWeight = '500'; }
       if (fields) fields.style.display = '';
-      if (label) label.textContent = 'Cartão recorrente — cobrado automaticamente todo mês';
-      if (btn) btn.textContent = 'Assinar com cartão (' + priceLabel() + '/mês)';
     } else {
       if (pix) { pix.style.background = '#059669'; pix.style.color = '#fff'; pix.style.borderColor = '#059669'; pix.style.fontWeight = '600'; }
       if (card) { card.style.background = '#fff'; card.style.color = '#384a42'; card.style.borderColor = '#d4dad7'; card.style.fontWeight = '500'; }
       if (fields) fields.style.display = 'none';
-      if (label) label.textContent = 'PIX ou boleto — fatura nova todo mês';
-      if (btn) btn.textContent = 'Gerar fatura (' + priceLabel() + '/mês)';
     }
+    if (label) label.textContent = methodHintText();
+    if (btn) btn.textContent = ctaText();
+  }
+
+  function setBillingMode(mode) {
+    selectedBillingMode = mode;
+    var sub = $('billingModeSub');
+    var once = $('billingModeOnce');
+    var hint = $('billingModeHint');
+    var label = $('billingMethodLabel');
+    var btn = $('billingSubscribeBtn');
+    if (mode === 'subscription') {
+      if (sub) { sub.style.background = '#059669'; sub.style.color = '#fff'; sub.style.borderColor = '#059669'; sub.style.fontWeight = '600'; }
+      if (once) { once.style.background = '#fff'; once.style.color = '#384a42'; once.style.borderColor = '#d4dad7'; once.style.fontWeight = '500'; }
+      if (hint) hint.textContent = 'Renovação automática. Cancele quando quiser.';
+    } else {
+      if (once) { once.style.background = '#059669'; once.style.color = '#fff'; once.style.borderColor = '#059669'; once.style.fontWeight = '600'; }
+      if (sub) { sub.style.background = '#fff'; sub.style.color = '#384a42'; sub.style.borderColor = '#d4dad7'; sub.style.fontWeight = '500'; }
+      if (hint) hint.textContent = 'Pagamento único de 30 dias. Avisaremos antes de expirar.';
+    }
+    if (label) label.textContent = methodHintText();
+    if (btn) btn.textContent = ctaText();
   }
 
   // Estado do gate observado por gateGuard(). Quando true, o
@@ -1154,12 +1205,24 @@
       ? '<a href="' + nextCharge.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="margin-top:8px;text-decoration:none;display:inline-block;">Pagar agora</a>'
       : '';
 
+    var isOneShot = me.paymentMode === 'one_shot';
     var rows = '';
-    rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
-    rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
-      (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
-      '</div>';
-    rows += '<div class="ma-card"><div class="ma-card-label">' + label + '</div><div class="ma-card-value">' + fmtBRL(openCents) + '</div><div class="ma-card-foot">' + foot + '</div>' + payLink + '</div>';
+    if (isOneShot) {
+      var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
+      var daysLeft = (me.accessExpiresInDays != null) ? me.accessExpiresInDays : null;
+      var daysFoot = daysLeft == null ? '' : (daysLeft > 0 ? 'Faltam ' + daysLeft + ' dia(s)' : 'Expirado');
+      rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Avulso</div><div class="ma-card-foot">Pagamento único de 30 dias</div></div>';
+      rows += '<div class="ma-card"><div class="ma-card-label">Valor pago</div><div class="ma-card-value">' + fmtBRL(baseCents) + '</div>' +
+        (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
+        '</div>';
+      rows += '<div class="ma-card"><div class="ma-card-label">Acesso até</div><div class="ma-card-value">' + expiresFmt + '</div><div class="ma-card-foot">' + daysFoot + '</div></div>';
+    } else {
+      rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
+      rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-size:11px;font-weight:500;color:#6b7d75;"> /mês</span></div>' +
+        (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
+        '</div>';
+      rows += '<div class="ma-card"><div class="ma-card-label">' + label + '</div><div class="ma-card-value">' + fmtBRL(openCents) + '</div><div class="ma-card-foot">' + foot + '</div>' + payLink + '</div>';
+    }
 
     return '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-receipt"></i> Plano</div>' +
@@ -1280,6 +1343,44 @@
     '</div>';
   }
 
+  // Banner "estilo Amazon" para usuário avulso (one_shot): conforme o
+  // acesso pago se aproxima do fim, mostramos um aviso proativo com
+  // botão de renovação. Critério: paymentMode 'one_shot' + acesso a
+  // vencer em ≤ 7 dias. Acima disso o user nem vê o aviso (não polui).
+  function renderRenewBanner(me) {
+    if (me.paymentMode !== 'one_shot') return '';
+    var days = me.accessExpiresInDays;
+    if (days == null || days > 7) return '';
+    var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
+    var title, sub, tone;
+    if (days <= 0) {
+      title = 'O seu acesso terminou';
+      sub = 'O pagamento de 30 dias venceu em ' + expiresFmt + '. Renove para voltar a usar o Appliquei.';
+      tone = 'bad';
+    } else if (days <= 3) {
+      title = 'O seu acesso termina em ' + days + (days === 1 ? ' dia' : ' dias');
+      sub = 'Pagou só 1 mês. Renove agora para não perder o acesso em ' + expiresFmt + '.';
+      tone = 'warn';
+    } else {
+      title = 'Renovação manual: faltam ' + days + ' dias';
+      sub = 'O seu acesso avulso expira em ' + expiresFmt + '. Pode renovar 1 mês ou passar a assinatura recorrente.';
+      tone = 'warn';
+    }
+    var bg = tone === 'bad' ? '#fef2f2' : '#fff7ed';
+    var border = tone === 'bad' ? '#fecaca' : '#fed7aa';
+    var fg = tone === 'bad' ? '#7f1d1d' : '#7c2d12';
+    var icon = tone === 'bad' ? 'ph-fill ph-warning-octagon' : 'ph-fill ph-clock-countdown';
+    return '<div class="ma-section" style="background:' + bg + ';border:1px solid ' + border + ';border-radius:12px;padding:14px 16px;color:' + fg + ';">' +
+      '<div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px;"><i class="' + icon + '"></i> ' + title + '</div>' +
+      '<p style="font-size:12.5px;margin:6px 0 10px;color:' + fg + ';opacity:.9;line-height:1.45;">' + sub + '</p>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+        '<button type="button" class="ma-btn" data-act="renew-month" style="background:#059669;color:#fff;border-color:#059669;">' +
+          '<i class="ph-fill ph-arrow-clockwise"></i> Renovar 1 mês</button>' +
+        '<button type="button" class="ma-btn" data-act="switch-to-subscription">Passar a assinatura mensal</button>' +
+      '</div>' +
+    '</div>';
+  }
+
   function renderAlertsBlock(me) {
     var failure = failureReasonLabel(me.lastFailureReason);
     var dunning = me.dunningRetryCount && me.dunningRetryCount > 0 ? me.dunningRetryCount : 0;
@@ -1371,12 +1472,23 @@
 
   function renderMyAccount(me) {
     lastMe = me;
-    if (!me || (!me.subscriptionId && !(me.access && (me.access.status === 'trial' || me.access.status === 'blocked')))) {
-      // Sem billing inicializado — mostra mensagem mínima
+    // Considera "billing inicializado" qualquer um destes: assinatura,
+    // pagamento avulso registado, ou estado conhecido (trial/blocked/active
+    // via paid_period). Sem isto, usuário one_shot ativo via paid_period
+    // ficava na tela de "A inicializar…" mesmo com acesso liberado.
+    var initialized = me && (
+      me.subscriptionId
+      || me.paymentMode === 'one_shot'
+      || me.lastPaidAt
+      || (me.access && me.access.status && me.access.status !== 'blocked' ? true : false)
+      || (me.access && (me.access.status === 'trial' || me.access.status === 'blocked'))
+    );
+    if (!initialized) {
       $('myAccountBody').innerHTML = '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
       return;
     }
     var html = renderHeroBlock(me)
+      + renderRenewBanner(me)
       + renderAlertsBlock(me)
       + renderPlanInfoBlock(me)
       + renderPlansBlock(me)
@@ -1404,6 +1516,8 @@
           else if (act === 'cancel-sub') confirmCancelSubscription();
           else if (act === 'subscribe-now') { closeMyAccount(); openSubscribeForm(); }
           else if (act === 'reactivate') { closeMyAccount(); openSubscribeForm(); }
+          else if (act === 'renew-month') { closeMyAccount(); openSubscribeForm('one_shot'); }
+          else if (act === 'switch-to-subscription') { closeMyAccount(); openSubscribeForm('subscription'); }
           else if (act === 'reload-status') reloadAccountStatus(btn);
           else if (act === 'open-applicash') {
             closeMyAccount();
@@ -1738,8 +1852,18 @@
     } catch (_) {}
   }
 
-  function openSubscribeForm() {
-    showGate('Assine para continuar', 'Preencha os dados para emitir a fatura.');
+  function openSubscribeForm(mode) {
+    var title = mode === 'one_shot' ? 'Renovar 1 mês' : 'Assine para continuar';
+    var sub = mode === 'one_shot'
+      ? 'Pagamento único de 30 dias. Você decide quando renovar.'
+      : 'Preencha os dados para emitir a fatura.';
+    showGate(title, sub);
+    if (mode === 'one_shot' || mode === 'subscription') {
+      // Pré-seleciona o tab pedido pelo banner. Os botões só existem após
+      // o ensureGate() ter sido feito (showGate o chama), então o timeout
+      // já garante DOM montado.
+      setTimeout(function () { try { setBillingMode(mode); } catch (_) {} }, 0);
+    }
     setTimeout(function () { var el = $('billingCpfCnpj'); if (el) el.focus(); }, 50);
   }
 
@@ -1830,9 +1954,19 @@
 
     if (btn) btn.disabled = true;
     var popup = selectedMethod === 'CREDIT_CARD' ? null : window.open('about:blank', '_blank');
-    if (popup) writePopupMessage(popup, 'A criar assinatura…', 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
+    if (popup) {
+      var popupMsg = selectedBillingMode === 'one_shot'
+        ? 'A gerar fatura única…'
+        : 'A criar assinatura…';
+      writePopupMessage(popup, popupMsg, 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
+    }
+    // Despacha para o endpoint conforme o modo escolhido. O backend
+    // /pay-month cria uma cobrança avulsa (sem subscription), e /subscribe
+    // cria a recorrência mensal. O resto da UI (waitForActive, polling,
+    // popup com invoiceUrl) é o mesmo para os dois.
+    var endpoint = selectedBillingMode === 'one_shot' ? '/pay-month' : '/subscribe';
     try {
-      var r = await authedFetch('/subscribe', {
+      var r = await authedFetch(endpoint, {
         method: 'POST',
         body: JSON.stringify(payload),
       });

@@ -25,8 +25,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-billing.js": {
-    "mtime": 1779732624.5743964,
-    "ast_hash": "afc33a5532b948d86e7f185ad648e1c3",
+    "mtime": 1779734269.5103586,
+    "ast_hash": "83675abba36e193f3274e53e505c1b0e",
     "semantic_hash": ""
   },
   "/home/user/investimentos/web/appliquei-firebase-init.js": {
@@ -60,8 +60,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/asaas.js": {
-    "mtime": 1779480846.038272,
-    "ast_hash": "baafb8d76044cc05bcd06f2f86781bfa",
+    "mtime": 1779733991.634365,
+    "ast_hash": "ebaf4ebb549cf0f90d8caaac407eadf3",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/_lib/cpf-cnpj.js": {
@@ -105,13 +105,13 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/me.js": {
-    "mtime": 1779733334.4256587,
-    "ast_hash": "7f1970fe87c8e04788bd71948ad54c73",
+    "mtime": 1779734090.4303627,
+    "ast_hash": "e81ccc4a6c91f397f50b607ea7681270",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/subscribe.js": {
-    "mtime": 1779480846.041428,
-    "ast_hash": "d3ab0cd5088c30881ff17e78d0637d39",
+    "mtime": 1779734344.406357,
+    "ast_hash": "1126c9b29359ec86c987420fc473f56c",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/init.js": {
@@ -120,8 +120,8 @@
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/webhook.js": {
-    "mtime": 1779733334.4256587,
-    "ast_hash": "17ec97f54cbf023198088e88e531f296",
+    "mtime": 1779734362.5263565,
+    "ast_hash": "6f8c46916be4491566bd43c3c98abe8d",
     "semantic_hash": ""
   },
   "/home/user/investimentos/api/billing/cancel.js": {
@@ -257,6 +257,11 @@
   "/home/user/investimentos/admin.html": {
     "mtime": 1779732624.5503962,
     "ast_hash": "e00edab8514091f9c7c06d42377aabb2",
+    "semantic_hash": ""
+  },
+  "/home/user/investimentos/api/billing/pay-month.js": {
+    "mtime": 1779734305.522358,
+    "ast_hash": "994dfa76541493635726e1bd83f1611f",
     "semantic_hash": ""
   }
 }

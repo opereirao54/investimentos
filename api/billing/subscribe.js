@@ -280,6 +280,7 @@ module.exports = async (req, res) => {
       subscriptionStatus: sub.status || 'ACTIVE',
       subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
       paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+      paymentMode: 'subscription',
       updatedAt: fieldValue().serverTimestamp(),
       // C6: liberta o lock atomicamente com o write da subscriptionId.
       subscribeLock: fieldValue().delete(),

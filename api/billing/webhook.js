@@ -325,12 +325,28 @@ module.exports = async (req, res) => {
       update.lastPaymentId = payment.id;
       update.lastPaymentStatus = payment.status;
 
+      // Pagamento avulso = este `payment` não pertence a nenhuma
+      // subscription do Asaas. Critério depende SÓ do payload — o
+      // billing local pode ter um subscriptionId residual de uma
+      // assinatura cancelada (INACTIVE) e ainda assim este evento ser
+      // de um pagamento avulso novo. Nesse modo, NÃO tocamos em
+      // subscriptionStatus (não há assinatura para ativar) — o acesso
+      // vem do paid_period em computeAccess (30 dias após lastPaidAt).
+      // Também limpamos trialEndsAt para que o branch "trial" não
+      // esconda o "active".
+      const isOneShot = !payment.subscription;
+
       switch (event) {
         case 'PAYMENT_CONFIRMED':
         case 'PAYMENT_RECEIVED':
         case 'PAYMENT_RECEIVED_IN_CASH':
         case 'PAYMENT_APPROVED_BY_RISK_ANALYSIS':
-          update.subscriptionStatus = 'ACTIVE';
+          if (!isOneShot) {
+            update.subscriptionStatus = 'ACTIVE';
+          } else {
+            update.paymentMode = 'one_shot';
+            update.trialEndsAt = fieldValue().delete();
+          }
           update.lastPaidAt = fieldValue().serverTimestamp();
           update.dunningRetryCount = fieldValue().delete();
           update.lastFailureReason = fieldValue().delete();
@@ -379,6 +395,16 @@ module.exports = async (req, res) => {
           break;
         default:
           break;
+      }
+
+      // Pagamento avulso: não promovemos subscriptionStatus para nenhum
+      // valor — não há assinatura para "ativar" ou "cancelar". Bloqueios
+      // (OVERDUE, REFUNDED, CHARGEBACK) já são capturados em access.js
+      // via lastPaymentStatus, que foi setado na linha "lastPaymentStatus
+      // = payment.status" acima. Mantém o estado coerente: subscriptionId
+      // null ⇒ subscriptionStatus null.
+      if (isOneShot) {
+        delete update.subscriptionStatus;
       }
 
       const pid = payment.id;

@@ -1,6 +1,6 @@
 const { db } = require('../_lib/firebase-admin');
 const { requireVerifiedUser, cors } = require('../_lib/auth');
-const { computeAccess } = require('../_lib/access');
+const { computeAccess, PAID_PERIOD_MS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
 function tsToIso(t) {
@@ -201,8 +201,23 @@ module.exports = async (req, res) => {
 
     const upcoming = buildUpcoming(billing, payments, projectedNextCents, monthlyCents);
 
+    // Para o banner "estilo Amazon" de renovação avulsa: calcula quando
+    // o acesso pago expira (lastPaidAt + 30 dias). Front-end mostra o
+    // aviso quando faltam ≤ 7 dias e o user é one_shot (sem assinatura
+    // recorrente que reativa sozinha).
+    let accessExpiresAt = null;
+    let accessExpiresInDays = null;
+    if (billing.lastPaidAt && typeof billing.lastPaidAt.toMillis === 'function') {
+      const expiresMs = billing.lastPaidAt.toMillis() + PAID_PERIOD_MS;
+      accessExpiresAt = new Date(expiresMs).toISOString();
+      accessExpiresInDays = Math.ceil((expiresMs - Date.now()) / 86400000);
+    }
+
     return res.json({
       access: computeAccess(billing),
+      paymentMode: billing.paymentMode || (billing.subscriptionId ? 'subscription' : null),
+      accessExpiresAt,
+      accessExpiresInDays,
       referralCode: billing.referralCode || null,
       referredByCode: billing.referredByCode || null,
       referredByUserId: billing.referredByUserId || null,
