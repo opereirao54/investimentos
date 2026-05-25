@@ -1,5 +1,6 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const asaas = require('../_lib/asaas');
+const { releaseAppliedCredits } = require('../_lib/billing-sync');
 
 const REFERRAL_PERCENT = 10;
 // Valor mínimo após desconto referral. Asaas rejeita faturas abaixo do
@@ -364,8 +365,17 @@ module.exports = async (req, res) => {
           update.subscriptionStatus = 'REFUND_IN_PROGRESS';
           break;
         case 'PAYMENT_REFUNDED':
-        case 'PAYMENT_DELETED':
           update.subscriptionStatus = 'INACTIVE';
+          break;
+        case 'PAYMENT_DELETED':
+          // Asaas dispara PAYMENT_DELETED para cada uma das faturas
+          // projetadas (6-12 meses à frente) quando a assinatura é
+          // cancelada. Marcar INACTIVE aqui era duplo trabalho (o
+          // /api/billing/cancel já o faz) e abria espaço para race
+          // conditions com PAYMENT_CONFIRMED tardio (impedido pela
+          // guarda M3). Confiamos em SUBSCRIPTION_DELETED/INACTIVATED
+          // para a transição de fim de assinatura. Acesso continua
+          // garantido pelo paid_period em computeAccess.
           break;
         default:
           break;
@@ -405,6 +415,19 @@ module.exports = async (req, res) => {
           if (reversed) paymentExtra.referralReversed = true;
         } catch (e) {
           console.error('[webhook] reverseReferralCredit failed', e);
+        }
+      }
+
+      // Devolve créditos que este próprio utilizador tinha aplicado a uma
+      // fatura que foi apagada/reembolsada. Sem isto, o desconto reservado
+      // ficaria preso (appliedAt setado, mas a fatura onde ia abater já
+      // não existe) e o saldo pendente nunca voltaria.
+      if ((event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED' || event === 'PAYMENT_CHARGEBACK_REQUESTED') && payment && payment.id) {
+        try {
+          const released = await releaseAppliedCredits(doc.ref, payment.id);
+          if (released > 0) paymentExtra.referralCreditReleasedCents = released;
+        } catch (e) {
+          console.error('[webhook] releaseAppliedCredits failed', e);
         }
       }
 
