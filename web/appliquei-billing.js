@@ -27,21 +27,28 @@
   }
   function updateGatePrices() {
     var pct = (lastBilling && lastBilling.recurringDiscountPercent) || 0;
-    var detail = $('billingDetail');
-    if (detail) {
-      var divs = detail.children;
-      if (divs && divs[1]) {
-        var note = pct > 0
-          ? ' <span style="color:#059669;font-weight:600;">(' + pct + '% off com cupom)</span>'
-          : '';
-        divs[1].innerHTML = '<strong>Valor:</strong> ' + priceLabel() + ' / mês' + note;
+    var listCents = (lastBilling && lastBilling.monthlyPriceCents) || 1500;
+    var effective = effectivePriceCents();
+    var total = $('billingSummaryTotal');
+    var label = $('billingSummaryLabel');
+    var row = $('billingSummaryRowDiscount');
+    var rowVal = $('billingSummaryDiscountValue');
+    var isOnce = (typeof selectedBillingMode !== 'undefined' && selectedBillingMode === 'one_shot');
+    if (total) total.textContent = (typeof fmtBRL === 'function') ? fmtBRL(effective) : priceLabel();
+    if (label) label.textContent = isOnce ? 'Total (1 mês de acesso)' : 'Total mensal';
+    if (row && rowVal) {
+      var diff = listCents - effective;
+      if (diff > 0 && pct > 0) {
+        row.style.display = '';
+        rowVal.textContent = '− ' + ((typeof fmtBRL === 'function') ? fmtBRL(diff) : 'R$ ' + (diff / 100).toFixed(2).replace('.', ','));
+        var lbl = document.getElementById('billingSummaryDiscountLabel');
+        if (lbl) lbl.textContent = 'Cupom ' + pct + '% off';
+      } else {
+        row.style.display = 'none';
       }
     }
-    var btn = $('billingSubscribeBtn');
-    if (btn) {
-      var prefix = selectedMethod === 'CREDIT_CARD' ? 'Assinar com cartão' : 'Gerar fatura';
-      btn.textContent = prefix + ' (' + priceLabel() + '/mês)';
-    }
+    // Texto do CTA fica em ctaText(); aqui só re-aplica via setMethod (mantém o tab visualmente sincronizado também).
+    if (typeof setMethod === 'function' && typeof selectedMethod !== 'undefined') setMethod(selectedMethod);
     renderCouponState();
   }
 
@@ -50,18 +57,26 @@
     if (!section) return;
     var b = lastBilling || {};
     section.style.display = '';
+    var body = $('billingCouponBody');
+    var toggle = $('billingCouponToggle');
     var inputRow = $('billingCouponInputRow');
     var appliedBox = $('billingCouponApplied');
     var msg = $('billingCouponMsg');
     if (msg) { msg.style.display = 'none'; msg.textContent = ''; }
     if (b.referredByCode) {
+      // Abre o body e oculta toggle: o cupom já foi aplicado e o usuário
+      // deve ver a confirmação proeminente, não um link "Tem cupom?".
+      if (toggle) toggle.style.display = 'none';
+      if (body) body.style.display = 'block';
       if (inputRow) inputRow.style.display = 'none';
       if (appliedBox) {
-        appliedBox.style.display = 'block';
-        appliedBox.innerHTML = 'Cupom <strong>' + b.referredByCode + '</strong> aplicado — ' +
-          (b.recurringDiscountPercent || 0) + '% de desconto recorrente.';
+        appliedBox.style.display = 'flex';
+        appliedBox.innerHTML = '<i class="ph-fill ph-check-circle"></i><span>Cupom <strong>' + b.referredByCode + '</strong> aplicado · ' +
+          (b.recurringDiscountPercent || 0) + '% off no plano recorrente.</span>';
       }
     } else {
+      if (toggle) toggle.style.display = '';
+      // Mantém o body com o estado escolhido pelo toggle (não força reabrir).
       if (inputRow) inputRow.style.display = 'flex';
       if (appliedBox) { appliedBox.style.display = 'none'; appliedBox.innerHTML = ''; }
     }
@@ -114,105 +129,204 @@
 
   function $(id) { return document.getElementById(id); }
 
+  function injectGateStyles() {
+    if (document.getElementById('billingGateStyles')) return;
+    var st = document.createElement('style');
+    st.id = 'billingGateStyles';
+    st.textContent = [
+      '#billingGate{position:fixed;inset:0;z-index:10060;display:none;padding:32px 16px;overflow-y:auto;box-sizing:border-box;',
+      '  background:radial-gradient(1200px 600px at 50% -10%, #1a3a2a 0%, transparent 60%), linear-gradient(180deg,#0a1410 0%,#0d1a14 100%);',
+      '  font-family:Figtree,system-ui,-apple-system,Segoe UI,sans-serif;-webkit-font-smoothing:antialiased;}',
+      '.bg-card{width:100%;max-width:480px;margin:0 auto;background:#fff;border-radius:20px;box-shadow:0 30px 80px -20px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.04);color:#0f172a;overflow:hidden;}',
+      '.bg-inner{padding:28px 26px 24px;}',
+      '.bg-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;background:#ecfdf5;padding:5px 10px;border-radius:999px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;}',
+      '.bg-h1{font-family:Syne,sans-serif;font-size:24px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px;line-height:1.2;color:#0f172a;}',
+      '.bg-sub{font-size:14px;color:#475569;line-height:1.55;margin:0 0 22px;}',
+      '.bg-section{margin-bottom:22px;}',
+      '.bg-section-title{font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px;}',
+      '.bg-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;}',
+      '.bg-mode{position:relative;text-align:left;background:#fff;border:1.5px solid #e5e7eb;border-radius:14px;padding:14px 14px 12px;cursor:pointer;transition:all .15s ease;font-family:inherit;}',
+      '.bg-mode:hover{border-color:#cbd5e1;}',
+      '.bg-mode[aria-checked="true"]{border-color:#059669;background:#f0fdf4;box-shadow:0 0 0 4px rgba(5,150,105,.08);}',
+      '.bg-mode-pill{position:absolute;top:-8px;right:10px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;}',
+      '.bg-mode-title{display:block;font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:#0f172a;margin-bottom:2px;}',
+      '.bg-mode-price{display:flex;align-items:baseline;gap:3px;margin:6px 0 10px;}',
+      '.bg-mode-price strong{font-family:Syne,sans-serif;font-size:22px;font-weight:700;color:#0f172a;letter-spacing:-.02em;}',
+      '.bg-mode-price small{font-size:12px;color:#64748b;font-weight:500;}',
+      '.bg-mode-feat{display:flex;align-items:center;gap:6px;font-size:12px;color:#475569;line-height:1.5;margin-top:3px;}',
+      '.bg-mode-feat i{color:#059669;font-size:13px;flex-shrink:0;}',
+      '.bg-segments{display:flex;gap:0;background:#f1f5f9;border-radius:12px;padding:4px;}',
+      '.bg-segment{flex:1;border:none;background:transparent;color:#475569;padding:10px 12px;border-radius:9px;font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center;gap:7px;font-family:inherit;}',
+      '.bg-segment[aria-checked="true"]{background:#fff;color:#059669;box-shadow:0 1px 3px rgba(15,23,42,.06),0 1px 1px rgba(15,23,42,.04);}',
+      '.bg-segment i{font-size:15px;}',
+      '.bg-hint{font-size:12px;color:#64748b;margin:8px 0 0;line-height:1.45;}',
+      '.bg-field{margin-bottom:12px;}',
+      '.bg-field label{display:block;font-size:12px;font-weight:600;color:#334155;margin-bottom:5px;}',
+      '.bg-input{width:100%;padding:11px 13px;font-size:14px;border:1.5px solid #e2e8f0;border-radius:10px;box-sizing:border-box;background:#fff;color:#0f172a;font-family:inherit;transition:border-color .15s ease,box-shadow .15s ease;}',
+      '.bg-input::placeholder{color:#94a3b8;}',
+      '.bg-input:focus{outline:none;border-color:#059669;box-shadow:0 0 0 3px rgba(5,150,105,.12);}',
+      '.bg-field-row{display:flex;gap:10px;}',
+      '.bg-field-row .bg-field{flex:1;}',
+      '.bg-coupon-toggle{background:none;border:none;font-size:13px;color:#059669;font-weight:600;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:5px;font-family:inherit;}',
+      '.bg-coupon-toggle:hover{text-decoration:underline;}',
+      '.bg-coupon-body{margin-top:10px;}',
+      '.bg-coupon-row{display:flex;gap:8px;}',
+      '.bg-coupon-row .bg-input{flex:1;text-transform:uppercase;}',
+      '.bg-coupon-row button{padding:0 16px;border:1.5px solid #059669;background:#fff;color:#059669;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .15s ease;}',
+      '.bg-coupon-row button:hover{background:#ecfdf5;}',
+      '.bg-coupon-row button:disabled{opacity:.5;cursor:not-allowed;}',
+      '.bg-applied{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 12px;border-radius:10px;font-size:13px;display:flex;align-items:center;gap:8px;line-height:1.4;}',
+      '.bg-applied i{flex-shrink:0;color:#059669;font-size:16px;}',
+      '.bg-card-fields-head{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 10px;}',
+      '.bg-card-fields-head i{color:#059669;}',
+      '.bg-err{font-size:13px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:14px;line-height:1.5;display:flex;gap:8px;align-items:flex-start;}',
+      '.bg-err i{color:#dc2626;font-size:16px;flex-shrink:0;margin-top:1px;}',
+      '.bg-summary{background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-top:1px solid #e2e8f0;padding:18px 26px 20px;}',
+      '.bg-summary-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;font-size:13px;color:#475569;}',
+      '.bg-summary-row.bg-summary-discount{color:#059669;font-weight:600;}',
+      '.bg-summary-total{margin-top:8px;padding-top:10px;border-top:1px dashed #cbd5e1;display:flex;justify-content:space-between;align-items:baseline;}',
+      '.bg-summary-total span{font-size:13px;color:#334155;font-weight:600;}',
+      '.bg-summary-total strong{font-family:Syne,sans-serif;font-size:24px;font-weight:700;color:#0f172a;letter-spacing:-.02em;}',
+      '.bg-cta{margin-top:14px;width:100%;border:none;cursor:pointer;padding:14px 16px;border-radius:12px;font-size:14.5px;font-weight:700;background:linear-gradient(180deg,#10b981 0%,#059669 100%);color:#fff;box-shadow:0 4px 12px -2px rgba(5,150,105,.4),inset 0 1px 0 rgba(255,255,255,.2);display:inline-flex;align-items:center;justify-content:center;gap:8px;font-family:inherit;transition:transform .1s ease,box-shadow .15s ease;letter-spacing:.01em;}',
+      '.bg-cta:hover{box-shadow:0 6px 16px -2px rgba(5,150,105,.5),inset 0 1px 0 rgba(255,255,255,.2);}',
+      '.bg-cta:active{transform:translateY(1px);}',
+      '.bg-cta:disabled{opacity:.6;cursor:not-allowed;transform:none;}',
+      '.bg-cta i{font-size:15px;}',
+      '.bg-trust{display:flex;justify-content:center;align-items:center;gap:14px;margin-top:12px;font-size:11.5px;color:#64748b;}',
+      '.bg-trust span{display:inline-flex;align-items:center;gap:4px;}',
+      '.bg-trust i{color:#059669;font-size:13px;}',
+      '.bg-footer{padding:14px 26px 22px;display:flex;flex-direction:column;gap:8px;align-items:center;background:#fff;border-top:1px solid #f1f5f9;}',
+      '.bg-link{background:none;border:none;color:#475569;font-size:12.5px;font-weight:500;cursor:pointer;padding:6px 10px;border-radius:6px;font-family:inherit;transition:background .15s ease;}',
+      '.bg-link:hover{background:#f1f5f9;color:#0f172a;}',
+      '.bg-link-muted{color:#94a3b8;font-size:11.5px;}',
+      '@media (max-width:480px){.bg-modes{grid-template-columns:1fr;}.bg-inner{padding:24px 20px 20px;}.bg-summary{padding:16px 20px 18px;}.bg-footer{padding:12px 20px 18px;}.bg-h1{font-size:21px;}}',
+    ].join('\n');
+    document.head.appendChild(st);
+  }
+
   function ensureGate() {
     if ($('billingGate')) return;
+    injectGateStyles();
     var div = document.createElement('div');
     div.id = 'billingGate';
-    // U1: NÃO usar flex + align-items:center no overlay scrollável. Quando
-    // o conteúdo é maior que o viewport (form de cartão completo, ou ecrã
-    // pequeno como mobile), o centramento empurra o topo do modal para
-    // fora da área scrollável — o utilizador não chega às opções de plano
-    // no topo do template. display:block + margin:auto no inner mantém o
-    // topo sempre acessível.
-    div.style.cssText = 'position:fixed;inset:0;z-index:10060;display:none;padding:24px 16px;background:linear-gradient(145deg,#0b1410 0%,#0f1f18 45%,#111c17 100%);overflow-y:auto;box-sizing:border-box;';
-    var fld = 'width:100%;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;';
-    div.innerHTML = '\
-      <div style="width:100%;max-width:460px;margin:0 auto;background:#fff;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:28px;color:#0b1410;font-family:Figtree,sans-serif;">\
-        <h2 id="billingTitle" style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:700;margin:0 0 8px;">Assine para continuar</h2>\
-        <p id="billingSub" style="font-size:14px;color:#4a5b53;line-height:1.5;margin:0 0 18px;">A sua avaliação gratuita terminou.</p>\
-        <div role="radiogroup" aria-label="Escolha o plano" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">\
-          <div role="radio" aria-checked="true" tabindex="0" style="border:2px solid #059669;background:#ecfdf5;border-radius:10px;padding:10px 12px;cursor:default;">\
-            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.04em;"><i class="ph-fill ph-check-circle"></i> Plano atual</div>\
-            <div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;margin-top:2px;">Pro</div>\
-            <div style="font-size:12px;color:#1d2a23;">Todas as abas do Appliquei • R$ 15/mês</div>\
-          </div>\
-          <div role="radio" aria-checked="false" aria-disabled="true" tabindex="-1" style="border:1px solid #e3e8e5;background:#f8faf9;border-radius:10px;padding:10px 12px;opacity:.85;cursor:not-allowed;">\
-            <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.04em;"><i class="ph ph-wrench"></i> Em construção</div>\
-            <div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;margin-top:2px;color:#6b7d75;">Pro + IA</div>\
-            <div style="font-size:12px;color:#6b7d75;">Diagnóstico, sugestões e chat com IA. Em breve.</div>\
-          </div>\
-        </div>\
-        <div id="billingDetail" style="background:#f1f5f3;border-radius:10px;padding:12px 14px;font-size:13px;color:#1d2a23;margin-bottom:14px;">\
-          <div><strong>Plano:</strong> Mensal Appliquei</div>\
-          <div><strong>Valor:</strong> R$ 15,00 / mês</div>\
-          <div><strong>Pagamento:</strong> <span id="billingMethodLabel">Cartão (renovação automática) ou PIX/boleto</span></div>\
-        </div>\
-        <div role="tablist" aria-label="Tipo de cobrança" style="display:flex;gap:6px;margin-bottom:8px;">\
-          <button id="billingModeSub" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Assinar mensal</button>\
-          <button id="billingModeOnce" type="button" style="flex:1;padding:9px 0;border:1px solid #d4dad7;background:#fff;color:#384a42;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">Pagar 1 mês</button>\
-        </div>\
-        <p id="billingModeHint" style="font-size:11.5px;color:#6b7d75;margin:0 0 12px;">Renovação automática. Cancele quando quiser.</p>\
-        <div role="tablist" aria-label="Método de pagamento" style="display:flex;gap:6px;margin-bottom:14px;">\
-          <button id="billingTabCard" type="button" style="flex:1;padding:9px 0;border:1px solid #059669;background:#059669;color:#fff;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;">Cartão</button>\
-          <button id="billingTabPix" type="button" style="flex:1;padding:9px 0;border:1px solid #d4dad7;background:#fff;color:#384a42;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;">PIX / Boleto</button>\
-        </div>\
-        <div style="margin-bottom:12px;">\
-          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nome completo</label>\
-          <input id="billingName" type="text" autocomplete="name" placeholder="Como aparece no documento" style="' + fld + '">\
-        </div>\
-        <div style="margin-bottom:12px;">\
-          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CPF ou CNPJ</label>\
-          <input id="billingCpfCnpj" type="text" inputmode="numeric" autocomplete="off" placeholder="Somente números" style="' + fld + '">\
-        </div>\
-        <div id="billingCouponSection" style="margin-bottom:12px;">\
-          <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Cupom de desconto (opcional)</label>\
-          <div id="billingCouponInputRow" style="display:flex;gap:6px;">\
-            <input id="billingCoupon" type="text" autocomplete="off" placeholder="APP-XXXXXX" style="flex:1;padding:10px 12px;font-size:14px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;text-transform:uppercase;">\
-            <button id="billingCouponApply" type="button" style="padding:10px 16px;border:1px solid #059669;background:#fff;color:#059669;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">Aplicar</button>\
-          </div>\
-          <div id="billingCouponApplied" style="display:none;background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px 12px;border-radius:8px;font-size:13px;"></div>\
-          <div id="billingCouponMsg" style="font-size:12px;margin-top:6px;display:none;"></div>\
-        </div>\
-        <div id="billingCardFields">\
-          <div style="margin-bottom:12px;">\
-            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Número do cartão</label>\
-            <input id="ccNumber" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" style="' + fld + '">\
-          </div>\
-          <div style="display:flex;gap:8px;margin-bottom:12px;">\
-            <div style="flex:1;">\
-              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Validade</label>\
-              <input id="ccExp" type="text" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" style="' + fld + '">\
-            </div>\
-            <div style="flex:1;">\
-              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CVV</label>\
-              <input id="ccCvv" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="000" style="' + fld + '">\
-            </div>\
-          </div>\
-          <div style="margin-bottom:12px;">\
-            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nome impresso no cartão</label>\
-            <input id="ccHolder" type="text" autocomplete="cc-name" placeholder="Como impresso no cartão" style="' + fld + '">\
-          </div>\
-          <div style="display:flex;gap:8px;margin-bottom:12px;">\
-            <div style="flex:1;">\
-              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">CEP</label>\
-              <input id="ccZip" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000" style="' + fld + '">\
-            </div>\
-            <div style="flex:1;">\
-              <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Nº endereço</label>\
-              <input id="ccAddrNum" type="text" inputmode="numeric" placeholder="123" style="' + fld + '">\
-            </div>\
-          </div>\
-          <div style="margin-bottom:12px;">\
-            <label style="display:block;font-size:12px;font-weight:600;color:#384a42;margin-bottom:4px;">Telefone</label>\
-            <input id="ccPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000" style="' + fld + '">\
-          </div>\
-        </div>\
-        <div id="billingErr" style="display:none;font-size:12.5px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;"></div>\
-        <button id="billingSubscribeBtn" type="button" style="width:100%;border:none;cursor:pointer;padding:13px 16px;border-radius:10px;font-size:14px;font-weight:600;background:#059669;color:#fff;">Assinar agora (R$ 15/mês)</button>\
-        <button id="billingRefreshBtn" type="button" style="margin-top:10px;width:100%;border:1px solid #d4dad7;background:#fff;cursor:pointer;padding:10px 14px;border-radius:10px;font-size:13px;color:#384a42;">Já paguei — verificar status</button>\
-        <button id="billingLogoutBtn" type="button" style="margin-top:14px;width:100%;border:none;background:none;cursor:pointer;font-size:12.5px;color:#6b7d75;text-decoration:underline;">Sair desta conta</button>\
-      </div>';
+    div.innerHTML = [
+      '<div class="bg-card" role="dialog" aria-modal="true" aria-labelledby="billingTitle">',
+      '  <div class="bg-inner">',
+      '    <div class="bg-eyebrow"><i class="ph-fill ph-sparkle"></i> Appliquei Pro</div>',
+      '    <h2 id="billingTitle" class="bg-h1">Acesso completo ao Appliquei</h2>',
+      '    <p id="billingSub" class="bg-sub">Carteira recomendada, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
+      '    <div class="bg-section">',
+      '      <div class="bg-modes" role="radiogroup" aria-label="Tipo de cobrança">',
+      '        <button id="billingModeSub" type="button" class="bg-mode" aria-checked="true">',
+      '          <span class="bg-mode-pill">Recomendado</span>',
+      '          <span class="bg-mode-title">Assinatura mensal</span>',
+      '          <span class="bg-mode-price"><strong>R$ 15</strong><small>/mês</small></span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renovação automática</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cashback Applicash</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Cancele quando quiser</span>',
+      '        </button>',
+      '        <button id="billingModeOnce" type="button" class="bg-mode" aria-checked="false">',
+      '          <span class="bg-mode-title">Pagar 1 mês</span>',
+      '          <span class="bg-mode-price"><strong>R$ 15</strong><small>/30 dias</small></span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Sem renovação</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Avisamos antes de vencer</span>',
+      '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renove no seu ritmo</span>',
+      '        </button>',
+      '      </div>',
+      '      <p id="billingModeHint" class="bg-hint">Renovação automática. Cancele quando quiser.</p>',
+      '    </div>',
+      '    <div class="bg-section">',
+      '      <div class="bg-section-title">Forma de pagamento</div>',
+      '      <div class="bg-segments" role="radiogroup" aria-label="Método de pagamento">',
+      '        <button id="billingTabCard" type="button" class="bg-segment" aria-checked="true"><i class="ph-fill ph-credit-card"></i> Cartão</button>',
+      '        <button id="billingTabPix" type="button" class="bg-segment" aria-checked="false"><i class="ph ph-qr-code"></i> PIX / Boleto</button>',
+      '      </div>',
+      '      <p id="billingMethodLabel" class="bg-hint">Cartão cobrado automaticamente todo mês.</p>',
+      '    </div>',
+      '    <div class="bg-section">',
+      '      <div class="bg-section-title">Seus dados</div>',
+      '      <div class="bg-field">',
+      '        <label for="billingName">Nome completo</label>',
+      '        <input id="billingName" class="bg-input" type="text" autocomplete="name" placeholder="Como aparece no documento">',
+      '      </div>',
+      '      <div class="bg-field">',
+      '        <label for="billingCpfCnpj">CPF ou CNPJ</label>',
+      '        <input id="billingCpfCnpj" class="bg-input" type="text" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">',
+      '      </div>',
+      '      <div id="billingCouponSection">',
+      '        <button id="billingCouponToggle" type="button" class="bg-coupon-toggle"><i class="ph ph-tag"></i> Tem cupom de desconto?</button>',
+      '        <div id="billingCouponBody" class="bg-coupon-body" style="display:none;">',
+      '          <div id="billingCouponInputRow" class="bg-coupon-row">',
+      '            <input id="billingCoupon" class="bg-input" type="text" autocomplete="off" placeholder="APP-XXXXXX">',
+      '            <button id="billingCouponApply" type="button">Aplicar</button>',
+      '          </div>',
+      '          <div id="billingCouponApplied" class="bg-applied" style="display:none;margin-top:8px;"></div>',
+      '          <div id="billingCouponMsg" style="font-size:12px;margin-top:6px;display:none;"></div>',
+      '        </div>',
+      '      </div>',
+      '    </div>',
+      '    <div id="billingCardFields">',
+      '      <div class="bg-card-fields-head"><i class="ph-fill ph-credit-card"></i> Dados do cartão</div>',
+      '      <div class="bg-field">',
+      '        <label for="ccNumber">Número do cartão</label>',
+      '        <input id="ccNumber" class="bg-input" type="text" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000">',
+      '      </div>',
+      '      <div class="bg-field-row">',
+      '        <div class="bg-field"><label for="ccExp">Validade</label><input id="ccExp" class="bg-input" type="text" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA"></div>',
+      '        <div class="bg-field"><label for="ccCvv">CVV</label><input id="ccCvv" class="bg-input" type="text" inputmode="numeric" autocomplete="cc-csc" placeholder="000"></div>',
+      '      </div>',
+      '      <div class="bg-field">',
+      '        <label for="ccHolder">Nome impresso no cartão</label>',
+      '        <input id="ccHolder" class="bg-input" type="text" autocomplete="cc-name" placeholder="Como impresso no cartão">',
+      '      </div>',
+      '      <div class="bg-field-row">',
+      '        <div class="bg-field"><label for="ccZip">CEP</label><input id="ccZip" class="bg-input" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="00000-000"></div>',
+      '        <div class="bg-field"><label for="ccAddrNum">Nº endereço</label><input id="ccAddrNum" class="bg-input" type="text" inputmode="numeric" placeholder="123"></div>',
+      '      </div>',
+      '      <div class="bg-field">',
+      '        <label for="ccPhone">Telefone</label>',
+      '        <input id="ccPhone" class="bg-input" type="tel" inputmode="tel" autocomplete="tel" placeholder="(00) 00000-0000">',
+      '      </div>',
+      '    </div>',
+      '    <div id="billingErr" class="bg-err" style="display:none;"><i class="ph-fill ph-warning-circle"></i><span></span></div>',
+      '  </div>',
+      '  <div class="bg-summary">',
+      '    <div id="billingSummaryRowDiscount" class="bg-summary-row bg-summary-discount" style="display:none;">',
+      '      <span id="billingSummaryDiscountLabel">Cupom de desconto</span>',
+      '      <span id="billingSummaryDiscountValue">— R$ 0,00</span>',
+      '    </div>',
+      '    <div class="bg-summary-total">',
+      '      <span id="billingSummaryLabel">Total mensal</span>',
+      '      <strong id="billingSummaryTotal">R$ 15,00</strong>',
+      '    </div>',
+      '    <button id="billingSubscribeBtn" type="button" class="bg-cta"><i class="ph-fill ph-lock-simple"></i> <span>Pagar com segurança</span></button>',
+      '    <div class="bg-trust">',
+      '      <span><i class="ph-fill ph-shield-check"></i> Pagamento seguro</span>',
+      '      <span><i class="ph ph-buildings"></i> Processado pela Asaas</span>',
+      '    </div>',
+      '  </div>',
+      '  <div class="bg-footer">',
+      '    <button id="billingRefreshBtn" type="button" class="bg-link">Já paguei — verificar status</button>',
+      '    <button id="billingLogoutBtn" type="button" class="bg-link bg-link-muted">Sair desta conta</button>',
+      '  </div>',
+      '</div>',
+    ].join('');
     document.body.appendChild(div);
+    div.style.display = 'none';
+
+    var couponToggle = $('billingCouponToggle');
+    if (couponToggle) {
+      couponToggle.addEventListener('click', function () {
+        var body = $('billingCouponBody');
+        if (!body) return;
+        var open = body.style.display !== 'none';
+        body.style.display = open ? 'none' : 'block';
+        couponToggle.innerHTML = open
+          ? '<i class="ph ph-tag"></i> Tem cupom de desconto?'
+          : '<i class="ph ph-tag"></i> Ocultar cupom';
+        if (!open) { try { $('billingCoupon').focus(); } catch (_) {} }
+      });
+    }
 
     selectedMethod = 'CREDIT_CARD';
     selectedBillingMode = 'subscription';
@@ -238,23 +352,23 @@
     var p = priceLabel();
     if (selectedBillingMode === 'one_shot') {
       return selectedMethod === 'CREDIT_CARD'
-        ? 'Pagar ' + p + ' (1 mês)'
-        : 'Gerar fatura única (' + p + ')';
+        ? 'Pagar ' + p + ' • 30 dias'
+        : 'Gerar fatura única • ' + p;
     }
     return selectedMethod === 'CREDIT_CARD'
-      ? 'Assinar com cartão (' + p + '/mês)'
-      : 'Gerar fatura (' + p + '/mês)';
+      ? 'Assinar por ' + p + '/mês'
+      : 'Gerar fatura • ' + p + '/mês';
   }
 
   function methodHintText() {
     if (selectedBillingMode === 'one_shot') {
       return selectedMethod === 'CREDIT_CARD'
-        ? 'Cartão cobrado uma vez. Sem renovação automática.'
-        : 'PIX ou boleto avulso — válido por 30 dias após o pagamento.';
+        ? 'Cobrança única no cartão. Sem renovação automática.'
+        : 'PIX ou boleto avulso — válido por 30 dias.';
     }
     return selectedMethod === 'CREDIT_CARD'
-      ? 'Cartão recorrente — cobrado automaticamente todo mês'
-      : 'PIX ou boleto — fatura nova todo mês';
+      ? 'Cartão cobrado automaticamente todo mês.'
+      : 'PIX ou boleto — fatura nova todo mês.';
   }
 
   function setMethod(m) {
@@ -264,17 +378,13 @@
     var fields = $('billingCardFields');
     var label = $('billingMethodLabel');
     var btn = $('billingSubscribeBtn');
-    if (m === 'CREDIT_CARD') {
-      if (card) { card.style.background = '#059669'; card.style.color = '#fff'; card.style.borderColor = '#059669'; card.style.fontWeight = '600'; }
-      if (pix) { pix.style.background = '#fff'; pix.style.color = '#384a42'; pix.style.borderColor = '#d4dad7'; pix.style.fontWeight = '500'; }
-      if (fields) fields.style.display = '';
-    } else {
-      if (pix) { pix.style.background = '#059669'; pix.style.color = '#fff'; pix.style.borderColor = '#059669'; pix.style.fontWeight = '600'; }
-      if (card) { card.style.background = '#fff'; card.style.color = '#384a42'; card.style.borderColor = '#d4dad7'; card.style.fontWeight = '500'; }
-      if (fields) fields.style.display = 'none';
-    }
+    var btnLabel = btn && btn.querySelector('span');
+    if (card) card.setAttribute('aria-checked', m === 'CREDIT_CARD' ? 'true' : 'false');
+    if (pix) pix.setAttribute('aria-checked', m === 'CREDIT_CARD' ? 'false' : 'true');
+    if (fields) fields.style.display = m === 'CREDIT_CARD' ? '' : 'none';
     if (label) label.textContent = methodHintText();
-    if (btn) btn.textContent = ctaText();
+    if (btnLabel) btnLabel.textContent = ctaText();
+    else if (btn) btn.textContent = ctaText();
   }
 
   function setBillingMode(mode) {
@@ -284,17 +394,21 @@
     var hint = $('billingModeHint');
     var label = $('billingMethodLabel');
     var btn = $('billingSubscribeBtn');
-    if (mode === 'subscription') {
-      if (sub) { sub.style.background = '#059669'; sub.style.color = '#fff'; sub.style.borderColor = '#059669'; sub.style.fontWeight = '600'; }
-      if (once) { once.style.background = '#fff'; once.style.color = '#384a42'; once.style.borderColor = '#d4dad7'; once.style.fontWeight = '500'; }
-      if (hint) hint.textContent = 'Renovação automática. Cancele quando quiser.';
-    } else {
-      if (once) { once.style.background = '#059669'; once.style.color = '#fff'; once.style.borderColor = '#059669'; once.style.fontWeight = '600'; }
-      if (sub) { sub.style.background = '#fff'; sub.style.color = '#384a42'; sub.style.borderColor = '#d4dad7'; sub.style.fontWeight = '500'; }
-      if (hint) hint.textContent = 'Pagamento único de 30 dias. Avisaremos antes de expirar.';
-    }
+    var btnLabel = btn && btn.querySelector('span');
+    if (sub) sub.setAttribute('aria-checked', mode === 'subscription' ? 'true' : 'false');
+    if (once) once.setAttribute('aria-checked', mode === 'subscription' ? 'false' : 'true');
+    if (hint) hint.textContent = mode === 'subscription'
+      ? 'Renovação automática. Cancele quando quiser.'
+      : 'Pagamento único de 30 dias. Avisamos antes do vencimento.';
     if (label) label.textContent = methodHintText();
-    if (btn) btn.textContent = ctaText();
+    if (btnLabel) btnLabel.textContent = ctaText();
+    else if (btn) btn.textContent = ctaText();
+    // Atualiza o card de resumo (label "Total mensal" vs "Total (1 mês)").
+    if (typeof updateGatePrices === 'function') {
+      // Evita recursão infinita: updateGatePrices chama setMethod, que NÃO
+      // chama updateGatePrices. setBillingMode pode chamar com segurança.
+      try { updateGatePrices(); } catch (_) {}
+    }
   }
 
   // Estado do gate observado por gateGuard(). Quando true, o
@@ -411,8 +525,10 @@
   function showErr(msg) {
     ensureGate();
     var e = $('billingErr');
-    e.textContent = msg;
-    e.style.display = 'block';
+    if (!e) return;
+    var span = e.querySelector('span');
+    if (span) span.textContent = msg; else e.textContent = msg;
+    e.style.display = 'flex';
   }
 
   function syncTrialBannerOffset(b) {
@@ -1960,13 +2076,11 @@
         : 'A criar assinatura…';
       writePopupMessage(popup, popupMsg, 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
     }
-    // Despacha para o endpoint conforme o modo escolhido. O backend
-    // /pay-month cria uma cobrança avulsa (sem subscription), e /subscribe
-    // cria a recorrência mensal. O resto da UI (waitForActive, polling,
-    // popup com invoiceUrl) é o mesmo para os dois.
-    var endpoint = selectedBillingMode === 'one_shot' ? '/pay-month' : '/subscribe';
+    // /subscribe lida com os dois modos via flag `mode`. Foi fundido com
+    // o antigo /pay-month para caber no limite de 12 functions do Vercel.
+    payload.mode = selectedBillingMode;
     try {
-      var r = await authedFetch(endpoint, {
+      var r = await authedFetch('/subscribe', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
