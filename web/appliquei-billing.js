@@ -2,8 +2,13 @@
  * Controlo de acesso (trial + assinatura Asaas).
  * Executa após Firebase Auth: inicializa billing no backend, lê status,
  * mostra gate de pagamento quando trial expira ou assinatura bloqueia.
+ *
+ * Onda 3 — convertido para ES module. O IIFE foi removido; o escopo do
+ * módulo já isola as `var` do global. A indentação +2 ficou para minimizar
+ * o diff da conversão. `window.AppliqueiBilling` continua exposto no
+ * final para os consumidores legados (HTML inline e onClick handlers).
  */
-(function () {
+{
   var API = (window.__APPLIQUEI_API_BASE__ || '') + '/api/billing';
   var POLL_MS = 30000;
   var pollTimer = null;
@@ -3262,4 +3267,4 @@
     },
     setSignupBlock: setSignupBlock,
   };
-})();
+}

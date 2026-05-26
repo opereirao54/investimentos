@@ -80,8 +80,12 @@
       virar no-op. Quando estabilizar, o inline acima vira this single source.
     -->
     <script type="module" src="/web/appliquei-firebase-init.js"></script>
-    <script src="web/appliquei-cloud-sync.js?v=20260524a"></script>
-    <script src="web/appliquei-billing.js?v=20260524a"></script>
+    <!-- Onda 3 — cloud-sync e billing convertidos para ES modules.
+         Vite bundla e aplica content-hash; cache-busting manual (?v=...)
+         deixa de ser necessário. Defer semantics: rodam após o parsing,
+         mas as referências em HTML inline usam guards `if (window.X)`. -->
+    <script type="module" src="/web/appliquei-cloud-sync.js"></script>
+    <script type="module" src="/web/appliquei-billing.js"></script>
 
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */

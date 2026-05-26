@@ -11,8 +11,13 @@
  *     updatedAt: serverTimestamp
  *   }
  * Compat: docs antigos sem keyRevs usam updatedAt como rev de fallback global.
+ *
+ * Onda 3 — convertido para ES module. O IIFE foi removido; o escopo do
+ * módulo já isola as `var` do global. A indentação +2 ficou para minimizar
+ * o diff da conversão. `window.AppliqueiCloudSync` continua exposto no
+ * final para os consumidores legados (HTML inline).
  */
-(function () {
+{
   var DEBOUNCE_MS = 2000;
   var BEACON_DEBOUNCE_MS = 600;
   var timer = null;
@@ -818,4 +823,4 @@
       clearUserScopedKeys();
     },
   };
-})();
+}
