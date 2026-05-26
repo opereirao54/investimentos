@@ -18,3 +18,7 @@ Thumbs.db
 
 # Ferramentas
 .eslintcache
+
+# Vite (Onda 2)
+dist/
+.vite/

@@ -34,3 +34,6 @@ jobs:
 
       - name: Billing flow tests
         run: npm run test:flows
+
+      - name: Vite build (Onda 2)
+        run: npm run build
