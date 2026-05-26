@@ -83,7 +83,7 @@ module (Onda 3), o aviso some.
 
 A partir daqui, atacar **um script por vez**:
 
-1. Pegar o menor — `web/appliquei-firebase-init.js` (43 linhas).
+1. Pegar o menor — `web/appliquei-firebase-init.js` (43 linhas). ✅ feito
 2. Converter para ES module (`export function init() { ... }`).
 3. Trocar `<script src="web/appliquei-firebase-init.js">` por
    `<script type="module" src="/web/appliquei-firebase-init.js">`.
@@ -94,3 +94,34 @@ A partir daqui, atacar **um script por vez**:
 Quando todos os `web/*.js` forem módulos, o plugin `copyWebDir` pode ser
 removido. Quando o JS inline nos HTMLs também for extraído para
 módulos, os HTMLs ficam pequenos e a Onda 3 está completa.
+
+## Padrão estabelecido na primeira conversão
+
+`web/appliquei-firebase-init.js` virou ES module com:
+
+- **Exports nomeados**: `initFirebase()`, `getFirebase()` em vez do IIFE.
+- **Side effect no import**: `if (typeof window !== 'undefined') initFirebase();`
+  preserva o contrato do IIFE original — código existente que lê
+  `window.AppliqueiFirebase` segue funcionando.
+- **Idempotência explícita**: `firebase.apps.length` impede dupla
+  inicialização quando inline + módulo rodam juntos.
+- **HTML mantém o bloco inline** como defesa em profundidade. Adicionado
+  `<script type="module" src="/web/appliquei-firebase-init.js">` logo
+  depois. Ordem: inline (sync, durante parse) → módulo (deferred). Ambos
+  no-op idempotente.
+- **Vite output**: módulo vira `dist/assets/Appliquei_v13.0-<hash>.js`
+  (~2 KB minificado). HTML reescrito automaticamente para o path hasheado.
+
+**Replicação para os próximos scripts** (`web/appliquei-cloud-sync.js`,
+`web/appliquei-billing.js`):
+
+1. Identificar exports lógicos (funções que outros scripts consomem via
+   globals — converter cada um em `export function`).
+2. Manter atribuição a `window.*` no final do módulo durante a transição.
+3. Adicionar `<script type="module" src="/web/X.js">` no HTML; remover o
+   `<script src="web/X.js?v=...">` antigo **só depois** do preview validar.
+4. Ajustar imports cruzados entre módulos da pasta `web/` quando aplicável.
+
+Quando todos os arquivos de `web/` forem ES modules carregados via
+`<script type="module">`, o plugin `copyWebDir()` em `vite.config.js`
+pode ser removido — Vite bundla tudo nativamente.

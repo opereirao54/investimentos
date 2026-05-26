@@ -74,6 +74,12 @@
       } catch (e) { console.warn('[AppliqueiFirebase]', e); }
     })();
     </script>
+    <!--
+      Onda 3 — primeira conversão ES module. Roda após o bloco inline acima
+      (defer semantics). Idempotente: firebase.apps.length > 0 faz o init
+      virar no-op. Quando estabilizar, o inline acima vira this single source.
+    -->
+    <script type="module" src="/web/appliquei-firebase-init.js"></script>
     <script src="web/appliquei-cloud-sync.js?v=20260524a"></script>
     <script src="web/appliquei-billing.js?v=20260524a"></script>
 

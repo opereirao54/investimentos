@@ -46,13 +46,14 @@ module.exports = [
     },
   },
 
-  // web/: navegador (ES5+ legado, IIFE, vars). Permissivo de propósito —
-  // refatoração estrutural é Onda 2/3, aqui só travamos os erros de fato.
+  // web/: navegador. Mix de IIFE legado (script) e ES modules da Onda 3.
+  // sourceType=module aceita export/import sem rejeitar IIFEs antigos —
+  // wrapper `(function () { ... })()` continua válido como expressão.
   {
     files: ['web/**/*.js'],
     languageOptions: {
       ecmaVersion: 2022,
-      sourceType: 'script',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         firebase: 'readonly',
