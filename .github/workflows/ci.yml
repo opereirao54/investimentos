@@ -32,8 +32,5 @@ jobs:
       - name: Unit tests (node --test)
         run: npm test
 
-      # Flow tests dependem de um mock que precisa de manutenção (getUser
-      # não está stubado). Mantidos informativos até a Onda 1.5.
-      - name: Billing flow tests (informational)
+      - name: Billing flow tests
         run: npm run test:flows
-        continue-on-error: true

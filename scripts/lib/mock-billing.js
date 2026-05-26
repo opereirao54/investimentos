@@ -270,13 +270,43 @@ const mockFirebaseAdmin = {
     verifyIdToken: async (token) => {
       const [, uid, email] = token.split(':');
       if (!uid) throw new Error('bad token');
-      return { uid, email };
+      // email_verified=true por padrão — espelha o que provedores OAuth
+      // confiáveis (google.com) entregam e o que /init exige explicitamente.
+      // Testes que precisam simular conta não verificada passam um token
+      // com prefixo 'unverified:' no lugar de 'fake:'.
+      const emailVerified = !token.startsWith('unverified:');
+      return { uid, email, email_verified: emailVerified };
+    },
+    // Espelha o contrato de firebase-admin.auth().getUser(uid):
+    // - retorna { uid, disabled } para uids "vivos"
+    // - lança { code: 'auth/user-not-found' } para uids deletados
+    // O conjunto de uids "deletados" é controlado por asaasState.deletedUids
+    // (vazio por padrão — o test harness pode adicionar uids para simular
+    // o caso de signup rejeitado/conta deletada).
+    getUser: async (uid) => {
+      if (!uid) {
+        const err = new Error('uid required');
+        err.code = 'auth/invalid-uid';
+        throw err;
+      }
+      if (asaasState.deletedUids && asaasState.deletedUids.has(uid)) {
+        const err = new Error('user not found');
+        err.code = 'auth/user-not-found';
+        throw err;
+      }
+      return { uid, disabled: false, emailVerified: true };
     },
   }),
 };
 
 // ---------- Mock asaas ----------
-const asaasState = { customers: new Map(), subscriptions: new Map(), payments: new Map(), seq: 1 };
+const asaasState = {
+  customers: new Map(),
+  subscriptions: new Map(),
+  payments: new Map(),
+  deletedUids: new Set(),
+  seq: 1,
+};
 
 const mockAsaas = {
   PLAN_VALUE: 15.0,
@@ -351,11 +381,15 @@ function setup(opts = {}) {
   };
   require.cache[require.resolve(path.join(ROOT, 'api/_lib/asaas'))] = { exports: mockAsaas };
   process.env.ASAAS_WEBHOOK_TOKEN = opts.webhookToken || 'test_webhook_token';
+  const me = require(path.join(ROOT, 'api/billing/me'));
   return {
     init: require(path.join(ROOT, 'api/billing/init')),
     subscribe: require(path.join(ROOT, 'api/billing/subscribe')),
     webhook: require(path.join(ROOT, 'api/billing/webhook')),
-    me: require(path.join(ROOT, 'api/billing/me')),
+    me,
+    // /status foi consolidado em /me (cap de 12 functions do Vercel Hobby).
+    // Alias preserva a semântica do harness para os testes legados.
+    status: me,
     cancel: require(path.join(ROOT, 'api/billing/cancel')),
     customer: require(path.join(ROOT, 'api/billing/customer')),
     computeAccess: require(path.join(ROOT, 'api/_lib/access')).computeAccess,
@@ -364,7 +398,19 @@ function setup(opts = {}) {
 
 // ---------- Fake req/res ----------
 function makeReq({ method = 'POST', body, headers = {} }) {
-  return { method, body, headers, socket: { remoteAddress: '127.0.0.1' }, on() {} };
+  // Auto-injeta user-agent único por uid quando o request não traz um.
+  // Sem isto, o deviceFingerprint = hash(ip + ua) seria igual para todos
+  // os usuários do harness (mesmo IP 127.0.0.1, sem UA) e a guard de
+  // referral bloqueia 'same_device' entre indicador e indicado. Em
+  // produção isso protege contra self-referral; nos testes precisamos
+  // simular dispositivos distintos.
+  const h = { ...headers };
+  if (!h['user-agent']) {
+    const auth = h.authorization || '';
+    const m = auth.match(/Bearer\s+(?:fake|unverified):([^:]+):/);
+    if (m) h['user-agent'] = 'test-ua/' + m[1];
+  }
+  return { method, body, headers: h, socket: { remoteAddress: '127.0.0.1' }, on() {} };
 }
 function makeRes() {
   return {

@@ -56,7 +56,7 @@ async function main() {
   step('A3', 'Anna assina (sem cupom, valor cheio R$ 15)');
   const a3 = await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + annaTok },
-    body: { cpfCnpj: '11122233344', name: 'Anna Sem Cupom' },
+    body: { cpfCnpj: '10000000108', name: 'Anna Sem Cupom' },
   });
   check(a3.status === 200, 'subscribe ok');
   const annaB3 = store.docs.get('users/anna_uid/billing/account');
@@ -114,7 +114,7 @@ async function main() {
   await call(H.init, { headers: { authorization: 'Bearer ' + carlaTok }, body: {} });
   await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + carlaTok },
-    body: { cpfCnpj: '33344455566', name: 'Carla Indicadora' },
+    body: { cpfCnpj: '10000000280', name: 'Carla Indicadora' },
   });
   const carlaCode = store.docs.get('users/carla_uid/billing/account').referralCode;
   log('cupom da Carla =', carlaCode);
@@ -132,7 +132,7 @@ async function main() {
   step('C3', 'Carlos assina com CPF próprio → fatura recorrente com desconto');
   const c3 = await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + carlosTok },
-    body: { cpfCnpj: '22233344455', name: 'Carlos Indicado' },
+    body: { cpfCnpj: '10000000361', name: 'Carlos Indicado' },
   });
   check(c3.status === 200, 'subscribe ok');
   const carlosB = store.docs.get('users/carlos_uid/billing/account');

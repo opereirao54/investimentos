@@ -84,7 +84,7 @@ async function main() {
   step(5, 'Bob completa /subscribe com CPF próprio');
   const r5 = await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + bobTok },
-    body: { cpfCnpj: '12345678901', name: 'Bob Friend' },
+    body: { cpfCnpj: '10000000442', name: 'Bob Friend' },
   });
   check(r5.status === 200, 'subscribe ok');
   const bobB2 = store.docs.get('users/bob_uid/billing/account');
@@ -133,7 +133,7 @@ async function main() {
   step(8, 'Alice ativa subscription; webhook PAYMENT_CREATED aplica o crédito acumulado');
   await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + aliceTok },
-    body: { cpfCnpj: '99988877766', name: 'Alice Indicator' },
+    body: { cpfCnpj: '10000000523', name: 'Alice Indicator' },
   });
   const aliceB3 = store.docs.get('users/alice_uid/billing/account');
   const alicePay = Array.from(asaasState.payments.values()).find(
@@ -161,7 +161,7 @@ async function main() {
   const dave1Code = store.docs.get('users/dave1_uid/billing/account').referralCode;
   await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + dave1Tok },
-    body: { cpfCnpj: '55544433322', name: 'Dave One' },
+    body: { cpfCnpj: '10000000604', name: 'Dave One' },
   });
   log('Dave1 cupom =', dave1Code, '(CPF 555.444.333-22)');
 
@@ -172,7 +172,7 @@ async function main() {
   });
   const dave2Sub = await call(H.subscribe, {
     headers: { authorization: 'Bearer ' + dave2Tok },
-    body: { cpfCnpj: '55544433322', name: 'Dave Two' },
+    body: { cpfCnpj: '10000000604', name: 'Dave Two' },
   });
   check(
     dave2Sub.status === 409 && dave2Sub.body && dave2Sub.body.error === 'cpfcnpj_in_use',
