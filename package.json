@@ -6,7 +6,29 @@
   "engines": {
     "node": ">=20"
   },
+  "scripts": {
+    "lint": "eslint \"api/**/*.js\" \"scripts/**/*.js\" \"web/**/*.js\"",
+    "lint:fix": "npm run lint -- --fix",
+    "format": "prettier --write \"api/**/*.js\" \"scripts/**/*.js\" \"web/**/*.js\" \"**/*.{json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"api/**/*.js\" \"scripts/**/*.js\" \"web/**/*.js\"",
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:flows": "node scripts/test-subscription-flow.js && node scripts/test-referral-flow.js",
+    "optimize:assets": "node scripts/optimize-assets.js",
+    "prepare": "husky || true"
+  },
   "dependencies": {
     "firebase-admin": "^12.7.0"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.4",
+    "globals": "^15.15.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "prettier": "^3.8.3",
+    "sharp": "^0.34.5"
+  },
+  "lint-staged": {
+    "*.{js,json,md,yml,yaml}": "prettier --write",
+    "{api,scripts,web}/**/*.js": "eslint --fix"
   }
 }
