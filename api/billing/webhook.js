@@ -14,22 +14,36 @@ function readBody(req) {
   return new Promise((resolve, reject) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let raw = '';
-    req.on('data', c => { raw += c; });
+    req.on('data', (c) => {
+      raw += c;
+    });
     req.on('end', () => {
       if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch (e) { reject(e); }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (e) {
+        reject(e);
+      }
     });
     req.on('error', reject);
   });
 }
 
 async function findBillingByCustomer(customerId) {
-  const q = await db().collectionGroup('billing').where('customerId', '==', customerId).limit(1).get();
+  const q = await db()
+    .collectionGroup('billing')
+    .where('customerId', '==', customerId)
+    .limit(1)
+    .get();
   if (q.empty) return null;
   return q.docs[0];
 }
 async function findBillingBySubscription(subscriptionId) {
-  const q = await db().collectionGroup('billing').where('subscriptionId', '==', subscriptionId).limit(1).get();
+  const q = await db()
+    .collectionGroup('billing')
+    .where('subscriptionId', '==', subscriptionId)
+    .limit(1)
+    .get();
   if (q.empty) return null;
   return q.docs[0];
 }
@@ -48,7 +62,7 @@ function creditsCol(billingDoc) {
 async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValueReais) {
   const billing = indicatorBillingDoc.data();
   const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
-  const paymentCents = Math.round((paymentValueReais || (monthlyCents / 100)) * 100);
+  const paymentCents = Math.round((paymentValueReais || monthlyCents / 100) * 100);
   const maxDiscountCents = Math.max(0, paymentCents - MIN_PAYMENT_CENTS);
   if (maxDiscountCents <= 0) return { applied: 0, used: [] };
 
@@ -74,11 +88,15 @@ async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValu
     }
     if (appliedCents <= 0) return { applied: 0, used: [] };
     for (const u of used) {
-      tx.set(u.ref, {
-        appliedAt: fieldValue().serverTimestamp(),
-        appliedToPaymentId: paymentId,
-        appliedAmountCents: u.partial,
-      }, { merge: true });
+      tx.set(
+        u.ref,
+        {
+          appliedAt: fieldValue().serverTimestamp(),
+          appliedToPaymentId: paymentId,
+          appliedAmountCents: u.partial,
+        },
+        { merge: true }
+      );
     }
     return { applied: appliedCents, used };
   });
@@ -96,11 +114,15 @@ async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValu
     try {
       const batch = db().batch();
       for (const u of reservation.used) {
-        batch.set(u.ref, {
-          appliedAt: null,
-          appliedToPaymentId: null,
-          appliedAmountCents: fieldValue().delete(),
-        }, { merge: true });
+        batch.set(
+          u.ref,
+          {
+            appliedAt: null,
+            appliedToPaymentId: null,
+            appliedAmountCents: fieldValue().delete(),
+          },
+          { merge: true }
+        );
       }
       await batch.commit();
     } catch (rollbackErr) {
@@ -123,14 +145,22 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   const indicatorUid = indicadoBilling.referredByUserId;
   if (!indicatorUid) return null;
 
-  const indicatorBillingRef = db().collection('users').doc(indicatorUid).collection('billing').doc('account');
+  const indicatorBillingRef = db()
+    .collection('users')
+    .doc(indicatorUid)
+    .collection('billing')
+    .doc('account');
   const indicatorSnap = await indicatorBillingRef.get();
   if (!indicatorSnap.exists) return null;
   const indicator = indicatorSnap.data();
 
   // A6: indicador inativo/em chargeback não gera nem recebe novos créditos.
   if (INDICATOR_BLOCKED_STATUSES.has(indicator.subscriptionStatus)) {
-    console.warn('[webhook] indicator blocked, skipping credit', indicatorUid, indicator.subscriptionStatus);
+    console.warn(
+      '[webhook] indicator blocked, skipping credit',
+      indicatorUid,
+      indicator.subscriptionStatus
+    );
     return null;
   }
 
@@ -145,7 +175,7 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   }
 
   const paidCents = Math.round((payment.value || 0) * 100);
-  const generated = Math.round(paidCents * REFERRAL_PERCENT / 100);
+  const generated = Math.round((paidCents * REFERRAL_PERCENT) / 100);
   if (generated <= 0) return null;
 
   // Idempotência por payment.id: se já existe crédito para este pagamento,
@@ -167,30 +197,40 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
     createdAt: fieldValue().serverTimestamp(),
   });
 
-  await indicatorBillingRef.set({
-    stats: {
-      totalReferralEarningsCents: fieldValue().increment(generated),
-      pendingDiscountCents: fieldValue().increment(generated),
+  await indicatorBillingRef.set(
+    {
+      stats: {
+        totalReferralEarningsCents: fieldValue().increment(generated),
+        pendingDiscountCents: fieldValue().increment(generated),
+      },
+      updatedAt: fieldValue().serverTimestamp(),
     },
-    updatedAt: fieldValue().serverTimestamp(),
-  }, { merge: true });
+    { merge: true }
+  );
 
   return generated;
 }
 
 async function reverseReferralCredit(indicatorUid, paymentId) {
   if (!indicatorUid || !paymentId) return false;
-  const indicatorBillingRef = db().collection('users').doc(indicatorUid).collection('billing').doc('account');
+  const indicatorBillingRef = db()
+    .collection('users')
+    .doc(indicatorUid)
+    .collection('billing')
+    .doc('account');
   const creditRef = indicatorBillingRef.collection('credits').doc(paymentId);
   const snap = await creditRef.get();
   if (!snap.exists) return false;
   const c = snap.data();
   if (c.voidedAt) return false; // já revertido
 
-  await creditRef.set({
-    voidedAt: fieldValue().serverTimestamp(),
-    voidedReason: 'payment_refunded',
-  }, { merge: true });
+  await creditRef.set(
+    {
+      voidedAt: fieldValue().serverTimestamp(),
+      voidedReason: 'payment_refunded',
+    },
+    { merge: true }
+  );
 
   const updateStats = { updatedAt: fieldValue().serverTimestamp(), stats: {} };
   const amount = c.amountCents || 0;
@@ -222,7 +262,11 @@ module.exports = async (req, res) => {
   }
 
   let body;
-  try { body = await readBody(req); } catch (_) { return res.status(400).json({ error: 'bad_json' }); }
+  try {
+    body = await readBody(req);
+  } catch (_) {
+    return res.status(400).json({ error: 'bad_json' });
+  }
 
   const event = body.event;
   const payment = body.payment || null;
@@ -234,17 +278,20 @@ module.exports = async (req, res) => {
   // determinística como fallback.
   // Para eventos de subscription sem body.id, incluir status+nextDueDate ajuda
   // a distinguir múltiplos UPDATED legítimos sem deduplicar incorretamente.
-  const eventKey = body.id
-    || (event && payment && payment.id ? `${event}:${payment.id}:${payment.status || ''}` : null)
-    || (event && subscription && subscription.id
-        ? `${event}:sub:${subscription.id}:${subscription.status || ''}:${subscription.nextDueDate || ''}`
-        : null);
+  const eventKey =
+    body.id ||
+    (event && payment && payment.id ? `${event}:${payment.id}:${payment.status || ''}` : null) ||
+    (event && subscription && subscription.id
+      ? `${event}:sub:${subscription.id}:${subscription.status || ''}:${subscription.nextDueDate || ''}`
+      : null);
   // eventRef vive fora do try { } para que o handler de sucesso/erro
   // mais abaixo possa promover para 'done' ou libertar o lock.
   let eventRef = null;
   if (eventKey) {
     try {
-      eventRef = db().collection('webhookEvents').doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
+      eventRef = db()
+        .collection('webhookEvents')
+        .doc(String(eventKey).replace(/[^A-Za-z0-9_:-]/g, '_'));
       // TTL: doc expira 30 dias após receber. Asaas reenvia eventos por
       // até alguns dias; 30d é largo o suficiente para idempotência e
       // ainda permite limpeza automática (configurar TTL policy no
@@ -271,16 +318,21 @@ module.exports = async (req, res) => {
           // Stale: previous handler crashed before promoting to 'done'.
           // Take ownership by overwriting receivedAtMs abaixo.
         }
-        tx.set(eventRef, {
-          event: event || null,
-          paymentId: (payment && payment.id) || null,
-          subscriptionId: (payment && payment.subscription) || (subscription && subscription.id) || null,
-          paymentStatus: (payment && payment.status) || null,
-          status: 'processing',
-          receivedAt: fieldValue().serverTimestamp(),
-          receivedAtMs: Date.now(),
-          expiresAt: timestamp().fromMillis(Date.now() + WEBHOOK_EVENT_TTL_MS),
-        }, { merge: true });
+        tx.set(
+          eventRef,
+          {
+            event: event || null,
+            paymentId: (payment && payment.id) || null,
+            subscriptionId:
+              (payment && payment.subscription) || (subscription && subscription.id) || null,
+            paymentStatus: (payment && payment.status) || null,
+            status: 'processing',
+            receivedAt: fieldValue().serverTimestamp(),
+            receivedAtMs: Date.now(),
+            expiresAt: timestamp().fromMillis(Date.now() + WEBHOOK_EVENT_TTL_MS),
+          },
+          { merge: true }
+        );
         return { state: 'fresh' };
       });
       if (guard.state === 'done') {
@@ -352,7 +404,8 @@ module.exports = async (req, res) => {
           update.lastFailureReason = fieldValue().delete();
           break;
         case 'PAYMENT_AUTHORIZED':
-          update.subscriptionStatus = billing.subscriptionStatus === 'ACTIVE' ? 'ACTIVE' : 'PENDING';
+          update.subscriptionStatus =
+            billing.subscriptionStatus === 'ACTIVE' ? 'ACTIVE' : 'PENDING';
           break;
         case 'PAYMENT_AWAITING_RISK_ANALYSIS':
           update.subscriptionStatus = 'AWAITING_RISK_ANALYSIS';
@@ -424,7 +477,12 @@ module.exports = async (req, res) => {
         }
       }
 
-      if ((event === 'PAYMENT_CONFIRMED' || event === 'PAYMENT_RECEIVED' || event === 'PAYMENT_RECEIVED_IN_CASH') && billing.referredByUserId) {
+      if (
+        (event === 'PAYMENT_CONFIRMED' ||
+          event === 'PAYMENT_RECEIVED' ||
+          event === 'PAYMENT_RECEIVED_IN_CASH') &&
+        billing.referredByUserId
+      ) {
         try {
           const generated = await creditIndicatorFromIndicado(billing, payment);
           if (generated) paymentExtra.referralGeneratedDiscountCents = generated;
@@ -435,7 +493,14 @@ module.exports = async (req, res) => {
 
       // A6 + refund handling: estorna crédito do indicador quando o
       // pagamento do indicado é reembolsado ou apagado.
-      if ((event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED' || event === 'PAYMENT_CHARGEBACK_REQUESTED') && billing.referredByUserId && payment && payment.id) {
+      if (
+        (event === 'PAYMENT_REFUNDED' ||
+          event === 'PAYMENT_DELETED' ||
+          event === 'PAYMENT_CHARGEBACK_REQUESTED') &&
+        billing.referredByUserId &&
+        payment &&
+        payment.id
+      ) {
         try {
           const reversed = await reverseReferralCredit(billing.referredByUserId, payment.id);
           if (reversed) paymentExtra.referralReversed = true;
@@ -448,7 +513,13 @@ module.exports = async (req, res) => {
       // fatura que foi apagada/reembolsada. Sem isto, o desconto reservado
       // ficaria preso (appliedAt setado, mas a fatura onde ia abater já
       // não existe) e o saldo pendente nunca voltaria.
-      if ((event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED' || event === 'PAYMENT_CHARGEBACK_REQUESTED') && payment && payment.id) {
+      if (
+        (event === 'PAYMENT_REFUNDED' ||
+          event === 'PAYMENT_DELETED' ||
+          event === 'PAYMENT_CHARGEBACK_REQUESTED') &&
+        payment &&
+        payment.id
+      ) {
         try {
           const released = await releaseAppliedCredits(doc.ref, payment.id);
           if (released > 0) paymentExtra.referralCreditReleasedCents = released;
@@ -458,30 +529,43 @@ module.exports = async (req, res) => {
       }
 
       if (pid) {
-        await paymentsCol(doc).doc(pid).set(Object.assign({
-          id: pid,
-          status: payment.status,
-          value: payment.value || null,
-          netValue: payment.netValue || null,
-          billingType: payment.billingType || null,
-          dueDate: payment.dueDate || null,
-          paymentDate: payment.paymentDate || null,
-          invoiceUrl: payment.invoiceUrl || null,
-          bankSlipUrl: payment.bankSlipUrl || null,
-          transactionReceiptUrl: payment.transactionReceiptUrl || null,
-          subscriptionId: payment.subscription || null,
-          event,
-          receivedAt: fieldValue().serverTimestamp(),
-        }, paymentExtra), { merge: true });
+        await paymentsCol(doc)
+          .doc(pid)
+          .set(
+            Object.assign(
+              {
+                id: pid,
+                status: payment.status,
+                value: payment.value || null,
+                netValue: payment.netValue || null,
+                billingType: payment.billingType || null,
+                dueDate: payment.dueDate || null,
+                paymentDate: payment.paymentDate || null,
+                invoiceUrl: payment.invoiceUrl || null,
+                bankSlipUrl: payment.bankSlipUrl || null,
+                transactionReceiptUrl: payment.transactionReceiptUrl || null,
+                subscriptionId: payment.subscription || null,
+                event,
+                receivedAt: fieldValue().serverTimestamp(),
+              },
+              paymentExtra
+            ),
+            { merge: true }
+          );
       }
     } else if (event && event.startsWith('SUBSCRIPTION_')) {
-      if (event === 'SUBSCRIPTION_DELETED' || event === 'SUBSCRIPTION_INACTIVATED' || event === 'SUBSCRIPTION_CANCELLED') {
+      if (
+        event === 'SUBSCRIPTION_DELETED' ||
+        event === 'SUBSCRIPTION_INACTIVATED' ||
+        event === 'SUBSCRIPTION_CANCELLED'
+      ) {
         update.subscriptionStatus = 'INACTIVE';
         update.cancelledAt = fieldValue().serverTimestamp();
       } else if (event === 'SUBSCRIPTION_UPDATED') {
         if (subscription) {
           if (subscription.status) update.subscriptionStatus = subscription.status;
-          if (typeof subscription.value === 'number') update.subscriptionBaseValueCents = Math.round(subscription.value * 100);
+          if (typeof subscription.value === 'number')
+            update.subscriptionBaseValueCents = Math.round(subscription.value * 100);
           if (subscription.nextDueDate) update.nextDueDate = subscription.nextDueDate;
           if (subscription.billingType) update.paymentMethod = subscription.billingType;
         }
@@ -494,11 +578,15 @@ module.exports = async (req, res) => {
     // de nova subscription, que troca o subscriptionId). Eventos
     // PAYMENT_* de uma sub antiga não podem revivê-la.
     if (
-      billing.subscriptionStatus === 'INACTIVE'
-      && update.subscriptionStatus
-      && update.subscriptionStatus !== 'INACTIVE'
+      billing.subscriptionStatus === 'INACTIVE' &&
+      update.subscriptionStatus &&
+      update.subscriptionStatus !== 'INACTIVE'
     ) {
-      console.warn('[webhook] refusing to revert INACTIVE -> %s via event %s', update.subscriptionStatus, event);
+      console.warn(
+        '[webhook] refusing to revert INACTIVE -> %s via event %s',
+        update.subscriptionStatus,
+        event
+      );
       delete update.subscriptionStatus;
     }
 
@@ -508,10 +596,13 @@ module.exports = async (req, res) => {
     // rejeitado como duplicado.
     if (eventRef) {
       try {
-        await eventRef.set({
-          status: 'done',
-          completedAt: fieldValue().serverTimestamp(),
-        }, { merge: true });
+        await eventRef.set(
+          {
+            status: 'done',
+            completedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        );
       } catch (e) {
         console.error('[webhook] failed to mark event done', e && e.message);
       }
@@ -523,8 +614,11 @@ module.exports = async (req, res) => {
     // do Asaas. Sem isto, o evento ficaria preso em 'processing' até
     // ficar stale (5 min) e o utilizador podia perder o desconto/activação.
     if (eventRef) {
-      try { await eventRef.delete(); }
-      catch (delErr) { console.error('[webhook] failed to release event lock', delErr && delErr.message); }
+      try {
+        await eventRef.delete();
+      } catch (delErr) {
+        console.error('[webhook] failed to release event lock', delErr && delErr.message);
+      }
     }
     return res.status(500).json({ error: 'webhook_failed' });
   }

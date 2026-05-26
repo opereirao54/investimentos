@@ -16,12 +16,17 @@ const { deviceFingerprint, ipFrom } = require('./rate-limit');
 //  'self_referral_not_allowed', 'referral_code_not_found'.
 async function assertReferralAllowed(D, opts) {
   const { indicatorUid, user, req } = opts;
-  if (!indicatorUid || !user || !user.uid) return { allowed: false, reason: 'self_referral_not_allowed' };
+  if (!indicatorUid || !user || !user.uid)
+    return { allowed: false, reason: 'self_referral_not_allowed' };
   if (indicatorUid === user.uid) return { allowed: false, reason: 'self_referral_not_allowed' };
 
   let indicatorBilling = null;
   try {
-    const snap = await D.collection('users').doc(indicatorUid).collection('billing').doc('account').get();
+    const snap = await D.collection('users')
+      .doc(indicatorUid)
+      .collection('billing')
+      .doc('account')
+      .get();
     if (snap.exists) indicatorBilling = snap.data();
   } catch (e) {
     console.warn('[referral-guard] indicator read failed', indicatorUid, e && e.message);
@@ -57,7 +62,11 @@ async function assertReferralAllowed(D, opts) {
   let userCpf = user.cpfCnpj || null;
   if (!userCpf) {
     try {
-      const snap = await D.collection('users').doc(user.uid).collection('billing').doc('account').get();
+      const snap = await D.collection('users')
+        .doc(user.uid)
+        .collection('billing')
+        .doc('account')
+        .get();
       if (snap.exists) userCpf = snap.data().cpfCnpj || null;
     } catch (_) {}
   }

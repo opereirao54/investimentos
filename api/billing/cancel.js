@@ -39,11 +39,14 @@ module.exports = async (req, res) => {
       return res.json({ ok: true, alreadyInactive: true });
     }
 
-    await ref.set({
-      subscriptionStatus: 'INACTIVE',
-      cancelledAt: fieldValue().serverTimestamp(),
-      updatedAt: fieldValue().serverTimestamp(),
-    }, { merge: true });
+    await ref.set(
+      {
+        subscriptionStatus: 'INACTIVE',
+        cancelledAt: fieldValue().serverTimestamp(),
+        updatedAt: fieldValue().serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     return res.json({ ok: true });
   } catch (e) {

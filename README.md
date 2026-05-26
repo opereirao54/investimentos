@@ -18,19 +18,20 @@
 
 ## 🛠️ Tecnologias Utilizadas
 
-| Tecnologia | Descrição |
-|------------|-----------|
-| HTML5 | Estrutura semântica da aplicação |
-| CSS3 | Estilização com Design System personalizado |
-| JavaScript | Lógica e interatividade |
-| Chart.js | Biblioteca de gráficos |
-| Chart.js Plugin Datalabels | Exibição de dados nos gráficos |
-| Phosphor Icons | Biblioteca de ícones modernos |
-| Google Fonts | Tipografia (Syne, Figtree, DM Mono) |
+| Tecnologia                 | Descrição                                   |
+| -------------------------- | ------------------------------------------- |
+| HTML5                      | Estrutura semântica da aplicação            |
+| CSS3                       | Estilização com Design System personalizado |
+| JavaScript                 | Lógica e interatividade                     |
+| Chart.js                   | Biblioteca de gráficos                      |
+| Chart.js Plugin Datalabels | Exibição de dados nos gráficos              |
+| Phosphor Icons             | Biblioteca de ícones modernos               |
+| Google Fonts               | Tipografia (Syne, Figtree, DM Mono)         |
 
 ## 🚀 Como Usar
 
 1. **Clone ou baixe o repositório**
+
    ```bash
    git clone <repositorio>
    cd workspace
@@ -66,7 +67,7 @@ A aplicação utiliza um Design System próprio com:
 - **Cores Primárias**: Tons de verde esmeralda (#10b981, #059669)
 - **Sidebar Dark**: Sempre escura com gradientes sutis
 - **Modo Escuro**: Tema dark mode completo para área principal
-- **Tipografia**: 
+- **Tipografia**:
   - Syne (títulos)
   - Figtree (corpo)
   - DM Mono (código/dados)
@@ -86,10 +87,10 @@ O Design System permite fácil personalização através das variáveis CSS no a
 
 ```css
 :root {
-    --cor-primaria: #059669;
-    --radius: 14px;
-    --shadow-card: 0 1px 2px rgba(0,0,0,0.04);
-    /* ... mais variáveis */
+  --cor-primaria: #059669;
+  --radius: 14px;
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* ... mais variáveis */
 }
 ```
 
@@ -135,6 +136,7 @@ O repositório inclui **`graphify-out/graph.json`**, **`GRAPH_REPORT.md`** e **`
 ## 🤝 Contribuição
 
 Contribuições são bem-vindas! Sinta-se à vontade para:
+
 - Reportar bugs
 - Sugerir novas funcionalidades
 - Enviar pull requests
@@ -142,5 +144,3 @@ Contribuições são bem-vindas! Sinta-se à vontade para:
 ---
 
 **Appliquei** - Transformando a gestão financeira em uma experiência simples e elegante.
-
-

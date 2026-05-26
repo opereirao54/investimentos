@@ -33,7 +33,7 @@ jobs:
         run: npm test
 
       # Flow tests dependem de um mock que precisa de manutenção (getUser
-       # não está stubado). Mantidos informativos até a Onda 1.5.
+      # não está stubado). Mantidos informativos até a Onda 1.5.
       - name: Billing flow tests (informational)
         run: npm run test:flows
         continue-on-error: true

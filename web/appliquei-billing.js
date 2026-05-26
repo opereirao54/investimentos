@@ -17,11 +17,11 @@
     // Caso contrário, calcular a partir do desconto registado em /init
     var base = lastBilling.monthlyPriceCents || 1500;
     var pct = lastBilling.recurringDiscountPercent || 0;
-    return Math.round(base * (100 - pct) / 100);
+    return Math.round((base * (100 - pct)) / 100);
   }
   function priceLabel() {
     // fmtBRL é declarada abaixo (hoisting via var/function); evita uso antes de definição
-    return (typeof fmtBRL === 'function')
+    return typeof fmtBRL === 'function'
       ? fmtBRL(effectivePriceCents())
       : 'R$ ' + (effectivePriceCents() / 100).toFixed(2).replace('.', ',');
   }
@@ -33,14 +33,18 @@
     var label = $('billingSummaryLabel');
     var row = $('billingSummaryRowDiscount');
     var rowVal = $('billingSummaryDiscountValue');
-    var isOnce = (typeof selectedBillingMode !== 'undefined' && selectedBillingMode === 'one_shot');
-    if (total) total.textContent = (typeof fmtBRL === 'function') ? fmtBRL(effective) : priceLabel();
+    var isOnce = typeof selectedBillingMode !== 'undefined' && selectedBillingMode === 'one_shot';
+    if (total) total.textContent = typeof fmtBRL === 'function' ? fmtBRL(effective) : priceLabel();
     if (label) label.textContent = isOnce ? 'Total (1 mês de acesso)' : 'Total mensal';
     if (row && rowVal) {
       var diff = listCents - effective;
       if (diff > 0 && pct > 0) {
         row.style.display = '';
-        rowVal.textContent = '− ' + ((typeof fmtBRL === 'function') ? fmtBRL(diff) : 'R$ ' + (diff / 100).toFixed(2).replace('.', ','));
+        rowVal.textContent =
+          '− ' +
+          (typeof fmtBRL === 'function'
+            ? fmtBRL(diff)
+            : 'R$ ' + (diff / 100).toFixed(2).replace('.', ','));
         var lbl = document.getElementById('billingSummaryDiscountLabel');
         if (lbl) lbl.textContent = 'Cupom ' + pct + '% off';
       } else {
@@ -48,7 +52,8 @@
       }
     }
     // Texto do CTA fica em ctaText(); aqui só re-aplica via setMethod (mantém o tab visualmente sincronizado também).
-    if (typeof setMethod === 'function' && typeof selectedMethod !== 'undefined') setMethod(selectedMethod);
+    if (typeof setMethod === 'function' && typeof selectedMethod !== 'undefined')
+      setMethod(selectedMethod);
     renderCouponState();
   }
 
@@ -62,7 +67,10 @@
     var inputRow = $('billingCouponInputRow');
     var appliedBox = $('billingCouponApplied');
     var msg = $('billingCouponMsg');
-    if (msg) { msg.style.display = 'none'; msg.textContent = ''; }
+    if (msg) {
+      msg.style.display = 'none';
+      msg.textContent = '';
+    }
     if (b.referredByCode) {
       // Abre o body e oculta toggle: o cupom já foi aplicado e o usuário
       // deve ver a confirmação proeminente, não um link "Tem cupom?".
@@ -71,14 +79,21 @@
       if (inputRow) inputRow.style.display = 'none';
       if (appliedBox) {
         appliedBox.style.display = 'flex';
-        appliedBox.innerHTML = '<i class="ph-fill ph-check-circle"></i><span>Cupom <strong>' + b.referredByCode + '</strong> aplicado · ' +
-          (b.recurringDiscountPercent || 0) + '% off no plano recorrente.</span>';
+        appliedBox.innerHTML =
+          '<i class="ph-fill ph-check-circle"></i><span>Cupom <strong>' +
+          b.referredByCode +
+          '</strong> aplicado · ' +
+          (b.recurringDiscountPercent || 0) +
+          '% off no plano recorrente.</span>';
       }
     } else {
       if (toggle) toggle.style.display = '';
       // Mantém o body com o estado escolhido pelo toggle (não força reabrir).
       if (inputRow) inputRow.style.display = 'flex';
-      if (appliedBox) { appliedBox.style.display = 'none'; appliedBox.innerHTML = ''; }
+      if (appliedBox) {
+        appliedBox.style.display = 'none';
+        appliedBox.innerHTML = '';
+      }
     }
   }
 
@@ -95,14 +110,23 @@
     var btn = $('billingCouponApply');
     if (!inp) return;
     var raw = (inp.value || '').trim().toUpperCase();
-    if (!raw) { showCouponMsg('Informe o código do cupom.', false); return; }
+    if (!raw) {
+      showCouponMsg('Informe o código do cupom.', false);
+      return;
+    }
     if (!/^APP-[A-Z0-9]{6}$/.test(raw)) {
       showCouponMsg('Formato inválido. Use APP-XXXXXX.', false);
       return;
     }
-    if (btn) { btn.disabled = true; btn.textContent = 'Aplicando…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Aplicando…';
+    }
     try {
-      var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify({ referralCode: raw }) });
+      var r = await authedFetch('/init', {
+        method: 'POST',
+        body: JSON.stringify({ referralCode: raw }),
+      });
       lastBilling = r.billing || lastBilling;
       lastAccess = r.access || lastAccess;
       updateGatePrices();
@@ -119,15 +143,21 @@
       var text;
       if (code === 'invalid_referral_code') text = 'Formato inválido. Use APP-XXXXXX.';
       else if (code === 'referral_code_not_found') text = 'Cupom não encontrado.';
-      else if (code === 'self_referral_not_allowed') text = 'Não é possível usar o seu próprio cupom.';
+      else if (code === 'self_referral_not_allowed')
+        text = 'Não é possível usar o seu próprio cupom.';
       else text = e.message || 'Erro ao aplicar o cupom. Tente novamente.';
       showCouponMsg(text, false);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Aplicar'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Aplicar';
+      }
     }
   }
 
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    return document.getElementById(id);
+  }
 
   function injectGateStyles() {
     if (document.getElementById('billingGateStyles')) return;
@@ -355,24 +385,43 @@
         couponToggle.innerHTML = open
           ? '<i class="ph ph-tag"></i> Tem cupom de desconto?'
           : '<i class="ph ph-tag"></i> Ocultar cupom';
-        if (!open) { try { $('billingCoupon').focus(); } catch (_) {} }
+        if (!open) {
+          try {
+            $('billingCoupon').focus();
+          } catch (_) {}
+        }
       });
     }
 
     selectedMethod = 'CREDIT_CARD';
     selectedBillingMode = 'subscription';
-    $('billingTabCard').addEventListener('click', function () { setMethod('CREDIT_CARD'); });
-    $('billingTabPix').addEventListener('click', function () { setMethod('UNDEFINED'); });
-    $('billingModeSub').addEventListener('click', function () { setBillingMode('subscription'); });
-    $('billingModeOnce').addEventListener('click', function () { setBillingMode('one_shot'); });
+    $('billingTabCard').addEventListener('click', function () {
+      setMethod('CREDIT_CARD');
+    });
+    $('billingTabPix').addEventListener('click', function () {
+      setMethod('UNDEFINED');
+    });
+    $('billingModeSub').addEventListener('click', function () {
+      setBillingMode('subscription');
+    });
+    $('billingModeOnce').addEventListener('click', function () {
+      setBillingMode('one_shot');
+    });
     $('billingSubscribeBtn').addEventListener('click', subscribe);
     $('billingCouponApply').addEventListener('click', applyCoupon);
     $('billingCoupon').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); applyCoupon(); }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyCoupon();
+      }
     });
-    $('billingRefreshBtn').addEventListener('click', function () { refresh(true); });
+    $('billingRefreshBtn').addEventListener('click', function () {
+      refresh(true);
+    });
     $('billingLogoutBtn').addEventListener('click', function () {
-      try { window.AppliqueiFirebase.auth.signOut(); } catch (_) {}
+      try {
+        window.AppliqueiFirebase.auth.signOut();
+      } catch (_) {}
     });
   }
 
@@ -428,9 +477,11 @@
     var btnLabel = btn && btn.querySelector('span');
     if (sub) sub.setAttribute('aria-checked', mode === 'subscription' ? 'true' : 'false');
     if (once) once.setAttribute('aria-checked', mode === 'subscription' ? 'false' : 'true');
-    if (hint) hint.textContent = mode === 'subscription'
-      ? 'Renovação automática. Cancele quando quiser.'
-      : 'Pagamento único de 30 dias. Avisamos antes do vencimento.';
+    if (hint)
+      hint.textContent =
+        mode === 'subscription'
+          ? 'Renovação automática. Cancele quando quiser.'
+          : 'Pagamento único de 30 dias. Avisamos antes do vencimento.';
     if (label) label.textContent = methodHintText();
     if (btnLabel) btnLabel.textContent = ctaText();
     else if (btn) btn.textContent = ctaText();
@@ -438,7 +489,9 @@
     if (typeof updateGatePrices === 'function') {
       // Evita recursão infinita: updateGatePrices chama setMethod, que NÃO
       // chama updateGatePrices. setBillingMode pode chamar com segurança.
-      try { updateGatePrices(); } catch (_) {}
+      try {
+        updateGatePrices();
+      } catch (_) {}
     }
   }
 
@@ -492,7 +545,9 @@
         // Removido do DOM → re-injeta e re-aplica os textos atuais.
         if (!g) {
           var title = (lastAccess && titleForAccess(lastAccess)) || 'Assinatura necessária';
-          var sub = (lastAccess && subForAccess(lastAccess)) || 'O acesso à plataforma requer uma assinatura ativa.';
+          var sub =
+            (lastAccess && subForAccess(lastAccess)) ||
+            'O acesso à plataforma requer uma assinatura ativa.';
           ensureGate();
           $('billingTitle').textContent = title;
           $('billingSub').textContent = sub;
@@ -518,13 +573,17 @@
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['style']
+        attributeFilter: ['style'],
       });
-    } catch (_) { gateObserver = null; }
+    } catch (_) {
+      gateObserver = null;
+    }
   }
   function stopGateGuard() {
     if (gateObserver) {
-      try { gateObserver.disconnect(); } catch (_) {}
+      try {
+        gateObserver.disconnect();
+      } catch (_) {}
       gateObserver = null;
     }
   }
@@ -532,7 +591,10 @@
   // que o guard possa reaplicar sem reentrar em applyAccess (que faria
   // efeitos colaterais de polling/banners).
   function titleForAccess(a) {
-    if (a.status === 'pending_payment') return a.reason === 'risk_analysis' ? 'Cartão em análise' : 'Aguardando confirmação de pagamento';
+    if (a.status === 'pending_payment')
+      return a.reason === 'risk_analysis'
+        ? 'Cartão em análise'
+        : 'Aguardando confirmação de pagamento';
     if (a.reason === 'overdue') return 'Assinatura em atraso';
     if (a.reason === 'card_reproved') return 'Cartão recusado';
     if (a.reason === 'chargeback') return 'Chargeback em curso';
@@ -546,11 +608,16 @@
         ? 'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.'
         : 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.';
     }
-    if (a.reason === 'overdue') return 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.';
-    if (a.reason === 'card_reproved') return 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.';
-    if (a.reason === 'chargeback') return 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.';
-    if (a.reason === 'cancelled') return 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.';
-    if (a.reason === 'trial_expired') return 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.';
+    if (a.reason === 'overdue')
+      return 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.';
+    if (a.reason === 'card_reproved')
+      return 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.';
+    if (a.reason === 'chargeback')
+      return 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.';
+    if (a.reason === 'cancelled')
+      return 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.';
+    if (a.reason === 'trial_expired')
+      return 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.';
     return 'O acesso à plataforma requer uma assinatura ativa.';
   }
   function showErr(msg) {
@@ -558,7 +625,8 @@
     var e = $('billingErr');
     if (!e) return;
     var span = e.querySelector('span');
-    if (span) span.textContent = msg; else e.textContent = msg;
+    if (span) span.textContent = msg;
+    else e.textContent = msg;
     e.style.display = 'flex';
   }
 
@@ -583,9 +651,11 @@
   function clearTrialBannerOffset() {
     var body = document.body;
     if (!body) return;
-    ['position','top','left','right','bottom','height','width','margin'].forEach(function (k) {
-      body.style.removeProperty(k);
-    });
+    ['position', 'top', 'left', 'right', 'bottom', 'height', 'width', 'margin'].forEach(
+      function (k) {
+        body.style.removeProperty(k);
+      }
+    );
   }
   // Banner pró-ativo de verificação de e-mail. Mostra ANTES de
   // EMAIL_VERIFY_ENFORCE estar ligado, dando ao utilizador tempo de
@@ -594,30 +664,43 @@
   function ensureVerifyBanner(show) {
     var b = $('verifyBanner');
     if (!show) {
-      if (b) { b.remove(); }
+      if (b) {
+        b.remove();
+      }
       return;
     }
     if (!b) {
       b = document.createElement('div');
       b.id = 'verifyBanner';
-      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9001;background:#f59e0b;color:#1f2937;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-wrap:wrap;';
-      b.innerHTML = '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso. <span style="opacity:.85;font-weight:500;">Confira também a pasta de spam.</span></span>' +
+      b.style.cssText =
+        'position:fixed;top:0;left:0;right:0;z-index:9001;background:#f59e0b;color:#1f2937;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-wrap:wrap;';
+      b.innerHTML =
+        '<span style="display:flex;align-items:center;gap:6px;"><i class="ph-fill ph-envelope-simple" style="font-size:16px;"></i> <strong>Verifique seu e-mail</strong> para garantir o acesso. <span style="opacity:.85;font-weight:500;">Confira também a pasta de spam.</span></span>' +
         '<button type="button" id="verifyBannerBtn" style="background:#1f2937;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-weight:600;font-size:12px;cursor:pointer;">Reenviar e-mail</button>' +
         '<button type="button" id="verifyBannerCheckBtn" style="background:transparent;color:#1f2937;border:1px solid #1f2937;border-radius:6px;padding:4px 10px;font-weight:600;font-size:12px;cursor:pointer;">Já verifiquei</button>';
       document.body.appendChild(b);
       $('verifyBannerBtn').addEventListener('click', resendVerification);
       $('verifyBannerCheckBtn').addEventListener('click', recheckVerification);
       if (typeof ResizeObserver === 'function') {
-        try { new ResizeObserver(function () { syncTrialBannerOffset(b); }).observe(b); } catch (_) {}
+        try {
+          new ResizeObserver(function () {
+            syncTrialBannerOffset(b);
+          }).observe(b);
+        } catch (_) {}
       }
-      window.addEventListener('resize', function () { syncTrialBannerOffset(b); });
+      window.addEventListener('resize', function () {
+        syncTrialBannerOffset(b);
+      });
     }
     syncTrialBannerOffset(b);
   }
 
   async function resendVerification() {
     var btn = $('verifyBannerBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'A enviar…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'A enviar…';
+    }
     try {
       var fb = window.AppliqueiFirebase;
       var u = fb && fb.auth && fb.auth.currentUser;
@@ -629,7 +712,9 @@
       // Caminho secundário (best-effort): bate no /api/auth/resend-verification
       // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
       // primário já foi.
-      try { await authedFetch('/../auth/resend-verification', { method: 'POST' }); } catch (_) {}
+      try {
+        await authedFetch('/../auth/resend-verification', { method: 'POST' });
+      } catch (_) {}
       // Aviso ao usuário sobre spam (sender padrão noreply@*.firebaseapp.com
       // ainda cai como suspeito em vários provedores).
       try {
@@ -643,9 +728,12 @@
     } catch (e) {
       console.warn('[verify] resend failed', e && e.code, e && e.message);
       if (btn) {
-        var msg = (e && e.code === 'auth/too-many-requests') ? 'Aguarde — limite atingido.' : 'Erro';
+        var msg = e && e.code === 'auth/too-many-requests' ? 'Aguarde — limite atingido.' : 'Erro';
         btn.textContent = msg;
-        setTimeout(function () { btn.disabled = false; btn.textContent = 'Reenviar e-mail'; }, 4000);
+        setTimeout(function () {
+          btn.disabled = false;
+          btn.textContent = 'Reenviar e-mail';
+        }, 4000);
       }
     }
   }
@@ -668,7 +756,10 @@
 
   async function recheckVerification() {
     var btn = $('verifyBannerCheckBtn');
-    if (btn) { btn.disabled = true; btn.textContent = 'A verificar…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'A verificar…';
+    }
     try {
       var fb = window.AppliqueiFirebase;
       var u = fb && fb.auth && fb.auth.currentUser;
@@ -676,14 +767,22 @@
       await u.reload();
       if (u.emailVerified) {
         ensureVerifyBanner(false);
-        try { await u.getIdToken(true); } catch (_) {} // força refresh do token
+        try {
+          await u.getIdToken(true);
+        } catch (_) {} // força refresh do token
         await refresh(false);
       } else if (btn) {
         btn.textContent = 'Ainda não verificado';
-        setTimeout(function () { btn.disabled = false; btn.textContent = 'Já verifiquei'; }, 3000);
+        setTimeout(function () {
+          btn.disabled = false;
+          btn.textContent = 'Já verifiquei';
+        }, 3000);
       }
     } catch (e) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Já verifiquei'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Já verifiquei';
+      }
     }
   }
 
@@ -693,8 +792,11 @@
     if (!u || !u.email) return false;
     // Só mostra para quem entrou via e-mail/senha — provedores OAuth
     // (Google) sempre vêm com emailVerified=true.
-    var hasPasswordProvider = Array.isArray(u.providerData)
-      && u.providerData.some(function (p) { return p.providerId === 'password'; });
+    var hasPasswordProvider =
+      Array.isArray(u.providerData) &&
+      u.providerData.some(function (p) {
+        return p.providerId === 'password';
+      });
     return hasPasswordProvider && !u.emailVerified;
   }
 
@@ -708,16 +810,27 @@
     if (!b) {
       b = document.createElement('div');
       b.id = 'trialBanner';
-      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:#059669;color:#fff;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.12);';
-      b.innerHTML = '<span id="trialBannerText"></span><button type="button" id="trialBannerBtn" style="background:#fff;color:#059669;border:none;border-radius:6px;padding:5px 10px;font-weight:600;font-size:12px;cursor:pointer;">Assinar agora</button>';
+      b.style.cssText =
+        'position:fixed;top:0;left:0;right:0;z-index:9000;background:#059669;color:#fff;font-family:Figtree,sans-serif;font-size:13px;padding:8px 14px;display:flex;align-items:center;justify-content:center;gap:12px;box-shadow:0 2px 6px rgba(0,0,0,.12);';
+      b.innerHTML =
+        '<span id="trialBannerText"></span><button type="button" id="trialBannerBtn" style="background:#fff;color:#059669;border:none;border-radius:6px;padding:5px 10px;font-weight:600;font-size:12px;cursor:pointer;">Assinar agora</button>';
       document.body.appendChild(b);
       $('trialBannerBtn').addEventListener('click', openSubscribeForm);
       if (typeof ResizeObserver === 'function') {
-        try { new ResizeObserver(function () { syncTrialBannerOffset(b); }).observe(b); } catch (_) {}
+        try {
+          new ResizeObserver(function () {
+            syncTrialBannerOffset(b);
+          }).observe(b);
+        } catch (_) {}
       }
-      window.addEventListener('resize', function () { syncTrialBannerOffset(b); });
+      window.addEventListener('resize', function () {
+        syncTrialBannerOffset(b);
+      });
     }
-    var txt = daysLeft === 1 ? 'Último dia da avaliação gratuita.' : 'Avaliação gratuita: ' + daysLeft + ' dias restantes.';
+    var txt =
+      daysLeft === 1
+        ? 'Último dia da avaliação gratuita.'
+        : 'Avaliação gratuita: ' + daysLeft + ' dias restantes.';
     $('trialBannerText').textContent = txt;
     syncTrialBannerOffset(b);
   }
@@ -727,12 +840,18 @@
     var u = fb && fb.auth && fb.auth.currentUser;
     if (!u) throw new Error('not_authenticated');
     var token = await u.getIdToken();
-    var r = await fetch(API + path, Object.assign({}, opts, {
-      headers: Object.assign({
-        'Authorization': 'Bearer ' + token,
-        'Content-Type': 'application/json',
-      }, (opts && opts.headers) || {}),
-    }));
+    var r = await fetch(
+      API + path,
+      Object.assign({}, opts, {
+        headers: Object.assign(
+          {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          },
+          (opts && opts.headers) || {}
+        ),
+      })
+    );
     var text = await r.text();
     var data;
     try {
@@ -741,9 +860,11 @@
       // Resposta não-JSON (ex.: 404 do Vercel devolve HTML "The page
       // could not be found"). Erro genérico estruturado em vez do
       // críptico "Unexpected token 'T'" — mensagem útil pro usuário.
-      var pe = new Error(r.status === 404
-        ? 'Recurso indisponível no momento. Tente novamente em instantes.'
-        : 'Resposta inválida do servidor. Atualize a página e tente outra vez.');
+      var pe = new Error(
+        r.status === 404
+          ? 'Recurso indisponível no momento. Tente novamente em instantes.'
+          : 'Resposta inválida do servidor. Atualize a página e tente outra vez.'
+      );
       pe.detail = { error: 'invalid_response', status: r.status, body: text.slice(0, 200) };
       pe.code = 'invalid_response';
       throw pe;
@@ -754,7 +875,9 @@
       // onAuthStateChanged (que já força reload em emailVerified), aqui só
       // sinaliza o estado para quem chamou.
       if (r.status === 403 && data.error === 'email_not_verified') {
-        try { await u.reload(); } catch (_) {}
+        try {
+          await u.reload();
+        } catch (_) {}
         // Se ainda não está verificado, lança erro estruturado.
         if (!u.emailVerified) {
           var ev = new Error('email_not_verified');
@@ -764,18 +887,27 @@
         }
         // Caso raro: usuário verificou no meio do fetch. Retry com token fresh.
         var t2 = await u.getIdToken(true);
-        var r2 = await fetch(API + path, Object.assign({}, opts, {
-          headers: Object.assign({
-            'Authorization': 'Bearer ' + t2,
-            'Content-Type': 'application/json',
-          }, (opts && opts.headers) || {}),
-        }));
+        var r2 = await fetch(
+          API + path,
+          Object.assign({}, opts, {
+            headers: Object.assign(
+              {
+                Authorization: 'Bearer ' + t2,
+                'Content-Type': 'application/json',
+              },
+              (opts && opts.headers) || {}
+            ),
+          })
+        );
         var t2text = await r2.text();
         var t2data;
-        try { t2data = t2text ? JSON.parse(t2text) : {}; }
-        catch (_) { t2data = { error: 'invalid_response' }; }
+        try {
+          t2data = t2text ? JSON.parse(t2text) : {};
+        } catch (_) {
+          t2data = { error: 'invalid_response' };
+        }
         if (!r2.ok) {
-          var e2 = new Error(t2data.error || ('http_' + r2.status));
+          var e2 = new Error(t2data.error || 'http_' + r2.status);
           e2.detail = t2data;
           throw e2;
         }
@@ -787,11 +919,13 @@
         rl.code = 'too_many_trials';
         throw rl;
       }
-      var msg = data.error || ('http_' + r.status);
+      var msg = data.error || 'http_' + r.status;
       if (data.code) msg += ' (' + data.code + ')';
       if (data.detail) msg += ': ' + data.detail;
       if (data.asaasErrors) {
-        try { msg += ' — Asaas: ' + JSON.stringify(data.asaasErrors); } catch (_) {}
+        try {
+          msg += ' — Asaas: ' + JSON.stringify(data.asaasErrors);
+        } catch (_) {}
       }
       var err = new Error(msg);
       err.detail = data;
@@ -805,14 +939,22 @@
   // acesso ao que foi sincronizado antes do bloqueio. NÃO inclui
   // pending_payment (usuário acabou de assinar, está aguardando webhook).
   var HARD_BLOCK_REASONS = {
-    trial_expired: 1, overdue: 1, card_reproved: 1,
-    chargeback: 1, cancelled: 1, refunded: 1, no_billing: 1
+    trial_expired: 1,
+    overdue: 1,
+    card_reproved: 1,
+    chargeback: 1,
+    cancelled: 1,
+    refunded: 1,
+    no_billing: 1,
   };
   function purgeLocalCacheIfBlocked(access) {
     if (!access || access.status !== 'blocked') return;
     if (!HARD_BLOCK_REASONS[access.reason]) return;
     try {
-      if (window.AppliqueiCloudSync && typeof window.AppliqueiCloudSync.purgeLocalCache === 'function') {
+      if (
+        window.AppliqueiCloudSync &&
+        typeof window.AppliqueiCloudSync.purgeLocalCache === 'function'
+      ) {
         window.AppliqueiCloudSync.purgeLocalCache();
       }
     } catch (_) {}
@@ -829,8 +971,13 @@
     var needVerify = needsEmailVerification();
     if (access.status === 'active') {
       hideGate();
-      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
-      else { ensureVerifyBanner(false); ensureTrialBanner(0); }
+      if (needVerify) {
+        ensureTrialBanner(0);
+        ensureVerifyBanner(true);
+      } else {
+        ensureVerifyBanner(false);
+        ensureTrialBanner(0);
+      }
       stopPolling();
       return;
     }
@@ -843,18 +990,25 @@
       // a assinatura já está criada, só falta o webhook confirmar.
       // O hero de Minha assinatura já trata este caso ("Pagamento já em
       // curso · estamos a confirmar"); aqui apenas escondemos o banner.
-      var hasPendingSub = lastBilling
-        && lastBilling.subscriptionId
-        && lastBilling.subscriptionStatus
-        && lastBilling.subscriptionStatus !== 'INACTIVE';
+      var hasPendingSub =
+        lastBilling &&
+        lastBilling.subscriptionId &&
+        lastBilling.subscriptionStatus &&
+        lastBilling.subscriptionStatus !== 'INACTIVE';
       if (hasPendingSub) {
         ensureTrialBanner(0);
-        if (needVerify) ensureVerifyBanner(true); else ensureVerifyBanner(false);
+        if (needVerify) ensureVerifyBanner(true);
+        else ensureVerifyBanner(false);
         stopPolling();
         return;
       }
-      if (needVerify) { ensureTrialBanner(0); ensureVerifyBanner(true); }
-      else { ensureVerifyBanner(false); ensureTrialBanner(access.trialDaysLeft || 0); }
+      if (needVerify) {
+        ensureTrialBanner(0);
+        ensureVerifyBanner(true);
+      } else {
+        ensureVerifyBanner(false);
+        ensureTrialBanner(access.trialDaysLeft || 0);
+      }
       stopPolling();
       return;
     }
@@ -862,20 +1016,41 @@
     ensureTrialBanner(0);
     if (access.status === 'pending_payment') {
       if (access.reason === 'risk_analysis') {
-        showGate('Cartão em análise', 'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.');
+        showGate(
+          'Cartão em análise',
+          'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.'
+        );
       } else {
-        showGate('Aguardando confirmação de pagamento', 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.');
+        showGate(
+          'Aguardando confirmação de pagamento',
+          'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.'
+        );
       }
     } else if (access.reason === 'overdue') {
-      showGate('Assinatura em atraso', 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.');
+      showGate(
+        'Assinatura em atraso',
+        'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.'
+      );
     } else if (access.reason === 'card_reproved') {
-      showGate('Cartão recusado', 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.');
+      showGate(
+        'Cartão recusado',
+        'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.'
+      );
     } else if (access.reason === 'chargeback') {
-      showGate('Chargeback em curso', 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.');
+      showGate(
+        'Chargeback em curso',
+        'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.'
+      );
     } else if (access.reason === 'cancelled') {
-      showGate('Assinatura cancelada', 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.');
+      showGate(
+        'Assinatura cancelada',
+        'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.'
+      );
     } else if (access.reason === 'trial_expired') {
-      showGate('Avaliação gratuita terminou', 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.');
+      showGate(
+        'Avaliação gratuita terminou',
+        'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.'
+      );
     } else {
       showGate('Assinatura necessária', 'O acesso à plataforma requer uma assinatura ativa.');
     }
@@ -885,46 +1060,74 @@
 
   function startPolling() {
     if (pollTimer) return;
-    pollTimer = setInterval(function () { refresh(false); }, POLL_MS);
+    pollTimer = setInterval(function () {
+      refresh(false);
+    }, POLL_MS);
   }
   function stopPolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
   }
 
   async function initBilling() {
     var pending = '';
-    try { pending = sessionStorage.getItem('appliquei_pending_referral') || ''; } catch (_) {}
+    try {
+      pending = sessionStorage.getItem('appliquei_pending_referral') || '';
+    } catch (_) {}
     var bodyObj = pending ? { referralCode: pending } : {};
     try {
       var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify(bodyObj) });
-      try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
+      try {
+        sessionStorage.removeItem('appliquei_pending_referral');
+      } catch (_) {}
       applyAccess(r.access, r.billing);
     } catch (e) {
       console.warn('[billing] init', e);
-      var refErr = e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found' || e.detail.error === 'self_referral_not_allowed');
+      var refErr =
+        e.detail &&
+        (e.detail.error === 'invalid_referral_code' ||
+          e.detail.error === 'referral_code_not_found' ||
+          e.detail.error === 'self_referral_not_allowed');
       if (refErr && pending) {
-        try { sessionStorage.removeItem('appliquei_pending_referral'); } catch (_) {}
+        try {
+          sessionStorage.removeItem('appliquei_pending_referral');
+        } catch (_) {}
         try {
           var r2 = await authedFetch('/init', { method: 'POST', body: JSON.stringify({}) });
           applyAccess(r2.access, r2.billing);
-          var msg = e.detail.error === 'self_referral_not_allowed'
-            ? 'Não é possível usar o seu próprio cupom — a conta foi criada sem cupom.'
-            : 'O cupom informado não foi encontrado — a conta foi criada sem cupom.';
+          var msg =
+            e.detail.error === 'self_referral_not_allowed'
+              ? 'Não é possível usar o seu próprio cupom — a conta foi criada sem cupom.'
+              : 'O cupom informado não foi encontrado — a conta foi criada sem cupom.';
           showErr(msg);
           return;
         } catch (e2) {
           console.warn('[billing] init retry', e2);
-          showGate('Não foi possível verificar a sua assinatura', 'Tente novamente. Se persistir, contacte o suporte.');
+          showGate(
+            'Não foi possível verificar a sua assinatura',
+            'Tente novamente. Se persistir, contacte o suporte.'
+          );
           showErr(e2.message || 'Erro de rede.');
           return;
         }
       }
       if (e.detail && e.detail.error === 'self_referral_not_allowed') {
         showGate('Cupom inválido', 'Não é possível usar o seu próprio cupom.');
-      } else if (e.detail && (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found')) {
-        showGate('Cupom inválido', 'O cupom informado não foi encontrado. Crie a conta sem cupom ou peça outro.');
+      } else if (
+        e.detail &&
+        (e.detail.error === 'invalid_referral_code' || e.detail.error === 'referral_code_not_found')
+      ) {
+        showGate(
+          'Cupom inválido',
+          'O cupom informado não foi encontrado. Crie a conta sem cupom ou peça outro.'
+        );
       } else {
-        showGate('Não foi possível verificar a sua assinatura', 'Tente novamente. Se persistir, contacte o suporte.');
+        showGate(
+          'Não foi possível verificar a sua assinatura',
+          'Tente novamente. Se persistir, contacte o suporte.'
+        );
       }
       showErr(e.message || 'Erro de rede.');
     }
@@ -943,27 +1146,33 @@
   function isValidCpf(c) {
     c = String(c || '').replace(/\D+/g, '');
     if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
-    var s = 0, i;
+    var s = 0,
+      i;
     for (i = 0; i < 9; i++) s += parseInt(c[i], 10) * (10 - i);
-    var d1 = (s * 10) % 11; if (d1 === 10) d1 = 0;
+    var d1 = (s * 10) % 11;
+    if (d1 === 10) d1 = 0;
     if (d1 !== parseInt(c[9], 10)) return false;
     s = 0;
     for (i = 0; i < 10; i++) s += parseInt(c[i], 10) * (11 - i);
-    var d2 = (s * 10) % 11; if (d2 === 10) d2 = 0;
+    var d2 = (s * 10) % 11;
+    if (d2 === 10) d2 = 0;
     return d2 === parseInt(c[10], 10);
   }
   function isValidCnpj(c) {
     c = String(c || '').replace(/\D+/g, '');
     if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
-    var w1 = [5,4,3,2,9,8,7,6,5,4,3,2];
-    var w2 = [6,5,4,3,2,9,8,7,6,5,4,3,2];
-    var s = 0, i;
+    var w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    var w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    var s = 0,
+      i;
     for (i = 0; i < 12; i++) s += parseInt(c[i], 10) * w1[i];
-    var d1 = s % 11; d1 = d1 < 2 ? 0 : 11 - d1;
+    var d1 = s % 11;
+    d1 = d1 < 2 ? 0 : 11 - d1;
     if (d1 !== parseInt(c[12], 10)) return false;
     s = 0;
     for (i = 0; i < 13; i++) s += parseInt(c[i], 10) * w2[i];
-    var d2 = s % 11; d2 = d2 < 2 ? 0 : 11 - d2;
+    var d2 = s % 11;
+    d2 = d2 < 2 ? 0 : 11 - d2;
     return d2 === parseInt(c[13], 10);
   }
   function isValidCpfCnpj(v) {
@@ -1092,8 +1301,10 @@
     if ($('myAccountModal')) return;
     var div = document.createElement('div');
     div.id = 'myAccountModal';
-    div.style.cssText = 'position:fixed;inset:0;z-index:10070;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
-    div.innerHTML = '\
+    div.style.cssText =
+      'position:fixed;inset:0;z-index:10070;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
+    div.innerHTML =
+      '\
       <div class="ma-shell" role="dialog" aria-modal="true" aria-labelledby="myAccountTitle">\
         <div class="ma-head">\
           <h2 id="myAccountTitle">Minha assinatura</h2>\
@@ -1106,16 +1317,28 @@
         </div>\
       </div>';
     document.body.appendChild(div);
-    div.addEventListener('click', function (e) { if (e.target === div) closeMyAccount(); });
+    div.addEventListener('click', function (e) {
+      if (e.target === div) closeMyAccount();
+    });
     $('myAccountClose').addEventListener('click', closeMyAccount);
     $('myAccountReload').addEventListener('click', async function () {
       var btn = $('myAccountReload');
-      if (btn) { btn.disabled = true; btn.textContent = 'A atualizar…'; }
-      try { var me = await fetchMe(); renderMyAccount(me); } catch (e) {}
-      if (btn) { btn.disabled = false; btn.textContent = 'Atualizar'; }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'A atualizar…';
+      }
+      try {
+        var me = await fetchMe();
+        renderMyAccount(me);
+      } catch (e) {}
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Atualizar';
+      }
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && $('myAccountModal') && $('myAccountModal').style.display === 'flex') closeMyAccount();
+      if (e.key === 'Escape' && $('myAccountModal') && $('myAccountModal').style.display === 'flex')
+        closeMyAccount();
     });
   }
   function closeMyAccount() {
@@ -1132,7 +1355,10 @@
     if (hadCache) {
       renderMyAccount(lastMe);
       var reloadBtn = $('myAccountReload');
-      if (reloadBtn) { reloadBtn.disabled = true; reloadBtn.textContent = 'A atualizar…'; }
+      if (reloadBtn) {
+        reloadBtn.disabled = true;
+        reloadBtn.textContent = 'A atualizar…';
+      }
     } else {
       $('myAccountBody').innerHTML = '<div class="ma-empty">A carregar…</div>';
     }
@@ -1144,12 +1370,17 @@
       // um lastAccess perdido pelo race do kickstart (signup Google novo
       // em que onAuthStateChanged disparou com signupBlocked=true e
       // nenhuma das retries chegou a popular o banner).
-      try { applyAccess(me.access, me); } catch (_) {}
+      try {
+        applyAccess(me.access, me);
+      } catch (_) {}
     } catch (e) {
       if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
     } finally {
       var rb = $('myAccountReload');
-      if (rb) { rb.disabled = false; rb.textContent = 'Atualizar'; }
+      if (rb) {
+        rb.disabled = false;
+        rb.textContent = 'Atualizar';
+      }
     }
   }
   function statusLabel(s) {
@@ -1167,29 +1398,55 @@
   }
   function fmtDate(iso) {
     if (!iso) return '—';
-    try { return new Date(iso).toLocaleDateString('pt-BR'); } catch (_) { return iso; }
+    try {
+      return new Date(iso).toLocaleDateString('pt-BR');
+    } catch (_) {
+      return iso;
+    }
   }
   function paymentStatusLabel(s) {
     var map = {
-      CONFIRMED: 'Confirmado', RECEIVED: 'Recebido', RECEIVED_IN_CASH: 'Recebido',
-      PENDING: 'Pendente', OVERDUE: 'Atrasado', REFUNDED: 'Devolvido', DELETED: 'Cancelado',
-      AWAITING_RISK_ANALYSIS: 'Em análise', APPROVED_BY_RISK_ANALYSIS: 'Aprovado',
-      REPROVED_BY_RISK_ANALYSIS: 'Recusado', AUTHORIZED: 'Autorizado',
-      CHARGEBACK_REQUESTED: 'Chargeback', CHARGEBACK_DISPUTE: 'Chargeback (em disputa)',
+      CONFIRMED: 'Confirmado',
+      RECEIVED: 'Recebido',
+      RECEIVED_IN_CASH: 'Recebido',
+      PENDING: 'Pendente',
+      OVERDUE: 'Atrasado',
+      REFUNDED: 'Devolvido',
+      DELETED: 'Cancelado',
+      AWAITING_RISK_ANALYSIS: 'Em análise',
+      APPROVED_BY_RISK_ANALYSIS: 'Aprovado',
+      REPROVED_BY_RISK_ANALYSIS: 'Recusado',
+      AUTHORIZED: 'Autorizado',
+      CHARGEBACK_REQUESTED: 'Chargeback',
+      CHARGEBACK_DISPUTE: 'Chargeback (em disputa)',
       REFUND_IN_PROGRESS: 'Reembolso em curso',
     };
     return map[s] || s || '—';
   }
   function statusBadge(status) {
     var cls = 'muted';
-    if (status === 'CONFIRMED' || status === 'RECEIVED' || status === 'RECEIVED_IN_CASH' || status === 'APPROVED_BY_RISK_ANALYSIS') cls = 'ok';
-    else if (status === 'PENDING' || status === 'AUTHORIZED' || status === 'AWAITING_RISK_ANALYSIS') cls = 'warn';
-    else if (status === 'OVERDUE' || status === 'REPROVED_BY_RISK_ANALYSIS' || status === 'CHARGEBACK_REQUESTED' || status === 'CHARGEBACK_DISPUTE') cls = 'bad';
+    if (
+      status === 'CONFIRMED' ||
+      status === 'RECEIVED' ||
+      status === 'RECEIVED_IN_CASH' ||
+      status === 'APPROVED_BY_RISK_ANALYSIS'
+    )
+      cls = 'ok';
+    else if (status === 'PENDING' || status === 'AUTHORIZED' || status === 'AWAITING_RISK_ANALYSIS')
+      cls = 'warn';
+    else if (
+      status === 'OVERDUE' ||
+      status === 'REPROVED_BY_RISK_ANALYSIS' ||
+      status === 'CHARGEBACK_REQUESTED' ||
+      status === 'CHARGEBACK_DISPUTE'
+    )
+      cls = 'bad';
     return '<span class="ma-badge ' + cls + '">' + paymentStatusLabel(status) + '</span>';
   }
   function eventNote(p) {
     if (!p.event) return '';
-    if (p.event === 'PAYMENT_DUNNING_REQUESTED' || p.event === 'PAYMENT_DUNNING_RECEIVED') return 'Re-cobrança automática';
+    if (p.event === 'PAYMENT_DUNNING_REQUESTED' || p.event === 'PAYMENT_DUNNING_RECEIVED')
+      return 'Re-cobrança automática';
     if (p.event === 'PAYMENT_REPROVED_BY_RISK_ANALYSIS') return 'Reprovado pela análise de risco';
     if (p.event === 'PAYMENT_AWAITING_RISK_ANALYSIS') return 'Aguardando análise de risco';
     if (p.event === 'PAYMENT_CHARGEBACK_REQUESTED') return 'Chargeback aberto';
@@ -1198,7 +1455,15 @@
   }
   function cardBrandLabel(b) {
     if (!b) return '';
-    var map = { VISA: 'Visa', MASTERCARD: 'Mastercard', AMEX: 'Amex', ELO: 'Elo', HIPERCARD: 'Hipercard', DINERS: 'Diners', DISCOVER: 'Discover' };
+    var map = {
+      VISA: 'Visa',
+      MASTERCARD: 'Mastercard',
+      AMEX: 'Amex',
+      ELO: 'Elo',
+      HIPERCARD: 'Hipercard',
+      DINERS: 'Diners',
+      DISCOVER: 'Discover',
+    };
     return map[b] || b;
   }
   function paymentMethodLabel(m, brand, last4) {
@@ -1224,7 +1489,11 @@
   function daysBetween(isoOrTs, now) {
     if (!isoOrTs) return null;
     var t;
-    try { t = new Date(isoOrTs).getTime(); } catch (_) { return null; }
+    try {
+      t = new Date(isoOrTs).getTime();
+    } catch (_) {
+      return null;
+    }
     if (!t || isNaN(t)) return null;
     var diff = t - (now || Date.now());
     return Math.ceil(diff / 86400000);
@@ -1232,7 +1501,9 @@
   function pluralDays(n) {
     return Math.abs(n) === 1 ? 'dia' : 'dias';
   }
-  function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
+  function clamp(n, lo, hi) {
+    return Math.max(lo, Math.min(hi, n));
+  }
 
   function renderHeroBlock(me) {
     var access = me.access || {};
@@ -1247,8 +1518,14 @@
       var totalDays = 7;
       var left = clamp(access.trialDaysLeft || daysBetween(trialEndsAt) || 0, 0, totalDays);
       var pct = clamp(((totalDays - left) / totalDays) * 100, 0, 100);
-      var titleTxt = left <= 1 ? 'Último dia da avaliação gratuita' : left + ' ' + pluralDays(left) + ' restantes na avaliação';
-      var subTxt = 'Sua avaliação gratuita termina em ' + fmtDate(trialEndsAt) + '. Garanta acesso contínuo assinando antes.';
+      var titleTxt =
+        left <= 1
+          ? 'Último dia da avaliação gratuita'
+          : left + ' ' + pluralDays(left) + ' restantes na avaliação';
+      var subTxt =
+        'Sua avaliação gratuita termina em ' +
+        fmtDate(trialEndsAt) +
+        '. Garanta acesso contínuo assinando antes.';
       // "Pagamento em curso" só vale quando a sub realmente está aguardando
       // confirmação. Se a sub foi cancelada (INACTIVE) durante o trial,
       // mostrar isso seria mentir — oferecemos reativar.
@@ -1256,18 +1533,38 @@
       if (hasSub && !isInactive) {
         cta = 'Pagamento já em curso · estamos a confirmar';
       } else if (isInactive) {
-        cta = '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Assinatura cancelada · reative · ' + fmtBRL(baseCents) + '/mês</button>';
+        cta =
+          '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Assinatura cancelada · reative · ' +
+          fmtBRL(baseCents) +
+          '/mês</button>';
       } else {
-        cta = '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar agora · ' + fmtBRL(baseCents) + '/mês</button>';
+        cta =
+          '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar agora · ' +
+          fmtBRL(baseCents) +
+          '/mês</button>';
       }
-      return '<div class="ma-hero is-trial">' +
+      return (
+        '<div class="ma-hero is-trial">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-sparkle"></i> Avaliação gratuita</span>' +
-        '<div class="ma-hero-title">' + titleTxt + '</div>' +
-        '<p class="ma-hero-sub">' + subTxt + '</p>' +
-        '<div class="ma-hero-bar"><span style="width:' + pct.toFixed(1) + '%;"></span></div>' +
-        '<div class="ma-hero-meta"><span>Dia ' + (totalDays - left) + ' de ' + totalDays + '</span><span>Termina ' + fmtDate(trialEndsAt) + '</span></div>' +
+        '<div class="ma-hero-title">' +
+        titleTxt +
+        '</div>' +
+        '<p class="ma-hero-sub">' +
+        subTxt +
+        '</p>' +
+        '<div class="ma-hero-bar"><span style="width:' +
+        pct.toFixed(1) +
+        '%;"></span></div>' +
+        '<div class="ma-hero-meta"><span>Dia ' +
+        (totalDays - left) +
+        ' de ' +
+        totalDays +
+        '</span><span>Termina ' +
+        fmtDate(trialEndsAt) +
+        '</span></div>' +
         cta +
-      '</div>';
+        '</div>'
+      );
     }
 
     // Sub cancelada precisa cair no banner "Cancelada" mesmo quando o
@@ -1280,66 +1577,111 @@
         var paidMs = Date.parse(me.lastPaidAt);
         if (!isNaN(paidMs)) {
           var paidUntilMs = paidMs + 30 * 86400 * 1000;
-          paidUntilTxt = ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
+          paidUntilTxt =
+            ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
         }
       }
       var cancelledTxt = me.cancelledAt
-        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '.' + (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
+        ? 'Cancelada em ' +
+          fmtDate(me.cancelledAt) +
+          '.' +
+          (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
         : 'A sua assinatura está inativa.' + paidUntilTxt;
-      return '<div class="ma-hero is-inactive">' +
+      return (
+        '<div class="ma-hero is-inactive">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-prohibit-inset"></i> Assinatura cancelada</span>' +
         '<div class="ma-hero-title">Reative quando quiser</div>' +
-        '<p class="ma-hero-sub">' + cancelledTxt + ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
-        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' + fmtBRL(baseCents) + '/mês</button>' +
-      '</div>';
+        '<p class="ma-hero-sub">' +
+        cancelledTxt +
+        ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' +
+        fmtBRL(baseCents) +
+        '/mês</button>' +
+        '</div>'
+      );
     }
 
     if (access.status === 'active') {
       // Avulso (one_shot): hero específico — sem "renovação automática".
       // Mostra a janela de 30 dias pagos como progress bar (dias decorridos).
       if (me.paymentMode === 'one_shot') {
-        var daysLeftOnce = (me.accessExpiresInDays != null) ? me.accessExpiresInDays : daysBetween(me.accessExpiresAt);
-        var dpctOnce = daysLeftOnce != null ? clamp(((30 - clamp(daysLeftOnce, 0, 30)) / 30) * 100, 0, 100) : 0;
+        var daysLeftOnce =
+          me.accessExpiresInDays != null ? me.accessExpiresInDays : daysBetween(me.accessExpiresAt);
+        var dpctOnce =
+          daysLeftOnce != null ? clamp(((30 - clamp(daysLeftOnce, 0, 30)) / 30) * 100, 0, 100) : 0;
         var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
-        var dleftLabel = daysLeftOnce != null
-          ? (daysLeftOnce <= 0 ? 'expirou' : daysLeftOnce + ' ' + pluralDays(daysLeftOnce) + ' restantes')
-          : '—';
-        return '<div class="ma-hero is-oneshot">' +
+        var dleftLabel =
+          daysLeftOnce != null
+            ? daysLeftOnce <= 0
+              ? 'expirou'
+              : daysLeftOnce + ' ' + pluralDays(daysLeftOnce) + ' restantes'
+            : '—';
+        return (
+          '<div class="ma-hero is-oneshot">' +
           '<span class="ma-hero-eyebrow"><i class="ph-fill ph-ticket"></i> Acesso avulso</span>' +
-          '<div class="ma-hero-title">Acesso até ' + expiresFmt + '</div>' +
-          '<p class="ma-hero-sub">Pagamento único de ' + fmtBRL(baseCents) + ' · sem renovação automática. Avisamos quando estiver próximo do fim.</p>' +
-          '<div class="ma-hero-bar"><span style="width:' + dpctOnce.toFixed(1) + '%;"></span></div>' +
-          '<div class="ma-hero-meta"><span>Janela de 30 dias</span><span>' + dleftLabel + '</span></div>' +
-        '</div>';
+          '<div class="ma-hero-title">Acesso até ' +
+          expiresFmt +
+          '</div>' +
+          '<p class="ma-hero-sub">Pagamento único de ' +
+          fmtBRL(baseCents) +
+          ' · sem renovação automática. Avisamos quando estiver próximo do fim.</p>' +
+          '<div class="ma-hero-bar"><span style="width:' +
+          dpctOnce.toFixed(1) +
+          '%;"></span></div>' +
+          '<div class="ma-hero-meta"><span>Janela de 30 dias</span><span>' +
+          dleftLabel +
+          '</span></div>' +
+          '</div>'
+        );
       }
 
       var nextCharge = (me.upcomingCharges && me.upcomingCharges[0]) || null;
       var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
       var dleft = daysBetween(nextDate);
-      var dleftTxt = dleft != null
-        ? (dleft <= 0 ? 'hoje' : 'em ' + dleft + ' ' + pluralDays(dleft))
-        : '—';
+      var dleftTxt =
+        dleft != null ? (dleft <= 0 ? 'hoje' : 'em ' + dleft + ' ' + pluralDays(dleft)) : '—';
       var dpct = dleft != null ? clamp(((30 - clamp(dleft, 0, 30)) / 30) * 100, 0, 100) : 0;
-      return '<div class="ma-hero">' +
+      return (
+        '<div class="ma-hero">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-check-circle"></i> Assinatura ativa</span>' +
-        '<div class="ma-hero-title">Appliquei Mensal · ' + fmtBRL(baseCents) + '<span style="font-size:.7em;font-weight:500;color:rgba(255,255,255,.85);">/mês</span></div>' +
-        '<p class="ma-hero-sub">Próxima cobrança ' + dleftTxt + (nextDate ? ' (' + fmtDate(nextDate) + ')' : '') + '. Renovação automática.</p>' +
-        '<div class="ma-hero-bar"><span style="width:' + dpct.toFixed(1) + '%;"></span></div>' +
-        '<div class="ma-hero-meta"><span>Ciclo atual</span><span>' + (nextDate ? 'Renova ' + fmtDate(nextDate) : 'Renova mensalmente') + '</span></div>' +
-      '</div>';
+        '<div class="ma-hero-title">Appliquei Mensal · ' +
+        fmtBRL(baseCents) +
+        '<span style="font-size:.7em;font-weight:500;color:rgba(255,255,255,.85);">/mês</span></div>' +
+        '<p class="ma-hero-sub">Próxima cobrança ' +
+        dleftTxt +
+        (nextDate ? ' (' + fmtDate(nextDate) + ')' : '') +
+        '. Renovação automática.</p>' +
+        '<div class="ma-hero-bar"><span style="width:' +
+        dpct.toFixed(1) +
+        '%;"></span></div>' +
+        '<div class="ma-hero-meta"><span>Ciclo atual</span><span>' +
+        (nextDate ? 'Renova ' + fmtDate(nextDate) : 'Renova mensalmente') +
+        '</span></div>' +
+        '</div>'
+      );
     }
 
     if (access.status === 'pending_payment') {
-      var pendTitle = access.reason === 'risk_analysis' ? 'Cartão em análise de risco' : 'Aguardando confirmação do pagamento';
-      var pendSub = access.reason === 'risk_analysis'
-        ? 'A Asaas está a validar a operação. Esta análise costuma demorar até alguns minutos — atualizamos sozinhos.'
-        : 'Recebemos a sua assinatura. Estamos à espera da confirmação do pagamento pela Asaas.';
-      return '<div class="ma-hero is-pending">' +
+      var pendTitle =
+        access.reason === 'risk_analysis'
+          ? 'Cartão em análise de risco'
+          : 'Aguardando confirmação do pagamento';
+      var pendSub =
+        access.reason === 'risk_analysis'
+          ? 'A Asaas está a validar a operação. Esta análise costuma demorar até alguns minutos — atualizamos sozinhos.'
+          : 'Recebemos a sua assinatura. Estamos à espera da confirmação do pagamento pela Asaas.';
+      return (
+        '<div class="ma-hero is-pending">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-clock-countdown"></i> Pagamento em processamento</span>' +
-        '<div class="ma-hero-title">' + pendTitle + '</div>' +
-        '<p class="ma-hero-sub">' + pendSub + '</p>' +
+        '<div class="ma-hero-title">' +
+        pendTitle +
+        '</div>' +
+        '<p class="ma-hero-sub">' +
+        pendSub +
+        '</p>' +
         '<button type="button" class="ma-hero-cta" data-act="reload-status"><i class="ph ph-arrow-clockwise"></i> Verificar status agora</button>' +
-      '</div>';
+        '</div>'
+      );
     }
 
     if (isInactive) {
@@ -1350,36 +1692,66 @@
         var paidMs = Date.parse(me.lastPaidAt);
         if (!isNaN(paidMs)) {
           var paidUntilMs = paidMs + 30 * 86400 * 1000;
-          paidUntilTxt = ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
+          paidUntilTxt =
+            ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
         }
       }
       var cancelledTxt = me.cancelledAt
-        ? 'Cancelada em ' + fmtDate(me.cancelledAt) + '.' + (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
+        ? 'Cancelada em ' +
+          fmtDate(me.cancelledAt) +
+          '.' +
+          (paidUntilTxt || ' O acesso fica disponível até o fim do ciclo já pago.')
         : 'A sua assinatura está inativa.' + paidUntilTxt;
-      return '<div class="ma-hero is-inactive">' +
+      return (
+        '<div class="ma-hero is-inactive">' +
         '<span class="ma-hero-eyebrow"><i class="ph-fill ph-prohibit-inset"></i> Assinatura cancelada</span>' +
         '<div class="ma-hero-title">Reative quando quiser</div>' +
-        '<p class="ma-hero-sub">' + cancelledTxt + ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
-        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' + fmtBRL(baseCents) + '/mês</button>' +
-      '</div>';
+        '<p class="ma-hero-sub">' +
+        cancelledTxt +
+        ' Pode voltar a assinar nas mesmas condições — incluindo o desconto Applicash, se existir.</p>' +
+        '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-rocket-launch"></i> Reativar assinatura · ' +
+        fmtBRL(baseCents) +
+        '/mês</button>' +
+        '</div>'
+      );
     }
 
     // blocked / overdue / chargeback / card_reproved
     var bTitle = 'Acesso bloqueado';
     var bSub = 'A sua assinatura precisa de regularização para continuar.';
-    if (access.reason === 'overdue') { bTitle = 'Pagamento em atraso'; bSub = 'Identificámos uma fatura vencida. Troque o método de pagamento ou liquide a fatura pendente.'; }
-    else if (access.reason === 'card_reproved') { bTitle = 'Cartão recusado'; bSub = 'A Asaas recusou a cobrança no cartão. Atualize os dados para retomar o acesso.'; }
-    else if (access.reason === 'chargeback') { bTitle = 'Chargeback em curso'; bSub = 'Contacte o suporte para regularizar antes de criar uma nova cobrança.'; }
-    else if (access.reason === 'refunded') { bTitle = 'Pagamento estornado'; bSub = 'O último pagamento foi estornado. Crie uma nova assinatura para continuar.'; }
-    else if (access.reason === 'trial_expired') { bTitle = 'Avaliação gratuita terminou'; bSub = 'Os 7 dias gratuitos terminaram. Assine para continuar a usar a Appliquei.'; }
-    return '<div class="ma-hero is-blocked">' +
-      '<span class="ma-hero-eyebrow"><i class="ph-fill ph-warning"></i> ' + bTitle + '</span>' +
-      '<div class="ma-hero-title">' + bTitle + '</div>' +
-      '<p class="ma-hero-sub">' + bSub + '</p>' +
+    if (access.reason === 'overdue') {
+      bTitle = 'Pagamento em atraso';
+      bSub =
+        'Identificámos uma fatura vencida. Troque o método de pagamento ou liquide a fatura pendente.';
+    } else if (access.reason === 'card_reproved') {
+      bTitle = 'Cartão recusado';
+      bSub = 'A Asaas recusou a cobrança no cartão. Atualize os dados para retomar o acesso.';
+    } else if (access.reason === 'chargeback') {
+      bTitle = 'Chargeback em curso';
+      bSub = 'Contacte o suporte para regularizar antes de criar uma nova cobrança.';
+    } else if (access.reason === 'refunded') {
+      bTitle = 'Pagamento estornado';
+      bSub = 'O último pagamento foi estornado. Crie uma nova assinatura para continuar.';
+    } else if (access.reason === 'trial_expired') {
+      bTitle = 'Avaliação gratuita terminou';
+      bSub = 'Os 7 dias gratuitos terminaram. Assine para continuar a usar a Appliquei.';
+    }
+    return (
+      '<div class="ma-hero is-blocked">' +
+      '<span class="ma-hero-eyebrow"><i class="ph-fill ph-warning"></i> ' +
+      bTitle +
+      '</span>' +
+      '<div class="ma-hero-title">' +
+      bTitle +
+      '</div>' +
+      '<p class="ma-hero-sub">' +
+      bSub +
+      '</p>' +
       (access.reason === 'overdue' || access.reason === 'card_reproved'
         ? '<button type="button" class="ma-hero-cta" data-act="change-card"><i class="ph-fill ph-credit-card"></i> Atualizar pagamento</button>'
         : '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Regularizar agora</button>') +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderPlanInfoBlock(me) {
@@ -1394,72 +1766,128 @@
     // de uma simples previsão (FORECAST). O utilizador confunde "Próxima
     // fatura: 14/07" com "estou pago até 14/07", mesmo quando a fatura
     // corrente continua em aberto.
-    var isOpenInvoice = nextCharge
-      && nextCharge.source === 'invoice'
-      && (nextCharge.status === 'PENDING' || nextCharge.status === 'OVERDUE' || nextCharge.status === 'AWAITING_RISK_ANALYSIS');
+    var isOpenInvoice =
+      nextCharge &&
+      nextCharge.source === 'invoice' &&
+      (nextCharge.status === 'PENDING' ||
+        nextCharge.status === 'OVERDUE' ||
+        nextCharge.status === 'AWAITING_RISK_ANALYSIS');
     var openCents = isOpenInvoice && nextCharge.amountCents ? nextCharge.amountCents : nextCents;
     var label = isOpenInvoice
-      ? (nextCharge.status === 'OVERDUE' ? 'Fatura em atraso' : 'Fatura em aberto')
+      ? nextCharge.status === 'OVERDUE'
+        ? 'Fatura em atraso'
+        : 'Fatura em aberto'
       : 'Próxima fatura';
     var foot = '';
     if (isOpenInvoice) {
       var statusTxt = paymentStatusLabel(nextCharge.status);
       var badgeCls = nextCharge.status === 'OVERDUE' ? 'bad' : 'warn';
-      foot = '<span class="ma-badge ' + badgeCls + '">' + statusTxt + '</span>' +
-        ' · Vence ' + (nextDate ? fmtDate(nextDate) : '—');
+      foot =
+        '<span class="ma-badge ' +
+        badgeCls +
+        '">' +
+        statusTxt +
+        '</span>' +
+        ' · Vence ' +
+        (nextDate ? fmtDate(nextDate) : '—');
     } else {
-      foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
+      foot =
+        (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
     }
-    var payLink = (isOpenInvoice && nextCharge.invoiceUrl)
-      ? '<a href="' + nextCharge.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="margin-top:8px;text-decoration:none;display:inline-block;">Pagar agora</a>'
-      : '';
+    var payLink =
+      isOpenInvoice && nextCharge.invoiceUrl
+        ? '<a href="' +
+          nextCharge.invoiceUrl +
+          '" target="_blank" rel="noopener" class="ma-btn" style="margin-top:8px;text-decoration:none;display:inline-block;">Pagar agora</a>'
+        : '';
 
     var isOneShot = me.paymentMode === 'one_shot';
     var rows = '';
     if (isOneShot) {
       var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
-      var daysLeft = (me.accessExpiresInDays != null) ? me.accessExpiresInDays : null;
-      var daysFoot = daysLeft == null ? '' : (daysLeft > 0 ? 'Faltam ' + daysLeft + ' dia(s)' : 'Expirado');
-      rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Avulso</div><div class="ma-card-foot">Pagamento único de 30 dias</div></div>';
-      rows += '<div class="ma-card"><div class="ma-card-label">Valor pago</div><div class="ma-card-value">' + fmtBRL(baseCents) + '</div>' +
-        (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
+      var daysLeft = me.accessExpiresInDays != null ? me.accessExpiresInDays : null;
+      var daysFoot =
+        daysLeft == null ? '' : daysLeft > 0 ? 'Faltam ' + daysLeft + ' dia(s)' : 'Expirado';
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Avulso</div><div class="ma-card-foot">Pagamento único de 30 dias</div></div>';
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">Valor pago</div><div class="ma-card-value">' +
+        fmtBRL(baseCents) +
+        '</div>' +
+        (pct > 0
+          ? '<div class="ma-card-foot"><span class="ma-badge ok">' +
+            pct +
+            '% off</span> de ' +
+            fmtBRL(listCents) +
+            '</div>'
+          : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
         '</div>';
-      rows += '<div class="ma-card"><div class="ma-card-label">Acesso até</div><div class="ma-card-value">' + expiresFmt + '</div><div class="ma-card-foot">' + daysFoot + '</div></div>';
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">Acesso até</div><div class="ma-card-value">' +
+        expiresFmt +
+        '</div><div class="ma-card-foot">' +
+        daysFoot +
+        '</div></div>';
     } else {
-      rows += '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
-      rows += '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' + fmtBRL(baseCents) + '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> /mês</span></div>' +
-        (pct > 0 ? '<div class="ma-card-foot"><span class="ma-badge ok">' + pct + '% off</span> de ' + fmtBRL(listCents) + '</div>' : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Mensal</div><div class="ma-card-foot">Renovação automática</div></div>';
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' +
+        fmtBRL(baseCents) +
+        '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> /mês</span></div>' +
+        (pct > 0
+          ? '<div class="ma-card-foot"><span class="ma-badge ok">' +
+            pct +
+            '% off</span> de ' +
+            fmtBRL(listCents) +
+            '</div>'
+          : '<div class="ma-card-foot">Sem desconto recorrente</div>') +
         '</div>';
-      rows += '<div class="ma-card"><div class="ma-card-label">' + label + '</div><div class="ma-card-value">' + fmtBRL(openCents) + '</div><div class="ma-card-foot">' + foot + '</div>' + payLink + '</div>';
+      rows +=
+        '<div class="ma-card"><div class="ma-card-label">' +
+        label +
+        '</div><div class="ma-card-value">' +
+        fmtBRL(openCents) +
+        '</div><div class="ma-card-foot">' +
+        foot +
+        '</div>' +
+        payLink +
+        '</div>';
     }
 
-    return '<div class="ma-section">' +
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-receipt"></i> Plano</div>' +
-      '<div class="ma-grid-3">' + rows + '</div>' +
-    '</div>';
+      '<div class="ma-grid-3">' +
+      rows +
+      '</div>' +
+      '</div>'
+    );
   }
 
   function renderPlansBlock(me) {
     // Mostra Pro (atual) vs Pro+IA (em construção) também dentro do app.
     // Faz par com a landing — usuário descobre o roadmap sem sair do app.
-    return '<div class="ma-section">' +
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-stack"></i> Planos disponíveis</div>' +
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-        '<div style="position:relative;border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border-radius:14px;padding:16px;box-shadow:0 0 0 4px rgba(5,150,105,.06);">' +
-          '<span style="position:absolute;top:-9px;right:14px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;">Atual</span>' +
-          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.08em;"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#0f172a;">Acesso completo</div>' +
-          '<p style="font-size:12.5px;color:#334155;margin:6px 0 12px;line-height:1.5;">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
-          '<div style="display:flex;align-items:baseline;gap:4px;"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#0f172a;">R$ 15</span><span style="font-size:12px;font-weight:500;color:#64748b;">/mês</span></div>' +
-        '</div>' +
-        '<div style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:14px;padding:16px;opacity:.95;">' +
-          '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.08em;"><i class="ph ph-wrench"></i> Em construção</div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#475569;">Pro + IA</div>' +
-          '<p style="font-size:12.5px;color:#64748b;margin:6px 0 12px;line-height:1.5;">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
-          '<button type="button" class="ma-btn" disabled style="cursor:not-allowed;opacity:.6;width:100%;">Avise-me no lançamento</button>' +
-        '</div>' +
+      '<div style="position:relative;border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border-radius:14px;padding:16px;box-shadow:0 0 0 4px rgba(5,150,105,.06);">' +
+      '<span style="position:absolute;top:-9px;right:14px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;">Atual</span>' +
+      '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.08em;"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#0f172a;">Acesso completo</div>' +
+      '<p style="font-size:12.5px;color:#334155;margin:6px 0 12px;line-height:1.5;">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
+      '<div style="display:flex;align-items:baseline;gap:4px;"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#0f172a;">R$ 15</span><span style="font-size:12px;font-weight:500;color:#64748b;">/mês</span></div>' +
       '</div>' +
-    '</div>';
+      '<div style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:14px;padding:16px;opacity:.95;">' +
+      '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.08em;"><i class="ph ph-wrench"></i> Em construção</div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#475569;">Pro + IA</div>' +
+      '<p style="font-size:12.5px;color:#64748b;margin:6px 0 12px;line-height:1.5;">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
+      '<button type="button" class="ma-btn" disabled style="cursor:not-allowed;opacity:.6;width:100%;">Avise-me no lançamento</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>'
+    );
   }
 
   function renderPaymentMethodBlock(me) {
@@ -1467,19 +1895,30 @@
     var isInactive = me.subscriptionStatus === 'INACTIVE';
     if (!hasSub || isInactive) return '';
     var label = paymentMethodLabel(me.paymentMethod, me.cardBrand, me.cardLast4);
-    var holder = me.cardHolderName ? '<small>Titular: ' + escapeHtml(me.cardHolderName) + '</small>' : '';
+    var holder = me.cardHolderName
+      ? '<small>Titular: ' + escapeHtml(me.cardHolderName) + '</small>'
+      : '';
     var icon = me.paymentMethod === 'CREDIT_CARD' ? 'ph-fill ph-credit-card' : 'ph ph-qr-code';
     var btnTxt = me.paymentMethod === 'CREDIT_CARD' ? 'Trocar cartão' : 'Pagar com cartão';
-    return '<div class="ma-section">' +
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-wallet"></i> Método de pagamento</div>' +
       '<div class="ma-row">' +
-        '<div class="ma-row-main">' +
-          '<div class="ma-row-icon"><i class="' + icon + '"></i></div>' +
-          '<div class="ma-row-text">' + label + holder + '</div>' +
-        '</div>' +
-        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="change-card">' + btnTxt + '</button></div>' +
+      '<div class="ma-row-main">' +
+      '<div class="ma-row-icon"><i class="' +
+      icon +
+      '"></i></div>' +
+      '<div class="ma-row-text">' +
+      label +
+      holder +
       '</div>' +
-    '</div>';
+      '</div>' +
+      '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="change-card">' +
+      btnTxt +
+      '</button></div>' +
+      '</div>' +
+      '</div>'
+    );
   }
 
   function renderApplicashBlock(me) {
@@ -1487,70 +1926,115 @@
     var earned = me.totalReferralEarningsCents || 0;
     var active = me.activeReferrals || 0;
     var total = me.totalReferrals || 0;
-    var nextCents = me.projectedNextBillCents || me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+    var nextCents =
+      me.projectedNextBillCents || me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
     var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
     var coverage = baseCents > 0 ? clamp((pending / baseCents) * 100, 0, 100) : 0;
     var code = me.referralCode || '—';
 
     var statCards =
-      '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' + active + '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> / ' + total + '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
-      '<div class="ma-card"><div class="ma-card-label">Saldo a abater</div><div class="ma-card-value" style="color:#059669;">' + fmtBRL(pending) + '</div><div class="ma-card-foot">Aplicado na próxima fatura</div></div>' +
-      '<div class="ma-card"><div class="ma-card-label">Ganhos totais</div><div class="ma-card-value">' + fmtBRL(earned) + '</div><div class="ma-card-foot">Acumulado desde o início</div></div>';
+      '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' +
+      active +
+      '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> / ' +
+      total +
+      '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
+      '<div class="ma-card"><div class="ma-card-label">Saldo a abater</div><div class="ma-card-value" style="color:#059669;">' +
+      fmtBRL(pending) +
+      '</div><div class="ma-card-foot">Aplicado na próxima fatura</div></div>' +
+      '<div class="ma-card"><div class="ma-card-label">Ganhos totais</div><div class="ma-card-value">' +
+      fmtBRL(earned) +
+      '</div><div class="ma-card-foot">Acumulado desde o início</div></div>';
 
-    var coverageBlock = pending > 0
-      ? '<div class="ma-card" style="margin-top:10px;">' +
+    var coverageBlock =
+      pending > 0
+        ? '<div class="ma-card" style="margin-top:10px;">' +
           '<div class="ma-card-label">Próxima fatura com Applicash</div>' +
-          '<div style="display:flex;align-items:baseline;gap:6px;margin-top:4px;"><div class="ma-card-value">' + fmtBRL(nextCents) + '</div>' +
-            '<div style="text-decoration:line-through;color:#9ca3af;font-size:12px;">' + fmtBRL(baseCents) + '</div></div>' +
-          '<div style="margin-top:8px;background:#ecfdf5;border-radius:999px;height:8px;overflow:hidden;"><div style="width:' + coverage.toFixed(1) + '%;height:100%;background:linear-gradient(90deg,#059669,#10b981);"></div></div>' +
-          '<div class="ma-card-foot" style="margin-top:6px;">Applicash cobre ' + coverage.toFixed(0) + '% da sua próxima cobrança</div>' +
-        '</div>'
-      : '';
+          '<div style="display:flex;align-items:baseline;gap:6px;margin-top:4px;"><div class="ma-card-value">' +
+          fmtBRL(nextCents) +
+          '</div>' +
+          '<div style="text-decoration:line-through;color:#9ca3af;font-size:12px;">' +
+          fmtBRL(baseCents) +
+          '</div></div>' +
+          '<div style="margin-top:8px;background:#ecfdf5;border-radius:999px;height:8px;overflow:hidden;"><div style="width:' +
+          coverage.toFixed(1) +
+          '%;height:100%;background:linear-gradient(90deg,#059669,#10b981);"></div></div>' +
+          '<div class="ma-card-foot" style="margin-top:6px;">Applicash cobre ' +
+          coverage.toFixed(0) +
+          '% da sua próxima cobrança</div>' +
+          '</div>'
+        : '';
 
-    var codeRow = '<div class="ma-row" style="margin-top:10px;">' +
+    var codeRow =
+      '<div class="ma-row" style="margin-top:10px;">' +
       '<div class="ma-row-main">' +
-        '<div class="ma-row-icon" style="background:#fef3c7;color:#854d0e;"><i class="ph-fill ph-ticket"></i></div>' +
-        '<div class="ma-row-text">Seu cupom <strong>' + escapeHtml(code) + '</strong><small>Cada indicado paga 10% menos · você recebe 10% do que ele paga, todo mês.</small></div>' +
+      '<div class="ma-row-icon" style="background:#fef3c7;color:#854d0e;"><i class="ph-fill ph-ticket"></i></div>' +
+      '<div class="ma-row-text">Seu cupom <strong>' +
+      escapeHtml(code) +
+      '</strong><small>Cada indicado paga 10% menos · você recebe 10% do que ele paga, todo mês.</small></div>' +
       '</div>' +
       '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="open-applicash">Ver Applicash</button></div>' +
-    '</div>';
+      '</div>';
 
-    return '<div class="ma-section">' +
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph-fill ph-currency-dollar"></i> Applicash · cashback</div>' +
-      '<div class="ma-grid-3">' + statCards + '</div>' +
+      '<div class="ma-grid-3">' +
+      statCards +
+      '</div>' +
       coverageBlock +
       codeRow +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderUpcomingBlock(me) {
     var hasSub = !!me.subscriptionId;
     var isInactive = me.subscriptionStatus === 'INACTIVE';
     if (!hasSub || isInactive) return '';
-    var charges = (me.upcomingCharges || []);
+    var charges = me.upcomingCharges || [];
     if (!charges.length) return '';
-    var rows = charges.map(function (u) {
-      var isForecast = u.source === 'forecast';
-      var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
-      var badgeCls = 'muted';
-      if (u.status === 'PENDING') badgeCls = 'warn';
-      else if (u.status === 'OVERDUE') badgeCls = 'bad';
-      var action = u.invoiceUrl
-        ? '<a href="' + u.invoiceUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">Pagar</a>'
-        : '<span style="color:#9ca3af;">—</span>';
-      return '<tr>' +
-        '<td>' + fmtDate(u.date) + '</td>' +
-        '<td class="num">' + fmtBRL(u.amountCents) + '</td>' +
-        '<td><span class="ma-badge ' + badgeCls + '">' + statusTxt + '</span></td>' +
-        '<td class="num">' + action + '</td>' +
-      '</tr>';
-    }).join('');
-    return '<div class="ma-section">' +
+    var rows = charges
+      .map(function (u) {
+        var isForecast = u.source === 'forecast';
+        var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
+        var badgeCls = 'muted';
+        if (u.status === 'PENDING') badgeCls = 'warn';
+        else if (u.status === 'OVERDUE') badgeCls = 'bad';
+        var action = u.invoiceUrl
+          ? '<a href="' +
+            u.invoiceUrl +
+            '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">Pagar</a>'
+          : '<span style="color:#9ca3af;">—</span>';
+        return (
+          '<tr>' +
+          '<td>' +
+          fmtDate(u.date) +
+          '</td>' +
+          '<td class="num">' +
+          fmtBRL(u.amountCents) +
+          '</td>' +
+          '<td><span class="ma-badge ' +
+          badgeCls +
+          '">' +
+          statusTxt +
+          '</span></td>' +
+          '<td class="num">' +
+          action +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-calendar-check"></i> Próximas cobranças</div>' +
       '<div style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;">' +
-        '<table class="ma-table"><thead><tr><th>Data</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table>' +
+      '<table class="ma-table"><thead><tr><th>Data</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' +
+      rows +
+      '</tbody></table>' +
       '</div>' +
-    '</div>';
+      '</div>'
+    );
   }
 
   // Banner proativo de renovação para usuários avulsos (one_shot).
@@ -1565,38 +2049,86 @@
     var title, sub, tone;
     if (days <= 0) {
       title = 'Seu acesso terminou';
-      sub = 'O pagamento de 30 dias venceu em ' + expiresFmt + '. Renove para voltar a usar o Appliquei.';
+      sub =
+        'O pagamento de 30 dias venceu em ' +
+        expiresFmt +
+        '. Renove para voltar a usar o Appliquei.';
       tone = 'bad';
     } else if (days <= 3) {
       title = 'Faltam ' + days + ' ' + pluralDays(days) + ' para expirar';
-      sub = 'Renove agora para não perder o acesso em ' + expiresFmt + '. Você também pode trocar para assinatura mensal.';
+      sub =
+        'Renove agora para não perder o acesso em ' +
+        expiresFmt +
+        '. Você também pode trocar para assinatura mensal.';
       tone = 'urgent';
     } else {
       title = days + ' dias até o fim do ciclo';
-      sub = 'Seu acesso avulso expira em ' + expiresFmt + '. Renove no seu ritmo ou ative a renovação automática.';
+      sub =
+        'Seu acesso avulso expira em ' +
+        expiresFmt +
+        '. Renove no seu ritmo ou ative a renovação automática.';
       tone = 'warn';
     }
-    var palette = tone === 'bad'
-      ? { bg: 'linear-gradient(180deg,#fef2f2 0%,#fee2e2 100%)', border: '#fecaca', fg: '#991b1b', accent: '#dc2626', icon: 'ph-fill ph-warning-octagon' }
-      : tone === 'urgent'
-      ? { bg: 'linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%)', border: '#fed7aa', fg: '#9a3412', accent: '#ea580c', icon: 'ph-fill ph-clock-countdown' }
-      : { bg: 'linear-gradient(180deg,#fffbeb 0%,#fef3c7 100%)', border: '#fde68a', fg: '#92400e', accent: '#d97706', icon: 'ph-fill ph-clock' };
-    var style = 'margin-top:18px;padding:16px 18px;border-radius:16px;background:' + palette.bg +
-      ';border:1px solid ' + palette.border + ';display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;';
-    return '<div style="' + style + '">' +
-      '<div style="flex:0 0 44px;height:44px;border-radius:12px;background:' + palette.accent + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 10px -2px rgba(0,0,0,.15);">' +
-        '<i class="' + palette.icon + '"></i></div>' +
+    var palette =
+      tone === 'bad'
+        ? {
+            bg: 'linear-gradient(180deg,#fef2f2 0%,#fee2e2 100%)',
+            border: '#fecaca',
+            fg: '#991b1b',
+            accent: '#dc2626',
+            icon: 'ph-fill ph-warning-octagon',
+          }
+        : tone === 'urgent'
+          ? {
+              bg: 'linear-gradient(180deg,#fff7ed 0%,#ffedd5 100%)',
+              border: '#fed7aa',
+              fg: '#9a3412',
+              accent: '#ea580c',
+              icon: 'ph-fill ph-clock-countdown',
+            }
+          : {
+              bg: 'linear-gradient(180deg,#fffbeb 0%,#fef3c7 100%)',
+              border: '#fde68a',
+              fg: '#92400e',
+              accent: '#d97706',
+              icon: 'ph-fill ph-clock',
+            };
+    var style =
+      'margin-top:18px;padding:16px 18px;border-radius:16px;background:' +
+      palette.bg +
+      ';border:1px solid ' +
+      palette.border +
+      ';display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;';
+    return (
+      '<div style="' +
+      style +
+      '">' +
+      '<div style="flex:0 0 44px;height:44px;border-radius:12px;background:' +
+      palette.accent +
+      ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;box-shadow:0 4px 10px -2px rgba(0,0,0,.15);">' +
+      '<i class="' +
+      palette.icon +
+      '"></i></div>' +
       '<div style="flex:1;min-width:200px;">' +
-        '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:' + palette.fg + ';letter-spacing:-.01em;">' + title + '</div>' +
-        '<p style="font-size:12.5px;margin:4px 0 0;color:' + palette.fg + ';opacity:.85;line-height:1.5;">' + sub + '</p>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:15px;color:' +
+      palette.fg +
+      ';letter-spacing:-.01em;">' +
+      title +
+      '</div>' +
+      '<p style="font-size:12.5px;margin:4px 0 0;color:' +
+      palette.fg +
+      ';opacity:.85;line-height:1.5;">' +
+      sub +
+      '</p>' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;flex:1 1 100%;margin-top:4px;">' +
-        '<button type="button" class="ma-btn ma-btn-primary" data-act="renew-month">' +
-          '<i class="ph-fill ph-arrow-clockwise"></i> Renovar 1 mês</button>' +
-        '<button type="button" class="ma-btn" data-act="switch-to-subscription">' +
-          '<i class="ph ph-arrows-clockwise"></i> Ativar renovação automática</button>' +
+      '<button type="button" class="ma-btn ma-btn-primary" data-act="renew-month">' +
+      '<i class="ph-fill ph-arrow-clockwise"></i> Renovar 1 mês</button>' +
+      '<button type="button" class="ma-btn" data-act="switch-to-subscription">' +
+      '<i class="ph ph-arrows-clockwise"></i> Ativar renovação automática</button>' +
       '</div>' +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderAlertsBlock(me) {
@@ -1607,7 +2139,13 @@
     if (failure) parts.push(failure);
     if (dunning) parts.push(dunning + ' tentativa(s) de re-cobrança automática');
     var cls = me.access && me.access.status === 'blocked' ? 'bad' : '';
-    return '<div class="ma-alert ' + cls + '"><strong><i class="ph-fill ph-warning"></i> Atenção:</strong> ' + parts.join(' · ') + '</div>';
+    return (
+      '<div class="ma-alert ' +
+      cls +
+      '"><strong><i class="ph-fill ph-warning"></i> Atenção:</strong> ' +
+      parts.join(' · ') +
+      '</div>'
+    );
   }
 
   function renderCustomerBlock(me) {
@@ -1618,64 +2156,117 @@
     if (c.email) lines.push(escapeHtml(c.email));
     if (c.phone) lines.push(fmtPhone(c.phone));
     if (c.address) {
-      var addr = escapeHtml(c.address) + (c.addressNumber ? ', ' + escapeHtml(c.addressNumber) : '');
+      var addr =
+        escapeHtml(c.address) + (c.addressNumber ? ', ' + escapeHtml(c.addressNumber) : '');
       if (c.city) addr += ' · ' + escapeHtml(c.city);
       if (c.state) addr += '/' + escapeHtml(c.state);
-      lines.push('<span style="color:#64748b;font-size:12.5px;font-weight:500;">' + addr + '</span>');
+      lines.push(
+        '<span style="color:#64748b;font-size:12.5px;font-weight:500;">' + addr + '</span>'
+      );
     }
     var body = lines.length
       ? lines.join('<br>')
       : '<em style="color:#64748b;font-style:normal;">Sem dados — adicione para emitir faturas correctamente.</em>';
-    return '<div class="ma-section">' +
+    return (
+      '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-user-circle"></i> Dados de cobrança</div>' +
       '<div class="ma-row">' +
-        '<div class="ma-row-main"><div class="ma-row-icon" style="background:#f1f5f9;color:#334155;box-shadow:inset 0 0 0 1px rgba(51,65,85,.1);"><i class="ph ph-identification-card"></i></div>' +
-          '<div class="ma-row-text" style="line-height:1.55;">' + body + '</div></div>' +
-        '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="edit-customer"><i class="ph ph-pencil-simple"></i> Editar</button></div>' +
+      '<div class="ma-row-main"><div class="ma-row-icon" style="background:#f1f5f9;color:#334155;box-shadow:inset 0 0 0 1px rgba(51,65,85,.1);"><i class="ph ph-identification-card"></i></div>' +
+      '<div class="ma-row-text" style="line-height:1.55;">' +
+      body +
+      '</div></div>' +
+      '<div class="ma-row-action"><button type="button" class="ma-btn" data-act="edit-customer"><i class="ph ph-pencil-simple"></i> Editar</button></div>' +
       '</div>' +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderHistoryBlock(me) {
     var payments = me.payments || [];
     if (!payments.length) {
-      return '<div class="ma-section">' +
+      return (
+        '<div class="ma-section">' +
         '<div class="ma-section-title"><i class="ph ph-clock-counter-clockwise"></i> Histórico</div>' +
         '<div class="ma-empty">Sem cobranças registadas até ao momento.</div>' +
-      '</div>';
+        '</div>'
+      );
     }
-    var rows = payments.map(function (p) {
-      var note = eventNote(p);
-      var noteLine = note ? '<small style="display:block;font-size:11.5px;color:#64748b;margin-top:2px;font-weight:500;">' + note + '</small>' : '';
-      var refLine = p.referralAppliedCents && p.referralAppliedCents > 0
-        ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' + fmtBRL(p.referralAppliedCents) + ' Applicash</small>'
-        : '';
-      // Link mais útil por contexto:
-      //  - Pago: comprovante (transactionReceiptUrl). Fallback: fatura.
-      //  - Boleto pendente: PDF do boleto (bankSlipUrl).
-      //  - Outros: página da fatura.
-      var paid = p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH';
-      var linkUrl = null, linkLabel = null;
-      if (paid && p.transactionReceiptUrl) { linkUrl = p.transactionReceiptUrl; linkLabel = 'Comprovante'; }
-      else if (p.billingType === 'BOLETO' && p.bankSlipUrl) { linkUrl = p.bankSlipUrl; linkLabel = 'Boleto PDF'; }
-      else if (p.invoiceUrl) { linkUrl = p.invoiceUrl; linkLabel = paid ? 'Fatura' : 'Pagar'; }
-      var actionCell = linkUrl
-        ? '<a href="' + linkUrl + '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">' + linkLabel + '</a>'
-        : '—';
-      return '<tr>' +
-        '<td>' + fmtDate(p.paymentDate || p.dueDate || p.receivedAt) + noteLine + '</td>' +
-        '<td>' + (p.billingType ? escapeHtml(String(p.billingType)) : '—') + '</td>' +
-        '<td class="num">' + fmtBRL(Math.round((p.value || 0) * 100)) + refLine + '</td>' +
-        '<td>' + statusBadge(p.status) + '</td>' +
-        '<td class="num">' + actionCell + '</td>' +
-      '</tr>';
-    }).join('');
-    return '<div class="ma-section">' +
-      '<details class="ma-collapsible"' + (payments.length <= 3 ? ' open' : '') + '>' +
-        '<summary><span><i class="ph ph-clock-counter-clockwise"></i> Histórico (' + payments.length + ')</span></summary>' +
-        '<div><table class="ma-table"><thead><tr><th>Data</th><th>Forma</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    var rows = payments
+      .map(function (p) {
+        var note = eventNote(p);
+        var noteLine = note
+          ? '<small style="display:block;font-size:11.5px;color:#64748b;margin-top:2px;font-weight:500;">' +
+            note +
+            '</small>'
+          : '';
+        var refLine =
+          p.referralAppliedCents && p.referralAppliedCents > 0
+            ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' +
+              fmtBRL(p.referralAppliedCents) +
+              ' Applicash</small>'
+            : '';
+        // Link mais útil por contexto:
+        //  - Pago: comprovante (transactionReceiptUrl). Fallback: fatura.
+        //  - Boleto pendente: PDF do boleto (bankSlipUrl).
+        //  - Outros: página da fatura.
+        var paid =
+          p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH';
+        var linkUrl = null,
+          linkLabel = null;
+        if (paid && p.transactionReceiptUrl) {
+          linkUrl = p.transactionReceiptUrl;
+          linkLabel = 'Comprovante';
+        } else if (p.billingType === 'BOLETO' && p.bankSlipUrl) {
+          linkUrl = p.bankSlipUrl;
+          linkLabel = 'Boleto PDF';
+        } else if (p.invoiceUrl) {
+          linkUrl = p.invoiceUrl;
+          linkLabel = paid ? 'Fatura' : 'Pagar';
+        }
+        var actionCell = linkUrl
+          ? '<a href="' +
+            linkUrl +
+            '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">' +
+            linkLabel +
+            '</a>'
+          : '—';
+        return (
+          '<tr>' +
+          '<td>' +
+          fmtDate(p.paymentDate || p.dueDate || p.receivedAt) +
+          noteLine +
+          '</td>' +
+          '<td>' +
+          (p.billingType ? escapeHtml(String(p.billingType)) : '—') +
+          '</td>' +
+          '<td class="num">' +
+          fmtBRL(Math.round((p.value || 0) * 100)) +
+          refLine +
+          '</td>' +
+          '<td>' +
+          statusBadge(p.status) +
+          '</td>' +
+          '<td class="num">' +
+          actionCell +
+          '</td>' +
+          '</tr>'
+        );
+      })
+      .join('');
+    return (
+      '<div class="ma-section">' +
+      '<details class="ma-collapsible"' +
+      (payments.length <= 3 ? ' open' : '') +
+      '>' +
+      '<summary><span><i class="ph ph-clock-counter-clockwise"></i> Histórico (' +
+      payments.length +
+      ')</span></summary>' +
+      '<div><table class="ma-table"><thead><tr><th>Data</th><th>Forma</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' +
+      rows +
+      '</tbody></table></div>' +
       '</details>' +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderActionsBlock(me) {
@@ -1683,9 +2274,11 @@
     var isInactive = me.subscriptionStatus === 'INACTIVE';
     if (isInactive) return '';
     if (!hasSub) return '';
-    return '<div class="ma-section" style="display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid #e5e7eb;margin-top:24px;">' +
+    return (
+      '<div class="ma-section" style="display:flex;justify-content:flex-end;padding-top:8px;border-top:1px solid #e5e7eb;margin-top:24px;">' +
       '<button type="button" class="ma-btn ma-btn-danger" data-act="cancel-sub"><i class="ph ph-x-circle"></i> Cancelar assinatura</button>' +
-    '</div>';
+      '</div>'
+    );
   }
 
   function renderMyAccount(me) {
@@ -1694,28 +2287,30 @@
     // pagamento avulso registado, ou estado conhecido (trial/blocked/active
     // via paid_period). Sem isto, usuário one_shot ativo via paid_period
     // ficava na tela de "A inicializar…" mesmo com acesso liberado.
-    var initialized = me && (
-      me.subscriptionId
-      || me.paymentMode === 'one_shot'
-      || me.lastPaidAt
-      || (me.access && me.access.status && me.access.status !== 'blocked' ? true : false)
-      || (me.access && (me.access.status === 'trial' || me.access.status === 'blocked'))
-    );
+    var initialized =
+      me &&
+      (me.subscriptionId ||
+        me.paymentMode === 'one_shot' ||
+        me.lastPaidAt ||
+        (me.access && me.access.status && me.access.status !== 'blocked' ? true : false) ||
+        (me.access && (me.access.status === 'trial' || me.access.status === 'blocked')));
     if (!initialized) {
-      $('myAccountBody').innerHTML = '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
+      $('myAccountBody').innerHTML =
+        '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
       return;
     }
-    var html = renderHeroBlock(me)
-      + renderRenewBanner(me)
-      + renderAlertsBlock(me)
-      + renderPlanInfoBlock(me)
-      + renderPlansBlock(me)
-      + renderApplicashBlock(me)
-      + renderUpcomingBlock(me)
-      + renderPaymentMethodBlock(me)
-      + renderCustomerBlock(me)
-      + renderHistoryBlock(me)
-      + renderActionsBlock(me);
+    var html =
+      renderHeroBlock(me) +
+      renderRenewBanner(me) +
+      renderAlertsBlock(me) +
+      renderPlanInfoBlock(me) +
+      renderPlansBlock(me) +
+      renderApplicashBlock(me) +
+      renderUpcomingBlock(me) +
+      renderPaymentMethodBlock(me) +
+      renderCustomerBlock(me) +
+      renderHistoryBlock(me) +
+      renderActionsBlock(me);
     $('myAccountBody').innerHTML = html;
     bindMyAccountActions();
   }
@@ -1732,14 +2327,25 @@
           if (act === 'change-card') openChangeCardModal();
           else if (act === 'edit-customer') openEditCustomerModal();
           else if (act === 'cancel-sub') confirmCancelSubscription();
-          else if (act === 'subscribe-now') { closeMyAccount(); openSubscribeForm(); }
-          else if (act === 'reactivate') { closeMyAccount(); openSubscribeForm(); }
-          else if (act === 'renew-month') { closeMyAccount(); openSubscribeForm('one_shot'); }
-          else if (act === 'switch-to-subscription') { closeMyAccount(); openSubscribeForm('subscription'); }
-          else if (act === 'reload-status') reloadAccountStatus(btn);
+          else if (act === 'subscribe-now') {
+            closeMyAccount();
+            openSubscribeForm();
+          } else if (act === 'reactivate') {
+            closeMyAccount();
+            openSubscribeForm();
+          } else if (act === 'renew-month') {
+            closeMyAccount();
+            openSubscribeForm('one_shot');
+          } else if (act === 'switch-to-subscription') {
+            closeMyAccount();
+            openSubscribeForm('subscription');
+          } else if (act === 'reload-status') reloadAccountStatus(btn);
           else if (act === 'open-applicash') {
             closeMyAccount();
-            try { if (typeof window.mudarAba === 'function') window.mudarAba(new Event('click'), 'applicash'); } catch (_) {}
+            try {
+              if (typeof window.mudarAba === 'function')
+                window.mudarAba(new Event('click'), 'applicash');
+            } catch (_) {}
           }
         });
       })(btns[i]);
@@ -1747,10 +2353,20 @@
   }
 
   async function reloadAccountStatus(btn) {
-    if (btn) { btn.disabled = true; var prev = btn.innerHTML; btn.innerHTML = 'A verificar…'; }
-    try { await refresh(false); var me = await fetchMe(); renderMyAccount(me); }
-    catch (e) {}
-    if (btn) { btn.disabled = false; btn.innerHTML = prev || 'Verificar status agora'; }
+    if (btn) {
+      btn.disabled = true;
+      var prev = btn.innerHTML;
+      btn.innerHTML = 'A verificar…';
+    }
+    try {
+      await refresh(false);
+      var me = await fetchMe();
+      renderMyAccount(me);
+    } catch (e) {}
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = prev || 'Verificar status agora';
+    }
   }
 
   function escapeHtml(s) {
@@ -1777,16 +2393,20 @@
     if ($('subModal')) return;
     var div = document.createElement('div');
     div.id = 'subModal';
-    div.style.cssText = 'position:fixed;inset:0;z-index:10080;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
-    div.innerHTML = '<div id="subModalCard" style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.3);padding:24px;color:#0b1410;font-family:Figtree,sans-serif;">' +
+    div.style.cssText =
+      'position:fixed;inset:0;z-index:10080;display:none;align-items:center;justify-content:center;padding:24px 16px;background:rgba(15,23,42,.6);overflow-y:auto;';
+    div.innerHTML =
+      '<div id="subModalCard" style="width:100%;max-width:460px;background:#fff;border-radius:14px;box-shadow:0 12px 36px rgba(0,0,0,.3);padding:24px;color:#0b1410;font-family:Figtree,sans-serif;">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
-        '<h3 id="subModalTitle" style="font-family:Syne,sans-serif;font-size:1.1rem;margin:0;"></h3>' +
-        '<button type="button" id="subModalClose" style="border:none;background:none;cursor:pointer;font-size:22px;color:#6b7d75;">&times;</button>' +
+      '<h3 id="subModalTitle" style="font-family:Syne,sans-serif;font-size:1.1rem;margin:0;"></h3>' +
+      '<button type="button" id="subModalClose" style="border:none;background:none;cursor:pointer;font-size:22px;color:#6b7d75;">&times;</button>' +
       '</div>' +
       '<div id="subModalBody" style="font-size:13.5px;color:#1d2a23;"></div>' +
-    '</div>';
+      '</div>';
     document.body.appendChild(div);
-    div.addEventListener('click', function (e) { if (e.target === div) closeSubModal(); });
+    div.addEventListener('click', function (e) {
+      if (e.target === div) closeSubModal();
+    });
     $('subModalClose').addEventListener('click', closeSubModal);
   }
   function openSubModal(title, body) {
@@ -1800,23 +2420,56 @@
     if (m) m.style.display = 'none';
   }
 
-  function fld() { return 'width:100%;padding:9px 12px;font-size:13.5px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;'; }
-  function lbl() { return 'display:block;font-size:11.5px;font-weight:600;color:#384a42;margin-bottom:3px;'; }
+  function fld() {
+    return 'width:100%;padding:9px 12px;font-size:13.5px;border:1px solid #d4dad7;border-radius:8px;box-sizing:border-box;';
+  }
+  function lbl() {
+    return 'display:block;font-size:11.5px;font-weight:600;color:#384a42;margin-bottom:3px;';
+  }
 
   function openChangeCardModal() {
-    var f = fld(), l = lbl();
+    var f = fld(),
+      l = lbl();
     var html =
-      '<div style="margin-bottom:10px;"><label style="' + l + '">Número do cartão</label><input id="mcNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" style="' + f + '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' +
+      l +
+      '">Número do cartão</label><input id="mcNumber" inputmode="numeric" autocomplete="cc-number" placeholder="0000 0000 0000 0000" style="' +
+      f +
+      '"></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:1;"><label style="' + l + '">Validade</label><input id="mcExp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" style="' + f + '"></div>' +
-        '<div style="flex:1;"><label style="' + l + '">CVV</label><input id="mcCvv" inputmode="numeric" autocomplete="cc-csc" placeholder="000" style="' + f + '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">Validade</label><input id="mcExp" inputmode="numeric" autocomplete="cc-exp" placeholder="MM/AA" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">CVV</label><input id="mcCvv" inputmode="numeric" autocomplete="cc-csc" placeholder="000" style="' +
+      f +
+      '"></div>' +
       '</div>' +
-      '<div style="margin-bottom:10px;"><label style="' + l + '">Nome impresso</label><input id="mcHolder" autocomplete="cc-name" style="' + f + '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' +
+      l +
+      '">Nome impresso</label><input id="mcHolder" autocomplete="cc-name" style="' +
+      f +
+      '"></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:1;"><label style="' + l + '">CEP</label><input id="mcZip" inputmode="numeric" autocomplete="postal-code" style="' + f + '"></div>' +
-        '<div style="flex:1;"><label style="' + l + '">Nº endereço</label><input id="mcAddrNum" inputmode="numeric" style="' + f + '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">CEP</label><input id="mcZip" inputmode="numeric" autocomplete="postal-code" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">Nº endereço</label><input id="mcAddrNum" inputmode="numeric" style="' +
+      f +
+      '"></div>' +
       '</div>' +
-      '<div style="margin-bottom:10px;"><label style="' + l + '">Telefone</label><input id="mcPhone" type="tel" inputmode="tel" style="' + f + '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' +
+      l +
+      '">Telefone</label><input id="mcPhone" type="tel" inputmode="tel" style="' +
+      f +
+      '"></div>' +
       '<div id="mcErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
       '<button id="mcSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Confirmar novo cartão</button>' +
       '<p style="margin:10px 0 0;font-size:11.5px;color:#6b7d75;">As faturas pendentes serão re-cobradas no novo cartão imediatamente.</p>';
@@ -1840,9 +2493,11 @@
     var addrNum = (($('mcAddrNum') || {}).value || '').replace(/\D+/g, '');
     var phone = (($('mcPhone') || {}).value || '').replace(/\D+/g, '');
     var digits = num.replace(/\D+/g, '');
-    if (digits.length < 13 || digits.length > 19) return showSubModalErr('mcErr', 'Número do cartão inválido.');
+    if (digits.length < 13 || digits.length > 19)
+      return showSubModalErr('mcErr', 'Número do cartão inválido.');
     if (!exp) return showSubModalErr('mcErr', 'Validade inválida (MM/AA).');
-    if (exp.expired) return showSubModalErr('mcErr', 'Este cartão já está expirado. Use um cartão válido.');
+    if (exp.expired)
+      return showSubModalErr('mcErr', 'Este cartão já está expirado. Use um cartão válido.');
     if (cvv.length < 3) return showSubModalErr('mcErr', 'CVV inválido.');
     if (holder.length < 3) return showSubModalErr('mcErr', 'Nome impresso obrigatório.');
     if (zip.length !== 8) return showSubModalErr('mcErr', 'CEP inválido.');
@@ -1850,27 +2505,56 @@
     if (phone.length < 10) return showSubModalErr('mcErr', 'Telefone inválido.');
 
     var btn = $('mcSubmit');
-    if (btn) { btn.disabled = true; btn.textContent = 'A enviar…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'A enviar…';
+    }
     try {
       var c = (lastMe && lastMe.customer) || {};
       var cpfCnpj = (c.cpfCnpj || '').replace(/\D+/g, '');
       if (cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
-        showSubModalErr('mcErr', 'CPF/CNPJ ausente nos dados de cobrança. Edite os dados primeiro.');
-        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+        showSubModalErr(
+          'mcErr',
+          'CPF/CNPJ ausente nos dados de cobrança. Edite os dados primeiro.'
+        );
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Confirmar novo cartão';
+        }
         return;
       }
       if (!isValidCpfCnpj(cpfCnpj)) {
-        showSubModalErr('mcErr', 'CPF/CNPJ inválido nos dados de cobrança. Edite os dados primeiro.');
-        if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+        showSubModalErr(
+          'mcErr',
+          'CPF/CNPJ inválido nos dados de cobrança. Edite os dados primeiro.'
+        );
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Confirmar novo cartão';
+        }
         return;
       }
       var fb = window.AppliqueiFirebase;
-      var userEmail = (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || c.email || null;
+      var userEmail =
+        (fb && fb.auth && fb.auth.currentUser && fb.auth.currentUser.email) || c.email || null;
       await authedFetch('/card', {
         method: 'POST',
         body: JSON.stringify({
-          creditCard: { holderName: holder, number: digits, expiryMonth: exp.expiryMonth, expiryYear: exp.expiryYear, ccv: cvv },
-          creditCardHolderInfo: { name: c.name || holder, email: userEmail, cpfCnpj: cpfCnpj, postalCode: zip, addressNumber: addrNum, phone: phone },
+          creditCard: {
+            holderName: holder,
+            number: digits,
+            expiryMonth: exp.expiryMonth,
+            expiryYear: exp.expiryYear,
+            ccv: cvv,
+          },
+          creditCardHolderInfo: {
+            name: c.name || holder,
+            email: userEmail,
+            cpfCnpj: cpfCnpj,
+            postalCode: zip,
+            addressNumber: addrNum,
+            phone: phone,
+          },
         }),
       });
       closeSubModal();
@@ -1880,32 +2564,102 @@
     } catch (e) {
       console.warn('[billing] change card', e, e.detail);
       showSubModalErr('mcErr', e.message || 'Falha ao actualizar cartão.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Confirmar novo cartão'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar novo cartão';
+      }
     }
   }
 
   function openEditCustomerModal() {
     var c = (lastMe && lastMe.customer) || {};
-    var f = fld(), l = lbl();
+    var f = fld(),
+      l = lbl();
     var html =
-      '<div style="margin-bottom:10px;"><label style="' + l + '">Nome completo</label><input id="ecName" autocomplete="name" value="' + escapeHtml(c.name || '') + '" style="' + f + '"></div>' +
-      '<div style="margin-bottom:10px;"><label style="' + l + '">E-mail</label><input id="ecEmail" type="email" autocomplete="email" value="' + escapeHtml(c.email || '') + '" style="' + f + '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' +
+      l +
+      '">Nome completo</label><input id="ecName" autocomplete="name" value="' +
+      escapeHtml(c.name || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="margin-bottom:10px;"><label style="' +
+      l +
+      '">E-mail</label><input id="ecEmail" type="email" autocomplete="email" value="' +
+      escapeHtml(c.email || '') +
+      '" style="' +
+      f +
+      '"></div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:2;"><label style="' + l + '">CPF / CNPJ</label><input id="ecCpf" inputmode="numeric" value="' + escapeHtml(c.cpfCnpj || '') + '" style="' + f + '"></div>' +
-        '<div style="flex:2;"><label style="' + l + '">Telefone</label><input id="ecPhone" type="tel" inputmode="tel" value="' + escapeHtml(c.phone || '') + '" style="' + f + '"></div>' +
+      '<div style="flex:2;"><label style="' +
+      l +
+      '">CPF / CNPJ</label><input id="ecCpf" inputmode="numeric" value="' +
+      escapeHtml(c.cpfCnpj || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:2;"><label style="' +
+      l +
+      '">Telefone</label><input id="ecPhone" type="tel" inputmode="tel" value="' +
+      escapeHtml(c.phone || '') +
+      '" style="' +
+      f +
+      '"></div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:1;"><label style="' + l + '">CEP</label><input id="ecZip" inputmode="numeric" value="' + escapeHtml(c.postalCode || '') + '" style="' + f + '"></div>' +
-        '<div style="flex:2;"><label style="' + l + '">Endereço</label><input id="ecAddr" value="' + escapeHtml(c.address || '') + '" style="' + f + '"></div>' +
-        '<div style="flex:1;"><label style="' + l + '">Nº</label><input id="ecNum" inputmode="numeric" value="' + escapeHtml(c.addressNumber || '') + '" style="' + f + '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">CEP</label><input id="ecZip" inputmode="numeric" value="' +
+      escapeHtml(c.postalCode || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:2;"><label style="' +
+      l +
+      '">Endereço</label><input id="ecAddr" value="' +
+      escapeHtml(c.address || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">Nº</label><input id="ecNum" inputmode="numeric" value="' +
+      escapeHtml(c.addressNumber || '') +
+      '" style="' +
+      f +
+      '"></div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:1;"><label style="' + l + '">Complemento</label><input id="ecCompl" value="' + escapeHtml(c.complement || '') + '" style="' + f + '"></div>' +
-        '<div style="flex:1;"><label style="' + l + '">Bairro</label><input id="ecProv" value="' + escapeHtml(c.province || '') + '" style="' + f + '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">Complemento</label><input id="ecCompl" value="' +
+      escapeHtml(c.complement || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">Bairro</label><input id="ecProv" value="' +
+      escapeHtml(c.province || '') +
+      '" style="' +
+      f +
+      '"></div>' +
       '</div>' +
       '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
-        '<div style="flex:2;"><label style="' + l + '">Cidade</label><input id="ecCity" value="' + escapeHtml(c.city || '') + '" style="' + f + '"></div>' +
-        '<div style="flex:1;"><label style="' + l + '">UF</label><input id="ecState" maxlength="2" value="' + escapeHtml(c.state || '') + '" style="' + f + '"></div>' +
+      '<div style="flex:2;"><label style="' +
+      l +
+      '">Cidade</label><input id="ecCity" value="' +
+      escapeHtml(c.city || '') +
+      '" style="' +
+      f +
+      '"></div>' +
+      '<div style="flex:1;"><label style="' +
+      l +
+      '">UF</label><input id="ecState" maxlength="2" value="' +
+      escapeHtml(c.state || '') +
+      '" style="' +
+      f +
+      '"></div>' +
       '</div>' +
       '<div id="ecErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
       '<button id="ecSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Guardar alterações</button>';
@@ -1927,12 +2681,17 @@
     var state = (($('ecState') || {}).value || '').trim().toUpperCase();
 
     if (name && name.length < 3) return showSubModalErr('ecErr', 'Nome muito curto.');
-    if (cpf && cpf.length !== 11 && cpf.length !== 14) return showSubModalErr('ecErr', 'CPF (11) ou CNPJ (14 dígitos).');
-    if (cpf && !isValidCpfCnpj(cpf)) return showSubModalErr('ecErr', 'CPF/CNPJ inválido — verifique os dígitos.');
+    if (cpf && cpf.length !== 11 && cpf.length !== 14)
+      return showSubModalErr('ecErr', 'CPF (11) ou CNPJ (14 dígitos).');
+    if (cpf && !isValidCpfCnpj(cpf))
+      return showSubModalErr('ecErr', 'CPF/CNPJ inválido — verifique os dígitos.');
     if (zip && zip.length !== 8) return showSubModalErr('ecErr', 'CEP precisa ter 8 dígitos.');
 
     var btn = $('ecSubmit');
-    if (btn) { btn.disabled = true; btn.textContent = 'A guardar…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'A guardar…';
+    }
     try {
       await authedFetch('/customer', {
         method: 'POST',
@@ -1956,24 +2715,27 @@
     } catch (e) {
       console.warn('[billing] edit customer', e, e.detail);
       showSubModalErr('ecErr', e.message || 'Falha ao guardar dados.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Guardar alterações'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Guardar alterações';
+      }
     }
   }
 
   function confirmCancelSubscription() {
     var html =
       '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;gap:11px;align-items:flex-start;">' +
-        '<div style="flex:0 0 36px;height:36px;border-radius:10px;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;"><i class="ph-fill ph-warning"></i></div>' +
-        '<div>' +
-          '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#991b1b;letter-spacing:-.01em;">Tem certeza?</div>' +
-          '<p style="margin:4px 0 0;font-size:12.5px;color:#7f1d1d;line-height:1.5;opacity:.9;">O acesso fica disponível até o fim do ciclo já pago. Nenhuma cobrança futura é emitida.</p>' +
-        '</div>' +
+      '<div style="flex:0 0 36px;height:36px;border-radius:10px;background:#dc2626;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;"><i class="ph-fill ph-warning"></i></div>' +
+      '<div>' +
+      '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#991b1b;letter-spacing:-.01em;">Tem certeza?</div>' +
+      '<p style="margin:4px 0 0;font-size:12.5px;color:#7f1d1d;line-height:1.5;opacity:.9;">O acesso fica disponível até o fim do ciclo já pago. Nenhuma cobrança futura é emitida.</p>' +
+      '</div>' +
       '</div>' +
       '<p style="margin:0 0 14px;font-size:12.5px;color:#64748b;line-height:1.5;">Pode voltar a assinar a qualquer momento mantendo o mesmo cupom Applicash, se houver.</p>' +
       '<div id="cancelErr" style="display:none;font-size:12.5px;color:#991b1b;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 12px;margin-bottom:10px;"></div>' +
       '<div style="display:flex;gap:8px;">' +
-        '<button id="cancelKeep" type="button" style="flex:1;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:600;color:#334155;font-family:inherit;">Manter assinatura</button>' +
-        '<button id="cancelConfirm" type="button" style="flex:1;border:none;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:700;background:linear-gradient(180deg,#dc2626 0%,#b91c1c 100%);color:#fff;box-shadow:0 2px 8px -1px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.18);font-family:inherit;">Confirmar cancelamento</button>' +
+      '<button id="cancelKeep" type="button" style="flex:1;border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:600;color:#334155;font-family:inherit;">Manter assinatura</button>' +
+      '<button id="cancelConfirm" type="button" style="flex:1;border:none;cursor:pointer;padding:11px 14px;border-radius:11px;font-size:13.5px;font-weight:700;background:linear-gradient(180deg,#dc2626 0%,#b91c1c 100%);color:#fff;box-shadow:0 2px 8px -1px rgba(220,38,38,.4),inset 0 1px 0 rgba(255,255,255,.18);font-family:inherit;">Confirmar cancelamento</button>' +
       '</div>';
     openSubModal('Cancelar assinatura?', html);
     $('cancelKeep').addEventListener('click', closeSubModal);
@@ -1982,7 +2744,10 @@
 
   async function doCancelSubscription() {
     var btn = $('cancelConfirm');
-    if (btn) { btn.disabled = true; btn.textContent = 'A cancelar…'; }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'A cancelar…';
+    }
     try {
       await authedFetch('/cancel', { method: 'POST' });
       closeSubModal();
@@ -1992,7 +2757,10 @@
     } catch (e) {
       console.warn('[billing] cancel', e, e.detail);
       showSubModalErr('cancelErr', e.message || 'Falha ao cancelar.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Confirmar cancelamento'; }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar cancelamento';
+      }
     }
   }
 
@@ -2000,7 +2768,9 @@
     try {
       var me = await fetchMe();
       if (me.referralCode) {
-        try { localStorage.setItem('appliquei_cupom_codigo', me.referralCode); } catch (_) {}
+        try {
+          localStorage.setItem('appliquei_cupom_codigo', me.referralCode);
+        } catch (_) {}
       }
       var assin = {
         plano: 'Mensal',
@@ -2009,7 +2779,9 @@
         status: me.subscriptionStatus || null,
         descontoPct: me.recurringDiscountPercent || 0,
       };
-      try { localStorage.setItem('appliquei_applicash_assinatura', JSON.stringify(assin)); } catch (_) {}
+      try {
+        localStorage.setItem('appliquei_applicash_assinatura', JSON.stringify(assin));
+      } catch (_) {}
 
       var indicacoes = (me.referrals || []).map(function (r) {
         return {
@@ -2021,20 +2793,31 @@
           dataAdesao: r.referralUsedAt || null,
         };
       });
-      try { localStorage.setItem('appliquei_applicash_indicacoes', JSON.stringify(indicacoes)); } catch (_) {}
+      try {
+        localStorage.setItem('appliquei_applicash_indicacoes', JSON.stringify(indicacoes));
+      } catch (_) {}
 
       try {
         var creditsLog = (me.credits || []).map(function (c) {
-          return { id: c.id, fromEmail: c.fromEmail, amountCents: c.amountCents, appliedAt: c.appliedAt, createdAt: c.createdAt };
+          return {
+            id: c.id,
+            fromEmail: c.fromEmail,
+            amountCents: c.amountCents,
+            appliedAt: c.appliedAt,
+            createdAt: c.createdAt,
+          };
         });
         localStorage.setItem('appliquei_applicash_creditos', JSON.stringify(creditsLog));
-        localStorage.setItem('appliquei_applicash_resumo', JSON.stringify({
-          activeReferrals: me.activeReferrals,
-          totalReferrals: me.totalReferrals,
-          pendingDiscountCents: me.pendingDiscountCents,
-          totalReferralEarningsCents: me.totalReferralEarningsCents,
-          projectedNextBillCents: me.projectedNextBillCents,
-        }));
+        localStorage.setItem(
+          'appliquei_applicash_resumo',
+          JSON.stringify({
+            activeReferrals: me.activeReferrals,
+            totalReferrals: me.totalReferrals,
+            pendingDiscountCents: me.pendingDiscountCents,
+            totalReferralEarningsCents: me.totalReferralEarningsCents,
+            projectedNextBillCents: me.projectedNextBillCents,
+          })
+        );
       } catch (_) {}
 
       return me;
@@ -2044,10 +2827,16 @@
     }
   }
   function statCard(label, value) {
-    return '<div style="background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:10px 12px;">' +
-      '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">' + label + '</div>' +
-      '<div style="font-size:15px;font-weight:700;color:#0b1410;margin-top:2px;">' + value + '</div>' +
-      '</div>';
+    return (
+      '<div style="background:#fff;border:1px solid #e4ebe7;border-radius:10px;padding:10px 12px;">' +
+      '<div style="font-size:11px;color:#6b7d75;text-transform:uppercase;letter-spacing:.4px;">' +
+      label +
+      '</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#0b1410;margin-top:2px;">' +
+      value +
+      '</div>' +
+      '</div>'
+    );
   }
 
   async function refresh(verbose) {
@@ -2060,10 +2849,13 @@
       var r = await authedFetch('/me', { method: 'GET' });
       applyAccess(r.access, r);
       if (verbose && r.access && r.access.status !== 'active') {
-        showErr('Ainda não recebemos a confirmação do pagamento. Aguarde alguns instantes e tente novamente — confirmações por PIX/boleto podem levar até 3 horas.');
+        showErr(
+          'Ainda não recebemos a confirmação do pagamento. Aguarde alguns instantes e tente novamente — confirmações por PIX/boleto podem levar até 3 horas.'
+        );
       }
     } catch (e) {
-      if (verbose) showErr(e.message || 'Não foi possível verificar agora. Tente novamente em instantes.');
+      if (verbose)
+        showErr(e.message || 'Não foi possível verificar agora. Tente novamente em instantes.');
     }
   }
 
@@ -2071,29 +2863,45 @@
     if (!popup || popup.closed) return;
     try {
       popup.document.open();
-      popup.document.write('<!doctype html><meta charset="utf-8"><title>' + title + '</title>' +
-        '<body style="font-family:system-ui,sans-serif;padding:32px;max-width:560px;margin:auto;color:#0b1410;">' +
-        '<h2 style="margin:0 0 8px;">' + title + '</h2>' +
-        '<pre style="white-space:pre-wrap;background:#f1f5f3;padding:12px;border-radius:8px;font-size:13px;">' +
-        body.replace(/[<>&]/g, function (c) { return ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c]; }) +
-        '</pre><p style="font-size:13px;color:#4a5b53;">Pode fechar esta aba.</p>');
+      popup.document.write(
+        '<!doctype html><meta charset="utf-8"><title>' +
+          title +
+          '</title>' +
+          '<body style="font-family:system-ui,sans-serif;padding:32px;max-width:560px;margin:auto;color:#0b1410;">' +
+          '<h2 style="margin:0 0 8px;">' +
+          title +
+          '</h2>' +
+          '<pre style="white-space:pre-wrap;background:#f1f5f3;padding:12px;border-radius:8px;font-size:13px;">' +
+          body.replace(/[<>&]/g, function (c) {
+            return { '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c];
+          }) +
+          '</pre><p style="font-size:13px;color:#4a5b53;">Pode fechar esta aba.</p>'
+      );
       popup.document.close();
     } catch (_) {}
   }
 
   function openSubscribeForm(mode) {
     var title = mode === 'one_shot' ? 'Renovar 1 mês' : 'Assine para continuar';
-    var sub = mode === 'one_shot'
-      ? 'Pagamento único de 30 dias. Você decide quando renovar.'
-      : 'Preencha os dados para emitir a fatura.';
+    var sub =
+      mode === 'one_shot'
+        ? 'Pagamento único de 30 dias. Você decide quando renovar.'
+        : 'Preencha os dados para emitir a fatura.';
     showGate(title, sub);
     if (mode === 'one_shot' || mode === 'subscription') {
       // Pré-seleciona o tab pedido pelo banner. Os botões só existem após
       // o ensureGate() ter sido feito (showGate o chama), então o timeout
       // já garante DOM montado.
-      setTimeout(function () { try { setBillingMode(mode); } catch (_) {} }, 0);
+      setTimeout(function () {
+        try {
+          setBillingMode(mode);
+        } catch (_) {}
+      }, 0);
     }
-    setTimeout(function () { var el = $('billingCpfCnpj'); if (el) el.focus(); }, 50);
+    setTimeout(function () {
+      var el = $('billingCpfCnpj');
+      if (el) el.focus();
+    }, 50);
   }
 
   function parseExpiry(v) {
@@ -2169,7 +2977,10 @@
 
     if (selectedMethod === 'CREDIT_CARD') {
       var card = collectCardPayload();
-      if (card.error) { showErr(card.error); return; }
+      if (card.error) {
+        showErr(card.error);
+        return;
+      }
       payload.creditCard = card.creditCard;
       payload.creditCardHolderInfo = {
         name: nameVal,
@@ -2184,10 +2995,13 @@
     if (btn) btn.disabled = true;
     var popup = selectedMethod === 'CREDIT_CARD' ? null : window.open('about:blank', '_blank');
     if (popup) {
-      var popupMsg = selectedBillingMode === 'one_shot'
-        ? 'A gerar fatura única…'
-        : 'A criar assinatura…';
-      writePopupMessage(popup, popupMsg, 'A contactar o Asaas. Esta aba abrirá a fatura em instantes.');
+      var popupMsg =
+        selectedBillingMode === 'one_shot' ? 'A gerar fatura única…' : 'A criar assinatura…';
+      writePopupMessage(
+        popup,
+        popupMsg,
+        'A contactar o Asaas. Esta aba abrirá a fatura em instantes.'
+      );
     }
     // /subscribe lida com os dois modos via flag `mode`. Foi fundido com
     // o antigo /pay-month para caber no limite de 12 functions do Vercel.
@@ -2200,7 +3014,12 @@
       console.log('[billing] subscribe response', r);
 
       if (r.paymentMethod === 'CREDIT_CARD') {
-        showGate('A processar pagamento', 'Cobrança em curso no cartão terminado em ' + (r.cardLast4 || '••••') + '. Vamos confirmar em instantes.');
+        showGate(
+          'A processar pagamento',
+          'Cobrança em curso no cartão terminado em ' +
+            (r.cardLast4 || '••••') +
+            '. Vamos confirmar em instantes.'
+        );
         await waitForActive(20);
         return;
       }
@@ -2208,15 +3027,22 @@
       if (r.invoiceUrl) {
         if (popup && !popup.closed) {
           popup.location.href = r.invoiceUrl;
-          showGate('Conclua o pagamento', 'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.');
+          showGate(
+            'Conclua o pagamento',
+            'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.'
+          );
           startActivePolling();
         } else {
           // Popup bloqueado: oferece link explícito em vez de redirect destruir a sessão.
-          showGate('Conclua o pagamento',
-            'Abra a fatura no link abaixo. Após pagar, volte aqui e prima "Já paguei — verificar status".');
+          showGate(
+            'Conclua o pagamento',
+            'Abra a fatura no link abaixo. Após pagar, volte aqui e prima "Já paguei — verificar status".'
+          );
           var err = $('billingErr');
           if (err) {
-            err.innerHTML = 'A sua janela bloqueou o popup. <a href="' + r.invoiceUrl +
+            err.innerHTML =
+              'A sua janela bloqueou o popup. <a href="' +
+              r.invoiceUrl +
               '" target="_blank" rel="noopener" style="color:#059669;text-decoration:underline;font-weight:600;">Abrir fatura</a>';
             err.style.background = '#ecfdf5';
             err.style.borderColor = '#a7f3d0';
@@ -2226,15 +3052,32 @@
           startActivePolling();
         }
       } else if (r.alreadyActive) {
-        writePopupMessage(popup, 'Já tem assinatura ativa', 'A sua assinatura (id: ' + (r.subscriptionId || '?') + ') já existe, mas não há fatura pendente. Verifique no painel Asaas. Resposta:\n\n' + JSON.stringify(r, null, 2));
+        writePopupMessage(
+          popup,
+          'Já tem assinatura ativa',
+          'A sua assinatura (id: ' +
+            (r.subscriptionId || '?') +
+            ') já existe, mas não há fatura pendente. Verifique no painel Asaas. Resposta:\n\n' +
+            JSON.stringify(r, null, 2)
+        );
         await refresh(false);
       } else {
-        writePopupMessage(popup, 'Sem link de pagamento', 'O backend respondeu mas não devolveu invoiceUrl. Resposta:\n\n' + JSON.stringify(r, null, 2));
+        writePopupMessage(
+          popup,
+          'Sem link de pagamento',
+          'O backend respondeu mas não devolveu invoiceUrl. Resposta:\n\n' +
+            JSON.stringify(r, null, 2)
+        );
         showErr('Não foi possível obter o link de pagamento.');
       }
     } catch (e) {
       console.warn('[billing] subscribe', e, e.detail);
-      if (popup) writePopupMessage(popup, 'Erro ao criar assinatura', (e.message || 'erro') + '\n\n' + JSON.stringify(e.detail || {}, null, 2));
+      if (popup)
+        writePopupMessage(
+          popup,
+          'Erro ao criar assinatura',
+          (e.message || 'erro') + '\n\n' + JSON.stringify(e.detail || {}, null, 2)
+        );
       showErr(e.message || 'Falha ao criar assinatura.');
     } finally {
       if (btn) btn.disabled = false;
@@ -2244,13 +3087,17 @@
   async function waitForActive(maxAttempts) {
     var attempts = 0;
     while (attempts < maxAttempts) {
-      await new Promise(function (r) { setTimeout(r, 2500); });
+      await new Promise(function (r) {
+        setTimeout(r, 2500);
+      });
       attempts++;
       try {
         var s = await authedFetch('/me', { method: 'GET' });
         if (s.access && s.access.status === 'active') {
           applyAccess(s.access, s);
-          try { await syncApplicashFromServer(); } catch (_) {}
+          try {
+            await syncApplicashFromServer();
+          } catch (_) {}
           return true;
         }
       } catch (_) {}
@@ -2260,7 +3107,10 @@
   }
 
   function startActivePolling() {
-    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
     // Polling rápido (5s) por 5 minutos. Depois cai para o ritmo normal (30s)
     // para não desperdiçar requests se o utilizador deixar a aba aberta.
     var ticks = 0;
@@ -2270,7 +3120,9 @@
       refresh(false);
       if (ticks >= FAST_MAX_TICKS) {
         clearInterval(pollTimer);
-        pollTimer = setInterval(function () { refresh(false); }, POLL_MS);
+        pollTimer = setInterval(function () {
+          refresh(false);
+        }, POLL_MS);
       }
     }, 5000);
   }
@@ -2283,7 +3135,9 @@
   // Continua "bypassável" via DevTools (toda lógica client é), mas remove
   // o atalho de uma palavra no console.
   var signupBlocked = false;
-  function setSignupBlock(v) { signupBlocked = !!v; }
+  function setSignupBlock(v) {
+    signupBlocked = !!v;
+  }
 
   function onUser(user) {
     if (!user) {
@@ -2300,7 +3154,8 @@
         if (typeof window.atualizarTelaApplicash === 'function') {
           try {
             var sec = document.getElementById('applicash');
-            if (sec && sec.classList && sec.classList.contains('ativa')) window.atualizarTelaApplicash();
+            if (sec && sec.classList && sec.classList.contains('ativa'))
+              window.atualizarTelaApplicash();
           } catch (_) {}
         }
       });
@@ -2339,24 +3194,41 @@
     if (!u) return;
     if (lastAccess == null) {
       // Nunca aplicou: re-inicia a partir do zero.
-      try { initBilling(); } catch (_) {}
+      try {
+        initBilling();
+      } catch (_) {}
     } else {
       // Já aplicou: revalida o estado atual.
-      try { refresh(false); } catch (_) {}
+      try {
+        refresh(false);
+      } catch (_) {}
     }
   });
-  setInterval(function () {
-    if (document.visibilityState !== 'visible') return;
-    var fb = window.AppliqueiFirebase;
-    if (!fb || !fb.auth || !fb.auth.currentUser) return;
-    if (lastAccess) { try { refresh(false); } catch (_) {} }
-  }, 5 * 60 * 1000);
+  setInterval(
+    function () {
+      if (document.visibilityState !== 'visible') return;
+      var fb = window.AppliqueiFirebase;
+      if (!fb || !fb.auth || !fb.auth.currentUser) return;
+      if (lastAccess) {
+        try {
+          refresh(false);
+        } catch (_) {}
+      }
+    },
+    5 * 60 * 1000
+  );
 
   window.AppliqueiBilling = {
-    refresh: function () { return refresh(true); },
+    refresh: function () {
+      return refresh(true);
+    },
     subscribe: subscribe,
-    getAccess: function () { return lastAccess; },
-    getBilling: function () { return lastBilling; },
+    getAccess: function () {
+      return lastAccess;
+    },
+    getBilling: function () {
+      return lastBilling;
+    },
     openSubscribeForm: openSubscribeForm,
     openMyAccount: openMyAccount,
     closeMyAccount: closeMyAccount,
@@ -2381,8 +3253,12 @@
       // Cobre o race do signup Google novo, em que onAuthStateChanged
       // disparou enquanto signupBlocked=true e o trial banner ficava sem
       // aparecer até refresh manual.
-      setTimeout(function () { if (!lastAccess) attempt(); }, 1500);
-      setTimeout(function () { if (!lastAccess) attempt(); }, 4500);
+      setTimeout(function () {
+        if (!lastAccess) attempt();
+      }, 1500);
+      setTimeout(function () {
+        if (!lastAccess) attempt();
+      }, 4500);
     },
     setSignupBlock: setSignupBlock,
   };

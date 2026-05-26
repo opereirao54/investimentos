@@ -15,7 +15,7 @@
       storageBucket: 'appliquei-prod.firebasestorage.app',
       messagingSenderId: '662305867797',
       appId: '1:662305867797:web:930d37325f9cd8e11e661c',
-      measurementId: 'G-FCB2LS8K1D'
+      measurementId: 'G-FCB2LS8K1D',
     };
   }
   w.AppliqueiFirebase = { ready: false, app: null, auth: null, db: null, analytics: null };

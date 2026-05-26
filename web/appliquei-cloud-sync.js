@@ -63,16 +63,24 @@
       var raw = localStorage.getItem(lsKey);
       if (!raw) return {};
       var v = JSON.parse(raw);
-      return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
-    } catch (_) { return {}; }
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    } catch (_) {
+      return {};
+    }
   }
 
   function writeJsonMap(lsKey, m) {
-    try { localStorage.setItem(lsKey, JSON.stringify(m || {})); } catch (_) {}
+    try {
+      localStorage.setItem(lsKey, JSON.stringify(m || {}));
+    } catch (_) {}
   }
 
-  function getLocalRevs() { return readJsonMap(KEY_REVS_LS); }
-  function getLocalDeletions() { return readJsonMap(DELETIONS_LS); }
+  function getLocalRevs() {
+    return readJsonMap(KEY_REVS_LS);
+  }
+  function getLocalDeletions() {
+    return readJsonMap(DELETIONS_LS);
+  }
 
   function setLocalRev(k, t) {
     var m = getLocalRevs();
@@ -88,7 +96,10 @@
 
   function removeLocalDeletion(k) {
     var d = getLocalDeletions();
-    if (k in d) { delete d[k]; writeJsonMap(DELETIONS_LS, d); }
+    if (k in d) {
+      delete d[k];
+      writeJsonMap(DELETIONS_LS, d);
+    }
   }
 
   function mainRef(uid) {
@@ -107,7 +118,11 @@
     dirty.forEach(function (k) {
       if (!shouldSyncKey(k)) return;
       var v;
-      try { v = localStorage.getItem(k); } catch (_) { v = null; }
+      try {
+        v = localStorage.getItem(k);
+      } catch (_) {
+        v = null;
+      }
       if (v === null) return; // chave já não existe localmente: deixa para deletions
       keysOut[k] = v;
       revsOut[k] = localRevs[k] || Date.now();
@@ -126,7 +141,7 @@
       keys: keysOut,
       keyRevs: revsOut,
       dirtySnapshot: dirty.slice(),
-      deletionSnapshot: deletionList
+      deletionSnapshot: deletionList,
     };
   }
 
@@ -142,7 +157,10 @@
     if (!u) return;
 
     var build = collectDirtyPayload();
-    if (!build.hasAny) { pendingLocalWrite = false; return; }
+    if (!build.hasAny) {
+      pendingLocalWrite = false;
+      return;
+    }
 
     var snapshotDirty = build.dirtySnapshot;
     var snapshotDeletions = build.deletionSnapshot;
@@ -153,19 +171,23 @@
       keys: build.keys,
       keyRevs: build.keyRevs,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-      schemaVersion: 2
+      schemaVersion: 2,
     };
 
     mainRef(u.uid)
       .set(payload, { merge: true })
       .then(function () {
-        snapshotDeletions.forEach(function (k) { removeLocalDeletion(k); });
+        snapshotDeletions.forEach(function (k) {
+          removeLocalDeletion(k);
+        });
       })
       .catch(function (err) {
         console.warn('[AppliqueiCloudSync] push', err);
         // Restaura dirty para retry. Deletions já estão persistidas, não
         // precisam de restore.
-        snapshotDirty.forEach(function (k) { dirtyKeys[k] = true; });
+        snapshotDirty.forEach(function (k) {
+          dirtyKeys[k] = true;
+        });
         pendingLocalWrite = true;
         // Antes: permission-denied/unauthenticated saíam em silêncio — o
         // usuário via "Salvo às HH:MM" mas o doc nunca chegava no Firestore
@@ -193,7 +215,10 @@
   }
 
   function forceFlushNow() {
-    if (timer) { clearTimeout(timer); timer = null; }
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
     if (pendingLocalWrite) flushPush();
   }
 
@@ -210,8 +235,14 @@
   function refreshIdTokenCache(fb) {
     try {
       var u = fb && fb.auth && fb.auth.currentUser;
-      if (!u) { cachedIdToken = null; return; }
-      u.getIdToken().then(function (t) { cachedIdToken = t; })
+      if (!u) {
+        cachedIdToken = null;
+        return;
+      }
+      u.getIdToken()
+        .then(function (t) {
+          cachedIdToken = t;
+        })
         .catch(function () {});
     } catch (_) {}
   }
@@ -224,9 +255,16 @@
     if (typeof fb.auth.onIdTokenChanged !== 'function') return;
     try {
       fb.auth.onIdTokenChanged(function (user) {
-        if (!user) { cachedIdToken = null; return; }
+        if (!user) {
+          cachedIdToken = null;
+          return;
+        }
         try {
-          user.getIdToken().then(function (t) { cachedIdToken = t; })
+          user
+            .getIdToken()
+            .then(function (t) {
+              cachedIdToken = t;
+            })
             .catch(function () {});
         } catch (_) {}
       });
@@ -245,7 +283,11 @@
     dirty.forEach(function (k) {
       if (!shouldSyncKey(k)) return;
       var v;
-      try { v = localStorage.getItem(k); } catch (_) { v = null; }
+      try {
+        v = localStorage.getItem(k);
+      } catch (_) {
+        v = null;
+      }
       if (v === null) return;
       keysOut[k] = v;
       revsOut[k] = localRevs[k] || Date.now();
@@ -283,7 +325,7 @@
     var body = JSON.stringify({
       idToken: cachedIdToken,
       keys: payload.keys,
-      keyRevs: payload.keyRevs
+      keyRevs: payload.keyRevs,
     });
 
     // 1) fetch+keepalive: caminho preferencial — logamos status/erro.
@@ -292,22 +334,34 @@
     try {
       if (typeof window.fetch === 'function') {
         sent = true;
-        window.fetch('/api/sync/push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: body,
-          keepalive: true,
-          credentials: 'same-origin'
-        }).then(function (r) {
-          if (!r.ok) {
-            console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
-            try { r.text().then(function (t) { console.warn('[AppliqueiCloudSync] beacon body', t); }); } catch (_) {}
-          } else {
-            console.log('[AppliqueiCloudSync] beacon ok', reason || '', Object.keys(payload.keys).length, 'keys');
-          }
-        }).catch(function (e) {
-          console.warn('[AppliqueiCloudSync] beacon fetch', e && (e.message || e));
-        });
+        window
+          .fetch('/api/sync/push', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+            keepalive: true,
+            credentials: 'same-origin',
+          })
+          .then(function (r) {
+            if (!r.ok) {
+              console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
+              try {
+                r.text().then(function (t) {
+                  console.warn('[AppliqueiCloudSync] beacon body', t);
+                });
+              } catch (_) {}
+            } else {
+              console.log(
+                '[AppliqueiCloudSync] beacon ok',
+                reason || '',
+                Object.keys(payload.keys).length,
+                'keys'
+              );
+            }
+          })
+          .catch(function (e) {
+            console.warn('[AppliqueiCloudSync] beacon fetch', e && (e.message || e));
+          });
       }
     } catch (e) {
       sent = false;
@@ -333,7 +387,12 @@
   }
 
   function schedulePush() {
-    if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready || !AppliqueiFirebase.auth.currentUser) return;
+    if (
+      !window.AppliqueiFirebase ||
+      !AppliqueiFirebase.ready ||
+      !AppliqueiFirebase.auth.currentUser
+    )
+      return;
     pendingLocalWrite = true;
     if (timer) clearTimeout(timer);
     timer = setTimeout(flushPush, DEBOUNCE_MS);
@@ -355,8 +414,12 @@
     var revsTouched = false;
 
     var allRemoteKeys = {};
-    Object.keys(remoteKeys).forEach(function (k) { allRemoteKeys[k] = true; });
-    Object.keys(remoteRevs).forEach(function (k) { allRemoteKeys[k] = true; });
+    Object.keys(remoteKeys).forEach(function (k) {
+      allRemoteKeys[k] = true;
+    });
+    Object.keys(remoteRevs).forEach(function (k) {
+      allRemoteKeys[k] = true;
+    });
 
     applyingPull = true;
     try {
@@ -371,8 +434,8 @@
         // Se a deleção local é mais recente, mantém para propagar.
         if (localDeletions[k] && localDeletions[k] >= rRev) return;
 
-        var isTombstone = !(k in remoteKeys) ||
-          remoteKeys[k] === undefined || remoteKeys[k] === null;
+        var isTombstone =
+          !(k in remoteKeys) || remoteKeys[k] === undefined || remoteKeys[k] === null;
 
         try {
           if (isTombstone) {
@@ -410,7 +473,10 @@
         var lk = localStorage.key(i);
         if (!shouldSyncKey(lk)) continue;
         if (lk in allRemoteKeys) continue;
-        if (!(lk in localRevs)) { localRevs[lk] = Date.now(); revsTouched = true; }
+        if (!(lk in localRevs)) {
+          localRevs[lk] = Date.now();
+          revsTouched = true;
+        }
         dirtyKeys[lk] = true;
       }
     } catch (_) {}
@@ -437,13 +503,15 @@
     }
 
     if (changed > 0) {
-      var msg = (opts && opts.reloadMessage) ||
-        'Dados atualizados em outro dispositivo. Recarregando…';
+      var msg =
+        (opts && opts.reloadMessage) || 'Dados atualizados em outro dispositivo. Recarregando…';
       if (typeof window.mostrarToast === 'function') {
         window.mostrarToast(msg, 'sucesso');
       }
       setTimeout(function () {
-        try { window.location.reload(); } catch (_) {}
+        try {
+          window.location.reload();
+        } catch (_) {}
       }, 1500);
     }
     return changed;
@@ -476,7 +544,9 @@
 
   function stopSnapshotListener() {
     if (unsubscribeSnapshot) {
-      try { unsubscribeSnapshot(); } catch (_) {}
+      try {
+        unsubscribeSnapshot();
+      } catch (_) {}
     }
     unsubscribeSnapshot = null;
     listenerUid = null;
@@ -513,7 +583,10 @@
   }
 
   function pullAndApply(uid, done) {
-    if (pullInFlight) { if (done) done(false); return; }
+    if (pullInFlight) {
+      if (done) done(false);
+      return;
+    }
     pullInFlight = true;
     mainRef(uid)
       .get({ source: 'server' })
@@ -522,8 +595,7 @@
           reconcileAgainstEmptyRemote();
           initialPullDone = true;
           pullInFlight = false;
-          if (Object.keys(dirtyKeys).length > 0 ||
-              Object.keys(getLocalDeletions()).length > 0) {
+          if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
             schedulePush();
           }
           startSnapshotListener(uid);
@@ -531,7 +603,8 @@
           return;
         }
         var changed = applyRemoteSnapshot(snap, {
-          reloadMessage: 'Dados da nuvem restaurados! Atualizando a página para carregar as informações...'
+          reloadMessage:
+            'Dados da nuvem restaurados! Atualizando a página para carregar as informações...',
         });
         initialPullDone = true;
         pullInFlight = false;
@@ -565,9 +638,15 @@
       clearUserScopedKeys();
       initialPullDone = false;
       dirtyKeys = {};
-      try { localStorage.removeItem(LAST_UID_KEY); } catch (_) {}
+      try {
+        localStorage.removeItem(LAST_UID_KEY);
+      } catch (_) {}
       if (prevUid) {
-        setTimeout(function () { try { location.reload(); } catch (_) {} }, 300);
+        setTimeout(function () {
+          try {
+            location.reload();
+          } catch (_) {}
+        }, 300);
       }
       return;
     }
@@ -577,21 +656,33 @@
       clearUserScopedKeys();
       initialPullDone = false;
       dirtyKeys = {};
-      try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
+      try {
+        localStorage.setItem(LAST_UID_KEY, user.uid);
+      } catch (_) {}
       try {
         if (typeof window.mostrarToast === 'function') {
           window.mostrarToast('Trocando de conta — recarregando…', 'sucesso');
         }
       } catch (_) {}
-      setTimeout(function () { try { location.reload(); } catch (_) {} }, 400);
+      setTimeout(function () {
+        try {
+          location.reload();
+        } catch (_) {}
+      }, 400);
       return;
     }
-    try { localStorage.setItem(LAST_UID_KEY, user.uid); } catch (_) {}
+    try {
+      localStorage.setItem(LAST_UID_KEY, user.uid);
+    } catch (_) {}
     pullAndApply(user.uid, function () {});
   }
 
   function lastSeenUid() {
-    try { return localStorage.getItem(LAST_UID_KEY) || ''; } catch (_) { return ''; }
+    try {
+      return localStorage.getItem(LAST_UID_KEY) || '';
+    } catch (_) {
+      return '';
+    }
   }
 
   function clearUserScopedKeys() {
@@ -601,7 +692,11 @@
         var k = localStorage.key(i);
         if (k && shouldSyncKey(k)) toRemove.push(k);
       }
-      toRemove.forEach(function (k) { try { localStorage.removeItem(k); } catch (_) {} });
+      toRemove.forEach(function (k) {
+        try {
+          localStorage.removeItem(k);
+        } catch (_) {}
+      });
       // Limpa metadata de sync também — outro user vai recriar via pull.
       localStorage.removeItem('appliquei_cloud_applied_rev'); // legado v1
       localStorage.removeItem(KEY_REVS_LS);
@@ -640,11 +735,15 @@
     if (document.visibilityState === 'hidden') {
       // Beacon primeiro: dispara o request HTTP que sobrevive ao kill do tab.
       // forceFlushNow é o caminho rápido enquanto o SDK ainda corre.
-      if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+      if (beaconTimer) {
+        clearTimeout(beaconTimer);
+        beaconTimer = null;
+      }
       beaconFlushNow('visibility-hidden');
       forceFlushNow();
     } else if (document.visibilityState === 'visible') {
-      var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
+      var u =
+        window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u && initialPullDone) {
         pullAndApply(u.uid, function () {});
         startSnapshotListener(u.uid);
@@ -653,7 +752,10 @@
   }
 
   function onPageHide() {
-    if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+    if (beaconTimer) {
+      clearTimeout(beaconTimer);
+      beaconTimer = null;
+    }
     beaconFlushNow('pagehide');
     forceFlushNow();
   }
@@ -688,9 +790,12 @@
     },
     flushNow: flushPush,
     forceFlush: forceFlushNow,
-    beaconNow: function () { beaconFlushNow('manual'); },
+    beaconNow: function () {
+      beaconFlushNow('manual');
+    },
     pullNow: function (cb) {
-      var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
+      var u =
+        window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u) pullAndApply(u.uid, cb || function () {});
     },
     // Limpa todas as chaves sincronizáveis do localStorage. Chamado pelo
@@ -700,11 +805,17 @@
     // de UI puramente locais).
     purgeLocalCache: function () {
       stopSnapshotListener();
-      if (timer) { clearTimeout(timer); timer = null; }
-      if (beaconTimer) { clearTimeout(beaconTimer); beaconTimer = null; }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (beaconTimer) {
+        clearTimeout(beaconTimer);
+        beaconTimer = null;
+      }
       dirtyKeys = {};
       initialPullDone = false;
       clearUserScopedKeys();
-    }
+    },
   };
 })();

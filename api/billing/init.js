@@ -21,10 +21,16 @@ function readBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let raw = '';
-    req.on('data', c => { raw += c; });
+    req.on('data', (c) => {
+      raw += c;
+    });
     req.on('end', () => {
       if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch (_) { resolve({}); }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (_) {
+        resolve({});
+      }
     });
     req.on('error', () => resolve({}));
   });
@@ -53,7 +59,8 @@ module.exports = async (req, res) => {
   if (user.email_verified !== true) {
     return res.status(403).json({
       error: 'email_not_verified',
-      detail: 'Verifique o seu e-mail antes de iniciar a avaliação. Reenvie o link de verificação no painel inicial.',
+      detail:
+        'Verifique o seu e-mail antes de iniciar a avaliação. Reenvie o link de verificação no painel inicial.',
     });
   }
 
@@ -63,7 +70,8 @@ module.exports = async (req, res) => {
   if (!user.email) {
     return res.status(400).json({
       error: 'email_required_from_provider',
-      detail: 'Não foi possível obter o e-mail da sua conta. Faça login novamente concedendo permissão de e-mail.',
+      detail:
+        'Não foi possível obter o e-mail da sua conta. Faça login novamente concedendo permissão de e-mail.',
     });
   }
 
@@ -90,28 +98,38 @@ module.exports = async (req, res) => {
     //    enumeração de cupons.
     const preSnap = await ref.get();
     const isFirstInit = !preSnap.exists;
-    const isRetroRefAttempt = !isFirstInit && !!rawCode && !(preSnap.data() && preSnap.data().referredByUserId);
+    const isRetroRefAttempt =
+      !isFirstInit && !!rawCode && !(preSnap.data() && preSnap.data().referredByUserId);
     if (isFirstInit || isRetroRefAttempt) {
       const ip = signupIp(req) || 'unknown';
       const device = rl.deviceFingerprint(req);
-      const antifraudEnabled = String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
+      const antifraudEnabled =
+        String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
       const scopePrefix = isFirstInit ? 'init' : 'init-retroref';
       const windowIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_WINDOW_MS : 60 * 60 * 1000;
       const maxIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_MAX : 10;
       const windowDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS : 60 * 60 * 1000;
       const maxDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_MAX : 10;
       const ipCheck = await rl.check({
-        scope: scopePrefix + '-ip', key: ip,
-        windowMs: windowIp, max: maxIp,
+        scope: scopePrefix + '-ip',
+        key: ip,
+        windowMs: windowIp,
+        max: maxIp,
       });
       const devCheck = await rl.check({
-        scope: scopePrefix + '-device', key: device,
-        windowMs: windowDev, max: maxDev,
+        scope: scopePrefix + '-device',
+        key: device,
+        windowMs: windowDev,
+        max: maxDev,
       });
       if (!ipCheck.allowed || !devCheck.allowed) {
         console.warn('[init] rate-limit hit', {
-          scope: scopePrefix, uid: user.uid, ip, device,
-          ipCount: ipCheck.count, devCount: devCheck.count,
+          scope: scopePrefix,
+          uid: user.uid,
+          ip,
+          device,
+          ipCount: ipCheck.count,
+          devCount: devCheck.count,
           enforced: antifraudEnabled,
         });
         if (antifraudEnabled) {
@@ -134,21 +152,31 @@ module.exports = async (req, res) => {
       const s = await tx.get(ref);
       const ex = s.exists ? s.data() : null;
       if (ex && ex.customerId) return { state: 'has_customer', existing: ex };
-      const lockedAtMs = ex && ex.initLockAt && typeof ex.initLockAt.toMillis === 'function'
-        ? ex.initLockAt.toMillis()
-        : 0;
-      if (ex && ex.initLock && (Date.now() - lockedAtMs) < LOCK_TTL_MS) {
+      const lockedAtMs =
+        ex && ex.initLockAt && typeof ex.initLockAt.toMillis === 'function'
+          ? ex.initLockAt.toMillis()
+          : 0;
+      if (ex && ex.initLock && Date.now() - lockedAtMs < LOCK_TTL_MS) {
         return { state: 'locked' };
       }
-      tx.set(ref, {
-        initLock: true,
-        initLockAt: timestamp().fromMillis(Date.now()),
-      }, { merge: true });
+      tx.set(
+        ref,
+        {
+          initLock: true,
+          initLockAt: timestamp().fromMillis(Date.now()),
+        },
+        { merge: true }
+      );
       return { state: 'acquired', existing: ex };
     });
 
     if (claim.state === 'locked') {
-      return res.status(409).json({ error: 'init_in_progress', detail: 'Inicialização em andamento, tente novamente em instantes.' });
+      return res
+        .status(409)
+        .json({
+          error: 'init_in_progress',
+          detail: 'Inicialização em andamento, tente novamente em instantes.',
+        });
     }
 
     if (claim.state === 'has_customer') {
@@ -191,19 +219,25 @@ module.exports = async (req, res) => {
         if (!guard.allowed) {
           return res.status(400).json({ error: guard.reason });
         }
-        await ref.set({
-          referredByUserId: owner.uid,
-          referredByCode: owner.code,
-          referralUsedAt: timestamp().fromMillis(Date.now()),
-          recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
-          updatedAt: fieldValue().serverTimestamp(),
-        }, { merge: true });
+        await ref.set(
+          {
+            referredByUserId: owner.uid,
+            referredByCode: owner.code,
+            referralUsedAt: timestamp().fromMillis(Date.now()),
+            recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
+            updatedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        );
         const reread = await ref.get();
         billingNow = reread.data();
       }
 
       const synced = await syncBillingFromAsaas(ref, billingNow);
-      return res.json({ access: computeAccess(synced.billing), billing: safeBilling(synced.billing) });
+      return res.json({
+        access: computeAccess(synced.billing),
+        billing: safeBilling(synced.billing),
+      });
     }
 
     const existing = claim.existing;
@@ -212,10 +246,13 @@ module.exports = async (req, res) => {
       if (releasedOnError) return;
       releasedOnError = true;
       try {
-        await ref.set({
-          initLock: fieldValue().delete(),
-          initLockAt: fieldValue().delete(),
-        }, { merge: true });
+        await ref.set(
+          {
+            initLock: fieldValue().delete(),
+            initLockAt: fieldValue().delete(),
+          },
+          { merge: true }
+        );
       } catch (_) {}
     };
 
@@ -252,8 +289,11 @@ module.exports = async (req, res) => {
         // Self-heal: re-cria a reserva se sumiu (mesma razão do bloco
         // has_customer acima).
         if (codes.isValid(ownCode)) {
-          try { await codes.ensureReserved(D, ownCode, user.uid, timestamp()); }
-          catch (e) { console.warn('[init] self-heal referralCodes failed', e.message || e); }
+          try {
+            await codes.ensureReserved(D, ownCode, user.uid, timestamp());
+          } catch (e) {
+            console.warn('[init] self-heal referralCodes failed', e.message || e);
+          }
         }
       } else {
         ownCode = await codes.reserveUniqueCode(D, user.uid, timestamp());

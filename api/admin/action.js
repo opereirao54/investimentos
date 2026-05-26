@@ -11,16 +11,18 @@ const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro', 'disable_user'
 
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   try {
-    await db().collection('adminAuditLog').add({
-      action,
-      email,
-      uid,
-      actor: actor || 'unknown',
-      before: before || null,
-      after: after || null,
-      extra: extra || null,
-      at: timestamp().now(),
-    });
+    await db()
+      .collection('adminAuditLog')
+      .add({
+        action,
+        email,
+        uid,
+        actor: actor || 'unknown',
+        before: before || null,
+        after: after || null,
+        extra: extra || null,
+        at: timestamp().now(),
+      });
   } catch (e) {
     console.warn('[admin/action] audit_write_failed', e.message);
   }
@@ -70,12 +72,14 @@ module.exports = async (req, res) => {
       const resumo = {
         statusAsaas: b.subscriptionStatus || 'NÃO ASSINANTE',
         ultimoPagamento: b.lastPaymentStatus || 'N/A',
-        descontoPendente: (b.stats && b.stats.pendingDiscountCents)
-          ? `R$ ${(b.stats.pendingDiscountCents / 100).toFixed(2)}`
-          : 'R$ 0,00',
-        trialExpiraEm: (b.trialEndsAt && typeof b.trialEndsAt.toDate === 'function')
-          ? b.trialEndsAt.toDate().toLocaleString('pt-BR')
-          : 'N/A',
+        descontoPendente:
+          b.stats && b.stats.pendingDiscountCents
+            ? `R$ ${(b.stats.pendingDiscountCents / 100).toFixed(2)}`
+            : 'R$ 0,00',
+        trialExpiraEm:
+          b.trialEndsAt && typeof b.trialEndsAt.toDate === 'function'
+            ? b.trialEndsAt.toDate().toLocaleString('pt-BR')
+            : 'N/A',
         idAsaas: b.customerId || 'Sem cliente',
         emailVerified: !!userRecord.emailVerified,
       };
@@ -87,26 +91,47 @@ module.exports = async (req, res) => {
       if (!isFinite(reais)) return res.status(400).json({ error: 'invalid_value' });
       const cents = Math.round(reais * 100);
       const beforeSnap = await docRef.get();
-      const beforeCents = (beforeSnap.data() && beforeSnap.data().stats && beforeSnap.data().stats.pendingDiscountCents) || 0;
+      const beforeCents =
+        (beforeSnap.data() &&
+          beforeSnap.data().stats &&
+          beforeSnap.data().stats.pendingDiscountCents) ||
+        0;
       await docRef.set({ stats: { pendingDiscountCents: cents } }, { merge: true });
       await writeAudit({
-        action, email, uid, actor,
+        action,
+        email,
+        uid,
+        actor,
         before: { pendingDiscountCents: beforeCents },
         after: { pendingDiscountCents: cents },
       });
-      return res.json({ success: true, message: `Desconto atualizado para R$ ${reais.toFixed(2)}` });
+      return res.json({
+        success: true,
+        message: `Desconto atualizado para R$ ${reais.toFixed(2)}`,
+      });
     }
 
     if (action === 'make_pro') {
       const beforeSnap = await docRef.get();
       const before = beforeSnap.data() || null;
-      await docRef.set({
-        subscriptionStatus: 'ACTIVE',
-        lastPaymentStatus: 'CONFIRMED',
-      }, { merge: true });
+      await docRef.set(
+        {
+          subscriptionStatus: 'ACTIVE',
+          lastPaymentStatus: 'CONFIRMED',
+        },
+        { merge: true }
+      );
       await writeAudit({
-        action, email, uid, actor,
-        before: before ? { subscriptionStatus: before.subscriptionStatus, lastPaymentStatus: before.lastPaymentStatus } : null,
+        action,
+        email,
+        uid,
+        actor,
+        before: before
+          ? {
+              subscriptionStatus: before.subscriptionStatus,
+              lastPaymentStatus: before.lastPaymentStatus,
+            }
+          : null,
         after: { subscriptionStatus: 'ACTIVE', lastPaymentStatus: 'CONFIRMED' },
       });
       return res.json({ success: true, message: 'Utilizador promovido a PRO (acesso liberado).' });
@@ -118,7 +143,10 @@ module.exports = async (req, res) => {
       const beforeTrial = beforeSnap.data() && beforeSnap.data().trialEndsAt;
       await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
       await writeAudit({
-        action, email, uid, actor,
+        action,
+        email,
+        uid,
+        actor,
         before: { trialEndsAt: beforeTrial ? beforeTrial.toDate().toISOString() : null },
         after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
       });
@@ -129,15 +157,22 @@ module.exports = async (req, res) => {
       const beforeSnap = await docRef.get();
       const beforeData = beforeSnap.data() || {};
       const beforeTrial = beforeData.trialEndsAt;
-      const beforeMs = beforeTrial && typeof beforeTrial.toMillis === 'function' ? beforeTrial.toMillis() : null;
+      const beforeMs =
+        beforeTrial && typeof beforeTrial.toMillis === 'function' ? beforeTrial.toMillis() : null;
       // Idempotente: se trial já expirou (ou não existe), nada a fazer.
       if (!beforeMs || beforeMs <= Date.now()) {
-        return res.json({ success: true, message: 'Trial já estava expirado/inexistente — nada a alterar.' });
+        return res.json({
+          success: true,
+          message: 'Trial já estava expirado/inexistente — nada a alterar.',
+        });
       }
       const newTrialEndsAt = timestamp().now();
       await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
       await writeAudit({
-        action, email, uid, actor,
+        action,
+        email,
+        uid,
+        actor,
         before: { trialEndsAt: new Date(beforeMs).toISOString() },
         after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
       });
@@ -151,10 +186,13 @@ module.exports = async (req, res) => {
       const beforeTrial = beforeSnap.data() && beforeSnap.data().trialEndsAt;
       await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
       await writeAudit({
-        action, email, uid, actor,
+        action,
+        email,
+        uid,
+        actor,
         before: { trialEndsAt: beforeTrial ? beforeTrial.toDate().toISOString() : null },
         after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
-        extra: `Gifted ${days} days`
+        extra: `Gifted ${days} days`,
       });
       return res.json({ success: true, message: `Trial estendido por ${days} dias.` });
     }
@@ -171,7 +209,7 @@ module.exports = async (req, res) => {
       const userRef = db().collection('users').doc(uid);
       const snap = await userRef.collection('payments').get();
       const payments = [];
-      snap.forEach(d => {
+      snap.forEach((d) => {
         const p = d.data();
         payments.push({
           id: d.id,
@@ -181,7 +219,10 @@ module.exports = async (req, res) => {
           dueDate: p.dueDate || '',
           paymentDate: p.paymentDate || '',
           event: p.event || '',
-          receivedAtMs: p.receivedAt && typeof p.receivedAt.toMillis === 'function' ? p.receivedAt.toMillis() : 0
+          receivedAtMs:
+            p.receivedAt && typeof p.receivedAt.toMillis === 'function'
+              ? p.receivedAt.toMillis()
+              : 0,
         });
       });
       payments.sort((a, b) => b.receivedAtMs - a.receivedAtMs);
@@ -195,7 +236,7 @@ module.exports = async (req, res) => {
       const userRef = db().collection('users').doc(uid);
       const paySnap = await userRef.collection('payments').get();
       const payments = [];
-      paySnap.forEach(d => {
+      paySnap.forEach((d) => {
         const p = d.data();
         payments.push({
           id: d.id,
@@ -205,19 +246,24 @@ module.exports = async (req, res) => {
           dueDate: p.dueDate || '',
           paymentDate: p.paymentDate || '',
           event: p.event || '',
-          receivedAtMs: p.receivedAt && typeof p.receivedAt.toMillis === 'function' ? p.receivedAt.toMillis() : 0
+          receivedAtMs:
+            p.receivedAt && typeof p.receivedAt.toMillis === 'function'
+              ? p.receivedAt.toMillis()
+              : 0,
         });
       });
       payments.sort((a, b) => b.receivedAtMs - a.receivedAtMs);
       const resumo = {
         statusAsaas: b.subscriptionStatus || 'NÃO ASSINANTE',
         ultimoPagamento: b.lastPaymentStatus || 'N/A',
-        descontoPendente: (b.stats && b.stats.pendingDiscountCents)
-          ? `R$ ${(b.stats.pendingDiscountCents / 100).toFixed(2)}`
-          : 'R$ 0,00',
-        trialExpiraEm: (b.trialEndsAt && typeof b.trialEndsAt.toDate === 'function')
-          ? b.trialEndsAt.toDate().toLocaleString('pt-BR')
-          : 'N/A',
+        descontoPendente:
+          b.stats && b.stats.pendingDiscountCents
+            ? `R$ ${(b.stats.pendingDiscountCents / 100).toFixed(2)}`
+            : 'R$ 0,00',
+        trialExpiraEm:
+          b.trialEndsAt && typeof b.trialEndsAt.toDate === 'function'
+            ? b.trialEndsAt.toDate().toLocaleString('pt-BR')
+            : 'N/A',
         idAsaas: b.customerId || 'Sem cliente',
         emailVerified: !!userRecord.emailVerified,
       };
@@ -226,7 +272,9 @@ module.exports = async (req, res) => {
         disabled: !!userRecord.disabled,
         creationTime: userRecord.metadata && userRecord.metadata.creationTime,
         lastSignInTime: userRecord.metadata && userRecord.metadata.lastSignInTime,
-        providerIds: userRecord.providerData ? userRecord.providerData.map(p => p.providerId) : []
+        providerIds: userRecord.providerData
+          ? userRecord.providerData.map((p) => p.providerId)
+          : [],
       };
       return res.json({ uid, authInfo, resumo, payments, raw_billing: b });
     }
@@ -246,7 +294,10 @@ module.exports = async (req, res) => {
     if (action === 'disable_user') {
       await auth().updateUser(uid, { disabled: true });
       await writeAudit({ action, email, uid, actor, after: { disabled: true } });
-      return res.json({ success: true, message: 'Conta suspensa (utilizador não consegue autenticar-se).' });
+      return res.json({
+        success: true,
+        message: 'Conta suspensa (utilizador não consegue autenticar-se).',
+      });
     }
 
     if (action === 'enable_user') {

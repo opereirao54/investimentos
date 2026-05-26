@@ -9,5 +9,5 @@ window.__APPLIQUEI_FIREBASE_CONFIG__ = {
   projectId: '',
   storageBucket: '',
   messagingSenderId: '',
-  appId: ''
+  appId: '',
 };

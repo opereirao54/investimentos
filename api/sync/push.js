@@ -29,7 +29,11 @@ function isSyncKey(k) {
 async function readJsonBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   if (typeof req.body === 'string') {
-    try { return JSON.parse(req.body); } catch (_) { return null; }
+    try {
+      return JSON.parse(req.body);
+    } catch (_) {
+      return null;
+    }
   }
   // Fallback: lê stream manualmente (sendBeacon com Blob pode chegar como buffer).
   return await new Promise(function (resolve) {
@@ -37,16 +41,24 @@ async function readJsonBody(req) {
     var total = 0;
     req.on('data', function (c) {
       total += c.length;
-      if (total > 5 * 1024 * 1024) { req.destroy(); resolve(null); return; }
+      if (total > 5 * 1024 * 1024) {
+        req.destroy();
+        resolve(null);
+        return;
+      }
       chunks.push(c);
     });
     req.on('end', function () {
       try {
         var s = Buffer.concat(chunks).toString('utf8');
         resolve(JSON.parse(s));
-      } catch (_) { resolve(null); }
+      } catch (_) {
+        resolve(null);
+      }
     });
-    req.on('error', function () { resolve(null); });
+    req.on('error', function () {
+      resolve(null);
+    });
   });
 }
 
@@ -101,7 +113,7 @@ module.exports = async (req, res) => {
 
     const result = await D.runTransaction(async (tx) => {
       const snap = await tx.get(dataRef);
-      const curRevs = snap.exists ? (snap.data().keyRevs || {}) : {};
+      const curRevs = snap.exists ? snap.data().keyRevs || {} : {};
       const exists = snap.exists;
 
       // Constrói update incremental respeitando LWW por-rev.

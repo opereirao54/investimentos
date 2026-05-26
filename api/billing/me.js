@@ -41,8 +41,11 @@ function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
   if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return [];
 
   const pendingByDate = (payments || [])
-    .filter(p => p.status === 'PENDING' || p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS')
-    .map(p => ({
+    .filter(
+      (p) =>
+        p.status === 'PENDING' || p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS'
+    )
+    .map((p) => ({
       date: p.dueDate || null,
       amountCents: Math.round((p.value || 0) * 100),
       status: p.status,
@@ -50,15 +53,18 @@ function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
       paymentId: p.id,
       invoiceUrl: p.invoiceUrl || null,
     }))
-    .filter(p => p.date);
+    .filter((p) => p.date);
 
-  const seen = new Set(pendingByDate.map(p => p.date));
+  const seen = new Set(pendingByDate.map((p) => p.date));
   const list = pendingByDate.slice();
 
   const baseDate = billing.nextDueDate || (pendingByDate[0] && pendingByDate[0].date) || null;
   if (baseDate) {
     for (let i = 0; i < 3; i++) {
-      const d = i === 0 && !seen.has(baseDate) ? baseDate : addMonthsYmd(baseDate, i + (seen.has(baseDate) ? 1 : 0));
+      const d =
+        i === 0 && !seen.has(baseDate)
+          ? baseDate
+          : addMonthsYmd(baseDate, i + (seen.has(baseDate) ? 1 : 0));
       if (!d || seen.has(d)) continue;
       seen.add(d);
       list.push({
@@ -101,21 +107,32 @@ module.exports = async (req, res) => {
       D.collectionGroup('billing')
         .where('referredByUserId', '==', user.uid)
         .get()
-        .catch(e => { console.warn('[me] referrals query failed', e.code || '', e.message); return null; }),
-      billingRef.collection('credits')
+        .catch((e) => {
+          console.warn('[me] referrals query failed', e.code || '', e.message);
+          return null;
+        }),
+      billingRef
+        .collection('credits')
         .orderBy('createdAt', 'desc')
         .limit(50)
         .get()
-        .catch(e => { console.warn('[me] credits query failed', e.code || '', e.message); return null; }),
-      userRef.collection('payments')
+        .catch((e) => {
+          console.warn('[me] credits query failed', e.code || '', e.message);
+          return null;
+        }),
+      userRef
+        .collection('payments')
         .orderBy('receivedAt', 'desc')
         .limit(50)
         .get()
-        .catch(e => { console.warn('[me] payments query failed', e.code || '', e.message); return null; }),
+        .catch((e) => {
+          console.warn('[me] payments query failed', e.code || '', e.message);
+          return null;
+        }),
     ]);
 
     if (refRes) {
-      referrals = refRes.docs.map(d => {
+      referrals = refRes.docs.map((d) => {
         const b = d.data();
         return {
           uid: b.uid,
@@ -128,11 +145,11 @@ module.exports = async (req, res) => {
         };
       });
     }
-    const activeReferrals = referrals.filter(r => r.subscriptionStatus === 'ACTIVE').length;
+    const activeReferrals = referrals.filter((r) => r.subscriptionStatus === 'ACTIVE').length;
     const totalReferrals = referrals.length;
 
     if (credRes) {
-      credits = credRes.docs.map(d => {
+      credits = credRes.docs.map((d) => {
         const c = d.data();
         return {
           id: d.id,
@@ -157,7 +174,7 @@ module.exports = async (req, res) => {
     }
 
     if (payRes) {
-      const all = payRes.docs.map(d => {
+      const all = payRes.docs.map((d) => {
         const p = d.data();
         return {
           id: p.id || d.id,
@@ -183,10 +200,10 @@ module.exports = async (req, res) => {
       // é uma cobrança real em atraso e deve permanecer visível.
       const FUTURE_OPEN = new Set(['PENDING', 'AWAITING_RISK_ANALYSIS', 'AUTHORIZED']);
       const futurePending = all
-        .filter(p => FUTURE_OPEN.has(p.status))
+        .filter((p) => FUTURE_OPEN.has(p.status))
         .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
       const nearestPending = futurePending[0] || null;
-      const visible = all.filter(p => !FUTURE_OPEN.has(p.status));
+      const visible = all.filter((p) => !FUTURE_OPEN.has(p.status));
       if (nearestPending) visible.push(nearestPending);
       visible.sort((a, b) => {
         const ad = a.paymentDate || a.dueDate || '';
@@ -197,7 +214,10 @@ module.exports = async (req, res) => {
     }
 
     const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
-    const projectedNextCents = Math.max(100, monthlyCents - Math.min(pendingDiscountCents, monthlyCents - 100));
+    const projectedNextCents = Math.max(
+      100,
+      monthlyCents - Math.min(pendingDiscountCents, monthlyCents - 100)
+    );
 
     const upcoming = buildUpcoming(billing, payments, projectedNextCents, monthlyCents);
 

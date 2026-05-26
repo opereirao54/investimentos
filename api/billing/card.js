@@ -6,10 +6,16 @@ function readBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let raw = '';
-    req.on('data', c => { raw += c; });
+    req.on('data', (c) => {
+      raw += c;
+    });
     req.on('end', () => {
       if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch (_) { resolve({}); }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (_) {
+        resolve({});
+      }
     });
     req.on('error', () => resolve({}));
   });
@@ -41,7 +47,14 @@ module.exports = async (req, res) => {
   const body = await readBody(req);
   const creditCard = body.creditCard;
   const creditCardHolderInfo = body.creditCardHolderInfo;
-  if (!creditCard || !creditCard.number || !creditCard.holderName || !creditCard.expiryMonth || !creditCard.expiryYear || !creditCard.ccv) {
+  if (
+    !creditCard ||
+    !creditCard.number ||
+    !creditCard.holderName ||
+    !creditCard.expiryMonth ||
+    !creditCard.expiryYear ||
+    !creditCard.ccv
+  ) {
     return res.status(400).json({ error: 'invalid_card' });
   }
   if (!creditCardHolderInfo || !creditCardHolderInfo.cpfCnpj) {
@@ -63,7 +76,9 @@ module.exports = async (req, res) => {
     });
 
     const cc = (updated && updated.creditCard) || {};
-    const last4 = (cc.creditCardNumber || '').replace(/\D+/g, '').slice(-4) || String(creditCard.number).replace(/\D+/g, '').slice(-4);
+    const last4 =
+      (cc.creditCardNumber || '').replace(/\D+/g, '').slice(-4) ||
+      String(creditCard.number).replace(/\D+/g, '').slice(-4);
 
     const billingUpdate = {
       paymentMethod: 'CREDIT_CARD',

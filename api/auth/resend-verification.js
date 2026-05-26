@@ -39,14 +39,17 @@ module.exports = async (req, res) => {
   });
   if (!uidCheck.allowed) {
     res.setHeader('Retry-After', Math.ceil(uidCheck.retryAfterMs / 1000));
-    return res.status(429).json({ error: 'too_many_requests', retryAfterMs: uidCheck.retryAfterMs });
+    return res
+      .status(429)
+      .json({ error: 'too_many_requests', retryAfterMs: uidCheck.retryAfterMs });
   }
 
   if (!user.email) return res.status(400).json({ error: 'email_missing' });
   if (user.email_verified === true) return res.json({ ok: true, alreadyVerified: true });
 
   try {
-    const continueUrl = (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/app';
+    const continueUrl =
+      (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/app';
     const link = await auth().generateEmailVerificationLink(user.email, {
       url: continueUrl || undefined,
     });

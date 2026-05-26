@@ -19,7 +19,10 @@ async function releaseAppliedCredits(billingRef, paymentId) {
   if (!billingRef || !paymentId) return 0;
   let snap;
   try {
-    snap = await billingRef.collection('credits').where('appliedToPaymentId', '==', paymentId).get();
+    snap = await billingRef
+      .collection('credits')
+      .where('appliedToPaymentId', '==', paymentId)
+      .get();
   } catch (e) {
     console.warn('[credits] release lookup failed', e && e.message);
     return 0;
@@ -40,16 +43,24 @@ async function releaseAppliedCredits(billingRef, paymentId) {
 
   const batch = db().batch();
   toRelease.forEach((ref) => {
-    batch.set(ref, {
-      appliedAt: null,
-      appliedToPaymentId: null,
-      appliedAmountCents: fieldValue().delete(),
-    }, { merge: true });
+    batch.set(
+      ref,
+      {
+        appliedAt: null,
+        appliedToPaymentId: null,
+        appliedAmountCents: fieldValue().delete(),
+      },
+      { merge: true }
+    );
   });
-  batch.set(billingRef, {
-    stats: { pendingDiscountCents: fieldValue().increment(restored) },
-    updatedAt: fieldValue().serverTimestamp(),
-  }, { merge: true });
+  batch.set(
+    billingRef,
+    {
+      stats: { pendingDiscountCents: fieldValue().increment(restored) },
+      updatedAt: fieldValue().serverTimestamp(),
+    },
+    { merge: true }
+  );
   await batch.commit();
   return restored;
 }
@@ -65,7 +76,7 @@ async function releaseAppliedCredits(billingRef, paymentId) {
 async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
   if (!userRef || !subscriptionId) return;
   const remoteById = new Map();
-  for (const p of (remoteList || [])) {
+  for (const p of remoteList || []) {
     if (p && p.id) remoteById.set(p.id, p);
   }
   let snap;
@@ -84,36 +95,48 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
     if (!remote) {
       // Pagamento desapareceu do Asaas — foi apagado.
       writes.push(
-        userRef.collection('payments').doc(d.id).set({
-          status: 'DELETED',
-          event: 'SYNC_DELETED',
-          receivedAt: fieldValue().serverTimestamp(),
-        }, { merge: true })
+        userRef.collection('payments').doc(d.id).set(
+          {
+            status: 'DELETED',
+            event: 'SYNC_DELETED',
+            receivedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        )
       );
       deletedPaymentIds.push(local.id || d.id);
       return;
     }
     if (remote.status && remote.status !== local.status) {
       writes.push(
-        userRef.collection('payments').doc(d.id).set({
-          status: remote.status,
-          value: remote.value || null,
-          netValue: remote.netValue || null,
-          billingType: remote.billingType || null,
-          dueDate: remote.dueDate || null,
-          paymentDate: remote.paymentDate || null,
-          invoiceUrl: remote.invoiceUrl || null,
-          bankSlipUrl: remote.bankSlipUrl || null,
-          transactionReceiptUrl: remote.transactionReceiptUrl || null,
-          event: 'SYNC_' + remote.status,
-          receivedAt: fieldValue().serverTimestamp(),
-        }, { merge: true })
+        userRef
+          .collection('payments')
+          .doc(d.id)
+          .set(
+            {
+              status: remote.status,
+              value: remote.value || null,
+              netValue: remote.netValue || null,
+              billingType: remote.billingType || null,
+              dueDate: remote.dueDate || null,
+              paymentDate: remote.paymentDate || null,
+              invoiceUrl: remote.invoiceUrl || null,
+              bankSlipUrl: remote.bankSlipUrl || null,
+              transactionReceiptUrl: remote.transactionReceiptUrl || null,
+              event: 'SYNC_' + remote.status,
+              receivedAt: fieldValue().serverTimestamp(),
+            },
+            { merge: true }
+          )
       );
     }
   });
   if (writes.length) {
-    try { await Promise.all(writes); }
-    catch (e) { console.warn('[billing-sync] reconcile payments write failed', e && e.message); }
+    try {
+      await Promise.all(writes);
+    } catch (e) {
+      console.warn('[billing-sync] reconcile payments write failed', e && e.message);
+    }
   }
   // Devolve qualquer crédito que tinha sido aplicado a faturas apagadas
   // no Asaas sem webhook PAYMENT_DELETED ter chegado. Sequencial para
@@ -121,8 +144,11 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
   if (deletedPaymentIds.length) {
     const billingRef = userRef.collection('billing').doc('account');
     for (const pid of deletedPaymentIds) {
-      try { await releaseAppliedCredits(billingRef, pid); }
-      catch (e) { console.warn('[billing-sync] release credits failed', e && e.message); }
+      try {
+        await releaseAppliedCredits(billingRef, pid);
+      } catch (e) {
+        console.warn('[billing-sync] release credits failed', e && e.message);
+      }
     }
   }
 }
@@ -142,10 +168,13 @@ async function syncBillingFromAsaas(billingRef, billing) {
   // subscription (não os pagamentos) para apanhar cancelamento server-side
   // que perdemos via webhook. Limitado a 1x por hora para não inundar Asaas.
   if (billing.lastPaidAt) {
-    const lastSync = billing.lastSubscriptionSyncAt && typeof billing.lastSubscriptionSyncAt.toMillis === 'function'
-      ? billing.lastSubscriptionSyncAt.toMillis() : 0;
+    const lastSync =
+      billing.lastSubscriptionSyncAt &&
+      typeof billing.lastSubscriptionSyncAt.toMillis === 'function'
+        ? billing.lastSubscriptionSyncAt.toMillis()
+        : 0;
     const SYNC_INTERVAL_MS = 60 * 60 * 1000;
-    if ((Date.now() - lastSync) < SYNC_INTERVAL_MS) {
+    if (Date.now() - lastSync < SYNC_INTERVAL_MS) {
       return { billing, updated: false };
     }
     try {
@@ -153,8 +182,11 @@ async function syncBillingFromAsaas(billingRef, billing) {
       const remoteStatus = sub && sub.status;
       const update = { lastSubscriptionSyncAt: fieldValue().serverTimestamp() };
       // Asaas marcou como INACTIVE/EXPIRED mas o nosso ainda diz ACTIVE.
-      if (remoteStatus && remoteStatus !== billing.subscriptionStatus
-          && (remoteStatus === 'INACTIVE' || remoteStatus === 'EXPIRED')) {
+      if (
+        remoteStatus &&
+        remoteStatus !== billing.subscriptionStatus &&
+        (remoteStatus === 'INACTIVE' || remoteStatus === 'EXPIRED')
+      ) {
         update.subscriptionStatus = 'INACTIVE';
         update.cancelledAt = fieldValue().serverTimestamp();
         update.lastEvent = 'SUBSCRIPTION_SYNC_INACTIVATED';
@@ -211,10 +243,16 @@ async function syncBillingFromAsaas(billingRef, billing) {
     return { billing, updated: false };
   }
   const list = (payments && payments.data) || [];
-  const paid = list.find(p => PAID_STATUSES.has(p.status));
+  const paid = list.find((p) => PAID_STATUSES.has(p.status));
   if (!paid) return { billing, updated: false };
 
-  console.log('[billing-sync] applying paid payment', paid.id, paid.status, 'sub=', billing.subscriptionId);
+  console.log(
+    '[billing-sync] applying paid payment',
+    paid.id,
+    paid.status,
+    'sub=',
+    billing.subscriptionId
+  );
 
   const update = {
     subscriptionStatus: 'ACTIVE',
@@ -229,21 +267,27 @@ async function syncBillingFromAsaas(billingRef, billing) {
   const userRef = billingRef.parent.parent;
   if (userRef) {
     try {
-      await userRef.collection('payments').doc(paid.id).set({
-        id: paid.id,
-        status: paid.status,
-        value: paid.value || null,
-        netValue: paid.netValue || null,
-        billingType: paid.billingType || null,
-        dueDate: paid.dueDate || null,
-        paymentDate: paid.paymentDate || null,
-        invoiceUrl: paid.invoiceUrl || null,
-        bankSlipUrl: paid.bankSlipUrl || null,
-        transactionReceiptUrl: paid.transactionReceiptUrl || null,
-        subscriptionId: paid.subscription || billing.subscriptionId,
-        event: 'SYNC_' + paid.status,
-        receivedAt: fieldValue().serverTimestamp(),
-      }, { merge: true });
+      await userRef
+        .collection('payments')
+        .doc(paid.id)
+        .set(
+          {
+            id: paid.id,
+            status: paid.status,
+            value: paid.value || null,
+            netValue: paid.netValue || null,
+            billingType: paid.billingType || null,
+            dueDate: paid.dueDate || null,
+            paymentDate: paid.paymentDate || null,
+            invoiceUrl: paid.invoiceUrl || null,
+            bankSlipUrl: paid.bankSlipUrl || null,
+            transactionReceiptUrl: paid.transactionReceiptUrl || null,
+            subscriptionId: paid.subscription || billing.subscriptionId,
+            event: 'SYNC_' + paid.status,
+            receivedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        );
     } catch (e) {
       console.warn('[billing-sync] payments write failed', e.message || e);
     }

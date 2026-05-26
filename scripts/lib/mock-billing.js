@@ -9,9 +9,17 @@
 // ---------- Sentinels & helpers ----------
 const SERVER_TS = Symbol('SERVER_TS');
 const DELETE = Symbol('DELETE');
-function increment(n) { return { __increment: n }; }
-function isIncrement(v) { return v && typeof v === 'object' && '__increment' in v; }
-function isTimestamp(v) { return v && typeof v === 'object' && typeof v.toMillis === 'function' && typeof v.toDate === 'function'; }
+function increment(n) {
+  return { __increment: n };
+}
+function isIncrement(v) {
+  return v && typeof v === 'object' && '__increment' in v;
+}
+function isTimestamp(v) {
+  return (
+    v && typeof v === 'object' && typeof v.toMillis === 'function' && typeof v.toDate === 'function'
+  );
+}
 
 function makeTimestamp(ms) {
   return {
@@ -46,7 +54,7 @@ function resolveValue(value, existing) {
     return cur + value.__increment;
   }
   if (isTimestamp(value)) return value;
-  if (Array.isArray(value)) return value.map(v => resolveValue(v, undefined));
+  if (Array.isArray(value)) return value.map((v) => resolveValue(v, undefined));
   if (value && typeof value === 'object') {
     const out = {};
     for (const k of Object.keys(value)) {
@@ -62,14 +70,23 @@ function mergeData(existing, incoming) {
   const out = existing ? { ...existing } : {};
   for (const k of Object.keys(incoming)) {
     const inc = incoming[k];
-    if (inc === DELETE) { delete out[k]; continue; }
+    if (inc === DELETE) {
+      delete out[k];
+      continue;
+    }
     if (isIncrement(inc)) {
       const cur = typeof out[k] === 'number' ? out[k] : 0;
       out[k] = cur + inc.__increment;
       continue;
     }
-    if (inc === SERVER_TS) { out[k] = makeTimestamp(store.now); continue; }
-    if (isTimestamp(inc)) { out[k] = inc; continue; }
+    if (inc === SERVER_TS) {
+      out[k] = makeTimestamp(store.now);
+      continue;
+    }
+    if (isTimestamp(inc)) {
+      out[k] = inc;
+      continue;
+    }
     if (inc && typeof inc === 'object' && !Array.isArray(inc)) {
       out[k] = mergeData(out[k] || {}, inc);
     } else {
@@ -80,43 +97,96 @@ function mergeData(existing, incoming) {
 }
 
 class DocRef {
-  constructor(path) { this.path = path; this.id = path.split('/').pop(); }
-  get parent() { return new CollRef(this.path.substring(0, this.path.lastIndexOf('/'))); }
-  collection(name) { return new CollRef(this.path + '/' + name); }
+  constructor(path) {
+    this.path = path;
+    this.id = path.split('/').pop();
+  }
+  get parent() {
+    return new CollRef(this.path.substring(0, this.path.lastIndexOf('/')));
+  }
+  collection(name) {
+    return new CollRef(this.path + '/' + name);
+  }
   async get() {
     const data = store.docs.get(this.path);
-    return { exists: data !== undefined, id: this.id, ref: this, data: () => data ? deepClone(data) : undefined };
+    return {
+      exists: data !== undefined,
+      id: this.id,
+      ref: this,
+      data: () => (data ? deepClone(data) : undefined),
+    };
   }
   async set(data, options) {
     const existing = store.docs.get(this.path);
-    const next = (options && options.merge && existing) ? mergeData(existing, data) : resolveValue(data, existing || {});
+    const next =
+      options && options.merge && existing
+        ? mergeData(existing, data)
+        : resolveValue(data, existing || {});
     store.docs.set(this.path, next);
   }
-  async update(data) { return this.set(data, { merge: true }); }
-  async delete() { store.docs.delete(this.path); }
+  async update(data) {
+    return this.set(data, { merge: true });
+  }
+  async delete() {
+    store.docs.delete(this.path);
+  }
 }
 
 class CollRef {
-  constructor(path) { this.path = path; this.id = path.split('/').pop(); }
+  constructor(path) {
+    this.path = path;
+    this.id = path.split('/').pop();
+  }
   get parent() {
     if (!this.path.includes('/')) return null;
     return new DocRef(this.path.substring(0, this.path.lastIndexOf('/')));
   }
-  doc(id) { return new DocRef(this.path + '/' + (id || 'auto_' + Math.random().toString(36).slice(2, 10))); }
-  where(field, op, value) { return new Query(this.path, false, [{ field, op, value }]); }
-  orderBy(field, dir) { return new Query(this.path, false, [], { field, dir: dir || 'asc' }); }
-  limit(n) { return new Query(this.path, false, [], null, n); }
-  async get() { return new Query(this.path, false).get(); }
+  doc(id) {
+    return new DocRef(this.path + '/' + (id || 'auto_' + Math.random().toString(36).slice(2, 10)));
+  }
+  where(field, op, value) {
+    return new Query(this.path, false, [{ field, op, value }]);
+  }
+  orderBy(field, dir) {
+    return new Query(this.path, false, [], { field, dir: dir || 'asc' });
+  }
+  limit(n) {
+    return new Query(this.path, false, [], null, n);
+  }
+  async get() {
+    return new Query(this.path, false).get();
+  }
 }
 
 class Query {
   constructor(basePath, isGroup, filters, order, limitN) {
-    this.basePath = basePath; this.isGroup = !!isGroup;
-    this.filters = filters || []; this.order = order || null; this.limitN = limitN || null;
+    this.basePath = basePath;
+    this.isGroup = !!isGroup;
+    this.filters = filters || [];
+    this.order = order || null;
+    this.limitN = limitN || null;
   }
-  where(f, op, v) { return new Query(this.basePath, this.isGroup, [...this.filters, { field: f, op, value: v }], this.order, this.limitN); }
-  orderBy(f, d) { return new Query(this.basePath, this.isGroup, this.filters, { field: f, dir: d || 'asc' }, this.limitN); }
-  limit(n) { return new Query(this.basePath, this.isGroup, this.filters, this.order, n); }
+  where(f, op, v) {
+    return new Query(
+      this.basePath,
+      this.isGroup,
+      [...this.filters, { field: f, op, value: v }],
+      this.order,
+      this.limitN
+    );
+  }
+  orderBy(f, d) {
+    return new Query(
+      this.basePath,
+      this.isGroup,
+      this.filters,
+      { field: f, dir: d || 'asc' },
+      this.limitN
+    );
+  }
+  limit(n) {
+    return new Query(this.basePath, this.isGroup, this.filters, this.order, n);
+  }
   async get() {
     let out = [];
     for (const [p, data] of store.docs) {
@@ -132,8 +202,14 @@ class Query {
       let ok = true;
       for (const f of this.filters) {
         const val = data[f.field];
-        if (f.op === '==' && val !== f.value) { ok = false; break; }
-        if (f.op === '!=' && val === f.value) { ok = false; break; }
+        if (f.op === '==' && val !== f.value) {
+          ok = false;
+          break;
+        }
+        if (f.op === '!=' && val === f.value) {
+          ok = false;
+          break;
+        }
       }
       if (!ok) continue;
       const ref = new DocRef(p);
@@ -141,11 +217,12 @@ class Query {
     }
     if (this.order) {
       out.sort((a, b) => {
-        let av = a.data()[this.order.field]; let bv = b.data()[this.order.field];
+        let av = a.data()[this.order.field];
+        let bv = b.data()[this.order.field];
         if (isTimestamp(av)) av = av.toMillis();
         if (isTimestamp(bv)) bv = bv.toMillis();
         if (av === bv) return 0;
-        return this.order.dir === 'desc' ? (av < bv ? 1 : -1) : (av < bv ? -1 : 1);
+        return this.order.dir === 'desc' ? (av < bv ? 1 : -1) : av < bv ? -1 : 1;
       });
     }
     if (this.limitN) out = out.slice(0, this.limitN);
@@ -154,9 +231,16 @@ class Query {
 }
 
 class Batch {
-  constructor() { this.ops = []; }
-  set(ref, data, options) { this.ops.push({ ref, data, options }); return this; }
-  async commit() { for (const o of this.ops) await o.ref.set(o.data, o.options); }
+  constructor() {
+    this.ops = [];
+  }
+  set(ref, data, options) {
+    this.ops.push({ ref, data, options });
+    return this;
+  }
+  async commit() {
+    for (const o of this.ops) await o.ref.set(o.data, o.options);
+  }
 }
 
 const firestore = {
@@ -196,9 +280,11 @@ const asaasState = { customers: new Map(), subscriptions: new Map(), payments: n
 
 const mockAsaas = {
   PLAN_VALUE: 15.0,
-  call: async () => { throw new Error('asaas.call not implemented in mock'); },
+  call: async () => {
+    throw new Error('asaas.call not implemented in mock');
+  },
   createCustomer: async ({ name, email, uid }) => {
-    const id = 'cus_' + (asaasState.seq++);
+    const id = 'cus_' + asaasState.seq++;
     asaasState.customers.set(id, { id, name, email, externalReference: uid });
     return { id, name, email };
   },
@@ -208,20 +294,51 @@ const mockAsaas = {
     return asaasState.customers.get(id);
   },
   createSubscription: async ({ customerId, value, nextDueDate, billingType, creditCard }) => {
-    const id = 'sub_' + (asaasState.seq++);
-    const sub = { id, customer: customerId, value, nextDueDate, status: 'ACTIVE', billingType: billingType || 'UNDEFINED' };
-    if (creditCard) sub.creditCard = { creditCardNumber: '************' + String(creditCard.number).slice(-4), creditCardBrand: 'VISA', creditCardToken: 'tok_' + (asaasState.seq++) };
+    const id = 'sub_' + asaasState.seq++;
+    const sub = {
+      id,
+      customer: customerId,
+      value,
+      nextDueDate,
+      status: 'ACTIVE',
+      billingType: billingType || 'UNDEFINED',
+    };
+    if (creditCard)
+      sub.creditCard = {
+        creditCardNumber: '************' + String(creditCard.number).slice(-4),
+        creditCardBrand: 'VISA',
+        creditCardToken: 'tok_' + asaasState.seq++,
+      };
     asaasState.subscriptions.set(id, sub);
-    const pid = 'pay_' + (asaasState.seq++);
-    asaasState.payments.set(pid, { id: pid, subscription: id, customer: customerId, value, status: 'PENDING', dueDate: nextDueDate, billingType: sub.billingType, invoiceUrl: 'https://sandbox.asaas/' + pid });
+    const pid = 'pay_' + asaasState.seq++;
+    asaasState.payments.set(pid, {
+      id: pid,
+      subscription: id,
+      customer: customerId,
+      value,
+      status: 'PENDING',
+      dueDate: nextDueDate,
+      billingType: sub.billingType,
+      invoiceUrl: 'https://sandbox.asaas/' + pid,
+    });
     return sub;
   },
   updateSubscription: async () => ({}),
   updateSubscriptionCard: async () => ({}),
-  cancelSubscription: async (id) => { const s = asaasState.subscriptions.get(id); if (s) s.status = 'INACTIVE'; return { id, deleted: true }; },
+  cancelSubscription: async (id) => {
+    const s = asaasState.subscriptions.get(id);
+    if (s) s.status = 'INACTIVE';
+    return { id, deleted: true };
+  },
   getSubscription: async (id) => asaasState.subscriptions.get(id),
-  updatePayment: async (id, fields) => { const p = asaasState.payments.get(id); if (p) Object.assign(p, fields); return p; },
-  listPaymentsBySubscription: async (subId) => ({ data: Array.from(asaasState.payments.values()).filter(p => p.subscription === subId) }),
+  updatePayment: async (id, fields) => {
+    const p = asaasState.payments.get(id);
+    if (p) Object.assign(p, fields);
+    return p;
+  },
+  listPaymentsBySubscription: async (subId) => ({
+    data: Array.from(asaasState.payments.values()).filter((p) => p.subscription === subId),
+  }),
   getPaymentLink: async (id) => asaasState.payments.get(id),
 };
 
@@ -229,7 +346,9 @@ const mockAsaas = {
 function setup(opts = {}) {
   const path = require('path');
   const ROOT = opts.root || path.resolve(__dirname, '..', '..');
-  require.cache[require.resolve(path.join(ROOT, 'api/_lib/firebase-admin'))] = { exports: mockFirebaseAdmin };
+  require.cache[require.resolve(path.join(ROOT, 'api/_lib/firebase-admin'))] = {
+    exports: mockFirebaseAdmin,
+  };
   require.cache[require.resolve(path.join(ROOT, 'api/_lib/asaas'))] = { exports: mockAsaas };
   process.env.ASAAS_WEBHOOK_TOKEN = opts.webhookToken || 'test_webhook_token';
   return {
@@ -249,11 +368,23 @@ function makeReq({ method = 'POST', body, headers = {} }) {
 }
 function makeRes() {
   return {
-    statusCode: 200, headers: {}, body: null,
-    setHeader(k, v) { this.headers[k] = v; },
-    status(c) { this.statusCode = c; return this; },
-    json(d) { this.body = d; return this; },
-    end() { return this; },
+    statusCode: 200,
+    headers: {},
+    body: null,
+    setHeader(k, v) {
+      this.headers[k] = v;
+    },
+    status(c) {
+      this.statusCode = c;
+      return this;
+    },
+    json(d) {
+      this.body = d;
+      return this;
+    },
+    end() {
+      return this;
+    },
   };
 }
 async function call(handler, opts) {
@@ -264,7 +395,13 @@ async function call(handler, opts) {
 }
 
 module.exports = {
-  setup, call, makeReq, makeRes,
-  store, asaasState,
-  SERVER_TS, DELETE, makeTimestamp,
+  setup,
+  call,
+  makeReq,
+  makeRes,
+  store,
+  asaasState,
+  SERVER_TS,
+  DELETE,
+  makeTimestamp,
 };

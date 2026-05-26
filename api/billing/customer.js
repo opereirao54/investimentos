@@ -7,17 +7,27 @@ function readBody(req) {
   return new Promise((resolve) => {
     if (req.body && typeof req.body === 'object') return resolve(req.body);
     let raw = '';
-    req.on('data', c => { raw += c; });
+    req.on('data', (c) => {
+      raw += c;
+    });
     req.on('end', () => {
       if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch (_) { resolve({}); }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (_) {
+        resolve({});
+      }
     });
     req.on('error', () => resolve({}));
   });
 }
 
-function clean(s) { return typeof s === 'string' ? s.trim() : s; }
-function digits(s) { return String(s || '').replace(/\D+/g, ''); }
+function clean(s) {
+  return typeof s === 'string' ? s.trim() : s;
+}
+function digits(s) {
+  return String(s || '').replace(/\D+/g, '');
+}
 
 module.exports = async (req, res) => {
   if (cors(req, res)) return;
@@ -43,7 +53,9 @@ module.exports = async (req, res) => {
     return res.status(400).json({ error: 'cpfcnpj_invalid' });
   }
   if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
-    return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
+    return res
+      .status(400)
+      .json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
   }
   if (postalCode && postalCode.length !== 8) {
     return res.status(400).json({ error: 'postalcode_invalid' });
@@ -61,11 +73,12 @@ module.exports = async (req, res) => {
 
     // Anti-fraude: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids.
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
-      const dup = await db().collectionGroup('billing')
+      const dup = await db()
+        .collectionGroup('billing')
         .where('cpfCnpj', '==', cpfCnpj)
         .limit(5)
         .get();
-      const conflict = dup.docs.find(d => {
+      const conflict = dup.docs.find((d) => {
         const owner = d.ref.parent && d.ref.parent.parent;
         return owner && owner.id !== user.uid;
       });
