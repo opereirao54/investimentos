@@ -167,12 +167,27 @@
         // precisam de restore.
         snapshotDirty.forEach(function (k) { dirtyKeys[k] = true; });
         pendingLocalWrite = true;
-        if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) return;
+        // Antes: permission-denied/unauthenticated saíam em silêncio — o
+        // usuário via "Salvo às HH:MM" mas o doc nunca chegava no Firestore
+        // (regras bloqueavam). Agora avisamos explicitamente para que o
+        // usuário saiba que precisa reautenticar / renovar acesso.
         if (typeof window.mostrarToast === 'function') {
-          window.mostrarToast(
-            'Não foi possível guardar na nuvem. Verifique a sua ligação à internet.',
-            'erro'
-          );
+          if (err && err.code === 'permission-denied') {
+            window.mostrarToast(
+              'Sessão expirou ou acesso bloqueado: os dados ficaram salvos só neste dispositivo. Atualize a página e refaça o login.',
+              'erro'
+            );
+          } else if (err && err.code === 'unauthenticated') {
+            window.mostrarToast(
+              'Você precisa estar autenticado para sincronizar. Refaça o login e tente novamente.',
+              'erro'
+            );
+          } else {
+            window.mostrarToast(
+              'Não foi possível guardar na nuvem. Verifique a sua ligação à internet.',
+              'erro'
+            );
+          }
         }
       });
   }
