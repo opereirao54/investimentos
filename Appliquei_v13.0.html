@@ -33,6 +33,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script>window.__APPLIQUEI_FIREBASE_CONFIG__=window.__APPLIQUEI_FIREBASE_CONFIG__||{};</script>
+    <!-- Sentry DSN: deixe vazio em dev/sem observabilidade. Em produção,
+         o Vercel pode substituir via env var no template build (ou via
+         deploy hook). O módulo abaixo só carrega o SDK do Sentry quando
+         este global tem valor. -->
+    <script>window.__APPLIQUEI_SENTRY_DSN__='';</script>
+    <script type="module" src="/web/appliquei-sentry-init.js"></script>
     <!-- Configs Firebase como ES modules. example define defaults (empty),
          prod sobrescreve em document order. local.js (gitignored) foi
          removido — para dev override, edite prod.js localmente. -->

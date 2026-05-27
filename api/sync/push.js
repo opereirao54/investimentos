@@ -14,6 +14,8 @@
 // estritamente maior que o atual no servidor.
 
 const { db, auth: adminAuth, fieldValue } = require('../_lib/firebase-admin');
+const { handler } = require('../_lib/handler');
+const { syncPushBody } = require('../_lib/schemas');
 const { computeAccess } = require('../_lib/access');
 
 const MAX_KEYS_PER_PUSH = 200;
@@ -26,79 +28,26 @@ function isSyncKey(k) {
   return k.indexOf('futurorico_') === 0 || k.indexOf('appliquei_') === 0;
 }
 
-async function readJsonBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') {
+module.exports = handler({
+  method: 'POST',
+  // Token vem no body (sendBeacon não permite headers); verificação manual
+  // após Zod confirmar estrutura.
+  auth: 'none',
+  bodySchema: syncPushBody,
+  handle: async ({ res, body }) => {
+    const { idToken, keys, keyRevs } = body;
+
+    let decoded;
     try {
-      return JSON.parse(req.body);
-    } catch (_) {
-      return null;
+      decoded = await adminAuth().verifyIdToken(idToken);
+    } catch (_e) {
+      return res.status(401).json({ error: 'invalid_token' });
     }
-  }
-  // Fallback: lê stream manualmente (sendBeacon com Blob pode chegar como buffer).
-  return await new Promise(function (resolve) {
-    const chunks = [];
-    let total = 0;
-    req.on('data', function (c) {
-      total += c.length;
-      if (total > 5 * 1024 * 1024) {
-        req.destroy();
-        resolve(null);
-        return;
-      }
-      chunks.push(c);
-    });
-    req.on('end', function () {
-      try {
-        const s = Buffer.concat(chunks).toString('utf8');
-        resolve(JSON.parse(s));
-      } catch (_) {
-        resolve(null);
-      }
-    });
-    req.on('error', function () {
-      resolve(null);
-    });
-  });
-}
+    if (!decoded || !decoded.uid) return res.status(401).json({ error: 'invalid_token' });
+    if (decoded.email_verified !== true) {
+      return res.status(403).json({ error: 'email_not_verified' });
+    }
 
-module.exports = async (req, res) => {
-  // CORS: sendBeacon é "no-cors" no browser, mas mantemos headers para
-  // o caso de o cliente cair em fetch+keepalive (fallback que usamos no JS).
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'OPTIONS') return res.status(204).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-
-  const body = await readJsonBody(req);
-  if (!body || typeof body !== 'object') {
-    return res.status(400).json({ error: 'bad_body' });
-  }
-  const idToken = body.idToken;
-  const keys = body.keys;
-  const keyRevs = body.keyRevs;
-  if (typeof idToken !== 'string' || !idToken) {
-    return res.status(400).json({ error: 'missing_token' });
-  }
-  if (!keys || typeof keys !== 'object' || Array.isArray(keys)) {
-    return res.status(400).json({ error: 'missing_keys' });
-  }
-  if (!keyRevs || typeof keyRevs !== 'object' || Array.isArray(keyRevs)) {
-    return res.status(400).json({ error: 'missing_revs' });
-  }
-
-  let decoded;
-  try {
-    decoded = await adminAuth().verifyIdToken(idToken);
-  } catch (_e) {
-    return res.status(401).json({ error: 'invalid_token' });
-  }
-  if (!decoded || !decoded.uid) return res.status(401).json({ error: 'invalid_token' });
-  if (decoded.email_verified !== true) return res.status(403).json({ error: 'email_not_verified' });
-
-  try {
     const D = db();
     const userRef = D.collection('users').doc(decoded.uid);
     const billingRef = userRef.collection('billing').doc('account');
@@ -165,8 +114,5 @@ module.exports = async (req, res) => {
     });
 
     return res.status(200).json({ ok: true, accepted: result.accepted });
-  } catch (e) {
-    console.error('[sync-push]', e && (e.code || e.message), decoded && decoded.uid);
-    return res.status(500).json({ error: 'push_failed' });
-  }
-};
+  },
+});

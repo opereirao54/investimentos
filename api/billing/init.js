@@ -1,5 +1,6 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
-const { requireFreshVerifiedUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
+const { billingInitBody } = require('../_lib/schemas');
 const asaas = require('../_lib/asaas');
 const { computeAccess, TRIAL_DAYS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
@@ -17,77 +18,49 @@ const TRIAL_RATE_LIMIT_IP_MAX = 5;
 const TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 const TRIAL_RATE_LIMIT_DEVICE_MAX = 3;
 
-function readBody(req) {
-  return new Promise((resolve) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
-    let raw = '';
-    req.on('data', (c) => {
-      raw += c;
-    });
-    req.on('end', () => {
-      if (!raw) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch (_) {
-        resolve({});
-      }
-    });
-    req.on('error', () => resolve({}));
-  });
-}
-
 function signupIp(req) {
   // Usa o helper compartilhado que respeita TRUSTED_PROXY_HOPS.
   return rl.ipFrom(req);
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-
+module.exports = handler({
+  method: 'POST',
   // M2: requireFreshVerifiedUser confirma com auth().getUser() — fecha a
   // janela do cache LRU em rotas que mutam estado caro (Asaas customer).
-  const user = await requireFreshVerifiedUser(req, res);
-  if (!user) return;
-
-  // Defesa em profundidade: /init cria customer no Asaas e marca início de
-  // trial — operação irreversível para um e-mail. Bloqueia explicitamente
-  // qualquer chamada de usuário não verificado, independente do flag
-  // EMAIL_VERIFY_ENFORCE (que governa o gate genérico em requireVerifiedUser).
-  // Google OAuth sempre vem com email_verified=true; só pega bypass de
-  // email/senha sem verificação.
-  if (user.email_verified !== true) {
-    return res.status(403).json({
-      error: 'email_not_verified',
-      detail:
-        'Verifique o seu e-mail antes de iniciar a avaliação. Reenvie o link de verificação no painel inicial.',
-    });
-  }
-
-  // M9: providers OAuth podem não retornar email se o escopo não foi pedido
-  // ou o user negou. Sem email, Asaas.createCustomer falha (400). Falha
-  // cedo com mensagem clara.
-  if (!user.email) {
-    return res.status(400).json({
-      error: 'email_required_from_provider',
-      detail:
-        'Não foi possível obter o e-mail da sua conta. Faça login novamente concedendo permissão de e-mail.',
-    });
-  }
-
-  const body = await readBody(req);
-  // M1: rejeita tipos inválidos antes de normalizar. codes.normalize já
-  // tem guard, mas falhar cedo com erro estruturado é mais claro.
-  let rawCode = null;
-  if (body.referralCode != null) {
-    if (typeof body.referralCode !== 'string') {
-      return res.status(400).json({ error: 'invalid_referral_code' });
+  auth: 'fresh',
+  bodySchema: billingInitBody,
+  handle: async ({ req, res, user, body }) => {
+    // Defesa em profundidade: /init cria customer no Asaas e marca início de
+    // trial — operação irreversível para um e-mail. Bloqueia explicitamente
+    // qualquer chamada de usuário não verificado, independente do flag
+    // EMAIL_VERIFY_ENFORCE (que governa o gate genérico em requireVerifiedUser).
+    // Google OAuth sempre vem com email_verified=true; só pega bypass de
+    // email/senha sem verificação.
+    if (user.email_verified !== true) {
+      return res.status(403).json({
+        error: 'email_not_verified',
+        detail:
+          'Verifique o seu e-mail antes de iniciar a avaliação. Reenvie o link de verificação no painel inicial.',
+      });
     }
-    rawCode = codes.normalize(body.referralCode) || null;
-  }
 
-  try {
-    const D = db();
+    // M9: providers OAuth podem não retornar email se o escopo não foi pedido
+    // ou o user negou. Sem email, Asaas.createCustomer falha (400). Falha
+    // cedo com mensagem clara.
+    if (!user.email) {
+      return res.status(400).json({
+        error: 'email_required_from_provider',
+        detail:
+          'Não foi possível obter o e-mail da sua conta. Faça login novamente concedendo permissão de e-mail.',
+      });
+    }
+
+    // Zod já validou body.referralCode (string opcional, formato APP-XXXXXX);
+    // normalize só para padronizar (uppercase, trim — embora schema já faça).
+    const rawCode = body.referralCode ? codes.normalize(body.referralCode) || null : null;
+
+    try {
+      const D = db();
     const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
 
     // Antifraude:
@@ -344,20 +317,21 @@ module.exports = async (req, res) => {
       releasedOnError = true; // lock já saiu junto com o set acima
 
       return res.json({ access: computeAccess(data), billing: safeBilling(data) });
-    } catch (innerErr) {
-      await releaseLock();
-      throw innerErr;
+      } catch (innerErr) {
+        await releaseLock();
+        throw innerErr;
+      }
+    } catch (e) {
+      console.error('[init]', e, e.data);
+      return res.status(500).json({
+        error: 'init_failed',
+        detail: e.message,
+        asaasStatus: e.status || null,
+        asaasErrors: (e.data && e.data.errors) || e.data || null,
+      });
     }
-  } catch (e) {
-    console.error('[init]', e, e.data);
-    return res.status(500).json({
-      error: 'init_failed',
-      detail: e.message,
-      asaasStatus: e.status || null,
-      asaasErrors: (e.data && e.data.errors) || e.data || null,
-    });
-  }
-};
+  },
+});
 
 function safeBilling(b) {
   return {

@@ -1,5 +1,5 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
-const { cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 
 // Ações administrativas pontuais sobre um utilizador específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
@@ -26,30 +26,32 @@ async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   }
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+// Admin endpoints usam token estático em vez de Firebase auth: gerenciamento
+// fora-da-band do produto. auth: 'none' + check inline.
+module.exports = handler({
+  method: 'POST',
+  auth: 'none',
+  handle: async ({ req, res, body }) => {
+    const expected = process.env.ADMIN_API_TOKEN;
+    if (!expected) {
+      return res.status(503).json({
+        error: 'admin_disabled',
+        detail: 'Defina ADMIN_API_TOKEN no Vercel para ativar este endpoint.',
+      });
+    }
+    const header = req.headers.authorization || '';
+    const token = header.replace(/^Bearer\s+/i, '');
+    if (!token || token !== expected) {
+      return res.status(401).json({ error: 'unauthorized' });
+    }
 
-  const expected = process.env.ADMIN_API_TOKEN;
-  if (!expected) {
-    return res.status(503).json({
-      error: 'admin_disabled',
-      detail: 'Defina ADMIN_API_TOKEN no Vercel para ativar este endpoint.',
-    });
-  }
-  const header = req.headers.authorization || '';
-  const token = header.replace(/^Bearer\s+/i, '');
-  if (!token || token !== expected) {
-    return res.status(401).json({ error: 'unauthorized' });
-  }
+    const { action, email: inputEmail, actionValue } = body || {};
+    if (!action || !inputEmail) return res.status(400).json({ error: 'missing_params' });
 
-  const { action, email: inputEmail, actionValue } = req.body || {};
-  if (!action || !inputEmail) return res.status(400).json({ error: 'missing_params' });
+    // Identificador opcional do actor para auditoria (não autentica, só rastreia).
+    const actor = (req.headers['x-admin-actor'] || '').toString().slice(0, 120) || 'admin';
 
-  // Identificador opcional do actor para auditoria (não autentica, só rastreia).
-  const actor = (req.headers['x-admin-actor'] || '').toString().slice(0, 120) || 'admin';
-
-  try {
+    try {
     let userRecord;
     if (inputEmail.indexOf('@') === -1 && inputEmail.length >= 20) {
       try {
@@ -313,8 +315,9 @@ module.exports = async (req, res) => {
     }
 
     return res.status(400).json({ error: 'invalid_action' });
-  } catch (e) {
-    console.error('[admin/action]', e);
-    return res.status(500).json({ error: 'action_failed', detail: e.message });
-  }
-};
+    } catch (e) {
+      console.error('[admin/action]', e);
+      return res.status(500).json({ error: 'action_failed', detail: e.message });
+    }
+  },
+});

@@ -1,5 +1,5 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
-const { requireVerifiedUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
@@ -9,25 +9,6 @@ function formatDate(d) {
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(d.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function readBody(req) {
-  return new Promise((resolve) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
-    let raw = '';
-    req.on('data', (c) => {
-      raw += c;
-    });
-    req.on('end', () => {
-      if (!raw) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch (_) {
-        resolve({});
-      }
-    });
-    req.on('error', () => resolve({}));
-  });
 }
 
 function cleanDigits(s) {
@@ -66,15 +47,14 @@ function cardMetadataFromAsaas(sub, fallbackNumber) {
   };
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-
-  const user = await requireVerifiedUser(req, res);
-  if (!user) return;
-
-  const body = await readBody(req);
-  const cpfCnpj = cleanDigits(body.cpfCnpj);
+module.exports = handler({
+  method: 'POST',
+  auth: 'verified',
+  // Sem bodySchema: subscribe aceita um leque de campos (cartão + holder
+  // info + endereço) com defaults caso parciais. Validação detalhada fica
+  // inline por enquanto — onda posterior pode tightnen com Zod refinements.
+  handle: async ({ req, res, user, body }) => {
+    const cpfCnpj = cleanDigits(body.cpfCnpj);
   const customerName = (body.name || '').trim();
   const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
   const rawHolder =
@@ -453,5 +433,6 @@ module.exports = async (req, res) => {
       asaasStatus: e.status || null,
       asaasErrors: (e.data && e.data.errors) || e.data || null,
     });
-  }
-};
+    }
+  },
+});

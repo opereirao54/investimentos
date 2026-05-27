@@ -1,70 +1,23 @@
 const { db, fieldValue } = require('../_lib/firebase-admin');
-const { requireVerifiedUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
+const { billingCustomerBody } = require('../_lib/schemas');
 const asaas = require('../_lib/asaas');
-const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 
-function readBody(req) {
-  return new Promise((resolve) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
-    let raw = '';
-    req.on('data', (c) => {
-      raw += c;
-    });
-    req.on('end', () => {
-      if (!raw) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch (_) {
-        resolve({});
-      }
-    });
-    req.on('error', () => resolve({}));
-  });
-}
-
-function clean(s) {
-  return typeof s === 'string' ? s.trim() : s;
-}
 function digits(s) {
   return String(s || '').replace(/\D+/g, '');
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+module.exports = handler({
+  method: 'POST',
+  auth: 'verified',
+  bodySchema: billingCustomerBody,
+  handle: async ({ res, user, body }) => {
+    // Schema valida formato; normalizamos cpfCnpj/phone/cep para só dígitos
+    // (Asaas armazena assim).
+    const cpfCnpj = body.cpfCnpj ? digits(body.cpfCnpj) : null;
+    const mobilePhone = digits(body.mobilePhone || body.phone || '');
+    const postalCode = digits(body.postalCode || '');
 
-  const user = await requireVerifiedUser(req, res);
-  if (!user) return;
-
-  const body = await readBody(req);
-  const name = clean(body.name);
-  const email = clean(body.email);
-  const cpfCnpj = digits(body.cpfCnpj);
-  const mobilePhone = digits(body.mobilePhone || body.phone);
-  const postalCode = digits(body.postalCode);
-  const address = clean(body.address);
-  const addressNumber = clean(body.addressNumber);
-  const complement = clean(body.complement);
-  const province = clean(body.province);
-  const city = clean(body.city);
-  const state = clean(body.state);
-
-  if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
-    return res.status(400).json({ error: 'cpfcnpj_invalid' });
-  }
-  if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
-    return res
-      .status(400)
-      .json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
-  }
-  if (postalCode && postalCode.length !== 8) {
-    return res.status(400).json({ error: 'postalcode_invalid' });
-  }
-  if (name !== undefined && name !== null && name.length > 0 && name.length < 3) {
-    return res.status(400).json({ error: 'name_invalid' });
-  }
-
-  try {
     const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
     const snap = await ref.get();
     if (!snap.exists) return res.status(400).json({ error: 'billing_not_initialized' });
@@ -88,45 +41,47 @@ module.exports = async (req, res) => {
     }
 
     const asaasFields = {};
-    if (name) asaasFields.name = name;
-    if (email) asaasFields.email = email;
+    if (body.name) asaasFields.name = body.name;
+    if (body.email) asaasFields.email = body.email;
     if (cpfCnpj) asaasFields.cpfCnpj = cpfCnpj;
     if (mobilePhone) asaasFields.mobilePhone = mobilePhone;
     if (postalCode) asaasFields.postalCode = postalCode;
-    if (address) asaasFields.address = address;
-    if (addressNumber) asaasFields.addressNumber = addressNumber;
-    if (complement) asaasFields.complement = complement;
-    if (province) asaasFields.province = province;
-    if (city) asaasFields.city = city;
-    if (state) asaasFields.state = state;
+    if (body.address) asaasFields.address = body.address;
+    if (body.addressNumber) asaasFields.addressNumber = body.addressNumber;
+    if (body.complement) asaasFields.complement = body.complement;
+    if (body.province) asaasFields.province = body.province;
+    if (body.city) asaasFields.city = body.city;
+    if (body.state) asaasFields.state = body.state;
 
     if (Object.keys(asaasFields).length === 0) {
       return res.status(400).json({ error: 'nothing_to_update' });
     }
 
-    await asaas.updateCustomer(billing.customerId, asaasFields);
+    try {
+      await asaas.updateCustomer(billing.customerId, asaasFields);
+    } catch (e) {
+      console.error('[customer]', e, e.data);
+      return res.status(e.status || 500).json({
+        error: 'customer_update_failed',
+        detail: e.message,
+        asaasErrors: (e.data && e.data.errors) || e.data || null,
+      });
+    }
 
     const localUpdate = { updatedAt: fieldValue().serverTimestamp() };
-    if (name) localUpdate.customerName = name;
-    if (email) localUpdate.customerEmail = email;
+    if (body.name) localUpdate.customerName = body.name;
+    if (body.email) localUpdate.customerEmail = body.email;
     if (cpfCnpj) localUpdate.cpfCnpj = cpfCnpj;
     if (mobilePhone) localUpdate.customerPhone = mobilePhone;
     if (postalCode) localUpdate.customerPostalCode = postalCode;
-    if (address) localUpdate.customerAddress = address;
-    if (addressNumber) localUpdate.customerAddressNumber = addressNumber;
-    if (complement) localUpdate.customerComplement = complement;
-    if (province) localUpdate.customerProvince = province;
-    if (city) localUpdate.customerCity = city;
-    if (state) localUpdate.customerState = state;
+    if (body.address) localUpdate.customerAddress = body.address;
+    if (body.addressNumber) localUpdate.customerAddressNumber = body.addressNumber;
+    if (body.complement) localUpdate.customerComplement = body.complement;
+    if (body.province) localUpdate.customerProvince = body.province;
+    if (body.city) localUpdate.customerCity = body.city;
+    if (body.state) localUpdate.customerState = body.state;
     await ref.set(localUpdate, { merge: true });
 
     return res.json({ ok: true, customer: asaasFields });
-  } catch (e) {
-    console.error('[customer]', e, e.data);
-    return res.status(e.status || 500).json({
-      error: 'customer_update_failed',
-      detail: e.message,
-      asaasErrors: (e.data && e.data.errors) || e.data || null,
-    });
-  }
-};
+  },
+});

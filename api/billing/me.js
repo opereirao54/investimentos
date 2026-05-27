@@ -1,5 +1,5 @@
 const { db } = require('../_lib/firebase-admin');
-const { requireVerifiedUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 const { computeAccess, PAID_PERIOD_MS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 
@@ -82,14 +82,10 @@ function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
   return list.slice(0, 3);
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-
-  const user = await requireVerifiedUser(req, res);
-  if (!user) return;
-
-  try {
+module.exports = handler({
+  method: 'GET',
+  auth: 'verified',
+  handle: async ({ res, user }) => {
     const D = db();
     const userRef = D.collection('users').doc(user.uid);
     const billingRef = userRef.collection('billing').doc('account');
@@ -281,8 +277,5 @@ module.exports = async (req, res) => {
       credits,
       payments,
     });
-  } catch (e) {
-    console.error('[me]', e);
-    return res.status(500).json({ error: 'me_failed', detail: e.message });
-  }
-};
+  },
+});

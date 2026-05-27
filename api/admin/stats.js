@@ -1,5 +1,5 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
-const { cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 
 // Endpoint admin CONSOLIDADO (cabe em 1 função Vercel — antes eram 3):
 //   GET /api/admin/stats                            → dashboard JSON (default)
@@ -596,19 +596,16 @@ async function dashboard(req, res) {
 }
 
 // ─── ROUTER ────────────────────────────────────────────────────
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+module.exports = handler({
+  method: 'GET',
+  // Admin token estático, validado em authCheck (não Firebase auth).
+  auth: 'none',
+  handle: async ({ req, res }) => {
+    const err = authCheck(req);
+    if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
 
-  const err = authCheck(req);
-  if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
-
-  try {
     if (req.query.format === 'csv') return await exportCsv(req, res);
     if (req.query.include === 'audit') return await auditList(req, res);
     return await dashboard(req, res);
-  } catch (e) {
-    console.error('[admin/stats]', e);
-    return res.status(500).json({ error: 'stats_failed', detail: e.message });
-  }
-};
+  },
+});

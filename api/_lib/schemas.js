@@ -83,30 +83,49 @@ const billingSubscribeBody = z
   })
   .strip(); // descarta campos extras (não joga; mantém compat com versões antigas do front)
 
-// POST /api/billing/customer — atualiza dados do cliente Asaas. Todos opcionais.
+// POST /api/billing/customer — atualiza dados do cliente Asaas. Todos
+// opcionais. Endpoint exige que pelo menos um campo seja fornecido.
 const billingCustomerBody = z
   .object({
-    name: z.string().trim().min(2).max(120).optional(),
+    name: z.string().trim().min(3).max(120).optional(),
     email: email.optional(),
     phone: phoneBR.optional(),
+    mobilePhone: phoneBR.optional(),
     postalCode: cep.optional(),
+    address: shortText(160),
     addressNumber: shortText(20),
+    complement: shortText(120),
+    province: shortText(120),
+    city: shortText(120),
+    state: z.string().trim().length(2).optional(),
     cpfCnpj: cpfCnpj.optional(),
   })
   .strip();
 
-// POST /api/billing/card — atualiza só os dados do cartão.
+// POST /api/billing/card — atualiza só os dados do cartão. Asaas exige
+// também creditCardHolderInfo com cpfCnpj (responsável pelo cartão pode
+// diferir do customer principal).
 const billingCardBody = z
   .object({
     creditCard: z.object({
       holderName: z.string().trim().min(2).max(120),
-      number: z.string().trim().regex(/^\d{13,19}$/, 'número de cartão inválido'),
+      number: z.string().trim().regex(/[\d\s]+/, 'número de cartão inválido'),
       expiryMonth: z.string().trim().regex(/^(0[1-9]|1[0-2])$/),
       expiryYear: z.string().trim().regex(/^\d{4}$/),
       ccv: z.string().trim().regex(/^\d{3,4}$/),
     }),
+    creditCardHolderInfo: z
+      .object({
+        cpfCnpj,
+        name: z.string().trim().min(2).max(120).optional(),
+        email: email.optional(),
+        phone: phoneBR.optional(),
+        postalCode: cep.optional(),
+        addressNumber: shortText(20),
+      })
+      .strip(),
   })
-  .strict();
+  .strip();
 
 // GET /api/market?op=... — query schemas por op.
 const marketQuoteQuery = z.object({

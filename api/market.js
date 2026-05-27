@@ -1,5 +1,6 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
-const { requireUser, cors } = require('./_lib/auth');
+const { requireUser } = require('./_lib/auth');
+const { handler } = require('./_lib/handler');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -420,23 +421,27 @@ async function handleWarmup(req, res) {
   });
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  const op = (req.query.op || '').toString();
-  if (op === 'quote') {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return handleQuote(req, res);
-  }
-  if (op === 'history') {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return handleHistory(req, res);
-  }
-  if (op === 'warmup') {
-    if (req.method !== 'POST' && req.method !== 'GET')
-      return res.status(405).json({ error: 'method_not_allowed' });
-    return handleWarmup(req, res);
-  }
-  return res
-    .status(400)
-    .json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
-};
+// Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
+// sub-op cuida da própria auth (requireUser p/ quote+history;
+// CRON_SECRET bearer p/ warmup).
+module.exports = handler({
+  method: ['GET', 'POST'],
+  auth: 'none',
+  handle: async ({ req, res }) => {
+    const op = (req.query.op || '').toString();
+    if (op === 'quote') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleQuote(req, res);
+    }
+    if (op === 'history') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleHistory(req, res);
+    }
+    if (op === 'warmup') {
+      return handleWarmup(req, res);
+    }
+    return res
+      .status(400)
+      .json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
+  },
+});

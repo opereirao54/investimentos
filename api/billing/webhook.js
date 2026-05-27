@@ -1,4 +1,5 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
+const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
 const { releaseAppliedCredits } = require('../_lib/billing-sync');
 
@@ -9,25 +10,6 @@ const REFERRAL_PERCENT = 10;
 // para indicadores com muitos créditos acumulados. Pode ser ajustado
 // por env quando se confirma que todos os utilizadores usam cartão.
 const MIN_PAYMENT_CENTS = parseInt(process.env.MIN_PAYMENT_CENTS || '500', 10);
-
-function readBody(req) {
-  return new Promise((resolve, reject) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
-    let raw = '';
-    req.on('data', (c) => {
-      raw += c;
-    });
-    req.on('end', () => {
-      if (!raw) return resolve({});
-      try {
-        resolve(JSON.parse(raw));
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on('error', reject);
-  });
-}
 
 async function findBillingByCustomer(customerId) {
   const q = await db()
@@ -245,30 +227,26 @@ async function reverseReferralCredit(indicatorUid, paymentId) {
   return true;
 }
 
-module.exports = async (req, res) => {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+module.exports = handler({
+  method: 'POST',
+  // Webhook usa token próprio (ASAAS_WEBHOOK_TOKEN), não Firebase auth.
+  // Validação fica inline antes da lógica.
+  auth: 'none',
+  handle: async ({ req, res, body }) => {
+    // C1: token de webhook é OBRIGATÓRIO. Sem token configurado, recusa
+    // todo o tráfego — evita que um deploy mal configurado permita
+    // que qualquer um forje eventos de pagamento.
+    const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+    if (!expected) {
+      console.error('[webhook] ASAAS_WEBHOOK_TOKEN not configured — refusing all events');
+      return res.status(503).json({ error: 'webhook_not_configured' });
+    }
+    const received = req.headers['asaas-access-token'] || req.headers['Asaas-Access-Token'];
+    if (received !== expected) {
+      return res.status(401).json({ error: 'invalid_webhook_token' });
+    }
 
-  // C1: token de webhook é OBRIGATÓRIO. Sem token configurado, recusa
-  // todo o tráfego — evita que um deploy mal configurado permita
-  // que qualquer um forje eventos de pagamento.
-  const expected = process.env.ASAAS_WEBHOOK_TOKEN;
-  if (!expected) {
-    console.error('[webhook] ASAAS_WEBHOOK_TOKEN not configured — refusing all events');
-    return res.status(503).json({ error: 'webhook_not_configured' });
-  }
-  const received = req.headers['asaas-access-token'] || req.headers['Asaas-Access-Token'];
-  if (received !== expected) {
-    return res.status(401).json({ error: 'invalid_webhook_token' });
-  }
-
-  let body;
-  try {
-    body = await readBody(req);
-  } catch (_) {
-    return res.status(400).json({ error: 'bad_json' });
-  }
-
-  const event = body.event;
+    const event = body.event;
   const payment = body.payment || null;
   const subscription = body.subscription || null;
 
@@ -621,5 +599,6 @@ module.exports = async (req, res) => {
       }
     }
     return res.status(500).json({ error: 'webhook_failed' });
-  }
-};
+    }
+  },
+});
