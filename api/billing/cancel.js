@@ -19,13 +19,11 @@ module.exports = async (req, res) => {
     // Sempre tenta cancelar no Asaas: o estado local pode estar dessincronizado
     // (webhook perdido) e o utilizador continuaria a ser cobrado. Asaas DELETE
     // de uma subscription já cancelada devolve 404, que tratamos como sucesso.
-    let asaasOk = true;
     try {
       await asaas.cancelSubscription(billing.subscriptionId);
     } catch (e) {
       if (e.status === 404) {
         console.warn('[cancel] asaas subscription already gone', billing.subscriptionId);
-        asaasOk = true;
       } else {
         console.error('[cancel] asaas delete failed', e, e.data);
         return res.status(e.status || 500).json({

@@ -29,7 +29,7 @@ function init() {
   try {
     json = JSON.parse(decoded);
   } catch (e1) {
-    let fixed = decoded.replace(
+    const fixed = decoded.replace(
       /("(?:private_key|private_key_id|client_email)"\s*:\s*")([\s\S]*?)(")/g,
       function (_, p, val, q) {
         return p + val.replace(/\r/g, '').replace(/\n/g, '\\n') + q;
@@ -37,7 +37,7 @@ function init() {
     );
     try {
       json = JSON.parse(fixed);
-    } catch (e2) {
+    } catch (_e2) {
       throw new Error(
         'service_account_invalid_json: ' + e1.message + ' (decoded length=' + decoded.length + ')'
       );

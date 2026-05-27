@@ -37,8 +37,8 @@ async function readJsonBody(req) {
   }
   // Fallback: lê stream manualmente (sendBeacon com Blob pode chegar como buffer).
   return await new Promise(function (resolve) {
-    var chunks = [];
-    var total = 0;
+    const chunks = [];
+    let total = 0;
     req.on('data', function (c) {
       total += c.length;
       if (total > 5 * 1024 * 1024) {
@@ -50,7 +50,7 @@ async function readJsonBody(req) {
     });
     req.on('end', function () {
       try {
-        var s = Buffer.concat(chunks).toString('utf8');
+        const s = Buffer.concat(chunks).toString('utf8');
         resolve(JSON.parse(s));
       } catch (_) {
         resolve(null);
@@ -92,7 +92,7 @@ module.exports = async (req, res) => {
   let decoded;
   try {
     decoded = await adminAuth().verifyIdToken(idToken);
-  } catch (e) {
+  } catch (_e) {
     return res.status(401).json({ error: 'invalid_token' });
   }
   if (!decoded || !decoded.uid) return res.status(401).json({ error: 'invalid_token' });

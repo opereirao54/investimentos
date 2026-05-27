@@ -350,7 +350,7 @@ async function dashboard(req, res) {
   }
 
   // Auth users (página única — caps a 1000)
-  let authUsers = {
+  const authUsers = {
     totalKnown: 0,
     emailVerifiedCount: 0,
     unverifiedPassword: 0,
@@ -499,7 +499,7 @@ async function dashboard(req, res) {
     .map(([domain, count]) => ({ domain, count }));
 
   // Recent audit (snapshot p/ dashboard)
-  let recentAudit = [];
+  const recentAudit = [];
   try {
     const auditSnap = await D.collection('adminAuditLog').orderBy('at', 'desc').limit(20).get();
     auditSnap.forEach((d) => {

@@ -1,4 +1,4 @@
-const { db, auth, timestamp, fieldValue } = require('../_lib/firebase-admin');
+const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { cors } = require('../_lib/auth');
 
 // Ações administrativas pontuais sobre um utilizador específico.
@@ -6,8 +6,6 @@ const { cors } = require('../_lib/auth');
 //
 // Cada ação executada é registada em `adminAuditLog/{autoId}` para rastreio.
 // Custo: 1 lookup auth + 1-2 ops Firestore + 1 write audit por chamada.
-
-const DESTRUCTIVE_ACTIONS = new Set(['reset_billing', 'make_pro', 'disable_user', 'suspend_trial']);
 
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   try {
@@ -56,7 +54,7 @@ module.exports = async (req, res) => {
     if (inputEmail.indexOf('@') === -1 && inputEmail.length >= 20) {
       try {
         userRecord = await auth().getUser(inputEmail);
-      } catch (e) {
+      } catch (_e) {
         userRecord = await auth().getUserByEmail(inputEmail);
       }
     } else {

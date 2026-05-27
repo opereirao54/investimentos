@@ -6,6 +6,13 @@ on:
   pull_request:
     branches: [main]
 
+# Silencia o aviso "Node.js 20 actions are deprecated". As actions oficiais
+# (checkout/setup-node) ainda usam Node 20 internamente em sua implementação;
+# este env força o runner a executá-las em Node 24, como GitHub vai obrigar
+# por default a partir de 2026-06-02.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
