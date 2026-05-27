@@ -99,6 +99,9 @@ module.exports = [
       'web/appliquei-jornada.js',
       'web/appliquei-sonhos.js',
       'web/appliquei-aba1-charts.js',
+      'web/appliquei-renda-fixa.js',
+      'web/appliquei-previdencia.js',
+      'web/appliquei-yahoo-finance.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
