@@ -51,7 +51,7 @@
         }
 
         // Sub-abas dentro de "Meus Investimentos"
-        let filtroOpsTimeline = 'todos';
+        var filtroOpsTimeline = 'todos';
         function mudarSubAbaPatrimonio(qual) {
             const subs = {
                 carteira: document.getElementById('subAbaCarteira'),
@@ -385,8 +385,8 @@
         }
 
         // --- ABA 1: MEUS INVESTIMENTOS ---
-        let historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
-        let transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
+        var historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
+        var transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
         // Backfill: compromissos mensais de sonho criados antes da feature de "conta a vencer"
         // não tinham dataVencimento. Preenche com dia 5 (default) para que apareçam no painel.
         (function backfillVencimentoSonhoCompromisso() {
@@ -403,7 +403,7 @@
         })();
 
         // --- CARTÕES DE CRÉDITO ---
-        let cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes')) || [];
+        var cartoes = JSON.parse(localStorage.getItem('futurorico_cartoes')) || [];
 
         // Migração: se não há cartões cadastrados, cria um padrão a partir do antigo limiteCartao
         if (cartoes.length === 0) {
@@ -505,7 +505,7 @@
         }
 
         // Lista padrão de bancos / corretoras brasileiras
-        const LISTA_CORRETORAS = [
+        var LISTA_CORRETORAS = [
             'XP Investimentos', 'BTG Pactual', 'Rico', 'Clear Corretora', 'NuInvest',
             'Inter Invest', 'Itaú', 'Bradesco', 'Santander', 'Banco do Brasil',
             'Caixa Econômica', 'Sicredi', 'Sicoob', 'Modalmais', 'Avenue',

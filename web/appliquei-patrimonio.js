@@ -10,7 +10,7 @@
 // === MEU PATRIMÔNIO — visão consolidada                    ===
 // ============================================================
 // Estado e cache do módulo
-const mpEstado = { periodo: '12m', modo: 'bruto', cotacoes: {}, ultimaCotacao: null, donutChart: null, categoriaDestaque: null, instituicaoFiltro: null };
+var mpEstado = { periodo: '12m', modo: 'bruto', cotacoes: {}, ultimaCotacao: null, donutChart: null, categoriaDestaque: null, instituicaoFiltro: null };
 
 // Tabela regressiva IR para Renda Fixa/Tesouro
 function mpAliquotaIRRendaFixa(diasDecorridos) {
@@ -72,7 +72,7 @@ function mpFmtPct(v, casas=1) {
     return (v >= 0 ? '+' : '') + v.toFixed(casas) + '%';
 }
 
-const MP_LABELS = {
+var MP_LABELS = {
     renda_fixa: 'Renda Fixa',
     renda_variavel: 'Renda Variável',
     previdencia: 'Previdência',

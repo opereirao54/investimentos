@@ -26,9 +26,9 @@
 // === EVOLUÇÃO MENSAL — calcula séries a partir do histórico ===
 // ============================================================
 // Período do gráfico: 3, 6, 12 meses ou 0 (todos)
-let periodoEvolucao = 3;
-let chartEvolucaoCarteira = null;
-let chartDistribuicaoCarteira = null;
+var periodoEvolucao = 3;
+var chartEvolucaoCarteira = null;
+var chartDistribuicaoCarteira = null;
 
 function setPeriodoEvolucao(meses) {
     periodoEvolucao = meses;
@@ -655,7 +655,7 @@ function renderizarGraficoEvolucao() {
 // ============================================================
 // === DISTRIBUIÇÃO — pizza por subcategoria/categoria        ===
 // ============================================================
-const ROTULOS_SUB = {
+var ROTULOS_SUB = {
     acoes: 'Ações', fiis: 'FIIs', bdrs: 'BDRs', etfs: 'ETFs', cripto: 'Criptomoedas',
     renda_fixa: 'Renda Fixa', previdencia: 'Previdência', reserva_emergencia: 'Reserva de Emergência'
 };

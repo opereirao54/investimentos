@@ -14,7 +14,7 @@
 // === RENDA FIXA — TAXAS DE MERCADO + PROJEÇÃO              ===
 // ============================================================
 // Taxas anuais (em fração decimal). Valores conservadores caso o BCB falhe.
-let taxasMercado = { cdi: 0.105, ipca: 0.045, selic: 0.105, atualizadoEm: null, fonte: 'estimativa' };
+var taxasMercado = { cdi: 0.105, ipca: 0.045, selic: 0.105, atualizadoEm: null, fonte: 'estimativa' };
 
 async function buscarTaxasBCB() {
     // Selic meta (sgs.432) e IPCA 12m (sgs.13522). CDI ≈ Selic.

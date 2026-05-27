@@ -14,11 +14,11 @@
  */
 
 // --- ABA 2: CONTROLE FINANCEIRO E DRE ---
-let visaoMes = new Date().getMonth();
-let visaoAno = new Date().getFullYear();
-let qtdMesesDRE = 12; // Variável de controle das abas do DRE
-let offsetMesesDRE = 0; // Deslocamento em meses do início do DRE (negativo = passado)
-let chartComposicao = null;
+var visaoMes = new Date().getMonth();
+var visaoAno = new Date().getFullYear();
+var qtdMesesDRE = 12; // Variável de controle das abas do DRE
+var offsetMesesDRE = 0; // Deslocamento em meses do início do DRE (negativo = passado)
+var chartComposicao = null;
 
 function mudarMesVisao(delta) {
     visaoMes += delta;
@@ -579,7 +579,7 @@ function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
     banner.style.display = 'flex';
 }
 
-let itemParaDeletar = null;
+var itemParaDeletar = null;
 
 function deletarTransacao(idStr) {
     const transacao = transacoes.find(t => t.id == idStr);

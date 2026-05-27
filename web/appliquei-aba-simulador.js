@@ -12,7 +12,7 @@
  */
 
 // --- ABA 5: SIMULADOR ---
-let chartAdv = null, chartINSS = null, chartComparativo = null;
+var chartAdv = null, chartINSS = null, chartComparativo = null;
 
 async function buscarInflacaoBCB() {
     const lblBcb = document.getElementById('lblSimInflacaoBcb');

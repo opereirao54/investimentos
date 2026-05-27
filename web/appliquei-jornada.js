@@ -10,7 +10,7 @@
 // ============================================================
 // === JORNADA FINANCEIRA — módulos com progresso             ===
 // ============================================================
-const JORNADA_MODULOS = [
+var JORNADA_MODULOS = [
     { id: 'm1', titulo: '1. Alinhamento de mindset',      icone: 'ph-brain',          descricao: 'Conceitos base sobre finanças comportamentais e tese de longo prazo. Entenda por que disciplina vale mais que retorno.', objetivos: ['Identificar 3 gatilhos pessoais de gasto impulsivo','Definir sua tese de investimento em 1 frase'] },
     { id: 'm2', titulo: '2. Otimização de caixa',         icone: 'ph-piggy-bank',     descricao: 'Técnicas de engenharia financeira pessoal para provisionar aportes mensais consistentes.',                                    objetivos: ['Mapear receitas e despesas fixas','Definir % de aporte alvo (mín. 10% da receita)'] },
     { id: 'm3', titulo: '3. Colchão de liquidez',         icone: 'ph-shield-check',   descricao: 'Estruturação da reserva de emergência: quanto, onde e como alocar para acesso rápido sem perder rentabilidade.',          objetivos: ['Calcular 6× despesas fixas mensais','Alocar em Tesouro Selic ou CDB de liquidez diária'] },
@@ -20,7 +20,7 @@ const JORNADA_MODULOS = [
     { id: 'm7', titulo: '7. Diversificação internacional',icone: 'ph-globe-hemisphere-west', descricao: 'BDRs, ETFs internacionais, exposição cambial. Por que e quanto alocar fora do real.',                          objetivos: ['Definir % alvo de exposição internacional','Escolher veículo (BDR vs ETF vs conta global)'] },
     { id: 'm8', titulo: '8. Aposentadoria & longo prazo', icone: 'ph-tree-palm',      descricao: 'Previdência privada, regime de tributação, planejamento sucessório e o cálculo da sua liberdade financeira.',                  objetivos: ['Simular patrimônio-alvo para liberdade','Comparar PGBL vs VGBL pro seu caso'] },
 ];
-const JORNADA_STORAGE_KEY = 'appliquei_jornada_progresso';
+var JORNADA_STORAGE_KEY = 'appliquei_jornada_progresso';
 
 function carregarJornadaProgresso() {
     try { return JSON.parse(localStorage.getItem(JORNADA_STORAGE_KEY) || '{}'); }
@@ -39,7 +39,7 @@ function jornadaModulosConcluidosNoMes(yyyymm) {
     }).length;
 }
 
-let jornadaModuloAberto = null;
+var jornadaModuloAberto = null;
 function abrirModalJornada(id) {
     const mod = JORNADA_MODULOS.find(m => m.id === id);
     if(!mod) return;

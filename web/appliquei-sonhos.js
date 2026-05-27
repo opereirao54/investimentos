@@ -11,7 +11,7 @@
 
 // === MEUS SONHOS — DREAM PLANNER ENGINE                    ===
 // ============================================================
-let sonhos = JSON.parse(localStorage.getItem('appliquei_sonhos')) || [];
+var sonhos = JSON.parse(localStorage.getItem('appliquei_sonhos')) || [];
 // Backfill: sonhos antigos sem dataInicio assumem início = dataCriacao (ou dataFim - prazoMeses)
 sonhos.forEach(s => {
     if(!s.dataInicio) {
@@ -27,14 +27,14 @@ sonhos.forEach(s => {
         }
     }
 });
-let sonhoEditandoId = null;
+var sonhoEditandoId = null;
 
-const SONHO_TAXA_MENSAL = 0.008; // 0.8% ao mês
-const SONHO_CATEGORIAS = {
+var SONHO_TAXA_MENSAL = 0.008; // 0.8% ao mês
+var SONHO_CATEGORIAS = {
     viagem:'✈️', veiculo:'🚗', imovel:'🏠', educacao:'📚',
     casamento:'💍', reserva:'🛡️', tech:'💻', saude:'❤️', outro:'🌟'
 };
-const SONHO_FRASES = [
+var SONHO_FRASES = [
     {txt:'"O segredo de ir em frente é começar."', autor:'Mark Twain'},
     {txt:'"Grandes conquistas são feitas de pequenos passos diários."', autor:'Provérbio'},
     {txt:'"A disciplina é a ponte entre metas e conquistas."', autor:'Jim Rohn'},
@@ -893,7 +893,7 @@ function fecharModalSonho() { document.getElementById('modalSonho').style.displa
 // Snapshot da edição em curso quando precisamos perguntar ao usuário
 // (manter aportes posteriores ou sobrescrever). Preenchido em salvarSonho()
 // e consumido em aplicarEdicaoSonhoComModo().
-let _sonhoEdicaoPendente = null;
+var _sonhoEdicaoPendente = null;
 
 function abrirConfirmacaoEdicaoSonho() {
     const p = _sonhoEdicaoPendente;

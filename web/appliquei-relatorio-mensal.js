@@ -10,9 +10,9 @@
 
 // === RELATÓRIO MENSAL — BI consolidado                       ===
 // ============================================================
-const RM_NOMES_MESES_LONG = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const RM_NOMES_MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-const RM_HTML2PDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js';
+var RM_NOMES_MESES_LONG = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+var RM_NOMES_MESES_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+var RM_HTML2PDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js';
 
 function rmYyyymmToMesAno(yyyymm) {
     const [a, m] = (yyyymm || '').split('-').map(Number);
@@ -424,9 +424,9 @@ function rmRenderSecundarios(rep) {
 }
 
 // ====== Gráficos premium ======
-let rmChartSerieInst = null;
-let rmChartPatrimonioInst = null;
-let rmChartDonutInst = null;
+var rmChartSerieInst = null;
+var rmChartPatrimonioInst = null;
+var rmChartDonutInst = null;
 
 function rmGradient(ctx, area, hexFrom, hexTo) {
     if(!ctx || !area) return hexFrom;
@@ -652,7 +652,7 @@ function rmRenderDonut(rep) {
 }
 
 // Comparação on/off
-let rmModoComparacao = false;
+var rmModoComparacao = false;
 function rmToggleComparacao() {
     rmModoComparacao = !rmModoComparacao;
     const bar = document.getElementById('rmComparacaoBar');

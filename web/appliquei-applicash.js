@@ -14,14 +14,14 @@
 // ============================================================
 // === APPLICASH $ — programa de indicações                   ===
 // ============================================================
-const APPLICASH_CONFIG = {
+var APPLICASH_CONFIG = {
     cupomKey: 'appliquei_cupom_codigo',
     indicacoesKey: 'appliquei_applicash_indicacoes',
     assinaturaKey: 'appliquei_applicash_assinatura',
     comissaoPct: 0.10,        // 10% do valor pago
     descontoCupomPct: 0.10    // 10% de desconto p/ o assinante
 };
-const APPLICASH_METAS = [
+var APPLICASH_METAS = [
     { qtd: 1,  desc: 9,   recompensa: 'Cashback ativado · economia garantida todo mês' },
     { qtd: 5,  desc: 45,  recompensa: 'Quase metade da mensalidade paga por amigos' },
     { qtd: 10, desc: 90,  recompensa: 'A 1 amigo da sua mensalidade zerar' },
@@ -71,7 +71,7 @@ function mascararNome(nome) {
     }).join(' ');
 }
 
-let chartApplicash = null;
+var chartApplicash = null;
 async function atualizarTelaApplicash() {
     try {
         if (window.AppliqueiBilling && typeof AppliqueiBilling.syncApplicash === 'function') {

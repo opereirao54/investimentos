@@ -10,24 +10,24 @@
 /* ========================================
    STATE
    ======================================== */
-const DESTRUCTIVE = new Set(['reset_billing','make_pro','disable_user','suspend_trial']);
-let allUsers = [];
-let userFilter = 'all';
-let userSort = { field: 'createdAtMs', dir: 'desc' };
-let userPage = 1;
-const USERS_PER_PAGE = 25;
-let currentData = null;
-let activePeriod = 'all';
-let drawerUser = null;
+var DESTRUCTIVE = new Set(['reset_billing','make_pro','disable_user','suspend_trial']);
+var allUsers = [];
+var userFilter = 'all';
+var userSort = { field: 'createdAtMs', dir: 'desc' };
+var userPage = 1;
+var USERS_PER_PAGE = 25;
+var currentData = null;
+var activePeriod = 'all';
+var drawerUser = null;
 
 /* ========================================
    HELPERS
    ======================================== */
-const $ = id => document.getElementById(id);
-const formatBRL = c => (c/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
-const formatPct = (n, digits=1) => `${(n*100).toFixed(digits)}%`;
-const formatInt = n => (n||0).toLocaleString('pt-PT');
-const escHTML = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+var $ = id => document.getElementById(id);
+var formatBRL = c => (c/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+var formatPct = (n, digits=1) => `${(n*100).toFixed(digits)}%`;
+var formatInt = n => (n||0).toLocaleString('pt-PT');
+var escHTML = s => String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function fmtDate(ms) { return ms ? new Date(ms).toLocaleDateString('pt-PT') : '—'; }
 function fmtDateTime(ms) { return ms ? new Date(ms).toLocaleString('pt-PT') : '—'; }
 function relativeTime(ms) {
@@ -578,7 +578,7 @@ async function downloadCsv() {
 /* ========================================
    STALE INDICATOR
    ======================================== */
-let lastStatsMs = 0;
+var lastStatsMs = 0;
 function updateStaleIndicator() {
     const status = $('sb-status');
     if (!lastStatsMs) return;

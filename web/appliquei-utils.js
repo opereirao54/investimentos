@@ -22,7 +22,7 @@
 // Não reformata a parte decimal enquanto o usuário digita — só remove
 // caracteres inválidos e limita o número de vírgulas. O parse final
 // (parseQtd) converte para Number ao gravar.
-const QTD_MAX_DECIMAIS = 8;
+var QTD_MAX_DECIMAIS = 8;
 function aplicarMascaraQtd(input) {
     let v = String(input.value || '');
     v = v.replace(/[^\d.,]/g, '');
@@ -232,8 +232,8 @@ function atualizarUltimoSalvo() {
     const agora = new Date(); el.textContent = `Salvo às ${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
 }
 
-const _setItemOriginal = localStorage.setItem.bind(localStorage);
-const _getItemOriginal = localStorage.getItem.bind(localStorage);
+var _setItemOriginal = localStorage.setItem.bind(localStorage);
+var _getItemOriginal = localStorage.getItem.bind(localStorage);
 localStorage.setItem = function(key, value) {
     // Migrações de boot reescrevem várias keys com o MESMO conteúdo (ex.: futurorico_transacoes
     // na linha 5470, futurorico_cartoes na 5432). Sem este short-circuit, o sync cloud
@@ -251,7 +251,7 @@ localStorage.setItem = function(key, value) {
         try { AppliqueiCloudSync.onLocalWrite(key); } catch (_) {}
     }
 };
-const _removeItemOriginal = localStorage.removeItem.bind(localStorage);
+var _removeItemOriginal = localStorage.removeItem.bind(localStorage);
 localStorage.removeItem = function(key) {
     var existed = false;
     if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {

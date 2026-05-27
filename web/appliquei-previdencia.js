@@ -178,13 +178,13 @@ function processarAportesRecorrentesPrevidencia() {
     return novosAportes.length;
 }
 
-const ROTULOS_CATEGORIA = {
+var ROTULOS_CATEGORIA = {
     renda_variavel: 'Renda Variável',
     renda_fixa: 'Renda Fixa',
     previdencia: 'Previdência',
     reserva_emergencia: 'Reserva de Emergência'
 };
-const CORES_CATEGORIA = {
+var CORES_CATEGORIA = {
     renda_variavel: '#2563eb',
     renda_fixa: '#059669',
     previdencia: '#7c3aed',
@@ -192,7 +192,7 @@ const CORES_CATEGORIA = {
 };
 
 // Filtro ativo de categoria na sub-aba Carteira
-let filtroCategoriaAtivo = '';
+var filtroCategoriaAtivo = '';
 
 function filtrarCarteiraPorCategoria(categoria) {
     filtroCategoriaAtivo = categoria || '';
@@ -211,7 +211,7 @@ function inferirCategoria(ticker, ativoConsolidado, ativoMercado) {
 // === KPI: Próximo evento (foco em dividendos do mês corrente) ===
 // ============================================================
 // Cache global dos dividendos previstos do mês corrente, para abrir o modal detalhado.
-let dividendosPrevistosMes = [];
+var dividendosPrevistosMes = [];
 
 function atualizarProximoEvento(carteiraConsolidada) {
     const valorEl = document.getElementById('resumoProximoEvento');

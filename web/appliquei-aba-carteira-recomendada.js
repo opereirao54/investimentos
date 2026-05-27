@@ -13,12 +13,12 @@
 // ============================================================
 
 // ── Cores por classe ──
-const CART_CORES = { rf: '#059669', acao: '#7c3aed', fii: '#d97706', cripto: '#f59e0b' };
-const CART_ICONS = { rf: 'ph-shield-check', acao: 'ph-chart-line-up', fii: 'ph-buildings', cripto: 'ph-currency-bitcoin' };
-const CART_NOMES = { rf: 'Renda Fixa', acao: 'Ações', fii: 'FIIs', cripto: 'Criptos' };
+var CART_CORES = { rf: '#059669', acao: '#7c3aed', fii: '#d97706', cripto: '#f59e0b' };
+var CART_ICONS = { rf: 'ph-shield-check', acao: 'ph-chart-line-up', fii: 'ph-buildings', cripto: 'ph-currency-bitcoin' };
+var CART_NOMES = { rf: 'Renda Fixa', acao: 'Ações', fii: 'FIIs', cripto: 'Criptos' };
 
 // ── Textos educativos por classe ──
-const CART_EDU = {
+var CART_EDU = {
     rf: { titulo: 'Renda Fixa', icon: 'ph-shield-check', corpo: 'A espinha dorsal da sua carteira. Inclui <strong>Tesouro Direto</strong>, CDBs e LCIs. Você empresta dinheiro ao governo ou bancos e recebe juros. No Brasil, a Selic (13,25% a.a.) torna esses ativos muito competitivos — ideal para preservar capital com liquidez.' },
     acao: { titulo: 'Ações', icon: 'ph-chart-line-up', corpo: 'Ao comprar ações você vira <strong>sócio de uma empresa</strong>. No longo prazo, ações de qualidade tendem a superar a inflação e gerar dividendos. A volatilidade é maior, mas o potencial de crescimento patrimonial também.' },
     fii: { titulo: 'Fundos de Investimento Imobiliário (FIIs)', icon: 'ph-buildings', corpo: 'Permite investir em <strong>imóveis sem comprar um apartamento</strong>. Shoppings, galpões logísticos e lajes corporativas geram aluguéis distribuídos mensalmente — <strong>isentos de IR para pessoa física</strong>. Ótimo para construir renda passiva recorrente.' },
@@ -26,21 +26,21 @@ const CART_EDU = {
 };
 
 // ── Mensagens por perfil ──
-const CART_MENSAGENS = {
+var CART_MENSAGENS = {
     Conservador: { emoji: '🛡️', texto: 'Você valoriza tranquilidade e segurança acima de tudo. Prefere crescer de forma mais lenta, mas com menos sustos no caminho. Sua estratégia é construída para dar previsibilidade e proteger seu patrimônio.' },
     Moderado:    { emoji: '⚖️', texto: 'Você não quer apostar tudo… mas também não quer ficar parado. Sua estratégia é crescer com inteligência, equilibrando segurança e oportunidades. É o perfil de quem pensa no longo prazo e toma decisões com consciência.' },
     Arrojado:    { emoji: '🚀', texto: 'Você não está aqui para pouco. Seu foco é crescimento acelerado, mesmo que isso traga oscilações no caminho. Essa é a estratégia de quem entende que grandes resultados exigem coragem e visão de longo prazo.' }
 };
 
 // ── Alocações macro padrão por perfil ──
-const CART_ALLOC_DEFAULT = {
+var CART_ALLOC_DEFAULT = {
     Conservador: { rf: 70, acao: 15, fii: 15, cripto: 0 },
     Moderado:    { rf: 40, acao: 32, fii: 25, cripto: 3 },
     Arrojado:    { rf: 15, acao: 50, fii: 25, cripto: 10 }
 };
 
 // ── Ativos pré-recomendados padrão por classe ──
-const CART_ATIVOS_DEFAULT = {
+var CART_ATIVOS_DEFAULT = {
     rf:     [
         { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', obs: 'Liquidez e segurança' },
         { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', obs: 'Proteção contra inflação' },
@@ -64,7 +64,7 @@ const CART_ATIVOS_DEFAULT = {
 };
 
 // ── Estrutura do dbCarteira v2 ──
-const cartDefaultV2 = {
+var cartDefaultV2 = {
     versao: 2, mesAno: 'Mai/2026',
     descricao: 'Alocação focada em geradores de caixa com diversificação tática.',
     alocacoes: JSON.parse(JSON.stringify(CART_ALLOC_DEFAULT)),
@@ -97,10 +97,10 @@ function cartCarregarDB() {
     return JSON.parse(JSON.stringify(cartDefaultV2));
 }
 
-let dbCarteira = cartCarregarDB();
+var dbCarteira = cartCarregarDB();
 
 // ── Estado da sessão ──
-let cartEstado = {
+var cartEstado = {
     perfil: null,      // 'Conservador' | 'Moderado' | 'Arrojado'
     capital: 10000,
     selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
@@ -108,13 +108,13 @@ let cartEstado = {
 };
 
 // ── Admin temp state ──
-let cartAdminPerfilAtivo = 'Conservador';
-let cartAdminClasseAtiva = 'rf';
-let cartAdminAtivosTemp = {};
+var cartAdminPerfilAtivo = 'Conservador';
+var cartAdminClasseAtiva = 'rf';
+var cartAdminAtivosTemp = {};
 
 // ── Chart instances ──
-let chartCartDonut = null;
-let chartCartSim = null;
+var chartCartDonut = null;
+var chartCartSim = null;
 
 // ════════════════════════════════
 // ENTRY POINT
@@ -422,7 +422,7 @@ function cartResetSelecao() {
 // ════════════════════════════════
 // HISTORICAL SIMULATION
 // ════════════════════════════════
-let cartSimAbortController = null;
+var cartSimAbortController = null;
 
 async function cartIniciarSimulacao() {
     // Wire range buttons

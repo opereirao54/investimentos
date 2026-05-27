@@ -15,18 +15,18 @@
 // === ABA DIVIDENDOS — BRAPI + YAHOO COM FALLBACK            ===
 // ============================================================
 // Cache em memória para evitar repetir chamadas no mesmo carregamento.
-let cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
-let cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
+var cacheDividendos = {}; // { ticker: { fetchedAt, pagamentos: [{data, valor}] } }
+var cacheDividendosTTLms = 30 * 60 * 1000; // 30 minutos
 
 // Pagamentos já agregados por (ticker, mês) — alimentado por carregarDividendos.
 // Cada item: { ticker, ano, mes, qtdMes, somaValorCota, total, eventos, tsMaisRecente }
-let pagamentosMensaisAgregados = [];
+var pagamentosMensaisAgregados = [];
 // Filtro de ticker da tabela "Pagamentos recentes" (ativado ao clicar em "Por ativo")
-let filtroPagamentosTicker = '';
+var filtroPagamentosTicker = '';
 // Filtro global para dividendos (gráficos e cards) - usado quando clica no ativo na carteira
-let dividendosFiltroAtivo = '';
+var dividendosFiltroAtivo = '';
 
-const MES_LABEL_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+var MES_LABEL_CURTO = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
 
 function filtrarDividendosPorAtivo(ticker) {
     dividendosFiltroAtivo = ticker || '';
@@ -398,7 +398,7 @@ async function carregarDividendos(forcar = false) {
     renderizarRankingDividendos(linhasAtivosFiltradas);
 }
 
-let chartDivMensal = null;
+var chartDivMensal = null;
 function renderizarDividendosMensal(todosPagamentos) {
     const canvas = document.getElementById('graficoDividendosMensal');
     const msgVazio = document.getElementById('msgDivChartVazio');

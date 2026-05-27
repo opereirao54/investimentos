@@ -9,7 +9,7 @@
 // ============================================================
 // === DÚVIDAS & SUGESTÕES                                    ===
 // ============================================================
-const FAQ_DADOS = [
+var FAQ_DADOS = [
     // Conta & assinatura
     { cat: 'conta', catLbl: 'Conta', p: 'Como faço para criar minha conta na Appliquei?', r: 'Acesse a página inicial, clique em <strong>Cadastrar</strong> e preencha seus dados básicos. Em seguida, escolha um plano (mensal, semestral ou anual) e finalize. Assim que o cadastro for concluído, você já poderá usar todas as ferramentas disponíveis para o seu plano.' },
     { cat: 'conta', catLbl: 'Conta', p: 'Como cancelar minha assinatura?', r: 'Você pode cancelar a qualquer momento na aba <strong>Configurações → Assinatura</strong>. O cancelamento é imediato e seu acesso permanece ativo até o fim do período já pago. Não há multa.' },
