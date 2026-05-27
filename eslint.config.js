@@ -84,7 +84,13 @@ module.exports = [
   // no-undef desligado pelo mesmo motivo: cross-refs internas viram globais
   // entre os arquivos (utils.js -> app.js, e vice-versa).
   {
-    files: ['web/appliquei-app.js', 'web/appliquei-utils.js'],
+    files: [
+      'web/appliquei-app.js',
+      'web/appliquei-utils.js',
+      'web/appliquei-aba-simulador.js',
+      'web/appliquei-aba-carteira-recomendada.js',
+      'web/appliquei-aba-info-mercado.js',
+    ],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
