@@ -6715,6 +6715,10 @@
 
     </main>
 
-    <script src="/web/appliquei-app.js?v=onda3a"></script>
+    <!-- Utilities extraídas de app.js — carregadas SÍNCRONO antes de app.js
+         para que parseBRL, mostrarToast, etc. estejam disponíveis nos IIFEs
+         de parse-time. Bump no ?v= ao mexer no arquivo (cache-bust manual). -->
+    <script src="/web/appliquei-utils.js?v=onda3a"></script>
+    <script src="/web/appliquei-app.js?v=onda3b"></script>
 </body>
 </html>

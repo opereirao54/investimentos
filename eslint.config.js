@@ -77,13 +77,14 @@ module.exports = [
     },
   },
 
-  // appliquei-app.js: classic script (não-módulo) extraído inline do
-  // Appliquei_v13.0.html. Funções top-level são globais por contrato — o
-  // HTML tem 100+ handlers `onclick="funcaoX()"` dependendo disso. Tratá-lo
+  // appliquei-app.js + appliquei-utils.js: classic scripts (não-módulos)
+  // extraídos do inline. Funções top-level são globais por contrato — o
+  // HTML tem 100+ handlers `onclick="funcaoX()"` dependendo disso. Tratar
   // como módulo levaria a milhares de "undefined" falsos.
-  // no-undef desligado pelo mesmo motivo: cross-refs internas viram globais.
+  // no-undef desligado pelo mesmo motivo: cross-refs internas viram globais
+  // entre os arquivos (utils.js -> app.js, e vice-versa).
   {
-    files: ['web/appliquei-app.js'],
+    files: ['web/appliquei-app.js', 'web/appliquei-utils.js'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'script',
