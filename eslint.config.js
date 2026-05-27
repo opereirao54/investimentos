@@ -76,4 +76,38 @@ module.exports = [
       'no-constant-condition': ['warn', { checkLoops: false }],
     },
   },
+
+  // appliquei-app.js: classic script (não-módulo) extraído inline do
+  // Appliquei_v13.0.html. Funções top-level são globais por contrato — o
+  // HTML tem 100+ handlers `onclick="funcaoX()"` dependendo disso. Tratá-lo
+  // como módulo levaria a milhares de "undefined" falsos.
+  // no-undef desligado pelo mesmo motivo: cross-refs internas viram globais.
+  {
+    files: ['web/appliquei-app.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'script',
+      globals: {
+        ...globals.browser,
+        firebase: 'readonly',
+        google: 'readonly',
+        Chart: 'readonly',
+        ChartDataLabels: 'readonly',
+        AppliqueiFirebase: 'readonly',
+        AppliqueiBilling: 'readonly',
+        AppliqueiCloudSync: 'readonly',
+      },
+    },
+    rules: {
+      'no-undef': 'off',
+      'no-unused-vars': 'off',
+      'no-empty': 'off',
+      'no-constant-condition': 'off',
+      'no-prototype-builtins': 'off',
+      'no-useless-escape': 'off',
+      'no-irregular-whitespace': 'off',
+      'no-async-promise-executor': 'off',
+      'no-inner-declarations': 'off',
+    },
+  },
 ];
