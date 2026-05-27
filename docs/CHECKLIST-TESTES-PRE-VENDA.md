@@ -29,11 +29,12 @@
 ## 1. Login / Cadastro / E-mail verificado
 
 ### 1.1 Cadastro com e-mail e senha (E1)
+
 - ☐ Abre a aba **"Criar conta"** → preenche → submete.
 - ☐ Recebe e-mail de verificação na caixa de entrada (verificar **spam**).
 - ☐ Antes de verificar: aparece **painel "Verifique seu e-mail"** com botão
-  *Reenviar*.
-- ☐ Botão *Reenviar* funciona (1ª vez) e bloqueia em rajada (`/api/auth/resend-verification`
+  _Reenviar_.
+- ☐ Botão _Reenviar_ funciona (1ª vez) e bloqueia em rajada (`/api/auth/resend-verification`
   tem rate-limit).
 - ☐ Clica no link do e-mail → volta no app, recarrega → painel some, app libera
   trial.
@@ -41,6 +42,7 @@
   deve retornar **403 `email_not_verified`**.
 
 ### 1.2 Login Google "novo" pela aba **Entrar** (G1)
+
 - ☐ Aba **"Entrar"** → "Continuar com Google" → escolhe conta nunca usada.
 - ☐ App deve **rejeitar com mensagem persistente** ("essa conta não existe;
   use a aba Criar conta") e **desconectar** automaticamente. Não pode liberar
@@ -49,25 +51,30 @@
   (commit `fa6d97a`).
 
 ### 1.3 Cadastro Google pela aba **Criar conta** (G1)
+
 - ☐ Aba **"Criar conta"** → Google → mesma conta acima.
 - ☐ Cria billing + trial **sem pedir verificação** (Google já é verificado).
 - ☐ Banner verde "Avaliação gratuita: 7 dias restantes" aparece no topo.
 
 ### 1.4 Banner de transição (e-mails antigos)
+
 - ☐ Em conta antiga (criada antes do enforcement) o **banner "verifique seu
   e-mail até DD/MM"** aparece e oferece reenvio (commit `c314859`).
 - ☐ Depois da data o app bloqueia (testar adiantando relógio só no servidor
   via env var; se não der, validar visualmente o copy).
 
 ### 1.5 Reset de senha (E1)
+
 - ☐ "Esqueci minha senha" → recebe e-mail → consegue trocar → loga.
 
 ### 1.6 Isolamento entre contas (commit `fa6d97a`)
+
 - ☐ Loga em E1, adiciona transação A.
 - ☐ SignOut → loga em E2 num **mesmo browser** → **NÃO** pode ver transação A.
 - ☐ Volta para E1 → transação A continua lá.
 
 ### 1.7 Cloud sync no signOut (commit `81be8ce`)
+
 - ☐ Loga E1, faz alteração, espera sync.
 - ☐ SignOut → faz login E2 → não enxerga dado de E1.
 - ☐ Volta para E1 → dado **não foi sobrescrito** por localStorage vazio
@@ -91,6 +98,7 @@
 ## 3. Assinatura Asaas (R$ 15/mês)
 
 ### 3.1 Fluxo feliz com cartão
+
 - ☐ Trial expirado → clica "Assinar agora" → abre formulário **redesenhado**
   (commit `7833b56`).
 - ☐ Preenche CPF + cartão → submete → abre tab com **invoiceUrl**.
@@ -99,12 +107,14 @@
 - ☐ Card "Minha assinatura" mostra próximo vencimento e status `ACTIVE`.
 
 ### 3.2 Validação CPF/CNPJ (commit `177f3fc`)
+
 - ☐ Digita CPF com checksum **inválido** (ex.: `111.111.111-11`) → backend
   recusa com erro claro.
 - ☐ CPF válido formato `999.999.999-99` mas sem checksum → recusa.
 - ☐ CNPJ inválido → recusa.
 
 ### 3.3 Cupom no gate (commits `417bb6e`, `cf87225`, `52efe74`)
+
 - ☐ Gate sem subscriptionId → campo "Cupom" **visível**.
 - ☐ Gate com subscriptionId pendente → campo ainda **visível** (commit `52efe74`).
 - ☐ Aplica cupom válido → mostra preço **com desconto** atualizado.
@@ -113,10 +123,12 @@
   e mantido entre reloads (commit `05de0ab`).
 
 ### 3.4 Cartão recusado
+
 - ☐ Usa cartão de falha do sandbox → invoice fica `PENDING`/`OVERDUE`.
 - ☐ Frontend mostra `pending_payment` → gate **continua** bloqueado.
 
 ### 3.5 Webhooks
+
 - ☐ Após `PAYMENT_CONFIRMED` no Asaas → `users/{uid}/billing/account/payments/{id}`
   criado no Firestore.
 - ☐ `webhookEvents/{eventId}` criado com `expiresAt` (TTL, commit `2bceae0`).
@@ -126,15 +138,18 @@
 - ☐ `PAYMENT_RECEIVED_IN_CASH` (simulação sandbox) → libera acesso (commit `2c62ccf`).
 
 ### 3.6 Cancelamento
+
 - ☐ "Cancelar assinatura" → confirma → status vai para `INACTIVE`.
 - ☐ Próximo `GET /me`: `status=blocked` (se trial já passou) e gate volta.
 - ☐ Reassinatura sobre conta `INACTIVE` → cria nova sub limpa (commit `subscribe.js:160`).
 
 ### 3.7 Cartão recusado / troca de cartão
+
 - ☐ `POST /api/billing/card` com novo cartão → atualiza no Asaas.
 - ☐ Próxima fatura processa com o novo cartão.
 
 ### 3.8 Inadimplência
+
 - ☐ Forçar `PAYMENT_OVERDUE` via webhook do Asaas → `subscriptionStatus`
   atualiza e usuário cai em `blocked`.
 
@@ -143,12 +158,14 @@
 ## 4. Applicash (programa de indicações)
 
 ### 4.1 Geração e share (commit `d7c6bb7`)
+
 - ☐ Aba Applicash → conta paga → gera **cupom único** e **link compartilhável**.
 - ☐ Link tem apenas **um** parâmetro `?ref=` (não duplicado, commit `55d5127`).
 - ☐ Copy do texto não fala "qualquer plano" (commit `55d5127`).
 - ☐ Empty state (sem indicações ainda) mostra layout correto (commit `ca08b5e`).
 
 ### 4.2 Uso do cupom por indicado
+
 - ☐ Abre link `?ref=CUPOM` em janela anônima → cadastra G2.
 - ☐ Cupom é **persistido** mesmo após navegação interna (commit `05de0ab`).
 - ☐ No gate de assinatura, cupom já vem **pré-preenchido** e com desconto visível.
@@ -157,6 +174,7 @@
   (`activeReferrals` em `me.js`).
 
 ### 4.3 Anti-fraude (commits `a0b477e`, `8e81500`, `9d6e594`, `33202ab`)
+
 - ☐ Mesmo IP + mesmo device tentando criar 3+ contas seguidas → bloqueio
   `too_many_trials` (HTTP 429, commit `2651230`).
 - ☐ Mesmo CPF/CNPJ em duas contas → segunda não pode receber crédito de
@@ -216,11 +234,12 @@ A ideia é montar **camadas** — nenhuma ferramenta sozinha resolve. O que mais
 faz sentido para o stack atual (Vercel + Firebase + Asaas + frontend estático):
 
 ## A. Já em uso ou parcialmente
-| Ferramenta | Status | O que cobre |
-|---|---|---|
-| **Cloudflare** (auto-detect já existe, commit `662861c`) | parcial | WAF, bot mitigation, rate-limit na borda. **Ativar Pro plan** quando vender — habilita regras WAF mais agressivas e *Bot Fight Mode*. |
-| **Firebase Auth + rules** | ok | Identidade. Falta **App Check** (ver abaixo). |
-| **Rate-limit interno** (`api/_lib/rate-limit.js`) | ok | Anti-fraude por device+IP. |
+
+| Ferramenta                                               | Status  | O que cobre                                                                                                                           |
+| -------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **Cloudflare** (auto-detect já existe, commit `662861c`) | parcial | WAF, bot mitigation, rate-limit na borda. **Ativar Pro plan** quando vender — habilita regras WAF mais agressivas e _Bot Fight Mode_. |
+| **Firebase Auth + rules**                                | ok      | Identidade. Falta **App Check** (ver abaixo).                                                                                         |
+| **Rate-limit interno** (`api/_lib/rate-limit.js`)        | ok      | Anti-fraude por device+IP.                                                                                                            |
 
 ## B. **Instalar antes** de abrir vendas (prioridade alta)
 
@@ -234,11 +253,11 @@ faz sentido para o stack atual (Vercel + Firebase + Asaas + frontend estático):
 2. **Sentry** (frontend + serverless).
    - Captura exceções não tratadas no browser e nas funções Vercel, com
      **session replay** para reproduzir bug de pagamento.
-   - Plano *Team* (~US$26/mês) já basta. Habilitar **filtros de PII** para
+   - Plano _Team_ (~US$26/mês) já basta. Habilitar **filtros de PII** para
      não logar CPF/cartão.
 
 3. **GitHub Dependabot + secret scanning** (grátis).
-   - Já incluído no GitHub. Ativar em *Settings → Security*. Alerta de CVE
+   - Já incluído no GitHub. Ativar em _Settings → Security_. Alerta de CVE
      em dependências (`firebase-admin`, `node-fetch`, etc.) e flagra se
      subir uma chave Asaas/Firebase por engano.
 
@@ -247,7 +266,7 @@ faz sentido para o stack atual (Vercel + Firebase + Asaas + frontend estático):
      ~zero comparado a Lambda ddosado.
 
 5. **Asaas → ativar "Notificação de tentativas de fraude"** + 3DS no cartão.
-   - No painel Asaas: *Configurações → Antifraude*. Cobre chargebacks.
+   - No painel Asaas: _Configurações → Antifraude_. Cobre chargebacks.
 
 ## C. Recomendado, baixo esforço
 
@@ -256,7 +275,7 @@ faz sentido para o stack atual (Vercel + Firebase + Asaas + frontend estático):
      não só deps). Detecta SQL/XSS/SSRF.
 
 7. **OWASP ZAP** (uma rodada manual antes do go-live).
-   - Roda um *spider + active scan* no domínio. Pega coisas como CSRF
+   - Roda um _spider + active scan_ no domínio. Pega coisas como CSRF
      ausente, headers fracos (HSTS, CSP), redirect aberto. Grátis.
 
 8. **Mozilla Observatory** + **securityheaders.com**.

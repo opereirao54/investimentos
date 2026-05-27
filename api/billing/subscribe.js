@@ -1,5 +1,5 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
-const { requireVerifiedUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
@@ -9,19 +9,6 @@ function formatDate(d) {
   const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
   const dd = String(d.getUTCDate()).padStart(2, '0');
   return `${yyyy}-${mm}-${dd}`;
-}
-
-function readBody(req) {
-  return new Promise((resolve) => {
-    if (req.body && typeof req.body === 'object') return resolve(req.body);
-    let raw = '';
-    req.on('data', c => { raw += c; });
-    req.on('end', () => {
-      if (!raw) return resolve({});
-      try { resolve(JSON.parse(raw)); } catch (_) { resolve({}); }
-    });
-    req.on('error', () => resolve({}));
-  });
 }
 
 function cleanDigits(s) {
@@ -42,14 +29,17 @@ function brandFromNumber(n) {
   if (/^(36|30[0-5]|3[89])/.test(d)) return 'DINERS';
   if (/^(6011|65|64[4-9])/.test(d)) return 'DISCOVER';
   if (/^(606282|3841)/.test(d)) return 'HIPERCARD';
-  if (/^(4011|4312|4389|4514|4573|5041|5066|5067|6277|6363|6504|6505|6516|6550)/.test(d)) return 'ELO';
+  if (/^(4011|4312|4389|4514|4573|5041|5066|5067|6277|6363|6504|6505|6516|6550)/.test(d))
+    return 'ELO';
   return 'UNKNOWN';
 }
 
 function cardMetadataFromAsaas(sub, fallbackNumber) {
   const cc = (sub && sub.creditCard) || {};
   const masked = cc.creditCardNumber || '';
-  const last4 = masked.replace(/\D+/g, '').slice(-4) || (fallbackNumber ? String(fallbackNumber).replace(/\D+/g, '').slice(-4) : null);
+  const last4 =
+    masked.replace(/\D+/g, '').slice(-4) ||
+    (fallbackNumber ? String(fallbackNumber).replace(/\D+/g, '').slice(-4) : null);
   return {
     cardBrand: cc.creditCardBrand || (fallbackNumber ? brandFromNumber(fallbackNumber) : null),
     cardLast4: last4 || null,
@@ -57,18 +47,20 @@ function cardMetadataFromAsaas(sub, fallbackNumber) {
   };
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
-
-  const user = await requireVerifiedUser(req, res);
-  if (!user) return;
-
-  const body = await readBody(req);
-  const cpfCnpj = cleanDigits(body.cpfCnpj);
+module.exports = handler({
+  method: 'POST',
+  auth: 'verified',
+  // Sem bodySchema: subscribe aceita um leque de campos (cartão + holder
+  // info + endereço) com defaults caso parciais. Validação detalhada fica
+  // inline por enquanto — onda posterior pode tightnen com Zod refinements.
+  handle: async ({ req, res, user, body }) => {
+    const cpfCnpj = cleanDigits(body.cpfCnpj);
   const customerName = (body.name || '').trim();
   const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
-  const rawHolder = body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object' ? body.creditCardHolderInfo : null;
+  const rawHolder =
+    body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object'
+      ? body.creditCardHolderInfo
+      : null;
   const wantsCard = !!rawCard;
   // mode: 'subscription' (padrão, assinatura mensal Asaas) ou 'one_shot'
   // (cobrança única de 30 dias, sem subscription). Fundido com /subscribe
@@ -92,16 +84,21 @@ module.exports = async (req, res) => {
     const claim = await db().runTransaction(async (tx) => {
       const s = await tx.get(ref);
       const ex = s.exists ? s.data() : null;
-      const lockedAtMs = ex && ex.subscribeLockAt && typeof ex.subscribeLockAt.toMillis === 'function'
-        ? ex.subscribeLockAt.toMillis()
-        : 0;
-      if (ex && ex.subscribeLock && (Date.now() - lockedAtMs) < SUBSCRIBE_LOCK_TTL_MS) {
+      const lockedAtMs =
+        ex && ex.subscribeLockAt && typeof ex.subscribeLockAt.toMillis === 'function'
+          ? ex.subscribeLockAt.toMillis()
+          : 0;
+      if (ex && ex.subscribeLock && Date.now() - lockedAtMs < SUBSCRIBE_LOCK_TTL_MS) {
         return { state: 'locked' };
       }
-      tx.set(ref, {
-        subscribeLock: true,
-        subscribeLockAt: timestamp().fromMillis(Date.now()),
-      }, { merge: true });
+      tx.set(
+        ref,
+        {
+          subscribeLock: true,
+          subscribeLockAt: timestamp().fromMillis(Date.now()),
+        },
+        { merge: true }
+      );
       return { state: 'acquired' };
     });
     if (claim.state === 'locked') {
@@ -116,10 +113,13 @@ module.exports = async (req, res) => {
       if (lockReleased) return;
       lockReleased = true;
       try {
-        await ref.set({
-          subscribeLock: fieldValue().delete(),
-          subscribeLockAt: fieldValue().delete(),
-        }, { merge: true });
+        await ref.set(
+          {
+            subscribeLock: fieldValue().delete(),
+            subscribeLockAt: fieldValue().delete(),
+          },
+          { merge: true }
+        );
       } catch (e) {
         console.warn('[subscribe] failed to release lock', e && e.message);
       }
@@ -129,15 +129,24 @@ module.exports = async (req, res) => {
 
     if (!billing.cpfCnpj && !cpfCnpj) {
       await releaseLock();
-      return res.status(400).json({ error: 'cpfcnpj_required', detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.' });
+      return res
+        .status(400)
+        .json({
+          error: 'cpfcnpj_required',
+          detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.',
+        });
     }
     if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
       await releaseLock();
-      return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
+      return res
+        .status(400)
+        .json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
     }
     if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
       await releaseLock();
-      return res.status(400).json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
+      return res
+        .status(400)
+        .json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
     }
 
     if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
@@ -145,7 +154,8 @@ module.exports = async (req, res) => {
       // (anti multi-conta para fraudar referral).
       let dupDocs = [];
       try {
-        const dup = await db().collectionGroup('billing')
+        const dup = await db()
+          .collectionGroup('billing')
           .where('cpfCnpj', '==', cpfCnpj)
           .limit(5)
           .get();
@@ -154,7 +164,7 @@ module.exports = async (req, res) => {
         console.warn('[subscribe] CPF uniqueness check skipped (missing index)', err.message);
       }
 
-      const conflict = dupDocs.find(d => {
+      const conflict = dupDocs.find((d) => {
         const owner = d.ref.parent && d.ref.parent.parent;
         return owner && owner.id !== user.uid;
       });
@@ -176,18 +186,24 @@ module.exports = async (req, res) => {
             req,
           });
           if (!guard.allowed) {
-            await ref.set({
-              referredByUserId: fieldValue().delete(),
-              referredByCode: fieldValue().delete(),
-              referralUsedAt: fieldValue().delete(),
-              recurringDiscountPercent: 0,
-              referralDroppedReason: guard.reason,
-              updatedAt: fieldValue().serverTimestamp(),
-            }, { merge: true });
+            await ref.set(
+              {
+                referredByUserId: fieldValue().delete(),
+                referredByCode: fieldValue().delete(),
+                referralUsedAt: fieldValue().delete(),
+                recurringDiscountPercent: 0,
+                referralDroppedReason: guard.reason,
+                updatedAt: fieldValue().serverTimestamp(),
+              },
+              { merge: true }
+            );
             billing.referredByUserId = null;
             billing.referredByCode = null;
             billing.recurringDiscountPercent = 0;
-            console.warn('[subscribe] referral dropped at subscribe', { uid: user.uid, reason: guard.reason });
+            console.warn('[subscribe] referral dropped at subscribe', {
+              uid: user.uid,
+              reason: guard.reason,
+            });
           }
         } catch (e) {
           console.warn('[subscribe] referral revalidation failed', e && e.message);
@@ -197,20 +213,29 @@ module.exports = async (req, res) => {
       const fields = { cpfCnpj };
       if (customerName) fields.name = customerName;
       await asaas.updateCustomer(billing.customerId, fields);
-      await ref.set({
-        cpfCnpj,
-        customerName: customerName || billing.customerName || null,
-        updatedAt: fieldValue().serverTimestamp(),
-      }, { merge: true });
+      await ref.set(
+        {
+          cpfCnpj,
+          customerName: customerName || billing.customerName || null,
+          updatedAt: fieldValue().serverTimestamp(),
+        },
+        { merge: true }
+      );
     }
 
     // Avulso: bloqueia se já há assinatura ativa para evitar pagamento
     // duplicado. Para mudar de modo, o user cancela a sub primeiro.
-    if (mode === 'one_shot' && billing.subscriptionId && billing.subscriptionStatus && billing.subscriptionStatus !== 'INACTIVE') {
+    if (
+      mode === 'one_shot' &&
+      billing.subscriptionId &&
+      billing.subscriptionStatus &&
+      billing.subscriptionStatus !== 'INACTIVE'
+    ) {
       await releaseLock();
       return res.status(409).json({
         error: 'subscription_active',
-        detail: 'Já existe uma assinatura recorrente ativa. Cancele-a antes de optar pelo pagamento avulso.',
+        detail:
+          'Já existe uma assinatura recorrente ativa. Cancele-a antes de optar pelo pagamento avulso.',
       });
     }
 
@@ -221,20 +246,25 @@ module.exports = async (req, res) => {
       // Defensivamente, se INACTIVE chegar aqui, recriamos.
       if (billing.subscriptionStatus === 'INACTIVE') {
         // limpa para permitir nova criação no fluxo abaixo
-        await ref.set({
-          subscriptionId: fieldValue().delete(),
-          subscriptionStatus: fieldValue().delete(),
-          lastPaymentStatus: fieldValue().delete(),
-          lastPaymentId: fieldValue().delete(),
-          lastPaidAt: fieldValue().delete(),
-          cancelledAt: fieldValue().delete(),
-          updatedAt: fieldValue().serverTimestamp(),
-        }, { merge: true });
+        await ref.set(
+          {
+            subscriptionId: fieldValue().delete(),
+            subscriptionStatus: fieldValue().delete(),
+            lastPaymentStatus: fieldValue().delete(),
+            lastPaymentId: fieldValue().delete(),
+            lastPaidAt: fieldValue().delete(),
+            cancelledAt: fieldValue().delete(),
+            updatedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        );
         billing.subscriptionId = null;
       } else {
-        const payments = await asaas.listPaymentsBySubscription(billing.subscriptionId).catch(() => null);
+        const payments = await asaas
+          .listPaymentsBySubscription(billing.subscriptionId)
+          .catch(() => null);
         const list = (payments && payments.data) || [];
-        const pending = list.find(p => p.status === 'PENDING' || p.status === 'OVERDUE');
+        const pending = list.find((p) => p.status === 'PENDING' || p.status === 'OVERDUE');
         if (pending) {
           await releaseLock();
           return res.json({
@@ -249,7 +279,10 @@ module.exports = async (req, res) => {
         // Sem fatura pendente: pode ser que esteja active e a próxima ainda
         // não foi gerada, ou esteja em estado problemático. Devolvemos info
         // suficiente para o front decidir.
-        const lastPaid = list.find(p => p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH');
+        const lastPaid = list.find(
+          (p) =>
+            p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
+        );
         await releaseLock();
         return res.json({
           subscriptionId: billing.subscriptionId,
@@ -268,14 +301,16 @@ module.exports = async (req, res) => {
     const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
     const nextDue = formatDate(new Date(Date.now() + 24 * 3600 * 1000));
 
-    const holderInfo = wantsCard ? (rawHolder || {
-      name: customerName || billing.customerName || user.email,
-      email: user.email,
-      cpfCnpj: cpfCnpj || billing.cpfCnpj,
-      postalCode: (rawHolder && rawHolder.postalCode) || null,
-      addressNumber: (rawHolder && rawHolder.addressNumber) || null,
-      phone: (rawHolder && rawHolder.phone) || null,
-    }) : null;
+    const holderInfo = wantsCard
+      ? rawHolder || {
+          name: customerName || billing.customerName || user.email,
+          email: user.email,
+          cpfCnpj: cpfCnpj || billing.cpfCnpj,
+          postalCode: (rawHolder && rawHolder.postalCode) || null,
+          addressNumber: (rawHolder && rawHolder.addressNumber) || null,
+          phone: (rawHolder && rawHolder.phone) || null,
+        }
+      : null;
 
     // Branch avulso: cria payment único (POST /payments), sem subscription.
     // O webhook PAYMENT_CONFIRMED detecta !payment.subscription e aplica
@@ -295,14 +330,17 @@ module.exports = async (req, res) => {
         payPayload.remoteIp = clientIp(req);
       }
       const pay = await asaas.createPayment(payPayload);
-      await ref.set({
-        paymentMode: 'one_shot',
-        lastOneShotPaymentId: pay.id,
-        paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
-        updatedAt: fieldValue().serverTimestamp(),
-        subscribeLock: fieldValue().delete(),
-        subscribeLockAt: fieldValue().delete(),
-      }, { merge: true });
+      await ref.set(
+        {
+          paymentMode: 'one_shot',
+          lastOneShotPaymentId: pay.id,
+          paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+          updatedAt: fieldValue().serverTimestamp(),
+          subscribeLock: fieldValue().delete(),
+          subscribeLockAt: fieldValue().delete(),
+        },
+        { merge: true }
+      );
       lockReleased = true;
       return res.json({
         mode: 'one_shot',
@@ -379,10 +417,13 @@ module.exports = async (req, res) => {
     // "billing.subscriptionId existe" e devolve os dados sem duplicar.
     try {
       const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
-      await ref.set({
-        subscribeLock: fieldValue().delete(),
-        subscribeLockAt: fieldValue().delete(),
-      }, { merge: true });
+      await ref.set(
+        {
+          subscribeLock: fieldValue().delete(),
+          subscribeLockAt: fieldValue().delete(),
+        },
+        { merge: true }
+      );
     } catch (relErr) {
       console.warn('[subscribe] failed to release lock on error', relErr && relErr.message);
     }
@@ -392,5 +433,6 @@ module.exports = async (req, res) => {
       asaasStatus: e.status || null,
       asaasErrors: (e.data && e.data.errors) || e.data || null,
     });
-  }
-};
+    }
+  },
+});

@@ -40,13 +40,13 @@
 
 ## Estados de acesso (`api/_lib/access.js`)
 
-| status | quando |
-|--------|--------|
-| `active` | `subscriptionStatus=ACTIVE` e último pagamento `CONFIRMED`/`RECEIVED` |
-| `trial` | dentro de `trialEndsAt` |
-| `pending_payment` | assinatura criada mas pagamento ainda não confirmado |
-| `blocked` | trial expirou OU `SUBSCRIPTION_DELETED` |
-| `blocked` (overdue) | `PAYMENT_OVERDUE` |
+| status              | quando                                                                |
+| ------------------- | --------------------------------------------------------------------- |
+| `active`            | `subscriptionStatus=ACTIVE` e último pagamento `CONFIRMED`/`RECEIVED` |
+| `trial`             | dentro de `trialEndsAt`                                               |
+| `pending_payment`   | assinatura criada mas pagamento ainda não confirmado                  |
+| `blocked`           | trial expirou OU `SUBSCRIPTION_DELETED`                               |
+| `blocked` (overdue) | `PAYMENT_OVERDUE`                                                     |
 
 ## Esquema Firestore
 
@@ -67,13 +67,13 @@ Regras (`firestore.rules`): utilizador **lê** o seu billing mas **não escreve*
 
 ## Variáveis de ambiente
 
-| Nome | Onde |
-|------|------|
-| `ASAAS_API_KEY` | painel Asaas → Integrações → API |
-| `ASAAS_API_URL` | `https://api.asaas.com/v3` (prod) ou `https://sandbox.asaas.com/api/v3` (sandbox) |
-| `ASAAS_WEBHOOK_TOKEN` | token livre que define ao criar o webhook |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | `base64 -w0 service-account.json` |
-| `FIREBASE_PROJECT_ID` | `appliquei-prod` |
+| Nome                              | Onde                                                                              |
+| --------------------------------- | --------------------------------------------------------------------------------- |
+| `ASAAS_API_KEY`                   | painel Asaas → Integrações → API                                                  |
+| `ASAAS_API_URL`                   | `https://api.asaas.com/v3` (prod) ou `https://sandbox.asaas.com/api/v3` (sandbox) |
+| `ASAAS_WEBHOOK_TOKEN`             | token livre que define ao criar o webhook                                         |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | `base64 -w0 service-account.json`                                                 |
+| `FIREBASE_PROJECT_ID`             | `appliquei-prod`                                                                  |
 
 Local: `.env.local` na raiz (Vercel CLI lê automaticamente). Produção: `vercel env add ...` ou painel Vercel → Settings → Environment Variables.
 
@@ -108,18 +108,19 @@ vercel --prod
 ```
 
 Notas:
+
 - O `vercel.json` já redireciona `/` para `Appliquei_v13.0.html` e configura cache `no-store` para `/api/*`.
 - Em dev local: `vercel dev` (corre o front + as funções `/api`).
-- As credenciais do Firebase Web já vivem inline no HTML (config pública); só a *Service Account* (Admin) precisa de ser secreta.
+- As credenciais do Firebase Web já vivem inline no HTML (config pública); só a _Service Account_ (Admin) precisa de ser secreta.
 
 ## Endpoints
 
-| Método | Rota | Auth | Função |
-|--------|------|------|--------|
-| `POST` | `/api/billing/init` | Bearer ID token | cria cliente Asaas + define `trialEndsAt` |
-| `GET`  | `/api/billing/me` | Bearer ID token | devolve `{ access, billing, referrals, payments, ... }` (consolida o antigo `/status`) |
-| `POST` | `/api/billing/subscribe` | Bearer ID token | cria assinatura, devolve `invoiceUrl` |
-| `POST` | `/api/billing/webhook` | header `asaas-access-token` | atualiza billing/payments |
+| Método | Rota                     | Auth                        | Função                                                                                 |
+| ------ | ------------------------ | --------------------------- | -------------------------------------------------------------------------------------- |
+| `POST` | `/api/billing/init`      | Bearer ID token             | cria cliente Asaas + define `trialEndsAt`                                              |
+| `GET`  | `/api/billing/me`        | Bearer ID token             | devolve `{ access, billing, referrals, payments, ... }` (consolida o antigo `/status`) |
+| `POST` | `/api/billing/subscribe` | Bearer ID token             | cria assinatura, devolve `invoiceUrl`                                                  |
+| `POST` | `/api/billing/webhook`   | header `asaas-access-token` | atualiza billing/payments                                                              |
 
 ## Segurança
 
@@ -135,22 +136,22 @@ Notas:
 
 ### Variáveis de ambiente adicionais
 
-| Variável | Default | Função |
-|---|---|---|
-| `EMAIL_VERIFY_ENFORCE` | `false` | Quando `true`, backend devolve 403 `email_not_verified` se o token não tiver `email_verified=true`. Antes de ativar, rodar `scripts/backfill-email-verification.js` e deixar 7 dias em log-only. |
-| `ANTIFRAUD_INIT_ENABLED` | `false` | Quando `true`, rate-limit em `/init` (IP/device) responde 429. Default só loga. |
-| `REFERRAL_BLOCK_SAME_IP` | `false` | Quando `true`, bloqueia referral quando o IP do indicador é igual ao do indicado. NAT-unsafe (famílias compartilham IP). |
-| `TRUSTED_PROXY_HOPS` | `0` | Quantos proxies confiáveis estão na frente. Vercel sozinha = 0. Cloudflare+Vercel = 1. Usado pelo helper `ipFrom`. |
-| `RATE_LIMIT_SALT` | `appliquei-rl-v1` | Salt para hash do device fingerprint e das chaves de rate-limit. Definir um valor aleatório por ambiente em produção. |
-| `APP_ORIGIN` | (req origin) | Base URL usada nos links de verificação de e-mail. |
+| Variável                 | Default           | Função                                                                                                                                                                                           |
+| ------------------------ | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `EMAIL_VERIFY_ENFORCE`   | `false`           | Quando `true`, backend devolve 403 `email_not_verified` se o token não tiver `email_verified=true`. Antes de ativar, rodar `scripts/backfill-email-verification.js` e deixar 7 dias em log-only. |
+| `ANTIFRAUD_INIT_ENABLED` | `false`           | Quando `true`, rate-limit em `/init` (IP/device) responde 429. Default só loga.                                                                                                                  |
+| `REFERRAL_BLOCK_SAME_IP` | `false`           | Quando `true`, bloqueia referral quando o IP do indicador é igual ao do indicado. NAT-unsafe (famílias compartilham IP).                                                                         |
+| `TRUSTED_PROXY_HOPS`     | `0`               | Quantos proxies confiáveis estão na frente. Vercel sozinha = 0. Cloudflare+Vercel = 1. Usado pelo helper `ipFrom`.                                                                               |
+| `RATE_LIMIT_SALT`        | `appliquei-rl-v1` | Salt para hash do device fingerprint e das chaves de rate-limit. Definir um valor aleatório por ambiente em produção.                                                                            |
+| `APP_ORIGIN`             | (req origin)      | Base URL usada nos links de verificação de e-mail.                                                                                                                                               |
 
 ### Manutenção: TTL Firestore
 
 As coleções `rateLimits` e `webhookEvents` crescem indefinidamente sem cleanup. Configurar TTL policy no Firebase Console → Firestore → TTL:
 
-| Coleção | Campo TTL | Recomendação |
-|---|---|---|
-| `rateLimits` | `expiresAt` | Já gravado pelo código. Ativar TTL. |
+| Coleção         | Campo TTL   | Recomendação                                     |
+| --------------- | ----------- | ------------------------------------------------ |
+| `rateLimits`    | `expiresAt` | Já gravado pelo código. Ativar TTL.              |
 | `webhookEvents` | `expiresAt` | Já gravado (TTL 30 dias). Ativar TTL no console. |
 
 Sem TTL ativo, esses docs ficam para sempre — custo de storage cresce linear, custo de leitura inalterado.

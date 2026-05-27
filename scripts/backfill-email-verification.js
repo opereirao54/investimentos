@@ -29,7 +29,9 @@
 //   FIREBASE_SERVICE_ACCOUNT_BASE64=... node scripts/backfill-email-verification.js --send
 
 const path = require('path');
-const { auth, db, fieldValue } = require(path.join(__dirname, '..', 'api', '_lib', 'firebase-admin'));
+const { auth, db, fieldValue } = require(
+  path.join(__dirname, '..', 'api', '_lib', 'firebase-admin')
+);
 
 function color(s, c) {
   const m = { red: 31, green: 32, yellow: 33, cyan: 36, gray: 90, bold: 1 };
@@ -47,7 +49,7 @@ async function sendMail(/* email, link */) {
 }
 
 function hasPasswordProvider(u) {
-  return Array.isArray(u.providerData) && u.providerData.some(p => p.providerId === 'password');
+  return Array.isArray(u.providerData) && u.providerData.some((p) => p.providerId === 'password');
 }
 
 async function listAllUsers() {
@@ -64,26 +66,35 @@ async function listAllUsers() {
 async function markBilling(uid) {
   try {
     const ref = db().collection('users').doc(uid).collection('billing').doc('account');
-    await ref.set({
-      emailVerificationSentAt: fieldValue().serverTimestamp(),
-    }, { merge: true });
+    await ref.set(
+      {
+        emailVerificationSentAt: fieldValue().serverTimestamp(),
+      },
+      { merge: true }
+    );
   } catch (_) {}
 }
 
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run') || !args.includes('--send');
-  console.log(color('Modo: ' + (dryRun ? 'dry-run (apenas relatório)' : 'send (gera links e marca)'), 'cyan'));
+  console.log(
+    color('Modo: ' + (dryRun ? 'dry-run (apenas relatório)' : 'send (gera links e marca)'), 'cyan')
+  );
 
   const users = await listAllUsers();
-  const candidates = users.filter(u => !u.emailVerified && u.email && hasPasswordProvider(u));
+  const candidates = users.filter((u) => !u.emailVerified && u.email && hasPasswordProvider(u));
   console.log(color('Total users: ' + users.length, 'gray'));
   console.log(color('Candidatos (email/senha + nao verificado): ' + candidates.length, 'bold'));
 
-  let sent = 0, skipped = 0;
+  let sent = 0,
+    skipped = 0;
   for (const u of candidates) {
     try {
-      const link = await auth().generateEmailVerificationLink(u.email, APP_ORIGIN ? { url: APP_ORIGIN + '/' } : undefined);
+      const link = await auth().generateEmailVerificationLink(
+        u.email,
+        APP_ORIGIN ? { url: APP_ORIGIN + '/' } : undefined
+      );
       if (dryRun) {
         console.log(color('[dry] ', 'gray') + u.uid + '  ' + u.email);
         continue;
@@ -104,12 +115,25 @@ async function main() {
         console.log(color('[send] ', 'green') + u.uid + '  ' + u.email);
       }
     } catch (e) {
-      console.warn(color('[err] ', 'red') + u.uid + '  ' + u.email + '  ' + (e && e.code), e && e.message);
+      console.warn(
+        color('[err] ', 'red') + u.uid + '  ' + u.email + '  ' + (e && e.code),
+        e && e.message
+      );
     }
   }
 
   console.log('');
-  console.log(color('Concluido. enviados=' + sent + ' marcados=' + skipped + ' total=' + candidates.length, 'bold'));
+  console.log(
+    color(
+      'Concluido. enviados=' + sent + ' marcados=' + skipped + ' total=' + candidates.length,
+      'bold'
+    )
+  );
 }
 
-main().then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });
+main()
+  .then(() => process.exit(0))
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });

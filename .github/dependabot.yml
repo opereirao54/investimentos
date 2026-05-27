@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # npm dependencies (top-level + devDependencies)
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'America/Sao_Paulo'
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    labels:
+      - 'dependencies'
+    groups:
+      # Agrupa minor/patch para não inundar com 1 PR por dep.
+      dev-dependencies:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+      production-dependencies:
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+    # Majors viram PR isolada — costumam exigir migração.
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  # GitHub Actions versioning
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    labels:
+      - 'dependencies'
+      - 'ci'

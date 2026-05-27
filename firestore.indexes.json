@@ -4,30 +4,22 @@
     {
       "collectionGroup": "billing",
       "fieldPath": "referredByUserId",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
-      ]
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     },
     {
       "collectionGroup": "billing",
       "fieldPath": "customerId",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
-      ]
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     },
     {
       "collectionGroup": "billing",
       "fieldPath": "subscriptionId",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
-      ]
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     },
     {
       "collectionGroup": "billing",
       "fieldPath": "cpfCnpj",
-      "indexes": [
-        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
-      ]
+      "indexes": [{ "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }]
     },
     {
       "collectionGroup": "payments",

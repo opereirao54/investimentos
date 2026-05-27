@@ -89,7 +89,11 @@ async function requireFreshVerifiedUser(req, res) {
       return null;
     }
   } catch (e) {
-    if (e && (e.code === 'auth/user-not-found' || e.errorInfo && e.errorInfo.code === 'auth/user-not-found')) {
+    if (
+      e &&
+      (e.code === 'auth/user-not-found' ||
+        (e.errorInfo && e.errorInfo.code === 'auth/user-not-found'))
+    ) {
       invalidateUid(decoded.uid);
       res.status(401).json({ error: 'invalid_token' });
       return null;
@@ -116,7 +120,12 @@ function invalidateUid(uid) {
 function cors(req, res) {
   const origin = req.headers.origin || '';
   const raw = String(process.env.ALLOWED_ORIGINS || '').trim();
-  const allowed = raw ? raw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const allowed = raw
+    ? raw
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
   let allowOrigin;
   if (allowed.length === 0 || allowed.includes('*')) {
     allowOrigin = '*';
@@ -143,4 +152,10 @@ function cors(req, res) {
   return false;
 }
 
-module.exports = { requireUser, requireVerifiedUser, requireFreshVerifiedUser, invalidateUid, cors };
+module.exports = {
+  requireUser,
+  requireVerifiedUser,
+  requireFreshVerifiedUser,
+  invalidateUid,
+  cors,
+};

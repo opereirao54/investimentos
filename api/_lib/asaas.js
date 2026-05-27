@@ -2,9 +2,16 @@ const DEFAULT_URL = 'https://api.asaas.com/v3';
 
 function baseUrl() {
   let u = process.env.ASAAS_API_URL || DEFAULT_URL;
-  u = String(u).trim().replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '').replace(/\/$/, '');
+  u = String(u)
+    .trim()
+    .replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '')
+    .replace(/\/$/, '');
   if (!/^https?:\/\//i.test(u)) {
-    throw new Error('ASAAS_API_URL inválida (recebida: "' + u + '"). Use https://api.asaas.com/v3 ou https://sandbox.asaas.com/api/v3.');
+    throw new Error(
+      'ASAAS_API_URL inválida (recebida: "' +
+        u +
+        '"). Use https://api.asaas.com/v3 ou https://sandbox.asaas.com/api/v3.'
+    );
   }
   return u;
 }
@@ -12,7 +19,9 @@ function baseUrl() {
 function apiKey() {
   const k = process.env.ASAAS_API_KEY;
   if (!k) throw new Error('ASAAS_API_KEY não definida.');
-  return String(k).trim().replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '');
+  return String(k)
+    .trim()
+    .replace(/^[\s"'`<\[]+|[\s"'`>\]]+$/g, '');
 }
 
 async function call(method, path, body) {
@@ -20,14 +29,18 @@ async function call(method, path, body) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'access_token': apiKey(),
+      access_token: apiKey(),
       'User-Agent': 'Appliquei/1.0',
     },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
   let data;
-  try { data = text ? JSON.parse(text) : {}; } catch (_) { data = { raw: text }; }
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch (_) {
+    data = { raw: text };
+  }
   if (!r.ok) {
     const err = new Error('asaas_error_' + r.status);
     err.status = r.status;
@@ -44,7 +57,10 @@ const PLAN_DESCRIPTION = 'Appliquei — Acesso mensal';
 async function findCustomerByExternalReference(uid) {
   if (!uid) return null;
   try {
-    const r = await call('GET', '/customers?externalReference=' + encodeURIComponent(uid) + '&limit=1');
+    const r = await call(
+      'GET',
+      '/customers?externalReference=' + encodeURIComponent(uid) + '&limit=1'
+    );
     if (r && Array.isArray(r.data) && r.data.length > 0) return r.data[0];
   } catch (e) {
     console.warn('[asaas] lookup by externalReference failed', e && e.message);
@@ -73,7 +89,16 @@ async function updateCustomer(customerId, fields) {
   return call('POST', '/customers/' + encodeURIComponent(customerId), fields);
 }
 
-async function createSubscription({ customerId, uid, nextDueDate, value, billingType, creditCard, creditCardHolderInfo, remoteIp }) {
+async function createSubscription({
+  customerId,
+  uid,
+  nextDueDate,
+  value,
+  billingType,
+  creditCard,
+  creditCardHolderInfo,
+  remoteIp,
+}) {
   const body = {
     customer: customerId,
     billingType: billingType || 'UNDEFINED',
@@ -93,10 +118,14 @@ async function updateSubscription(subscriptionId, fields) {
   return call('POST', '/subscriptions/' + encodeURIComponent(subscriptionId), fields);
 }
 
-async function updateSubscriptionCard(subscriptionId, { creditCard, creditCardHolderInfo, remoteIp, updatePendingPayments }) {
+async function updateSubscriptionCard(
+  subscriptionId,
+  { creditCard, creditCardHolderInfo, remoteIp, updatePendingPayments }
+) {
   const body = { creditCard, creditCardHolderInfo };
   if (remoteIp) body.remoteIp = remoteIp;
-  if (typeof updatePendingPayments === 'boolean') body.updatePendingPayments = updatePendingPayments;
+  if (typeof updatePendingPayments === 'boolean')
+    body.updatePendingPayments = updatePendingPayments;
   return call('POST', '/subscriptions/' + encodeURIComponent(subscriptionId), body);
 }
 
@@ -125,13 +154,23 @@ async function updatePayment(paymentId, fields) {
 // Usada pelo endpoint /api/billing/pay-month. O cashback do indicador continua
 // a funcionar via webhook PAYMENT_CONFIRMED (creditIndicatorFromIndicado roda
 // para qualquer pagamento confirmado, com ou sem subscription).
-async function createPayment({ customerId, value, billingType, dueDate, description, externalReference, creditCard, creditCardHolderInfo, remoteIp }) {
+async function createPayment({
+  customerId,
+  value,
+  billingType,
+  dueDate,
+  description,
+  externalReference,
+  creditCard,
+  creditCardHolderInfo,
+  remoteIp,
+}) {
   const body = {
     customer: customerId,
     billingType: billingType || 'UNDEFINED',
     value: typeof value === 'number' ? value : PLAN_VALUE,
     dueDate,
-    description: description || (PLAN_DESCRIPTION + ' (avulso)'),
+    description: description || PLAN_DESCRIPTION + ' (avulso)',
     externalReference,
   };
   if (creditCard) body.creditCard = creditCard;

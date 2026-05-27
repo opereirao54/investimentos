@@ -8,21 +8,21 @@
 
 ### 1.1 Stack e custos unitários
 
-| Item | Tarifa de referência | Fonte |
-|---|---|---|
-| **Asaas — cartão recorrente** | 2,99% + R$ 0,39 → R$ 0,84/cobrança de R$ 15 | Tabela pública Asaas |
-| **Asaas — PIX recorrente** | 0,99% (mín R$ 1,99) → ~R$ 0,15–1,99 | Tabela pública |
-| **Asaas — boleto** | R$ 1,99 fixo | Tabela pública |
-| **Mix de cobrança assumido** | 50% cartão / 40% PIX / 10% boleto | Conservador para fintech BR |
-| **Custo médio Asaas/cobrança** | **R$ 1,00** em escala pequena; **R$ 0,70–0,85** com negociação acima de 10k cobranças/mês | |
-| **Firestore reads** | US$ 0,06 / 100k | GCP |
-| **Firestore writes** | US$ 0,18 / 100k | GCP |
-| **Firestore storage** | US$ 0,18 / GB·mês | GCP |
-| **Uso médio/usuário ativo** | 6k reads + 1,5k writes + 50 MB/mês | Estimativa do app |
-| **Custo Firebase/usuário pagante** | **~R$ 0,10/mês** | Cálculo |
-| **Firebase Auth** | Free até 50k MAU; depois US$ 0,0055/MAU | Identity Platform |
-| **Vercel Hobby → Pro → Enterprise** | R$ 0 / ~R$ 110 / ~R$ 5.000 | Pricing público |
-| **Domínio + email transacional + monitoria** | R$ 30–200 fixo conforme porte | |
+| Item                                         | Tarifa de referência                                                                      | Fonte                       |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------- |
+| **Asaas — cartão recorrente**                | 2,99% + R$ 0,39 → R$ 0,84/cobrança de R$ 15                                               | Tabela pública Asaas        |
+| **Asaas — PIX recorrente**                   | 0,99% (mín R$ 1,99) → ~R$ 0,15–1,99                                                       | Tabela pública              |
+| **Asaas — boleto**                           | R$ 1,99 fixo                                                                              | Tabela pública              |
+| **Mix de cobrança assumido**                 | 50% cartão / 40% PIX / 10% boleto                                                         | Conservador para fintech BR |
+| **Custo médio Asaas/cobrança**               | **R$ 1,00** em escala pequena; **R$ 0,70–0,85** com negociação acima de 10k cobranças/mês |                             |
+| **Firestore reads**                          | US$ 0,06 / 100k                                                                           | GCP                         |
+| **Firestore writes**                         | US$ 0,18 / 100k                                                                           | GCP                         |
+| **Firestore storage**                        | US$ 0,18 / GB·mês                                                                         | GCP                         |
+| **Uso médio/usuário ativo**                  | 6k reads + 1,5k writes + 50 MB/mês                                                        | Estimativa do app           |
+| **Custo Firebase/usuário pagante**           | **~R$ 0,10/mês**                                                                          | Cálculo                     |
+| **Firebase Auth**                            | Free até 50k MAU; depois US$ 0,0055/MAU                                                   | Identity Platform           |
+| **Vercel Hobby → Pro → Enterprise**          | R$ 0 / ~R$ 110 / ~R$ 5.000                                                                | Pricing público             |
+| **Domínio + email transacional + monitoria** | R$ 30–200 fixo conforme porte                                                             |                             |
 
 ### 1.2 Dinâmica do Applicash (lida em `Appliquei_v13.0.html:10724`)
 
@@ -37,13 +37,13 @@
 
 Curva de adoção do Applicash usada nos cenários:
 
-| Cenário | % adquiridos via cupom | % usuários com ≥1 indicado ativo | Indicados ativos médios por indicador | ARPU líquido médio |
-|---|---|---|---|---|
-| Bootstrap (S1) | 10% | 3% | 1,5 | R$ 14,78 |
-| Tração (S2) | 25% | 8% | 2,0 | R$ 14,38 |
-| Crescimento (S3) | 40% | 15% | 2,5 | R$ 13,84 |
-| Escala (S4) | 50% | 20% | 3,0 | R$ 13,30 |
-| Maturidade (S5) | 55% | 25% | 3,2 | R$ 13,03 |
+| Cenário          | % adquiridos via cupom | % usuários com ≥1 indicado ativo | Indicados ativos médios por indicador | ARPU líquido médio |
+| ---------------- | ---------------------- | -------------------------------- | ------------------------------------- | ------------------ |
+| Bootstrap (S1)   | 10%                    | 3%                               | 1,5                                   | R$ 14,78           |
+| Tração (S2)      | 25%                    | 8%                               | 2,0                                   | R$ 14,38           |
+| Crescimento (S3) | 40%                    | 15%                              | 2,5                                   | R$ 13,84           |
+| Escala (S4)      | 50%                    | 20%                              | 3,0                                   | R$ 13,30           |
+| Maturidade (S5)  | 55%                    | 25%                              | 3,2                                   | R$ 13,03           |
 
 Cálculo do ARPU líquido: `15 × (1 − 0,10·p_cupom) − 1,50 · p_indicador · indicados_médios`,
 truncado em 0 quando estoura o cap.
@@ -64,44 +64,44 @@ truncado em 0 quando estoura o cap.
 
 ## 2. Cenários de escala (assinantes **pagantes**)
 
-| | **S1 — Bootstrap** | **S2 — Tração** | **S3 — Crescimento** | **S4 — Escala** | **S5 — Maturidade** |
-|---|---:|---:|---:|---:|---:|
-| Pagantes | 100 | 1.000 | 5.000 | 20.000 | 100.000 |
-| Trial/free ativos | 30 | 300 | 1.500 | 6.000 | 30.000 |
-| ARPU líquido (após Applicash) | R$ 14,78 | R$ 14,38 | R$ 13,84 | R$ 13,30 | R$ 13,03 |
-| **Receita bruta líquida (mensal)** | **R$ 1.478** | **R$ 14.380** | **R$ 69.200** | **R$ 266.000** | **R$ 1.303.000** |
+|                                    | **S1 — Bootstrap** | **S2 — Tração** | **S3 — Crescimento** | **S4 — Escala** | **S5 — Maturidade** |
+| ---------------------------------- | -----------------: | --------------: | -------------------: | --------------: | ------------------: |
+| Pagantes                           |                100 |           1.000 |                5.000 |          20.000 |             100.000 |
+| Trial/free ativos                  |                 30 |             300 |                1.500 |           6.000 |              30.000 |
+| ARPU líquido (após Applicash)      |           R$ 14,78 |        R$ 14,38 |             R$ 13,84 |        R$ 13,30 |            R$ 13,03 |
+| **Receita bruta líquida (mensal)** |       **R$ 1.478** |   **R$ 14.380** |        **R$ 69.200** |  **R$ 266.000** |    **R$ 1.303.000** |
 
 ### 2.1 Quebra de custos (mensal)
 
-| Linha | S1 | S2 | S3 | S4 | S5 |
-|---|---:|---:|---:|---:|---:|
-| Asaas (cobrança) | 100 | 1.000 | 5.000 | 17.000 | 70.000 |
-| Firestore | 13 | 130 | 650 | 2.600 | 13.000 |
-| Firebase Auth | 0 | 0 | 0 | 0 | 1.430 |
-| Vercel | 0 | 110 | 110 | 400 | 5.000 |
-| Domínio + email + monitoria | 30 | 80 | 200 | 800 | 3.000 |
-| Suporte / atendimento | 0¹ | 1.500 | 5.000 | 15.000 | 45.000 |
-| Equipe técnica (dev/ops) | 0¹ | 0¹ | 2.000² | 12.000² | 50.000 |
-| Marketing pago (líquido de Applicash) | 200 | 2.000 | 8.000 | 25.000 | 80.000 |
-| Segurança / backups / jurídico | 30 | 100 | 500 | 1.500 | 8.000 |
-| **Custo operacional** | **373** | **4.920** | **21.460** | **74.300** | **275.430** |
-| Tributos sobre receita | 76 (MEI) | 1.222 (~8,5%) | 7.266 (~10,5%) | 34.580 (~13%) | 208.480 (~16%) |
-| **Custo total** | **449** | **6.142** | **28.726** | **108.880** | **483.910** |
-| **Lucro líquido** | **R$ 1.029** | **R$ 8.238** | **R$ 40.474** | **R$ 157.120** | **R$ 819.090** |
-| **Margem líquida** | **70%** | **57%** | **58%** | **59%** | **63%** |
+| Linha                                 |           S1 |            S2 |             S3 |             S4 |             S5 |
+| ------------------------------------- | -----------: | ------------: | -------------: | -------------: | -------------: |
+| Asaas (cobrança)                      |          100 |         1.000 |          5.000 |         17.000 |         70.000 |
+| Firestore                             |           13 |           130 |            650 |          2.600 |         13.000 |
+| Firebase Auth                         |            0 |             0 |              0 |              0 |          1.430 |
+| Vercel                                |            0 |           110 |            110 |            400 |          5.000 |
+| Domínio + email + monitoria           |           30 |            80 |            200 |            800 |          3.000 |
+| Suporte / atendimento                 |           0¹ |         1.500 |          5.000 |         15.000 |         45.000 |
+| Equipe técnica (dev/ops)              |           0¹ |            0¹ |         2.000² |        12.000² |         50.000 |
+| Marketing pago (líquido de Applicash) |          200 |         2.000 |          8.000 |         25.000 |         80.000 |
+| Segurança / backups / jurídico        |           30 |           100 |            500 |          1.500 |          8.000 |
+| **Custo operacional**                 |      **373** |     **4.920** |     **21.460** |     **74.300** |    **275.430** |
+| Tributos sobre receita                |     76 (MEI) | 1.222 (~8,5%) | 7.266 (~10,5%) |  34.580 (~13%) | 208.480 (~16%) |
+| **Custo total**                       |      **449** |     **6.142** |     **28.726** |    **108.880** |    **483.910** |
+| **Lucro líquido**                     | **R$ 1.029** |  **R$ 8.238** |  **R$ 40.474** | **R$ 157.120** | **R$ 819.090** |
+| **Margem líquida**                    |      **70%** |       **57%** |        **58%** |        **59%** |        **63%** |
 
 ¹ S1/S2: founder bota a mão na massa — custo de oportunidade não monetizado.
 ² S3/S4: dev part-time / freela; em S5 vira time interno.
 
 ### 2.2 Faturamento anualizado e marcos
 
-| Cenário | Receita anual | Lucro anual | Faixa fiscal |
-|---|---:|---:|---|
-| S1 | R$ 17,7 k | R$ 12,3 k | MEI |
-| S2 | R$ 172,5 k | R$ 98,9 k | Simples — sai do MEI |
-| S3 | R$ 830,4 k | R$ 485,7 k | Simples Anexo III |
-| S4 | R$ 3,19 MM | R$ 1,89 MM | Simples no topo |
-| S5 | R$ 15,64 MM | R$ 9,83 MM | Lucro Presumido (excede teto Simples) |
+| Cenário | Receita anual | Lucro anual | Faixa fiscal                          |
+| ------- | ------------: | ----------: | ------------------------------------- |
+| S1      |     R$ 17,7 k |   R$ 12,3 k | MEI                                   |
+| S2      |    R$ 172,5 k |   R$ 98,9 k | Simples — sai do MEI                  |
+| S3      |    R$ 830,4 k |  R$ 485,7 k | Simples Anexo III                     |
+| S4      |    R$ 3,19 MM |  R$ 1,89 MM | Simples no topo                       |
+| S5      |   R$ 15,64 MM |  R$ 9,83 MM | Lucro Presumido (excede teto Simples) |
 
 ---
 

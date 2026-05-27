@@ -14,7 +14,11 @@ const crypto = require('crypto');
 const SALT = process.env.RATE_LIMIT_SALT || 'appliquei-rl-v1';
 
 function hashKey(s) {
-  return crypto.createHash('sha256').update(SALT + ':' + String(s || '')).digest('hex').slice(0, 24);
+  return crypto
+    .createHash('sha256')
+    .update(SALT + ':' + String(s || ''))
+    .digest('hex')
+    .slice(0, 24);
 }
 
 function windowStart(windowMs) {
@@ -46,13 +50,16 @@ async function check(opts) {
 
   // Tenta increment atômico; em caso de doc inexistente, set inicial.
   try {
-    await ref.set({
-      scope: opts.scope,
-      windowStart: timestamp().fromMillis(ws),
-      expiresAt,
-      count: fieldValue().increment(1),
-      updatedAt: fieldValue().serverTimestamp(),
-    }, { merge: true });
+    await ref.set(
+      {
+        scope: opts.scope,
+        windowStart: timestamp().fromMillis(ws),
+        expiresAt,
+        count: fieldValue().increment(1),
+        updatedAt: fieldValue().serverTimestamp(),
+      },
+      { merge: true }
+    );
     const snap = await ref.get();
     const count = (snap.data() && snap.data().count) || 1;
     if (count > max) {
@@ -86,7 +93,10 @@ function ipFrom(req) {
 
   const xff = req.headers['x-forwarded-for'];
   if (xff) {
-    const parts = String(xff).split(',').map(s => s.trim()).filter(Boolean);
+    const parts = String(xff)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     if (parts.length > 0) {
       const hops = parseInt(process.env.TRUSTED_PROXY_HOPS || '0', 10) || 0;
       if (hops > 0) {
@@ -99,15 +109,17 @@ function ipFrom(req) {
     }
   }
 
-  return req.headers['x-real-ip']
-    || (req.socket && req.socket.remoteAddress)
-    || null;
+  return req.headers['x-real-ip'] || (req.socket && req.socket.remoteAddress) || null;
 }
 
 function deviceFingerprint(req) {
   const ip = ipFrom(req) || '';
   const ua = (req && req.headers && req.headers['user-agent']) || '';
-  return crypto.createHash('sha256').update(SALT + ':dev:' + ip + ':' + ua).digest('hex').slice(0, 16);
+  return crypto
+    .createHash('sha256')
+    .update(SALT + ':dev:' + ip + ':' + ua)
+    .digest('hex')
+    .slice(0, 16);
 }
 
 module.exports = { check, ipFrom, deviceFingerprint, hashKey };

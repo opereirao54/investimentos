@@ -1,5 +1,5 @@
 const { auth } = require('../_lib/firebase-admin');
-const { requireUser, cors } = require('../_lib/auth');
+const { handler } = require('../_lib/handler');
 const rl = require('../_lib/rate-limit');
 
 // Endpoint para gerar um link novo de verificação de e-mail.
@@ -12,41 +12,42 @@ const rl = require('../_lib/rate-limit');
 // não-prod. Em produção, o link é enviado por e-mail via Firebase template
 // e o front recebe apenas { ok: true }.
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+module.exports = handler({
+  method: 'POST',
+  // Não usa 'verified' — o ponto dessa rota é justamente permitir a quem
+  // ainda não verificou pedir reenvio.
+  auth: 'user',
+  handle: async ({ req, res, user }) => {
+    const ipCheck = await rl.check({
+      scope: 'resend-verification-ip',
+      key: rl.ipFrom(req) || 'unknown',
+      windowMs: 60 * 60 * 1000,
+      max: 5,
+    });
+    if (!ipCheck.allowed) {
+      res.setHeader('Retry-After', Math.ceil(ipCheck.retryAfterMs / 1000));
+      return res
+        .status(429)
+        .json({ error: 'too_many_requests', retryAfterMs: ipCheck.retryAfterMs });
+    }
+    const uidCheck = await rl.check({
+      scope: 'resend-verification-uid',
+      key: user.uid,
+      windowMs: 60 * 1000,
+      max: 1,
+    });
+    if (!uidCheck.allowed) {
+      res.setHeader('Retry-After', Math.ceil(uidCheck.retryAfterMs / 1000));
+      return res
+        .status(429)
+        .json({ error: 'too_many_requests', retryAfterMs: uidCheck.retryAfterMs });
+    }
 
-  // Não usa requireVerifiedUser — o ponto dessa rota é justamente permitir
-  // a quem ainda não verificou pedir reenvio.
-  const user = await requireUser(req, res);
-  if (!user) return;
+    if (!user.email) return res.status(400).json({ error: 'email_missing' });
+    if (user.email_verified === true) return res.json({ ok: true, alreadyVerified: true });
 
-  const ipCheck = await rl.check({
-    scope: 'resend-verification-ip',
-    key: rl.ipFrom(req) || 'unknown',
-    windowMs: 60 * 60 * 1000,
-    max: 5,
-  });
-  if (!ipCheck.allowed) {
-    res.setHeader('Retry-After', Math.ceil(ipCheck.retryAfterMs / 1000));
-    return res.status(429).json({ error: 'too_many_requests', retryAfterMs: ipCheck.retryAfterMs });
-  }
-  const uidCheck = await rl.check({
-    scope: 'resend-verification-uid',
-    key: user.uid,
-    windowMs: 60 * 1000,
-    max: 1,
-  });
-  if (!uidCheck.allowed) {
-    res.setHeader('Retry-After', Math.ceil(uidCheck.retryAfterMs / 1000));
-    return res.status(429).json({ error: 'too_many_requests', retryAfterMs: uidCheck.retryAfterMs });
-  }
-
-  if (!user.email) return res.status(400).json({ error: 'email_missing' });
-  if (user.email_verified === true) return res.json({ ok: true, alreadyVerified: true });
-
-  try {
-    const continueUrl = (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/app';
+    const continueUrl =
+      (req.headers.origin || process.env.APP_ORIGIN || '').replace(/\/$/, '') + '/app';
     const link = await auth().generateEmailVerificationLink(user.email, {
       url: continueUrl || undefined,
     });
@@ -63,8 +64,5 @@ module.exports = async (req, res) => {
     }
     console.log('[resend-verification] generated for', user.uid, user.email);
     return res.json({ ok: true });
-  } catch (e) {
-    console.error('[resend-verification] failed', e && e.code, e && e.message);
-    return res.status(500).json({ error: 'send_failed' });
-  }
-};
+  },
+});

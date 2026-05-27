@@ -1,0 +1,13 @@
+node_modules
+.vercel
+graphify-out
+*.html
+*.pdf
+*.pptx
+*.png
+*.jpg
+*.jpeg
+*.webp
+package-lock.json
+web/firebase-config.local.js
+web/firebase-config.appliquei-prod.js

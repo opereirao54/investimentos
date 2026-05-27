@@ -1,5 +1,6 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
-const { requireUser, cors } = require('./_lib/auth');
+const { requireUser } = require('./_lib/auth');
+const { handler } = require('./_lib/handler');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -46,7 +47,10 @@ function todayYmdBRT(now = Date.now()) {
 
 function sanitizeTicker(t) {
   if (typeof t !== 'string') return null;
-  const clean = t.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const clean = t
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
   if (clean.length < 4 || clean.length > 10) return null;
   return clean;
 }
@@ -55,7 +59,7 @@ async function fetchBrapi(tickers) {
   if (!tickers.length) return {};
   const url = `${BRAPI_BASE}/${encodeURIComponent(tickers.join(','))}`;
   const token = process.env.BRAPI_TOKEN;
-  const headers = { 'Accept': 'application/json' };
+  const headers = { Accept: 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
@@ -71,7 +75,7 @@ async function fetchBrapi(tickers) {
   }
   const json = await res.json();
   const out = {};
-  for (const r of (json.results || [])) {
+  for (const r of json.results || []) {
     if (!r || !r.symbol) continue;
     out[r.symbol.toUpperCase()] = {
       ticker: r.symbol.toUpperCase(),
@@ -93,17 +97,19 @@ async function handleQuote(req, res) {
   if (!user) return;
 
   const rawTickers = (req.query.tickers || '').toString();
-  const requested = Array.from(new Set(
-    rawTickers.split(',').map(sanitizeTicker).filter(Boolean)
-  )).slice(0, MAX_TICKERS_PER_REQUEST);
+  const requested = Array.from(
+    new Set(rawTickers.split(',').map(sanitizeTicker).filter(Boolean))
+  ).slice(0, MAX_TICKERS_PER_REQUEST);
 
   if (!requested.length) {
-    return res.status(400).json({ error: 'missing_tickers', detail: 'Use ?op=quote&tickers=PETR4,VALE3' });
+    return res
+      .status(400)
+      .json({ error: 'missing_tickers', detail: 'Use ?op=quote&tickers=PETR4,VALE3' });
   }
 
   const today = todayYmdBRT();
   const database = db();
-  const refs = requested.map(t => database.collection(CACHE_COLLECTION).doc(t));
+  const refs = requested.map((t) => database.collection(CACHE_COLLECTION).doc(t));
   const snaps = await database.getAll(...refs);
   const fresh = {};
   const stale = [];
@@ -123,14 +129,20 @@ async function handleQuote(req, res) {
       for (const t of stale) {
         const f = fetched[t];
         if (!f || typeof f.price !== 'number') continue;
-        batch.set(database.collection(CACHE_COLLECTION).doc(t), {
-          ...f,
-          dateYmd: today,
-          updatedAt: timestamp().now(),
-          source: 'brapi',
-        }, { merge: true });
+        batch.set(
+          database.collection(CACHE_COLLECTION).doc(t),
+          {
+            ...f,
+            dateYmd: today,
+            updatedAt: timestamp().now(),
+            source: 'brapi',
+          },
+          { merge: true }
+        );
       }
-      await batch.commit().catch(e => console.warn('[market/quote] cache_write_failed', e.message));
+      await batch
+        .commit()
+        .catch((e) => console.warn('[market/quote] cache_write_failed', e.message));
     } catch (e) {
       console.warn('[market/quote] brapi_failed', e.message);
       fetchError = e.message;
@@ -181,12 +193,17 @@ async function fetchHistorySource(ticker, range) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 12000);
     try {
-      const res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
+      const res = await fetch(url, {
+        signal: ctrl.signal,
+        headers: { Accept: 'application/json' },
+      });
       if (!res.ok) throw new Error(`coingecko_${res.status}`);
       const json = await res.json();
       const prices = (json.prices || []).map(([ts, p]) => ({ t: ts, p }));
       return downsampleMonthly(prices);
-    } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   // Brapi (ações, FIIs, ETFs, BDRs BR)
@@ -198,14 +215,18 @@ async function fetchHistorySource(ticker, range) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 12000);
     let res;
-    try { res = await fetch(url, { headers, signal: ctrl.signal }); } finally { clearTimeout(timer); }
+    try {
+      res = await fetch(url, { headers, signal: ctrl.signal });
+    } finally {
+      clearTimeout(timer);
+    }
     if (res.ok) {
       const json = await res.json();
       const hist = json?.results?.[0]?.historicalDataPrice || [];
       if (hist.length) {
         return hist
-          .filter(d => typeof d.close === 'number' && d.date)
-          .map(d => ({ t: d.date * 1000, p: d.close }))
+          .filter((d) => typeof d.close === 'number' && d.date)
+          .map((d) => ({ t: d.date * 1000, p: d.close }))
           .sort((a, b) => a.t - b.t);
       }
     }
@@ -220,7 +241,11 @@ async function fetchHistorySource(ticker, range) {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 12000);
     let res;
-    try { res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } }); } finally { clearTimeout(timer); }
+    try {
+      res = await fetch(url, { signal: ctrl.signal, headers: { Accept: 'application/json' } });
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) throw new Error(`yahoo_${res.status}`);
     const json = await res.json();
     const result = json?.chart?.result?.[0];
@@ -257,7 +282,7 @@ function buildSyntheticSeries(ticker, annualYield, months) {
   let price = 100;
   for (let i = 0; i <= months; i++) {
     out.push({ t: start + i * 30 * 86400000, p: Number(price.toFixed(4)) });
-    price *= (1 + monthlyRate);
+    price *= 1 + monthlyRate;
   }
   return out;
 }
@@ -282,7 +307,13 @@ async function handleHistory(req, res) {
   const snap = await ref.get();
   const cached = snap.data();
   if (cached && cached.dateYmd === today && Array.isArray(cached.series)) {
-    return res.json({ success: true, ticker: rawTicker, range, series: cached.series, cached: true });
+    return res.json({
+      success: true,
+      ticker: rawTicker,
+      range,
+      series: cached.series,
+      cached: true,
+    });
   }
 
   const series = await fetchHistorySource(rawTicker, range);
@@ -292,16 +323,21 @@ async function handleHistory(req, res) {
 
   // Corta pelo range solicitado (CoinGecko volta tudo, brapi às vezes excede).
   const cutoff = Date.now() - RANGE_MONTHS[range] * 31 * 86400000;
-  const trimmed = series.filter(p => p.t >= cutoff);
+  const trimmed = series.filter((p) => p.t >= cutoff);
   const finalSeries = trimmed.length >= 2 ? trimmed : series;
 
-  await ref.set({
-    dateYmd: today,
-    range,
-    ticker: rawTicker,
-    series: finalSeries,
-    updatedAt: timestamp().now(),
-  }, { merge: true }).catch(e => console.warn('[market/history] cache_write_failed', e.message));
+  await ref
+    .set(
+      {
+        dateYmd: today,
+        range,
+        ticker: rawTicker,
+        series: finalSeries,
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/history] cache_write_failed', e.message));
 
   return res.json({ success: true, ticker: rawTicker, range, series: finalSeries, cached: false });
 }
@@ -324,7 +360,7 @@ async function handleWarmup(req, res) {
   }
 
   const tickerSet = new Set();
-  snapshot.forEach(doc => {
+  snapshot.forEach((doc) => {
     const d = doc.data() || {};
     const candidate = d.ticker || d.codigo || d.symbol || d.ativo;
     const clean = sanitizeTicker(candidate);
@@ -339,7 +375,8 @@ async function handleWarmup(req, res) {
   }
 
   const today = todayYmdBRT();
-  let updated = 0, failed = 0;
+  let updated = 0,
+    failed = 0;
   const errors = [];
   for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
     const slice = tickers.slice(i, i + BATCH_SIZE);
@@ -355,15 +392,19 @@ async function handleWarmup(req, res) {
     const writeBatch = database.batch();
     for (const r of results) {
       if (!r || !r.ticker || typeof r.price !== 'number') continue;
-      writeBatch.set(database.collection(CACHE_COLLECTION).doc(r.ticker), {
-        ...r,
-        dateYmd: today,
-        updatedAt: timestamp().now(),
-        source: 'brapi-cron',
-      }, { merge: true });
+      writeBatch.set(
+        database.collection(CACHE_COLLECTION).doc(r.ticker),
+        {
+          ...r,
+          dateYmd: today,
+          updatedAt: timestamp().now(),
+          source: 'brapi-cron',
+        },
+        { merge: true }
+      );
       updated++;
     }
-    await writeBatch.commit().catch(e => {
+    await writeBatch.commit().catch((e) => {
       console.warn('[market/warmup] batch_commit_failed', e.message);
       errors.push({ batch: i / BATCH_SIZE, error: 'commit:' + e.message });
     });
@@ -380,20 +421,27 @@ async function handleWarmup(req, res) {
   });
 }
 
-module.exports = async (req, res) => {
-  if (cors(req, res)) return;
-  const op = (req.query.op || '').toString();
-  if (op === 'quote') {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return handleQuote(req, res);
-  }
-  if (op === 'history') {
-    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return handleHistory(req, res);
-  }
-  if (op === 'warmup') {
-    if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
-    return handleWarmup(req, res);
-  }
-  return res.status(400).json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
-};
+// Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
+// sub-op cuida da própria auth (requireUser p/ quote+history;
+// CRON_SECRET bearer p/ warmup).
+module.exports = handler({
+  method: ['GET', 'POST'],
+  auth: 'none',
+  handle: async ({ req, res }) => {
+    const op = (req.query.op || '').toString();
+    if (op === 'quote') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleQuote(req, res);
+    }
+    if (op === 'history') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleHistory(req, res);
+    }
+    if (op === 'warmup') {
+      return handleWarmup(req, res);
+    }
+    return res
+      .status(400)
+      .json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
+  },
+});

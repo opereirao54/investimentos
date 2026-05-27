@@ -11,7 +11,10 @@ function normalize(code) {
   // String(...)). Callers em /init e /subscribe já validam o tipo, mas
   // este guard fecha o ponto único da função.
   if (typeof code !== 'string') return '';
-  return code.trim().toUpperCase().replace(/[^A-Z0-9-]/g, '');
+  return code
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9-]/g, '');
 }
 
 function isValid(code) {

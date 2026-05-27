@@ -36,7 +36,10 @@ function computeAccess(billing, now = Date.now()) {
     if (lastPaymentStatus === 'OVERDUE') {
       return { status: 'blocked', reason: 'overdue', trialDaysLeft: 0 };
     }
-    if (lastPaymentStatus.startsWith('CHARGEBACK') || lastPaymentStatus === 'AWAITING_CHARGEBACK_REVERSAL') {
+    if (
+      lastPaymentStatus.startsWith('CHARGEBACK') ||
+      lastPaymentStatus === 'AWAITING_CHARGEBACK_REVERSAL'
+    ) {
       return { status: 'blocked', reason: 'chargeback', trialDaysLeft: 0 };
     }
     return { status: 'blocked', reason: 'refunded', trialDaysLeft: 0 };
@@ -50,7 +53,13 @@ function computeAccess(billing, now = Date.now()) {
   // Assinatura ativa + já pagou antes (fallback se lastPaymentStatus não foi
   // atualizado, ex.: durante geração do próximo invoice em PENDING).
   // Só vale se o último status conhecido não é um estado problemático.
-  if (subStatus === 'ACTIVE' && hasPaidBefore && (!lastPaymentStatus || lastPaymentStatus === 'PENDING' || PAID_PAYMENT_STATUSES.has(lastPaymentStatus))) {
+  if (
+    subStatus === 'ACTIVE' &&
+    hasPaidBefore &&
+    (!lastPaymentStatus ||
+      lastPaymentStatus === 'PENDING' ||
+      PAID_PAYMENT_STATUSES.has(lastPaymentStatus))
+  ) {
     return { status: 'active', reason: 'paid', trialDaysLeft: 0 };
   }
 
@@ -64,7 +73,7 @@ function computeAccess(billing, now = Date.now()) {
   // foi acionado. Cobre o caso "paguei, cancelei, ainda tenho direito
   // ao restante do mês" — CDC + prática SaaS padrão. Vem DEPOIS do trial
   // para preservar o estado "trial" enquanto a avaliação está viva.
-  if (lastPaidAtMs && (now - lastPaidAtMs) < PAID_PERIOD_MS) {
+  if (lastPaidAtMs && now - lastPaidAtMs < PAID_PERIOD_MS) {
     return { status: 'active', reason: 'paid_period', trialDaysLeft: 0 };
   }
 
