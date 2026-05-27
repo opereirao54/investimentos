@@ -59,6 +59,10 @@ module.exports = [
         firebase: 'readonly',
         google: 'readonly',
         AppliqueiFirebase: 'readonly',
+        // Globais definidos no <script> inline grande do Appliquei_v13.0.html
+        // que módulos extraídos durante a Onda 3 ainda consomem (até serem
+        // migrados também). Lista crescerá conforme novas extrações.
+        mostrarToast: 'readonly',
       },
     },
     rules: {
