@@ -6719,7 +6719,12 @@
          para que parseBRL, mostrarToast, etc. estejam disponíveis nos IIFEs
          de parse-time. Bump no ?v= ao mexer no arquivo (cache-bust manual). -->
     <script src="/web/appliquei-utils.js?v=onda3a"></script>
-    <script src="/web/appliquei-app.js?v=onda3i"></script>
+    <script src="/web/appliquei-app.js?v=onda3j"></script>
+    <!-- ABA 1 charts (Evolução + Tema + Distribuição + Quadro Inferior).
+         Carregado logo após app.js — funções (setPeriodoEvolucao,
+         aplicarTemaChartJs, etc.) são consumidas pelo window.onload em
+         app.js. Definição via function declaration => global automático. -->
+    <script src="/web/appliquei-aba1-charts.js?v=onda3a"></script>
     <!-- Features extraídas — carregadas DEPOIS de app.js porque usam
          helpers e state global dele. Order ao final é tolerante (todas
          são chamadas via user action ou window.onload). -->

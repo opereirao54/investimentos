@@ -98,6 +98,7 @@ module.exports = [
       'web/appliquei-patrimonio.js',
       'web/appliquei-jornada.js',
       'web/appliquei-sonhos.js',
+      'web/appliquei-aba1-charts.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
