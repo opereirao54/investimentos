@@ -1,7 +1,8 @@
 # Graphify — cache local (regenerável, pode crescer)
 graphify-out/cache/
 
-# Firebase — chaves do projeto (opcional; o HTML tenta carregar este ficheiro)
+# Firebase — chaves do projeto (legado; o HTML não referencia mais; mantido
+# no gitignore para que arquivos locais antigos não vazem se ainda existirem).
 web/firebase-config.local.js
 
 .env

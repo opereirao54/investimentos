@@ -1,7 +1,9 @@
 /**
- * Valores vazios = Firebase não inicializa (app funciona só em local).
- * Para login na nuvem: copie para firebase-config.local.js e preencha (gitignored),
- * ou edite aqui só em ambiente local — Firebase Console → Project settings → SDK.
+ * Defaults vazios (Firebase não inicializa, app só roda local).
+ * appliquei-firebase-init.js detecta e cai num path vazio.
+ *
+ * Onda 3 — ES module. Em produção é sobrescrito por
+ * firebase-config.appliquei-prod.js (carregado depois na document order).
  */
 window.__APPLIQUEI_FIREBASE_CONFIG__ = {
   apiKey: '',

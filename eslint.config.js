@@ -102,6 +102,7 @@ module.exports = [
       'web/appliquei-renda-fixa.js',
       'web/appliquei-previdencia.js',
       'web/appliquei-yahoo-finance.js',
+      'web/appliquei-admin.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

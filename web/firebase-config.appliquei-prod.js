@@ -1,7 +1,10 @@
 /**
- * Configuração web Firebase — projeto appliquei-prod (ambiente que já partilhou).
- * Para outro projeto ou chaves locais, use web/firebase-config.local.js (gitignored)
- * e carregue-o depois deste ficheiro no HTML, ou edite só em máquina local.
+ * Configuração web Firebase — projeto appliquei-prod.
+ *
+ * Onda 3 — convertido para ES module. Continua setando o global
+ * window.__APPLIQUEI_FIREBASE_CONFIG__ para preservar o contrato com
+ * appliquei-firebase-init.js (que lê desse global). Para override em
+ * dev, edite este arquivo localmente (commit-back não obrigatório).
  */
 window.__APPLIQUEI_FIREBASE_CONFIG__ = {
   apiKey: 'AIzaSyABW6nLy_eN7fo63D1ZSDQ4Ejfg1Q8iChQ',
