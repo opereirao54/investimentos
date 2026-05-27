@@ -97,6 +97,7 @@ module.exports = [
       'web/appliquei-duvidas.js',
       'web/appliquei-patrimonio.js',
       'web/appliquei-jornada.js',
+      'web/appliquei-sonhos.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
