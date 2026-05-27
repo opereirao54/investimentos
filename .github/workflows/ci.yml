@@ -16,7 +16,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Node 22 alinha CI com o dev environment local; necessário para
+          # expansão de glob no `node --test "test/**/*.test.js"` (Node 20
+          # não suporta — falha com "Could not find" e força mudança de
+          # test runner).
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
