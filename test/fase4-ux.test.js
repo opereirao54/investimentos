@@ -257,6 +257,38 @@ test('4.6 sem fechamento cadastrado assume fech = venc', () => {
   assert.equal(ymd(venc), '2026-06-20');
 });
 
+// ---- 4.3 / 4.4: projeção 1–50 anos e prêmio de risco -------------------
+
+test('4.3 cartSeriesSintetica projeta horizontes longos (50 anos = 600 meses)', () => {
+  const s = loadApp();
+  assert.equal(s.cartRangeEhProjecao('50y'), true);
+  assert.equal(s.cartRangeEhProjecao('3y'), false);
+  const serie = s.cartSeriesSintetica('IBOV', '50y');
+  assert.equal(serie.length, 601, '600 meses + ponto inicial');
+  assert.ok(serie[serie.length - 1].p > serie[0].p, 'juros compostos crescem ao longo do tempo');
+});
+
+test('4.4 prêmio de risco: arrojado projeta MAIS que moderado e conservador', () => {
+  const s = loadApp();
+  const proxies = { rf: 'TESOURO_SELIC_2027', acao: 'IBOV', fii: 'IFIX', cripto: 'BTC' };
+  const alloc = s.CART_ALLOC_DEFAULT;
+  const tickers = ['TESOURO_SELIC_2027', 'IBOV', 'IFIX', 'BTC', 'CDI'];
+  const seriesMap = {};
+  tickers.forEach((t) => (seriesMap[t] = s.cartSeriesSintetica(t, '30y')));
+  const finalDe = (perfil) => {
+    const b = s.cartCalcularBlendedSeries(alloc[perfil], proxies, seriesMap);
+    return b[b.length - 1].p;
+  };
+  const cons = finalDe('Conservador');
+  const mod = finalDe('Moderado');
+  const arr = finalDe('Arrojado');
+  assert.ok(arr > mod, `arrojado (${arr.toFixed(0)}) deve superar moderado (${mod.toFixed(0)})`);
+  assert.ok(
+    mod > cons,
+    `moderado (${mod.toFixed(0)}) deve superar conservador (${cons.toFixed(0)})`
+  );
+});
+
 // ---- 4.8: datalist de bancos só com saldo nas despesas -----------------
 
 test('4.8 despesa só sugere bancos com saldo; receita lista completa', () => {
