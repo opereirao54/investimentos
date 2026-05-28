@@ -200,18 +200,12 @@ function toggleSidebar() {
     // Em mobile o toggle não recolhe — abre/fecha o drawer
     if (isMobileViewport()) { toggleMobileNav(); return; }
     const sidebar = document.getElementById('mainSidebar'), icon = document.getElementById('iconToggle');
-    const logoImg = document.getElementById('logoPrincipal');
     const collapsed = sidebar.classList.toggle('collapsed');
 
     icon.className = collapsed ? 'ph ph-sidebar' : 'ph ph-sidebar-simple';
     document.getElementById('btnToggleSidebar').title = collapsed ? 'Expandir menu' : 'Recolher menu';
 
-    // Troca da imagem principal para o ícone quadrado e vice-versa
-    if (collapsed) {
-        logoImg.src = 'appliquei_favicon.jpg';
-    } else {
-        logoImg.src = 'appliquei_logo_white.jpg';
-    }
+    // Troca de visual (ícone vs ícone+texto) é 100% CSS via .sidebar.collapsed .logo-txt.
 
     localStorage.setItem('appliquei_sidebar_collapsed', collapsed ? '1' : '0');
 }
@@ -220,10 +214,6 @@ function toggleSidebar() {
     if(localStorage.getItem('appliquei_sidebar_collapsed') === '1') {
         const sidebar = document.getElementById('mainSidebar'); sidebar.classList.add('collapsed');
         const icon = document.getElementById('iconToggle'); if(icon) icon.className = 'ph ph-sidebar';
-
-        // Força o ícone reduzido no carregamento se já estava fechado
-        const logoImg = document.getElementById('logoPrincipal');
-        if(logoImg) logoImg.src = 'appliquei_favicon.jpg';
     }
 })();
 
