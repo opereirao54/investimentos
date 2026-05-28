@@ -19,18 +19,24 @@ const IGNORED_CONSOLE_PATTERNS = [
   /favicon/i,
   /ResizeObserver/i,
   // APIs Firebase deprecadas ainda em uso noutros pontos (legado Onda 3).
-  // Warning de deprecação não é regressão.
   /IndexedDbPersistence|enablePersistence/i,
-  // Mensagem genérica do Chromium para 404/CORS — recurso especificado
-  // via URL é o que importa, filtrado abaixo por IGNORED_URL_PATTERNS.
+  // Mensagem genérica do Chromium para 404; URL real filtrada abaixo.
   /Failed to load resource/i,
+  // CORS contra proxies (corsproxy.io, allorigins, etc.) — esperado em CI.
+  /blocked by CORS policy|has been blocked by CORS|Access-Control-Allow-Origin/i,
+  // Warnings emitidos pelo próprio appliquei-yahoo-finance.js quando os
+  // proxies CORS falham em cadeia. window.onload do app.js dispara
+  // buscarCotacoesReais() mesmo na tela de auth — comportamento legado
+  // (ver M4 em AUDITORIA.md, plano de extração do JS inline).
+  /Proxy retornou status|Proxy falhou|Não foi possível buscar o ativo/i,
+  /Erro ao atualizar cotações/i,
 ];
 
 const IGNORED_URL_PATTERNS = [
   // /api/* são Vercel Functions; não rodam no `vite preview`. Esperado 404.
   /\/api\//,
   // APIs financeiras e proxies CORS externos podem falhar em CI.
-  /finance\.yahoo\.com|brapi\.dev|thingproxy\.freeboard\.io|allorigins\.win|cors-anywhere/i,
+  /finance\.yahoo\.com|brapi\.dev|thingproxy\.freeboard\.io|allorigins\.win|corsproxy\.io|cors-anywhere/i,
 ];
 
 function attachConsoleCollector(page) {
