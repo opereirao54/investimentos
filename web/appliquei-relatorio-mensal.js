@@ -1157,48 +1157,157 @@ function rmCarregarHtml2pdf() {
     document.head.appendChild(s);
   });
 }
+// 4.5 — Em vez de "fotografar" a UI escura (que saía ilegível), montamos um
+// documento limpo, branco e tipográfico a partir dos DADOS do mês. Gráficos
+// viram barras em HTML (sem <canvas>), o que imprime nítido em qualquer escala.
+function rmConstruirRelatorioImprimivel(yyyymm) {
+  const rep = buildMonthlyReport(yyyymm);
+  const r = typeof calcularResumoMes === 'function' ? calcularResumoMes(rep.mes, rep.ano) : {};
+  const term = typeof rmCalcularTermometro === 'function' ? rmCalcularTermometro(rep) : null;
+  const f = (v) =>
+    typeof formatarMoeda === 'function' ? formatarMoeda(v || 0) : 'R$ ' + (v || 0).toFixed(2);
+  const corStatus = { verde: '#059669', amarelo: '#d97706', vermelho: '#dc2626', cinza: '#6b7280' };
+  const scoreCor = term ? corStatus[term.statusGeral] || '#059669' : '#059669';
+
+  const kpi = (label, val, cor) =>
+    `<div class="rm-print-kpi"><div class="k-lbl">${label}</div><div class="k-val" style="color:${cor || '#0f172a'}">${val}</div></div>`;
+
+  const distItens = [
+    { l: 'Despesas fixas', v: r.despFixa || 0, c: '#ef4444' },
+    { l: 'Despesas variáveis', v: r.despVar || 0, c: '#f97316' },
+    { l: 'Cartão de crédito', v: r.cartao || 0, c: '#f59e0b' },
+    { l: 'Sonhos', v: r.sonho || 0, c: '#ec4899' },
+    { l: 'Investimentos (aportes)', v: (r.invFixo || 0) + (r.invVar || 0), c: '#7c3aed' },
+  ].filter((x) => x.v > 0);
+  const maxDist = Math.max(1, ...distItens.map((x) => x.v));
+  const distHtml =
+    distItens
+      .map(
+        (x) => `
+        <div class="rm-print-bar-row">
+          <div class="rm-print-bar-head"><span>${x.l}</span><span class="mono">${f(x.v)}</span></div>
+          <div class="rm-print-bar-track"><div class="rm-print-bar-fill" style="width:${((x.v / maxDist) * 100).toFixed(1)}%;background:${x.c}"></div></div>
+        </div>`
+      )
+      .join('') || '<div class="rm-print-muted">Sem saídas registradas neste mês.</div>';
+
+  const critHtml = term
+    ? term.criterios
+        .map(
+          (c) => `
+        <tr>
+          <td>${c.label}</td>
+          <td class="mono" style="text-align:right">${c.valor}</td>
+          <td style="text-align:right;color:${corStatus[c.status] || '#6b7280'};font-weight:700">${c.meta || ''}</td>
+        </tr>`
+        )
+        .join('')
+    : '';
+
+  return `
+  <div class="rm-print" style="width:100%;box-sizing:border-box;font-family:'Figtree',Arial,sans-serif;color:#0f172a;">
+    <style>
+      .rm-print * { box-sizing:border-box; }
+      .rm-print .rm-print-header { display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #059669;padding-bottom:10px;margin-bottom:18px; }
+      .rm-print h1 { font-size:22px;margin:0;color:#0f172a; }
+      .rm-print .rm-print-sub { color:#64748b;font-size:12px;margin-top:2px; }
+      .rm-print .rm-print-score { text-align:center;min-width:96px; }
+      .rm-print .rm-print-score .s { font-size:30px;font-weight:800;line-height:1; }
+      .rm-print .rm-print-score .l { font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:3px; }
+      .rm-print .rm-print-card { border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;page-break-inside:avoid;background:#fff; }
+      .rm-print .rm-print-card h2 { font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin:0 0 12px; }
+      .rm-print .rm-print-kpis { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
+      .rm-print .rm-print-kpi { border:1px solid #eef2f6;border-radius:10px;padding:10px 12px;background:#f8fafc; }
+      .rm-print .rm-print-kpi .k-lbl { font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#64748b; }
+      .rm-print .rm-print-kpi .k-val { font-size:17px;font-weight:800;font-family:'DM Mono',monospace;margin-top:3px; }
+      .rm-print .mono { font-family:'DM Mono',monospace; }
+      .rm-print .rm-print-bar-row { margin-bottom:9px; }
+      .rm-print .rm-print-bar-head { display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:#334155; }
+      .rm-print .rm-print-bar-track { height:10px;background:#f1f5f9;border-radius:6px;overflow:hidden; }
+      .rm-print .rm-print-bar-fill { height:100%;border-radius:6px; }
+      .rm-print table { width:100%;border-collapse:collapse;font-size:12px; }
+      .rm-print td { padding:7px 4px;border-bottom:1px solid #eef2f6;color:#334155; }
+      .rm-print .rm-print-muted { color:#94a3b8;font-size:12px; }
+      .rm-print .rm-print-foot { text-align:center;color:#94a3b8;font-size:10.5px;margin-top:14px; }
+    </style>
+
+    <div class="rm-print-header">
+      <div>
+        <h1>Relatório Mensal</h1>
+        <div class="rm-print-sub">${rep.label} · gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
+      </div>
+      <div class="rm-print-score">
+        <div class="s" style="color:${scoreCor}">${term ? Math.round(term.score) : '—'}</div>
+        <div class="l">${term ? term.statusGeral : 'Termômetro'}</div>
+      </div>
+    </div>
+
+    <div class="rm-print-card">
+      <h2>Resumo do mês</h2>
+      <div class="rm-print-kpis">
+        ${kpi('Entradas', f(rep.entradas), '#059669')}
+        ${kpi('Despesas de consumo', f(rep.despesasContas), '#dc2626')}
+        ${kpi('Investimentos', f(rep.investimentos), '#7c3aed')}
+        ${kpi('Saldo do mês', f(rep.saldoFinal), rep.saldoFinal >= 0 ? '#059669' : '#dc2626')}
+        ${kpi('Dividendos', f(rep.dividendos), '#0ea5e9')}
+        ${kpi('Patrimônio (mercado)', f(rep.patrimonioMercado), '#0f172a')}
+      </div>
+    </div>
+
+    <div class="rm-print-card">
+      <h2>Para onde foi o dinheiro</h2>
+      ${distHtml}
+    </div>
+
+    ${
+      critHtml
+        ? `<div class="rm-print-card">
+      <h2>Termômetro financeiro</h2>
+      <table><tbody>${critHtml}</tbody></table>
+    </div>`
+        : ''
+    }
+
+    <div class="rm-print-foot">Appliquei — relatório gerado automaticamente. Valores estimados.</div>
+  </div>`;
+}
+
 async function rmExportarPDF() {
-  const conteudo = document.getElementById('rmConteudo');
-  if (!conteudo) return;
+  let wrap = null;
   try {
     if (typeof mostrarToast === 'function') mostrarToast('Gerando PDF…', 'info');
     const html2pdf = await rmCarregarHtml2pdf();
     const seletor = document.getElementById('rmSeletorMes');
-    const ym = seletor ? seletor.value : 'mes';
+    const ym =
+      seletor && seletor.value
+        ? seletor.value
+        : rmMesAnoToYyyymm(new Date().getMonth(), new Date().getFullYear());
     const filename = 'relatorio-mensal-' + ym + '.pdf';
 
-    // Aplica o layout de página (largura A4, coluna única, blocos inteiros).
-    conteudo.classList.add('rm-exportando');
-    // Deixa o Chart.js redimensionar os canvas para a nova largura antes
-    // do html2canvas tirar o "print".
-    try {
-      window.dispatchEvent(new Event('resize'));
-    } catch (_) {}
-    await new Promise((r) => setTimeout(r, 250));
+    // Documento limpo, branco e offscreen — não captura a UI da tela.
+    wrap = document.createElement('div');
+    wrap.style.cssText =
+      'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:24px;';
+    wrap.innerHTML = rmConstruirRelatorioImprimivel(ym);
+    document.body.appendChild(wrap);
+    await new Promise((r) => setTimeout(r, 30));
 
     await html2pdf()
       .set({
-        margin: [10, 10, 10, 10],
+        margin: [12, 12, 14, 12],
         filename,
-        image: { type: 'jpeg', quality: 0.95 },
-        html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: 820 },
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, backgroundColor: '#ffffff', windowWidth: 820 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // Quebra entre blocos, mas nunca no meio de um card/gráfico.
-        pagebreak: {
-          mode: ['css', 'legacy'],
-          avoid: ['.rm-chart-card', '.rm-kpi', '.rm-hero', 'canvas'],
-        },
+        pagebreak: { mode: ['css', 'legacy'], avoid: ['.rm-print-card'] },
       })
-      .from(conteudo)
+      .from(wrap)
       .save();
     if (typeof mostrarToast === 'function') mostrarToast('PDF gerado com sucesso.', 'sucesso');
   } catch (err) {
     console.error('[rmExportarPDF]', err);
     if (typeof mostrarToast === 'function') mostrarToast('Não foi possível gerar o PDF.', 'erro');
   } finally {
-    conteudo.classList.remove('rm-exportando');
-    try {
-      window.dispatchEvent(new Event('resize'));
-    } catch (_) {}
+    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
   }
 }
