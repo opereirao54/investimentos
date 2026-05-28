@@ -23,3 +23,8 @@ Thumbs.db
 # Vite (Onda 2)
 dist/
 .vite/
+
+# Playwright (Fase 4 — E2E)
+playwright-report/
+test-results/
+.playwright-mcp/

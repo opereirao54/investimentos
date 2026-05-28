@@ -16,6 +16,9 @@
     "preview": "vite preview",
     "test": "node --test \"test/**/*.test.js\"",
     "test:flows": "node scripts/test-subscription-flow.js && node scripts/test-referral-flow.js",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "playwright install chromium",
     "optimize:assets": "node scripts/optimize-assets.js",
     "prepare": "husky || true"
   },
@@ -26,6 +29,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "eslint": "^9.39.4",
     "globals": "^15.15.0",
     "husky": "^9.1.7",
