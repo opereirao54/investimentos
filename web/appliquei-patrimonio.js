@@ -731,8 +731,30 @@ function mpRenderDonut(consolidado) {
   const cores = itens.map((it) => mpCorCategoria(it.cat));
 
   if (mpEstado.donutChart) mpEstado.donutChart.destroy();
+  const totalDonut = valores.reduce((a, b) => a + b, 0);
+  // Plugin local: escreve o total no furo central do donut (padrão premium).
+  const centroTotalPlugin = {
+    id: 'mpCentroTotal',
+    afterDraw(chart) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = getToken('--cor-texto-mutado');
+      ctx.font = "600 11px 'Figtree', sans-serif";
+      ctx.fillText('TOTAL', cx, cy - 14);
+      ctx.fillStyle = getToken('--cor-texto-principal');
+      ctx.font = "700 18px 'DM Mono', monospace";
+      ctx.fillText(mpFmtBRL(totalDonut), cx, cy + 6);
+      ctx.restore();
+    },
+  };
   mpEstado.donutChart = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
+    plugins: [centroTotalPlugin],
     data: {
       labels,
       datasets: [
@@ -757,11 +779,17 @@ function mpRenderDonut(consolidado) {
       animation: { animateRotate: true, animateScale: true, duration: 600 },
       plugins: {
         legend: { display: false },
+        // Desliga os rótulos crus do plugin global de datalabels que vazavam
+        // sobre as fatias (ex.: "21.5000000006"). O total fica no centro.
+        datalabels: { display: false },
         tooltip: {
           padding: 10,
           cornerRadius: 8,
           callbacks: {
-            label: (ctx) => `${ctx.label}: ${mpFmtBRL(ctx.parsed)}`,
+            label: (ctx) => {
+              const share = totalDonut > 0 ? (ctx.parsed / totalDonut) * 100 : 0;
+              return `${ctx.label}: ${mpFmtBRL(ctx.parsed)} (${share.toFixed(1)}%)`;
+            },
           },
         },
       },
