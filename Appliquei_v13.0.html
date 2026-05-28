@@ -160,7 +160,13 @@
         .sidebar.collapsed .menu-btn-label,
         .sidebar.collapsed .logo-txt,
         .sidebar.collapsed .nav-group-label { display: none; }
-        .sidebar.collapsed .logo-area { padding: 12px 0; justify-content: center; }
+        .sidebar.collapsed .logo-area {
+            padding: 12px 0;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
         .sidebar.collapsed .logo-container { justify-content: center; padding: 0; }
         
         /* Sidebar recolhida: ícone permanece 36x36 (sem squish da banner). */
