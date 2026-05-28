@@ -810,12 +810,24 @@ function mpRenderDonut(consolidado) {
       const lucro = it.valor - it.investido;
       const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
       const cls = ehCaixa ? 'neu' : pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
+      const share = totalDonut > 0 ? (it.valor / totalDonut) * 100 : 0;
+      const rentLabel = ehCaixa
+        ? '<span class="mp-leg-pct neu">—</span>'
+        : `<span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${pct >= 0 ? 'trend-up' : 'trend-down'}"></i>${mpFmtPct(pct)}</span>`;
       return `
             <div class="mp-leg-item" data-cat="${it.cat}" onclick="mpDestacar('${it.cat}')">
                 <span class="mp-leg-dot" style="background:${cores[i]}"></span>
-                <span class="mp-leg-nome">${MP_LABELS[it.cat] || it.cat}</span>
-                <span class="mp-leg-rs">${mpFmtBRL(it.valor)}</span>
-                <span class="mp-leg-pct ${cls}">${ehCaixa ? '—' : mpFmtPct(pct)}</span>
+                <div class="mp-leg-main">
+                    <div class="mp-leg-top">
+                        <span class="mp-leg-nome">${MP_LABELS[it.cat] || it.cat}</span>
+                        <span class="mp-leg-rs">${mpFmtBRL(it.valor)}</span>
+                    </div>
+                    <div class="mp-leg-bottom">
+                        <span class="mp-leg-bar"><span class="mp-leg-bar-fill" style="width:${Math.max(share, 2).toFixed(1)}%;background:${cores[i]}"></span></span>
+                        <span class="mp-leg-share">${share.toFixed(1)}%</span>
+                        ${rentLabel}
+                    </div>
+                </div>
             </div>`;
     })
     .join('');

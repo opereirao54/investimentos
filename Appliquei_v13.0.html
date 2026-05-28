@@ -4029,20 +4029,29 @@
         .mp-inst-sub   { font-size:10px; color: var(--cor-texto-mutado); display:block; text-align:right; margin-top:1px; }
 
         .mp-donut-card { margin-bottom:20px; }
-        .mp-donut-grid { display:grid; grid-template-columns: 280px 1fr; gap:24px; align-items:center; }
+        .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
         @media (max-width: 720px) { .mp-donut-grid { grid-template-columns: 1fr; } }
-        .mp-donut-wrap { position:relative; height:260px; }
-        .mp-donut-legenda { display:flex; flex-direction:column; gap:10px; }
+        .mp-donut-wrap { position:relative; height:240px; }
+        .mp-donut-legenda { display:flex; flex-direction:column; gap:6px; justify-content:center; }
         .mp-leg-item {
-            display:grid; grid-template-columns: 14px 1fr auto auto; align-items:center; gap:10px;
-            padding:8px 10px; border-radius:8px; cursor:pointer; transition: background .12s;
+            display:flex; align-items:flex-start; gap:12px;
+            padding:10px 12px; border-radius:11px; cursor:pointer;
+            border:1px solid transparent;
+            transition: background .12s, border-color .12s, opacity .12s;
         }
-        .mp-leg-item:hover { background: var(--cor-superficie); }
-        .mp-leg-item.dim { opacity:.35; }
-        .mp-leg-dot { width:14px; height:14px; border-radius:4px; }
-        .mp-leg-nome { font-size:12.5px; font-weight:500; color: var(--cor-texto-principal); }
-        .mp-leg-rs   { font-family:'DM Mono', monospace; font-size:12px; font-weight:700; color: var(--cor-texto-principal); }
-        .mp-leg-pct  { font-family:'DM Mono', monospace; font-size:11px; font-weight:700; min-width:54px; text-align:right; }
+        .mp-leg-item:hover { background: var(--cor-superficie); border-color: var(--cor-borda); }
+        .mp-leg-item.dim { opacity:.3; }
+        .mp-leg-dot { width:12px; height:12px; border-radius:4px; margin-top:4px; flex-shrink:0; }
+        .mp-leg-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
+        .mp-leg-top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
+        .mp-leg-nome { font-size:13px; font-weight:600; color: var(--cor-texto-principal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mp-leg-rs   { font-family:'DM Mono', monospace; font-size:13px; font-weight:700; color: var(--cor-texto-principal); flex-shrink:0; }
+        .mp-leg-bottom { display:flex; align-items:center; gap:10px; }
+        .mp-leg-bar { flex:1; height:6px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; min-width:40px; }
+        .mp-leg-bar-fill { display:block; height:100%; border-radius:999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+        .mp-leg-share { font-family:'DM Mono', monospace; font-size:11px; font-weight:600; color: var(--cor-texto-mutado); min-width:42px; text-align:right; }
+        .mp-leg-pct  { font-family:'DM Mono', monospace; font-size:11px; font-weight:700; min-width:60px; text-align:right; display:inline-flex; align-items:center; justify-content:flex-end; gap:2px; }
+        .mp-leg-pct i { font-size:11px; }
         .mp-leg-pct.pos { color: var(--cor-primaria); }
         .mp-leg-pct.neg { color: var(--cor-erro); }
         .mp-leg-pct.neu { color: var(--cor-texto-mutado); }
@@ -6921,7 +6930,7 @@
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4b"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
-    <script src="/web/appliquei-patrimonio.js?v=fase4b"></script>
+    <script src="/web/appliquei-patrimonio.js?v=fase4c"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>
