@@ -27,7 +27,11 @@ module.exports = defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
 
-  reporter: process.env.CI ? [['github'], ['list']] : 'list',
+  // HTML reporter em CI gera `playwright-report/` para o upload-artifact.
+  // Sem ele, o step de upload falha com "No files were found".
+  reporter: process.env.CI
+    ? [['github'], ['html', { open: 'never' }], ['list']]
+    : 'list',
 
   use: {
     baseURL: 'http://localhost:4173',
