@@ -160,17 +160,16 @@
         .sidebar.collapsed .menu-btn-label,
         .sidebar.collapsed .logo-txt,
         .sidebar.collapsed .nav-group-label { display: none; }
-        .sidebar.collapsed .logo-area { padding: 12px 0; justify-content: center; }
+        .sidebar.collapsed .logo-area {
+            padding: 12px 0;
+            flex-direction: column;
+            gap: 10px;
+            justify-content: center;
+            align-items: center;
+        }
         .sidebar.collapsed .logo-container { justify-content: center; padding: 0; }
         
-        /* Ajuste do Favicon na Sidebar encolhida */
-        .sidebar.collapsed .logo-img {
-            width: 38px;
-            height: 38px;
-            object-fit: contain;
-            object-position: center;
-            border-radius: 10px;
-        }
+        /* Sidebar recolhida: ícone permanece 36x36 (sem squish da banner). */
 
         .sidebar.collapsed .nav-area { padding: 8px 6px; }
         .sidebar.collapsed .nav-group { margin-bottom: 6px; }
@@ -219,18 +218,24 @@
         }
         .logo-container { display: flex; align-items: center; text-decoration: none; overflow: hidden; }
 
-        /* LOGO ESTICADO PARA PREENCHER O ESPAÇO E COM MISTURA DE COR */
+        /* SVG vetorial — sempre nítido, sem hacks de blend. Ícone (#10b981)
+           sempre visível; wordmark some quando .sidebar.collapsed. */
         .logo-img {
-            width: 170px;
-            height: auto;
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
             object-fit: contain;
-            object-position: left center;
-            transition: all 0.2s ease;
-            mix-blend-mode: screen;
-            opacity: 0.88;
+            transition: opacity 0.15s ease;
         }
-        .logo-img:hover { opacity: 1; }
-        .logo-txt { font-size: 15px; font-weight: 700; color: var(--sb-accent); white-space: nowrap; padding-left: 8px; font-family: 'Syne', sans-serif; letter-spacing: -0.3px; }
+        .logo-img:hover { opacity: 0.85; }
+        .logo-txt {
+            height: 28px;
+            width: auto;
+            margin-left: 10px;
+            object-fit: contain;
+            flex-shrink: 0;
+            transition: opacity 0.15s ease;
+        }
 
         .nav-area { padding: 10px 10px; flex: 1; }
         .nav-group { margin-bottom: 16px; }
@@ -1489,7 +1494,6 @@
             .sidebar.collapsed .sidebar-auth-mini .sa-btn { padding: 7px 8px; gap: 6px; justify-content: center; }
             .sidebar.collapsed .menu-btn::after,
             .sidebar.collapsed .sidebar-auth-mini .sa-btn::after { content: none !important; }
-            .sidebar.collapsed .logo-img { width: 170px; height: auto; }
             /* Botão de recolher da sidebar não faz sentido em mobile */
             .sidebar .sidebar-toggle { display: none; }
             .main-content { padding: 64px 16px 24px; width: 100%; }
@@ -3127,8 +3131,7 @@
         .auth-gate-head {
             text-align: center; margin-bottom: 22px;
         }
-        .auth-gate-head img { max-width: 180px; height: auto; opacity: 0.95; mix-blend-mode: multiply; }
-        body.dark .auth-gate-head img { mix-blend-mode: lighten; opacity: 0.9; }
+        .auth-gate-head img { max-width: 180px; height: auto; }
         .auth-gate-head h2 {
             font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 700;
             color: var(--cor-texto-principal); margin-top: 12px; letter-spacing: -0.3px;
@@ -4640,7 +4643,7 @@
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
-                <img src="appliquei_logo_white.jpg" alt="Appliquei" style="filter: brightness(0) saturate(100%) invert(15%) sepia(15%) saturate(800%) hue-rotate(80deg);">
+                <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
                 <h2>Bem-vindo</h2>
                 <p id="authGateSub">A carregar…</p>
             </div>
@@ -4928,7 +4931,8 @@
     <aside class="sidebar" id="mainSidebar">
         <div class="logo-area">
             <a href="#" class="logo-container" onclick="mudarAba(event,'patrimonio')" style="text-decoration: none;">
-                <img src="appliquei_logo_white.jpg" alt="Appliquei" class="logo-img" id="logoPrincipal">
+                <img src="appliquei-icon.svg" alt="" class="logo-img" id="logoPrincipal" width="36" height="36" decoding="async">
+                <img src="appliquei-wordmark.svg" alt="Appliquei" class="logo-txt" width="120" height="36" decoding="async">
             </a>
             <button class="sidebar-toggle" onclick="toggleSidebar()" id="btnToggleSidebar" title="Recolher menu"><i class="ph ph-sidebar-simple" id="iconToggle"></i></button>
         </div>
