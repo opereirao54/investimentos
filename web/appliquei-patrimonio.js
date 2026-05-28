@@ -162,17 +162,42 @@ function mpAplicarIR(c, valorAtual, valorInvestido) {
     return valorAtual;
 }
 
+// Categorias que CREDITAM o caixa (entradas): receita e resgates/vendas de
+// investimento (inclui venda de renda variável) e transferências de entrada.
+function mpEhEntradaCaixa(categoria) {
+    return categoria === 'receita'
+        || categoria === 'resgate_investimento'
+        || categoria === 'transferencia_entrada';
+}
+
+// Categorias que NÃO são gastos de consumo: entradas, aportes (renda fixa e
+// variável) e transferências entre contas próprias. Tudo isto fica fora da
+// "Despesa" para não inflar o indicador com investimentos.
+function mpEhDespesaConsumo(categoria) {
+    if(mpEhEntradaCaixa(categoria)) return false;
+    if(categoria === 'investimento_fixo' || categoria === 'investimento_variavel') return false;
+    if(categoria === 'transferencia_saida') return false;
+    return true;
+}
+
+// Timestamp padronizado de uma transação (data ISO/date-only > mês/ano).
+function mpTimestampTransacao(t) {
+    if(t.data) return appliqueiParseData(t.data).getTime();
+    return new Date(t.ano, t.mes, 1).getTime();
+}
+
 // Soma saldo total: entradas - despesas - aportes (todas as transações pagas).
-// Inclui aportes de investimento pois eles abatem o caixa.
+// Inclui aportes de investimento pois eles abatem o caixa; resgates/vendas
+// devolvem dinheiro ao caixa (renda variável passa a refletir aqui).
 function mpCalcularSaldoTotal(refMs) {
     if(typeof transacoes === 'undefined') return 0;
     let saldo = 0;
     transacoes.forEach(t => {
         if(!t.pago) return;
-        const tsTx = t.data ? new Date(t.data).getTime() : new Date(t.ano, t.mes, 1).getTime();
+        const tsTx = mpTimestampTransacao(t);
         if(tsTx > refMs) return;
         const valor = Number(t.valor) || 0;
-        if(t.categoria === 'receita') saldo += valor;
+        if(mpEhEntradaCaixa(t.categoria)) saldo += valor;
         else saldo -= valor;
     });
     return saldo;
@@ -183,8 +208,8 @@ function mpCalcularDespesasJanela(iniMs, fimMs) {
     let total = 0;
     transacoes.forEach(t => {
         if(!t.pago) return;
-        if(t.categoria === 'receita' || t.categoria === 'investimento_fixo') return;
-        const tsTx = t.data ? new Date(t.data).getTime() : new Date(t.ano, t.mes, 1).getTime();
+        if(!mpEhDespesaConsumo(t.categoria)) return;
+        const tsTx = mpTimestampTransacao(t);
         if(tsTx < iniMs || tsTx > fimMs) return;
         total += Number(t.valor) || 0;
     });
@@ -196,12 +221,12 @@ function mpCalcularSaldoPorInstituicao(refMs) {
     if(typeof transacoes !== 'undefined') {
         transacoes.forEach(t => {
             if(!t.pago) return;
-            const tsTx = t.data ? new Date(t.data).getTime() : new Date(t.ano, t.mes, 1).getTime();
+            const tsTx = mpTimestampTransacao(t);
             if(tsTx > refMs) return;
             const banco = (t.banco || '').trim() || 'Sem banco';
             if(!mapa[banco]) mapa[banco] = { caixa: 0, investido: 0 };
             const valor = Number(t.valor) || 0;
-            if(t.categoria === 'receita') mapa[banco].caixa += valor;
+            if(mpEhEntradaCaixa(t.categoria)) mapa[banco].caixa += valor;
             else mapa[banco].caixa -= valor;
         });
     }
@@ -291,6 +316,38 @@ function mpConsolidar() {
     return acc;
 }
 
+// Fonte única de verdade do patrimônio investido. Soma TODAS as categorias
+// (renda fixa + renda variável + previdência + reserva de emergência), para
+// que o card "Total Investimento" nunca reflita apenas uma delas. Construída
+// sobre mpConsolidar() para reaproveitar cotações/projeções e IR.
+function calcularPatrimonioTotal() {
+    const cons = (typeof mpConsolidar === 'function')
+        ? mpConsolidar()
+        : { porCategoria: {}, totalInvestido: 0, totalAtual: 0, totalAtualLiq: 0 };
+    const cat = cons.porCategoria || {};
+    const atualDe   = (c) => (cat[c] ? cat[c].atual : 0);
+    const investDe  = (c) => (cat[c] ? cat[c].investido : 0);
+    const totalRendaVariavel    = atualDe('renda_variavel');
+    const totalRendaFixa        = atualDe('renda_fixa');
+    const totalPrevidencia      = atualDe('previdencia');
+    const totalReservaEmergencia = atualDe('reserva_emergencia');
+    return {
+        totalRendaFixa,
+        totalRendaVariavel,
+        totalPrevidencia,
+        totalReservaEmergencia,
+        investidoRendaFixa: investDe('renda_fixa'),
+        investidoRendaVariavel: investDe('renda_variavel'),
+        // Custo (aportes) e valor de mercado de TODAS as categorias.
+        totalInvestido: cons.totalInvestido || 0,
+        totalAtual: cons.totalAtual || 0,
+        totalAtualLiq: cons.totalAtualLiq || 0,
+        // Soma exata de todas as categorias = patrimônio investido total.
+        totalPatrimonio: cons.totalAtual || 0,
+        porCategoria: cat,
+    };
+}
+
 function mpAlterarPeriodo(p) {
     mpEstado.periodo = p;
     renderMeuPatrimonio();
@@ -306,12 +363,15 @@ function mpAlterarModo(m) {
 }
 
 function mpRenderKPIs(consolidado, janela) {
-    const valorInvestido = mpEstado.modo === 'liquido' ? consolidado.totalAtualLiq : consolidado.totalAtual;
+    // Card "Total Investimento" = soma de TODAS as categorias (RF + RV + prev +
+    // reserva), via fonte única calcularPatrimonioTotal().
+    const patr = (typeof calcularPatrimonioTotal === 'function') ? calcularPatrimonioTotal() : consolidado;
+    const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
     const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
     const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMs);
     const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
     const despesasAnt  = mpCalcularDespesasJanela(janela.anteriorIniMs, janela.anteriorFimMs);
-    const investidoAporteTotal = consolidado.totalInvestido;
+    const investidoAporteTotal = patr.totalInvestido;
 
     document.getElementById('mp-kpi-saldo-valor').textContent = mpFmtBRL(saldoTotal);
     document.getElementById('mp-kpi-despesas-valor').textContent = mpFmtBRL(despesas);

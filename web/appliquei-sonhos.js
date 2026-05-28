@@ -1324,10 +1324,22 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
     const novaData = document.getElementById('editAporteData').value;
     if(novoValor <= 0) { mostrarToast('Informe um valor maior que zero.','erro'); return; }
 
-    const delta = novoValor - aporte.valor;
+    const valorAntigo = aporte.valor;
+    const delta = novoValor - valorAntigo;
     aporte.valor = novoValor;
     if(novaData) aporte.data = novaData;
     s.valorAtual = Math.max(0, s.valorAtual + delta);
+
+    // Migração: ajusta a venda na carteira proporcionalmente ao novo valor,
+    // mantendo o abate do investimento coerente com o valor do aporte.
+    if(aporte.vendaOpId && valorAntigo > 0 && typeof historicoCompras !== 'undefined') {
+        const vop = historicoCompras.find(o => o.id === aporte.vendaOpId);
+        if(vop) {
+            vop.quantidade = (vop.quantidade || 0) * (novoValor / valorAntigo);
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            if(typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
+        }
+    }
 
     // Espelha alteração na transação vinculada (se houver)
     if(aporte.txId) {
@@ -1388,6 +1400,16 @@ function confirmarExcluirAporteSonho(sonhoId, aporteId) {
     if(idsParaRemover.length > 0) {
         transacoes = transacoes.filter(t => !idsParaRemover.includes(t.id));
         localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    }
+
+    // Reverte a venda gerada pela migração: devolve as cotas ao investimento.
+    if(aporte.vendaOpId && typeof historicoCompras !== 'undefined') {
+        const antes = historicoCompras.length;
+        historicoCompras = historicoCompras.filter(o => o.id !== aporte.vendaOpId);
+        if(historicoCompras.length !== antes) {
+            localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+            if(typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
+        }
     }
 
     // Reverte o valor
@@ -1539,6 +1561,40 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
                 ativoOrigem: origemAtivo || undefined
             });
             s.aportes[s.aportes.length - 1].txResgateId = txResId;
+
+            // Resgate REAL: abate a quantidade correspondente do investimento de
+            // origem registrando uma operação de venda na carteira. Sem isto, o
+            // dinheiro era "duplicado" — entrava no sonho mas o saldo do ativo
+            // permanecia intacto. Operação atômica: persistimos a venda na
+            // carteira (futurorico_compras) junto das transações e do sonho,
+            // tudo na mesma chamada (cada chave é sincronizada como um todo).
+            if(origemAtivo && typeof historicoCompras !== 'undefined' && typeof obterResumoCarteira === 'function') {
+                const carteira = obterResumoCarteira();
+                const ativo = carteira[origemAtivo];
+                if(ativo && ativo.qtdTotal > 0) {
+                    const am = (typeof mockAtivosMercado !== 'undefined') ? mockAtivosMercado.find(x => x.ticker === origemAtivo) : null;
+                    const precoUnit = (am && am.preco_atual > 0) ? am.preco_atual : (ativo.precoMedio || 0);
+                    // Cotas equivalentes ao valor resgatado, limitadas ao saldo.
+                    let qtdVenda = precoUnit > 0 ? (valor / precoUnit) : ativo.qtdTotal;
+                    if(qtdVenda > ativo.qtdTotal) qtdVenda = ativo.qtdTotal;
+                    const vendaOp = {
+                        id: Date.now() + Math.floor(Math.random() * 1000),
+                        ticker: origemAtivo,
+                        quantidade: qtdVenda,
+                        preco_op: precoUnit > 0 ? precoUnit : (qtdVenda > 0 ? (valor / qtdVenda) : 0),
+                        tipo: 'venda',
+                        data_op: d.toISOString(),
+                        categoria: ativo.categoria || null,
+                        subcategoria: ativo.subcategoria || null,
+                        corretora: ativo.corretora || null,
+                        origemSonho: s.id
+                    };
+                    historicoCompras.push(vendaOp);
+                    localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+                    s.aportes[s.aportes.length - 1].vendaOpId = vendaOp.id;
+                    if(typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
+                }
+            }
         }
         localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
         if(typeof atualizarTelaControle === 'function') atualizarTelaControle();

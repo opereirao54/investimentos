@@ -199,7 +199,7 @@ function aplicarTipoCartaoUI() {
 }
 
 transacoes = transacoes.map(t => {
-    if(t.mes === undefined && t.data) { let d = new Date(t.data); t.mes = d.getMonth(); t.ano = d.getFullYear(); t.id = t.id || Math.random().toString(); }
+    if(t.mes === undefined && t.data) { const ma = appliqueiMesAnoDe(t.data); t.mes = ma.mes; t.ano = ma.ano; t.id = t.id || Math.random().toString(); }
     if(t.pago === undefined) t.pago = false; 
     return t;
 });

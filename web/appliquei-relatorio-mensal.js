@@ -44,6 +44,9 @@ function buildMonthlyReport(yyyymm) {
     const entradas = (r.receita || 0) + (r.resgate || 0);
     const despesasContas = (r.despFixa || 0) + (r.despVar || 0) + (r.cartao || 0) + (r.sonho || 0);
     const investimentos = (r.invFixo || 0) + (r.invVar || 0);
+    // `despesasContas` = gastos de consumo (usado nos cards/gráfico de "Despesa").
+    // `despesasTotais` = todo o dinheiro que saiu do caixa (consumo + aportes),
+    // usado apenas no saldo do mês — aportes NÃO devem aparecer como despesa.
     const despesasTotais = despesasContas + investimentos;
     const saldoFinal = entradas - despesasTotais;
 
@@ -332,7 +335,7 @@ function rmRenderKpis(rep, repB, serie12) {
     if(!grid) return;
     const items = [
         { tipo: 'entradas',      label: 'Entradas',          valor: rep.entradas,      valorB: repB ? repB.entradas : null,      icone: 'ph-arrow-down-left',  spark: serie12.entradas },
-        { tipo: 'despesas',      label: 'Despesas totais',   valor: rep.despesasTotais,valorB: repB ? repB.despesasTotais : null,icone: 'ph-arrow-up-right',   spark: serie12.despesas },
+        { tipo: 'despesas',      label: 'Despesas totais',   valor: rep.despesasContas,valorB: repB ? repB.despesasContas : null,icone: 'ph-arrow-up-right',   spark: serie12.despesas },
         { tipo: 'investimentos', label: 'Investimentos',     valor: rep.investimentos, valorB: repB ? repB.investimentos : null, icone: 'ph-trending-up',      spark: serie12.investimentos },
         { tipo: 'dividendos',    label: 'Dividendos do mês', valor: rep.dividendos,    valorB: repB ? repB.dividendos : null,    icone: 'ph-coins',            spark: serie12.dividendos }
     ];
@@ -446,7 +449,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
         labels.push(RM_NOMES_MESES_SHORT[mes] + '/' + String(ano).slice(2));
         const r = buildMonthlyReport(ym);
         arrEntr.push(r.entradas);
-        arrDesp.push(r.despesasTotais);
+        arrDesp.push(r.despesasContas);
         arrInv.push(r.investimentos);
         arrDiv.push(r.dividendos);
         arrAplic.push(r.patrimonioAplicado);
