@@ -6048,14 +6048,12 @@
                     <p class="subtitulo" style="margin-bottom:0">Visão consolidada — saldo, investimentos e rentabilidade.</p>
                 </div>
                 <div class="page-actions mp-controls">
-                    <select id="mp-periodo" class="mp-select" onchange="mpAlterarPeriodo(this.value)">
-                        <option value="mes">Mês atual</option>
-                        <option value="3m">Últimos 3 meses</option>
-                        <option value="6m">Últimos 6 meses</option>
-                        <option value="12m" selected>Últimos 12 meses</option>
-                        <option value="ytd">Ano (YTD)</option>
-                        <option value="tudo">Tudo</option>
-                    </select>
+                    <div style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
+                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
+                        <input type="month" id="mpInputMesAno" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="mpSelecionarMes()">
+                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
+                    </div>
+                    <button class="btn-secundario" onclick="mpIrMesAtual()">Hoje</button>
                     <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
                         <button class="mp-toggle-btn ativo" data-modo="bruto" onclick="mpAlterarModo('bruto')" role="tab" aria-selected="true">Bruto</button>
                         <button class="mp-toggle-btn" data-modo="liquido" onclick="mpAlterarModo('liquido')" role="tab" aria-selected="false" title="Aplica IR estimado por preço médio (RF tabela regressiva 22,5%→15%; Ações 15%; FII 20%)">Líquido (pós-IR)</button>
@@ -6759,7 +6757,7 @@
     <script src="/web/appliquei-relatorio-mensal.js?v=fase2"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
-    <script src="/web/appliquei-patrimonio.js?v=fase3"></script>
+    <script src="/web/appliquei-patrimonio.js?v=fase4"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>

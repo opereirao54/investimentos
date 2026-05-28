@@ -9,9 +9,11 @@
 // ============================================================
 // === MEU PATRIMÔNIO — visão consolidada                    ===
 // ============================================================
-// Estado e cache do módulo
+// Estado e cache do módulo. O filtro de mês espelha o da aba Controle (4.9):
+// mês/ano específico com navegação prev/próximo, em vez de períodos rolantes.
 var mpEstado = {
-  periodo: '12m',
+  mes: new Date().getMonth(),
+  ano: new Date().getFullYear(),
   modo: 'bruto',
   cotacoes: {},
   ultimaCotacao: null,
@@ -33,44 +35,52 @@ function mpAliquotaIRRendaVariavel(subcat) {
   return 0.15; // ações, BDR, ETF, cripto na faixa simplificada
 }
 
-// Período → janela {iniMs, fimMs, anteriorIniMs, anteriorFimMs, label}
-function mpJanelaPeriodo(p) {
-  const agora = new Date();
-  const fimMs = agora.getTime();
-  let iniMs, anteriorIniMs, anteriorFimMs;
-  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  switch (p) {
-    case 'mes': {
-      const ini = new Date(agora.getFullYear(), agora.getMonth(), 1);
-      iniMs = ini.getTime();
-      anteriorFimMs = iniMs - 1;
-      anteriorIniMs = new Date(agora.getFullYear(), agora.getMonth() - 1, 1).getTime();
-      return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
-    }
-    case '3m':
-    case '6m':
-    case '12m': {
-      const meses = p === '3m' ? 3 : p === '6m' ? 6 : 12;
-      const ini = new Date(agora.getFullYear(), agora.getMonth() - meses, agora.getDate());
-      iniMs = ini.getTime();
-      const dur = fimMs - iniMs;
-      anteriorFimMs = iniMs - 1;
-      anteriorIniMs = iniMs - dur;
-      return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'período anterior' };
-    }
-    case 'ytd': {
-      iniMs = new Date(agora.getFullYear(), 0, 1).getTime();
-      anteriorFimMs = iniMs - 1;
-      anteriorIniMs = new Date(agora.getFullYear() - 1, 0, 1).getTime();
-      return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'ano anterior' };
-    }
-    default: {
-      iniMs = 0;
-      anteriorFimMs = 0;
-      anteriorIniMs = 0;
-      return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: '' };
-    }
+// Janela do MÊS selecionado (igual ao filtro da aba Controle — 4.9):
+// {iniMs, fimMs, anteriorIniMs, anteriorFimMs, label}. `fimMs` é limitado a
+// "agora" para o mês corrente não projetar saldo futuro; o comparativo é
+// sempre o mês anterior.
+function mpJanelaPeriodo() {
+  const mes = typeof mpEstado.mes === 'number' ? mpEstado.mes : new Date().getMonth();
+  const ano = typeof mpEstado.ano === 'number' ? mpEstado.ano : new Date().getFullYear();
+  const iniMs = new Date(ano, mes, 1).getTime();
+  const fimMs = Math.min(new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime(), Date.now());
+  const anteriorIniMs = new Date(ano, mes - 1, 1).getTime();
+  const anteriorFimMs = new Date(ano, mes, 1).getTime() - 1;
+  return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
+}
+
+// Navegação de mês — espelha mudarMesVisao/selecionarMesVisao/irParaMesAtual.
+function mpSincronizarInputMes() {
+  const inp = document.getElementById('mpInputMesAno');
+  if (inp) inp.value = `${mpEstado.ano}-${String(mpEstado.mes + 1).padStart(2, '0')}`;
+}
+function mpMudarMes(delta) {
+  mpEstado.mes += delta;
+  if (mpEstado.mes > 11) {
+    mpEstado.mes = 0;
+    mpEstado.ano++;
   }
+  if (mpEstado.mes < 0) {
+    mpEstado.mes = 11;
+    mpEstado.ano--;
+  }
+  mpSincronizarInputMes();
+  renderMeuPatrimonio(true);
+}
+function mpSelecionarMes() {
+  const inp = document.getElementById('mpInputMesAno');
+  if (!inp || !inp.value) return;
+  const [a, m] = inp.value.split('-');
+  mpEstado.ano = parseInt(a, 10);
+  mpEstado.mes = parseInt(m, 10) - 1;
+  renderMeuPatrimonio(true);
+}
+function mpIrMesAtual() {
+  const hoje = new Date();
+  mpEstado.mes = hoje.getMonth();
+  mpEstado.ano = hoje.getFullYear();
+  mpSincronizarInputMes();
+  renderMeuPatrimonio(true);
 }
 
 function mpFmtBRL(v) {
@@ -422,9 +432,9 @@ function calcularPatrimonioTotal() {
   };
 }
 
-function mpAlterarPeriodo(p) {
-  mpEstado.periodo = p;
-  renderMeuPatrimonio();
+// Mantido por compatibilidade com chamadas antigas; o filtro agora é por mês.
+function mpAlterarPeriodo() {
+  renderMeuPatrimonio(true);
 }
 function mpAlterarModo(m) {
   mpEstado.modo = m;
@@ -498,14 +508,25 @@ function mpSparklineSvg(serie, cor) {
   const range = max - min || 1;
   const w = 60,
     h = 14;
-  const pts = serie
-    .map((v, i) => {
-      const x = (i / (serie.length - 1 || 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(' ');
-  return `<svg class="mp-barra-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline fill="none" stroke="${cor}" stroke-width="1.5" points="${pts}"/></svg>`;
+  const xy = serie.map((v, i) => {
+    const x = (i / (serie.length - 1 || 1)) * w;
+    const y = h - ((v - min) / range) * h;
+    return [+x.toFixed(1), +y.toFixed(1)];
+  });
+  const pts = xy.map((p) => p.join(',')).join(' ');
+  // 4.7 — sparkline mais "premium": área com gradiente + linha de pontas
+  // arredondadas. id único do gradiente p/ não colidir entre múltiplos SVGs.
+  const gid = 'spk' + Math.random().toString(36).slice(2, 8);
+  const area = `${xy[0][0]},${h} ${pts} ${xy[xy.length - 1][0]},${h}`;
+  return (
+    `<svg class="mp-barra-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">` +
+    `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="${cor}" stop-opacity="0.28"/>` +
+    `<stop offset="100%" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>` +
+    `<polygon points="${area}" fill="url(#${gid})" stroke="none"/>` +
+    `<polyline fill="none" stroke="${cor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>` +
+    `</svg>`
+  );
 }
 
 function mpSerieInvestidoMensal(cat, meses = 6) {
@@ -718,18 +739,27 @@ function mpRenderDonut(consolidado) {
         {
           data: valores,
           backgroundColor: cores,
-          borderWidth: 2,
+          // 4.7 — donut mais premium: segmentos arredondados, espaçados,
+          // e um leve destaque ao passar o mouse.
+          borderWidth: 3,
           borderColor: getToken('--cor-fundo-card'),
+          borderRadius: 6,
+          spacing: 2,
+          hoverOffset: 10,
+          hoverBorderColor: getToken('--cor-fundo-card'),
         },
       ],
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '62%',
+      cutout: '68%',
+      animation: { animateRotate: true, animateScale: true, duration: 600 },
       plugins: {
         legend: { display: false },
         tooltip: {
+          padding: 10,
+          cornerRadius: 8,
           callbacks: {
             label: (ctx) => `${ctx.label}: ${mpFmtBRL(ctx.parsed)}`,
           },
@@ -799,8 +829,9 @@ function mpRenderCartaoSnap() {
 async function renderMeuPatrimonio(skipFetch) {
   // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
+  mpSincronizarInputMes();
   if (!skipFetch) await mpFetchCotacoes();
-  const janela = mpJanelaPeriodo(mpEstado.periodo);
+  const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
   mpRenderKPIs(consolidado, janela);
   mpRenderBarras(consolidado);

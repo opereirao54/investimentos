@@ -289,6 +289,30 @@ test('4.4 prêmio de risco: arrojado projeta MAIS que moderado e conservador', (
   );
 });
 
+// ---- 4.9: filtro de mês do patrimônio (igual ao Controle) --------------
+
+test('4.9 mpJanelaPeriodo usa o mês selecionado e compara com o anterior', () => {
+  const s = loadApp();
+  s.mpEstado.mes = 4; // maio
+  s.mpEstado.ano = 2026;
+  const j = s.mpJanelaPeriodo();
+  assert.equal(new Date(j.iniMs).getMonth(), 4, 'janela começa em maio');
+  assert.equal(new Date(j.iniMs).getDate(), 1, 'começa no dia 1');
+  // mês anterior = abril
+  assert.equal(new Date(j.anteriorIniMs).getMonth(), 3);
+  assert.ok(j.anteriorFimMs < j.iniMs, 'fim do mês anterior é antes do início do mês atual');
+  assert.equal(j.label, 'mês anterior');
+});
+
+test('4.9 mpMudarMes navega e faz rollover de ano', () => {
+  const s = loadApp();
+  s.mpEstado.mes = 0; // janeiro
+  s.mpEstado.ano = 2026;
+  s.mpMudarMes(-1); // volta p/ dezembro/2025
+  assert.equal(s.mpEstado.mes, 11);
+  assert.equal(s.mpEstado.ano, 2025);
+});
+
 // ---- 4.8: datalist de bancos só com saldo nas despesas -----------------
 
 test('4.8 despesa só sugere bancos com saldo; receita lista completa', () => {
