@@ -3131,7 +3131,8 @@
         .auth-gate-head {
             text-align: center; margin-bottom: 22px;
         }
-        .auth-gate-head img { max-width: 180px; height: auto; }
+        .auth-gate-head img { max-width: 180px; height: auto; opacity: 0.95; mix-blend-mode: multiply; }
+        body.dark .auth-gate-head img { mix-blend-mode: lighten; opacity: 0.9; }
         .auth-gate-head h2 {
             font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 700;
             color: var(--cor-texto-principal); margin-top: 12px; letter-spacing: -0.3px;
@@ -4643,7 +4644,7 @@
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
-                <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
+                <img src="appliquei_logo_white.jpg" alt="Appliquei" style="filter: brightness(0) saturate(100%) invert(15%) sepia(15%) saturate(800%) hue-rotate(80deg);">
                 <h2>Bem-vindo</h2>
                 <p id="authGateSub">A carregar…</p>
             </div>
