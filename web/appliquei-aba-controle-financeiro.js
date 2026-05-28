@@ -94,10 +94,21 @@ function verificarRegraCartao() {
           ? 'Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span>'
           : 'Banco / instituição de onde sai <span style="color:var(--cor-texto-mutado);font-weight:400;">(opcional)</span>';
       }
-      inicializarDatalistBancosTransacao();
+      inicializarDatalistBancosTransacao(cat);
     } else {
       divBanco.style.display = 'none';
     }
+  }
+
+  // 4.6 — a data de cartão é derivada do cartão cadastrado, não editável.
+  const inputVenc = document.getElementById('dataVencimento');
+  if (inputVenc) {
+    const ehCartao = cat === 'cartao_credito';
+    inputVenc.readOnly = ehCartao;
+    inputVenc.style.opacity = ehCartao ? '0.7' : '';
+    inputVenc.title = ehCartao
+      ? 'Definida automaticamente pelo fechamento/vencimento do cartão cadastrado.'
+      : '';
   }
 
   if (cat === 'cartao_credito') {
@@ -150,26 +161,36 @@ function onChangeSelectCartao() {
   }
 }
 
+// Data de vencimento da fatura onde uma compra de cartão entra (pura/testável).
+// Regra: a compra entra na fatura ainda ABERTA — se o fechamento deste mês já
+// passou (hoje > diaFech), entra na que fecha no mês seguinte. O vencimento é
+// SEMPRE depois do fechamento; quando o dia do vencimento é <= dia do
+// fechamento, ele cai no mês seguinte ao fechamento (corrige o bug em que
+// "venc 5 < fech 25" jogava a compra na fatura atual em vez da próxima).
+function cartaoCalcularVencimento(hoje, diaFech, diaVenc) {
+  const dVenc = parseInt(diaVenc, 10);
+  let dFech = parseInt(diaFech, 10);
+  if (!dVenc || dVenc < 1 || dVenc > 31) return null;
+  if (!dFech || dFech < 1 || dFech > 31) dFech = dVenc;
+
+  let fMes = hoje.getMonth();
+  const fAno = hoje.getFullYear();
+  if (hoje.getDate() > dFech) fMes += 1;
+
+  const vMes = fMes + (dVenc <= dFech ? 1 : 0);
+  const ultimoDia = new Date(fAno, vMes + 1, 0).getDate();
+  const diaFinal = Math.min(dVenc, ultimoDia);
+  return new Date(fAno, vMes, diaFinal);
+}
+
 function preencherVencimentoPorCartao() {
   const sel = document.getElementById('selectCartao');
   const inputVenc = document.getElementById('dataVencimento');
   if (!sel || !inputVenc) return;
   if (!sel.value || sel.value === '__novo__') return;
   const cartao = obterCartao(sel.value);
-  const diaVenc = parseInt(cartao?.diaVencimento, 10);
-  const diaFech = parseInt(cartao?.diaFechamento, 10);
-  if (!diaVenc || diaVenc < 1 || diaVenc > 31) return;
-
-  // Se compra é após o fechamento do mês corrente, vai pra fatura do mês seguinte.
-  // Caso contrário, fica na fatura do mês corrente (vencimento deste mês).
-  const hoje = new Date();
-  let ano = hoje.getFullYear();
-  let mes = hoje.getMonth();
-  const usarProxFatura = diaFech ? hoje.getDate() > diaFech : hoje.getDate() > diaVenc;
-  if (usarProxFatura) mes += 1;
-  const ultimoDia = new Date(ano, mes + 1, 0).getDate();
-  const diaFinal = Math.min(diaVenc, ultimoDia);
-  const data = new Date(ano, mes, diaFinal);
+  const data = cartaoCalcularVencimento(new Date(), cartao?.diaFechamento, cartao?.diaVencimento);
+  if (!data) return;
   const yyyy = data.getFullYear();
   const mm = String(data.getMonth() + 1).padStart(2, '0');
   const dd = String(data.getDate()).padStart(2, '0');
@@ -1471,21 +1492,24 @@ function atualizarTelaControle() {
 
   htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);" title="Resultado do mês — sem cumular automaticamente entre meses.">Resultado do mês</td>`;
   dreDados.forEach((d, i) => {
-    let corSaldo = 'var(--cor-texto-principal)';
+    // Classe de meta (4.1): a cor é aplicada por CLASSE para vencer a regra
+    // `.linha-liquida td { color: ... !important }` da folha de estilos, que
+    // antes "engolia" o vermelho aplicado só via style inline.
+    let classeMeta = 'dre-meta-neutro';
     let fontW = '600';
     let alertaBadget = '';
     if (d.saldoAcumulado < 0) {
-      corSaldo = 'var(--cor-erro)';
+      classeMeta = 'dre-meta-danger';
       fontW = '800';
       alertaBadget = `<br><span style="font-size: 10px; background: var(--cor-erro); color: white; padding: 2px 4px; border-radius: 4px;">NEGATIVO</span>`;
     } else if (d.saldoAcumulado < metaVermelha) {
-      corSaldo = 'var(--cor-erro)';
+      classeMeta = 'dre-meta-danger';
       fontW = '700';
     } else if (d.saldoAcumulado >= metaVerde) {
-      corSaldo = 'var(--cor-primaria)';
+      classeMeta = 'dre-meta-ok';
       fontW = '700';
     }
-    htmlLinhas += `<td style="text-align: right; color: ${corSaldo} !important; font-weight: ${fontW}; ${i === indiceMesAtual ? 'background-color: #d1fae5;' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
+    htmlLinhas += `<td class="${classeMeta}" style="text-align: right; font-weight: ${fontW}; ${i === indiceMesAtual ? 'background-color: #d1fae5;' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
   });
   htmlLinhas += `</tr>`;
 

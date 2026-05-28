@@ -667,6 +667,10 @@
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
         #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
         .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
+        /* Meta DRE (4.1): cor por classe vence o verde-default da linha. */
+        .linha-liquida td.dre-meta-danger { color: var(--cor-erro) !important; }
+        .linha-liquida td.dre-meta-ok { color: var(--cor-primaria) !important; }
+        .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
         
         /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
         .tabela-simulador {
@@ -6734,7 +6738,7 @@
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
-    <script src="/web/appliquei-app.js?v=onda3m"></script>
+    <script src="/web/appliquei-app.js?v=fase4"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
     <script src="/web/appliquei-aba1-charts.js?v=onda3b"></script>
@@ -6747,7 +6751,7 @@
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=fase3"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=fase4"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=fase2"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
