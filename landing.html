@@ -50,6 +50,10 @@
   .nav-row { display: flex; align-items: center; justify-content: space-between; height: 64px; }
   .brand { display: inline-flex; align-items: center; text-decoration: none; }
   .brand img { display: block; height: 40px; width: auto; }
+  footer .brand { display: flex; align-items: center; gap: 10px; }
+  footer .brand img { display: block; height: auto; width: auto; }
+  footer .brand .logo-icon { height: 36px; width: 36px; }
+  footer .brand .logo-wordmark { height: 28px; }
   .nav-links { display: flex; align-items: center; gap: 26px; }
   .nav-links a { color: var(--ink-2); font-size: 14px; font-weight: 500; }
   .nav-links a:hover { color: var(--emerald); }
@@ -64,6 +68,8 @@
     .nav-links { gap: 10px; }
     .btn { padding: 8px 12px; font-size: 13px; }
     .brand img { height: 32px; }
+    footer .brand .logo-icon { height: 32px; width: 32px; }
+    footer .brand .logo-wordmark { height: 22px; }
   }
   @media (max-width: 380px) {
     .nav-links { gap: 6px; }
@@ -355,7 +361,8 @@
 <footer>
   <div class="container row">
     <div class="brand">
-      <img src="appliquei-logo-white-small.png" alt="Appliquei" width="600" height="152" decoding="async">
+      <img src="appliquei-icon.svg" alt="" class="logo-icon" width="36" height="36" decoding="async">
+      <img src="appliquei-wordmark.svg" alt="Appliquei" class="logo-wordmark" width="120" height="28" decoding="async">
     </div>
     <div>© <span id="year"></span> Appliquei. Todos os direitos reservados.</div>
     <div style="display:flex;gap:16px;">
