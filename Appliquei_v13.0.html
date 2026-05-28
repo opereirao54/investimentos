@@ -4662,6 +4662,92 @@
         body.valores-ocultos #relatorio_mensal .rm-sec-kpi-num,
         body.valores-ocultos #relatorio_mensal .rm-donut-leg-valor,
         body.valores-ocultos #relatorio_mensal canvas { filter: blur(6px); }
+
+        /* ============================================================ */
+        /* Fase 4 — polimento premium (formulários + Meu Patrimônio)    */
+        /* ============================================================ */
+        /* Campos dos painéis de Novo Lançamento e de Operação (investimentos) */
+        #painelNovoLancamento .form-group input,
+        #painelNovoLancamento .form-group select,
+        #painelNovoLancamento select,
+        #painelNovoLancamento input[type="text"],
+        #painelNovoLancamento input[type="number"],
+        #painelNovoLancamento input[type="date"],
+        #painelNovoLancamento input[type="month"],
+        #drawerOperacao .form-group input,
+        #drawerOperacao .form-group select,
+        #drawerOperacao select,
+        #drawerOperacao input[type="text"],
+        #drawerOperacao input[type="number"],
+        #drawerOperacao input[type="date"] {
+            width: 100%;
+            padding: 11px 13px;
+            border: 1.5px solid var(--cor-borda);
+            border-radius: 11px;
+            background: var(--cor-superficie);
+            color: var(--cor-texto-principal);
+            font-size: 14px;
+            font-family: 'Figtree', sans-serif;
+            transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+            -webkit-appearance: none; appearance: none;
+        }
+        /* Seta custom premium nos selects */
+        #painelNovoLancamento select,
+        #drawerOperacao select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 34px;
+            cursor: pointer;
+        }
+        #painelNovoLancamento .form-group input:focus,
+        #painelNovoLancamento .form-group select:focus,
+        #painelNovoLancamento select:focus,
+        #painelNovoLancamento input:focus,
+        #drawerOperacao .form-group input:focus,
+        #drawerOperacao select:focus,
+        #drawerOperacao input:focus {
+            outline: none;
+            border-color: var(--cor-primaria);
+            box-shadow: 0 0 0 3px rgba(5,150,105,0.16);
+            background: var(--cor-fundo-card);
+        }
+        #painelNovoLancamento .form-group label,
+        #drawerOperacao .form-group label {
+            font-size: 11.5px; font-weight: 600; letter-spacing: .3px;
+            color: var(--cor-texto-mutado); margin-bottom: 6px; display: block;
+        }
+        #painelNovoLancamento #btnSalvarControle,
+        #drawerOperacao .btn-acao {
+            border-radius: 12px; font-weight: 700; letter-spacing: .2px;
+            box-shadow: 0 6px 16px -6px rgba(5,150,105,0.45);
+        }
+
+        /* Meu Patrimônio — cards e KPIs mais premium */
+        #meu_patrimonio .card-container {
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 10px 28px -16px rgba(15,23,42,0.16);
+            transition: box-shadow .2s ease, transform .2s ease;
+        }
+        #meu_patrimonio .card-container:hover {
+            box-shadow: 0 2px 6px rgba(15,23,42,0.07), 0 18px 38px -18px rgba(15,23,42,0.22);
+        }
+        #meu_patrimonio .mp-kpi {
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 12px 28px -16px rgba(15,23,42,0.20);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        #meu_patrimonio .mp-kpi:hover { transform: translateY(-2px); }
+        #meu_patrimonio .mp-kpi::before { width: 5px; border-radius: 0 4px 4px 0; }
+        #meu_patrimonio .mp-kpi-saldo::before { background: linear-gradient(180deg,#10b981,#059669); }
+        #meu_patrimonio .mp-kpi-despesas::before { background: linear-gradient(180deg,#fb7185,#dc2626); }
+        #meu_patrimonio .mp-kpi-investido::before { background: linear-gradient(180deg,#a78bfa,#7c3aed); }
+        #meu_patrimonio .mp-kpi-icon { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+        #meu_patrimonio .mp-kpi-valor { font-size: 24px; letter-spacing: -0.4px; }
+        #meu_patrimonio .mp-barra-item { border-radius: 10px; }
+        #meu_patrimonio .mp-barra-fill { box-shadow: inset 0 -1px 2px rgba(0,0,0,0.10); }
+        #meu_patrimonio .mp-inst-item { border-radius: 11px; transition: all .15s ease; }
+        #meu_patrimonio .mp-inst-item:hover { transform: translateX(2px); }
     </style>
 </head>
 <body>
