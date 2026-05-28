@@ -208,10 +208,16 @@ function mpEhDespesaConsumo(categoria) {
   return true;
 }
 
-// Timestamp padronizado de uma transação (data ISO/date-only > mês/ano).
+// Timestamp/competência padronizado de uma transação. Prioriza mes/ano —
+// é a competência canônica usada no resto do app (calcularResumoMes) e a única
+// confiável para lançamentos recorrentes/fixos, cujo `data` guarda o instante
+// de criação (igual para os 60 meses gerados), não o mês de cada parcela.
+// Cai para `data` (ISO/date-only, fuso-seguro) quando não há mes/ano.
 function mpTimestampTransacao(t) {
+  if (typeof t.mes === 'number' && typeof t.ano === 'number')
+    return new Date(t.ano, t.mes, 1).getTime();
   if (t.data) return appliqueiParseData(t.data).getTime();
-  return new Date(t.ano, t.mes, 1).getTime();
+  return Date.now();
 }
 
 // Decide se uma transação já compõe o caixa/saldo em conta até `refMs`.

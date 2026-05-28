@@ -238,6 +238,44 @@ test('3.1 mpCalcularSaldoTotal inclui salário não-pago e ignora saída não-pa
   assert.equal(s.mpCalcularSaldoTotal(NOW), 4000);
 });
 
+test('3.1 salário fixo/recorrente não infla o saldo (usa competência mes/ano)', () => {
+  const s = loadApp();
+  const hoje = new Date();
+  const criadoEm = hoje.toISOString(); // recorrentes guardam o MESMO `data` p/ todos os meses
+  // 1 parcela deste mês + 2 meses futuros, todas data=hoje mas mes/ano distintos.
+  s.transacoes = [
+    {
+      categoria: 'receita',
+      valor: 8000,
+      banco: 'Bradesco',
+      data: criadoEm,
+      mes: hoje.getMonth(),
+      ano: hoje.getFullYear(),
+      pago: false,
+    },
+    {
+      categoria: 'receita',
+      valor: 8000,
+      banco: 'Bradesco',
+      data: criadoEm,
+      mes: (hoje.getMonth() + 1) % 12,
+      ano: hoje.getMonth() === 11 ? hoje.getFullYear() + 1 : hoje.getFullYear(),
+      pago: false,
+    },
+    {
+      categoria: 'receita',
+      valor: 8000,
+      banco: 'Bradesco',
+      data: criadoEm,
+      mes: (hoje.getMonth() + 2) % 12,
+      ano: hoje.getFullYear() + (hoje.getMonth() >= 10 ? 1 : 0),
+      pago: false,
+    },
+  ];
+  // Só a parcela do mês corrente entra; as futuras são excluídas pela competência.
+  assert.equal(s.mpCalcularSaldoTotal(Date.now()), 8000);
+});
+
 test('3.1 receita futura não entra no saldo', () => {
   const s = loadApp();
   s.transacoes = [
@@ -269,6 +307,31 @@ test('3.2 instituições com grafia diferente (Itaú/itau ) somam na mesma linha
   const chaves = Object.keys(mapa);
   assert.equal(chaves.length, 1, 'Itaú e itau devem cair na mesma chave');
   assert.equal(Object.values(mapa)[0].caixa, 1500);
+});
+
+test('3.2 despesa paga com banco abate o caixa da própria instituição', () => {
+  const s = loadApp();
+  // Salário entra no Bradesco; aluguel pago também sai do Bradesco.
+  s.transacoes = [
+    { categoria: 'receita', valor: 8000, banco: 'Bradesco', data: ontem, pago: false },
+    { categoria: 'despesa_fixa', valor: 1200, banco: 'Bradesco', data: ontem, pago: true },
+  ];
+  const mapa = s.mpCalcularSaldoPorInstituicao(NOW);
+  const chaves = Object.keys(mapa);
+  assert.equal(chaves.length, 1, 'deve haver só o Bradesco — sem bucket "Sem banco"');
+  assert.equal(Object.values(mapa)[0].label, 'Bradesco');
+  assert.equal(Object.values(mapa)[0].caixa, 6800, 'caixa do Bradesco = 8000 - 1200');
+});
+
+test('3.2 controleCategoriaUsaBanco cobre receitas e despesas (não cartão)', () => {
+  const s = loadApp();
+  assert.equal(s.controleCategoriaUsaBanco('receita'), true);
+  assert.equal(s.controleCategoriaUsaBanco('resgate_investimento'), true);
+  assert.equal(s.controleCategoriaUsaBanco('despesa_fixa'), true);
+  assert.equal(s.controleCategoriaUsaBanco('despesa_variavel'), true);
+  assert.equal(s.controleCategoriaUsaBanco('cartao_credito'), false);
+  assert.equal(s.controleBancoObrigatorio('despesa_fixa'), false);
+  assert.equal(s.controleBancoObrigatorio('receita'), true);
 });
 
 test('3.2 mpConsolidar normaliza a corretora (XP / xp )', () => {
