@@ -4106,6 +4106,28 @@
             box-shadow: 0 4px 12px rgba(124,58,237,0.25);
         }
 
+        /* 4.5 — Modo de exportação/impressão do Relatório Mensal: largura fixa
+           de página (A4), grids reduzidos e blocos que não quebram no meio. */
+        #rmConteudo.rm-exportando { width: 760px; max-width: 760px; margin: 0 auto; background: #fff; padding: 6px; }
+        #rmConteudo.rm-exportando .rm-hero { grid-template-columns: 1fr !important; }
+        #rmConteudo.rm-exportando .rm-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        #rmConteudo.rm-exportando .rm-criterios-strip { grid-template-columns: repeat(2, 1fr) !important; }
+        #rmConteudo.rm-exportando .rm-hero,
+        #rmConteudo.rm-exportando .rm-chart-card,
+        #rmConteudo.rm-exportando .rm-kpi,
+        #rmConteudo.rm-exportando .rm-criterios-strip {
+            break-inside: avoid; page-break-inside: avoid;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #rmConteudo, #rmConteudo * { visibility: visible; }
+            #rmConteudo { position: absolute; left: 0; top: 0; width: 100%; }
+            #rmConteudo .rm-hero { grid-template-columns: 1fr !important; }
+            #rmConteudo .rm-hero, #rmConteudo .rm-chart-card, #rmConteudo .rm-kpi {
+                break-inside: avoid; page-break-inside: avoid;
+            }
+        }
+
         /* Hero do termômetro */
         #relatorio_mensal .rm-hero {
             position: relative;
@@ -6754,7 +6776,7 @@
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=fase4"></script>
-    <script src="/web/appliquei-relatorio-mensal.js?v=fase2"></script>
+    <script src="/web/appliquei-relatorio-mensal.js?v=fase4"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
     <script src="/web/appliquei-patrimonio.js?v=fase4"></script>
