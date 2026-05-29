@@ -510,57 +510,6 @@ function cartToggleAtivo(classe, ticker) {
   cartRenderizarDonut();
 }
 
-function cartResetSelecao() {
-  // Zera o estado (null = todos marcados).
-  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
-  cartSalvarEstado();
-
-  // 1) Caminho normal: re-renderiza o grid inteiro (recalcula %/valores por
-  //    ativo, já que agora todos voltam a dividir a alocação da classe).
-  try {
-    cartRenderizarSelecaoGrid();
-  } catch (e) {
-    console.error('[cartResetSelecao] falha ao re-renderizar grid', e);
-  }
-
-  // 2) Garantia visual (à prova de falha): independentemente do re-render,
-  //    força o estado "marcado" direto no DOM atual do grid. Se o re-render
-  //    acima falhar por qualquer motivo (o que deixava o grid intacto e dava
-  //    a impressão de que o botão "não fazia nada"), isto ainda remarca todos
-  //    os ativos que tivessem ficado como `unchecked`.
-  try {
-    cartEnforceTodosMarcadosNoDOM();
-  } catch (e) {
-    console.error('[cartResetSelecao] fallback visual falhou', e);
-  }
-
-  try {
-    cartRenderizarDonut();
-  } catch (e) {
-    console.error('[cartResetSelecao] falha ao re-renderizar donut', e);
-  }
-  // cartCarregarSimulacao é async: um try/catch síncrono NÃO captura sua
-  // rejeição (virava unhandled rejection). Tratamos a promise explicitamente.
-  Promise.resolve()
-    .then(() => cartCarregarSimulacao())
-    .catch((e) => console.error('[cartResetSelecao] falha ao recarregar simulação', e));
-
-  mostrarToast('Seleção resetada — todos os ativos remarcados.', 'sucesso');
-}
-
-// Marca, no DOM já renderizado do grid, todos os ativos como selecionados.
-// É idempotente: se o grid já está todo marcado, não faz nada.
-function cartEnforceTodosMarcadosNoDOM() {
-  const itens = document.querySelectorAll('#cartSelecaoGrid .cart-ativo-item.unchecked');
-  itens.forEach((li) => {
-    li.classList.remove('unchecked');
-    const chk = li.querySelector('.cart-ativo-check');
-    if (chk && !chk.querySelector('i')) {
-      chk.innerHTML = '<i class="ph ph-check-bold"></i>';
-    }
-  });
-}
-
 // ════════════════════════════════
 // HISTORICAL SIMULATION
 // ════════════════════════════════

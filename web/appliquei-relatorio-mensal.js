@@ -1272,13 +1272,6 @@ async function rmExportarPDF() {
     // partir dos DADOS do mês — sem depender da UI escura da tela).
     const inner = rmConstruirRelatorioImprimivel(ym);
 
-    // ── Por que NÃO usamos mais html2canvas/html2pdf ──
-    // A abordagem anterior "fotografava" um elemento offscreen com html2canvas
-    // e o PDF saía TODO BRANCO (o html2canvas falha silenciosamente em vários
-    // cenários: elemento fora da viewport, fontes/recursos pendentes, CDN
-    // bloqueada, etc.). Agora delegamos pro motor de impressão NATIVO do
-    // navegador: renderizamos o HTML numa janela dedicada e chamamos print().
-    // O usuário escolhe "Salvar como PDF" — é nítido, paginado e nunca branco.
     const docHtml = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1295,36 +1288,58 @@ async function rmExportarPDF() {
     body { padding: 8px; }
   </style>
 </head>
-<body>
-  ${inner}
-  <script>
-    window.addEventListener('load', function () {
-      // Pequeno respiro pro layout assentar antes do diálogo de impressão.
-      setTimeout(function () {
-        try { window.focus(); } catch (e) {}
-        window.print();
-      }, 300);
-    });
-    // Fecha a aba auxiliar depois que o usuário sai do diálogo de impressão.
-    window.addEventListener('afterprint', function () {
-      setTimeout(function () { try { window.close(); } catch (e) {} }, 100);
-    });
-  <\/script>
-</body>
+<body>${inner}</body>
 </html>`;
 
-    const win = window.open('', '_blank');
-    if (!win) {
-      if (typeof mostrarToast === 'function')
-        mostrarToast('Permita pop-ups neste site para exportar o relatório.', 'erro');
-      return;
-    }
-    win.document.open();
-    win.document.write(docHtml);
-    win.document.close();
+    // ── Por que NÃO usamos mais html2canvas/html2pdf ──
+    // A versão antiga "fotografava" um elemento com html2canvas e o PDF saía
+    // TODO BRANCO (falha silenciosa em vários cenários). Delegamos pro motor
+    // de impressão NATIVO do navegador, que nunca gera página em branco.
+    //
+    // Usamos um IFRAME oculto (não window.open) porque pop-ups são bloqueados
+    // por padrão na maioria dos navegadores — era a causa provável de "nada
+    // acontece". O iframe é injetado na própria página, então não há pop-up.
+    const antigo = document.getElementById('rmPrintFrame');
+    if (antigo && antigo.parentNode) antigo.parentNode.removeChild(antigo);
 
-    if (typeof mostrarToast === 'function')
-      mostrarToast('Abrindo impressão — escolha "Salvar como PDF".', 'info');
+    const iframe = document.createElement('iframe');
+    iframe.id = 'rmPrintFrame';
+    // Fora da tela, mas renderizado (necessário pra impressão funcionar).
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0;';
+    document.body.appendChild(iframe);
+
+    let jaImprimiu = false;
+    const imprimir = () => {
+      if (jaImprimiu) return;
+      jaImprimiu = true;
+      try {
+        const win = iframe.contentWindow;
+        win.focus();
+        win.print();
+        if (typeof mostrarToast === 'function')
+          mostrarToast('Abrindo impressão — escolha "Salvar como PDF".', 'info');
+      } catch (e) {
+        console.error('[rmExportarPDF] print', e);
+        if (typeof mostrarToast === 'function')
+          mostrarToast('Não foi possível abrir a impressão do relatório.', 'erro');
+      }
+      // Remove o iframe depois (afterprint nem sempre dispara — usamos timeout).
+      setTimeout(() => {
+        try {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        } catch (e) {}
+      }, 2000);
+    };
+
+    // Escreve o documento e imprime quando estiver pronto. Como document.write
+    // nem sempre dispara o evento `load`, garantimos a impressão por timeout.
+    iframe.onload = () => setTimeout(imprimir, 200);
+    const idoc = iframe.contentWindow.document;
+    idoc.open();
+    idoc.write(docHtml);
+    idoc.close();
+    setTimeout(imprimir, 600);
   } catch (err) {
     console.error('[rmExportarPDF]', err);
     if (typeof mostrarToast === 'function')
