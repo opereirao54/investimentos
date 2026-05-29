@@ -731,8 +731,30 @@ function mpRenderDonut(consolidado) {
   const cores = itens.map((it) => mpCorCategoria(it.cat));
 
   if (mpEstado.donutChart) mpEstado.donutChart.destroy();
+  const totalDonut = valores.reduce((a, b) => a + b, 0);
+  // Plugin local: escreve o total no furo central do donut (padrão premium).
+  const centroTotalPlugin = {
+    id: 'mpCentroTotal',
+    afterDraw(chart) {
+      const { ctx, chartArea } = chart;
+      if (!chartArea) return;
+      const cx = (chartArea.left + chartArea.right) / 2;
+      const cy = (chartArea.top + chartArea.bottom) / 2;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = getToken('--cor-texto-mutado');
+      ctx.font = "600 11px 'Figtree', sans-serif";
+      ctx.fillText('TOTAL', cx, cy - 14);
+      ctx.fillStyle = getToken('--cor-texto-principal');
+      ctx.font = "700 18px 'DM Mono', monospace";
+      ctx.fillText(mpFmtBRL(totalDonut), cx, cy + 6);
+      ctx.restore();
+    },
+  };
   mpEstado.donutChart = new Chart(canvas.getContext('2d'), {
     type: 'doughnut',
+    plugins: [centroTotalPlugin],
     data: {
       labels,
       datasets: [
@@ -757,11 +779,17 @@ function mpRenderDonut(consolidado) {
       animation: { animateRotate: true, animateScale: true, duration: 600 },
       plugins: {
         legend: { display: false },
+        // Desliga os rótulos crus do plugin global de datalabels que vazavam
+        // sobre as fatias (ex.: "21.5000000006"). O total fica no centro.
+        datalabels: { display: false },
         tooltip: {
           padding: 10,
           cornerRadius: 8,
           callbacks: {
-            label: (ctx) => `${ctx.label}: ${mpFmtBRL(ctx.parsed)}`,
+            label: (ctx) => {
+              const share = totalDonut > 0 ? (ctx.parsed / totalDonut) * 100 : 0;
+              return `${ctx.label}: ${mpFmtBRL(ctx.parsed)} (${share.toFixed(1)}%)`;
+            },
           },
         },
       },
@@ -782,12 +810,24 @@ function mpRenderDonut(consolidado) {
       const lucro = it.valor - it.investido;
       const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
       const cls = ehCaixa ? 'neu' : pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
+      const share = totalDonut > 0 ? (it.valor / totalDonut) * 100 : 0;
+      const rentLabel = ehCaixa
+        ? '<span class="mp-leg-pct neu">—</span>'
+        : `<span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${pct >= 0 ? 'trend-up' : 'trend-down'}"></i>${mpFmtPct(pct)}</span>`;
       return `
             <div class="mp-leg-item" data-cat="${it.cat}" onclick="mpDestacar('${it.cat}')">
                 <span class="mp-leg-dot" style="background:${cores[i]}"></span>
-                <span class="mp-leg-nome">${MP_LABELS[it.cat] || it.cat}</span>
-                <span class="mp-leg-rs">${mpFmtBRL(it.valor)}</span>
-                <span class="mp-leg-pct ${cls}">${ehCaixa ? '—' : mpFmtPct(pct)}</span>
+                <div class="mp-leg-main">
+                    <div class="mp-leg-top">
+                        <span class="mp-leg-nome">${MP_LABELS[it.cat] || it.cat}</span>
+                        <span class="mp-leg-rs">${mpFmtBRL(it.valor)}</span>
+                    </div>
+                    <div class="mp-leg-bottom">
+                        <span class="mp-leg-bar"><span class="mp-leg-bar-fill" style="width:${Math.max(share, 2).toFixed(1)}%;background:${cores[i]}"></span></span>
+                        <span class="mp-leg-share">${share.toFixed(1)}%</span>
+                        ${rentLabel}
+                    </div>
+                </div>
             </div>`;
     })
     .join('');
