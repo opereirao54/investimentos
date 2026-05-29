@@ -36,17 +36,20 @@ function mpAliquotaIRRendaVariavel(subcat) {
 }
 
 // Janela do MÊS selecionado (igual ao filtro da aba Controle — 4.9):
-// {iniMs, fimMs, anteriorIniMs, anteriorFimMs, label}. `fimMs` é limitado a
-// "agora" para o mês corrente não projetar saldo futuro; o comparativo é
-// sempre o mês anterior.
+// {iniMs, fimMs, fimMesMs, anteriorIniMs, anteriorFimMs, label}.
+// `fimMs` é limitado a "agora" para o SALDO não projetar caixa futuro.
+// `fimMesMs` é o fim REAL do mês (sem corte) — usado nas DESPESAS, que devem
+// somar o mês inteiro inclusive em meses futuros (planejados). Sem isso, ao
+// navegar para um mês posterior a hoje, `fimMs` < `iniMs` e o KPI zerava.
 function mpJanelaPeriodo() {
   const mes = typeof mpEstado.mes === 'number' ? mpEstado.mes : new Date().getMonth();
   const ano = typeof mpEstado.ano === 'number' ? mpEstado.ano : new Date().getFullYear();
   const iniMs = new Date(ano, mes, 1).getTime();
-  const fimMs = Math.min(new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime(), Date.now());
+  const fimMesMs = new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+  const fimMs = Math.min(fimMesMs, Date.now());
   const anteriorIniMs = new Date(ano, mes - 1, 1).getTime();
   const anteriorFimMs = new Date(ano, mes, 1).getTime() - 1;
-  return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
+  return { iniMs, fimMs, fimMesMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
 }
 
 // Navegação de mês — espelha mudarMesVisao/selecionarMesVisao/irParaMesAtual.
@@ -270,11 +273,14 @@ function mpCalcularSaldoTotal(refMs) {
   return saldo;
 }
 
+// Despesas de consumo na janela. Conta TODA despesa com competência no período,
+// paga ou não — igual ao Controle (calcularResumoMes soma despFixa+despVar+cartão
+// sem olhar `pago`). Antes exigia `t.pago`, mas como as transações nascem
+// `pago:false` (e fatura de cartão fica em aberto), o KPic vinha zerado/baixo.
 function mpCalcularDespesasJanela(iniMs, fimMs) {
   if (typeof transacoes === 'undefined') return 0;
   let total = 0;
   transacoes.forEach((t) => {
-    if (!t.pago) return;
     if (!mpEhDespesaConsumo(t.categoria)) return;
     const tsTx = mpTimestampTransacao(t);
     if (tsTx < iniMs || tsTx > fimMs) return;
@@ -453,7 +459,7 @@ function mpRenderKPIs(consolidado, janela) {
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMs);
+  const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMesMs);
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const despesasAnt = mpCalcularDespesasJanela(janela.anteriorIniMs, janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
@@ -833,36 +839,50 @@ function mpRenderDonut(consolidado) {
     .join('');
 }
 
+// Snapshot da fatura de cartão para o MÊS SELECIONADO no filtro do Patrimônio
+// (mpEstado.mes/ano), não o mês real de hoje — assim acompanha a navegação de
+// mês. Mostra fatura total do mês, parcela em aberto/paga e uso do limite.
+// Antes só somava faturas em aberto do mês corrente e escondia o bloco quando
+// não havia cartão cadastrado, mesmo havendo lançamentos de cartão.
 function mpRenderCartaoSnap() {
   const wrap = document.getElementById('mp-cartao-snap');
   const info = document.getElementById('mp-cartao-info');
   if (!wrap || !info) return;
-  if (typeof cartoes === 'undefined' || !cartoes.length) {
-    wrap.style.display = 'none';
-    return;
-  }
-  const ativos = cartoes.filter((c) => !c.arquivado);
-  if (!ativos.length) {
-    wrap.style.display = 'none';
-    return;
-  }
-  // Foto: soma faturas em aberto (não pagas) para o mês corrente + limite total
-  const agora = new Date(),
-    m = agora.getMonth(),
-    a = agora.getFullYear();
+  const todosCartoes = typeof cartoes !== 'undefined' ? cartoes : [];
+  const ativos = todosCartoes.filter((c) => !c.arquivado);
+  const txs = typeof transacoes !== 'undefined' ? transacoes : [];
+  const m = mpEstado.mes,
+    a = mpEstado.ano;
   let faturaAberta = 0,
+    faturaPaga = 0,
     limiteTotal = 0;
   ativos.forEach((c) => {
     limiteTotal += Number(c.limite) || 0;
-    (typeof transacoes !== 'undefined' ? transacoes : []).forEach((t) => {
-      if (t.cartaoId !== c.id) return;
-      if (t.categoria !== 'cartao_credito') return;
-      if (t.pago) return;
-      if (t.mes === m && t.ano === a) faturaAberta += Number(t.valor) || 0;
-    });
   });
+  txs.forEach((t) => {
+    if (t.categoria !== 'cartao_credito') return;
+    if (t.mes !== m || t.ano !== a) return;
+    const v = Number(t.valor) || 0;
+    if (t.pago) faturaPaga += v;
+    else faturaAberta += v;
+  });
+  const faturaTotal = faturaAberta + faturaPaga;
+  // Esconde apenas quando não há cartão cadastrado nem lançamento de cartão no mês.
+  if (!ativos.length && faturaTotal === 0) {
+    wrap.style.display = 'none';
+    return;
+  }
   wrap.style.display = '';
-  info.innerHTML = `${ativos.length} cartão(ões) · Fatura atual em aberto: <strong>${mpFmtBRL(faturaAberta)}</strong> · Limite total: <strong>${mpFmtBRL(limiteTotal)}</strong>`;
+  const usoPct = limiteTotal > 0 ? (faturaTotal / limiteTotal) * 100 : 0;
+  const partes = [
+    `${ativos.length} cartão(ões)`,
+    `Fatura do mês: <strong>${mpFmtBRL(faturaTotal)}</strong>`,
+  ];
+  if (faturaAberta > 0) partes.push(`Em aberto: <strong>${mpFmtBRL(faturaAberta)}</strong>`);
+  if (faturaPaga > 0) partes.push(`Paga: <strong>${mpFmtBRL(faturaPaga)}</strong>`);
+  if (limiteTotal > 0)
+    partes.push(`Limite: <strong>${mpFmtBRL(limiteTotal)}</strong> (${usoPct.toFixed(0)}% usado)`);
+  info.innerHTML = partes.join(' · ');
 }
 
 // Função pública: orquestra render completo (ou skipFetch quando só muda modo)

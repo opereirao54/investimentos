@@ -365,3 +365,53 @@ test('3.2 mpConsolidar normaliza a corretora (XP / xp )', () => {
   assert.equal(insts.length, 1, 'XP e xp devem ser a mesma instituição');
   assert.equal(Object.values(cons.porInstituicao)[0].label, 'XP');
 });
+
+// ---- 3.3: "Despesas do período" conta lançamentos não-pagos ------------
+
+test('3.3 mpCalcularDespesasJanela soma despesas e cartão sem exigir "pago"', () => {
+  const s = loadApp();
+  const hoje = new Date();
+  const mes = hoje.getMonth();
+  const ano = hoje.getFullYear();
+  s.transacoes = [
+    { categoria: 'despesa_fixa', valor: 1000, mes, ano, pago: false }, // não-paga: conta
+    { categoria: 'despesa_variavel', valor: 250, mes, ano, pago: true }, // paga: conta
+    { categoria: 'cartao_credito', valor: 800, mes, ano, pago: false }, // fatura em aberto: conta
+    { categoria: 'receita', valor: 9000, mes, ano, pago: false }, // entrada: não é despesa
+    { categoria: 'investimento_fixo', valor: 500, mes, ano, pago: true }, // aporte: não é despesa
+  ];
+  const ini = new Date(ano, mes, 1).getTime();
+  const fim = new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+  assert.equal(s.mpCalcularDespesasJanela(ini, fim), 2050); // 1000 + 250 + 800
+});
+
+test('3.3 despesas de mês FUTURO entram na janela (fimMesMs sem corte em "agora")', () => {
+  const s = loadApp();
+  const hoje = new Date();
+  // 2 meses à frente — competência futura (planejada).
+  const alvo = new Date(hoje.getFullYear(), hoje.getMonth() + 2, 1);
+  const mes = alvo.getMonth();
+  const ano = alvo.getFullYear();
+  s.mpEstado.mes = mes;
+  s.mpEstado.ano = ano;
+  s.transacoes = [{ categoria: 'despesa_fixa', valor: 700, mes, ano, pago: false }];
+  const janela = s.mpJanelaPeriodo();
+  // fimMs é cortado em "agora" (mês futuro → janela vazia); fimMesMs cobre o mês.
+  assert.equal(s.mpCalcularDespesasJanela(janela.iniMs, janela.fimMs), 0);
+  assert.equal(s.mpCalcularDespesasJanela(janela.iniMs, janela.fimMesMs), 700);
+});
+
+test('3.3 mpCalcularDespesasJanela ignora despesa fora da janela', () => {
+  const s = loadApp();
+  const hoje = new Date();
+  const mes = hoje.getMonth();
+  const ano = hoje.getFullYear();
+  const mesAnt = mes === 0 ? 11 : mes - 1;
+  const anoAnt = mes === 0 ? ano - 1 : ano;
+  s.transacoes = [
+    { categoria: 'despesa_fixa', valor: 1000, mes: mesAnt, ano: anoAnt, pago: false },
+  ];
+  const ini = new Date(ano, mes, 1).getTime();
+  const fim = new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+  assert.equal(s.mpCalcularDespesasJanela(ini, fim), 0);
+});
