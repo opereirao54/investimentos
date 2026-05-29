@@ -662,7 +662,9 @@ async function reconcileOp(req, res) {
     if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
   }
   const limit = Math.max(0, parseInt((req.query && req.query.limit) || '0', 10) || 0);
-  const summary = await runReconcileSweep({ limit, source: isCron ? 'cron' : 'manual' });
+  // Cursor para retomar a varredura em lotes (o front itera até partial=false).
+  const after = (req.query && req.query.after) || null;
+  const summary = await runReconcileSweep({ limit, after, source: isCron ? 'cron' : 'manual' });
   return res.json({ ok: true, ...summary });
 }
 

@@ -137,6 +137,19 @@ test('runReconcileSweep: persiste a run em reconcileRuns com origem rotulada', a
   assert.equal(run.correctionsTruncated, false);
 });
 
+test('runReconcileSweep: cursor `after` retoma a varredura após o uid dado', async () => {
+  reset();
+  seedAccount('a', { uid: 'a', stats: { pendingDiscountCents: 0 } }, []);
+  seedAccount('b', { uid: 'b', stats: { pendingDiscountCents: 0 } }, []);
+  seedAccount('c', { uid: 'c', stats: { pendingDiscountCents: 0 } }, []);
+
+  const summary = await runReconcileSweep({ after: 'a' });
+  // Pula 'a'; varre 'b' e 'c'. Sem deadline atingido → completou (cursor nulo).
+  assert.equal(summary.scanned, 2);
+  assert.equal(summary.partial, false);
+  assert.equal(summary.nextCursor, null);
+});
+
 test('runReconcileSweep: ignora subcoleção credits na varredura de contas', async () => {
   reset();
   seedAccount(

@@ -758,20 +758,48 @@ function renderReconcile(r) {
     });
 }
 
+// Lê a resposta com tolerância: a função serverless pode devolver uma página
+// de erro NÃO-JSON (ex.: timeout da Vercel → "An error occurred..."). Nesse
+// caso devolvemos o texto cru como erro em vez de quebrar no JSON.parse.
+async function parseJsonSafe(res) {
+    const text = await res.text();
+    try {
+        return { ok: res.ok, data: JSON.parse(text) };
+    } catch (_) {
+        const snippet = (text || '').trim().slice(0, 120) || `HTTP ${res.status}`;
+        return { ok: false, data: { error: snippet } };
+    }
+}
+
 async function triggerReconcile() {
     const token = sessionStorage.getItem('adminToken');
     if (!token) return;
-    if (!confirm('Rodar varredura de reconciliação em TODAS as contas agora?\n\nAlinha cobrança×Asaas e corrige contadores Applicash que desgarraram. Pode demorar alguns segundos.')) return;
+    if (!confirm('Rodar varredura de reconciliação em TODAS as contas agora?\n\nAlinha cobrança×Asaas e corrige contadores Applicash que desgarraram. Roda em lotes — pode demorar alguns segundos.')) return;
     const btn = $('reconcile-run-btn');
     const orig = btn.innerHTML;
-    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> A varrer...';
     btn.disabled = true;
+    // A varredura roda em lotes (time-box no servidor p/ não estourar o limite
+    // da função). Iteramos com o cursor `nextCursor` até concluir (partial=false).
+    const acc = { scanned: 0, billing: 0, credit: 0, errors: 0 };
+    let cursor = null, batches = 0;
+    const MAX_BATCHES = 50; // guarda-corpo contra loop infinito
     try {
-        const res = await fetch('/api/admin/stats?op=reconcile', { headers: { 'Authorization': `Bearer ${token}` } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-        toast(`Varredura concluída: ${data.scanned} contas · ${data.billingStateCorrected} cobrança · ${data.creditInvariantCorrected} crédito · ${data.errors} erros.`,
-            data.errors ? 'warn' : 'success', 7000);
+        do {
+            batches++;
+            btn.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Lote ${batches} (${formatInt(acc.scanned)})...`;
+            const url = '/api/admin/stats?op=reconcile' + (cursor ? '&after=' + encodeURIComponent(cursor) : '');
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const { ok, data } = await parseJsonSafe(res);
+            if (!ok) throw new Error(data.error || `HTTP ${res.status}`);
+            acc.scanned += data.scanned || 0;
+            acc.billing += data.billingStateCorrected || 0;
+            acc.credit += data.creditInvariantCorrected || 0;
+            acc.errors += data.errors || 0;
+            cursor = data.partial ? data.nextCursor : null;
+        } while (cursor && batches < MAX_BATCHES);
+        const incomplete = cursor ? ' (interrompida — muitos lotes)' : '';
+        toast(`Varredura concluída${incomplete}: ${formatInt(acc.scanned)} contas · ${formatInt(acc.billing)} cobrança · ${formatInt(acc.credit)} crédito · ${formatInt(acc.errors)} erros.`,
+            acc.errors ? 'warn' : 'success', 7000);
         loadStats();
     } catch (err) {
         toast('Falha na varredura: ' + err.message, 'error');
