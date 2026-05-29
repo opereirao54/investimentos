@@ -2,6 +2,7 @@ const { db } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
 const { computeAccess, PAID_PERIOD_MS } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
+const { computeCreditTotals } = require('../_lib/reconcile');
 
 function tsToIso(t) {
   if (!t) return null;
@@ -161,13 +162,10 @@ module.exports = handler({
       });
     }
 
-    let pendingDiscountCents = 0;
-    let totalReferralEarningsCents = 0;
-    for (const c of credits) {
-      if (c.voidedAt) continue;
-      totalReferralEarningsCents += c.amountCents;
-      if (!c.appliedAt) pendingDiscountCents += c.amountCents;
-    }
+    // Fonte de verdade única (compartilhada com a reconciliação): deriva o
+    // saldo dos documentos de crédito em vez de confiar nos contadores
+    // acumulados em stats.* (que podem desgarrar).
+    const { pendingDiscountCents, totalReferralEarningsCents } = computeCreditTotals(credits);
 
     if (payRes) {
       const all = payRes.docs.map((d) => {

@@ -1,14 +1,17 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
+const { runReconcileSweep } = require('../_lib/reconcile');
 
 // Endpoint admin CONSOLIDADO (cabe em 1 função Vercel — antes eram 3):
 //   GET /api/admin/stats                            → dashboard JSON (default)
 //   GET /api/admin/stats?include=audit&limit=N      → audit log
 //        &actionFilter=set_discount&emailFilter=... → filtros de audit
 //   GET /api/admin/stats?format=csv                 → export CSV billing
+//   GET /api/admin/stats?op=reconcile               → varredura de reconciliação
 //
 // Autenticação: header `Authorization: Bearer <ADMIN_API_TOKEN>` ou
-// query string `?token=<ADMIN_API_TOKEN>`.
+// query string `?token=<ADMIN_API_TOKEN>`. O op=reconcile aceita também
+// `Authorization: Bearer <CRON_SECRET>` para o cron da Vercel.
 
 const PAID_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
 
@@ -596,11 +599,30 @@ async function dashboard(req, res) {
 }
 
 // ─── ROUTER ────────────────────────────────────────────────────
+// op=reconcile: aceita o cron da Vercel (Bearer CRON_SECRET) OU o token de
+// admin. Mantém-se fora do authCheck padrão porque o cron não conhece o
+// ADMIN_API_TOKEN — a Vercel injeta automaticamente Authorization com o
+// CRON_SECRET nas invocações agendadas.
+async function reconcileOp(req, res) {
+  const cronSecret = process.env.CRON_SECRET;
+  const header = req.headers.authorization || '';
+  const isCron = !!cronSecret && header === 'Bearer ' + cronSecret;
+  if (!isCron) {
+    const err = authCheck(req);
+    if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
+  }
+  const limit = Math.max(0, parseInt((req.query && req.query.limit) || '0', 10) || 0);
+  const summary = await runReconcileSweep({ limit });
+  return res.json({ ok: true, ...summary });
+}
+
 module.exports = handler({
   method: 'GET',
   // Admin token estático, validado em authCheck (não Firebase auth).
   auth: 'none',
   handle: async ({ req, res }) => {
+    if ((req.query && req.query.op) === 'reconcile') return await reconcileOp(req, res);
+
     const err = authCheck(req);
     if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
 
