@@ -75,6 +75,29 @@ function formatarQtd(valor) {
     return n.toLocaleString('pt-BR', { maximumFractionDigits: QTD_MAX_DECIMAIS });
 }
 
+// --- Date helpers (padronização de fuso) ---
+// Datas "YYYY-MM-DD" (date-only) viram MEIO-DIA LOCAL para não "vazar" para o
+// dia/mês anterior em fusos negativos (ex.: UTC-3 — `new Date('2024-01-01')`
+// é meia-noite UTC = 31/12 21:00 em SP). ISO completo e timestamps passam
+// direto. Use sempre que for derivar mês/ano de um campo de data persistido.
+function appliqueiParseData(value) {
+    if (value instanceof Date) return value;
+    if (typeof value === 'number') return new Date(value);
+    if (typeof value === 'string') {
+        const s = value.trim();
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T12:00:00');
+        return new Date(s);
+    }
+    return new Date(NaN);
+}
+
+// Mês/ano locais de um campo de data persistido, com parsing padronizado.
+function appliqueiMesAnoDe(value) {
+    const d = appliqueiParseData(value);
+    if (isNaN(d.getTime())) return { mes: undefined, ano: undefined, valido: false };
+    return { mes: d.getMonth(), ano: d.getFullYear(), valido: true };
+}
+
 // --- BRL helpers (máscara em inputs monetários) ---
 // Retorna sempre Number finito (nunca string/NaN/Infinity). Strings vazias
 // ou sem dígitos viram 0. Entradas com múltiplas vírgulas (ex.: "1,234,56")

@@ -667,6 +667,10 @@
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
         #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
         .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
+        /* Meta DRE (4.1): cor por classe vence o verde-default da linha. */
+        .linha-liquida td.dre-meta-danger { color: var(--cor-erro) !important; }
+        .linha-liquida td.dre-meta-ok { color: var(--cor-primaria) !important; }
+        .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
         
         /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
         .tabela-simulador {
@@ -4102,6 +4106,28 @@
             box-shadow: 0 4px 12px rgba(124,58,237,0.25);
         }
 
+        /* 4.5 — Modo de exportação/impressão do Relatório Mensal: largura fixa
+           de página (A4), grids reduzidos e blocos que não quebram no meio. */
+        #rmConteudo.rm-exportando { width: 760px; max-width: 760px; margin: 0 auto; background: #fff; padding: 6px; }
+        #rmConteudo.rm-exportando .rm-hero { grid-template-columns: 1fr !important; }
+        #rmConteudo.rm-exportando .rm-kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        #rmConteudo.rm-exportando .rm-criterios-strip { grid-template-columns: repeat(2, 1fr) !important; }
+        #rmConteudo.rm-exportando .rm-hero,
+        #rmConteudo.rm-exportando .rm-chart-card,
+        #rmConteudo.rm-exportando .rm-kpi,
+        #rmConteudo.rm-exportando .rm-criterios-strip {
+            break-inside: avoid; page-break-inside: avoid;
+        }
+        @media print {
+            body * { visibility: hidden; }
+            #rmConteudo, #rmConteudo * { visibility: visible; }
+            #rmConteudo { position: absolute; left: 0; top: 0; width: 100%; }
+            #rmConteudo .rm-hero { grid-template-columns: 1fr !important; }
+            #rmConteudo .rm-hero, #rmConteudo .rm-chart-card, #rmConteudo .rm-kpi {
+                break-inside: avoid; page-break-inside: avoid;
+            }
+        }
+
         /* Hero do termômetro */
         #relatorio_mensal .rm-hero {
             position: relative;
@@ -4636,6 +4662,92 @@
         body.valores-ocultos #relatorio_mensal .rm-sec-kpi-num,
         body.valores-ocultos #relatorio_mensal .rm-donut-leg-valor,
         body.valores-ocultos #relatorio_mensal canvas { filter: blur(6px); }
+
+        /* ============================================================ */
+        /* Fase 4 — polimento premium (formulários + Meu Patrimônio)    */
+        /* ============================================================ */
+        /* Campos dos painéis de Novo Lançamento e de Operação (investimentos) */
+        #painelNovoLancamento .form-group input,
+        #painelNovoLancamento .form-group select,
+        #painelNovoLancamento select,
+        #painelNovoLancamento input[type="text"],
+        #painelNovoLancamento input[type="number"],
+        #painelNovoLancamento input[type="date"],
+        #painelNovoLancamento input[type="month"],
+        #drawerOperacao .form-group input,
+        #drawerOperacao .form-group select,
+        #drawerOperacao select,
+        #drawerOperacao input[type="text"],
+        #drawerOperacao input[type="number"],
+        #drawerOperacao input[type="date"] {
+            width: 100%;
+            padding: 11px 13px;
+            border: 1.5px solid var(--cor-borda);
+            border-radius: 11px;
+            background: var(--cor-superficie);
+            color: var(--cor-texto-principal);
+            font-size: 14px;
+            font-family: 'Figtree', sans-serif;
+            transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+            -webkit-appearance: none; appearance: none;
+        }
+        /* Seta custom premium nos selects */
+        #painelNovoLancamento select,
+        #drawerOperacao select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 34px;
+            cursor: pointer;
+        }
+        #painelNovoLancamento .form-group input:focus,
+        #painelNovoLancamento .form-group select:focus,
+        #painelNovoLancamento select:focus,
+        #painelNovoLancamento input:focus,
+        #drawerOperacao .form-group input:focus,
+        #drawerOperacao select:focus,
+        #drawerOperacao input:focus {
+            outline: none;
+            border-color: var(--cor-primaria);
+            box-shadow: 0 0 0 3px rgba(5,150,105,0.16);
+            background: var(--cor-fundo-card);
+        }
+        #painelNovoLancamento .form-group label,
+        #drawerOperacao .form-group label {
+            font-size: 11.5px; font-weight: 600; letter-spacing: .3px;
+            color: var(--cor-texto-mutado); margin-bottom: 6px; display: block;
+        }
+        #painelNovoLancamento #btnSalvarControle,
+        #drawerOperacao .btn-acao {
+            border-radius: 12px; font-weight: 700; letter-spacing: .2px;
+            box-shadow: 0 6px 16px -6px rgba(5,150,105,0.45);
+        }
+
+        /* Meu Patrimônio — cards e KPIs mais premium */
+        #meu_patrimonio .card-container {
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 10px 28px -16px rgba(15,23,42,0.16);
+            transition: box-shadow .2s ease, transform .2s ease;
+        }
+        #meu_patrimonio .card-container:hover {
+            box-shadow: 0 2px 6px rgba(15,23,42,0.07), 0 18px 38px -18px rgba(15,23,42,0.22);
+        }
+        #meu_patrimonio .mp-kpi {
+            border-radius: 16px;
+            box-shadow: 0 1px 3px rgba(15,23,42,0.05), 0 12px 28px -16px rgba(15,23,42,0.20);
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        #meu_patrimonio .mp-kpi:hover { transform: translateY(-2px); }
+        #meu_patrimonio .mp-kpi::before { width: 5px; border-radius: 0 4px 4px 0; }
+        #meu_patrimonio .mp-kpi-saldo::before { background: linear-gradient(180deg,#10b981,#059669); }
+        #meu_patrimonio .mp-kpi-despesas::before { background: linear-gradient(180deg,#fb7185,#dc2626); }
+        #meu_patrimonio .mp-kpi-investido::before { background: linear-gradient(180deg,#a78bfa,#7c3aed); }
+        #meu_patrimonio .mp-kpi-icon { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
+        #meu_patrimonio .mp-kpi-valor { font-size: 24px; letter-spacing: -0.4px; }
+        #meu_patrimonio .mp-barra-item { border-radius: 10px; }
+        #meu_patrimonio .mp-barra-fill { box-shadow: inset 0 -1px 2px rgba(0,0,0,0.10); }
+        #meu_patrimonio .mp-inst-item { border-radius: 11px; transition: all .15s ease; }
+        #meu_patrimonio .mp-inst-item:hover { transform: translateX(2px); }
     </style>
 </head>
 <body>
@@ -5470,7 +5582,7 @@
                     </div>
 
                     <div class="form-group" id="grupoBancoReceita" style="display:none;">
-                        <label>Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
+                        <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
                         <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                         <datalist id="listaBancosTransacao"></datalist>
                     </div>
@@ -5736,6 +5848,10 @@
                             <button class="cart-sim-range-btn" data-range="1y">1 ano</button>
                             <button class="cart-sim-range-btn active" data-range="3y">3 anos</button>
                             <button class="cart-sim-range-btn" data-range="5y">5 anos</button>
+                            <button class="cart-sim-range-btn" data-range="10y">10 anos</button>
+                            <button class="cart-sim-range-btn" data-range="20y">20 anos</button>
+                            <button class="cart-sim-range-btn" data-range="30y">30 anos</button>
+                            <button class="cart-sim-range-btn" data-range="50y">50 anos</button>
                         </div>
                     </div>
                     <div class="cart-sim-chart-wrap">
@@ -5745,7 +5861,7 @@
                         </div>
                     </div>
                     <div class="cart-sim-kpis" id="cartSimKpis"></div>
-                    <div class="cart-sim-disclaimer">
+                    <div class="cart-sim-disclaimer" id="cartSimDisclaimer">
                         Rentabilidade passada não garante rentabilidade futura. Tesouro/CDI são curvas indicativas baseadas em yield anual.
                     </div>
                 </div>
@@ -6040,14 +6156,12 @@
                     <p class="subtitulo" style="margin-bottom:0">Visão consolidada — saldo, investimentos e rentabilidade.</p>
                 </div>
                 <div class="page-actions mp-controls">
-                    <select id="mp-periodo" class="mp-select" onchange="mpAlterarPeriodo(this.value)">
-                        <option value="mes">Mês atual</option>
-                        <option value="3m">Últimos 3 meses</option>
-                        <option value="6m">Últimos 6 meses</option>
-                        <option value="12m" selected>Últimos 12 meses</option>
-                        <option value="ytd">Ano (YTD)</option>
-                        <option value="tudo">Tudo</option>
-                    </select>
+                    <div style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
+                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
+                        <input type="month" id="mpInputMesAno" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="mpSelecionarMes()">
+                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
+                    </div>
+                    <button class="btn-secundario" onclick="mpIrMesAtual()">Hoje</button>
                     <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
                         <button class="mp-toggle-btn ativo" data-modo="bruto" onclick="mpAlterarModo('bruto')" role="tab" aria-selected="true">Bruto</button>
                         <button class="mp-toggle-btn" data-modo="liquido" onclick="mpAlterarModo('liquido')" role="tab" aria-selected="false" title="Aplica IR estimado por preço médio (RF tabela regressiva 22,5%→15%; Ações 15%; FII 20%)">Líquido (pós-IR)</button>
@@ -6730,11 +6844,11 @@
     <!-- Utilities extraídas de app.js — carregadas SÍNCRONO antes de app.js
          para que parseBRL, mostrarToast, etc. estejam disponíveis nos IIFEs
          de parse-time. Bump no ?v= ao mexer no arquivo (cache-bust manual). -->
-    <script src="/web/appliquei-utils.js?v=onda3b"></script>
+    <script src="/web/appliquei-utils.js?v=fase2"></script>
     <!-- Yahoo Finance proxy + base de dados de ativos. Sem deps em
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
-    <script src="/web/appliquei-app.js?v=onda3m"></script>
+    <script src="/web/appliquei-app.js?v=fase4"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
     <script src="/web/appliquei-aba1-charts.js?v=onda3b"></script>
@@ -6744,15 +6858,15 @@
          helpers e state global dele. Order ao final é tolerante (todas
          são chamadas via user action ou window.onload). -->
     <script src="/web/appliquei-aba-simulador.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda3b"></script>
+    <script src="/web/appliquei-aba-carteira-recomendada.js?v=fase4b"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=onda3b"></script>
-    <script src="/web/appliquei-relatorio-mensal.js?v=onda3b"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=fase4"></script>
+    <script src="/web/appliquei-relatorio-mensal.js?v=fase4b"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
-    <script src="/web/appliquei-patrimonio.js?v=onda3b"></script>
+    <script src="/web/appliquei-patrimonio.js?v=fase4"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
-    <script src="/web/appliquei-sonhos.js?v=onda3b"></script>
+    <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>
 </html>
