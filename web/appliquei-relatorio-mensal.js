@@ -3,7 +3,8 @@
  *
  * Extraído de web/appliquei-app.js (Onda 3). Classic script, carregado
  * DEPOIS de app.js porque consome historicoCompras (state global) e
- * usa formatarMoeda. html2pdf.js é carregado sob demanda (lazy load).
+ * usa formatarMoeda. O export do relatório usa o motor de impressão nativo
+ * do navegador (janela dedicada + window.print → "Salvar como PDF").
  *
  * Inclui helpers visuais e 3 gráficos premium (fluxo, patrimônio, donut).
  */
@@ -38,8 +39,6 @@ var RM_NOMES_MESES_SHORT = [
   'Nov',
   'Dez',
 ];
-var RM_HTML2PDF_CDN =
-  'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.3/html2pdf.bundle.min.js';
 
 function rmYyyymmToMesAno(yyyymm) {
   const [a, m] = (yyyymm || '').split('-').map(Number);
@@ -1146,17 +1145,6 @@ function renderRelatorioMensal() {
   rmRenderSecundarios(rep);
 }
 
-// PDF — carrega html2pdf sob demanda
-function rmCarregarHtml2pdf() {
-  return new Promise((resolve, reject) => {
-    if (window.html2pdf) return resolve(window.html2pdf);
-    const s = document.createElement('script');
-    s.src = RM_HTML2PDF_CDN;
-    s.onload = () => resolve(window.html2pdf);
-    s.onerror = () => reject(new Error('Falha ao carregar html2pdf'));
-    document.head.appendChild(s);
-  });
-}
 // 4.5 — Em vez de "fotografar" a UI escura (que saía ilegível), montamos um
 // documento limpo, branco e tipográfico a partir dos DADOS do mês. Gráficos
 // viram barras em HTML (sem <canvas>), o que imprime nítido em qualquer escala.
@@ -1273,41 +1261,88 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
 }
 
 async function rmExportarPDF() {
-  let wrap = null;
   try {
-    if (typeof mostrarToast === 'function') mostrarToast('Gerando PDF…', 'info');
-    const html2pdf = await rmCarregarHtml2pdf();
     const seletor = document.getElementById('rmSeletorMes');
     const ym =
       seletor && seletor.value
         ? seletor.value
         : rmMesAnoToYyyymm(new Date().getMonth(), new Date().getFullYear());
-    const filename = 'relatorio-mensal-' + ym + '.pdf';
 
-    // Documento limpo, branco e offscreen — não captura a UI da tela.
-    wrap = document.createElement('div');
-    wrap.style.cssText =
-      'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:24px;';
-    wrap.innerHTML = rmConstruirRelatorioImprimivel(ym);
-    document.body.appendChild(wrap);
-    await new Promise((r) => setTimeout(r, 30));
+    // Conteúdo do relatório (HTML limpo, branco e tipográfico, montado a
+    // partir dos DADOS do mês — sem depender da UI escura da tela).
+    const inner = rmConstruirRelatorioImprimivel(ym);
 
-    await html2pdf()
-      .set({
-        margin: [12, 12, 14, 12],
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, backgroundColor: '#ffffff', windowWidth: 820 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: ['css', 'legacy'], avoid: ['.rm-print-card'] },
-      })
-      .from(wrap)
-      .save();
-    if (typeof mostrarToast === 'function') mostrarToast('PDF gerado com sucesso.', 'sucesso');
+    const docHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>relatorio-mensal-${ym}</title>
+  <style>
+    @page { size: A4 portrait; margin: 14mm 12mm; }
+    html, body {
+      margin: 0; padding: 0; background: #fff; color: #0f172a;
+      /* Garante que cores de fundo (barras, KPIs) sejam impressas. */
+      -webkit-print-color-adjust: exact; print-color-adjust: exact;
+    }
+    body { padding: 8px; }
+  </style>
+</head>
+<body>${inner}</body>
+</html>`;
+
+    // ── Por que NÃO usamos mais html2canvas/html2pdf ──
+    // A versão antiga "fotografava" um elemento com html2canvas e o PDF saía
+    // TODO BRANCO (falha silenciosa em vários cenários). Delegamos pro motor
+    // de impressão NATIVO do navegador, que nunca gera página em branco.
+    //
+    // Usamos um IFRAME oculto (não window.open) porque pop-ups são bloqueados
+    // por padrão na maioria dos navegadores — era a causa provável de "nada
+    // acontece". O iframe é injetado na própria página, então não há pop-up.
+    const antigo = document.getElementById('rmPrintFrame');
+    if (antigo && antigo.parentNode) antigo.parentNode.removeChild(antigo);
+
+    const iframe = document.createElement('iframe');
+    iframe.id = 'rmPrintFrame';
+    // Fora da tela, mas renderizado (necessário pra impressão funcionar).
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:0;';
+    document.body.appendChild(iframe);
+
+    let jaImprimiu = false;
+    const imprimir = () => {
+      if (jaImprimiu) return;
+      jaImprimiu = true;
+      try {
+        const win = iframe.contentWindow;
+        win.focus();
+        win.print();
+        if (typeof mostrarToast === 'function')
+          mostrarToast('Abrindo impressão — escolha "Salvar como PDF".', 'info');
+      } catch (e) {
+        console.error('[rmExportarPDF] print', e);
+        if (typeof mostrarToast === 'function')
+          mostrarToast('Não foi possível abrir a impressão do relatório.', 'erro');
+      }
+      // Remove o iframe depois (afterprint nem sempre dispara — usamos timeout).
+      setTimeout(() => {
+        try {
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        } catch (e) {}
+      }, 2000);
+    };
+
+    // Escreve o documento e imprime quando estiver pronto. Como document.write
+    // nem sempre dispara o evento `load`, garantimos a impressão por timeout.
+    iframe.onload = () => setTimeout(imprimir, 200);
+    const idoc = iframe.contentWindow.document;
+    idoc.open();
+    idoc.write(docHtml);
+    idoc.close();
+    setTimeout(imprimir, 600);
   } catch (err) {
     console.error('[rmExportarPDF]', err);
-    if (typeof mostrarToast === 'function') mostrarToast('Não foi possível gerar o PDF.', 'erro');
-  } finally {
-    if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
+    if (typeof mostrarToast === 'function')
+      mostrarToast('Não foi possível gerar o relatório.', 'erro');
   }
 }

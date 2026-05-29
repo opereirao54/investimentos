@@ -510,24 +510,6 @@ function cartToggleAtivo(classe, ticker) {
   cartRenderizarDonut();
 }
 
-function cartResetSelecao() {
-  // Zera o estado (null = todos marcados) e re-renderiza diretamente o grid e
-  // o donut — sem depender de cartRenderizarTela (que dispara simulação async
-  // e pode abortar a re-renderização do grid em caso de erro de rede).
-  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
-  cartSalvarEstado();
-  try {
-    cartRenderizarSelecaoGrid();
-  } catch (_) {}
-  try {
-    cartRenderizarDonut();
-  } catch (_) {}
-  try {
-    cartCarregarSimulacao();
-  } catch (_) {}
-  mostrarToast('Seleção resetada — todos os ativos remarcados.', 'sucesso');
-}
-
 // ════════════════════════════════
 // HISTORICAL SIMULATION
 // ════════════════════════════════
