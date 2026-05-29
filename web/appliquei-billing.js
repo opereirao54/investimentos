@@ -17,6 +17,28 @@ var pollTimer = null;
 var lastAccess = null;
 var lastBilling = null;
 
+// Reporta ao Sentry erros que antes eram engolidos em silêncio (catch vazio).
+// Usado só nos pontos onde o catch esconde uma falha de integridade real —
+// rede de billing, estado de acesso e sync de applicash/crédito —, não nos
+// best-effort de UI/localStorage (esses falham por design e gerariam ruído).
+// Mantém o comportamento original (não relança): o fluxo segue como antes,
+// só que agora a divergência fica visível em vez de invisível.
+function reportSwallowed(err, where) {
+  try {
+    var S = window.AppliqueiSentry;
+    if (S && typeof S.captureException === 'function') {
+      S.captureException(err instanceof Error ? err : new Error(String(err)), {
+        level: 'warning',
+        tags: { swallowed: 'billing', where: where },
+      });
+    } else if (typeof console !== 'undefined' && console.debug) {
+      console.debug('[billing] erro engolido @' + where, (err && err.message) || err);
+    }
+  } catch (_) {
+    // O reporte nunca pode quebrar o fluxo que originalmente ignorava o erro.
+  }
+}
+
 function effectivePriceCents() {
   if (!lastBilling) return 1500;
   // Se a subscription já existe, o valor cobrado já está fixado
@@ -1335,7 +1357,9 @@ function ensureMyAccountModal() {
     try {
       var me = await fetchMe();
       renderMyAccount(me);
-    } catch (e) {}
+    } catch (e) {
+      reportSwallowed(e, 'myAccountReload.fetchMe');
+    }
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Atualizar';
@@ -1377,7 +1401,9 @@ async function openMyAccount() {
     // nenhuma das retries chegou a popular o banner).
     try {
       applyAccess(me.access, me);
-    } catch (_) {}
+    } catch (_) {
+      reportSwallowed(_, 'openMyAccount.applyAccess');
+    }
   } catch (e) {
     if (!hadCache) $('myAccountBody').textContent = 'Erro: ' + (e.message || 'tente mais tarde');
   } finally {
@@ -2361,7 +2387,9 @@ async function reloadAccountStatus(btn) {
     await refresh(false);
     var me = await fetchMe();
     renderMyAccount(me);
-  } catch (e) {}
+  } catch (e) {
+    reportSwallowed(e, 'reloadAccountStatus.refresh');
+  }
   if (btn) {
     btn.disabled = false;
     btn.innerHTML = prev || 'Verificar status agora';
@@ -2816,6 +2844,7 @@ async function syncApplicashFromServer() {
     return me;
   } catch (e) {
     console.warn('[billing] syncApplicash', e);
+    reportSwallowed(e, 'syncApplicashFromServer');
     return null;
   }
 }
@@ -3090,7 +3119,9 @@ async function waitForActive(maxAttempts) {
         applyAccess(s.access, s);
         try {
           await syncApplicashFromServer();
-        } catch (_) {}
+        } catch (_) {
+          reportSwallowed(_, 'waitForActive.syncApplicash');
+        }
         return true;
       }
     } catch (_) {}
