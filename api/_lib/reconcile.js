@@ -113,12 +113,43 @@ async function reconcileAccount(userRef) {
   return report;
 }
 
+// Máximo de correções de crédito guardadas no histórico de uma varredura. O
+// contador agregado (creditInvariantCorrected) é sempre exato; só a LISTA
+// detalhada é truncada para não inchar o documento de histórico.
+const MAX_PERSISTED_CORRECTIONS = 50;
+
+/**
+ * Persiste o resultado de uma varredura em `reconcileRuns/{autoId}` para que o
+ * painel admin tenha histórico — sem isto a divergência some no Sentry e o
+ * admin nunca a vê. Best-effort: uma falha de escrita NUNCA derruba a
+ * varredura (o trabalho de correção já foi feito; o log é secundário).
+ */
+async function persistRun(summary, source) {
+  try {
+    await db()
+      .collection('reconcileRuns')
+      .add({
+        at: fieldValue().serverTimestamp(),
+        source: source || 'manual',
+        scanned: summary.scanned,
+        billingStateCorrected: summary.billingStateCorrected,
+        creditInvariantCorrected: summary.creditInvariantCorrected,
+        errors: summary.errors,
+        correctionsTruncated: summary.corrections.length > MAX_PERSISTED_CORRECTIONS,
+        corrections: summary.corrections.slice(0, MAX_PERSISTED_CORRECTIONS),
+      });
+  } catch (e) {
+    console.warn('[reconcile] persistRun failed', (e && e.message) || e);
+  }
+}
+
 /**
  * Varre todas as contas de billing e reconcilia cada uma. `limit` > 0 corta
  * a varredura (útil para teste/execução pontual). Alerta no Sentry sempre que
  * houver correção ou erro — a divergência passa a ser visível em vez de muda.
+ * `source` rotula a origem ('cron' | 'manual') no histórico persistido.
  */
-async function runReconcileSweep({ limit = 0 } = {}) {
+async function runReconcileSweep({ limit = 0, source = 'manual' } = {}) {
   const summary = {
     scanned: 0,
     billingStateCorrected: 0,
@@ -160,6 +191,8 @@ async function runReconcileSweep({ limit = 0 } = {}) {
     );
   }
 
+  await persistRun(summary, source);
+
   return summary;
 }
 
@@ -168,4 +201,5 @@ module.exports = {
   reconcileCreditInvariant,
   reconcileAccount,
   runReconcileSweep,
+  MAX_PERSISTED_CORRECTIONS,
 };

@@ -521,6 +521,55 @@ async function dashboard(req, res) {
     console.warn('[admin/stats] audit fetch failed', e && e.message);
   }
 
+  // ── Reconciliação: histórico das varreduras (P3 — painel de divergências).
+  // Lê as últimas N runs persistidas por runReconcileSweep para tornar a
+  // divergência auto-corrigida VISÍVEL no admin (antes só ia para o Sentry).
+  const reconcile = {
+    lastRun: null,
+    runs: 0,
+    windowBillingCorrected: 0,
+    windowCreditCorrected: 0,
+    windowErrors: 0,
+    recentCorrections: [],
+  };
+  try {
+    const runsSnap = await D.collection('reconcileRuns').orderBy('at', 'desc').limit(30).get();
+    const corrAccum = [];
+    runsSnap.forEach((d) => {
+      const data = d.data() || {};
+      const atMs = data.at && typeof data.at.toMillis === 'function' ? data.at.toMillis() : 0;
+      reconcile.runs++;
+      reconcile.windowBillingCorrected += data.billingStateCorrected || 0;
+      reconcile.windowCreditCorrected += data.creditInvariantCorrected || 0;
+      reconcile.windowErrors += data.errors || 0;
+      if (!reconcile.lastRun) {
+        reconcile.lastRun = {
+          atMs,
+          source: data.source || 'manual',
+          scanned: data.scanned || 0,
+          billingStateCorrected: data.billingStateCorrected || 0,
+          creditInvariantCorrected: data.creditInvariantCorrected || 0,
+          errors: data.errors || 0,
+        };
+      }
+      // Aplana as correções de crédito (uid + drift) para a lista do painel.
+      (data.corrections || []).forEach((c) => {
+        if (corrAccum.length >= 25) return;
+        corrAccum.push({
+          uid: c.uid,
+          atMs,
+          source: data.source || 'manual',
+          pending: c.pending || null,
+          earnings: c.earnings || null,
+        });
+      });
+    });
+    reconcile.recentCorrections = corrAccum;
+    await attachEmails(reconcile.recentCorrections);
+  } catch (e) {
+    console.warn('[admin/stats] reconcile fetch failed', e && e.message);
+  }
+
   // Derived KPIs
   const churnRate = billingDocs > 0 ? churnedCount / billingDocs : 0;
   const conversionRate = billingDocs > 0 ? converted / billingDocs : 0;
@@ -541,6 +590,7 @@ async function dashboard(req, res) {
       churned: churnedCount,
     },
     recentAudit,
+    reconcile,
     users: authUsers,
     recentUsers: allUsers.slice(0, 20),
     allUsers,
@@ -612,7 +662,7 @@ async function reconcileOp(req, res) {
     if (err) return res.status(err.status).json({ error: err.error, detail: err.detail });
   }
   const limit = Math.max(0, parseInt((req.query && req.query.limit) || '0', 10) || 0);
-  const summary = await runReconcileSweep({ limit });
+  const summary = await runReconcileSweep({ limit, source: isCron ? 'cron' : 'manual' });
   return res.json({ ok: true, ...summary });
 }
 

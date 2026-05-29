@@ -144,6 +144,11 @@ class CollRef {
   doc(id) {
     return new DocRef(this.path + '/' + (id || 'auto_' + Math.random().toString(36).slice(2, 10)));
   }
+  async add(data) {
+    const ref = this.doc();
+    await ref.set(data);
+    return ref;
+  }
   where(field, op, value) {
     return new Query(this.path, false, [{ field, op, value }]);
   }

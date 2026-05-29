@@ -710,6 +710,39 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                 <div class="card-body"><div class="bar-list" id="payment-methods-list"></div></div>
             </div>
         </div>
+
+        <!-- ═══════ INTEGRIDADE & RECONCILIAÇÃO (P3) ═══════ -->
+        <div class="section-title"><i class="ph-fill ph-scales"></i> Integridade & Reconciliação</div>
+        <div class="two-col">
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-head-left"><div class="card-icon blue"><i class="ph-fill ph-arrows-clockwise"></i></div>
+                        <div><div class="card-title">Última Varredura</div><div class="card-sub" id="reconcile-last-sub">Sem varreduras registadas</div></div>
+                    </div>
+                    <div class="card-actions">
+                        <button class="qa-pill" id="reconcile-run-btn" onclick="triggerReconcile()"><i class="ph ph-play"></i> Rodar agora</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div style="display:flex; gap:22px; flex-wrap:wrap; margin-bottom:6px;">
+                        <div><div class="kpi-label" style="margin-bottom:4px">Contas varridas</div><div class="mono" style="font-size:20px;font-weight:700" id="reconcile-scanned">0</div></div>
+                        <div><div class="kpi-label" style="margin-bottom:4px">Cobrança corrigida</div><div class="mono" style="font-size:20px;font-weight:700" id="reconcile-billing">0</div></div>
+                        <div><div class="kpi-label" style="margin-bottom:4px">Crédito corrigido</div><div class="mono" style="font-size:20px;font-weight:700" id="reconcile-credit">0</div></div>
+                        <div><div class="kpi-label" style="margin-bottom:4px">Erros</div><div class="mono" style="font-size:20px;font-weight:700" id="reconcile-errors">0</div></div>
+                    </div>
+                    <div class="card-sub" id="reconcile-window-sub" style="margin-top:8px">Acumulado das últimas varreduras aparecerá aqui.</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-head">
+                    <div class="card-head-left"><div class="card-icon amber"><i class="ph-fill ph-wrench"></i></div>
+                        <div><div class="card-title">Divergências Auto-Corrigidas</div><div class="card-sub">Contadores Applicash que desgarraram · click p/ perfil</div></div>
+                    </div>
+                </div>
+                <table class="tbl"><thead><tr><th>Email</th><th style="white-space:nowrap">Quando</th><th style="text-align:right">Ajuste pendente</th></tr></thead>
+                <tbody id="reconcile-corrections"><tr><td colspan="3" class="tbl-empty">A carregar...</td></tr></tbody></table>
+            </div>
+        </div>
     </section>
 
     <!-- ═══════ UTILIZADORES ═══════ -->
@@ -774,6 +807,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                 <select id="action-type" class="sp-select">
                     <option value="full_xray">🔍 Visão Geral Expandida (Raio-X)</option>
                     <option value="view_payments">🧾 Ver Histórico de Pagamentos</option>
+                    <option value="reconcile_user">🔄 Reconciliar Conta (cobrança + crédito)</option>
                     <option value="set_discount">💰 Colocar / Tirar Desconto</option>
                     <option value="gift_pro_days">🎁 Oferecer PRO (N dias)</option>
                     <option value="make_pro">🌟 Tornar PRO Permanente</option>
@@ -843,6 +877,7 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
                 <option value="disable_user">disable_user</option>
                 <option value="enable_user">enable_user</option>
                 <option value="reset_billing">reset_billing</option>
+                <option value="reconcile_user">reconcile_user</option>
                 <option value="export_csv">export_csv</option>
             </select>
             <input type="text" id="audit-email-filter" class="sp-input" placeholder="Filtrar por e-mail..." style="max-width:300px;" onkeydown="if(event.key==='Enter')loadAudit()">
@@ -878,6 +913,6 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
     <div class="drawer-actions" id="drawer-actions"></div>
 </aside>
 
-<script src="/web/appliquei-admin.js?v=onda3b"></script>
+<script src="/web/appliquei-admin.js?v=onda3c"></script>
 </body>
 </html>
