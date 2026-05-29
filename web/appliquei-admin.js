@@ -374,6 +374,7 @@ function openDrawer(user) {
     acts.innerHTML = `
         <div class="quick-actions">
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','full_xray')"><i class="ph ph-magnifying-glass"></i> Raio-X</button>
+            <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','reconcile_user')"><i class="ph ph-arrows-clockwise"></i> Reconciliar</button>
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','extend_trial')"><i class="ph ph-hourglass"></i> +7d Trial</button>
             ${u.status === 'trial' ? `<button class="qa-pill destructive" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','suspend_trial')"><i class="ph ph-hourglass-low"></i> Suspender Trial</button>` : ''}
             <button class="qa-pill" onclick="inlineAction('${email.replace(/'/g,'\\\'')}','gift_pro_days','30')"><i class="ph ph-gift"></i> +30d PRO</button>
@@ -690,6 +691,9 @@ function renderDashboard(data) {
     const pmEntries = Object.entries(pm).sort((a,b)=>b[1]-a[1]).map(([k,v])=>({label:k, value:v, display:formatInt(v)}));
     renderBarList('payment-methods-list', pmEntries, 'purple');
 
+    // Integridade & Reconciliação (P3)
+    renderReconcile(data.reconcile || {});
+
     // Sidebar count + last update
     $('sb-user-count').textContent = formatInt(u.totalKnown);
     lastStatsMs = Date.now();
@@ -704,6 +708,103 @@ function renderDashboard(data) {
     } else {
         alertBox.className = 'alert-bar warn';
         alertBox.innerHTML = `<i class="ph-fill ph-warning"></i> ${formatInt((data.rateLimits24h||{}).suspiciousHits||0)} hits suspeitos em 24h. Considere ativar antifraude.`;
+    }
+}
+
+/* ========================================
+   RECONCILIAÇÃO / DIVERGÊNCIAS (P3)
+   ======================================== */
+function formatBRLSigned(c) {
+    const sign = c > 0 ? '+' : c < 0 ? '−' : '';
+    return sign + formatBRL(Math.abs(c||0));
+}
+
+function renderReconcile(r) {
+    const last = r.lastRun;
+    $('reconcile-scanned').textContent = formatInt(last ? last.scanned : 0);
+    $('reconcile-billing').textContent = formatInt(last ? last.billingStateCorrected : 0);
+    $('reconcile-credit').textContent = formatInt(last ? last.creditInvariantCorrected : 0);
+    $('reconcile-errors').textContent = formatInt(last ? last.errors : 0);
+
+    $('reconcile-last-sub').textContent = last
+        ? `${relativeTime(last.atMs)} · origem ${last.source || 'manual'}`
+        : 'Sem varreduras registadas';
+    $('reconcile-window-sub').textContent = r.runs
+        ? `Últimas ${formatInt(r.runs)} varreduras: ${formatInt(r.windowBillingCorrected)} cobrança · ${formatInt(r.windowCreditCorrected)} crédito · ${formatInt(r.windowErrors)} erros`
+        : 'Acumulado das últimas varreduras aparecerá aqui.';
+
+    const tbody = $('reconcile-corrections');
+    tbody.innerHTML = '';
+    const rows = r.recentCorrections || [];
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="tbl-empty">Nenhuma divergência corrigida. ✅</td></tr>';
+        return;
+    }
+    rows.forEach(c => {
+        const drift = (c.pending && typeof c.pending.drift === 'number') ? c.pending.drift : 0;
+        const cls = drift > 0 ? 'badge-ok' : (drift < 0 ? 'badge-danger' : 'badge-muted');
+        const tr = document.createElement('tr');
+        tr.className = 'clickable';
+        tr.innerHTML = `
+            <td style="font-weight:500">${escHTML(c.email || c.uid)}</td>
+            <td style="white-space:nowrap;color:var(--cor-texto-mutado);font-size:12px">${relativeTime(c.atMs)}</td>
+            <td class="mono" style="text-align:right"><span class="badge-s ${cls}">${formatBRLSigned(drift)}</span></td>`;
+        tr.addEventListener('click', () => {
+            const found = allUsers.find(u => u.uid === c.uid);
+            if (found) openDrawer(found);
+            else inlineAction(c.uid, 'full_xray');
+        });
+        tbody.appendChild(tr);
+    });
+}
+
+// Lê a resposta com tolerância: a função serverless pode devolver uma página
+// de erro NÃO-JSON (ex.: timeout da Vercel → "An error occurred..."). Nesse
+// caso devolvemos o texto cru como erro em vez de quebrar no JSON.parse.
+async function parseJsonSafe(res) {
+    const text = await res.text();
+    try {
+        return { ok: res.ok, data: JSON.parse(text) };
+    } catch (_) {
+        const snippet = (text || '').trim().slice(0, 120) || `HTTP ${res.status}`;
+        return { ok: false, data: { error: snippet } };
+    }
+}
+
+async function triggerReconcile() {
+    const token = sessionStorage.getItem('adminToken');
+    if (!token) return;
+    if (!confirm('Rodar varredura de reconciliação em TODAS as contas agora?\n\nAlinha cobrança×Asaas e corrige contadores Applicash que desgarraram. Roda em lotes — pode demorar alguns segundos.')) return;
+    const btn = $('reconcile-run-btn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    // A varredura roda em lotes (time-box no servidor p/ não estourar o limite
+    // da função). Iteramos com o cursor `nextCursor` até concluir (partial=false).
+    const acc = { scanned: 0, billing: 0, credit: 0, errors: 0 };
+    let cursor = null, batches = 0;
+    const MAX_BATCHES = 50; // guarda-corpo contra loop infinito
+    try {
+        do {
+            batches++;
+            btn.innerHTML = `<i class="ph ph-spinner ph-spin"></i> Lote ${batches} (${formatInt(acc.scanned)})...`;
+            const url = '/api/admin/stats?op=reconcile' + (cursor ? '&after=' + encodeURIComponent(cursor) : '');
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            const { ok, data } = await parseJsonSafe(res);
+            if (!ok) throw new Error(data.error || `HTTP ${res.status}`);
+            acc.scanned += data.scanned || 0;
+            acc.billing += data.billingStateCorrected || 0;
+            acc.credit += data.creditInvariantCorrected || 0;
+            acc.errors += data.errors || 0;
+            cursor = data.partial ? data.nextCursor : null;
+        } while (cursor && batches < MAX_BATCHES);
+        const incomplete = cursor ? ' (interrompida — muitos lotes)' : '';
+        toast(`Varredura concluída${incomplete}: ${formatInt(acc.scanned)} contas · ${formatInt(acc.billing)} cobrança · ${formatInt(acc.credit)} crédito · ${formatInt(acc.errors)} erros.`,
+            acc.errors ? 'warn' : 'success', 7000);
+        loadStats();
+    } catch (err) {
+        toast('Falha na varredura: ' + err.message, 'error');
+    } finally {
+        btn.innerHTML = orig; btn.disabled = false;
     }
 }
 
@@ -824,7 +925,7 @@ async function executeSuperpower() {
         } else {
             output.textContent += `\n✅ ${data.message}`;
             toast(data.message, 'success');
-            if (['disable_user','enable_user','force_verify','set_discount','gift_pro_days','make_pro','extend_trial','suspend_trial','reset_billing'].includes(action)) {
+            if (['disable_user','enable_user','force_verify','set_discount','gift_pro_days','make_pro','extend_trial','suspend_trial','reset_billing','reconcile_user'].includes(action)) {
                 setTimeout(loadStats, 600);
             }
         }

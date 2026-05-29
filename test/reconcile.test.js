@@ -119,6 +119,37 @@ test('runReconcileSweep: varre todas as contas e conta correções', async () =>
   assert.equal(summary.corrections[0].uid, 'a');
 });
 
+test('runReconcileSweep: persiste a run em reconcileRuns com origem rotulada', async () => {
+  reset();
+  seedAccount('a', { uid: 'a', stats: { pendingDiscountCents: 0 } }, [
+    { id: 'p1', amountCents: 150 },
+  ]);
+  await runReconcileSweep({ source: 'cron' });
+
+  const runs = await db().collection('reconcileRuns').get();
+  assert.equal(runs.size, 1, 'deve gravar exatamente uma run');
+  const run = runs.docs[0].data();
+  assert.equal(run.source, 'cron');
+  assert.equal(run.scanned, 1);
+  assert.equal(run.creditInvariantCorrected, 1);
+  assert.equal(run.corrections.length, 1);
+  assert.equal(run.corrections[0].uid, 'a');
+  assert.equal(run.correctionsTruncated, false);
+});
+
+test('runReconcileSweep: cursor `after` retoma a varredura após o uid dado', async () => {
+  reset();
+  seedAccount('a', { uid: 'a', stats: { pendingDiscountCents: 0 } }, []);
+  seedAccount('b', { uid: 'b', stats: { pendingDiscountCents: 0 } }, []);
+  seedAccount('c', { uid: 'c', stats: { pendingDiscountCents: 0 } }, []);
+
+  const summary = await runReconcileSweep({ after: 'a' });
+  // Pula 'a'; varre 'b' e 'c'. Sem deadline atingido → completou (cursor nulo).
+  assert.equal(summary.scanned, 2);
+  assert.equal(summary.partial, false);
+  assert.equal(summary.nextCursor, null);
+});
+
 test('runReconcileSweep: ignora subcoleção credits na varredura de contas', async () => {
   reset();
   seedAccount(

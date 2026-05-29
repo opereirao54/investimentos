@@ -1,5 +1,6 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
+const { reconcileAccount } = require('../_lib/reconcile');
 
 // Ações administrativas pontuais sobre um utilizador específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
@@ -304,6 +305,34 @@ module.exports = handler({
       await auth().updateUser(uid, { disabled: false });
       await writeAudit({ action, email, uid, actor, after: { disabled: false } });
       return res.json({ success: true, message: 'Conta reativada.' });
+    }
+
+    if (action === 'reconcile_user') {
+      // Reconcilia UMA conta sob demanda (eixo cobrança×Asaas + invariante de
+      // crédito), reusando a mesma rotina do cron. Permite ao admin corrigir
+      // um utilizador específico sem esperar a varredura noturna.
+      const userRef = db().collection('users').doc(uid);
+      const report = await reconcileAccount(userRef);
+      const fixed = report.changes.filter((c) => !c.type.endsWith('_error'));
+      const failed = report.changes.filter((c) => c.type.endsWith('_error'));
+      await writeAudit({
+        action,
+        email,
+        uid,
+        actor,
+        after: { changes: report.changes },
+        extra: fixed.length
+          ? `Corrigido: ${fixed.map((c) => c.type).join(', ')}`
+          : 'Nenhuma divergência',
+      });
+      const msg = fixed.length
+        ? `Reconciliado: ${fixed.length} correção(ões) aplicada(s).`
+        : 'Conta já consistente — nada a corrigir.';
+      return res.json({
+        success: true,
+        message: failed.length ? `${msg} (${failed.length} erro(s))` : msg,
+        changes: report.changes,
+      });
     }
 
     if (action === 'reset_billing') {

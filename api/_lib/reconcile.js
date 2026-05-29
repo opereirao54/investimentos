@@ -113,28 +113,115 @@ async function reconcileAccount(userRef) {
   return report;
 }
 
+// Máximo de correções de crédito guardadas no histórico de uma varredura. O
+// contador agregado (creditInvariantCorrected) é sempre exato; só a LISTA
+// detalhada é truncada para não inchar o documento de histórico.
+const MAX_PERSISTED_CORRECTIONS = 50;
+
+// Deadline interno da varredura. A função Vercel tem maxDuration=15s; se a
+// sweep não terminar dentro disso a plataforma MATA a função e devolve uma
+// página de erro não-JSON ("An error occurred..."). Paramos bem antes, sempre
+// devolvendo JSON válido + um cursor para retomar de onde paramos.
+const SWEEP_SOFT_DEADLINE_MS = 12000;
+
+// Onde o cron guarda o cursor entre execuções: como cada invocação só processa
+// um lote (time-box), o cron retoma diariamente de onde parou e cobre toda a
+// base ao longo de vários dias, em vez de reprocessar sempre o mesmo início.
+function cronCursorRef() {
+  return db().collection('reconcileState').doc('cron');
+}
+
 /**
- * Varre todas as contas de billing e reconcilia cada uma. `limit` > 0 corta
- * a varredura (útil para teste/execução pontual). Alerta no Sentry sempre que
- * houver correção ou erro — a divergência passa a ser visível em vez de muda.
+ * Persiste o resultado de uma varredura em `reconcileRuns/{autoId}` para que o
+ * painel admin tenha histórico — sem isto a divergência some no Sentry e o
+ * admin nunca a vê. Best-effort: uma falha de escrita NUNCA derruba a
+ * varredura (o trabalho de correção já foi feito; o log é secundário).
  */
-async function runReconcileSweep({ limit = 0 } = {}) {
+async function persistRun(summary, source) {
+  try {
+    await db()
+      .collection('reconcileRuns')
+      .add({
+        at: fieldValue().serverTimestamp(),
+        source: source || 'manual',
+        scanned: summary.scanned,
+        billingStateCorrected: summary.billingStateCorrected,
+        creditInvariantCorrected: summary.creditInvariantCorrected,
+        errors: summary.errors,
+        partial: !!summary.partial,
+        nextCursor: summary.nextCursor || null,
+        correctionsTruncated: summary.corrections.length > MAX_PERSISTED_CORRECTIONS,
+        corrections: summary.corrections.slice(0, MAX_PERSISTED_CORRECTIONS),
+      });
+  } catch (e) {
+    console.warn('[reconcile] persistRun failed', (e && e.message) || e);
+  }
+}
+
+/**
+ * Varre as contas de billing e reconcilia cada uma, em LOTES limitados pelo
+ * tempo (SWEEP_SOFT_DEADLINE_MS) para nunca estourar o maxDuration da função.
+ *
+ * Opções:
+ *   - limit: corta após N contas (teste/execução pontual).
+ *   - source: 'cron' | 'manual' — rotula o histórico; 'cron' usa cursor
+ *     persistido para avançar entre execuções diárias.
+ *   - after: retoma a varredura logo após este uid (cursor do lote anterior).
+ *   - deadlineMs: orçamento de tempo do lote (default SWEEP_SOFT_DEADLINE_MS).
+ *
+ * Devolve, além dos contadores, `partial` (true quando parou no deadline) e
+ * `nextCursor` (uid a partir do qual retomar; null quando terminou tudo).
+ */
+async function runReconcileSweep({
+  limit = 0,
+  source = 'manual',
+  after = null,
+  deadlineMs = SWEEP_SOFT_DEADLINE_MS,
+} = {}) {
+  const startedAt = Date.now();
   const summary = {
     scanned: 0,
     billingStateCorrected: 0,
     creditInvariantCorrected: 0,
     errors: 0,
     corrections: [],
+    partial: false,
+    nextCursor: null,
   };
 
+  // Cron retoma do cursor persistido quando o chamador não passa um explícito.
+  let cursor = after;
+  if (source === 'cron' && cursor == null) {
+    try {
+      const st = await cronCursorRef().get();
+      cursor = (st.exists && st.data() && st.data().cursor) || null;
+    } catch (e) {
+      console.warn('[reconcile] cron cursor read failed', (e && e.message) || e);
+    }
+  }
+
   const billingSnap = await db().collectionGroup('billing').get();
+  // Coleta as contas canônicas e ordena por uid para varredura determinística
+  // e resumível (o cursor é um uid; retomamos a partir do próximo).
+  const accounts = [];
   for (const doc of billingSnap.docs) {
     // collectionGroup('billing') também devolve a subcoleção credits em
     // alguns backends; só a conta canônica interessa aqui.
     if (doc.id !== 'account') continue;
     const userRef = doc.ref.parent && doc.ref.parent.parent;
     if (!userRef) continue;
+    accounts.push(userRef);
+  }
+  accounts.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  for (const userRef of accounts) {
+    if (cursor && userRef.id <= cursor) continue; // retoma após o cursor
     if (limit && summary.scanned >= limit) break;
+    // Time-box: para antes do limite da função e devolve cursor para retomar.
+    if (deadlineMs && Date.now() - startedAt > deadlineMs) {
+      summary.partial = true;
+      break;
+    }
     summary.scanned++;
 
     const report = await reconcileAccount(userRef);
@@ -144,6 +231,22 @@ async function runReconcileSweep({ limit = 0 } = {}) {
         summary.creditInvariantCorrected++;
         summary.corrections.push({ uid: report.uid, ...ch });
       } else if (ch.type.endsWith('_error')) summary.errors++;
+    }
+    summary.nextCursor = userRef.id;
+  }
+
+  // Terminou a base inteira: zera o cursor para a próxima varredura começar do início.
+  if (!summary.partial) summary.nextCursor = null;
+
+  // Persiste o cursor do cron para a execução seguinte retomar (ou reiniciar).
+  if (source === 'cron') {
+    try {
+      await cronCursorRef().set(
+        { cursor: summary.nextCursor, updatedAt: fieldValue().serverTimestamp() },
+        { merge: true }
+      );
+    } catch (e) {
+      console.warn('[reconcile] cron cursor write failed', (e && e.message) || e);
     }
   }
 
@@ -160,6 +263,8 @@ async function runReconcileSweep({ limit = 0 } = {}) {
     );
   }
 
+  await persistRun(summary, source);
+
   return summary;
 }
 
@@ -168,4 +273,5 @@ module.exports = {
   reconcileCreditInvariant,
   reconcileAccount,
   runReconcileSweep,
+  MAX_PERSISTED_CORRECTIONS,
 };
