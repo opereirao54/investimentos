@@ -385,6 +385,22 @@ test('3.3 mpCalcularDespesasJanela soma despesas e cartão sem exigir "pago"', (
   assert.equal(s.mpCalcularDespesasJanela(ini, fim), 2050); // 1000 + 250 + 800
 });
 
+test('3.3 despesas de mês FUTURO entram na janela (fimMesMs sem corte em "agora")', () => {
+  const s = loadApp();
+  const hoje = new Date();
+  // 2 meses à frente — competência futura (planejada).
+  const alvo = new Date(hoje.getFullYear(), hoje.getMonth() + 2, 1);
+  const mes = alvo.getMonth();
+  const ano = alvo.getFullYear();
+  s.mpEstado.mes = mes;
+  s.mpEstado.ano = ano;
+  s.transacoes = [{ categoria: 'despesa_fixa', valor: 700, mes, ano, pago: false }];
+  const janela = s.mpJanelaPeriodo();
+  // fimMs é cortado em "agora" (mês futuro → janela vazia); fimMesMs cobre o mês.
+  assert.equal(s.mpCalcularDespesasJanela(janela.iniMs, janela.fimMs), 0);
+  assert.equal(s.mpCalcularDespesasJanela(janela.iniMs, janela.fimMesMs), 700);
+});
+
 test('3.3 mpCalcularDespesasJanela ignora despesa fora da janela', () => {
   const s = loadApp();
   const hoje = new Date();

@@ -36,17 +36,20 @@ function mpAliquotaIRRendaVariavel(subcat) {
 }
 
 // Janela do MÊS selecionado (igual ao filtro da aba Controle — 4.9):
-// {iniMs, fimMs, anteriorIniMs, anteriorFimMs, label}. `fimMs` é limitado a
-// "agora" para o mês corrente não projetar saldo futuro; o comparativo é
-// sempre o mês anterior.
+// {iniMs, fimMs, fimMesMs, anteriorIniMs, anteriorFimMs, label}.
+// `fimMs` é limitado a "agora" para o SALDO não projetar caixa futuro.
+// `fimMesMs` é o fim REAL do mês (sem corte) — usado nas DESPESAS, que devem
+// somar o mês inteiro inclusive em meses futuros (planejados). Sem isso, ao
+// navegar para um mês posterior a hoje, `fimMs` < `iniMs` e o KPI zerava.
 function mpJanelaPeriodo() {
   const mes = typeof mpEstado.mes === 'number' ? mpEstado.mes : new Date().getMonth();
   const ano = typeof mpEstado.ano === 'number' ? mpEstado.ano : new Date().getFullYear();
   const iniMs = new Date(ano, mes, 1).getTime();
-  const fimMs = Math.min(new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime(), Date.now());
+  const fimMesMs = new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+  const fimMs = Math.min(fimMesMs, Date.now());
   const anteriorIniMs = new Date(ano, mes - 1, 1).getTime();
   const anteriorFimMs = new Date(ano, mes, 1).getTime() - 1;
-  return { iniMs, fimMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
+  return { iniMs, fimMs, fimMesMs, anteriorIniMs, anteriorFimMs, label: 'mês anterior' };
 }
 
 // Navegação de mês — espelha mudarMesVisao/selecionarMesVisao/irParaMesAtual.
@@ -456,7 +459,7 @@ function mpRenderKPIs(consolidado, janela) {
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMs);
+  const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMesMs);
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const despesasAnt = mpCalcularDespesasJanela(janela.anteriorIniMs, janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
