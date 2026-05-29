@@ -1284,20 +1284,40 @@ async function rmExportarPDF() {
         : rmMesAnoToYyyymm(new Date().getMonth(), new Date().getFullYear());
     const filename = 'relatorio-mensal-' + ym + '.pdf';
 
-    // Documento limpo, branco e offscreen — não captura a UI da tela.
+    // Documento limpo e branco, montado a partir dos DADOS do mês.
+    //
+    // IMPORTANTE: renderizamos na ORIGEM do documento (left:0/top:0), não em
+    // left:-99999px. O html2canvas clona o documento num iframe do tamanho da
+    // viewport e captura a região do elemento; um elemento ~100k px à esquerda
+    // cai FORA dessa região → o PDF saía todo branco. Mantemos o elemento
+    // visualmente escondido atrás da UI (z-index:-1) — ele continua "visível"
+    // para o html2canvas (sem opacity/visibility:hidden, que zerariam a
+    // captura), mas o usuário não o vê.
     wrap = document.createElement('div');
     wrap.style.cssText =
-      'position:fixed;left:-99999px;top:0;width:760px;background:#fff;padding:24px;';
+      'position:fixed;left:0;top:0;z-index:-1;width:760px;background:#fff;padding:24px;color:#0f172a;';
+    wrap.setAttribute('aria-hidden', 'true');
     wrap.innerHTML = rmConstruirRelatorioImprimivel(ym);
     document.body.appendChild(wrap);
-    await new Promise((r) => setTimeout(r, 30));
+    // Dá um respiro pro layout/fontes assentarem antes de "fotografar".
+    await new Promise((r) => setTimeout(r, 60));
 
     await html2pdf()
       .set({
         margin: [12, 12, 14, 12],
         filename,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, backgroundColor: '#ffffff', windowWidth: 820 },
+        html2canvas: {
+          scale: 2,
+          backgroundColor: '#ffffff',
+          windowWidth: 820,
+          // Captura a partir da origem do documento, onde montamos o wrap.
+          scrollX: 0,
+          scrollY: 0,
+          x: 0,
+          y: 0,
+          useCORS: true,
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['css', 'legacy'], avoid: ['.rm-print-card'] },
       })

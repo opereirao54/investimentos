@@ -514,17 +514,28 @@ function cartResetSelecao() {
   // Zera o estado (null = todos marcados) e re-renderiza diretamente o grid e
   // o donut — sem depender de cartRenderizarTela (que dispara simulação async
   // e pode abortar a re-renderização do grid em caso de erro de rede).
+  //
+  // O grid é renderizado PRIMEIRO porque é o que o usuário vê reagir ao botão;
+  // donut e simulação são best-effort (se a CDN do Chart.js falhar, o reset
+  // visual do grid não pode ser abortado). Erros são logados — nunca
+  // silenciados — para que uma falha real não fique invisível.
   cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
   cartSalvarEstado();
   try {
     cartRenderizarSelecaoGrid();
-  } catch (_) {}
+  } catch (e) {
+    console.error('[cartResetSelecao] falha ao re-renderizar grid', e);
+  }
   try {
     cartRenderizarDonut();
-  } catch (_) {}
-  try {
-    cartCarregarSimulacao();
-  } catch (_) {}
+  } catch (e) {
+    console.error('[cartResetSelecao] falha ao re-renderizar donut', e);
+  }
+  // cartCarregarSimulacao é async: um try/catch síncrono NÃO captura sua
+  // rejeição (virava unhandled rejection). Tratamos a promise explicitamente.
+  Promise.resolve()
+    .then(() => cartCarregarSimulacao())
+    .catch((e) => console.error('[cartResetSelecao] falha ao recarregar simulação', e));
   mostrarToast('Seleção resetada — todos os ativos remarcados.', 'sucesso');
 }
 
