@@ -162,6 +162,58 @@ async function auditList(req, res) {
   return res.json({ entries, total: entries.length });
 }
 
+// ─── FEEDBACK (Dúvidas & Sugestões) ────────────────────────────
+async function feedbackList(req, res) {
+  const limit = Math.min(parseInt(req.query.limit) || 100, 300);
+  const filterStatus = req.query.statusFilter || null;
+
+  const query = db().collection('feedback').orderBy('createdAt', 'desc').limit(limit);
+  const snap = await query.get().catch(() => null);
+  const items = [];
+  let openCount = 0;
+  if (snap) {
+    snap.forEach((d) => {
+      const data = d.data() || {};
+      if (filterStatus && (data.status || 'aberto') !== filterStatus) return;
+      const status = data.status || 'aberto';
+      if (status === 'aberto') openCount++;
+      items.push({
+        id: d.id,
+        uid: data.uid || '',
+        email: data.email || '',
+        aba: data.aba || '',
+        outroTema: data.outroTema || '',
+        tipo: data.tipo || '',
+        texto: data.texto || '',
+        status,
+        reply: data.reply || null,
+        repliedBy: data.repliedBy || null,
+        createdAtMs:
+          data.createdAt && typeof data.createdAt.toMillis === 'function'
+            ? data.createdAt.toMillis()
+            : 0,
+        repliedAtMs:
+          data.repliedAt && typeof data.repliedAt.toMillis === 'function'
+            ? data.repliedAt.toMillis()
+            : 0,
+      });
+    });
+  }
+  // openCount conta apenas os itens devolvidos; sem filtro reflete o total.
+  return res.json({ items, total: items.length, openCount });
+}
+
+// ─── CARTEIRA MODELO (Painel do consultor) ─────────────────────
+async function carteiraGet(req, res) {
+  const snap = await db().collection('config').doc('carteiraModelo').get();
+  const carteira = snap.exists ? snap.data() : null;
+  if (carteira && carteira.updatedAt && typeof carteira.updatedAt.toMillis === 'function') {
+    carteira.updatedAtMs = carteira.updatedAt.toMillis();
+    delete carteira.updatedAt;
+  }
+  return res.json({ carteira });
+}
+
 // ─── DASHBOARD ─────────────────────────────────────────────────
 async function dashboard(req, res) {
   const D = db();
@@ -680,6 +732,8 @@ module.exports = handler({
 
     if (req.query.format === 'csv') return await exportCsv(req, res);
     if (req.query.include === 'audit') return await auditList(req, res);
+    if (req.query.include === 'feedback') return await feedbackList(req, res);
+    if (req.query.include === 'carteira') return await carteiraGet(req, res);
     return await dashboard(req, res);
   },
 });

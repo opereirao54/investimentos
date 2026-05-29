@@ -5781,9 +5781,6 @@
                     <h1>Carteira recomendada</h1>
                     <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação personalizada, com educação financeira e simulação histórica real.</p>
                 </div>
-                <div class="page-actions">
-                    <button onclick="cartAbrirAdmin()" id="btnAdminCart" class="btn-secundario" style="font-size:12px;"><i class="ph ph-gear"></i> Painel do consultor</button>
-                </div>
             </div>
 
             <!-- =============== CLIENT VIEW =============== -->
@@ -5929,69 +5926,6 @@
                 </div>
             </div>
 
-            <!-- =============== ADMIN VIEW (refactored) =============== -->
-            <div id="visaoAdmin" style="display:none;">
-                <div class="cart-admin-card">
-                    <div class="cart-admin-header">
-                        <h2><i class="ph ph-gear" style="color:var(--cor-primaria);"></i> Painel do consultor — carteira modelo</h2>
-                        <button onclick="cartFecharAdmin()" class="btn-secundario" style="font-size:12px;color:var(--cor-erro);border-color:var(--cor-erro);">
-                            <i class="ph ph-x"></i> Descartar alterações
-                        </button>
-                    </div>
-
-                    <div class="grid-2-iguais">
-                        <div class="form-group"><label>Mês/Ano de referência</label><input type="text" id="adminMesAno" placeholder="Ex: Mai/2026"></div>
-                        <div class="form-group"><label>Tese macro (resumo)</label><input type="text" id="adminDesc" placeholder="Ex: Foco em geradores de caixa..."></div>
-                    </div>
-
-                    <div class="cart-admin-section-title">Alocação macro (% por perfil)</div>
-                    <div class="cart-admin-perfil-tabs" id="cartAdminPerfilTabs">
-                        <button class="cart-admin-perfil-tab active" data-perfil="Conservador">🛡️ Conservador</button>
-                        <button class="cart-admin-perfil-tab" data-perfil="Moderado">⚖️ Moderado</button>
-                        <button class="cart-admin-perfil-tab" data-perfil="Arrojado">🚀 Arrojado</button>
-                    </div>
-                    <div class="cart-admin-alloc-grid">
-                        <div class="form-group" style="margin-bottom:0;"><label>Renda Fixa (%)</label><input type="number" id="adminAllocRF" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>Ações (%)</label><input type="number" id="adminAllocAcao" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>FIIs (%)</label><input type="number" id="adminAllocFII" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
-                        <div class="form-group" style="margin-bottom:0;"><label>Criptos (%)</label><input type="number" id="adminAllocCripto" min="0" max="100" oninput="cartAdminAtualizarTotal()"></div>
-                    </div>
-                    <div class="cart-admin-alloc-row">
-                        <span class="lbl">Total da alocação:</span>
-                        <span id="adminAllocTotal" style="font-family:'DM Mono',monospace;font-weight:800;font-size:14px;">100%</span>
-                    </div>
-
-                    <div class="cart-admin-section-title">Ativos pré-recomendados (por classe)</div>
-                    <div class="cart-admin-perfil-tabs" id="cartAdminClasseTabs">
-                        <button class="cart-admin-perfil-tab active" data-classe="rf">Renda Fixa</button>
-                        <button class="cart-admin-perfil-tab" data-classe="acao">Ações</button>
-                        <button class="cart-admin-perfil-tab" data-classe="fii">FIIs</button>
-                        <button class="cart-admin-perfil-tab" data-classe="cripto">Criptos</button>
-                    </div>
-                    <div style="overflow-x:auto;">
-                        <table class="cart-admin-ativos-table">
-                            <thead><tr><th>Ticker</th><th>Nome</th><th>Racional</th><th style="width:80px;">Ação</th></tr></thead>
-                            <tbody id="cartAdminAtivosTbody"></tbody>
-                        </table>
-                    </div>
-
-                    <div style="margin-top:16px; padding:16px; background:var(--cor-superficie); border-radius:10px; border:1px dashed var(--cor-borda);">
-                        <div class="cart-admin-section-title" style="margin-top:0;">Adicionar ativo à classe atual</div>
-                        <div class="grid-3" style="margin-bottom:10px;">
-                            <div class="form-group" style="margin-bottom:0;"><label>Ticker</label><input type="text" id="adminAddTicker" placeholder="Ex: PETR4"></div>
-                            <div class="form-group" style="margin-bottom:0;"><label>Nome</label><input type="text" id="adminAddNome" placeholder="Ex: Petrobras PN"></div>
-                            <div class="form-group" style="margin-bottom:0;"><label>Racional curto</label><input type="text" id="adminAddObs" placeholder="Ex: Dividend Yield"></div>
-                        </div>
-                        <button class="btn-secundario" onclick="cartAdminAddAtivo()" style="width:100%;font-size:13px;">
-                            <i class="ph ph-plus-circle"></i> Adicionar ativo
-                        </button>
-                    </div>
-
-                    <button class="btn-acao" onclick="cartAdminSalvar()" style="width:100%; margin-top:18px;">
-                        <i class="ph ph-floppy-disk"></i> Publicar carteira e atualizar clientes
-                    </button>
-                </div>
-            </div>
         </section>
 
         <section id="simulador" class="section">
@@ -7054,13 +6988,13 @@
          helpers e state global dele. Order ao final é tolerante (todas
          são chamadas via user action ou window.onload). -->
     <script src="/web/appliquei-aba-simulador.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-carteira-recomendada.js?v=fase4e"></script>
+    <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=fase4"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
-    <script src="/web/appliquei-duvidas.js?v=onda3b"></script>
+    <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-patrimonio.js?v=fase4c"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>

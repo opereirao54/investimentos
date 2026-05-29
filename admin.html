@@ -354,6 +354,21 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
     .sp-select { min-width:unset; }
     #user-drawer { width:100vw; }
 }
+
+/* ── Carteira modelo + Sugestões ── */
+.cart-lbl { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--cor-texto-mutado); margin-bottom:6px; }
+.cart-section-title { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.6px; color:var(--cor-primaria); margin:0 0 12px; }
+.cm-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+.cm-tab { background:var(--cor-branco); border:1.5px solid var(--cor-borda); color:var(--cor-texto-principal); padding:8px 14px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:'Figtree',sans-serif; transition:.2s; }
+.cm-tab:hover { background:var(--cor-superficie); }
+.cm-tab.active { background:var(--sb-accent-dim,rgba(16,185,129,.15)); color:var(--cor-primaria); border-color:var(--cor-primaria); }
+.fb-card { border:1px solid var(--cor-borda); border-radius:12px; padding:16px 18px; background:var(--cor-branco); }
+.fb-card-head { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+.fb-meta { font-size:11.5px; color:var(--cor-texto-mutado); }
+.fb-texto { font-size:14px; line-height:1.55; color:var(--cor-texto-principal); white-space:pre-wrap; margin-bottom:12px; }
+.fb-reply-box { background:var(--cor-superficie); border-left:3px solid var(--cor-primaria); border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.5; margin-bottom:12px; }
+.fb-reply-input { width:100%; min-height:64px; resize:vertical; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-family:'Figtree',sans-serif; font-size:13px; background:var(--cor-superficie); color:var(--cor-texto-principal); }
+.fb-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; background:var(--cor-superficie); color:var(--cor-texto-mutado); border:1px solid var(--cor-borda); }
 </style>
 </head>
 <body>
@@ -405,9 +420,11 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <span class="nav-group-label">Painel</span>
             <button class="menu-btn ativo" onclick="mudarAba(event,'dashboard')" data-tab="dashboard"><i class="ph ph-chart-line-up"></i> Dashboard</button>
             <button class="menu-btn" onclick="mudarAba(event,'users')" data-tab="users"><i class="ph ph-users-three"></i> Utilizadores <span class="badge-count" id="sb-user-count">0</span></button>
+            <button class="menu-btn" onclick="mudarAba(event,'feedback')" data-tab="feedback"><i class="ph ph-chats-circle"></i> Sugestões <span class="badge-count" id="sb-feedback-count">0</span></button>
         </div>
         <div class="nav-group">
             <span class="nav-group-label">Ferramentas</span>
+            <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tab="carteira"><i class="ph ph-chart-pie-slice"></i> Carteira modelo</button>
             <button class="menu-btn" onclick="mudarAba(event,'superpower')" data-tab="superpower"><i class="ph ph-lightning"></i> Superpoderes</button>
             <button class="menu-btn" onclick="mudarAba(event,'audit')" data-tab="audit"><i class="ph ph-list-dashes"></i> Audit Log</button>
         </div>
@@ -900,6 +917,101 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
         </div>
     </section>
 
+    <!-- ═══════ SUGESTÕES (Dúvidas & Sugestões dos utilizadores) ═══════ -->
+    <section id="sec-feedback" class="section">
+        <div class="page-header">
+            <div>
+                <h1><i class="ph-fill ph-chats-circle" style="color:var(--cor-primaria)"></i> Sugestões dos utilizadores</h1>
+                <p class="sub">Receba e responda às dúvidas, melhorias e bugs enviados pela aba Dúvidas & Sugestões.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-sec" onclick="loadFeedback()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
+            </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+            <select id="feedback-status-filter" class="sp-select" style="min-width:200px;flex:0;" onchange="loadFeedback()">
+                <option value="">Todos os estados</option>
+                <option value="aberto">🟡 Abertas (sem resposta)</option>
+                <option value="respondido">💬 Respondidas</option>
+                <option value="resolvido">✅ Resolvidas</option>
+            </select>
+        </div>
+
+        <div id="feedback-list" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="tbl-empty">A carregar...</div>
+        </div>
+    </section>
+
+    <!-- ═══════ CARTEIRA MODELO (Painel do consultor migrado) ═══════ -->
+    <section id="sec-carteira" class="section">
+        <div class="page-header">
+            <div>
+                <h1><i class="ph-fill ph-chart-pie-slice" style="color:var(--cor-primaria)"></i> Carteira modelo</h1>
+                <p class="sub">Defina a alocação macro por perfil e os ativos recomendados. Publica para TODOS os clientes.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-sec" onclick="loadCarteira()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
+            </div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+            <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:18px;">
+                <div>
+                    <label class="cart-lbl">Mês/Ano de referência</label>
+                    <input type="text" id="cm-mesAno" class="sp-input" placeholder="Ex: Mai/2026" style="width:100%;">
+                </div>
+                <div>
+                    <label class="cart-lbl">Tese macro (resumo)</label>
+                    <input type="text" id="cm-desc" class="sp-input" placeholder="Ex: Foco em geradores de caixa..." style="width:100%;">
+                </div>
+            </div>
+
+            <div class="cart-section-title">Alocação macro (% por perfil)</div>
+            <div class="cm-tabs" id="cm-perfil-tabs">
+                <button class="cm-tab active" data-perfil="Conservador" onclick="cmSelPerfil('Conservador')">🛡️ Conservador</button>
+                <button class="cm-tab" data-perfil="Moderado" onclick="cmSelPerfil('Moderado')">⚖️ Moderado</button>
+                <button class="cm-tab" data-perfil="Arrojado" onclick="cmSelPerfil('Arrojado')">🚀 Arrojado</button>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                <div><label class="cart-lbl">Renda Fixa (%)</label><input type="number" id="cm-rf" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
+                <div><label class="cart-lbl">Ações (%)</label><input type="number" id="cm-acao" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
+                <div><label class="cart-lbl">FIIs (%)</label><input type="number" id="cm-fii" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
+                <div><label class="cart-lbl">Criptos (%)</label><input type="number" id="cm-cripto" class="sp-input" min="0" max="100" oninput="cmTotal()" style="width:100%;"></div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-top:10px;">
+                <span style="font-size:12px;color:var(--cor-texto-mutado);">Total:</span>
+                <span id="cm-total" style="font-family:'DM Mono',monospace;font-weight:800;font-size:14px;">100%</span>
+            </div>
+
+            <div class="cart-section-title" style="margin-top:20px;">Ativos pré-recomendados (por classe)</div>
+            <div class="cm-tabs" id="cm-classe-tabs">
+                <button class="cm-tab active" data-classe="rf" onclick="cmSelClasse('rf')">Renda Fixa</button>
+                <button class="cm-tab" data-classe="acao" onclick="cmSelClasse('acao')">Ações</button>
+                <button class="cm-tab" data-classe="fii" onclick="cmSelClasse('fii')">FIIs</button>
+                <button class="cm-tab" data-classe="cripto" onclick="cmSelClasse('cripto')">Criptos</button>
+            </div>
+            <div class="tbl-scroll">
+                <table class="tbl">
+                    <thead><tr><th>Ticker</th><th>Nome</th><th>Racional</th><th style="width:60px;">Ação</th></tr></thead>
+                    <tbody id="cm-ativos-tbody"></tbody>
+                </table>
+            </div>
+
+            <div style="margin-top:16px;padding:16px;background:var(--cor-superficie,rgba(255,255,255,.02));border-radius:10px;border:1px dashed var(--cor-borda,#333);">
+                <div class="cart-section-title" style="margin-top:0;">Adicionar ativo à classe atual</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <input type="text" id="cm-add-ticker" class="sp-input" placeholder="Ticker (ex: PETR4)" style="width:100%;">
+                    <input type="text" id="cm-add-nome" class="sp-input" placeholder="Nome (ex: Petrobras PN)" style="width:100%;">
+                    <input type="text" id="cm-add-obs" class="sp-input" placeholder="Racional curto" style="width:100%;">
+                </div>
+                <button class="btn-sec" onclick="cmAddAtivo()" style="width:100%;"><i class="ph ph-plus-circle"></i> Adicionar ativo</button>
+            </div>
+
+            <button class="sp-btn" onclick="cmSalvar()" style="width:100%;margin-top:18px;"><i class="ph-fill ph-floppy-disk"></i> Publicar carteira e atualizar clientes</button>
+        </div>
+    </section>
+
 </main>
 
 <!-- USER DRAWER -->
@@ -913,6 +1025,6 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
     <div class="drawer-actions" id="drawer-actions"></div>
 </aside>
 
-<script src="/web/appliquei-admin.js?v=onda3d"></script>
+<script src="/web/appliquei-admin.js?v=onda4-feedback-carteira"></script>
 </body>
 </html>

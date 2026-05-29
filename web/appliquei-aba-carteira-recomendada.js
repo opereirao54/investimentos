@@ -115,6 +115,9 @@ var cartDefaultV2 = {
 
 function cartCarregarDB() {
   try {
+    // Cache da carteira modelo central (chave não-sincronizada) tem prioridade.
+    const central = JSON.parse(localStorage.getItem('appliquei_cloud_carteira_modelo'));
+    if (central && central.alocacoes) return central;
     const raw = JSON.parse(localStorage.getItem('appliquei_carteira_v2'));
     if (raw && raw.versao === 2) return raw;
     // Migração do formato antigo
@@ -149,11 +152,6 @@ var cartEstado = {
   simRange: '3y',
 };
 
-// ── Admin temp state ──
-var cartAdminPerfilAtivo = 'Conservador';
-var cartAdminClasseAtiva = 'rf';
-var cartAdminAtivosTemp = {};
-
 // ── Chart instances ──
 var chartCartDonut = null;
 var chartCartSim = null;
@@ -182,6 +180,43 @@ function carregarCarteiraCliente() {
   } else {
     cartMostrarQuestionario();
   }
+  // A carteira modelo é definida centralmente pelo consultor no painel admin
+  // (config/carteiraModelo no Firestore). Busca a versão mais recente e
+  // re-renderiza se o perfil já estiver definido.
+  cartFetchCentral();
+}
+
+// Lê a carteira modelo publicada pelo consultor (Firestore: config/carteiraModelo).
+// Mantém o localStorage como cache para abertura instantânea offline.
+function cartFetchCentral() {
+  try {
+    var fb = window.AppliqueiFirebase;
+    if (!fb || !fb.db) return;
+    fb.db
+      .collection('config')
+      .doc('carteiraModelo')
+      .get()
+      .then(function (snap) {
+        if (!snap || !snap.exists) return;
+        var c = snap.data() || {};
+        if (!c.alocacoes && !c.ativos) return;
+        dbCarteira = {
+          versao: 2,
+          mesAno: c.mesAno || dbCarteira.mesAno,
+          descricao: c.descricao || dbCarteira.descricao,
+          alocacoes: c.alocacoes || dbCarteira.alocacoes,
+          ativos: c.ativos || dbCarteira.ativos,
+        };
+        // Cache em chave NÃO-sincronizada (prefixo appliquei_cloud_ é
+        // ignorado pelo cloud-sync) — a carteira modelo é global, não deve
+        // entrar no doc de dados de cada utilizador.
+        try {
+          localStorage.setItem('appliquei_cloud_carteira_modelo', JSON.stringify(dbCarteira));
+        } catch (e) {}
+        if (cartEstado.perfil) cartRenderizarTela();
+      })
+      .catch(function () {});
+  } catch (e) {}
 }
 
 function cartSalvarEstado() {
@@ -870,149 +905,6 @@ function cartRenderizarSimKpis(blended, cdi) {
         </div>`
             : ''
         }`;
-}
-
-// ════════════════════════════════
-// ADMIN PANEL
-// ════════════════════════════════
-function cartAbrirAdmin() {
-  document.getElementById('visaoCliente').style.display = 'none';
-  document.getElementById('visaoAdmin').style.display = 'block';
-  cartAdminAtivosTemp = JSON.parse(JSON.stringify(dbCarteira.ativos || CART_ATIVOS_DEFAULT));
-  document.getElementById('adminMesAno').value = dbCarteira.mesAno || '';
-  document.getElementById('adminDesc').value = dbCarteira.descricao || '';
-
-  // Wire perfil tabs
-  document.querySelectorAll('#cartAdminPerfilTabs .cart-admin-perfil-tab').forEach((btn) => {
-    btn.onclick = function () {
-      document
-        .querySelectorAll('#cartAdminPerfilTabs .cart-admin-perfil-tab')
-        .forEach((b) => b.classList.remove('active'));
-      this.classList.add('active');
-      cartAdminPerfilAtivo = this.dataset.perfil;
-      cartAdminCarregarAlloc();
-    };
-  });
-
-  // Wire classe tabs
-  document.querySelectorAll('#cartAdminClasseTabs .cart-admin-perfil-tab').forEach((btn) => {
-    btn.onclick = function () {
-      document
-        .querySelectorAll('#cartAdminClasseTabs .cart-admin-perfil-tab')
-        .forEach((b) => b.classList.remove('active'));
-      this.classList.add('active');
-      cartAdminClasseAtiva = this.dataset.classe;
-      cartAdminRenderAtivos();
-    };
-  });
-
-  cartAdminPerfilAtivo = 'Conservador';
-  cartAdminClasseAtiva = 'rf';
-  document
-    .querySelector('#cartAdminPerfilTabs .cart-admin-perfil-tab[data-perfil="Conservador"]')
-    ?.classList.add('active');
-  document
-    .querySelector('#cartAdminClasseTabs .cart-admin-perfil-tab[data-classe="rf"]')
-    ?.classList.add('active');
-  cartAdminCarregarAlloc();
-  cartAdminRenderAtivos();
-}
-
-function cartFecharAdmin() {
-  document.getElementById('visaoAdmin').style.display = 'none';
-  document.getElementById('visaoCliente').style.display = 'block';
-}
-
-function cartAdminCarregarAlloc() {
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[cartAdminPerfilAtivo]) ||
-    CART_ALLOC_DEFAULT[cartAdminPerfilAtivo] ||
-    {};
-  document.getElementById('adminAllocRF').value = alloc.rf ?? 0;
-  document.getElementById('adminAllocAcao').value = alloc.acao ?? 0;
-  document.getElementById('adminAllocFII').value = alloc.fii ?? 0;
-  document.getElementById('adminAllocCripto').value = alloc.cripto ?? 0;
-  cartAdminAtualizarTotal();
-}
-
-function cartAdminAtualizarTotal() {
-  const total = ['adminAllocRF', 'adminAllocAcao', 'adminAllocFII', 'adminAllocCripto'].reduce(
-    (s, id) => s + (parseFloat(document.getElementById(id).value) || 0),
-    0
-  );
-  const el = document.getElementById('adminAllocTotal');
-  el.textContent = total + '%';
-  el.style.color = total === 100 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
-}
-
-function cartAdminRenderAtivos() {
-  const tbody = document.getElementById('cartAdminAtivosTbody');
-  const ativos = cartAdminAtivosTemp[cartAdminClasseAtiva] || [];
-  tbody.innerHTML =
-    ativos
-      .map(
-        (a, i) => `
-        <tr>
-            <td style="font-weight:700;font-family:'DM Mono',monospace;">${a.ticker}</td>
-            <td>${a.nome}</td>
-            <td style="color:var(--cor-texto-mutado);font-size:12px;">${a.obs || ''}</td>
-            <td><button type="button" onclick="cartAdminRemoveAtivo(${i})" style="background:transparent;border:none;color:var(--cor-erro);cursor:pointer;font-size:14px;padding:4px;"><i class="ph ph-trash"></i></button></td>
-        </tr>`
-      )
-      .join('') ||
-    '<tr><td colspan="4" style="text-align:center;color:var(--cor-texto-mutado);padding:18px;font-size:13px;">Nenhum ativo</td></tr>';
-}
-
-function cartAdminRemoveAtivo(idx) {
-  cartAdminAtivosTemp[cartAdminClasseAtiva].splice(idx, 1);
-  cartAdminRenderAtivos();
-}
-
-function cartAdminAddAtivo() {
-  const ticker = document.getElementById('adminAddTicker').value.trim().toUpperCase();
-  const nome = document.getElementById('adminAddNome').value.trim();
-  const obs = document.getElementById('adminAddObs').value.trim();
-  if (!ticker) return mostrarToast('Informe o ticker.', 'erro');
-  if (!cartAdminAtivosTemp[cartAdminClasseAtiva]) cartAdminAtivosTemp[cartAdminClasseAtiva] = [];
-  cartAdminAtivosTemp[cartAdminClasseAtiva].push({ ticker, nome, obs });
-  document.getElementById('adminAddTicker').value = '';
-  document.getElementById('adminAddNome').value = '';
-  document.getElementById('adminAddObs').value = '';
-  cartAdminRenderAtivos();
-}
-
-function cartAdminSalvar() {
-  // Salvar alloc para perfil atual antes de persistir
-  const salvarAllocPerfil = (perfil) => {
-    if (!dbCarteira.alocacoes) dbCarteira.alocacoes = {};
-    dbCarteira.alocacoes[perfil] = {
-      rf: parseFloat(document.getElementById('adminAllocRF').value) || 0,
-      acao: parseFloat(document.getElementById('adminAllocAcao').value) || 0,
-      fii: parseFloat(document.getElementById('adminAllocFII').value) || 0,
-      cripto: parseFloat(document.getElementById('adminAllocCripto').value) || 0,
-    };
-  };
-  salvarAllocPerfil(cartAdminPerfilAtivo);
-
-  const total = Object.values(dbCarteira.alocacoes[cartAdminPerfilAtivo]).reduce(
-    (s, v) => s + v,
-    0
-  );
-  if (total !== 100)
-    return mostrarToast(
-      `A soma das alocações do perfil ${cartAdminPerfilAtivo} deve ser 100%. Atual: ${total}%`,
-      'erro'
-    );
-
-  dbCarteira.mesAno = document.getElementById('adminMesAno').value;
-  dbCarteira.descricao = document.getElementById('adminDesc').value;
-  dbCarteira.ativos = JSON.parse(JSON.stringify(cartAdminAtivosTemp));
-  dbCarteira.versao = 2;
-
-  localStorage.setItem('appliquei_carteira_v2', JSON.stringify(dbCarteira));
-  mostrarToast('Carteira publicada com sucesso!', 'sucesso');
-  cartFecharAdmin();
-  carregarCarteiraCliente();
 }
 
 // Legacy shim — necessário para calls que ainda referenciam calcularCarteiraRecomendada

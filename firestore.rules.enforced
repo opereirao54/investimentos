@@ -90,5 +90,20 @@ service cloud.firestore {
       allow read: if false;
       allow write: if false;
     }
+
+    match /feedback/{id} {
+      allow create: if isVerified()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 1000;
+      allow read: if isVerified() && resource.data.uid == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    match /config/{docId} {
+      allow read: if isVerified();
+      allow write: if false;
+    }
   }
 }
