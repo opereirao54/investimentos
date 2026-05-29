@@ -5995,13 +5995,19 @@
         </section>
 
         <section id="simulador" class="section">
-            <div class="page-header" style="margin-bottom:20px;">
+            <div class="page-header" style="margin-bottom:16px;">
                 <div class="page-header-left">
                     <h1><i class="ph ph-chart-line-up" style="color:var(--cor-primaria);font-size:20px;"></i> Simule sua liberdade</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Compare investir vs. depender do INSS e descubra a diferença real.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Projete onde você chega investindo — ou descubra o caminho até a sua meta.</p>
                 </div>
             </div>
 
+            <div class="subtab-segmented" style="margin-bottom:18px;">
+                <button class="subtab-pill ativo" id="simPillProjetar" onclick="mudarModoSim('projetar')"><i class="ph ph-trend-up"></i> Projetar meu futuro</button>
+                <button class="subtab-pill" id="simPillMeta" onclick="mudarModoSim('meta')"><i class="ph ph-target"></i> Planejar minha meta</button>
+            </div>
+
+            <div id="simModoProjetar">
             <div class="card-container" style="margin-bottom:16px;">
                 <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Parâmetros da simulação</div>
                 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
@@ -6190,6 +6196,134 @@
                             <tbody id="tabelaSimuladorCorpo"></tbody>
                         </table>
                     </div>
+                </div>
+            </div>
+
+            </div><!-- /#simModoProjetar -->
+
+            <div id="simModoMeta" style="display:none;">
+                <div class="card-container" style="margin-bottom:16px;">
+                    <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
+                    <div class="form-group" style="margin-bottom:14px;">
+                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
+                            <option value="valor">💰 Quero acumular um valor específico</option>
+                            <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
+                        </select>
+                    </div>
+
+                    <!-- Objetivo: acumular um valor -->
+                    <div id="metaCamposValor" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Quanto quero acumular (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaValor" value="1000000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Em quanto tempo</label>
+                            <div style="display:flex;gap:8px;">
+                                <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
+                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Objetivo: aposentadoria -->
+                    <div id="metaCamposAposentadoria" style="display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Minha idade hoje</label>
+                            <input type="number" id="metaIdadeAtual" value="30" oninput="calcularMeta()">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Quero me aposentar aos</label>
+                            <input type="number" id="metaIdadeAposentar" value="50" oninput="calcularMeta()">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Renda mensal desejada (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaRenda" value="15000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
+                            <small id="metaRendaHint" style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Patrimônio necessário: <strong>—</strong></small>
+                        </div>
+                    </div>
+
+                    <!-- Parâmetros comuns -->
+                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Capital inicial (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Rentabilidade esperada</label>
+                            <div style="display:flex;gap:8px;">
+                                <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
+                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Inflação anual (%)</label>
+                            <input type="number" id="metaInflacao" value="4.50" step="0.01" oninput="calcularMeta()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Banner: capital inicial já atinge a meta -->
+                <div id="metaBannerOk" style="display:none;background:linear-gradient(135deg,var(--cor-bg-primaria) 0%,#ecfdf5 100%);border-left:4px solid var(--cor-primaria);padding:14px 22px;margin-bottom:16px;border-radius:10px;">
+                    <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:600;color:var(--cor-txt-primaria);">
+                        <i class="ph-fill ph-check-circle" style="font-size:18px;"></i>
+                        <span id="metaBannerOkTxt">Seu capital inicial, sozinho, já alcança a meta no prazo. Você não precisa aportar nada!</span>
+                    </div>
+                </div>
+
+                <!-- Hero do plano -->
+                <div style="background:linear-gradient(135deg,#047857 0%,#059669 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;">
+                    <div>
+                        <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">Seu plano — quanto investir por mês</div>
+                        <div id="metaAporteMensal" style="font-size:36px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-1.5px;line-height:1.05;">R$ 0,00</div>
+                        <div id="metaHeroSub" style="font-size:12.5px;color:rgba(255,255,255,.7);margin-top:8px;line-height:1.45;">Defina seu objetivo acima para montar o plano.</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);border-radius:var(--radius-sm);padding:16px 20px;font-size:13px;font-weight:500;color:rgba(255,255,255,.9);line-height:1.5;">
+                        Para alcançar
+                        <div style="font-size:26px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-0.5px;margin:6px 0 4px;line-height:1.1;"><span id="metaAlvo">R$ 0,00</span></div>
+                        <span style="font-size:11px;color:rgba(255,255,255,.7);">em <strong id="metaPrazoTxt" style="color:#fff;">—</strong></span>
+                    </div>
+                </div>
+
+                <div class="grid-2-iguais" style="margin-bottom:16px;">
+                    <!-- Composição do esforço -->
+                    <div class="card-container" style="margin-bottom:0;border-color:var(--cor-borda-primaria);background:linear-gradient(160deg,var(--cor-branco),var(--cor-bg-primaria));">
+                        <div style="font-size:13px;font-weight:700;color:var(--cor-texto-principal);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;margin-bottom:14px;"><i class="ph ph-chart-pie-slice" style="color:var(--cor-primaria);font-size:17px;"></i> Composição do seu esforço</div>
+                        <div style="display:flex;flex-direction:column;gap:7px;">
+                            <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Você vai aportar</span><span id="metaOutAportado" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-principal);">R$ 0,00</span></div>
+                            <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Juros do mercado</span><span id="metaOutJuros" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-primaria);">R$ 0,00</span></div>
+                            <div style="display:flex;justify-content:space-between;font-size:12.5px;padding-top:10px;border-top:1px solid var(--cor-borda);margin-top:4px;"><span style="color:var(--cor-texto-mutado);font-weight:600;">Patrimônio final</span><span id="metaOutFinal" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:var(--cor-texto-principal);">R$ 0,00</span></div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
+                            <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoMetaPizza"></canvas></div>
+                            <div style="font-size:12px;color:var(--cor-texto-secundario);flex:1;">
+                                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-info);flex-shrink:0;display:inline-block;"></span>Seus aportes: <strong id="metaLegAportado" style="color:var(--cor-texto-principal);">—</strong></div>
+                                <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-primaria);flex-shrink:0;display:inline-block;"></span>Juros: <strong id="metaLegJuros" style="color:var(--cor-texto-principal);">—</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Plano passo a passo -->
+                    <div class="card-container" style="margin-bottom:0;">
+                        <div style="font-size:13px;font-weight:700;color:var(--cor-texto-principal);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;margin-bottom:14px;"><i class="ph ph-list-checks" style="color:var(--cor-primaria);font-size:17px;"></i> Seu plano passo a passo</div>
+                        <ol id="metaPlanoPassos" style="margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:10px;"></ol>
+                        <div style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:14px;padding-top:12px;border-top:1px solid var(--cor-borda);display:flex;align-items:flex-start;gap:6px;line-height:1.5;">
+                            <i class="ph ph-warning" style="color:var(--cor-erro);font-size:14px;margin-top:1px;flex-shrink:0;"></i>
+                            <span>Corrigido pela inflação, esse patrimônio terá o poder de compra de <strong id="metaReal" style="color:var(--cor-texto-secundario);">—</strong> em valores de hoje.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Evolução até a meta -->
+                <div class="card-container" style="margin-bottom:40px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+                        <h3 style="font-size:13px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Evolução do patrimônio até a meta</h3>
+                        <div style="display:flex;gap:16px;">
+                            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:var(--cor-info);display:inline-block;"></span> Seu patrimônio</div>
+                            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:var(--cor-primaria);display:inline-block;"></span> Meta</div>
+                        </div>
+                    </div>
+                    <div style="height:240px;position:relative;"><canvas id="graficoMeta"></canvas></div>
                 </div>
             </div>
 

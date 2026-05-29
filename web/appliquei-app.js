@@ -38,7 +38,10 @@ function mudarAba(e, idAba, callback = null) {
 
   if (idAba === 'patrimonio') atualizarCarteiraAtivos();
   if (idAba === 'controle') atualizarTelaControle();
-  if (idAba === 'simulador') calcularSimulador();
+  if (idAba === 'simulador') {
+    const emMeta = document.getElementById('simModoMeta') && document.getElementById('simModoMeta').style.display !== 'none';
+    if (emMeta) calcularMeta(); else calcularSimulador();
+  }
   if (idAba === 'carteira') carregarCarteiraCliente();
   if (idAba === 'meus_sonhos') renderizarSonhos();
   if (idAba === 'applicash') atualizarTelaApplicash();
