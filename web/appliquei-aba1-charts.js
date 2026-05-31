@@ -427,7 +427,7 @@ function evolucaoHtmlTooltip(context) {
     const sinal = variacaoR$ >= 0 ? '+' : '';
 
     const linhas = [];
-    linhas.push(`<div class="ttip-row ttip-total"><span>Patrimônio</span><strong>${formatarMoeda(patrimonio)}</strong></div>`);
+    linhas.push(`<div class="ttip-row ttip-total"><span>Investimentos</span><strong>${formatarMoeda(patrimonio)}</strong></div>`);
     linhas.push(`<div class="ttip-divider"></div>`);
     linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-primaria)"></span>Capital aplicado</span><span>${formatarMoeda(aplicado)}</span></div>`);
     if(ganho > 0) linhas.push(`<div class="ttip-row"><span><span class="ttip-dot" style="background:var(--cor-primaria);opacity:0.4"></span>Ganho capital</span><span style="color:var(--cor-primaria)">+${formatarMoeda(ganho)}</span></div>`);
@@ -981,7 +981,7 @@ function atualizarCarteiraAtivos() {
                     <div class="rich-ticker">${ticker}</div>
                     <div class="rich-nome">${nomeAtivo}</div>
                     <div class="rich-meta">
-                        ${!semQtdAtivo ? `<span>${formatarQtd(ativo.qtdTotal)} un</span>` : ''}
+                        ${!semQtdAtivo ? `<span class="valor-mascarado">${formatarQtd(ativo.qtdTotal)} un</span>` : ''}
                         ${metaExtra ? `${!semQtdAtivo ? '· ' : ''}<span>${metaExtra}</span>` : ''}
                         <span class="rich-alloc-bar"><span class="rich-alloc-fill" style="width:${Math.min(allocPerc, 100)}%;background:${avatarBg};"></span></span>
                         <span>${allocPerc.toFixed(1)}%</span>
@@ -989,7 +989,7 @@ function atualizarCarteiraAtivos() {
                 </div>
                 <div class="rich-pm">
                     <span class="rich-pm-label">Preço Médio</span>
-                    <span class="rich-pm-valor valor-mascarado">${formatarMoeda(precoMedio)}</span>
+                    <span class="rich-pm-valor">${formatarMoeda(precoMedio)}</span>
                 </div>
                 <div class="rich-saldo"><span class="valor-mascarado">${formatarMoeda(saldoAtualAtivo)}</span></div>
                 <div class="rich-sparkline" id="spark_${ticker}"></div>

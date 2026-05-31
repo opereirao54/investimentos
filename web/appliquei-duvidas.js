@@ -70,8 +70,8 @@ var FAQ_DADOS = [
   {
     cat: 'patrimonio',
     catLbl: 'Patrimônio',
-    p: 'Como faço backup dos meus dados?',
-    r: 'Use o botão <strong>Backup</strong> na Visão geral para baixar um arquivo JSON com todas as suas operações, sonhos, metas e configurações. Esse mesmo arquivo pode ser reimportado depois.',
+    p: 'Meus dados ficam salvos? Como funciona o backup?',
+    r: 'Quando você está conectado com e-mail verificado, seus dados são salvos automaticamente na nuvem e ficam disponíveis em qualquer dispositivo — sem precisar exportar nada manualmente. Sem login, ficam guardados apenas neste navegador.',
   },
 
   // Controle financeiro
@@ -320,11 +320,24 @@ function enviarSugestao() {
     return mostrarToast('Diga sobre o que é a sua sugestão.', 'erro');
   if (texto.length < 10)
     return mostrarToast('Descreva sua sugestão com pelo menos 10 caracteres.', 'erro');
+  if (texto.length > 1000)
+    return mostrarToast('Sua sugestão é muito longa (máximo de 1000 caracteres).', 'erro');
 
   const ctx = sugFirebaseUser();
   if (!ctx) {
     return mostrarToast(
       'Você precisa estar conectado para enviar uma sugestão. Faça login e tente novamente.',
+      'erro'
+    );
+  }
+  // Firestore exige e-mail verificado para gravar feedback (firestore.rules).
+  // Sem este aviso, a escrita falha e o usuário via apenas "erro de conexão".
+  if (ctx.user.emailVerified === false) {
+    try {
+      if (typeof ctx.user.sendEmailVerification === 'function') ctx.user.sendEmailVerification();
+    } catch (e) {}
+    return mostrarToast(
+      'Confirme seu e-mail para enviar sugestões. Reenviamos o link de verificação — confira sua caixa de entrada.',
       'erro'
     );
   }
@@ -360,10 +373,15 @@ function enviarSugestao() {
     })
     .catch(function (err) {
       console.warn('[duvidas] enviarSugestao', err);
-      mostrarToast(
-        'Não foi possível enviar agora. Verifique sua conexão e tente novamente.',
-        'erro'
-      );
+      const code = err && err.code ? String(err.code) : '';
+      if (code.indexOf('permission-denied') !== -1) {
+        mostrarToast('Não foi possível enviar: confirme seu e-mail e tente novamente.', 'erro');
+      } else {
+        mostrarToast(
+          'Não foi possível enviar agora. Verifique sua conexão e tente novamente.',
+          'erro'
+        );
+      }
     })
     .finally(function () {
       if (btn) btn.disabled = false;
