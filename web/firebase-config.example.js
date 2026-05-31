@@ -13,3 +13,8 @@ window.__APPLIQUEI_FIREBASE_CONFIG__ = {
   messagingSenderId: '',
   appId: '',
 };
+
+// App Check — site key do reCAPTCHA v3 (pública, igual à apiKey do Firebase).
+// Vazia = App Check não inicializa (app roda local sem atestação). Em produção
+// é sobrescrita por firebase-config.appliquei-prod.js. Ver docs/APP-CHECK.md.
+window.__APPLIQUEI_APPCHECK_SITE_KEY__ = '';

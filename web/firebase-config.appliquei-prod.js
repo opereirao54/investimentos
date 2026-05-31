@@ -15,3 +15,10 @@ window.__APPLIQUEI_FIREBASE_CONFIG__ = {
   appId: '1:662305867797:web:930d37325f9cd8e11e661c',
   measurementId: 'G-FCB2LS8K1D'
 };
+
+// App Check — site key do reCAPTCHA v3 (pública). Preencha após criar o
+// provider reCAPTCHA v3 em Firebase Console → App Check → Apps → Web.
+// Enquanto vazia, o App Check NÃO inicializa (deixa enforcement desligado
+// para não quebrar clientes em produção antes do rollout). Passos completos
+// de ativação/enforcement em docs/APP-CHECK.md.
+window.__APPLIQUEI_APPCHECK_SITE_KEY__ = '';
