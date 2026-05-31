@@ -347,8 +347,7 @@
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
         .sidebar-quick-actions { display: flex; gap: 8px; padding: 4px 4px 10px; }
         .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: 1; width: auto; }
-        .sidebar.collapsed .sidebar-quick-actions { flex-direction: column; align-items: center; padding: 4px 6px 10px; }
-        .sidebar.collapsed .sidebar-quick-actions .btn-eye, .sidebar.collapsed .sidebar-quick-actions .btn-theme { flex: none; width: 34px; }
+        .sidebar.collapsed .sidebar-quick-actions { display: none; }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
         /* Regra universal: qualquer .valor-mascarado é tratado como dado sensível e borrado em todo o app */
