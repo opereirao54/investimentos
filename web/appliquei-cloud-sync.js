@@ -24,12 +24,26 @@
  */
 var DEBOUNCE_MS = 2000;
 var BEACON_DEBOUNCE_MS = 600;
+// No mobile, .get({source:'server'}) pode ficar pendurado numa ligação
+// meia-aberta (após background / troca de rede) sem resolver nem rejeitar.
+// Sem um teto, pullInFlight/initialPullDone ficavam presos para sempre e TODO
+// o sync via SDK parava. Ao estourar, caímos para a cópia em cache (ver
+// pullAndApply) e destravamos os caminhos de push.
+var PULL_SERVER_TIMEOUT_MS = 8000;
 var timer = null;
 var beaconTimer = null;
 var applyingPull = false;
 var authHooked = false;
 var pullInFlight = false;
+// initialPullDone: o boot completou uma tentativa de pull (servidor OU cache).
+// Destrava a lógica de visibilidade/re-pull.
 var initialPullDone = false;
+// serverViewReady: já tivemos uma visão FRESCA do servidor (get server ok ou
+// snapshot não-cache). Gateia só o push via SDK set(merge) — que não compara
+// rev e poderia clobberar uma key que outro device atualizou. O beacon NÃO
+// depende disto: o endpoint /api/sync/push faz LWW por-rev no servidor, então
+// é seguro enviar antes mesmo de termos visto o remoto.
+var serverViewReady = false;
 var unsubscribeSnapshot = null;
 var listenerUid = null;
 var pendingLocalWrite = false;
@@ -156,10 +170,12 @@ function collectDirtyPayload() {
 
 function flushPush() {
   timer = null;
-  // Sem visão fresca do remoto não podemos arriscar push (poderia sobrescrever
-  // uma key que outro device acabou de atualizar). Local fica preservado em
-  // localRevs/DELETIONS_LS e o próximo pullAndApply re-marca dirty.
-  if (!initialPullDone || pullInFlight) return;
+  // Sem visão FRESCA do servidor não arriscamos o push via SDK (set(merge)
+  // não compara rev e poderia sobrescrever uma key que outro device acabou de
+  // atualizar). Local fica preservado em localRevs/DELETIONS_LS e o próximo
+  // pullAndApply re-marca dirty. O egress dos writes não fica refém disto: o
+  // beacon (rev-safe no servidor) cobre essa janela.
+  if (!serverViewReady || pullInFlight) return;
   var fb = window.AppliqueiFirebase;
   if (!fb || !fb.ready || !fb.db || !fb.auth) return;
   var u = fb.auth.currentUser;
@@ -313,32 +329,19 @@ function buildBeaconPayload() {
   return { keys: keysOut, keyRevs: revsOut };
 }
 
-// Caminho rápido para iOS: dispara um POST que sobrevive ao kill do tab.
-// Preferimos fetch+keepalive porque permite ler o status e logar erros —
-// sendBeacon é "fire and forget" e mascarava falhas de auth/billing.
-// mode:'no-cors' impede leitura de resposta; usamos same-origin para que
-// o endpoint /api/sync/push devolva JSON e o cliente possa diagnosticar.
-function beaconFlushNow(reason) {
-  if (!initialPullDone) return;
-  var fb = window.AppliqueiFirebase;
-  if (!fb || !fb.auth || !fb.auth.currentUser) return;
-  if (!cachedIdToken) {
-    // Tenta aquecer e adia para o próximo ciclo do flush (SDK path cobre).
-    refreshIdTokenCache(fb);
-    return;
-  }
-
-  var payload = buildBeaconPayload();
-  if (!payload) return;
-
+// Transmissão de facto do beacon. Separada para podermos chamá-la tanto com o
+// token em cache (síncrono) como após resolver getIdToken() (assíncrono).
+// 1) fetch+keepalive: caminho preferencial — logamos status/erro e sobrevive
+//    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
+// O endpoint /api/sync/push é idempotente e faz LWW por-rev, por isso reenviar
+// o mesmo payload (eager + visibility + pagehide) é seguro.
+function postBeacon(token, payload, reason) {
   var body = JSON.stringify({
-    idToken: cachedIdToken,
+    idToken: token,
     keys: payload.keys,
     keyRevs: payload.keyRevs,
   });
 
-  // 1) fetch+keepalive: caminho preferencial — logamos status/erro.
-  // 2) sendBeacon: fallback se fetch keepalive não estiver disponível.
   var sent = false;
   try {
     if (typeof window.fetch === 'function') {
@@ -384,6 +387,50 @@ function beaconFlushNow(reason) {
     } catch (e) {
       console.warn('[AppliqueiCloudSync] sendBeacon', e && (e.message || e));
     }
+  }
+}
+
+// Caminho rápido para iOS: dispara um POST que sobrevive ao kill do tab.
+//
+// CRÍTICO: deliberadamente NÃO gateamos em initialPullDone. Esta era a causa
+// raiz do "lancei no celular e não gravou": no mobile o tab congela/morre
+// durante o pull inicial (.get source:'server' pode demorar/pendurar), e o
+// beacon — o ÚNICO caminho desenhado para sobreviver ao freeze — nunca
+// disparava nessa janela porque esperava o pull terminar. Como o endpoint
+// /api/sync/push faz LWW por-rev no servidor (só sobrescreve uma key se o rev
+// recebido for estritamente maior), enviar antes do pull é seguro: nunca
+// clobbera um write mais novo de outro device.
+function beaconFlushNow(reason) {
+  var fb = window.AppliqueiFirebase;
+  if (!fb || !fb.auth || !fb.auth.currentUser) return;
+
+  var payload = buildBeaconPayload();
+  if (!payload) return;
+
+  if (cachedIdToken) {
+    postBeacon(cachedIdToken, payload, reason);
+    return;
+  }
+
+  // Token ainda não cacheado (ex.: write logo após o login, antes de
+  // onIdTokenChanged disparar). Antes, isto fazia o beacon desistir em silêncio
+  // e delegar ao SDK — que também estava gateado. Agora obtemos o token do SDK
+  // (normalmente em memória, resolve no mesmo tick) e enviamos via fetch+
+  // keepalive, que sobrevive ao unload. Reconstruímos o payload porque
+  // dirtyKeys pode ter mudado no intervalo.
+  try {
+    fb.auth.currentUser
+      .getIdToken()
+      .then(function (t) {
+        cachedIdToken = t;
+        var fresh = buildBeaconPayload();
+        if (fresh) postBeacon(t, fresh, reason);
+      })
+      .catch(function () {
+        refreshIdTokenCache(fb);
+      });
+  } catch (_) {
+    refreshIdTokenCache(fb);
   }
 }
 
@@ -533,6 +580,9 @@ function startSnapshotListener(uid) {
       function (snap) {
         if (snap && snap.metadata && snap.metadata.fromCache) return;
         if (snap && snap.metadata && snap.metadata.hasPendingWrites) return;
+        // Visão fresca do servidor chegou pelo tempo-real: destrava o push via
+        // SDK mesmo que o .get inicial tenha estourado/falhado (caiu p/ cache).
+        serverViewReady = true;
         applyRemoteSnapshot(snap);
       },
       function (err) {
@@ -592,44 +642,92 @@ function pullAndApply(uid, done) {
     return;
   }
   pullInFlight = true;
-  mainRef(uid)
-    .get({ source: 'server' })
-    .then(function (snap) {
-      if (!snap.exists) {
-        reconcileAgainstEmptyRemote();
-        initialPullDone = true;
-        pullInFlight = false;
-        if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
-          schedulePush();
-        }
-        startSnapshotListener(uid);
-        if (done) done(false);
-        return;
-      }
-      var changed = applyRemoteSnapshot(snap, {
+  var settled = false;
+  var timeoutId = null;
+
+  function clearPullTimeout() {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
+  }
+
+  // Conclui o pull aplicando um snapshot (ou semeando contra remoto vazio).
+  // fromServer=true marca serverViewReady → destrava o push via SDK. O caminho
+  // de cache (fallback do timeout) passa fromServer=false: destrava a boot mas
+  // mantém o SDK push à espera de uma visão real do servidor; entretanto o
+  // beacon (rev-safe) já cobre o egress.
+  function settle(snap, fromServer) {
+    if (settled) return;
+    settled = true;
+    clearPullTimeout();
+    var changed = 0;
+    if (!snap || !snap.exists) {
+      reconcileAgainstEmptyRemote();
+    } else {
+      changed = applyRemoteSnapshot(snap, {
         reloadMessage:
           'Dados da nuvem restaurados! Atualizando a página para carregar as informações...',
       });
-      initialPullDone = true;
-      pullInFlight = false;
-      startSnapshotListener(uid);
-      if (done) done(changed > 0);
+    }
+    initialPullDone = true;
+    if (fromServer) serverViewReady = true;
+    pullInFlight = false;
+    if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
+      schedulePush();
+    }
+    startSnapshotListener(uid);
+    if (done) done(changed > 0);
+  }
+
+  function fail(err) {
+    if (settled) return;
+    settled = true;
+    clearPullTimeout();
+    console.warn('[AppliqueiCloudSync] pull', err);
+    initialPullDone = true;
+    pullInFlight = false;
+    if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
+      if (done) done(false);
+      return;
+    }
+    // Erro transitório de rede: mantém o tempo-real vivo — quando a ligação
+    // voltar, o snapshot reconcilia e marca serverViewReady. O beacon rev-safe
+    // cobre o egress entretanto.
+    startSnapshotListener(uid);
+    if (typeof window.mostrarToast === 'function') {
+      window.mostrarToast(
+        'Não foi possível ler dados na nuvem. Verifique a sua ligação à internet.',
+        'erro'
+      );
+    }
+    if (done) done(false);
+  }
+
+  // Teto defensivo: se o get do servidor não resolver nem rejeitar a tempo
+  // (ligação meia-aberta típica de mobile), cai para a cópia em cache
+  // (última vista do servidor, persistida em IndexedDB). applyRemoteSnapshot
+  // usa LWW por-rev, então isto nunca sobrescreve um write local mais novo.
+  timeoutId = setTimeout(function () {
+    if (settled) return;
+    mainRef(uid)
+      .get({ source: 'cache' })
+      .then(function (snap) {
+        settle(snap, false);
+      })
+      .catch(function () {
+        // Sem cache utilizável: trata como remoto vazio para destravar a boot.
+        settle(null, false);
+      });
+  }, PULL_SERVER_TIMEOUT_MS);
+
+  mainRef(uid)
+    .get({ source: 'server' })
+    .then(function (snap) {
+      settle(snap, true);
     })
     .catch(function (err) {
-      console.warn('[AppliqueiCloudSync] pull', err);
-      initialPullDone = true;
-      pullInFlight = false;
-      if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
-        if (done) done(false);
-        return;
-      }
-      if (typeof window.mostrarToast === 'function') {
-        window.mostrarToast(
-          'Não foi possível ler dados na nuvem. Verifique a sua ligação à internet.',
-          'erro'
-        );
-      }
-      if (done) done(false);
+      fail(err);
     });
 }
 
@@ -641,6 +739,7 @@ function onUser(user) {
     stopSnapshotListener();
     clearUserScopedKeys();
     initialPullDone = false;
+    serverViewReady = false;
     dirtyKeys = {};
     try {
       localStorage.removeItem(LAST_UID_KEY);
@@ -659,6 +758,7 @@ function onUser(user) {
     stopSnapshotListener();
     clearUserScopedKeys();
     initialPullDone = false;
+    serverViewReady = false;
     dirtyKeys = {};
     try {
       localStorage.setItem(LAST_UID_KEY, user.uid);
@@ -819,6 +919,7 @@ window.AppliqueiCloudSync = {
     }
     dirtyKeys = {};
     initialPullDone = false;
+    serverViewReady = false;
     clearUserScopedKeys();
   },
 };
