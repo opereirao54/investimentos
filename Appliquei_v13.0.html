@@ -345,8 +345,9 @@
         .btn-eye:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-eye i { font-size: 16px; }
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
-        .sidebar-quick-actions { display: flex; gap: 8px; padding: 4px 4px 10px; }
-        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: 1; width: auto; }
+        .sidebar-quick-actions { display: flex; gap: 6px; padding: 4px 4px 10px; }
+        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: none; width: 28px; height: 28px; border-radius: 8px; }
+        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i { font-size: 14px; }
         .sidebar.collapsed .sidebar-quick-actions { display: none; }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */

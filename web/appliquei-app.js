@@ -36,7 +36,12 @@ function mudarAba(e, idAba, callback = null) {
     fecharPainelLancamento();
   }
 
-  if (idAba === 'patrimonio') atualizarCarteiraAtivos();
+  if (idAba === 'patrimonio') {
+    atualizarCarteiraAtivos();
+    // Cotações confiáveis (BRAPI) dos ativos possuídos — corrige preços que o
+    // Yahoo não traz (ex.: HASH11). Aqui auth e dados já estão prontos.
+    if (typeof atualizarCotacoesPossuidas === 'function') atualizarCotacoesPossuidas();
+  }
   if (idAba === 'controle') atualizarTelaControle();
   if (idAba === 'simulador') {
     const emMeta = document.getElementById('simModoMeta') && document.getElementById('simModoMeta').style.display !== 'none';
