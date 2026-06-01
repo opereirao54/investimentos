@@ -106,11 +106,23 @@ var MP_LABELS = {
   previdencia: 'Previdência',
   reserva_emergencia: 'Reserva Emergência',
   caixa: 'Caixa / Saldo em Conta',
+  // Subcategorias de Renda Variável (gráficos de divisão/rentabilidade).
+  acoes: 'Ações',
+  fiis: 'FIIs',
+  bdrs: 'BDRs',
+  etfs: 'ETFs',
+  cripto: 'Cripto',
 };
 function mpCorCategoria(cat) {
   const p = typeof paletaCarteira === 'function' ? paletaCarteira() : {};
   if (cat === 'renda_fixa') return p.renda_fixa || '#60a5fa';
   if (cat === 'renda_variavel') return p.acoes || '#10b981';
+  if (cat === 'acoes') return p.acoes || '#059669';
+  if (cat === 'fiis') return p.fiis || '#10b981';
+  if (cat === 'bdrs') return p.bdrs || '#047857';
+  if (cat === 'etfs') return p.etfs || '#34d399';
+  if (cat === 'cripto')
+    return p.cripto || (typeof getToken === 'function' ? getToken('--cor-cartao') : '#f59e0b');
   if (cat === 'previdencia') return p.previdencia || '#7c3aed';
   if (cat === 'reserva_emergencia') return p.reserva_emergencia || '#6b7280';
   if (cat === 'caixa')
@@ -370,6 +382,11 @@ function mpConsolidar() {
   const resumo = typeof obterResumoCarteira === 'function' ? obterResumoCarteira() : {};
   const acc = {
     porCategoria: {},
+    // Como porCategoria, mas com a Renda Variável QUEBRADA por subcategoria
+    // (Ações / FIIs / Cripto / BDRs / ETFs) — usado nos gráficos de divisão e
+    // rentabilidade. porCategoria continua agregando RV num bloco só, para os
+    // consumidores que dependem da categoria contábil (KPIs, totais).
+    porCategoriaExibicao: {},
     porInstituicao: {},
     porTicker: [],
     totalInvestido: 0,
@@ -388,6 +405,24 @@ function mpConsolidar() {
     acc.porCategoria[cat].atual += atual;
     acc.porCategoria[cat].atualLiq += liquido;
     acc.porCategoria[cat].ativos += 1;
+    // Chave de exibição: RV vira a subcategoria efetiva; demais mantêm a categoria.
+    let catExib = cat;
+    if (cat === 'renda_variavel') {
+      const ativoMercado =
+        typeof mockAtivosMercado !== 'undefined'
+          ? mockAtivosMercado.find((a) => a.ticker === ticker)
+          : null;
+      catExib =
+        typeof subcategoriaEfetiva === 'function'
+          ? subcategoriaEfetiva(ticker, c, ativoMercado)
+          : c.subcategoria || 'acoes';
+    }
+    if (!acc.porCategoriaExibicao[catExib])
+      acc.porCategoriaExibicao[catExib] = { investido: 0, atual: 0, atualLiq: 0, ativos: 0 };
+    acc.porCategoriaExibicao[catExib].investido += c.valorTotalInvestido;
+    acc.porCategoriaExibicao[catExib].atual += atual;
+    acc.porCategoriaExibicao[catExib].atualLiq += liquido;
+    acc.porCategoriaExibicao[catExib].ativos += 1;
     acc.totalInvestido += c.valorTotalInvestido;
     acc.totalAtual += atual;
     acc.totalAtualLiq += liquido;
@@ -505,122 +540,8 @@ function mpRenderKPIs(consolidado, janela) {
   }
 }
 
-// Mini sparkline SVG por categoria — usa série mensal sintética baseada em historicoCompras + cotação atual.
-// Implementação leve: 6 pontos mostrando evolução do investido acumulado nessa categoria.
-function mpSparklineSvg(serie, cor) {
-  if (!serie.length) return '';
-  const max = Math.max(...serie),
-    min = Math.min(...serie);
-  const range = max - min || 1;
-  const w = 60,
-    h = 14;
-  const xy = serie.map((v, i) => {
-    const x = (i / (serie.length - 1 || 1)) * w;
-    const y = h - ((v - min) / range) * h;
-    return [+x.toFixed(1), +y.toFixed(1)];
-  });
-  const pts = xy.map((p) => p.join(',')).join(' ');
-  // 4.7 — sparkline mais "premium": área com gradiente + linha de pontas
-  // arredondadas. id único do gradiente p/ não colidir entre múltiplos SVGs.
-  const gid = 'spk' + Math.random().toString(36).slice(2, 8);
-  const area = `${xy[0][0]},${h} ${pts} ${xy[xy.length - 1][0]},${h}`;
-  return (
-    `<svg class="mp-barra-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">` +
-    `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0%" stop-color="${cor}" stop-opacity="0.28"/>` +
-    `<stop offset="100%" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>` +
-    `<polygon points="${area}" fill="url(#${gid})" stroke="none"/>` +
-    `<polyline fill="none" stroke="${cor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>` +
-    `</svg>`
-  );
-}
-
-function mpSerieInvestidoMensal(cat, meses = 6) {
-  if (typeof historicoCompras === 'undefined') return [];
-  const agora = new Date();
-  const serie = [];
-  for (let i = meses - 1; i >= 0; i--) {
-    const ref = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
-    const fim = new Date(agora.getFullYear(), agora.getMonth() - i + 1, 1).getTime() - 1;
-    let total = 0;
-    historicoCompras.forEach((op) => {
-      if (op.categoria !== cat) return;
-      if (!op.data_op) return;
-      if (new Date(op.data_op).getTime() > fim) return;
-      const v = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      if ((op.tipo || 'compra') === 'compra') total += v;
-      else total -= v;
-    });
-    serie.push(Math.max(0, total));
-  }
-  return serie;
-}
-
-function mpRenderBarras(consolidado) {
-  const wrap = document.getElementById('mp-barras');
-  if (!wrap) return;
-  // Adiciona pseudo-categoria "caixa": somatório de saldos positivos por instituição (caixa livre)
-  const saldoInst = mpCalcularSaldoPorInstituicao(Date.now());
-  let caixaTotal = 0;
-  Object.values(saldoInst).forEach((s) => {
-    if (s.caixa > 0) caixaTotal += s.caixa;
-  });
-  const categorias = ['renda_fixa', 'renda_variavel', 'previdencia', 'reserva_emergencia', 'caixa'];
-  const dados = categorias
-    .map((cat) => {
-      if (cat === 'caixa') {
-        return { cat, investido: caixaTotal, atual: caixaTotal, atualLiq: caixaTotal };
-      }
-      const c = consolidado.porCategoria[cat];
-      return {
-        cat,
-        investido: c ? c.investido : 0,
-        atual: c ? c.atual : 0,
-        atualLiq: c ? c.atualLiq : 0,
-      };
-    })
-    .filter((d) => d.atual > 0 || d.cat === 'caixa');
-  if (!dados.length) {
-    wrap.innerHTML =
-      '<div class="mp-empty"><i class="ph ph-chart-bar"></i>Sem investimentos cadastrados. Adicione operações em "Meus Investimentos".</div>';
-    return;
-  }
-  const valorMax = Math.max(
-    ...dados.map((d) => (mpEstado.modo === 'liquido' ? d.atualLiq : d.atual))
-  );
-  const totalGeral = dados.reduce(
-    (acc, d) => acc + (mpEstado.modo === 'liquido' ? d.atualLiq : d.atual),
-    0
-  );
-  wrap.innerHTML = dados
-    .map((d) => {
-      const valor = mpEstado.modo === 'liquido' ? d.atualLiq : d.atual;
-      const pctMax = valorMax > 0 ? (valor / valorMax) * 100 : 0;
-      const pctTot = totalGeral > 0 ? (valor / totalGeral) * 100 : 0;
-      const cor = mpCorCategoria(d.cat);
-      const serie = d.cat === 'caixa' ? [] : mpSerieInvestidoMensal(d.cat);
-      const dim = mpEstado.categoriaDestaque && mpEstado.categoriaDestaque !== d.cat ? 'dim' : '';
-      return `
-            <div class="mp-barra-item ${dim}" data-cat="${d.cat}" onclick="mpDestacar('${d.cat}')">
-                <span class="mp-barra-label"><span class="mp-dot" style="background:${cor}"></span>${MP_LABELS[d.cat]}</span>
-                <div class="mp-barra-track">
-                    <div class="mp-barra-fill" style="width:${pctMax.toFixed(1)}%; background:${cor};">${pctTot >= 8 ? pctTot.toFixed(0) + '%' : ''}</div>
-                    ${mpSparklineSvg(serie, cor)}
-                </div>
-                <span class="mp-barra-valor">${mpFmtBRL(valor)}<span class="mp-barra-pct">${pctTot.toFixed(1)}%</span></span>
-            </div>`;
-    })
-    .join('');
-}
-
 function mpDestacar(cat) {
   mpEstado.categoriaDestaque = mpEstado.categoriaDestaque === cat ? null : cat;
-  document.querySelectorAll('#mp-barras .mp-barra-item').forEach((el) => {
-    el.classList.toggle(
-      'dim',
-      !!(mpEstado.categoriaDestaque && el.dataset.cat !== mpEstado.categoriaDestaque)
-    );
-  });
   document.querySelectorAll('#mp-donut-legenda .mp-leg-item').forEach((el) => {
     el.classList.toggle(
       'dim',
@@ -710,13 +631,16 @@ function mpRenderDonut(consolidado) {
   // Itens = categorias investidas + Caixa (saldo em conta/salário). Incluir o
   // caixa faz o donut "Por categoria" representar 100% do patrimônio, igual às
   // barras — antes o dinheiro em conta ficava de fora da divisão.
-  const itens = Object.keys(consolidado.porCategoria)
+  // Divisão por categoria com a Renda Variável quebrada (Ações/FIIs/Cripto...).
+  const porCat = consolidado.porCategoriaExibicao || consolidado.porCategoria;
+  const itens = Object.keys(porCat)
     .map((c) => ({
       cat: c,
-      valor: usarLiq ? consolidado.porCategoria[c].atualLiq : consolidado.porCategoria[c].atual,
-      investido: consolidado.porCategoria[c].investido,
+      valor: usarLiq ? porCat[c].atualLiq : porCat[c].atual,
+      investido: porCat[c].investido,
     }))
-    .filter((it) => it.valor > 0);
+    .filter((it) => it.valor > 0)
+    .sort((a, b) => b.valor - a.valor);
   const saldoInst = mpCalcularSaldoPorInstituicao(Date.now());
   let caixaTotal = 0;
   Object.values(saldoInst).forEach((s) => {
@@ -810,6 +734,9 @@ function mpRenderDonut(consolidado) {
       },
     },
   });
+  // Gráfico único: a PIZZA mostra a divisão; cada linha da legenda (as
+  // "barrinhas") traz o VALOR + a RENTABILIDADE da classe. Sem gráfico de
+  // barras separado — toda a informação fica concentrada aqui.
   leg.innerHTML = itens
     .map((it, i) => {
       const ehCaixa = it.cat === 'caixa';
@@ -894,8 +821,9 @@ async function renderMeuPatrimonio(skipFetch) {
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
   mpRenderKPIs(consolidado, janela);
-  mpRenderBarras(consolidado);
-  mpRenderInstituicoes(consolidado);
+  // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
+  // rentabilidade. O antigo gráfico de barras foi removido.
   mpRenderDonut(consolidado);
+  mpRenderInstituicoes(consolidado);
   mpRenderCartaoSnap();
 }

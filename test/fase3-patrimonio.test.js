@@ -330,7 +330,10 @@ test('3.2 controleCategoriaUsaBanco cobre receitas e despesas (não cartão)', (
   assert.equal(s.controleCategoriaUsaBanco('despesa_fixa'), true);
   assert.equal(s.controleCategoriaUsaBanco('despesa_variavel'), true);
   assert.equal(s.controleCategoriaUsaBanco('cartao_credito'), false);
-  assert.equal(s.controleBancoObrigatorio('despesa_fixa'), false);
+  // Toda despesa fixa/variável agora exige banco (reflete no saldo por instituição).
+  assert.equal(s.controleBancoObrigatorio('despesa_fixa'), true);
+  assert.equal(s.controleBancoObrigatorio('despesa_variavel'), true);
+  assert.equal(s.controleBancoObrigatorio('cartao_credito'), false);
   assert.equal(s.controleBancoObrigatorio('receita'), true);
 });
 

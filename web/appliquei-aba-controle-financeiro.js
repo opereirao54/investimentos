@@ -72,8 +72,117 @@ function controleCategoriaUsaBanco(cat) {
     cat === 'despesa_variavel'
   );
 }
+// Toda despesa precisa estar atrelada a um banco — assim "Meu Patrimônio"
+// abate o valor pago da instituição certa (ex.: PicPay 500 → conta de 400 paga
+// → caixa 100). Antes só receita/resgate eram obrigatórios e despesas sem banco
+// caíam num bucket "Sem banco", deixando o saldo da instituição inflado.
 function controleBancoObrigatorio(cat) {
-  return cat === 'receita' || cat === 'resgate_investimento';
+  return (
+    cat === 'receita' ||
+    cat === 'resgate_investimento' ||
+    cat === 'despesa_fixa' ||
+    cat === 'despesa_variavel'
+  );
+}
+
+// === Categorização de despesas (alimentação, saúde, transporte...) ===
+// Lista fixa + categorias dinâmicas criadas pelo usuário ("➕ Outros").
+var CATEGORIAS_DESPESA_PADRAO = [
+  { v: 'moradia', label: '🏠 Moradia' },
+  { v: 'alimentacao', label: '🛒 Alimentação' },
+  { v: 'transporte', label: '🚗 Transporte' },
+  { v: 'saude', label: '⚕️ Saúde' },
+  { v: 'educacao', label: '📚 Educação' },
+  { v: 'lazer', label: '🍿 Lazer e Assinaturas' },
+  { v: 'cuidados_pessoais', label: '💆 Cuidados Pessoais' },
+  { v: 'pets', label: '🐶 Pets' },
+  { v: 'impostos_taxas', label: '🏦 Impostos e Taxas' },
+];
+
+function obterCategoriasDespesaCustom() {
+  try {
+    const arr = JSON.parse(localStorage.getItem('futurorico_categoriasDespesa') || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function salvarCategoriasDespesaCustom(arr) {
+  try {
+    localStorage.setItem('futurorico_categoriasDespesa', JSON.stringify(arr));
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+      AppliqueiCloudSync.forceFlush();
+  } catch (e) {
+    console.error('[categoriasDespesa] localStorage', e);
+  }
+}
+
+function obterCategoriasDespesa() {
+  return CATEGORIAS_DESPESA_PADRAO.concat(obterCategoriasDespesaCustom());
+}
+
+function rotuloCategoriaDespesa(v) {
+  if (!v) return '';
+  const c = obterCategoriasDespesa().find((x) => x.v === v);
+  return c ? c.label : v;
+}
+
+function categoriaDespesaUsada(cat) {
+  return cat === 'despesa_fixa' || cat === 'despesa_variavel' || cat === 'cartao_credito';
+}
+
+function popularSelectCategoriaDespesa(selecionado) {
+  const sel = document.getElementById('categoriaDespesa');
+  if (!sel) return;
+  const atual = selecionado != null ? selecionado : sel.value;
+  const opts = obterCategoriasDespesa()
+    .map((c) => `<option value="${c.v}">${c.label}</option>`)
+    .join('');
+  sel.innerHTML =
+    `<option value="" disabled ${atual ? '' : 'selected'}>Selecione...</option>` +
+    opts +
+    `<option value="__nova__">➕ Adicionar nova categoria</option>`;
+  if (atual && atual !== '__nova__' && obterCategoriasDespesa().some((c) => c.v === atual))
+    sel.value = atual;
+  onChangeCategoriaDespesa();
+}
+
+function onChangeCategoriaDespesa() {
+  const sel = document.getElementById('categoriaDespesa');
+  const novaWrap = document.getElementById('grupoCategoriaDespesaNova');
+  if (!sel || !novaWrap) return;
+  novaWrap.style.display = sel.value === '__nova__' ? 'block' : 'none';
+  if (sel.value === '__nova__') document.getElementById('categoriaDespesaNova')?.focus();
+}
+
+// Resolve a categoria de despesa do formulário. Se "Outros" foi escolhido,
+// normaliza o texto livre num slug, cadastra para o perfil (se inédito) e
+// devolve o valor. Retorna null para categorias que não usam o campo.
+function resolverCategoriaDespesaSelecionada(categoriaContabil) {
+  if (!categoriaDespesaUsada(categoriaContabil)) return null;
+  const sel = document.getElementById('categoriaDespesa');
+  if (!sel) return null;
+  let valor = sel.value;
+  if (valor === '__nova__') {
+    const nome = (document.getElementById('categoriaDespesaNova')?.value || '').trim();
+    if (!nome) return null;
+    const slug =
+      nome
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'outros';
+    const todas = obterCategoriasDespesa();
+    const existente = todas.find((c) => c.v === slug);
+    if (existente) return existente.v;
+    const custom = obterCategoriasDespesaCustom();
+    custom.push({ v: slug, label: nome });
+    salvarCategoriasDespesaCustom(custom);
+    return slug;
+  }
+  return valor || null;
 }
 
 function verificarRegraCartao() {
@@ -90,13 +199,25 @@ function verificarRegraCartao() {
       divBanco.style.display = 'block';
       const lbl = document.getElementById('lblBancoTransacao');
       if (lbl) {
-        lbl.innerHTML = controleBancoObrigatorio(cat)
+        const ehEntrada = cat === 'receita' || cat === 'resgate_investimento';
+        lbl.innerHTML = ehEntrada
           ? 'Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span>'
-          : 'Banco / instituição de onde sai <span style="color:var(--cor-texto-mutado);font-weight:400;">(opcional)</span>';
+          : 'Banco / instituição de onde sai <span style="color:var(--cor-erro);">*</span>';
       }
       inicializarDatalistBancosTransacao(cat);
     } else {
       divBanco.style.display = 'none';
+    }
+  }
+
+  // Categoria da despesa (alimentação, saúde, transporte...) — só em saídas.
+  const divCatDesp = document.getElementById('grupoCategoriaDespesa');
+  if (divCatDesp) {
+    if (categoriaDespesaUsada(cat)) {
+      divCatDesp.style.display = 'block';
+      popularSelectCategoriaDespesa();
+    } else {
+      divCatDesp.style.display = 'none';
     }
   }
 
@@ -303,6 +424,7 @@ function prepararEdicao(id) {
   document.getElementById('dataVencimento').value = trans.dataVencimento || '';
   const bancoEl = document.getElementById('bancoTransacao');
   if (bancoEl) bancoEl.value = trans.banco || '';
+  if (categoriaDespesaUsada(trans.categoria)) popularSelectCategoriaDespesa(trans.categoriaDespesa);
 
   document.getElementById('btnSalvarControle').style.display = 'flex';
   document.getElementById('opcoesEdicaoRecorrente').style.display = 'none';
@@ -336,6 +458,10 @@ function cancelarEdicaoControle() {
   document.getElementById('categoriaTransacao').value = '';
   document.getElementById('dataVencimento').value = '';
   document.getElementById('obsTransacao').value = '';
+  const catDespEl = document.getElementById('categoriaDespesa');
+  if (catDespEl) catDespEl.value = '';
+  const catDespNovaEl = document.getElementById('categoriaDespesaNova');
+  if (catDespNovaEl) catDespNovaEl.value = '';
   selecionarTipoCartao('parcelado');
 
   document.getElementById('btnSalvarControle').style.display = 'flex';
@@ -361,11 +487,17 @@ function tentarSalvarTransacao() {
       'erro'
     );
 
-  if (categoria === 'receita' || categoria === 'resgate_investimento') {
+  if (controleBancoObrigatorio(categoria)) {
     const bancoEl = document.getElementById('bancoTransacao');
     const banco = (bancoEl?.value || '').trim();
     if (!banco) {
-      mostrarToast('Informe o banco/instituição que recebe.', 'erro');
+      const ehEntrada = categoria === 'receita' || categoria === 'resgate_investimento';
+      mostrarToast(
+        ehEntrada
+          ? 'Informe o banco/instituição que recebe.'
+          : 'Informe o banco/instituição de onde a despesa será debitada.',
+        'erro'
+      );
       bancoEl?.focus();
       return;
     }
@@ -406,6 +538,10 @@ function executarEdicao(modo) {
   const bancoNovo = controleCategoriaUsaBanco(categoria)
     ? (document.getElementById('bancoTransacao')?.value || '').trim()
     : null;
+  if (controleBancoObrigatorio(categoria) && !bancoNovo) {
+    return mostrarToast('Informe o banco/instituição da operação.', 'erro');
+  }
+  const catDespesaNovo = resolverCategoriaDespesaSelecionada(categoria);
 
   if (modo === 'todas') {
     transacoes = transacoes.map((t) => {
@@ -420,6 +556,7 @@ function executarEdicao(modo) {
         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
           t.cartaoId = cartaoIdNovo;
         if (bancoNovo !== null) t.banco = bancoNovo || undefined;
+        if (categoriaDespesaUsada(categoria)) t.categoriaDespesa = catDespesaNovo || undefined;
       }
       return t;
     });
@@ -432,6 +569,7 @@ function executarEdicao(modo) {
     if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
       transAtual.cartaoId = cartaoIdNovo;
     if (bancoNovo !== null) transAtual.banco = bancoNovo || undefined;
+    if (categoriaDespesaUsada(categoria)) transAtual.categoriaDespesa = catDespesaNovo || undefined;
     if (transAtual.groupId) transAtual.groupId = null;
   }
 
@@ -485,6 +623,10 @@ function executarInsercao() {
   const bancoReceita = controleCategoriaUsaBanco(categoria)
     ? (document.getElementById('bancoTransacao')?.value || '').trim()
     : null;
+  if (controleBancoObrigatorio(categoria) && !bancoReceita) {
+    return mostrarToast('Informe o banco/instituição da operação.', 'erro');
+  }
+  const catDespesa = resolverCategoriaDespesaSelecionada(categoria);
   let mesesGerar = 1;
   let valorLancamento = valorTotal;
 
@@ -535,6 +677,7 @@ function executarInsercao() {
       cartaoId: cartaoId,
       cartaoFixoMensal: cartaoFixoMensal || undefined,
       banco: bancoReceita || undefined,
+      categoriaDespesa: catDespesa || undefined,
       obs: obs,
       mes: m,
       ano: a,
@@ -570,6 +713,12 @@ function executarInsercao() {
   if (bancoEl) bancoEl.value = '';
   const grupoBanco = document.getElementById('grupoBancoReceita');
   if (grupoBanco) grupoBanco.style.display = 'none';
+  const catDespEl = document.getElementById('categoriaDespesa');
+  if (catDespEl) catDespEl.value = '';
+  const catDespNovaEl = document.getElementById('categoriaDespesaNova');
+  if (catDespNovaEl) catDespNovaEl.value = '';
+  const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
+  if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
   mostrarToast('Lançamento salvo com sucesso!', 'sucesso');
   atualizarTelaControle();
@@ -604,10 +753,15 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
 }
 
 // ============================================================
-// === Saldo carregado entre meses (transferência opt-in) =====
+// === Saldo carregado entre meses (carregamento automático) ==
 // ============================================================
-// Estrutura no localStorage: { "ano-mes": { valor, origemAno, origemMes } }
-// Apenas o mês destino guarda a flag — não propaga para meses subsequentes.
+// O resultado de um mês é carregado AUTOMATICAMENTE para o mês seguinte
+// (saldo acumulado / running balance), igual ao extrato de uma conta.
+// O localStorage `futurorico_saldoCarregado` guarda apenas AJUSTES MANUAIS:
+//   { "ano-mes": { valor, manual:true } }
+// Quando há ajuste manual num mês, ele substitui o saldo de abertura daquele
+// mês e o acúmulo recomeça a partir dali. Entradas no formato antigo (sem a
+// flag `manual`) são ignoradas — migração silenciosa do opt-in anterior.
 function chaveMes(mes, ano) {
   return `${ano}-${mes}`;
 }
@@ -622,13 +776,7 @@ function salvarMapaSaldoCarregado(m) {
   localStorage.setItem('futurorico_saldoCarregado', JSON.stringify(m));
 }
 
-function obterSaldoCarregadoParaMes(mes, ano) {
-  const mapa = obterMapaSaldoCarregado();
-  const reg = mapa[chaveMes(mes, ano)];
-  return reg && typeof reg.valor === 'number' ? reg.valor : 0;
-}
-
-// Resultado bruto do mês (sem considerar saldo carregado)
+// Resultado bruto do mês (receitas - despesas - aportes - sonhos), isolado.
 function calcularResultadoMes(mes, ano) {
   const r = calcularResumoMes(mes, ano);
   const totRec = r.receita + r.resgate;
@@ -637,38 +785,92 @@ function calcularResultadoMes(mes, ano) {
   return totRec - totDesp - r.cartao - totInv;
 }
 
-function aceitarSaldoMesAnterior(mesDestino, anoDestino) {
-  const mesAnt = mesDestino === 0 ? 11 : mesDestino - 1;
-  const anoAnt = mesDestino === 0 ? anoDestino - 1 : anoDestino;
-  const valor = calcularResultadoMes(mesAnt, anoAnt);
+// Competência (ano*12+mes) do primeiro lançamento — base do acúmulo.
+function obterPrimeiroMesComLancamento() {
+  if (typeof transacoes === 'undefined') return null;
+  let min = null;
+  transacoes.forEach((t) => {
+    if (typeof t.mes !== 'number' || typeof t.ano !== 'number') return;
+    const v = t.ano * 12 + t.mes;
+    if (min === null || v < min) min = v;
+  });
+  return min;
+}
+
+// Resultado acumulado (fechamento) até (mes,ano) inclusive: soma os resultados
+// brutos desde o 1º lançamento, reiniciando a base quando há ajuste manual.
+function resultadoAcumuladoAteMes(mes, ano) {
+  const alvo = ano * 12 + mes;
   const mapa = obterMapaSaldoCarregado();
-  mapa[chaveMes(mesDestino, anoDestino)] = { valor, origemAno: anoAnt, origemMes: mesAnt };
-  salvarMapaSaldoCarregado(mapa);
-  mostrarToast(`Saldo de ${formatarMoeda(valor)} trazido do mês anterior.`, 'sucesso');
+  const primeiro = obterPrimeiroMesComLancamento();
+  if (primeiro === null) {
+    const ov = mapa[chaveMes(mes, ano)];
+    const base = ov && ov.manual ? Number(ov.valor) || 0 : 0;
+    return base + calcularResultadoMes(mes, ano);
+  }
+  let acc = 0;
+  const inicio = Math.min(primeiro, alvo);
+  for (let v = inicio; v <= alvo; v++) {
+    const a = Math.floor(v / 12);
+    const m = v % 12;
+    const ov = mapa[`${a}-${m}`];
+    if (ov && ov.manual) acc = (Number(ov.valor) || 0) + calcularResultadoMes(m, a);
+    else acc = acc + calcularResultadoMes(m, a);
+  }
+  return acc;
+}
+
+// Saldo de abertura do mês = ajuste manual (se houver) OU fechamento do mês anterior.
+function obterSaldoCarregadoParaMes(mes, ano) {
+  const mapa = obterMapaSaldoCarregado();
+  const ov = mapa[chaveMes(mes, ano)];
+  if (ov && ov.manual) return Number(ov.valor) || 0;
+  const mesAnt = mes === 0 ? 11 : mes - 1;
+  const anoAnt = mes === 0 ? ano - 1 : ano;
+  return resultadoAcumuladoAteMes(mesAnt, anoAnt);
+}
+
+// Edição manual do saldo trazido (ajuste pontual no DRE). Branco = volta ao automático.
+function editarSaldoMesAnterior(mes, ano) {
+  const atual = obterSaldoCarregadoParaMes(mes, ano);
+  const entrada = prompt(
+    'Ajustar o saldo trazido do mês anterior (em R$). Deixe em branco para voltar ao cálculo automático:',
+    (Number(atual) || 0).toFixed(2).replace('.', ',')
+  );
+  if (entrada === null) return;
+  const mapa = obterMapaSaldoCarregado();
+  const txt = entrada.trim();
+  if (txt === '') {
+    delete mapa[chaveMes(mes, ano)];
+    salvarMapaSaldoCarregado(mapa);
+    mostrarToast('Saldo do mês anterior voltou ao cálculo automático.', 'aviso');
+  } else {
+    const v = parseBRL(txt);
+    if (!Number.isFinite(v)) return mostrarToast('Valor inválido.', 'erro');
+    mapa[chaveMes(mes, ano)] = { valor: v, manual: true };
+    salvarMapaSaldoCarregado(mapa);
+    mostrarToast('Saldo do mês anterior ajustado manualmente.', 'sucesso');
+  }
+  try {
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+      AppliqueiCloudSync.forceFlush();
+  } catch (_) {}
   atualizarTelaControle();
 }
 
-function recusarSaldoMesAnterior(mesDestino, anoDestino) {
-  // Marca explicitamente como "decidido = não trazer" para não reaparecer
+function resetarSaldoMesAnterior(mes, ano) {
   const mapa = obterMapaSaldoCarregado();
-  mapa[chaveMes(mesDestino, anoDestino)] = {
-    valor: 0,
-    origemAno: null,
-    origemMes: null,
-    recusado: true,
-  };
+  delete mapa[chaveMes(mes, ano)];
   salvarMapaSaldoCarregado(mapa);
+  try {
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+      AppliqueiCloudSync.forceFlush();
+  } catch (_) {}
+  mostrarToast('Saldo do mês anterior voltou ao cálculo automático.', 'aviso');
   atualizarTelaControle();
 }
 
-function desfazerSaldoMesAnterior(mesDestino, anoDestino) {
-  const mapa = obterMapaSaldoCarregado();
-  delete mapa[chaveMes(mesDestino, anoDestino)];
-  salvarMapaSaldoCarregado(mapa);
-  mostrarToast('Transferência de saldo desfeita.', 'aviso');
-  atualizarTelaControle();
-}
-
+// Banner informativo: o carregamento é automático; oferece apenas o ajuste manual.
 function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
   const banner = document.getElementById('bannerSaldoMesAnterior');
   const txt = document.getElementById('txtBannerSaldoMesAnt');
@@ -688,40 +890,26 @@ function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
     'nov',
     'dez',
   ];
-
-  const mapa = obterMapaSaldoCarregado();
-  const reg = mapa[chaveMes(mesAtual, anoAtual)];
-
-  // Já há decisão registrada para o mês atual
-  if (reg) {
-    if (reg.recusado || reg.valor === 0) {
-      banner.style.display = 'none';
-      return;
-    }
-    // Saldo ativo: mostra resumo + botão desfazer
-    const sinal = reg.valor > 0 ? 'crédito' : 'débito';
-    const cor = reg.valor > 0 ? '#10b981' : '#ef4444';
-    txt.innerHTML = `<i class="ph-bold ph-check" style="color:#7c3aed;margin-right:4px;"></i> Saldo de <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(reg.valor)}</strong> (${sinal}) trazido de <strong>${nomeMeses[reg.origemMes]}/${reg.origemAno}</strong>.`;
-    acoes.innerHTML = `<button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;border-color:var(--cor-erro);color:var(--cor-erro);" onclick="desfazerSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph ph-arrow-counter-clockwise"></i> Desfazer</button>`;
-    banner.style.display = 'flex';
-    return;
-  }
-
-  // Sem decisão ainda — verifica se há saldo no mês anterior para oferecer
   const mesAnt = mesAtual === 0 ? 11 : mesAtual - 1;
   const anoAnt = mesAtual === 0 ? anoAtual - 1 : anoAtual;
-  const resultadoAnt = calcularResultadoMes(mesAnt, anoAnt);
-  if (Math.abs(resultadoAnt) < 0.01) {
+  const saldo = obterSaldoCarregadoParaMes(mesAtual, anoAtual);
+  const mapa = obterMapaSaldoCarregado();
+  const reg = mapa[chaveMes(mesAtual, anoAtual)];
+  const manual = !!(reg && reg.manual);
+
+  if (Math.abs(saldo) < 0.005 && !manual) {
     banner.style.display = 'none';
     return;
   }
-  const sinal = resultadoAnt > 0 ? 'positivo' : 'negativo';
-  const cor = resultadoAnt > 0 ? '#10b981' : '#ef4444';
-  txt.innerHTML = `Em <strong>${nomeMeses[mesAnt]}/${anoAnt}</strong> seu fechamento foi <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(resultadoAnt)}</strong> (${sinal}). Quer trazer esse saldo para <strong>${nomeMeses[mesAtual]}/${anoAtual}</strong>? <em style="color:var(--cor-texto-mutado);font-size:11.5px;">(só este mês — não propaga adiante)</em>`;
-  acoes.innerHTML = `
-        <button class="btn-acao" style="font-size:11.5px;padding:6px 12px;background:#7c3aed;" onclick="aceitarSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph-bold ph-check"></i> Sim, trazer</button>
-        <button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;" onclick="recusarSaldoMesAnterior(${mesAtual},${anoAtual})">Agora não</button>
-    `;
+  const cor = saldo >= 0 ? '#10b981' : '#ef4444';
+  txt.innerHTML = manual
+    ? `<i class="ph-bold ph-pencil-simple" style="color:#7c3aed;margin-right:4px;"></i> Saldo do mês anterior <strong>ajustado manualmente</strong> para <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>.`
+    : `<i class="ph-fill ph-arrow-fat-line-right" style="color:#7c3aed;margin-right:4px;"></i> O fechamento de <strong>${nomeMeses[mesAnt]}/${anoAnt}</strong> (<strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>) é carregado automaticamente para <strong>${nomeMeses[mesAtual]}/${anoAtual}</strong>.`;
+  acoes.innerHTML =
+    `<button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;" onclick="editarSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph ph-pencil-simple"></i> Ajustar</button>` +
+    (manual
+      ? `<button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;border-color:var(--cor-erro);color:var(--cor-erro);" onclick="resetarSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph ph-arrow-counter-clockwise"></i> Voltar ao automático</button>`
+      : '');
   banner.style.display = 'flex';
 }
 
@@ -1190,11 +1378,14 @@ function atualizarTelaControle() {
         const c = obterCartao(t.cartaoId);
         if (c) nomeCartaoExtrato = ` • ${c.nome}`;
       }
+      const catDespExtrato = t.categoriaDespesa
+        ? ` <span style="font-size:10.5px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:6px;padding:1px 6px;color:var(--cor-texto-secundario);">${rotuloCategoriaDespesa(t.categoriaDespesa)}</span>`
+        : '';
       let itemHtml = `
             <div class="extrato-item">
                 <div>
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
-                    <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${vencimentoHtml}</span>
+                    <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${catDespExtrato}${vencimentoHtml}</span>
                 </div>
                 <div style="text-align: right;">
                     <span class="valor">${formatarMoeda(t.valor)}</span>
@@ -1403,9 +1594,10 @@ function atualizarTelaControle() {
   }
   const indiceMesAtual = -offsetMesesDRE;
 
-  // DRE mensal: cada coluna mostra o resultado do mês isoladamente.
-  // O carregamento de saldo entre meses é opt-in (banner no topo) e
-  // só afeta o mês destino — nunca é cumulado automaticamente.
+  // DRE mensal: o resultado de cada mês é carregado AUTOMATICAMENTE para o mês
+  // seguinte (saldo acumulado / running balance). A linha "Saldo do mês anterior"
+  // mostra o fechamento herdado; "Resultado do mês" já é o acumulado. Ajustes
+  // manuais pontuais são possíveis (botão "Ajustar" no banner / lápis no DRE).
   let labelsMeses = [];
   let dreDados = [];
   for (let i = 0; i < qtdMesesDRE; i++) {
@@ -1422,6 +1614,8 @@ function atualizarTelaControle() {
     const resultadoMes =
       r.receita + r.resgate - despesas - (r.invFixo + r.invVar) - r.sonho + saldoCarregadoMes;
     dreDados.push({
+      mes: m,
+      ano: a,
       receita: r.receita,
       resgate: r.resgate,
       invFixo: r.invFixo,
@@ -1478,19 +1672,25 @@ function atualizarTelaControle() {
   });
   htmlLinhas += `</tr>`;
 
-  // Linha opcional: saldo trazido do mês anterior (apenas quando o usuário aceitou)
+  // Linha fixa: saldo do mês anterior carregado automaticamente (running balance).
+  // Cor própria (roxo) p/ destacar que é herdado, não gerado no mês. O lápis no
+  // mês em foco permite um ajuste manual pontual.
   const algumCarregado = dreDados.some((d) => Math.abs(d.saldoCarregado || 0) > 0.005);
   if (algumCarregado) {
-    htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);" title="Saldo trazido do mês anterior por opção do usuário">Saldo trazido do mês anterior</td>`;
+    htmlLinhas += `<tr style="background:rgba(124,58,237,0.05);"><td class="coluna-fixa" style="font-weight: 600; background: rgba(124,58,237,0.07); color:#7c3aed;" title="Resultado do mês anterior, carregado automaticamente">↳ Saldo do mês anterior</td>`;
     dreDados.forEach((d, i) => {
       const v = d.saldoCarregado || 0;
       const cor = v >= 0 ? '#7c3aed' : 'var(--cor-erro)';
-      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${Math.abs(v) > 0.005 ? formatarMoeda(v) : '—'}</td>`;
+      const lapis =
+        i === indiceMesAtual
+          ? ` <i class="ph ph-pencil-simple" title="Ajustar saldo trazido" style="cursor:pointer;color:#7c3aed;font-size:12px;" onclick="editarSaldoMesAnterior(${d.mes},${d.ano})"></i>`
+          : '';
+      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${Math.abs(v) > 0.005 ? formatarMoeda(v) : '—'}${lapis}</td>`;
     });
     htmlLinhas += `</tr>`;
   }
 
-  htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);" title="Resultado do mês — sem cumular automaticamente entre meses.">Resultado do mês</td>`;
+  htmlLinhas += `<tr class="linha-liquida"><td class="coluna-fixa" style="font-weight: 700; background: var(--cor-bg-primaria);" title="Resultado acumulado — inclui o saldo carregado do mês anterior.">Resultado do mês</td>`;
   dreDados.forEach((d, i) => {
     // Classe de meta (4.1): a cor é aplicada por CLASSE para vencer a regra
     // `.linha-liquida td { color: ... !important }` da folha de estilos, que

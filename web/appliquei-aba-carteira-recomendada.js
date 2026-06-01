@@ -298,7 +298,8 @@ function cartRenderizarTela() {
   badge.className = `cart-perfil-badge cart-perfil-${p}`;
   badge.innerHTML = `<span class="emoji">${msg.emoji}</span> Perfil ${p}`;
   document.getElementById('cartPerfilMsg').innerHTML = msg.texto;
-  document.getElementById('cartCapitalLabel').textContent = formatarMoeda(cartEstado.capital);
+  document.getElementById('cartCapitalLabel').textContent =
+    formatarMoeda(cartEstado.capital) + '/mês';
   document.getElementById('cartPerfilHeader').style.display = 'flex';
   document.getElementById('cartQuestionnaire').style.display = 'none';
 
@@ -853,9 +854,20 @@ function cartRenderizarSimKpis(blended, cdi) {
 
   const base = blended[0].p;
   const end = blended[blended.length - 1].p;
+  // Retorno do índice no período (rentabilidade da carteira, não do dinheiro).
   const retorno = +((end / base - 1) * 100).toFixed(1);
-  const capital = cartEstado.capital;
-  const vlrFinal = capital * (1 + retorno / 100);
+  const aporteMensal = cartEstado.capital;
+
+  // Simulação de APORTE MENSAL recorrente: a cada ponto da série entra um novo
+  // aporte, que cresce pela rentabilidade da carteira do mês do aporte até o
+  // fim. Valor final = Σ aporte × (P_fim / P_i). Antes o valor era tratado como
+  // um único aporte (lump-sum), subestimando o total investido e o montante.
+  const totalAportado = aporteMensal * blended.length;
+  let vlrFinal = 0;
+  blended.forEach((pt) => {
+    if (pt.p > 0) vlrFinal += aporteMensal * (end / pt.p);
+  });
+  const retornoSobreAporte = totalAportado > 0 ? (vlrFinal / totalAportado - 1) * 100 : 0;
 
   let maiorDrawdown = 0,
     peak = blended[0].p;
@@ -878,12 +890,20 @@ function cartRenderizarSimKpis(blended, cdi) {
 
   el.innerHTML = `
         <div class="cart-sim-kpi">
-            <div class="lbl">Retorno no período</div>
+            <div class="lbl">Rentabilidade no período</div>
             <div class="val ${retorno >= 0 ? 'pos' : 'neg'}">${retorno >= 0 ? '+' : ''}${retorno}%</div>
         </div>
         <div class="cart-sim-kpi">
-            <div class="lbl">Capital final estimado</div>
+            <div class="lbl">Total aportado (${blended.length}× ${formatarMoeda(aporteMensal)})</div>
+            <div class="val">${formatarMoeda(totalAportado)}</div>
+        </div>
+        <div class="cart-sim-kpi">
+            <div class="lbl">Patrimônio final estimado</div>
             <div class="val">${formatarMoeda(vlrFinal)}</div>
+        </div>
+        <div class="cart-sim-kpi">
+            <div class="lbl">Ganho sobre o aportado</div>
+            <div class="val ${retornoSobreAporte >= 0 ? 'pos' : 'neg'}">${retornoSobreAporte >= 0 ? '+' : ''}${retornoSobreAporte.toFixed(1)}%</div>
         </div>
         <div class="cart-sim-kpi">
             <div class="lbl">Retorno médio mensal</div>
