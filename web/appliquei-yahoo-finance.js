@@ -150,6 +150,90 @@ async function buscarCotacoesReais() {
             badgeRealTime.innerHTML = '<i class="ph-fill ph-warning"></i> Preços estimados';
         }
     }
+
+    // Complemento confiável (BRAPI via /api/market) para os ativos do usuário:
+    // corrige tickers que o Yahoo não traz (ex.: o ETF de cripto HASH11) e
+    // ajusta o selo "Preços estimados" de forma honesta (por ativo possuído).
+    atualizarCotacoesPossuidas();
+}
+
+// ── Cotações confiáveis dos ativos do usuário (fallback BRAPI/servidor) ──
+// O caminho Yahoo+proxies às vezes não retorna certos tickers, deixando o
+// "preço semente" fixo (ex.: HASH11 mostrava sempre R$ 45,30). Para os ativos
+// QUE O USUÁRIO POSSUI, buscamos a cotação no endpoint próprio do app
+// (/api/market — mesma fonte BRAPI já usada na aba "Meu patrimônio").
+
+// Tickers B3 com cotação (ação/FII/ETF/BDR) que o usuário possui e existem na base.
+function tickersRVPossuidos() {
+    if (typeof historicoCompras === 'undefined' || !Array.isArray(historicoCompras)) return [];
+    const possuidos = new Set();
+    historicoCompras.forEach(op => {
+        const t = op && op.ticker ? String(op.ticker).toUpperCase() : '';
+        if (/^[A-Z]{4}\d{1,2}$/.test(t) && mockAtivosMercado.some(a => a.ticker === t)) {
+            possuidos.add(t);
+        }
+    });
+    return Array.from(possuidos);
+}
+
+// Mostra/esconde o selo "Preços estimados" conforme os ativos do usuário que
+// ficaram SEM cotação fresca (nem Yahoo, nem servidor).
+function atualizarBadgeEstimados(semPreco) {
+    const badge = document.getElementById('badgePrecosEstimados');
+    if (!badge) return;
+    badge.style.display = (semPreco && semPreco.length) ? 'inline-flex' : 'none';
+}
+
+var _ultimoComplementoCotacoes = 0;
+var _complementoCotacoesEmAndamento = false;
+async function atualizarCotacoesPossuidas(forcar) {
+    const possuidos = tickersRVPossuidos();
+    if (!possuidos.length) return;
+    // Throttle: evita repetir a chamada a cada troca de aba (servidor cacheia diário).
+    const agora = Date.now();
+    if (!forcar && (_complementoCotacoesEmAndamento || agora - _ultimoComplementoCotacoes < 60000)) {
+        return;
+    }
+    const fb = window.AppliqueiFirebase;
+    const u = fb && fb.auth && fb.auth.currentUser;
+    if (!u) return; // endpoint exige login; sem sessão, mantém Yahoo/semente.
+
+    _complementoCotacoesEmAndamento = true;
+    try {
+        const token = await u.getIdToken();
+        const url = '/api/market?op=quote&tickers=' + encodeURIComponent(possuidos.join(','));
+        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data && data.quotes) {
+            const semPreco = [];
+            let atualizou = false;
+            possuidos.forEach(t => {
+                const q = data.quotes[t];
+                if (q && typeof q.price === 'number') {
+                    const ativo = mockAtivosMercado.find(a => a.ticker === t);
+                    if (ativo && ativo.preco_atual !== q.price) {
+                        ativo.preco_atual = q.price;
+                        atualizou = true;
+                    }
+                } else {
+                    semPreco.push(t);
+                }
+            });
+            _ultimoComplementoCotacoes = Date.now();
+            if (atualizou) {
+                if (typeof inicializarDatalistAtivos === 'function') inicializarDatalistAtivos();
+                const secPat = document.getElementById('patrimonio');
+                if (secPat && secPat.classList.contains('ativa') && typeof atualizarCarteiraAtivos === 'function') {
+                    atualizarCarteiraAtivos();
+                }
+            }
+            atualizarBadgeEstimados(semPreco);
+        }
+    } catch (err) {
+        console.warn('[cotações] complemento via servidor falhou:', err && err.message);
+    } finally {
+        _complementoCotacoesEmAndamento = false;
+    }
 }
 
 

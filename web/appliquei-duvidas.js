@@ -70,8 +70,8 @@ var FAQ_DADOS = [
   {
     cat: 'patrimonio',
     catLbl: 'Patrimônio',
-    p: 'Como faço backup dos meus dados?',
-    r: 'Use o botão <strong>Backup</strong> na Visão geral para baixar um arquivo JSON com todas as suas operações, sonhos, metas e configurações. Esse mesmo arquivo pode ser reimportado depois.',
+    p: 'Meus dados ficam salvos? Como funciona o backup?',
+    r: 'Quando você está conectado com e-mail verificado, seus dados são salvos automaticamente na nuvem e ficam disponíveis em qualquer dispositivo — sem precisar exportar nada manualmente. Sem login, ficam guardados apenas neste navegador.',
   },
 
   // Controle financeiro
@@ -320,6 +320,8 @@ function enviarSugestao() {
     return mostrarToast('Diga sobre o que é a sua sugestão.', 'erro');
   if (texto.length < 10)
     return mostrarToast('Descreva sua sugestão com pelo menos 10 caracteres.', 'erro');
+  if (texto.length > 1000)
+    return mostrarToast('Sua sugestão é muito longa (máximo de 1000 caracteres).', 'erro');
 
   const ctx = sugFirebaseUser();
   if (!ctx) {
@@ -328,24 +330,42 @@ function enviarSugestao() {
       'erro'
     );
   }
-
   const btn = document.querySelector('#dsConteudoSugestao .btn-acao');
   if (btn) {
     btn.disabled = true;
   }
 
-  ctx.fb.db
-    .collection('feedback')
-    .add({
-      uid: ctx.user.uid,
-      email: ctx.user.email || '',
-      aba: aba,
-      outroTema: aba === 'outro' ? outroTema : '',
-      tipo: tipo,
-      texto: texto,
-      status: 'aberto',
-      reply: null,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+  // Atualiza usuário + token ANTES de gravar. Depois de confirmar o e-mail, o
+  // token em cache ainda pode trazer email_verified=false (só muda ao renovar)
+  // e a regra do Firestore rejeita a escrita com permission-denied — mesmo com
+  // a conta já verificada. reload() sincroniza o estado; getIdToken(true) força
+  // um token novo com o claim atualizado.
+  ctx.user
+    .reload()
+    .then(function () {
+      return ctx.user.getIdToken(true);
+    })
+    .then(function () {
+      if (ctx.user.emailVerified === false) {
+        try {
+          if (typeof ctx.user.sendEmailVerification === 'function')
+            ctx.user.sendEmailVerification();
+        } catch (e) {}
+        const erro = new Error('email-nao-verificado');
+        erro.code = 'app/email-not-verified';
+        throw erro;
+      }
+      return ctx.fb.db.collection('feedback').add({
+        uid: ctx.user.uid,
+        email: ctx.user.email || '',
+        aba: aba,
+        outroTema: aba === 'outro' ? outroTema : '',
+        tipo: tipo,
+        texto: texto,
+        status: 'aberto',
+        reply: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      });
     })
     .then(function () {
       // Limpar form
@@ -359,11 +379,24 @@ function enviarSugestao() {
       renderizarHistoricoSugestoes();
     })
     .catch(function (err) {
-      console.warn('[duvidas] enviarSugestao', err);
-      mostrarToast(
-        'Não foi possível enviar agora. Verifique sua conexão e tente novamente.',
-        'erro'
-      );
+      console.warn('[duvidas] enviarSugestao', err && err.code, err);
+      const code = err && err.code ? String(err.code) : '';
+      if (code === 'app/email-not-verified') {
+        mostrarToast(
+          'Confirme seu e-mail para enviar sugestões. Reenviamos o link — confira sua caixa de entrada (e o spam).',
+          'erro'
+        );
+      } else if (code.indexOf('permission-denied') !== -1) {
+        mostrarToast(
+          'Não foi possível enviar. Se você acabou de verificar o e-mail, saia e entre de novo na conta.',
+          'erro'
+        );
+      } else {
+        mostrarToast(
+          'Não foi possível enviar agora. Verifique sua conexão e tente novamente.',
+          'erro'
+        );
+      }
     })
     .finally(function () {
       if (btn) btn.disabled = false;

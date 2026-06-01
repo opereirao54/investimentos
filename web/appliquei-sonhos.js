@@ -557,9 +557,9 @@ function renderizarSonhos() {
                     <div class="sonho-collapsed-meta">
                         <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
                         <span>${tempoLbl}</span>
-                        <span style="font-family:'DM Mono',monospace;font-weight:600;" title="Meta total do sonho">🎯 ${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
-                        ${conquistado ? '' : `<span style="font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-primaria);" title="Aporte mensal sugerido para bater a meta">💰 ${mensalFmtCol}/mês</span>`}
-                        ${conquistado ? '' : `<span style="font-family:'DM Mono',monospace;font-weight:500;color:var(--cor-texto-mutado);" title="Quanto falta para atingir a meta">Falta ${faltaFmtCol}</span>`}
+                        <span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:600;" title="Meta total do sonho">🎯 ${s.valorTotal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</span>
+                        ${conquistado ? '' : `<span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-primaria);" title="Aporte mensal sugerido para bater a meta">💰 ${mensalFmtCol}/mês</span>`}
+                        ${conquistado ? '' : `<span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:500;color:var(--cor-texto-mutado);" title="Quanto falta para atingir a meta">Falta ${faltaFmtCol}</span>`}
                     </div>
                 </div>
                 <div class="sonho-collapsed-progress">
@@ -615,7 +615,7 @@ function renderizarSonhos() {
                 </div>
                 <div class="sonho-caixinha-tip">
                     <i class="ph-fill ph-info"></i>
-                    <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong>${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
+                    <span><strong>Dica:</strong> Abra uma caixinha no seu banco chamada "${s.nome}" e deposite <strong class="valor-mascarado">${mensal.toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}</strong> todo mês. A rentabilidade estimada é de 0,8% a.m. (a maioria dos bancos rende +1% a.m.).</span>
                 </div>
                 ${renderHistoricoAportesSonho(s)}
                 ${alerta ? `<div class="sonho-alerta-bar alerta-${alerta.tipo}"><i class="ph-fill ph-${alerta.tipo==='ok'?'check-circle':alerta.tipo==='warn'?'warning':'warning-circle'}"></i> ${alerta.msg}</div>` : ''}
@@ -760,8 +760,8 @@ function renderResumoSonhos() {
                             <div class="tempo-card-bar-fill" style="width:${pctIndiv}%;background:${corBar};"></div>
                         </div>
                         <div class="tempo-card-meta">
-                            <span><strong>${formatarMoeda(mensal)}</strong>/mês</span>
-                            <span>Falta <strong>${formatarMoeda(falta)}</strong></span>
+                            <span><strong class="valor-mascarado">${formatarMoeda(mensal)}</strong>/mês</span>
+                            <span>Falta <strong class="valor-mascarado">${formatarMoeda(falta)}</strong></span>
                             <span>${pctIndiv.toFixed(0)}%</span>
                         </div>
                     </div>`;

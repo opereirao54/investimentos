@@ -47,6 +47,7 @@
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-app-check-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics-compat.js"></script>
     <!--
       Onda 3 — Firebase init agora vive 100% no ES module
@@ -133,6 +134,42 @@
             --cor-bg-amber: #2d1a00; --cor-borda-amber: #854f0b; --cor-txt-amber: #fcd34d;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.15), 0 6px 20px rgba(0,0,0,0.2);
         }
+
+        /* ===== Correções de tema escuro: telas com fundos claros fixos =====
+           Estas abas usavam #fff/#fafbfc fixos e ficavam "estouradas" no modo escuro.
+           A exportação do relatório roda num iframe isolado, então não é afetada. */
+        /* Carteira recomendada */
+        body.dark #carteira .cart-q-card,
+        body.dark #carteira .cart-q-opt,
+        body.dark #carteira .cart-q-opt:hover,
+        body.dark #carteira .cart-q-capital-row,
+        body.dark #carteira .cart-perfil-header,
+        body.dark #carteira .cart-capital-chip,
+        body.dark #carteira .cart-edu-panel,
+        body.dark #carteira .cart-donut-card,
+        body.dark #carteira .cart-edu-item,
+        body.dark #carteira .cart-edu-item-head,
+        body.dark #carteira .cart-classe-col-header,
+        body.dark #carteira .cart-ativo-item,
+        body.dark #carteira .cart-classe-col-footer,
+        body.dark #carteira .cart-sim-card,
+        body.dark #carteira .cart-sim-kpi { background: var(--cor-branco); }
+        body.dark #carteira .cart-edu-item-body { background: linear-gradient(180deg, var(--cor-superficie), var(--cor-branco)); }
+        body.dark #carteira .cart-q-opt.selected,
+        body.dark #carteira .cart-ativo-item:not(.unchecked) { background: var(--cor-bg-primaria); }
+        body.dark #carteira .cart-sim-range-btn.active { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+
+        /* Relatório mensal */
+        body.dark #relatorio_mensal .rm-hero,
+        body.dark #relatorio_mensal .rm-criterio,
+        body.dark #relatorio_mensal .rm-kpi,
+        body.dark #relatorio_mensal .rm-chart-card,
+        body.dark #relatorio_mensal .rm-sec-card { background: var(--cor-branco); }
+        body.dark #relatorio_mensal .rm-hero-stat { background: var(--cor-superficie); }
+        body.dark #relatorio_mensal .rm-chart-pill.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); border-color: var(--cor-borda-erro); }
+
+        /* Meus sonhos */
+        body.dark #meus_sonhos .sonhos-overview { background: linear-gradient(135deg, var(--cor-branco) 0%, rgba(124,58,237,0.06) 50%, rgba(16,185,129,0.07) 100%); }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Figtree', sans-serif; }
         body { display: flex; height: 100vh; background-color: var(--cor-fundo); color: var(--cor-texto-principal); overflow: hidden; transition: background .3s, color .3s; }
@@ -308,16 +345,61 @@
         .btn-eye:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-eye i { font-size: 16px; }
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
+        .sidebar-quick-actions { display: flex; gap: 6px; padding: 4px 4px 10px; }
+        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: none; width: 28px; height: 28px; border-radius: 8px; }
+        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i { font-size: 14px; }
+        .sidebar.collapsed .sidebar-quick-actions { display: none; }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
+        /* Regra universal: qualquer .valor-mascarado é tratado como dado sensível e borrado em todo o app */
+        body.valores-ocultos .valor-mascarado { filter: blur(8px) !important; user-select: none; transition: filter 0.25s ease; }
         body.valores-ocultos #patrimonio .valor-mascarado,
         body.valores-ocultos #patrimonio .valor,
-        body.valores-ocultos #patrimonio .tabela-dashboard tbody td:not(.coluna-fixa),
         body.valores-ocultos #patrimonio canvas {
             filter: blur(9px) !important;
             user-select: none;
             transition: filter 0.25s ease;
         }
+
+        /* Controle financeiro: oculta valores em R$ (receita, despesas, cartão, saldo livre, extrato, DRE).
+           Mantém visíveis percentuais (ex.: termômetro) e nomes de categoria. */
+        body.valores-ocultos #controle .kpi-hero-valor,
+        body.valores-ocultos #controle .kpi-mini-valor,
+        body.valores-ocultos #controle #lblGasto60,
+        body.valores-ocultos #controle #lblReceita60,
+        body.valores-ocultos #controle #totalColReceitas,
+        body.valores-ocultos #controle #totalColDespesas,
+        body.valores-ocultos #controle #totalColCartao,
+        body.valores-ocultos #controle #totalColInv,
+        body.valores-ocultos #controle .extrato-item .valor,
+        body.valores-ocultos #controle #corpoTabelaDRE td:not(.coluna-fixa),
+        body.valores-ocultos #controle canvas { filter: blur(6px); user-select: none; }
+
+        /* Simulador: oculta montantes em R$ (resultado, aportes, INSS, meta). Mantém visíveis rentabilidade (%) e prazos. */
+        body.valores-ocultos #simulador #heroDiff,
+        body.valores-ocultos #simulador #heroRendaMensal,
+        body.valores-ocultos #simulador #outValorFinal,
+        body.valores-ocultos #simulador #outValorReal,
+        body.valores-ocultos #simulador #outTotalInvestido,
+        body.valores-ocultos #simulador #outLucro,
+        body.valores-ocultos #simulador #outRendaPassiva,
+        body.valores-ocultos #simulador #inssOutMontante,
+        body.valores-ocultos #simulador #inssOutInvestido,
+        body.valores-ocultos #simulador #inssOutJuros,
+        body.valores-ocultos #simulador #metaAporteMensal,
+        body.valores-ocultos #simulador #metaAlvo,
+        body.valores-ocultos #simulador #metaOutAportado,
+        body.valores-ocultos #simulador #metaOutJuros,
+        body.valores-ocultos #simulador #metaOutFinal,
+        body.valores-ocultos #simulador #metaLegAportado,
+        body.valores-ocultos #simulador #metaLegJuros,
+        body.valores-ocultos #simulador #tabelaSimuladorCorpo td:nth-child(n+2),
+        body.valores-ocultos #simulador canvas { filter: blur(6px); user-select: none; }
+
+        /* Meus sonhos: oculta valores em R$ (meta, guardado, falta, aporte). Mantém visíveis progresso (%), nomes e prazos. */
+        body.valores-ocultos #meus_sonhos .sonhos-kpi-val,
+        body.valores-ocultos #meus_sonhos .sonho-stat-mini-val,
+        body.valores-ocultos #meus_sonhos canvas { filter: blur(6px); user-select: none; }
 
         .icon-tooltip-premium {
             position: relative;
@@ -2497,13 +2579,11 @@
 
         body.valores-ocultos #carteira .cart-donut-center .value,
         body.valores-ocultos #carteira .cart-capital-chip,
-        body.valores-ocultos #carteira .cart-classe-col-pct,
         body.valores-ocultos #carteira .cart-classe-col-vlr,
-        body.valores-ocultos #carteira .cart-ativo-pct,
         body.valores-ocultos #carteira .cart-ativo-vlr,
         body.valores-ocultos #carteira .cart-classe-col-footer .val,
         body.valores-ocultos #carteira .cart-sim-kpi .val,
-        body.valores-ocultos #carteira canvas { filter: blur(6px); }
+        body.valores-ocultos #carteira canvas { filter: blur(6px); user-select: none; }
 
         /* Admin refactored */
         .cart-admin-card {
@@ -4815,7 +4895,7 @@
         }
     </style>
 </head>
-<body>
+<body class="controle-ativo">
 
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
@@ -5118,8 +5198,8 @@
             <div class="nav-group">
                 <span class="nav-group-label">Portfólio</span>
                 <button class="menu-btn" onclick="mudarAba(event,'meu_patrimonio')" data-tooltip="Meu patrimônio"><i class="ph ph-bank"></i><span class="menu-btn-label">Meu patrimônio</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'controle')" data-tooltip="Controle financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
-                <button class="menu-btn ativo" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
+                <button class="menu-btn ativo" onclick="mudarAba(event,'controle')" data-tooltip="Controle financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'relatorio_mensal')" data-tooltip="Relatório mensal"><i class="ph ph-file-text"></i><span class="menu-btn-label">Relatório mensal</span></button>
             </div>
@@ -5141,6 +5221,10 @@
         </div>
 
         <div class="sidebar-footer">
+            <div class="sidebar-quick-actions">
+                <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores" data-tooltip="Ocultar valores"><i class="ph ph-eye"></i></button>
+                <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema" data-tooltip="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
+            </div>
             <div class="sidebar-auth-mini" id="sidebarAuthMini">
                 <span class="sa-email" id="sidebarAuthEmail" title="">Conta</span>
                 <button type="button" class="sa-btn" id="sidebarMyAccountBtn" data-tooltip="Minha assinatura" onclick="if(window.AppliqueiBilling) AppliqueiBilling.openMyAccount();" style="margin-bottom:6px;"><i class="ph ph-receipt"></i> <span class="sa-btn-label">Minha assinatura</span></button>
@@ -5155,25 +5239,22 @@
 
     <main class="main-content">
         
-        <section id="patrimonio" class="section ativa">
+        <section id="patrimonio" class="section">
             <div class="page-header">
                 <div class="page-header-left">
-                    <h1>Visão geral do patrimônio</h1>
+                    <h1>Visão geral dos investimentos</h1>
                     <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
                 </div>
                 <div class="page-actions">
                     <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
-                    <button class="btn-secundario" onclick="exportarDados()" title="Backup JSON dos seus dados (ficam só no navegador)"><i class="ph ph-download-simple"></i> Backup</button>
                     <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
-                    <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores"><i class="ph ph-eye"></i></button>
-                    <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
                 </div>
             </div>
 
             <div class="hero-evolucao">
                 <div class="hero-header">
                     <div>
-                        <h3><i class="ph ph-chart-line-up" style="color: var(--cor-primaria);"></i> Evolução do Patrimônio</h3>
+                        <h3><i class="ph ph-chart-line-up" style="color: var(--cor-primaria);"></i> Evolução dos investimentos</h3>
                         <div class="hero-sub">Acompanhe a evolução mensal do seu capital, ganhos e dividendos</div>
                     </div>
                     <div class="hero-toolbar">
@@ -5203,18 +5284,18 @@
 
                 <div class="hero-kpis">
                     <div class="hero-kpi">
-                        <div class="kpi-label">Patrimônio atual</div>
-                        <div class="kpi-value-big" id="resumoPatrimonio">R$ 0,00</div>
-                        <div class="kpi-trend" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade" class="valor-mascarado">0,00%</span></div>
+                        <div class="kpi-label">Investimentos hoje</div>
+                        <div class="kpi-value-big valor-mascarado" id="resumoPatrimonio">R$ 0,00</div>
+                        <div class="kpi-trend" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade">0,00%</span></div>
                     </div>
                     <div class="hero-kpi">
                         <div class="kpi-label">Capital aplicado</div>
-                        <div class="kpi-value" id="resumoInvestido">R$ 0,00</div>
+                        <div class="kpi-value valor-mascarado" id="resumoInvestido">R$ 0,00</div>
                         <div class="kpi-detail" id="kpiInvestidoDesde">desde sua 1ª compra</div>
                     </div>
                     <div class="hero-kpi">
                         <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
-                        <div class="kpi-value" id="resumoRendimento">R$ 0,00</div>
+                        <div class="kpi-value valor-mascarado" id="resumoRendimento">R$ 0,00</div>
                         <div class="kpi-detail">
                             <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos <span id="resumoDividendosPeriodo" style="font-size:10px;opacity:0.7;font-weight:500;">(3M)</span>: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
                         </div>
@@ -5447,7 +5528,7 @@
 
         </section>
 
-        <section id="controle" class="section">
+        <section id="controle" class="section ativa">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Controle financeiro</h1>

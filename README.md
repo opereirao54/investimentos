@@ -4,17 +4,17 @@ Gestão financeira pessoal — frontend SPA + API serverless + Firestore.
 
 ## Stack
 
-| Camada | Tecnologia |
-| --- | --- |
-| Frontend | HTML/CSS/JS vanilla, Chart.js, módulos ES + classic scripts (bundle Vite) |
-| Build | Vite 5 em modo MPA (multi-page app) |
-| API | Node.js serverless (Vercel Functions) — 12 endpoints |
-| Validação API | Zod schemas + wrapper unificado em `api/_lib/handler.js` |
-| Banco | Firestore (regras enforced em `firestore.rules`) |
-| Auth | Firebase Auth (e-mail/senha + Google) |
-| Pagamentos | Asaas (assinaturas, cartão, webhooks idempotentes) |
-| Observabilidade | Sentry (browser e Node) — lazy-loaded por DSN |
-| CI | GitHub Actions (lint + 58 unit tests + 108 flow tests + Vite build) |
+| Camada          | Tecnologia                                                                |
+| --------------- | ------------------------------------------------------------------------- |
+| Frontend        | HTML/CSS/JS vanilla, Chart.js, módulos ES + classic scripts (bundle Vite) |
+| Build           | Vite 5 em modo MPA (multi-page app)                                       |
+| API             | Node.js serverless (Vercel Functions) — 12 endpoints                      |
+| Validação API   | Zod schemas + wrapper unificado em `api/_lib/handler.js`                  |
+| Banco           | Firestore (regras enforced em `firestore.rules`)                          |
+| Auth            | Firebase Auth (e-mail/senha + Google)                                     |
+| Pagamentos      | Asaas (assinaturas, cartão, webhooks idempotentes)                        |
+| Observabilidade | Sentry (browser e Node) — lazy-loaded por DSN                             |
+| CI              | GitHub Actions (lint + 58 unit tests + 108 flow tests + Vite build)       |
 
 ## Desenvolvimento
 
@@ -35,18 +35,18 @@ npx vercel dev    # serve dist/ + api/ em :3000
 
 ## Scripts npm
 
-| Script | O que faz |
-| --- | --- |
-| `npm run dev` | Vite dev server (HMR, sem API) |
-| `npm run build` | `vite build` → `dist/` |
-| `npm run preview` | Serve `dist/` localmente |
-| `npm run lint` | ESLint 9 em `api/`, `scripts/`, `web/` |
-| `npm run lint:fix` | Lint com auto-fix |
-| `npm run format` | Prettier write em todos os JS/JSON/MD |
-| `npm run format:check` | Verifica formatação sem alterar |
-| `npm test` | 58 unit tests (`node --test`) |
-| `npm run test:flows` | 108 checks de billing/referral (mock Asaas + Firestore) |
-| `npm run optimize:assets` | Re-encoda JPGs grandes com sharp |
+| Script                    | O que faz                                               |
+| ------------------------- | ------------------------------------------------------- |
+| `npm run dev`             | Vite dev server (HMR, sem API)                          |
+| `npm run build`           | `vite build` → `dist/`                                  |
+| `npm run preview`         | Serve `dist/` localmente                                |
+| `npm run lint`            | ESLint 9 em `api/`, `scripts/`, `web/`                  |
+| `npm run lint:fix`        | Lint com auto-fix                                       |
+| `npm run format`          | Prettier write em todos os JS/JSON/MD                   |
+| `npm run format:check`    | Verifica formatação sem alterar                         |
+| `npm test`                | 58 unit tests (`node --test`)                           |
+| `npm run test:flows`      | 108 checks de billing/referral (mock Asaas + Firestore) |
+| `npm run optimize:assets` | Re-encoda JPGs grandes com sharp                        |
 
 ## Estrutura
 
@@ -113,25 +113,27 @@ Automático via Vercel quando push em `main`. PRs geram preview deploys.
 
 Variáveis de ambiente (Vercel Project Settings → Environment Variables):
 
-| Variável | Obrigatória | Descrição |
-| --- | --- | --- |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓ | Service account JSON em base64 |
-| `FIREBASE_PROJECT_ID` | ✓ | `appliquei-prod` |
-| `ASAAS_API_KEY` | ✓ | Token Asaas |
-| `ASAAS_API_URL` | ✓ | `https://api.asaas.com/v3` |
-| `ASAAS_WEBHOOK_TOKEN` | ✓ | Token do webhook (Asaas envia em `asaas-access-token`) |
-| `CRON_SECRET` | auto | Vercel injeta para `api/market?op=warmup` |
-| `ADMIN_API_TOKEN` | opt | Habilita `/api/admin/*` |
-| `BRAPI_TOKEN` | opt | Cotações renda variável (free tier sem token) |
-| `SENTRY_DSN` | opt | Observabilidade API (Sentry @sentry/node) |
-| `EMAIL_VERIFY_ENFORCE` | opt | `true` = bloqueia hard quem não verificou e-mail |
-| `ANTIFRAUD_INIT_ENABLED` | opt | `true` = rate-limit 5/dia IP + 3/mês device em `/init` |
-| `REFERRAL_BLOCK_SAME_IP` | opt | `true` = bloqueia referral entre mesmo IP |
+| Variável                          | Obrigatória | Descrição                                              |
+| --------------------------------- | ----------- | ------------------------------------------------------ |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                         |
+| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                       |
+| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                            |
+| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                             |
+| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`) |
+| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`              |
+| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                |
+| `BRAPI_TOKEN`                     | opt         | Cotações renda variável (free tier sem token)          |
+| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)              |
+| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail       |
+| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init` |
+| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP              |
 
 Para Sentry browser, edite no HTML:
 
 ```html
-<script>window.__APPLIQUEI_SENTRY_DSN__='https://...@sentry.io/...';</script>
+<script>
+  window.__APPLIQUEI_SENTRY_DSN__ = 'https://...@sentry.io/...';
+</script>
 ```
 
 ## Arquitetura — pontos importantes
@@ -146,6 +148,7 @@ Para Sentry browser, edite no HTML:
 ## Documentação
 
 - [`docs/ONDA2-VITE.md`](docs/ONDA2-VITE.md) — migração para Vite MPA
+- [`docs/APP-CHECK.md`](docs/APP-CHECK.md) — Firebase App Check (anti-abuso) e rollout do enforcement
 - [`docs/scaling-analysis.md`](docs/scaling-analysis.md) — análise de escala
 - [`docs/CHECKLIST-TESTES-PRE-VENDA.md`](docs/CHECKLIST-TESTES-PRE-VENDA.md) — QA manual
 - [`BILLING.md`](BILLING.md) — fluxos de billing detalhados
