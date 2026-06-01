@@ -4094,10 +4094,6 @@
         }
         .mp-barra-valor { font-family:'DM Mono', monospace; font-size:12.5px; font-weight:700; color:var(--cor-texto-principal); text-align:right; }
         .mp-barra-pct { font-size:10.5px; color: var(--cor-texto-mutado); display:block; }
-        .mp-barra-rent { font-family:'DM Mono', monospace; font-size:10.5px; font-weight:700; display:block; }
-        .mp-barra-rent.pos { color: var(--cor-primaria); }
-        .mp-barra-rent.neg { color: var(--cor-erro); }
-        .mp-barra-rent.neu { color: var(--cor-texto-mutado); }
 
         .mp-lista-inst { display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; }
         .mp-inst-item {
@@ -6420,37 +6416,26 @@
                 </div>
             </div>
 
-            <!-- Barras por categoria + lista por instituição -->
-            <div class="mp-grid">
-                <div class="card-container">
-                    <div class="mp-section-head">
-                        <h3>Valor e Rentabilidade por Categoria</h3>
-                        <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
-                    </div>
-                    <div class="mp-barras" id="mp-barras">
-                        <div class="mp-empty"><i class="ph ph-chart-bar"></i>A carregar…</div>
-                    </div>
-                </div>
-                <aside class="card-container">
-                    <div class="mp-section-head">
-                        <h3>Divisão por Instituição</h3>
-                        <span class="mp-section-sub">Investido + caixa livre</span>
-                    </div>
-                    <div class="mp-lista-inst" id="mp-lista-inst">
-                        <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
-                    </div>
-                </aside>
-            </div>
-
-            <!-- Donut de divisão por categoria -->
+            <!-- Gráfico único: pizza = divisão; legenda (barrinhas) = valor + rentabilidade -->
             <div class="card-container mp-donut-card">
                 <div class="mp-section-head">
                     <h3>Divisão por Categoria</h3>
-                    <span class="mp-section-sub">Ações, FIIs e cripto separados · clique para destacar nas barras</span>
+                    <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
                 </div>
                 <div class="mp-donut-grid">
                     <div class="mp-donut-wrap"><canvas id="mp-grafico-donut" aria-label="Divisão por categoria"></canvas></div>
                     <div class="mp-donut-legenda" id="mp-donut-legenda"></div>
+                </div>
+            </div>
+
+            <!-- Divisão por instituição (abaixo do gráfico) -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Divisão por Instituição</h3>
+                    <span class="mp-section-sub">Investido + caixa livre</span>
+                </div>
+                <div class="mp-lista-inst" id="mp-lista-inst">
+                    <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
                 </div>
             </div>
 

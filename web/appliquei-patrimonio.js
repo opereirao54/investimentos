@@ -540,142 +540,8 @@ function mpRenderKPIs(consolidado, janela) {
   }
 }
 
-// Mini sparkline SVG por categoria — usa série mensal sintética baseada em historicoCompras + cotação atual.
-// Implementação leve: 6 pontos mostrando evolução do investido acumulado nessa categoria.
-function mpSparklineSvg(serie, cor) {
-  if (!serie.length) return '';
-  const max = Math.max(...serie),
-    min = Math.min(...serie);
-  const range = max - min || 1;
-  const w = 60,
-    h = 14;
-  const xy = serie.map((v, i) => {
-    const x = (i / (serie.length - 1 || 1)) * w;
-    const y = h - ((v - min) / range) * h;
-    return [+x.toFixed(1), +y.toFixed(1)];
-  });
-  const pts = xy.map((p) => p.join(',')).join(' ');
-  // 4.7 — sparkline mais "premium": área com gradiente + linha de pontas
-  // arredondadas. id único do gradiente p/ não colidir entre múltiplos SVGs.
-  const gid = 'spk' + Math.random().toString(36).slice(2, 8);
-  const area = `${xy[0][0]},${h} ${pts} ${xy[xy.length - 1][0]},${h}`;
-  return (
-    `<svg class="mp-barra-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">` +
-    `<defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">` +
-    `<stop offset="0%" stop-color="${cor}" stop-opacity="0.28"/>` +
-    `<stop offset="100%" stop-color="${cor}" stop-opacity="0"/></linearGradient></defs>` +
-    `<polygon points="${area}" fill="url(#${gid})" stroke="none"/>` +
-    `<polyline fill="none" stroke="${cor}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" points="${pts}"/>` +
-    `</svg>`
-  );
-}
-
-function mpSerieInvestidoMensal(cat, meses = 6) {
-  if (typeof historicoCompras === 'undefined') return [];
-  const agora = new Date();
-  const serie = [];
-  for (let i = meses - 1; i >= 0; i--) {
-    const ref = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
-    const fim = new Date(agora.getFullYear(), agora.getMonth() - i + 1, 1).getTime() - 1;
-    let total = 0;
-    historicoCompras.forEach((op) => {
-      if (op.categoria !== cat) return;
-      if (!op.data_op) return;
-      if (new Date(op.data_op).getTime() > fim) return;
-      const v = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      if ((op.tipo || 'compra') === 'compra') total += v;
-      else total -= v;
-    });
-    serie.push(Math.max(0, total));
-  }
-  return serie;
-}
-
-function mpRenderBarras(consolidado) {
-  const wrap = document.getElementById('mp-barras');
-  if (!wrap) return;
-  // Adiciona pseudo-categoria "caixa": somatório de saldos positivos por instituição (caixa livre)
-  const saldoInst = mpCalcularSaldoPorInstituicao(Date.now());
-  let caixaTotal = 0;
-  Object.values(saldoInst).forEach((s) => {
-    if (s.caixa > 0) caixaTotal += s.caixa;
-  });
-  // Ordem preferida; Renda Variável aparece quebrada por subcategoria. Qualquer
-  // chave nova (ex.: subcategoria inesperada) entra ao final.
-  const porCat = consolidado.porCategoriaExibicao || consolidado.porCategoria || {};
-  const ordem = [
-    'renda_fixa',
-    'acoes',
-    'fiis',
-    'etfs',
-    'bdrs',
-    'cripto',
-    'renda_variavel',
-    'previdencia',
-    'reserva_emergencia',
-  ];
-  const chaves = Object.keys(porCat).sort((a, b) => {
-    const ia = ordem.indexOf(a),
-      ib = ordem.indexOf(b);
-    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
-  });
-  const dados = chaves
-    .map((cat) => {
-      const c = porCat[cat];
-      return {
-        cat,
-        investido: c ? c.investido : 0,
-        atual: c ? c.atual : 0,
-        atualLiq: c ? c.atualLiq : 0,
-      };
-    })
-    .filter((d) => d.atual > 0);
-  dados.push({ cat: 'caixa', investido: caixaTotal, atual: caixaTotal, atualLiq: caixaTotal });
-  const dadosVisiveis = dados.filter((d) => d.atual > 0 || d.cat === 'caixa');
-  if (!dadosVisiveis.length) {
-    wrap.innerHTML =
-      '<div class="mp-empty"><i class="ph ph-chart-bar"></i>Sem investimentos cadastrados. Adicione operações em "Meus Investimentos".</div>';
-    return;
-  }
-  const valorMax = Math.max(
-    ...dadosVisiveis.map((d) => (mpEstado.modo === 'liquido' ? d.atualLiq : d.atual))
-  );
-  // Barras = valor + rentabilidade (a divisão % fica no gráfico de pizza).
-  wrap.innerHTML = dadosVisiveis
-    .map((d) => {
-      const valor = mpEstado.modo === 'liquido' ? d.atualLiq : d.atual;
-      const pctMax = valorMax > 0 ? (valor / valorMax) * 100 : 0;
-      const cor = mpCorCategoria(d.cat);
-      const ehCaixa = d.cat === 'caixa';
-      const serie = ehCaixa ? [] : mpSerieInvestidoMensal(d.cat);
-      const dim = mpEstado.categoriaDestaque && mpEstado.categoriaDestaque !== d.cat ? 'dim' : '';
-      const lucro = valor - d.investido;
-      const rent = d.investido > 0 ? (lucro / d.investido) * 100 : 0;
-      const rentCls = ehCaixa ? 'neu' : rent > 0.05 ? 'pos' : rent < -0.05 ? 'neg' : 'neu';
-      const rentHtml = ehCaixa
-        ? '<span class="mp-barra-rent neu">—</span>'
-        : `<span class="mp-barra-rent ${rentCls}">${rent >= 0 ? '↑' : '↓'} ${mpFmtPct(rent)}</span>`;
-      return `
-            <div class="mp-barra-item ${dim}" data-cat="${d.cat}" onclick="mpDestacar('${d.cat}')">
-                <span class="mp-barra-label"><span class="mp-dot" style="background:${cor}"></span>${MP_LABELS[d.cat] || d.cat}</span>
-                <div class="mp-barra-track">
-                    <div class="mp-barra-fill" style="width:${pctMax.toFixed(1)}%; background:${cor};"></div>
-                    ${mpSparklineSvg(serie, cor)}
-                </div>
-                <span class="mp-barra-valor">${mpFmtBRL(valor)}${rentHtml}</span>
-            </div>`;
-    })
-    .join('');
-}
-
 function mpDestacar(cat) {
   mpEstado.categoriaDestaque = mpEstado.categoriaDestaque === cat ? null : cat;
-  document.querySelectorAll('#mp-barras .mp-barra-item').forEach((el) => {
-    el.classList.toggle(
-      'dim',
-      !!(mpEstado.categoriaDestaque && el.dataset.cat !== mpEstado.categoriaDestaque)
-    );
-  });
   document.querySelectorAll('#mp-donut-legenda .mp-leg-item').forEach((el) => {
     el.classList.toggle(
       'dim',
@@ -868,11 +734,19 @@ function mpRenderDonut(consolidado) {
       },
     },
   });
-  // Legenda do donut = DIVISÃO (peso de cada classe). A rentabilidade fica no
-  // gráfico de barras ao lado — evita a informação repetida nos dois gráficos.
+  // Gráfico único: a PIZZA mostra a divisão; cada linha da legenda (as
+  // "barrinhas") traz o VALOR + a RENTABILIDADE da classe. Sem gráfico de
+  // barras separado — toda a informação fica concentrada aqui.
   leg.innerHTML = itens
     .map((it, i) => {
+      const ehCaixa = it.cat === 'caixa';
+      const lucro = it.valor - it.investido;
+      const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
+      const cls = ehCaixa ? 'neu' : pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
       const share = totalDonut > 0 ? (it.valor / totalDonut) * 100 : 0;
+      const rentLabel = ehCaixa
+        ? '<span class="mp-leg-pct neu">—</span>'
+        : `<span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${pct >= 0 ? 'trend-up' : 'trend-down'}"></i>${mpFmtPct(pct)}</span>`;
       return `
             <div class="mp-leg-item" data-cat="${it.cat}" onclick="mpDestacar('${it.cat}')">
                 <span class="mp-leg-dot" style="background:${cores[i]}"></span>
@@ -884,6 +758,7 @@ function mpRenderDonut(consolidado) {
                     <div class="mp-leg-bottom">
                         <span class="mp-leg-bar"><span class="mp-leg-bar-fill" style="width:${Math.max(share, 2).toFixed(1)}%;background:${cores[i]}"></span></span>
                         <span class="mp-leg-share">${share.toFixed(1)}%</span>
+                        ${rentLabel}
                     </div>
                 </div>
             </div>`;
@@ -946,8 +821,9 @@ async function renderMeuPatrimonio(skipFetch) {
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
   mpRenderKPIs(consolidado, janela);
-  mpRenderBarras(consolidado);
-  mpRenderInstituicoes(consolidado);
+  // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
+  // rentabilidade. O antigo gráfico de barras foi removido.
   mpRenderDonut(consolidado);
+  mpRenderInstituicoes(consolidado);
   mpRenderCartaoSnap();
 }
