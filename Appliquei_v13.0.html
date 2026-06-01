@@ -4094,6 +4094,10 @@
         }
         .mp-barra-valor { font-family:'DM Mono', monospace; font-size:12.5px; font-weight:700; color:var(--cor-texto-principal); text-align:right; }
         .mp-barra-pct { font-size:10.5px; color: var(--cor-texto-mutado); display:block; }
+        .mp-barra-rent { font-family:'DM Mono', monospace; font-size:10.5px; font-weight:700; display:block; }
+        .mp-barra-rent.pos { color: var(--cor-primaria); }
+        .mp-barra-rent.neg { color: var(--cor-erro); }
+        .mp-barra-rent.neu { color: var(--cor-texto-mutado); }
 
         .mp-lista-inst { display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; }
         .mp-inst-item {
@@ -5733,6 +5737,14 @@
                         <datalist id="listaBancosTransacao"></datalist>
                     </div>
 
+                    <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
+                        <label>Categoria da despesa</label>
+                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
+                            <input type="text" id="categoriaDespesaNova" placeholder="Nome da nova categoria (ex: Viagens)" maxlength="40" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                        </div>
+                    </div>
+
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
@@ -5870,7 +5882,7 @@
                 <!-- Profile Questionnaire (shown until profile is set) -->
                 <div class="cart-q-card" id="cartQuestionnaire" style="display:none;">
                     <h2><i class="ph ph-user-circle-gear"></i> Descubra seu perfil de investidor</h2>
-                    <p class="lead">Responda 2 perguntas rápidas + informe seu capital. A carteira é montada automaticamente.</p>
+                    <p class="lead">Responda 2 perguntas rápidas + informe seu aporte mensal. A carteira é montada automaticamente.</p>
 
                     <div class="cart-q-section">
                         <div class="cart-q-section-title" data-step="1">Tolerância a perdas</div>
@@ -5914,7 +5926,7 @@
 
                     <div class="cart-q-capital-row">
                         <div class="form-group">
-                            <label>Capital de simulação (R$)</label>
+                            <label>Aporte mensal de simulação (R$)</label>
                             <span class="input-brl-wrap" style="display:block;">
                                 <input type="text" inputmode="decimal" data-brl="1" id="cartQCapital" value="10.000,00"
                                        oninput="aplicarMascaraBRL(this)"
@@ -5958,7 +5970,7 @@
                         <div class="cart-donut-wrap">
                             <canvas id="cartDonutChart"></canvas>
                             <div class="cart-donut-center">
-                                <div class="label">Capital total</div>
+                                <div class="label">Aporte mensal</div>
                                 <div class="value" id="cartDonutCenterValue">R$ 0</div>
                             </div>
                         </div>
@@ -5983,7 +5995,7 @@
                 <!-- Historical Simulation -->
                 <div class="cart-sim-card" id="cartSimCard" style="display:none;">
                     <div class="cart-sim-header">
-                        <h3><i class="ph ph-chart-line"></i> Como essa carteira teria performado?</h3>
+                        <h3><i class="ph ph-chart-line"></i> Como essa carteira teria performado com aportes mensais?</h3>
                         <div class="cart-sim-ranges" id="cartSimRanges">
                             <button class="cart-sim-range-btn" data-range="1y">1 ano</button>
                             <button class="cart-sim-range-btn active" data-range="3y">3 anos</button>
@@ -6412,7 +6424,7 @@
             <div class="mp-grid">
                 <div class="card-container">
                     <div class="mp-section-head">
-                        <h3>Divisão por Categoria</h3>
+                        <h3>Valor e Rentabilidade por Categoria</h3>
                         <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
                     </div>
                     <div class="mp-barras" id="mp-barras">
@@ -6430,14 +6442,14 @@
                 </aside>
             </div>
 
-            <!-- Donut de rentabilidade -->
+            <!-- Donut de divisão por categoria -->
             <div class="card-container mp-donut-card">
                 <div class="mp-section-head">
-                    <h3>Rentabilidade por Categoria</h3>
-                    <span class="mp-section-sub">Clique numa categoria para destacar nas barras</span>
+                    <h3>Divisão por Categoria</h3>
+                    <span class="mp-section-sub">Ações, FIIs e cripto separados · clique para destacar nas barras</span>
                 </div>
                 <div class="mp-donut-grid">
-                    <div class="mp-donut-wrap"><canvas id="mp-grafico-donut" aria-label="Rentabilidade por categoria"></canvas></div>
+                    <div class="mp-donut-wrap"><canvas id="mp-grafico-donut" aria-label="Divisão por categoria"></canvas></div>
                     <div class="mp-donut-legenda" id="mp-donut-legenda"></div>
                 </div>
             </div>
