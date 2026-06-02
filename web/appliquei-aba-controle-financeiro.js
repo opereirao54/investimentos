@@ -148,11 +148,62 @@ function popularSelectCategoriaDespesa(selecionado) {
   onChangeCategoriaDespesa();
 }
 
+// Emojis sugeridos para o usuário escolher ao criar uma categoria de despesa.
+var EMOJIS_CATEGORIA_DESPESA = [
+  '🏷️', '🏠', '🛒', '🚗', '⚕️', '📚', '🍿', '💆', '🐶', '🏦',
+  '✈️', '🎁', '👕', '💡', '📱', '🎮', '🍔', '☕', '🏋️', '💊',
+  '🎓', '🐱', '🧾', '💳', '🚌', '⛽', '🎉', '💼', '🔧', '🌱',
+  '👶', '🎵', '📷', '🍷', '🛠️', '🧹', '🎬', '💄', '⚽', '💰',
+];
+
+function renderEmojiPickerCategoria() {
+  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+  if (!picker) return;
+  const atual = document.getElementById('categoriaDespesaNovaEmoji')?.value || '🏷️';
+  picker.innerHTML = EMOJIS_CATEGORIA_DESPESA.map(
+    (e) =>
+      `<button type="button" onclick="selecionarEmojiCategoria('${e}')" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;border-radius:8px;cursor:pointer;background:transparent;border:1.5px solid ${e === atual ? 'var(--cor-primaria)' : 'transparent'};">${e}</button>`
+  ).join('');
+}
+
+function toggleEmojiPickerCategoria() {
+  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+  if (!picker) return;
+  const aberto = picker.style.display === 'flex';
+  if (aberto) {
+    picker.style.display = 'none';
+  } else {
+    renderEmojiPickerCategoria();
+    picker.style.display = 'flex';
+  }
+}
+
+function resetarEmojiCategoriaNova() {
+  const hidden = document.getElementById('categoriaDespesaNovaEmoji');
+  const btn = document.getElementById('categoriaDespesaNovaEmojiBtn');
+  if (hidden) hidden.value = '🏷️';
+  if (btn) btn.textContent = '🏷️';
+  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+  if (picker) picker.style.display = 'none';
+}
+
+function selecionarEmojiCategoria(emoji) {
+  const hidden = document.getElementById('categoriaDespesaNovaEmoji');
+  const btn = document.getElementById('categoriaDespesaNovaEmojiBtn');
+  if (hidden) hidden.value = emoji;
+  if (btn) btn.textContent = emoji;
+  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+  if (picker) picker.style.display = 'none';
+  document.getElementById('categoriaDespesaNova')?.focus();
+}
+
 function onChangeCategoriaDespesa() {
   const sel = document.getElementById('categoriaDespesa');
   const novaWrap = document.getElementById('grupoCategoriaDespesaNova');
   if (!sel || !novaWrap) return;
   novaWrap.style.display = sel.value === '__nova__' ? 'block' : 'none';
+  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+  if (picker) picker.style.display = 'none';
   if (sel.value === '__nova__') document.getElementById('categoriaDespesaNova')?.focus();
 }
 
@@ -177,8 +228,9 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
     const todas = obterCategoriasDespesa();
     const existente = todas.find((c) => c.v === slug);
     if (existente) return existente.v;
+    const emoji = (document.getElementById('categoriaDespesaNovaEmoji')?.value || '🏷️').trim();
     const custom = obterCategoriasDespesaCustom();
-    custom.push({ v: slug, label: nome });
+    custom.push({ v: slug, label: `${emoji} ${nome}` });
     salvarCategoriasDespesaCustom(custom);
     return slug;
   }
@@ -462,6 +514,7 @@ function cancelarEdicaoControle() {
   if (catDespEl) catDespEl.value = '';
   const catDespNovaEl = document.getElementById('categoriaDespesaNova');
   if (catDespNovaEl) catDespNovaEl.value = '';
+  resetarEmojiCategoriaNova();
   selecionarTipoCartao('parcelado');
 
   document.getElementById('btnSalvarControle').style.display = 'flex';
@@ -717,6 +770,7 @@ function executarInsercao() {
   if (catDespEl) catDespEl.value = '';
   const catDespNovaEl = document.getElementById('categoriaDespesaNova');
   if (catDespNovaEl) catDespNovaEl.value = '';
+  resetarEmojiCategoriaNova();
   const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
   if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
