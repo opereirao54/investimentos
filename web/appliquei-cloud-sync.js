@@ -111,6 +111,27 @@ function setLocalRev(k, t) {
   writeJsonMap(KEY_REVS_LS, m);
 }
 
+// Rev monotónico (Lamport-style). O LWW por-rev do servidor decide quem ganha
+// comparando revs; se usássemos só Date.now(), um device com o relógio
+// atrasado perderia SEMPRE — o seu write seria descartado em silêncio (curRev
+// >= rev). Causa real de "lancei no celular e não gravou" quando o telemóvel
+// está alguns segundos atrás do relógio que escreveu por último.
+//
+// Garantia: o novo rev é estritamente maior que (a) o rev que já vimos para
+// esta key (que, após um pull, é o rev remoto) e (b) qualquer rev emitido
+// nesta sessão. Assim, um write feito DEPOIS de ler o valor da web ganha
+// sempre, independentemente de desvio de relógio. Continua a usar Date.now()
+// como base para manter ordenação temporal entre devices saudáveis.
+var lastRevIssued = 0;
+function nextRev(key) {
+  var seen = getLocalRevs()[key] || 0;
+  var rev = Date.now();
+  if (rev <= seen) rev = seen + 1;
+  if (rev <= lastRevIssued) rev = lastRevIssued + 1;
+  lastRevIssued = rev;
+  return rev;
+}
+
 function setLocalDeletion(k, t) {
   var d = getLocalDeletions();
   d[k] = t;
@@ -873,7 +894,7 @@ window.AppliqueiCloudSync = {
   onLocalWrite: function (key) {
     if (applyingPull) return;
     if (!shouldSyncKey(key)) return;
-    setLocalRev(key, Date.now());
+    setLocalRev(key, nextRev(key));
     dirtyKeys[key] = true;
     removeLocalDeletion(key);
     schedulePush();
@@ -885,9 +906,9 @@ window.AppliqueiCloudSync = {
   onLocalDelete: function (key) {
     if (applyingPull) return;
     if (!shouldSyncKey(key)) return;
-    var now = Date.now();
-    setLocalRev(key, now);
-    setLocalDeletion(key, now);
+    var rev = nextRev(key);
+    setLocalRev(key, rev);
+    setLocalDeletion(key, rev);
     delete dirtyKeys[key];
     schedulePush();
     scheduleBeacon('delete:' + key);
