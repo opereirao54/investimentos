@@ -5737,7 +5737,12 @@
                         <label>Categoria da despesa</label>
                         <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
-                            <input type="text" id="categoriaDespesaNova" placeholder="Nome da nova categoria (ex: Viagens)" maxlength="40" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                            <div style="display:flex;gap:8px;align-items:center;">
+                                <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
+                                <input type="text" id="categoriaDespesaNova" placeholder="Nome da nova categoria (ex: Viagens)" maxlength="40" style="flex:1 1 auto;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                            </div>
+                            <input type="hidden" id="categoriaDespesaNovaEmoji" value="🏷️">
+                            <div id="categoriaDespesaEmojiPicker" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px;border:1px solid var(--cor-borda);border-radius:9px;padding:8px;background:var(--cor-superficie);"></div>
                         </div>
                     </div>
 
