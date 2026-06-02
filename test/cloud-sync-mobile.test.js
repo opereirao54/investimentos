@@ -115,8 +115,21 @@ function load(opts) {
       try {
         parsed = JSON.parse(init.body);
       } catch (_) {}
-      beaconPosts.push({ via: 'fetch', url, ...parsed });
-      return Promise.resolve({ ok: true, status: 200, text: async () => 'ok' });
+      const keepalive = init && init.keepalive === true;
+      const bytes = init && init.body ? init.body.length : 0;
+      // Modela o limite real do browser: keepalive/sendBeacon rejeitam corpo
+      // acima de ~64KB. Só ativo quando o teste pede (opts.enforce64k).
+      if (opts.enforce64k && keepalive && bytes > 64 * 1024) {
+        beaconPosts.push({ via: 'fetch', url, keepalive, bytes, rejected: true });
+        return Promise.reject(new TypeError('keepalive body exceeds 64KB'));
+      }
+      beaconPosts.push({ via: 'fetch', url, keepalive, bytes, rejected: false, ...parsed });
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: async () => ({ ok: true, accepted: Object.keys(parsed.keys || {}).length }),
+        text: async () => 'ok',
+      });
     },
     document: {
       visibilityState: 'visible',
@@ -280,6 +293,50 @@ test('pagehide também dispara o beacon na janela pré-pull', async () => {
 
   const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push');
   assert.ok(posts.length >= 1, 'pagehide deve disparar o beacon mesmo antes do pull');
+});
+
+test('payload grande (>64KB): beacon eager usa fetch normal, sem keepalive (não cai no limite)', async () => {
+  // ~70KB num único valor — acima do limite de 64KB do keepalive/sendBeacon.
+  const big = 'y'.repeat(70 * 1024);
+  const h = load({ enforce64k: true });
+  h.fireAuth();
+  h.resolveIdTokens();
+  await flush();
+
+  h.write('futurorico_transacoes', JSON.stringify([{ id: 1, nota: big }]));
+  h.api.beaconNow(); // beacon eager (página ativa, viaUnload=false)
+  await flush();
+
+  const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push');
+  assert.ok(posts.length >= 1, 'o beacon grande deve ter saído');
+  const last = posts[posts.length - 1];
+  assert.equal(last.keepalive, false, 'eager NÃO pode usar keepalive (senão >64KB falha)');
+  assert.ok(!last.rejected, 'o request não pode ser rejeitado pelo limite de 64KB');
+  assert.ok(last.bytes > 64 * 1024, 'sanity: o corpo realmente passa de 64KB');
+  assert.ok(last.keys && last.keys.futurorico_transacoes, 'o servidor recebeu a key grande');
+});
+
+test('payload grande no unload: não força keepalive (evita rejeição 64KB)', async () => {
+  const big = 'z'.repeat(70 * 1024);
+  const h = load({ enforce64k: true });
+  h.fireAuth();
+  h.resolveIdTokens();
+  await flush();
+
+  h.write('futurorico_transacoes', JSON.stringify([{ id: 2, nota: big }]));
+  h.hidden(); // caminho de unload (visibility-hidden → viaUnload=true)
+  await flush();
+
+  const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push' && !p.rejected);
+  assert.ok(
+    posts.length >= 1,
+    'mesmo no unload, corpo grande deve sair (sem keepalive) em vez de ser descartado'
+  );
+  assert.equal(
+    posts[posts.length - 1].keepalive,
+    false,
+    'corpo >64KB no unload deve abrir mão do keepalive em vez de falhar'
+  );
 });
 
 test('rev monotónico: write após pull ganha mesmo com relógio atrasado (anti clock-skew)', async () => {
