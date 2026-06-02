@@ -23,8 +23,8 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@sentry/browser": "^10.54.0",
-    "@sentry/node": "^10.54.0",
+    "@sentry/browser": "^10.55.0",
+    "@sentry/node": "^10.55.0",
     "firebase-admin": "^12.7.0",
     "zod": "^4.4.3"
   },
