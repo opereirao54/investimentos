@@ -384,12 +384,39 @@ function postBeacon(token, payload, reason) {
               });
             } catch (_) {}
           } else {
-            console.log(
-              '[AppliqueiCloudSync] beacon ok',
-              reason || '',
-              Object.keys(payload.keys).length,
-              'keys'
-            );
+            // Diagnóstico: o endpoint responde 200 mesmo quando o LWW por-rev
+            // descarta TODAS as keys (accepted:0) — sintoma clássico de
+            // conflito de rev / clock skew. Sem isto, a perda do write no
+            // mobile era 100% silenciosa. O rev monotónico (nextRev) deve
+            // manter accepted > 0; se aparecer accepted:0, é sinal vermelho.
+            var sentN = Object.keys(payload.keys).length;
+            try {
+              r.json()
+                .then(function (j) {
+                  if (j && j.accepted === 0 && sentN > 0) {
+                    console.warn(
+                      '[AppliqueiCloudSync] beacon aceitou 0 de',
+                      sentN,
+                      'keys — write descartado pelo LWW (conflito de rev / clock skew). reason:',
+                      reason || ''
+                    );
+                  } else {
+                    console.log(
+                      '[AppliqueiCloudSync] beacon ok',
+                      reason || '',
+                      'accepted',
+                      j && j.accepted,
+                      'de',
+                      sentN
+                    );
+                  }
+                })
+                .catch(function () {
+                  console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
+                });
+            } catch (_) {
+              console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
+            }
           }
         })
         .catch(function (e) {
