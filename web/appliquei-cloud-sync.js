@@ -23,7 +23,9 @@
  * consumidores legados (HTML inline).
  */
 var DEBOUNCE_MS = 2000;
-var BEACON_DEBOUNCE_MS = 600;
+// Beacon eager: curto, para o fetch (página ativa, sem limite de tamanho)
+// partir cedo — antes de o utilizador mandar o tab para segundo plano.
+var BEACON_DEBOUNCE_MS = 300;
 // No mobile, .get({source:'server'}) pode ficar pendurado numa ligação
 // meia-aberta (após background / troca de rede) sem resolver nem rejeitar.
 // Sem um teto, pullInFlight/initialPullDone ficavam presos para sempre e TODO
@@ -356,25 +358,43 @@ function buildBeaconPayload() {
 //    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
 // O endpoint /api/sync/push é idempotente e faz LWW por-rev, por isso reenviar
 // o mesmo payload (eager + visibility + pagehide) é seguro.
-function postBeacon(token, payload, reason) {
+function postBeacon(token, payload, reason, viaUnload) {
   var body = JSON.stringify({
     idToken: token,
     keys: payload.keys,
     keyRevs: payload.keyRevs,
   });
+  var sentN = Object.keys(payload.keys).length;
+
+  // CAUSA RAIZ do "grava na web mas não no celular": fetch({keepalive:true}) e
+  // navigator.sendBeacon têm limite de ~64KB de corpo no browser — ACIMA disso
+  // o request falha em SILÊNCIO. futurorico_transacoes (todas as transações num
+  // único JSON) passa disso facilmente. Na web o push via SDK (sem limite de
+  // tamanho) tinha tempo de completar com o tab aberto; no celular, que congela
+  // rápido, só sobrava o beacon com keepalive — e ele morria pelo limite.
+  //
+  // Em página ATIVA (beacon eager) NÃO precisamos de keepalive: um fetch normal
+  // não tem limite de tamanho e o request já segue para o servidor mesmo que o
+  // tab vá a background logo depois (não dependemos de ler a resposta). Só no
+  // unload (visibility-hidden/pagehide) é que keepalive faz falta — e aí, se o
+  // corpo for grande, não o forçamos (cairia); o eager já terá enviado.
+  var KEEPALIVE_MAX = 50 * 1024;
+  var tooBigForKeepalive = body.length > KEEPALIVE_MAX;
+  var useKeepalive = !!viaUnload && !tooBigForKeepalive;
 
   var sent = false;
   try {
     if (typeof window.fetch === 'function') {
       sent = true;
+      var opts = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: body,
+        credentials: 'same-origin',
+      };
+      if (useKeepalive) opts.keepalive = true;
       window
-        .fetch('/api/sync/push', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: body,
-          keepalive: true,
-          credentials: 'same-origin',
-        })
+        .fetch('/api/sync/push', opts)
         .then(function (r) {
           if (!r.ok) {
             console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
@@ -385,11 +405,8 @@ function postBeacon(token, payload, reason) {
             } catch (_) {}
           } else {
             // Diagnóstico: o endpoint responde 200 mesmo quando o LWW por-rev
-            // descarta TODAS as keys (accepted:0) — sintoma clássico de
-            // conflito de rev / clock skew. Sem isto, a perda do write no
-            // mobile era 100% silenciosa. O rev monotónico (nextRev) deve
-            // manter accepted > 0; se aparecer accepted:0, é sinal vermelho.
-            var sentN = Object.keys(payload.keys).length;
+            // descarta TODAS as keys (accepted:0). Logamos também o tamanho do
+            // corpo e se foi keepalive — para confirmar em campo o limite 64KB.
             try {
               r.json()
                 .then(function (j) {
@@ -397,7 +414,7 @@ function postBeacon(token, payload, reason) {
                     console.warn(
                       '[AppliqueiCloudSync] beacon aceitou 0 de',
                       sentN,
-                      'keys — write descartado pelo LWW (conflito de rev / clock skew). reason:',
+                      'keys — write descartado pelo LWW (conflito de rev). reason:',
                       reason || ''
                     );
                   } else {
@@ -407,7 +424,8 @@ function postBeacon(token, payload, reason) {
                       'accepted',
                       j && j.accepted,
                       'de',
-                      sentN
+                      sentN,
+                      '(' + body.length + 'B, keepalive=' + useKeepalive + ')'
                     );
                   }
                 })
@@ -420,7 +438,7 @@ function postBeacon(token, payload, reason) {
           }
         })
         .catch(function (e) {
-          console.warn('[AppliqueiCloudSync] beacon fetch', e && (e.message || e));
+          console.warn('[AppliqueiCloudSync] beacon fetch', reason || '', e && (e.message || e));
         });
     }
   } catch (e) {
@@ -428,7 +446,14 @@ function postBeacon(token, payload, reason) {
     console.warn('[AppliqueiCloudSync] beacon fetch threw', e && (e.message || e));
   }
 
-  if (!sent && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+  // Fallback sendBeacon: só quando o fetch não pôde ser usado E o corpo cabe no
+  // limite (senão sendBeacon também rejeita silenciosamente).
+  if (
+    !sent &&
+    !tooBigForKeepalive &&
+    typeof navigator !== 'undefined' &&
+    typeof navigator.sendBeacon === 'function'
+  ) {
     try {
       var blob = new Blob([body], { type: 'application/json' });
       navigator.sendBeacon('/api/sync/push', blob);
@@ -448,7 +473,7 @@ function postBeacon(token, payload, reason) {
 // /api/sync/push faz LWW por-rev no servidor (só sobrescreve uma key se o rev
 // recebido for estritamente maior), enviar antes do pull é seguro: nunca
 // clobbera um write mais novo de outro device.
-function beaconFlushNow(reason) {
+function beaconFlushNow(reason, viaUnload) {
   var fb = window.AppliqueiFirebase;
   if (!fb || !fb.auth || !fb.auth.currentUser) return;
 
@@ -456,7 +481,7 @@ function beaconFlushNow(reason) {
   if (!payload) return;
 
   if (cachedIdToken) {
-    postBeacon(cachedIdToken, payload, reason);
+    postBeacon(cachedIdToken, payload, reason, viaUnload);
     return;
   }
 
@@ -472,7 +497,7 @@ function beaconFlushNow(reason) {
       .then(function (t) {
         cachedIdToken = t;
         var fresh = buildBeaconPayload();
-        if (fresh) postBeacon(t, fresh, reason);
+        if (fresh) postBeacon(t, fresh, reason, viaUnload);
       })
       .catch(function () {
         refreshIdTokenCache(fb);
@@ -486,7 +511,8 @@ function scheduleBeacon(reason) {
   if (beaconTimer) clearTimeout(beaconTimer);
   beaconTimer = setTimeout(function () {
     beaconTimer = null;
-    beaconFlushNow(reason || 'debounced');
+    // Eager = página ativa → sem keepalive (fetch normal, sem limite de 64KB).
+    beaconFlushNow(reason || 'debounced', false);
   }, BEACON_DEBOUNCE_MS);
 }
 
@@ -891,7 +917,8 @@ function onVisibilityChange() {
       clearTimeout(beaconTimer);
       beaconTimer = null;
     }
-    beaconFlushNow('visibility-hidden');
+    // Unload → keepalive (sobrevive ao kill do tab; limitado a ~64KB).
+    beaconFlushNow('visibility-hidden', true);
     forceFlushNow();
   } else if (document.visibilityState === 'visible') {
     var u =
@@ -908,7 +935,7 @@ function onPageHide() {
     clearTimeout(beaconTimer);
     beaconTimer = null;
   }
-  beaconFlushNow('pagehide');
+  beaconFlushNow('pagehide', true);
   forceFlushNow();
 }
 
@@ -943,7 +970,7 @@ window.AppliqueiCloudSync = {
   flushNow: flushPush,
   forceFlush: forceFlushNow,
   beaconNow: function () {
-    beaconFlushNow('manual');
+    beaconFlushNow('manual', false);
   },
   pullNow: function (cb) {
     var u =
