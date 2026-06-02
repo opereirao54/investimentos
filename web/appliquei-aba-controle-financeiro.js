@@ -806,6 +806,38 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
   return res;
 }
 
+// === Composição do mês: agrupamento do gráfico de barras ===
+// 'contabil' = barras por classificação contábil (Receita, Cartão, Fixa...).
+// 'despesa'  = despesas (fixa + variável + cartão) quebradas por categoria
+//              de despesa (Alimentação, Transporte...), mantendo Receita/Sobra.
+var agrupamentoComposicao = 'contabil';
+
+// Paleta cíclica para as barras de categoria de despesa.
+var PALETA_CATEGORIA_DESPESA = [
+  '#e11d48', '#f97316', '#f59e0b', '#7c3aed', '#2563eb', '#0891b2',
+  '#db2777', '#65a30d', '#9333ea', '#dc2626', '#ea580c', '#ca8a04',
+];
+
+function setAgrupamentoComposicao(tipo) {
+  agrupamentoComposicao = tipo === 'despesa' ? 'despesa' : 'contabil';
+  const sel = document.getElementById('agrupamentoComposicao');
+  if (sel && sel.value !== agrupamentoComposicao) sel.value = agrupamentoComposicao;
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
+// Soma as despesas do mês agrupadas pela categoria de despesa (campo
+// categoriaDespesa). Lançamentos sem categoria caem em '__sem_categoria__'.
+function calcularDespesasPorCategoria(mesAlvo, anoAlvo) {
+  const mapa = {};
+  transacoes.forEach((t) => {
+    if (t.mes === mesAlvo && t.ano === anoAlvo && categoriaDespesaUsada(t.categoria)) {
+      const chave = t.categoriaDespesa || '__sem_categoria__';
+      mapa[chave] = (mapa[chave] || 0) + t.valor;
+    }
+  });
+  return mapa;
+}
+
 // ============================================================
 // === Saldo carregado entre meses (carregamento automático) ==
 // ============================================================
@@ -1562,17 +1594,40 @@ function atualizarTelaControle() {
   if (somaParaGrafico > 0) {
     document.getElementById('legendaPizzaVazia').style.display = 'none';
     const ctx = document.getElementById('graficoComposicao').getContext('2d');
-    let dadosGrafico = [
-      { label: 'Receita', valor: rPizza.receita, cor: '#10b981' },
-      { label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' },
-      { label: 'Cartão', valor: rPizza.cartao, cor: '#f59e0b' },
-      { label: 'Fixa', valor: rPizza.despFixa, cor: '#f97316' },
-      { label: 'Var.', valor: rPizza.despVar, cor: '#e11d48' },
-      { label: 'Aportes Mês', valor: rPizza.invFixo + rPizza.invVar, cor: '#2563eb' },
-      { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' },
-    ];
-    dadosGrafico.sort((a, b) => b.valor - a.valor);
-    dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+    let dadosGrafico;
+    if (agrupamentoComposicao === 'despesa') {
+      // Despesas quebradas por categoria de despesa, ordenadas da maior p/ menor.
+      const mapaCat = calcularDespesasPorCategoria(visaoMes, visaoAno);
+      let despesas = Object.keys(mapaCat).map((k) => ({
+        label: k === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(k),
+        valor: mapaCat[k],
+      }));
+      despesas.sort((a, b) => b.valor - a.valor);
+      despesas.forEach((d, i) => {
+        d.cor = PALETA_CATEGORIA_DESPESA[i % PALETA_CATEGORIA_DESPESA.length];
+      });
+      // Barras de referência: Receita (e Resgate, se houver) e Sobra.
+      dadosGrafico = [{ label: 'Receita', valor: rPizza.receita, cor: '#10b981' }];
+      if (rPizza.resgate > 0) dadosGrafico.push({ label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' });
+      dadosGrafico = dadosGrafico.concat(despesas);
+      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+    } else {
+      dadosGrafico = [
+        { label: 'Receita', valor: rPizza.receita, cor: '#10b981' },
+        { label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' },
+        { label: 'Cartão', valor: rPizza.cartao, cor: '#f59e0b' },
+        { label: 'Fixa', valor: rPizza.despFixa, cor: '#f97316' },
+        { label: 'Var.', valor: rPizza.despVar, cor: '#e11d48' },
+        { label: 'Aportes Mês', valor: rPizza.invFixo + rPizza.invVar, cor: '#2563eb' },
+        { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' },
+      ];
+      dadosGrafico.sort((a, b) => b.valor - a.valor);
+      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+    }
+
+    // Altura adaptativa: a visão por categoria de despesa pode ter mais barras.
+    const contGrafico = document.getElementById('graficoComposicao').parentElement;
+    if (contGrafico) contGrafico.style.height = Math.max(180, dadosGrafico.length * 26) + 'px';
 
     chartComposicao = new Chart(ctx, {
       type: 'bar',

@@ -5639,7 +5639,13 @@
                     </div>
                 </div>
                 <div class="card-container" style="margin-bottom:0; min-width: 0;">
-                    <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:12px;">Composição do mês</h4>
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+                        <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin:0;">Composição do mês</h4>
+                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
+                            <option value="contabil">Por Categoria</option>
+                            <option value="despesa">Por Categoria da Despesa</option>
+                        </select>
+                    </div>
                     <div class="grafico-container" style="height:180px;margin-top:0;"><canvas id="graficoComposicao"></canvas></div>
                     <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
                 </div>
