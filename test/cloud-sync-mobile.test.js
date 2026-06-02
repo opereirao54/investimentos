@@ -281,3 +281,31 @@ test('pagehide também dispara o beacon na janela pré-pull', async () => {
   const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push');
   assert.ok(posts.length >= 1, 'pagehide deve disparar o beacon mesmo antes do pull');
 });
+
+test('rev monotónico: write após pull ganha mesmo com relógio atrasado (anti clock-skew)', async () => {
+  // Simula o device já tendo PUXADO um rev remoto alto (como se outro device
+  // tivesse o relógio adiantado, ou a web tivesse acabado de escrever). O rev
+  // local do device (Date.now) é MENOR que esse rev visto.
+  const seenRev = Date.now() + 10_000_000; // ~2h "no futuro" vs. o relógio local
+  const h = load({
+    seed: { appliquei_cloud_key_revs: JSON.stringify({ futurorico_transacoes: seenRev }) },
+  });
+  h.fireAuth();
+  h.resolveIdTokens();
+  await flush();
+
+  // O utilizador lança um registo nessa key.
+  h.write('futurorico_transacoes', JSON.stringify(['A', 'B']));
+  h.hidden();
+  await flush();
+
+  const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push');
+  assert.ok(posts.length >= 1, 'beacon deve enviar');
+  const rev = posts[posts.length - 1].keyRevs.futurorico_transacoes;
+  // Sem o rev monotónico, rev = Date.now() < seenRev → o servidor (LWW)
+  // descartaria o write (curRev >= rev). Com o fix, rev > seenRev → ganha.
+  assert.ok(
+    rev > seenRev,
+    `o rev do write (${rev}) deve superar o rev já visto (${seenRev}) para vencer o LWW`
+  );
+});
