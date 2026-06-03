@@ -544,9 +544,25 @@ window.appliqueiAuthVerifyCheck = function () {
         if (btn) { btn.disabled = false; btn.textContent = 'Já verifiquei — entrar'; }
     });
 };
+// Empurra escritas pendentes para a nuvem ANTES de limpar a sessão. O beacon
+// do forceFlush parte com o token ainda válido e sobrevive ao signOut (o
+// request HTTP já está em curso), evitando perder um lançamento feito segundos
+// antes de sair — o sintoma "saí e entrei e ele apagou o que eu tinha feito no
+// mobile": o write nunca subiu, então o pull pós-login (com os dados do
+// servidor, sem o item) sobrescreveu o local.
+function appliqueiFlushBeforeSignOut() {
+    try {
+        if (window.AppliqueiCloudSync && typeof window.AppliqueiCloudSync.forceFlush === 'function') {
+            window.AppliqueiCloudSync.forceFlush();
+        }
+    } catch (_) {}
+}
 window.appliqueiAuthSignOut = function () {
     var fb = window.AppliqueiFirebase;
-    if (fb && fb.ready && fb.auth) fb.auth.signOut().catch(function () {});
+    if (fb && fb.ready && fb.auth) {
+        appliqueiFlushBeforeSignOut();
+        fb.auth.signOut().catch(function () {});
+    }
 };
 window.appliqueiAuthEsqueciSenha = function () {
     var fb = window.AppliqueiFirebase;
@@ -572,6 +588,7 @@ try { localStorage.removeItem(GUEST_KEY); } catch (_) {}
 window.appliqueiSidebarAuthClick = function () {
     var fb = window.AppliqueiFirebase;
     if (fb && fb.ready && fb.auth && fb.auth.currentUser) {
+        appliqueiFlushBeforeSignOut();
         fb.auth.signOut().catch(function () {});
         refreshSidebar();
         return;
