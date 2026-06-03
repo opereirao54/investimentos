@@ -81,11 +81,17 @@ function load(opts) {
     collection: () => ({ doc: () => ({ collection: () => ({ doc: () => dataDoc }) }) }),
   };
 
+  const idTokenForceCalls = [];
   const user = {
     uid: 'user-abc',
     // Token nunca resolve sozinho: o teste decide quando, para simular
-    // "token ainda não cacheado" vs "já cacheado".
-    getIdToken: () => new Promise((res) => idTokenResolvers.push(res)),
+    // "token ainda não cacheado" vs "já cacheado". Regista se foi pedido com
+    // forceRefresh=true (getIdToken(true)) — usado para testar a auto-cura.
+    getIdToken: (force) => {
+      idTokenForceCalls.push(!!force);
+      return new Promise((res) => idTokenResolvers.push(res));
+    },
+    reload: () => Promise.resolve(),
   };
   let authCb = null;
   const auth = {
@@ -123,12 +129,28 @@ function load(opts) {
         beaconPosts.push({ via: 'fetch', url, keepalive, bytes, rejected: true });
         return Promise.reject(new TypeError('keepalive body exceeds 64KB'));
       }
-      beaconPosts.push({ via: 'fetch', url, keepalive, bytes, rejected: false, ...parsed });
+      // opts.beaconStatuses: sequência de status HTTP por chamada (ex.: [403,
+      // 200] para testar a auto-cura). Sem ela, sempre 200.
+      let status = 200;
+      if (Array.isArray(opts.beaconStatuses)) {
+        const i = Math.min(
+          beaconPosts.filter((p) => p.via === 'fetch').length,
+          opts.beaconStatuses.length - 1
+        );
+        status = opts.beaconStatuses[i];
+      }
+      const ok = status >= 200 && status < 300;
+      beaconPosts.push({ via: 'fetch', url, keepalive, bytes, rejected: false, status, ...parsed });
+      const errBody = JSON.stringify({
+        error:
+          status === 403 ? 'email_not_verified' : status === 401 ? 'invalid_token' : 'invalid_body',
+      });
       return Promise.resolve({
-        ok: true,
-        status: 200,
-        json: async () => ({ ok: true, accepted: Object.keys(parsed.keys || {}).length }),
-        text: async () => 'ok',
+        ok,
+        status,
+        json: async () =>
+          ok ? { ok: true, accepted: Object.keys(parsed.keys || {}).length } : JSON.parse(errBody),
+        text: async () => (ok ? 'ok' : errBody),
       });
     },
     document: {
@@ -177,6 +199,7 @@ function load(opts) {
     api: win.AppliqueiCloudSync,
     beaconPosts,
     sdkSets,
+    idTokenForceCalls,
     fireAuth: () => authCb && authCb(user),
     resolveIdTokens: (tok) => {
       const r = idTokenResolvers.splice(0);
@@ -370,6 +393,54 @@ test('CAUSA RAIZ pós-pull: forceFlush (salvar no controle financeiro) tem de di
   assert.ok(
     posts[posts.length - 1].keys && posts[posts.length - 1].keys.futurorico_transacoes,
     'o beacon disparado pelo forceFlush deve carregar a transação lançada'
+  );
+});
+
+test('login força token FRESCO (getIdToken(true)) — cura claim email_verified velho que isola o mobile', async () => {
+  // Se o e-mail foi verificado noutro aparelho (web), o token deste device pode
+  // continuar com email_verified=false em cache. As Firestore rules E o
+  // /api/sync/push exigem email_verified=true → o claim velho rejeita PULL e
+  // PUSH, isolando o mobile nas duas direções. Forçar um token novo no login
+  // reemite o claim atual e destrava ambos.
+  const h = load();
+  h.fireAuth();
+  await flush();
+  assert.ok(
+    h.idTokenForceCalls.some(Boolean),
+    'onUser deve chamar getIdToken(true) no login para reemitir o claim email_verified'
+  );
+});
+
+test('beacon 403 (claim velho): força token fresco e REENVIA uma vez (auto-cura)', async () => {
+  // 1ª POST do beacon volta 403 (email_not_verified por token velho); o módulo
+  // deve refrescar o token (getIdToken(true)) e reenviar — a 2ª POST é aceite.
+  const h = load({ beaconStatuses: [403, 200] });
+  h.fireAuth();
+  h.resolveIdTokens(); // resolve o getIdToken(true) do login + warm do cache
+  await flush();
+  h.resolveServerGet({ exists: false });
+  await flush();
+
+  const forcesBefore = h.idTokenForceCalls.filter(Boolean).length;
+
+  h.write('futurorico_transacoes', JSON.stringify([{ id: 1, valor: 9 }]));
+  h.api.beaconNow(); // eager → 1ª POST → 403
+  await flush();
+
+  assert.ok(
+    h.idTokenForceCalls.filter(Boolean).length > forcesBefore,
+    'após 403 o beacon deve forçar um token fresco (getIdToken(true))'
+  );
+
+  h.resolveIdTokens('TOKEN_fresh_aaaaaaaaaaaaaaaa'); // resolve o token da retry
+  await flush();
+
+  const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push' && p.via === 'fetch');
+  assert.ok(posts.length >= 2, 'deve reenviar o beacon após refrescar o token (1ª 403 + 2ª)');
+  assert.equal(posts[posts.length - 1].status, 200, 'o reenvio com token fresco deve ser aceite');
+  assert.ok(
+    posts[posts.length - 1].keys && posts[posts.length - 1].keys.futurorico_transacoes,
+    'o reenvio deve carregar a mesma transação'
   );
 });
 

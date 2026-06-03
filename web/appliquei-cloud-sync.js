@@ -369,13 +369,76 @@ function buildBeaconPayload() {
   return { keys: keysOut, keyRevs: revsOut };
 }
 
+// Toast de erro de sync com throttle: o beacon pode disparar várias vezes
+// (eager + visibility + pagehide) e não queremos spammar o utilizador com a
+// mesma mensagem. Antes os erros do beacon só iam para console.warn — no
+// mobile (sem DevTools) a falha era TOTALMENTE silenciosa: o utilizador via
+// "Salvo às HH:MM" mas o dado nunca subia. Tornar visível é metade da cura.
+var lastSyncErrToastAt = 0;
+function notifySyncError(msg) {
+  try {
+    if (typeof window.mostrarToast !== 'function' || !msg) return;
+    var now = Date.now();
+    if (now - lastSyncErrToastAt < 15000) return;
+    lastSyncErrToastAt = now;
+    window.mostrarToast(msg, 'erro', 7000);
+  } catch (_) {}
+}
+
+// Mensagem amigável a partir do status/erro do /api/sync/push.
+function beaconErrorMessage(status, bodyText) {
+  var code = '';
+  try {
+    code = (JSON.parse(bodyText) || {}).error || '';
+  } catch (_) {}
+  if (status === 403 && code === 'email_not_verified') {
+    return 'Confirme seu e-mail para sincronizar. Se já confirmou em outro aparelho, saia e entre de novo NESTE aparelho.';
+  }
+  if (status === 403 && code === 'access_blocked') {
+    return 'Sua avaliação/assinatura expirou: os dados ficam só neste aparelho até regularizar.';
+  }
+  if (status === 401) {
+    return 'Sua sessão expirou neste aparelho. Saia e entre de novo para voltar a sincronizar.';
+  }
+  if (status === 400) {
+    return 'Não foi possível sincronizar (dados inválidos). Atualize a página do app.';
+  }
+  return 'Não foi possível salvar na nuvem (erro ' + status + '). Verifique a sua ligação.';
+}
+
+// Auto-cura para 401/403: na esmagadora maioria dos casos é um claim velho
+// neste device (token com email_verified=false porque a verificação foi feita
+// noutro aparelho, ou token expirado). reload() atualiza o user e
+// getIdToken(true) reemite o token com o claim atual do backend; reenviamos o
+// MESMO payload uma única vez (retried=true). Se ainda falhar, aí sim avisamos.
+function forceFreshTokenThenRetryBeacon(payload, reason, viaUnload) {
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  if (!u) return;
+  try {
+    var rel = typeof u.reload === 'function' ? u.reload() : Promise.resolve();
+    Promise.resolve(rel)
+      .catch(function () {})
+      .then(function () {
+        return u.getIdToken(true);
+      })
+      .then(function (t) {
+        cachedIdToken = t;
+        postBeacon(t, payload, reason, viaUnload, true);
+      })
+      .catch(function () {});
+  } catch (_) {}
+}
+
 // Transmissão de facto do beacon. Separada para podermos chamá-la tanto com o
 // token em cache (síncrono) como após resolver getIdToken() (assíncrono).
 // 1) fetch+keepalive: caminho preferencial — logamos status/erro e sobrevive
 //    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
 // O endpoint /api/sync/push é idempotente e faz LWW por-rev, por isso reenviar
 // o mesmo payload (eager + visibility + pagehide) é seguro.
-function postBeacon(token, payload, reason, viaUnload) {
+// retried: marca a segunda tentativa (após refrescar o token) para não entrar
+// em loop de retry.
+function postBeacon(token, payload, reason, viaUnload, retried) {
   var body = JSON.stringify({
     idToken: token,
     keys: payload.keys,
@@ -415,11 +478,22 @@ function postBeacon(token, payload, reason, viaUnload) {
         .then(function (r) {
           if (!r.ok) {
             console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
+            // 401/403 quase sempre é claim/token velho neste aparelho (e-mail
+            // verificado noutro device, ou token expirado): refresca o token e
+            // reenvia UMA vez. Só avisamos o utilizador se a 2ª tentativa
+            // também falhar (retried=true) — evita toast em falha transitória.
+            var willRetry = (r.status === 401 || r.status === 403) && !retried;
+            if (willRetry) {
+              forceFreshTokenThenRetryBeacon(payload, reason, viaUnload);
+            }
             try {
               r.text().then(function (t) {
                 console.warn('[AppliqueiCloudSync] beacon body', t);
+                if (!willRetry) notifySyncError(beaconErrorMessage(r.status, t));
               });
-            } catch (_) {}
+            } catch (_) {
+              if (!willRetry) notifySyncError(beaconErrorMessage(r.status, ''));
+            }
           } else {
             // Diagnóstico: o endpoint responde 200 mesmo quando o LWW por-rev
             // descarta TODAS as keys (accepted:0). Logamos também o tamanho do
@@ -881,7 +955,38 @@ function onUser(user) {
   try {
     localStorage.setItem(LAST_UID_KEY, user.uid);
   } catch (_) {}
-  pullAndApply(user.uid, function () {});
+  // Token FRESCO antes do pull. Se o e-mail foi verificado NOUTRO aparelho
+  // (ex.: na web), o token deste device pode continuar com email_verified=false
+  // em cache. Tanto as Firestore rules como o /api/sync/push exigem
+  // email_verified=true, então um claim velho rejeita o PULL **e** o PUSH —
+  // isolando o mobile nas duas direções (não recebe a web, não sobe pro web).
+  // getIdToken(true) reemite o token com o claim atual do backend e destrava
+  // ambos os caminhos. Encadeamos o pull a seguir (em sucesso OU falha) para
+  // que ele use o token novo; pullAndApply tem o seu próprio teto de tempo.
+  var pullStarted = false;
+  var startPull = function () {
+    if (pullStarted) return;
+    pullStarted = true;
+    pullAndApply(user.uid, function () {});
+  };
+  try {
+    user
+      .getIdToken(true)
+      .then(
+        function (t) {
+          cachedIdToken = t;
+        },
+        function () {}
+      )
+      .then(startPull);
+    // Rede de segurança: não deixa o pull refém de um getIdToken(true) que
+    // pendure numa ligação má no mobile — arranca-o de qualquer forma após um
+    // teto curto. O token (possivelmente velho) ainda serve para o pull; o
+    // beacon tem a sua própria auto-cura por 403.
+    setTimeout(startPull, 3000);
+  } catch (_) {
+    startPull();
+  }
 }
 
 function lastSeenUid() {
