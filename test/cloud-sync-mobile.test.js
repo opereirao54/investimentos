@@ -339,6 +339,40 @@ test('payload grande no unload: não força keepalive (evita rejeição 64KB)', 
   );
 });
 
+test('CAUSA RAIZ pós-pull: forceFlush (salvar no controle financeiro) tem de disparar o beacon, não só o SDK', async () => {
+  // Reproduz o cenário REAL que sobreviveu a todas as correções anteriores:
+  // o utilizador já está com a app aberta há alguns segundos, o pull inicial
+  // JÁ terminou (serverViewReady=true). Lança uma despesa no controle
+  // financeiro — que chama AppliqueiCloudSync.forceFlush() logo a seguir ao
+  // setItem.
+  //
+  // ANTES do fix, forceFlush só dispara flushPush (SDK set merge), que LIMPA
+  // dirtyKeys imediatamente. O beacon eager (300ms) corre depois e encontra
+  // dirtyKeys vazio → NÃO envia nada. No mobile o SDK set fica só na
+  // IndexedDB e não sobrevive ao freeze do tab, então o lançamento some.
+  // O beacon é o único caminho que sobrevive ao freeze — e estava a ser
+  // esfomeado nesta janela (a mais comum: salvar depois do pull).
+  const h = load();
+  h.fireAuth(); // pull inicial começa
+  h.resolveServerGet({ exists: false }); // pull termina → serverViewReady=true
+  h.resolveIdTokens(); // token aquece → cachedIdToken
+  await flush();
+
+  h.write('futurorico_transacoes', JSON.stringify([{ id: 7, valor: 50 }]));
+  h.api.forceFlush(); // exatamente o que o controle financeiro faz ao salvar
+  await flush();
+
+  const posts = h.beaconPosts.filter((p) => p.url === '/api/sync/push');
+  assert.ok(
+    posts.length >= 1,
+    'forceFlush após o pull deve garantir o beacon — o SDK set sozinho não sobrevive ao freeze do tab no mobile'
+  );
+  assert.ok(
+    posts[posts.length - 1].keys && posts[posts.length - 1].keys.futurorico_transacoes,
+    'o beacon disparado pelo forceFlush deve carregar a transação lançada'
+  );
+});
+
 test('rev monotónico: write após pull ganha mesmo com relógio atrasado (anti clock-skew)', async () => {
   // Simula o device já tendo PUXADO um rev remoto alto (como se outro device
   // tivesse o relógio adiantado, ou a web tivesse acabado de escrever). O rev

@@ -267,6 +267,23 @@ function forceFlushNow() {
     clearTimeout(timer);
     timer = null;
   }
+  // CAUSA RAIZ do "lancei no celular e não gravou" que sobreviveu a todas as
+  // correções anteriores: forceFlush é chamado pelo controle financeiro logo
+  // a seguir ao setItem (lançar/editar/excluir/pagar). Depois do pull inicial
+  // (serverViewReady=true), flushPush corre o SDK set(merge) e LIMPA dirtyKeys
+  // de imediato. O beacon eager só dispararia 300ms depois — e aí encontra
+  // dirtyKeys já vazio, não enviando NADA. No mobile o SDK set fica apenas na
+  // IndexedDB e não sobrevive ao freeze do tab, então o lançamento some.
+  //
+  // O beacon (rev-safe/idempotente no servidor) é o ÚNICO caminho desenhado
+  // para sobreviver ao freeze. Por isso disparamo-lo AGORA, ANTES do flushPush,
+  // capturando dirtyKeys enquanto ainda estão preenchidos. Cancela o timer
+  // eager pendente para não duplicar o envio.
+  if (beaconTimer) {
+    clearTimeout(beaconTimer);
+    beaconTimer = null;
+  }
+  beaconFlushNow('force-flush', false);
   if (pendingLocalWrite) flushPush();
 }
 
@@ -496,8 +513,14 @@ function beaconFlushNow(reason, viaUnload) {
       .getIdToken()
       .then(function (t) {
         cachedIdToken = t;
-        var fresh = buildBeaconPayload();
-        if (fresh) postBeacon(t, fresh, reason, viaUnload);
+        // Reusa o payload capturado SINCRONAMENTE acima, em vez de reconstruir.
+        // Reconstruir aqui era perigoso: se flushPush (SDK) limpou dirtyKeys
+        // nesse intervalo — exatamente o que acontece no forceFlush logo após
+        // um write — o rebuild viria vazio e o beacon (único caminho que
+        // sobrevive ao freeze do tab no mobile) não enviaria nada. O endpoint
+        // /api/sync/push é idempotente e faz LWW por-rev, portanto reenviar um
+        // snapshot ligeiramente anterior é seguro.
+        postBeacon(t, payload, reason, viaUnload);
       })
       .catch(function () {
         refreshIdTokenCache(fb);
@@ -625,6 +648,12 @@ function applyRemoteSnapshot(snap, opts) {
   });
   if (hasLocalNewer || Object.keys(getLocalDeletions()).length > 0) {
     schedulePush();
+    // Auto-cura no mobile: se um write anterior não chegou ao servidor (ex.:
+    // o tab foi morto pelo SO antes do beacon/SDK transmitir), a localRev fica
+    // > remoteRev e a key reentra em dirty aqui. Disparamos também o beacon —
+    // o caminho fiável no mobile — em vez de confiar só no schedulePush (SDK,
+    // que pode não sobreviver ao próximo freeze). Idempotente/LWW no servidor.
+    scheduleBeacon('reconcile');
   }
 
   if (changed > 0) {
