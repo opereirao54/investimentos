@@ -3880,13 +3880,17 @@
                 grid-template-columns: 1fr 1fr !important;
             }
 
-            /* Simulador hero (verde) — empilha e reduz tipografia */
-            #simulador > div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
+            /* Simulador heros (verde) — empilham e reduzem tipografia.
+               Os heros vivem dentro de #simModoProjetar / #simModoMeta, por
+               isso usamos descendente (e não filho direto de #simulador),
+               senão os blocos "Projetar" e "Planejar meta" não quebravam. */
+            #simulador div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
                 grid-template-columns: 1fr !important;
                 padding: 18px 18px !important;
                 gap: 14px !important;
             }
-            #heroDiff {
+            #heroDiff,
+            #metaAporteMensal {
                 font-size: 26px !important;
                 letter-spacing: -0.5px !important;
                 line-height: 1.1 !important;
@@ -3894,7 +3898,8 @@
             #heroMultiplo {
                 padding: 14px 16px !important;
             }
-            #heroMultiplo div[style*="font-size:26px"] {
+            #heroMultiplo div[style*="font-size:26px"],
+            #simulador div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] div[style*="font-size:26px"] {
                 font-size: 20px !important;
                 line-height: 1.15 !important;
             }
@@ -3907,13 +3912,18 @@
             /* Bloco juros 72x72 + legenda vira coluna em telas estreitas */
             #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
 
-            /* Parâmetros da simulação (3 cols / 2 cols) → quebra melhor */
+            /* Parâmetros da simulação (3 cols) → 2 cols, 1º campo largo */
             #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
                 grid-template-columns: 1fr 1fr !important;
                 gap: 10px !important;
             }
             #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
                 grid-column: 1 / -1;
+            }
+            /* Campos da meta em 2 cols inline (acumular um valor) → 1 coluna */
+            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
             }
 
             /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
@@ -4012,6 +4022,49 @@
             .hero-kpis { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
             .hero-kpi { padding: 4px 8px !important; border-top: none !important; border-left: 1px solid var(--cor-borda); }
             .hero-kpi:first-child { border-left: none; }
+        }
+
+        /* ============================================================
+           Responsividade focada — Carteira recomendada, "Simule sua
+           liberdade" (Simulador) e Meus Sonhos
+           ============================================================ */
+        @media (max-width: 768px) {
+            /* Carteira: a faixa de períodos (1/3/5/10/20/30/50 anos) não
+               cabe em telas estreitas; vira uma régua que rola na horizontal
+               em vez de estourar a largura do card. */
+            #carteira .cart-sim-ranges {
+                display: flex;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            #carteira .cart-sim-ranges::-webkit-scrollbar { display: none; }
+            #carteira .cart-sim-range-btn { flex: 0 0 auto; white-space: nowrap; }
+
+            /* Carteira: cabeçalho da simulação empilha título e régua */
+            #carteira .cart-sim-header { align-items: stretch; }
+        }
+
+        @media (max-width: 560px) {
+            /* Sonhos: o cartão recolhido (avatar + nome + barra + botão)
+               fica espremido demais; deixamos a barra de progresso ocupar
+               uma linha inteira abaixo do nome. */
+            #meus_sonhos .sonho-card-collapsed { flex-wrap: wrap; gap: 12px; }
+            #meus_sonhos .sonho-collapsed-progress {
+                flex: 1 1 100%;
+                min-width: 0;
+                order: 5;
+            }
+
+            /* Simulador: parâmetros em uma única coluna para caber bem */
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"],
+            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
+                grid-column: auto;
+            }
         }
 
         /* ============================================================
@@ -4851,6 +4904,74 @@
             box-shadow: 0 4px 10px -6px rgba(5,150,105,0.40);
         }
 
+        /* === Aporte recorrente (Previdência / Reserva) — toggle claro === */
+        .prev-rec-toggle {
+            display: flex; align-items: center; gap: 12px;
+            padding: 12px 14px; margin-bottom: 16px;
+            background: var(--cor-superficie);
+            border: 1.5px dashed var(--cor-borda); border-radius: 10px;
+            transition: border-color .2s ease, background .2s ease, box-shadow .2s ease;
+        }
+        /* Estado ATIVO: borda sólida verde + fundo suave, inequívoco */
+        .prev-rec-toggle:has(#prevRecorrente:checked) {
+            border-style: solid; border-color: var(--cor-primaria);
+            background: var(--cor-bg-primaria);
+            box-shadow: 0 0 0 3px rgba(5,150,105,0.08);
+        }
+        .prev-rec-text {
+            margin: 0; cursor: pointer; flex: 1;
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+            text-transform: none; letter-spacing: 0;
+        }
+        .prev-rec-text small {
+            display: block; font-weight: 400; font-size: 11px;
+            color: var(--cor-texto-mutado); margin-top: 2px; line-height: 1.4;
+        }
+        .prev-rec-status {
+            flex-shrink: 0; font-size: 11px; font-weight: 700;
+            padding: 4px 10px; border-radius: 99px; white-space: nowrap;
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .prev-rec-status .on { display: none; color: var(--cor-txt-primaria); }
+        .prev-rec-status .off { display: inline; color: var(--cor-texto-mutado); }
+        .prev-rec-toggle .prev-rec-status { background: var(--cor-branco); border: 1px solid var(--cor-borda); }
+        .prev-rec-toggle:has(#prevRecorrente:checked) .prev-rec-status {
+            background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria);
+        }
+        .prev-rec-toggle:has(#prevRecorrente:checked) .prev-rec-status .on { display: inline-flex; }
+        .prev-rec-toggle:has(#prevRecorrente:checked) .prev-rec-status .off { display: none; }
+
+        /* Switch estilo iOS (reaproveitável) */
+        .appliquei-switch {
+            position: relative; display: inline-flex; flex-shrink: 0;
+            width: 46px; height: 26px; cursor: pointer; margin: 0;
+        }
+        .appliquei-switch input {
+            position: absolute; inset: 0; opacity: 0; margin: 0;
+            width: 100%; height: 100%; cursor: pointer;
+        }
+        .appliquei-switch-slider {
+            position: absolute; inset: 0; border-radius: 99px;
+            background: var(--cor-borda);
+            transition: background .2s ease;
+        }
+        .appliquei-switch-slider::before {
+            content: ''; position: absolute; top: 3px; left: 3px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform .2s ease;
+        }
+        .appliquei-switch input:checked + .appliquei-switch-slider { background: var(--cor-primaria); }
+        .appliquei-switch input:checked + .appliquei-switch-slider::before { transform: translateX(20px); }
+        .appliquei-switch input:focus-visible + .appliquei-switch-slider { box-shadow: 0 0 0 3px rgba(5,150,105,0.25); }
+
+        /* Dia do mês × Período do compromisso — inputs sempre alinhados,
+           mesmo quando o label "Período do compromisso (anos)" quebra em
+           2 linhas e "Dia do mês" fica em 1. */
+        .prev-rec-grid { align-items: end; }
+        .prev-rec-grid .form-group { margin-bottom: 0; }
+        .prev-rec-grid-hint { margin-top: 6px; }
+
         /* Meu Patrimônio — cards e KPIs mais premium */
         #meu_patrimonio .card-container {
             border-radius: 16px;
@@ -5136,14 +5257,21 @@
             </div>
 
             <div id="grupoPrevidencia" style="display: none;">
-                <div class="form-group" style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background: var(--cor-superficie); border:1.5px dashed var(--cor-borda); border-radius: 9px;">
-                    <input type="checkbox" id="prevRecorrente" checked style="width:18px; height:18px; cursor:pointer; accent-color: var(--cor-primaria);">
-                    <label for="prevRecorrente" style="margin:0; cursor:pointer; font-size:13px; font-weight:600; color: var(--cor-texto-principal);">
-                        Aporte recorrente todo mês
-                        <small style="display:block; font-weight:400; font-size:11px; color: var(--cor-texto-mutado);">Lança automaticamente o mesmo valor no Controle Financeiro a cada mês — durante todo o período informado abaixo.</small>
+                <div class="prev-rec-toggle" id="boxPrevRecorrente">
+                    <label class="appliquei-switch" title="Ativar/desativar aporte recorrente">
+                        <input type="checkbox" id="prevRecorrente" checked>
+                        <span class="appliquei-switch-slider"></span>
                     </label>
+                    <label for="prevRecorrente" class="prev-rec-text">
+                        Aporte recorrente todo mês
+                        <small>Lança automaticamente o mesmo valor no Controle Financeiro a cada mês — durante todo o período informado abaixo.</small>
+                    </label>
+                    <span class="prev-rec-status">
+                        <span class="on"><i class="ph-fill ph-check-circle"></i> Ativo</span>
+                        <span class="off">Inativo</span>
+                    </span>
                 </div>
-                <div class="grid-2-iguais" style="gap: 15px;">
+                <div class="grid-2-iguais prev-rec-grid" style="gap: 15px;">
                     <div class="form-group">
                         <label>Dia do mês</label>
                         <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
@@ -5151,13 +5279,18 @@
                     <div class="form-group">
                         <label>Período do compromisso (anos)</label>
                         <input type="number" id="prevDuracaoAnos" min="1" max="40" placeholder="Ex: 10">
-                        <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
                     </div>
                 </div>
-                <div class="form-group" id="grupoTaxaMensalPrev">
+                <small class="prev-rec-grid-hint" style="font-size: 11px; color: var(--cor-texto-mutado); display: block;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
+                <div class="form-group" id="grupoTaxaMensalPrev" style="margin-top:16px;">
                     <label>Rentabilidade estimada (% ao mês)</label>
                     <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
                     <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                </div>
+                <div class="form-group" id="grupoSaldoInicialPrev">
+                    <label>Já tinha um valor guardado? <small style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--cor-texto-mutado);">— saldo inicial</small></label>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="prevSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span>
+                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Soma o que você já tinha acumulado <strong>antes de usar a Appliquei</strong>. Entra no seu patrimônio, mas <strong>não vira despesa no Controle Financeiro</strong> nem desconta de nenhum saldo.</small>
                 </div>
             </div>
             <div class="form-group" id="grupoOrigemRecurso">
