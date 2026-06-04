@@ -162,8 +162,19 @@ function registrarOperacaoAtivo() {
     const preco = parseBRL(document.getElementById('compraPreco').value);
     const subcategoria = categoria === 'renda_variavel' ? (document.getElementById('compraSubcategoria').value || subcategoriaInferidaDoTicker(ticker) || 'acoes') : null;
 
-    if (!ticker || isNaN(preco) || preco <= 0) return mostrarToast("Preencha Ticker e Valor corretamente.", "erro");
-    if (!semQtd && (isNaN(qtd) || qtd <= 0)) return mostrarToast("Preencha a Quantidade corretamente.", "erro");
+    // "Valor já guardado" (saldo inicial): só faz sentido em previdência /
+    // reserva e numa COMPRA. É o que o usuário já tinha acumulado antes de
+    // usar a Appliquei — entra no patrimônio, mas não toca o Controle.
+    const ehPrevOuReserva = (categoria === 'previdencia' || categoria === 'reserva_emergencia');
+    const saldoInicial = (ehPrevOuReserva && tipoOp === 'compra')
+        ? (parseBRL((document.getElementById('prevSaldoInicial') || {}).value) || 0)
+        : 0;
+    const temSaldoInicial = saldoInicial > 0;
+    const temAporte = !(isNaN(preco) || preco <= 0);
+
+    if (!ticker) return mostrarToast("Preencha o Ticker/Nome corretamente.", "erro");
+    if (!temAporte && !temSaldoInicial) return mostrarToast("Preencha o Valor corretamente.", "erro");
+    if (temAporte && !semQtd && (isNaN(qtd) || qtd <= 0)) return mostrarToast("Preencha a Quantidade corretamente.", "erro");
     if (!corretora) {
         const elCorr = document.getElementById('compraCorretora');
         if(elCorr) { elCorr.style.borderColor = 'var(--cor-erro)'; elCorr.focus(); setTimeout(() => { elCorr.style.borderColor = ''; }, 2500); }
@@ -176,81 +187,115 @@ function registrarOperacaoAtivo() {
         if (!ativoNaCarteira || ativoNaCarteira.qtdTotal < qtd) return mostrarToast(`Saldo insuficiente! Você possui apenas ${ativoNaCarteira ? ativoNaCarteira.qtdTotal : 0} unidades de ${ticker}.`, "erro");
     }
 
-    const valorTotal = qtd * preco;
     const dataOp = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
-    const operacao = {
-        id: Date.now(),
-        ticker: ticker,
-        quantidade: qtd,
-        preco_op: preco,
-        tipo: tipoOp,
-        data_op: dataOp.toISOString(),
-        categoria: categoria || null,
-        subcategoria: subcategoria,
-        corretora: corretora || null
-    };
-    if(categoria === 'renda_fixa') {
-        if(vencimento) operacao.vencimento = vencimento;
-        if(rentabilidade) operacao.rentabilidade = rentabilidade;
-    }
-    if(categoria === 'reserva_emergencia') {
-        if(rentabilidade) operacao.rentabilidade = rentabilidade;
-    }
-    const ehRecorrenteCompra = (categoria === 'previdencia' || categoria === 'reserva_emergencia') && tipoOp === 'compra';
-    if(ehRecorrenteCompra) {
-        operacao.recorrente = !!document.getElementById('prevRecorrente').checked;
-        const diaInp = parseInt(document.getElementById('prevDiaRecorrencia').value, 10);
-        operacao.diaRecorrencia = (diaInp >= 1 && diaInp <= 31) ? diaInp : dataOp.getDate();
-        const duracaoInp = parseInt(document.getElementById('prevDuracaoAnos').value, 10);
-        operacao.duracaoAnos = (duracaoInp >= 1 && duracaoInp <= 40) ? duracaoInp : (categoria === 'previdencia' ? 10 : 5);
-        if(categoria === 'previdencia') {
-            const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
-            operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
+    let valorTotal = 0;
+    let lancamentosFuturos = 0;
+
+    // === APORTE / OPERAÇÃO NORMAL (afeta o Controle Financeiro) ===
+    if (temAporte) {
+        valorTotal = qtd * preco;
+        const operacao = {
+            id: Date.now(),
+            ticker: ticker,
+            quantidade: qtd,
+            preco_op: preco,
+            tipo: tipoOp,
+            data_op: dataOp.toISOString(),
+            categoria: categoria || null,
+            subcategoria: subcategoria,
+            corretora: corretora || null
+        };
+        if(categoria === 'renda_fixa') {
+            if(vencimento) operacao.vencimento = vencimento;
+            if(rentabilidade) operacao.rentabilidade = rentabilidade;
         }
-    }
-    historicoCompras.push(operacao);
-    localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-
-    const descQtd = semQtd ? '' : `${formatarQtd(qtd)}x `;
-    if (tipoOp === 'compra') {
-        let tipoAtivoStr = semQtd ? 'investimento_fixo' : 'investimento_variavel';
-        transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Compra: ${descQtd}${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
-
-        // RN03: Origem do recurso. Quando o usuário declara que o aporte
-        // sai do saldo de uma instituição, gera transação espelho de
-        // transferência (abatendo o caixa). O abate aparece em
-        // mpCalcularSaldoPorInstituicao (#meu_patrimonio).
-        const elOrigemSel = document.getElementById('compraOrigemRecurso');
-        const origem = elOrigemSel ? elOrigemSel.value : 'externo';
-        if(origem === 'caixa_proprio' || origem === 'caixa_outra') {
-            const banco = origem === 'caixa_proprio'
-                ? corretora
-                : ((document.getElementById('compraOrigemBanco') || {}).value || '').trim();
-            if(banco) {
-                transacoes.push({
-                    id: 'tx_origem_' + operacao.id,
-                    operacaoId: operacao.id,
-                    descricao: `Transferência → ${ticker} (${corretora})`,
-                    valor: valorTotal,
-                    categoria: 'transferencia_saida',
-                    banco: banco,
-                    mes: dataOp.getMonth(),
-                    ano: dataOp.getFullYear(),
-                    data: dataOp.toISOString(),
-                    pago: true
-                });
+        if(categoria === 'reserva_emergencia') {
+            if(rentabilidade) operacao.rentabilidade = rentabilidade;
+        }
+        const ehRecorrenteCompra = ehPrevOuReserva && tipoOp === 'compra';
+        if(ehRecorrenteCompra) {
+            operacao.recorrente = !!document.getElementById('prevRecorrente').checked;
+            const diaInp = parseInt(document.getElementById('prevDiaRecorrencia').value, 10);
+            operacao.diaRecorrencia = (diaInp >= 1 && diaInp <= 31) ? diaInp : dataOp.getDate();
+            const duracaoInp = parseInt(document.getElementById('prevDuracaoAnos').value, 10);
+            operacao.duracaoAnos = (duracaoInp >= 1 && duracaoInp <= 40) ? duracaoInp : (categoria === 'previdencia' ? 10 : 5);
+            if(categoria === 'previdencia') {
+                const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
+                operacao.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
             }
         }
-    } else {
-        transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Venda Resgate: ${descQtd}${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
+        historicoCompras.push(operacao);
+
+        const descQtd = semQtd ? '' : `${formatarQtd(qtd)}x `;
+        if (tipoOp === 'compra') {
+            let tipoAtivoStr = semQtd ? 'investimento_fixo' : 'investimento_variavel';
+            transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Compra: ${descQtd}${ticker}`, valor: valorTotal, categoria: tipoAtivoStr, mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
+
+            // RN03: Origem do recurso. Quando o usuário declara que o aporte
+            // sai do saldo de uma instituição, gera transação espelho de
+            // transferência (abatendo o caixa). O abate aparece em
+            // mpCalcularSaldoPorInstituicao (#meu_patrimonio).
+            const elOrigemSel = document.getElementById('compraOrigemRecurso');
+            const origem = elOrigemSel ? elOrigemSel.value : 'externo';
+            if(origem === 'caixa_proprio' || origem === 'caixa_outra') {
+                const banco = origem === 'caixa_proprio'
+                    ? corretora
+                    : ((document.getElementById('compraOrigemBanco') || {}).value || '').trim();
+                if(banco) {
+                    transacoes.push({
+                        id: 'tx_origem_' + operacao.id,
+                        operacaoId: operacao.id,
+                        descricao: `Transferência → ${ticker} (${corretora})`,
+                        valor: valorTotal,
+                        categoria: 'transferencia_saida',
+                        banco: banco,
+                        mes: dataOp.getMonth(),
+                        ano: dataOp.getFullYear(),
+                        data: dataOp.toISOString(),
+                        pago: true
+                    });
+                }
+            }
+        } else {
+            transacoes.push({ id: operacao.id.toString(), operacaoId: operacao.id, descricao: `Venda Resgate: ${descQtd}${ticker}`, valor: valorTotal, categoria: 'resgate_investimento', mes: dataOp.getMonth(), ano: dataOp.getFullYear(), data: dataOp.toISOString(), pago: true });
+        }
+
+        // === COMPROMISSO RECORRENTE: previdência e reserva geram lançamentos futuros no Controle
+        if(ehRecorrenteCompra && operacao.recorrente && operacao.duracaoAnos > 0 && valorTotal > 0) {
+            lancamentosFuturos = gerarLancamentosFuturosCompromisso(operacao, valorTotal);
+        }
     }
 
-    // === COMPROMISSO RECORRENTE: previdência e reserva geram lançamentos futuros no Controle
-    let lancamentosFuturos = 0;
-    if(ehRecorrenteCompra && operacao.recorrente && operacao.duracaoAnos > 0 && valorTotal > 0) {
-        lancamentosFuturos = gerarLancamentosFuturosCompromisso(operacao, valorTotal);
+    // === SALDO INICIAL JÁ GUARDADO ===
+    // Dinheiro que o usuário já tinha acumulado ANTES de usar a Appliquei.
+    // Vira uma operação de compra (entra na carteira/patrimônio), mas NÃO
+    // gera transação no Controle Financeiro e NÃO abate o caixa de nenhuma
+    // instituição — porque esse valor já estava guardado, não é dinheiro novo.
+    if (temSaldoInicial) {
+        const opSaldo = {
+            id: Date.now() + 1,
+            ticker: ticker,
+            quantidade: 1,
+            preco_op: saldoInicial,
+            tipo: 'compra',
+            data_op: dataOp.toISOString(),
+            categoria: categoria || null,
+            subcategoria: null,
+            corretora: corretora || null,
+            saldoInicial: true,
+            recorrente: false
+        };
+        if(categoria === 'previdencia') {
+            const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
+            opSaldo.taxaMensal = (taxaInp > 0) ? (taxaInp / 100) : 0.008;
+        } else if(rentabilidade) {
+            opSaldo.rentabilidade = rentabilidade;
+        }
+        historicoCompras.push(opSaldo);
+        // Propositalmente sem push em `transacoes`: fora do fluxo de caixa.
     }
 
+    localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
     localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
     document.getElementById('compraTicker').value = ""; document.getElementById('compraQtd').value = ""; document.getElementById('compraPreco').value = ""; document.getElementById('compraTotalOp').innerText = "R$ 0,00";
     document.getElementById('compraCorretora').value = ""; document.getElementById('compraVencimento').value = ""; document.getElementById('compraRentabilidade').value = "";
@@ -261,12 +306,19 @@ function registrarOperacaoAtivo() {
     const inpTaxaPrev = document.getElementById('prevTaxaMensal'); if(inpTaxaPrev) inpTaxaPrev.value = '';
     const inpDurPrev = document.getElementById('prevDuracaoAnos'); if(inpDurPrev) inpDurPrev.value = '';
     const chkRecPrev = document.getElementById('prevRecorrente'); if(chkRecPrev) chkRecPrev.checked = true;
+    const inpSaldoIni = document.getElementById('prevSaldoInicial'); if(inpSaldoIni) inpSaldoIni.value = '';
     const elOrigem = document.getElementById('compraOrigemRecurso'); if(elOrigem) elOrigem.value = 'externo';
     const elOrigBanco = document.getElementById('compraOrigemBanco'); if(elOrigBanco) { elOrigBanco.value = ''; elOrigBanco.style.display = 'none'; }
     ajustarCamposPorCategoria();
-    const msgBase = tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`;
+    let msgBase;
+    if (!temAporte && temSaldoInicial) {
+        msgBase = `Saldo inicial de ${ticker} registrado no patrimônio (sem lançar no Controle).`;
+    } else {
+        msgBase = tipoOp === 'compra' ? `Compra de ${ticker} registrada com sucesso!` : `Venda de ${ticker} registrada com sucesso!`;
+    }
     const msgExtra = lancamentosFuturos > 0 ? ` ${lancamentosFuturos} lançamento${lancamentosFuturos===1?'':'s'} mensal${lancamentosFuturos===1?'':'is'} criado${lancamentosFuturos===1?'':'s'} no Controle.` : '';
-    mostrarToast(msgBase + msgExtra, tipoOp === 'compra' ? 'sucesso' : 'aviso');
+    const msgSaldo = (temAporte && temSaldoInicial) ? ` Saldo inicial de ${formatarMoeda(saldoInicial)} somado ao patrimônio.` : '';
+    mostrarToast(msgBase + msgExtra + msgSaldo, tipoOp === 'venda' ? 'aviso' : 'sucesso');
     atualizarCarteiraAtivos();
     atualizarDatalistDescricoes();
     inicializarDatalistCorretoras();
@@ -409,6 +461,16 @@ function editarOperacao(id) {
     if(inpDiaRec) inpDiaRec.value = op.diaRecorrencia || '';
     if(inpTaxaMensal) inpTaxaMensal.value = op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
     if(inpDuracao) inpDuracao.value = op.duracaoAnos || '';
+    // Saldo inicial: edita pelo campo próprio (sem virar aporte no Controle).
+    const inpSaldoIniEdit = document.getElementById('prevSaldoInicial');
+    if(inpSaldoIniEdit) {
+        if(op.saldoInicial) {
+            setValorBRLInput(inpSaldoIniEdit, op.preco_op || op.preco_pago || 0);
+            document.getElementById('compraPreco').value = '';
+        } else {
+            inpSaldoIniEdit.value = '';
+        }
+    }
     // Antes de recriar, limpa lançamentos futuros do compromisso (serão regerados ao Confirmar)
     if((op.categoria === 'previdencia' || op.categoria === 'reserva_emergencia') && op.recorrente) {
         removerLancamentosFuturosCompromisso(id);
