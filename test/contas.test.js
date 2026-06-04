@@ -108,3 +108,17 @@ test('seed é idempotente — rodar de novo não duplica', () => {
   s.appliqueiSeedContasDeStrings();
   assert.equal(s.contas.length, antes);
 });
+
+test('fundirContas: re-aponta contaId, soma saldoInicial e remove duplicata', () => {
+  const s = loadContas({});
+  const a = s.criarConta({ nome: 'Itaú', tipo: 'banco', saldoInicial: 100 });
+  const b = s.criarConta({ nome: 'Itaú Unibanco', tipo: 'banco', saldoInicial: 50 });
+  assert.equal(s.contas.length, 2);
+  // Simula um registro já carimbado com contaId (cenário Fase 2+).
+  s.transacoes.push({ categoria: 'receita', contaId: b.id, valor: 10 });
+  const destino = s.fundirContas(a.id, [b.id]);
+  assert.equal(destino.id, a.id);
+  assert.equal(s.contas.length, 1, 'duplicata removida');
+  assert.equal(s.obterConta(a.id).saldoInicial, 150, 'saldos iniciais somados');
+  assert.equal(s.transacoes[s.transacoes.length - 1].contaId, a.id, 'contaId re-apontado');
+});

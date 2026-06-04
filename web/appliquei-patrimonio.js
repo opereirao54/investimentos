@@ -824,6 +824,7 @@ async function renderMeuPatrimonio(skipFetch) {
   // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
   // rentabilidade. O antigo gráfico de barras foi removido.
   mpRenderDonut(consolidado);
+  if (typeof renderMinhasContas === 'function') renderMinhasContas();
   mpRenderInstituicoes(consolidado);
   mpRenderCartaoSnap();
 }

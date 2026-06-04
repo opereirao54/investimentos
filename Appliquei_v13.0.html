@@ -6572,6 +6572,31 @@
                 </div>
             </div>
 
+            <!-- Minhas Contas / Instituições (cadastro-mestre) -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Minhas Contas</h3>
+                    <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
+                </div>
+                <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
+                    <input type="hidden" id="contaEditId" value="">
+                    <div id="tituloFormConta" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Nova conta</div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Nome</label><input type="text" id="contaNome" placeholder="Ex: Nubank, Itaú, XP..."></div>
+                        <div class="form-group"><label>Tipo</label><select id="contaTipo"></select></div>
+                    </div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Saldo inicial (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="contaSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                        <div class="form-group"><label>Saldo nesta data</label><input type="date" id="contaDataSaldoInicial"></div>
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+                        <button class="btn-secundario" onclick="cancelarFormConta()">Cancelar</button>
+                        <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormConta()"><i class="ph ph-check"></i> Salvar</button>
+                    </div>
+                </div>
+                <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
+            </div>
+
             <!-- Divisão por instituição (abaixo do gráfico) -->
             <div class="card-container">
                 <div class="mp-section-head">

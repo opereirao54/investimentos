@@ -127,17 +127,37 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 - "Sem banco" deixa de ser silencioso: vira lista **"A reconciliar"** acionável.
 - Ganho: saldo por instituição correto, com saldo de abertura.
 
+### Fase 1b — UI "Minhas Contas". ✅
+
+- Card "Minhas Contas" dentro de Meu Patrimônio: listar, criar, editar, arquivar;
+  definir **saldo de abertura** (`saldoInicial` + `dataSaldoInicial`); **fundir
+  duplicadas** (`fundirContas` re-aponta `contaId` e soma saldos iniciais).
+- Ainda registro-apenas: nenhum cálculo de saldo usa `contaId` (isso é a Fase 2).
+
+### Fase 2 — Caixa por conta (switch de leitura)
+
+- `patrimonio.js` passa a agrupar por `contaId` e a somar `saldoInicial`.
+- Carimba `contaId` nas transações/operações por match de nome (migração
+  coordenada com o short-circuit de boot do sync, `cloud-sync.js:251-274`).
+- O campo de banco no formulário vira **seletor de conta** (+ "nova conta").
+- "Sem banco" deixa de ser silencioso: vira lista **"A reconciliar"** acionável.
+- Ganho: saldo por instituição correto, com saldo de abertura.
+
 ### Fase 3 — Fechar as saídas
 
-- Aporte de investimento exige conta-origem (corrige o **duplo-débito**).
-- Pagamento de fatura debita a **conta pagadora** do cartão.
+- **Aporte de investimento exige conta-origem** e vira `transferencia_saida` com
+  `contaId` — o aporte deixa de abater o caixa como `investimento_*` (decisão 3),
+  acabando com o duplo-débito.
+- **Pagamento de fatura** debita a **conta pagadora padrão do cartão**
+  (`cartoes[].contaPagadoraId`, decisão 2).
 - Previdência e sonho passam a gravar `contaId`.
 - Ganho: toda **saída** passa por conta.
 
 ### Fase 4 — Fechar as entradas
 
 - Venda/Resgate credita uma conta.
-- Dividendos viram entrada de caixa ("marcar como recebido na conta X").
+- **Dividendos são lançados automaticamente** como entrada de caixa na corretora
+  pagadora (decisão 1).
 - Ganho: toda **entrada** passa por conta.
 
 ### Fase 5 — Transferência de 1ª classe
@@ -145,18 +165,16 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 - Ação "Transferência entre contas" (dupla-perna). Deprecação dos campos string
   `banco`/`corretora` (mantidos só para ler backups antigos).
 
-## 6. Decisões de produto em aberto (afetam Fases 3–4)
+## 6. Decisões de produto (fechadas)
 
-1. **Dividendos**: lançar automático (assume recebido na corretora) **ou** exigir
-   confirmação manual? _Proposta: confirmação manual_ — não inventar caixa que o
-   usuário talvez tenha reinvestido/sacado.
-2. **Cartão**: vincular **conta pagadora padrão** ao cartão **ou** perguntar a
-   cada baixa de fatura? _Proposta: conta padrão opcional + perguntar se não houver._
-3. **Duplo-débito do aporte**: escolher UMA representação — o aporte vira
-   `transferencia_saida` com `contaId` (e some do caixa como `investimento_*`),
-   **ou** excluir `investimento_*` do cálculo de caixa quando há espelho.
-   _Proposta: a primeira._
-4. **Fusão de contas**: oferecer merge de duplicados na Fase 1b ou só depois?
+1. **Dividendos**: **lançamento automático** — assume recebimento na corretora
+   pagadora (Fase 4).
+2. **Cartão**: **conta pagadora padrão vinculada ao cartão**
+   (`cartoes[].contaPagadoraId`); a baixa da fatura debita essa conta (Fase 3).
+3. **Duplo-débito do aporte**: o aporte vira **`transferencia_saida` com
+   `contaId`** e deixa de abater o caixa como `investimento_*` (Fase 3).
+4. **Fusão de contas**: **incluída na Fase 1b** (merge de duplicadas com soma de
+   saldos iniciais e re-aponte de `contaId`).
 
 ## 7. Riscos e mitigação
 
