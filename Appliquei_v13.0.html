@@ -3880,13 +3880,17 @@
                 grid-template-columns: 1fr 1fr !important;
             }
 
-            /* Simulador hero (verde) — empilha e reduz tipografia */
-            #simulador > div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
+            /* Simulador heros (verde) — empilham e reduzem tipografia.
+               Os heros vivem dentro de #simModoProjetar / #simModoMeta, por
+               isso usamos descendente (e não filho direto de #simulador),
+               senão os blocos "Projetar" e "Planejar meta" não quebravam. */
+            #simulador div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] {
                 grid-template-columns: 1fr !important;
                 padding: 18px 18px !important;
                 gap: 14px !important;
             }
-            #heroDiff {
+            #heroDiff,
+            #metaAporteMensal {
                 font-size: 26px !important;
                 letter-spacing: -0.5px !important;
                 line-height: 1.1 !important;
@@ -3894,7 +3898,8 @@
             #heroMultiplo {
                 padding: 14px 16px !important;
             }
-            #heroMultiplo div[style*="font-size:26px"] {
+            #heroMultiplo div[style*="font-size:26px"],
+            #simulador div[style*="grid-template-columns:1fr 1fr"][style*="background:linear-gradient"] div[style*="font-size:26px"] {
                 font-size: 20px !important;
                 line-height: 1.15 !important;
             }
@@ -3907,13 +3912,18 @@
             /* Bloco juros 72x72 + legenda vira coluna em telas estreitas */
             #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
 
-            /* Parâmetros da simulação (3 cols / 2 cols) → quebra melhor */
+            /* Parâmetros da simulação (3 cols) → 2 cols, 1º campo largo */
             #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
                 grid-template-columns: 1fr 1fr !important;
                 gap: 10px !important;
             }
             #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
                 grid-column: 1 / -1;
+            }
+            /* Campos da meta em 2 cols inline (acumular um valor) → 1 coluna */
+            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
             }
 
             /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
@@ -4012,6 +4022,49 @@
             .hero-kpis { grid-template-columns: 1fr 1fr 1fr !important; gap: 8px !important; }
             .hero-kpi { padding: 4px 8px !important; border-top: none !important; border-left: 1px solid var(--cor-borda); }
             .hero-kpi:first-child { border-left: none; }
+        }
+
+        /* ============================================================
+           Responsividade focada — Carteira recomendada, "Simule sua
+           liberdade" (Simulador) e Meus Sonhos
+           ============================================================ */
+        @media (max-width: 768px) {
+            /* Carteira: a faixa de períodos (1/3/5/10/20/30/50 anos) não
+               cabe em telas estreitas; vira uma régua que rola na horizontal
+               em vez de estourar a largura do card. */
+            #carteira .cart-sim-ranges {
+                display: flex;
+                width: 100%;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+            }
+            #carteira .cart-sim-ranges::-webkit-scrollbar { display: none; }
+            #carteira .cart-sim-range-btn { flex: 0 0 auto; white-space: nowrap; }
+
+            /* Carteira: cabeçalho da simulação empilha título e régua */
+            #carteira .cart-sim-header { align-items: stretch; }
+        }
+
+        @media (max-width: 560px) {
+            /* Sonhos: o cartão recolhido (avatar + nome + barra + botão)
+               fica espremido demais; deixamos a barra de progresso ocupar
+               uma linha inteira abaixo do nome. */
+            #meus_sonhos .sonho-card-collapsed { flex-wrap: wrap; gap: 12px; }
+            #meus_sonhos .sonho-collapsed-progress {
+                flex: 1 1 100%;
+                min-width: 0;
+                order: 5;
+            }
+
+            /* Simulador: parâmetros em uma única coluna para caber bem */
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"],
+            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
+                grid-template-columns: 1fr !important;
+            }
+            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
+                grid-column: auto;
+            }
         }
 
         /* ============================================================
