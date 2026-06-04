@@ -27,6 +27,7 @@ const LOAD_ORDER = [
   'web/appliquei-utils.js',
   'web/appliquei-yahoo-finance.js',
   'web/appliquei-app.js',
+  'web/appliquei-contas.js',
   'web/appliquei-aba1-charts.js',
   'web/appliquei-renda-fixa.js',
   'web/appliquei-previdencia.js',
@@ -255,11 +256,7 @@ test('todos os classic scripts carregam sem lançar', () => {
       errors.push(`${file}: ${e.message}\n  at line ${e.lineNumber || '?'}`);
     }
   }
-  assert.equal(
-    errors.length,
-    0,
-    `Classic scripts lançaram durante load:\n${errors.join('\n')}`
-  );
+  assert.equal(errors.length, 0, `Classic scripts lançaram durante load:\n${errors.join('\n')}`);
 });
 
 test('depois do load, globais cross-file vivem em window', () => {

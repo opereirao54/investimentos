@@ -7201,6 +7201,10 @@
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
     <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
+    <!-- Contas / Instituições financeiras (entidade central). Carrega logo
+         após app.js: usa transacoes/historicoCompras p/ o seed inicial e
+         expõe `contas` + CRUD p/ os módulos seguintes. -->
+    <script src="/web/appliquei-contas.js?v=contas-fase1"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
     <script src="/web/appliquei-aba1-charts.js?v=onda3b"></script>
