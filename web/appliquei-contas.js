@@ -76,6 +76,87 @@ function contasAtivas() {
   });
 }
 
+// === Saldo de caixa por conta (fonte única de verdade p/ os seletores) =======
+// Reaproveita o cálculo canônico do Patrimônio (mpCalcularSaldoPorInstituicao):
+// caixa = saldo de abertura + entradas - saídas pagas, por instituição/conta.
+// Retorna um mapa { contaId: saldoEmCaixa }. Sem o módulo de patrimônio (ex.:
+// testes), cai para o saldo inicial cadastrado.
+function saldoCaixaPorConta(refMs) {
+  const ref = refMs != null ? refMs : Date.now();
+  const mapa = {};
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const porInst = mpCalcularSaldoPorInstituicao(ref) || {};
+    Object.keys(porInst).forEach(function (k) {
+      mapa[k] = Number(porInst[k] && porInst[k].caixa) || 0;
+    });
+  } else {
+    contasAtivas().forEach(function (c) {
+      mapa[c.id] = Number(c.saldoInicial) || 0;
+    });
+  }
+  return mapa;
+}
+
+// Contas ativas que TÊM dinheiro em caixa (saldo > 0), com o saldo anexado e
+// ordenadas da maior para a menor. É a lista que deve aparecer em qualquer
+// seletor de "de onde o dinheiro sai/entra": só instituições com dinheiro, e
+// sempre com o saldo à mostra. Nunca inclui "a reconciliar".
+function contasComSaldo(refMs) {
+  const saldos = saldoCaixaPorConta(refMs);
+  return contasAtivas()
+    .map(function (c) {
+      return { conta: c, saldo: Number(saldos[c.id]) || 0 };
+    })
+    .filter(function (x) {
+      return x.saldo > 0.005;
+    })
+    .sort(function (a, b) {
+      return b.saldo - a.saldo;
+    });
+}
+
+// Monta o innerHTML de um <select> de conta. Por padrão lista só contas com
+// saldo (origem do dinheiro). Opções:
+//   selecionadoId   → marca a opção atual como selected
+//   placeholder     → texto da 1ª opção vazia (default "— selecione a conta —")
+//   semPlaceholder  → não inclui a opção vazia inicial
+//   incluirTodas    → lista TODAS as contas ativas (destino do dinheiro), ainda
+//                     assim mostrando o saldo de cada uma
+//   vazioMsg        → texto quando não há nenhuma conta elegível
+function optionsContasComSaldo(opcoes) {
+  const o = opcoes || {};
+  const fmt = function (v) {
+    return typeof formatarMoeda === 'function' ? formatarMoeda(v) : 'R$ ' + (Number(v) || 0).toFixed(2);
+  };
+  let lista;
+  if (o.incluirTodas) {
+    const saldos = saldoCaixaPorConta();
+    lista = contasAtivas().map(function (c) {
+      return { conta: c, saldo: Number(saldos[c.id]) || 0 };
+    });
+  } else {
+    lista = contasComSaldo();
+  }
+  if (!lista.length) {
+    const msg = o.vazioMsg || '— nenhuma conta com saldo disponível —';
+    return '<option value="">' + msg + '</option>';
+  }
+  const sel = o.selecionadoId != null ? String(o.selecionadoId) : '';
+  const itens = lista
+    .map(function (x) {
+      const marca = String(x.conta.id) === sel ? ' selected' : '';
+      return (
+        '<option value="' + x.conta.id + '"' + marca + '>' +
+        x.conta.nome + ' — ' + fmt(x.saldo) +
+        '</option>'
+      );
+    })
+    .join('');
+  if (o.semPlaceholder) return itens;
+  const ph = o.placeholder || '— selecione a conta —';
+  return '<option value="">' + ph + '</option>' + itens;
+}
+
 function obterConta(id) {
   if (!id) return null;
   return (
@@ -515,13 +596,17 @@ function abrirTransferenciaModal() {
   if (ativas.length < 2) {
     return mostrarToast('Cadastre pelo menos duas contas para transferir.', 'aviso');
   }
+  // Origem ("De") = de onde o dinheiro sai: só contas com saldo, com o valor à
+  // mostra. Destino ("Para") = para onde o dinheiro entra: qualquer conta ativa,
+  // também mostrando o saldo atual de cada uma.
+  const comSaldo = contasComSaldo();
+  if (!comSaldo.length) {
+    return mostrarToast('Nenhuma conta com saldo disponível para transferir.', 'aviso');
+  }
   const modal = document.getElementById('modalConfirmacao');
   if (!modal) return;
-  const opts = ativas
-    .map(function (c) {
-      return '<option value="' + c.id + '">' + c.nome + '</option>';
-    })
-    .join('');
+  const optsOrigem = optionsContasComSaldo({ semPlaceholder: true });
+  const optsDestino = optionsContasComSaldo({ incluirTodas: true, semPlaceholder: true });
   const campo = function (label, html) {
     return (
       '<div><label style="font-size:12px;color:var(--cor-texto-secundario);">' +
@@ -537,8 +622,8 @@ function abrirTransferenciaModal() {
     '<i class="ph ph-arrows-left-right" style="color:var(--cor-info);"></i> Transferir entre contas';
   document.getElementById('modalMensagem').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
-    campo('De', '<select id="transfOrigem" style="' + estiloCtrl + '">' + opts + '</select>') +
-    campo('Para', '<select id="transfDestino" style="' + estiloCtrl + '">' + opts + '</select>') +
+    campo('De', '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>') +
+    campo('Para', '<select id="transfDestino" style="' + estiloCtrl + '">' + optsDestino + '</select>') +
     campo(
       'Valor (R$)',
       '<input type="text" inputmode="decimal" id="transfValor" placeholder="0,00" oninput="aplicarMascaraBRL(this)" style="' +
@@ -556,8 +641,15 @@ function abrirTransferenciaModal() {
     '</div>';
   document.getElementById('modalAcoes').innerHTML =
     '<button class="btn-acao" style="background:var(--cor-info);" onclick="confirmarTransferencia()"><i class="ph ph-check"></i> Transferir</button>';
+  // destino != origem por padrão: origem nasce na conta de maior saldo.
+  const origemDefault = comSaldo[0].conta.id;
   const dst = document.getElementById('transfDestino');
-  if (dst) dst.value = ativas[1].id; // destino != origem por padrão
+  if (dst) {
+    const outra = ativas.find(function (c) {
+      return c.id !== origemDefault;
+    });
+    if (outra) dst.value = outra.id;
+  }
   modal.style.display = 'flex';
 }
 
@@ -641,6 +733,9 @@ if (typeof window !== 'undefined') {
   window.arquivarConta = arquivarConta;
   window.fundirContas = fundirContas;
   window.contasAtivas = contasAtivas;
+  window.saldoCaixaPorConta = saldoCaixaPorConta;
+  window.contasComSaldo = contasComSaldo;
+  window.optionsContasComSaldo = optionsContasComSaldo;
   window.appliqueiNormalizarNomeConta = appliqueiNormalizarNomeConta;
   window.appliqueiSeedContasDeStrings = appliqueiSeedContasDeStrings;
   // UI "Minhas Contas"

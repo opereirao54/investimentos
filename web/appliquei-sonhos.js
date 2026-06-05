@@ -1038,14 +1038,24 @@ function selecionarEsforcoSonho(nivel) {
   });
 }
 
-// Popula o seletor de conta-origem do sonho com as contas cadastradas (Fase 4).
+// Popula o seletor de conta-origem do sonho: só instituições COM dinheiro em
+// caixa e sempre mostrando o saldo (de onde o dinheiro do sonho vai sair). Nada
+// de "a reconciliar".
 function popularSelectSonhoContaOrigem(selecionadoId) {
   const sel = document.getElementById('sonhoContaOrigem');
   if (!sel) return;
-  const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
-  sel.innerHTML =
-    '<option value="">— a reconciliar (sem conta) —</option>' +
-    ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
+  if (typeof optionsContasComSaldo === 'function') {
+    sel.innerHTML = optionsContasComSaldo({
+      selecionadoId: selecionadoId,
+      placeholder: '— selecione a conta —',
+      vazioMsg: '— nenhuma conta com saldo disponível —',
+    });
+  } else {
+    const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+    sel.innerHTML =
+      '<option value="">— selecione a conta —</option>' +
+      ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
   sel.value = selecionadoId || '';
 }
 

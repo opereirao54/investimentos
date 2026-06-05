@@ -409,9 +409,19 @@ function popularSelectContaPagadora(selecionadoId) {
     sel.value = '';
     return;
   }
-  sel.innerHTML =
-    '<option value="">— selecione a conta —</option>' +
-    ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
+  // A conta pagadora é de onde o dinheiro sai para quitar a fatura: só lista
+  // instituições com saldo em caixa, sempre mostrando o valor disponível.
+  if (typeof optionsContasComSaldo === 'function') {
+    sel.innerHTML = optionsContasComSaldo({
+      selecionadoId: selecionadoId,
+      placeholder: '— selecione a conta —',
+      vazioMsg: '— nenhuma conta com saldo disponível —',
+    });
+  } else {
+    sel.innerHTML =
+      '<option value="">— selecione a conta —</option>' +
+      ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
+  }
   sel.value = selecionadoId || '';
 }
 
@@ -1031,29 +1041,18 @@ window.onload = function () {
 function popularOrigemRecurso() {
   const sel = document.getElementById('compraOrigemRecurso');
   if (!sel) return;
-  const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
-  const saldos =
-    typeof mpCalcularSaldoPorInstituicao === 'function'
-      ? mpCalcularSaldoPorInstituicao(Date.now())
-      : {};
-  const comSaldo = ativas
-    .map((c) => ({ c, caixa: saldos[c.id] ? saldos[c.id].caixa : 0 }))
-    .filter((x) => x.caixa > 0.005)
-    .sort((a, b) => b.caixa - a.caixa);
   const prev = sel.value;
+  const comSaldo = typeof contasComSaldo === 'function' ? contasComSaldo() : [];
   if (!comSaldo.length) {
     sel.innerHTML = '<option value="">— nenhuma conta com saldo disponível —</option>';
     sel.value = '';
     ajustarOrigemRecursoCampos();
     return;
   }
-  const fmtSaldo = (caixa) =>
-    typeof formatarMoeda === 'function' ? ` (${formatarMoeda(caixa)})` : '';
   sel.innerHTML =
-    '<option value="">— selecione a conta —</option>' +
-    comSaldo
-      .map((x) => `<option value="${x.c.id}">${x.c.nome}${fmtSaldo(x.caixa)}</option>`)
-      .join('');
+    typeof optionsContasComSaldo === 'function'
+      ? optionsContasComSaldo({ placeholder: '— selecione a conta —' })
+      : '<option value="">— selecione a conta —</option>';
   // Preserva a seleção anterior se ela ainda existir entre as opções.
   sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
   ajustarOrigemRecursoCampos();
