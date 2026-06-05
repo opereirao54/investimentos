@@ -135,14 +135,17 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   "Por instituição" (os vazamentos conhecidos agora aparecem explicitamente).
 - Ganho: saldo por instituição correto, com saldo de abertura.
 
-### Fase 3 — Fechar as saídas
+### Fase 3 — Fechar as saídas (em andamento)
 
-- **Aporte de investimento exige conta-origem** e vira `transferencia_saida` com
-  `contaId` — o aporte deixa de abater o caixa como `investimento_*` (decisão 3),
-  acabando com o duplo-débito.
-- **Pagamento de fatura** debita a **conta pagadora padrão do cartão**
-  (`cartoes[].contaPagadoraId`, decisão 2).
-- Previdência e sonho passam a gravar `contaId`.
+- **Pagamento de fatura → conta pagadora do cartão.** ✅ `cartoes[].contaPagadoraId`
+  (seletor na config do cartão); a baixa (`confirmarBaixarGrupoCartao` /
+  `confirmarPagamento`) carimba `contaId` nas parcelas pagas, debitando a conta
+  certa em vez de cair em "A reconciliar".
+- **Aporte de investimento → `transferencia_saida` com `contaId`** (decisão 3): o
+  `investimento_*` deixa de abater o caixa; o débito passa a ser a perna de
+  transferência da conta-origem, acabando com o duplo-débito. ⏳ pendente.
+- **Previdência e sonho** geram a perna de caixa a partir de uma conta-origem. ⏳
+  pendente.
 - Ganho: toda **saída** passa por conta.
 
 ### Fase 4 — Fechar as entradas

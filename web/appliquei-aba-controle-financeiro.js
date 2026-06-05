@@ -1179,7 +1179,13 @@ function confirmarBaixarGrupoCartao(key) {
   const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
   if (!grupo) return;
   const ids = new Set(grupo.itens.map((i) => i.id));
-  transacoes = transacoes.map((t) => (ids.has(t.id) ? { ...t, pago: true } : t));
+  // Fase 3: a baixa debita a CONTA PAGADORA do cartão (carimba contaId nas
+  // parcelas pagas). Sem conta pagadora definida, mantém o contaId existente.
+  const cartao = typeof obterCartao === 'function' ? obterCartao(grupo.cartaoId) : null;
+  const contaPag = cartao && cartao.contaPagadoraId ? cartao.contaPagadoraId : undefined;
+  transacoes = transacoes.map((t) =>
+    ids.has(t.id) ? { ...t, pago: true, contaId: contaPag || t.contaId } : t
+  );
   localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
   mostrarToast('Fatura baixada como paga.', 'sucesso');
   fecharModal();
@@ -1215,6 +1221,11 @@ function confirmarPagamento(id) {
       if (t.valor !== novoValor) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
+      }
+      // Fase 3: baixa de cartão debita a conta pagadora do cartão.
+      if (t.categoria === 'cartao_credito' && t.cartaoId && typeof obterCartao === 'function') {
+        const card = obterCartao(t.cartaoId);
+        if (card && card.contaPagadoraId) t.contaId = card.contaPagadoraId;
       }
       txPaga = t;
     }

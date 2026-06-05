@@ -385,6 +385,17 @@ function renderizarListaCartoesConfig() {
     .join('');
 }
 
+// Popula o seletor de conta pagadora do cartão com as contas cadastradas.
+function popularSelectContaPagadora(selecionadoId) {
+  const sel = document.getElementById('novoCartaoContaPagadora');
+  if (!sel) return;
+  const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+  sel.innerHTML =
+    '<option value="">— nenhuma —</option>' +
+    ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
+  sel.value = selecionadoId || '';
+}
+
 function abrirNovoCartaoConfig() {
   document.getElementById('formNovoCartaoConfig').style.display = 'block';
   document.getElementById('btnAbrirNovoCartao').style.display = 'none';
@@ -392,6 +403,7 @@ function abrirNovoCartaoConfig() {
   document.getElementById('novoCartaoLimite').value = '';
   document.getElementById('novoCartaoDiaFech').value = '';
   document.getElementById('novoCartaoDiaVenc').value = '';
+  popularSelectContaPagadora('');
   document.getElementById('novoCartaoNome').dataset.editandoId = '';
   document.getElementById('novoCartaoNome').focus();
 }
@@ -407,6 +419,7 @@ function salvarNovoCartaoConfig() {
   const diaFech = parseInt(document.getElementById('novoCartaoDiaFech').value);
   const diaVenc = parseInt(document.getElementById('novoCartaoDiaVenc').value);
   const editandoId = document.getElementById('novoCartaoNome').dataset.editandoId;
+  const contaPagadoraId = (document.getElementById('novoCartaoContaPagadora') || {}).value || null;
 
   if (!nome) return mostrarToast('Informe o nome do cartão.', 'erro');
   if (!diaFech || diaFech < 1 || diaFech > 31)
@@ -421,6 +434,7 @@ function salvarNovoCartaoConfig() {
       c.limite = limite;
       c.diaFechamento = diaFech;
       c.diaVencimento = diaVenc;
+      c.contaPagadoraId = contaPagadoraId;
     }
   } else {
     cartoes.push({
@@ -429,6 +443,7 @@ function salvarNovoCartaoConfig() {
       limite,
       diaFechamento: diaFech,
       diaVencimento: diaVenc,
+      contaPagadoraId,
     });
   }
   salvarCartoes();
@@ -448,6 +463,7 @@ function editarCartaoConfig(id) {
   setValorBRLInput(document.getElementById('novoCartaoLimite'), c.limite || 0);
   document.getElementById('novoCartaoDiaFech').value = c.diaFechamento || '';
   document.getElementById('novoCartaoDiaVenc').value = c.diaVencimento || '';
+  popularSelectContaPagadora(c.contaPagadoraId || '');
   document.getElementById('novoCartaoNome').dataset.editandoId = id;
   document.getElementById('novoCartaoNome').focus();
 }
