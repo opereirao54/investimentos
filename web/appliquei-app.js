@@ -364,6 +364,15 @@ function renderizarListaCartoesConfig() {
     .map((c) => {
       const fech = c.diaFechamento ? `Fech. dia ${c.diaFechamento}` : 'Sem fechamento';
       const venc = c.diaVencimento ? `Venc. dia ${c.diaVencimento}` : 'Sem vencimento';
+      // Conta pagadora é obrigatória nos novos cartões; cartões antigos podem não
+      // ter — sinalizamos para o usuário corrigir editando o cartão.
+      const contaPag =
+        c.contaPagadoraId && typeof obterConta === 'function'
+          ? obterConta(c.contaPagadoraId)
+          : null;
+      const pagaTxt = contaPag
+        ? ` • Paga: ${contaPag.nome}`
+        : ' • <span style="color:var(--cor-erro);font-weight:600;">defina a conta pagadora</span>';
       const arq = c.arquivado;
       const acaoBtn = arq
         ? `<button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-primaria);border-color:var(--cor-primaria);" onclick="restaurarCartaoConfig('${c.id}')" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i></button>`
@@ -376,7 +385,7 @@ function renderizarListaCartoesConfig() {
                         <i class="ph ph-credit-card" style="color:var(--cor-cartao);font-size:18px;"></i>
                         <div style="flex:1;min-width:0;">
                             <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.nome}${badge}</div>
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${fech} • ${venc}</div>
+                            <div style="font-size:11px;color:var(--cor-texto-mutado);">Limite ${formatarMoeda(c.limite || 0)} • ${fech} • ${venc}${pagaTxt}</div>
                         </div>
                         <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCartaoConfig('${c.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         ${acaoBtn}
@@ -386,12 +395,20 @@ function renderizarListaCartoesConfig() {
 }
 
 // Popula o seletor de conta pagadora do cartão com as contas cadastradas.
+// A conta pagadora é OBRIGATÓRIA (salvarNovoCartaoConfig bloqueia sem ela), por
+// isso o placeholder é "selecione" (value vazio) e, sem nenhuma conta, o select
+// orienta o usuário a cadastrar uma em Meu patrimônio antes de criar o cartão.
 function popularSelectContaPagadora(selecionadoId) {
   const sel = document.getElementById('novoCartaoContaPagadora');
   if (!sel) return;
   const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+  if (!ativas.length) {
+    sel.innerHTML = '<option value="">— cadastre uma conta em Meu patrimônio —</option>';
+    sel.value = '';
+    return;
+  }
   sel.innerHTML =
-    '<option value="">— nenhuma —</option>' +
+    '<option value="">— selecione a conta —</option>' +
     ativas.map((c) => `<option value="${c.id}">${c.nome}</option>`).join('');
   sel.value = selecionadoId || '';
 }
@@ -426,6 +443,18 @@ function salvarNovoCartaoConfig() {
     return mostrarToast('Informe o dia de fechamento (1 a 31).', 'erro');
   if (!diaVenc || diaVenc < 1 || diaVenc > 31)
     return mostrarToast('Informe o dia de vencimento (1 a 31).', 'erro');
+  // Conta pagadora OBRIGATÓRIA: é dela que sai o dinheiro quando a fatura é paga
+  // (Meu Patrimônio debita o caixa dessa instituição). Sem ela, a baixa cairia
+  // em "A reconciliar" e a foto do patrimônio ficaria furada.
+  if (!contaPagadoraId) {
+    if (typeof contasAtivas === 'function' && !contasAtivas().length) {
+      return mostrarToast(
+        'Cadastre uma conta em "Meu patrimônio" e selecione qual paga a fatura.',
+        'erro'
+      );
+    }
+    return mostrarToast('Selecione a conta que paga a fatura do cartão.', 'erro');
+  }
 
   if (editandoId) {
     const c = cartoes.find((x) => x.id === editandoId);

@@ -138,7 +138,8 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 ### Fase 3 — Fechar as saídas (em andamento)
 
 - **Pagamento de fatura → conta pagadora do cartão.** ✅ `cartoes[].contaPagadoraId`
-  (seletor na config do cartão); a baixa (`confirmarBaixarGrupoCartao` /
+  (seletor **obrigatório** na config do cartão — `salvarNovoCartaoConfig` bloqueia
+  o salvamento sem conta pagadora); a baixa (`confirmarBaixarGrupoCartao` /
   `confirmarPagamento`) carimba `contaId` nas parcelas pagas, debitando a conta
   certa em vez de cair em "A reconciliar".
 - **Compra manual de ativo → conta-origem obrigatória.** ✅ O aporte gera uma
@@ -190,8 +191,10 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 
 1. **Dividendos**: **lançamento automático** — assume recebimento na corretora
    pagadora (Fase 4).
-2. **Cartão**: **conta pagadora padrão vinculada ao cartão**
+2. **Cartão**: **conta pagadora obrigatória vinculada ao cartão**
    (`cartoes[].contaPagadoraId`); a baixa da fatura debita essa conta (Fase 3).
+   O cadastro do cartão exige escolher a conta pagadora — sem ela, a foto do
+   patrimônio em "Meu Patrimônio" ficaria furada (a baixa cairia em "A reconciliar").
 3. **Duplo-débito do aporte**: o aporte vira **`transferencia_saida` com
    `contaId`** e deixa de abater o caixa como `investimento_*` (Fase 3).
 4. **Fusão de contas**: **incluída na Fase 1b** (merge de duplicadas com soma de
