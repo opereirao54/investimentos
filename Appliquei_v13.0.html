@@ -5278,13 +5278,15 @@
             <div class="grid-2-iguais" style="gap: 15px;" id="grupoQtdPreco">
                 <div class="form-group" id="grupoQtd">
                     <label>Quantidade</label>
-                    <input type="text" inputmode="decimal" step="any" id="compraQtd" data-qtd="1" placeholder="Ex: 1.250 ou 0,000087" oninput="aplicarMascaraQtd(this); calcularTotalCompra(); atualizarProjecaoForm()">
+                    <input type="text" inputmode="decimal" step="any" id="compraQtd" data-qtd="1" placeholder="Ex: 1.250 ou 0,000087" oninput="aplicarMascaraQtd(this); calcularTotalCompra(); atualizarProjecaoForm(); atualizarInfoResgate()">
                 </div>
                 <div class="form-group">
                     <label id="lblPrecoOp">Preço Pago (R$)</label>
-                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm(); atualizarInfoResgate()"></span>
                 </div>
             </div>
+            <!-- Resgate: saldo do dia + IR estimado + botão "Resgatar tudo" (só no modo Venda) -->
+            <div id="resgateInfoBox" style="display:none;margin-bottom:14px;"></div>
             <div class="grid-2-iguais" style="gap: 15px;">
                 <div class="form-group">
                     <label>Data da Operação</label>
@@ -5354,6 +5356,13 @@
                 </select>
                 <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Registre uma receita ou um saldo inicial em Meu Patrimônio para liberar a conta aqui.</small>
                 <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
+            </div>
+            <div class="form-group" id="grupoDestinoRecurso" style="display:none;">
+                <label>Conta onde cai o dinheiro <small style="color:var(--cor-texto-mutado);font-weight:400">— credita o Saldo em Conta no Meu Patrimônio</small></label>
+                <select id="compraDestinoRecurso">
+                    <option value="">— mesma corretora/banco do ativo —</option>
+                </select>
+                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Onde o valor resgatado deve ser creditado. Por padrão, cai na conta da corretora/banco do ativo.</small>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
                 <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>

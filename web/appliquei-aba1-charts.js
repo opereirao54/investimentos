@@ -902,9 +902,7 @@ function atualizarCarteiraAtivos() {
     const ativos = [];
     for (let ticker in carteiraConsolidada) {
         let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue;
-        totalAtivosValidos++;
         let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
-        const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
         let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
         if(ativo.categoria === 'previdencia') {
             saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
@@ -916,6 +914,11 @@ function atualizarCarteiraAtivos() {
             saldoAtualAtivo = valorAtualRendaFixa(ticker, ativo.categoria);
             precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
         }
+        // Posição sem cotação totalmente resgatada (valor ~0) some da carteira.
+        const semCotacao = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia' || ativo.categoria === 'previdencia';
+        if (semCotacao && saldoAtualAtivo < 0.01) continue;
+        totalAtivosValidos++;
+        const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
         let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
         totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
         const categoriaEfetiva = inferirCategoria(ticker, ativo, ativoMercado);
@@ -1018,6 +1021,7 @@ function atualizarCarteiraAtivos() {
                     <div class="rich-expand-stat"><div class="re-label">Resultado</div><div class="re-value" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)} (${sinalLucro}${lucroPerc.toFixed(2)}%)</div></div>
                 </div>
                 <div class="rich-expand-actions">
+                    <button class="btn-secundario" style="font-size:11px;padding:5px 12px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="event.stopPropagation();iniciarResgate('${ticker}');"><i class="ph ph-hand-coins"></i> ${semQtdAtivo ? 'Resgatar' : 'Vender'}</button>
                     <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();"><i class="ph ph-list-bullets"></i> Operações</button>
                     <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('dividendos');filtrarDividendosPorAtivo('${ticker}');"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>

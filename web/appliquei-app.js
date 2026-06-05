@@ -907,14 +907,29 @@ function ajustarCamposPorCategoria() {
   }
 
   // Renomear "Preço pago" conforme categoria
+  const tipoOpAtual = document.getElementById('tipoOperacao')
+    ? document.getElementById('tipoOperacao').value
+    : 'compra';
+  const ehVenda = tipoOpAtual === 'venda';
   if (lblPreco) {
-    const tipoOp = document.getElementById('tipoOperacao').value;
-    if (tipoOp === 'venda') lblPreco.innerText = 'Preço de Venda (R$)';
+    if (ehVenda)
+      lblPreco.innerText =
+        ehRF || ehReserva || ehPrev ? 'Valor a resgatar (R$)' : 'Preço de Venda (R$)';
     else if (ehRF) lblPreco.innerText = 'Valor aplicado (R$)';
     else if (ehReserva) lblPreco.innerText = 'Valor guardado (R$)';
     else if (ehPrev) lblPreco.innerText = 'Valor do aporte (R$)';
     else lblPreco.innerText = 'Preço Pago (R$)';
   }
+  // Na venda/resgate: oculta a conta de ORIGEM (não há saída de dinheiro) e mostra
+  // a conta de DESTINO (onde o resgate cai). Na compra, o inverso.
+  const grupoOrigem = document.getElementById('grupoOrigemRecurso');
+  const grupoDestino = document.getElementById('grupoDestinoRecurso');
+  if (grupoOrigem) grupoOrigem.style.display = ehVenda ? 'none' : 'block';
+  if (grupoDestino) {
+    grupoDestino.style.display = ehVenda ? 'block' : 'none';
+    if (ehVenda && typeof popularDestinoRecurso === 'function') popularDestinoRecurso();
+  }
+  if (typeof atualizarInfoResgate === 'function') atualizarInfoResgate();
 
   // Ticker: ações/FIIs/etc usam datalist; RF / Reserva / Previdência são texto livre
   if (inputTicker) {
@@ -1064,6 +1079,22 @@ function popularOrigemRecurso() {
   // Preserva a seleção anterior se ela ainda existir entre as opções.
   sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
   ajustarOrigemRecursoCampos();
+}
+
+// Popula "Conta onde cai o dinheiro" (destino do resgate) com TODAS as contas
+// ativas — diferente da origem, o destino não precisa ter saldo. Vazio = cai na
+// conta da corretora/banco do ativo (comportamento padrão).
+function popularDestinoRecurso() {
+  const sel = document.getElementById('compraDestinoRecurso');
+  if (!sel) return;
+  const prev = sel.value;
+  const lista = typeof contasAtivas === 'function' ? contasAtivas() : [];
+  let html = '<option value="">— mesma corretora/banco do ativo —</option>';
+  lista.forEach((c) => {
+    html += `<option value="${c.id}">${c.nome}</option>`;
+  });
+  sel.innerHTML = html;
+  sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
 }
 
 // O seletor agora só lista contas cadastradas com saldo, então o input de texto

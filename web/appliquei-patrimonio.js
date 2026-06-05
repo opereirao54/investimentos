@@ -454,6 +454,12 @@ function mpConsolidar() {
     c.__ticker = ticker;
     const cat = c.categoria || 'renda_variavel';
     const atual = mpValorAtualAtivo(ticker, c);
+    // Posição sem cotação totalmente resgatada (valor ~0) não entra na foto.
+    if (
+      (cat === 'renda_fixa' || cat === 'reserva_emergencia' || cat === 'previdencia') &&
+      atual < 0.01
+    )
+      return;
     const liquido = mpAplicarIR(c, atual, c.valorTotalInvestido);
     if (!acc.porCategoria[cat])
       acc.porCategoria[cat] = { investido: 0, atual: 0, atualLiq: 0, ativos: 0 };

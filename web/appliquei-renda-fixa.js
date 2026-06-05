@@ -217,6 +217,223 @@ function valorAtualRendaFixa(ticker, categoria, refTs) {
 }
 
 // ============================================================
+// === VENDAS / RESGATES — saldo do dia, IR e taxa da posição  ===
+// ============================================================
+// Saldo RESGATÁVEL hoje (valor de mercado/atual) de um ativo, por categoria.
+// É o teto de um resgate e a base do botão "Resgatar tudo".
+function saldoResgatavelAtivo(ticker, categoria) {
+  if (categoria === 'previdencia')
+    return typeof calcularSaldoPrevidencia === 'function' ? calcularSaldoPrevidencia(ticker) : 0;
+  if (categoria === 'renda_fixa' || categoria === 'reserva_emergencia')
+    return valorAtualRendaFixa(ticker, categoria);
+  // Renda variável: quantidade * cotação atual (cotação > mock > preço médio).
+  const resumo = obterResumoCarteira();
+  const ativo = resumo[ticker];
+  if (!ativo || !(ativo.qtdTotal > 0)) return 0;
+  let preco = ativo.precoMedio;
+  const cot =
+    typeof mpEstado !== 'undefined' && mpEstado.cotacoes ? mpEstado.cotacoes[ticker] : null;
+  if (cot && cot.price > 0) preco = cot.price;
+  else {
+    const m =
+      typeof mockAtivosMercado !== 'undefined'
+        ? mockAtivosMercado.find((a) => a.ticker === ticker)
+        : null;
+    if (m && m.preco_atual) preco = m.preco_atual;
+  }
+  return ativo.qtdTotal * preco;
+}
+
+// Dias médios (ponderados pelo valor) das COMPRAS de uma posição — base do IR
+// regressivo. Usa cadastradoEm (saldo inicial) > data_op.
+function diasMediosPosicao(ticker, categoria) {
+  const agora = Date.now();
+  let somaPond = 0;
+  let somaPeso = 0;
+  (typeof historicoCompras !== 'undefined' ? historicoCompras : []).forEach((op) => {
+    if (op.ticker !== ticker || op.categoria !== categoria) return;
+    if ((op.tipo || 'compra') !== 'compra') return;
+    const ref = op.cadastradoEm
+      ? new Date(op.cadastradoEm).getTime()
+      : op.data_op
+        ? new Date(op.data_op).getTime()
+        : NaN;
+    if (!isFinite(ref) || ref > agora) return;
+    const dias = Math.max(0, (agora - ref) / 86400000);
+    const peso = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
+    somaPond += dias * peso;
+    somaPeso += peso;
+  });
+  return somaPeso > 0 ? somaPond / somaPeso : 0;
+}
+
+// IR regressivo de previdência (VGBL/PGBL): 35% (<2a) … 10% (>10a).
+function aliquotaIRPrevidenciaRegressiva(anos) {
+  if (anos <= 2) return 0.35;
+  if (anos <= 4) return 0.3;
+  if (anos <= 6) return 0.25;
+  if (anos <= 8) return 0.2;
+  if (anos <= 10) return 0.15;
+  return 0.1;
+}
+
+// Estimativa de IR sobre um RESGATE de `valorResgate` (bruto). O imposto incide
+// sobre o LUCRO proporcional ao que está sendo resgatado. RF/Reserva usam a
+// tabela regressiva por dias; previdência por anos; RV pela subcategoria.
+function irEstimadoResgate(ticker, categoria, valorResgate) {
+  if (!(valorResgate > 0)) return { aliquota: 0, ir: 0, lucro: 0 };
+  const total = saldoResgatavelAtivo(ticker, categoria);
+  const resumo = obterResumoCarteira();
+  const ativo = resumo[ticker];
+  const investido = ativo ? ativo.valorTotalInvestido : 0;
+  const lucroTotal = Math.max(0, total - investido);
+  const fracao = total > 0 ? Math.min(1, valorResgate / total) : 0;
+  const lucroResgate = lucroTotal * fracao;
+  let aliquota = 0;
+  if (categoria === 'renda_fixa' || categoria === 'reserva_emergencia') {
+    aliquota =
+      typeof mpAliquotaIRRendaFixa === 'function'
+        ? mpAliquotaIRRendaFixa(diasMediosPosicao(ticker, categoria))
+        : 0.15;
+  } else if (categoria === 'previdencia') {
+    aliquota = aliquotaIRPrevidenciaRegressiva(diasMediosPosicao(ticker, categoria) / 365.25);
+  } else {
+    aliquota =
+      typeof mpAliquotaIRRendaVariavel === 'function'
+        ? mpAliquotaIRRendaVariavel(ativo ? ativo.subcategoria : null)
+        : 0.15;
+  }
+  return { aliquota, ir: lucroResgate * aliquota, lucro: lucroResgate };
+}
+
+// Taxa contratada (texto) da posição de RF/Reserva — carimbada na operação de
+// resgate para que a parcela resgatada componha à MESMA taxa dos aportes; assim
+// um resgate total zera a posição de forma permanente (ver valorAtualRendaFixa).
+function taxaTextoResgate(ticker, categoria) {
+  const resumo = obterResumoCarteira();
+  const a = resumo[ticker];
+  return a && a.rentabilidade ? a.rentabilidade : null;
+}
+
+// Abre o drawer já em modo VENDA/RESGATE, pré-preenchido com o ativo escolhido
+// na Carteira (botão "Resgatar"/"Vender"). É o "lugar para resgatar um CDB".
+function iniciarResgate(ticker) {
+  const resumo = obterResumoCarteira();
+  const ativo = resumo[ticker];
+  if (!ativo) return mostrarToast('Ativo não encontrado na sua carteira.', 'erro');
+  if (typeof abrirDrawerOperacao === 'function') abrirDrawerOperacao();
+  if (typeof alternarTipoOperacao === 'function') alternarTipoOperacao('venda');
+  const elTicker = document.getElementById('compraTicker');
+  if (elTicker) elTicker.value = ticker;
+  const elCat = document.getElementById('compraCategoria');
+  if (elCat && ativo.categoria) {
+    elCat.value = ativo.categoria;
+    elCat.dataset.touched = '1';
+  }
+  const elSub = document.getElementById('compraSubcategoria');
+  if (elSub && ativo.subcategoria) {
+    elSub.value = ativo.subcategoria;
+    elSub.dataset.touched = '1';
+  }
+  const elCorr = document.getElementById('compraCorretora');
+  if (elCorr && ativo.corretora) elCorr.value = ativo.corretora;
+  if (typeof ajustarCamposPorCategoria === 'function') ajustarCamposPorCategoria();
+  atualizarInfoResgate();
+}
+
+// Resolve o ativo da carteira a partir do que está digitado no form de venda.
+function ativoCarteiraDoForm() {
+  const ticker = ((document.getElementById('compraTicker') || {}).value || '').trim();
+  if (!ticker) return null;
+  const resumo = obterResumoCarteira();
+  return resumo[ticker] || resumo[ticker.toUpperCase()] || null;
+}
+
+// Caixa "Saldo disponível hoje" + IR estimado + botão Resgatar tudo. Só aparece em
+// modo VENDA com um ativo da carteira selecionado. Chamado por ajustar/alternar e
+// pelos oninput de ticker/preço.
+function atualizarInfoResgate() {
+  const box = document.getElementById('resgateInfoBox');
+  if (!box) return;
+  const tipo = (document.getElementById('tipoOperacao') || {}).value;
+  const ativo = ativoCarteiraDoForm();
+  if (tipo !== 'venda' || !ativo) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const tk =
+    ativo.__ticker || ((document.getElementById('compraTicker') || {}).value || '').toUpperCase();
+  const categoria =
+    ativo.categoria || (document.getElementById('compraCategoria') || {}).value || '';
+  const saldo = saldoResgatavelAtivo(tk, categoria);
+  const valorInformado =
+    typeof parseBRL === 'function'
+      ? parseBRL((document.getElementById('compraPreco') || {}).value)
+      : 0;
+  const semQtd =
+    categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia';
+  // Em RV o campo é preço UNITÁRIO; o bruto resgatado = preço × qtd informada.
+  let bruto = saldo;
+  if (valorInformado > 0) {
+    if (semQtd) bruto = Math.min(valorInformado, saldo);
+    else {
+      const q =
+        typeof parseQtd === 'function'
+          ? parseQtd((document.getElementById('compraQtd') || {}).value)
+          : 0;
+      bruto = Math.min(valorInformado * (q || 0), saldo);
+    }
+  }
+  const est = irEstimadoResgate(tk, categoria, bruto);
+  const retemIR = semQtd;
+  const irMostrar = est.ir;
+  const liquido = bruto - (retemIR ? est.ir : 0);
+  const fmt =
+    typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + Number(v).toFixed(2);
+  const linhaIR =
+    irMostrar > 0.005
+      ? `<div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:2px;">IR estimado ${fmt(est.ir)} (${(est.aliquota * 100).toFixed(1)}% sobre lucro) · ${retemIR ? 'líquido' : 'a recolher via DARF · você recebe'} ${fmt(liquido)}</div>`
+      : '';
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--cor-bg-erro,#fff1f2);border:1px solid #fecdd3;border-radius:9px;">
+      <div style="min-width:0;">
+        <div style="font-size:10.5px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:.04em;">Saldo disponível hoje${semQtd ? ' (com rendimento)' : ''}</div>
+        <div style="font-weight:700;font-size:15px;color:var(--cor-texto-principal);" class="valor-mascarado">${fmt(saldo)}</div>
+        ${linhaIR}
+      </div>
+      <button type="button" class="btn-secundario" style="font-size:12px;padding:7px 12px;white-space:nowrap;flex-shrink:0;" onclick="resgatarTudo()"><i class="ph ph-hand-coins"></i> Resgatar tudo</button>
+    </div>`;
+}
+
+// Preenche o valor de resgate com o saldo total do ativo.
+function resgatarTudo() {
+  const ativo = ativoCarteiraDoForm();
+  if (!ativo) return;
+  const tk =
+    ativo.__ticker || ((document.getElementById('compraTicker') || {}).value || '').toUpperCase();
+  const categoria = ativo.categoria;
+  const saldo = saldoResgatavelAtivo(tk, categoria);
+  const semQtd =
+    categoria === 'renda_fixa' || categoria === 'reserva_emergencia' || categoria === 'previdencia';
+  const elPreco = document.getElementById('compraPreco');
+  if (semQtd) {
+    if (elPreco && typeof setValorBRLInput === 'function') setValorBRLInput(elPreco, saldo);
+    else if (elPreco) elPreco.value = saldo.toFixed(2).replace('.', ',');
+  } else {
+    const precoUnit = ativo.qtdTotal > 0 ? saldo / ativo.qtdTotal : 0;
+    const elQtd = document.getElementById('compraQtd');
+    if (elPreco && typeof setValorBRLInput === 'function') setValorBRLInput(elPreco, precoUnit);
+    else if (elPreco) elPreco.value = precoUnit.toFixed(2).replace('.', ',');
+    if (elQtd && typeof setValorQtdInput === 'function') setValorQtdInput(elQtd, ativo.qtdTotal);
+    else if (elQtd) elQtd.value = ativo.qtdTotal;
+  }
+  if (typeof calcularTotalCompra === 'function') calcularTotalCompra();
+  atualizarInfoResgate();
+}
+
+// ============================================================
 // === COMPLETAR RENTABILIDADE — Renda Fixa / Reserva legadas ===
 // ============================================================
 // Investimentos de RF/Reserva cadastrados SEM rentabilidade (ex.: antes do campo
@@ -513,14 +730,34 @@ function registrarOperacaoAtivo() {
     );
   }
 
+  // IR estimado do resgate, calculado na validação ANTES de empilhar a venda
+  // (senão o saldo já vem abatido e o lucro/IR zeram). Reusado no caixa.
+  let resgateEstIR = null;
   if (tipoOp === 'venda') {
-    let carteiraAtual = obterResumoCarteira();
-    let ativoNaCarteira = carteiraAtual[ticker];
-    if (!ativoNaCarteira || ativoNaCarteira.qtdTotal < qtd)
+    const carteiraAtual = obterResumoCarteira();
+    const ativoNaCarteira = carteiraAtual[ticker];
+    if (semQtd) {
+      // RF/Reserva/Previdência: resgate por VALOR — valida contra o saldo do dia.
+      const saldoDisp =
+        typeof saldoResgatavelAtivo === 'function' ? saldoResgatavelAtivo(ticker, categoria) : 0;
+      if (saldoDisp <= 0.005)
+        return mostrarToast(`Você não tem saldo resgatável em ${ticker}.`, 'erro');
+      if (preco > saldoDisp + 0.01)
+        return mostrarToast(
+          `Resgate acima do saldo. Disponível hoje: ${formatarMoeda(saldoDisp)} em ${ticker}.`,
+          'erro'
+        );
+      // IR estimado calculado AGORA (antes do push da venda).
+      resgateEstIR =
+        typeof irEstimadoResgate === 'function'
+          ? irEstimadoResgate(ticker, categoria, preco)
+          : { ir: 0 };
+    } else if (!ativoNaCarteira || ativoNaCarteira.qtdTotal < qtd) {
       return mostrarToast(
         `Saldo insuficiente! Você possui apenas ${ativoNaCarteira ? ativoNaCarteira.qtdTotal : 0} unidades de ${ticker}.`,
         'erro'
       );
+    }
   }
 
   // Fase 3B: numa COMPRA com aporte, o dinheiro sai de uma CONTA cadastrada e
@@ -574,6 +811,7 @@ function registrarOperacaoAtivo() {
   const dataOp = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
   let valorTotal = 0;
   let lancamentosFuturos = 0;
+  let resgateIRInfo = null;
 
   // === APORTE / OPERAÇÃO NORMAL (afeta o Controle Financeiro) ===
   if (temAporte) {
@@ -600,6 +838,28 @@ function registrarOperacaoAtivo() {
     // tem precedência sobre a taxaMensal fixa (ver taxaMensalOperacao).
     if (categoria === 'previdencia') {
       if (rentabilidade) operacao.rentabilidade = rentabilidade;
+    }
+    // RESGATE de RF/Reserva/Previdência: herda a taxa da posição para que a
+    // parcela resgatada componha igual aos aportes — assim um resgate TOTAL zera
+    // a posição de forma permanente, e um parcial deixa o restante rendendo.
+    if (tipoOp === 'venda') {
+      if (categoria === 'renda_fixa' || categoria === 'reserva_emergencia') {
+        const txt =
+          typeof taxaTextoResgate === 'function' ? taxaTextoResgate(ticker, categoria) : null;
+        if (txt) operacao.rentabilidade = txt;
+      } else if (categoria === 'previdencia') {
+        const comprasPrev = historicoCompras.filter(
+          (o) =>
+            o.ticker === ticker &&
+            o.categoria === 'previdencia' &&
+            (o.tipo || 'compra') === 'compra'
+        );
+        const ult = comprasPrev[comprasPrev.length - 1];
+        if (ult) {
+          if (ult.rentabilidade) operacao.rentabilidade = ult.rentabilidade;
+          else operacao.taxaMensal = ult.taxaMensal != null ? ult.taxaMensal : 0.008;
+        }
+      }
     }
     const ehRecorrenteCompra = ehPrevOuReserva && tipoOp === 'compra';
     if (ehRecorrenteCompra) {
@@ -659,20 +919,32 @@ function registrarOperacaoAtivo() {
         pago: true,
       });
     } else {
-      // Fase 5: a venda CREDITA o caixa da conta-corretora (o dinheiro do
-      // resgate cai lá). O usuário pode depois transferir para outra conta.
-      const contaDestinoId =
-        typeof obterOuCriarContaPorNome === 'function'
-          ? (obterOuCriarContaPorNome(corretora, 'corretora') || {}).id
-          : undefined;
+      // A venda/resgate CREDITA o caixa da conta de DESTINO escolhida; na falta,
+      // cai na conta da corretora. RF/Reserva/Previdência têm IR retido na fonte,
+      // então credita o LÍQUIDO; Renda Variável credita o bruto (IR via DARF).
+      let contaDestinoId;
+      const elDest = document.getElementById('compraDestinoRecurso');
+      const destSel = elDest ? elDest.value : '';
+      if (destSel && typeof obterConta === 'function' && obterConta(destSel)) {
+        contaDestinoId = destSel;
+      } else if (typeof obterOuCriarContaPorNome === 'function') {
+        contaDestinoId = (obterOuCriarContaPorNome(corretora, 'corretora') || {}).id;
+      }
+      const retemIR = semQtd; // RF / Reserva / Previdência: retido na fonte
+      const est = resgateEstIR || { ir: 0 };
+      const irRetido = retemIR ? Math.max(0, est.ir) : 0;
+      const liquido = Math.max(0, valorTotal - irRetido);
+      resgateIRInfo = { irRetido, liquido, bruto: valorTotal };
       transacoes.push({
         id: operacao.id.toString(),
         operacaoId: operacao.id,
-        descricao: `Venda Resgate: ${descQtd}${ticker}`,
-        valor: valorTotal,
+        descricao: `Resgate: ${descQtd}${ticker}`,
+        valor: liquido,
         categoria: 'resgate_investimento',
         banco: corretora,
         contaId: contaDestinoId,
+        valorBruto: valorTotal,
+        irRetido: irRetido || undefined,
         mes: dataOp.getMonth(),
         ano: dataOp.getFullYear(),
         data: dataOp.toISOString(),
@@ -765,7 +1037,9 @@ function registrarOperacaoAtivo() {
     msgBase =
       tipoOp === 'compra'
         ? `Compra de ${ticker} registrada com sucesso!`
-        : `Venda de ${ticker} registrada com sucesso!`;
+        : resgateIRInfo && resgateIRInfo.irRetido > 0
+          ? `Resgate de ${ticker}: ${formatarMoeda(resgateIRInfo.liquido)} líquidos (IR retido ${formatarMoeda(resgateIRInfo.irRetido)}).`
+          : `Resgate de ${ticker} registrado com sucesso!`;
   }
   const msgExtra =
     lancamentosFuturos > 0
@@ -1075,8 +1349,18 @@ function obterResumoCarteira() {
       if (op.vencimento) ativo.vencimento = op.vencimento;
       if (op.rentabilidade) ativo.rentabilidade = op.rentabilidade;
     } else if (tipo === 'venda') {
-      ativo.qtdTotal -= op.quantidade;
-      ativo.valorTotalInvestido -= op.quantidade * ativo.precoMedio;
+      if (op.categoria === 'renda_fixa' || op.categoria === 'reserva_emergencia') {
+        // Resgate por VALOR: abate o investido pelo valor resgatado e NÃO mexe na
+        // quantidade — a posição some quando o valor atual chega a ~0 (no display,
+        // que usa valorAtualRendaFixa). Evita o bug de "1 unidade" da RF.
+        ativo.valorTotalInvestido = Math.max(
+          0,
+          ativo.valorTotalInvestido - (precoDaOp || 0) * (op.quantidade || 1)
+        );
+      } else {
+        ativo.qtdTotal -= op.quantidade;
+        ativo.valorTotalInvestido -= op.quantidade * ativo.precoMedio;
+      }
     }
   });
   return consolidado;
