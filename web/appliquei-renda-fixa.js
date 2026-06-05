@@ -363,12 +363,20 @@ function registrarOperacaoAtivo() {
         pago: true,
       });
     } else {
+      // Fase 5: a venda CREDITA o caixa da conta-corretora (o dinheiro do
+      // resgate cai lá). O usuário pode depois transferir para outra conta.
+      const contaDestinoId =
+        typeof obterOuCriarContaPorNome === 'function'
+          ? (obterOuCriarContaPorNome(corretora, 'corretora') || {}).id
+          : undefined;
       transacoes.push({
         id: operacao.id.toString(),
         operacaoId: operacao.id,
         descricao: `Venda Resgate: ${descQtd}${ticker}`,
         valor: valorTotal,
         categoria: 'resgate_investimento',
+        banco: corretora,
+        contaId: contaDestinoId,
         mes: dataOp.getMonth(),
         ano: dataOp.getFullYear(),
         data: dataOp.toISOString(),

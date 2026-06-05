@@ -1900,6 +1900,7 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
         descricao: origemDesc || `Resgate p/ sonho: ${s.nome}`,
         valor: valor,
         categoria: 'resgate_investimento',
+        contaId: s.contaOrigemId || undefined,
         obs: origemAtivo
           ? `Resgate de ${origemAtivo} — destino: sonho ${s.nome}`
           : `Compensação do aporte extra do sonho ${s.nome}`,

@@ -218,6 +218,7 @@ function mpAplicarIR(c, valorAtual, valorInvestido) {
 function mpEhEntradaCaixa(categoria) {
   return (
     categoria === 'receita' ||
+    categoria === 'dividendo' ||
     categoria === 'resgate_investimento' ||
     categoria === 'transferencia_entrada'
   );

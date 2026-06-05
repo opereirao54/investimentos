@@ -157,12 +157,16 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   carimbam `contaId`. Sem conta escolhida, ficam em "A reconciliar".
 - Ganho: **toda saída passa por conta.** ✅
 
-### Fase 4 — Fechar as entradas
+### Fase 4 — Fechar as entradas. ✅
 
-- Venda/Resgate credita uma conta.
-- **Dividendos são lançados automaticamente** como entrada de caixa na corretora
-  pagadora (decisão 1).
-- Ganho: toda **entrada** passa por conta.
+- **Venda/Resgate credita a conta-corretora.** ✅ A venda grava `banco`+`contaId`
+  da corretora no `resgate_investimento` (o dinheiro cai lá). A migração de sonho
+  credita a conta-origem do sonho (compensa o aporte → caixa neutro).
+- **Dividendos automáticos.** ✅ `lancarDividendosNoCaixa()` cria uma entrada
+  `dividendo` por (ticker, ano, mês) na corretora pagadora, idempotente via
+  `divKey`. Categoria `dividendo` tratada como entrada em `mpEhEntradaCaixa`,
+  somada à receita no `calcularResumoMes` e exibida na coluna de entradas.
+- Ganho: **toda entrada passa por conta.** ✅
 
 ### Fase 5 — Transferência de 1ª classe
 

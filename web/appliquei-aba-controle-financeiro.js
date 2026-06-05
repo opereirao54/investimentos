@@ -846,7 +846,7 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
   };
   transacoes.forEach((t) => {
     if (t.mes === mesAlvo && t.ano === anoAlvo) {
-      if (t.categoria === 'receita') res.receita += t.valor;
+      if (t.categoria === 'receita' || t.categoria === 'dividendo') res.receita += t.valor;
       else if (t.categoria === 'resgate_investimento') res.resgate += t.valor;
       else if (t.categoria === 'despesa_fixa') res.despFixa += t.valor;
       else if (t.categoria === 'despesa_variavel') res.despVar += t.valor;
@@ -1498,6 +1498,7 @@ function atualizarTelaControle() {
     totInv = 0;
   const nomesCat = {
     receita: 'Receita',
+    dividendo: 'Dividendo',
     resgate_investimento: 'Resgate',
     despesa_fixa: 'Desp. Fixa',
     despesa_variavel: 'Desp. Variável',
@@ -1561,7 +1562,11 @@ function atualizarTelaControle() {
                 </div>
             </div>`;
 
-      if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') {
+      if (
+        t.categoria === 'receita' ||
+        t.categoria === 'dividendo' ||
+        t.categoria === 'resgate_investimento'
+      ) {
         totRec += t.valor;
         divRec.innerHTML += itemHtml;
       } else if (
