@@ -159,21 +159,27 @@ function mpValorAtualAtivo(ticker, c) {
     }
     return c.valorTotalInvestido;
   }
-  // Renda Fixa / Reserva: aplica taxaMensal sobre cada aporte até hoje.
-  // Reaproveita a lógica do componente Previdência (juros compostos por aporte).
+  // Renda Fixa / Reserva: conta TODOS os aportes/resgates do ativo. Aplica
+  // taxaMensal (juros compostos) só quando a data é válida e já passou; aportes
+  // SEM data ou com data FUTURA entram pelo PRINCIPAL (fator 1) em vez de serem
+  // descartados. Sem isso, um aporte com data ausente/futura zerava o ativo e o
+  // investimento sumia de "Meu Patrimônio" — enquanto "Meus investimentos"
+  // (que valoriza por preço médio, sem olhar a data) continuava mostrando.
   if (c.categoria === 'renda_fixa' || c.categoria === 'reserva_emergencia') {
     const aportes = (typeof historicoCompras !== 'undefined' ? historicoCompras : []).filter(
-      (op) => op.ticker === ticker && op.categoria === c.categoria && op.data_op
+      (op) => op.ticker === ticker && op.categoria === c.categoria
     );
     let saldo = 0;
     const agora = Date.now();
     aportes.forEach((op) => {
-      const dataAporte = new Date(op.data_op).getTime();
-      if (dataAporte > agora) return;
-      const taxa = op.taxaMensal != null ? op.taxaMensal : 0;
-      const meses = Math.max(0, (agora - dataAporte) / (30.4375 * 86400000));
       const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      const fator = taxa > 0 ? Math.pow(1 + taxa, meses) : 1;
+      const taxa = op.taxaMensal != null ? op.taxaMensal : 0;
+      const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
+      let fator = 1;
+      if (isFinite(ts) && ts <= agora && taxa > 0) {
+        const meses = Math.max(0, (agora - ts) / (30.4375 * 86400000));
+        fator = Math.pow(1 + taxa, meses);
+      }
       if ((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
       else saldo += valor * fator;
     });
