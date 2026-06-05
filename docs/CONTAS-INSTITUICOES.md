@@ -152,8 +152,10 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   carimbam `contaId` do template (`contaOrigemId`). Recorrentes usam `contaId`
   direto no `investimento_*` (sem perna separada) — mesmo efeito de caixa, sem
   ciclo de pago duplicado.
-- **Sonho → conta-origem.** ⏳ pendente (Fase 3B-2b).
-- Ganho: toda **saída** passa por conta.
+- **Sonho → conta-origem.** ✅ Seletor de conta no modal do sonho
+  (`contaOrigemId`); as transações `sonho` (mensal, recalculada e aporte extra)
+  carimbam `contaId`. Sem conta escolhida, ficam em "A reconciliar".
+- Ganho: **toda saída passa por conta.** ✅
 
 ### Fase 4 — Fechar as entradas
 
