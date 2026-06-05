@@ -168,10 +168,23 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   somada à receita no `calcularResumoMes` e exibida na coluna de entradas.
 - Ganho: **toda entrada passa por conta.** ✅
 
-### Fase 5 — Transferência de 1ª classe
+### Fase 5 — Transferência de 1ª classe. ✅
 
-- Ação "Transferência entre contas" (dupla-perna). Deprecação dos campos string
-  `banco`/`corretora` (mantidos só para ler backups antigos).
+- Ação **"Transferir"** no card Minhas Contas: abre um modal (origem, destino,
+  valor, data) e cria um **par balanceado** via `criarTransferencia` — uma
+  `transferencia_saida` na origem + uma `transferencia_entrada` no destino,
+  ligadas por `transferenciaId`. Ambas são plumbing de caixa (ocultas no
+  extrato/DRE); o total de caixa fica neutro, só muda a divisão por instituição.
+
+### Fase 7 — (depois) Deprecar campos texto legados
+
+> Numeração linear (1–7): 1 Fundação · 2 Minhas Contas · 3 Caixa por conta ·
+> 4 Fechar saídas · 5 Fechar entradas · 6 Transferências · 7 Deprecação. As
+> Fases 1–6 estão concluídas; a 7 fica para depois.
+
+- Aposentar `banco`/`corretora` como fonte de verdade (mantê-los só para ler
+  backups antigos) e oferecer reconciliação assistida do bucket "A reconciliar".
+  **Deixado para depois**, conforme combinado.
 
 ## 6. Decisões de produto (fechadas)
 

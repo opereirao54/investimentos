@@ -6576,7 +6576,10 @@
             <div class="card-container">
                 <div class="mp-section-head">
                     <h3>Minhas Contas</h3>
-                    <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
+                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
+                    </div>
                 </div>
                 <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
                     <input type="hidden" id="contaEditId" value="">

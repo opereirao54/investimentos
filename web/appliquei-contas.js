@@ -506,6 +506,124 @@ function renderMinhasContas() {
     .join('');
 }
 
+// === Transferência entre contas (Fase 6) — ação de 1ª classe (dupla-perna) ==
+// Cria um PAR de transações ligadas por transferenciaId: saída na origem +
+// entrada no destino. Ambas são plumbing de caixa (ocultas no extrato) e o
+// total de caixa fica neutro — só muda a divisão por instituição.
+function abrirTransferenciaModal() {
+  const ativas = contasAtivas();
+  if (ativas.length < 2) {
+    return mostrarToast('Cadastre pelo menos duas contas para transferir.', 'aviso');
+  }
+  const modal = document.getElementById('modalConfirmacao');
+  if (!modal) return;
+  const opts = ativas
+    .map(function (c) {
+      return '<option value="' + c.id + '">' + c.nome + '</option>';
+    })
+    .join('');
+  const campo = function (label, html) {
+    return (
+      '<div><label style="font-size:12px;color:var(--cor-texto-secundario);">' +
+      label +
+      '</label>' +
+      html +
+      '</div>'
+    );
+  };
+  const estiloCtrl =
+    'width:100%;padding:9px;border:1.5px solid var(--cor-borda);border-radius:8px;background:var(--cor-superficie);color:var(--cor-texto-principal);';
+  document.getElementById('modalTitulo').innerHTML =
+    '<i class="ph ph-arrows-left-right" style="color:var(--cor-info);"></i> Transferir entre contas';
+  document.getElementById('modalMensagem').innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
+    campo('De', '<select id="transfOrigem" style="' + estiloCtrl + '">' + opts + '</select>') +
+    campo('Para', '<select id="transfDestino" style="' + estiloCtrl + '">' + opts + '</select>') +
+    campo(
+      'Valor (R$)',
+      '<input type="text" inputmode="decimal" id="transfValor" placeholder="0,00" oninput="aplicarMascaraBRL(this)" style="' +
+        estiloCtrl +
+        '">'
+    ) +
+    campo(
+      'Data',
+      '<input type="date" id="transfData" value="' +
+        new Date().toISOString().slice(0, 10) +
+        '" style="' +
+        estiloCtrl +
+        '">'
+    ) +
+    '</div>';
+  document.getElementById('modalAcoes').innerHTML =
+    '<button class="btn-acao" style="background:var(--cor-info);" onclick="confirmarTransferencia()"><i class="ph ph-check"></i> Transferir</button>';
+  const dst = document.getElementById('transfDestino');
+  if (dst) dst.value = ativas[1].id; // destino != origem por padrão
+  modal.style.display = 'flex';
+}
+
+// Lógica pura (testável): cria o par de transações balanceado. Retorna
+// {saida, entrada} ou null se inválido. NÃO toca DOM.
+function criarTransferencia(origemId, destinoId, valor, dataStr) {
+  if (!origemId || !destinoId || origemId === destinoId) return null;
+  if (!(Number(valor) > 0)) return null;
+  if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return null;
+  const d = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+  const transferenciaId = 'transf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const oNome = (obterConta(origemId) || {}).nome || '';
+  const dNome = (obterConta(destinoId) || {}).nome || '';
+  const base = {
+    transferenciaId: transferenciaId,
+    valor: Number(valor),
+    mes: d.getMonth(),
+    ano: d.getFullYear(),
+    data: d.toISOString(),
+    pago: true,
+  };
+  const saida = Object.assign({}, base, {
+    id: transferenciaId + '_out',
+    descricao: 'Transferência → ' + dNome,
+    categoria: 'transferencia_saida',
+    contaId: origemId,
+    banco: oNome,
+  });
+  const entrada = Object.assign({}, base, {
+    id: transferenciaId + '_in',
+    descricao: 'Transferência ← ' + oNome,
+    categoria: 'transferencia_entrada',
+    contaId: destinoId,
+    banco: dNome,
+  });
+  transacoes.push(saida, entrada);
+  try {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  } catch (_) {}
+  try {
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+      AppliqueiCloudSync.forceFlush();
+  } catch (_) {}
+  return { saida: saida, entrada: entrada };
+}
+
+function confirmarTransferencia() {
+  const origemId = (document.getElementById('transfOrigem') || {}).value;
+  const destinoId = (document.getElementById('transfDestino') || {}).value;
+  const valor =
+    typeof parseBRL === 'function'
+      ? parseBRL((document.getElementById('transfValor') || {}).value)
+      : 0;
+  const dataStr = (document.getElementById('transfData') || {}).value;
+  if (!origemId || !destinoId)
+    return mostrarToast('Escolha as contas de origem e destino.', 'erro');
+  if (origemId === destinoId) return mostrarToast('Origem e destino devem ser diferentes.', 'erro');
+  if (!(valor > 0)) return mostrarToast('Informe um valor válido.', 'erro');
+  const r = criarTransferencia(origemId, destinoId, valor, dataStr);
+  if (!r) return mostrarToast('Não foi possível registrar a transferência.', 'erro');
+  if (typeof fecharModal === 'function') fecharModal();
+  mostrarToast('Transferência registrada.', 'sucesso');
+  if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
 // Contrato público explícito em window (classic script já vaza var; deixamos
 // claro o que o módulo expõe para os demais arquivos e para a Fase 2).
 if (typeof window !== 'undefined') {
@@ -535,4 +653,7 @@ if (typeof window !== 'undefined') {
   window.restaurarContaUI = restaurarContaUI;
   window.fundirContaPrompt = fundirContaPrompt;
   window.confirmarFusaoUI = confirmarFusaoUI;
+  window.abrirTransferenciaModal = abrirTransferenciaModal;
+  window.confirmarTransferencia = confirmarTransferencia;
+  window.criarTransferencia = criarTransferencia;
 }

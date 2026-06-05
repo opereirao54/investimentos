@@ -144,3 +144,28 @@ test('fusão cria alias — registro antigo por texto resolve no destino', () =>
   assert.ok(conta, 'deve resolver via alias');
   assert.equal(conta.id, a.id);
 });
+
+test('criarTransferencia: par balanceado (saída origem + entrada destino)', () => {
+  const s = loadContas({});
+  const a = s.criarConta({ nome: 'Nubank', tipo: 'banco' });
+  const b = s.criarConta({ nome: 'XP', tipo: 'corretora' });
+  const r = s.criarTransferencia(a.id, b.id, 250, '2026-03-10');
+  assert.ok(r, 'deve criar a transferência');
+  assert.equal(s.transacoes.length, 2);
+  assert.equal(r.saida.categoria, 'transferencia_saida');
+  assert.equal(r.saida.contaId, a.id);
+  assert.equal(r.entrada.categoria, 'transferencia_entrada');
+  assert.equal(r.entrada.contaId, b.id);
+  assert.equal(r.saida.valor, r.entrada.valor);
+  assert.equal(r.saida.transferenciaId, r.entrada.transferenciaId);
+});
+
+test('criarTransferencia: rejeita mesma conta, valor<=0 e conta faltando', () => {
+  const s = loadContas({});
+  const a = s.criarConta({ nome: 'Nubank', tipo: 'banco' });
+  const b = s.criarConta({ nome: 'XP', tipo: 'corretora' });
+  assert.equal(s.criarTransferencia(a.id, a.id, 100, ''), null, 'mesma conta');
+  assert.equal(s.criarTransferencia(a.id, b.id, 0, ''), null, 'valor zero');
+  assert.equal(s.criarTransferencia('', b.id, 100, ''), null, 'sem origem');
+  assert.equal(s.transacoes.length, 0, 'nenhuma transação criada em casos inválidos');
+});
