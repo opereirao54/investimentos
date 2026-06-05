@@ -187,11 +187,22 @@ function valorAtualRendaFixa(ticker, categoria, refTs) {
   );
   let saldo = 0;
   lista.forEach((op) => {
-    const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
-    // Aporte/resgate PROGRAMADO (data futura) ainda não aconteceu — não entra na
-    // foto de agora. Igual à previdência (calcularSaldoPrevidencia ignora futuro).
-    // Op sem data (legado) conta pelo principal para o ativo não sumir.
-    if (isFinite(ts) && ts > agora) return;
+    let ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
+    if (op.saldoInicial) {
+      // "Já guardado": conta sempre e rende desde o CADASTRO na ferramenta — não
+      // desde uma data futura digitada. Usa cadastradoEm > id (timestamp de
+      // criação) > data_op, limitado a no máximo agora.
+      const cad = op.cadastradoEm
+        ? new Date(op.cadastradoEm).getTime()
+        : typeof op.id === 'number' && op.id > 1e12
+          ? op.id
+          : ts;
+      if (isFinite(cad)) ts = Math.min(cad, agora);
+    } else if (isFinite(ts) && ts > agora) {
+      // Aporte PROGRAMADO (data futura) ainda não foi realizado — não entra na
+      // foto de agora. Igual à previdência (calcularSaldoPrevidencia ignora futuro).
+      return;
+    }
     const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
     const taxa = taxaMensalOperacao(op);
     let fator = 1;
@@ -681,13 +692,18 @@ function registrarOperacaoAtivo() {
   // gera transação no Controle Financeiro e NÃO abate o caixa de nenhuma
   // instituição — porque esse valor já estava guardado, não é dinheiro novo.
   if (temSaldoInicial) {
+    const agoraIso = new Date().toISOString();
     const opSaldo = {
       id: Date.now() + 1,
       ticker: ticker,
       quantidade: 1,
       preco_op: saldoInicial,
       tipo: 'compra',
-      data_op: dataOp.toISOString(),
+      // "Já guardado" = valor que a pessoa JÁ tem hoje. Rende a partir do CADASTRO
+      // na ferramenta (não da data digitada, que pode ser futura/planejada). Por
+      // isso data_op e cadastradoEm ficam no momento do registro.
+      data_op: agoraIso,
+      cadastradoEm: agoraIso,
       categoria: categoria || null,
       subcategoria: null,
       corretora: corretora || null,
@@ -1026,10 +1042,11 @@ function obterResumoCarteira() {
   let consolidado = {};
   const agora = Date.now();
   historicoCompras.forEach((op) => {
-    // Posição de AGORA: ignora operação com data futura (aporte/venda programado
-    // que ainda não aconteceu) — ela segue visível na timeline e entra sozinha
-    // quando a data chegar. Operação sem data_op = legado, conta normalmente.
-    if (op.data_op) {
+    // Posição de AGORA: ignora APORTE com data futura (programado, ainda não
+    // realizado) — ele segue visível na timeline e entra quando for confirmado.
+    // O "já guardado" (saldoInicial) é exceção: é dinheiro que a pessoa já tem,
+    // então conta sempre. Operação sem data_op = legado, conta normalmente.
+    if (!op.saldoInicial && op.data_op) {
       const ts = new Date(op.data_op).getTime();
       if (isFinite(ts) && ts > agora) return;
     }
