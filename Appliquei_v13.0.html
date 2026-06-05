@@ -6619,8 +6619,11 @@
                         <div class="form-group"><label>Tipo</label><select id="contaTipo"></select></div>
                     </div>
                     <div class="grid-2-iguais" style="gap:10px;">
-                        <div class="form-group"><label>Saldo inicial (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="contaSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                        <div class="form-group"><label>Saldo inicial (opcional)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="contaSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         <div class="form-group"><label>Saldo nesta data</label><input type="date" id="contaDataSaldoInicial"></div>
+                    </div>
+                    <div style="font-size:11px;color:var(--cor-texto-mutado);background:var(--cor-fundo-card);border:1px solid var(--cor-borda);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">
+                        <i class="ph ph-info" style="color:var(--cor-info);"></i> Use o <strong>saldo inicial</strong> só para o dinheiro que você <strong>já tinha guardado nesta conta antes</strong> de começar a usar o app. <strong>Não lance aqui a sua receita do mês</strong> (salário etc.) — isso vai em <strong>Controle financeiro → Receita</strong>, senão o mesmo dinheiro conta em dobro no patrimônio.
                     </div>
                     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
                         <button class="btn-secundario" onclick="cancelarFormConta()">Cancelar</button>
