@@ -101,7 +101,7 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 
 ### Fase 0 — Design (este documento). ✅
 
-### Fase 1 — Fundação (NÃO-QUEBRA). ◐ em andamento
+### Fase 1 — Fundação (NÃO-QUEBRA). ✅
 
 - `web/appliquei-contas.js`: modelo, CRUD (`criarConta`, `editarConta`,
   `arquivarConta`, `obterConta`, `obterContaPorNome`, `obterOuCriarContaPorNome`),
@@ -112,35 +112,27 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
 - **Inerte para os cálculos**: não carimba `contaId`, não toca `futurorico_*`,
   nenhum saldo muda. Ganho: o cadastro passa a existir e fica pronto p/ Fase 2.
 
-### Fase 1b — UI "Minhas Contas"
-
-- Tela de gestão: listar, criar, editar, arquivar contas; definir **saldo de
-  abertura** (`saldoInicial` + `dataSaldoInicial`); opção de **fundir** contas
-  duplicadas (ex.: "Itaú" vs "Itaú Unibanco").
-
-### Fase 2 — Caixa por conta (switch de leitura)
-
-- `patrimonio.js` passa a agrupar por `contaId` e a somar `saldoInicial`.
-- Carimba `contaId` nas transações/operações por match de nome (migração
-  coordenada com o short-circuit de boot do sync, `cloud-sync.js:251-274`).
-- O campo de banco no formulário vira **seletor de conta** (+ "nova conta").
-- "Sem banco" deixa de ser silencioso: vira lista **"A reconciliar"** acionável.
-- Ganho: saldo por instituição correto, com saldo de abertura.
-
 ### Fase 1b — UI "Minhas Contas". ✅
 
 - Card "Minhas Contas" dentro de Meu Patrimônio: listar, criar, editar, arquivar;
   definir **saldo de abertura** (`saldoInicial` + `dataSaldoInicial`); **fundir
-  duplicadas** (`fundirContas` re-aponta `contaId` e soma saldos iniciais).
-- Ainda registro-apenas: nenhum cálculo de saldo usa `contaId` (isso é a Fase 2).
+  duplicadas** (`fundirContas` re-aponta `contaId`, soma saldos iniciais e grava
+  o nome absorvido como `alias`).
 
-### Fase 2 — Caixa por conta (switch de leitura)
+### Fase 2 — Caixa por conta (switch de leitura). ✅
 
-- `patrimonio.js` passa a agrupar por `contaId` e a somar `saldoInicial`.
-- Carimba `contaId` nas transações/operações por match de nome (migração
-  coordenada com o short-circuit de boot do sync, `cloud-sync.js:251-274`).
-- O campo de banco no formulário vira **seletor de conta** (+ "nova conta").
-- "Sem banco" deixa de ser silencioso: vira lista **"A reconciliar"** acionável.
+- `patrimonio.js` agrupa por **conta resolvida** e soma o **saldo de abertura**
+  (`saldoInicial`, respeitando `dataSaldoInicial`) no caixa.
+- **Resolução em tempo de leitura** (`resolverContaDeTransacao` / `...Operacao`):
+  prioriza `contaId`, cai para nome/alias do `banco`/`corretora`. Assim os
+  registros antigos entram no agrupamento **sem reescrever `futurorico_*`** —
+  evita a corrida de LWW com o cloud-sync (que poderia clobberar edição feita em
+  outro dispositivo).
+- `contaId` é carimbado apenas nas **escritas novas** do formulário (rev bump
+  normal); digitar um nome novo cria a conta na hora (`obterOuCriarContaPorNome`).
+- Datalist de instituição do formulário passa a sugerir as contas cadastradas.
+- "Sem banco" deixou de ser silencioso: virou a linha **"A reconciliar"** no
+  "Por instituição" (os vazamentos conhecidos agora aparecem explicitamente).
 - Ganho: saldo por instituição correto, com saldo de abertura.
 
 ### Fase 3 — Fechar as saídas
@@ -182,9 +174,11 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   Firestore (localStorage pode estar vazio). Mitigado: o seed só "trava" a flag
   `appliquei_contas_seed_v1` quando havia dados; sem dados, re-roda no próximo
   boot. Não re-semeia depois de travado — respeita edições futuras.
-- **Carimbar `contaId` reescreve as chaves grandes** (`futurorico_transacoes`,
-  `futurorico_compras`). Fazer na Fase 2, dentro do short-circuit de boot do
-  sync, de forma idempotente.
+- **Carimbar `contaId` em massa reescreveria as chaves grandes**
+  (`futurorico_transacoes`, `futurorico_compras`) e poderia clobberar, via LWW,
+  edições feitas em outro dispositivo entre o boot e o primeiro pull. **Resolvido
+  na Fase 2 evitando o bulk rewrite**: a leitura resolve a conta por
+  `contaId` → nome → alias, e `contaId` só é persistido em escritas novas.
 - **Nomes divergentes** ("Itaú" vs "Itaú Unibanco") geram contas separadas —
   resolver com a feature de fusão (Fase 1b).
 - **Classic script**: `var` no topo, function declarations globais; manter as

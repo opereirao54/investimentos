@@ -122,3 +122,25 @@ test('fundirContas: re-aponta contaId, soma saldoInicial e remove duplicata', ()
   assert.equal(s.obterConta(a.id).saldoInicial, 150, 'saldos iniciais somados');
   assert.equal(s.transacoes[s.transacoes.length - 1].contaId, a.id, 'contaId re-apontado');
 });
+
+test('resolverContaDeTransacao: contaId tem prioridade; depois nome; senão null', () => {
+  const s = loadContas({ transacoes: [{ categoria: 'receita', banco: 'Nubank' }] });
+  const nubank = s.obterContaPorNome('Nubank');
+  // por nome (normalizado)
+  assert.equal(s.resolverContaDeTransacao({ banco: 'nubank' }).id, nubank.id);
+  // contaId vence mesmo com banco divergente
+  const inter = s.criarConta({ nome: 'Inter', tipo: 'banco' });
+  assert.equal(s.resolverContaDeTransacao({ contaId: inter.id, banco: 'Nubank' }).id, inter.id);
+  // sem instituição → null (vai para "A reconciliar" no Patrimônio)
+  assert.equal(s.resolverContaDeTransacao({ categoria: 'investimento_variavel' }), null);
+});
+
+test('fusão cria alias — registro antigo por texto resolve no destino', () => {
+  const s = loadContas({});
+  const a = s.criarConta({ nome: 'Itaú', tipo: 'banco' });
+  const b = s.criarConta({ nome: 'Itaú Unibanco', tipo: 'banco' });
+  s.fundirContas(a.id, [b.id]);
+  const conta = s.resolverContaDeTransacao({ banco: 'Itaú Unibanco' });
+  assert.ok(conta, 'deve resolver via alias');
+  assert.equal(conta.id, a.id);
+});

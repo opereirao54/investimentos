@@ -150,10 +150,46 @@ function popularSelectCategoriaDespesa(selecionado) {
 
 // Emojis sugeridos para o usuário escolher ao criar uma categoria de despesa.
 var EMOJIS_CATEGORIA_DESPESA = [
-  '🏷️', '🏠', '🛒', '🚗', '⚕️', '📚', '🍿', '💆', '🐶', '🏦',
-  '✈️', '🎁', '👕', '💡', '📱', '🎮', '🍔', '☕', '🏋️', '💊',
-  '🎓', '🐱', '🧾', '💳', '🚌', '⛽', '🎉', '💼', '🔧', '🌱',
-  '👶', '🎵', '📷', '🍷', '🛠️', '🧹', '🎬', '💄', '⚽', '💰',
+  '🏷️',
+  '🏠',
+  '🛒',
+  '🚗',
+  '⚕️',
+  '📚',
+  '🍿',
+  '💆',
+  '🐶',
+  '🏦',
+  '✈️',
+  '🎁',
+  '👕',
+  '💡',
+  '📱',
+  '🎮',
+  '🍔',
+  '☕',
+  '🏋️',
+  '💊',
+  '🎓',
+  '🐱',
+  '🧾',
+  '💳',
+  '🚌',
+  '⛽',
+  '🎉',
+  '💼',
+  '🔧',
+  '🌱',
+  '👶',
+  '🎵',
+  '📷',
+  '🍷',
+  '🛠️',
+  '🧹',
+  '🎬',
+  '💄',
+  '⚽',
+  '💰',
 ];
 
 function renderEmojiPickerCategoria() {
@@ -594,6 +630,11 @@ function executarEdicao(modo) {
   if (controleBancoObrigatorio(categoria) && !bancoNovo) {
     return mostrarToast('Informe o banco/instituição da operação.', 'erro');
   }
+  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
+  const contaIdNovo =
+    bancoNovo && typeof obterOuCriarContaPorNome === 'function'
+      ? (obterOuCriarContaPorNome(bancoNovo) || {}).id
+      : undefined;
   const catDespesaNovo = resolverCategoriaDespesaSelecionada(categoria);
 
   if (modo === 'todas') {
@@ -608,7 +649,10 @@ function executarEdicao(modo) {
         t.obs = obs;
         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
           t.cartaoId = cartaoIdNovo;
-        if (bancoNovo !== null) t.banco = bancoNovo || undefined;
+        if (bancoNovo !== null) {
+          t.banco = bancoNovo || undefined;
+          t.contaId = contaIdNovo;
+        }
         if (categoriaDespesaUsada(categoria)) t.categoriaDespesa = catDespesaNovo || undefined;
       }
       return t;
@@ -621,7 +665,10 @@ function executarEdicao(modo) {
     transAtual.obs = obs;
     if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
       transAtual.cartaoId = cartaoIdNovo;
-    if (bancoNovo !== null) transAtual.banco = bancoNovo || undefined;
+    if (bancoNovo !== null) {
+      transAtual.banco = bancoNovo || undefined;
+      transAtual.contaId = contaIdNovo;
+    }
     if (categoriaDespesaUsada(categoria)) transAtual.categoriaDespesa = catDespesaNovo || undefined;
     if (transAtual.groupId) transAtual.groupId = null;
   }
@@ -679,6 +726,11 @@ function executarInsercao() {
   if (controleBancoObrigatorio(categoria) && !bancoReceita) {
     return mostrarToast('Informe o banco/instituição da operação.', 'erro');
   }
+  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
+  const contaIdReceita =
+    bancoReceita && typeof obterOuCriarContaPorNome === 'function'
+      ? (obterOuCriarContaPorNome(bancoReceita) || {}).id
+      : undefined;
   const catDespesa = resolverCategoriaDespesaSelecionada(categoria);
   let mesesGerar = 1;
   let valorLancamento = valorTotal;
@@ -730,6 +782,7 @@ function executarInsercao() {
       cartaoId: cartaoId,
       cartaoFixoMensal: cartaoFixoMensal || undefined,
       banco: bancoReceita || undefined,
+      contaId: contaIdReceita,
       categoriaDespesa: catDespesa || undefined,
       obs: obs,
       mes: m,
@@ -814,8 +867,18 @@ var agrupamentoComposicao = 'contabil';
 
 // Paleta cíclica para as barras de categoria de despesa.
 var PALETA_CATEGORIA_DESPESA = [
-  '#e11d48', '#f97316', '#f59e0b', '#7c3aed', '#2563eb', '#0891b2',
-  '#db2777', '#65a30d', '#9333ea', '#dc2626', '#ea580c', '#ca8a04',
+  '#e11d48',
+  '#f97316',
+  '#f59e0b',
+  '#7c3aed',
+  '#2563eb',
+  '#0891b2',
+  '#db2777',
+  '#65a30d',
+  '#9333ea',
+  '#dc2626',
+  '#ea580c',
+  '#ca8a04',
 ];
 
 function setAgrupamentoComposicao(tipo) {
@@ -1608,9 +1671,14 @@ function atualizarTelaControle() {
       });
       // Barras de referência: Receita (e Resgate, se houver) e Sobra.
       dadosGrafico = [{ label: 'Receita', valor: rPizza.receita, cor: '#10b981' }];
-      if (rPizza.resgate > 0) dadosGrafico.push({ label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' });
+      if (rPizza.resgate > 0)
+        dadosGrafico.push({ label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' });
       dadosGrafico = dadosGrafico.concat(despesas);
-      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+      dadosGrafico.push({
+        label: 'Sobra',
+        valor: vSobra,
+        cor: vSobra >= 0 ? '#10b981' : '#e11d48',
+      });
     } else {
       dadosGrafico = [
         { label: 'Receita', valor: rPizza.receita, cor: '#10b981' },
@@ -1622,7 +1690,11 @@ function atualizarTelaControle() {
         { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' },
       ];
       dadosGrafico.sort((a, b) => b.valor - a.valor);
-      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+      dadosGrafico.push({
+        label: 'Sobra',
+        valor: vSobra,
+        cor: vSobra >= 0 ? '#10b981' : '#e11d48',
+      });
     }
 
     // Altura adaptativa: a visão por categoria de despesa pode ter mais barras.

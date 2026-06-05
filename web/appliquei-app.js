@@ -44,8 +44,11 @@ function mudarAba(e, idAba, callback = null) {
   }
   if (idAba === 'controle') atualizarTelaControle();
   if (idAba === 'simulador') {
-    const emMeta = document.getElementById('simModoMeta') && document.getElementById('simModoMeta').style.display !== 'none';
-    if (emMeta) calcularMeta(); else calcularSimulador();
+    const emMeta =
+      document.getElementById('simModoMeta') &&
+      document.getElementById('simModoMeta').style.display !== 'none';
+    if (emMeta) calcularMeta();
+    else calcularSimulador();
   }
   if (idAba === 'carteira') carregarCarteiraCliente();
   if (idAba === 'meus_sonhos') renderizarSonhos();
@@ -718,11 +721,12 @@ function inicializarDatalistBancosTransacao(cat) {
     return;
   }
 
+  const nomesContas = typeof contasAtivas === 'function' ? contasAtivas().map((c) => c.nome) : [];
   const usadosCorretora = historicoCompras.map((op) => op.corretora).filter(Boolean);
   const usadosBancoTx = (transacoes || []).map((t) => t.banco).filter(Boolean);
-  const todos = [...new Set([...LISTA_CORRETORAS, ...usadosCorretora, ...usadosBancoTx])].sort(
-    (a, b) => a.localeCompare(b, 'pt-BR')
-  );
+  const todos = [
+    ...new Set([...nomesContas, ...LISTA_CORRETORAS, ...usadosCorretora, ...usadosBancoTx]),
+  ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
   todos.forEach((nome) => {
     const opt = document.createElement('option');
     opt.value = nome;

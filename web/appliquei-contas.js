@@ -125,6 +125,41 @@ function obterOuCriarContaPorNome(nome, tipo) {
   return criarConta({ nome: nome, tipo: tipo || 'banco' });
 }
 
+// Como obterContaPorNome, mas também casa nos `aliases` (nomes absorvidos numa
+// fusão). Usado na resolução de registros antigos que ainda guardam o `banco`/
+// `corretora` em texto livre. Retorna a conta ou null.
+function obterContaPorNomeOuAlias(nome) {
+  const key = appliqueiNormalizarNomeConta(nome);
+  if (!key) return null;
+  return (
+    contas.find(function (c) {
+      if (appliqueiNormalizarNomeConta(c.nome) === key) return true;
+      return Array.isArray(c.aliases) && c.aliases.indexOf(key) !== -1;
+    }) || null
+  );
+}
+
+// Resolve a conta de uma transação de caixa: prioriza `contaId`; cai para
+// match por nome/alias do campo `banco`. Retorna a conta ou null (a reconciliar).
+function resolverContaDeTransacao(t) {
+  if (!t) return null;
+  if (t.contaId) {
+    const c = obterConta(t.contaId);
+    if (c) return c;
+  }
+  return obterContaPorNomeOuAlias(t.banco);
+}
+
+// Resolve a conta-corretora de uma operação de investimento (contaId → corretora).
+function resolverContaDeOperacao(op) {
+  if (!op) return null;
+  if (op.contaId) {
+    const c = obterConta(op.contaId);
+    if (c) return c;
+  }
+  return obterContaPorNomeOuAlias(op.corretora);
+}
+
 function editarConta(id, patch) {
   const c = obterConta(id);
   if (!c) return null;
@@ -177,10 +212,18 @@ function fundirContas(idDestino, idsOrigem) {
       });
     }
   } catch (e) {}
+  if (!Array.isArray(destino.aliases)) destino.aliases = [];
+  const addAlias = function (k) {
+    if (k && destino.aliases.indexOf(k) === -1) destino.aliases.push(k);
+  };
   origens.forEach(function (id) {
     const o = obterConta(id);
-    if (o)
-      destino.saldoInicial = (Number(destino.saldoInicial) || 0) + (Number(o.saldoInicial) || 0);
+    if (!o) return;
+    destino.saldoInicial = (Number(destino.saldoInicial) || 0) + (Number(o.saldoInicial) || 0);
+    // Guarda o nome (e aliases) absorvidos para que registros antigos que ainda
+    // referenciam essa instituição por texto continuem resolvendo no destino.
+    addAlias(appliqueiNormalizarNomeConta(o.nome));
+    (o.aliases || []).forEach(addAlias);
   });
   destino.atualizadaEm = new Date().toISOString();
   // splice in-place preserva a referência do array global `contas`.
@@ -473,6 +516,9 @@ if (typeof window !== 'undefined') {
   window.obterConta = obterConta;
   window.obterContaPorNome = obterContaPorNome;
   window.obterOuCriarContaPorNome = obterOuCriarContaPorNome;
+  window.obterContaPorNomeOuAlias = obterContaPorNomeOuAlias;
+  window.resolverContaDeTransacao = resolverContaDeTransacao;
+  window.resolverContaDeOperacao = resolverContaDeOperacao;
   window.editarConta = editarConta;
   window.arquivarConta = arquivarConta;
   window.fundirContas = fundirContas;

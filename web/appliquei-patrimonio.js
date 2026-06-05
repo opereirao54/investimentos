@@ -270,18 +270,55 @@ function mpNormalizarInstituicao(nome) {
   return { key, label: orig };
 }
 
-// Soma saldo total: entradas - despesas - aportes (todas as transações pagas).
-// Inclui aportes de investimento pois eles abatem o caixa; resgates/vendas
-// devolvem dinheiro ao caixa (renda variável passa a refletir aqui).
+// Saldo de abertura de uma conta entra no caixa se a data de referência já
+// passou (ou se não há data — assume que sempre valeu). Fase 2.
+function mpSaldoInicialConta(c, refMs) {
+  const sIni = Number(c && c.saldoInicial) || 0;
+  if (!sIni) return 0;
+  if (c && c.dataSaldoInicial) {
+    const tsIni = appliqueiParseData(c.dataSaldoInicial).getTime();
+    if (isFinite(tsIni) && tsIni > refMs) return 0;
+  }
+  return sIni;
+}
+
+// Chave/label de agrupamento por instituição. Prioriza a CONTA resolvida
+// (key = conta.id); cai para o nome em texto (key 'nome:<norm>'); e, quando não
+// há instituição alguma, cai em 'a-reconciliar' (os antigos vazamentos "Sem
+// banco", agora explícitos). Fase 2.
+function mpChaveInstTransacao(t) {
+  const conta = typeof resolverContaDeTransacao === 'function' ? resolverContaDeTransacao(t) : null;
+  if (conta) return { key: conta.id, label: conta.nome };
+  const norm = mpNormalizarInstituicao(t && t.banco);
+  if (norm.key) return { key: 'nome:' + norm.key, label: norm.label };
+  return { key: 'a-reconciliar', label: 'A reconciliar' };
+}
+function mpChaveInstOperacao(c) {
+  const conta = typeof resolverContaDeOperacao === 'function' ? resolverContaDeOperacao(c) : null;
+  if (conta) return { key: conta.id, label: conta.nome };
+  const norm = mpNormalizarInstituicao(c && c.corretora);
+  if (norm.key) return { key: 'nome:' + norm.key, label: norm.label };
+  return { key: 'a-reconciliar', label: 'A reconciliar' };
+}
+
+// Soma saldo total: saldos de abertura + entradas - despesas - aportes (todas as
+// transações pagas). Inclui aportes de investimento pois eles abatem o caixa;
+// resgates/vendas devolvem dinheiro ao caixa (renda variável reflete aqui).
 function mpCalcularSaldoTotal(refMs) {
-  if (typeof transacoes === 'undefined') return 0;
   let saldo = 0;
-  transacoes.forEach((t) => {
-    if (!mpTransacaoComputaCaixa(t, refMs)) return;
-    const valor = Number(t.valor) || 0;
-    if (mpEhEntradaCaixa(t.categoria)) saldo += valor;
-    else saldo -= valor;
-  });
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      saldo += mpSaldoInicialConta(c, refMs);
+    });
+  }
+  if (typeof transacoes !== 'undefined') {
+    transacoes.forEach((t) => {
+      if (!mpTransacaoComputaCaixa(t, refMs)) return;
+      const valor = Number(t.valor) || 0;
+      if (mpEhEntradaCaixa(t.categoria)) saldo += valor;
+      else saldo -= valor;
+    });
+  }
   return saldo;
 }
 
@@ -303,17 +340,29 @@ function mpCalcularDespesasJanela(iniMs, fimMs) {
 
 function mpCalcularSaldoPorInstituicao(refMs) {
   const mapa = {};
+  const ensure = (key, label) => {
+    if (!mapa[key])
+      mapa[key] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: key };
+    else if (label && mapa[key].label === 'A reconciliar') mapa[key].label = label;
+    return mapa[key];
+  };
+  // Saldos de abertura das contas cadastradas entram no caixa.
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      const sIni = mpSaldoInicialConta(c, refMs);
+      if (sIni) ensure(c.id, c.nome).caixa += sIni;
+    });
+  }
   if (typeof transacoes !== 'undefined') {
     transacoes.forEach((t) => {
       if (!mpTransacaoComputaCaixa(t, refMs)) return;
-      // Salário/receita guardam a instituição em `banco`; agrupa por nome
-      // normalizado para não fragmentar "Itaú"/"itau"/"Itau ".
-      const norm = mpNormalizarInstituicao(t.banco);
-      const chave = norm.key || 'sem-banco';
-      if (!mapa[chave]) mapa[chave] = { caixa: 0, investido: 0, label: norm.label || 'Sem banco' };
+      // Agrupa pela CONTA resolvida (contaId → nome/alias); sem instituição,
+      // cai em "A reconciliar" em vez do antigo bucket silencioso "Sem banco".
+      const ci = mpChaveInstTransacao(t);
+      const b = ensure(ci.key, ci.label);
       const valor = Number(t.valor) || 0;
-      if (mpEhEntradaCaixa(t.categoria)) mapa[chave].caixa += valor;
-      else mapa[chave].caixa -= valor;
+      if (mpEhEntradaCaixa(t.categoria)) b.caixa += valor;
+      else b.caixa -= valor;
     });
   }
   return mapa;
@@ -426,15 +475,10 @@ function mpConsolidar() {
     acc.totalInvestido += c.valorTotalInvestido;
     acc.totalAtual += atual;
     acc.totalAtualLiq += liquido;
-    const inst = mpNormalizarInstituicao(c.corretora);
-    const chaveInst = inst.key || 'sem-corretora';
-    if (!acc.porInstituicao[chaveInst])
-      acc.porInstituicao[chaveInst] = {
-        caixa: 0,
-        investido: 0,
-        label: inst.label || 'Sem corretora',
-      };
-    acc.porInstituicao[chaveInst].investido += atual;
+    const ci = mpChaveInstOperacao(c);
+    if (!acc.porInstituicao[ci.key])
+      acc.porInstituicao[ci.key] = { caixa: 0, investido: 0, label: ci.label, key: ci.key };
+    acc.porInstituicao[ci.key].investido += atual;
     acc.porTicker.push({ ticker, c, atual, liquido });
   });
   return acc;
@@ -554,26 +598,29 @@ function mpRenderInstituicoes(consolidado) {
   const wrap = document.getElementById('mp-lista-inst');
   if (!wrap) return;
   const saldos = mpCalcularSaldoPorInstituicao(Date.now());
-  // Une corretoras (investido) e bancos (caixa) por NOME NORMALIZADO — assim
-  // "Itaú" da corretora e "itau" do salário caem na mesma linha, e o total
-  // por instituição contempla 100% do patrimônio (caixa + investido).
+  // Une corretoras (investido) e contas (caixa) pela MESMA CHAVE — conta.id
+  // quando resolvida, senão 'nome:<norm>' ou 'a-reconciliar'. Assim "Itaú" da
+  // corretora e o salário na conta Itaú caem na mesma linha, e o total por
+  // instituição contempla 100% do patrimônio (caixa + investido).
   const mapa = {};
-  const merge = (chave, label, campo, valor) => {
-    const k = chave || 'sem-instituicao';
-    if (!mapa[k]) mapa[k] = { caixa: 0, investido: 0, label: label || 'Sem instituição' };
+  const merge = (key, label, campo, valor) => {
+    const k = key || 'a-reconciliar';
+    if (!mapa[k]) mapa[k] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: k };
+    else if (label && mapa[k].label === 'A reconciliar') mapa[k].label = label;
     mapa[k][campo] += valor;
   };
-  Object.values(consolidado.porInstituicao).forEach((v) => {
-    const n = mpNormalizarInstituicao(v.label);
-    merge(n.key, n.label, 'investido', v.investido);
+  Object.keys(consolidado.porInstituicao).forEach((k) => {
+    const v = consolidado.porInstituicao[k];
+    merge(k, v.label, 'investido', v.investido);
   });
-  Object.values(saldos).forEach((v) => {
-    const n = mpNormalizarInstituicao(v.label);
-    merge(n.key, n.label, 'caixa', v.caixa);
+  Object.keys(saldos).forEach((k) => {
+    const v = saldos[k];
+    merge(k, v.label, 'caixa', v.caixa);
   });
   const arr = Object.values(mapa)
     .map((v) => ({
       nome: v.label,
+      reconciliar: v.key === 'a-reconciliar',
       caixa: v.caixa,
       investido: v.investido,
       total: v.caixa + v.investido,
@@ -590,11 +637,17 @@ function mpRenderInstituicoes(consolidado) {
     .map((x) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
       const badge = x.investido > 0 ? '<span class="mp-inst-badge">INV</span>' : '';
+      const recon = x.reconciliar
+        ? ' <span class="mp-inst-badge" style="background:var(--cor-erro);color:#fff;">A RECONCILIAR</span>'
+        : '';
+      const sub = x.reconciliar
+        ? 'Movimentos sem instituição — informe o banco no lançamento'
+        : `Caixa ${mpFmtBRL(x.caixa)} · Inv. ${mpFmtBRL(x.investido)}`;
       return `
             <div class="mp-inst-item" onclick="mpFiltrarInstituicao('${x.nome.replace(/'/g, "\\'")}')">
                 <div>
-                    <span class="mp-inst-nome">${x.nome} ${badge}</span>
-                    <span class="mp-inst-sub">Caixa ${mpFmtBRL(x.caixa)} · Inv. ${mpFmtBRL(x.investido)}</span>
+                    <span class="mp-inst-nome">${x.nome} ${badge}${recon}</span>
+                    <span class="mp-inst-sub">${sub}</span>
                 </div>
                 <div style="text-align:right;">
                     <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
