@@ -26,6 +26,9 @@ var mpEstado = {
   ultimaCotacao: null,
   donutChart: null,
   categoriaDestaque: null,
+  // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
+  // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
+  extratoAberto: {},
 };
 
 // Tabela regressiva IR para Renda Fixa/Tesouro
@@ -645,6 +648,127 @@ function mpTipoInstituicao(key) {
   return mapa[c.tipo] || { icon: 'ph-buildings', label: c.tipo };
 }
 
+// Rótulo legível de uma categoria de transação, usado como fallback no extrato
+// quando a transação não tem `descricao`.
+function mpCategoriaLabelMov(cat) {
+  const m = {
+    receita: 'Receita',
+    dividendo: 'Dividendo',
+    resgate_investimento: 'Resgate de investimento',
+    transferencia_entrada: 'Transferência recebida',
+    transferencia_saida: 'Transferência enviada',
+    despesa_fixa: 'Despesa fixa',
+    despesa_variavel: 'Despesa',
+    cartao_credito: 'Cartão de crédito',
+    investimento_fixo: 'Aporte',
+    investimento_variavel: 'Aporte',
+    sonho: 'Sonho',
+    previdencia: 'Previdência',
+  };
+  return m[cat] || 'Movimentação';
+}
+
+// Extrato de CAIXA de uma instituição (mesma chave de agrupamento do "Onde está
+// o dinheiro"): saldo de abertura + cada movimento que compõe o caixa, em ordem
+// cronológica, com o saldo corrente após cada lançamento. É o mesmo universo que
+// mpCalcularSaldoPorInstituicao soma — aqui detalhado linha a linha.
+function mpExtratoInstituicao(key, refMs) {
+  const movs = [];
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      if (c.id !== key) return;
+      const sIni = mpSaldoInicialConta(c, refMs);
+      if (sIni) {
+        const ts = c.dataSaldoInicial ? appliqueiParseData(c.dataSaldoInicial).getTime() : 0;
+        movs.push({
+          ts: isFinite(ts) ? ts : 0,
+          desc: 'Saldo inicial',
+          valor: sIni,
+          abertura: true,
+        });
+      }
+    });
+  }
+  if (typeof transacoes !== 'undefined') {
+    transacoes.forEach((t) => {
+      if (!mpTransacaoComputaCaixa(t, refMs)) return;
+      if (mpChaveInstTransacao(t).key !== key) return;
+      const valor = Number(t.valor) || 0;
+      const entrada = mpEhEntradaCaixa(t.categoria);
+      movs.push({
+        ts: mpTimestampTransacao(t),
+        desc: t.descricao || mpCategoriaLabelMov(t.categoria),
+        categoria: t.categoria,
+        valor: entrada ? valor : -valor,
+      });
+    });
+  }
+  movs.sort((a, b) => a.ts - b.ts);
+  let saldo = 0;
+  movs.forEach((m) => {
+    saldo += m.valor;
+    m.saldoApos = saldo;
+  });
+  return movs;
+}
+
+// HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
+function mpRenderExtratoHtml(movs) {
+  if (!movs.length) {
+    return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
+  }
+  const fmtData = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return (
+      String(d.getDate()).padStart(2, '0') +
+      '/' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      '/' +
+      d.getFullYear()
+    );
+  };
+  const MAX = 60;
+  const linhas = movs.slice().reverse(); // mais recente primeiro
+  const visiveis = linhas.slice(0, MAX);
+  let html = visiveis
+    .map((m) => {
+      const pos = m.valor >= 0;
+      const cls = m.abertura ? 'neu' : pos ? 'pos' : 'neg';
+      const sinal = m.abertura ? '' : pos ? '+ ' : '− ';
+      return `<div class="mp-extrato-linha">
+                <div class="mp-extrato-info">
+                    <span class="mp-extrato-desc">${m.desc}</span>
+                    <span class="mp-extrato-data">${fmtData(m.ts)}</span>
+                </div>
+                <div class="mp-extrato-vals">
+                    <span class="mp-extrato-valor ${cls}">${sinal}${mpFmtBRL(Math.abs(m.valor))}</span>
+                    <span class="mp-extrato-saldo">saldo ${mpFmtBRL(m.saldoApos)}</span>
+                </div>
+            </div>`;
+    })
+    .join('');
+  if (linhas.length > MAX) {
+    html += `<div class="mp-extrato-vazio">+ ${linhas.length - MAX} movimentações anteriores</div>`;
+  }
+  return html;
+}
+
+// Recolhe/expande o extrato de uma instituição. Usa o índice renderizado para
+// achar a chave (evita escapar nomes com espaço/acento no onclick) e guarda o
+// estado em mpEstado.extratoAberto para sobreviver a re-renders.
+function mpToggleExtrato(i) {
+  const key = (mpEstado._extratoKeys || [])[i];
+  if (key == null) return;
+  if (!mpEstado.extratoAberto) mpEstado.extratoAberto = {};
+  const aberto = !mpEstado.extratoAberto[key];
+  mpEstado.extratoAberto[key] = aberto;
+  const body = document.getElementById('mp-extrato-' + i);
+  const chev = document.getElementById('mp-chev-' + i);
+  if (body) body.style.display = aberto ? 'flex' : 'none';
+  if (chev) chev.classList.toggle('aberto', aberto);
+}
+
 // "Onde está o seu dinheiro" — o resumo consolidado por instituição. É o coração
 // da foto: cada banco/corretora com o que tem de CAIXA livre + INVESTIDO, como
 // um extrato unificado de todos os bancos. A cada pagamento/aporte/resgate o
@@ -695,8 +819,10 @@ function mpRenderInstituicoes(consolidado) {
     return;
   }
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
+  // Mapa índice→chave usado pelo toggle do extrato (evita escapar nomes no onclick).
+  mpEstado._extratoKeys = arr.map((x) => x.key);
   wrap.innerHTML = arr
-    .map((x) => {
+    .map((x, i) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
       const tipo = mpTipoInstituicao(x.key);
       const tipoBadge = tipo
@@ -730,12 +856,19 @@ function mpRenderInstituicoes(consolidado) {
             )
             .join('')}</div>`
         : '';
+      // Extrato (movimentações de caixa) recolhível por instituição. O estado
+      // de aberto/fechado vive em mpEstado.extratoAberto (sobrevive a re-render).
+      const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
+      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
       return `
-            <div class="mp-inst-item" style="flex-direction:column;align-items:stretch;gap:0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
-                    <div style="min-width:0;">
-                        <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
-                        <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+            <div class="mp-inst-item mp-inst-collapsible">
+                <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
+                    <div class="mp-inst-head-left">
+                        <i class="ph ph-caret-right mp-inst-chevron${aberto ? ' aberto' : ''}" id="mp-chev-${i}"></i>
+                        <div style="min-width:0;">
+                            <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
+                            <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+                        </div>
                     </div>
                     <div style="text-align:right;flex-shrink:0;">
                         <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
@@ -743,6 +876,10 @@ function mpRenderInstituicoes(consolidado) {
                     </div>
                 </div>
                 ${detalheHtml}
+                <div class="mp-inst-extrato" id="mp-extrato-${i}" style="display:${aberto ? 'flex' : 'none'}">
+                    <div class="mp-extrato-titulo"><i class="ph ph-receipt"></i> Extrato — movimentações de caixa</div>
+                    ${extratoHtml}
+                </div>
             </div>`;
     })
     .join('');
