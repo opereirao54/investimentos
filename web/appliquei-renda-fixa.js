@@ -201,6 +201,162 @@ function valorAtualRendaFixa(ticker, categoria, refTs) {
   return Math.max(0, saldo);
 }
 
+// ============================================================
+// === COMPLETAR RENTABILIDADE — Renda Fixa / Reserva legadas ===
+// ============================================================
+// Investimentos de RF/Reserva cadastrados SEM rentabilidade (ex.: antes do campo
+// virar obrigatório) ficam parados no valor aportado, pois não há taxa para
+// capitalizar. Detectamos esses casos e oferecemos completar de uma vez.
+var pendenciasRentEditando = [];
+
+// Agrupa por ticker+categoria os RF/Reserva que têm compra mas nenhuma taxa
+// (sem rentabilidade e sem taxaMensal) — exatamente os que não rendem.
+function pendenciasRentabilidadeRF() {
+  const grupos = {};
+  (typeof historicoCompras !== 'undefined' ? historicoCompras : []).forEach((op) => {
+    if (op.categoria !== 'renda_fixa' && op.categoria !== 'reserva_emergencia') return;
+    const key = op.categoria + '|' + op.ticker;
+    if (!grupos[key])
+      grupos[key] = {
+        ticker: op.ticker,
+        categoria: op.categoria,
+        totalInvestido: 0,
+        temTaxa: false,
+        temCompra: false,
+      };
+    const g = grupos[key];
+    const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
+    if ((op.tipo || 'compra') === 'compra') {
+      g.totalInvestido += valor;
+      g.temCompra = true;
+    }
+    if (op.rentabilidade || op.taxaMensal > 0) g.temTaxa = true;
+  });
+  return Object.values(grupos).filter((g) => g.temCompra && !g.temTaxa && g.totalInvestido > 0);
+}
+
+// Banner na aba Carteira. Some sozinho quando não há pendências ou quando o
+// usuário dispensa na sessão. Chamado por atualizarCarteiraAtivos().
+function renderAvisoRentabilidadeRF() {
+  const box = document.getElementById('avisoRentabilidadeRF');
+  if (!box) return;
+  let dispensado = false;
+  try {
+    dispensado = sessionStorage.getItem('appliquei_aviso_rent_rf') === '1';
+  } catch (_) {}
+  const pend = pendenciasRentabilidadeRF();
+  if (pend.length === 0 || dispensado) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  const n = pend.length;
+  box.style.display = 'block';
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
+      <i class="ph-fill ph-warning-circle" style="font-size:22px;color:#d97706;flex-shrink:0;"></i>
+      <div style="min-width:0;flex:1;">
+        <div style="font-weight:600;font-size:13px;color:#92400e;">${n} investimento${n === 1 ? '' : 's'} de renda fixa sem rentabilidade</div>
+        <div style="font-size:12px;color:#b45309;">Sem a taxa ${n === 1 ? 'ele não rende' : 'eles não rendem'} — fica${n === 1 ? '' : 'm'} no valor aportado. Informe para valorizar desde a data do aporte.</div>
+      </div>
+      <button onclick="abrirModalCompletarRentabilidade()" class="btn-acao" style="background:#d97706;flex-shrink:0;padding:8px 14px;font-size:12.5px;white-space:nowrap;"><i class="ph ph-pencil-simple"></i> Completar</button>
+      <button onclick="dispensarAvisoRentabilidadeRF()" aria-label="Dispensar" title="Dispensar por agora" style="background:none;border:none;cursor:pointer;color:#b45309;font-size:16px;flex-shrink:0;"><i class="ph ph-x"></i></button>
+    </div>`;
+}
+
+function dispensarAvisoRentabilidadeRF() {
+  try {
+    sessionStorage.setItem('appliquei_aviso_rent_rf', '1');
+  } catch (_) {}
+  const box = document.getElementById('avisoRentabilidadeRF');
+  if (box) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+  }
+}
+
+function abrirModalCompletarRentabilidade() {
+  const modal = document.getElementById('modalCompletarRentabilidade');
+  const corpo = document.getElementById('corpoModalCompletarRent');
+  if (!modal || !corpo) return;
+  pendenciasRentEditando = pendenciasRentabilidadeRF();
+  if (pendenciasRentEditando.length === 0) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('Tudo certo — nenhuma rentabilidade pendente.', 'sucesso');
+    return;
+  }
+  const ROT = { renda_fixa: 'Renda Fixa', reserva_emergencia: 'Reserva' };
+  corpo.innerHTML = pendenciasRentEditando
+    .map(
+      (g, i) => `
+    <div class="form-group" style="margin:0;">
+      <label style="display:flex;justify-content:space-between;gap:8px;font-size:12.5px;">
+        <span style="font-weight:600;color:var(--cor-texto-principal);">${g.ticker}</span>
+        <span style="font-weight:400;color:var(--cor-texto-mutado);">${ROT[g.categoria] || g.categoria} · ${formatarMoeda(g.totalInvestido)}</span>
+      </label>
+      <input type="text" id="rentPend_${i}" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." style="width:100%;" />
+    </div>`
+    )
+    .join('');
+  modal.style.display = 'flex';
+}
+
+function fecharModalCompletarRentabilidade() {
+  const modal = document.getElementById('modalCompletarRentabilidade');
+  if (modal) modal.style.display = 'none';
+}
+
+// Aplica a rentabilidade digitada a TODOS os aportes/resgates do ticker (mesma
+// categoria). Linhas em branco continuam pendentes; linhas inválidas bloqueiam.
+function salvarCompletarRentabilidade() {
+  let invalidos = 0;
+  const atualizacoes = [];
+  pendenciasRentEditando.forEach((g, i) => {
+    const el = document.getElementById('rentPend_' + i);
+    const val = el ? el.value.trim() : '';
+    if (!val) return;
+    if (!parsearRentabilidade(val)) {
+      invalidos++;
+      if (el) el.style.borderColor = 'var(--cor-erro)';
+      return;
+    }
+    if (el) el.style.borderColor = '';
+    atualizacoes.push({ ticker: g.ticker, categoria: g.categoria, rentabilidade: val });
+  });
+  if (invalidos > 0) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast(
+        'Rentabilidade não reconhecida. Use formatos como 110% CDI, IPCA+6% ou 12% a.a.',
+        'erro'
+      );
+    return;
+  }
+  if (atualizacoes.length === 0) {
+    fecharModalCompletarRentabilidade();
+    return;
+  }
+  atualizacoes.forEach((u) => {
+    historicoCompras.forEach((op) => {
+      if (op.ticker === u.ticker && op.categoria === u.categoria)
+        op.rentabilidade = u.rentabilidade;
+    });
+  });
+  localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+  if (typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
+  if (typeof renderMeuPatrimonio === 'function') {
+    try {
+      renderMeuPatrimonio(true);
+    } catch (_) {}
+  }
+  if (typeof renderizarOperacoes === 'function') renderizarOperacoes();
+  if (typeof mostrarToast === 'function')
+    mostrarToast(
+      `Rentabilidade aplicada a ${atualizacoes.length} investimento${atualizacoes.length === 1 ? '' : 's'}. Agora rende${atualizacoes.length === 1 ? '' : 'm'} desde o aporte.`,
+      'sucesso'
+    );
+  fecharModalCompletarRentabilidade();
+}
+
 function atualizarProjecaoForm() {
   const preview = document.getElementById('projecaoRfPreview');
   if (!preview) return;

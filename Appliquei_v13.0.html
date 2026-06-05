@@ -5177,6 +5177,21 @@
         </div>
     </div>
 
+    <div id="modalCompletarRentabilidade" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalCompletarRentabilidade()">
+        <div style="max-width:560px;width:94%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+                <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-percent" style="color:var(--cor-primaria);"></i> Completar rentabilidade</h3>
+                <button class="drawer-fechar" onclick="fecharModalCompletarRentabilidade()" aria-label="Fechar" style="background:none;border:none;cursor:pointer;color:var(--cor-texto-mutado);font-size:18px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:14px;line-height:1.5;">Estes investimentos de Renda Fixa/Reserva estão <strong>sem rentabilidade</strong> e por isso ficam parados no valor aportado. Informe a taxa (ex: <strong>110% CDI</strong>, <strong>IPCA+6%</strong>, <strong>12% a.a.</strong>) para passarem a render desde a data do aporte.</div>
+            <div id="corpoModalCompletarRent" style="overflow:auto;flex:1;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--cor-borda);padding-top:14px;"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secundario" style="flex:1;" onclick="fecharModalCompletarRentabilidade()">Agora não</button>
+                <button class="btn-acao" style="flex:1;background:var(--cor-primaria);" onclick="salvarCompletarRentabilidade()"><i class="ph ph-check"></i> Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
@@ -5541,6 +5556,8 @@
 
             <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
             <div id="subAbaCarteira">
+                <!-- Aviso: Renda Fixa/Reserva sem rentabilidade não rendem (preenchido por JS) -->
+                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:14px;"></div>
                 <div class="card-container" style="padding: 0; overflow: hidden;">
                     <div style="overflow-x: auto; max-height: 640px;" id="richRowsContainer">
                         <!-- Rich rows rendered by JS -->

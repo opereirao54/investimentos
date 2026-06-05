@@ -1032,6 +1032,8 @@ function atualizarCarteiraAtivos() {
 
     if(richContainer) richContainer.innerHTML = richHTML || '';
     atualizarMiniStats('carteira');
+    // Aviso de RF/Reserva sem rentabilidade (que não estão rendendo).
+    if (typeof renderAvisoRentabilidadeRF === 'function') renderAvisoRentabilidadeRF();
 
     if(totalAtivosValidos === 0) {
         msgVazia.style.display = "block";
