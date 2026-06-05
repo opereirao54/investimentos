@@ -4168,6 +4168,18 @@
         .mp-inst-tipo i { font-size:11px; }
         .mp-inst-valor { font-family:'DM Mono', monospace; font-size:12px; font-weight:700; color: var(--cor-texto-principal); }
         .mp-inst-sub   { font-size:10px; color: var(--cor-texto-mutado); display:block; text-align:right; margin-top:1px; }
+        .mp-inst-detalhe { display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; padding-top:9px; border-top:1px dashed var(--cor-borda); }
+        .mp-inst-chip {
+            font-size:11px; color: var(--cor-texto-secundario);
+            background: var(--cor-fundo-card); border:1px solid var(--cor-borda); border-radius:999px;
+            padding:2px 9px; display:inline-flex; align-items:center; gap:5px;
+        }
+        .mp-inst-chip strong { color: var(--cor-texto-principal); font-family:'DM Mono', monospace; font-weight:700; }
+        .mp-classes-total {
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            padding:11px 12px; margin-top:4px; border-top:2px solid var(--cor-borda);
+            font-size:12.5px; font-weight:700; color: var(--cor-texto-principal);
+        }
 
         .mp-donut-card { margin-bottom:20px; }
         .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
@@ -4210,6 +4222,7 @@
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
+        body.valores-ocultos #meu_patrimonio .mp-inst-chip strong,
         body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
 
@@ -6554,21 +6567,33 @@
                 </div>
             </div>
 
-            <!-- Onde está o dinheiro: extrato consolidado por instituição (banco/corretora) -->
+            <!-- Onde está o dinheiro: extrato consolidado por instituição (banco/corretora),
+                 com o detalhe das classes de investimento que cada uma guarda -->
             <div class="card-container">
                 <div class="mp-section-head">
                     <h3>Onde está o seu dinheiro</h3>
-                    <span class="mp-section-sub">Cada banco e corretora — caixa livre + investido</span>
+                    <span class="mp-section-sub">Cada banco e corretora — caixa + cada tipo de investimento</span>
                 </div>
                 <div class="mp-lista-inst" id="mp-lista-inst">
                     <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
                 </div>
             </div>
 
+            <!-- Total investido por classe: somatória de cada tipo (= KPI Total investido) -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Total investido por classe</h3>
+                    <span class="mp-section-sub">Todo tipo de investimento que você tem</span>
+                </div>
+                <div class="mp-lista-inst" id="mp-classes-lista">
+                    <div class="mp-empty"><i class="ph ph-chart-bar"></i>—</div>
+                </div>
+            </div>
+
             <!-- Gráfico único: pizza = divisão; legenda (barrinhas) = valor + rentabilidade -->
             <div class="card-container mp-donut-card">
                 <div class="mp-section-head">
-                    <h3>Divisão por categoria</h3>
+                    <h3>Divisão do patrimônio</h3>
                     <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
                 </div>
                 <div class="mp-donut-grid">

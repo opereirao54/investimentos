@@ -492,8 +492,18 @@ function mpConsolidar() {
     acc.totalAtualLiq += liquido;
     const ci = mpChaveInstOperacao(c);
     if (!acc.porInstituicao[ci.key])
-      acc.porInstituicao[ci.key] = { caixa: 0, investido: 0, label: ci.label, key: ci.key };
+      acc.porInstituicao[ci.key] = {
+        caixa: 0,
+        investido: 0,
+        label: ci.label,
+        key: ci.key,
+        classes: {},
+      };
     acc.porInstituicao[ci.key].investido += atual;
+    // Quebra por classe DENTRO da instituição (catExib = RV já dividida em
+    // Ações/FIIs/…), p/ o detalhe "o que tem em cada banco/corretora".
+    acc.porInstituicao[ci.key].classes[catExib] =
+      (acc.porInstituicao[ci.key].classes[catExib] || 0) + atual;
     acc.porTicker.push({ ticker, c, atual, liquido });
   });
   return acc;
@@ -642,15 +652,20 @@ function mpRenderInstituicoes(consolidado) {
   // corretora e o salário na conta Itaú caem na mesma linha, e o total por
   // instituição contempla 100% do patrimônio (caixa + investido).
   const mapa = {};
-  const merge = (key, label, campo, valor) => {
+  const merge = (key, label, campo, valor, classes) => {
     const k = key || 'a-reconciliar';
-    if (!mapa[k]) mapa[k] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: k };
+    if (!mapa[k])
+      mapa[k] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: k, classes: {} };
     else if (label && mapa[k].label === 'A reconciliar') mapa[k].label = label;
     mapa[k][campo] += valor;
+    if (classes)
+      Object.keys(classes).forEach((cl) => {
+        mapa[k].classes[cl] = (mapa[k].classes[cl] || 0) + classes[cl];
+      });
   };
   Object.keys(consolidado.porInstituicao).forEach((k) => {
     const v = consolidado.porInstituicao[k];
-    merge(k, v.label, 'investido', v.investido);
+    merge(k, v.label, 'investido', v.investido, v.classes);
   });
   Object.keys(saldos).forEach((k) => {
     const v = saldos[k];
@@ -663,6 +678,7 @@ function mpRenderInstituicoes(consolidado) {
       reconciliar: v.key === 'a-reconciliar',
       caixa: v.caixa,
       investido: v.investido,
+      classes: v.classes,
       total: v.caixa + v.investido,
     }))
     .filter((x) => Math.abs(x.total) > 0.01)
@@ -686,19 +702,93 @@ function mpRenderInstituicoes(consolidado) {
       const sub = x.reconciliar
         ? 'Movimentos sem instituição — informe o banco no lançamento'
         : `Caixa ${mpFmtBRL(x.caixa)} · Investido ${mpFmtBRL(x.investido)}`;
+      // Detalhe: caixa + cada classe de investimento que ESTÁ nesta instituição,
+      // para a pessoa ver exatamente o que tem em cada banco/corretora.
+      const detalhe = [];
+      if (x.caixa > 0.01)
+        detalhe.push({ label: 'Caixa', valor: x.caixa, cor: mpCorCategoria('caixa') });
+      Object.keys(x.classes || {}).forEach((cl) => {
+        if (x.classes[cl] > 0.01)
+          detalhe.push({
+            label: MP_LABELS[cl] || cl,
+            valor: x.classes[cl],
+            cor: mpCorCategoria(cl),
+          });
+      });
+      detalhe.sort((a, b) => b.valor - a.valor);
+      const detalheHtml = detalhe.length
+        ? `<div class="mp-inst-detalhe">${detalhe
+            .map(
+              (d) =>
+                `<span class="mp-inst-chip"><span class="mp-leg-dot" style="background:${d.cor};margin-top:0;width:8px;height:8px;"></span>${d.label} <strong>${mpFmtBRL(d.valor)}</strong></span>`
+            )
+            .join('')}</div>`
+        : '';
       return `
-            <div class="mp-inst-item">
-                <div style="min-width:0;">
-                    <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
-                    <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+            <div class="mp-inst-item" style="flex-direction:column;align-items:stretch;gap:0;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                    <div style="min-width:0;">
+                        <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
+                        <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
+                        <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
+                    </div>
                 </div>
-                <div style="text-align:right;flex-shrink:0;">
-                    <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
-                    <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
-                </div>
+                ${detalheHtml}
             </div>`;
     })
     .join('');
+}
+
+// "Total investido por classe" — a somatória GLOBAL de cada tipo de investimento
+// (Renda Fixa, Ações, FIIs, BDRs, ETFs, Cripto, Previdência, Reserva). A soma
+// destas linhas é exatamente o KPI "Total investido". Respeita o modo bruto/líquido.
+function mpRenderClasses(consolidado) {
+  const wrap = document.getElementById('mp-classes-lista');
+  if (!wrap) return;
+  const usarLiq = mpEstado.modo === 'liquido';
+  const porCat = consolidado.porCategoriaExibicao || {};
+  const itens = Object.keys(porCat)
+    .map((cat) => ({
+      cat,
+      investido: porCat[cat].investido,
+      atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
+    }))
+    .filter((it) => it.atual > 0.01)
+    .sort((a, b) => b.atual - a.atual);
+  if (!itens.length) {
+    wrap.innerHTML =
+      '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
+    return;
+  }
+  const total = itens.reduce((a, it) => a + it.atual, 0);
+  wrap.innerHTML =
+    itens
+      .map((it) => {
+        const lucro = it.atual - it.investido;
+        const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
+        const cls = pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
+        const share = total > 0 ? (it.atual / total) * 100 : 0;
+        const cor = mpCorCategoria(it.cat);
+        const seta = pct >= 0 ? 'trend-up' : 'trend-down';
+        return `
+            <div class="mp-inst-item">
+                <div style="min-width:0;display:flex;align-items:center;gap:9px;">
+                    <span class="mp-leg-dot" style="background:${cor};margin-top:0;"></span>
+                    <div style="min-width:0;">
+                        <span class="mp-inst-nome">${MP_LABELS[it.cat] || it.cat}</span>
+                        <span class="mp-inst-sub" style="text-align:left;">${share.toFixed(1)}% do investido · <span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${seta}"></i>${mpFmtPct(pct)}</span></span>
+                    </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <span class="mp-inst-valor">${mpFmtBRL(it.atual)}</span>
+                </div>
+            </div>`;
+      })
+      .join('') +
+    `<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">${mpFmtBRL(total)}</span></div>`;
 }
 
 function mpRenderDonut(consolidado) {
@@ -859,8 +949,11 @@ async function renderMeuPatrimonio(skipFetch) {
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
   mpRenderKPIs(consolidado, janela);
-  // Resumo consolidado por instituição (banco/corretora) — o coração da foto.
+  // Resumo consolidado por instituição (banco/corretora), com o detalhe das
+  // classes que cada uma guarda — o coração da foto.
   mpRenderInstituicoes(consolidado);
+  // Somatória de cada tipo de investimento (= KPI Total investido).
+  mpRenderClasses(consolidado);
   // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
   // rentabilidade. O antigo gráfico de barras foi removido.
   mpRenderDonut(consolidado);
