@@ -1345,6 +1345,30 @@ function atualizarTermometro60() {
   }
 }
 
+// Estado do alerta de cartão (pura/testável). Recebe o total da fatura do mês e
+// a lista de cartões ATIVOS (arquivados não entram, p/ não inflar o limite e
+// mascarar o estouro). Devolve o limite somado, o % usado e, se estourou, quanto
+// passou — em R$ e em %.
+function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
+  const limite = (cartoesAtivosLista || []).reduce(
+    (sum, c) => sum + (Number(c && c.limite) || 0),
+    0
+  );
+  const total = Number(totCartao) || 0;
+  if (limite <= 0) {
+    return { limite: 0, perc: 0, estourou: false, extrapolouReais: 0, extrapolouPerc: 0 };
+  }
+  const perc = (total / limite) * 100;
+  const estourou = perc > 100;
+  return {
+    limite,
+    perc,
+    estourou,
+    extrapolouReais: estourou ? total - limite : 0,
+    extrapolouPerc: estourou ? ((total - limite) / limite) * 100 : 0,
+  };
+}
+
 function atualizarTelaControle() {
   const mesFormatado = (visaoMes + 1).toString().padStart(2, '0');
   document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
@@ -1634,29 +1658,28 @@ function atualizarTelaControle() {
     }
   }
 
-  // ALERTA CARTÃO
-  const limitCartao = cartoes.reduce((sum, c) => sum + (c.limite || 0), 0);
+  // ALERTA CARTÃO — usa só cartões ATIVOS. Cartões arquivados (ex.: o "Cartão
+  // principal" de 5.000 criado na migração) não devem inflar o limite e mascarar
+  // o estouro da fatura.
+  const estadoCartao = calcularEstadoAlertaCartao(totCartao, cartoesAtivos());
   const alertaCartao = document.getElementById('alertaCartaoKanban');
+  const barCartao = document.getElementById('barCartao');
 
-  if (limitCartao > 0) {
-    let percCartao = (totCartao / limitCartao) * 100;
-    document.getElementById('barCartao').style.width = Math.min(100, percCartao) + '%';
-
-    if (percCartao > 100) {
-      document.getElementById('barCartao').style.background = 'var(--cor-erro)';
-      let extrapolouReais = totCartao - limitCartao;
-      let extrapolouPerc = ((totCartao - limitCartao) / limitCartao) * 100;
+  if (estadoCartao.limite > 0) {
+    if (barCartao) barCartao.style.width = Math.min(100, estadoCartao.perc) + '%';
+    if (estadoCartao.estourou) {
+      if (barCartao) barCartao.style.background = 'var(--cor-erro)';
       const txtAlerta = document.getElementById('txtAlertaCartao');
       if (txtAlerta)
-        txtAlerta.innerHTML = `Fatura estourou em ${extrapolouPerc.toFixed(1)}% — passou ${formatarMoeda(extrapolouReais)} do limite.`;
-      alertaCartao.style.display = 'flex';
+        txtAlerta.innerHTML = `Fatura estourou em ${estadoCartao.extrapolouPerc.toFixed(1)}% — passou ${formatarMoeda(estadoCartao.extrapolouReais)} do limite.`;
+      if (alertaCartao) alertaCartao.style.display = 'flex';
     } else {
-      document.getElementById('barCartao').style.background = 'var(--cor-cartao)';
-      alertaCartao.style.display = 'none';
+      if (barCartao) barCartao.style.background = 'var(--cor-cartao)';
+      if (alertaCartao) alertaCartao.style.display = 'none';
     }
   } else {
-    document.getElementById('barCartao').style.width = '0%';
-    alertaCartao.style.display = 'none';
+    if (barCartao) barCartao.style.width = '0%';
+    if (alertaCartao) alertaCartao.style.display = 'none';
   }
 
   // GRÁFICO BARRAS
