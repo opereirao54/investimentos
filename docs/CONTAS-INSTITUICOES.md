@@ -147,8 +147,12 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   plumbing: aparece no "Por instituição" do Patrimônio, **não** no extrato/DRE
   (ocultada em `atualizarTelaControle` p/ não duplicar linha nem o KPI de aporte).
   Conta-origem guardada no template (`contaOrigemId`) p/ as recorrências.
-- **Previdência e sonho** geram a perna de caixa a partir da conta-origem. ⏳
-  pendente (Fase 3B-2).
+- **Previdência recorrente → conta-origem.** ✅ As parcelas geradas
+  (`gerarLancamentosFuturosCompromisso` e `processarAportesRecorrentesPrevidencia`)
+  carimbam `contaId` do template (`contaOrigemId`). Recorrentes usam `contaId`
+  direto no `investimento_*` (sem perna separada) — mesmo efeito de caixa, sem
+  ciclo de pago duplicado.
+- **Sonho → conta-origem.** ⏳ pendente (Fase 3B-2b).
 - Ganho: toda **saída** passa por conta.
 
 ### Fase 4 — Fechar as entradas
