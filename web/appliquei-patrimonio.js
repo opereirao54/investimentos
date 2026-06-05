@@ -253,6 +253,14 @@ function mpTimestampTransacao(t) {
 // para sempre e nunca aparecia no Patrimônio.
 function mpTransacaoComputaCaixa(t, refMs) {
   if (mpTimestampTransacao(t) > refMs) return false;
+  // Fase 3B: aporte cujo débito de caixa já é representado por uma perna de
+  // transferência (transferencia_saida com contaId) NÃO conta aqui — senão
+  // haveria duplo-débito. O `investimento_*` permanece só para a carteira/DRE.
+  if (
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    t.temLegCaixa
+  )
+    return false;
   if (mpEhEntradaCaixa(t.categoria)) return true;
   return !!t.pago;
 }

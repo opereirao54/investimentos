@@ -5295,13 +5295,12 @@
                 </div>
             </div>
             <div class="form-group" id="grupoOrigemRecurso">
-                <label>Origem do recurso <small style="color:var(--cor-texto-mutado);font-weight:400">— afeta o Saldo em Conta no Meu Patrimônio</small></label>
+                <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
-                    <option value="externo">Aporte externo (dinheiro novo, não abate caixa)</option>
-                    <option value="caixa_proprio">Tirar do saldo da própria corretora</option>
-                    <option value="caixa_outra">Tirar do saldo de outra instituição</option>
+                    <option value="caixa_proprio">Saldo na própria corretora</option>
+                    <option value="caixa_outra">Saldo de outra instituição</option>
                 </select>
-                <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco" style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
+                <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
                 <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>

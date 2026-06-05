@@ -1509,6 +1509,10 @@ function atualizarTelaControle() {
 
   transacoes.forEach((t) => {
     if (t.mes === visaoMes && t.ano === visaoAno) {
+      // Fase 3B: as pernas de transferência (origem do aporte) são plumbing de
+      // caixa — aparecem no Meu Patrimônio (por instituição), não no extrato/DRE
+      // mensal. Sem isto, o aporte apareceria 2x (ativo + perna) e dobraria o KPI.
+      if (t.categoria === 'transferencia_saida' || t.categoria === 'transferencia_entrada') return;
       let iconFixo =
         t.groupId && t.categoria !== 'cartao_credito'
           ? ' <i class="ph ph-arrows-clockwise" title="Recorrente"></i>'

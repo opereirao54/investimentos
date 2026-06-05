@@ -141,11 +141,14 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   (seletor na config do cartão); a baixa (`confirmarBaixarGrupoCartao` /
   `confirmarPagamento`) carimba `contaId` nas parcelas pagas, debitando a conta
   certa em vez de cair em "A reconciliar".
-- **Aporte de investimento → `transferencia_saida` com `contaId`** (decisão 3): o
-  `investimento_*` deixa de abater o caixa; o débito passa a ser a perna de
-  transferência da conta-origem, acabando com o duplo-débito. ⏳ pendente.
-- **Previdência e sonho** geram a perna de caixa a partir de uma conta-origem. ⏳
-  pendente.
+- **Compra manual de ativo → conta-origem obrigatória.** ✅ O aporte gera uma
+  perna `transferencia_saida` com `contaId` (decisão 3); a tx do ativo fica
+  marcada `temLegCaixa` e sai do cálculo de caixa (sem duplo-débito). A perna é
+  plumbing: aparece no "Por instituição" do Patrimônio, **não** no extrato/DRE
+  (ocultada em `atualizarTelaControle` p/ não duplicar linha nem o KPI de aporte).
+  Conta-origem guardada no template (`contaOrigemId`) p/ as recorrências.
+- **Previdência e sonho** geram a perna de caixa a partir da conta-origem. ⏳
+  pendente (Fase 3B-2).
 - Ganho: toda **saída** passa por conta.
 
 ### Fase 4 — Fechar as entradas
