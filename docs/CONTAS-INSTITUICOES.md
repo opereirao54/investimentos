@@ -142,11 +142,19 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   o salvamento sem conta pagadora); a baixa (`confirmarBaixarGrupoCartao` /
   `confirmarPagamento`) carimba `contaId` nas parcelas pagas, debitando a conta
   certa em vez de cair em "A reconciliar".
-- **Compra manual de ativo → conta-origem obrigatória.** ✅ O aporte gera uma
-  perna `transferencia_saida` com `contaId` (decisão 3); a tx do ativo fica
-  marcada `temLegCaixa` e sai do cálculo de caixa (sem duplo-débito). A perna é
-  plumbing: aparece no "Por instituição" do Patrimônio, **não** no extrato/DRE
-  (ocultada em `atualizarTelaControle` p/ não duplicar linha nem o KPI de aporte).
+- **Compra manual de ativo → conta-origem obrigatória e ESCOLHIDA.** ✅ O
+  seletor "Conta de onde sai o dinheiro" abre vazio (`— selecione a conta —`) e
+  lista as contas reais do usuário (com o caixa de cada uma), mais "própria
+  corretora" e "Outra conta (digitar)". Sem default silencioso `caixa_proprio`:
+  antes, a compra debitava a própria corretora (em geral sem saldo), o caixa
+  ficava negativo e a linha sumia (`caixa + investido ≈ 0`), então o saldo do
+  banco real do usuário não mudava ("não descontou do saldo"). Agora o usuário
+  escolhe a conta pagadora e o débito cai nela, visível no Meu Patrimônio.
+  O aporte gera uma perna `transferencia_saida` com o `contaId` da conta
+  escolhida (decisão 3); a tx do ativo fica marcada `temLegCaixa` e sai do
+  cálculo de caixa (sem duplo-débito). A perna é plumbing: aparece no "Por
+  instituição" do Patrimônio, **não** no extrato/DRE (ocultada em
+  `atualizarTelaControle` p/ não duplicar linha nem o KPI de aporte).
   Conta-origem guardada no template (`contaOrigemId`) p/ as recorrências.
 - **Previdência recorrente → conta-origem.** ✅ As parcelas geradas
   (`gerarLancamentosFuturosCompromisso` e `processarAportesRecorrentesPrevidencia`)

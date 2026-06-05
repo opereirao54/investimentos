@@ -177,6 +177,8 @@ function abrirDrawerOperacao() {
   // Garante estado inicial limpo do form
   const elData = document.getElementById('compraData');
   if (elData && !elData.value) elData.value = new Date().toISOString().slice(0, 10);
+  // Atualiza a lista de contas pagadoras (com saldo) toda vez que o drawer abre.
+  if (typeof popularOrigemRecurso === 'function') popularOrigemRecurso();
   drawer.classList.add('aberto');
   overlay.classList.add('aberto');
   document.body.style.overflow = 'hidden';
@@ -1003,13 +1005,46 @@ window.onload = function () {
   inicializarFormSugestao();
 };
 
-// RN03: alterna o input de banco de origem quando origem != externo
+// Popula o seletor "Conta de onde sai o dinheiro" com as CONTAS reais do
+// usuário (cada uma com o caixa disponível), mais "própria corretora" e a opção
+// de digitar uma conta nova. Sem default silencioso: a 1ª opção é vazia ("—
+// selecione —"), forçando o usuário a escolher de onde o dinheiro sai — assim a
+// compra debita uma conta de verdade e o débito fica visível no Meu Patrimônio.
+function popularOrigemRecurso() {
+  const sel = document.getElementById('compraOrigemRecurso');
+  if (!sel) return;
+  const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+  const saldos =
+    typeof mpCalcularSaldoPorInstituicao === 'function'
+      ? mpCalcularSaldoPorInstituicao(Date.now())
+      : {};
+  const prev = sel.value;
+  const opcoesContas = ativas
+    .map((c) => {
+      const saldo = saldos[c.id] ? saldos[c.id].caixa : 0;
+      const sfx = typeof formatarMoeda === 'function' && saldo ? ` (${formatarMoeda(saldo)})` : '';
+      return `<option value="${c.id}">${c.nome}${sfx}</option>`;
+    })
+    .join('');
+  sel.innerHTML =
+    '<option value="">— selecione a conta —</option>' +
+    opcoesContas +
+    '<option value="caixa_proprio">Saldo na própria corretora</option>' +
+    '<option value="__nova">Outra conta (digitar)…</option>';
+  // Preserva a seleção anterior se ela ainda existir entre as opções.
+  sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
+  ajustarOrigemRecursoCampos();
+}
+
+// RN03: mostra o input de banco/conta livre só quando o usuário escolhe digitar
+// uma conta que ainda não está cadastrada ("Outra conta").
 function ajustarOrigemRecursoCampos() {
   const sel = document.getElementById('compraOrigemRecurso');
   const inp = document.getElementById('compraOrigemBanco');
   if (!sel || !inp) return;
-  inp.style.display = sel.value === 'caixa_outra' ? 'block' : 'none';
-  if (sel.value !== 'caixa_outra') inp.value = '';
+  const digitar = sel.value === 'caixa_outra' || sel.value === '__nova';
+  inp.style.display = digitar ? 'block' : 'none';
+  if (!digitar) inp.value = '';
 }
 
 // ============================================================

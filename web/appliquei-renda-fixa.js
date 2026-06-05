@@ -258,27 +258,50 @@ function registrarOperacaoAtivo() {
   }
 
   // Fase 3B: numa COMPRA com aporte, o dinheiro sai de uma conta-origem
-  // OBRIGATÓRIA. Default = a própria corretora; "outra instituição" usa o campo
-  // compraOrigemBanco. Validado ANTES de qualquer push para não deixar a
-  // operação órfã (sem as transações).
+  // OBRIGATÓRIA e ESCOLHIDA pelo usuário (sem default silencioso): pode ser uma
+  // conta cadastrada (value = conta.id), a própria corretora ('caixa_proprio')
+  // ou uma conta nova digitada ('__nova'). Assim a compra debita uma conta de
+  // verdade e o débito fica VISÍVEL no Meu Patrimônio. Validado ANTES de
+  // qualquer push para não deixar a operação órfã (sem as transações).
   let bancoOrigemAporte = '';
+  let contaOrigemIdSel; // conta resolvida quando o usuário escolhe uma cadastrada
   if (tipoOp === 'compra' && temAporte) {
     const elOrigemSel = document.getElementById('compraOrigemRecurso');
-    const origem = elOrigemSel ? elOrigemSel.value : 'caixa_proprio';
-    bancoOrigemAporte =
-      origem === 'caixa_outra'
-        ? ((document.getElementById('compraOrigemBanco') || {}).value || '').trim()
-        : corretora;
-    if (!bancoOrigemAporte) {
-      const elB = document.getElementById('compraOrigemBanco');
-      if (elB) {
-        elB.style.borderColor = 'var(--cor-erro)';
-        elB.focus();
+    const origem = elOrigemSel ? elOrigemSel.value : '';
+    if (!origem) {
+      if (elOrigemSel) {
+        elOrigemSel.style.borderColor = 'var(--cor-erro)';
+        elOrigemSel.focus();
         setTimeout(() => {
-          elB.style.borderColor = '';
+          elOrigemSel.style.borderColor = '';
         }, 2500);
       }
-      return mostrarToast('Informe a conta de onde o dinheiro sai (origem do recurso).', 'erro');
+      return mostrarToast('Escolha a conta de onde o dinheiro sai.', 'erro');
+    }
+    if (origem === 'caixa_proprio') {
+      bancoOrigemAporte = corretora;
+    } else if (origem === 'caixa_outra' || origem === '__nova') {
+      bancoOrigemAporte = ((document.getElementById('compraOrigemBanco') || {}).value || '').trim();
+      if (!bancoOrigemAporte) {
+        const elB = document.getElementById('compraOrigemBanco');
+        if (elB) {
+          elB.style.borderColor = 'var(--cor-erro)';
+          elB.focus();
+          setTimeout(() => {
+            elB.style.borderColor = '';
+          }, 2500);
+        }
+        return mostrarToast('Informe a conta de onde o dinheiro sai (origem do recurso).', 'erro');
+      }
+    } else {
+      // O usuário escolheu uma conta cadastrada (value = conta.id).
+      const c = typeof obterConta === 'function' ? obterConta(origem) : null;
+      if (c) {
+        contaOrigemIdSel = c.id;
+        bancoOrigemAporte = c.nome;
+      } else {
+        bancoOrigemAporte = corretora; // conta sumiu do cadastro: cai na corretora
+      }
     }
   }
 
@@ -330,9 +353,11 @@ function registrarOperacaoAtivo() {
       // temLegCaixa para NÃO contar no caixa (evita duplo-débito) — ela
       // serve só para a carteira/DRE.
       const contaOrigemId =
-        typeof obterOuCriarContaPorNome === 'function'
-          ? (obterOuCriarContaPorNome(bancoOrigemAporte) || {}).id
-          : undefined;
+        contaOrigemIdSel != null
+          ? contaOrigemIdSel
+          : typeof obterOuCriarContaPorNome === 'function'
+            ? (obterOuCriarContaPorNome(bancoOrigemAporte) || {}).id
+            : undefined;
       // Guarda a conta-origem no template para as recorrências (Fase 3B-2)
       // propagarem a mesma perna de caixa.
       operacao.contaOrigemId = contaOrigemId;
@@ -448,7 +473,7 @@ function registrarOperacaoAtivo() {
   const inpSaldoIni = document.getElementById('prevSaldoInicial');
   if (inpSaldoIni) inpSaldoIni.value = '';
   const elOrigem = document.getElementById('compraOrigemRecurso');
-  if (elOrigem) elOrigem.value = 'caixa_proprio';
+  if (elOrigem) elOrigem.value = '';
   const elOrigBanco = document.getElementById('compraOrigemBanco');
   if (elOrigBanco) {
     elOrigBanco.value = '';

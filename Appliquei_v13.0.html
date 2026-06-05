@@ -5334,8 +5334,9 @@
             <div class="form-group" id="grupoOrigemRecurso">
                 <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
+                    <option value="">— selecione a conta —</option>
                     <option value="caixa_proprio">Saldo na própria corretora</option>
-                    <option value="caixa_outra">Saldo de outra instituição</option>
+                    <option value="__nova">Outra conta (digitar)…</option>
                 </select>
                 <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
             </div>
