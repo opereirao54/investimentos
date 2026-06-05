@@ -187,9 +187,13 @@ function valorAtualRendaFixa(ticker, categoria, refTs) {
   );
   let saldo = 0;
   lista.forEach((op) => {
+    const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
+    // Aporte/resgate PROGRAMADO (data futura) ainda não aconteceu — não entra na
+    // foto de agora. Igual à previdência (calcularSaldoPrevidencia ignora futuro).
+    // Op sem data (legado) conta pelo principal para o ativo não sumir.
+    if (isFinite(ts) && ts > agora) return;
     const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
     const taxa = taxaMensalOperacao(op);
-    const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
     let fator = 1;
     if (isFinite(ts) && ts <= agora && taxa > 0) {
       const meses = Math.max(0, (agora - ts) / (30.4375 * 86400000));
@@ -213,8 +217,15 @@ var pendenciasRentEditando = [];
 // (sem rentabilidade e sem taxaMensal) — exatamente os que não rendem.
 function pendenciasRentabilidadeRF() {
   const grupos = {};
+  const agora = Date.now();
   (typeof historicoCompras !== 'undefined' ? historicoCompras : []).forEach((op) => {
     if (op.categoria !== 'renda_fixa' && op.categoria !== 'reserva_emergencia') return;
+    // Só considera o que já aconteceu — aporte programado (futuro) não aparece na
+    // posição ainda, então não deve gerar aviso de "sem rentabilidade".
+    if (op.data_op) {
+      const ts = new Date(op.data_op).getTime();
+      if (isFinite(ts) && ts > agora) return;
+    }
     const key = op.categoria + '|' + op.ticker;
     if (!grupos[key])
       grupos[key] = {
@@ -1013,7 +1024,15 @@ function confirmarExclusaoOperacao(id) {
 
 function obterResumoCarteira() {
   let consolidado = {};
+  const agora = Date.now();
   historicoCompras.forEach((op) => {
+    // Posição de AGORA: ignora operação com data futura (aporte/venda programado
+    // que ainda não aconteceu) — ela segue visível na timeline e entra sozinha
+    // quando a data chegar. Operação sem data_op = legado, conta normalmente.
+    if (op.data_op) {
+      const ts = new Date(op.data_op).getTime();
+      if (isFinite(ts) && ts > agora) return;
+    }
     if (!consolidado[op.ticker])
       consolidado[op.ticker] = {
         qtdTotal: 0,
