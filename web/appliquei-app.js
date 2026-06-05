@@ -1005,11 +1005,11 @@ window.onload = function () {
   inicializarFormSugestao();
 };
 
-// Popula o seletor "Conta de onde sai o dinheiro" com as CONTAS reais do
-// usuário (cada uma com o caixa disponível), mais "própria corretora" e a opção
-// de digitar uma conta nova. Sem default silencioso: a 1ª opção é vazia ("—
-// selecione —"), forçando o usuário a escolher de onde o dinheiro sai — assim a
-// compra debita uma conta de verdade e o débito fica visível no Meu Patrimônio.
+// Popula o seletor "Conta de onde sai o dinheiro" SOMENTE com contas que TÊM
+// saldo disponível (caixa > 0), da maior para a menor. Comprar a partir de uma
+// conta sem dinheiro deixaria o caixa negativo — dinheiro "perdido"/inventado no
+// sistema. Sem default silencioso: a 1ª opção é vazia, forçando a escolha; o
+// débito cai numa conta de verdade e fica visível no Meu Patrimônio.
 function popularOrigemRecurso() {
   const sel = document.getElementById('compraOrigemRecurso');
   if (!sel) return;
@@ -1018,33 +1018,36 @@ function popularOrigemRecurso() {
     typeof mpCalcularSaldoPorInstituicao === 'function'
       ? mpCalcularSaldoPorInstituicao(Date.now())
       : {};
+  const comSaldo = ativas
+    .map((c) => ({ c, caixa: saldos[c.id] ? saldos[c.id].caixa : 0 }))
+    .filter((x) => x.caixa > 0.005)
+    .sort((a, b) => b.caixa - a.caixa);
   const prev = sel.value;
-  const opcoesContas = ativas
-    .map((c) => {
-      const saldo = saldos[c.id] ? saldos[c.id].caixa : 0;
-      const sfx = typeof formatarMoeda === 'function' && saldo ? ` (${formatarMoeda(saldo)})` : '';
-      return `<option value="${c.id}">${c.nome}${sfx}</option>`;
-    })
-    .join('');
+  if (!comSaldo.length) {
+    sel.innerHTML = '<option value="">— nenhuma conta com saldo disponível —</option>';
+    sel.value = '';
+    ajustarOrigemRecursoCampos();
+    return;
+  }
+  const fmtSaldo = (caixa) =>
+    typeof formatarMoeda === 'function' ? ` (${formatarMoeda(caixa)})` : '';
   sel.innerHTML =
     '<option value="">— selecione a conta —</option>' +
-    opcoesContas +
-    '<option value="caixa_proprio">Saldo na própria corretora</option>' +
-    '<option value="__nova">Outra conta (digitar)…</option>';
+    comSaldo
+      .map((x) => `<option value="${x.c.id}">${x.c.nome}${fmtSaldo(x.caixa)}</option>`)
+      .join('');
   // Preserva a seleção anterior se ela ainda existir entre as opções.
   sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
   ajustarOrigemRecursoCampos();
 }
 
-// RN03: mostra o input de banco/conta livre só quando o usuário escolhe digitar
-// uma conta que ainda não está cadastrada ("Outra conta").
+// O seletor agora só lista contas cadastradas com saldo, então o input de texto
+// livre (conta digitada) não é mais usado — mantido escondido por segurança.
 function ajustarOrigemRecursoCampos() {
-  const sel = document.getElementById('compraOrigemRecurso');
   const inp = document.getElementById('compraOrigemBanco');
-  if (!sel || !inp) return;
-  const digitar = sel.value === 'caixa_outra' || sel.value === '__nova';
-  inp.style.display = digitar ? 'block' : 'none';
-  if (!digitar) inp.value = '';
+  if (!inp) return;
+  inp.style.display = 'none';
+  inp.value = '';
 }
 
 // ============================================================

@@ -142,20 +142,26 @@ permanecem como fallback até a Fase 5, então nada quebra entre as fases.
   o salvamento sem conta pagadora); a baixa (`confirmarBaixarGrupoCartao` /
   `confirmarPagamento`) carimba `contaId` nas parcelas pagas, debitando a conta
   certa em vez de cair em "A reconciliar".
-- **Compra manual de ativo → conta-origem obrigatória e ESCOLHIDA.** ✅ O
-  seletor "Conta de onde sai o dinheiro" abre vazio (`— selecione a conta —`) e
-  lista as contas reais do usuário (com o caixa de cada uma), mais "própria
-  corretora" e "Outra conta (digitar)". Sem default silencioso `caixa_proprio`:
-  antes, a compra debitava a própria corretora (em geral sem saldo), o caixa
-  ficava negativo e a linha sumia (`caixa + investido ≈ 0`), então o saldo do
-  banco real do usuário não mudava ("não descontou do saldo"). Agora o usuário
-  escolhe a conta pagadora e o débito cai nela, visível no Meu Patrimônio.
-  O aporte gera uma perna `transferencia_saida` com o `contaId` da conta
-  escolhida (decisão 3); a tx do ativo fica marcada `temLegCaixa` e sai do
-  cálculo de caixa (sem duplo-débito). A perna é plumbing: aparece no "Por
-  instituição" do Patrimônio, **não** no extrato/DRE (ocultada em
+- **Compra manual de ativo → conta-origem obrigatória, ESCOLHIDA e COM SALDO.**
+  ✅ O seletor "Conta de onde sai o dinheiro" (`popularOrigemRecurso`) abre vazio
+  (`— selecione a conta —`) e lista **só contas com caixa > 0** (maior → menor),
+  sem default silencioso. Antes o padrão `caixa_proprio` debitava a própria
+  corretora (em geral sem saldo): o caixa negava, a linha sumia
+  (`caixa + investido ≈ 0`) e o banco real do usuário não mudava ("não descontou
+  do saldo"). Comprar de uma conta sem dinheiro deixaria o caixa negativo —
+  dinheiro "inventado" no sistema. Agora `registrarOperacaoAtivo` revalida o
+  saldo da conta escolhida (`mpCalcularSaldoPorInstituicao`) e **bloqueia** a
+  compra acima do disponível. O aporte gera uma perna `transferencia_saida` com
+  o `contaId` da conta escolhida (decisão 3); a tx do ativo fica marcada
+  `temLegCaixa` e sai do cálculo de caixa (sem duplo-débito). A perna é plumbing:
+  aparece no "Por instituição" do Patrimônio, **não** no extrato/DRE (ocultada em
   `atualizarTelaControle` p/ não duplicar linha nem o KPI de aporte).
   Conta-origem guardada no template (`contaOrigemId`) p/ as recorrências.
+- **Despesa variável avulsa → nasce paga (debita o caixa na hora).** ✅ Compra à
+  vista (sorvete, suco) já saiu do bolso: `executarInsercao` cria
+  `despesa_variavel` não-recorrente com `pago: true`, então debita o caixa do Meu
+  Patrimônio imediatamente (sem o passo extra de "pagar"). Despesa fixa e cartão
+  são compromissos a vencer → seguem `pago: false` (entram em "a pagar").
 - **Previdência recorrente → conta-origem.** ✅ As parcelas geradas
   (`gerarLancamentosFuturosCompromisso` e `processarAportesRecorrentesPrevidencia`)
   carimbam `contaId` do template (`contaOrigemId`). Recorrentes usam `contaId`

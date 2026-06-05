@@ -735,6 +735,12 @@ function executarInsercao() {
   let mesesGerar = 1;
   let valorLancamento = valorTotal;
 
+  // Despesa variável avulsa (sorvete, suco, etc.) é uma compra à vista: já saiu
+  // do bolso no ato. Nasce `pago: true` para debitar o caixa do Meu Patrimônio
+  // na hora — sem precisar clicar "pagar" depois. Despesa fixa e cartão são
+  // compromissos a vencer, então seguem `pago: false` (entram em "a pagar").
+  const pagoInicial = categoria === 'despesa_variavel' && !ehFixo;
+
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
     mesesGerar = parcelas;
     valorLancamento = valorTotal / parcelas;
@@ -789,7 +795,7 @@ function executarInsercao() {
       ano: a,
       data: new Date().toISOString(),
       dataVencimento: dataVencFinal,
-      pago: false,
+      pago: pagoInicial,
     });
   }
 

@@ -257,14 +257,13 @@ function registrarOperacaoAtivo() {
       );
   }
 
-  // Fase 3B: numa COMPRA com aporte, o dinheiro sai de uma conta-origem
-  // OBRIGATÓRIA e ESCOLHIDA pelo usuário (sem default silencioso): pode ser uma
-  // conta cadastrada (value = conta.id), a própria corretora ('caixa_proprio')
-  // ou uma conta nova digitada ('__nova'). Assim a compra debita uma conta de
-  // verdade e o débito fica VISÍVEL no Meu Patrimônio. Validado ANTES de
-  // qualquer push para não deixar a operação órfã (sem as transações).
+  // Fase 3B: numa COMPRA com aporte, o dinheiro sai de uma CONTA cadastrada e
+  // COM SALDO, escolhida pelo usuário (value = conta.id). O seletor só lista
+  // contas com caixa > 0, e aqui revalidamos o saldo disponível: comprar acima
+  // do que a conta tem deixaria o caixa negativo (dinheiro inventado no
+  // sistema). Validado ANTES de qualquer push para não deixar a operação órfã.
   let bancoOrigemAporte = '';
-  let contaOrigemIdSel; // conta resolvida quando o usuário escolhe uma cadastrada
+  let contaOrigemIdSel; // conta resolvida (sempre uma cadastrada)
   if (tipoOp === 'compra' && temAporte) {
     const elOrigemSel = document.getElementById('compraOrigemRecurso');
     const origem = elOrigemSel ? elOrigemSel.value : '';
@@ -276,32 +275,33 @@ function registrarOperacaoAtivo() {
           elOrigemSel.style.borderColor = '';
         }, 2500);
       }
-      return mostrarToast('Escolha a conta de onde o dinheiro sai.', 'erro');
+      return mostrarToast('Escolha a conta (com saldo) de onde o dinheiro sai.', 'erro');
     }
-    if (origem === 'caixa_proprio') {
-      bancoOrigemAporte = corretora;
-    } else if (origem === 'caixa_outra' || origem === '__nova') {
-      bancoOrigemAporte = ((document.getElementById('compraOrigemBanco') || {}).value || '').trim();
-      if (!bancoOrigemAporte) {
-        const elB = document.getElementById('compraOrigemBanco');
-        if (elB) {
-          elB.style.borderColor = 'var(--cor-erro)';
-          elB.focus();
-          setTimeout(() => {
-            elB.style.borderColor = '';
-          }, 2500);
-        }
-        return mostrarToast('Informe a conta de onde o dinheiro sai (origem do recurso).', 'erro');
+    const c = typeof obterConta === 'function' ? obterConta(origem) : null;
+    if (!c) {
+      return mostrarToast('Conta de origem inválida. Escolha uma conta com saldo.', 'erro');
+    }
+    contaOrigemIdSel = c.id;
+    bancoOrigemAporte = c.nome;
+    // Revalida o saldo disponível na conta escolhida (não deixa ficar negativo).
+    const saldosInst =
+      typeof mpCalcularSaldoPorInstituicao === 'function'
+        ? mpCalcularSaldoPorInstituicao(Date.now())
+        : {};
+    const caixaDisp = saldosInst[c.id] ? saldosInst[c.id].caixa : 0;
+    const custoAporte = qtd * preco;
+    if (custoAporte > caixaDisp + 0.005) {
+      if (elOrigemSel) {
+        elOrigemSel.style.borderColor = 'var(--cor-erro)';
+        elOrigemSel.focus();
+        setTimeout(() => {
+          elOrigemSel.style.borderColor = '';
+        }, 2500);
       }
-    } else {
-      // O usuário escolheu uma conta cadastrada (value = conta.id).
-      const c = typeof obterConta === 'function' ? obterConta(origem) : null;
-      if (c) {
-        contaOrigemIdSel = c.id;
-        bancoOrigemAporte = c.nome;
-      } else {
-        bancoOrigemAporte = corretora; // conta sumiu do cadastro: cai na corretora
-      }
+      return mostrarToast(
+        `Saldo insuficiente em ${c.nome}: disponível ${formatarMoeda(caixaDisp)}, compra ${formatarMoeda(custoAporte)}.`,
+        'erro'
+      );
     }
   }
 

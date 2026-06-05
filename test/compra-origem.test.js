@@ -251,3 +251,68 @@ test('compra debita a conta-origem escolhida (saldo do Meu Patrimônio reflete)'
   const mapa = s.mpCalcularSaldoPorInstituicao(Date.now());
   assert.equal(mapa[nubank.id].caixa, 4000, 'caixa do Nubank = 5000 - 1000');
 });
+
+test('compra bloqueia quando o valor excede o saldo da conta (não inventa dinheiro)', () => {
+  const fields = camposCompraRV({ compraQtd: '60', compraPreco: '100,00' }); // 6000 > 5000
+  const s = loadApp(fields);
+  s.contas = [];
+  s.transacoes = [];
+  s.historicoCompras = [];
+  const ontem = new Date(Date.now() - 86400000).toISOString();
+  s.transacoes.push({
+    categoria: 'receita',
+    valor: 5000,
+    banco: 'Nubank',
+    data: ontem,
+    pago: false,
+  });
+  const nubank = s.criarConta({ nome: 'Nubank', tipo: 'banco' });
+
+  fields.compraOrigemRecurso = nubank.id;
+  s.registrarOperacaoAtivo();
+
+  assert.equal(s.historicoCompras.length, 0, 'não registra compra acima do saldo');
+  assert.equal(s.transacoes.length, 1, 'só a receita permanece — sem pernas de caixa');
+  assert.equal(s.__ultimoToast.tipo, 'erro');
+  // O caixa do Nubank continua intacto (não foi para negativo).
+  assert.equal(s.mpCalcularSaldoTotal(Date.now()), 5000);
+});
+
+test('popularOrigemRecurso lista só contas com saldo (> 0)', () => {
+  const fields = camposCompraRV();
+  const s = loadApp(fields);
+  s.contas = [];
+  s.transacoes = [];
+  s.historicoCompras = [];
+  const ontem = new Date(Date.now() - 86400000).toISOString();
+  s.transacoes.push({
+    categoria: 'receita',
+    valor: 5000,
+    banco: 'Nubank',
+    data: ontem,
+    pago: false,
+  });
+  const nubank = s.criarConta({ nome: 'Nubank', tipo: 'banco' });
+  const vazia = s.criarConta({ nome: 'Corretora Vazia', tipo: 'corretora' });
+
+  // Captura o que popularOrigemRecurso escreve no innerHTML do seletor.
+  let html = '';
+  const selNode = {
+    set innerHTML(v) {
+      html = v;
+    },
+    get innerHTML() {
+      return html;
+    },
+    value: '',
+    options: [],
+    style: {},
+    focus() {},
+  };
+  s.document.getElementById = (id) =>
+    id === 'compraOrigemRecurso' ? selNode : { style: {}, value: '' };
+  s.popularOrigemRecurso();
+
+  assert.ok(html.includes(nubank.id), 'Nubank (com saldo) deve aparecer');
+  assert.ok(!html.includes(vazia.id), 'Corretora sem saldo NÃO deve aparecer');
+});
