@@ -68,7 +68,9 @@ function makeStorage() {
     },
   };
 }
-function loadApp(fields) {
+function loadApp(fields, seedStorage) {
+  const storage = makeStorage();
+  if (seedStorage) Object.keys(seedStorage).forEach((k) => storage.setItem(k, seedStorage[k]));
   const doc = {
     readyState: 'complete',
     getElementById: (id) => makeFieldNode(id, fields),
@@ -96,7 +98,7 @@ function loadApp(fields) {
     },
     navigator: { userAgent: 'node', sendBeacon: () => true, clipboard: null },
     document: doc,
-    localStorage: makeStorage(),
+    localStorage: storage,
     sessionStorage: makeStorage(),
     Chart: Object.assign(
       function () {
@@ -243,4 +245,49 @@ test('despesa fixa continua pendente (não debita até pagar)', () => {
   assert.equal(aluguel.pago, false, 'despesa fixa nasce pendente');
   // Sem pagar, o caixa não muda (compromisso a vencer).
   assert.equal(s.mpCalcularSaldoTotal(Date.now()), 100);
+});
+
+test('migração marca despesas variáveis antigas (não-recorrentes) como pagas', () => {
+  const hoje = new Date();
+  // Semeia o localStorage com dados "antigos" ANTES de carregar os scripts, pois
+  // a migração roda no boot (parse de appliquei-app.js).
+  const antigas = [
+    {
+      id: 'a',
+      categoria: 'despesa_variavel',
+      valor: 15,
+      banco: 'Nubank',
+      mes: hoje.getMonth(),
+      ano: hoje.getFullYear(),
+      pago: false,
+    },
+    {
+      id: 'b',
+      categoria: 'despesa_variavel',
+      valor: 9,
+      banco: 'Nubank',
+      mes: hoje.getMonth(),
+      ano: hoje.getFullYear(),
+      pago: false,
+      groupId: 'g1',
+    }, // recorrente → fica pendente
+    {
+      id: 'c',
+      categoria: 'despesa_fixa',
+      valor: 50,
+      banco: 'Nubank',
+      mes: hoje.getMonth(),
+      ano: hoje.getFullYear(),
+      pago: false,
+    }, // fixa → fica pendente
+  ];
+  const fields = camposLancamento();
+  const s = loadApp(fields, { futurorico_transacoes: JSON.stringify(antigas) });
+
+  const a = s.transacoes.find((t) => t.id === 'a');
+  const b = s.transacoes.find((t) => t.id === 'b');
+  const c = s.transacoes.find((t) => t.id === 'c');
+  assert.equal(a.pago, true, 'variável avulsa antiga vira paga');
+  assert.equal(b.pago, false, 'variável recorrente (groupId) permanece pendente');
+  assert.equal(c.pago, false, 'despesa fixa permanece pendente');
 });

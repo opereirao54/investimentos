@@ -612,6 +612,24 @@ transacoes = transacoes.map((t) => {
   });
   if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
 })();
+
+// Migração: despesa variável avulsa (não-recorrente) é compra à vista — já saiu
+// do bolso. Lançamentos antigos nasciam `pago: false` e só descontavam do Meu
+// Patrimônio ao clicar "pagar". Marca os legados como pagos para refletir o
+// gasto no caixa. Idempotente (só escreve se mudou) e roda a cada boot: como o
+// cloud sync recarrega a página ao aplicar dados remotos, isto também cobre os
+// dados vindos da nuvem. Recorrentes (com groupId) ficam de fora — são parcelas
+// futuras planejadas, que seguem pendentes.
+(function migrarDespesaVariavelPaga() {
+  let mudou = false;
+  transacoes.forEach((t) => {
+    if (t.categoria === 'despesa_variavel' && !t.groupId && t.pago !== true) {
+      t.pago = true;
+      mudou = true;
+    }
+  });
+  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+})();
 localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
 
 function preencherPrecoAutomatico() {
