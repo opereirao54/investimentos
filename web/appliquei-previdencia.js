@@ -93,6 +93,12 @@ function gerarLancamentosFuturosCompromisso(operacao, valorMensal) {
       // definida). Recorrentes usam contaId direto no investimento_* (sem
       // perna separada) — o mesmo efeito de caixa, sem ciclo de pago duplo.
       contaId: operacao.contaOrigemId || undefined,
+      // Metadados do aporte: ao marcar a parcela como PAGA no Controle, ela
+      // vira posição em Patrimônio/Investimentos (registrarAportePorPagamentoCompromisso).
+      aporteTicker: operacao.ticker || null,
+      aporteRentabilidade: operacao.rentabilidade || null,
+      aporteTaxaMensal: operacao.taxaMensal != null ? operacao.taxaMensal : null,
+      aporteCorretora: operacao.corretora || null,
       obs: `Compromisso recorrente — ${labelCat.toLowerCase()} (${dur} ano${dur === 1 ? '' : 's'})`,
       mes: m,
       ano: a,
@@ -104,6 +110,54 @@ function gerarLancamentosFuturosCompromisso(operacao, valorMensal) {
     criados++;
   }
   return criados;
+}
+
+// Confirmar via Controle: quando uma PARCELA de compromisso de investimento
+// (previdência/reserva) é marcada como PAGA, ela vira posição real em
+// Patrimônio/Investimentos — espelha registrarAportePorPagamentoSonho. O aporte
+// rende a partir da competência da parcela (ou de hoje, se a competência for
+// futura). O débito de caixa já é feito pela própria parcela (investimento_fixo
+// com contaId), então aqui só criamos a posição (sem nova transação de caixa).
+function registrarAportePorPagamentoCompromisso(tx) {
+  if (!tx || !tx.compromissoId) return false;
+  const cat = tx.compromissoCategoria;
+  if (cat !== 'previdencia' && cat !== 'reserva_emergencia') return false;
+  // Evita duplicar se já houver aporte vinculado a esta parcela.
+  if (historicoCompras.some((o) => o.geradoDoCompromissoTx === tx.id)) return false;
+  const ticker = tx.aporteTicker || (tx.descricao || '').replace(/^[^:]*:\s*/, '') || cat;
+  // Data do aporte = competência da parcela, limitada a hoje (não rende no futuro).
+  let dataAporte = new Date();
+  if (tx.dataVencimento) {
+    const d = new Date(tx.dataVencimento + 'T12:00:00');
+    if (isFinite(d.getTime()) && d.getTime() <= Date.now()) dataAporte = d;
+  } else if (typeof tx.mes === 'number' && typeof tx.ano === 'number') {
+    const d = new Date(tx.ano, tx.mes, 15, 12, 0, 0);
+    if (d.getTime() <= Date.now()) dataAporte = d;
+  }
+  const aporte = {
+    id: 'aporte_compromisso_' + tx.id,
+    geradoDoCompromissoTx: tx.id,
+    ticker,
+    quantidade: 1,
+    preco_op: tx.valor,
+    tipo: 'compra',
+    data_op: dataAporte.toISOString(),
+    categoria: cat,
+    subcategoria: null,
+    corretora: tx.aporteCorretora || null,
+    gerado: true,
+  };
+  if (tx.aporteRentabilidade) aporte.rentabilidade = tx.aporteRentabilidade;
+  if (tx.aporteTaxaMensal != null) aporte.taxaMensal = tx.aporteTaxaMensal;
+  historicoCompras.push(aporte);
+  localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
+  if (typeof atualizarCarteiraAtivos === 'function') atualizarCarteiraAtivos();
+  if (typeof renderMeuPatrimonio === 'function') {
+    try {
+      renderMeuPatrimonio(true);
+    } catch (_) {}
+  }
+  return true;
 }
 
 // Remove lançamentos futuros vinculados a um compromisso (preserva pagos/passados)

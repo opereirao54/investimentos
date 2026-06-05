@@ -1245,6 +1245,16 @@ function confirmarPagamento(id) {
     registrarAportePorPagamentoSonho(txPaga);
     toastMsg = 'Pagamento confirmado e aporte registrado no sonho!';
   }
+  // Compromisso de investimento (previdência/reserva): ao pagar, materializa a
+  // posição em Patrimônio/Investimentos (aporte programado vira aporte realizado).
+  if (
+    txPaga &&
+    txPaga.compromissoId &&
+    typeof registrarAportePorPagamentoCompromisso === 'function' &&
+    registrarAportePorPagamentoCompromisso(txPaga)
+  ) {
+    toastMsg = 'Aporte confirmado e somado ao seu patrimônio!';
+  }
 
   mostrarToast(toastMsg, 'sucesso');
   atualizarTelaControle();
