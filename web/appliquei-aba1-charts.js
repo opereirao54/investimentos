@@ -909,6 +909,12 @@ function atualizarCarteiraAtivos() {
         if(ativo.categoria === 'previdencia') {
             saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
             precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // Sem cotação de mercado: valoriza por juros compostos a partir da
+            // rentabilidade contratada (110% CDI, IPCA+6%...). Mesmo cálculo do
+            // Meu Patrimônio, para os dois números coincidirem.
+            saldoAtualAtivo = valorAtualRendaFixa(ticker, ativo.categoria);
+            precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
         }
         let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
         totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;

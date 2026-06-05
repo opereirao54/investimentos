@@ -68,6 +68,15 @@ async function buscarTaxasBCB() {
   }
   atualizarProjecaoForm();
   atualizarCarteiraAtivos();
+  // Reflete as taxas reais (CDI/Selic/IPCA) na foto do patrimônio — RF/Reserva
+  // indexados são valorizados a partir delas. Sem isto a 1ª foto fica nas estimativas.
+  if (typeof renderMeuPatrimonio === 'function') {
+    try {
+      renderMeuPatrimonio(true);
+    } catch (_) {
+      /* aba pode não estar montada ainda */
+    }
+  }
 }
 
 // Converte texto livre de rentabilidade em uma taxa anual (decimal).
@@ -146,6 +155,50 @@ function calcularProjecaoRF(valorInicial, dataInicio, dataVencimento, rentabilid
     rendimentoLiquido: valorFinalLiquido - valorInicial,
     aliquotaIR,
   };
+}
+
+// Taxa MENSAL efetiva (juros compostos) de uma operação de Renda Fixa / Reserva /
+// Previdência. Precedência: o TEXTO de rentabilidade ("110% CDI", "IPCA+6%",
+// "12% a.a.") — indexado a CDI/Selic/IPCA ao vivo do BCB — vence a `taxaMensal`
+// explícita. Converte a taxa ANUAL parseada para a mensal equivalente:
+// (1+anual)^(1/12)-1. `padraoMensal` entra quando nada foi informado (ex.: 0,8%/mês
+// default da previdência). Para IPCA+ o parser usa o IPCA atual — é uma ESTIMATIVA,
+// não a inflação realizada no período.
+function taxaMensalOperacao(op, padraoMensal = 0) {
+  if (!op) return padraoMensal;
+  if (op.rentabilidade && typeof parsearRentabilidade === 'function') {
+    const parsed = parsearRentabilidade(op.rentabilidade);
+    if (parsed && isFinite(parsed.taxa)) return Math.pow(1 + parsed.taxa, 1 / 12) - 1;
+  }
+  if (op.taxaMensal != null) return op.taxaMensal;
+  return padraoMensal;
+}
+
+// Valor atual (juros compostos) de uma posição de Renda Fixa / Reserva: soma todos
+// os aportes e resgates do ticker, capitalizando cada aporte pela sua taxa mensal
+// (derivada do texto de rentabilidade) desde a data até `refTs`. Aportes SEM data
+// ou com data FUTURA entram pelo principal (fator 1) em vez de zerar o ativo.
+// Espelha exatamente a regra de Meu Patrimônio (mpValorAtualAtivo) para que a aba
+// "Meus investimentos" e a foto do patrimônio mostrem o mesmo número.
+function valorAtualRendaFixa(ticker, categoria, refTs) {
+  const agora = refTs || Date.now();
+  const lista = (typeof historicoCompras !== 'undefined' ? historicoCompras : []).filter(
+    (op) => op.ticker === ticker && op.categoria === categoria
+  );
+  let saldo = 0;
+  lista.forEach((op) => {
+    const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
+    const taxa = taxaMensalOperacao(op);
+    const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
+    let fator = 1;
+    if (isFinite(ts) && ts <= agora && taxa > 0) {
+      const meses = Math.max(0, (agora - ts) / (30.4375 * 86400000));
+      fator = Math.pow(1 + taxa, meses);
+    }
+    if ((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
+    else saldo += valor * fator;
+  });
+  return Math.max(0, saldo);
 }
 
 function atualizarProjecaoForm() {
@@ -247,6 +300,41 @@ function registrarOperacaoAtivo() {
     return mostrarToast('Informe o banco/corretora — campo obrigatório.', 'erro');
   }
 
+  // Rentabilidade: em Renda Fixa / Reserva é a ÚNICA fonte de valorização (não há
+  // cotação de mercado), então é OBRIGATÓRIA numa compra e precisa ser interpretável.
+  // Na Previdência é opcional (há a taxa mensal fixa), mas se informada deve ser válida.
+  const ehRFouReserva = categoria === 'renda_fixa' || categoria === 'reserva_emergencia';
+  const focarRentabilidade = () => {
+    const elR = document.getElementById('compraRentabilidade');
+    if (elR) {
+      elR.style.borderColor = 'var(--cor-erro)';
+      elR.focus();
+      setTimeout(() => {
+        elR.style.borderColor = '';
+      }, 2500);
+    }
+  };
+  if (ehRFouReserva && tipoOp === 'compra') {
+    if (!rentabilidade) {
+      focarRentabilidade();
+      return mostrarToast('Informe a rentabilidade (ex: 110% CDI, IPCA+6%, 12% a.a.).', 'erro');
+    }
+    if (!parsearRentabilidade(rentabilidade)) {
+      focarRentabilidade();
+      return mostrarToast(
+        'Rentabilidade não reconhecida. Use formatos como 110% CDI, IPCA+6% ou 12% a.a.',
+        'erro'
+      );
+    }
+  }
+  if (categoria === 'previdencia' && rentabilidade && !parsearRentabilidade(rentabilidade)) {
+    focarRentabilidade();
+    return mostrarToast(
+      'Rentabilidade não reconhecida. Use formatos como 100% CDI, IPCA+6% ou 8% a.a.',
+      'erro'
+    );
+  }
+
   if (tipoOp === 'venda') {
     let carteiraAtual = obterResumoCarteira();
     let ativoNaCarteira = carteiraAtual[ticker];
@@ -328,6 +416,11 @@ function registrarOperacaoAtivo() {
       if (rentabilidade) operacao.rentabilidade = rentabilidade;
     }
     if (categoria === 'reserva_emergencia') {
+      if (rentabilidade) operacao.rentabilidade = rentabilidade;
+    }
+    // Previdência: indexador opcional (texto). Quando presente, valoriza pelo BCB e
+    // tem precedência sobre a taxaMensal fixa (ver taxaMensalOperacao).
+    if (categoria === 'previdencia') {
       if (rentabilidade) operacao.rentabilidade = rentabilidade;
     }
     const ehRecorrenteCompra = ehPrevOuReserva && tipoOp === 'compra';
@@ -437,6 +530,8 @@ function registrarOperacaoAtivo() {
     if (categoria === 'previdencia') {
       const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
       opSaldo.taxaMensal = taxaInp > 0 ? taxaInp / 100 : 0.008;
+      // Indexador opcional também no saldo inicial (precede a taxa fixa no cálculo).
+      if (rentabilidade) opSaldo.rentabilidade = rentabilidade;
     } else if (rentabilidade) {
       opSaldo.rentabilidade = rentabilidade;
     }

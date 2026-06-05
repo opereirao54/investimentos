@@ -874,9 +874,17 @@ function ajustarCamposPorCategoria() {
   const ehRV = cat === 'renda_variavel';
   const semQtd = ehRF || ehReserva || ehPrev;
 
-  if (grupoRF) grupoRF.style.display = ehRF || ehReserva ? 'block' : 'none';
-  // Reserva NÃO tem vencimento — esconder
-  if (grupoVenc) grupoVenc.style.display = ehReserva ? 'none' : 'block';
+  // Renda Fixa, Reserva e Previdência usam o campo de rentabilidade (texto
+  // indexado). Em RF/Reserva é obrigatório; na Previdência é opcional (complementa
+  // a taxa mensal fixa).
+  if (grupoRF) grupoRF.style.display = ehRF || ehReserva || ehPrev ? 'block' : 'none';
+  // Só Renda Fixa tem vencimento — Reserva e Previdência escondem.
+  if (grupoVenc) grupoVenc.style.display = ehReserva || ehPrev ? 'none' : 'block';
+  // Asterisco de obrigatório: só em RF/Reserva (na Previdência é opcional).
+  const astRent = document.getElementById('rentObrigatoria');
+  if (astRent) astRent.style.display = ehRF || ehReserva ? 'inline' : 'none';
+  const hintRent = document.getElementById('rentOpcionalHint');
+  if (hintRent) hintRent.style.display = ehPrev ? 'block' : 'none';
   if (grupoSubRV) grupoSubRV.style.display = ehRV ? 'block' : 'none';
   if (grupoQtd) grupoQtd.style.display = semQtd ? 'none' : 'block';
   const grupoPrev = document.getElementById('grupoPrevidencia');

@@ -22,7 +22,14 @@ function calcularSaldoPrevidencia(ticker, ts) {
   aportes.forEach((op) => {
     const dataAporte = new Date(op.data_op).getTime();
     if (dataAporte > refTs) return;
-    const taxa = op.taxaMensal != null ? op.taxaMensal : 0.008;
+    // Precedência: texto de rentabilidade indexado (ex.: "100% CDI") sobre a
+    // taxaMensal fixa do plano; default 0,8%/mês quando nada foi informado.
+    const taxa =
+      typeof taxaMensalOperacao === 'function'
+        ? taxaMensalOperacao(op, 0.008)
+        : op.taxaMensal != null
+          ? op.taxaMensal
+          : 0.008;
     const meses = Math.max(0, (refTs - dataAporte) / (30.4375 * 24 * 60 * 60 * 1000));
     const valor = op.preco_op || op.preco_pago || 0;
     const fator = Math.pow(1 + taxa, meses);
@@ -165,6 +172,9 @@ function processarAportesRecorrentesPrevidencia() {
         recorrente: true,
         diaRecorrencia: diaRec,
         taxaMensal: taxa,
+        // Herda o indexador do template (quando houver) para os aportes gerados
+        // valorizarem pela mesma regra do aporte original.
+        rentabilidade: template.rentabilidade || null,
         gerado: true,
         operacaoOrigem: template.id,
       });

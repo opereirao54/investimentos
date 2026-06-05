@@ -5287,8 +5287,9 @@
                         <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
                     </div>
                     <div class="form-group">
-                        <label>Rentabilidade contratada</label>
+                        <label>Rentabilidade contratada <span id="rentObrigatoria" style="color:var(--cor-erro);display:none;">*</span></label>
                         <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
+                        <small id="rentOpcionalHint" style="font-size:11px;color:var(--cor-texto-mutado);display:none;margin-top:3px;">Opcional — se informar um indexador (ex: 100% CDI), ele substitui a rentabilidade mensal abaixo no cálculo.</small>
                     </div>
                 </div>
                 <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>

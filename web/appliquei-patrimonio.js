@@ -162,31 +162,14 @@ function mpValorAtualAtivo(ticker, c) {
     }
     return c.valorTotalInvestido;
   }
-  // Renda Fixa / Reserva: conta TODOS os aportes/resgates do ativo. Aplica
-  // taxaMensal (juros compostos) só quando a data é válida e já passou; aportes
-  // SEM data ou com data FUTURA entram pelo PRINCIPAL (fator 1) em vez de serem
-  // descartados. Sem isso, um aporte com data ausente/futura zerava o ativo e o
-  // investimento sumia de "Meu Patrimônio" — enquanto "Meus investimentos"
-  // (que valoriza por preço médio, sem olhar a data) continuava mostrando.
+  // Renda Fixa / Reserva: valoriza por juros compostos a partir do TEXTO de
+  // rentabilidade ("110% CDI", "IPCA+6%"...) indexado ao BCB. A regra (somar todos
+  // os aportes/resgates, capitalizar cada um por sua taxa mensal desde a data;
+  // aportes sem data ou futuros entram pelo principal) vive em valorAtualRendaFixa,
+  // compartilhada com a aba "Meus investimentos" para os dois números coincidirem.
   if (c.categoria === 'renda_fixa' || c.categoria === 'reserva_emergencia') {
-    const aportes = (typeof historicoCompras !== 'undefined' ? historicoCompras : []).filter(
-      (op) => op.ticker === ticker && op.categoria === c.categoria
-    );
-    let saldo = 0;
-    const agora = Date.now();
-    aportes.forEach((op) => {
-      const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      const taxa = op.taxaMensal != null ? op.taxaMensal : 0;
-      const ts = op.data_op ? new Date(op.data_op).getTime() : NaN;
-      let fator = 1;
-      if (isFinite(ts) && ts <= agora && taxa > 0) {
-        const meses = Math.max(0, (agora - ts) / (30.4375 * 86400000));
-        fator = Math.pow(1 + taxa, meses);
-      }
-      if ((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
-      else saldo += valor * fator;
-    });
-    return Math.max(0, saldo);
+    if (typeof valorAtualRendaFixa === 'function') return valorAtualRendaFixa(ticker, c.categoria);
+    return c.valorTotalInvestido;
   }
   return c.valorTotalInvestido;
 }
