@@ -150,10 +150,46 @@ function popularSelectCategoriaDespesa(selecionado) {
 
 // Emojis sugeridos para o usuário escolher ao criar uma categoria de despesa.
 var EMOJIS_CATEGORIA_DESPESA = [
-  '🏷️', '🏠', '🛒', '🚗', '⚕️', '📚', '🍿', '💆', '🐶', '🏦',
-  '✈️', '🎁', '👕', '💡', '📱', '🎮', '🍔', '☕', '🏋️', '💊',
-  '🎓', '🐱', '🧾', '💳', '🚌', '⛽', '🎉', '💼', '🔧', '🌱',
-  '👶', '🎵', '📷', '🍷', '🛠️', '🧹', '🎬', '💄', '⚽', '💰',
+  '🏷️',
+  '🏠',
+  '🛒',
+  '🚗',
+  '⚕️',
+  '📚',
+  '🍿',
+  '💆',
+  '🐶',
+  '🏦',
+  '✈️',
+  '🎁',
+  '👕',
+  '💡',
+  '📱',
+  '🎮',
+  '🍔',
+  '☕',
+  '🏋️',
+  '💊',
+  '🎓',
+  '🐱',
+  '🧾',
+  '💳',
+  '🚌',
+  '⛽',
+  '🎉',
+  '💼',
+  '🔧',
+  '🌱',
+  '👶',
+  '🎵',
+  '📷',
+  '🍷',
+  '🛠️',
+  '🧹',
+  '🎬',
+  '💄',
+  '⚽',
+  '💰',
 ];
 
 function renderEmojiPickerCategoria() {
@@ -594,6 +630,11 @@ function executarEdicao(modo) {
   if (controleBancoObrigatorio(categoria) && !bancoNovo) {
     return mostrarToast('Informe o banco/instituição da operação.', 'erro');
   }
+  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
+  const contaIdNovo =
+    bancoNovo && typeof obterOuCriarContaPorNome === 'function'
+      ? (obterOuCriarContaPorNome(bancoNovo) || {}).id
+      : undefined;
   const catDespesaNovo = resolverCategoriaDespesaSelecionada(categoria);
 
   if (modo === 'todas') {
@@ -608,7 +649,10 @@ function executarEdicao(modo) {
         t.obs = obs;
         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
           t.cartaoId = cartaoIdNovo;
-        if (bancoNovo !== null) t.banco = bancoNovo || undefined;
+        if (bancoNovo !== null) {
+          t.banco = bancoNovo || undefined;
+          t.contaId = contaIdNovo;
+        }
         if (categoriaDespesaUsada(categoria)) t.categoriaDespesa = catDespesaNovo || undefined;
       }
       return t;
@@ -621,7 +665,10 @@ function executarEdicao(modo) {
     transAtual.obs = obs;
     if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
       transAtual.cartaoId = cartaoIdNovo;
-    if (bancoNovo !== null) transAtual.banco = bancoNovo || undefined;
+    if (bancoNovo !== null) {
+      transAtual.banco = bancoNovo || undefined;
+      transAtual.contaId = contaIdNovo;
+    }
     if (categoriaDespesaUsada(categoria)) transAtual.categoriaDespesa = catDespesaNovo || undefined;
     if (transAtual.groupId) transAtual.groupId = null;
   }
@@ -679,9 +726,20 @@ function executarInsercao() {
   if (controleBancoObrigatorio(categoria) && !bancoReceita) {
     return mostrarToast('Informe o banco/instituição da operação.', 'erro');
   }
+  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
+  const contaIdReceita =
+    bancoReceita && typeof obterOuCriarContaPorNome === 'function'
+      ? (obterOuCriarContaPorNome(bancoReceita) || {}).id
+      : undefined;
   const catDespesa = resolverCategoriaDespesaSelecionada(categoria);
   let mesesGerar = 1;
   let valorLancamento = valorTotal;
+
+  // Despesa variável avulsa (sorvete, suco, etc.) é uma compra à vista: já saiu
+  // do bolso no ato. Nasce `pago: true` para debitar o caixa do Meu Patrimônio
+  // na hora — sem precisar clicar "pagar" depois. Despesa fixa e cartão são
+  // compromissos a vencer, então seguem `pago: false` (entram em "a pagar").
+  const pagoInicial = categoria === 'despesa_variavel' && !ehFixo;
 
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
     mesesGerar = parcelas;
@@ -730,13 +788,14 @@ function executarInsercao() {
       cartaoId: cartaoId,
       cartaoFixoMensal: cartaoFixoMensal || undefined,
       banco: bancoReceita || undefined,
+      contaId: contaIdReceita,
       categoriaDespesa: catDespesa || undefined,
       obs: obs,
       mes: m,
       ano: a,
       data: new Date().toISOString(),
       dataVencimento: dataVencFinal,
-      pago: false,
+      pago: pagoInicial,
     });
   }
 
@@ -793,7 +852,7 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
   };
   transacoes.forEach((t) => {
     if (t.mes === mesAlvo && t.ano === anoAlvo) {
-      if (t.categoria === 'receita') res.receita += t.valor;
+      if (t.categoria === 'receita' || t.categoria === 'dividendo') res.receita += t.valor;
       else if (t.categoria === 'resgate_investimento') res.resgate += t.valor;
       else if (t.categoria === 'despesa_fixa') res.despFixa += t.valor;
       else if (t.categoria === 'despesa_variavel') res.despVar += t.valor;
@@ -814,8 +873,18 @@ var agrupamentoComposicao = 'contabil';
 
 // Paleta cíclica para as barras de categoria de despesa.
 var PALETA_CATEGORIA_DESPESA = [
-  '#e11d48', '#f97316', '#f59e0b', '#7c3aed', '#2563eb', '#0891b2',
-  '#db2777', '#65a30d', '#9333ea', '#dc2626', '#ea580c', '#ca8a04',
+  '#e11d48',
+  '#f97316',
+  '#f59e0b',
+  '#7c3aed',
+  '#2563eb',
+  '#0891b2',
+  '#db2777',
+  '#65a30d',
+  '#9333ea',
+  '#dc2626',
+  '#ea580c',
+  '#ca8a04',
 ];
 
 function setAgrupamentoComposicao(tipo) {
@@ -1116,7 +1185,13 @@ function confirmarBaixarGrupoCartao(key) {
   const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
   if (!grupo) return;
   const ids = new Set(grupo.itens.map((i) => i.id));
-  transacoes = transacoes.map((t) => (ids.has(t.id) ? { ...t, pago: true } : t));
+  // Fase 3: a baixa debita a CONTA PAGADORA do cartão (carimba contaId nas
+  // parcelas pagas). Sem conta pagadora definida, mantém o contaId existente.
+  const cartao = typeof obterCartao === 'function' ? obterCartao(grupo.cartaoId) : null;
+  const contaPag = cartao && cartao.contaPagadoraId ? cartao.contaPagadoraId : undefined;
+  transacoes = transacoes.map((t) =>
+    ids.has(t.id) ? { ...t, pago: true, contaId: contaPag || t.contaId } : t
+  );
   localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
   mostrarToast('Fatura baixada como paga.', 'sucesso');
   fecharModal();
@@ -1153,6 +1228,11 @@ function confirmarPagamento(id) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
       }
+      // Fase 3: baixa de cartão debita a conta pagadora do cartão.
+      if (t.categoria === 'cartao_credito' && t.cartaoId && typeof obterCartao === 'function') {
+        const card = obterCartao(t.cartaoId);
+        if (card && card.contaPagadoraId) t.contaId = card.contaPagadoraId;
+      }
       txPaga = t;
     }
     return t;
@@ -1164,6 +1244,16 @@ function confirmarPagamento(id) {
   if (txPaga && txPaga.categoria === 'sonho' && !txPaga.aporteExtra && txPaga.sonhoId) {
     registrarAportePorPagamentoSonho(txPaga);
     toastMsg = 'Pagamento confirmado e aporte registrado no sonho!';
+  }
+  // Compromisso de investimento (previdência/reserva): ao pagar, materializa a
+  // posição em Patrimônio/Investimentos (aporte programado vira aporte realizado).
+  if (
+    txPaga &&
+    txPaga.compromissoId &&
+    typeof registrarAportePorPagamentoCompromisso === 'function' &&
+    registrarAportePorPagamentoCompromisso(txPaga)
+  ) {
+    toastMsg = 'Aporte confirmado e somado ao seu patrimônio!';
   }
 
   mostrarToast(toastMsg, 'sucesso');
@@ -1263,6 +1353,30 @@ function atualizarTermometro60() {
   } catch (erro) {
     console.error('Appliquei - Erro não-crítico ao atualizar o termômetro:', erro);
   }
+}
+
+// Estado do alerta de cartão (pura/testável). Recebe o total da fatura do mês e
+// a lista de cartões ATIVOS (arquivados não entram, p/ não inflar o limite e
+// mascarar o estouro). Devolve o limite somado, o % usado e, se estourou, quanto
+// passou — em R$ e em %.
+function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
+  const limite = (cartoesAtivosLista || []).reduce(
+    (sum, c) => sum + (Number(c && c.limite) || 0),
+    0
+  );
+  const total = Number(totCartao) || 0;
+  if (limite <= 0) {
+    return { limite: 0, perc: 0, estourou: false, extrapolouReais: 0, extrapolouPerc: 0 };
+  }
+  const perc = (total / limite) * 100;
+  const estourou = perc > 100;
+  return {
+    limite,
+    perc,
+    estourou,
+    extrapolouReais: estourou ? total - limite : 0,
+    extrapolouPerc: estourou ? ((total - limite) / limite) * 100 : 0,
+  };
 }
 
 function atualizarTelaControle() {
@@ -1424,6 +1538,7 @@ function atualizarTelaControle() {
     totInv = 0;
   const nomesCat = {
     receita: 'Receita',
+    dividendo: 'Dividendo',
     resgate_investimento: 'Resgate',
     despesa_fixa: 'Desp. Fixa',
     despesa_variavel: 'Desp. Variável',
@@ -1435,6 +1550,10 @@ function atualizarTelaControle() {
 
   transacoes.forEach((t) => {
     if (t.mes === visaoMes && t.ano === visaoAno) {
+      // Fase 3B: as pernas de transferência (origem do aporte) são plumbing de
+      // caixa — aparecem no Meu Patrimônio (por instituição), não no extrato/DRE
+      // mensal. Sem isto, o aporte apareceria 2x (ativo + perna) e dobraria o KPI.
+      if (t.categoria === 'transferencia_saida' || t.categoria === 'transferencia_entrada') return;
       let iconFixo =
         t.groupId && t.categoria !== 'cartao_credito'
           ? ' <i class="ph ph-arrows-clockwise" title="Recorrente"></i>'
@@ -1483,7 +1602,11 @@ function atualizarTelaControle() {
                 </div>
             </div>`;
 
-      if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') {
+      if (
+        t.categoria === 'receita' ||
+        t.categoria === 'dividendo' ||
+        t.categoria === 'resgate_investimento'
+      ) {
         totRec += t.valor;
         divRec.innerHTML += itemHtml;
       } else if (
@@ -1545,29 +1668,28 @@ function atualizarTelaControle() {
     }
   }
 
-  // ALERTA CARTÃO
-  const limitCartao = cartoes.reduce((sum, c) => sum + (c.limite || 0), 0);
+  // ALERTA CARTÃO — usa só cartões ATIVOS. Cartões arquivados (ex.: o "Cartão
+  // principal" de 5.000 criado na migração) não devem inflar o limite e mascarar
+  // o estouro da fatura.
+  const estadoCartao = calcularEstadoAlertaCartao(totCartao, cartoesAtivos());
   const alertaCartao = document.getElementById('alertaCartaoKanban');
+  const barCartao = document.getElementById('barCartao');
 
-  if (limitCartao > 0) {
-    let percCartao = (totCartao / limitCartao) * 100;
-    document.getElementById('barCartao').style.width = Math.min(100, percCartao) + '%';
-
-    if (percCartao > 100) {
-      document.getElementById('barCartao').style.background = 'var(--cor-erro)';
-      let extrapolouReais = totCartao - limitCartao;
-      let extrapolouPerc = ((totCartao - limitCartao) / limitCartao) * 100;
+  if (estadoCartao.limite > 0) {
+    if (barCartao) barCartao.style.width = Math.min(100, estadoCartao.perc) + '%';
+    if (estadoCartao.estourou) {
+      if (barCartao) barCartao.style.background = 'var(--cor-erro)';
       const txtAlerta = document.getElementById('txtAlertaCartao');
       if (txtAlerta)
-        txtAlerta.innerHTML = `Fatura estourou em ${extrapolouPerc.toFixed(1)}% — passou ${formatarMoeda(extrapolouReais)} do limite.`;
-      alertaCartao.style.display = 'flex';
+        txtAlerta.innerHTML = `Fatura estourou em ${estadoCartao.extrapolouPerc.toFixed(1)}% — passou ${formatarMoeda(estadoCartao.extrapolouReais)} do limite.`;
+      if (alertaCartao) alertaCartao.style.display = 'flex';
     } else {
-      document.getElementById('barCartao').style.background = 'var(--cor-cartao)';
-      alertaCartao.style.display = 'none';
+      if (barCartao) barCartao.style.background = 'var(--cor-cartao)';
+      if (alertaCartao) alertaCartao.style.display = 'none';
     }
   } else {
-    document.getElementById('barCartao').style.width = '0%';
-    alertaCartao.style.display = 'none';
+    if (barCartao) barCartao.style.width = '0%';
+    if (alertaCartao) alertaCartao.style.display = 'none';
   }
 
   // GRÁFICO BARRAS
@@ -1608,9 +1730,14 @@ function atualizarTelaControle() {
       });
       // Barras de referência: Receita (e Resgate, se houver) e Sobra.
       dadosGrafico = [{ label: 'Receita', valor: rPizza.receita, cor: '#10b981' }];
-      if (rPizza.resgate > 0) dadosGrafico.push({ label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' });
+      if (rPizza.resgate > 0)
+        dadosGrafico.push({ label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' });
       dadosGrafico = dadosGrafico.concat(despesas);
-      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+      dadosGrafico.push({
+        label: 'Sobra',
+        valor: vSobra,
+        cor: vSobra >= 0 ? '#10b981' : '#e11d48',
+      });
     } else {
       dadosGrafico = [
         { label: 'Receita', valor: rPizza.receita, cor: '#10b981' },
@@ -1622,7 +1749,11 @@ function atualizarTelaControle() {
         { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' },
       ];
       dadosGrafico.sort((a, b) => b.valor - a.valor);
-      dadosGrafico.push({ label: 'Sobra', valor: vSobra, cor: vSobra >= 0 ? '#10b981' : '#e11d48' });
+      dadosGrafico.push({
+        label: 'Sobra',
+        valor: vSobra,
+        cor: vSobra >= 0 ? '#10b981' : '#e11d48',
+      });
     }
 
     // Altura adaptativa: a visão por categoria de despesa pode ter mais barras.

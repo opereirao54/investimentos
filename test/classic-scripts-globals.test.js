@@ -26,6 +26,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-utils.js', indent: '' },
   { file: 'web/appliquei-yahoo-finance.js', indent: '' },
   { file: 'web/appliquei-app.js', indent: '        ' },
+  { file: 'web/appliquei-contas.js', indent: '' },
   { file: 'web/appliquei-aba1-charts.js', indent: '' },
   { file: 'web/appliquei-renda-fixa.js', indent: '' },
   { file: 'web/appliquei-previdencia.js', indent: '' },
