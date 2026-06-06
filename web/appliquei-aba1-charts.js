@@ -96,11 +96,17 @@ function dataInicioPeriodoEvolucao() {
 // Aportes líquidos (compras − vendas) dentro do período, respeitando filtros.
 function aportesLiquidosNoPeriodo(carteiraConsolidada, dataInicio, filtroTipo, filtroAtivo) {
     const inicioMs = dataInicio ? dataInicio.getTime() : 0;
+    const agora = Date.now();
     let aplicado = 0;
     historicoCompras.forEach(op => {
         if(!op.data_op) return;
         const tsOp = new Date(op.data_op).getTime();
         if(inicioMs > 0 && tsOp < inicioMs) return;
+        // Aporte programado (data futura, ainda não realizado) não conta como
+        // capital aplicado — mesma regra de obterResumoCarteira para o valor de
+        // hoje. Sem isso, ele inflava o "aplicado" e gerava um ganho negativo
+        // fantasma (= ao valor do aporte futuro). saldoInicial conta sempre.
+        if(!op.saldoInicial && isFinite(tsOp) && tsOp > agora) return;
         const ativoOp = carteiraConsolidada[op.ticker];
         const am = mockAtivosMercado.find(a => a.ticker === op.ticker);
         const ativoFake = ativoOp || { categoria: op.categoria, subcategoria: op.subcategoria };
