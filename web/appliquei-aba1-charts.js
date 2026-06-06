@@ -134,6 +134,10 @@ function patrimonioNaData(dataLimite, filtroTipo, filtroAtivo) {
         if(!ativoEntraNoFiltroEvolucao(ticker, ativo, am, filtroTipo, filtroAtivo)) continue;
         if(ativo.categoria === 'previdencia') {
             patrim += calcularSaldoPrevidencia(ticker, limiteMs);
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // Rendimento de RF/Reserva acumulado até a data de referência (mesma base
+            // do KPI de hoje), para o ganho do período medir só a variação real.
+            patrim += valorAtualRendaFixa(ticker, ativo.categoria, limiteMs);
         } else {
             const precoAtual = am ? am.preco_atual : ativo.precoMedio;
             patrim += ativo.qtdTotal * precoAtual;
@@ -160,6 +164,11 @@ function atualizarKPIsResumo(carteiraConsolidada) {
         let saldo;
         if(ativo.categoria === 'previdencia') {
             saldo = calcularSaldoPrevidencia(ticker);
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // RF/Reserva rendem por juros compostos (sem cotação de mercado). Usa o
+            // mesmo cálculo da Carteira e do Meu Patrimônio para o "hoje" refletir o
+            // rendimento — senão mostrava só o custo aplicado e o ganho zerava.
+            saldo = valorAtualRendaFixa(ticker, ativo.categoria);
         } else {
             const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
             saldo = ativo.qtdTotal * precoAtual;
