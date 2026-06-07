@@ -468,6 +468,38 @@ function aplicarTipoCartaoUI() {
   }
 }
 
+// Compromissos PROGRAMADOS marcados como pagos por engano: uma despesa variável
+// com vencimento FUTURO não pode estar quitada (ela nasce pendente). Corrige
+// dados antigos (criados antes desta regra) e qualquer caminho que tenha
+// marcado pago indevidamente. NÃO toca em pagamentos explícitos (com `pagoEm`)
+// nem em despesa fixa/cartão (que nascem pendentes e podem ser pré-pagas de
+// propósito). Idempotente — só grava quando muda algo.
+function normalizarDespesasProgramadas() {
+  if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return false;
+  const h = new Date();
+  const hojeStr = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+  let mudou = false;
+  transacoes.forEach((t) => {
+    if (t.categoria !== 'despesa_variavel') return;
+    if (!t.pago || t.pagoEm) return; // já pendente, ou pago explicitamente pelo usuário
+    if (t.dataVencimento && t.dataVencimento > hojeStr) {
+      t.pago = false; // vencimento no futuro → volta a ser compromisso a pagar
+      mudou = true;
+    }
+  });
+  if (mudou) {
+    try {
+      localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+        AppliqueiCloudSync.forceFlush();
+      }
+    } catch (e) {
+      console.error('[normalizarDespesasProgramadas] localStorage', e);
+    }
+  }
+  return mudou;
+}
+
 transacoes = transacoes.map((t) => {
   if (t.mes === undefined && t.data) {
     const ma = appliqueiMesAnoDe(t.data);
@@ -478,6 +510,9 @@ transacoes = transacoes.map((t) => {
   if (t.pago === undefined) t.pago = false;
   return t;
 });
+// Corrige, já no carregamento, despesas variáveis programadas que vieram pagas
+// (dados antigos) — antes de qualquer aba (Controle/Patrimônio) renderizar.
+normalizarDespesasProgramadas();
 
 // Autocompletar Inteligente
 function atualizarDatalistDescricoes() {
@@ -1198,7 +1233,9 @@ function confirmarBaixarGrupoCartao(key) {
   const cartao = typeof obterCartao === 'function' ? obterCartao(grupo.cartaoId) : null;
   const contaPag = cartao && cartao.contaPagadoraId ? cartao.contaPagadoraId : undefined;
   transacoes = transacoes.map((t) =>
-    ids.has(t.id) ? { ...t, pago: true, contaId: contaPag || t.contaId } : t
+    ids.has(t.id)
+      ? { ...t, pago: true, pagoEm: new Date().toISOString(), contaId: contaPag || t.contaId }
+      : t
   );
   localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
   mostrarToast('Fatura baixada como paga.', 'sucesso');
@@ -1232,6 +1269,7 @@ function confirmarPagamento(id) {
   transacoes = transacoes.map((t) => {
     if (t.id === id) {
       t.pago = true;
+      t.pagoEm = new Date().toISOString(); // pagamento explícito — protege da normalização
       if (t.valor !== novoValor) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
@@ -1296,6 +1334,7 @@ function reverterPagamento(id) {
     );
   }
   t.pago = false;
+  delete t.pagoEm; // deixa de ser pagamento explícito
   try {
     localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
     if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
@@ -1427,6 +1466,9 @@ function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
 }
 
 function atualizarTelaControle() {
+  // Garante que despesas variáveis com vencimento futuro não fiquem "pagas"
+  // (cobre edição de data e qualquer caminho, além do carregamento inicial).
+  normalizarDespesasProgramadas();
   const mesFormatado = (visaoMes + 1).toString().padStart(2, '0');
   document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
   const nomeMeses = [

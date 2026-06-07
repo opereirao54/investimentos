@@ -1276,6 +1276,9 @@ function mpRenderDonut(consolidado) {
 async function renderMeuPatrimonio(skipFetch) {
   // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
+  // Despesa variável com vencimento futuro não conta como paga no caixa — corrige
+  // dados antigos antes de somar saldo/extrato (defensivo p/ cloud-sync tardio).
+  if (typeof normalizarDespesasProgramadas === 'function') normalizarDespesasProgramadas();
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
