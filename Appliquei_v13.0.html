@@ -4097,15 +4097,15 @@
             content:''; position:absolute; top:0; left:0; height:100%; width:4px;
             background: var(--cor-primaria);
         }
+        .mp-kpi-patrimonio::before { background: var(--cor-info); }
         .mp-kpi-saldo::before    { background: var(--cor-primaria); }
-        .mp-kpi-despesas::before { background: var(--cor-erro); }
         .mp-kpi-investido::before{ background: var(--cor-patrimonio); }
         .mp-kpi-icon {
             width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
             font-size:22px; flex-shrink:0;
         }
+        .mp-kpi-patrimonio .mp-kpi-icon { background: rgba(37,99,235,0.10); color: var(--cor-info); }
         .mp-kpi-saldo    .mp-kpi-icon { background: rgba(5,150,105,0.10);  color: var(--cor-primaria); }
-        .mp-kpi-despesas .mp-kpi-icon { background: rgba(220,38,38,0.10);  color: var(--cor-erro); }
         .mp-kpi-investido .mp-kpi-icon{ background: rgba(124,58,237,0.10); color: var(--cor-patrimonio); }
         .mp-kpi-body { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
@@ -4114,6 +4114,8 @@
         .mp-kpi-delta.pos { color: var(--cor-primaria); }
         .mp-kpi-delta.neg { color: var(--cor-erro); }
         .mp-kpi-delta.neu { color: var(--cor-texto-mutado); }
+        .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
+        .mp-kpi-sub i { font-size:12px; opacity:.8; }
 
         .mp-grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:20px; align-items:start; }
         @media (max-width: 960px) { .mp-grid { grid-template-columns: 1fr; } }
@@ -4148,18 +4150,139 @@
         .mp-barra-valor { font-family:'DM Mono', monospace; font-size:12.5px; font-weight:700; color:var(--cor-texto-principal); text-align:right; }
         .mp-barra-pct { font-size:10.5px; color: var(--cor-texto-mutado); display:block; }
 
-        .mp-lista-inst { display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; }
+        /* ===== "Onde está o seu dinheiro" — cabeçalho + filtro premium ===== */
+        .mp-onde-head { align-items:center; }
+        .mp-onde-titulo { display:flex; flex-direction:column; gap:2px; min-width:0; }
+        .mp-onde-titulo h3 { display:flex; align-items:center; gap:7px; }
+        .mp-onde-ic { color: var(--cor-primaria); font-size:17px; }
+        .mp-filtro-cat-wrap {
+            display:inline-flex; align-items:center; gap:7px; flex-shrink:0;
+            background: var(--cor-superficie); border:1px solid var(--cor-borda);
+            border-radius:10px; padding:4px 10px 4px 12px; max-width:100%;
+        }
+        .mp-filtro-cat-wrap > i { color: var(--cor-texto-mutado); font-size:15px; flex-shrink:0; }
+        .mp-filtro-cat {
+            border:none !important; background:transparent !important; padding:5px 4px !important;
+            font-weight:600; max-width:220px; cursor:pointer;
+        }
+        .mp-filtro-cat:focus { outline:none !important; }
+
+        /* Sem max-height/scroll aninhado: a lista cresce e quem rola é a própria
+           página. Scroll aninhado dentro de um card travava o toque no mobile e
+           dava a impressão de que "a barra de rolagem não funciona". */
+        .mp-lista-inst { display:flex; flex-direction:column; gap:10px; padding:2px; }
+        /* Extratos longos ganham rolagem própria só em telas grandes; no mobile
+           fluem na página (rolagem única e confiável). */
+        @media (min-width: 861px) {
+            .mp-inst-extrato { max-height: 460px; overflow-y: auto; }
+        }
+        /* Card de instituição — visual premium: superfície branca, sombra suave,
+           realce no hover e barra de acento à esquerda. */
         .mp-inst-item {
             display:flex; justify-content:space-between; align-items:center; gap:10px;
-            padding:10px 12px; background: var(--cor-superficie); border-radius:8px; cursor:pointer;
-            transition: all .12s; border:1px solid transparent;
+            padding:13px 15px; background: var(--cor-branco); border-radius:14px;
+            transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+            border:1px solid var(--cor-borda); box-shadow: var(--shadow-suave);
+            position:relative; overflow:hidden;
         }
-        .mp-inst-item:hover { background: var(--cor-fundo-card); border-color: var(--cor-borda); }
-        .mp-inst-item.ativo { border-color: var(--cor-primaria); background: rgba(5,150,105,0.06); }
-        .mp-inst-nome { font-size:12.5px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; }
+        .mp-inst-item:hover { box-shadow: var(--shadow-media); transform: translateY(-1px); border-color: var(--cor-borda2); }
+        .mp-inst-head-left { gap:12px; }
+        .mp-inst-avatar {
+            width:40px; height:40px; border-radius:12px; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            font-family:'Figtree', sans-serif; font-weight:800; font-size:14px; letter-spacing:.3px;
+            color: var(--mp-accent, var(--cor-primaria));
+            background: var(--cor-superficie);
+            background: color-mix(in srgb, var(--mp-accent, var(--cor-primaria)) 14%, var(--cor-branco));
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mp-accent, var(--cor-primaria)) 22%, transparent);
+        }
+        .mp-inst-avatar i { font-size:19px; }
+        .mp-inst-meta { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
+        .mp-inst-head-right { text-align:right; flex-shrink:0; display:flex; flex-direction:column; gap:1px; }
+        .mp-inst-nome { font-size:13px; font-weight:700; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
         .mp-inst-nome .mp-inst-badge { font-size:9px; padding:1px 5px; border-radius:4px; background: rgba(124,58,237,0.12); color: var(--cor-patrimonio); font-weight:700; }
-        .mp-inst-valor { font-family:'DM Mono', monospace; font-size:12px; font-weight:700; color: var(--cor-texto-principal); }
-        .mp-inst-sub   { font-size:10px; color: var(--cor-texto-mutado); display:block; text-align:right; margin-top:1px; }
+        .mp-inst-tipo {
+            font-size:9px; padding:1px 6px; border-radius:4px;
+            background: var(--cor-superficie); border:1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario); font-weight:700; text-transform:uppercase; letter-spacing:.3px;
+            display:inline-flex; align-items:center; gap:3px;
+        }
+        .mp-inst-tipo i { font-size:11px; }
+        .mp-inst-share { display:block; height:4px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; margin-top:3px; max-width:240px; }
+        .mp-inst-share-fill { display:block; height:100%; border-radius:999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+        .mp-inst-valor { font-family:'DM Mono', monospace; font-size:14px; font-weight:700; color: var(--cor-texto-principal); }
+        .mp-inst-sub   { font-size:10.5px; color: var(--cor-texto-mutado); display:block; text-align:right; margin-top:1px; }
+        .mp-inst-detalhe { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; padding-top:11px; border-top:1px dashed var(--cor-borda); }
+        .mp-inst-chip {
+            font-size:11px; color: var(--cor-texto-secundario);
+            background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:999px;
+            padding:3px 10px; display:inline-flex; align-items:center; gap:5px; transition: border-color .12s;
+        }
+        .mp-inst-chip:hover { border-color: var(--cor-borda2); }
+        .mp-inst-chip strong { color: var(--cor-texto-principal); font-family:'DM Mono', monospace; font-weight:700; }
+        .mp-classes-total {
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            padding:11px 12px; margin-top:4px; border-top:2px solid var(--cor-borda);
+            font-size:12.5px; font-weight:700; color: var(--cor-texto-principal);
+        }
+
+        /* Instituição recolhível + extrato de caixa */
+        .mp-inst-collapsible { flex-direction:column; align-items:stretch; gap:0; }
+        .mp-inst-head { display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer; }
+        .mp-inst-head-left { min-width:0; display:flex; align-items:center; gap:9px; }
+        .mp-inst-chevron { font-size:14px; color: var(--cor-texto-mutado); transition: transform .18s ease; flex-shrink:0; }
+        .mp-inst-chevron.aberto { transform: rotate(90deg); }
+        .mp-inst-extrato { margin-top:10px; padding-top:10px; border-top:1px solid var(--cor-borda); flex-direction:column; gap:1px; }
+        .mp-extrato-titulo { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color: var(--cor-texto-mutado); margin-bottom:6px; display:flex; align-items:center; gap:5px; }
+        .mp-extrato-titulo i { font-size:12px; }
+        .mp-extrato-linha { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 8px; border-radius:7px; }
+        .mp-extrato-linha:hover { background: var(--cor-fundo-card); }
+        .mp-extrato-info { min-width:0; display:flex; flex-direction:column; }
+        .mp-extrato-desc { font-size:12px; color: var(--cor-texto-principal); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mp-extrato-data { font-size:10px; color: var(--cor-texto-mutado); }
+        .mp-extrato-vals { text-align:right; flex-shrink:0; display:flex; flex-direction:column; }
+        .mp-extrato-valor { font-family:'DM Mono', monospace; font-size:12px; font-weight:700; }
+        .mp-extrato-valor.pos { color: var(--cor-primaria); }
+        .mp-extrato-valor.neg { color: var(--cor-erro); }
+        .mp-extrato-valor.neu { color: var(--cor-texto-secundario); }
+        .mp-extrato-saldo { font-size:10px; color: var(--cor-texto-mutado); font-family:'DM Mono', monospace; }
+        .mp-extrato-vazio { font-size:11.5px; color: var(--cor-texto-mutado); padding:10px 8px; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px; }
+        .mp-extrato-subtotal {
+            display:flex; justify-content:space-between; align-items:center; gap:10px;
+            margin-top:6px; padding:8px 10px; border-radius:8px;
+            background: var(--cor-bg-primaria); border:1px solid var(--cor-borda-primaria);
+            font-size:12px; font-weight:700; color: var(--cor-txt-primaria);
+        }
+        .mp-extrato-subtotal strong { font-family:'DM Mono', monospace; color: var(--cor-txt-primaria); }
+        /* Badge de tipo por linha do extrato (cartão/variável/fixo/...) */
+        .mp-extrato-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .mp-mov-tipo {
+            font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.3px;
+            padding:1px 6px; border-radius:5px; border:1px solid transparent; line-height:1.6; white-space:nowrap;
+        }
+        .mp-mov-tipo.cartao   { background: var(--cor-bg-amber);    color: var(--cor-txt-amber);    border-color: var(--cor-borda-amber); }
+        .mp-mov-tipo.variavel { background: var(--cor-bg-erro);     color: var(--cor-txt-erro);     border-color: var(--cor-borda-erro); }
+        .mp-mov-tipo.fixo     { background: var(--cor-bg-info);     color: var(--cor-txt-info);     border-color: var(--cor-borda-info); }
+        .mp-mov-tipo.receita  { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .mp-mov-tipo.transf   { background: var(--cor-superficie);  color: var(--cor-texto-secundario); border-color: var(--cor-borda); }
+        .mp-mov-tipo.aporte   { background: rgba(124,58,237,0.10);  color: var(--cor-patrimonio);   border-color: rgba(124,58,237,0.22); }
+        /* "Observação": resumo do que foi quitado por tipo, no topo do extrato */
+        .mp-extrato-resumo {
+            margin-bottom:8px; padding:9px 11px; border-radius:9px;
+            background: var(--cor-superficie); border:1px solid var(--cor-borda);
+        }
+        .mp-extrato-resumo-tit { font-size:10.5px; font-weight:700; color: var(--cor-texto-secundario); display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+        .mp-extrato-resumo-tit i { font-size:13px; color: var(--cor-primaria); }
+        .mp-extrato-resumo-tit strong { font-family:'DM Mono', monospace; color: var(--cor-texto-principal); }
+        .mp-extrato-resumo-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+        .mp-quit-chip {
+            font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px;
+            border:1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-secundario);
+        }
+        .mp-quit-chip strong { font-family:'DM Mono', monospace; font-weight:700; margin-left:2px; }
+        .mp-quit-chip.fixo strong     { color: var(--cor-info); }
+        .mp-quit-chip.variavel strong { color: var(--cor-erro); }
+        .mp-quit-chip.cartao strong   { color: var(--cor-cartao); }
 
         .mp-donut-card { margin-bottom:20px; }
         .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
@@ -4194,14 +4317,6 @@
         }
         .mp-empty i { font-size:32px; display:block; margin-bottom:8px; opacity:.4; }
 
-        .mp-cartao-snap { display:grid; grid-template-columns: 1fr auto; gap:14px; align-items:center; }
-        .mp-cartao-snap h3 { display:flex; align-items:center; gap:8px; }
-        .mp-cartao-snap h3 i { color: var(--cor-cartao); }
-        .mp-cartao-info { font-size:12px; color: var(--cor-texto-mutado); line-height:1.5; }
-        .mp-cartao-info strong { color: var(--cor-texto-principal); font-family:'DM Mono', monospace; }
-        .mp-cartao-snap a { font-size:12px; color: var(--cor-primaria); text-decoration:none; font-weight:600; white-space:nowrap; }
-        .mp-cartao-snap a:hover { text-decoration:underline; }
-
         /* Toggle integrado: marca KPIs com "líquido" para deixar claro */
         .mp-kpis.modo-liquido .mp-kpi-valor::after {
             content:' L'; font-size:9px; color: var(--cor-primaria); vertical-align:super; margin-left:2px;
@@ -4210,8 +4325,45 @@
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
+        body.valores-ocultos #meu_patrimonio .mp-inst-chip strong,
+        body.valores-ocultos #meu_patrimonio .mp-extrato-valor,
+        body.valores-ocultos #meu_patrimonio .mp-extrato-saldo,
+        body.valores-ocultos #meu_patrimonio .mp-extrato-subtotal strong,
+        body.valores-ocultos #meu_patrimonio .mp-quit-chip strong,
+        body.valores-ocultos #meu_patrimonio .mp-extrato-resumo-tit strong,
         body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
+
+        /* ===== Combobox custom (instituição financeira) — mobile-friendly ===== */
+        .appq-combo { position: relative; width: 100%; }
+        .appq-combo-input {
+            padding-right: 34px !important;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237a9480' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 11px center;
+            background-size: 15px;
+        }
+        .appq-combo-panel {
+            position: absolute; z-index: 60; top: calc(100% + 5px); left: 0; right: 0;
+            display: none; background: var(--cor-branco);
+            border: 1px solid var(--cor-borda); border-radius: 11px;
+            box-shadow: var(--shadow-hover); max-height: 244px; overflow-y: auto; padding: 5px;
+        }
+        .appq-combo-panel.aberto { display: block; }
+        .appq-combo-opt {
+            display: flex; justify-content: space-between; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 14px; color: var(--cor-texto-principal);
+        }
+        .appq-combo-opt:hover, .appq-combo-opt.ativo { background: var(--cor-superficie); }
+        .appq-combo-opt-v { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .appq-combo-opt-l { font-size: 11.5px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; flex-shrink: 0; }
+        .appq-combo-empty {
+            padding: 11px 12px; font-size: 13px; color: var(--cor-texto-mutado);
+            display: flex; align-items: center; gap: 6px; border-radius: 8px;
+        }
+        .appq-combo-usar { cursor: pointer; color: var(--cor-primaria); font-weight: 600; }
+        .appq-combo-usar:hover { background: var(--cor-bg-primaria); }
 
         /* ===== RELATÓRIO MENSAL — premium UI ===== */
         #relatorio_mensal {
@@ -4988,8 +5140,8 @@
         }
         #meu_patrimonio .mp-kpi:hover { transform: translateY(-2px); }
         #meu_patrimonio .mp-kpi::before { width: 5px; border-radius: 0 4px 4px 0; }
+        #meu_patrimonio .mp-kpi-patrimonio::before { background: linear-gradient(180deg,#60a5fa,#2563eb); }
         #meu_patrimonio .mp-kpi-saldo::before { background: linear-gradient(180deg,#10b981,#059669); }
-        #meu_patrimonio .mp-kpi-despesas::before { background: linear-gradient(180deg,#fb7185,#dc2626); }
         #meu_patrimonio .mp-kpi-investido::before { background: linear-gradient(180deg,#a78bfa,#7c3aed); }
         #meu_patrimonio .mp-kpi-icon { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
         #meu_patrimonio .mp-kpi-valor { font-size: 24px; letter-spacing: -0.4px; }
@@ -5140,6 +5292,21 @@
         </div>
     </div>
 
+    <div id="modalCompletarRentabilidade" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalCompletarRentabilidade()">
+        <div style="max-width:560px;width:94%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
+                <h3 style="font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-percent" style="color:var(--cor-primaria);"></i> Completar rentabilidade</h3>
+                <button class="drawer-fechar" onclick="fecharModalCompletarRentabilidade()" aria-label="Fechar" style="background:none;border:none;cursor:pointer;color:var(--cor-texto-mutado);font-size:18px;"><i class="ph ph-x"></i></button>
+            </div>
+            <div style="font-size:12.5px;color:var(--cor-texto-mutado);margin-bottom:14px;line-height:1.5;">Estes investimentos de Renda Fixa/Reserva estão <strong>sem rentabilidade</strong> e por isso ficam parados no valor aportado. Informe a taxa (ex: <strong>110% CDI</strong>, <strong>IPCA+6%</strong>, <strong>12% a.a.</strong>) para passarem a render desde a data do aporte.</div>
+            <div id="corpoModalCompletarRent" style="overflow:auto;flex:1;display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--cor-borda);padding-top:14px;"></div>
+            <div style="display:flex;gap:8px;margin-top:16px;">
+                <button class="btn-secundario" style="flex:1;" onclick="fecharModalCompletarRentabilidade()">Agora não</button>
+                <button class="btn-acao" style="flex:1;background:var(--cor-primaria);" onclick="salvarCompletarRentabilidade()"><i class="ph ph-check"></i> Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
         <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
             <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
@@ -5155,6 +5322,7 @@
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="novoCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
                     </div>
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Conta que paga a fatura *</label><select id="novoCartaoContaPagadora" style="padding:8px;font-size:13px;"></select><span style="display:block;font-size:10px;color:var(--cor-texto-mutado);margin-top:3px;">Obrigatório — é dessa conta que o dinheiro sai quando você paga a fatura.</span></div>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoConfig()">Cancelar</button>
                         <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarNovoCartaoConfig()"><i class="ph ph-check"></i> Adicionar</button>
@@ -5225,13 +5393,15 @@
             <div class="grid-2-iguais" style="gap: 15px;" id="grupoQtdPreco">
                 <div class="form-group" id="grupoQtd">
                     <label>Quantidade</label>
-                    <input type="text" inputmode="decimal" step="any" id="compraQtd" data-qtd="1" placeholder="Ex: 1.250 ou 0,000087" oninput="aplicarMascaraQtd(this); calcularTotalCompra(); atualizarProjecaoForm()">
+                    <input type="text" inputmode="decimal" step="any" id="compraQtd" data-qtd="1" placeholder="Ex: 1.250 ou 0,000087" oninput="aplicarMascaraQtd(this); calcularTotalCompra(); atualizarProjecaoForm(); atualizarInfoResgate()">
                 </div>
                 <div class="form-group">
                     <label id="lblPrecoOp">Preço Pago (R$)</label>
-                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm()"></span>
+                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="compraPreco" placeholder="105,50" oninput="aplicarMascaraBRL(this); calcularTotalCompra(); atualizarProjecaoForm(); atualizarInfoResgate()"></span>
                 </div>
             </div>
+            <!-- Resgate: saldo do dia + IR estimado + botão "Resgatar tudo" (só no modo Venda) -->
+            <div id="resgateInfoBox" style="display:none;margin-bottom:14px;"></div>
             <div class="grid-2-iguais" style="gap: 15px;">
                 <div class="form-group">
                     <label>Data da Operação</label>
@@ -5249,8 +5419,9 @@
                         <input type="date" id="compraVencimento" oninput="atualizarProjecaoForm()">
                     </div>
                     <div class="form-group">
-                        <label>Rentabilidade contratada</label>
+                        <label>Rentabilidade contratada <span id="rentObrigatoria" style="color:var(--cor-erro);display:none;">*</span></label>
                         <input type="text" id="compraRentabilidade" placeholder="Ex: 110% CDI, IPCA+6%, 12% a.a." oninput="atualizarProjecaoForm()">
+                        <small id="rentOpcionalHint" style="font-size:11px;color:var(--cor-texto-mutado);display:none;margin-top:3px;">Opcional — se informar um indexador (ex: 100% CDI), ele substitui a rentabilidade mensal abaixo no cálculo.</small>
                     </div>
                 </div>
                 <div id="projecaoRfPreview" class="projecao-rf-box" style="display:none;"></div>
@@ -5294,13 +5465,19 @@
                 </div>
             </div>
             <div class="form-group" id="grupoOrigemRecurso">
-                <label>Origem do recurso <small style="color:var(--cor-texto-mutado);font-weight:400">— afeta o Saldo em Conta no Meu Patrimônio</small></label>
+                <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
-                    <option value="externo">Aporte externo (dinheiro novo, não abate caixa)</option>
-                    <option value="caixa_proprio">Tirar do saldo da própria corretora</option>
-                    <option value="caixa_outra">Tirar do saldo de outra instituição</option>
+                    <option value="">— selecione a conta —</option>
                 </select>
-                <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco" style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
+                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Registre uma receita ou um saldo inicial em Meu Patrimônio para liberar a conta aqui.</small>
+                <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
+            </div>
+            <div class="form-group" id="grupoDestinoRecurso" style="display:none;">
+                <label>Conta onde cai o dinheiro <small style="color:var(--cor-texto-mutado);font-weight:400">— credita o Saldo em Conta no Meu Patrimônio</small></label>
+                <select id="compraDestinoRecurso">
+                    <option value="">— mesma corretora/banco do ativo —</option>
+                </select>
+                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Onde o valor resgatado deve ser creditado. Por padrão, cai na conta da corretora/banco do ativo.</small>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin: 8px 0 16px; padding-top: 12px; border-top: 1px solid var(--cor-borda);">
                 <span style="font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);">Total da operação:</span>
@@ -5503,6 +5680,8 @@
 
             <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
             <div id="subAbaCarteira">
+                <!-- Aviso: Renda Fixa/Reserva sem rentabilidade não rendem (preenchido por JS) -->
+                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:14px;"></div>
                 <div class="card-container" style="padding: 0; overflow: hidden;">
                     <div style="overflow-x: auto; max-height: 640px;" id="richRowsContainer">
                         <!-- Rich rows rendered by JS -->
@@ -6516,15 +6695,9 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Visão consolidada — saldo, investimentos e rentabilidade.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Uma foto de tudo o que você tem agora — banco a banco, corretora a corretora.</p>
                 </div>
                 <div class="page-actions mp-controls">
-                    <div style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
-                        <input type="month" id="mpInputMesAno" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="mpSelecionarMes()">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mpMudarMes(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
-                    </div>
-                    <button class="btn-secundario" onclick="mpIrMesAtual()">Hoje</button>
                     <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
                         <button class="mp-toggle-btn ativo" data-modo="bruto" onclick="mpAlterarModo('bruto')" role="tab" aria-selected="true">Bruto</button>
                         <button class="mp-toggle-btn" data-modo="liquido" onclick="mpAlterarModo('liquido')" role="tab" aria-selected="false" title="Aplica IR estimado por preço médio (RF tabela regressiva 22,5%→15%; Ações 15%; FII 20%)">Líquido (pós-IR)</button>
@@ -6532,38 +6705,69 @@
                 </div>
             </div>
 
-            <!-- KPIs principais -->
+            <!-- KPIs principais — a foto do patrimônio (sem despesas, sem datas) -->
             <div class="mp-kpis" id="mp-kpis">
+                <div class="mp-kpi mp-kpi-patrimonio">
+                    <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
+                    <div class="mp-kpi-body">
+                        <span class="mp-kpi-label">Patrimônio total</span>
+                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
+                        <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                    </div>
+                </div>
                 <div class="mp-kpi mp-kpi-saldo">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
                     <div class="mp-kpi-body">
-                        <span class="mp-kpi-label">Saldo Total</span>
+                        <span class="mp-kpi-label">Saldo em conta</span>
                         <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
                         <span class="mp-kpi-delta neu" id="mp-kpi-saldo-delta">—</span>
-                    </div>
-                </div>
-                <div class="mp-kpi mp-kpi-despesas">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-receipt-x"></i></div>
-                    <div class="mp-kpi-body">
-                        <span class="mp-kpi-label">Despesas do período</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-despesas-valor">R$ 0,00</span>
-                        <span class="mp-kpi-delta neu" id="mp-kpi-despesas-delta">—</span>
                     </div>
                 </div>
                 <div class="mp-kpi mp-kpi-investido">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
                     <div class="mp-kpi-body">
-                        <span class="mp-kpi-label">Total Investido</span>
+                        <span class="mp-kpi-label">Total investido</span>
                         <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
                         <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
                     </div>
                 </div>
             </div>
 
+            <!-- Onde está o dinheiro: extrato consolidado por instituição (banco/corretora),
+                 com o detalhe das classes de investimento que cada uma guarda -->
+            <div class="card-container mp-onde-card">
+                <div class="mp-section-head mp-onde-head">
+                    <div class="mp-onde-titulo">
+                        <h3><i class="ph-fill ph-buildings mp-onde-ic"></i> Onde está o seu dinheiro</h3>
+                        <span class="mp-section-sub">Cada banco e corretora — caixa + cada tipo de investimento</span>
+                    </div>
+                    <label class="mp-filtro-cat-wrap" title="Filtrar o extrato por categoria de gasto (cadastro do Controle Financeiro)">
+                        <i class="ph ph-funnel-simple"></i>
+                        <select id="mp-filtro-categoria" class="mp-select mp-filtro-cat" onchange="mpSetFiltroCategoria(this.value)" aria-label="Filtrar extrato por categoria de gasto">
+                            <option value="">Todas as categorias</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="mp-lista-inst" id="mp-lista-inst">
+                    <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
+                </div>
+            </div>
+
+            <!-- Total investido por classe: somatória de cada tipo (= KPI Total investido) -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Total investido por classe</h3>
+                    <span class="mp-section-sub">Todo tipo de investimento que você tem</span>
+                </div>
+                <div class="mp-lista-inst" id="mp-classes-lista">
+                    <div class="mp-empty"><i class="ph ph-chart-bar"></i>—</div>
+                </div>
+            </div>
+
             <!-- Gráfico único: pizza = divisão; legenda (barrinhas) = valor + rentabilidade -->
             <div class="card-container mp-donut-card">
                 <div class="mp-section-head">
-                    <h3>Divisão por Categoria</h3>
+                    <h3>Divisão do patrimônio</h3>
                     <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
                 </div>
                 <div class="mp-donut-grid">
@@ -6572,24 +6776,35 @@
                 </div>
             </div>
 
-            <!-- Divisão por instituição (abaixo do gráfico) -->
+            <!-- Minhas Contas / Instituições (cadastro-mestre) -->
             <div class="card-container">
                 <div class="mp-section-head">
-                    <h3>Divisão por Instituição</h3>
-                    <span class="mp-section-sub">Investido + caixa livre</span>
+                    <h3>Minhas Contas</h3>
+                    <div style="display:flex;gap:6px;">
+                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
+                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
+                    </div>
                 </div>
-                <div class="mp-lista-inst" id="mp-lista-inst">
-                    <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
+                <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
+                    <input type="hidden" id="contaEditId" value="">
+                    <div id="tituloFormConta" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Nova conta</div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Nome</label><input type="text" id="contaNome" placeholder="Ex: Nubank, Itaú, XP..."></div>
+                        <div class="form-group"><label>Tipo</label><select id="contaTipo"></select></div>
+                    </div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Saldo inicial (opcional)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="contaSaldoInicial" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                        <div class="form-group"><label>Saldo nesta data</label><input type="date" id="contaDataSaldoInicial"></div>
+                    </div>
+                    <div style="font-size:11px;color:var(--cor-texto-mutado);background:var(--cor-fundo-card);border:1px solid var(--cor-borda);border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">
+                        <i class="ph ph-info" style="color:var(--cor-info);"></i> Use o <strong>saldo inicial</strong> só para o dinheiro que você <strong>já tinha guardado nesta conta antes</strong> de começar a usar o app. <strong>Não lance aqui a sua receita do mês</strong> (salário etc.) — isso vai em <strong>Controle financeiro → Receita</strong>, senão o mesmo dinheiro conta em dobro no patrimônio.
+                    </div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+                        <button class="btn-secundario" onclick="cancelarFormConta()">Cancelar</button>
+                        <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormConta()"><i class="ph ph-check"></i> Salvar</button>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Snapshot Cartão de Crédito -->
-            <div class="card-container mp-cartao-snap" id="mp-cartao-snap" style="display:none;">
-                <div>
-                    <h3><i class="ph ph-credit-card"></i> Cartão de Crédito — Fatura</h3>
-                    <p class="mp-cartao-info" id="mp-cartao-info"></p>
-                </div>
-                <a href="#" onclick="mudarAba(event, 'controle')" data-tooltip="Ver detalhes em Controle Financeiro">Ver no Controle →</a>
+                <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
             </div>
         </section>
 
@@ -6841,6 +7056,11 @@
                                 <option value="outro">🌟 Outro</option>
                             </select>
                         </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Conta de onde sai o dinheiro <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
+                        <select id="sonhoContaOrigem" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;"></select>
                     </div>
 
                     <div class="form-group">
@@ -7201,9 +7421,14 @@
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
     <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
+    <script src="/web/appliquei-combobox.js?v=mobile-combo"></script>
+    <!-- Contas / Instituições financeiras (entidade central). Carrega logo
+         após app.js: usa transacoes/historicoCompras p/ o seed inicial e
+         expõe `contas` + CRUD p/ os módulos seguintes. -->
+    <script src="/web/appliquei-contas.js?v=contas-fase1"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
-    <script src="/web/appliquei-aba1-charts.js?v=onda3b"></script>
+    <script src="/web/appliquei-aba1-charts.js?v=onda5-evolucao"></script>
     <script src="/web/appliquei-renda-fixa.js?v=onda3b"></script>
     <script src="/web/appliquei-previdencia.js?v=onda3b"></script>
     <!-- Features extraídas — carregadas DEPOIS de app.js porque usam
@@ -7213,11 +7438,11 @@
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=fase5-emoji"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
-    <script src="/web/appliquei-patrimonio.js?v=fase4c"></script>
+    <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>

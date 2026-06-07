@@ -86,6 +86,8 @@ module.exports = [
   {
     files: [
       'web/appliquei-app.js',
+      'web/appliquei-combobox.js',
+      'web/appliquei-contas.js',
       'web/appliquei-utils.js',
       'web/appliquei-aba-simulador.js',
       'web/appliquei-aba-carteira-recomendada.js',

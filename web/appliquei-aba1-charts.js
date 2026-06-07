@@ -96,11 +96,17 @@ function dataInicioPeriodoEvolucao() {
 // Aportes líquidos (compras − vendas) dentro do período, respeitando filtros.
 function aportesLiquidosNoPeriodo(carteiraConsolidada, dataInicio, filtroTipo, filtroAtivo) {
     const inicioMs = dataInicio ? dataInicio.getTime() : 0;
+    const agora = Date.now();
     let aplicado = 0;
     historicoCompras.forEach(op => {
         if(!op.data_op) return;
         const tsOp = new Date(op.data_op).getTime();
         if(inicioMs > 0 && tsOp < inicioMs) return;
+        // Aporte programado (data futura, ainda não realizado) não conta como
+        // capital aplicado — mesma regra de obterResumoCarteira para o valor de
+        // hoje. Sem isso, ele inflava o "aplicado" e gerava um ganho negativo
+        // fantasma (= ao valor do aporte futuro). saldoInicial conta sempre.
+        if(!op.saldoInicial && isFinite(tsOp) && tsOp > agora) return;
         const ativoOp = carteiraConsolidada[op.ticker];
         const am = mockAtivosMercado.find(a => a.ticker === op.ticker);
         const ativoFake = ativoOp || { categoria: op.categoria, subcategoria: op.subcategoria };
@@ -128,6 +134,10 @@ function patrimonioNaData(dataLimite, filtroTipo, filtroAtivo) {
         if(!ativoEntraNoFiltroEvolucao(ticker, ativo, am, filtroTipo, filtroAtivo)) continue;
         if(ativo.categoria === 'previdencia') {
             patrim += calcularSaldoPrevidencia(ticker, limiteMs);
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // Rendimento de RF/Reserva acumulado até a data de referência (mesma base
+            // do KPI de hoje), para o ganho do período medir só a variação real.
+            patrim += valorAtualRendaFixa(ticker, ativo.categoria, limiteMs);
         } else {
             const precoAtual = am ? am.preco_atual : ativo.precoMedio;
             patrim += ativo.qtdTotal * precoAtual;
@@ -154,6 +164,11 @@ function atualizarKPIsResumo(carteiraConsolidada) {
         let saldo;
         if(ativo.categoria === 'previdencia') {
             saldo = calcularSaldoPrevidencia(ticker);
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // RF/Reserva rendem por juros compostos (sem cotação de mercado). Usa o
+            // mesmo cálculo da Carteira e do Meu Patrimônio para o "hoje" refletir o
+            // rendimento — senão mostrava só o custo aplicado e o ganho zerava.
+            saldo = valorAtualRendaFixa(ticker, ativo.categoria);
         } else {
             const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
             saldo = ativo.qtdTotal * precoAtual;
@@ -240,6 +255,21 @@ function atualizarKPIsResumo(carteiraConsolidada) {
     atualizarChipDividendosPeriodo();
 }
 
+// Timestamp da operação para a série de evolução. Prioriza data_op, mas cai
+// para a data de cadastro (cadastradoEm) ou o id numérico (Date.now() de
+// criação) quando não há data_op — caso típico de Renda Fixa/Reserva lançadas
+// como "já guardado", que antes ficavam de fora e deixavam o gráfico vazio.
+// Espelha a regra de valorAtualRendaFixa para que o gráfico inclua os mesmos
+// aportes que compõem o saldo dos KPIs.
+function tsOperacaoEvolucao(op) {
+    if(!op) return null;
+    if(op.data_op) { const t = new Date(op.data_op).getTime(); if(isFinite(t)) return t; }
+    if(op.cadastradoEm) { const t = new Date(op.cadastradoEm).getTime(); if(isFinite(t)) return t; }
+    if(typeof op.id === 'number' && op.id > 1e12) return op.id;
+    if(typeof op.id === 'string' && /^\d{13,}$/.test(op.id)) return Number(op.id);
+    return null;
+}
+
 // Acumula posição (qtd) por ticker até o final de cada mês
 function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
     // Decide se uma operação entra no filtro escolhido
@@ -256,11 +286,11 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
         const sub = op.subcategoria || subcategoriaInferidaDoTicker(op.ticker) || (ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null);
         return sub === filtroTipo;
     }
-    const opsFiltradas = historicoCompras.filter(op => op.data_op && opEntraNoFiltro(op));
+    const opsFiltradas = historicoCompras.filter(op => tsOperacaoEvolucao(op) != null && opEntraNoFiltro(op));
     if(opsFiltradas.length === 0) return { meses: [], investido: [], mercado: [], dividendos: [] };
 
     // Determina mês inicial e final
-    const tsPrimeira = Math.min(...opsFiltradas.map(op => new Date(op.data_op).getTime()));
+    const tsPrimeira = Math.min(...opsFiltradas.map(op => tsOperacaoEvolucao(op)));
     const dPrimeira = new Date(tsPrimeira);
     let mesIni = new Date(dPrimeira.getFullYear(), dPrimeira.getMonth(), 1);
     const hoje = new Date();
@@ -280,17 +310,23 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
     }
 
     const investido = []; const mercado = []; const dividendos = [];
+    const agoraTs = Date.now();
     meses.forEach(m => {
         const fimMes = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59).getTime();
-        // Posição cumulativa por ticker até o fim do mês
+        // Nunca projeta além de "agora": no mês corrente o patrimônio é o de hoje
+        // (assim a última barra bate com o KPI "Investimentos hoje").
+        const refMs = Math.min(fimMes, agoraTs);
+        // Posição cumulativa por ticker até refMs (guarda a categoria p/ valorar
+        // cada classe pela sua própria regra: RV→cotação, RF/Reserva→juros, Prev→saldo)
         const posicao = {}; let invest = 0;
         opsFiltradas.forEach(op => {
-            const tsOp = new Date(op.data_op).getTime();
-            if(tsOp > fimMes) return;
+            const tsOp = tsOperacaoEvolucao(op);
+            if(tsOp == null || tsOp > refMs) return;
             const tipo = op.tipo || 'compra';
             const preco = op.preco_op || op.preco_pago || 0;
-            if(!posicao[op.ticker]) posicao[op.ticker] = { qtd: 0, custo: 0, pm: 0 };
+            if(!posicao[op.ticker]) posicao[op.ticker] = { qtd: 0, custo: 0, pm: 0, categoria: op.categoria || null };
             const p = posicao[op.ticker];
+            if(op.categoria && !p.categoria) p.categoria = op.categoria;
             if(tipo === 'compra') {
                 p.qtd += op.quantidade;
                 p.custo += op.quantidade * preco;
@@ -302,14 +338,18 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
                 p.custo -= op.quantidade * p.pm;
             }
         });
-        // Valor de mercado — usa preço atual (limitação: sem histórico de preços)
+        // Valor de mercado consolidado de TODAS as classes. RF/Reserva e
+        // Previdência rendem por juros compostos (mesma função dos KPIs e do Meu
+        // Patrimônio); RV usa a cotação atual (limitação: sem histórico de preços).
         let valorMercado = 0;
         Object.entries(posicao).forEach(([ticker, p]) => {
             if(p.qtd <= 0) return;
-            const opTicker = opsFiltradas.find(o => o.ticker === ticker);
-            const cat = opTicker?.categoria;
+            const cat = p.categoria;
             if(cat === 'previdencia') {
-                valorMercado += calcularSaldoPrevidencia(ticker, fimMes);
+                valorMercado += (typeof calcularSaldoPrevidencia === 'function')
+                    ? calcularSaldoPrevidencia(ticker, refMs) : p.qtd * p.pm;
+            } else if((cat === 'renda_fixa' || cat === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+                valorMercado += valorAtualRendaFixa(ticker, cat, refMs);
             } else {
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
                 const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
@@ -902,14 +942,23 @@ function atualizarCarteiraAtivos() {
     const ativos = [];
     for (let ticker in carteiraConsolidada) {
         let ativo = carteiraConsolidada[ticker]; if (ativo.qtdTotal <= 0) continue;
-        totalAtivosValidos++;
         let precoMedio = ativo.precoMedio; let ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker); let precoAtual = ativoMercado ? ativoMercado.preco_atual : precoMedio; let nomeAtivo = ativoMercado ? ativoMercado.nome : "Ativo Personalizado";
-        const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
         let saldoAtualAtivo = ativo.qtdTotal * precoAtual;
         if(ativo.categoria === 'previdencia') {
             saldoAtualAtivo = calcularSaldoPrevidencia(ticker);
             precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
+        } else if((ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+            // Sem cotação de mercado: valoriza por juros compostos a partir da
+            // rentabilidade contratada (110% CDI, IPCA+6%...). Mesmo cálculo do
+            // Meu Patrimônio, para os dois números coincidirem.
+            saldoAtualAtivo = valorAtualRendaFixa(ticker, ativo.categoria);
+            precoAtual = ativo.qtdTotal > 0 ? saldoAtualAtivo / ativo.qtdTotal : precoMedio;
         }
+        // Posição sem cotação totalmente resgatada (valor ~0) some da carteira.
+        const semCotacao = ativo.categoria === 'renda_fixa' || ativo.categoria === 'reserva_emergencia' || ativo.categoria === 'previdencia';
+        if (semCotacao && saldoAtualAtivo < 0.01) continue;
+        totalAtivosValidos++;
+        const option = document.createElement('option'); option.value = ticker; option.text = `${nomeAtivo} - Saldo: ${formatarQtd(ativo.qtdTotal)} un.`; datalistCarteira.appendChild(option);
         let lucroR$ = saldoAtualAtivo - ativo.valorTotalInvestido; let lucroPerc = ativo.valorTotalInvestido > 0 ? (lucroR$ / ativo.valorTotalInvestido) * 100 : 0;
         totalGeralInvestido += ativo.valorTotalInvestido; saldoGeralAtual += saldoAtualAtivo;
         const categoriaEfetiva = inferirCategoria(ticker, ativo, ativoMercado);
@@ -1012,6 +1061,7 @@ function atualizarCarteiraAtivos() {
                     <div class="rich-expand-stat"><div class="re-label">Resultado</div><div class="re-value" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)} (${sinalLucro}${lucroPerc.toFixed(2)}%)</div></div>
                 </div>
                 <div class="rich-expand-actions">
+                    <button class="btn-secundario" style="font-size:11px;padding:5px 12px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="event.stopPropagation();iniciarResgate('${ticker}');"><i class="ph ph-hand-coins"></i> ${semQtdAtivo ? 'Resgatar' : 'Vender'}</button>
                     <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();"><i class="ph ph-list-bullets"></i> Operações</button>
                     <button class="btn-secundario" style="font-size:11px;padding:5px 12px;" onclick="event.stopPropagation();mudarSubAbaPatrimonio('dividendos');filtrarDividendosPorAtivo('${ticker}');"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>
@@ -1026,6 +1076,8 @@ function atualizarCarteiraAtivos() {
 
     if(richContainer) richContainer.innerHTML = richHTML || '';
     atualizarMiniStats('carteira');
+    // Aviso de RF/Reserva sem rentabilidade (que não estão rendendo).
+    if (typeof renderAvisoRentabilidadeRF === 'function') renderAvisoRentabilidadeRF();
 
     if(totalAtivosValidos === 0) {
         msgVazia.style.display = "block";
