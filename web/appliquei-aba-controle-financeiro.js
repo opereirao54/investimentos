@@ -739,7 +739,12 @@ function executarInsercao() {
   // do bolso no ato. Nasce `pago: true` para debitar o caixa do Meu Patrimônio
   // na hora — sem precisar clicar "pagar" depois. Despesa fixa e cartão são
   // compromissos a vencer, então seguem `pago: false` (entram em "a pagar").
-  const pagoInicial = categoria === 'despesa_variavel' && !ehFixo;
+  // EXCEÇÃO: se o usuário informou um vencimento FUTURO (ex.: "camisa do
+  // congresso até dia 15"), a despesa variável é um compromisso PROGRAMADO —
+  // nasce pendente (pago:false) e só entra no caixa quando for de fato paga.
+  const pagoBase = categoria === 'despesa_variavel' && !ehFixo;
+  const _hoje = new Date();
+  const hojeStrIns = `${_hoje.getFullYear()}-${String(_hoje.getMonth() + 1).padStart(2, '0')}-${String(_hoje.getDate()).padStart(2, '0')}`;
 
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
     mesesGerar = parcelas;
@@ -779,6 +784,9 @@ function executarInsercao() {
       }
     }
 
+    // Vencimento futuro → compromisso programado (pendente); senão, paga à vista.
+    const pagoLanc = pagoBase && !(dataVencFinal && dataVencFinal > hojeStrIns);
+
     transacoes.push({
       id: Date.now().toString() + i,
       groupId: groupId,
@@ -795,7 +803,7 @@ function executarInsercao() {
       ano: a,
       data: new Date().toISOString(),
       dataVencimento: dataVencFinal,
-      pago: pagoInicial,
+      pago: pagoLanc,
     });
   }
 
@@ -1261,6 +1269,45 @@ function confirmarPagamento(id) {
   if (typeof renderizarSonhos === 'function') renderizarSonhos();
 }
 
+// Pode reverter ("desfazer") o pagamento? Só lançamentos cujo pagamento apenas
+// alterna o flag `pago` — despesa fixa/variável e cartão. Sonho e compromisso
+// (previdência/reserva) geram aportes/posições vinculadas ao pagar; revertê-los
+// aqui deixaria registros órfãos, então são tratados nas suas próprias abas.
+function controlePodeReverterPagamento(t) {
+  if (!t || !t.pago) return false;
+  if (t.sonhoId || t.compromissoId) return false;
+  return (
+    t.categoria === 'despesa_fixa' ||
+    t.categoria === 'despesa_variavel' ||
+    t.categoria === 'cartao_credito'
+  );
+}
+
+// Desfaz um pagamento marcado por engano: volta o lançamento para "a pagar"
+// (pago:false), removendo-o do caixa do Meu Patrimônio. Reversível pelo botão
+// de pagar normal.
+function reverterPagamento(id) {
+  const t = transacoes.find((x) => x.id === id);
+  if (!t || !t.pago) return;
+  if (!controlePodeReverterPagamento(t)) {
+    return mostrarToast(
+      'Este pagamento gerou um aporte vinculado — reverta pela aba correspondente.',
+      'erro'
+    );
+  }
+  t.pago = false;
+  try {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+      AppliqueiCloudSync.forceFlush();
+    }
+  } catch (e) {
+    console.error('[reverterPagamento] localStorage', e);
+  }
+  mostrarToast('Pagamento desfeito — voltou para "a pagar".', 'sucesso');
+  atualizarTelaControle();
+}
+
 // Liga um pagamento de compromisso mensal a um aporte registrado no sonho
 function registrarAportePorPagamentoSonho(tx) {
   const s = sonhos.find((x) => x.id === tx.sonhoId);
@@ -1596,6 +1643,7 @@ function atualizarTelaControle() {
                     <span class="valor">${formatarMoeda(t.valor)}</span>
                     <div style="margin-top: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;" id="acao-pagar-list-${t.id}">
                         ${!t.pago && t.categoria !== 'receita' ? `<button onclick="prepararPagamento('${t.id}', 'list')" style="background:none; border:none; cursor:pointer; color:var(--cor-primaria); font-size:16px;" title="Registrar Pagamento"><i class="ph-bold ph-check-circle"></i></button>` : ''}
+                        ${controlePodeReverterPagamento(t) ? `<button onclick="reverterPagamento('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-texto-mutado); font-size:15px;" title="Desfazer pagamento (voltar para a pagar)"><i class="ph ph-arrow-counter-clockwise"></i></button>` : ''}
                         <button onclick="prepararEdicao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-info); font-size:15px;" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button onclick="deletarTransacao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-erro); font-size:15px;" title="Excluir"><i class="ph ph-trash"></i></button>
                     </div>

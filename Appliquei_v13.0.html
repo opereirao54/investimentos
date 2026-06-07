@@ -4167,7 +4167,15 @@
         }
         .mp-filtro-cat:focus { outline:none !important; }
 
-        .mp-lista-inst { display:flex; flex-direction:column; gap:10px; max-height:520px; overflow-y:auto; padding:2px; }
+        /* Sem max-height/scroll aninhado: a lista cresce e quem rola é a própria
+           página. Scroll aninhado dentro de um card travava o toque no mobile e
+           dava a impressão de que "a barra de rolagem não funciona". */
+        .mp-lista-inst { display:flex; flex-direction:column; gap:10px; padding:2px; }
+        /* Extratos longos ganham rolagem própria só em telas grandes; no mobile
+           fluem na página (rolagem única e confiável). */
+        @media (min-width: 861px) {
+            .mp-inst-extrato { max-height: 460px; overflow-y: auto; }
+        }
         /* Card de instituição — visual premium: superfície branca, sombra suave,
            realce no hover e barra de acento à esquerda. */
         .mp-inst-item {
@@ -7389,7 +7397,7 @@
     <script src="/web/appliquei-contas.js?v=contas-fase1"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
-    <script src="/web/appliquei-aba1-charts.js?v=onda3b"></script>
+    <script src="/web/appliquei-aba1-charts.js?v=onda5-evolucao"></script>
     <script src="/web/appliquei-renda-fixa.js?v=onda3b"></script>
     <script src="/web/appliquei-previdencia.js?v=onda3b"></script>
     <!-- Features extraídas — carregadas DEPOIS de app.js porque usam
@@ -7399,11 +7407,11 @@
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=fase5-emoji"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=onda5-controle"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
-    <script src="/web/appliquei-patrimonio.js?v=fase4c"></script>
+    <script src="/web/appliquei-patrimonio.js?v=onda5-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>

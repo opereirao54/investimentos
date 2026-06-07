@@ -766,7 +766,7 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
       return `<div class="mp-extrato-vazio"><i class="ph ph-funnel"></i> Sem lançamentos de ${rotulo} aqui.</div>`;
     }
     const total = filtradas.reduce((a, m) => a + Math.abs(m.valor), 0);
-    const MAXF = 60;
+    const MAXF = 200;
     const linhasF = filtradas.slice().reverse();
     let htmlF = linhasF
       .slice(0, MAXF)
@@ -793,7 +793,7 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
   if (!movs.length) {
     return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
   }
-  const MAX = 60;
+  const MAX = 200;
   const linhas = movs.slice().reverse(); // mais recente primeiro
   const visiveis = linhas.slice(0, MAX);
   let html = visiveis
