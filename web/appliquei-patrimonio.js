@@ -819,16 +819,17 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
     return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
   }
 
-  // "Observação": tudo o que foi QUITADO por esta conta, separado por tipo
-  // (Fixo / Variável / Cartão / Outros). Soma as saídas pagas do extrato.
-  const quit = { fixo: 0, variavel: 0, cartao: 0, outros: 0 };
+  // "Observação": o que foi QUITADO (GASTO) por esta conta, separado por tipo
+  // (Fixo / Variável / Cartão). Só despesas de consumo entram — transferências
+  // entre contas próprias e aportes de investimento NÃO são gasto quitado
+  // (apenas movem/aplicam dinheiro), então ficam fora deste resumo.
+  const quit = { fixo: 0, variavel: 0, cartao: 0 };
   movs.forEach((m) => {
-    if (m.abertura || m.valor >= 0) return; // só saídas (quitações)
+    if (m.abertura || m.valor >= 0) return; // só saídas
     const v = -m.valor;
     if (m.categoria === 'cartao_credito') quit.cartao += v;
     else if (m.categoria === 'despesa_variavel') quit.variavel += v;
     else if (m.categoria === 'despesa_fixa') quit.fixo += v;
-    else quit.outros += v;
   });
   const chip = (cls, label, val) =>
     val > 0.005
@@ -838,9 +839,8 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
     chip('fixo', 'Fixo', quit.fixo),
     chip('variavel', 'Variável', quit.variavel),
     chip('cartao', 'Cartão', quit.cartao),
-    chip('outros', 'Outros', quit.outros),
   ].join('');
-  const totalQuit = quit.fixo + quit.variavel + quit.cartao + quit.outros;
+  const totalQuit = quit.fixo + quit.variavel + quit.cartao;
   const resumoHtml = chips
     ? `<div class="mp-extrato-resumo"><span class="mp-extrato-resumo-tit"><i class="ph ph-list-checks"></i> Quitado por esta conta · <strong>${mpFmtBRL(totalQuit)}</strong></span><div class="mp-extrato-resumo-chips">${chips}</div></div>`
     : '';
