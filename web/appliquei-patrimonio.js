@@ -738,6 +738,27 @@ function mpExtratoInstituicao(key, refMs) {
   return movs;
 }
 
+// Rótulo/cor do TIPO de uma movimentação do extrato (cartão, variável, fixo,
+// receita, aporte...). Alimenta o badge de cada linha e o resumo "quitado".
+function mpTipoMovInfo(categoria, abertura) {
+  if (abertura) return null;
+  const mapa = {
+    cartao_credito: { label: 'Cartão', cls: 'cartao' },
+    despesa_variavel: { label: 'Variável', cls: 'variavel' },
+    despesa_fixa: { label: 'Fixo', cls: 'fixo' },
+    receita: { label: 'Receita', cls: 'receita' },
+    dividendo: { label: 'Dividendo', cls: 'receita' },
+    resgate_investimento: { label: 'Resgate', cls: 'receita' },
+    transferencia_entrada: { label: 'Transferência', cls: 'transf' },
+    transferencia_saida: { label: 'Transferência', cls: 'transf' },
+    investimento_fixo: { label: 'Aporte', cls: 'aporte' },
+    investimento_variavel: { label: 'Aporte', cls: 'aporte' },
+    previdencia: { label: 'Previdência', cls: 'aporte' },
+    sonho: { label: 'Sonho', cls: 'aporte' },
+  };
+  return mapa[categoria] || null;
+}
+
 // HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
 // `filtroCategoria` (slug de categoriaDespesa) restringe o extrato a uma única
 // categoria de gasto: nesse modo o saldo corrente não faz sentido (é uma visão
@@ -754,6 +775,13 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
       d.getFullYear()
     );
   };
+  // Badge do tipo (Cartão/Variável/Fixo/Receita/Aporte...) ao lado da data.
+  const badge = (m) => {
+    const ti = mpTipoMovInfo(m.categoria, m.abertura);
+    return ti ? ` <span class="mp-mov-tipo ${ti.cls}">${ti.label}</span>` : '';
+  };
+  const linhaInfo = (m) =>
+    `<div class="mp-extrato-info"><span class="mp-extrato-desc">${m.desc}</span><span class="mp-extrato-meta"><span class="mp-extrato-data">${fmtData(m.ts)}</span>${badge(m)}</span></div>`;
 
   // --- Modo filtrado por categoria de despesa ---
   if (filtroCategoria) {
@@ -772,10 +800,7 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
       .slice(0, MAXF)
       .map(
         (m) => `<div class="mp-extrato-linha">
-                <div class="mp-extrato-info">
-                    <span class="mp-extrato-desc">${m.desc}</span>
-                    <span class="mp-extrato-data">${fmtData(m.ts)}</span>
-                </div>
+                ${linhaInfo(m)}
                 <div class="mp-extrato-vals">
                     <span class="mp-extrato-valor ${m.valor >= 0 ? 'pos' : 'neg'}">${m.valor >= 0 ? '+ ' : '− '}${mpFmtBRL(Math.abs(m.valor))}</span>
                 </div>
@@ -793,6 +818,33 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
   if (!movs.length) {
     return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
   }
+
+  // "Observação": tudo o que foi QUITADO por esta conta, separado por tipo
+  // (Fixo / Variável / Cartão / Outros). Soma as saídas pagas do extrato.
+  const quit = { fixo: 0, variavel: 0, cartao: 0, outros: 0 };
+  movs.forEach((m) => {
+    if (m.abertura || m.valor >= 0) return; // só saídas (quitações)
+    const v = -m.valor;
+    if (m.categoria === 'cartao_credito') quit.cartao += v;
+    else if (m.categoria === 'despesa_variavel') quit.variavel += v;
+    else if (m.categoria === 'despesa_fixa') quit.fixo += v;
+    else quit.outros += v;
+  });
+  const chip = (cls, label, val) =>
+    val > 0.005
+      ? `<span class="mp-quit-chip ${cls}">${label} <strong>${mpFmtBRL(val)}</strong></span>`
+      : '';
+  const chips = [
+    chip('fixo', 'Fixo', quit.fixo),
+    chip('variavel', 'Variável', quit.variavel),
+    chip('cartao', 'Cartão', quit.cartao),
+    chip('outros', 'Outros', quit.outros),
+  ].join('');
+  const totalQuit = quit.fixo + quit.variavel + quit.cartao + quit.outros;
+  const resumoHtml = chips
+    ? `<div class="mp-extrato-resumo"><span class="mp-extrato-resumo-tit"><i class="ph ph-list-checks"></i> Quitado por esta conta · <strong>${mpFmtBRL(totalQuit)}</strong></span><div class="mp-extrato-resumo-chips">${chips}</div></div>`
+    : '';
+
   const MAX = 200;
   const linhas = movs.slice().reverse(); // mais recente primeiro
   const visiveis = linhas.slice(0, MAX);
@@ -802,10 +854,7 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
       const cls = m.abertura ? 'neu' : pos ? 'pos' : 'neg';
       const sinal = m.abertura ? '' : pos ? '+ ' : '− ';
       return `<div class="mp-extrato-linha">
-                <div class="mp-extrato-info">
-                    <span class="mp-extrato-desc">${m.desc}</span>
-                    <span class="mp-extrato-data">${fmtData(m.ts)}</span>
-                </div>
+                ${linhaInfo(m)}
                 <div class="mp-extrato-vals">
                     <span class="mp-extrato-valor ${cls}">${sinal}${mpFmtBRL(Math.abs(m.valor))}</span>
                     <span class="mp-extrato-saldo">saldo ${mpFmtBRL(m.saldoApos)}</span>
@@ -816,7 +865,7 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
   if (linhas.length > MAX) {
     html += `<div class="mp-extrato-vazio">+ ${linhas.length - MAX} movimentações anteriores</div>`;
   }
-  return html;
+  return resumoHtml + html;
 }
 
 // Recolhe/expande o extrato de uma instituição. Usa o índice renderizado para

@@ -4254,6 +4254,36 @@
             font-size:12px; font-weight:700; color: var(--cor-txt-primaria);
         }
         .mp-extrato-subtotal strong { font-family:'DM Mono', monospace; color: var(--cor-txt-primaria); }
+        /* Badge de tipo por linha do extrato (cartão/variável/fixo/...) */
+        .mp-extrato-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+        .mp-mov-tipo {
+            font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.3px;
+            padding:1px 6px; border-radius:5px; border:1px solid transparent; line-height:1.6; white-space:nowrap;
+        }
+        .mp-mov-tipo.cartao   { background: var(--cor-bg-amber);    color: var(--cor-txt-amber);    border-color: var(--cor-borda-amber); }
+        .mp-mov-tipo.variavel { background: var(--cor-bg-erro);     color: var(--cor-txt-erro);     border-color: var(--cor-borda-erro); }
+        .mp-mov-tipo.fixo     { background: var(--cor-bg-info);     color: var(--cor-txt-info);     border-color: var(--cor-borda-info); }
+        .mp-mov-tipo.receita  { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .mp-mov-tipo.transf   { background: var(--cor-superficie);  color: var(--cor-texto-secundario); border-color: var(--cor-borda); }
+        .mp-mov-tipo.aporte   { background: rgba(124,58,237,0.10);  color: var(--cor-patrimonio);   border-color: rgba(124,58,237,0.22); }
+        /* "Observação": resumo do que foi quitado por tipo, no topo do extrato */
+        .mp-extrato-resumo {
+            margin-bottom:8px; padding:9px 11px; border-radius:9px;
+            background: var(--cor-superficie); border:1px solid var(--cor-borda);
+        }
+        .mp-extrato-resumo-tit { font-size:10.5px; font-weight:700; color: var(--cor-texto-secundario); display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+        .mp-extrato-resumo-tit i { font-size:13px; color: var(--cor-primaria); }
+        .mp-extrato-resumo-tit strong { font-family:'DM Mono', monospace; color: var(--cor-texto-principal); }
+        .mp-extrato-resumo-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
+        .mp-quit-chip {
+            font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px;
+            border:1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-secundario);
+        }
+        .mp-quit-chip strong { font-family:'DM Mono', monospace; font-weight:700; margin-left:2px; }
+        .mp-quit-chip.fixo strong     { color: var(--cor-info); }
+        .mp-quit-chip.variavel strong { color: var(--cor-erro); }
+        .mp-quit-chip.cartao strong   { color: var(--cor-cartao); }
+        .mp-quit-chip.outros strong   { color: var(--cor-texto-principal); }
 
         .mp-donut-card { margin-bottom:20px; }
         .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
@@ -4300,6 +4330,8 @@
         body.valores-ocultos #meu_patrimonio .mp-extrato-valor,
         body.valores-ocultos #meu_patrimonio .mp-extrato-saldo,
         body.valores-ocultos #meu_patrimonio .mp-extrato-subtotal strong,
+        body.valores-ocultos #meu_patrimonio .mp-quit-chip strong,
+        body.valores-ocultos #meu_patrimonio .mp-extrato-resumo-tit strong,
         body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
 
@@ -7411,7 +7443,7 @@
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
-    <script src="/web/appliquei-patrimonio.js?v=onda5-patrimonio"></script>
+    <script src="/web/appliquei-patrimonio.js?v=onda6-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>
 </body>
