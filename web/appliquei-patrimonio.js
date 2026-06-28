@@ -1,16 +1,23 @@
 /**
- * Appliquei — Meu Patrimônio (visão consolidada).
+ * Appliquei — Meu Patrimônio (a FOTO do patrimônio).
  *
  * Extraído de web/appliquei-app.js (Onda 3). Classic script, carregado
  * DEPOIS de app.js. Consome transacoes, cartoes, historicoCompras (state
- * global em app.js).
+ * global em app.js) e o cadastro de Contas (appliquei-contas.js).
+ *
+ * Objetivo desta tela: uma FOTO de tudo o que a pessoa tem AGORA — saldo em
+ * caixa + investido, consolidado e quebrado por instituição (banco/corretora),
+ * como um extrato unificado de todos os bancos. Não há despesas nem navegação
+ * por mês aqui (isso vive na aba Controle): a cada pagamento/aporte/resgate o
+ * caixa da instituição certa é debitado/creditado e a foto se atualiza sozinha.
  */
 
 // ============================================================
-// === MEU PATRIMÔNIO — visão consolidada                    ===
+// === MEU PATRIMÔNIO — a foto do patrimônio                 ===
 // ============================================================
-// Estado e cache do módulo. O filtro de mês espelha o da aba Controle (4.9):
-// mês/ano específico com navegação prev/próximo, em vez de períodos rolantes.
+// Estado e cache do módulo. `mes`/`ano` NÃO são mais navegáveis na UI (a foto é
+// sempre "agora"); ficam no estado só como referência para o delta "vs mês
+// passado" do saldo e para as funções de janela reaproveitadas pelos testes.
 var mpEstado = {
   mes: new Date().getMonth(),
   ano: new Date().getFullYear(),
@@ -19,7 +26,9 @@ var mpEstado = {
   ultimaCotacao: null,
   donutChart: null,
   categoriaDestaque: null,
-  instituicaoFiltro: null,
+  // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
+  // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
+  extratoAberto: {},
 };
 
 // Tabela regressiva IR para Renda Fixa/Tesouro
@@ -153,25 +162,14 @@ function mpValorAtualAtivo(ticker, c) {
     }
     return c.valorTotalInvestido;
   }
-  // Renda Fixa / Reserva: aplica taxaMensal sobre cada aporte até hoje.
-  // Reaproveita a lógica do componente Previdência (juros compostos por aporte).
+  // Renda Fixa / Reserva: valoriza por juros compostos a partir do TEXTO de
+  // rentabilidade ("110% CDI", "IPCA+6%"...) indexado ao BCB. A regra (somar todos
+  // os aportes/resgates, capitalizar cada um por sua taxa mensal desde a data;
+  // aportes sem data ou futuros entram pelo principal) vive em valorAtualRendaFixa,
+  // compartilhada com a aba "Meus investimentos" para os dois números coincidirem.
   if (c.categoria === 'renda_fixa' || c.categoria === 'reserva_emergencia') {
-    const aportes = (typeof historicoCompras !== 'undefined' ? historicoCompras : []).filter(
-      (op) => op.ticker === ticker && op.categoria === c.categoria && op.data_op
-    );
-    let saldo = 0;
-    const agora = Date.now();
-    aportes.forEach((op) => {
-      const dataAporte = new Date(op.data_op).getTime();
-      if (dataAporte > agora) return;
-      const taxa = op.taxaMensal != null ? op.taxaMensal : 0;
-      const meses = Math.max(0, (agora - dataAporte) / (30.4375 * 86400000));
-      const valor = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      const fator = taxa > 0 ? Math.pow(1 + taxa, meses) : 1;
-      if ((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
-      else saldo += valor * fator;
-    });
-    return Math.max(0, saldo);
+    if (typeof valorAtualRendaFixa === 'function') return valorAtualRendaFixa(ticker, c.categoria);
+    return c.valorTotalInvestido;
   }
   return c.valorTotalInvestido;
 }
@@ -218,6 +216,7 @@ function mpAplicarIR(c, valorAtual, valorInvestido) {
 function mpEhEntradaCaixa(categoria) {
   return (
     categoria === 'receita' ||
+    categoria === 'dividendo' ||
     categoria === 'resgate_investimento' ||
     categoria === 'transferencia_entrada'
   );
@@ -253,6 +252,14 @@ function mpTimestampTransacao(t) {
 // para sempre e nunca aparecia no Patrimônio.
 function mpTransacaoComputaCaixa(t, refMs) {
   if (mpTimestampTransacao(t) > refMs) return false;
+  // Fase 3B: aporte cujo débito de caixa já é representado por uma perna de
+  // transferência (transferencia_saida com contaId) NÃO conta aqui — senão
+  // haveria duplo-débito. O `investimento_*` permanece só para a carteira/DRE.
+  if (
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    t.temLegCaixa
+  )
+    return false;
   if (mpEhEntradaCaixa(t.categoria)) return true;
   return !!t.pago;
 }
@@ -270,18 +277,55 @@ function mpNormalizarInstituicao(nome) {
   return { key, label: orig };
 }
 
-// Soma saldo total: entradas - despesas - aportes (todas as transações pagas).
-// Inclui aportes de investimento pois eles abatem o caixa; resgates/vendas
-// devolvem dinheiro ao caixa (renda variável passa a refletir aqui).
+// Saldo de abertura de uma conta entra no caixa se a data de referência já
+// passou (ou se não há data — assume que sempre valeu). Fase 2.
+function mpSaldoInicialConta(c, refMs) {
+  const sIni = Number(c && c.saldoInicial) || 0;
+  if (!sIni) return 0;
+  if (c && c.dataSaldoInicial) {
+    const tsIni = appliqueiParseData(c.dataSaldoInicial).getTime();
+    if (isFinite(tsIni) && tsIni > refMs) return 0;
+  }
+  return sIni;
+}
+
+// Chave/label de agrupamento por instituição. Prioriza a CONTA resolvida
+// (key = conta.id); cai para o nome em texto (key 'nome:<norm>'); e, quando não
+// há instituição alguma, cai em 'a-reconciliar' (os antigos vazamentos "Sem
+// banco", agora explícitos). Fase 2.
+function mpChaveInstTransacao(t) {
+  const conta = typeof resolverContaDeTransacao === 'function' ? resolverContaDeTransacao(t) : null;
+  if (conta) return { key: conta.id, label: conta.nome };
+  const norm = mpNormalizarInstituicao(t && t.banco);
+  if (norm.key) return { key: 'nome:' + norm.key, label: norm.label };
+  return { key: 'a-reconciliar', label: 'A reconciliar' };
+}
+function mpChaveInstOperacao(c) {
+  const conta = typeof resolverContaDeOperacao === 'function' ? resolverContaDeOperacao(c) : null;
+  if (conta) return { key: conta.id, label: conta.nome };
+  const norm = mpNormalizarInstituicao(c && c.corretora);
+  if (norm.key) return { key: 'nome:' + norm.key, label: norm.label };
+  return { key: 'a-reconciliar', label: 'A reconciliar' };
+}
+
+// Soma saldo total: saldos de abertura + entradas - despesas - aportes (todas as
+// transações pagas). Inclui aportes de investimento pois eles abatem o caixa;
+// resgates/vendas devolvem dinheiro ao caixa (renda variável reflete aqui).
 function mpCalcularSaldoTotal(refMs) {
-  if (typeof transacoes === 'undefined') return 0;
   let saldo = 0;
-  transacoes.forEach((t) => {
-    if (!mpTransacaoComputaCaixa(t, refMs)) return;
-    const valor = Number(t.valor) || 0;
-    if (mpEhEntradaCaixa(t.categoria)) saldo += valor;
-    else saldo -= valor;
-  });
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      saldo += mpSaldoInicialConta(c, refMs);
+    });
+  }
+  if (typeof transacoes !== 'undefined') {
+    transacoes.forEach((t) => {
+      if (!mpTransacaoComputaCaixa(t, refMs)) return;
+      const valor = Number(t.valor) || 0;
+      if (mpEhEntradaCaixa(t.categoria)) saldo += valor;
+      else saldo -= valor;
+    });
+  }
   return saldo;
 }
 
@@ -303,17 +347,29 @@ function mpCalcularDespesasJanela(iniMs, fimMs) {
 
 function mpCalcularSaldoPorInstituicao(refMs) {
   const mapa = {};
+  const ensure = (key, label) => {
+    if (!mapa[key])
+      mapa[key] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: key };
+    else if (label && mapa[key].label === 'A reconciliar') mapa[key].label = label;
+    return mapa[key];
+  };
+  // Saldos de abertura das contas cadastradas entram no caixa.
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      const sIni = mpSaldoInicialConta(c, refMs);
+      if (sIni) ensure(c.id, c.nome).caixa += sIni;
+    });
+  }
   if (typeof transacoes !== 'undefined') {
     transacoes.forEach((t) => {
       if (!mpTransacaoComputaCaixa(t, refMs)) return;
-      // Salário/receita guardam a instituição em `banco`; agrupa por nome
-      // normalizado para não fragmentar "Itaú"/"itau"/"Itau ".
-      const norm = mpNormalizarInstituicao(t.banco);
-      const chave = norm.key || 'sem-banco';
-      if (!mapa[chave]) mapa[chave] = { caixa: 0, investido: 0, label: norm.label || 'Sem banco' };
+      // Agrupa pela CONTA resolvida (contaId → nome/alias); sem instituição,
+      // cai em "A reconciliar" em vez do antigo bucket silencioso "Sem banco".
+      const ci = mpChaveInstTransacao(t);
+      const b = ensure(ci.key, ci.label);
       const valor = Number(t.valor) || 0;
-      if (mpEhEntradaCaixa(t.categoria)) mapa[chave].caixa += valor;
-      else mapa[chave].caixa -= valor;
+      if (mpEhEntradaCaixa(t.categoria)) b.caixa += valor;
+      else b.caixa -= valor;
     });
   }
   return mapa;
@@ -398,6 +454,12 @@ function mpConsolidar() {
     c.__ticker = ticker;
     const cat = c.categoria || 'renda_variavel';
     const atual = mpValorAtualAtivo(ticker, c);
+    // Posição sem cotação totalmente resgatada (valor ~0) não entra na foto.
+    if (
+      (cat === 'renda_fixa' || cat === 'reserva_emergencia' || cat === 'previdencia') &&
+      atual < 0.01
+    )
+      return;
     const liquido = mpAplicarIR(c, atual, c.valorTotalInvestido);
     if (!acc.porCategoria[cat])
       acc.porCategoria[cat] = { investido: 0, atual: 0, atualLiq: 0, ativos: 0 };
@@ -426,15 +488,20 @@ function mpConsolidar() {
     acc.totalInvestido += c.valorTotalInvestido;
     acc.totalAtual += atual;
     acc.totalAtualLiq += liquido;
-    const inst = mpNormalizarInstituicao(c.corretora);
-    const chaveInst = inst.key || 'sem-corretora';
-    if (!acc.porInstituicao[chaveInst])
-      acc.porInstituicao[chaveInst] = {
+    const ci = mpChaveInstOperacao(c);
+    if (!acc.porInstituicao[ci.key])
+      acc.porInstituicao[ci.key] = {
         caixa: 0,
         investido: 0,
-        label: inst.label || 'Sem corretora',
+        label: ci.label,
+        key: ci.key,
+        classes: {},
       };
-    acc.porInstituicao[chaveInst].investido += atual;
+    acc.porInstituicao[ci.key].investido += atual;
+    // Quebra por classe DENTRO da instituição (catExib = RV já dividida em
+    // Ações/FIIs/…), p/ o detalhe "o que tem em cada banco/corretora".
+    acc.porInstituicao[ci.key].classes[catExib] =
+      (acc.porInstituicao[ci.key].classes[catExib] || 0) + atual;
     acc.porTicker.push({ ticker, c, atual, liquido });
   });
   return acc;
@@ -488,49 +555,53 @@ function mpAlterarModo(m) {
 }
 
 function mpRenderKPIs(consolidado, janela) {
-  // Card "Total Investimento" = soma de TODAS as categorias (RF + RV + prev +
-  // reserva), via fonte única calcularPatrimonioTotal().
+  // A foto = 3 KPIs: Patrimônio total (hero) · Saldo em caixa · Total investido.
+  // "Total Investido" = soma de TODAS as categorias (RF + RV + prev + reserva),
+  // via fonte única calcularPatrimonioTotal(). Sem KPI de despesas: a foto mostra
+  // o que a pessoa TEM, não o que gasta.
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const despesas = mpCalcularDespesasJanela(janela.iniMs, janela.fimMesMs);
+  const patrimonioTotal = saldoTotal + valorInvestido;
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
-  const despesasAnt = mpCalcularDespesasJanela(janela.anteriorIniMs, janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
 
-  document.getElementById('mp-kpi-saldo-valor').textContent = mpFmtBRL(saldoTotal);
-  document.getElementById('mp-kpi-despesas-valor').textContent = mpFmtBRL(despesas);
-  document.getElementById('mp-kpi-investido-valor').textContent = mpFmtBRL(valorInvestido);
+  const setText = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = mpFmtBRL(v);
+  };
+  setText('mp-kpi-patrimonio-valor', patrimonioTotal);
+  setText('mp-kpi-saldo-valor', saldoTotal);
+  setText('mp-kpi-investido-valor', valorInvestido);
+
+  // Sub do Patrimônio total: legenda do que ele soma (caixa + investido). Sem
+  // valores aqui — eles já estão nos dois KPIs ao lado e não devem vazar quando
+  // "ocultar valores" está ligado.
+  const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
+  if (subPatr) {
+    subPatr.className = 'mp-kpi-sub';
+    subPatr.innerHTML =
+      '<i class="ph ph-wallet"></i> saldo em conta + <i class="ph ph-trend-up"></i> investimentos';
+  }
 
   const deltaSaldo =
     saldoAnterior !== 0 ? ((saldoTotal - saldoAnterior) / Math.abs(saldoAnterior)) * 100 : 0;
-  const deltaDesp = despesasAnt !== 0 ? ((despesas - despesasAnt) / despesasAnt) * 100 : 0;
   const rentab =
     investidoAporteTotal > 0
       ? ((valorInvestido - investidoAporteTotal) / investidoAporteTotal) * 100
       : 0;
 
-  const aplicarDelta = (id, valor, invertido) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const cls =
-      valor > 0.05
-        ? invertido
-          ? 'neg'
-          : 'pos'
-        : valor < -0.05
-          ? invertido
-            ? 'pos'
-            : 'neg'
-          : 'neu';
-    const seta = valor > 0.05 ? '↑' : valor < -0.05 ? '↓' : '·';
-    el.className = 'mp-kpi-delta ' + cls;
-    el.innerHTML = `${seta} ${mpFmtPct(valor)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs ${janela.label || 'anterior'}</span>`;
-  };
-  aplicarDelta('mp-kpi-saldo-delta', deltaSaldo, false);
-  aplicarDelta('mp-kpi-despesas-delta', deltaDesp, true);
-  // Investido: mostra rentabilidade acumulada, não delta vs período
+  // Saldo: tendência automática vs o fim do mês passado (não é navegação de data,
+  // é só um termômetro de "como o caixa evoluiu").
+  const elSaldo = document.getElementById('mp-kpi-saldo-delta');
+  if (elSaldo) {
+    const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
+    const seta = deltaSaldo > 0.05 ? '↑' : deltaSaldo < -0.05 ? '↓' : '·';
+    elSaldo.className = 'mp-kpi-delta ' + cls;
+    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs mês passado</span>`;
+  }
+  // Investido: rentabilidade acumulada (valor de mercado vs aportes).
   const elInv = document.getElementById('mp-kpi-investido-delta');
   if (elInv) {
     const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
@@ -550,73 +621,306 @@ function mpDestacar(cat) {
   });
 }
 
+// Tipo (banco/corretora/carteira/outro) de uma instituição, a partir da CHAVE
+// de agrupamento. Só resolve quando a chave é um conta.id cadastrado; para
+// texto livre antigo ou "a-reconciliar" devolve null (sem badge de tipo).
+function mpTipoInstituicao(key) {
+  if (!key || key === 'a-reconciliar') return null;
+  const c = typeof obterConta === 'function' ? obterConta(key) : null;
+  if (!c || !c.tipo) return null;
+  const mapa = {
+    banco: { icon: 'ph-bank', label: 'Banco' },
+    corretora: { icon: 'ph-chart-line-up', label: 'Corretora' },
+    carteira: { icon: 'ph-wallet', label: 'Carteira' },
+    outro: { icon: 'ph-bookmark-simple', label: 'Outro' },
+  };
+  return mapa[c.tipo] || { icon: 'ph-buildings', label: c.tipo };
+}
+
+// Rótulo legível de uma categoria de transação, usado como fallback no extrato
+// quando a transação não tem `descricao`.
+function mpCategoriaLabelMov(cat) {
+  const m = {
+    receita: 'Receita',
+    dividendo: 'Dividendo',
+    resgate_investimento: 'Resgate de investimento',
+    transferencia_entrada: 'Transferência recebida',
+    transferencia_saida: 'Transferência enviada',
+    despesa_fixa: 'Despesa fixa',
+    despesa_variavel: 'Despesa',
+    cartao_credito: 'Cartão de crédito',
+    investimento_fixo: 'Aporte',
+    investimento_variavel: 'Aporte',
+    sonho: 'Sonho',
+    previdencia: 'Previdência',
+  };
+  return m[cat] || 'Movimentação';
+}
+
+// Extrato de CAIXA de uma instituição (mesma chave de agrupamento do "Onde está
+// o dinheiro"): saldo de abertura + cada movimento que compõe o caixa, em ordem
+// cronológica, com o saldo corrente após cada lançamento. É o mesmo universo que
+// mpCalcularSaldoPorInstituicao soma — aqui detalhado linha a linha.
+function mpExtratoInstituicao(key, refMs) {
+  const movs = [];
+  if (typeof contasAtivas === 'function') {
+    contasAtivas().forEach((c) => {
+      if (c.id !== key) return;
+      const sIni = mpSaldoInicialConta(c, refMs);
+      if (sIni) {
+        const ts = c.dataSaldoInicial ? appliqueiParseData(c.dataSaldoInicial).getTime() : 0;
+        movs.push({
+          ts: isFinite(ts) ? ts : 0,
+          desc: 'Saldo inicial',
+          valor: sIni,
+          abertura: true,
+        });
+      }
+    });
+  }
+  if (typeof transacoes !== 'undefined') {
+    transacoes.forEach((t) => {
+      if (!mpTransacaoComputaCaixa(t, refMs)) return;
+      if (mpChaveInstTransacao(t).key !== key) return;
+      const valor = Number(t.valor) || 0;
+      const entrada = mpEhEntradaCaixa(t.categoria);
+      movs.push({
+        ts: mpTimestampTransacao(t),
+        desc: t.descricao || mpCategoriaLabelMov(t.categoria),
+        categoria: t.categoria,
+        valor: entrada ? valor : -valor,
+      });
+    });
+  }
+  movs.sort((a, b) => a.ts - b.ts);
+  let saldo = 0;
+  movs.forEach((m) => {
+    saldo += m.valor;
+    m.saldoApos = saldo;
+  });
+  return movs;
+}
+
+// HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
+function mpRenderExtratoHtml(movs) {
+  if (!movs.length) {
+    return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
+  }
+  const fmtData = (ts) => {
+    if (!ts) return '—';
+    const d = new Date(ts);
+    return (
+      String(d.getDate()).padStart(2, '0') +
+      '/' +
+      String(d.getMonth() + 1).padStart(2, '0') +
+      '/' +
+      d.getFullYear()
+    );
+  };
+  const MAX = 60;
+  const linhas = movs.slice().reverse(); // mais recente primeiro
+  const visiveis = linhas.slice(0, MAX);
+  let html = visiveis
+    .map((m) => {
+      const pos = m.valor >= 0;
+      const cls = m.abertura ? 'neu' : pos ? 'pos' : 'neg';
+      const sinal = m.abertura ? '' : pos ? '+ ' : '− ';
+      return `<div class="mp-extrato-linha">
+                <div class="mp-extrato-info">
+                    <span class="mp-extrato-desc">${m.desc}</span>
+                    <span class="mp-extrato-data">${fmtData(m.ts)}</span>
+                </div>
+                <div class="mp-extrato-vals">
+                    <span class="mp-extrato-valor ${cls}">${sinal}${mpFmtBRL(Math.abs(m.valor))}</span>
+                    <span class="mp-extrato-saldo">saldo ${mpFmtBRL(m.saldoApos)}</span>
+                </div>
+            </div>`;
+    })
+    .join('');
+  if (linhas.length > MAX) {
+    html += `<div class="mp-extrato-vazio">+ ${linhas.length - MAX} movimentações anteriores</div>`;
+  }
+  return html;
+}
+
+// Recolhe/expande o extrato de uma instituição. Usa o índice renderizado para
+// achar a chave (evita escapar nomes com espaço/acento no onclick) e guarda o
+// estado em mpEstado.extratoAberto para sobreviver a re-renders.
+function mpToggleExtrato(i) {
+  const key = (mpEstado._extratoKeys || [])[i];
+  if (key == null) return;
+  if (!mpEstado.extratoAberto) mpEstado.extratoAberto = {};
+  const aberto = !mpEstado.extratoAberto[key];
+  mpEstado.extratoAberto[key] = aberto;
+  const body = document.getElementById('mp-extrato-' + i);
+  const chev = document.getElementById('mp-chev-' + i);
+  if (body) body.style.display = aberto ? 'flex' : 'none';
+  if (chev) chev.classList.toggle('aberto', aberto);
+}
+
+// "Onde está o seu dinheiro" — o resumo consolidado por instituição. É o coração
+// da foto: cada banco/corretora com o que tem de CAIXA livre + INVESTIDO, como
+// um extrato unificado de todos os bancos. A cada pagamento/aporte/resgate o
+// caixa da instituição certa muda, então estes números são sempre o "agora".
 function mpRenderInstituicoes(consolidado) {
   const wrap = document.getElementById('mp-lista-inst');
   if (!wrap) return;
   const saldos = mpCalcularSaldoPorInstituicao(Date.now());
-  // Une corretoras (investido) e bancos (caixa) por NOME NORMALIZADO — assim
-  // "Itaú" da corretora e "itau" do salário caem na mesma linha, e o total
-  // por instituição contempla 100% do patrimônio (caixa + investido).
+  // Une corretoras (investido) e contas (caixa) pela MESMA CHAVE — conta.id
+  // quando resolvida, senão 'nome:<norm>' ou 'a-reconciliar'. Assim "Itaú" da
+  // corretora e o salário na conta Itaú caem na mesma linha, e o total por
+  // instituição contempla 100% do patrimônio (caixa + investido).
   const mapa = {};
-  const merge = (chave, label, campo, valor) => {
-    const k = chave || 'sem-instituicao';
-    if (!mapa[k]) mapa[k] = { caixa: 0, investido: 0, label: label || 'Sem instituição' };
+  const merge = (key, label, campo, valor, classes) => {
+    const k = key || 'a-reconciliar';
+    if (!mapa[k])
+      mapa[k] = { caixa: 0, investido: 0, label: label || 'A reconciliar', key: k, classes: {} };
+    else if (label && mapa[k].label === 'A reconciliar') mapa[k].label = label;
     mapa[k][campo] += valor;
+    if (classes)
+      Object.keys(classes).forEach((cl) => {
+        mapa[k].classes[cl] = (mapa[k].classes[cl] || 0) + classes[cl];
+      });
   };
-  Object.values(consolidado.porInstituicao).forEach((v) => {
-    const n = mpNormalizarInstituicao(v.label);
-    merge(n.key, n.label, 'investido', v.investido);
+  Object.keys(consolidado.porInstituicao).forEach((k) => {
+    const v = consolidado.porInstituicao[k];
+    merge(k, v.label, 'investido', v.investido, v.classes);
   });
-  Object.values(saldos).forEach((v) => {
-    const n = mpNormalizarInstituicao(v.label);
-    merge(n.key, n.label, 'caixa', v.caixa);
+  Object.keys(saldos).forEach((k) => {
+    const v = saldos[k];
+    merge(k, v.label, 'caixa', v.caixa);
   });
   const arr = Object.values(mapa)
     .map((v) => ({
+      key: v.key,
       nome: v.label,
+      reconciliar: v.key === 'a-reconciliar',
       caixa: v.caixa,
       investido: v.investido,
+      classes: v.classes,
       total: v.caixa + v.investido,
     }))
     .filter((x) => Math.abs(x.total) > 0.01)
     .sort((a, b) => b.total - a.total);
   if (!arr.length) {
     wrap.innerHTML =
-      '<div class="mp-empty" style="padding:18px"><i class="ph ph-bank"></i>Sem dados por instituição</div>';
+      '<div class="mp-empty" style="padding:18px"><i class="ph ph-bank"></i>Sem dados por instituição. Cadastre suas contas e registre suas movimentações para ver a foto.</div>';
     return;
   }
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
+  // Mapa índice→chave usado pelo toggle do extrato (evita escapar nomes no onclick).
+  mpEstado._extratoKeys = arr.map((x) => x.key);
   wrap.innerHTML = arr
-    .map((x) => {
+    .map((x, i) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
-      const badge = x.investido > 0 ? '<span class="mp-inst-badge">INV</span>' : '';
+      const tipo = mpTipoInstituicao(x.key);
+      const tipoBadge = tipo
+        ? `<span class="mp-inst-tipo"><i class="ph ${tipo.icon}"></i>${tipo.label}</span>`
+        : '';
+      const recon = x.reconciliar
+        ? ' <span class="mp-inst-badge" style="background:var(--cor-erro);color:#fff;">A RECONCILIAR</span>'
+        : '';
+      const sub = x.reconciliar
+        ? 'Movimentos sem instituição — informe o banco no lançamento'
+        : `Caixa ${mpFmtBRL(x.caixa)} · Investido ${mpFmtBRL(x.investido)}`;
+      // Detalhe: caixa + cada classe de investimento que ESTÁ nesta instituição,
+      // para a pessoa ver exatamente o que tem em cada banco/corretora.
+      const detalhe = [];
+      if (x.caixa > 0.01)
+        detalhe.push({ label: 'Caixa', valor: x.caixa, cor: mpCorCategoria('caixa') });
+      Object.keys(x.classes || {}).forEach((cl) => {
+        if (x.classes[cl] > 0.01)
+          detalhe.push({
+            label: MP_LABELS[cl] || cl,
+            valor: x.classes[cl],
+            cor: mpCorCategoria(cl),
+          });
+      });
+      detalhe.sort((a, b) => b.valor - a.valor);
+      const detalheHtml = detalhe.length
+        ? `<div class="mp-inst-detalhe">${detalhe
+            .map(
+              (d) =>
+                `<span class="mp-inst-chip"><span class="mp-leg-dot" style="background:${d.cor};margin-top:0;width:8px;height:8px;"></span>${d.label} <strong>${mpFmtBRL(d.valor)}</strong></span>`
+            )
+            .join('')}</div>`
+        : '';
+      // Extrato (movimentações de caixa) recolhível por instituição. O estado
+      // de aberto/fechado vive em mpEstado.extratoAberto (sobrevive a re-render).
+      const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
+      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
       return `
-            <div class="mp-inst-item" onclick="mpFiltrarInstituicao('${x.nome.replace(/'/g, "\\'")}')">
-                <div>
-                    <span class="mp-inst-nome">${x.nome} ${badge}</span>
-                    <span class="mp-inst-sub">Caixa ${mpFmtBRL(x.caixa)} · Inv. ${mpFmtBRL(x.investido)}</span>
+            <div class="mp-inst-item mp-inst-collapsible">
+                <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
+                    <div class="mp-inst-head-left">
+                        <i class="ph ph-caret-right mp-inst-chevron${aberto ? ' aberto' : ''}" id="mp-chev-${i}"></i>
+                        <div style="min-width:0;">
+                            <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
+                            <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+                        </div>
+                    </div>
+                    <div style="text-align:right;flex-shrink:0;">
+                        <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
+                        <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
+                    </div>
                 </div>
-                <div style="text-align:right;">
-                    <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
-                    <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
+                ${detalheHtml}
+                <div class="mp-inst-extrato" id="mp-extrato-${i}" style="display:${aberto ? 'flex' : 'none'}">
+                    <div class="mp-extrato-titulo"><i class="ph ph-receipt"></i> Extrato — movimentações de caixa</div>
+                    ${extratoHtml}
                 </div>
             </div>`;
     })
     .join('');
 }
 
-function mpFiltrarInstituicao(nome) {
-  // Stub para drill-down futuro; por ora, apenas toggle visual.
-  mpEstado.instituicaoFiltro = mpEstado.instituicaoFiltro === nome ? null : nome;
-  document.querySelectorAll('#mp-lista-inst .mp-inst-item').forEach((el, i) => {
-    el.classList.toggle(
-      'ativo',
-      el
-        .querySelector('.mp-inst-nome')
-        .textContent.trim()
-        .startsWith(mpEstado.instituicaoFiltro || '__none__')
-    );
-  });
+// "Total investido por classe" — a somatória GLOBAL de cada tipo de investimento
+// (Renda Fixa, Ações, FIIs, BDRs, ETFs, Cripto, Previdência, Reserva). A soma
+// destas linhas é exatamente o KPI "Total investido". Respeita o modo bruto/líquido.
+function mpRenderClasses(consolidado) {
+  const wrap = document.getElementById('mp-classes-lista');
+  if (!wrap) return;
+  const usarLiq = mpEstado.modo === 'liquido';
+  const porCat = consolidado.porCategoriaExibicao || {};
+  const itens = Object.keys(porCat)
+    .map((cat) => ({
+      cat,
+      investido: porCat[cat].investido,
+      atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
+    }))
+    .filter((it) => it.atual > 0.01)
+    .sort((a, b) => b.atual - a.atual);
+  if (!itens.length) {
+    wrap.innerHTML =
+      '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
+    return;
+  }
+  const total = itens.reduce((a, it) => a + it.atual, 0);
+  wrap.innerHTML =
+    itens
+      .map((it) => {
+        const lucro = it.atual - it.investido;
+        const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
+        const cls = pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
+        const share = total > 0 ? (it.atual / total) * 100 : 0;
+        const cor = mpCorCategoria(it.cat);
+        const seta = pct >= 0 ? 'trend-up' : 'trend-down';
+        return `
+            <div class="mp-inst-item">
+                <div style="min-width:0;display:flex;align-items:center;gap:9px;">
+                    <span class="mp-leg-dot" style="background:${cor};margin-top:0;"></span>
+                    <div style="min-width:0;">
+                        <span class="mp-inst-nome">${MP_LABELS[it.cat] || it.cat}</span>
+                        <span class="mp-inst-sub" style="text-align:left;">${share.toFixed(1)}% do investido · <span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${seta}"></i>${mpFmtPct(pct)}</span></span>
+                    </div>
+                </div>
+                <div style="text-align:right;flex-shrink:0;">
+                    <span class="mp-inst-valor">${mpFmtBRL(it.atual)}</span>
+                </div>
+            </div>`;
+      })
+      .join('') +
+    `<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">${mpFmtBRL(total)}</span></div>`;
 }
 
 function mpRenderDonut(consolidado) {
@@ -766,64 +1070,24 @@ function mpRenderDonut(consolidado) {
     .join('');
 }
 
-// Snapshot da fatura de cartão para o MÊS SELECIONADO no filtro do Patrimônio
-// (mpEstado.mes/ano), não o mês real de hoje — assim acompanha a navegação de
-// mês. Mostra fatura total do mês, parcela em aberto/paga e uso do limite.
-// Antes só somava faturas em aberto do mês corrente e escondia o bloco quando
-// não havia cartão cadastrado, mesmo havendo lançamentos de cartão.
-function mpRenderCartaoSnap() {
-  const wrap = document.getElementById('mp-cartao-snap');
-  const info = document.getElementById('mp-cartao-info');
-  if (!wrap || !info) return;
-  const todosCartoes = typeof cartoes !== 'undefined' ? cartoes : [];
-  const ativos = todosCartoes.filter((c) => !c.arquivado);
-  const txs = typeof transacoes !== 'undefined' ? transacoes : [];
-  const m = mpEstado.mes,
-    a = mpEstado.ano;
-  let faturaAberta = 0,
-    faturaPaga = 0,
-    limiteTotal = 0;
-  ativos.forEach((c) => {
-    limiteTotal += Number(c.limite) || 0;
-  });
-  txs.forEach((t) => {
-    if (t.categoria !== 'cartao_credito') return;
-    if (t.mes !== m || t.ano !== a) return;
-    const v = Number(t.valor) || 0;
-    if (t.pago) faturaPaga += v;
-    else faturaAberta += v;
-  });
-  const faturaTotal = faturaAberta + faturaPaga;
-  // Esconde apenas quando não há cartão cadastrado nem lançamento de cartão no mês.
-  if (!ativos.length && faturaTotal === 0) {
-    wrap.style.display = 'none';
-    return;
-  }
-  wrap.style.display = '';
-  const usoPct = limiteTotal > 0 ? (faturaTotal / limiteTotal) * 100 : 0;
-  const partes = [
-    `${ativos.length} cartão(ões)`,
-    `Fatura do mês: <strong>${mpFmtBRL(faturaTotal)}</strong>`,
-  ];
-  if (faturaAberta > 0) partes.push(`Em aberto: <strong>${mpFmtBRL(faturaAberta)}</strong>`);
-  if (faturaPaga > 0) partes.push(`Paga: <strong>${mpFmtBRL(faturaPaga)}</strong>`);
-  if (limiteTotal > 0)
-    partes.push(`Limite: <strong>${mpFmtBRL(limiteTotal)}</strong> (${usoPct.toFixed(0)}% usado)`);
-  info.innerHTML = partes.join(' · ');
-}
-
-// Função pública: orquestra render completo (ou skipFetch quando só muda modo)
+// Função pública: orquestra render completo (ou skipFetch quando só muda modo).
+// A foto monta de cima p/ baixo: KPIs → "Onde está o dinheiro" (por instituição)
+// → divisão por categoria → Minhas Contas. Sem snapshot de fatura nem despesas
+// (isso vive na aba Controle).
 async function renderMeuPatrimonio(skipFetch) {
   // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
-  mpSincronizarInputMes();
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
   mpRenderKPIs(consolidado, janela);
+  // Resumo consolidado por instituição (banco/corretora), com o detalhe das
+  // classes que cada uma guarda — o coração da foto.
+  mpRenderInstituicoes(consolidado);
+  // Somatória de cada tipo de investimento (= KPI Total investido).
+  mpRenderClasses(consolidado);
   // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
   // rentabilidade. O antigo gráfico de barras foi removido.
   mpRenderDonut(consolidado);
-  mpRenderInstituicoes(consolidado);
-  mpRenderCartaoSnap();
+  if (typeof renderMinhasContas === 'function') renderMinhasContas();
 }
