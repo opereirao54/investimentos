@@ -29,6 +29,13 @@ var mpEstado = {
   // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
   // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
   extratoAberto: {},
+  // Filtro dinâmico do extrato por categoria de despesa (cadastrada no Controle
+  // Financeiro). '' = todas. Quando ativo, cada extrato mostra só os lançamentos
+  // daquela categoria, com subtotal por instituição.
+  filtroCategoria: '',
+  // Último consolidado renderizado — permite re-render do "Onde está o dinheiro"
+  // ao trocar o filtro de categoria sem refazer fetch/consolidação.
+  _ultimoConsolidado: null,
 };
 
 // Tabela regressiva IR para Renda Fixa/Tesouro
@@ -241,6 +248,35 @@ function mpTimestampTransacao(t) {
   if (typeof t.mes === 'number' && typeof t.ano === 'number')
     return new Date(t.ano, t.mes, 1).getTime();
   if (t.data) return appliqueiParseData(t.data).getTime();
+  return Date.now();
+}
+
+// Data REAL de exibição de um lançamento no extrato (movimentações de caixa).
+// Diferente de mpTimestampTransacao (que usa o 1º dia da competência para a
+// inclusão/saldo): aqui queremos a data verdadeira do gasto, não "01/MM".
+// Prioridade:
+//   1) dataVencimento — a data informada pelo usuário; é incrementada por
+//      parcela (dVenc.setMonth(+i)), logo é correta para recorrentes/parcelados.
+//   2) data (instante de criação) SE cair no mesmo mês/ano da competência —
+//      cobre o lançamento avulso feito no próprio mês (mostra o dia real).
+//   3) 1º dia da competência (mes/ano) — fallback antigo (recorrentes sem
+//      vencimento, cujo `data` é o instante de criação, igual p/ todas parcelas).
+function mpDataMovimento(t) {
+  if (t.dataVencimento) {
+    const d = appliqueiParseData(t.dataVencimento);
+    if (d && !isNaN(d.getTime())) return d.getTime();
+  }
+  if (t.data && typeof t.mes === 'number' && typeof t.ano === 'number') {
+    const d = appliqueiParseData(t.data);
+    if (d && !isNaN(d.getTime()) && d.getMonth() === t.mes && d.getFullYear() === t.ano)
+      return d.getTime();
+  }
+  if (typeof t.mes === 'number' && typeof t.ano === 'number')
+    return new Date(t.ano, t.mes, 1).getTime();
+  if (t.data) {
+    const d = appliqueiParseData(t.data);
+    if (d && !isNaN(d.getTime())) return d.getTime();
+  }
   return Date.now();
 }
 
@@ -685,9 +721,10 @@ function mpExtratoInstituicao(key, refMs) {
       const valor = Number(t.valor) || 0;
       const entrada = mpEhEntradaCaixa(t.categoria);
       movs.push({
-        ts: mpTimestampTransacao(t),
+        ts: mpDataMovimento(t),
         desc: t.descricao || mpCategoriaLabelMov(t.categoria),
         categoria: t.categoria,
+        categoriaDespesa: t.categoriaDespesa || null,
         valor: entrada ? valor : -valor,
       });
     });
@@ -701,11 +738,32 @@ function mpExtratoInstituicao(key, refMs) {
   return movs;
 }
 
+// Rótulo/cor do TIPO de uma movimentação do extrato (cartão, variável, fixo,
+// receita, aporte...). Alimenta o badge de cada linha e o resumo "quitado".
+function mpTipoMovInfo(categoria, abertura) {
+  if (abertura) return null;
+  const mapa = {
+    cartao_credito: { label: 'Cartão', cls: 'cartao' },
+    despesa_variavel: { label: 'Variável', cls: 'variavel' },
+    despesa_fixa: { label: 'Fixo', cls: 'fixo' },
+    receita: { label: 'Receita', cls: 'receita' },
+    dividendo: { label: 'Dividendo', cls: 'receita' },
+    resgate_investimento: { label: 'Resgate', cls: 'receita' },
+    transferencia_entrada: { label: 'Transferência', cls: 'transf' },
+    transferencia_saida: { label: 'Transferência', cls: 'transf' },
+    investimento_fixo: { label: 'Aporte', cls: 'aporte' },
+    investimento_variavel: { label: 'Aporte', cls: 'aporte' },
+    previdencia: { label: 'Previdência', cls: 'aporte' },
+    sonho: { label: 'Sonho', cls: 'aporte' },
+  };
+  return mapa[categoria] || null;
+}
+
 // HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
-function mpRenderExtratoHtml(movs) {
-  if (!movs.length) {
-    return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
-  }
+// `filtroCategoria` (slug de categoriaDespesa) restringe o extrato a uma única
+// categoria de gasto: nesse modo o saldo corrente não faz sentido (é uma visão
+// recortada), então cada linha mostra a categoria e exibimos um subtotal.
+function mpRenderExtratoHtml(movs, filtroCategoria) {
   const fmtData = (ts) => {
     if (!ts) return '—';
     const d = new Date(ts);
@@ -717,7 +775,77 @@ function mpRenderExtratoHtml(movs) {
       d.getFullYear()
     );
   };
-  const MAX = 60;
+  // Badge do tipo (Cartão/Variável/Fixo/Receita/Aporte...) ao lado da data.
+  const badge = (m) => {
+    const ti = mpTipoMovInfo(m.categoria, m.abertura);
+    return ti ? ` <span class="mp-mov-tipo ${ti.cls}">${ti.label}</span>` : '';
+  };
+  const linhaInfo = (m) =>
+    `<div class="mp-extrato-info"><span class="mp-extrato-desc">${m.desc}</span><span class="mp-extrato-meta"><span class="mp-extrato-data">${fmtData(m.ts)}</span>${badge(m)}</span></div>`;
+
+  // --- Modo filtrado por categoria de despesa ---
+  if (filtroCategoria) {
+    const rotulo =
+      typeof rotuloCategoriaDespesa === 'function'
+        ? rotuloCategoriaDespesa(filtroCategoria)
+        : filtroCategoria;
+    const filtradas = movs.filter((m) => m.categoriaDespesa === filtroCategoria);
+    if (!filtradas.length) {
+      return `<div class="mp-extrato-vazio"><i class="ph ph-funnel"></i> Sem lançamentos de ${rotulo} aqui.</div>`;
+    }
+    const total = filtradas.reduce((a, m) => a + Math.abs(m.valor), 0);
+    const MAXF = 200;
+    const linhasF = filtradas.slice().reverse();
+    let htmlF = linhasF
+      .slice(0, MAXF)
+      .map(
+        (m) => `<div class="mp-extrato-linha">
+                ${linhaInfo(m)}
+                <div class="mp-extrato-vals">
+                    <span class="mp-extrato-valor ${m.valor >= 0 ? 'pos' : 'neg'}">${m.valor >= 0 ? '+ ' : '− '}${mpFmtBRL(Math.abs(m.valor))}</span>
+                </div>
+            </div>`
+      )
+      .join('');
+    if (linhasF.length > MAXF) {
+      htmlF += `<div class="mp-extrato-vazio">+ ${linhasF.length - MAXF} lançamentos anteriores</div>`;
+    }
+    htmlF += `<div class="mp-extrato-subtotal"><span>Total ${rotulo}</span><strong>${mpFmtBRL(total)}</strong></div>`;
+    return htmlF;
+  }
+
+  // --- Modo normal: extrato completo com saldo corrente ---
+  if (!movs.length) {
+    return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
+  }
+
+  // "Observação": o que foi QUITADO (GASTO) por esta conta, separado por tipo
+  // (Fixo / Variável / Cartão). Só despesas de consumo entram — transferências
+  // entre contas próprias e aportes de investimento NÃO são gasto quitado
+  // (apenas movem/aplicam dinheiro), então ficam fora deste resumo.
+  const quit = { fixo: 0, variavel: 0, cartao: 0 };
+  movs.forEach((m) => {
+    if (m.abertura || m.valor >= 0) return; // só saídas
+    const v = -m.valor;
+    if (m.categoria === 'cartao_credito') quit.cartao += v;
+    else if (m.categoria === 'despesa_variavel') quit.variavel += v;
+    else if (m.categoria === 'despesa_fixa') quit.fixo += v;
+  });
+  const chip = (cls, label, val) =>
+    val > 0.005
+      ? `<span class="mp-quit-chip ${cls}">${label} <strong>${mpFmtBRL(val)}</strong></span>`
+      : '';
+  const chips = [
+    chip('fixo', 'Fixo', quit.fixo),
+    chip('variavel', 'Variável', quit.variavel),
+    chip('cartao', 'Cartão', quit.cartao),
+  ].join('');
+  const totalQuit = quit.fixo + quit.variavel + quit.cartao;
+  const resumoHtml = chips
+    ? `<div class="mp-extrato-resumo"><span class="mp-extrato-resumo-tit"><i class="ph ph-list-checks"></i> Quitado por esta conta · <strong>${mpFmtBRL(totalQuit)}</strong></span><div class="mp-extrato-resumo-chips">${chips}</div></div>`
+    : '';
+
+  const MAX = 200;
   const linhas = movs.slice().reverse(); // mais recente primeiro
   const visiveis = linhas.slice(0, MAX);
   let html = visiveis
@@ -726,10 +854,7 @@ function mpRenderExtratoHtml(movs) {
       const cls = m.abertura ? 'neu' : pos ? 'pos' : 'neg';
       const sinal = m.abertura ? '' : pos ? '+ ' : '− ';
       return `<div class="mp-extrato-linha">
-                <div class="mp-extrato-info">
-                    <span class="mp-extrato-desc">${m.desc}</span>
-                    <span class="mp-extrato-data">${fmtData(m.ts)}</span>
-                </div>
+                ${linhaInfo(m)}
                 <div class="mp-extrato-vals">
                     <span class="mp-extrato-valor ${cls}">${sinal}${mpFmtBRL(Math.abs(m.valor))}</span>
                     <span class="mp-extrato-saldo">saldo ${mpFmtBRL(m.saldoApos)}</span>
@@ -740,7 +865,7 @@ function mpRenderExtratoHtml(movs) {
   if (linhas.length > MAX) {
     html += `<div class="mp-extrato-vazio">+ ${linhas.length - MAX} movimentações anteriores</div>`;
   }
-  return html;
+  return resumoHtml + html;
 }
 
 // Recolhe/expande o extrato de uma instituição. Usa o índice renderizado para
@@ -810,6 +935,10 @@ function mpRenderInstituicoes(consolidado) {
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
   // Mapa índice→chave usado pelo toggle do extrato (evita escapar nomes no onclick).
   mpEstado._extratoKeys = arr.map((x) => x.key);
+  // Filtro dinâmico por categoria de despesa (mesmas categorias do Controle
+  // Financeiro). Atualiza o <select> e lê o valor ativo para recortar o extrato.
+  mpPopularFiltroCategoria();
+  const filtroCat = mpEstado.filtroCategoria || '';
   wrap.innerHTML = arr
     .map((x, i) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
@@ -823,6 +952,14 @@ function mpRenderInstituicoes(consolidado) {
       const sub = x.reconciliar
         ? 'Movimentos sem instituição — informe o banco no lançamento'
         : `Caixa ${mpFmtBRL(x.caixa)} · Investido ${mpFmtBRL(x.investido)}`;
+      // Avatar premium: ícone do tipo (banco/corretora/...) ou a inicial do nome,
+      // numa cor estável derivada da chave da instituição.
+      const accent = mpCorInstituicao(x.key, x.reconciliar);
+      const avatarInner = tipo
+        ? `<i class="ph ${tipo.icon}"></i>`
+        : x.reconciliar
+          ? '<i class="ph ph-warning"></i>'
+          : mpIniciaisInstituicao(x.nome);
       // Detalhe: caixa + cada classe de investimento que ESTÁ nesta instituição,
       // para a pessoa ver exatamente o que tem em cada banco/corretora.
       const detalhe = [];
@@ -845,33 +982,95 @@ function mpRenderInstituicoes(consolidado) {
             )
             .join('')}</div>`
         : '';
-      // Extrato (movimentações de caixa) recolhível por instituição. O estado
-      // de aberto/fechado vive em mpEstado.extratoAberto (sobrevive a re-render).
-      const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
-      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
+      // Extrato (movimentações de caixa) recolhível por instituição. Com filtro de
+      // categoria ativo, abrimos todos os extratos para já exibir os lançamentos
+      // daquela categoria; sem filtro, respeita o estado salvo em mpEstado.
+      const aberto = filtroCat ? true : !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
+      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()), filtroCat);
+      const tituloExtrato = filtroCat
+        ? '<i class="ph ph-funnel"></i> Extrato filtrado por categoria'
+        : '<i class="ph ph-receipt"></i> Extrato — movimentações de caixa';
       return `
             <div class="mp-inst-item mp-inst-collapsible">
                 <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
                     <div class="mp-inst-head-left">
                         <i class="ph ph-caret-right mp-inst-chevron${aberto ? ' aberto' : ''}" id="mp-chev-${i}"></i>
-                        <div style="min-width:0;">
+                        <span class="mp-inst-avatar" style="--mp-accent:${accent};">${avatarInner}</span>
+                        <div class="mp-inst-meta">
                             <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
                             <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
+                            <span class="mp-inst-share" title="${pct.toFixed(1)}% do patrimônio"><span class="mp-inst-share-fill" style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span>
                         </div>
                     </div>
-                    <div style="text-align:right;flex-shrink:0;">
+                    <div class="mp-inst-head-right">
                         <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
                         <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
                     </div>
                 </div>
                 ${detalheHtml}
                 <div class="mp-inst-extrato" id="mp-extrato-${i}" style="display:${aberto ? 'flex' : 'none'}">
-                    <div class="mp-extrato-titulo"><i class="ph ph-receipt"></i> Extrato — movimentações de caixa</div>
+                    <div class="mp-extrato-titulo">${tituloExtrato}</div>
                     ${extratoHtml}
                 </div>
             </div>`;
     })
     .join('');
+}
+
+// Cor estável (determinística) para o avatar de uma instituição, derivada da
+// chave — mesma instituição mantém sempre a mesma cor entre renders.
+function mpCorInstituicao(key, reconciliar) {
+  if (reconciliar) return 'var(--cor-erro)';
+  const paleta = [
+    '#059669',
+    '#2563eb',
+    '#7c3aed',
+    '#d97706',
+    '#0891b2',
+    '#db2777',
+    '#65a30d',
+    '#dc2626',
+  ];
+  let h = 0;
+  const s = String(key || '');
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return paleta[h % paleta.length];
+}
+
+// Iniciais do nome da instituição para o avatar (quando não há ícone de tipo).
+function mpIniciaisInstituicao(nome) {
+  const palavras = String(nome || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!palavras.length) return '?';
+  if (palavras.length === 1) return palavras[0].slice(0, 2).toUpperCase();
+  return (palavras[0][0] + palavras[1][0]).toUpperCase();
+}
+
+// Popula o <select> do filtro de categoria com as categorias cadastradas no
+// Controle Financeiro (padrão + customizadas), preservando a seleção atual.
+function mpPopularFiltroCategoria() {
+  const sel = document.getElementById('mp-filtro-categoria');
+  if (!sel) return;
+  const cats = typeof obterCategoriasDespesa === 'function' ? obterCategoriasDespesa() : [];
+  const atual = mpEstado.filtroCategoria || '';
+  sel.innerHTML =
+    '<option value="">Todas as categorias</option>' +
+    cats.map((c) => `<option value="${c.v}">${c.label}</option>`).join('');
+  if (atual && cats.some((c) => c.v === atual)) {
+    sel.value = atual;
+  } else {
+    sel.value = '';
+    mpEstado.filtroCategoria = '';
+  }
+}
+
+// Handler do filtro de categoria — re-renderiza só o "Onde está o dinheiro"
+// usando o último consolidado (sem refazer fetch/consolidação).
+function mpSetFiltroCategoria(v) {
+  mpEstado.filtroCategoria = v || '';
+  if (mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
 }
 
 // "Total investido por classe" — a somatória GLOBAL de cada tipo de investimento
@@ -1077,9 +1276,14 @@ function mpRenderDonut(consolidado) {
 async function renderMeuPatrimonio(skipFetch) {
   // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
+  // Despesa variável com vencimento futuro não conta como paga no caixa — corrige
+  // dados antigos antes de somar saldo/extrato (defensivo p/ cloud-sync tardio).
+  if (typeof normalizarDespesasProgramadas === 'function') normalizarDespesasProgramadas();
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
+  // Guarda para o filtro de categoria re-renderizar sem refazer a consolidação.
+  mpEstado._ultimoConsolidado = consolidado;
   mpRenderKPIs(consolidado, janela);
   // Resumo consolidado por instituição (banco/corretora), com o detalhe das
   // classes que cada uma guarda — o coração da foto.

@@ -468,6 +468,38 @@ function aplicarTipoCartaoUI() {
   }
 }
 
+// Compromissos PROGRAMADOS marcados como pagos por engano: uma despesa variável
+// com vencimento FUTURO não pode estar quitada (ela nasce pendente). Corrige
+// dados antigos (criados antes desta regra) e qualquer caminho que tenha
+// marcado pago indevidamente. NÃO toca em pagamentos explícitos (com `pagoEm`)
+// nem em despesa fixa/cartão (que nascem pendentes e podem ser pré-pagas de
+// propósito). Idempotente — só grava quando muda algo.
+function normalizarDespesasProgramadas() {
+  if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return false;
+  const h = new Date();
+  const hojeStr = `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+  let mudou = false;
+  transacoes.forEach((t) => {
+    if (t.categoria !== 'despesa_variavel') return;
+    if (!t.pago || t.pagoEm) return; // já pendente, ou pago explicitamente pelo usuário
+    if (t.dataVencimento && t.dataVencimento > hojeStr) {
+      t.pago = false; // vencimento no futuro → volta a ser compromisso a pagar
+      mudou = true;
+    }
+  });
+  if (mudou) {
+    try {
+      localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+        AppliqueiCloudSync.forceFlush();
+      }
+    } catch (e) {
+      console.error('[normalizarDespesasProgramadas] localStorage', e);
+    }
+  }
+  return mudou;
+}
+
 transacoes = transacoes.map((t) => {
   if (t.mes === undefined && t.data) {
     const ma = appliqueiMesAnoDe(t.data);
@@ -478,6 +510,9 @@ transacoes = transacoes.map((t) => {
   if (t.pago === undefined) t.pago = false;
   return t;
 });
+// Corrige, já no carregamento, despesas variáveis programadas que vieram pagas
+// (dados antigos) — antes de qualquer aba (Controle/Patrimônio) renderizar.
+normalizarDespesasProgramadas();
 
 // Autocompletar Inteligente
 function atualizarDatalistDescricoes() {
@@ -739,7 +774,12 @@ function executarInsercao() {
   // do bolso no ato. Nasce `pago: true` para debitar o caixa do Meu Patrimônio
   // na hora — sem precisar clicar "pagar" depois. Despesa fixa e cartão são
   // compromissos a vencer, então seguem `pago: false` (entram em "a pagar").
-  const pagoInicial = categoria === 'despesa_variavel' && !ehFixo;
+  // EXCEÇÃO: se o usuário informou um vencimento FUTURO (ex.: "camisa do
+  // congresso até dia 15"), a despesa variável é um compromisso PROGRAMADO —
+  // nasce pendente (pago:false) e só entra no caixa quando for de fato paga.
+  const pagoBase = categoria === 'despesa_variavel' && !ehFixo;
+  const _hoje = new Date();
+  const hojeStrIns = `${_hoje.getFullYear()}-${String(_hoje.getMonth() + 1).padStart(2, '0')}-${String(_hoje.getDate()).padStart(2, '0')}`;
 
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
     mesesGerar = parcelas;
@@ -779,6 +819,9 @@ function executarInsercao() {
       }
     }
 
+    // Vencimento futuro → compromisso programado (pendente); senão, paga à vista.
+    const pagoLanc = pagoBase && !(dataVencFinal && dataVencFinal > hojeStrIns);
+
     transacoes.push({
       id: Date.now().toString() + i,
       groupId: groupId,
@@ -795,7 +838,7 @@ function executarInsercao() {
       ano: a,
       data: new Date().toISOString(),
       dataVencimento: dataVencFinal,
-      pago: pagoInicial,
+      pago: pagoLanc,
     });
   }
 
@@ -1190,7 +1233,9 @@ function confirmarBaixarGrupoCartao(key) {
   const cartao = typeof obterCartao === 'function' ? obterCartao(grupo.cartaoId) : null;
   const contaPag = cartao && cartao.contaPagadoraId ? cartao.contaPagadoraId : undefined;
   transacoes = transacoes.map((t) =>
-    ids.has(t.id) ? { ...t, pago: true, contaId: contaPag || t.contaId } : t
+    ids.has(t.id)
+      ? { ...t, pago: true, pagoEm: new Date().toISOString(), contaId: contaPag || t.contaId }
+      : t
   );
   localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
   mostrarToast('Fatura baixada como paga.', 'sucesso');
@@ -1224,6 +1269,7 @@ function confirmarPagamento(id) {
   transacoes = transacoes.map((t) => {
     if (t.id === id) {
       t.pago = true;
+      t.pagoEm = new Date().toISOString(); // pagamento explícito — protege da normalização
       if (t.valor !== novoValor) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
@@ -1259,6 +1305,46 @@ function confirmarPagamento(id) {
   mostrarToast(toastMsg, 'sucesso');
   atualizarTelaControle();
   if (typeof renderizarSonhos === 'function') renderizarSonhos();
+}
+
+// Pode reverter ("desfazer") o pagamento? Só lançamentos cujo pagamento apenas
+// alterna o flag `pago` — despesa fixa/variável e cartão. Sonho e compromisso
+// (previdência/reserva) geram aportes/posições vinculadas ao pagar; revertê-los
+// aqui deixaria registros órfãos, então são tratados nas suas próprias abas.
+function controlePodeReverterPagamento(t) {
+  if (!t || !t.pago) return false;
+  if (t.sonhoId || t.compromissoId) return false;
+  return (
+    t.categoria === 'despesa_fixa' ||
+    t.categoria === 'despesa_variavel' ||
+    t.categoria === 'cartao_credito'
+  );
+}
+
+// Desfaz um pagamento marcado por engano: volta o lançamento para "a pagar"
+// (pago:false), removendo-o do caixa do Meu Patrimônio. Reversível pelo botão
+// de pagar normal.
+function reverterPagamento(id) {
+  const t = transacoes.find((x) => x.id === id);
+  if (!t || !t.pago) return;
+  if (!controlePodeReverterPagamento(t)) {
+    return mostrarToast(
+      'Este pagamento gerou um aporte vinculado — reverta pela aba correspondente.',
+      'erro'
+    );
+  }
+  t.pago = false;
+  delete t.pagoEm; // deixa de ser pagamento explícito
+  try {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+      AppliqueiCloudSync.forceFlush();
+    }
+  } catch (e) {
+    console.error('[reverterPagamento] localStorage', e);
+  }
+  mostrarToast('Pagamento desfeito — voltou para "a pagar".', 'sucesso');
+  atualizarTelaControle();
 }
 
 // Liga um pagamento de compromisso mensal a um aporte registrado no sonho
@@ -1380,6 +1466,9 @@ function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
 }
 
 function atualizarTelaControle() {
+  // Garante que despesas variáveis com vencimento futuro não fiquem "pagas"
+  // (cobre edição de data e qualquer caminho, além do carregamento inicial).
+  normalizarDespesasProgramadas();
   const mesFormatado = (visaoMes + 1).toString().padStart(2, '0');
   document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
   const nomeMeses = [
@@ -1596,6 +1685,7 @@ function atualizarTelaControle() {
                     <span class="valor">${formatarMoeda(t.valor)}</span>
                     <div style="margin-top: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;" id="acao-pagar-list-${t.id}">
                         ${!t.pago && t.categoria !== 'receita' ? `<button onclick="prepararPagamento('${t.id}', 'list')" style="background:none; border:none; cursor:pointer; color:var(--cor-primaria); font-size:16px;" title="Registrar Pagamento"><i class="ph-bold ph-check-circle"></i></button>` : ''}
+                        ${controlePodeReverterPagamento(t) ? `<button onclick="reverterPagamento('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-texto-mutado); font-size:15px;" title="Desfazer pagamento (voltar para a pagar)"><i class="ph ph-arrow-counter-clockwise"></i></button>` : ''}
                         <button onclick="prepararEdicao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-info); font-size:15px;" title="Editar"><i class="ph ph-pencil-simple"></i></button>
                         <button onclick="deletarTransacao('${t.id}')" style="background:none; border:none; cursor:pointer; color:var(--cor-erro); font-size:15px;" title="Excluir"><i class="ph ph-trash"></i></button>
                     </div>

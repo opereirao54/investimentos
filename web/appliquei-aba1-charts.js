@@ -255,6 +255,21 @@ function atualizarKPIsResumo(carteiraConsolidada) {
     atualizarChipDividendosPeriodo();
 }
 
+// Timestamp da operação para a série de evolução. Prioriza data_op, mas cai
+// para a data de cadastro (cadastradoEm) ou o id numérico (Date.now() de
+// criação) quando não há data_op — caso típico de Renda Fixa/Reserva lançadas
+// como "já guardado", que antes ficavam de fora e deixavam o gráfico vazio.
+// Espelha a regra de valorAtualRendaFixa para que o gráfico inclua os mesmos
+// aportes que compõem o saldo dos KPIs.
+function tsOperacaoEvolucao(op) {
+    if(!op) return null;
+    if(op.data_op) { const t = new Date(op.data_op).getTime(); if(isFinite(t)) return t; }
+    if(op.cadastradoEm) { const t = new Date(op.cadastradoEm).getTime(); if(isFinite(t)) return t; }
+    if(typeof op.id === 'number' && op.id > 1e12) return op.id;
+    if(typeof op.id === 'string' && /^\d{13,}$/.test(op.id)) return Number(op.id);
+    return null;
+}
+
 // Acumula posição (qtd) por ticker até o final de cada mês
 function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
     // Decide se uma operação entra no filtro escolhido
@@ -271,11 +286,11 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
         const sub = op.subcategoria || subcategoriaInferidaDoTicker(op.ticker) || (ativoMercado ? tipoMercadoParaSubcategoria(ativoMercado.tipo) : null);
         return sub === filtroTipo;
     }
-    const opsFiltradas = historicoCompras.filter(op => op.data_op && opEntraNoFiltro(op));
+    const opsFiltradas = historicoCompras.filter(op => tsOperacaoEvolucao(op) != null && opEntraNoFiltro(op));
     if(opsFiltradas.length === 0) return { meses: [], investido: [], mercado: [], dividendos: [] };
 
     // Determina mês inicial e final
-    const tsPrimeira = Math.min(...opsFiltradas.map(op => new Date(op.data_op).getTime()));
+    const tsPrimeira = Math.min(...opsFiltradas.map(op => tsOperacaoEvolucao(op)));
     const dPrimeira = new Date(tsPrimeira);
     let mesIni = new Date(dPrimeira.getFullYear(), dPrimeira.getMonth(), 1);
     const hoje = new Date();
@@ -295,17 +310,23 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
     }
 
     const investido = []; const mercado = []; const dividendos = [];
+    const agoraTs = Date.now();
     meses.forEach(m => {
         const fimMes = new Date(m.getFullYear(), m.getMonth() + 1, 0, 23, 59, 59).getTime();
-        // Posição cumulativa por ticker até o fim do mês
+        // Nunca projeta além de "agora": no mês corrente o patrimônio é o de hoje
+        // (assim a última barra bate com o KPI "Investimentos hoje").
+        const refMs = Math.min(fimMes, agoraTs);
+        // Posição cumulativa por ticker até refMs (guarda a categoria p/ valorar
+        // cada classe pela sua própria regra: RV→cotação, RF/Reserva→juros, Prev→saldo)
         const posicao = {}; let invest = 0;
         opsFiltradas.forEach(op => {
-            const tsOp = new Date(op.data_op).getTime();
-            if(tsOp > fimMes) return;
+            const tsOp = tsOperacaoEvolucao(op);
+            if(tsOp == null || tsOp > refMs) return;
             const tipo = op.tipo || 'compra';
             const preco = op.preco_op || op.preco_pago || 0;
-            if(!posicao[op.ticker]) posicao[op.ticker] = { qtd: 0, custo: 0, pm: 0 };
+            if(!posicao[op.ticker]) posicao[op.ticker] = { qtd: 0, custo: 0, pm: 0, categoria: op.categoria || null };
             const p = posicao[op.ticker];
+            if(op.categoria && !p.categoria) p.categoria = op.categoria;
             if(tipo === 'compra') {
                 p.qtd += op.quantidade;
                 p.custo += op.quantidade * preco;
@@ -317,14 +338,18 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
                 p.custo -= op.quantidade * p.pm;
             }
         });
-        // Valor de mercado — usa preço atual (limitação: sem histórico de preços)
+        // Valor de mercado consolidado de TODAS as classes. RF/Reserva e
+        // Previdência rendem por juros compostos (mesma função dos KPIs e do Meu
+        // Patrimônio); RV usa a cotação atual (limitação: sem histórico de preços).
         let valorMercado = 0;
         Object.entries(posicao).forEach(([ticker, p]) => {
             if(p.qtd <= 0) return;
-            const opTicker = opsFiltradas.find(o => o.ticker === ticker);
-            const cat = opTicker?.categoria;
+            const cat = p.categoria;
             if(cat === 'previdencia') {
-                valorMercado += calcularSaldoPrevidencia(ticker, fimMes);
+                valorMercado += (typeof calcularSaldoPrevidencia === 'function')
+                    ? calcularSaldoPrevidencia(ticker, refMs) : p.qtd * p.pm;
+            } else if((cat === 'renda_fixa' || cat === 'reserva_emergencia') && typeof valorAtualRendaFixa === 'function') {
+                valorMercado += valorAtualRendaFixa(ticker, cat, refMs);
             } else {
                 const ativoMercado = mockAtivosMercado.find(a => a.ticker === ticker);
                 const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
