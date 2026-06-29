@@ -4117,7 +4117,8 @@
         .mp-kpi-veiculos .mp-kpi-icon { background: rgba(100,116,139,0.10); color: #64748b; }
         .mp-kpi-body { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
-        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); }
+        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .mp-kpis-componentes .mp-kpi-valor { font-size:18px; }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
         .mp-kpi-delta.pos { color: var(--cor-primaria); }
         .mp-kpi-delta.neg { color: var(--cor-erro); }

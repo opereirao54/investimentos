@@ -1138,7 +1138,7 @@ function mpRenderClasses(consolidado) {
       responsive: true,
       maintainAspectRatio: false,
       animation: { duration: 600 },
-      layout: { padding: { right: 16 } },
+      layout: { padding: { right: 150 } },
       scales: {
         x: {
           display: false,
@@ -1158,6 +1158,7 @@ function mpRenderClasses(consolidado) {
         datalabels: {
           anchor: 'end',
           align: 'right',
+          clip: false,
           offset: 6,
           font: { family: "'DM Mono', monospace", size: 11, weight: '700' },
           color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
