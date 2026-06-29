@@ -4284,28 +4284,10 @@
         .mp-quit-chip.variavel strong { color: var(--cor-erro); }
         .mp-quit-chip.cartao strong   { color: var(--cor-cartao); }
 
-        .mp-donut-card { margin-bottom:20px; }
-        .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
-        @media (max-width: 720px) { .mp-donut-grid { grid-template-columns: 1fr; } }
-        .mp-donut-wrap { position:relative; height:240px; }
-        .mp-donut-legenda { display:flex; flex-direction:column; gap:6px; justify-content:center; }
-        .mp-leg-item {
-            display:flex; align-items:flex-start; gap:12px;
-            padding:10px 12px; border-radius:11px; cursor:pointer;
-            border:1px solid transparent;
-            transition: background .12s, border-color .12s, opacity .12s;
+        .mp-contas-separador {
+            margin:20px 0 16px; border-top:1.5px solid var(--cor-borda);
         }
-        .mp-leg-item:hover { background: var(--cor-superficie); border-color: var(--cor-borda); }
-        .mp-leg-item.dim { opacity:.3; }
-        .mp-leg-dot { width:12px; height:12px; border-radius:4px; margin-top:4px; flex-shrink:0; }
-        .mp-leg-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
-        .mp-leg-top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-        .mp-leg-nome { font-size:13px; font-weight:600; color: var(--cor-texto-principal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .mp-leg-rs   { font-family:'DM Mono', monospace; font-size:13px; font-weight:700; color: var(--cor-texto-principal); flex-shrink:0; }
-        .mp-leg-bottom { display:flex; align-items:center; gap:10px; }
-        .mp-leg-bar { flex:1; height:6px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; min-width:40px; }
-        .mp-leg-bar-fill { display:block; height:100%; border-radius:999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
-        .mp-leg-share { font-family:'DM Mono', monospace; font-size:11px; font-weight:600; color: var(--cor-texto-mutado); min-width:42px; text-align:right; }
+        .mp-bar-chart-wrap { position:relative; width:100%; min-height:180px; max-height:350px; }
         .mp-leg-pct  { font-family:'DM Mono', monospace; font-size:11px; font-weight:700; min-width:60px; text-align:right; display:inline-flex; align-items:center; justify-content:flex-end; gap:2px; }
         .mp-leg-pct i { font-size:11px; }
         .mp-leg-pct.pos { color: var(--cor-primaria); }
@@ -4331,7 +4313,6 @@
         body.valores-ocultos #meu_patrimonio .mp-extrato-subtotal strong,
         body.valores-ocultos #meu_patrimonio .mp-quit-chip strong,
         body.valores-ocultos #meu_patrimonio .mp-extrato-resumo-tit strong,
-        body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
 
         /* ===== Combobox custom (instituição financeira) — mobile-friendly ===== */
@@ -6733,8 +6714,7 @@
                 </div>
             </div>
 
-            <!-- Onde está o dinheiro: extrato consolidado por instituição (banco/corretora),
-                 com o detalhe das classes de investimento que cada uma guarda -->
+            <!-- Onde está o dinheiro: extrato consolidado por instituição + Minhas Contas -->
             <div class="card-container mp-onde-card">
                 <div class="mp-section-head mp-onde-head">
                     <div class="mp-onde-titulo">
@@ -6751,34 +6731,10 @@
                 <div class="mp-lista-inst" id="mp-lista-inst">
                     <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
                 </div>
-            </div>
 
-            <!-- Total investido por classe: somatória de cada tipo (= KPI Total investido) -->
-            <div class="card-container">
-                <div class="mp-section-head">
-                    <h3>Total investido por classe</h3>
-                    <span class="mp-section-sub">Todo tipo de investimento que você tem</span>
-                </div>
-                <div class="mp-lista-inst" id="mp-classes-lista">
-                    <div class="mp-empty"><i class="ph ph-chart-bar"></i>—</div>
-                </div>
-            </div>
-
-            <!-- Gráfico único: pizza = divisão; legenda (barrinhas) = valor + rentabilidade -->
-            <div class="card-container mp-donut-card">
-                <div class="mp-section-head">
-                    <h3>Divisão do patrimônio</h3>
-                    <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
-                </div>
-                <div class="mp-donut-grid">
-                    <div class="mp-donut-wrap"><canvas id="mp-grafico-donut" aria-label="Divisão por categoria"></canvas></div>
-                    <div class="mp-donut-legenda" id="mp-donut-legenda"></div>
-                </div>
-            </div>
-
-            <!-- Minhas Contas / Instituições (cadastro-mestre) -->
-            <div class="card-container">
-                <div class="mp-section-head">
+                <!-- Minhas Contas (cadastro-mestre) — dentro de "Onde está o seu dinheiro" -->
+                <div class="mp-contas-separador"></div>
+                <div class="mp-section-head" style="margin-top:4px;">
                     <h3>Minhas Contas</h3>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
@@ -6805,6 +6761,18 @@
                     </div>
                 </div>
                 <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
+            </div>
+
+            <!-- Total investido por classe: gráfico de barras horizontal -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Total investido por classe</h3>
+                    <span class="mp-section-sub">Todo tipo de investimento que você tem</span>
+                </div>
+                <div class="mp-bar-chart-wrap">
+                    <canvas id="mp-grafico-classes" aria-label="Total investido por classe"></canvas>
+                </div>
+                <div id="mp-classes-lista"></div>
             </div>
         </section>
 
