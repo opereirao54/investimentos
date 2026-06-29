@@ -1171,16 +1171,28 @@ function mpRenderClasses(consolidado) {
   }
 }
 
-// Função pública: orquestra render completo (ou skipFetch quando só muda modo).
-// A foto monta de cima p/ baixo: KPIs → "Onde está o dinheiro" (por instituição)
-// → divisão por categoria → Minhas Contas. Sem snapshot de fatura nem despesas
-// (isso vive na aba Controle).
+// Remove transações 'tx_origem_*' cujo aporte correspondente já não existe.
+// Corrige saldo para quem excluiu investimento antes do fix na exclusão.
+function mpLimparTxOrigemOrfas() {
+  if (typeof transacoes === 'undefined' || typeof historicoCompras === 'undefined') return;
+  var idsCompras = new Set();
+  historicoCompras.forEach(function (op) { idsCompras.add(String(op.id)); });
+  var antes = transacoes.length;
+  transacoes = transacoes.filter(function (t) {
+    if (typeof t.id !== 'string' || t.id.indexOf('tx_origem_') !== 0) return true;
+    var opId = t.id.replace('tx_origem_', '');
+    return idsCompras.has(opId);
+  });
+  if (transacoes.length < antes) {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    if (typeof salvarNaNuvem === 'function') salvarNaNuvem();
+  }
+}
+
 async function renderMeuPatrimonio(skipFetch) {
-  // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
-  // Despesa variável com vencimento futuro não conta como paga no caixa — corrige
-  // dados antigos antes de somar saldo/extrato (defensivo p/ cloud-sync tardio).
   if (typeof normalizarDespesasProgramadas === 'function') normalizarDespesasProgramadas();
+  mpLimparTxOrigemOrfas();
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
