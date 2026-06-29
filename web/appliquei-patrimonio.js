@@ -569,8 +569,8 @@ function calcularPatrimonioTotal() {
     totalInvestido: cons.totalInvestido || 0,
     totalAtual: cons.totalAtual || 0,
     totalAtualLiq: cons.totalAtualLiq || 0,
-    // Soma exata de todas as categorias = patrimônio investido total.
     totalPatrimonio: cons.totalAtual || 0,
+    totalBens: typeof totalBensAtual === 'function' ? totalBensAtual() : 0,
     porCategoria: cat,
   };
 }
@@ -598,7 +598,8 @@ function mpRenderKPIs(consolidado, janela) {
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const patrimonioTotal = saldoTotal + valorInvestido;
+  const valorBens = patr.totalBens || 0;
+  const patrimonioTotal = saldoTotal + valorInvestido + valorBens;
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
 
@@ -616,8 +617,9 @@ function mpRenderKPIs(consolidado, janela) {
   const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
   if (subPatr) {
     subPatr.className = 'mp-kpi-sub';
-    subPatr.innerHTML =
-      '<i class="ph ph-wallet"></i> saldo em conta + <i class="ph ph-trend-up"></i> investimentos';
+    subPatr.innerHTML = valorBens > 0
+      ? '<i class="ph ph-wallet"></i> saldo + <i class="ph ph-trend-up"></i> investimentos + <i class="ph ph-house-line"></i> bens'
+      : '<i class="ph ph-wallet"></i> saldo em conta + <i class="ph ph-trend-up"></i> investimentos';
   }
 
   const deltaSaldo =
@@ -1205,4 +1207,5 @@ async function renderMeuPatrimonio(skipFetch) {
   // Somatória de cada tipo de investimento (= KPI Total investido) — gráfico de barras.
   mpRenderClasses(consolidado);
   if (typeof renderMinhasContas === 'function') renderMinhasContas();
+  if (typeof renderMeusBens === 'function') renderMeusBens();
 }
