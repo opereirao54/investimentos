@@ -4086,13 +4086,17 @@
         .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
         .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 
-        .mp-kpis { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:20px; }
-        @media (max-width: 760px) { .mp-kpis { grid-template-columns: 1fr; } }
+        .mp-kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:20px; }
+        .mp-kpis-hero { display:block; margin-bottom:14px; }
+        .mp-kpis-componentes { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 900px) { .mp-kpis-componentes { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 520px) { .mp-kpis-componentes { grid-template-columns: 1fr; } }
         .mp-kpi {
             background: var(--cor-fundo-card); border:1px solid var(--cor-borda); border-radius:14px;
             padding:18px 20px; display:flex; gap:14px; align-items:center;
             position:relative; overflow:hidden;
         }
+        .mp-kpi-hero .mp-kpi-valor { font-size:28px; }
         .mp-kpi::before {
             content:''; position:absolute; top:0; left:0; height:100%; width:4px;
             background: var(--cor-primaria);
@@ -4100,6 +4104,8 @@
         .mp-kpi-patrimonio::before { background: var(--cor-info); }
         .mp-kpi-saldo::before    { background: var(--cor-primaria); }
         .mp-kpi-investido::before{ background: var(--cor-patrimonio); }
+        .mp-kpi-imoveis::before  { background: #f59e0b; }
+        .mp-kpi-veiculos::before { background: #64748b; }
         .mp-kpi-icon {
             width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
             font-size:22px; flex-shrink:0;
@@ -4107,6 +4113,8 @@
         .mp-kpi-patrimonio .mp-kpi-icon { background: rgba(37,99,235,0.10); color: var(--cor-info); }
         .mp-kpi-saldo    .mp-kpi-icon { background: rgba(5,150,105,0.10);  color: var(--cor-primaria); }
         .mp-kpi-investido .mp-kpi-icon{ background: rgba(124,58,237,0.10); color: var(--cor-patrimonio); }
+        .mp-kpi-imoveis  .mp-kpi-icon { background: rgba(245,158,11,0.10); color: #f59e0b; }
+        .mp-kpi-veiculos .mp-kpi-icon { background: rgba(100,116,139,0.10); color: #64748b; }
         .mp-kpi-body { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
         .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); }
@@ -5124,6 +5132,8 @@
         #meu_patrimonio .mp-kpi-patrimonio::before { background: linear-gradient(180deg,#60a5fa,#2563eb); }
         #meu_patrimonio .mp-kpi-saldo::before { background: linear-gradient(180deg,#10b981,#059669); }
         #meu_patrimonio .mp-kpi-investido::before { background: linear-gradient(180deg,#a78bfa,#7c3aed); }
+        #meu_patrimonio .mp-kpi-imoveis::before  { background: linear-gradient(180deg,#fbbf24,#f59e0b); }
+        #meu_patrimonio .mp-kpi-veiculos::before  { background: linear-gradient(180deg,#94a3b8,#64748b); }
         #meu_patrimonio .mp-kpi-icon { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
         #meu_patrimonio .mp-kpi-valor { font-size: 24px; letter-spacing: -0.4px; }
         #meu_patrimonio .mp-barra-item { border-radius: 10px; }
@@ -6686,9 +6696,9 @@
                 </div>
             </div>
 
-            <!-- KPIs principais — a foto do patrimônio (sem despesas, sem datas) -->
-            <div class="mp-kpis" id="mp-kpis">
-                <div class="mp-kpi mp-kpi-patrimonio">
+            <!-- KPI hero: patrimônio total -->
+            <div id="mp-kpis" class="mp-kpis-hero">
+                <div class="mp-kpi mp-kpi-patrimonio mp-kpi-hero">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
                     <div class="mp-kpi-body">
                         <span class="mp-kpi-label">Patrimônio total</span>
@@ -6696,6 +6706,9 @@
                         <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
                     </div>
                 </div>
+            </div>
+            <!-- Componentes do patrimônio: cada fatia que soma no total -->
+            <div class="mp-kpis mp-kpis-componentes">
                 <div class="mp-kpi mp-kpi-saldo">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
                     <div class="mp-kpi-body">
@@ -6710,6 +6723,22 @@
                         <span class="mp-kpi-label">Total investido</span>
                         <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
                         <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
+                    </div>
+                </div>
+                <div class="mp-kpi mp-kpi-imoveis">
+                    <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
+                    <div class="mp-kpi-body">
+                        <span class="mp-kpi-label">Imóveis</span>
+                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                        <span class="mp-kpi-delta neu" id="mp-kpi-imoveis-qtd">—</span>
+                    </div>
+                </div>
+                <div class="mp-kpi mp-kpi-veiculos">
+                    <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
+                    <div class="mp-kpi-body">
+                        <span class="mp-kpi-label">Veículos</span>
+                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                        <span class="mp-kpi-delta neu" id="mp-kpi-veiculos-qtd">—</span>
                     </div>
                 </div>
             </div>

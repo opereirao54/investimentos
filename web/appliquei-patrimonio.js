@@ -590,15 +590,23 @@ function mpAlterarModo(m) {
 }
 
 function mpRenderKPIs(consolidado, janela) {
-  // A foto = 3 KPIs: Patrimônio total (hero) · Saldo em caixa · Total investido.
-  // "Total Investido" = soma de TODAS as categorias (RF + RV + prev + reserva),
-  // via fonte única calcularPatrimonioTotal(). Sem KPI de despesas: a foto mostra
-  // o que a pessoa TEM, não o que gasta.
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const valorBens = patr.totalBens || 0;
+
+  var totalImoveis = 0;
+  var totalVeiculos = 0;
+  var qtdImoveis = 0;
+  var qtdVeiculos = 0;
+  if (typeof bensAtivos === 'function') {
+    bensAtivos().forEach(function (b) {
+      if (b.tipo === 'imovel') { totalImoveis += (b.valorAtual || 0); qtdImoveis++; }
+      else if (b.tipo === 'veiculo') { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
+      else { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
+    });
+  }
+  const valorBens = totalImoveis + totalVeiculos;
   const patrimonioTotal = saldoTotal + valorInvestido + valorBens;
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
@@ -610,16 +618,16 @@ function mpRenderKPIs(consolidado, janela) {
   setText('mp-kpi-patrimonio-valor', patrimonioTotal);
   setText('mp-kpi-saldo-valor', saldoTotal);
   setText('mp-kpi-investido-valor', valorInvestido);
+  setText('mp-kpi-imoveis-valor', totalImoveis);
+  setText('mp-kpi-veiculos-valor', totalVeiculos);
 
-  // Sub do Patrimônio total: legenda do que ele soma (caixa + investido). Sem
-  // valores aqui — eles já estão nos dois KPIs ao lado e não devem vazar quando
-  // "ocultar valores" está ligado.
   const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
   if (subPatr) {
     subPatr.className = 'mp-kpi-sub';
-    subPatr.innerHTML = valorBens > 0
-      ? '<i class="ph ph-wallet"></i> saldo + <i class="ph ph-trend-up"></i> investimentos + <i class="ph ph-house-line"></i> bens'
-      : '<i class="ph ph-wallet"></i> saldo em conta + <i class="ph ph-trend-up"></i> investimentos';
+    var partes = ['<i class="ph ph-wallet"></i> saldo', '<i class="ph ph-trend-up"></i> investimentos'];
+    if (totalImoveis > 0) partes.push('<i class="ph ph-house-line"></i> imóveis');
+    if (totalVeiculos > 0) partes.push('<i class="ph ph-car-simple"></i> veículos');
+    subPatr.innerHTML = partes.join(' + ');
   }
 
   const deltaSaldo =
@@ -629,8 +637,6 @@ function mpRenderKPIs(consolidado, janela) {
       ? ((valorInvestido - investidoAporteTotal) / investidoAporteTotal) * 100
       : 0;
 
-  // Saldo: tendência automática vs o fim do mês passado (não é navegação de data,
-  // é só um termômetro de "como o caixa evoluiu").
   const elSaldo = document.getElementById('mp-kpi-saldo-delta');
   if (elSaldo) {
     const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
@@ -638,13 +644,22 @@ function mpRenderKPIs(consolidado, janela) {
     elSaldo.className = 'mp-kpi-delta ' + cls;
     elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs mês passado</span>`;
   }
-  // Investido: rentabilidade acumulada (valor de mercado vs aportes).
   const elInv = document.getElementById('mp-kpi-investido-delta');
   if (elInv) {
     const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
     const seta = rentab > 0.05 ? '↑' : rentab < -0.05 ? '↓' : '·';
     elInv.className = 'mp-kpi-delta ' + cls;
     elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">rentab. total</span>`;
+  }
+  const elImov = document.getElementById('mp-kpi-imoveis-qtd');
+  if (elImov) {
+    elImov.className = 'mp-kpi-delta neu';
+    elImov.textContent = qtdImoveis + ' imóve' + (qtdImoveis === 1 ? 'l' : 'is');
+  }
+  const elVeic = document.getElementById('mp-kpi-veiculos-qtd');
+  if (elVeic) {
+    elVeic.className = 'mp-kpi-delta neu';
+    elVeic.textContent = qtdVeiculos + ' veículo' + (qtdVeiculos === 1 ? '' : 's');
   }
 }
 
