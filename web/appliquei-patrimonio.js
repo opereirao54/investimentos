@@ -630,6 +630,30 @@ function mpRenderKPIs(consolidado, janela) {
     subPatr.innerHTML = partes.join(' + ');
   }
 
+  var compBar = document.getElementById('mp-composition-bar');
+  if (compBar && patrimonioTotal > 0) {
+    var segs = [];
+    if (saldoTotal > 0) segs.push({ label: 'Saldo', valor: saldoTotal, cor: 'var(--cor-primaria)' });
+    if (valorInvestido > 0) segs.push({ label: 'Investido', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
+    if (totalImoveis > 0) segs.push({ label: 'Imóveis', valor: totalImoveis, cor: '#f59e0b' });
+    if (totalVeiculos > 0) segs.push({ label: 'Veículos', valor: totalVeiculos, cor: '#64748b' });
+    var barHtml = '<div class="mp-composition-bar">';
+    segs.forEach(function(s) {
+      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
+      barHtml += '<div class="mp-composition-seg" style="width:' + pct + '%;background:' + s.cor + ';" title="' + s.label + ': ' + mpFmtBRL(s.valor) + ' (' + pct + '%)"></div>';
+    });
+    barHtml += '</div>';
+    barHtml += '<div class="mp-composition-legend">';
+    segs.forEach(function(s) {
+      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
+      barHtml += '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' + s.cor + ';"></span>' + s.label + ' ' + pct + '%</span>';
+    });
+    barHtml += '</div>';
+    compBar.innerHTML = barHtml;
+  } else if (compBar) {
+    compBar.innerHTML = '';
+  }
+
   const deltaSaldo =
     saldoAnterior !== 0 ? ((saldoTotal - saldoAnterior) / Math.abs(saldoAnterior)) * 100 : 0;
   const rentab =
@@ -935,7 +959,7 @@ function mpRenderInstituicoes(consolidado) {
     .sort((a, b) => b.total - a.total);
   if (!arr.length) {
     wrap.innerHTML =
-      '<div class="mp-empty" style="padding:18px"><i class="ph ph-bank"></i>Sem dados por instituição. Cadastre suas contas e registre suas movimentações para ver a foto.</div>';
+      '<div class="mp-empty"><i class="ph ph-bank"></i>Sem dados por instituição.<br><span style="font-size:11.5px;margin-top:4px;display:inline-block;">Cadastre suas contas abaixo e registre movimentações para ver a foto completa.</span></div>';
     return;
   }
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
