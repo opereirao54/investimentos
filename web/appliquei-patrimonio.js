@@ -1208,4 +1208,5 @@ async function renderMeuPatrimonio(skipFetch) {
   mpRenderClasses(consolidado);
   if (typeof renderMinhasContas === 'function') renderMinhasContas();
   if (typeof renderMeusBens === 'function') renderMeusBens();
+  if (!skipFetch && typeof bemAtualizarFipeAuto === 'function') bemAtualizarFipeAuto();
 }

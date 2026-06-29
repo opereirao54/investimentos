@@ -413,6 +413,7 @@ function bemAtualizarFipe(id) {
         fipe: Object.assign({}, b.fipe, {
           valor: data.Valor || data.valor || '',
           mesReferencia: data.MesReferencia || data.mesReferencia || '',
+          ultimaAtualizacao: new Date().toISOString(),
         }),
       });
       renderMeusBens();
@@ -422,6 +423,57 @@ function bemAtualizarFipe(id) {
   }).catch(function () {
     mostrarToast('Erro ao atualizar FIPE de ' + b.nome + '.', 'erro');
   });
+}
+
+var _fipeAutoEmAndamento = false;
+var FIPE_INTERVALO_MS = 24 * 60 * 60 * 1000;
+
+function bemAtualizarFipeAuto() {
+  if (_fipeAutoEmAndamento) return;
+  var veiculos = bensAtivos().filter(function (b) {
+    return b.tipo === 'veiculo' && b.fipe && b.fipe.tipoVeiculo && b.fipe.marcaCodigo;
+  });
+  var agora = Date.now();
+  var pendentes = veiculos.filter(function (b) {
+    var ultima = b.fipe.ultimaAtualizacao ? new Date(b.fipe.ultimaAtualizacao).getTime() : 0;
+    return (agora - ultima) > FIPE_INTERVALO_MS;
+  });
+  if (!pendentes.length) return;
+  _fipeAutoEmAndamento = true;
+  var atualizados = 0;
+
+  function processar(i) {
+    if (i >= pendentes.length) {
+      _fipeAutoEmAndamento = false;
+      if (atualizados > 0) {
+        renderMeusBens();
+        if (typeof renderMeuPatrimonio === 'function') renderMeuPatrimonio(true);
+        mostrarToast(atualizados + ' veículo' + (atualizados > 1 ? 's' : '') + ' atualizado' + (atualizados > 1 ? 's' : '') + ' pela FIPE.', 'sucesso');
+      }
+      return;
+    }
+    var b = pendentes[i];
+    var f = b.fipe;
+    fipeValor(f.tipoVeiculo, f.marcaCodigo, f.modeloCodigo, f.anoCodigo)
+      .then(function (data) {
+        var valorStr = (data.Valor || data.valor || '').replace(/[^\d,]/g, '');
+        var valorNum = typeof parseBRL === 'function' ? parseBRL(valorStr) : 0;
+        if (valorNum > 0) {
+          editarBem(b.id, {
+            valorAtual: valorNum,
+            fipe: Object.assign({}, b.fipe, {
+              valor: data.Valor || data.valor || '',
+              mesReferencia: data.MesReferencia || data.mesReferencia || '',
+              ultimaAtualizacao: new Date().toISOString(),
+            }),
+          });
+          atualizados++;
+        }
+      })
+      .catch(function () {})
+      .then(function () { processar(i + 1); });
+  }
+  processar(0);
 }
 
 // ============================================================
