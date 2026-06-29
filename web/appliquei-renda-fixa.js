@@ -1291,6 +1291,7 @@ function confirmarExclusaoOperacao(id) {
     const tid = t.id;
     for (const remId of idsParaRemover) {
       if (tid === remId.toString() || tid === remId) return false;
+      if (tid === 'tx_origem_' + remId) return false;
     }
     return true;
   });
