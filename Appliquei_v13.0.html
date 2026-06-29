@@ -4086,10 +4086,10 @@
         .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
         .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
 
-        .mp-kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:20px; }
+        .mp-kpis { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-bottom:20px; }
         .mp-kpis-hero { display:block; margin-bottom:14px; }
-        .mp-kpis-componentes { grid-template-columns: repeat(4, 1fr); }
-        @media (max-width: 900px) { .mp-kpis-componentes { grid-template-columns: repeat(2, 1fr); } }
+        .mp-kpis-componentes { grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 1100px) { .mp-kpis-componentes { grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 520px) { .mp-kpis-componentes { grid-template-columns: 1fr; } }
         .mp-kpi {
             background: var(--cor-fundo-card); border:1px solid var(--cor-borda); border-radius:14px;
@@ -4117,8 +4117,7 @@
         .mp-kpi-veiculos .mp-kpi-icon { background: rgba(100,116,139,0.10); color: #64748b; }
         .mp-kpi-body { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
-        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .mp-kpis-componentes .mp-kpi-valor { font-size:18px; }
+        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
         .mp-kpi-delta.pos { color: var(--cor-primaria); }
         .mp-kpi-delta.neg { color: var(--cor-erro); }
