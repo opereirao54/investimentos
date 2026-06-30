@@ -243,6 +243,200 @@ function onChangeCategoriaDespesa() {
   if (sel.value === '__nova__') document.getElementById('categoriaDespesaNova')?.focus();
 }
 
+// === Gerenciamento de categorias (editar/excluir) ===
+
+function renderizarListaCategoriasConfig() {
+  const wrap = document.getElementById('listaCategoriasConfig');
+  if (!wrap) return;
+  const padrao = CATEGORIAS_DESPESA_PADRAO;
+  const custom = obterCategoriasDespesaCustom();
+  const todas = padrao.concat(custom);
+
+  if (!todas.length) {
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--cor-texto-mutado);text-align:center;padding:10px;">Nenhuma categoria cadastrada.</div>';
+    return;
+  }
+
+  wrap.innerHTML = todas.map(function(c) {
+    var ehPadrao = padrao.some(function(p) { return p.v === c.v; });
+    var qtdUso = contarUsosCategoria(c.v);
+    var badgeUso = qtdUso > 0
+      ? '<span style="font-size:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:6px;padding:1px 6px;color:var(--cor-texto-mutado);">' + qtdUso + ' uso' + (qtdUso === 1 ? '' : 's') + '</span>'
+      : '';
+    var acoes = ehPadrao
+      ? '<span style="font-size:10px;color:var(--cor-texto-mutado);font-style:italic;">padrão</span>'
+      : '<div style="display:flex;gap:4px;">'
+        + '<button onclick="iniciarEdicaoCategoriaConfig(\'' + c.v + '\')" style="background:none;border:none;cursor:pointer;color:var(--cor-info);font-size:14px;padding:2px;" title="Editar"><i class="ph ph-pencil-simple"></i></button>'
+        + '<button onclick="confirmarExclusaoCategoriaConfig(\'' + c.v + '\')" style="background:none;border:none;cursor:pointer;color:var(--cor-erro);font-size:14px;padding:2px;" title="Excluir"><i class="ph ph-trash"></i></button>'
+        + '</div>';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:8px;">'
+      + '<div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">'
+      + '<span style="font-size:15px;line-height:1;">' + c.label + '</span>'
+      + badgeUso
+      + '</div>'
+      + acoes
+      + '</div>';
+  }).join('');
+}
+
+function contarUsosCategoria(slug) {
+  if (typeof transacoes === 'undefined') return 0;
+  var count = 0;
+  transacoes.forEach(function(t) {
+    if (t.categoriaDespesa === slug) count++;
+  });
+  return count;
+}
+
+function iniciarEdicaoCategoriaConfig(slug) {
+  var custom = obterCategoriasDespesaCustom();
+  var cat = custom.find(function(c) { return c.v === slug; });
+  if (!cat) return;
+
+  var partes = cat.label.match(/^(\S+)\s+(.+)$/);
+  var emoji = partes ? partes[1] : '🏷️';
+  var nome = partes ? partes[2] : cat.label;
+
+  document.getElementById('editCategoriaSlug').value = slug;
+  document.getElementById('editCategoriaNome').value = nome;
+  document.getElementById('editCategoriaEmoji').value = emoji;
+  document.getElementById('editCategoriaEmojiBtn').textContent = emoji;
+  document.getElementById('formEditarCategoriaConfig').style.display = 'block';
+  document.getElementById('lblEditarCategoriaTitulo').textContent = 'Editar: ' + cat.label;
+  document.getElementById('editCategoriaNome').focus();
+}
+
+function cancelarEdicaoCategoriaConfig() {
+  document.getElementById('formEditarCategoriaConfig').style.display = 'none';
+  var picker = document.getElementById('editCategoriaEmojiPicker');
+  if (picker) picker.style.display = 'none';
+}
+
+function toggleEmojiPickerCategoriaEdit() {
+  var picker = document.getElementById('editCategoriaEmojiPicker');
+  if (!picker) return;
+  if (picker.style.display === 'flex') {
+    picker.style.display = 'none';
+    return;
+  }
+  var atual = document.getElementById('editCategoriaEmoji').value || '🏷️';
+  picker.innerHTML = EMOJIS_CATEGORIA_DESPESA.map(function(e) {
+    return '<button type="button" onclick="selecionarEmojiCategoriaEdit(\'' + e + '\')" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;border-radius:8px;cursor:pointer;background:transparent;border:1.5px solid ' + (e === atual ? 'var(--cor-primaria)' : 'transparent') + ';">' + e + '</button>';
+  }).join('');
+  picker.style.display = 'flex';
+}
+
+function selecionarEmojiCategoriaEdit(emoji) {
+  document.getElementById('editCategoriaEmoji').value = emoji;
+  document.getElementById('editCategoriaEmojiBtn').textContent = emoji;
+  var picker = document.getElementById('editCategoriaEmojiPicker');
+  if (picker) picker.style.display = 'none';
+}
+
+function salvarEdicaoCategoriaConfig() {
+  var slugOriginal = document.getElementById('editCategoriaSlug').value;
+  var nomeNovo = (document.getElementById('editCategoriaNome').value || '').trim();
+  var emojiNovo = (document.getElementById('editCategoriaEmoji').value || '🏷️').trim();
+
+  if (!nomeNovo) return mostrarToast('Informe o nome da categoria.', 'erro');
+
+  var novoSlug = nomeNovo
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'outros';
+
+  var todas = obterCategoriasDespesa();
+  if (novoSlug !== slugOriginal && todas.some(function(c) { return c.v === novoSlug; })) {
+    return mostrarToast('Já existe uma categoria com esse nome.', 'erro');
+  }
+
+  var custom = obterCategoriasDespesaCustom();
+  var idx = custom.findIndex(function(c) { return c.v === slugOriginal; });
+  if (idx === -1) return;
+
+  custom[idx] = { v: novoSlug, label: emojiNovo + ' ' + nomeNovo };
+  salvarCategoriasDespesaCustom(custom);
+
+  if (novoSlug !== slugOriginal && typeof transacoes !== 'undefined') {
+    var mudou = false;
+    transacoes.forEach(function(t) {
+      if (t.categoriaDespesa === slugOriginal) {
+        t.categoriaDespesa = novoSlug;
+        mudou = true;
+      }
+    });
+    if (mudou) {
+      try {
+        localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+          AppliqueiCloudSync.forceFlush();
+      } catch (e) {
+        console.error('[salvarEdicaoCategoriaConfig] localStorage', e);
+      }
+    }
+  }
+
+  cancelarEdicaoCategoriaConfig();
+  renderizarListaCategoriasConfig();
+  mostrarToast('Categoria atualizada.', 'sucesso');
+}
+
+function confirmarExclusaoCategoriaConfig(slug) {
+  var custom = obterCategoriasDespesaCustom();
+  var cat = custom.find(function(c) { return c.v === slug; });
+  if (!cat) return;
+
+  var qtdUso = contarUsosCategoria(slug);
+  var msgExtra = qtdUso > 0
+    ? '\n\nAtenção: ' + qtdUso + ' lançamento' + (qtdUso === 1 ? '' : 's') + ' usa' + (qtdUso === 1 ? '' : 'm') + ' esta categoria e ficará' + (qtdUso === 1 ? '' : 'ão') + ' sem categoria.'
+    : '';
+
+  var modal = document.getElementById('modalConfirmacao');
+  var titulo = document.getElementById('modalTitulo');
+  var msg = document.getElementById('modalMensagem');
+  var acoes = document.getElementById('modalAcoes');
+
+  titulo.innerHTML = '<i class="ph-fill ph-warning-circle" style="color: var(--cor-erro);"></i> Excluir Categoria';
+  msg.innerHTML = 'Tem certeza que deseja excluir a categoria <strong>"' + cat.label + '"</strong>?'
+    + (qtdUso > 0
+      ? '<br><br><span style="color:var(--cor-erro);font-weight:600;"><i class="ph ph-warning"></i> ' + qtdUso + ' lançamento' + (qtdUso === 1 ? '' : 's') + ' usa' + (qtdUso === 1 ? '' : 'm') + ' esta categoria e ficará' + (qtdUso === 1 ? '' : 'ão') + ' sem categoria.</span>'
+      : '');
+  acoes.innerHTML = '<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarExclusaoCategoriaConfig(\'' + slug + '\')"><i class="ph ph-trash"></i> Sim, excluir</button>';
+  modal.style.display = 'flex';
+}
+
+function executarExclusaoCategoriaConfig(slug) {
+  var custom = obterCategoriasDespesaCustom();
+  custom = custom.filter(function(c) { return c.v !== slug; });
+  salvarCategoriasDespesaCustom(custom);
+
+  if (typeof transacoes !== 'undefined') {
+    var mudou = false;
+    transacoes.forEach(function(t) {
+      if (t.categoriaDespesa === slug) {
+        delete t.categoriaDespesa;
+        mudou = true;
+      }
+    });
+    if (mudou) {
+      try {
+        localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+        if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+          AppliqueiCloudSync.forceFlush();
+      } catch (e) {
+        console.error('[executarExclusaoCategoriaConfig] localStorage', e);
+      }
+    }
+  }
+
+  fecharModal();
+  renderizarListaCategoriasConfig();
+  mostrarToast('Categoria excluída.', 'sucesso');
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
 // Resolve a categoria de despesa do formulário. Se "Outros" foi escolhido,
 // normaliza o texto livre num slug, cadastra para o perfil (se inédito) e
 // devolve o valor. Retorna null para categorias que não usam o campo.

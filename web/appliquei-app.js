@@ -320,6 +320,7 @@ function formatarMoeda(valor) {
 // --- GESTÃO DO MODAL DE CONFIGURAÇÕES ---
 function abrirModalConfig() {
   renderizarListaCartoesConfig();
+  if (typeof renderizarListaCategoriasConfig === 'function') renderizarListaCategoriasConfig();
   document.getElementById('modalConfiguracoes').style.display = 'flex';
 }
 function fecharModalConfig() {
