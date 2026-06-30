@@ -168,6 +168,12 @@
         body.dark #relatorio_mensal .rm-hero-stat { background: var(--cor-superficie); }
         body.dark #relatorio_mensal .rm-chart-pill.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); border-color: var(--cor-borda-erro); }
 
+        /* Meu patrimônio */
+        body.dark #meu_patrimonio .mp-kpi-hero { background: linear-gradient(135deg, var(--cor-branco) 0%, rgba(37,99,235,0.08) 100%); }
+        body.dark #meu_patrimonio .mp-kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.18); }
+        body.dark #meu_patrimonio .mp-inst-item:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.2); }
+        body.dark #meu_patrimonio .mp-empty { background: var(--cor-branco); }
+
         /* Meus sonhos */
         body.dark #meus_sonhos .sonhos-overview { background: linear-gradient(135deg, var(--cor-branco) 0%, rgba(124,58,237,0.06) 50%, rgba(16,185,129,0.07) 100%); }
 
@@ -4077,54 +4083,102 @@
             font-family: 'Figtree', sans-serif;
         }
         .mp-select:focus { outline:2px solid var(--cor-primaria); outline-offset:1px; }
-        .mp-toggle { display:inline-flex; background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:10px; padding:3px; }
+        .mp-toggle { display:inline-flex; background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:12px; padding:3px; position:relative; }
         .mp-toggle-btn {
             background: transparent; border:none; color: var(--cor-texto-mutado);
-            padding:6px 14px; font-size:12px; font-weight:600; cursor:pointer; border-radius:7px;
-            transition: all .15s ease; font-family: 'Figtree', sans-serif;
+            padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; border-radius:9px;
+            transition: color .2s ease, background .2s ease, box-shadow .2s ease; font-family: 'Figtree', sans-serif;
+            position:relative; z-index:1;
         }
         .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
-        .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+        .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
-        .mp-kpis { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; margin-bottom:20px; }
-        @media (max-width: 760px) { .mp-kpis { grid-template-columns: 1fr; } }
-        .mp-kpi {
-            background: var(--cor-fundo-card); border:1px solid var(--cor-borda); border-radius:14px;
-            padding:18px 20px; display:flex; gap:14px; align-items:center;
-            position:relative; overflow:hidden;
+        @keyframes mpFadeSlideIn {
+            from { opacity:0; transform:translateY(12px); }
+            to   { opacity:1; transform:translateY(0); }
         }
+        @keyframes mpPulseGlow {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.08); }
+            50% { box-shadow: 0 0 24px 4px rgba(37,99,235,0.10); }
+        }
+        .mp-kpis { display:grid; grid-template-columns: repeat(2, 1fr); gap:14px; margin-bottom:20px; }
+        .mp-kpis-hero { display:block; margin-bottom:18px; }
+        .mp-kpis-componentes { grid-template-columns: repeat(2, 1fr); }
+        @media (min-width: 1100px) { .mp-kpis-componentes { grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 520px) { .mp-kpis-componentes { grid-template-columns: 1fr; } }
+        .mp-kpi {
+            background: var(--cor-fundo-card); border:1px solid var(--cor-borda); border-radius:16px;
+            padding:20px 22px; display:flex; gap:14px; align-items:center;
+            position:relative; overflow:hidden;
+            animation: mpFadeSlideIn .45s ease both;
+            transition: box-shadow .22s ease, transform .22s ease, border-color .22s ease;
+        }
+        .mp-kpi:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.06); transform:translateY(-2px); border-color: var(--cor-borda2); }
+        .mp-kpis-componentes .mp-kpi:nth-child(1) { animation-delay: .06s; }
+        .mp-kpis-componentes .mp-kpi:nth-child(2) { animation-delay: .12s; }
+        .mp-kpis-componentes .mp-kpi:nth-child(3) { animation-delay: .18s; }
+        .mp-kpis-componentes .mp-kpi:nth-child(4) { animation-delay: .24s; }
+        .mp-kpi-hero {
+            background: linear-gradient(135deg, var(--cor-fundo-card) 0%, color-mix(in srgb, var(--cor-info) 6%, var(--cor-fundo-card)) 100%);
+            border:1px solid color-mix(in srgb, var(--cor-info) 18%, var(--cor-borda));
+            padding:26px 28px;
+        }
+        .mp-kpi-hero .mp-kpi-valor { font-size:32px; letter-spacing:-.5px; }
+        .mp-kpi-hero .mp-kpi-icon { width:52px; height:52px; font-size:26px; border-radius:14px; }
         .mp-kpi::before {
             content:''; position:absolute; top:0; left:0; height:100%; width:4px;
-            background: var(--cor-primaria);
+            background: var(--cor-primaria); border-radius:0 4px 4px 0;
         }
-        .mp-kpi-patrimonio::before { background: var(--cor-info); }
+        .mp-kpi-patrimonio::before { background: linear-gradient(180deg, var(--cor-info), #7c3aed); }
         .mp-kpi-saldo::before    { background: var(--cor-primaria); }
         .mp-kpi-investido::before{ background: var(--cor-patrimonio); }
+        .mp-kpi-imoveis::before  { background: #f59e0b; }
+        .mp-kpi-veiculos::before { background: #64748b; }
         .mp-kpi-icon {
-            width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center;
-            font-size:22px; flex-shrink:0;
+            width:44px; height:44px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+            font-size:22px; flex-shrink:0; transition: transform .2s ease;
         }
-        .mp-kpi-patrimonio .mp-kpi-icon { background: rgba(37,99,235,0.10); color: var(--cor-info); }
+        .mp-kpi:hover .mp-kpi-icon { transform:scale(1.08); }
+        .mp-kpi-patrimonio .mp-kpi-icon { background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.10)); color: var(--cor-info); }
         .mp-kpi-saldo    .mp-kpi-icon { background: rgba(5,150,105,0.10);  color: var(--cor-primaria); }
         .mp-kpi-investido .mp-kpi-icon{ background: rgba(124,58,237,0.10); color: var(--cor-patrimonio); }
-        .mp-kpi-body { display:flex; flex-direction:column; gap:2px; min-width:0; flex:1; }
+        .mp-kpi-imoveis  .mp-kpi-icon { background: rgba(245,158,11,0.10); color: #f59e0b; }
+        .mp-kpi-veiculos .mp-kpi-icon { background: rgba(100,116,139,0.10); color: #64748b; }
+        .mp-kpi-body { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
-        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); }
+        .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); transition: color .2s; }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
         .mp-kpi-delta.pos { color: var(--cor-primaria); }
         .mp-kpi-delta.neg { color: var(--cor-erro); }
         .mp-kpi-delta.neu { color: var(--cor-texto-mutado); }
         .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
         .mp-kpi-sub i { font-size:12px; opacity:.8; }
+        .mp-composition-bar {
+            display:flex; height:8px; border-radius:99px; overflow:hidden; margin-top:10px;
+            background: var(--cor-superficie); gap:2px;
+        }
+        .mp-composition-seg {
+            height:100%; border-radius:99px; transition: width .6s cubic-bezier(.4,0,.2,1), opacity .3s;
+            min-width:3px; cursor:default; position:relative;
+        }
+        .mp-composition-seg:hover { opacity:.8; filter:brightness(1.1); }
+        .mp-composition-legend {
+            display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:8px;
+        }
+        .mp-composition-legend-item {
+            font-size:10px; font-weight:600; color: var(--cor-texto-mutado);
+            display:inline-flex; align-items:center; gap:4px;
+        }
+        .mp-composition-legend-item .mp-leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 
         .mp-grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:20px; align-items:start; }
         @media (max-width: 960px) { .mp-grid { grid-template-columns: 1fr; } }
         .mp-section-head {
             display:flex; justify-content:space-between; align-items:baseline; gap:10px;
-            margin-bottom:14px; flex-wrap:wrap;
+            margin-bottom:16px; flex-wrap:wrap;
         }
-        .mp-section-head h3 { font-size:14px; font-weight:600; color:var(--cor-texto-principal); margin:0; }
-        .mp-section-sub, .mp-meta { font-size:11px; color: var(--cor-texto-mutado); font-weight:500; }
+        .mp-section-head h3 { font-size:15px; font-weight:700; color:var(--cor-texto-principal); margin:0; display:flex; align-items:center; gap:6px; }
+        .mp-section-sub, .mp-meta { font-size:11.5px; color: var(--cor-texto-mutado); font-weight:500; }
         .mp-meta i { font-size:12px; margin-right:3px; vertical-align:-2px; }
 
         .mp-barras { display:flex; flex-direction:column; gap:14px; }
@@ -4152,9 +4206,9 @@
 
         /* ===== "Onde está o seu dinheiro" — cabeçalho + filtro premium ===== */
         .mp-onde-head { align-items:center; }
-        .mp-onde-titulo { display:flex; flex-direction:column; gap:2px; min-width:0; }
-        .mp-onde-titulo h3 { display:flex; align-items:center; gap:7px; }
-        .mp-onde-ic { color: var(--cor-primaria); font-size:17px; }
+        .mp-onde-titulo { display:flex; flex-direction:column; gap:3px; min-width:0; }
+        .mp-onde-titulo h3 { display:flex; align-items:center; gap:8px; font-size:15px; }
+        .mp-onde-ic { color: var(--cor-primaria); font-size:18px; }
         .mp-filtro-cat-wrap {
             display:inline-flex; align-items:center; gap:7px; flex-shrink:0;
             background: var(--cor-superficie); border:1px solid var(--cor-borda);
@@ -4167,35 +4221,36 @@
         }
         .mp-filtro-cat:focus { outline:none !important; }
 
-        /* Sem max-height/scroll aninhado: a lista cresce e quem rola é a própria
-           página. Scroll aninhado dentro de um card travava o toque no mobile e
-           dava a impressão de que "a barra de rolagem não funciona". */
         .mp-lista-inst { display:flex; flex-direction:column; gap:10px; padding:2px; }
-        /* Extratos longos ganham rolagem própria só em telas grandes; no mobile
-           fluem na página (rolagem única e confiável). */
         @media (min-width: 861px) {
             .mp-inst-extrato { max-height: 460px; overflow-y: auto; }
         }
-        /* Card de instituição — visual premium: superfície branca, sombra suave,
-           realce no hover e barra de acento à esquerda. */
         .mp-inst-item {
             display:flex; justify-content:space-between; align-items:center; gap:10px;
-            padding:13px 15px; background: var(--cor-branco); border-radius:14px;
-            transition: box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+            padding:14px 16px; background: var(--cor-branco); border-radius:16px;
+            transition: box-shadow .22s ease, transform .22s ease, border-color .22s ease;
             border:1px solid var(--cor-borda); box-shadow: var(--shadow-suave);
             position:relative; overflow:hidden;
+            animation: mpFadeSlideIn .4s ease both;
         }
-        .mp-inst-item:hover { box-shadow: var(--shadow-media); transform: translateY(-1px); border-color: var(--cor-borda2); }
+        .mp-lista-inst .mp-inst-item:nth-child(1) { animation-delay:.05s; }
+        .mp-lista-inst .mp-inst-item:nth-child(2) { animation-delay:.1s; }
+        .mp-lista-inst .mp-inst-item:nth-child(3) { animation-delay:.15s; }
+        .mp-lista-inst .mp-inst-item:nth-child(4) { animation-delay:.2s; }
+        .mp-lista-inst .mp-inst-item:nth-child(5) { animation-delay:.25s; }
+        .mp-inst-item:hover { box-shadow: 0 6px 24px rgba(0,0,0,0.07); transform: translateY(-2px); border-color: var(--cor-borda2); }
         .mp-inst-head-left { gap:12px; }
         .mp-inst-avatar {
-            width:40px; height:40px; border-radius:12px; flex-shrink:0;
+            width:42px; height:42px; border-radius:13px; flex-shrink:0;
             display:flex; align-items:center; justify-content:center;
             font-family:'Figtree', sans-serif; font-weight:800; font-size:14px; letter-spacing:.3px;
             color: var(--mp-accent, var(--cor-primaria));
             background: var(--cor-superficie);
             background: color-mix(in srgb, var(--mp-accent, var(--cor-primaria)) 14%, var(--cor-branco));
-            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mp-accent, var(--cor-primaria)) 22%, transparent);
+            box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--mp-accent, var(--cor-primaria)) 22%, transparent);
+            transition: transform .2s ease, box-shadow .2s ease;
         }
+        .mp-inst-item:hover .mp-inst-avatar { transform:scale(1.06); }
         .mp-inst-avatar i { font-size:19px; }
         .mp-inst-meta { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
         .mp-inst-head-right { text-align:right; flex-shrink:0; display:flex; flex-direction:column; gap:1px; }
@@ -4208,34 +4263,35 @@
             display:inline-flex; align-items:center; gap:3px;
         }
         .mp-inst-tipo i { font-size:11px; }
-        .mp-inst-share { display:block; height:4px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; margin-top:3px; max-width:240px; }
-        .mp-inst-share-fill { display:block; height:100%; border-radius:999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
+        .mp-inst-share { display:block; height:5px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; margin-top:4px; max-width:240px; }
+        .mp-inst-share-fill { display:block; height:100%; border-radius:999px; transition: width .7s cubic-bezier(.4,0,.2,1); }
         .mp-inst-valor { font-family:'DM Mono', monospace; font-size:14px; font-weight:700; color: var(--cor-texto-principal); }
         .mp-inst-sub   { font-size:10.5px; color: var(--cor-texto-mutado); display:block; text-align:right; margin-top:1px; }
         .mp-inst-detalhe { display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; padding-top:11px; border-top:1px dashed var(--cor-borda); }
         .mp-inst-chip {
             font-size:11px; color: var(--cor-texto-secundario);
             background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:999px;
-            padding:3px 10px; display:inline-flex; align-items:center; gap:5px; transition: border-color .12s;
+            padding:4px 11px; display:inline-flex; align-items:center; gap:5px;
+            transition: border-color .15s, background .15s, transform .15s;
         }
-        .mp-inst-chip:hover { border-color: var(--cor-borda2); }
+        .mp-inst-chip:hover { border-color: var(--cor-borda2); background: var(--cor-fundo-card); transform:translateY(-1px); }
         .mp-inst-chip strong { color: var(--cor-texto-principal); font-family:'DM Mono', monospace; font-weight:700; }
         .mp-classes-total {
             display:flex; justify-content:space-between; align-items:center; gap:10px;
-            padding:11px 12px; margin-top:4px; border-top:2px solid var(--cor-borda);
-            font-size:12.5px; font-weight:700; color: var(--cor-texto-principal);
+            padding:13px 14px; margin-top:8px; border-top:2px solid var(--cor-borda);
+            font-size:13px; font-weight:700; color: var(--cor-texto-principal);
+            border-radius:0 0 10px 10px; background: var(--cor-superficie);
         }
 
-        /* Instituição recolhível + extrato de caixa */
         .mp-inst-collapsible { flex-direction:column; align-items:stretch; gap:0; }
-        .mp-inst-head { display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer; }
-        .mp-inst-head-left { min-width:0; display:flex; align-items:center; gap:9px; }
-        .mp-inst-chevron { font-size:14px; color: var(--cor-texto-mutado); transition: transform .18s ease; flex-shrink:0; }
+        .mp-inst-head { display:flex; justify-content:space-between; align-items:center; gap:10px; cursor:pointer; padding:2px 0; }
+        .mp-inst-head-left { min-width:0; display:flex; align-items:center; gap:10px; }
+        .mp-inst-chevron { font-size:14px; color: var(--cor-texto-mutado); transition: transform .25s cubic-bezier(.4,0,.2,1); flex-shrink:0; }
         .mp-inst-chevron.aberto { transform: rotate(90deg); }
-        .mp-inst-extrato { margin-top:10px; padding-top:10px; border-top:1px solid var(--cor-borda); flex-direction:column; gap:1px; }
-        .mp-extrato-titulo { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color: var(--cor-texto-mutado); margin-bottom:6px; display:flex; align-items:center; gap:5px; }
+        .mp-inst-extrato { margin-top:12px; padding-top:12px; border-top:1px solid var(--cor-borda); flex-direction:column; gap:2px; }
+        .mp-extrato-titulo { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color: var(--cor-texto-mutado); margin-bottom:8px; display:flex; align-items:center; gap:5px; }
         .mp-extrato-titulo i { font-size:12px; }
-        .mp-extrato-linha { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:6px 8px; border-radius:7px; }
+        .mp-extrato-linha { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 10px; border-radius:9px; transition: background .12s; }
         .mp-extrato-linha:hover { background: var(--cor-fundo-card); }
         .mp-extrato-info { min-width:0; display:flex; flex-direction:column; }
         .mp-extrato-desc { font-size:12px; color: var(--cor-texto-principal); font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -4268,7 +4324,7 @@
         .mp-mov-tipo.aporte   { background: rgba(124,58,237,0.10);  color: var(--cor-patrimonio);   border-color: rgba(124,58,237,0.22); }
         /* "Observação": resumo do que foi quitado por tipo, no topo do extrato */
         .mp-extrato-resumo {
-            margin-bottom:8px; padding:9px 11px; border-radius:9px;
+            margin-bottom:10px; padding:10px 12px; border-radius:10px;
             background: var(--cor-superficie); border:1px solid var(--cor-borda);
         }
         .mp-extrato-resumo-tit { font-size:10.5px; font-weight:700; color: var(--cor-texto-secundario); display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
@@ -4284,28 +4340,10 @@
         .mp-quit-chip.variavel strong { color: var(--cor-erro); }
         .mp-quit-chip.cartao strong   { color: var(--cor-cartao); }
 
-        .mp-donut-card { margin-bottom:20px; }
-        .mp-donut-grid { display:grid; grid-template-columns: 240px 1fr; gap:28px; align-items:center; }
-        @media (max-width: 720px) { .mp-donut-grid { grid-template-columns: 1fr; } }
-        .mp-donut-wrap { position:relative; height:240px; }
-        .mp-donut-legenda { display:flex; flex-direction:column; gap:6px; justify-content:center; }
-        .mp-leg-item {
-            display:flex; align-items:flex-start; gap:12px;
-            padding:10px 12px; border-radius:11px; cursor:pointer;
-            border:1px solid transparent;
-            transition: background .12s, border-color .12s, opacity .12s;
+        .mp-contas-separador {
+            margin:24px 0 18px; border-top:1.5px solid var(--cor-borda);
         }
-        .mp-leg-item:hover { background: var(--cor-superficie); border-color: var(--cor-borda); }
-        .mp-leg-item.dim { opacity:.3; }
-        .mp-leg-dot { width:12px; height:12px; border-radius:4px; margin-top:4px; flex-shrink:0; }
-        .mp-leg-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:7px; }
-        .mp-leg-top { display:flex; justify-content:space-between; align-items:baseline; gap:12px; }
-        .mp-leg-nome { font-size:13px; font-weight:600; color: var(--cor-texto-principal); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-        .mp-leg-rs   { font-family:'DM Mono', monospace; font-size:13px; font-weight:700; color: var(--cor-texto-principal); flex-shrink:0; }
-        .mp-leg-bottom { display:flex; align-items:center; gap:10px; }
-        .mp-leg-bar { flex:1; height:6px; border-radius:999px; background: var(--cor-superficie); overflow:hidden; min-width:40px; }
-        .mp-leg-bar-fill { display:block; height:100%; border-radius:999px; transition: width .5s cubic-bezier(.4,0,.2,1); }
-        .mp-leg-share { font-family:'DM Mono', monospace; font-size:11px; font-weight:600; color: var(--cor-texto-mutado); min-width:42px; text-align:right; }
+        .mp-bar-chart-wrap { position:relative; width:100%; min-height:180px; max-height:350px; }
         .mp-leg-pct  { font-family:'DM Mono', monospace; font-size:11px; font-weight:700; min-width:60px; text-align:right; display:inline-flex; align-items:center; justify-content:flex-end; gap:2px; }
         .mp-leg-pct i { font-size:11px; }
         .mp-leg-pct.pos { color: var(--cor-primaria); }
@@ -4313,9 +4351,10 @@
         .mp-leg-pct.neu { color: var(--cor-texto-mutado); }
 
         .mp-empty {
-            text-align:center; padding:32px 16px; color: var(--cor-texto-mutado); font-size:13px;
+            text-align:center; padding:40px 20px; color: var(--cor-texto-mutado); font-size:13px;
+            line-height:1.5; border-radius:12px; background: var(--cor-superficie); border:1px dashed var(--cor-borda);
         }
-        .mp-empty i { font-size:32px; display:block; margin-bottom:8px; opacity:.4; }
+        .mp-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.35; }
 
         /* Toggle integrado: marca KPIs com "líquido" para deixar claro */
         .mp-kpis.modo-liquido .mp-kpi-valor::after {
@@ -4331,7 +4370,6 @@
         body.valores-ocultos #meu_patrimonio .mp-extrato-subtotal strong,
         body.valores-ocultos #meu_patrimonio .mp-quit-chip strong,
         body.valores-ocultos #meu_patrimonio .mp-extrato-resumo-tit strong,
-        body.valores-ocultos #meu_patrimonio .mp-leg-rs,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
 
         /* ===== Combobox custom (instituição financeira) — mobile-friendly ===== */
@@ -5143,6 +5181,8 @@
         #meu_patrimonio .mp-kpi-patrimonio::before { background: linear-gradient(180deg,#60a5fa,#2563eb); }
         #meu_patrimonio .mp-kpi-saldo::before { background: linear-gradient(180deg,#10b981,#059669); }
         #meu_patrimonio .mp-kpi-investido::before { background: linear-gradient(180deg,#a78bfa,#7c3aed); }
+        #meu_patrimonio .mp-kpi-imoveis::before  { background: linear-gradient(180deg,#fbbf24,#f59e0b); }
+        #meu_patrimonio .mp-kpi-veiculos::before  { background: linear-gradient(180deg,#94a3b8,#64748b); }
         #meu_patrimonio .mp-kpi-icon { box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04); }
         #meu_patrimonio .mp-kpi-valor { font-size: 24px; letter-spacing: -0.4px; }
         #meu_patrimonio .mp-barra-item { border-radius: 10px; }
@@ -6695,7 +6735,7 @@
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Uma foto de tudo o que você tem agora — banco a banco, corretora a corretora.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Visão consolidada de tudo o que você tem — saldo, investimentos e bens.</p>
                 </div>
                 <div class="page-actions mp-controls">
                     <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
@@ -6705,16 +6745,20 @@
                 </div>
             </div>
 
-            <!-- KPIs principais — a foto do patrimônio (sem despesas, sem datas) -->
-            <div class="mp-kpis" id="mp-kpis">
-                <div class="mp-kpi mp-kpi-patrimonio">
+            <!-- KPI hero: patrimônio total -->
+            <div id="mp-kpis" class="mp-kpis-hero">
+                <div class="mp-kpi mp-kpi-patrimonio mp-kpi-hero">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
                     <div class="mp-kpi-body">
                         <span class="mp-kpi-label">Patrimônio total</span>
                         <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
                         <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                        <div id="mp-composition-bar"></div>
                     </div>
                 </div>
+            </div>
+            <!-- Componentes do patrimônio: cada fatia que soma no total -->
+            <div class="mp-kpis mp-kpis-componentes">
                 <div class="mp-kpi mp-kpi-saldo">
                     <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
                     <div class="mp-kpi-body">
@@ -6731,15 +6775,30 @@
                         <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
                     </div>
                 </div>
+                <div class="mp-kpi mp-kpi-imoveis">
+                    <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
+                    <div class="mp-kpi-body">
+                        <span class="mp-kpi-label">Imóveis</span>
+                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                        <span class="mp-kpi-delta neu" id="mp-kpi-imoveis-qtd">—</span>
+                    </div>
+                </div>
+                <div class="mp-kpi mp-kpi-veiculos">
+                    <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
+                    <div class="mp-kpi-body">
+                        <span class="mp-kpi-label">Veículos</span>
+                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                        <span class="mp-kpi-delta neu" id="mp-kpi-veiculos-qtd">—</span>
+                    </div>
+                </div>
             </div>
 
-            <!-- Onde está o dinheiro: extrato consolidado por instituição (banco/corretora),
-                 com o detalhe das classes de investimento que cada uma guarda -->
+            <!-- Onde está o dinheiro: extrato consolidado por instituição + Minhas Contas -->
             <div class="card-container mp-onde-card">
                 <div class="mp-section-head mp-onde-head">
                     <div class="mp-onde-titulo">
                         <h3><i class="ph-fill ph-buildings mp-onde-ic"></i> Onde está o seu dinheiro</h3>
-                        <span class="mp-section-sub">Cada banco e corretora — caixa + cada tipo de investimento</span>
+                        <span class="mp-section-sub">Caixa e investimentos em cada banco e corretora</span>
                     </div>
                     <label class="mp-filtro-cat-wrap" title="Filtrar o extrato por categoria de gasto (cadastro do Controle Financeiro)">
                         <i class="ph ph-funnel-simple"></i>
@@ -6751,38 +6810,14 @@
                 <div class="mp-lista-inst" id="mp-lista-inst">
                     <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
                 </div>
-            </div>
 
-            <!-- Total investido por classe: somatória de cada tipo (= KPI Total investido) -->
-            <div class="card-container">
-                <div class="mp-section-head">
-                    <h3>Total investido por classe</h3>
-                    <span class="mp-section-sub">Todo tipo de investimento que você tem</span>
-                </div>
-                <div class="mp-lista-inst" id="mp-classes-lista">
-                    <div class="mp-empty"><i class="ph ph-chart-bar"></i>—</div>
-                </div>
-            </div>
-
-            <!-- Gráfico único: pizza = divisão; legenda (barrinhas) = valor + rentabilidade -->
-            <div class="card-container mp-donut-card">
-                <div class="mp-section-head">
-                    <h3>Divisão do patrimônio</h3>
-                    <span class="mp-meta" id="mp-cotacao-meta"><i class="ph ph-arrows-clockwise"></i>Cotações…</span>
-                </div>
-                <div class="mp-donut-grid">
-                    <div class="mp-donut-wrap"><canvas id="mp-grafico-donut" aria-label="Divisão por categoria"></canvas></div>
-                    <div class="mp-donut-legenda" id="mp-donut-legenda"></div>
-                </div>
-            </div>
-
-            <!-- Minhas Contas / Instituições (cadastro-mestre) -->
-            <div class="card-container">
-                <div class="mp-section-head">
-                    <h3>Minhas Contas</h3>
-                    <div style="display:flex;gap:6px;">
-                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
-                        <button class="btn-secundario" style="padding:5px 11px;font-size:12px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
+                <!-- Minhas Contas (cadastro-mestre) — dentro de "Onde está o seu dinheiro" -->
+                <div class="mp-contas-separador"></div>
+                <div class="mp-section-head" style="margin-top:6px;">
+                    <h3><i class="ph-fill ph-bank" style="color:var(--cor-primaria);font-size:16px;"></i> Minhas Contas</h3>
+                    <div style="display:flex;gap:8px;">
+                        <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>
+                        <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Nova conta</button>
                     </div>
                 </div>
                 <div id="formNovaConta" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
@@ -6805,6 +6840,58 @@
                     </div>
                 </div>
                 <div class="mp-lista-inst" id="listaContas"><div class="mp-empty"><i class="ph ph-bank"></i>—</div></div>
+            </div>
+
+            <!-- Total investido por classe: gráfico de barras horizontal -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3>Total investido por classe</h3>
+                    <span class="mp-section-sub">Distribuição de todos os seus investimentos por tipo de ativo</span>
+                </div>
+                <div class="mp-bar-chart-wrap">
+                    <canvas id="mp-grafico-classes" aria-label="Total investido por classe"></canvas>
+                </div>
+                <div id="mp-classes-lista"></div>
+            </div>
+
+            <!-- Meus Bens (imóveis, veículos, outros) -->
+            <div class="card-container">
+                <div class="mp-section-head">
+                    <h3><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> Meus Bens</h3>
+                    <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Novo bem</button>
+                </div>
+                <div id="formNovoBem" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
+                    <input type="hidden" id="bemEditId" value="">
+                    <div id="tituloFormBem" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Novo bem</div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Nome</label><input type="text" id="bemNome" placeholder="Ex: Honda Civic, Apartamento..."></div>
+                        <div class="form-group"><label>Tipo</label><select id="bemTipo" onchange="bemToggleFipe();bemLimparFipe()"></select></div>
+                    </div>
+                    <div class="form-group"><label>Descrição (opcional)</label><input type="text" id="bemDescricao" placeholder="Detalhes, placa, endereço..."></div>
+                    <!-- FIPE — só para veículos -->
+                    <div id="bemFipeWrap" style="display:none;">
+                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-mutado);margin:10px 0 6px;display:flex;align-items:center;gap:5px;"><i class="ph ph-car-simple"></i> Consulta tabela FIPE</div>
+                        <div class="grid-2-iguais" style="gap:10px;">
+                            <div class="form-group"><label>Tipo de veículo</label><select id="bemFipeVeiculoTipo" onchange="bemFipeOnTipoVeiculo()"></select></div>
+                            <div class="form-group"><label>Marca</label><select id="bemFipeMarca" onchange="bemFipeOnMarca()" disabled></select></div>
+                        </div>
+                        <div class="grid-2-iguais" style="gap:10px;">
+                            <div class="form-group"><label>Modelo</label><select id="bemFipeModelo" onchange="bemFipeOnModelo()" disabled></select></div>
+                            <div class="form-group"><label>Ano</label><select id="bemFipeAno" onchange="bemFipeOnAno()" disabled></select></div>
+                        </div>
+                        <div id="bemFipeInfo" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);color:var(--cor-txt-primaria);margin-bottom:8px;"></div>
+                    </div>
+                    <div class="grid-2-iguais" style="gap:10px;">
+                        <div class="form-group"><label>Valor atual</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorAtual" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                        <div class="form-group"><label>Valor de compra (opcional)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorCompra" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                    </div>
+                    <div class="form-group"><label>Data de compra (opcional)</label><input type="date" id="bemDataCompra"></div>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
+                        <button class="btn-secundario" onclick="cancelarFormBem()">Cancelar</button>
+                        <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormBem()"><i class="ph ph-check"></i> Salvar</button>
+                    </div>
+                </div>
+                <div class="mp-lista-inst" id="listaBens"><div class="mp-empty"><i class="ph ph-package"></i>Nenhum bem cadastrado.</div></div>
             </div>
         </section>
 
@@ -7442,6 +7529,7 @@
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
+    <script src="/web/appliquei-bens.js?v=bens-v1"></script>
     <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
     <script src="/web/appliquei-sonhos.js?v=fase2"></script>

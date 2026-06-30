@@ -24,8 +24,7 @@ var mpEstado = {
   modo: 'bruto',
   cotacoes: {},
   ultimaCotacao: null,
-  donutChart: null,
-  categoriaDestaque: null,
+  classesChart: null,
   // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
   // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
   extratoAberto: {},
@@ -570,8 +569,8 @@ function calcularPatrimonioTotal() {
     totalInvestido: cons.totalInvestido || 0,
     totalAtual: cons.totalAtual || 0,
     totalAtualLiq: cons.totalAtualLiq || 0,
-    // Soma exata de todas as categorias = patrimônio investido total.
     totalPatrimonio: cons.totalAtual || 0,
+    totalBens: typeof totalBensAtual === 'function' ? totalBensAtual() : 0,
     porCategoria: cat,
   };
 }
@@ -591,15 +590,24 @@ function mpAlterarModo(m) {
 }
 
 function mpRenderKPIs(consolidado, janela) {
-  // A foto = 3 KPIs: Patrimônio total (hero) · Saldo em caixa · Total investido.
-  // "Total Investido" = soma de TODAS as categorias (RF + RV + prev + reserva),
-  // via fonte única calcularPatrimonioTotal(). Sem KPI de despesas: a foto mostra
-  // o que a pessoa TEM, não o que gasta.
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
   const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
-  const patrimonioTotal = saldoTotal + valorInvestido;
+
+  var totalImoveis = 0;
+  var totalVeiculos = 0;
+  var qtdImoveis = 0;
+  var qtdVeiculos = 0;
+  if (typeof bensAtivos === 'function') {
+    bensAtivos().forEach(function (b) {
+      if (b.tipo === 'imovel') { totalImoveis += (b.valorAtual || 0); qtdImoveis++; }
+      else if (b.tipo === 'veiculo') { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
+      else { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
+    });
+  }
+  const valorBens = totalImoveis + totalVeiculos;
+  const patrimonioTotal = saldoTotal + valorInvestido + valorBens;
   const saldoAnterior = mpCalcularSaldoTotal(janela.anteriorFimMs);
   const investidoAporteTotal = patr.totalInvestido;
 
@@ -610,15 +618,40 @@ function mpRenderKPIs(consolidado, janela) {
   setText('mp-kpi-patrimonio-valor', patrimonioTotal);
   setText('mp-kpi-saldo-valor', saldoTotal);
   setText('mp-kpi-investido-valor', valorInvestido);
+  setText('mp-kpi-imoveis-valor', totalImoveis);
+  setText('mp-kpi-veiculos-valor', totalVeiculos);
 
-  // Sub do Patrimônio total: legenda do que ele soma (caixa + investido). Sem
-  // valores aqui — eles já estão nos dois KPIs ao lado e não devem vazar quando
-  // "ocultar valores" está ligado.
   const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
   if (subPatr) {
     subPatr.className = 'mp-kpi-sub';
-    subPatr.innerHTML =
-      '<i class="ph ph-wallet"></i> saldo em conta + <i class="ph ph-trend-up"></i> investimentos';
+    var partes = ['<i class="ph ph-wallet"></i> saldo', '<i class="ph ph-trend-up"></i> investimentos'];
+    if (totalImoveis > 0) partes.push('<i class="ph ph-house-line"></i> imóveis');
+    if (totalVeiculos > 0) partes.push('<i class="ph ph-car-simple"></i> veículos');
+    subPatr.innerHTML = partes.join(' + ');
+  }
+
+  var compBar = document.getElementById('mp-composition-bar');
+  if (compBar && patrimonioTotal > 0) {
+    var segs = [];
+    if (saldoTotal > 0) segs.push({ label: 'Saldo', valor: saldoTotal, cor: 'var(--cor-primaria)' });
+    if (valorInvestido > 0) segs.push({ label: 'Investido', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
+    if (totalImoveis > 0) segs.push({ label: 'Imóveis', valor: totalImoveis, cor: '#f59e0b' });
+    if (totalVeiculos > 0) segs.push({ label: 'Veículos', valor: totalVeiculos, cor: '#64748b' });
+    var barHtml = '<div class="mp-composition-bar">';
+    segs.forEach(function(s) {
+      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
+      barHtml += '<div class="mp-composition-seg" style="width:' + pct + '%;background:' + s.cor + ';" title="' + s.label + ': ' + mpFmtBRL(s.valor) + ' (' + pct + '%)"></div>';
+    });
+    barHtml += '</div>';
+    barHtml += '<div class="mp-composition-legend">';
+    segs.forEach(function(s) {
+      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
+      barHtml += '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' + s.cor + ';"></span>' + s.label + ' ' + pct + '%</span>';
+    });
+    barHtml += '</div>';
+    compBar.innerHTML = barHtml;
+  } else if (compBar) {
+    compBar.innerHTML = '';
   }
 
   const deltaSaldo =
@@ -628,8 +661,6 @@ function mpRenderKPIs(consolidado, janela) {
       ? ((valorInvestido - investidoAporteTotal) / investidoAporteTotal) * 100
       : 0;
 
-  // Saldo: tendência automática vs o fim do mês passado (não é navegação de data,
-  // é só um termômetro de "como o caixa evoluiu").
   const elSaldo = document.getElementById('mp-kpi-saldo-delta');
   if (elSaldo) {
     const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
@@ -637,7 +668,6 @@ function mpRenderKPIs(consolidado, janela) {
     elSaldo.className = 'mp-kpi-delta ' + cls;
     elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs mês passado</span>`;
   }
-  // Investido: rentabilidade acumulada (valor de mercado vs aportes).
   const elInv = document.getElementById('mp-kpi-investido-delta');
   if (elInv) {
     const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
@@ -645,16 +675,16 @@ function mpRenderKPIs(consolidado, janela) {
     elInv.className = 'mp-kpi-delta ' + cls;
     elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">rentab. total</span>`;
   }
-}
-
-function mpDestacar(cat) {
-  mpEstado.categoriaDestaque = mpEstado.categoriaDestaque === cat ? null : cat;
-  document.querySelectorAll('#mp-donut-legenda .mp-leg-item').forEach((el) => {
-    el.classList.toggle(
-      'dim',
-      !!(mpEstado.categoriaDestaque && el.dataset.cat !== mpEstado.categoriaDestaque)
-    );
-  });
+  const elImov = document.getElementById('mp-kpi-imoveis-qtd');
+  if (elImov) {
+    elImov.className = 'mp-kpi-delta neu';
+    elImov.textContent = qtdImoveis + ' imóve' + (qtdImoveis === 1 ? 'l' : 'is');
+  }
+  const elVeic = document.getElementById('mp-kpi-veiculos-qtd');
+  if (elVeic) {
+    elVeic.className = 'mp-kpi-delta neu';
+    elVeic.textContent = qtdVeiculos + ' veículo' + (qtdVeiculos === 1 ? '' : 's');
+  }
 }
 
 // Tipo (banco/corretora/carteira/outro) de uma instituição, a partir da CHAVE
@@ -929,7 +959,7 @@ function mpRenderInstituicoes(consolidado) {
     .sort((a, b) => b.total - a.total);
   if (!arr.length) {
     wrap.innerHTML =
-      '<div class="mp-empty" style="padding:18px"><i class="ph ph-bank"></i>Sem dados por instituição. Cadastre suas contas e registre suas movimentações para ver a foto.</div>';
+      '<div class="mp-empty"><i class="ph ph-bank"></i>Sem dados por instituição.<br><span style="font-size:11.5px;margin-top:4px;display:inline-block;">Cadastre suas contas abaixo e registre movimentações para ver a foto completa.</span></div>';
     return;
   }
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
@@ -1073,212 +1103,138 @@ function mpSetFiltroCategoria(v) {
   if (mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
 }
 
-// "Total investido por classe" — a somatória GLOBAL de cada tipo de investimento
-// (Renda Fixa, Ações, FIIs, BDRs, ETFs, Cripto, Previdência, Reserva). A soma
-// destas linhas é exatamente o KPI "Total investido". Respeita o modo bruto/líquido.
 function mpRenderClasses(consolidado) {
-  const wrap = document.getElementById('mp-classes-lista');
-  if (!wrap) return;
-  const usarLiq = mpEstado.modo === 'liquido';
-  const porCat = consolidado.porCategoriaExibicao || {};
-  const itens = Object.keys(porCat)
-    .map((cat) => ({
-      cat,
-      investido: porCat[cat].investido,
-      atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
-    }))
-    .filter((it) => it.atual > 0.01)
-    .sort((a, b) => b.atual - a.atual);
+  var canvas = document.getElementById('mp-grafico-classes');
+  var wrap = document.getElementById('mp-classes-lista');
+  if (!canvas) return;
+  var usarLiq = mpEstado.modo === 'liquido';
+  var porCat = consolidado.porCategoriaExibicao || {};
+  var itens = Object.keys(porCat)
+    .map(function (cat) {
+      return {
+        cat: cat,
+        investido: porCat[cat].investido,
+        atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
+      };
+    })
+    .filter(function (it) { return it.atual > 0.01; })
+    .sort(function (a, b) { return b.atual - a.atual; });
+
   if (!itens.length) {
-    wrap.innerHTML =
+    canvas.style.display = 'none';
+    if (wrap) wrap.innerHTML =
       '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
     return;
   }
-  const total = itens.reduce((a, it) => a + it.atual, 0);
-  wrap.innerHTML =
-    itens
-      .map((it) => {
-        const lucro = it.atual - it.investido;
-        const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
-        const cls = pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
-        const share = total > 0 ? (it.atual / total) * 100 : 0;
-        const cor = mpCorCategoria(it.cat);
-        const seta = pct >= 0 ? 'trend-up' : 'trend-down';
-        return `
-            <div class="mp-inst-item">
-                <div style="min-width:0;display:flex;align-items:center;gap:9px;">
-                    <span class="mp-leg-dot" style="background:${cor};margin-top:0;"></span>
-                    <div style="min-width:0;">
-                        <span class="mp-inst-nome">${MP_LABELS[it.cat] || it.cat}</span>
-                        <span class="mp-inst-sub" style="text-align:left;">${share.toFixed(1)}% do investido · <span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${seta}"></i>${mpFmtPct(pct)}</span></span>
-                    </div>
-                </div>
-                <div style="text-align:right;flex-shrink:0;">
-                    <span class="mp-inst-valor">${mpFmtBRL(it.atual)}</span>
-                </div>
-            </div>`;
-      })
-      .join('') +
-    `<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">${mpFmtBRL(total)}</span></div>`;
-}
+  canvas.style.display = '';
+  if (wrap) wrap.innerHTML = '';
 
-function mpRenderDonut(consolidado) {
-  const canvas = document.getElementById('mp-grafico-donut');
-  const leg = document.getElementById('mp-donut-legenda');
-  if (!canvas || !leg) return;
+  var total = itens.reduce(function (a, it) { return a + it.atual; }, 0);
+  var labels = itens.map(function (it) { return MP_LABELS[it.cat] || it.cat; });
+  var valores = itens.map(function (it) { return it.atual; });
+  var cores = itens.map(function (it) { return mpCorCategoria(it.cat); });
+
   if (typeof Chart === 'undefined') {
-    leg.innerHTML = '<div class="mp-empty">Chart.js indisponível</div>';
+    if (wrap) wrap.innerHTML = '<div class="mp-empty">Chart.js indisponível</div>';
     return;
   }
-  const usarLiq = mpEstado.modo === 'liquido';
-  // Itens = categorias investidas + Caixa (saldo em conta/salário). Incluir o
-  // caixa faz o donut "Por categoria" representar 100% do patrimônio, igual às
-  // barras — antes o dinheiro em conta ficava de fora da divisão.
-  // Divisão por categoria com a Renda Variável quebrada (Ações/FIIs/Cripto...).
-  const porCat = consolidado.porCategoriaExibicao || consolidado.porCategoria;
-  const itens = Object.keys(porCat)
-    .map((c) => ({
-      cat: c,
-      valor: usarLiq ? porCat[c].atualLiq : porCat[c].atual,
-      investido: porCat[c].investido,
-    }))
-    .filter((it) => it.valor > 0)
-    .sort((a, b) => b.valor - a.valor);
-  const saldoInst = mpCalcularSaldoPorInstituicao(Date.now());
-  let caixaTotal = 0;
-  Object.values(saldoInst).forEach((s) => {
-    if (s.caixa > 0) caixaTotal += s.caixa;
-  });
-  if (caixaTotal > 0) itens.push({ cat: 'caixa', valor: caixaTotal, investido: caixaTotal });
 
-  if (!itens.length) {
-    leg.innerHTML = '<div class="mp-empty"><i class="ph ph-chart-pie"></i>Sem dados</div>';
-    if (mpEstado.donutChart) {
-      mpEstado.donutChart.destroy();
-      mpEstado.donutChart = null;
-    }
-    return;
-  }
-  const labels = itens.map((it) => MP_LABELS[it.cat] || it.cat);
-  const valores = itens.map((it) => it.valor);
-  const cores = itens.map((it) => mpCorCategoria(it.cat));
+  if (mpEstado.classesChart) mpEstado.classesChart.destroy();
 
-  if (mpEstado.donutChart) mpEstado.donutChart.destroy();
-  const totalDonut = valores.reduce((a, b) => a + b, 0);
-  // Plugin local: escreve o total no furo central do donut (padrão premium).
-  const centroTotalPlugin = {
-    id: 'mpCentroTotal',
-    afterDraw(chart) {
-      const { ctx, chartArea } = chart;
-      if (!chartArea) return;
-      const cx = (chartArea.left + chartArea.right) / 2;
-      const cy = (chartArea.top + chartArea.bottom) / 2;
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = getToken('--cor-texto-mutado');
-      ctx.font = "600 11px 'Figtree', sans-serif";
-      ctx.fillText('TOTAL', cx, cy - 14);
-      ctx.fillStyle = getToken('--cor-texto-principal');
-      ctx.font = "700 18px 'DM Mono', monospace";
-      ctx.fillText(mpFmtBRL(totalDonut), cx, cy + 6);
-      ctx.restore();
-    },
-  };
-  mpEstado.donutChart = new Chart(canvas.getContext('2d'), {
-    type: 'doughnut',
-    plugins: [centroTotalPlugin],
+  var barHeight = 38;
+  canvas.parentElement.style.height = Math.max(180, itens.length * barHeight + 50) + 'px';
+
+  mpEstado.classesChart = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
     data: {
-      labels,
-      datasets: [
-        {
-          data: valores,
-          backgroundColor: cores,
-          // 4.7 — donut mais premium: segmentos arredondados, espaçados,
-          // e um leve destaque ao passar o mouse.
-          borderWidth: 3,
-          borderColor: getToken('--cor-fundo-card'),
-          borderRadius: 6,
-          spacing: 2,
-          hoverOffset: 10,
-          hoverBorderColor: getToken('--cor-fundo-card'),
-        },
-      ],
+      labels: labels,
+      datasets: [{
+        data: valores,
+        backgroundColor: cores,
+        borderRadius: 6,
+        borderSkipped: false,
+        barThickness: 22,
+        maxBarThickness: 28,
+      }],
     },
     options: {
+      indexAxis: 'y',
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '68%',
-      animation: { animateRotate: true, animateScale: true, duration: 600 },
+      animation: { duration: 600 },
+      layout: { padding: { right: 150 } },
+      scales: {
+        x: {
+          display: false,
+          grid: { display: false },
+        },
+        y: {
+          grid: { display: false },
+          border: { display: false },
+          ticks: {
+            font: { family: "'Figtree', sans-serif", size: 12, weight: '600' },
+            color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
+          },
+        },
+      },
       plugins: {
         legend: { display: false },
-        // Desliga os rótulos crus do plugin global de datalabels que vazavam
-        // sobre as fatias (ex.: "21.5000000006"). O total fica no centro.
-        datalabels: { display: false },
+        datalabels: {
+          anchor: 'end',
+          align: 'right',
+          clip: false,
+          offset: 6,
+          font: { family: "'DM Mono', monospace", size: 11, weight: '700' },
+          color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
+          formatter: function (value) {
+            var share = total > 0 ? (value / total * 100) : 0;
+            return mpFmtBRL(value) + '  ' + share.toFixed(1) + '%';
+          },
+        },
         tooltip: {
           padding: 10,
           cornerRadius: 8,
           callbacks: {
-            label: (ctx) => {
-              const share = totalDonut > 0 ? (ctx.parsed / totalDonut) * 100 : 0;
-              return `${ctx.label}: ${mpFmtBRL(ctx.parsed)} (${share.toFixed(1)}%)`;
+            label: function (ctx) {
+              var it = itens[ctx.dataIndex];
+              var lucro = it.atual - it.investido;
+              var pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
+              var share = total > 0 ? (it.atual / total * 100) : 0;
+              return mpFmtBRL(it.atual) + ' (' + share.toFixed(1) + '%) · rent. ' + mpFmtPct(pct);
             },
           },
         },
       },
-      onClick: (evt, els) => {
-        if (!els.length) {
-          mpEstado.categoriaDestaque = null;
-          mpDestacar(null);
-          return;
-        }
-        const i = els[0].index;
-        mpDestacar(itens[i].cat);
-      },
     },
   });
-  // Gráfico único: a PIZZA mostra a divisão; cada linha da legenda (as
-  // "barrinhas") traz o VALOR + a RENTABILIDADE da classe. Sem gráfico de
-  // barras separado — toda a informação fica concentrada aqui.
-  leg.innerHTML = itens
-    .map((it, i) => {
-      const ehCaixa = it.cat === 'caixa';
-      const lucro = it.valor - it.investido;
-      const pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
-      const cls = ehCaixa ? 'neu' : pct > 0.05 ? 'pos' : pct < -0.05 ? 'neg' : 'neu';
-      const share = totalDonut > 0 ? (it.valor / totalDonut) * 100 : 0;
-      const rentLabel = ehCaixa
-        ? '<span class="mp-leg-pct neu">—</span>'
-        : `<span class="mp-leg-pct ${cls}"><i class="ph-bold ph-${pct >= 0 ? 'trend-up' : 'trend-down'}"></i>${mpFmtPct(pct)}</span>`;
-      return `
-            <div class="mp-leg-item" data-cat="${it.cat}" onclick="mpDestacar('${it.cat}')">
-                <span class="mp-leg-dot" style="background:${cores[i]}"></span>
-                <div class="mp-leg-main">
-                    <div class="mp-leg-top">
-                        <span class="mp-leg-nome">${MP_LABELS[it.cat] || it.cat}</span>
-                        <span class="mp-leg-rs">${mpFmtBRL(it.valor)}</span>
-                    </div>
-                    <div class="mp-leg-bottom">
-                        <span class="mp-leg-bar"><span class="mp-leg-bar-fill" style="width:${Math.max(share, 2).toFixed(1)}%;background:${cores[i]}"></span></span>
-                        <span class="mp-leg-share">${share.toFixed(1)}%</span>
-                        ${rentLabel}
-                    </div>
-                </div>
-            </div>`;
-    })
-    .join('');
+
+  if (wrap) {
+    wrap.innerHTML = '<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">' + mpFmtBRL(total) + '</span></div>';
+  }
 }
 
-// Função pública: orquestra render completo (ou skipFetch quando só muda modo).
-// A foto monta de cima p/ baixo: KPIs → "Onde está o dinheiro" (por instituição)
-// → divisão por categoria → Minhas Contas. Sem snapshot de fatura nem despesas
-// (isso vive na aba Controle).
+// Remove transações 'tx_origem_*' cujo aporte correspondente já não existe.
+// Corrige saldo para quem excluiu investimento antes do fix na exclusão.
+function mpLimparTxOrigemOrfas() {
+  if (typeof transacoes === 'undefined' || typeof historicoCompras === 'undefined') return;
+  var idsCompras = new Set();
+  historicoCompras.forEach(function (op) { idsCompras.add(String(op.id)); });
+  var antes = transacoes.length;
+  transacoes = transacoes.filter(function (t) {
+    if (typeof t.id !== 'string' || t.id.indexOf('tx_origem_') !== 0) return true;
+    var opId = t.id.replace('tx_origem_', '');
+    return idsCompras.has(opId);
+  });
+  if (transacoes.length < antes) {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    if (typeof salvarNaNuvem === 'function') salvarNaNuvem();
+  }
+}
+
 async function renderMeuPatrimonio(skipFetch) {
-  // Aplica tema Chart.js se ainda não aplicado
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
-  // Despesa variável com vencimento futuro não conta como paga no caixa — corrige
-  // dados antigos antes de somar saldo/extrato (defensivo p/ cloud-sync tardio).
   if (typeof normalizarDespesasProgramadas === 'function') normalizarDespesasProgramadas();
+  mpLimparTxOrigemOrfas();
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
@@ -1288,10 +1244,9 @@ async function renderMeuPatrimonio(skipFetch) {
   // Resumo consolidado por instituição (banco/corretora), com o detalhe das
   // classes que cada uma guarda — o coração da foto.
   mpRenderInstituicoes(consolidado);
-  // Somatória de cada tipo de investimento (= KPI Total investido).
+  // Somatória de cada tipo de investimento (= KPI Total investido) — gráfico de barras.
   mpRenderClasses(consolidado);
-  // Gráfico único: o donut (pizza) traz a divisão e a legenda traz valor +
-  // rentabilidade. O antigo gráfico de barras foi removido.
-  mpRenderDonut(consolidado);
   if (typeof renderMinhasContas === 'function') renderMinhasContas();
+  if (typeof renderMeusBens === 'function') renderMeusBens();
+  if (!skipFetch && typeof bemAtualizarFipeAuto === 'function') bemAtualizarFipeAuto();
 }

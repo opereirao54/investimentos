@@ -186,6 +186,7 @@ function exportarDados() {
     carteira_admin: JSON.parse(localStorage.getItem('futurorico_carteira_admin') || 'null'),
     cartoes: JSON.parse(localStorage.getItem('futurorico_cartoes') || '[]'),
     contas: JSON.parse(localStorage.getItem('appliquei_contas') || '[]'),
+    bens: JSON.parse(localStorage.getItem('appliquei_bens') || '[]'),
     limiteCartao: localStorage.getItem('futurorico_limiteCartao'),
     metaVerde: localStorage.getItem('futurorico_metaVerde'),
     metaVermelha: localStorage.getItem('futurorico_metaVermelha'),
@@ -235,6 +236,7 @@ function confirmarImportacao(dadosStr) {
       localStorage.setItem('futurorico_carteira_admin', JSON.stringify(dados.carteira_admin));
     if (dados.cartoes) localStorage.setItem('futurorico_cartoes', JSON.stringify(dados.cartoes));
     if (dados.contas) localStorage.setItem('appliquei_contas', JSON.stringify(dados.contas));
+    if (dados.bens) localStorage.setItem('appliquei_bens', JSON.stringify(dados.bens));
     if (dados.limiteCartao) localStorage.setItem('futurorico_limiteCartao', dados.limiteCartao);
     if (dados.metaVerde) localStorage.setItem('futurorico_metaVerde', dados.metaVerde);
     if (dados.metaVermelha) localStorage.setItem('futurorico_metaVermelha', dados.metaVermelha);
@@ -252,6 +254,10 @@ function confirmarImportacao(dadosStr) {
     if (typeof contas !== 'undefined') {
       contas = JSON.parse(localStorage.getItem('appliquei_contas') || '[]');
       if (typeof window !== 'undefined') window.contas = contas;
+    }
+    if (typeof bens !== 'undefined') {
+      bens = JSON.parse(localStorage.getItem('appliquei_bens') || '[]');
+      if (typeof window !== 'undefined') window.bens = bens;
     }
     dbCarteira = cartCarregarDB();
 
