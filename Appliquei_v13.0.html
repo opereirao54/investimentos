@@ -4093,6 +4093,120 @@
         .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
         .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
 
+        /* === RADAR DE MERCADO (Info Mercado) === */
+        .im-indicadores { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
+        .im-indicador {
+            background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:14px;
+            padding:18px 20px; position:relative; overflow:hidden;
+            transition: box-shadow .22s ease, transform .22s ease;
+        }
+        .im-indicador:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); }
+        .im-indicador::before { content:''; position:absolute; top:0; left:0; height:100%; width:4px; border-radius:0 4px 4px 0; }
+        .im-ind-ibov::before  { background:linear-gradient(180deg,#60a5fa,#2563eb); }
+        .im-ind-dolar::before { background:linear-gradient(180deg,#34d399,#059669); }
+        .im-ind-btc::before   { background:linear-gradient(180deg,#fbbf24,#f59e0b); }
+        .im-ind-selic::before { background:linear-gradient(180deg,#a78bfa,#7c3aed); }
+        .im-ind-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+        .im-ind-icon {
+            width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center;
+            font-size:17px; flex-shrink:0;
+        }
+        .im-ind-ibov  .im-ind-icon { background:rgba(37,99,235,0.10); color:#2563eb; }
+        .im-ind-dolar .im-ind-icon { background:rgba(5,150,105,0.10); color:#059669; }
+        .im-ind-btc   .im-ind-icon { background:rgba(245,158,11,0.10); color:#f59e0b; }
+        .im-ind-selic .im-ind-icon { background:rgba(124,58,237,0.10); color:#7c3aed; }
+        .im-ind-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--cor-texto-mutado); margin-bottom:4px; }
+        .im-ind-valor { font-family:'DM Mono',monospace; font-size:clamp(17px,1.5vw,22px); font-weight:700; color:var(--cor-texto-principal); letter-spacing:-.3px; margin-bottom:5px; white-space:nowrap; }
+        .im-delta {
+            font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:3px;
+            padding:2px 8px; border-radius:999px;
+        }
+        .im-delta.pos { color:#059669; background:rgba(5,150,105,0.10); }
+        .im-delta.neg { color:#dc2626; background:rgba(220,38,38,0.10); }
+        .im-delta.neu { color:var(--cor-texto-mutado); background:var(--cor-superficie); }
+        .im-skel { display:inline-block; width:80px; height:20px; border-radius:6px; background:linear-gradient(90deg,var(--cor-superficie) 25%,var(--cor-borda) 50%,var(--cor-superficie) 75%); background-size:200% 100%; animation:imShimmer 1.5s infinite; }
+        @keyframes imShimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        .im-dot-pulse { width:6px; height:6px; border-radius:50%; background:var(--cor-primaria); animation:imPulse 1.2s infinite; }
+        @keyframes imPulse { 0%,100%{opacity:.3;transform:scale(.8)} 50%{opacity:1;transform:scale(1.2)} }
+
+        .im-tabs { display:flex; gap:0; margin-bottom:18px; border-bottom:1px solid var(--cor-borda); }
+        .im-tab {
+            padding:10px 18px; font-size:13px; font-weight:600; color:var(--cor-texto-mutado);
+            border:none; background:none; cursor:pointer; border-bottom:2px solid transparent;
+            transition:color .15s, border-color .15s; margin-bottom:-1px; display:inline-flex; align-items:center; gap:6px;
+        }
+        .im-tab:hover { color:var(--cor-texto-principal); }
+        .im-tab.ativo { color:var(--cor-primaria); border-bottom-color:var(--cor-primaria); }
+
+        .im-filtros { display:flex; gap:6px; flex-wrap:wrap; }
+        .im-filtro-btn {
+            padding:5px 14px; font-size:12px; font-weight:600; border-radius:999px;
+            border:1px solid var(--cor-borda); background:var(--cor-branco); color:var(--cor-texto-mutado);
+            cursor:pointer; transition:all .15s; font-family:'Figtree',sans-serif;
+        }
+        .im-filtro-btn:hover { border-color:var(--cor-primaria); color:var(--cor-primaria); }
+        .im-filtro-btn.ativo { background:var(--cor-bg-primaria); border-color:var(--cor-borda-primaria); color:var(--cor-txt-primaria); }
+
+        .im-busca-input {
+            padding:6px 12px 6px 32px; font-size:12.5px; border:1px solid var(--cor-borda); border-radius:999px;
+            background:var(--cor-branco); color:var(--cor-texto-principal); outline:none; width:180px;
+            transition:border-color .15s, box-shadow .15s; font-family:'Figtree',sans-serif;
+        }
+        .im-busca-input:focus { border-color:var(--cor-primaria); box-shadow:0 0 0 3px rgba(5,150,105,0.08); }
+        .im-busca-wrap { position:relative; }
+        .im-busca-wrap i { position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:14px; color:var(--cor-texto-mutado); pointer-events:none; }
+
+        .im-tabela { width:100%; border-collapse:separate; border-spacing:0; }
+        .im-tabela thead { position:sticky; top:0; z-index:1; }
+        .im-tabela th {
+            font-size:10.5px; font-weight:600; text-transform:uppercase; letter-spacing:.5px;
+            color:var(--cor-texto-mutado); padding:10px 14px; text-align:left;
+            border-bottom:1px solid var(--cor-borda); background:var(--cor-branco);
+        }
+        .im-tabela td { padding:10px 14px; font-size:13px; border-bottom:1px solid var(--cor-borda); transition:background .12s; }
+        .im-tabela tbody tr:hover td { background:var(--cor-superficie); }
+        .im-tabela tbody tr { animation:imFadeRow .3s ease both; }
+        @keyframes imFadeRow { from{opacity:0;transform:translateX(-6px)} to{opacity:1;transform:translateX(0)} }
+        .im-ticker { font-family:'DM Mono',monospace; font-weight:600; font-size:13px; color:var(--cor-texto-principal); }
+        .im-nome-cell { color:var(--cor-texto-secundario); max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .im-tipo-badge { font-size:10px; font-weight:600; padding:3px 9px; border-radius:999px; display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+        .im-preco { font-family:'DM Mono',monospace; font-weight:600; font-size:13px; color:var(--cor-texto-principal); }
+        .im-contagem { font-size:11px; color:var(--cor-texto-mutado); font-weight:500; }
+
+        .im-noticias-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px; }
+        .im-noticia {
+            background:var(--cor-branco); border:1px solid var(--cor-borda); border-radius:14px;
+            padding:20px; display:flex; flex-direction:column; gap:10px;
+            transition:box-shadow .22s ease, transform .22s ease, border-color .22s ease;
+            animation:imFadeRow .4s ease both;
+        }
+        .im-noticia:hover { box-shadow:var(--shadow-hover); transform:translateY(-2px); border-color:var(--cor-borda2); }
+        .im-noticia-header { display:flex; align-items:center; justify-content:space-between; }
+        .im-noticia-fonte { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; display:inline-flex; align-items:center; gap:4px; }
+        .im-noticia-tempo { font-size:10.5px; color:var(--cor-texto-mutado); display:inline-flex; align-items:center; gap:3px; }
+        .im-noticia-titulo { font-size:14px; font-weight:600; line-height:1.5; color:var(--cor-texto-principal); flex:1; }
+        .im-noticia-link {
+            font-size:12px; font-weight:600; color:var(--cor-primaria); text-decoration:none;
+            display:inline-flex; align-items:center; gap:4px; align-self:flex-start;
+            padding:4px 0; transition:gap .15s;
+        }
+        .im-noticia-link:hover { gap:7px; }
+
+        @media (max-width:900px) { .im-indicadores { grid-template-columns:repeat(2,1fr); } }
+        @media (max-width:520px) {
+            .im-indicadores { grid-template-columns:1fr; }
+            .im-noticias-grid { grid-template-columns:1fr; }
+            .im-busca-input { width:140px; }
+            .im-nome-cell { max-width:120px; }
+        }
+
+        /* Dark mode */
+        body.dark #noticias .im-indicador,
+        body.dark #noticias .im-noticia { background:var(--cor-branco); }
+        body.dark #noticias .im-tabela th { background:var(--cor-branco); }
+        body.dark #noticias .im-filtro-btn { background:var(--cor-branco); }
+        body.dark #noticias .im-busca-input { background:var(--cor-branco); }
+
         @keyframes mpFadeSlideIn {
             from { opacity:0; transform:translateY(12px); }
             to   { opacity:1; transform:translateY(0); }
@@ -6740,15 +6854,48 @@
         <section id="noticias" class="section">
             <div class="page-header" style="margin-bottom:18px;">
                 <div class="page-header-left">
-                    <h1>Radar de mercado</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Agregador automatizado de notícias financeiras.</p>
+                    <h1>Radar de Mercado</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Indicadores, cotações e notícias do mercado financeiro.</p>
                 </div>
                 <div class="page-actions">
-                    <span class="badge" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);border:1px solid var(--cor-borda-erro);"><i class="ph ph-broadcast"></i> Feed RSS</span>
+                    <button class="btn-secundario" id="im-btn-atualizar" onclick="atualizarInfoMercado()" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;">
+                        <i class="ph ph-arrows-clockwise"></i> Atualizar
+                    </button>
                 </div>
             </div>
-            <div id="loader-noticias" class="loader"></div>
-            <div id="container-noticias" class="grid-cards" style="display: none;"></div>
+
+            <div id="im-indicadores" class="im-indicadores"></div>
+
+            <div class="im-tabs">
+                <button class="im-tab ativo" data-tab="cotacoes" onclick="mudarSubTabMercado('cotacoes')"><i class="ph ph-chart-bar"></i> Cotações</button>
+                <button class="im-tab" data-tab="noticias" onclick="mudarSubTabMercado('noticias')"><i class="ph ph-newspaper"></i> Notícias</button>
+            </div>
+
+            <div id="im-painel-cotacoes">
+                <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;justify-content:space-between;">
+                    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <div class="im-filtros" id="im-filtros"></div>
+                        <span class="im-contagem" id="im-contagem"></span>
+                    </div>
+                    <div class="im-busca-wrap">
+                        <i class="ph ph-magnifying-glass"></i>
+                        <input type="text" id="im-busca" placeholder="Buscar ativo…" class="im-busca-input" oninput="buscarCotacaoIM()">
+                    </div>
+                </div>
+                <div class="card-container" style="padding:0;overflow:hidden;margin-bottom:0;">
+                    <div style="overflow-x:auto;overflow-y:auto;max-height:520px;">
+                        <table class="im-tabela" id="im-tabela">
+                            <thead><tr><th>Ativo</th><th>Nome</th><th>Tipo</th><th style="text-align:right">Preço</th></tr></thead>
+                            <tbody id="im-tabela-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="im-painel-noticias" style="display:none;">
+                <div id="im-loader-noticias" class="loader"></div>
+                <div id="im-noticias-grid" class="im-noticias-grid"></div>
+            </div>
         </section>
         <!-- NOVAS SEÇÕES -->
         <section id="meu_patrimonio" class="section">
