@@ -75,6 +75,7 @@ module.exports = handler({
       const initKeys = {};
       const initRevs = {};
       let accepted = 0;
+      let written = 0;
       let count = 0;
       // Diagnóstico de volta ao cliente: antes, chaves grandes/invalidas eram
       // descartadas em SILÊNCIO (o cliente via 200 ok e achava que gravou).
@@ -94,7 +95,15 @@ module.exports = handler({
           return;
         }
         const curRev = Number(curRevs[k] || 0);
-        if (curRev >= rev) {
+        if (curRev === rev) {
+          // Duplicata exata: o cliente reenvia o mesmo payload de propósito
+          // (eager + debounce + visibilitychange, para sobreviver ao freeze
+          // do iOS). Já está aplicado — ack idempotente, sem reescrever.
+          // Antes caía em "stale" e o cliente reportava conflito falso.
+          accepted++;
+          return;
+        }
+        if (curRev > rev) {
           stale.push(k);
           return;
         }
@@ -118,9 +127,12 @@ module.exports = handler({
           initRevs[k] = rev;
         }
         accepted++;
+        written++;
       });
 
-      if (accepted === 0) return { accepted: 0, rejected, stale };
+      // Nada NOVO para gravar (só duplicatas/stale/rejeitadas): responde sem
+      // tocar no doc — duplicatas contam como accepted (ack idempotente).
+      if (written === 0) return { accepted, rejected, stale };
 
       if (exists) {
         updateFields.schemaVersion = 2;

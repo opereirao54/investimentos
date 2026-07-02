@@ -96,7 +96,7 @@ var lastReconcilePullAt = 0;
 // Versão do build do sync. Aparece no painel de diagnóstico (?syncdebug=1) e
 // no console — confirma em campo qual código o aparelho está REALMENTE
 // rodando (aba de celular ressuscitada roda JS antigo por dias após deploy).
-var SYNC_BUILD = '2026-07-02.2';
+var SYNC_BUILD = '2026-07-02.3';
 // Últimos eventos observáveis, para o painel de diagnóstico.
 var diag = {
   lastBeacon: null, // { t, reason, status, accepted, sent, rejected, stale, error }
