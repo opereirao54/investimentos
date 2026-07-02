@@ -96,13 +96,23 @@ var lastReconcilePullAt = 0;
 // Versão do build do sync. Aparece no painel de diagnóstico (?syncdebug=1) e
 // no console — confirma em campo qual código o aparelho está REALMENTE
 // rodando (aba de celular ressuscitada roda JS antigo por dias após deploy).
-var SYNC_BUILD = '2026-07-02.4';
+var SYNC_BUILD = '2026-07-02.5';
 // Últimos eventos observáveis, para o painel de diagnóstico.
 var diag = {
   lastBeacon: null, // { t, reason, status, accepted, sent, rejected, stale, error }
   lastPull: null, // { t, ok, changed, fromServer, error }
   lastSdkPush: null, // { t, ok, error }
+  remoteRevs: {}, // { [k]: rev } — último rev remoto VISTO num snapshot/pull
+  lastApplyDecision: {}, // { [k]: 'aplicou'|'ignorou (rev<=local)'|'merge'|... }
 };
+// Chaves-coleção que o painel destaca (as que sofrem do problema de divergência).
+var WATCHED_KEYS = [
+  'futurorico_transacoes',
+  'appliquei_contas',
+  'appliquei_bens',
+  'futurorico_cartoes',
+  'appliquei_sonhos',
+];
 // true depois do primeiro callback de onAuthStateChanged — distingue "ainda
 // restaurando a sessão" de "realmente sem login".
 var authSettled = false;
@@ -972,6 +982,11 @@ function applyRemoteSnapshot(snap, opts) {
       var syncedRev = syncedRevs[k] || 0;
       var isTombstone = !(k in remoteKeys) || remoteKeys[k] === undefined || remoteKeys[k] === null;
 
+      // Observabilidade (não altera decisão): registra o rev remoto visto e a
+      // decisão de aplicação para as chaves-coleção, p/ o painel ?syncdebug=1.
+      var watched = WATCHED_KEYS.indexOf(k) !== -1;
+      if (watched) diag.remoteRevs[k] = rRev;
+
       // ---- Divergência concorrente (a causa do "cada aparelho com um total
       // diferente, ambos dizendo que sincronizaram") ----
       // Os dois lados avançaram além do último ponto comum de sync
@@ -1005,6 +1020,7 @@ function applyRemoteSnapshot(snap, opts) {
             revsTouched = true;
             syncedTouched = true;
             if (localDeletions[k] && localDeletions[k] < rRev) removeLocalDeletion(k);
+            if (watched) diag.lastApplyDecision[k] = 'merge (divergência concorrente)';
             return;
           }
           // Não é array de registros → cai no LWW clássico abaixo.
@@ -1014,9 +1030,16 @@ function applyRemoteSnapshot(snap, opts) {
       // Empate vai para o local: protege writes feitos durante o pull
       // inicial (que carimbam localRev = Date.now() > 0, enquanto remoto
       // ainda tem o rev antigo).
-      if (rRev <= lRev) return;
+      if (rRev <= lRev) {
+        if (watched)
+          diag.lastApplyDecision[k] = 'IGNOROU remoto (rev ' + rRev + ' <= local ' + lRev + ')';
+        return;
+      }
       // Se a deleção local é mais recente, mantém para propagar.
-      if (localDeletions[k] && localDeletions[k] >= rRev) return;
+      if (localDeletions[k] && localDeletions[k] >= rRev) {
+        if (watched) diag.lastApplyDecision[k] = 'manteve deleção local';
+        return;
+      }
 
       try {
         if (isTombstone) {
@@ -1024,12 +1047,16 @@ function applyRemoteSnapshot(snap, opts) {
             localStorage.removeItem(k);
             changed++;
           }
+          if (watched) diag.lastApplyDecision[k] = 'removeu (tombstone remoto)';
         } else {
           var next = String(remoteKeys[k]);
           var cur = localStorage.getItem(k);
           if (!storageValuesEqual(cur, next)) {
             localStorage.setItem(k, next);
             changed++;
+            if (watched) diag.lastApplyDecision[k] = 'APLICOU remoto (rev ' + rRev + ')';
+          } else if (watched) {
+            diag.lastApplyDecision[k] = 'igual (nada a fazer)';
           }
         }
       } catch (e) {
@@ -1449,6 +1476,24 @@ function collectDiagnostics() {
   try {
     guest = localStorage.getItem('appliquei_auth_guest') === '1';
   } catch (_) {}
+  var localRevs = getLocalRevs();
+  var syncedRevs = getSyncedRevs();
+  var chaves = WATCHED_KEYS.map(function (k) {
+    var n = null;
+    try {
+      var arr = parseIdArray(localStorage.getItem(k));
+      n = arr ? arr.length : null;
+    } catch (_) {}
+    return {
+      k: k,
+      registros: n,
+      localRev: localRevs[k] || 0,
+      syncedRev: syncedRevs[k] || 0,
+      remoteRev: diag.remoteRevs[k] || 0,
+      decisao: diag.lastApplyDecision[k] || '—',
+      pendente: !!dirtyKeys[k],
+    };
+  });
   return {
     build: SYNC_BUILD,
     firebasePronto: !!(fb && fb.ready),
@@ -1459,8 +1504,10 @@ function collectDiagnostics() {
     convidado: guest,
     pullInicialFeito: initialPullDone,
     visaoFrescaDoServidor: serverViewReady,
+    listenerAtivo: !!unsubscribeSnapshot,
     chavesPendentes: Object.keys(dirtyKeys),
     delecoesPendentes: Object.keys(getLocalDeletions()),
+    chaves: chaves,
     ultimoBeacon: diag.lastBeacon,
     ultimoPull: diag.lastPull,
     ultimoPushSdk: diag.lastSdkPush,
@@ -1498,7 +1545,9 @@ function renderDebugPanel(el) {
     '<b>Pull inicial:</b> ' +
       (d.pullInicialFeito ? 'feito' : 'pendente') +
       ' · <b>visão do servidor:</b> ' +
-      (d.visaoFrescaDoServidor ? 'ok' : 'ainda não')
+      (d.visaoFrescaDoServidor ? 'ok' : 'ainda não') +
+      ' · <b>tempo-real:</b> ' +
+      (d.listenerAtivo ? 'ativo' : '<span style="color:#fca5a5">parado</span>')
   );
   lines.push(
     '<b>Pendências:</b> ' +
@@ -1535,6 +1584,35 @@ function renderDebugPanel(el) {
   );
   var s = d.ultimoPushSdk;
   if (s && !s.ok) lines.push('<b>Push SDK:</b> ERRO: ' + (s.error || '?'));
+
+  // Detalhe por chave-coleção: é aqui que se vê a divergência. Se o remoto
+  // tem rev/registros diferentes do local e a decisão foi "IGNOROU remoto",
+  // esse é o problema. localRev > syncedRev = mudança local não confirmada.
+  lines.push('<hr style="border:0;border-top:1px solid #374151;margin:6px 0">');
+  lines.push('<b>Chaves (registros · rev local / sincronizado / remoto):</b>');
+  d.chaves.forEach(function (c) {
+    if (c.registros === null && !c.localRev && !c.remoteRev) return; // chave inexistente
+    var nome = c.k.replace('futurorico_', '').replace('appliquei_', '');
+    var alerta = c.localRev > c.syncedRev; // mudança local ainda não confirmada
+    var reg = c.registros === null ? '—' : c.registros;
+    lines.push(
+      '&nbsp;• <b>' +
+        nome +
+        '</b>: ' +
+        reg +
+        ' reg · ' +
+        c.localRev +
+        ' / ' +
+        c.syncedRev +
+        ' / ' +
+        c.remoteRev +
+        (c.pendente ? ' · <span style="color:#fbbf24">pendente</span>' : '') +
+        (alerta ? ' · <span style="color:#fbbf24">local não confirmado</span>' : '') +
+        '<br>&nbsp;&nbsp;&nbsp;<span style="color:#93c5fd">' +
+        c.decisao +
+        '</span>'
+    );
+  });
   el.querySelector('#syncDebugBody').innerHTML = lines.join('<br>');
 }
 
@@ -1562,6 +1640,7 @@ function initDebugPanel() {
       '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
       '<button id="syncDebugSend" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;">Enviar teste agora</button>' +
       '<button id="syncDebugPull" style="background:#374151;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;">Puxar da nuvem</button>' +
+      '<button id="syncDebugCopy" style="background:#059669;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;">Copiar diagnóstico</button>' +
       '</div>';
     document.body.appendChild(el);
     var iv = setInterval(function () {
@@ -1590,6 +1669,25 @@ function initDebugPanel() {
       var u =
         window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
       if (u) pullAndApply(u.uid, function () {});
+    });
+    el.querySelector('#syncDebugCopy').addEventListener('click', function () {
+      var btn = el.querySelector('#syncDebugCopy');
+      var txt = JSON.stringify(collectDiagnostics(), null, 2);
+      var done = function () {
+        btn.textContent = 'Copiado!';
+        setTimeout(function () {
+          btn.textContent = 'Copiar diagnóstico';
+        }, 1500);
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(done, function () {
+            window.prompt('Copie o diagnóstico:', txt);
+          });
+          return;
+        }
+      } catch (_) {}
+      window.prompt('Copie o diagnóstico:', txt);
     });
   } catch (e) {
     console.warn('[AppliqueiCloudSync] debug panel', e);
