@@ -93,6 +93,20 @@ var syncToastShown = {};
 // Anti-loop: pull de reconciliação disparado por accepted<sent no máx. 1x/30s.
 var lastReconcilePullAt = 0;
 
+// Versão do build do sync. Aparece no painel de diagnóstico (?syncdebug=1) e
+// no console — confirma em campo qual código o aparelho está REALMENTE
+// rodando (aba de celular ressuscitada roda JS antigo por dias após deploy).
+var SYNC_BUILD = '2026-07-02.2';
+// Últimos eventos observáveis, para o painel de diagnóstico.
+var diag = {
+  lastBeacon: null, // { t, reason, status, accepted, sent, rejected, stale, error }
+  lastPull: null, // { t, ok, changed, fromServer, error }
+  lastSdkPush: null, // { t, ok, error }
+};
+// true depois do primeiro callback de onAuthStateChanged — distingue "ainda
+// restaurando a sessão" de "realmente sem login".
+var authSettled = false;
+
 function shouldSyncKey(key) {
   if (!key || typeof key !== 'string') return false;
   if (key === 'appliquei_auth_guest') return false;
@@ -428,6 +442,7 @@ function flushPush() {
       // set(merge) não passa por LWW: o servidor agora tem exatamente estes
       // revs — regista como sincronizados.
       markSyncedRevs(build.keyRevs);
+      diag.lastSdkPush = { t: Date.now(), ok: true };
       if (Object.keys(dirtyKeys).length === 0 && Object.keys(getLocalDeletions()).length === 0) {
         setCloudStatus('saved');
       }
@@ -435,6 +450,11 @@ function flushPush() {
     .catch(function (err) {
       console.warn('[AppliqueiCloudSync] push', err);
       setCloudStatus('error');
+      diag.lastSdkPush = {
+        t: Date.now(),
+        ok: false,
+        error: (err && (err.code || err.message)) || 'erro',
+      };
       // Restaura dirty para retry. Deletions já estão persistidas, não
       // precisam de restore.
       snapshotDirty.forEach(function (k) {
@@ -580,6 +600,10 @@ function setCloudStatus(state) {
       el.textContent = 'Sincronizando…';
     } else if (state === 'error') {
       el.textContent = 'Sem nuvem — dados salvos só neste aparelho';
+    } else if (state === 'local-only') {
+      // Sem login não existe sincronização — o antigo "Salvo às HH:MM"
+      // deixava parecer que sim.
+      el.textContent = 'Salvo neste aparelho (sem login — não vai para a nuvem)';
     }
   } catch (_) {}
 }
@@ -670,6 +694,8 @@ function postBeacon(token, payload, reason, viaUnload, isAuthRetry) {
       window
         .fetch('/api/sync/push', opts)
         .then(function (r) {
+          var rec = { t: Date.now(), reason: reason || '', status: r.status, sent: sentN };
+          diag.lastBeacon = rec;
           if (!r.ok) {
             console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
             if (r.status === 401 && !isAuthRetry) {
@@ -704,6 +730,7 @@ function postBeacon(token, payload, reason, viaUnload, isAuthRetry) {
               try {
                 r.json().then(function (j) {
                   var err = j && j.error;
+                  rec.error = err || 'http_403';
                   if (err === 'email_not_verified') {
                     toastOnce(
                       'email_not_verified',
@@ -729,6 +756,9 @@ function postBeacon(token, payload, reason, viaUnload, isAuthRetry) {
               .then(function (j) {
                 var rejected = (j && j.rejected) || [];
                 var stale = (j && j.stale) || [];
+                rec.accepted = j && j.accepted;
+                if (rejected.length) rec.rejected = rejected;
+                if (stale.length) rec.stale = stale;
                 if (rejected.length) {
                   console.warn('[AppliqueiCloudSync] beacon: keys rejeitadas', rejected);
                   toastOnce(
@@ -780,6 +810,13 @@ function postBeacon(token, payload, reason, viaUnload, isAuthRetry) {
         })
         .catch(function (e) {
           console.warn('[AppliqueiCloudSync] beacon fetch', reason || '', e && (e.message || e));
+          diag.lastBeacon = {
+            t: Date.now(),
+            reason: reason || '',
+            status: 0,
+            sent: sentN,
+            error: 'rede: ' + ((e && e.message) || e),
+          };
           // Falha de rede (saindo do mercado, elevador…): NÃO desistir.
           scheduleBeaconRetry();
         });
@@ -1168,6 +1205,7 @@ function pullAndApply(uid, done) {
     initialPullDone = true;
     if (fromServer) serverViewReady = true;
     pullInFlight = false;
+    diag.lastPull = { t: Date.now(), ok: true, changed: changed, fromServer: !!fromServer };
     if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
       schedulePush();
       scheduleBeacon('post-pull');
@@ -1183,6 +1221,11 @@ function pullAndApply(uid, done) {
     console.warn('[AppliqueiCloudSync] pull', err);
     initialPullDone = true;
     pullInFlight = false;
+    diag.lastPull = {
+      t: Date.now(),
+      ok: false,
+      error: (err && (err.code || err.message)) || 'erro',
+    };
     if (err && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
       if (done) done(false);
       return;
@@ -1228,6 +1271,7 @@ function pullAndApply(uid, done) {
 }
 
 function onUser(user) {
+  authSettled = true;
   if (!user) {
     var prevUid = lastSeenUid();
     if (timer) clearTimeout(timer);
@@ -1375,7 +1419,180 @@ try {
   });
 } catch (_) {}
 
+// ===================================================================
+// Diagnóstico em campo: /app?syncdebug=1 (ou #syncdebug) abre um painel
+// que mostra, sem DevTools, exatamente onde o sync está travando:
+// versão do código, login/e-mail verificado, pendências e o resultado
+// dos últimos envio/pull — inclusive o motivo de um 403 (e-mail não
+// verificado / assinatura expirada). Também dá para forçar um teste de
+// ida-e-volta com um toque.
+// ===================================================================
+function collectDiagnostics() {
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  var guest = false;
+  try {
+    guest = localStorage.getItem('appliquei_auth_guest') === '1';
+  } catch (_) {}
+  return {
+    build: SYNC_BUILD,
+    firebasePronto: !!(fb && fb.ready),
+    autenticacaoResolvida: authSettled,
+    logado: !!u,
+    email: (u && u.email) || null,
+    emailVerificado: u ? u.emailVerified === true : null,
+    convidado: guest,
+    pullInicialFeito: initialPullDone,
+    visaoFrescaDoServidor: serverViewReady,
+    chavesPendentes: Object.keys(dirtyKeys),
+    delecoesPendentes: Object.keys(getLocalDeletions()),
+    ultimoBeacon: diag.lastBeacon,
+    ultimoPull: diag.lastPull,
+    ultimoPushSdk: diag.lastSdkPush,
+  };
+}
+
+function fmtHora(t) {
+  if (!t) return '—';
+  var d = new Date(t);
+  function p(n) {
+    n = String(n);
+    return n.length < 2 ? '0' + n : n;
+  }
+  return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+
+function renderDebugPanel(el) {
+  var d = collectDiagnostics();
+  var lines = [];
+  lines.push('<b>Sync build:</b> ' + d.build);
+  if (!d.logado) {
+    lines.push(
+      '<b style="color:#fca5a5">SEM LOGIN' +
+        (d.convidado ? ' (modo convidado)' : '') +
+        ' — nada é sincronizado.</b>'
+    );
+  } else {
+    lines.push(
+      '<b>Login:</b> ' +
+        (d.email || '(sem e-mail)') +
+        (d.emailVerificado ? ' — verificado ✓' : ' — <b style="color:#fca5a5">NÃO VERIFICADO ✗</b>')
+    );
+  }
+  lines.push(
+    '<b>Pull inicial:</b> ' +
+      (d.pullInicialFeito ? 'feito' : 'pendente') +
+      ' · <b>visão do servidor:</b> ' +
+      (d.visaoFrescaDoServidor ? 'ok' : 'ainda não')
+  );
+  lines.push(
+    '<b>Pendências:</b> ' +
+      d.chavesPendentes.length +
+      ' chave(s)' +
+      (d.chavesPendentes.length ? ' — ' + d.chavesPendentes.join(', ') : '')
+  );
+  var b = d.ultimoBeacon;
+  if (b) {
+    var okB = b.status === 200 && !b.error;
+    lines.push(
+      '<b>Último envio:</b> ' +
+        fmtHora(b.t) +
+        ' — ' +
+        (okB
+          ? 'ok (aceitas ' + (b.accepted != null ? b.accepted : '?') + ' de ' + b.sent + ')'
+          : (b.status ? 'HTTP ' + b.status : 'falha') + (b.error ? ' · ' + b.error : '')) +
+        (b.stale ? ' · conflito: ' + b.stale.join(', ') : '') +
+        (b.rejected ? ' · rejeitadas: ' + b.rejected.join(', ') : '')
+    );
+  } else {
+    lines.push('<b>Último envio:</b> nenhum ainda');
+  }
+  var p = d.ultimoPull;
+  lines.push(
+    '<b>Último pull:</b> ' +
+      (p
+        ? fmtHora(p.t) +
+          ' — ' +
+          (p.ok
+            ? (p.fromServer ? 'servidor' : 'cache') + ', ' + (p.changed || 0) + ' mudança(s)'
+            : 'ERRO: ' + (p.error || '?'))
+        : 'nenhum ainda')
+  );
+  var s = d.ultimoPushSdk;
+  if (s && !s.ok) lines.push('<b>Push SDK:</b> ERRO: ' + (s.error || '?'));
+  el.querySelector('#syncDebugBody').innerHTML = lines.join('<br>');
+}
+
+function initDebugPanel() {
+  var wants = false;
+  try {
+    var loc = window.location;
+    var qs = (loc ? String(loc.search || '') + String(loc.hash || '') : '').toLowerCase();
+    wants = qs.indexOf('syncdebug') !== -1;
+  } catch (_) {}
+  if (!wants) return;
+  try {
+    var el = document.createElement('div');
+    el.id = 'syncDebugPanel';
+    el.style.cssText =
+      'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#111827;color:#e5e7eb;' +
+      'border:1px solid #374151;border-radius:10px;padding:12px;font:12px/1.6 monospace;' +
+      'box-shadow:0 8px 24px rgba(0,0,0,.45);max-height:45vh;overflow:auto;';
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+      '<strong>Diagnóstico da sincronização</strong>' +
+      '<button id="syncDebugClose" style="background:none;border:0;color:#e5e7eb;font-size:16px;cursor:pointer;">&times;</button>' +
+      '</div>' +
+      '<div id="syncDebugBody">carregando…</div>' +
+      '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+      '<button id="syncDebugSend" style="background:#2563eb;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;">Enviar teste agora</button>' +
+      '<button id="syncDebugPull" style="background:#374151;color:#fff;border:0;border-radius:6px;padding:6px 10px;cursor:pointer;">Puxar da nuvem</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    var iv = setInterval(function () {
+      try {
+        renderDebugPanel(el);
+      } catch (_) {}
+    }, 2000);
+    renderDebugPanel(el);
+    el.querySelector('#syncDebugClose').addEventListener('click', function () {
+      clearInterval(iv);
+      el.remove();
+    });
+    el.querySelector('#syncDebugSend').addEventListener('click', function () {
+      // Ida-e-volta real: escreve uma chave-sonda, empurra já e o painel
+      // mostra o resultado do envio nos próximos segundos.
+      try {
+        localStorage.setItem('appliquei_sync_probe', new Date().toISOString());
+      } catch (_) {}
+      try {
+        window.AppliqueiCloudSync.onLocalWrite('appliquei_sync_probe');
+      } catch (_) {}
+      beaconFlushNow('debug-panel', false);
+      forceFlushNow();
+    });
+    el.querySelector('#syncDebugPull').addEventListener('click', function () {
+      var u =
+        window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
+      if (u) pullAndApply(u.uid, function () {});
+    });
+  } catch (e) {
+    console.warn('[AppliqueiCloudSync] debug panel', e);
+  }
+}
+
+try {
+  console.log('[AppliqueiCloudSync] build', SYNC_BUILD);
+  if (typeof document !== 'undefined' && document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDebugPanel);
+  } else {
+    initDebugPanel();
+  }
+} catch (_) {}
+
 window.AppliqueiCloudSync = {
+  version: SYNC_BUILD,
+  getDiagnostics: collectDiagnostics,
   // prevValue (opcional): valor anterior da chave, passado pelo wrapper de
   // localStorage.setItem. Usado para detectar registros REMOVIDOS de arrays
   // com id (despesa apagada) e registá-los no ledger de tombstones — sem
@@ -1419,6 +1636,10 @@ window.AppliqueiCloudSync = {
     scheduleBeacon('write:' + key);
     if (window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser) {
       setCloudStatus('pending');
+    } else if (authSettled) {
+      // Sem login (convidado / sessão perdida) não há sincronização — deixa
+      // isso explícito em vez do "Salvo às HH:MM" que sugeria nuvem.
+      setCloudStatus('local-only');
     }
   },
   onLocalDelete: function (key) {
