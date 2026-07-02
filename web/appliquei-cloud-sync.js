@@ -12,6 +12,15 @@
  *   }
  * Compat: docs antigos sem keyRevs usam updatedAt como rev de fallback global.
  *
+ * Merge por registro (v2.1): chaves cujo valor é um array JSON de objetos
+ * com `id` único (futurorico_transacoes, appliquei_contas, …) NÃO fazem mais
+ * LWW cego do array inteiro no pull. Quando local e remoto divergem, o merge
+ * une os registros por id — o lançamento feito no celular sobrevive mesmo
+ * que outro device tenha escrito a mesma chave no intervalo. Deleções de
+ * registros são propagadas via ledger de tombstones (appliquei_sync_
+ * tombstones_v1, sincronizado como chave normal e unido por max-timestamp),
+ * senão o merge ressuscitaria registros apagados no outro device.
+ *
  * Onda 3 — convertido para ES module. O IIFE e o bloco-com-chaves que
  * embrulhavam o conteúdo foram removidos: o escopo do módulo já isola as
  * `var` do global, e o bloco extra induzia o esbuild minifier a gerar
@@ -56,6 +65,33 @@ var dirtyKeys = {};
 var LAST_UID_KEY = 'appliquei_cloud_last_uid';
 var KEY_REVS_LS = 'appliquei_cloud_key_revs';
 var DELETIONS_LS = 'appliquei_cloud_deletions';
+// Último rev por chave CONFIRMADO pelo servidor (adotado num pull ou aceito
+// num push). localRevs[k] > syncedRevs[k] ⟺ há mudança local que o servidor
+// nunca viu — é exatamente a janela em que o LWW cego perderia dados e onde
+// o merge por registro entra. Persistido: sobrevive a reload (dirtyKeys não).
+var SYNCED_REVS_LS = 'appliquei_cloud_synced_revs';
+// Ledger de deleções POR REGISTRO (id → msEpoch da deleção), agrupado por
+// chave sincronizável. Prefixo appliquei_ (sem "cloud_") de propósito: o
+// ledger VIAJA no sync como uma chave normal, para o outro device saber que
+// um registro foi apagado (e não apenas "sumiu" do array — que o merge por id
+// interpretaria como registro novo do outro lado e ressuscitaria).
+var TOMBSTONES_KEY = 'appliquei_sync_tombstones_v1';
+// Tombstones antigos são podados: depois de 60 dias todos os devices ativos
+// já convergiram; guardar mais só incha o payload.
+var TOMBSTONE_TTL_MS = 60 * 86400 * 1000;
+var TOMBSTONE_MAX_PER_KEY = 3000;
+
+// Retry do beacon: uma falha de rede ao sair do mercado não pode significar
+// perda silenciosa — reagenda com backoff e também no evento 'online'.
+var beaconRetryTimer = null;
+var beaconFailures = 0;
+var BEACON_RETRY_BASE_MS = 5000;
+var BEACON_RETRY_MAX_MS = 60000;
+// Toasts de diagnóstico (403 email não verificado / acesso bloqueado, chave
+// grande demais rejeitada) mostrados no máximo 1x por sessão por motivo.
+var syncToastShown = {};
+// Anti-loop: pull de reconciliação disparado por accepted<sent no máx. 1x/30s.
+var lastReconcilePullAt = 0;
 
 function shouldSyncKey(key) {
   if (!key || typeof key !== 'string') return false;
@@ -106,6 +142,21 @@ function getLocalRevs() {
 function getLocalDeletions() {
   return readJsonMap(DELETIONS_LS);
 }
+function getSyncedRevs() {
+  return readJsonMap(SYNCED_REVS_LS);
+}
+function markSyncedRevs(revMap, skip) {
+  var m = getSyncedRevs();
+  var touched = false;
+  Object.keys(revMap).forEach(function (k) {
+    if (skip && skip[k]) return;
+    if (m[k] !== revMap[k]) {
+      m[k] = revMap[k];
+      touched = true;
+    }
+  });
+  if (touched) writeJsonMap(SYNCED_REVS_LS, m);
+}
 
 function setLocalRev(k, t) {
   var m = getLocalRevs();
@@ -125,13 +176,159 @@ function setLocalRev(k, t) {
 // sempre, independentemente de desvio de relógio. Continua a usar Date.now()
 // como base para manter ordenação temporal entre devices saudáveis.
 var lastRevIssued = 0;
-function nextRev(key) {
-  var seen = getLocalRevs()[key] || 0;
+function revAbove(base) {
   var rev = Date.now();
-  if (rev <= seen) rev = seen + 1;
+  if (rev <= base) rev = base + 1;
   if (rev <= lastRevIssued) rev = lastRevIssued + 1;
   lastRevIssued = rev;
   return rev;
+}
+function nextRev(key) {
+  return revAbove(getLocalRevs()[key] || 0);
+}
+
+// ---------------------------------------------------------------
+// Merge por registro: helpers
+// ---------------------------------------------------------------
+
+// Devolve o array de objetos-com-id se (e só se) o valor for elegível para
+// merge por registro: array JSON de objetos não-nulos, todos com `id`
+// definido e único. Qualquer outra forma → null → cai no LWW clássico.
+function parseIdArray(str) {
+  if (typeof str !== 'string') return null;
+  var s = str.charAt(0);
+  if (s !== '[') return null;
+  var arr;
+  try {
+    arr = JSON.parse(str);
+  } catch (_) {
+    return null;
+  }
+  if (!Array.isArray(arr)) return null;
+  var seen = {};
+  for (var i = 0; i < arr.length; i++) {
+    var it = arr[i];
+    if (!it || typeof it !== 'object' || Array.isArray(it)) return null;
+    if (it.id === undefined || it.id === null) return null;
+    var id = String(it.id);
+    if (seen[id]) return null;
+    seen[id] = true;
+  }
+  return arr;
+}
+
+function getTombstones() {
+  return readJsonMap(TOMBSTONES_KEY);
+}
+
+function pruneTombMap(m) {
+  var cutoff = Date.now() - TOMBSTONE_TTL_MS;
+  var ids = Object.keys(m);
+  ids.forEach(function (id) {
+    if (!(typeof m[id] === 'number') || m[id] < cutoff) delete m[id];
+  });
+  ids = Object.keys(m);
+  if (ids.length > TOMBSTONE_MAX_PER_KEY) {
+    ids
+      .sort(function (a, b) {
+        return m[a] - m[b];
+      })
+      .slice(0, ids.length - TOMBSTONE_MAX_PER_KEY)
+      .forEach(function (id) {
+        delete m[id];
+      });
+  }
+  return m;
+}
+
+function writeTombstones(all) {
+  try {
+    localStorage.setItem(TOMBSTONES_KEY, JSON.stringify(all || {}));
+  } catch (_) {}
+}
+
+// Regista deleções de registros (ids sumiram do array numa escrita local) e
+// remove tombstones de ids que voltaram (registro re-criado com o mesmo id).
+function updateRecordTombstones(key, removedIds, revivedIds) {
+  if (!removedIds.length && !revivedIds.length) return;
+  var all = getTombstones();
+  var m = all[key];
+  if (!m || typeof m !== 'object' || Array.isArray(m)) m = {};
+  var now = Date.now();
+  removedIds.forEach(function (id) {
+    m[String(id)] = now;
+  });
+  revivedIds.forEach(function (id) {
+    delete m[String(id)];
+  });
+  all[key] = pruneTombMap(m);
+  writeTombstones(all);
+  // O ledger viaja no sync como chave normal: carimba rev + marca dirty.
+  // (O wrapper de setItem também notifica em produção; bump duplo de rev é
+  // inofensivo — e assim o módulo não depende do wrapper para propagar.)
+  setLocalRev(TOMBSTONES_KEY, nextRev(TOMBSTONES_KEY));
+  dirtyKeys[TOMBSTONES_KEY] = true;
+}
+
+// Compara o array local (mais antigo por rev) com o remoto (mais novo) e
+// devolve a união por id, respeitando tombstones de AMBOS os lados:
+//   - id nos dois → versão remota vence (rev da chave remota é mais novo);
+//   - id só no remoto → entra, salvo tombstone local;
+//   - id só no local → SOBREVIVE (é o lançamento do celular!), salvo
+//     tombstone remoto (foi apagado no outro device).
+// Retorna null quando algum lado não é elegível → chamador faz LWW clássico.
+function mergeIdArrays(key, localStr, remoteStr, tombUnion) {
+  var localArr = parseIdArray(localStr);
+  if (!localArr) return null;
+  var remoteArr = parseIdArray(remoteStr);
+  if (!remoteArr) return null;
+
+  var tomb = (tombUnion && tombUnion[key]) || {};
+  var out = [];
+  var present = {};
+  remoteArr.forEach(function (it) {
+    var id = String(it.id);
+    if (tomb[id]) return;
+    present[id] = true;
+    out.push(it);
+  });
+  localArr.forEach(function (it) {
+    var id = String(it.id);
+    if (present[id] || tomb[id]) return;
+    present[id] = true;
+    out.push(it);
+  });
+
+  var value = JSON.stringify(out);
+  return {
+    value: value,
+    // Diverge do remoto → o merge precisa voltar para o servidor com rev
+    // maior, senão os registros locais preservados nunca chegam à nuvem.
+    divergesFromRemote: value !== JSON.stringify(remoteArr),
+  };
+}
+
+// União de dois ledgers de tombstones (max timestamp por id).
+function unionTombstones(a, b) {
+  var out = {};
+  [a, b].forEach(function (src) {
+    if (!src || typeof src !== 'object') return;
+    Object.keys(src).forEach(function (key) {
+      var m = src[key];
+      if (!m || typeof m !== 'object' || Array.isArray(m)) return;
+      if (!out[key]) out[key] = {};
+      Object.keys(m).forEach(function (id) {
+        var ts = Number(m[id]) || 0;
+        if (!ts) return;
+        if (!out[key][id] || out[key][id] < ts) out[key][id] = ts;
+      });
+    });
+  });
+  Object.keys(out).forEach(function (key) {
+    out[key] = pruneTombMap(out[key]);
+    if (Object.keys(out[key]).length === 0) delete out[key];
+  });
+  return out;
 }
 
 function setLocalDeletion(k, t) {
@@ -228,9 +425,16 @@ function flushPush() {
       snapshotDeletions.forEach(function (k) {
         removeLocalDeletion(k);
       });
+      // set(merge) não passa por LWW: o servidor agora tem exatamente estes
+      // revs — regista como sincronizados.
+      markSyncedRevs(build.keyRevs);
+      if (Object.keys(dirtyKeys).length === 0 && Object.keys(getLocalDeletions()).length === 0) {
+        setCloudStatus('saved');
+      }
     })
     .catch(function (err) {
       console.warn('[AppliqueiCloudSync] push', err);
+      setCloudStatus('error');
       // Restaura dirty para retry. Deletions já estão persistidas, não
       // precisam de restore.
       snapshotDirty.forEach(function (k) {
@@ -358,7 +562,77 @@ function buildBeaconPayload() {
 //    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
 // O endpoint /api/sync/push é idempotente e faz LWW por-rev, por isso reenviar
 // o mesmo payload (eager + visibility + pagehide) é seguro.
-function postBeacon(token, payload, reason, viaUnload) {
+// Indicador honesto de sync. O "Salvo às HH:MM" do wrapper de setItem mente:
+// atualiza no gravar LOCAL, mesmo quando a nuvem falhou — o usuário saía do
+// mercado achando que sincronizou. Aqui refletimos o estado real do push.
+function setCloudStatus(state) {
+  try {
+    var el = document.getElementById('ultimoSalvoTxt');
+    if (!el) return;
+    if (state === 'saved') {
+      var agora = new Date();
+      var hh = String(agora.getHours());
+      if (hh.length < 2) hh = '0' + hh;
+      var mm = String(agora.getMinutes());
+      if (mm.length < 2) mm = '0' + mm;
+      el.textContent = 'Salvo na nuvem às ' + hh + ':' + mm;
+    } else if (state === 'pending') {
+      el.textContent = 'Sincronizando…';
+    } else if (state === 'error') {
+      el.textContent = 'Sem nuvem — dados salvos só neste aparelho';
+    }
+  } catch (_) {}
+}
+
+function toastOnce(reasonKey, msg) {
+  if (syncToastShown[reasonKey]) return;
+  syncToastShown[reasonKey] = true;
+  if (typeof window.mostrarToast === 'function') {
+    window.mostrarToast(msg, 'erro');
+  }
+}
+
+function scheduleBeaconRetry() {
+  beaconFailures++;
+  setCloudStatus('error');
+  if (beaconRetryTimer) return;
+  var delay = BEACON_RETRY_BASE_MS * Math.pow(2, Math.min(beaconFailures - 1, 4));
+  if (delay > BEACON_RETRY_MAX_MS) delay = BEACON_RETRY_MAX_MS;
+  beaconRetryTimer = setTimeout(function () {
+    beaconRetryTimer = null;
+    if (Object.keys(dirtyKeys).length === 0 && Object.keys(getLocalDeletions()).length === 0)
+      return;
+    beaconFlushNow('retry#' + beaconFailures, false);
+  }, delay);
+}
+
+// Sucesso confirmado pelo servidor: limpa dirty/deletions das chaves cujo rev
+// enviado ainda é o corrente (se o usuário escreveu de novo no intervalo, o
+// rev local mudou e a chave continua dirty para o próximo envio).
+function clearAckedKeys(payload, skip) {
+  var localRevs = getLocalRevs();
+  var deletions = getLocalDeletions();
+  Object.keys(payload.keyRevs).forEach(function (k) {
+    if (skip && skip[k]) return;
+    var sentRev = payload.keyRevs[k];
+    if (dirtyKeys[k] && localRevs[k] === sentRev) delete dirtyKeys[k];
+    if (deletions[k] === sentRev) removeLocalDeletion(k);
+  });
+  markSyncedRevs(payload.keyRevs, skip);
+}
+
+// O servidor descartou parte das chaves por LWW (outro device escreveu com
+// rev maior). Puxa o remoto para reconciliar: o merge por registro preserva
+// os lançamentos locais e re-agenda um push com rev vencedor.
+function reconcileAfterStale() {
+  var now = Date.now();
+  if (now - lastReconcilePullAt < 30000) return;
+  lastReconcilePullAt = now;
+  var u = window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
+  if (u) pullAndApply(u.uid, function () {});
+}
+
+function postBeacon(token, payload, reason, viaUnload, isAuthRetry) {
   var body = JSON.stringify({
     idToken: token,
     keys: payload.keys,
@@ -398,47 +672,116 @@ function postBeacon(token, payload, reason, viaUnload) {
         .then(function (r) {
           if (!r.ok) {
             console.warn('[AppliqueiCloudSync] beacon HTTP', r.status, reason || '');
-            try {
-              r.text().then(function (t) {
-                console.warn('[AppliqueiCloudSync] beacon body', t);
-              });
-            } catch (_) {}
-          } else {
-            // Diagnóstico: o endpoint responde 200 mesmo quando o LWW por-rev
-            // descarta TODAS as keys (accepted:0). Logamos também o tamanho do
-            // corpo e se foi keepalive — para confirmar em campo o limite 64KB.
-            try {
-              r.json()
-                .then(function (j) {
-                  if (j && j.accepted === 0 && sentN > 0) {
-                    console.warn(
-                      '[AppliqueiCloudSync] beacon aceitou 0 de',
-                      sentN,
-                      'keys — write descartado pelo LWW (conflito de rev). reason:',
-                      reason || ''
+            if (r.status === 401 && !isAuthRetry) {
+              // Token cacheado expirou (aba mobile ressuscitada horas depois:
+              // onIdTokenChanged não disparou durante o freeze). Antes, o 401
+              // descartava o write em SILÊNCIO. Agora força refresh e reenvia.
+              cachedIdToken = null;
+              try {
+                var fb = window.AppliqueiFirebase;
+                var u = fb && fb.auth && fb.auth.currentUser;
+                if (u) {
+                  u.getIdToken(true)
+                    .then(function (t) {
+                      cachedIdToken = t;
+                      var fresh = buildBeaconPayload();
+                      if (fresh) postBeacon(t, fresh, (reason || '') + '+401retry', false, true);
+                    })
+                    .catch(function () {
+                      scheduleBeaconRetry();
+                    });
+                  return;
+                }
+              } catch (_) {}
+              scheduleBeaconRetry();
+              return;
+            }
+            if (r.status === 403) {
+              // Sem retry: é estado de conta, não de rede. Mas o usuário
+              // PRECISA saber — era a falha silenciosa clássica ("Salvo às
+              // HH:MM" no aparelho, nada na nuvem).
+              setCloudStatus('error');
+              try {
+                r.json().then(function (j) {
+                  var err = j && j.error;
+                  if (err === 'email_not_verified') {
+                    toastOnce(
+                      'email_not_verified',
+                      'Sincronização desativada: verifique seu e-mail (link enviado na criação da conta) para gravar seus dados na nuvem.'
                     );
-                  } else {
-                    console.log(
-                      '[AppliqueiCloudSync] beacon ok',
-                      reason || '',
-                      'accepted',
-                      j && j.accepted,
-                      'de',
-                      sentN,
-                      '(' + body.length + 'B, keepalive=' + useKeepalive + ')'
+                  } else if (err === 'access_blocked') {
+                    toastOnce(
+                      'access_blocked',
+                      'Sincronização desativada: sua assinatura/período de teste expirou. Os dados estão sendo salvos só neste aparelho.'
                     );
                   }
-                })
-                .catch(function () {
-                  console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
                 });
-            } catch (_) {
-              console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
+              } catch (_) {}
+              return;
             }
+            // 5xx / outros: transitório — reagenda.
+            scheduleBeaconRetry();
+            return;
+          }
+          beaconFailures = 0;
+          try {
+            r.json()
+              .then(function (j) {
+                var rejected = (j && j.rejected) || [];
+                var stale = (j && j.stale) || [];
+                if (rejected.length) {
+                  console.warn('[AppliqueiCloudSync] beacon: keys rejeitadas', rejected);
+                  toastOnce(
+                    'rejected:' + rejected.join(','),
+                    'Parte dos dados não coube na sincronização (' +
+                      rejected.join(', ') +
+                      '). Exporte um backup e contate o suporte.'
+                  );
+                }
+                var skip = {};
+                rejected.forEach(function (k) {
+                  skip[k] = true;
+                });
+                stale.forEach(function (k) {
+                  skip[k] = true;
+                });
+                clearAckedKeys(payload, skip);
+                if (stale.length) {
+                  // Outro device escreveu com rev maior: puxa e o merge por
+                  // registro preserva os lançamentos locais + re-push.
+                  console.warn(
+                    '[AppliqueiCloudSync] beacon: keys stale (LWW)',
+                    stale,
+                    reason || ''
+                  );
+                  reconcileAfterStale();
+                } else if (
+                  Object.keys(dirtyKeys).length === 0 &&
+                  Object.keys(getLocalDeletions()).length === 0
+                ) {
+                  setCloudStatus('saved');
+                }
+                console.log(
+                  '[AppliqueiCloudSync] beacon ok',
+                  reason || '',
+                  'accepted',
+                  j && j.accepted,
+                  'de',
+                  sentN,
+                  '(' + body.length + 'B, keepalive=' + useKeepalive + ')'
+                );
+              })
+              .catch(function () {
+                console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
+              });
+          } catch (_) {
+            console.log('[AppliqueiCloudSync] beacon ok', reason || '', sentN, 'keys');
           }
         })
         .catch(function (e) {
           console.warn('[AppliqueiCloudSync] beacon fetch', reason || '', e && (e.message || e));
+          // Falha de rede (saindo do mercado, elevador…): NÃO desistir.
+          scheduleBeaconRetry();
         });
     }
   } catch (e) {
@@ -535,9 +878,11 @@ function applyRemoteSnapshot(snap, opts) {
   var remoteRevs = data.keyRevs || {};
   var fallbackRev = tsMillis(data.updatedAt) || 0;
   var localRevs = getLocalRevs();
+  var syncedRevs = getSyncedRevs();
   var localDeletions = getLocalDeletions();
   var changed = 0;
   var revsTouched = false;
+  var syncedTouched = false;
 
   var allRemoteKeys = {};
   Object.keys(remoteKeys).forEach(function (k) {
@@ -548,9 +893,43 @@ function applyRemoteSnapshot(snap, opts) {
   });
 
   applyingPull = true;
+  var tombUnion;
   try {
+    // ---- Ledger de tombstones: SEMPRE união (nunca LWW cego) ----
+    // Se fizesse LWW, um push do ledger local sobrescreveria deleções
+    // registadas por outro device que ainda não vimos.
+    var localTomb = getTombstones();
+    var remoteTombRaw =
+      typeof remoteKeys[TOMBSTONES_KEY] === 'string' ? remoteKeys[TOMBSTONES_KEY] : null;
+    var remoteTomb = null;
+    if (remoteTombRaw !== null) {
+      try {
+        remoteTomb = JSON.parse(remoteTombRaw);
+      } catch (_) {}
+    }
+    tombUnion = unionTombstones(localTomb, remoteTomb);
+    var tombUnionStr = JSON.stringify(tombUnion);
+    if (tombUnionStr !== JSON.stringify(localTomb)) {
+      writeTombstones(tombUnion);
+    }
+    if (remoteTombRaw !== null) {
+      var rRevTomb = remoteRevs[TOMBSTONES_KEY] || fallbackRev;
+      if (tombUnionStr !== JSON.stringify(remoteTomb || {})) {
+        // União difere do remoto → precisa voltar ao servidor com rev maior.
+        localRevs[TOMBSTONES_KEY] = revAbove(rRevTomb);
+        dirtyKeys[TOMBSTONES_KEY] = true;
+        syncedRevs[TOMBSTONES_KEY] = rRevTomb;
+      } else if (rRevTomb > (localRevs[TOMBSTONES_KEY] || 0)) {
+        localRevs[TOMBSTONES_KEY] = rRevTomb;
+        syncedRevs[TOMBSTONES_KEY] = rRevTomb;
+      }
+      revsTouched = true;
+      syncedTouched = true;
+    }
+
     Object.keys(allRemoteKeys).forEach(function (k) {
       if (!shouldSyncKey(k)) return;
+      if (k === TOMBSTONES_KEY) return; // tratado acima (união)
       var rRev = remoteRevs[k] || fallbackRev;
       var lRev = localRevs[k] || 0;
       // Empate vai para o local: protege writes feitos durante o pull
@@ -569,11 +948,36 @@ function applyRemoteSnapshot(snap, opts) {
             changed++;
           }
         } else {
-          var next = remoteKeys[k];
+          var next = String(remoteKeys[k]);
           var cur = localStorage.getItem(k);
           if (!storageValuesEqual(cur, next)) {
-            localStorage.setItem(k, String(next));
-            changed++;
+            // Janela de perda do LWW cego: o remoto está mais novo MAS há
+            // mudança local que o servidor nunca viu (localRev > syncedRev —
+            // ex.: a despesa lançada no celular antes/durante o pull, ou cujo
+            // push foi descartado por conflito de rev). Em vez de sobrescrever
+            // o array inteiro, une os registros por id.
+            var hasUnsynced = cur !== null && lRev > (syncedRevs[k] || 0);
+            var merged = hasUnsynced ? mergeIdArrays(k, cur, next, tombUnion) : null;
+            if (merged && merged.divergesFromRemote) {
+              if (!storageValuesEqual(cur, merged.value)) {
+                localStorage.setItem(k, merged.value);
+                changed++;
+              }
+              // O merge preservou registros locais → volta ao servidor com
+              // rev estritamente maior que o remoto (vence o LWW de lá).
+              localRevs[k] = revAbove(rRev);
+              syncedRevs[k] = rRev;
+              revsTouched = true;
+              syncedTouched = true;
+              dirtyKeys[k] = true;
+              if (localDeletions[k] && localDeletions[k] < rRev) removeLocalDeletion(k);
+              return;
+            }
+            var applyVal = merged ? merged.value : next;
+            if (!storageValuesEqual(cur, applyVal)) {
+              localStorage.setItem(k, applyVal);
+              changed++;
+            }
           }
         }
       } catch (e) {
@@ -581,7 +985,9 @@ function applyRemoteSnapshot(snap, opts) {
       }
 
       localRevs[k] = rRev;
+      syncedRevs[k] = rRev;
       revsTouched = true;
+      syncedTouched = true;
       if (localDeletions[k] && localDeletions[k] < rRev) {
         removeLocalDeletion(k);
       }
@@ -607,6 +1013,7 @@ function applyRemoteSnapshot(snap, opts) {
   } catch (_) {}
 
   if (revsTouched) writeJsonMap(KEY_REVS_LS, localRevs);
+  if (syncedTouched) writeJsonMap(SYNCED_REVS_LS, syncedRevs);
 
   // Reconciliação: keys locais que ficaram mais recentes que o remoto
   // (ex.: escritas durante o pull) entram em dirty para o próximo push.
@@ -625,6 +1032,9 @@ function applyRemoteSnapshot(snap, opts) {
   });
   if (hasLocalNewer || Object.keys(getLocalDeletions()).length > 0) {
     schedulePush();
+    // O push via SDK pode ficar gateado (serverViewReady) ou o debounce de 2s
+    // não sobreviver ao reload abaixo — o beacon (rev-safe) garante o egress.
+    scheduleBeacon('reconcile');
   }
 
   if (changed > 0) {
@@ -634,6 +1044,17 @@ function applyRemoteSnapshot(snap, opts) {
       window.mostrarToast(msg, 'sucesso');
     }
     setTimeout(function () {
+      // O reload aborta fetches em voo: manda o que estiver dirty via
+      // keepalive antes de navegar (dirtyKeys é in-memory e morre no reload;
+      // localRevs>syncedRevs persistidos re-marcam dirty depois, mas só num
+      // próximo pull — melhor não depender disso).
+      try {
+        if (beaconTimer) {
+          clearTimeout(beaconTimer);
+          beaconTimer = null;
+        }
+        beaconFlushNow('pre-reload', true);
+      } catch (_) {}
       try {
         window.location.reload();
       } catch (_) {}
@@ -749,6 +1170,7 @@ function pullAndApply(uid, done) {
     pullInFlight = false;
     if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
       schedulePush();
+      scheduleBeacon('post-pull');
     }
     startSnapshotListener(uid);
     if (done) done(changed > 0);
@@ -879,6 +1301,7 @@ function clearUserScopedKeys() {
     localStorage.removeItem('appliquei_cloud_applied_rev'); // legado v1
     localStorage.removeItem(KEY_REVS_LS);
     localStorage.removeItem(DELETIONS_LS);
+    localStorage.removeItem(SYNCED_REVS_LS);
   } catch (_) {}
 }
 
@@ -942,12 +1365,50 @@ function onPageHide() {
 try {
   document.addEventListener('visibilitychange', onVisibilityChange);
   window.addEventListener('pagehide', onPageHide);
+  // A rede voltou (saiu do mercado, pegou o wi-fi de casa): descarrega o que
+  // ficou pendente imediatamente, sem esperar o próximo write/visibility.
+  window.addEventListener('online', function () {
+    if (Object.keys(dirtyKeys).length > 0 || Object.keys(getLocalDeletions()).length > 0) {
+      beaconFlushNow('online', false);
+      forceFlushNow();
+    }
+  });
 } catch (_) {}
 
 window.AppliqueiCloudSync = {
-  onLocalWrite: function (key) {
+  // prevValue (opcional): valor anterior da chave, passado pelo wrapper de
+  // localStorage.setItem. Usado para detectar registros REMOVIDOS de arrays
+  // com id (despesa apagada) e registá-los no ledger de tombstones — sem
+  // isso, o merge por registro do outro device ressuscitaria o apagado.
+  onLocalWrite: function (key, prevValue) {
     if (applyingPull) return;
     if (!shouldSyncKey(key)) return;
+    if (key !== TOMBSTONES_KEY && typeof prevValue === 'string') {
+      try {
+        var prevArr = parseIdArray(prevValue);
+        if (prevArr) {
+          var curArr = parseIdArray(localStorage.getItem(key));
+          if (curArr) {
+            var curIds = {};
+            curArr.forEach(function (it) {
+              curIds[String(it.id)] = true;
+            });
+            var removed = [];
+            prevArr.forEach(function (it) {
+              var id = String(it.id);
+              if (!curIds[id]) removed.push(id);
+            });
+            var tombNow = getTombstones()[key] || {};
+            var revived = [];
+            curArr.forEach(function (it) {
+              var id = String(it.id);
+              if (tombNow[id]) revived.push(id);
+            });
+            updateRecordTombstones(key, removed, revived);
+          }
+        }
+      } catch (_) {}
+    }
     setLocalRev(key, nextRev(key));
     dirtyKeys[key] = true;
     removeLocalDeletion(key);
@@ -956,6 +1417,9 @@ window.AppliqueiCloudSync = {
     // Esperar pelo visibilitychange é arriscado porque iOS dispara esse
     // evento depois do freeze em alguns cenários (lock screen rápido).
     scheduleBeacon('write:' + key);
+    if (window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser) {
+      setCloudStatus('pending');
+    }
   },
   onLocalDelete: function (key) {
     if (applyingPull) return;
@@ -966,6 +1430,9 @@ window.AppliqueiCloudSync = {
     delete dirtyKeys[key];
     schedulePush();
     scheduleBeacon('delete:' + key);
+    if (window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser) {
+      setCloudStatus('pending');
+    }
   },
   flushNow: flushPush,
   forceFlush: forceFlushNow,

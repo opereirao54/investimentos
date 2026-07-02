@@ -359,7 +359,10 @@ localStorage.setItem = function (key, value) {
     typeof AppliqueiCloudSync.onLocalWrite === 'function'
   ) {
     try {
-      AppliqueiCloudSync.onLocalWrite(key);
+      // prev permite ao sync detectar registros REMOVIDOS de arrays com id
+      // (despesa apagada) e propagar a deleção via tombstones — sem isso o
+      // merge por registro do outro device ressuscitaria o item apagado.
+      AppliqueiCloudSync.onLocalWrite(key, prev);
     } catch (_) {}
   }
 };

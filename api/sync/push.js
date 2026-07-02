@@ -19,7 +19,12 @@ const { syncPushBody } = require('../_lib/schemas');
 const { computeAccess } = require('../_lib/access');
 
 const MAX_KEYS_PER_PUSH = 200;
-const MAX_VALUE_BYTES = 200 * 1024; // 200KB por chave (defesa em profundidade)
+// 500KB por chave. Era 200KB — atingível por futurorico_transacoes (despesas
+// fixas geram 60 lançamentos cada) e a chave era DESCARTADA em silêncio: a
+// despesa "não gravava" para sempre, enquanto chaves menores sincronizavam.
+// O teto real continua sendo 1MB/documento do Firestore; chaves rejeitadas
+// agora voltam nomeadas na resposta para o cliente avisar o usuário.
+const MAX_VALUE_BYTES = 500 * 1024;
 
 function isSyncKey(k) {
   if (!k || typeof k !== 'string') return false;
@@ -71,20 +76,39 @@ module.exports = handler({
       const initRevs = {};
       let accepted = 0;
       let count = 0;
+      // Diagnóstico de volta ao cliente: antes, chaves grandes/invalidas eram
+      // descartadas em SILÊNCIO (o cliente via 200 ok e achava que gravou).
+      //   rejected: inválidas (tamanho/tipo) — o cliente avisa o usuário;
+      //   stale:    perderam o LWW (outro device tem rev maior) — o cliente
+      //             puxa o remoto, faz merge por registro e reenvia.
+      const rejected = [];
+      const stale = [];
 
       Object.keys(keys).forEach((k) => {
         if (count >= MAX_KEYS_PER_PUSH) return;
         count++;
         if (!isSyncKey(k)) return;
         const rev = Number(keyRevs[k] || 0);
-        if (!rev || !isFinite(rev)) return;
+        if (!rev || !isFinite(rev)) {
+          rejected.push(k);
+          return;
+        }
         const curRev = Number(curRevs[k] || 0);
-        if (curRev >= rev) return;
+        if (curRev >= rev) {
+          stale.push(k);
+          return;
+        }
 
         const v = keys[k];
         const isDelete = v === null || v === undefined;
-        if (!isDelete && typeof v !== 'string') return;
-        if (!isDelete && Buffer.byteLength(v, 'utf8') > MAX_VALUE_BYTES) return;
+        if (!isDelete && typeof v !== 'string') {
+          rejected.push(k);
+          return;
+        }
+        if (!isDelete && Buffer.byteLength(v, 'utf8') > MAX_VALUE_BYTES) {
+          rejected.push(k);
+          return;
+        }
 
         if (exists) {
           updateFields['keys.' + k] = isDelete ? FV.delete() : v;
@@ -96,7 +120,7 @@ module.exports = handler({
         accepted++;
       });
 
-      if (accepted === 0) return { accepted: 0 };
+      if (accepted === 0) return { accepted: 0, rejected, stale };
 
       if (exists) {
         updateFields.schemaVersion = 2;
@@ -110,9 +134,14 @@ module.exports = handler({
           updatedAt: FV.serverTimestamp(),
         });
       }
-      return { accepted };
+      return { accepted, rejected, stale };
     });
 
-    return res.status(200).json({ ok: true, accepted: result.accepted });
+    return res.status(200).json({
+      ok: true,
+      accepted: result.accepted,
+      rejected: result.rejected,
+      stale: result.stale,
+    });
   },
 });
