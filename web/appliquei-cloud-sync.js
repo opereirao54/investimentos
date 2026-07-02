@@ -96,7 +96,7 @@ var lastReconcilePullAt = 0;
 // Versão do build do sync. Aparece no painel de diagnóstico (?syncdebug=1) e
 // no console — confirma em campo qual código o aparelho está REALMENTE
 // rodando (aba de celular ressuscitada roda JS antigo por dias após deploy).
-var SYNC_BUILD = '2026-07-02.3';
+var SYNC_BUILD = '2026-07-02.4';
 // Últimos eventos observáveis, para o painel de diagnóstico.
 var diag = {
   lastBeacon: null, // { t, reason, status, accepted, sent, rejected, stale, error }
@@ -969,14 +969,54 @@ function applyRemoteSnapshot(snap, opts) {
       if (k === TOMBSTONES_KEY) return; // tratado acima (união)
       var rRev = remoteRevs[k] || fallbackRev;
       var lRev = localRevs[k] || 0;
+      var syncedRev = syncedRevs[k] || 0;
+      var isTombstone = !(k in remoteKeys) || remoteKeys[k] === undefined || remoteKeys[k] === null;
+
+      // ---- Divergência concorrente (a causa do "cada aparelho com um total
+      // diferente, ambos dizendo que sincronizaram") ----
+      // Os dois lados avançaram além do último ponto comum de sync
+      // (lRev > syncedRev E rRev > syncedRev). O rev é escalar e o LWW dele
+      // dropava um dos lados — QUAL depende só de qual relógio estava à frente.
+      // Para uma coleção (array de registros com id), unir é sempre correto,
+      // independentemente de qual rev é maior. Faz ISTO antes do LWW abaixo,
+      // que de outra forma (rRev <= lRev) retornaria e perderia o remoto.
+      if (!isTombstone && lRev > syncedRev && rRev > syncedRev) {
+        var curD = null;
+        try {
+          curD = localStorage.getItem(k);
+        } catch (_) {}
+        if (curD !== null) {
+          var mergedD = mergeIdArrays(k, curD, String(remoteKeys[k]), tombUnion);
+          if (mergedD) {
+            if (!storageValuesEqual(curD, mergedD.value)) {
+              localStorage.setItem(k, mergedD.value);
+              changed++;
+            }
+            if (mergedD.divergesFromRemote) {
+              // A união tem registros que o servidor ainda não tem → volta com
+              // rev acima de AMBOS (vence o LWW dos dois lados).
+              localRevs[k] = revAbove(rRev > lRev ? rRev : lRev);
+              dirtyKeys[k] = true;
+            } else {
+              // A união == remoto → já convergimos com o servidor.
+              localRevs[k] = rRev > lRev ? rRev : lRev;
+            }
+            syncedRevs[k] = rRev;
+            revsTouched = true;
+            syncedTouched = true;
+            if (localDeletions[k] && localDeletions[k] < rRev) removeLocalDeletion(k);
+            return;
+          }
+          // Não é array de registros → cai no LWW clássico abaixo.
+        }
+      }
+
       // Empate vai para o local: protege writes feitos durante o pull
       // inicial (que carimbam localRev = Date.now() > 0, enquanto remoto
       // ainda tem o rev antigo).
       if (rRev <= lRev) return;
       // Se a deleção local é mais recente, mantém para propagar.
       if (localDeletions[k] && localDeletions[k] >= rRev) return;
-
-      var isTombstone = !(k in remoteKeys) || remoteKeys[k] === undefined || remoteKeys[k] === null;
 
       try {
         if (isTombstone) {
@@ -988,33 +1028,8 @@ function applyRemoteSnapshot(snap, opts) {
           var next = String(remoteKeys[k]);
           var cur = localStorage.getItem(k);
           if (!storageValuesEqual(cur, next)) {
-            // Janela de perda do LWW cego: o remoto está mais novo MAS há
-            // mudança local que o servidor nunca viu (localRev > syncedRev —
-            // ex.: a despesa lançada no celular antes/durante o pull, ou cujo
-            // push foi descartado por conflito de rev). Em vez de sobrescrever
-            // o array inteiro, une os registros por id.
-            var hasUnsynced = cur !== null && lRev > (syncedRevs[k] || 0);
-            var merged = hasUnsynced ? mergeIdArrays(k, cur, next, tombUnion) : null;
-            if (merged && merged.divergesFromRemote) {
-              if (!storageValuesEqual(cur, merged.value)) {
-                localStorage.setItem(k, merged.value);
-                changed++;
-              }
-              // O merge preservou registros locais → volta ao servidor com
-              // rev estritamente maior que o remoto (vence o LWW de lá).
-              localRevs[k] = revAbove(rRev);
-              syncedRevs[k] = rRev;
-              revsTouched = true;
-              syncedTouched = true;
-              dirtyKeys[k] = true;
-              if (localDeletions[k] && localDeletions[k] < rRev) removeLocalDeletion(k);
-              return;
-            }
-            var applyVal = merged ? merged.value : next;
-            if (!storageValuesEqual(cur, applyVal)) {
-              localStorage.setItem(k, applyVal);
-              changed++;
-            }
+            localStorage.setItem(k, next);
+            changed++;
           }
         }
       } catch (e) {

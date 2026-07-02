@@ -272,6 +272,54 @@ test('sem mudança local pendente → LWW normal (deleção de outro device NÃO
   );
 });
 
+test('divergência concorrente com rev REMOTO MENOR que o local (clock skew): merge, não perde nenhum lado', async () => {
+  // O bug real do "cada aparelho com um total diferente, ambos dizendo synced".
+  // PC editou por último (ou tem relógio adiantado): localRev 5000. Celular
+  // editou uma OUTRA transação com rev 3000 (relógio atrasado) e já subiu.
+  // Ambos avançaram além do último sync comum (syncedRev 1000).
+  // O LWW antigo fazia `if (rRev(3000) <= lRev(5000)) return` → o registro do
+  // celular era DESCARTADO no PC (e vice-versa) → divergência permanente.
+  const A = { id: 'a', v: 1 }; // comum
+  const PC = { id: 'pc', v: 2 }; // editado no PC (local)
+  const CEL = { id: 'cel', v: 3 }; // lançado no celular (remoto, rev menor)
+
+  const h = load({
+    seed: {
+      futurorico_transacoes: JSON.stringify([A, PC]),
+      appliquei_cloud_key_revs: JSON.stringify({ futurorico_transacoes: 5000 }),
+      appliquei_cloud_synced_revs: JSON.stringify({ futurorico_transacoes: 1000 }),
+    },
+  });
+  h.fireAuth();
+  await flush();
+
+  // Remoto tem rev MENOR (3000 < 5000) mas também avançou além de 1000.
+  h.resolveServerGet(
+    snapOf({ futurorico_transacoes: JSON.stringify([A, CEL]) }, { futurorico_transacoes: 3000 })
+  );
+  await flush();
+
+  const ids = JSON.parse(h.win.localStorage.getItem('futurorico_transacoes'))
+    .map((t) => t.id)
+    .sort();
+  assert.deepEqual(
+    ids,
+    ['a', 'cel', 'pc'],
+    'apesar do rev remoto ser MENOR, o registro do celular deve ser unido (não descartado pelo LWW)'
+  );
+
+  // E deve re-subir a união com rev acima de ambos.
+  h.hidden();
+  await flush();
+  const posts = h.beaconPosts.filter((p) => p.keys && p.keys.futurorico_transacoes);
+  assert.ok(posts.length >= 1, 'a união deve voltar ao servidor');
+  const last = posts[posts.length - 1];
+  assert.ok(
+    last.keyRevs.futurorico_transacoes > 5000,
+    'o rev da união deve superar AMBOS os revs (5000 e 3000)'
+  );
+});
+
 test('tombstone remoto: registro apagado no outro device não ressuscita via merge', async () => {
   const A = { id: 'a', v: 1 };
   const B = { id: 'b', v: 2 };
