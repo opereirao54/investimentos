@@ -192,6 +192,57 @@ function start() {
     };
   }
 
+  // ---------------- cadeia de gravação ----------------
+  // A primeira coleta não mostrou UM ÚNICO push em 4 minutos: o upload não
+  // morre no meio, ele nunca começa. Isso move a suspeita para antes do envio.
+  // Os três pontos abaixo cercam a cadeia inteira, para localizar onde ela
+  // corta em vez de adivinhar:
+  //
+  //   setItem  →  onLocalWrite  →  beacon
+  //     ↑             ↑              ↑
+  //   grava?     foi avisado?     enviou?
+  //
+  // Sem isso não dá para distinguir "o app não salvou", "salvou mas o sync não
+  // soube" e "soube mas desistiu" — três bugs diferentes com o mesmo sintoma.
+  // onLocalWrite tem dois `return` silenciosos logo na entrada (applyingPull e
+  // shouldSyncKey); se a flag do pull ficar presa, toda gravação some sem
+  // rastro. É a hipótese principal agora.
+
+  try {
+    const origSet = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (k, v) {
+      if (k && /^(futurorico_|appliquei_)/.test(k)) {
+        push('GRAVA', k + ' ' + Math.round(String(v).length / 1024) + 'KB');
+      }
+      return origSet(k, v);
+    };
+  } catch (_) {}
+
+  let wrapped = false;
+  function wrapSync() {
+    if (wrapped) return true;
+    const cs = window.AppliqueiCloudSync;
+    if (!cs || typeof cs.onLocalWrite !== 'function') return false;
+    wrapped = true;
+    const orig = cs.onLocalWrite.bind(cs);
+    cs.onLocalWrite = function (key) {
+      push('AVISA', 'onLocalWrite(' + key + ')');
+      const r = orig(key);
+      // Se nenhum PUSH→ aparecer depois desta linha, o sync foi avisado e
+      // desistiu por dentro — provavelmente applyingPull preso.
+      return r;
+    };
+    push('---', 'sync instrumentado');
+    return true;
+  }
+  if (!wrapSync()) {
+    let tries = 0;
+    const iv = setInterval(() => {
+      if (wrapSync() || ++tries > 60) clearInterval(iv);
+      if (tries > 60) push('ERRO', 'AppliqueiCloudSync nunca apareceu — módulo não carregou');
+    }, 500);
+  }
+
   // ---------------- painel ----------------
 
   function render(e) {
@@ -290,7 +341,26 @@ function start() {
       panel.remove();
     });
 
-    bar.append(title, info, copy, clear, off);
+    // Valida o próprio instrumento. Sem este botão, "nenhum PUSH no log" é
+    // ambíguo: pode ser que o app não empurre, pode ser que o painel não veja.
+    // Concluir com o medidor sem aferir seria repetir o erro das quatro
+    // tentativas anteriores.
+    const forcar = btn('forçar push', () => {
+      const cs = window.AppliqueiCloudSync;
+      if (!cs) return push('ERRO', 'AppliqueiCloudSync não existe');
+      push('---', 'forçando push manual...');
+      try {
+        cs.onLocalWrite('futurorico_transacoes');
+      } catch (e) {
+        push('ERRO', 'onLocalWrite lançou: ' + e.message);
+      }
+      setTimeout(() => {
+        const teve = entries.some((x) => x.tag === 'PUSH→' && x.t > Date.now() - t0 - 4000);
+        push('---', teve ? 'instrumento OK: push observado' : 'NENHUM push após forçar');
+      }, 3500);
+    });
+
+    bar.append(title, forcar, info, copy, clear, off);
 
     bodyEl = document.createElement('div');
     bodyEl.style.cssText =
