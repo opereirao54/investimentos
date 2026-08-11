@@ -120,6 +120,20 @@ test('rev antigo conta como stale (LWW normal), não como rejeição', async () 
   // Só a contagem esconde o porquê. Os dois revs são o que permite distinguir
   // relógio atrasado de pull que não chegou, sem adivinhação.
   assert.deepEqual(r.body.staleKeys, [
-    { key: 'futurorico_cartoes', sentRev: 1000, serverRev: 2000 },
+    { key: 'futurorico_cartoes', sentRev: 1000, serverRev: 2000, kind: 'superseded' },
   ]);
+});
+
+test('rev IGUAL é duplicata (write gêmeo já gravado), não perda', async () => {
+  reset();
+  // onLocalWrite dispara SDK e beacon com o MESMO rev; o segundo a chegar
+  // encontra curRev === rev. Confundir isso com perda faz o app acusar erro
+  // exatamente quando o dado foi salvo — foi o alarme falso que quase entrou.
+  await send({ futurorico_cartoes: 'x' }, { futurorico_cartoes: 5000 });
+  const r = await send({ futurorico_cartoes: 'x' }, { futurorico_cartoes: 5000 });
+
+  assert.equal(r.body.accepted, 0);
+  assert.equal(r.body.staleKeys[0].kind, 'duplicate');
+  assert.equal(r.body.staleKeys[0].sentRev, r.body.staleKeys[0].serverRev);
+  assert.equal(mainDoc().keys.futurorico_cartoes, 'x', 'o dado está gravado');
 });

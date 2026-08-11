@@ -134,10 +134,26 @@ module.exports = handler({
           return;
         }
         const curRev = Number(curRevs[k] || 0);
-        // Rev antigo é o LWW funcionando como projetado (outro device gravou
-        // depois), não uma falha — contabilizado à parte de `rejected`.
+        // Rev não-maior é o LWW funcionando, não falha — mas há DOIS casos por
+        // baixo, com significados opostos, e tratá-los como um só produz alarme
+        // falso:
+        //
+        //   curRev === rev  → 'duplicate': este mesmo write JÁ está gravado.
+        //     onLocalWrite dispara dois caminhos com o mesmo rev (SDK em 2s e
+        //     beacon em 300ms); quem chega depois cai aqui. É o desenho
+        //     funcionando — o dado está salvo. Reportar isso como perda faria
+        //     o app acusar erro justamente quando deu certo.
+        //
+        //   curRev  >  rev  → 'superseded': outro device gravou algo mais novo.
+        //     Aí o write DESTE aparelho foi realmente descartado, e quem salvou
+        //     precisa saber.
         if (curRev >= rev) {
-          staleKeys.push({ key: k, sentRev: rev, serverRev: curRev });
+          staleKeys.push({
+            key: k,
+            sentRev: rev,
+            serverRev: curRev,
+            kind: curRev === rev ? 'duplicate' : 'superseded',
+          });
           return;
         }
 
