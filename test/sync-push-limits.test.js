@@ -116,4 +116,10 @@ test('rev antigo conta como stale (LWW normal), não como rejeição', async () 
   assert.equal(r.body.stale, 1, 'LWW rejeitando rev antigo é comportamento correto');
   assert.deepEqual(r.body.rejected, [], 'stale não é falha — não polui `rejected`');
   assert.equal(mainDoc().keys.futurorico_cartoes, 'novo');
+
+  // Só a contagem esconde o porquê. Os dois revs são o que permite distinguir
+  // relógio atrasado de pull que não chegou, sem adivinhação.
+  assert.deepEqual(r.body.staleKeys, [
+    { key: 'futurorico_cartoes', sentRev: 1000, serverRev: 2000 },
+  ]);
 });

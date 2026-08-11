@@ -467,7 +467,27 @@ function postBeacon(token, payload, reason, viaUnload) {
                       detalhe
                     );
                     reportSyncFailure('Servidor recusou: ' + detalhe);
-                  } else if (j && j.accepted === 0 && sentN > 0 && !j.stale) {
+                  } else if (j && j.accepted === 0 && sentN > 0 && j.stale) {
+                    // O servidor tinha rev igual ou maior e descartou tudo. Do
+                    // ponto de vista de quem acabou de salvar neste device, o
+                    // dado se perdeu — então isto é falha visível, não detalhe
+                    // de log. Os revs vêm na resposta para dizer QUAL é o caso:
+                    // relógio atrasado, pull que não chegou, ou rev preso.
+                    var det = (j.staleKeys || [])
+                      .map(function (s) {
+                        return s.key + ' enviou=' + s.sentRev + ' servidor=' + s.serverRev;
+                      })
+                      .join(', ');
+                    console.error(
+                      '[AppliqueiCloudSync] LWW descartou',
+                      j.stale,
+                      'de',
+                      sentN,
+                      'keys —',
+                      det
+                    );
+                    reportSyncFailure('Servidor tem versão mais recente: ' + det);
+                  } else if (j && j.accepted === 0 && sentN > 0) {
                     // accepted:0 SEM rejeições e SEM stale não tem explicação
                     // conhecida — não atribua a causa aqui. Foi um palpite errado
                     // neste ponto ("conflito de rev") que mascarou o limite de

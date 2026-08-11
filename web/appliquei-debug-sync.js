@@ -334,6 +334,50 @@ function start() {
       bodyEl.textContent = '';
     });
 
+    // O painel tapava o formulário, então só dava para cadastrar desligando o
+    // debug — e aí o salvamento, que é justamente o momento sob investigação,
+    // não era registrado. Esconder encolhe para um selo e MANTÉM tudo gravando.
+    const badge = document.createElement('div');
+    badge.textContent = '🐛';
+    badge.style.cssText =
+      'position:fixed;right:10px;bottom:10px;z-index:2147483647;width:44px;height:44px;' +
+      'border-radius:22px;background:#0b0b0d;border:2px solid #495057;color:#fff;' +
+      'display:none;align-items:center;justify-content:center;font-size:20px';
+    badge.addEventListener('click', () => {
+      panel.style.display = 'flex';
+      badge.style.display = 'none';
+    });
+    document.body.appendChild(badge);
+
+    const hide = btn('esconder', () => {
+      panel.style.display = 'none';
+      badge.style.display = 'flex';
+    });
+
+    // Os três números que decidem o caso do LWW: o relógio do aparelho, o rev
+    // que ele acha que é o corrente, e (vindo na resposta do push) o rev do
+    // servidor. Com os três dá para separar relógio atrasado de pull que não
+    // chegou — sem eles, é chute.
+    const revs = btn('revs', () => {
+      try {
+        const m = JSON.parse(localStorage.getItem('appliquei_cloud_key_revs') || '{}');
+        const now = Date.now();
+        const r = Number(m['futurorico_transacoes'] || 0);
+        push('REVS', 'agora=' + now + ' (' + new Date(now).toISOString() + ')');
+        push(
+          'REVS',
+          'localRev=' +
+            r +
+            (r ? ' (' + new Date(r).toISOString() + ')' : ' AUSENTE') +
+            ' agora-localRev=' +
+            (now - r) +
+            'ms'
+        );
+      } catch (e) {
+        push('ERRO', 'revs: ' + e.message);
+      }
+    });
+
     const off = btn('desligar', () => {
       try {
         localStorage.removeItem(ON_KEY);
@@ -360,7 +404,8 @@ function start() {
       }, 3500);
     });
 
-    bar.append(title, forcar, info, copy, clear, off);
+    bar.append(title, hide, revs, forcar, info, copy, clear, off);
+    bar.style.flexWrap = 'wrap';
 
     bodyEl = document.createElement('div');
     bodyEl.style.cssText =

@@ -99,8 +99,13 @@ module.exports = handler({
       // endpoint de voltar a mentir sucesso: o cliente lê `rejected` e mostra
       // erro em vez de "Salvo".
       const rejected = [];
+      // Chaves descartadas pelo LWW, COM os dois revs que motivaram a decisão.
+      // Só a contagem não bastava: "stale: 1" diz que a escrita foi jogada
+      // fora e esconde o porquê, que é exatamente o vício que fez este bug
+      // durar. Com sentRev e serverRev dá para ver na hora se o problema é
+      // relógio atrasado, pull que não chegou, ou rev preso.
+      const staleKeys = [];
       let accepted = 0;
-      let stale = 0;
       let count = 0;
 
       // Base do documento projetado: as chaves que este push NÃO toca. As que
@@ -132,7 +137,7 @@ module.exports = handler({
         // Rev antigo é o LWW funcionando como projetado (outro device gravou
         // depois), não uma falha — contabilizado à parte de `rejected`.
         if (curRev >= rev) {
-          stale++;
+          staleKeys.push({ key: k, sentRev: rev, serverRev: curRev });
           return;
         }
 
@@ -170,7 +175,8 @@ module.exports = handler({
         accepted++;
       });
 
-      if (accepted === 0) return { accepted: 0, rejected, stale, docBytes: projected };
+      if (accepted === 0)
+        return { accepted: 0, rejected, stale: staleKeys.length, staleKeys, docBytes: projected };
 
       if (exists) {
         updateFields.schemaVersion = 2;
@@ -184,13 +190,14 @@ module.exports = handler({
           updatedAt: FV.serverTimestamp(),
         });
       }
-      return { accepted, rejected, stale, docBytes: projected };
+      return { accepted, rejected, stale: staleKeys.length, staleKeys, docBytes: projected };
     });
 
     return res.status(200).json({
       ok: true,
       accepted: result.accepted,
       stale: result.stale,
+      staleKeys: result.staleKeys,
       docBytes: result.docBytes,
       rejected: result.rejected,
     });
