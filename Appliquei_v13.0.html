@@ -57,6 +57,10 @@
       profundidade do inline não cobriria mais sozinho — se o bundle
       falhar, cloud-sync e billing também faltam.
     -->
+    <!-- Painel de log na tela para diagnosticar sync no celular, onde não há
+         DevTools. Inerte sem ?debug=1. Vem ANTES do cloud-sync para observar
+         desde o início; não altera comportamento, só instrumenta. -->
+    <script type="module" src="/web/appliquei-debug-sync.js"></script>
     <script type="module" src="/web/appliquei-firebase-init.js"></script>
     <!-- cloud-sync e billing convertidos para ES modules.
          Vite bundla os três num único chunk e aplica content-hash. -->
