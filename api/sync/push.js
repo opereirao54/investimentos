@@ -19,7 +19,31 @@ const { syncPushBody } = require('../_lib/schemas');
 const { computeAccess } = require('../_lib/access');
 
 const MAX_KEYS_PER_PUSH = 200;
-const MAX_VALUE_BYTES = 200 * 1024; // 200KB por chave (defesa em profundidade)
+
+// Teto por chave. O documento do Firestore tem limite RÍGIDO de 1 MiB, então
+// nenhuma chave sozinha pode chegar perto disso.
+//
+// Este teto era 200KB e foi a causa raiz confirmada de "grava no PC mas não no
+// celular" (ver DIAGNOSTICO-SYNC.md). futurorico_transacoes guarda TODAS as
+// transações num único JSON e chega a 354KB numa carteira de uso normal. O
+// `return` que aplicava o teto ficava dentro do forEach: a chave era descartada
+// em SILÊNCIO, não entrava em `accepted`, não gerava erro, e o endpoint
+// respondia HTTP 200. O cliente exibia "Salvo às HH:MM" para um write que nunca
+// existiu. No PC o push via SDK (sem este teto) tinha tempo de completar; no
+// celular o tab congela antes e só resta o beacon — que morria aqui.
+//
+// Duas mudanças: o teto passou a ser compatível com o limite real do Firestore,
+// e NENHUMA rejeição é mais silenciosa (ver `rejected[]` abaixo).
+const MAX_VALUE_BYTES = 800 * 1024;
+
+// Teto do documento inteiro, com folga sobre o 1 MiB do Firestore — que conta
+// nomes de campo e overhead de serialização, não só os valores. Sem esta
+// checagem, estourar o limite viraria uma exceção opaca na transação.
+const MAX_DOC_BYTES = 900 * 1024;
+
+function byteLen(s) {
+  return Buffer.byteLength(String(s == null ? '' : s), 'utf8');
+}
 
 function isSyncKey(k) {
   if (!k || typeof k !== 'string') return false;
@@ -62,29 +86,100 @@ module.exports = handler({
 
     const result = await D.runTransaction(async (tx) => {
       const snap = await tx.get(dataRef);
-      const curRevs = snap.exists ? snap.data().keyRevs || {} : {};
       const exists = snap.exists;
+      const cur = exists ? snap.data() || {} : {};
+      const curRevs = cur.keyRevs || {};
+      const curKeys = cur.keys || {};
 
       // Constrói update incremental respeitando LWW por-rev.
       const updateFields = {};
       const initKeys = {};
       const initRevs = {};
+      // Toda chave recusada entra aqui com o motivo. É o que impede este
+      // endpoint de voltar a mentir sucesso: o cliente lê `rejected` e mostra
+      // erro em vez de "Salvo".
+      const rejected = [];
+      // Chaves descartadas pelo LWW, COM os dois revs que motivaram a decisão.
+      // Só a contagem não bastava: "stale: 1" diz que a escrita foi jogada
+      // fora e esconde o porquê, que é exatamente o vício que fez este bug
+      // durar. Com sentRev e serverRev dá para ver na hora se o problema é
+      // relógio atrasado, pull que não chegou, ou rev preso.
+      const staleKeys = [];
       let accepted = 0;
       let count = 0;
 
-      Object.keys(keys).forEach((k) => {
-        if (count >= MAX_KEYS_PER_PUSH) return;
+      // Base do documento projetado: as chaves que este push NÃO toca. As que
+      // ele toca entram abaixo, já com o tamanho novo.
+      const incoming = Object.keys(keys);
+      const touched = new Set(incoming);
+      let projected = 0;
+      Object.keys(curKeys).forEach((k) => {
+        if (touched.has(k)) return;
+        projected += byteLen(k) + byteLen(curKeys[k]);
+      });
+
+      incoming.forEach((k) => {
+        if (count >= MAX_KEYS_PER_PUSH) {
+          rejected.push({ key: k, reason: 'too_many_keys', limit: MAX_KEYS_PER_PUSH });
+          return;
+        }
         count++;
-        if (!isSyncKey(k)) return;
+        if (!isSyncKey(k)) {
+          rejected.push({ key: k, reason: 'not_syncable' });
+          return;
+        }
         const rev = Number(keyRevs[k] || 0);
-        if (!rev || !isFinite(rev)) return;
+        if (!rev || !isFinite(rev)) {
+          rejected.push({ key: k, reason: 'bad_rev' });
+          return;
+        }
         const curRev = Number(curRevs[k] || 0);
-        if (curRev >= rev) return;
+        // Rev não-maior é o LWW funcionando, não falha — mas há DOIS casos por
+        // baixo, com significados opostos, e tratá-los como um só produz alarme
+        // falso:
+        //
+        //   curRev === rev  → 'duplicate': este mesmo write JÁ está gravado.
+        //     onLocalWrite dispara dois caminhos com o mesmo rev (SDK em 2s e
+        //     beacon em 300ms); quem chega depois cai aqui. É o desenho
+        //     funcionando — o dado está salvo. Reportar isso como perda faria
+        //     o app acusar erro justamente quando deu certo.
+        //
+        //   curRev  >  rev  → 'superseded': outro device gravou algo mais novo.
+        //     Aí o write DESTE aparelho foi realmente descartado, e quem salvou
+        //     precisa saber.
+        if (curRev >= rev) {
+          staleKeys.push({
+            key: k,
+            sentRev: rev,
+            serverRev: curRev,
+            kind: curRev === rev ? 'duplicate' : 'superseded',
+          });
+          return;
+        }
 
         const v = keys[k];
         const isDelete = v === null || v === undefined;
-        if (!isDelete && typeof v !== 'string') return;
-        if (!isDelete && Buffer.byteLength(v, 'utf8') > MAX_VALUE_BYTES) return;
+        if (!isDelete && typeof v !== 'string') {
+          rejected.push({ key: k, reason: 'bad_value' });
+          return;
+        }
+
+        const bytes = isDelete ? 0 : byteLen(v);
+        if (bytes > MAX_VALUE_BYTES) {
+          rejected.push({ key: k, reason: 'too_large', bytes, limit: MAX_VALUE_BYTES });
+          return;
+        }
+        if (projected + byteLen(k) + bytes > MAX_DOC_BYTES) {
+          rejected.push({
+            key: k,
+            reason: 'doc_full',
+            bytes,
+            docBytes: projected,
+            limit: MAX_DOC_BYTES,
+          });
+          return;
+        }
+        projected += byteLen(k) + bytes;
 
         if (exists) {
           updateFields['keys.' + k] = isDelete ? FV.delete() : v;
@@ -96,7 +191,8 @@ module.exports = handler({
         accepted++;
       });
 
-      if (accepted === 0) return { accepted: 0 };
+      if (accepted === 0)
+        return { accepted: 0, rejected, stale: staleKeys.length, staleKeys, docBytes: projected };
 
       if (exists) {
         updateFields.schemaVersion = 2;
@@ -110,9 +206,16 @@ module.exports = handler({
           updatedAt: FV.serverTimestamp(),
         });
       }
-      return { accepted };
+      return { accepted, rejected, stale: staleKeys.length, staleKeys, docBytes: projected };
     });
 
-    return res.status(200).json({ ok: true, accepted: result.accepted });
+    return res.status(200).json({
+      ok: true,
+      accepted: result.accepted,
+      stale: result.stale,
+      staleKeys: result.staleKeys,
+      docBytes: result.docBytes,
+      rejected: result.rejected,
+    });
   },
 });

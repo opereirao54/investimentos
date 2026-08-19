@@ -358,6 +358,39 @@ function buildBeaconPayload() {
 //    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
 // O endpoint /api/sync/push é idempotente e faz LWW por-rev, por isso reenviar
 // o mesmo payload (eager + visibility + pagehide) é seguro.
+// /api/sync/push responde 200 mesmo quando recusa chaves. Antes isso era
+// invisível: o app seguia exibindo "Salvo às HH:MM" para writes que o servidor
+// tinha jogado fora, e o bug sobreviveu a quatro tentativas de correção porque
+// nada em lugar nenhum indicava a perda. Qualquer recusa agora vira erro no
+// console E no rótulo de status.
+function reportSyncFailure(msg) {
+  try {
+    window.AppliqueiCloudSync = window.AppliqueiCloudSync || {};
+    window.AppliqueiCloudSync.lastError = { msg: msg, at: Date.now() };
+  } catch (_) {}
+  try {
+    var el = document.getElementById('ultimoSalvoTxt');
+    if (el) {
+      el.textContent = 'Não sincronizado';
+      el.title = msg;
+      el.style.color = '#dc2626';
+    }
+  } catch (_) {}
+}
+
+function clearSyncFailure() {
+  try {
+    if (window.AppliqueiCloudSync) window.AppliqueiCloudSync.lastError = null;
+  } catch (_) {}
+  try {
+    var el = document.getElementById('ultimoSalvoTxt');
+    if (el && el.style.color) {
+      el.style.color = '';
+      el.title = '';
+    }
+  } catch (_) {}
+}
+
 function postBeacon(token, payload, reason, viaUnload) {
   var body = JSON.stringify({
     idToken: token,
@@ -404,20 +437,74 @@ function postBeacon(token, payload, reason, viaUnload) {
               });
             } catch (_) {}
           } else {
-            // Diagnóstico: o endpoint responde 200 mesmo quando o LWW por-rev
-            // descarta TODAS as keys (accepted:0). Logamos também o tamanho do
-            // corpo e se foi keepalive — para confirmar em campo o limite 64KB.
+            // O endpoint responde 200 mesmo quando não grava nada, então HTTP ok
+            // não é prova de persistência: quem decide é `rejected`/`accepted`
+            // no corpo da resposta.
             try {
               r.json()
                 .then(function (j) {
-                  if (j && j.accepted === 0 && sentN > 0) {
-                    console.warn(
+                  var rej = (j && j.rejected) || [];
+                  if (rej.length) {
+                    // O servidor recusou chaves nomeando o motivo. Isso é perda
+                    // de dado, não um detalhe de log — precisa gritar.
+                    var detalhe = rej
+                      .map(function (item) {
+                        return (
+                          item.key +
+                          ' (' +
+                          item.reason +
+                          (item.bytes ? ', ' + Math.round(item.bytes / 1024) + 'KB' : '') +
+                          ')'
+                        );
+                      })
+                      .join(', ');
+                    console.error(
+                      '[AppliqueiCloudSync] SERVIDOR RECUSOU',
+                      rej.length,
+                      'de',
+                      sentN,
+                      'keys —',
+                      detalhe
+                    );
+                    reportSyncFailure('Servidor recusou: ' + detalhe);
+                  } else if (j && j.accepted === 0 && sentN > 0 && j.stale) {
+                    // Só é perda quando o rev do servidor SUPERA o enviado.
+                    // Igualdade significa que este mesmo write já está gravado
+                    // pelo caminho gêmeo (SDK vs beacon disparam juntos com o
+                    // mesmo rev) — acusar erro aí seria alarme falso na cara do
+                    // usuário no exato momento em que o dado foi salvo.
+                    var superados = (j.staleKeys || []).filter(function (s) {
+                      return s.kind === 'superseded';
+                    });
+                    if (superados.length) {
+                      var det = superados
+                        .map(function (s) {
+                          return s.key + ' enviou=' + s.sentRev + ' servidor=' + s.serverRev;
+                        })
+                        .join(', ');
+                      console.error('[AppliqueiCloudSync] LWW descartou —', det);
+                      reportSyncFailure('Servidor tem versão mais recente: ' + det);
+                    } else {
+                      clearSyncFailure();
+                      console.log(
+                        '[AppliqueiCloudSync] beacon duplicado (write já gravado pelo SDK)',
+                        reason || ''
+                      );
+                    }
+                  } else if (j && j.accepted === 0 && sentN > 0) {
+                    // accepted:0 SEM rejeições e SEM stale não tem explicação
+                    // conhecida — não atribua a causa aqui. Foi um palpite errado
+                    // neste ponto ("conflito de rev") que mascarou o limite de
+                    // tamanho do servidor por quatro tentativas de correção.
+                    console.error(
                       '[AppliqueiCloudSync] beacon aceitou 0 de',
                       sentN,
-                      'keys — write descartado pelo LWW (conflito de rev). reason:',
+                      'keys sem motivo reportado — causa desconhecida. reason:',
                       reason || ''
                     );
+                    reportSyncFailure('Nenhuma alteração foi aceita pelo servidor.');
                   } else {
+                    clearSyncFailure();
                     console.log(
                       '[AppliqueiCloudSync] beacon ok',
                       reason || '',
