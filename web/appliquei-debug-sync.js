@@ -185,15 +185,55 @@ function start() {
   // app não gravou; gravou mas o sync não soube; soube e desistiu. Cada um tem
   // correção diferente e nenhum se distingue do outro pelo sintoma.
 
+  // A sonda GRAVA precisa de DOIS pontos, e a razão é a hipótese central agora.
+  //
+  // utils.js:341 faz `localStorage.setItem = function(...)` para notificar o
+  // sync a cada escrita. Em Chrome isso sombreia o método do protótipo e
+  // funciona. Mas `Storage` é um legacy platform object com setter de
+  // propriedade nomeada: em navegadores que seguem o WebIDL à risca, atribuir
+  // uma propriedade que não é own property vai para o setter nomeado — grava um
+  // ITEM chamado "setItem" e NÃO sombreia o método.
+  //
+  // Se for esse o caso no Safari, o interceptador do utils.js nunca roda:
+  // o app salva direto no método nativo (por isso o dado aparece na lista e
+  // persiste), onLocalWrite nunca é chamado, e nada é sincronizado. Explicaria
+  // a assimetria PC/iPhone inteira — e explicaria por que a minha primeira
+  // sonda, que usava o mesmo truque, também ficou cega.
+  //
+  // Por isso instrumentamos instância E protótipo, e o log diz por qual
+  // caminho a escrita passou. "via prototipo" é a confirmação da hipótese.
+  function logGrava(k, v, via) {
+    if (k && /^(futurorico_|appliquei_)/.test(k)) {
+      push('GRAVA', k + ' ' + Math.round(String(v).length / 1024) + 'KB via ' + via);
+    }
+  }
+
   try {
-    const origSet = localStorage.setItem.bind(localStorage);
-    localStorage.setItem = function (k, v) {
-      if (k && /^(futurorico_|appliquei_)/.test(k)) {
-        push('GRAVA', k + ' ' + Math.round(String(v).length / 1024) + 'KB');
-      }
-      return origSet(k, v);
+    const origInst = localStorage.setItem.bind(localStorage);
+    const w = function (k, v) {
+      logGrava(k, v, 'instancia');
+      return origInst(k, v);
     };
-  } catch (_) {}
+    w.__dbg = true;
+    localStorage.setItem = w;
+  } catch (e) {
+    push('ERRO', 'wrap instância falhou: ' + (e && e.message));
+  }
+
+  try {
+    const proto = Object.getPrototypeOf(localStorage);
+    const origProto = proto.setItem;
+    if (origProto && !origProto.__dbg) {
+      const wp = function (k, v) {
+        logGrava(k, v, 'prototipo');
+        return origProto.call(this, k, v);
+      };
+      wp.__dbg = true;
+      proto.setItem = wp;
+    }
+  } catch (e) {
+    push('ERRO', 'wrap protótipo falhou: ' + (e && e.message));
+  }
 
   // ---------------- caminho do salvamento ----------------
   // O usuário limpou o log, cadastrou uma despesa e NADA apareceu — nem GRAVA.
@@ -384,6 +424,21 @@ function start() {
         push('ESTADO', big.join(' '));
         const u = window.AppliqueiFirebase && window.AppliqueiFirebase.auth.currentUser;
         push('ESTADO', 'uid=' + (u ? u.uid : 'SEM LOGIN') + ' online=' + navigator.onLine);
+
+        // Teste direto da hipótese: se atribuir em localStorage NÃO sombreia o
+        // método, o interceptador do utils.js está morto neste navegador — e
+        // com ele todo o sync. O item lixo "setItem" é a impressão digital
+        // disso: a atribuição virou uma gravação de dado.
+        push(
+          'SONDA',
+          'atribuição sombreou? ' +
+            (localStorage.setItem && localStorage.setItem.__dbg === true ? 'SIM' : 'NÃO')
+        );
+        push(
+          'SONDA',
+          'item lixo "setItem"? ' +
+            (localStorage.getItem('setItem') ? 'SIM — hipótese confirmada' : 'não')
+        );
       } catch (err) {
         push('ESTADO', 'erro: ' + err.message);
       }
