@@ -7,11 +7,16 @@
 // correções feitas às cegas, por leitura de código. Sem ver o que o aparelho
 // realmente faz, a quinta seria mais um chute.
 //
-// A parte que mais importa aqui é a PERSISTÊNCIA do log. A hipótese em teste é
-// que o iOS mata a aba no meio do upload de 354KB (que leva ~2,7s até num PC).
-// Se isso acontece, um log em memória morre junto e não sobra prova nenhuma.
-// Por isso cada linha vai para o localStorage na hora: quando o app reabrir, o
-// registro do que aconteceu antes da morte ainda está lá.
+// O log é PERSISTIDO a cada linha. A aba morre no meio do que estamos
+// investigando; log em memória morre junto e não sobra prova.
+//
+// CUSTO: a primeira versão guardava um array e fazia JSON.stringify do log
+// inteiro a cada linha — dentro de um `while` que reserializava a cada volta.
+// Com o log perto de 120KB, cada linha custava uma serialização completa mais
+// uma escrita em disco, e o painel passou a pesar mais que o app que ele
+// observa. No aparelho isso coincidiu com sessões caindo para 64ms. Efeito do
+// observador: o instrumento contaminando a medição. Agora é string com
+// append, corte por fatia e teto menor — sem JSON, sem varredura.
 //
 // A chave `dbg_sync_log` NÃO usa os prefixos `appliquei_`/`futurorico_` de
 // propósito — assim o interceptador de setItem não a vê e o log não entra no
@@ -19,8 +24,7 @@
 
 const LOG_KEY = 'dbg_sync_log';
 const ON_KEY = 'dbg_sync_on';
-const MAX_ENTRIES = 400;
-const MAX_CHARS = 120 * 1024;
+const MAX_CHARS = 48 * 1024;
 
 function isOn() {
   try {
@@ -42,44 +46,43 @@ if (isOn()) start();
 
 function start() {
   const t0 = Date.now();
-  const entries = load();
+  let logStr = '';
   let panel = null;
   let bodyEl = null;
+  let pushCount = 0;
 
-  // Marca visível de fronteira entre sessões: se o app reabriu, é porque a
-  // anterior terminou — de propósito ou porque o SO matou a aba.
+  try {
+    logStr = localStorage.getItem(LOG_KEY) || '';
+  } catch (_) {}
+
+  // Fronteira entre sessões. Duas destas separadas por poucos milissegundos
+  // significam que a aba morreu e recarregou — não é troca de app.
   push('---', 'sessão iniciada ' + new Date().toLocaleTimeString('pt-BR'));
-
-  function load() {
-    try {
-      const raw = localStorage.getItem(LOG_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (_) {
-      return [];
-    }
-  }
 
   function persist() {
     try {
-      while (
-        entries.length > MAX_ENTRIES ||
-        (entries.length > 1 && JSON.stringify(entries).length > MAX_CHARS)
-      ) {
-        entries.shift();
+      if (logStr.length > MAX_CHARS) {
+        const corte = logStr.length - MAX_CHARS;
+        const nl = logStr.indexOf('\n', corte);
+        logStr = logStr.slice(nl === -1 ? corte : nl + 1);
       }
-      localStorage.setItem(LOG_KEY, JSON.stringify(entries));
+      localStorage.setItem(LOG_KEY, logStr);
     } catch (_) {}
   }
 
   function push(tag, msg) {
-    const e = { t: Date.now() - t0, clock: new Date().toLocaleTimeString('pt-BR'), tag, msg };
-    entries.push(e);
+    const line =
+      '[' +
+      new Date().toLocaleTimeString('pt-BR') +
+      ' +' +
+      (Date.now() - t0) +
+      'ms] ' +
+      tag +
+      ' ' +
+      msg;
+    logStr += line + '\n';
     persist();
-    render(e);
-  }
-
-  function fmt(e) {
-    return '[' + e.clock + ' +' + e.t + 'ms] ' + e.tag + ' ' + e.msg;
+    render(line, tag);
   }
 
   // ---------------- captura de console e erros ----------------
@@ -101,8 +104,8 @@ function start() {
             return String(a);
           })
           .join(' ');
-        // Só o que interessa ao sync — senão o painel vira ruído.
-        if (lvl === 'error' || /Cloud|ync|beacon|push|firebase/i.test(txt)) push(lvl, txt);
+        // Só o que interessa ao sync — senão o painel vira ruído e custo.
+        if (lvl === 'error' || /Cloud|ync|beacon|push/i.test(txt)) push(lvl, txt.slice(0, 300));
       } catch (_) {}
       return orig.apply(console, arguments);
     };
@@ -117,10 +120,6 @@ function start() {
   });
 
   // ---------------- ciclo de vida da página ----------------
-  // O cerne da investigação: queremos ver se a página é escondida/congelada
-  // ENQUANTO um push está em voo. O par "push iniciado" sem o "push concluído"
-  // correspondente, seguido de um evento destes, é a prova do transporte
-  // morrendo no meio.
 
   document.addEventListener('visibilitychange', () =>
     push('CICLO', 'visibility=' + document.visibilityState)
@@ -129,10 +128,9 @@ function start() {
   window.addEventListener('pageshow', (e) => push('CICLO', 'pageshow persisted=' + e.persisted));
   window.addEventListener('freeze', () => push('CICLO', 'freeze (SO congelou a aba)'));
   window.addEventListener('resume', () => push('CICLO', 'resume'));
-  window.addEventListener('online', () => push('REDE', 'online'));
   window.addEventListener('offline', () => push('REDE', 'offline'));
 
-  // ---------------- interceptação do fetch ----------------
+  // ---------------- interceptação do envio ----------------
 
   const origFetch = window.fetch ? window.fetch.bind(window) : null;
   let seq = 0;
@@ -142,23 +140,23 @@ function start() {
       if (url.indexOf('/api/sync/push') === -1) return origFetch(input, init);
 
       const n = ++seq;
+      pushCount++;
       const body = (init && init.body) || '';
       const kb = Math.round((typeof body === 'string' ? body.length : 0) / 1024);
-      const ka = !!(init && init.keepalive);
       const started = Date.now();
-      push('PUSH→', '#' + n + ' iniciado ' + kb + 'KB keepalive=' + ka);
+      push('PUSH→', '#' + n + ' iniciado ' + kb + 'KB keepalive=' + !!(init && init.keepalive));
 
       return origFetch(input, init).then(
         (r) => {
           const ms = Date.now() - started;
           r.clone()
             .text()
-            .then((txt) => {
+            .then((txt) =>
               push(
                 'PUSH✓',
                 '#' + n + ' HTTP ' + r.status + ' em ' + ms + 'ms → ' + txt.slice(0, 300)
-              );
-            })
+              )
+            )
             .catch(() => push('PUSH✓', '#' + n + ' HTTP ' + r.status + ' em ' + ms + 'ms'));
           return r;
         },
@@ -178,35 +176,14 @@ function start() {
     };
   }
 
-  const origBeacon =
-    typeof navigator !== 'undefined' && navigator.sendBeacon
-      ? navigator.sendBeacon.bind(navigator)
-      : null;
-  if (origBeacon) {
-    navigator.sendBeacon = function (url, data) {
-      const ok = origBeacon(url, data);
-      if (String(url).indexOf('/api/sync/push') !== -1) {
-        push('BEACON', 'sendBeacon aceito pelo browser=' + ok + ' size=' + (data && data.size));
-      }
-      return ok;
-    };
-  }
-
   // ---------------- cadeia de gravação ----------------
-  // A primeira coleta não mostrou UM ÚNICO push em 4 minutos: o upload não
-  // morre no meio, ele nunca começa. Isso move a suspeita para antes do envio.
-  // Os três pontos abaixo cercam a cadeia inteira, para localizar onde ela
-  // corta em vez de adivinhar:
-  //
   //   setItem  →  onLocalWrite  →  beacon
   //     ↑             ↑              ↑
   //   grava?     foi avisado?     enviou?
   //
-  // Sem isso não dá para distinguir "o app não salvou", "salvou mas o sync não
-  // soube" e "soube mas desistiu" — três bugs diferentes com o mesmo sintoma.
-  // onLocalWrite tem dois `return` silenciosos logo na entrada (applyingPull e
-  // shouldSyncKey); se a flag do pull ficar presa, toda gravação some sem
-  // rastro. É a hipótese principal agora.
+  // Sem separar esses pontos, "não sincronizou" cobre três bugs distintos: o
+  // app não gravou; gravou mas o sync não soube; soube e desistiu. Cada um tem
+  // correção diferente e nenhum se distingue do outro pelo sintoma.
 
   try {
     const origSet = localStorage.setItem.bind(localStorage);
@@ -227,10 +204,7 @@ function start() {
     const orig = cs.onLocalWrite.bind(cs);
     cs.onLocalWrite = function (key) {
       push('AVISA', 'onLocalWrite(' + key + ')');
-      const r = orig(key);
-      // Se nenhum PUSH→ aparecer depois desta linha, o sync foi avisado e
-      // desistiu por dentro — provavelmente applyingPull preso.
-      return r;
+      return orig(key);
     };
     push('---', 'sync instrumentado');
     return true;
@@ -238,27 +212,32 @@ function start() {
   if (!wrapSync()) {
     let tries = 0;
     const iv = setInterval(() => {
-      if (wrapSync() || ++tries > 60) clearInterval(iv);
-      if (tries > 60) push('ERRO', 'AppliqueiCloudSync nunca apareceu — módulo não carregou');
+      if (wrapSync()) return clearInterval(iv);
+      if (++tries > 60) {
+        clearInterval(iv);
+        push('ERRO', 'AppliqueiCloudSync nunca apareceu — módulo não carregou');
+      }
     }, 500);
   }
 
   // ---------------- painel ----------------
 
-  function render(e) {
+  function corDe(tag) {
+    if (tag === 'ERRO' || tag === 'PUSH✗' || tag === 'error') return '#ff6b6b';
+    if (tag === 'PUSH✓' || tag === 'GRAVA') return '#51cf66';
+    if (tag === 'CICLO') return '#ffd43b';
+    if (tag === 'AVISA' || tag === 'PUSH→') return '#74c0fc';
+    return '#ced4da';
+  }
+
+  function render(line, tag) {
     if (!bodyEl) return;
-    const line = document.createElement('div');
-    line.textContent = fmt(e);
-    line.style.cssText =
-      'padding:2px 0;border-bottom:1px solid #222;' +
-      (e.tag === 'ERRO' || e.tag === 'PUSH✗' || e.tag === 'error'
-        ? 'color:#ff6b6b'
-        : e.tag === 'PUSH✓'
-          ? 'color:#51cf66'
-          : e.tag === 'CICLO'
-            ? 'color:#ffd43b'
-            : 'color:#ced4da');
-    bodyEl.appendChild(line);
+    const el = document.createElement('div');
+    el.textContent = line;
+    el.style.cssText = 'padding:2px 0;border-bottom:1px solid #222;color:' + corDe(tag);
+    bodyEl.appendChild(el);
+    // Segura o custo de DOM: o painel não pode virar o gargalo do app.
+    while (bodyEl.childNodes.length > 150) bodyEl.removeChild(bodyEl.firstChild);
     bodyEl.scrollTop = bodyEl.scrollHeight;
   }
 
@@ -272,7 +251,7 @@ function start() {
 
     const bar = document.createElement('div');
     bar.style.cssText =
-      'display:flex;gap:6px;padding:6px;background:#15151a;align-items:center;flex:0 0 auto';
+      'display:flex;flex-wrap:wrap;gap:6px;padding:6px;background:#15151a;align-items:center;flex:0 0 auto';
 
     const title = document.createElement('span');
     title.textContent = 'sync debug';
@@ -287,28 +266,55 @@ function start() {
       return b;
     }
 
-    const copy = btn('copiar', () => {
-      const txt = entries.map(fmt).join('\n');
-      const done = () => (copy.textContent = 'copiado!');
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(txt).then(done, () => fallback(txt, done));
-      } else fallback(txt, done);
+    // O painel tapava o formulário, então só dava para cadastrar desligando o
+    // debug — e aí o salvamento, que é o momento sob investigação, não era
+    // registrado. Esconder encolhe para um selo e MANTÉM tudo gravando.
+    const badge = document.createElement('div');
+    badge.textContent = '🐛';
+    badge.style.cssText =
+      'position:fixed;right:10px;bottom:10px;z-index:2147483647;width:44px;height:44px;' +
+      'border-radius:22px;background:#0b0b0d;border:2px solid #495057;color:#fff;' +
+      'display:none;align-items:center;justify-content:center;font-size:20px';
+    badge.addEventListener('click', () => {
+      panel.style.display = 'flex';
+      badge.style.display = 'none';
+    });
+    document.body.appendChild(badge);
+
+    const hide = btn('esconder', () => {
+      panel.style.display = 'none';
+      badge.style.display = 'flex';
     });
 
-    function fallback(txt, done) {
-      const ta = document.createElement('textarea');
-      ta.value = txt;
-      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
-      document.body.appendChild(ta);
-      ta.select();
+    const revs = btn('revs', () => {
       try {
-        document.execCommand('copy');
-        done();
-      } catch (_) {
-        copy.textContent = 'falhou';
+        const m = JSON.parse(localStorage.getItem('appliquei_cloud_key_revs') || '{}');
+        const now = Date.now();
+        const r = Number(m['futurorico_transacoes'] || 0);
+        push('REVS', 'agora=' + now + ' (' + new Date(now).toISOString() + ')');
+        push('REVS', 'localRev=' + r + ' delta=' + (now - r) + 'ms');
+      } catch (e) {
+        push('ERRO', 'revs: ' + e.message);
       }
-      ta.remove();
-    }
+    });
+
+    // Afere o próprio instrumento: sem isto, "nenhum PUSH no log" é ambíguo
+    // entre o app não empurrar e o painel não ver.
+    const forcar = btn('forçar push', () => {
+      const cs = window.AppliqueiCloudSync;
+      if (!cs) return push('ERRO', 'AppliqueiCloudSync não existe');
+      const antes = pushCount;
+      push('---', 'forçando push manual...');
+      try {
+        cs.onLocalWrite('futurorico_transacoes');
+      } catch (e) {
+        push('ERRO', 'onLocalWrite lançou: ' + e.message);
+      }
+      setTimeout(
+        () => push('---', pushCount > antes ? 'instrumento OK' : 'NENHUM push após forçar'),
+        3500
+      );
+    });
 
     const info = btn('estado', () => {
       try {
@@ -328,54 +334,32 @@ function start() {
       }
     });
 
+    const copy = btn('copiar', () => {
+      const done = () => (copy.textContent = 'copiado!');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(logStr).then(done, () => fallback(done));
+      } else fallback(done);
+    });
+
+    function fallback(done) {
+      const ta = document.createElement('textarea');
+      ta.value = logStr;
+      ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (_) {
+        copy.textContent = 'falhou';
+      }
+      ta.remove();
+    }
+
     const clear = btn('limpar', () => {
-      entries.length = 0;
+      logStr = '';
       persist();
       bodyEl.textContent = '';
-    });
-
-    // O painel tapava o formulário, então só dava para cadastrar desligando o
-    // debug — e aí o salvamento, que é justamente o momento sob investigação,
-    // não era registrado. Esconder encolhe para um selo e MANTÉM tudo gravando.
-    const badge = document.createElement('div');
-    badge.textContent = '🐛';
-    badge.style.cssText =
-      'position:fixed;right:10px;bottom:10px;z-index:2147483647;width:44px;height:44px;' +
-      'border-radius:22px;background:#0b0b0d;border:2px solid #495057;color:#fff;' +
-      'display:none;align-items:center;justify-content:center;font-size:20px';
-    badge.addEventListener('click', () => {
-      panel.style.display = 'flex';
-      badge.style.display = 'none';
-    });
-    document.body.appendChild(badge);
-
-    const hide = btn('esconder', () => {
-      panel.style.display = 'none';
-      badge.style.display = 'flex';
-    });
-
-    // Os três números que decidem o caso do LWW: o relógio do aparelho, o rev
-    // que ele acha que é o corrente, e (vindo na resposta do push) o rev do
-    // servidor. Com os três dá para separar relógio atrasado de pull que não
-    // chegou — sem eles, é chute.
-    const revs = btn('revs', () => {
-      try {
-        const m = JSON.parse(localStorage.getItem('appliquei_cloud_key_revs') || '{}');
-        const now = Date.now();
-        const r = Number(m['futurorico_transacoes'] || 0);
-        push('REVS', 'agora=' + now + ' (' + new Date(now).toISOString() + ')');
-        push(
-          'REVS',
-          'localRev=' +
-            r +
-            (r ? ' (' + new Date(r).toISOString() + ')' : ' AUSENTE') +
-            ' agora-localRev=' +
-            (now - r) +
-            'ms'
-        );
-      } catch (e) {
-        push('ERRO', 'revs: ' + e.message);
-      }
     });
 
     const off = btn('desligar', () => {
@@ -383,29 +367,10 @@ function start() {
         localStorage.removeItem(ON_KEY);
       } catch (_) {}
       panel.remove();
-    });
-
-    // Valida o próprio instrumento. Sem este botão, "nenhum PUSH no log" é
-    // ambíguo: pode ser que o app não empurre, pode ser que o painel não veja.
-    // Concluir com o medidor sem aferir seria repetir o erro das quatro
-    // tentativas anteriores.
-    const forcar = btn('forçar push', () => {
-      const cs = window.AppliqueiCloudSync;
-      if (!cs) return push('ERRO', 'AppliqueiCloudSync não existe');
-      push('---', 'forçando push manual...');
-      try {
-        cs.onLocalWrite('futurorico_transacoes');
-      } catch (e) {
-        push('ERRO', 'onLocalWrite lançou: ' + e.message);
-      }
-      setTimeout(() => {
-        const teve = entries.some((x) => x.tag === 'PUSH→' && x.t > Date.now() - t0 - 4000);
-        push('---', teve ? 'instrumento OK: push observado' : 'NENHUM push após forçar');
-      }, 3500);
+      badge.remove();
     });
 
     bar.append(title, hide, revs, forcar, info, copy, clear, off);
-    bar.style.flexWrap = 'wrap';
 
     bodyEl = document.createElement('div');
     bodyEl.style.cssText =
@@ -413,7 +378,13 @@ function start() {
 
     panel.append(bar, bodyEl);
     document.body.appendChild(panel);
-    entries.forEach(render);
+
+    // Só as últimas linhas: renderizar o log inteiro custaria caro na abertura.
+    const linhas = logStr.split('\n').filter(Boolean).slice(-150);
+    linhas.forEach((l) => {
+      const m = l.match(/\]\s(\S+)\s/);
+      render(l, m ? m[1] : '');
+    });
   }
 
   if (document.readyState === 'loading') {
