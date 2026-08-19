@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
+    <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
+         ignora o manifest e só olha apple-touch-icon + as metas apple-*.
+         Ícones gerados por scripts/gen-app-icons.js. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/appliquei-apple-touch-180.png">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Appliquei">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Appliquei">
     <title>Appliquei - Gestão Financeira Inteligente</title>
     <script>
         (function () {
