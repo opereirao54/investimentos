@@ -336,23 +336,63 @@ function atualizarUltimoSalvo() {
   el.textContent = `Salvo às ${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
 }
 
-var _setItemOriginal = localStorage.setItem.bind(localStorage);
-var _getItemOriginal = localStorage.getItem.bind(localStorage);
-localStorage.setItem = function (key, value) {
+// CAUSA RAIZ de "cadastrei no celular e não apareceu no PC" (DIAGNOSTICO-SYNC.md).
+//
+// Este interceptador é o ÚNICO gatilho do sync: sem ele, onLocalWrite nunca é
+// chamado, nenhuma chave é marcada como suja e nada é enviado — nunca.
+//
+// Ele era instalado com `localStorage.setItem = function(...)`. Storage é um
+// legacy platform object com setter de propriedade nomeada: em navegadores que
+// seguem o WebIDL à risca (Safari/iOS), atribuir uma propriedade que não é own
+// property vai para o setter nomeado — grava um ITEM chamado "setItem" e NÃO
+// sombreia o método do protótipo. Em Chrome sombreia e tudo funciona; no
+// iPhone o interceptador ficava instalado num lugar por onde nada passava.
+//
+// Medido no aparelho, não deduzido: a sonda registrou
+// `GRAVA futurorico_transacoes 354KB via prototipo` seguida do toast de
+// sucesso e de NENHUM aviso ao sync. Duas confirmações independentes.
+//
+// Patch no protótipo funciona nos dois casos. O guard `this !== localStorage`
+// existe porque sessionStorage compartilha este mesmo protótipo e não deve ser
+// interceptado.
+var _storageProto = Object.getPrototypeOf(localStorage);
+var _setItemNative = _storageProto.setItem;
+var _removeItemNative = _storageProto.removeItem;
+var _getItemNative = _storageProto.getItem;
+
+function _setItemOriginal(key, value) {
+  return _setItemNative.call(localStorage, key, value);
+}
+function _getItemOriginal(key) {
+  return _getItemNative.call(localStorage, key);
+}
+
+function _ehChaveApp(key) {
+  return (
+    typeof key === 'string' && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)
+  );
+}
+
+_storageProto.setItem = function (key, value) {
+  if (this !== localStorage) return _setItemNative.call(this, key, value);
+  return _interceptarSetItem(key, value);
+};
+
+function _interceptarSetItem(key, value) {
   // Migrações de boot reescrevem várias keys com o MESMO conteúdo (ex.: futurorico_transacoes
   // na linha 5470, futurorico_cartoes na 5432). Sem este short-circuit, o sync cloud
   // marcaria essas keys como "alteradas agora" e o pull subsequente perderia escritas
   // genuínas vindas de outros devices (mobile → web): localRev=Date.now() > remoteRev.
   var prev = null;
   var notify = true;
-  if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+  if (_ehChaveApp(key)) {
     try {
       prev = _getItemOriginal(key);
     } catch (_) {}
     if (prev === String(value)) notify = false;
   }
   _setItemOriginal(key, value);
-  if (key.startsWith('futurorico_') || key.startsWith('appliquei_')) atualizarUltimoSalvo();
+  if (_ehChaveApp(key)) atualizarUltimoSalvo();
   if (
     notify &&
     window.AppliqueiCloudSync &&
@@ -362,18 +402,26 @@ localStorage.setItem = function (key, value) {
       AppliqueiCloudSync.onLocalWrite(key);
     } catch (_) {}
   }
+}
+
+function _removeItemOriginal(key) {
+  return _removeItemNative.call(localStorage, key);
+}
+
+_storageProto.removeItem = function (key) {
+  if (this !== localStorage) return _removeItemNative.call(this, key);
+  return _interceptarRemoveItem(key);
 };
-var _removeItemOriginal = localStorage.removeItem.bind(localStorage);
-localStorage.removeItem = function (key) {
+
+function _interceptarRemoveItem(key) {
   var existed = false;
-  if (key && (key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0)) {
+  if (_ehChaveApp(key)) {
     try {
       existed = _getItemOriginal(key) !== null;
     } catch (_) {}
   }
   _removeItemOriginal(key);
-  if (key && (key.startsWith('futurorico_') || key.startsWith('appliquei_')))
-    atualizarUltimoSalvo();
+  if (_ehChaveApp(key)) atualizarUltimoSalvo();
   if (
     existed &&
     window.AppliqueiCloudSync &&
@@ -383,4 +431,4 @@ localStorage.removeItem = function (key) {
       AppliqueiCloudSync.onLocalDelete(key);
     } catch (_) {}
   }
-};
+}
