@@ -1,167 +1,134 @@
-# Diagnóstico — "cadastrei no celular e não gravou no banco"
+# Diagnóstico — "cadastrei no celular e não apareceu no PC"
 
-**Status:** causa raiz confirmada com evidência e corrigida. 11/08/2026.
+**Status:** causa raiz confirmada por medição no aparelho e corrigida.
 
-Este documento existe porque o bug sobreviveu a **quatro** correções que se
-declararam "causa raiz". Se você é a próxima pessoa (ou o próximo agente) a
-mexer em sync, leia a seção _"Por que as quatro tentativas anteriores
-falharam"_ antes de escrever qualquer linha.
+Este documento existe porque o bug sobreviveu a **cinco** correções que se
+declararam "causa raiz" — quatro anteriores e uma minha. Se você vai mexer em
+sync, leia _"Por que tantas tentativas falharam"_ antes de escrever código.
 
 ---
 
 ## Sintoma
 
-Lançamento cadastrado pelo celular não aparecia no PC. O app exibia
-"Salvo às HH:MM" normalmente. Nenhum erro no console, nenhum erro de rede,
-resposta HTTP 200 do servidor. Escrita pelo PC funcionava.
-
-## Cadeia mapeada
-
-```
-setItem (utils.js:341, interceptado)
-  └─ onLocalWrite  →  marca rev + agenda push
-       ├─ SDK Firestore   set(merge)  debounce 2s   ← sem teto de tamanho
-       └─ beacon HTTP  /api/sync/push  debounce 300ms ← TETO DE 200KB NO SERVIDOR
-                                                         (o elo partido)
-```
-
-Os dois caminhos existem porque o iOS congela o tab antes de o SDK transmitir.
-No PC o tab fica vivo e o SDK completa; no celular só o beacon sobrevive.
-
-## Evidência que fechou o caso
-
-Teste divisor (cadastro com descrição única, busca por conteúdo no Firestore,
-sem filtro): **o registro não estava no banco** → falha de escrita, não de
-leitura. Isso eliminou de saída identidade de usuário, timezone e cache de
-leitura como suspeitos.
-
-Medição do `localStorage` no dispositivo:
-
-| chave                   | tamanho                                  |
-| ----------------------- | ---------------------------------------- |
-| `futurorico_transacoes` | **354,3 KB**                             |
-| todas as outras (28)    | 5,5 KB                                   |
-| **documento inteiro**   | **359,8 KB** (limite Firestore: 1024 KB) |
-
-`futurorico_transacoes` guarda **todas** as transações num único JSON — ~1.200
-registros, 18 séries recorrentes de 60 parcelas cada. Sozinho é 98% do
-documento.
+Lançamento cadastrado no iPhone não aparecia no PC. O app exibia "Salvo às
+HH:MM", o dado aparecia na lista e **persistia entre sessões no próprio
+celular**. Nenhum erro em lugar nenhum. Escrita pelo PC funcionava.
 
 ## Causa raiz
 
-`api/sync/push.js` aplicava `MAX_VALUE_BYTES = 200 * 1024` com um `return`
-dentro do `forEach`:
+`appliquei-utils.js` instalava o gatilho do sync assim:
 
 ```js
-if (!isDelete && Buffer.byteLength(v, 'utf8') > MAX_VALUE_BYTES) return;
+localStorage.setItem = function (key, value) {
+  /* ... */ AppliqueiCloudSync.onLocalWrite(key);
+};
 ```
 
-Consequência: a chave era **descartada em silêncio**. Não entrava em
-`updateFields`, não incrementava `accepted`, não gerava erro, e o endpoint
-respondia **HTTP 200**. O cliente lia sucesso e escrevia "Salvo às HH:MM"
-para um write que nunca existiu.
+`Storage` é um _legacy platform object_ com setter de propriedade nomeada. Em
+navegadores que seguem o WebIDL à risca (**Safari/iOS**), atribuir uma
+propriedade que não é _own property_ vai para o setter nomeado: grava um **item
+chamado `"setItem"`** e **não sombreia** o método do protótipo. Em Chrome
+sombreia e tudo funciona — foi isso que escondeu o defeito.
 
-Com 354 KB contra um teto de 200 KB, **todo** push do celular era descartado.
-O teto está no repositório desde 26/05 — antes das quatro tentativas de
-correção.
+No iPhone, portanto:
 
-## Por que as quatro tentativas anteriores falharam
+- o app salvava direto no método nativo → **dado aparecia e persistia** ✓
+- o interceptador ficava instalado num lugar por onde nada passava
+- `onLocalWrite` **nunca** era chamado
+- nenhuma chave era marcada como suja
+- **nenhum push jamais era disparado**
 
-Todas mexeram **só no cliente**. Nenhuma tocou `api/sync/push.js`:
+Não havia o que sincronizar. Nunca houve.
 
-| commit    | diagnóstico declarado         | arquivos tocados              |
-| --------- | ----------------------------- | ----------------------------- |
-| `d6c6af0` | write durante o pull inicial  | `web/appliquei-cloud-sync.js` |
-| `c40fa7b` | clock skew / rev Lamport      | `web/appliquei-cloud-sync.js` |
-| `f9f2d83` | log de `accepted:0`           | `web/appliquei-cloud-sync.js` |
-| `cbb3b86` | limite de 64KB do `keepalive` | `web/appliquei-cloud-sync.js` |
+### A evidência
 
-A `cbb3b86` chegou pertíssimo: corrigiu o teto de 64 KB do `keepalive` no
-cliente e o comentário dela até registra que "futurorico_transacoes passa disso
-facilmente". Corrigiu o teto do cliente e parou — o teto do servidor seguiu
-intacto.
+Sonda no aparelho, mesmo salvamento, três linhas consecutivas:
 
-Duas coisas mantiveram o erro escondido, e as duas foram corrigidas:
-
-1. **O servidor mentia sucesso.** Rejeição silenciosa + HTTP 200.
-2. **O cliente atribuía uma causa errada.** No `accepted === 0` o log dizia
-   `"write descartado pelo LWW (conflito de rev)"` — um palpite, não uma
-   leitura. Quem investigou depois leu isso como fato e foi caçar LWW e clock
-   skew, que estavam funcionando.
-
-## O que foi corrigido
-
-**`api/sync/push.js`**
-
-- `MAX_VALUE_BYTES` 200KB → 800KB, compatível com o limite real do Firestore.
-- Novo `MAX_DOC_BYTES` (900KB): recusa explícita antes de estourar o 1 MiB do
-  Firestore, que hoje ninguém checava e viraria exceção opaca.
-- **Toda** recusa volta em `rejected[]` com `key`, `reason` e `bytes`.
-  Motivos: `too_large`, `doc_full`, `not_syncable`, `bad_rev`, `bad_value`,
-  `too_many_keys`.
-- Rev antigo conta em `stale` separado — é o LWW funcionando, não falha.
-
-**`web/appliquei-cloud-sync.js`**
-
-- `rejected[]` não vazio → `console.error` + `reportSyncFailure()`, que troca
-  o rótulo para **"Não sincronizado"** em vermelho e expõe
-  `AppliqueiCloudSync.lastError`. O app não pode mais dizer "Salvo" para um
-  write perdido.
-- Removida a atribuição de causa no `accepted:0`; agora reporta
-  "causa desconhecida" em vez de acusar o LWW.
-
-**`test/sync-push-limits.test.js`** — 5 testes. Verificado que falham com o
-teto antigo de 200KB e passam com a correção.
-
-## Dívida conhecida (NÃO corrigido aqui)
-
-1. **`futurorico_transacoes` como chave única de 354 KB é o problema
-   estrutural.** A correção comprou espaço, não resolveu o desenho. A 800 KB o
-   teto volta a bater; particionar por ano/competência é o conserto de verdade.
-   O documento está em 360 KB de 1024 KB — a margem é finita e só encolhe.
-
-2. **Cache-busting manual quebrado.** Os scripts clássicos usam `?v=fase2` fixo
-   no HTML. **11 dos 20 tokens estão desatualizados** em relação à data de
-   alteração do arquivo — o pior é `appliquei-utils.js?v=fase2` (token de
-   28/05, arquivo alterado em 29/06). Navegador que cacheou a versão antiga
-   continua servindo ela. Verificado que **não** causou este bug (o
-   `appliquei-cloud-sync.js` é ES module e o Vite já aplica hash de conteúdo
-   nele), mas é defeito real e atrapalha qualquer diagnóstico futuro, porque
-   nunca se sabe qual versão o dispositivo está rodando. A correção é gerar o
-   `?v=` por hash de conteúdo no build.
-
-3. **Transporte do beacon com payload grande no unload não foi validado em
-   campo.** Com 354 KB, `useKeepalive` é `false` e o fallback `sendBeacon` é
-   pulado — no `pagehide` a entrega depende de um `fetch` sem `keepalive`, que
-   o browser pode cancelar. Só o beacon _eager_ (página ativa, linha 515)
-   carrega esse tamanho com segurança. Se depois desta correção ainda houver
-   perda no celular, **é aqui que se olha primeiro** — e agora ela aparece como
-   "Não sincronizado" em vez de sumir calada.
-
-## Como verificar no dispositivo
-
-No console, com o app aberto:
-
-```js
-// tamanho por chave e total do documento
-(() => {
-  const enc = new TextEncoder(),
-    all = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const k = localStorage.key(i);
-    if (!/^(futurorico_|appliquei_)/.test(k)) continue;
-    all.push({ chave: k, KB: +(enc.encode(localStorage.getItem(k)).length / 1024).toFixed(1) });
-  }
-  all.sort((a, b) => b.KB - a.KB);
-  console.table(all);
-  console.log('TOTAL:', all.reduce((s, x) => s + x.KB, 0).toFixed(1), 'KB de 1024 KB');
-})();
-
-// última falha de sync reportada pelo servidor
-AppliqueiCloudSync.lastError;
+```
+ENTRA executarInsercao
+GRAVA futurorico_transacoes 354KB via prototipo
+TOAST "Lançamento salvo com sucesso!"
 ```
 
-Teste divisor, quando o sintoma voltar: cadastre um registro com descrição
-única, procure **por conteúdo** no Firestore (sem filtro de data ou usuário).
-Achou → problema de leitura. Não achou → problema de escrita. Esse corte vale
-mais que qualquer leitura de código.
+`via prototipo` = a atribuição na instância não sombreou nada. E logo depois,
+nenhum aviso ao sync. Duas confirmações independentes na mesma coleta.
+
+## Correção
+
+Patch em `Storage.prototype.setItem` / `removeItem`, que funciona nos dois
+casos, com guard `this !== localStorage` porque `sessionStorage` compartilha o
+mesmo protótipo. **O que o interceptador notifica não mudou — mudou apenas onde
+ele é instalado.**
+
+`test/storage-interceptor.test.js` simula a semântica do Safari com um `Proxy`
+cujo `[[Set]]` grava item em vez de sombrear. Verificado: 3 dos 6 testes falham
+com o código antigo, incluindo o que detecta o item lixo `"setItem"`.
+
+## Por que tantas tentativas falharam
+
+| commit    | causa declarada              | onde mexeu                    |
+| --------- | ---------------------------- | ----------------------------- |
+| `d6c6af0` | write durante o pull inicial | `web/appliquei-cloud-sync.js` |
+| `c40fa7b` | clock skew / rev Lamport     | `web/appliquei-cloud-sync.js` |
+| `f9f2d83` | log de `accepted:0`          | `web/appliquei-cloud-sync.js` |
+| `cbb3b86` | limite de 64KB do keepalive  | `web/appliquei-cloud-sync.js` |
+| (esta)    | teto de 200KB no servidor    | `api/sync/push.js`            |
+
+Todas consertaram elos **depois** de um gatilho que nunca disparava. Enquanto
+`onLocalWrite` não é chamado, nada no cloud-sync importa.
+
+Três vícios sustentaram o erro, e os três foram corrigidos:
+
+1. **Falha silenciosa em cadeia.** O interceptador não avisava que não estava
+   instalado; o servidor descartava chaves grandes respondendo HTTP 200; o
+   cliente exibia "Salvo" de qualquer jeito.
+2. **Palpite escrito como fato.** O log dizia `"descartado pelo LWW (conflito
+de rev)"` sem ter lido rev nenhum. Quem investigou depois tomou como
+   verdade e foi caçar clock skew, que estava correto.
+3. **Diagnóstico por leitura de código.** Nenhuma das tentativas mediu o
+   aparelho. O defeito era invisível no código — só aparece em runtime, e só
+   no Safari.
+
+## Outros defeitos reais encontrados no caminho
+
+Todos corrigidos, nenhum era a causa raiz:
+
+- **Teto de 200KB no servidor** (`api/sync/push.js`), aplicado com `return`
+  dentro de um `forEach`: descartava `futurorico_transacoes` (354KB) em
+  silêncio e respondia 200. Teria bloqueado o sync mesmo depois da correção do
+  gatilho. Hoje 800KB, com `MAX_DOC_BYTES` de 900KB e `rejected[]` nomeando
+  toda recusa.
+- **`stale` sem detalhe.** `accepted:0, stale:1` não dizia por quê. Hoje vem
+  `staleKeys[{key, sentRev, serverRev, kind}]`.
+- **Duplicata lida como perda.** `onLocalWrite` dispara SDK e beacon com o
+  mesmo rev; o segundo a chegar encontra `curRev === rev`. Eu tratei isso como
+  falha e quase pus "Não sincronizado" na tela no momento em que o dado era
+  salvo. Hoje `kind: 'duplicate'` vs `'superseded'`.
+
+## Dívida conhecida
+
+1. **`futurorico_transacoes` como chave única de 354 KB.** ~1.200 registros num
+   JSON só, 98% do documento (360KB de 1024KB no Firestore). Cada salvamento
+   reenvia tudo: 3,3 s de upload medidos no celular. Particionar por ano é o
+   próximo passo.
+2. **Cache-busting manual quebrado.** 11 de 20 tokens `?v=` desatualizados em
+   relação à data do arquivo — o pior é `appliquei-utils.js?v=fase2` (token de
+   28/05, arquivo alterado em 29/06). Não causou este bug, mas impede saber
+   qual versão um aparelho está rodando, o que atrapalha qualquer diagnóstico.
+3. **Painel de debug** (`web/appliquei-debug-sync.js`), ligado com `?debug=1`.
+   Vale manter enquanto a dívida 1 não for paga.
+
+## Método que funcionou
+
+O que destravou não foi ler código — foi medir o aparelho:
+
+1. **Teste divisor.** Cadastre um registro com descrição única e procure **por
+   conteúdo** no banco, sem filtro. Achou → problema de leitura. Não achou →
+   de escrita. Corta o espaço de busca ao meio antes de qualquer teoria.
+2. **Separar os elos.** `GRAVA` → `AVISA` → `PUSH→` → resposta. "Não
+   sincronizou" cobre quatro bugs distintos; só instrumentando cada ponto dá
+   para saber qual.
+3. **Aferir o instrumento.** Duas vezes a sonda é que estava errada — uma vez
+   cega (mesma atribuição defeituosa do `utils.js`), outra pesada demais
+   (serializava o log inteiro a cada linha e derrubava o app que observava).
+   Sem aferição, teria virado mais uma causa raiz falsa.
