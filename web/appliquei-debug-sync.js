@@ -202,6 +202,15 @@ function start() {
   //
   // Por isso instrumentamos instância E protótipo, e o log diz por qual
   // caminho a escrita passou. "via prototipo" é a confirmação da hipótese.
+  // Remove pelo método nativo do protótipo: usar localStorage.removeItem aqui
+  // esbarraria no mesmo problema de sombreamento que estamos contornando.
+  function _limparLixo(chave) {
+    const proto = Object.getPrototypeOf(localStorage);
+    if (proto && typeof proto.removeItem === 'function') {
+      proto.removeItem.call(localStorage, chave);
+    }
+  }
+
   function logGrava(k, v, via) {
     if (k && /^(futurorico_|appliquei_)/.test(k)) {
       push('GRAVA', k + ' ' + Math.round(String(v).length / 1024) + 'KB via ' + via);
@@ -216,6 +225,14 @@ function start() {
     };
     w.__dbg = true;
     localStorage.setItem = w;
+    // Onde a atribuição não sombreia (Safari), ela vira uma GRAVAÇÃO de item.
+    // Esse lixo foi o que denunciou o bug, mas não é para ficar no
+    // armazenamento de quem liga o painel — limpamos e seguimos pelo protótipo.
+    if (localStorage.setItem !== w) {
+      try {
+        _limparLixo('setItem');
+      } catch (_) {}
+    }
   } catch (e) {
     push('ERRO', 'wrap instância falhou: ' + (e && e.message));
   }
