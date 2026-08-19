@@ -195,6 +195,49 @@ function start() {
     };
   } catch (_) {}
 
+  // ---------------- caminho do salvamento ----------------
+  // O usuário limpou o log, cadastrou uma despesa e NADA apareceu — nem GRAVA.
+  // Isso tira o foco do sync: não havia o que sincronizar. Mas "nada apareceu"
+  // ainda é ambíguo entre "o salvamento não rodou" e "o painel está morto", e
+  // decidir errado aqui custa mais uma rodada. As sondas abaixo separam:
+  //
+  //   ENTRA  → a função de salvar foi chamada (o botão funciona)
+  //   TOAST  → o app falou algo com o usuário (validação recusou, por exemplo)
+  //   GRAVA  → chegou ao disco
+  //
+  // mostrarToast é o canal de erro do próprio app: os `return` de validação em
+  // executarInsercao passam por ele. Capturá-lo mostra recusas que passariam
+  // despercebidas na tela.
+  function wrapGlobal(nome, tag) {
+    const fn = window[nome];
+    if (typeof fn !== 'function' || fn.__dbg) return false;
+    const w = function () {
+      try {
+        const arg = arguments[0];
+        push(tag, nome + (typeof arg === 'string' ? ': ' + String(arg).slice(0, 120) : ''));
+      } catch (_) {}
+      return fn.apply(this, arguments);
+    };
+    w.__dbg = true;
+    window[nome] = w;
+    return true;
+  }
+
+  const alvos = [
+    ['executarInsercao', 'ENTRA'],
+    ['executarEdicao', 'ENTRA'],
+    ['executarDelecao', 'ENTRA'],
+    ['mostrarToast', 'TOAST'],
+  ];
+  let restantes = alvos.slice();
+  (function tentarWrap(n) {
+    restantes = restantes.filter(([nome, tag]) => !wrapGlobal(nome, tag));
+    if (restantes.length && n < 40) setTimeout(() => tentarWrap(n + 1), 500);
+    else if (restantes.length) {
+      push('ERRO', 'não encontrei: ' + restantes.map((r) => r[0]).join(', '));
+    }
+  })(0);
+
   let wrapped = false;
   function wrapSync() {
     if (wrapped) return true;
@@ -253,9 +296,21 @@ function start() {
     bar.style.cssText =
       'display:flex;flex-wrap:wrap;gap:6px;padding:6px;background:#15151a;align-items:center;flex:0 0 auto';
 
+    // Prova de vida visível. "Não apareceu nada no log" é ambíguo entre o app
+    // não fazer nada e o painel ter morrido; um contador que sobe a cada toque
+    // resolve isso sem custar uma rodada de ida e volta.
     const title = document.createElement('span');
-    title.textContent = 'sync debug';
+    let toques = 0;
+    title.textContent = 'sync debug · toques 0';
     title.style.cssText = 'color:#868e96;margin-right:auto';
+    document.addEventListener(
+      'click',
+      () => {
+        toques++;
+        title.textContent = 'sync debug · toques ' + toques;
+      },
+      true
+    );
 
     function btn(label, fn) {
       const b = document.createElement('button');
