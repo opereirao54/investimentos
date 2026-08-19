@@ -1,6 +1,7 @@
 # Diagnóstico — "cadastrei no celular e não apareceu no PC"
 
-**Status:** causa raiz confirmada por medição no aparelho e corrigida.
+**Status:** causa raiz confirmada por medição no aparelho, corrigida e
+**validada em campo** — cadastro feito no iPhone passou a aparecer no PC.
 
 Este documento existe porque o bug sobreviveu a **cinco** correções que se
 declararam "causa raiz" — quatro anteriores e uma minha. Se você vai mexer em
@@ -52,6 +53,11 @@ TOAST "Lançamento salvo com sucesso!"
 
 `via prototipo` = a atribuição na instância não sombreou nada. E logo depois,
 nenhum aviso ao sync. Duas confirmações independentes na mesma coleta.
+
+Depois da correção, o mesmo cadastro no mesmo aparelho passou a produzir a
+cadeia completa — `GRAVA` → `AVISA` → `PUSH→` → `accepted:1` — e o lançamento
+apareceu no PC. A linha `AVISA` nunca havia aparecido num salvamento real em
+nenhuma das seis coletas anteriores.
 
 ## Correção
 
