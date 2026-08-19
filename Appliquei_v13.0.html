@@ -351,13 +351,17 @@
         .btn-theme:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-theme i { font-size: 16px; }
 
+        .btn-config { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
+        .btn-config:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .btn-config i { font-size: 16px; }
+
         .btn-eye { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
         .btn-eye:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-eye i { font-size: 16px; }
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
         .sidebar-quick-actions { display: flex; gap: 6px; padding: 4px 4px 10px; }
-        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: none; width: 28px; height: 28px; border-radius: 8px; }
-        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i { font-size: 14px; }
+        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme, .sidebar-quick-actions .btn-config { flex: none; width: 28px; height: 28px; border-radius: 8px; }
+        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i, .sidebar-quick-actions .btn-config i { font-size: 14px; }
         .sidebar.collapsed .sidebar-quick-actions { display: none; }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
@@ -5352,9 +5356,9 @@
     </div>
 
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
-        <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
-            <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
-            <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Defina seus limites de gastos e metas de saldo.</p>
+        <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+            <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Configurações</h3>
+            <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Cartões, limites de gastos e metas de saldo.</p>
 
             <div style="margin-bottom:18px;">
                 <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Meus cartões de crédito</label>
@@ -5377,6 +5381,12 @@
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
+            </div>
+
+            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Recomeçar do zero</label>
+                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
+                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-erro);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
             </div>
 
             <div style="display:flex;gap:10px;">
@@ -5578,6 +5588,7 @@
             <div class="sidebar-quick-actions">
                 <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores" data-tooltip="Ocultar valores"><i class="ph ph-eye"></i></button>
                 <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema" data-tooltip="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
+                <button class="btn-config" onclick="abrirModalConfig()" title="Configurações" data-tooltip="Configurações"><i class="ph ph-gear"></i></button>
             </div>
             <div class="sidebar-auth-mini" id="sidebarAuthMini">
                 <span class="sa-email" id="sidebarAuthEmail" title="">Conta</span>
@@ -5897,7 +5908,7 @@
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
-                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
+                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>

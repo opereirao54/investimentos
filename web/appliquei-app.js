@@ -320,6 +320,9 @@ function formatarMoeda(valor) {
 // --- GESTÃO DO MODAL DE CONFIGURAÇÕES ---
 function abrirModalConfig() {
   renderizarListaCartoesConfig();
+  // Também é chamada pelo atalho da sidebar: no mobile o drawer ficaria
+  // aberto por trás do modal.
+  if (typeof closeMobileNav === 'function') closeMobileNav();
   document.getElementById('modalConfiguracoes').style.display = 'flex';
 }
 function fecharModalConfig() {
