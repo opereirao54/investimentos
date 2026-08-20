@@ -1059,8 +1059,367 @@ function popularSelectSonhoContaOrigem(selecionadoId) {
   sel.value = selecionadoId || '';
 }
 
+// ============================================================
+// === PRÉVIA DO PLANO — passo 2 do cadastro de sonho        ===
+// ============================================================
+// A dor: antes disto o usuário só descobria o valor mensal DEPOIS de criar o
+// sonho (o modal de pedirConfirmacaoPlanoSonho). Se o número assustasse, já
+// era: tinha de editar ou apagar. Agora o modal tem dois passos e o plano
+// aparece antes de qualquer coisa ser gravada.
+//
+// O passo 2 não guarda estado próprio: os inputs do passo 1 continuam sendo a
+// única fonte de verdade. Mexer no prazo pela prévia escreve de volta neles e
+// re-renderiza — assim "Voltar" mostra exatamente o que a prévia calculou.
+
+var _chartPreviaSonho = null;
+// Alternativas oferecidas para o usuário ver o trade-off prazo × mensalidade.
+var SONHO_PRAZOS_ALTERNATIVOS = [6, 12, 24, 36, 48, 60, 120];
+
+// Repete a normalização de datas de salvarSonho() para a prévia mostrar
+// exatamente o plano que será gravado — inclusive quando o mês de início é
+// futuro (aí o horizonte é maior que o prazo digitado).
+function lerPlanoDoFormularioSonho() {
+  const nome = (document.getElementById('sonhoNome').value || '').trim();
+  const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
+  const prazoBruto = parseInt(document.getElementById('sonhoPrazo').value);
+  const unidade = document.getElementById('sonhoPrazoUnidade')?.value || 'meses';
+  const prazo =
+    unidade === 'anos' ? Math.max(1, prazoBruto || 1) * 12 : Math.max(1, prazoBruto || 1);
+  const valorInicial = parseBRL(document.getElementById('sonhoValorInicial').value) || 0;
+  const mesInicioRaw = document.getElementById('sonhoMesInicio')?.value;
+
+  const agora = new Date();
+  const mesAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+  const mesInicio = mesInicioRaw && mesInicioRaw >= mesAtual ? mesInicioRaw : mesAtual;
+  const [iniAno, iniMes] = mesInicio.split('-').map(Number);
+  const dataInicio = new Date(iniAno, iniMes - 1, 1);
+  const dataFim = new Date(iniAno, iniMes - 1 + prazo, 0);
+  const mesesAteFim = Math.max(0, mesesEntre(agora, dataFim));
+
+  const mensal = calcSonhoMensal(valorTotal, valorInicial, mesesAteFim);
+  const projecaoFinal = calcSonhoProjecao(valorInicial, mensal, mesesAteFim);
+  const totalAportado = mensal * mesesAteFim;
+  const juros = Math.max(0, projecaoFinal - valorInicial - totalAportado);
+
+  return {
+    nome,
+    valorTotal,
+    prazo,
+    valorInicial,
+    dataInicio,
+    dataFim,
+    mesesAteFim,
+    comecaNoFuturo: dataInicio.getTime() > agora.getTime(),
+    mensal,
+    projecaoFinal,
+    totalAportado,
+    juros,
+    falta: Math.max(0, valorTotal - valorInicial),
+  };
+}
+
+// Quanto este sonho pesa na sobra mensal real do usuário. Na edição, desconta
+// o compromisso que o próprio sonho já representa — senão contaria duas vezes.
+function avaliarFolgaParaSonho(mensal) {
+  const saude = analisarSaudeFinanceiraSonhos();
+  if (saude.semDados) return { semDados: true };
+
+  let jaComprometido = saude.compromissoSonhos || 0;
+  if (sonhoEditandoId) {
+    const atual = sonhos.find((x) => x.id === sonhoEditandoId);
+    if (atual && atual.valorAtual < atual.valorTotal && atual.mesesRestantes > 0) {
+      jaComprometido -= calcSonhoMensal(atual.valorTotal, atual.valorAtual, atual.mesesRestantes);
+    }
+  }
+  jaComprometido = Math.max(0, jaComprometido);
+  const depois = jaComprometido + mensal;
+  const sobra = saude.sobraMedia;
+  const pct = sobra > 0 ? (depois / sobra) * 100 : Infinity;
+
+  let nivel, cor, titulo;
+  if (sobra <= 0) {
+    nivel = 'nao_cabe';
+    cor = 'erro';
+    titulo = 'Sua sobra mensal está zerada ou negativa';
+  } else if (pct <= 70) {
+    nivel = 'cabe';
+    cor = 'primaria';
+    titulo = 'Cabe no seu mês com folga';
+  } else if (pct <= 100) {
+    nivel = 'aperta';
+    cor = 'amber';
+    titulo = 'Cabe, mas aperta';
+  } else {
+    nivel = 'nao_cabe';
+    cor = 'erro';
+    titulo = 'Não cabe na sua sobra atual';
+  }
+  return { semDados: false, sobra, jaComprometido, depois, pct, nivel, cor, titulo, saude };
+}
+
+function irParaPreviaSonho() {
+  const nome = (document.getElementById('sonhoNome').value || '').trim();
+  const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
+  if (!nome) return mostrarToast('Dê um nome ao seu sonho!', 'erro');
+  if (valorTotal <= 0) return mostrarToast('Informe o valor total da meta.', 'erro');
+
+  document.getElementById('sonhoPasso1').style.display = 'none';
+  document.getElementById('sonhoAcoesPasso1').style.display = 'none';
+  document.getElementById('sonhoPasso2').style.display = 'block';
+  document.getElementById('sonhoAcoesPasso2').style.display = 'flex';
+  const titulo = document.getElementById('tituloModalSonho').querySelector('span');
+  if (titulo) titulo.textContent = 'Prévia do plano';
+  const btn = document.getElementById('btnConfirmarSonho');
+  if (btn) {
+    btn.innerHTML = sonhoEditandoId
+      ? '<i class="ph-bold ph-check"></i> Salvar alterações'
+      : '<i class="ph-bold ph-shooting-star"></i> Criar sonho';
+  }
+  renderPreviaSonho();
+  const card = document.querySelector('#modalSonho > div');
+  if (card) card.scrollTop = 0;
+}
+
+function voltarParaFormularioSonho() {
+  destruirChartPreviaSonho();
+  document.getElementById('sonhoPasso2').style.display = 'none';
+  document.getElementById('sonhoAcoesPasso2').style.display = 'none';
+  document.getElementById('sonhoPasso1').style.display = 'block';
+  document.getElementById('sonhoAcoesPasso1').style.display = 'flex';
+  const titulo = document.getElementById('tituloModalSonho').querySelector('span');
+  if (titulo) titulo.textContent = sonhoEditandoId ? 'Editar sonho' : 'Cadastrar novo sonho';
+}
+
+function destruirChartPreviaSonho() {
+  if (_chartPreviaSonho) {
+    try {
+      _chartPreviaSonho.destroy();
+    } catch (_) {}
+    _chartPreviaSonho = null;
+  }
+}
+
+// Escreve o prazo escolhido de volta no formulário (fonte única) e recalcula.
+function aplicarPrazoPreviaSonho(meses) {
+  const unidade = document.getElementById('sonhoPrazoUnidade');
+  const campo = document.getElementById('sonhoPrazo');
+  if (!campo) return;
+  if (meses >= 12 && meses % 12 === 0 && unidade) {
+    unidade.value = 'anos';
+    campo.value = meses / 12;
+  } else {
+    if (unidade) unidade.value = 'meses';
+    campo.value = meses;
+  }
+  renderPreviaSonho();
+}
+
+function _mesAnoCurto(d) {
+  return d.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' }).replace('.', '');
+}
+
+function renderPreviaSonho() {
+  const box = document.getElementById('sonhoPasso2');
+  if (!box) return;
+  const p = lerPlanoDoFormularioSonho();
+
+  if (p.mesesAteFim <= 0) {
+    box.innerHTML =
+      '<div class="alert-contextual alert-warn" style="margin:0;"><i class="ph-fill ph-warning"></i><span>O prazo escolhido termina antes do mês que vem. Volte e aumente o prazo para montar um plano.</span></div>';
+    return;
+  }
+
+  const folga = avaliarFolgaParaSonho(p.mensal);
+  const jaTemTudo = p.falta <= 0;
+
+  // --- Hero: o número que o usuário veio buscar ---
+  const hero = jaTemTudo
+    ? `<div style="font-size:26px;font-weight:800;font-family:'DM Mono',monospace;letter-spacing:-0.5px;">Meta já alcançada</div>
+       <div style="font-size:12.5px;opacity:0.9;margin-top:6px;line-height:1.5;">O valor que você já tem guardado cobre a meta inteira. Nenhum aporte mensal é necessário.</div>`
+    : `<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;opacity:0.85;font-weight:700;">Você vai precisar separar</div>
+       <div style="font-size:30px;font-weight:800;font-family:'DM Mono',monospace;letter-spacing:-1px;margin:4px 0 2px;">${formatarMoeda(p.mensal)}<span style="font-size:15px;font-weight:600;opacity:0.85;">/mês</span></div>
+       <div style="font-size:12.5px;opacity:0.92;line-height:1.5;">em <strong>${p.mesesAteFim} ${p.mesesAteFim === 1 ? 'aporte mensal' : 'aportes mensais'}</strong> — de agora até <strong>${_mesAnoCurto(p.dataFim)}</strong>${p.comecaNoFuturo ? ` <span style="opacity:0.85;">(começa em ${_mesAnoCurto(p.dataInicio)})</span>` : ''}.</div>`;
+
+  // --- Veredito contra a sobra real do mês ---
+  let veredito = '';
+  if (folga.semDados) {
+    veredito = `<div style="display:flex;gap:9px;align-items:flex-start;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:11px 13px;font-size:12px;color:var(--cor-texto-secundario);line-height:1.5;">
+        <i class="ph ph-info" style="font-size:16px;flex-shrink:0;margin-top:1px;"></i>
+        <span>Ainda não há lançamentos suficientes no Controle Financeiro para comparar este valor com a sua sobra do mês.</span>
+      </div>`;
+  } else if (!jaTemTudo) {
+    const pctTxt =
+      folga.sobra > 0 ? `${folga.pct.toFixed(0)}% da sua sobra` : 'sem sobra disponível';
+    veredito = `<div style="background:var(--cor-bg-${folga.cor});border:1px solid var(--cor-borda-${folga.cor});color:var(--cor-txt-${folga.cor});border-radius:10px;padding:12px 14px;">
+        <div style="font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px;">
+          <i class="ph-fill ${folga.nivel === 'cabe' ? 'ph-check-circle' : folga.nivel === 'aperta' ? 'ph-warning' : 'ph-warning-octagon'}"></i> ${folga.titulo}
+        </div>
+        <div style="font-size:11.5px;line-height:1.55;margin-top:5px;">
+          Sua sobra média é <strong>${formatarMoeda(folga.sobra)}</strong>/mês.
+          ${
+            folga.jaComprometido > 0
+              ? `Você já tem <strong>${formatarMoeda(folga.jaComprometido)}</strong> em outros sonhos; com este, chega a <strong>${formatarMoeda(folga.depois)}</strong> — ${pctTxt}.`
+              : `Este sonho pede <strong>${formatarMoeda(p.mensal)}</strong> — ${pctTxt}.`
+          }
+        </div>
+      </div>`;
+  }
+
+  // --- Composição do que você vai juntar ---
+  const linha = (rotulo, valor, cor) =>
+    `<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;padding:5px 0;">
+       <span style="color:var(--cor-texto-secundario);">${rotulo}</span>
+       <strong style="font-family:'DM Mono',monospace;color:${cor || 'var(--cor-texto-principal)'};">${formatarMoeda(valor)}</strong>
+     </div>`;
+  const composicao = `<div style="border:1px solid var(--cor-borda);border-radius:10px;padding:12px 14px;">
+      ${p.valorInicial > 0 ? linha('Você já tem guardado', p.valorInicial) : ''}
+      ${jaTemTudo ? '' : linha(`Seus aportes (${p.mesesAteFim}×)`, p.totalAportado)}
+      ${jaTemTudo ? '' : linha('Juros rendendo 0,8% a.m.', p.juros, 'var(--cor-primaria)')}
+      <div style="border-top:1px dashed var(--cor-borda);margin:6px 0 2px;"></div>
+      ${linha('Projeção no fim do prazo', p.projecaoFinal)}
+      ${linha('Sua meta', p.valorTotal, 'var(--cor-texto-mutado)')}
+    </div>`;
+
+  // --- Trade-off: e se eu levar mais tempo? ---
+  let pills = '';
+  if (!jaTemTudo) {
+    const opcoes = SONHO_PRAZOS_ALTERNATIVOS.filter((m) => m !== p.prazo);
+    pills = `<div>
+        <div style="font-size:11px;font-weight:700;color:var(--cor-texto-secundario);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:7px;">E se o prazo fosse outro?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          ${opcoes
+            .map((m) => {
+              const alt = calcSonhoMensal(p.valorTotal, p.valorInicial, m);
+              return `<button type="button" onclick="aplicarPrazoPreviaSonho(${m})" style="flex:1 1 auto;min-width:88px;padding:7px 9px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;">
+                  <div style="font-size:10.5px;color:var(--cor-texto-mutado);font-weight:600;">${formatarPrazoMeses(m)}</div>
+                  <div style="font-size:12.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-texto-principal);">${formatarMoeda(alt)}</div>
+                </button>`;
+            })
+            .join('')}
+        </div>
+      </div>`;
+  }
+
+  // --- Vincular ao Controle: só na criação; na edição o vínculo já foi decidido ---
+  const vincular = sonhoEditandoId
+    ? ''
+    : `<label for="sonhoVincularPlano" style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:11px 13px;">
+        <input type="checkbox" id="sonhoVincularPlano" checked style="margin-top:2px;width:16px;height:16px;flex-shrink:0;accent-color:var(--cor-primaria);cursor:pointer;">
+        <span style="font-size:12px;color:var(--cor-texto-secundario);line-height:1.5;">
+          <strong style="color:var(--cor-texto-principal);">Já lançar no Controle Financeiro</strong><br>
+          Cria o compromisso mensal de ${formatarMoeda(p.mensal)} na categoria ⭐ Sonho, mês a mês, para você pagar como qualquer outra conta.
+        </span>
+      </label>`;
+
+  box.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);color:#fff;border-radius:12px;padding:16px 18px;">${hero}</div>
+      ${veredito}
+      <div style="height:150px;"><canvas id="graficoPreviaSonho"></canvas></div>
+      ${composicao}
+      ${pills}
+      ${vincular}
+    </div>`;
+
+  renderChartPreviaSonho(p);
+}
+
+function renderChartPreviaSonho(p) {
+  destruirChartPreviaSonho();
+  const canvas = document.getElementById('graficoPreviaSonho');
+  if (!canvas || typeof Chart === 'undefined' || !canvas.getContext) return;
+
+  const labels = [];
+  const acumulado = [];
+  const meta = [];
+  // Até 12 pontos: em prazos longos a curva mês a mês vira ruído.
+  const passo = Math.max(1, Math.ceil(p.mesesAteFim / 12));
+  for (let i = 0; i <= p.mesesAteFim; i += passo) {
+    labels.push(i === 0 ? 'hoje' : formatarPrazoMeses(i));
+    acumulado.push(+calcSonhoProjecao(p.valorInicial, p.mensal, i).toFixed(2));
+    meta.push(+p.valorTotal.toFixed(2));
+  }
+  if (labels[labels.length - 1] !== formatarPrazoMeses(p.mesesAteFim)) {
+    labels.push(formatarPrazoMeses(p.mesesAteFim));
+    acumulado.push(+p.projecaoFinal.toFixed(2));
+    meta.push(+p.valorTotal.toFixed(2));
+  }
+
+  try {
+    _chartPreviaSonho = new Chart(canvas.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Acumulado',
+            data: acumulado,
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.10)',
+            fill: true,
+            tension: 0.25,
+            borderWidth: 2.5,
+            pointRadius: 0,
+          },
+          {
+            label: 'Meta',
+            data: meta,
+            borderColor: 'var(--cor-primaria)',
+            borderDash: [6, 4],
+            fill: false,
+            tension: 0,
+            borderWidth: 2,
+            pointRadius: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          datalabels: { display: false },
+          legend: { display: false },
+          tooltip: {
+            callbacks: { label: (c) => ` ${c.dataset.label}: ${formatarMoeda(c.parsed.y)}` },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
+          y: {
+            border: { display: false },
+            ticks: {
+              font: { size: 10 },
+              callback: (v) =>
+                'R$ ' +
+                (v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? (v / 1e3).toFixed(0) + 'k' : v),
+            },
+          },
+        },
+      },
+    });
+  } catch (_) {}
+}
+
+// Volta o modal ao passo 1. Chamada por abrirCadastroSonho e editarSonho.
+function resetarPassosSonho() {
+  destruirChartPreviaSonho();
+  const p1 = document.getElementById('sonhoPasso1');
+  const p2 = document.getElementById('sonhoPasso2');
+  const a1 = document.getElementById('sonhoAcoesPasso1');
+  const a2 = document.getElementById('sonhoAcoesPasso2');
+  if (p1) p1.style.display = 'block';
+  if (p2) {
+    p2.style.display = 'none';
+    p2.innerHTML = '';
+  }
+  if (a1) a1.style.display = 'flex';
+  if (a2) a2.style.display = 'none';
+}
+
 function abrirCadastroSonho() {
   sonhoEditandoId = null;
+  resetarPassosSonho();
   popularSelectSonhoContaOrigem('');
   document.getElementById('tituloModalSonho').querySelector('span').textContent =
     'Cadastrar novo sonho';
@@ -1084,6 +1443,7 @@ function abrirCadastroSonho() {
 }
 
 function fecharModalSonho() {
+  destruirChartPreviaSonho();
   document.getElementById('modalSonho').style.display = 'none';
 }
 
@@ -1231,6 +1591,10 @@ function aplicarEdicaoSonhoComModo(modo) {
 }
 
 function salvarSonho() {
+  // Lido antes de qualquer fechamento de modal: o checkbox vive no passo 2,
+  // que é esvaziado no reset.
+  const vincularEscolhido =
+    !sonhoEditandoId && !!(document.getElementById('sonhoVincularPlano') || {}).checked;
   const nome = document.getElementById('sonhoNome').value.trim();
   const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
   const prazoBruto = parseInt(document.getElementById('sonhoPrazo').value);
@@ -1373,7 +1737,9 @@ function salvarSonho() {
 
   if (!idEditado && sonhoCriado) {
     mostrarToast('Sonho cadastrado! 🚀', 'sucesso');
-    setTimeout(() => pedirConfirmacaoPlanoSonho(sonhoCriado), 250);
+    // A prévia (passo 2) já perguntou se deve lançar no Controle. Repetir o
+    // modal aqui só mostraria de novo um valor que o usuário acabou de ver.
+    if (vincularEscolhido) setTimeout(() => confirmarPlanoSonho(sonhoCriado.id), 250);
   } else if (edicaoComMudancaDePlano && sonhoCriado) {
     mostrarToast('Sonho atualizado!', 'sucesso');
     removerLancamentosFuturosSonho(sonhoCriado.id);
@@ -1398,6 +1764,7 @@ function editarSonho(id) {
   const s = sonhos.find((x) => x.id === id);
   if (!s) return;
   sonhoEditandoId = id;
+  resetarPassosSonho();
   document.getElementById('tituloModalSonho').querySelector('span').textContent = 'Editar sonho';
   const unidadeEdit = document.getElementById('sonhoPrazoUnidade');
   if (unidadeEdit) {

@@ -7133,6 +7133,9 @@
                         <button class="drawer-fechar" onclick="fecharModalSonho()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
 
+                    <!-- Passo 1: os dados do sonho. Passo 2 (prévia) é montado
+                         por renderPreviaSonho() em web/appliquei-sonhos.js. -->
+                    <div id="sonhoPasso1">
                     <div class="form-group">
                         <label>Qual o seu sonho?</label>
                         <input type="text" id="sonhoNome" placeholder="Ex: Viagem dos sonhos para Europa">
@@ -7215,10 +7218,17 @@
                         </div>
                         <input type="hidden" id="sonhoEsforco" value="medio">
                     </div>
+                    </div><!-- /sonhoPasso1 -->
 
-                    <div style="display:flex;gap:10px;margin-top:22px;">
+                    <div id="sonhoPasso2" style="display:none;"></div>
+
+                    <div id="sonhoAcoesPasso1" style="display:flex;gap:10px;margin-top:22px;">
                         <button class="btn-secundario" style="flex:1;" onclick="fecharModalSonho()">Cancelar</button>
-                        <button class="btn-acao" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="salvarSonho()"><i class="ph-bold ph-shooting-star"></i> Salvar sonho</button>
+                        <button class="btn-acao" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="irParaPreviaSonho()">Ver prévia do plano <i class="ph-bold ph-arrow-right"></i></button>
+                    </div>
+                    <div id="sonhoAcoesPasso2" style="display:none;gap:10px;margin-top:22px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="voltarParaFormularioSonho()"><i class="ph-bold ph-arrow-left"></i> Ajustar</button>
+                        <button class="btn-acao" id="btnConfirmarSonho" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="salvarSonho()"><i class="ph-bold ph-shooting-star"></i> Criar sonho</button>
                     </div>
                 </div>
             </div>
