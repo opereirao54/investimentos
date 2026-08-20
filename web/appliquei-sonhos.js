@@ -1404,6 +1404,9 @@ function renderChartPreviaSonho(p) {
 // Volta o modal ao passo 1. Chamada por abrirCadastroSonho e editarSonho.
 function resetarPassosSonho() {
   destruirChartPreviaSonho();
+  // Reabrir o modal tem de começar do topo, não de onde ficou na vez anterior.
+  const card = document.querySelector('#modalSonho > div');
+  if (card) card.scrollTop = 0;
   const p1 = document.getElementById('sonhoPasso1');
   const p2 = document.getElementById('sonhoPasso2');
   const a1 = document.getElementById('sonhoAcoesPasso1');

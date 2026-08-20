@@ -2795,6 +2795,51 @@
         .sonho-card-actions button:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .sonho-card-actions button.btn-delete:hover { border-color: var(--cor-erro); color: var(--cor-erro); background: var(--cor-bg-erro); }
 
+        /* ===== Modal do sonho: firme no celular ==========================
+           Sintoma: no telemóvel a tela do formulário "andava para os lados".
+           Causa: o Safari do iOS dá ZOOM automático ao focar um campo com
+           fonte menor que 16px. Depois do zoom o viewport fica mais largo que
+           a tela e a página inteira passa a arrastar na horizontal — não é o
+           modal que se mexe, é a página por baixo dele.
+           16px desliga o zoom na origem. É a correção acessível: mexer no
+           <meta viewport> com maximum-scale=1 também resolveria, mas tira o
+           pinch-zoom de quem precisa dele.
+           Vários campos deste modal trazem font-size inline, que ganha de
+           regra de folha de estilo — daí o !important. */
+        @media (max-width: 768px) {
+            #modalSonho input,
+            #modalSonho select,
+            #modalSonho textarea {
+                font-size: 16px !important;
+            }
+            /* Campos com 16px pedem mais largura útil que os 28px de padding
+               deixavam sobrar numa tela de 375px. */
+            #modalSonho > div {
+                padding: 20px;
+                /* vh no telemóvel mede a viewport MAIOR (barra de endereço
+                   escondida): com a barra à vista, ou com o teclado aberto,
+                   88vh passa do que dá para ver e o topo do card fica
+                   inalcançável, já que o overlay não rola. dvh acompanha a
+                   área realmente visível. Navegador sem dvh ignora a linha e
+                   fica com o 88vh inline. */
+                max-height: 88dvh !important;
+            }
+        }
+
+        /* O card rola só na vertical, e não empurra a página por baixo
+           (overscroll-behavior corta o encadeamento do scroll). pan-y bloqueia
+           o arrasto lateral mantendo o pinch-zoom disponível. */
+        #modalSonho {
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+        #modalSonho > div {
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y pinch-zoom;
+        }
+
         .sonho-body {
             display: grid; grid-template-columns: 1fr 260px;
             gap: 0; border-top: 1px solid var(--cor-borda);
@@ -7127,7 +7172,7 @@
 
             <!-- MODAL CADASTRO/EDIÇÃO DE SONHO -->
             <div id="modalSonho" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalSonho()">
-                <div style="max-width:520px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+                <div style="max-width:520px;width:calc(100% - 24px);margin:12px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px;">
                         <h3 id="tituloModalSonho" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);"></i> <span>Cadastrar novo sonho</span></h3>
                         <button class="drawer-fechar" onclick="fecharModalSonho()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
