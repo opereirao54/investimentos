@@ -5389,6 +5389,24 @@
                 </div>
                 <button class="btn-secundario" id="btnAbrirNovoCartao" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovoCartaoConfig()"><i class="ph ph-plus"></i> Adicionar cartão</button>
             </div>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Categorias de despesa</label>
+                <div id="listaCategoriasConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:264px;overflow-y:auto;"></div>
+                <div id="formCategoriaConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:8px;" id="tituloFormCategoriaConfig">Nova categoria</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button type="button" id="categoriaDespesaNovaEmojiBtnConfig" onclick="toggleEmojiPickerCategoria('Config')" title="Escolher emoji" style="flex:0 0 auto;width:40px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-branco);cursor:pointer;line-height:1;">🏷️</button>
+                        <input type="text" id="categoriaDespesaNovaConfig" placeholder="Ex: Viagens" maxlength="40" style="flex:1 1 auto;width:100%;padding:8px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-branco);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                    </div>
+                    <input type="hidden" id="categoriaDespesaNovaEmojiConfig" value="🏷️">
+                    <div id="categoriaDespesaEmojiPickerConfig" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px;border:1px solid var(--cor-borda);border-radius:9px;padding:8px;background:var(--cor-branco);"></div>
+                    <div style="display:flex;gap:6px;margin-top:10px;">
+                        <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarCategoriaConfig()">Cancelar</button>
+                        <button class="btn-acao" id="btnSalvarCategoriaConfig" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarCategoriaConfig()"><i class="ph ph-check"></i> Adicionar</button>
+                    </div>
+                </div>
+                <button class="btn-secundario" id="btnAbrirNovaCategoria" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovaCategoriaConfig()"><i class="ph ph-plus"></i> Adicionar categoria</button>
+            </div>
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>

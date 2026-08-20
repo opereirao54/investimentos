@@ -320,6 +320,11 @@ function formatarMoeda(valor) {
 // --- GESTÃO DO MODAL DE CONFIGURAÇÕES ---
 function abrirModalConfig() {
   renderizarListaCartoesConfig();
+  // Estado limpo: sem formulário aberto nem confirmação de exclusão pendente
+  // de uma abertura anterior do modal.
+  if (typeof cancelarCategoriaConfig === 'function') cancelarCategoriaConfig();
+  if (typeof cancelarExclusaoCategoriaConfig === 'function') cancelarExclusaoCategoriaConfig();
+  else if (typeof renderizarListaCategoriasConfig === 'function') renderizarListaCategoriasConfig();
   // Também é chamada pelo atalho da sidebar: no mobile o drawer ficaria
   // aberto por trás do modal.
   if (typeof closeMobileNav === 'function') closeMobileNav();
