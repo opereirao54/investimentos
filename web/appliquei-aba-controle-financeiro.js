@@ -730,6 +730,15 @@ function cartaoCalcularVencimento(hoje, diaFech, diaVenc) {
   return new Date(fAno, vMes, diaFinal);
 }
 
+// Competência (mes/ano) a partir de uma data yyyy-mm-dd. Devolve null se a
+// string não for uma data válida — o chamador decide o que fazer.
+function competenciaDaData(dataStr) {
+  if (!dataStr) return null;
+  const [a, m] = String(dataStr).split('-').map(Number);
+  if (!a || !m || m < 1 || m > 12) return null;
+  return { mes: m - 1, ano: a };
+}
+
 function preencherVencimentoPorCartao() {
   const sel = document.getElementById('selectCartao');
   const inputVenc = document.getElementById('dataVencimento');
@@ -737,7 +746,27 @@ function preencherVencimentoPorCartao() {
   if (!sel.value || sel.value === '__novo__') return;
   const cartao = obterCartao(sel.value);
   const data = cartaoCalcularVencimento(new Date(), cartao?.diaFechamento, cartao?.diaVencimento);
-  if (!data) return;
+  if (!data) {
+    // Cartão sem dia de vencimento (o "Cartão principal" criado no primeiro
+    // boot é assim). Sair calado deixava no campo a data do cartão ANTERIOR:
+    // a despesa entrava na fatura de outro cartão sem ninguém perceber, e o
+    // campo fica readOnly para cartão, então nem dava para consertar à mão.
+    // Melhor esvaziar, destravar e dizer o que falta.
+    inputVenc.value = '';
+    inputVenc.readOnly = false;
+    inputVenc.style.opacity = '';
+    inputVenc.title = '';
+    mostrarToast(
+      `"${cartao?.nome || 'Este cartão'}" está sem dia de vencimento. Informe a data ou complete o cadastro do cartão em Configurações.`,
+      'aviso'
+    );
+    return;
+  }
+  // Cartão com vencimento: o campo volta a ser derivado (readOnly), caso um
+  // cartão sem data o tenha destravado antes.
+  inputVenc.readOnly = true;
+  inputVenc.style.opacity = '0.7';
+  inputVenc.title = 'Definida automaticamente pelo fechamento/vencimento do cartão cadastrado.';
   const yyyy = data.getFullYear();
   const mm = String(data.getMonth() + 1).padStart(2, '0');
   const dd = String(data.getDate()).padStart(2, '0');
@@ -902,6 +931,12 @@ function prepararEdicao(id) {
     }
     selecionarTipoCartao(trans.cartaoFixoMensal ? 'fixo' : 'parcelado');
     document.getElementById('grupoParcelas').style.display = 'none';
+    // verificarRegraCartao() acabou de chamar preencherVencimentoPorCartao(),
+    // que calcula a fatura de HOJE e sobrescreveu o campo. Numa despesa antiga
+    // isso trocava a data guardada só por ela ter sido aberta para editar a
+    // descrição — e salvar gravava a data nova. A data do lançamento manda;
+    // trocar de cartão daqui em diante recalcula normalmente pelo onchange.
+    document.getElementById('dataVencimento').value = trans.dataVencimento || '';
   }
   document.getElementById('descTransacao').focus();
 
@@ -1011,6 +1046,13 @@ function executarEdicao(modo) {
   const catDespesaNovo = resolverCategoriaDespesaSelecionada(categoria);
 
   if (modo === 'todas') {
+    // Numa série recorrente, mudar o vencimento significa mudar o DIA em todos
+    // os meses ("o aluguel passou a vencer dia 25"), não empurrar as parcelas de
+    // mês. Antes deste bloco a edição "todos os meses" simplesmente ignorava a
+    // data: dava para mudar valor e descrição, nunca o vencimento.
+    const diaNovo = competenciaDaData(dataVencInput)
+      ? parseInt(String(dataVencInput).split('-')[2], 10)
+      : null;
     transacoes = transacoes.map((t) => {
       if (
         t.groupId === transAtual.groupId &&
@@ -1020,6 +1062,14 @@ function executarEdicao(modo) {
         t.valor = valorTotal;
         t.categoria = categoria;
         t.obs = obs;
+        if (diaNovo) {
+          // Preserva o mês de cada parcela e respeita meses curtos (dia 31 em
+          // fevereiro vira o último dia do mês).
+          const base = competenciaDaData(t.dataVencimento) || { mes: t.mes, ano: t.ano };
+          const ultimoDia = new Date(base.ano, base.mes + 1, 0).getDate();
+          const dia = Math.min(diaNovo, ultimoDia);
+          t.dataVencimento = `${base.ano}-${String(base.mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        }
         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
           t.cartaoId = cartaoIdNovo;
         if (bancoNovo !== null) {
@@ -1031,6 +1081,19 @@ function executarEdicao(modo) {
       return t;
     });
   } else {
+    // A competência (mes/ano) é o que decide em QUE MÊS o lançamento aparece —
+    // toda a tela filtra por ela, não pela data. Sem isto, corrigir a data de um
+    // lançamento gravava a data nova e deixava o lançamento no mês errado: o
+    // sintoma "editei a data e não corrigiu".
+    // Só recalcula quando a data MUDA. Lançamentos em que competência e
+    // vencimento divergem de propósito (conta de agosto que vence em setembro)
+    // continuam onde estão enquanto ninguém mexer na data.
+    const dataMudou = (dataVencInput || '') !== (transAtual.dataVencimento || '');
+    const comp = dataMudou ? competenciaDaData(dataVencInput) : null;
+    if (comp) {
+      transAtual.mes = comp.mes;
+      transAtual.ano = comp.ano;
+    }
     transAtual.descricao = desc;
     transAtual.valor = valorTotal;
     transAtual.categoria = categoria;
