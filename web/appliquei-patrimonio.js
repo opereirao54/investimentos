@@ -28,13 +28,6 @@ var mpEstado = {
   // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
   // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
   extratoAberto: {},
-  // Filtro dinâmico do extrato por categoria de despesa (cadastrada no Controle
-  // Financeiro). '' = todas. Quando ativo, cada extrato mostra só os lançamentos
-  // daquela categoria, com subtotal por instituição.
-  filtroCategoria: '',
-  // Último consolidado renderizado — permite re-render do "Onde está o dinheiro"
-  // ao trocar o filtro de categoria sem refazer fetch/consolidação.
-  _ultimoConsolidado: null,
 };
 
 // Tabela regressiva IR para Renda Fixa/Tesouro
@@ -601,9 +594,16 @@ function mpRenderKPIs(consolidado, janela) {
   var qtdVeiculos = 0;
   if (typeof bensAtivos === 'function') {
     bensAtivos().forEach(function (b) {
-      if (b.tipo === 'imovel') { totalImoveis += (b.valorAtual || 0); qtdImoveis++; }
-      else if (b.tipo === 'veiculo') { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
-      else { totalVeiculos += (b.valorAtual || 0); qtdVeiculos++; }
+      if (b.tipo === 'imovel') {
+        totalImoveis += b.valorAtual || 0;
+        qtdImoveis++;
+      } else if (b.tipo === 'veiculo') {
+        totalVeiculos += b.valorAtual || 0;
+        qtdVeiculos++;
+      } else {
+        totalVeiculos += b.valorAtual || 0;
+        qtdVeiculos++;
+      }
     });
   }
   const valorBens = totalImoveis + totalVeiculos;
@@ -624,7 +624,10 @@ function mpRenderKPIs(consolidado, janela) {
   const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
   if (subPatr) {
     subPatr.className = 'mp-kpi-sub';
-    var partes = ['<i class="ph ph-wallet"></i> saldo', '<i class="ph ph-trend-up"></i> investimentos'];
+    var partes = [
+      '<i class="ph ph-wallet"></i> saldo',
+      '<i class="ph ph-trend-up"></i> investimentos',
+    ];
     if (totalImoveis > 0) partes.push('<i class="ph ph-house-line"></i> imóveis');
     if (totalVeiculos > 0) partes.push('<i class="ph ph-car-simple"></i> veículos');
     subPatr.innerHTML = partes.join(' + ');
@@ -633,20 +636,40 @@ function mpRenderKPIs(consolidado, janela) {
   var compBar = document.getElementById('mp-composition-bar');
   if (compBar && patrimonioTotal > 0) {
     var segs = [];
-    if (saldoTotal > 0) segs.push({ label: 'Saldo', valor: saldoTotal, cor: 'var(--cor-primaria)' });
-    if (valorInvestido > 0) segs.push({ label: 'Investido', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
+    if (saldoTotal > 0)
+      segs.push({ label: 'Saldo', valor: saldoTotal, cor: 'var(--cor-primaria)' });
+    if (valorInvestido > 0)
+      segs.push({ label: 'Investido', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
     if (totalImoveis > 0) segs.push({ label: 'Imóveis', valor: totalImoveis, cor: '#f59e0b' });
     if (totalVeiculos > 0) segs.push({ label: 'Veículos', valor: totalVeiculos, cor: '#64748b' });
     var barHtml = '<div class="mp-composition-bar">';
-    segs.forEach(function(s) {
-      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
-      barHtml += '<div class="mp-composition-seg" style="width:' + pct + '%;background:' + s.cor + ';" title="' + s.label + ': ' + mpFmtBRL(s.valor) + ' (' + pct + '%)"></div>';
+    segs.forEach(function (s) {
+      var pct = ((s.valor / patrimonioTotal) * 100).toFixed(1);
+      barHtml +=
+        '<div class="mp-composition-seg" style="width:' +
+        pct +
+        '%;background:' +
+        s.cor +
+        ';" title="' +
+        s.label +
+        ': ' +
+        mpFmtBRL(s.valor) +
+        ' (' +
+        pct +
+        '%)"></div>';
     });
     barHtml += '</div>';
     barHtml += '<div class="mp-composition-legend">';
-    segs.forEach(function(s) {
-      var pct = (s.valor / patrimonioTotal * 100).toFixed(1);
-      barHtml += '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' + s.cor + ';"></span>' + s.label + ' ' + pct + '%</span>';
+    segs.forEach(function (s) {
+      var pct = ((s.valor / patrimonioTotal) * 100).toFixed(1);
+      barHtml +=
+        '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' +
+        s.cor +
+        ';"></span>' +
+        s.label +
+        ' ' +
+        pct +
+        '%</span>';
     });
     barHtml += '</div>';
     compBar.innerHTML = barHtml;
@@ -754,7 +777,6 @@ function mpExtratoInstituicao(key, refMs) {
         ts: mpDataMovimento(t),
         desc: t.descricao || mpCategoriaLabelMov(t.categoria),
         categoria: t.categoria,
-        categoriaDespesa: t.categoriaDespesa || null,
         valor: entrada ? valor : -valor,
       });
     });
@@ -790,10 +812,7 @@ function mpTipoMovInfo(categoria, abertura) {
 }
 
 // HTML do extrato (mais recente primeiro). Limita o número de linhas no DOM.
-// `filtroCategoria` (slug de categoriaDespesa) restringe o extrato a uma única
-// categoria de gasto: nesse modo o saldo corrente não faz sentido (é uma visão
-// recortada), então cada linha mostra a categoria e exibimos um subtotal.
-function mpRenderExtratoHtml(movs, filtroCategoria) {
+function mpRenderExtratoHtml(movs) {
   const fmtData = (ts) => {
     if (!ts) return '—';
     const d = new Date(ts);
@@ -813,38 +832,6 @@ function mpRenderExtratoHtml(movs, filtroCategoria) {
   const linhaInfo = (m) =>
     `<div class="mp-extrato-info"><span class="mp-extrato-desc">${m.desc}</span><span class="mp-extrato-meta"><span class="mp-extrato-data">${fmtData(m.ts)}</span>${badge(m)}</span></div>`;
 
-  // --- Modo filtrado por categoria de despesa ---
-  if (filtroCategoria) {
-    const rotulo =
-      typeof rotuloCategoriaDespesa === 'function'
-        ? rotuloCategoriaDespesa(filtroCategoria)
-        : filtroCategoria;
-    const filtradas = movs.filter((m) => m.categoriaDespesa === filtroCategoria);
-    if (!filtradas.length) {
-      return `<div class="mp-extrato-vazio"><i class="ph ph-funnel"></i> Sem lançamentos de ${rotulo} aqui.</div>`;
-    }
-    const total = filtradas.reduce((a, m) => a + Math.abs(m.valor), 0);
-    const MAXF = 200;
-    const linhasF = filtradas.slice().reverse();
-    let htmlF = linhasF
-      .slice(0, MAXF)
-      .map(
-        (m) => `<div class="mp-extrato-linha">
-                ${linhaInfo(m)}
-                <div class="mp-extrato-vals">
-                    <span class="mp-extrato-valor ${m.valor >= 0 ? 'pos' : 'neg'}">${m.valor >= 0 ? '+ ' : '− '}${mpFmtBRL(Math.abs(m.valor))}</span>
-                </div>
-            </div>`
-      )
-      .join('');
-    if (linhasF.length > MAXF) {
-      htmlF += `<div class="mp-extrato-vazio">+ ${linhasF.length - MAXF} lançamentos anteriores</div>`;
-    }
-    htmlF += `<div class="mp-extrato-subtotal"><span>Total ${rotulo}</span><strong>${mpFmtBRL(total)}</strong></div>`;
-    return htmlF;
-  }
-
-  // --- Modo normal: extrato completo com saldo corrente ---
   if (!movs.length) {
     return '<div class="mp-extrato-vazio"><i class="ph ph-receipt"></i> Sem movimentações de caixa nesta instituição.</div>';
   }
@@ -965,10 +952,6 @@ function mpRenderInstituicoes(consolidado) {
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
   // Mapa índice→chave usado pelo toggle do extrato (evita escapar nomes no onclick).
   mpEstado._extratoKeys = arr.map((x) => x.key);
-  // Filtro dinâmico por categoria de despesa (mesmas categorias do Controle
-  // Financeiro). Atualiza o <select> e lê o valor ativo para recortar o extrato.
-  mpPopularFiltroCategoria();
-  const filtroCat = mpEstado.filtroCategoria || '';
   wrap.innerHTML = arr
     .map((x, i) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
@@ -1012,14 +995,10 @@ function mpRenderInstituicoes(consolidado) {
             )
             .join('')}</div>`
         : '';
-      // Extrato (movimentações de caixa) recolhível por instituição. Com filtro de
-      // categoria ativo, abrimos todos os extratos para já exibir os lançamentos
-      // daquela categoria; sem filtro, respeita o estado salvo em mpEstado.
-      const aberto = filtroCat ? true : !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
-      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()), filtroCat);
-      const tituloExtrato = filtroCat
-        ? '<i class="ph ph-funnel"></i> Extrato filtrado por categoria'
-        : '<i class="ph ph-receipt"></i> Extrato — movimentações de caixa';
+      // Extrato (movimentações de caixa) recolhível por instituição.
+      const aberto = !!(mpEstado.extratoAberto && mpEstado.extratoAberto[x.key]);
+      const extratoHtml = mpRenderExtratoHtml(mpExtratoInstituicao(x.key, Date.now()));
+      const tituloExtrato = '<i class="ph ph-receipt"></i> Extrato — movimentações de caixa';
       return `
             <div class="mp-inst-item mp-inst-collapsible">
                 <div class="mp-inst-head" onclick="mpToggleExtrato(${i})" title="Ver extrato">
@@ -1078,31 +1057,6 @@ function mpIniciaisInstituicao(nome) {
   return (palavras[0][0] + palavras[1][0]).toUpperCase();
 }
 
-// Popula o <select> do filtro de categoria com as categorias cadastradas no
-// Controle Financeiro (padrão + customizadas), preservando a seleção atual.
-function mpPopularFiltroCategoria() {
-  const sel = document.getElementById('mp-filtro-categoria');
-  if (!sel) return;
-  const cats = typeof obterCategoriasDespesa === 'function' ? obterCategoriasDespesa() : [];
-  const atual = mpEstado.filtroCategoria || '';
-  sel.innerHTML =
-    '<option value="">Todas as categorias</option>' +
-    cats.map((c) => `<option value="${c.v}">${c.label}</option>`).join('');
-  if (atual && cats.some((c) => c.v === atual)) {
-    sel.value = atual;
-  } else {
-    sel.value = '';
-    mpEstado.filtroCategoria = '';
-  }
-}
-
-// Handler do filtro de categoria — re-renderiza só o "Onde está o dinheiro"
-// usando o último consolidado (sem refazer fetch/consolidação).
-function mpSetFiltroCategoria(v) {
-  mpEstado.filtroCategoria = v || '';
-  if (mpEstado._ultimoConsolidado) mpRenderInstituicoes(mpEstado._ultimoConsolidado);
-}
-
 function mpRenderClasses(consolidado) {
   var canvas = document.getElementById('mp-grafico-classes');
   var wrap = document.getElementById('mp-classes-lista');
@@ -1117,22 +1071,35 @@ function mpRenderClasses(consolidado) {
         atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
       };
     })
-    .filter(function (it) { return it.atual > 0.01; })
-    .sort(function (a, b) { return b.atual - a.atual; });
+    .filter(function (it) {
+      return it.atual > 0.01;
+    })
+    .sort(function (a, b) {
+      return b.atual - a.atual;
+    });
 
   if (!itens.length) {
     canvas.style.display = 'none';
-    if (wrap) wrap.innerHTML =
-      '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
+    if (wrap)
+      wrap.innerHTML =
+        '<div class="mp-empty" style="padding:18px"><i class="ph ph-chart-bar"></i>Nenhum investimento ainda. Registre um aporte em "Meus investimentos".</div>';
     return;
   }
   canvas.style.display = '';
   if (wrap) wrap.innerHTML = '';
 
-  var total = itens.reduce(function (a, it) { return a + it.atual; }, 0);
-  var labels = itens.map(function (it) { return MP_LABELS[it.cat] || it.cat; });
-  var valores = itens.map(function (it) { return it.atual; });
-  var cores = itens.map(function (it) { return mpCorCategoria(it.cat); });
+  var total = itens.reduce(function (a, it) {
+    return a + it.atual;
+  }, 0);
+  var labels = itens.map(function (it) {
+    return MP_LABELS[it.cat] || it.cat;
+  });
+  var valores = itens.map(function (it) {
+    return it.atual;
+  });
+  var cores = itens.map(function (it) {
+    return mpCorCategoria(it.cat);
+  });
 
   if (typeof Chart === 'undefined') {
     if (wrap) wrap.innerHTML = '<div class="mp-empty">Chart.js indisponível</div>';
@@ -1148,14 +1115,16 @@ function mpRenderClasses(consolidado) {
     type: 'bar',
     data: {
       labels: labels,
-      datasets: [{
-        data: valores,
-        backgroundColor: cores,
-        borderRadius: 6,
-        borderSkipped: false,
-        barThickness: 22,
-        maxBarThickness: 28,
-      }],
+      datasets: [
+        {
+          data: valores,
+          backgroundColor: cores,
+          borderRadius: 6,
+          borderSkipped: false,
+          barThickness: 22,
+          maxBarThickness: 28,
+        },
+      ],
     },
     options: {
       indexAxis: 'y',
@@ -1187,7 +1156,7 @@ function mpRenderClasses(consolidado) {
           font: { family: "'DM Mono', monospace", size: 11, weight: '700' },
           color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
           formatter: function (value) {
-            var share = total > 0 ? (value / total * 100) : 0;
+            var share = total > 0 ? (value / total) * 100 : 0;
             return mpFmtBRL(value) + '  ' + share.toFixed(1) + '%';
           },
         },
@@ -1199,7 +1168,7 @@ function mpRenderClasses(consolidado) {
               var it = itens[ctx.dataIndex];
               var lucro = it.atual - it.investido;
               var pct = it.investido > 0 ? (lucro / it.investido) * 100 : 0;
-              var share = total > 0 ? (it.atual / total * 100) : 0;
+              var share = total > 0 ? (it.atual / total) * 100 : 0;
               return mpFmtBRL(it.atual) + ' (' + share.toFixed(1) + '%) · rent. ' + mpFmtPct(pct);
             },
           },
@@ -1209,7 +1178,10 @@ function mpRenderClasses(consolidado) {
   });
 
   if (wrap) {
-    wrap.innerHTML = '<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">' + mpFmtBRL(total) + '</span></div>';
+    wrap.innerHTML =
+      '<div class="mp-classes-total"><span>Total investido</span><span class="mp-inst-valor">' +
+      mpFmtBRL(total) +
+      '</span></div>';
   }
 }
 
@@ -1218,7 +1190,9 @@ function mpRenderClasses(consolidado) {
 function mpLimparTxOrigemOrfas() {
   if (typeof transacoes === 'undefined' || typeof historicoCompras === 'undefined') return;
   var idsCompras = new Set();
-  historicoCompras.forEach(function (op) { idsCompras.add(String(op.id)); });
+  historicoCompras.forEach(function (op) {
+    idsCompras.add(String(op.id));
+  });
   var antes = transacoes.length;
   transacoes = transacoes.filter(function (t) {
     if (typeof t.id !== 'string' || t.id.indexOf('tx_origem_') !== 0) return true;
@@ -1238,8 +1212,6 @@ async function renderMeuPatrimonio(skipFetch) {
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
-  // Guarda para o filtro de categoria re-renderizar sem refazer a consolidação.
-  mpEstado._ultimoConsolidado = consolidado;
   mpRenderKPIs(consolidado, janela);
   // Resumo consolidado por instituição (banco/corretora), com o detalhe das
   // classes que cada uma guarda — o coração da foto.
