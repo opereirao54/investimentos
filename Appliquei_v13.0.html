@@ -3306,6 +3306,127 @@
         .sug-historico-item .sh-data { font-size: 11px; color: var(--cor-texto-mutado); }
         .sug-historico-item .sh-texto { font-size: 13px; color: var(--cor-texto-principal); line-height: 1.5; }
 
+        /* === INFO MERCADO — filtros por categoria + cards de notícia === */
+        /* A fonte de notícias continua sendo uma só; quem decide a categoria
+           é o cliente (web/appliquei-aba-info-mercado.js). Aqui cada categoria
+           ganha um trio --im-bg/--im-fg/--im-bd que o chip ativo E a tag do
+           card consomem — é o que amarra visualmente "o filtro que escolhi"
+           com "as notícias que sobraram na tela". */
+        .im-chip, .im-tag {
+            --im-bg: var(--cor-bg-primaria);
+            --im-fg: var(--cor-txt-primaria);
+            --im-bd: var(--cor-borda-primaria);
+        }
+        .im-chip[data-cat="economia"], .im-tag[data-cat="economia"] { --im-bg:#eff6ff; --im-fg:#1d4ed8; --im-bd:#bfdbfe; }
+        .im-chip[data-cat="politica"], .im-tag[data-cat="politica"] { --im-bg:#fff1f2; --im-fg:#be123c; --im-bd:#fecdd3; }
+        .im-chip[data-cat="mercado"], .im-tag[data-cat="mercado"] { --im-bg:#f5f3ff; --im-fg:#6d28d9; --im-bd:#ddd6fe; }
+        .im-chip[data-cat="bancos"], .im-tag[data-cat="bancos"] { --im-bg:#ecfeff; --im-fg:#0e7490; --im-bd:#a5f3fc; }
+        .im-chip[data-cat="investimentos"], .im-tag[data-cat="investimentos"] { --im-bg:#ecfdf5; --im-fg:#047857; --im-bd:#a7f3d0; }
+        .im-chip[data-cat="empresas"], .im-tag[data-cat="empresas"] { --im-bg:#f1f5f9; --im-fg:#475569; --im-bd:#cbd5e1; }
+        .im-chip[data-cat="cripto"], .im-tag[data-cat="cripto"] { --im-bg:#fffbeb; --im-fg:#b45309; --im-bd:#fde68a; }
+        .im-chip[data-cat="brasil"], .im-tag[data-cat="brasil"] { --im-bg:#f7fee7; --im-fg:#4d7c0f; --im-bd:#d9f99d; }
+        .im-chip[data-cat="mundo"], .im-tag[data-cat="mundo"] { --im-bg:#f0f9ff; --im-fg:#0369a1; --im-bd:#bae6fd; }
+        body.dark .im-chip[data-cat="economia"], body.dark .im-tag[data-cat="economia"] { --im-bg:#0c1a3a; --im-fg:#93c5fd; --im-bd:#1e3a5f; }
+        body.dark .im-chip[data-cat="politica"], body.dark .im-tag[data-cat="politica"] { --im-bg:#3b0713; --im-fg:#fda4af; --im-bd:#881337; }
+        body.dark .im-chip[data-cat="mercado"], body.dark .im-tag[data-cat="mercado"] { --im-bg:#1e1147; --im-fg:#c4b5fd; --im-bd:#4c1d95; }
+        body.dark .im-chip[data-cat="bancos"], body.dark .im-tag[data-cat="bancos"] { --im-bg:#072a33; --im-fg:#67e8f9; --im-bd:#155e75; }
+        body.dark .im-chip[data-cat="investimentos"], body.dark .im-tag[data-cat="investimentos"] { --im-bg:#052e1a; --im-fg:#6ee7b7; --im-bd:#065f3a; }
+        body.dark .im-chip[data-cat="empresas"], body.dark .im-tag[data-cat="empresas"] { --im-bg:#1b2430; --im-fg:#cbd5e1; --im-bd:#334155; }
+        body.dark .im-chip[data-cat="cripto"], body.dark .im-tag[data-cat="cripto"] { --im-bg:#2d1a00; --im-fg:#fcd34d; --im-bd:#854f0b; }
+        body.dark .im-chip[data-cat="brasil"], body.dark .im-tag[data-cat="brasil"] { --im-bg:#1a2e05; --im-fg:#bef264; --im-bd:#3f6212; }
+        body.dark .im-chip[data-cat="mundo"], body.dark .im-tag[data-cat="mundo"] { --im-bg:#082f49; --im-fg:#7dd3fc; --im-bd:#075985; }
+
+        .im-filtros { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .im-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--cor-branco); color: var(--cor-texto-secundario);
+            border: 1.5px solid var(--cor-borda); padding: 7px 13px; border-radius: 99px;
+            font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+            font-family: 'Figtree', sans-serif; transition: 0.15s;
+        }
+        .im-chip i { font-size: 15px; }
+        .im-chip:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        .im-chip.vazio { opacity: 0.55; }
+        .im-chip.ativo { background: var(--im-bg); color: var(--im-fg); border-color: var(--im-bd); }
+        .im-chip-num {
+            font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border-radius: 99px; padding: 1px 7px; min-width: 22px; text-align: center;
+        }
+        .im-chip.ativo .im-chip-num { background: rgba(255,255,255,0.6); color: inherit; }
+        body.dark .im-chip.ativo .im-chip-num { background: rgba(0,0,0,0.3); }
+
+        .im-resumo {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            font-size: 12px; color: var(--cor-texto-mutado); font-weight: 500;
+            margin-bottom: 14px;
+        }
+        .im-resumo strong { color: var(--cor-texto-principal); font-weight: 700; }
+        .im-resumo .im-aviso {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--cor-bg-amber); color: var(--cor-txt-amber);
+            border: 1px solid var(--cor-borda-amber); padding: 5px 11px; border-radius: 99px;
+        }
+
+        .im-card {
+            display: flex; flex-direction: column; gap: 10px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius-sm); padding: 18px;
+            text-decoration: none; color: inherit;
+            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        }
+        .im-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--cor-borda2); }
+        .im-card-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+        .im-tag {
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+            padding: 3px 8px; border-radius: 99px;
+            background: var(--im-bg); color: var(--im-fg); border: 1px solid var(--im-bd);
+        }
+        .im-tag-mais { background: var(--cor-superficie); color: var(--cor-texto-mutado); border-color: var(--cor-borda); }
+        .im-card-titulo {
+            font-size: 14.5px; font-weight: 700; line-height: 1.45;
+            color: var(--cor-texto-principal); margin: 0;
+        }
+        .im-card-resumo {
+            font-size: 12.5px; line-height: 1.55; color: var(--cor-texto-secundario);
+            margin: 0; flex: 1;
+        }
+        .im-card-rodape {
+            display: flex; align-items: center; justify-content: space-between; gap: 10px;
+            margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--cor-borda);
+        }
+        .im-card-data {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; color: var(--cor-texto-mutado); font-weight: 500;
+        }
+        .im-card-ler {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 12px; font-weight: 700; color: var(--cor-primaria); white-space: nowrap;
+        }
+        .im-card:hover .im-card-ler { color: var(--cor-primaria-hover); }
+
+        .im-mais { display: flex; justify-content: center; margin-top: 18px; }
+        .im-vazio {
+            display: flex; flex-direction: column; align-items: center; gap: 8px;
+            text-align: center; padding: 40px 20px;
+        }
+        .im-vazio i { font-size: 34px; color: var(--cor-texto-mutado); }
+        .im-vazio p { margin: 0; font-size: 13px; color: var(--cor-texto-secundario); }
+        .im-vazio .im-vazio-dica { font-size: 12px; color: var(--cor-texto-mutado); margin-bottom: 8px; }
+
+        @media (max-width: 768px) {
+            /* Chips viram trilho horizontal: com 10 categorias, quebrar em
+               3 linhas empurraria as notícias para fora da primeira dobra. */
+            .im-filtros {
+                flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+                padding-bottom: 6px; scrollbar-width: none;
+            }
+            .im-filtros::-webkit-scrollbar { display: none; }
+            .im-chip { flex: 0 0 auto; padding: 7px 12px; font-size: 12px; }
+            .im-card { padding: 15px; }
+            .im-card-titulo { font-size: 14px; }
+        }
+
         /* === TELA DE LOGIN (Firebase) === */
         /* U1: NÃO usar flex centrado em overlay scrollável — quando o
            conteúdo passa a altura do viewport (ecrã pequeno, conteúdo do
@@ -6871,17 +6992,21 @@
         </section>
 
         <section id="noticias" class="section">
-            <div class="page-header" style="margin-bottom:18px;">
+            <div class="page-header" style="margin-bottom:14px;">
                 <div class="page-header-left">
                     <h1>Radar de mercado</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Agregador automatizado de notícias financeiras.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Escolha os assuntos que você acompanha — o resto some da tela.</p>
                 </div>
                 <div class="page-actions">
                     <span class="badge" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);border:1px solid var(--cor-borda-erro);"><i class="ph ph-broadcast"></i> Feed RSS</span>
+                    <button class="btn-secundario" onclick="atualizarNoticias()" title="Buscar as últimas notícias agora"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
                 </div>
             </div>
+            <div id="filtros-noticias" class="im-filtros" role="group" aria-label="Filtrar notícias por categoria" style="display:none;"></div>
+            <div id="resumo-noticias" class="im-resumo" style="display:none;" aria-live="polite"></div>
             <div id="loader-noticias" class="loader"></div>
             <div id="container-noticias" class="grid-cards" style="display: none;"></div>
+            <div id="mais-noticias" class="im-mais" style="display:none;"></div>
         </section>
         <!-- NOVAS SEÇÕES -->
         <section id="meu_patrimonio" class="section">
@@ -7789,7 +7914,7 @@
     <script src="/web/appliquei-inss.js?v=inss1"></script>
     <script src="/web/appliquei-aba-simulador.js?v=inss1"></script>
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
-    <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
+    <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-filtros"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=fase4e"></script>
