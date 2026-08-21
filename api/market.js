@@ -23,17 +23,32 @@ const BRAPI_BASE = 'https://brapi.dev/api/quote';
 // falta de notícia. Buscando as editorias, cada assunto chega com massa já
 // na primeira visita.
 //
-// O cliente NÃO sabe desta lista: recebe um acervo só, e continua
-// classificando e filtrando por conta própria.
-const NEWS_FEEDS = [
-  'https://www.infomoney.com.br/feed/',
-  'https://www.infomoney.com.br/economia/feed/',
-  'https://www.infomoney.com.br/politica/feed/',
-  'https://www.infomoney.com.br/mercados/feed/',
-  'https://www.infomoney.com.br/negocios/feed/',
-  'https://www.infomoney.com.br/onde-investir/feed/',
-  'https://www.infomoney.com.br/minhas-financas/feed/',
-  'https://www.infomoney.com.br/criptomoedas/feed/',
+// O cliente NÃO sabe destas URLs: recebe um acervo só, e continua
+// classificando e filtrando por conta própria. O `id` existe só para dizer
+// QUAL assunto ficou sem fonte quando um slug muda — sem isso, a categoria
+// aparece zerada na tela e não há como distinguir "não saiu notícia disso
+// hoje" de "a rota mudou de nome e ninguém percebeu".
+//
+// `urls` são alternativas, não somatório: vale a primeira que responder. O
+// slug de uma seção muda quando o site é reformulado, e um 404 numa rota
+// não pode zerar o assunto inteiro.
+const NEWS_SOURCES = [
+  { id: 'geral', urls: ['https://www.infomoney.com.br/feed/'] },
+  { id: 'economia', urls: ['https://www.infomoney.com.br/economia/feed/'] },
+  { id: 'politica', urls: ['https://www.infomoney.com.br/politica/feed/'] },
+  { id: 'mercado', urls: ['https://www.infomoney.com.br/mercados/feed/'] },
+  { id: 'empresas', urls: ['https://www.infomoney.com.br/negocios/feed/'] },
+  { id: 'investimentos', urls: ['https://www.infomoney.com.br/onde-investir/feed/'] },
+  { id: 'financas', urls: ['https://www.infomoney.com.br/minhas-financas/feed/'] },
+  {
+    id: 'cripto',
+    urls: [
+      'https://www.infomoney.com.br/criptomoedas/feed/',
+      'https://www.infomoney.com.br/tag/criptomoedas/feed/',
+      'https://www.infomoney.com.br/mercados/criptomoedas/feed/',
+      'https://www.infomoney.com.br/tudo-sobre/criptomoedas/feed/',
+    ],
+  },
 ];
 // Teto por feed para uma editoria movimentada não abafar as outras.
 const NEWS_MAX_PER_FEED = 20;
@@ -64,7 +79,7 @@ const CRYPTO_MAP = {
 // Cache do feed na memória do processo. A function serverless reusa o
 // container entre invocações, então isto já segura a maior parte das visitas
 // sem ida ao InfoMoney — e sem gravar nada no Firestore por notícia.
-let newsCache = { at: 0, items: null };
+let newsCache = { at: 0, items: null, failed: [] };
 
 // Mapa range -> meses (para corte e cache key).
 const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
@@ -554,24 +569,43 @@ function newsKey(link) {
     .replace(/\/+$/, '');
 }
 
+/** Primeira URL da fonte que responder; só falha se todas falharem. */
+async function fetchSource(source) {
+  const erros = [];
+  for (const url of source.urls) {
+    try {
+      const items = await fetchOneFeed(url);
+      return { id: source.id, url, items };
+    } catch (e) {
+      erros.push(url.replace('https://www.infomoney.com.br', '') + ': ' + e.message);
+    }
+  }
+  throw new Error(erros.join(' | '));
+}
+
 /**
  * Busca todas as editorias em paralelo e devolve UM acervo ordenado.
  *
  * allSettled e não all: uma editoria que saiu do ar (ou mudou de slug) não
- * pode derrubar as outras sete. Basta uma responder para a aba ter conteúdo.
+ * pode derrubar as outras. Basta uma responder para a aba ter conteúdo.
  */
 async function fetchAllFeeds() {
-  const resultados = await Promise.allSettled(NEWS_FEEDS.map(fetchOneFeed));
+  const resultados = await Promise.allSettled(NEWS_SOURCES.map(fetchSource));
   const vistos = new Set();
   const items = [];
   const failed = [];
+  const used = [];
 
   resultados.forEach((r, i) => {
     if (r.status !== 'fulfilled') {
-      failed.push({ feed: NEWS_FEEDS[i], error: (r.reason && r.reason.message) || 'erro' });
+      failed.push({
+        id: NEWS_SOURCES[i].id,
+        error: (r.reason && r.reason.message) || 'erro',
+      });
       return;
     }
-    for (const item of r.value) {
+    used.push({ id: r.value.id, url: r.value.url, items: r.value.items.length });
+    for (const item of r.value.items) {
       const k = newsKey(item.link);
       if (!k || vistos.has(k)) continue;
       vistos.add(k);
@@ -589,7 +623,7 @@ async function fetchAllFeeds() {
     const tb = Date.parse(b.pubDate) || 0;
     return tb - ta;
   });
-  return { items: items.slice(0, NEWS_MAX_ITEMS), failed };
+  return { items: items.slice(0, NEWS_MAX_ITEMS), failed, used };
 }
 
 async function handleNews(req, res) {
@@ -597,14 +631,27 @@ async function handleNews(req, res) {
   if (!user) return;
 
   if (newsCache.items && Date.now() - newsCache.at < NEWS_TTL_MS) {
-    return res.json({ status: 'ok', source: 'cache', items: newsCache.items });
+    return res.json({
+      status: 'ok',
+      source: 'cache',
+      feedsFailed: newsCache.failed || [],
+      items: newsCache.items,
+    });
   }
   try {
-    const { items, failed } = await fetchAllFeeds();
-    newsCache = { at: Date.now(), items };
-    // `failed` fica na resposta para uma editoria que mudou de slug aparecer
-    // em vez de sumir calada.
-    return res.json({ status: 'ok', source: 'feed', feedsFailed: failed, items });
+    const { items, failed, used } = await fetchAllFeeds();
+    newsCache = { at: Date.now(), items, failed };
+    // `feedsFailed` viaja até a tela: quando um assunto zera porque a rota
+    // dele caiu, a aba diz isso em vez de mostrar só um "0" mudo.
+    // `feedsUsed` conta qual URL alternativa colou, para enxugar a lista
+    // depois sem ter de adivinhar.
+    return res.json({
+      status: 'ok',
+      source: 'feed',
+      feedsFailed: failed,
+      feedsUsed: used,
+      items,
+    });
   } catch (e) {
     // Feed velho ainda serve melhor que erro — o cliente decide se avisa.
     if (newsCache.items) {
@@ -612,6 +659,7 @@ async function handleNews(req, res) {
         status: 'ok',
         source: 'cache_stale',
         cachedAt: newsCache.at,
+        feedsFailed: newsCache.failed || [],
         items: newsCache.items,
       });
     }
@@ -658,8 +706,9 @@ module.exports.__test = {
   decodeXmlText,
   pickTag,
   pickTags,
+  fetchSource,
   newsKey,
-  NEWS_FEEDS,
+  NEWS_SOURCES,
   NEWS_MAX_PER_FEED,
   NEWS_MAX_ITEMS,
 };

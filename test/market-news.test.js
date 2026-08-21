@@ -21,8 +21,11 @@ const market = require(path.resolve(__dirname, '..', 'api', 'market.js'));
 // arquivo num contexto próprio daria acesso, mas o valor está no contrato
 // público: por isso exercitamos o parser através de um feed real montado à
 // mão e do dispatcher.
-const { parseRssItems, decodeXmlText, newsKey, NEWS_FEEDS, NEWS_MAX_PER_FEED } =
+const { parseRssItems, decodeXmlText, newsKey, NEWS_SOURCES, NEWS_MAX_PER_FEED } =
   market.__test || {};
+
+// URLs achatadas, para as asserções que olham endereço e não assunto.
+const TODAS_URLS = () => NEWS_SOURCES.flatMap((f) => f.urls);
 
 test('o módulo expõe o parser para teste', () => {
   assert.equal(typeof parseRssItems, 'function', 'parseRssItems não exportado em __test');
@@ -124,12 +127,46 @@ test('sem limite explícito, cai no teto global', () => {
 // fora do ar.
 
 test('a lista de feeds é do InfoMoney e não aceita nada de fora', () => {
-  assert.ok(NEWS_FEEDS.length > 1, 'só o feed principal não resolve o zerado');
-  for (const url of NEWS_FEEDS) {
+  assert.ok(NEWS_SOURCES.length > 1, 'só o feed principal não resolve o zerado');
+  const urls = TODAS_URLS();
+  for (const url of urls) {
     assert.match(url, /^https:\/\/www\.infomoney\.com\.br\//, 'feed fora do domínio: ' + url);
     assert.match(url, /\/feed\/$/, url);
   }
-  assert.equal(new Set(NEWS_FEEDS).size, NEWS_FEEDS.length, 'feed repetido na lista');
+  assert.equal(new Set(urls).size, urls.length, 'URL repetida na lista');
+});
+
+test('toda fonte tem id e ao menos uma URL', () => {
+  const ids = NEWS_SOURCES.map((f) => f.id);
+  assert.equal(new Set(ids).size, ids.length, 'id de fonte repetido');
+  for (const f of NEWS_SOURCES) {
+    assert.ok(f.id && typeof f.id === 'string', JSON.stringify(f));
+    assert.ok(Array.isArray(f.urls) && f.urls.length, 'fonte sem URL: ' + f.id);
+  }
+});
+
+test('os ids de fonte que nomeiam categoria batem com os chips da aba', () => {
+  // O id viaja em feedsFailed até o estado vazio da categoria. Se divergir
+  // do id do chip, a tela nunca vai saber que aquela fonte caiu.
+  const fs = require('node:fs');
+  const aba = fs.readFileSync(
+    path.resolve(__dirname, '..', 'web', 'appliquei-aba-info-mercado.js'),
+    'utf8'
+  );
+  const daAba = new Set(Array.from(aba.matchAll(/\{ id: '([a-z]+)', label:/g), (m) => m[1]));
+  assert.ok(daAba.size >= 9, 'não achei o catálogo de categorias da aba');
+  // 'geral' e 'financas' são fontes sem chip equivalente — o resto tem de bater.
+  const semChip = new Set(['geral', 'financas']);
+  for (const f of NEWS_SOURCES) {
+    if (semChip.has(f.id)) continue;
+    assert.ok(daAba.has(f.id), `fonte "${f.id}" não corresponde a nenhuma categoria da aba`);
+  }
+});
+
+test('cripto tem rota alternativa — o slug já zerou o assunto em produção', () => {
+  const cripto = NEWS_SOURCES.find((f) => f.id === 'cripto');
+  assert.ok(cripto, 'fonte de cripto sumiu da lista');
+  assert.ok(cripto.urls.length > 1, 'sem alternativa, um slug trocado zera a categoria');
 });
 
 test('newsKey iguala a mesma matéria vinda de feeds diferentes', () => {
@@ -189,8 +226,36 @@ test('busca todas as editorias da lista, em paralelo', async (t) => {
   ]);
   t.after(f.restaurar);
   await fetchAllFeeds();
-  assert.equal(f.pedidas.length, NEWS_FEEDS.length, 'nem todas as editorias foram pedidas');
-  for (const url of NEWS_FEEDS) assert.ok(f.pedidas.includes(url), 'faltou ' + url);
+  // Uma por fonte: com a primeira URL respondendo, a alternativa não é usada.
+  assert.equal(f.pedidas.length, NEWS_SOURCES.length, 'nem todas as fontes foram pedidas');
+  for (const fonte of NEWS_SOURCES) {
+    assert.ok(f.pedidas.includes(fonte.urls[0]), 'faltou ' + fonte.id);
+  }
+});
+
+test('slug trocado cai na rota alternativa em vez de zerar o assunto', async (t) => {
+  const cripto = NEWS_SOURCES.find((x) => x.id === 'cripto');
+  const f = comFetch([
+    // A rota principal de cripto some — exatamente o caso que zerou a aba.
+    [cripto.urls[0], () => ({ ok: false, status: 404, text: async () => '' })],
+    [
+      cripto.urls[1],
+      () => respostaXml(feedXml([itemXml('Bitcoin sobe', 'https://ex.com/btc/', DIA(21))])),
+    ],
+    ['infomoney', () => respostaXml(feedXml([]))],
+  ]);
+  t.after(f.restaurar);
+  const { items, failed, used } = await fetchAllFeeds();
+  assert.ok(
+    items.some((i) => i.title === 'Bitcoin sobe'),
+    'a alternativa não foi usada'
+  );
+  assert.ok(!failed.some((x) => x.id === 'cripto'), 'cripto não devia constar como falha');
+  assert.equal(
+    used.find((u) => u.id === 'cripto').url,
+    cripto.urls[1],
+    'used precisa dizer qual rota colou'
+  );
 });
 
 test('a mesma matéria em duas editorias entra uma vez só', async (t) => {
@@ -234,8 +299,13 @@ test('editoria fora do ar não derruba as outras', async (t) => {
   const { items, failed } = await fetchAllFeeds();
   assert.ok(items.length >= 1, 'as editorias boas tinham que passar');
   assert.equal(failed.length, 2, 'as falhas precisam ser reportadas, não sumir');
+  // O id é o que permite a tela dizer QUAL assunto ficou sem fonte.
   assert.ok(
-    failed.some((x) => /politica/.test(x.feed) && /404/.test(x.error)),
+    failed.some((x) => x.id === 'politica' && /404/.test(x.error)),
+    JSON.stringify(failed)
+  );
+  assert.ok(
+    failed.some((x) => x.id === 'mercado'),
     JSON.stringify(failed)
   );
 });

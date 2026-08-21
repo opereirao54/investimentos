@@ -601,6 +601,10 @@ var imCarregando = false;
 var imAvisoCache = '';
 var imAtualizadoEm = 0;
 var imUltimoErro = '';
+// Assuntos cuja fonte no servidor não respondeu nesta carga. Alimenta o
+// estado vazio: "Nada em Criptomoedas" e "a fonte de Criptomoedas não
+// respondeu" são problemas diferentes e exigem ações diferentes.
+var imFontesFalhas = [];
 
 // ============================================================
 // Classificação
@@ -984,11 +988,22 @@ async function carregarNoticias(forcar) {
   }
 }
 
-/** Token do Firebase, quando o app já autenticou. Sem ele, seguimos sem. */
+/**
+ * Token do Firebase, quando o app já autenticou.
+ *
+ * Usa window.AppliqueiFirebase — o mesmo caminho de yahoo-finance.js e
+ * cloud-sync.js. Chamar firebase.auth() por fora disso era pedir para
+ * divergir do resto do app; quando essa leitura falha, a aba cai calada no
+ * rss2json, que só enxerga o feed principal, e categorias inteiras zeram
+ * sem ninguém entender por quê.
+ */
 async function imTokenAuth() {
   try {
-    if (typeof firebase === 'undefined' || !firebase.auth) return '';
-    var u = firebase.auth().currentUser;
+    var fb = window.AppliqueiFirebase;
+    var u = (fb && fb.auth && fb.auth.currentUser) || null;
+    if (!u && typeof firebase !== 'undefined' && firebase.auth) {
+      u = firebase.auth().currentUser;
+    }
     return u ? await u.getIdToken() : '';
   } catch (_) {
     return '';
@@ -1007,7 +1022,19 @@ async function imTentarFonte(url, cabecalhos) {
     );
   }
   if (!Array.isArray(dados.items) || !dados.items.length) throw new Error('feed_sem_itens');
+  imFontesFalhas = Array.isArray(dados.feedsFailed) ? dados.feedsFailed : [];
+  if (imFontesFalhas.length && window.console && console.warn) {
+    console.warn('[info-mercado] fontes sem resposta:', imFontesFalhas);
+  }
   return dados.items;
+}
+
+/** A categoria ficou vazia porque a fonte dela caiu? */
+function imFonteCaiuPara(catId) {
+  for (var i = 0; i < imFontesFalhas.length; i++) {
+    if (imFontesFalhas[i] && imFontesFalhas[i].id === catId) return imFontesFalhas[i];
+  }
+  return null;
 }
 
 /**
@@ -1017,6 +1044,7 @@ async function imTentarFonte(url, cabecalhos) {
  */
 async function imBuscarFeed() {
   var falhas = [];
+  imFontesFalhas = [];
 
   var token = await imTokenAuth();
   if (token) {
@@ -1233,15 +1261,28 @@ function imRenderizarLista() {
   }
 
   if (!lista.length) {
+    // Duas causas bem diferentes para a mesma tela vazia: ou não saiu
+    // matéria do assunto, ou a fonte daquele assunto não respondeu. Dizer
+    // qual é evita o "zerado" inexplicável.
+    var fonteCaiu = imFonteCaiuPara(imCategoriaAtiva);
     container.style.display = 'block';
     container.innerHTML =
       '<div class="card-container im-vazio">' +
-      '<i class="ph ph-newspaper"></i>' +
+      '<i class="ph ' +
+      (fonteCaiu ? 'ph-broadcast' : 'ph-newspaper') +
+      '"></i>' +
       '<p><strong>Nada em ' +
       imEscapar(imLabel(imCategoriaAtiva)) +
       ' agora.</strong></p>' +
-      '<p class="im-vazio-dica">O feed é rotativo: assim que sair matéria desse assunto ela aparece aqui.</p>' +
+      '<p class="im-vazio-dica">' +
+      (fonteCaiu
+        ? 'A fonte deste assunto não respondeu nesta carga — não é que não exista notícia. Tente atualizar em alguns minutos.'
+        : 'O feed é rotativo: assim que sair matéria desse assunto ela aparece aqui.') +
+      '</p>' +
       '<button type="button" class="btn-secundario" onclick="filtrarNoticiasPorCategoria(\'todos\')">Ver todas as notícias</button>' +
+      (fonteCaiu
+        ? '<p class="im-vazio-motivo">' + imEscapar(String(fonteCaiu.error || '')) + '</p>'
+        : '') +
       '</div>';
     if (rodape) rodape.style.display = 'none';
     return;

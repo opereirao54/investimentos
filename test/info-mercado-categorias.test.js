@@ -707,6 +707,98 @@ test('token que estoura não derruba a busca — segue para o fallback', async (
   assert.equal(w.imNoticias.length, 1);
 });
 
+// ---- categoria zerada: por quê? ---------------------------------------
+//
+// "Criptomoedas 0" tem duas causas possíveis e opostas: não saiu matéria do
+// assunto, ou a rota daquele assunto no servidor não respondeu. Sem separar
+// as duas, um slug trocado no site vira um zero mudo na tela e ninguém
+// descobre.
+
+function elementosDeTela() {
+  return {
+    'container-noticias': makeDeadNode(),
+    'loader-noticias': makeDeadNode(),
+    'filtros-noticias': makeDeadNode(),
+    'resumo-noticias': makeDeadNode(),
+    'mais-noticias': makeDeadNode(),
+  };
+}
+
+test('fonte que caiu chega do servidor e fica registrada', async () => {
+  const w = carregar({
+    fetch: async () => ({
+      ok: true,
+      json: async () => ({
+        status: 'ok',
+        items: ITENS_OK,
+        feedsFailed: [{ id: 'cripto', error: '/criptomoedas/feed/: http_404' }],
+      }),
+    }),
+  });
+  w.firebase = { auth: () => ({ currentUser: { getIdToken: async () => 'tok' } }) };
+  await w.carregarNoticias(true);
+  assert.equal(Array.from(w.imFontesFalhas).length, 1);
+  assert.ok(w.imFonteCaiuPara('cripto'), 'não reconheceu a fonte caída');
+  assert.equal(w.imFonteCaiuPara('bancos'), null);
+});
+
+test('categoria vazia POR FALTA DE NOTÍCIA explica que o feed é rotativo', () => {
+  const elementos = elementosDeTela();
+  const w = carregar({ elementos });
+  w.imNoticias = ACERVO.map(w.imPrepararNoticia);
+  w.imCategoriaAtiva = 'politica';
+  w.imRenderizarLista();
+  const html = elementos['container-noticias'].innerHTML;
+  assert.match(html, /feed é rotativo/);
+  assert.ok(!/não respondeu/.test(html), 'não pode culpar a fonte sem motivo');
+});
+
+test('categoria vazia POR FONTE CAÍDA diz isso, e mostra o motivo técnico', () => {
+  const elementos = elementosDeTela();
+  const w = carregar({ elementos });
+  w.imNoticias = ACERVO.map(w.imPrepararNoticia);
+  w.imFontesFalhas = [{ id: 'cripto', error: '/criptomoedas/feed/: http_404' }];
+  w.imCategoriaAtiva = 'cripto';
+  // ACERVO tem uma notícia de bitcoin; tiramos para a categoria zerar.
+  w.imNoticias = w.imNoticias.filter((n) => n.cats.indexOf('cripto') === -1);
+  w.imRenderizarLista();
+  const html = elementos['container-noticias'].innerHTML;
+  assert.match(html, /Nada em Criptomoedas/);
+  assert.match(html, /não respondeu/, 'a tela precisa distinguir falha de fonte');
+  assert.match(html, /http_404/, 'o motivo técnico tem que aparecer');
+  assert.ok(!/feed é rotativo/.test(html), 'não pode dar a explicação errada');
+});
+
+test('uma fonte caída não contamina a explicação das outras categorias', () => {
+  const elementos = elementosDeTela();
+  const w = carregar({ elementos });
+  w.imNoticias = ACERVO.map(w.imPrepararNoticia);
+  w.imFontesFalhas = [{ id: 'cripto', error: 'http_404' }];
+  w.imCategoriaAtiva = 'politica';
+  w.imRenderizarLista();
+  assert.match(elementos['container-noticias'].innerHTML, /feed é rotativo/);
+});
+
+test('carga nova zera o registro de falhas da carga anterior', async () => {
+  const w = carregar({
+    fetch: async () => ({ ok: true, json: async () => ({ status: 'ok', items: ITENS_OK }) }),
+  });
+  w.imFontesFalhas = [{ id: 'cripto', error: 'http_404' }];
+  await w.carregarNoticias(true);
+  assert.equal(Array.from(w.imFontesFalhas).length, 0, 'falha velha não pode grudar');
+});
+
+test('token vem do AppliqueiFirebase, como no resto do app', async () => {
+  const espiao = espionarFetch([['/api/market', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  // Sem o global `firebase` — só o objeto que o app de fato publica.
+  w.AppliqueiFirebase = { ready: true, auth: { currentUser: { getIdToken: async () => 'tk' } } };
+  await w.carregarNoticias(true);
+  const nossa = espiao.chamadas.find((c) => c.url.includes('/api/market'));
+  assert.ok(nossa, 'a API própria não foi usada — cairia no feed principal só');
+  assert.equal(nossa.opcoes.headers.Authorization, 'Bearer tk');
+});
+
 // ---- acervo acumulado -------------------------------------------------
 //
 // O feed do InfoMoney devolve só as últimas horas. Se cada carga
