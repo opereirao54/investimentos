@@ -277,6 +277,52 @@ function finParcelaEsperada(sistema, saldoDevedor, taxaMensal, parcelas) {
     : finPrimeiraParcelaSac(saldoDevedor, taxaMensal, parcelas);
 }
 
+// Caminho inverso: dada a parcela que a pessoa informou, qual taxa mensal
+// explicaria esse valor? Serve para dizer "a sua parcela indica 0,74% ao mês"
+// em vez de só "os dados não fecham" — o número que resolve a dúvida.
+// Devolve null quando nenhuma taxa explica a parcela (ex.: parcela menor que a
+// dívida dividida pelo prazo, que é o piso sem juros nenhum).
+function finTaxaImplicita(sistema, saldoDevedor, parcela, parcelas) {
+  var sd = Number(saldoDevedor) || 0;
+  var p = Number(parcela) || 0;
+  var n = Math.max(0, Math.round(Number(parcelas) || 0));
+  if (sd <= 0 || n <= 0 || p <= 0) return null;
+  var semJuros = sd / n;
+  if (p <= semJuros) return null;
+  // SAC: parcela₁ = sd/n + sd × i  →  i = (parcela − sd/n) / sd
+  if (sistema !== 'price') return (p - semJuros) / sd;
+  // Price não tem forma fechada para i. A parcela cresce junto com a taxa,
+  // então bissecção em (0, 100% ao mês] converge sempre.
+  var lo = 0;
+  var hi = 1;
+  if (finParcelaPrice(sd, hi, n) < p) return null;
+  for (var k = 0; k < 80; k++) {
+    var mid = (lo + hi) / 2;
+    if (finParcelaPrice(sd, mid, n) < p) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Por que os números não fecham? Duas confusões explicam quase todo caso real:
+// digitar a taxa do ANO no campo do mês, ou perder uma casa decimal (7,3 no
+// lugar de 0,73). Apontar qual delas é vale muito mais que um aviso genérico.
+// 'anual' | 'decimal' | null (não dá para afirmar).
+function finDiagnosticoTaxa(taxaInformada, taxaImplicita) {
+  var inf = Number(taxaInformada) || 0;
+  var imp = Number(taxaImplicita) || 0;
+  if (inf <= 0 || imp <= 0) return null;
+  var perto = function (a, b) {
+    return b > 0 && Math.abs(a - b) / b <= 0.15;
+  };
+  // Testado antes do decimal: a taxa anual simples é 12× a mensal e cairia
+  // dentro da faixa do decimal, mas a explicação certa é a outra.
+  if (perto(inf, Math.pow(1 + imp, 12) - 1) || perto(inf, imp * 12)) return 'anual';
+  var razao = inf / imp;
+  if (razao >= 8 && razao <= 12) return 'decimal';
+  return null;
+}
+
 // Retrato do financiamento hoje.
 function finResumo(fin, valorMercado) {
   fin = fin || {};
@@ -299,6 +345,9 @@ function finResumo(fin, valorMercado) {
     var dif = (parcelaInformada - parcelaEsperada) / parcelaEsperada;
     if (Math.abs(dif) > 0.1) divergencia = dif;
   }
+  // Quando não fecham, a tela precisa dizer QUAL número está estranho.
+  var taxaImplicita =
+    divergencia !== null ? finTaxaImplicita(sistema, sd, parcelaInformada, n) : null;
 
   return {
     sistema: sistema,
@@ -310,6 +359,10 @@ function finResumo(fin, valorMercado) {
     parcelaEsperada: parcelaEsperada,
     parcelaInformada: parcelaInformada,
     divergencia: divergencia,
+    taxaMensal: i,
+    parcelasRestantes: n,
+    taxaImplicita: taxaImplicita,
+    causaDivergencia: taxaImplicita !== null ? finDiagnosticoTaxa(i, taxaImplicita) : null,
     patrimonioLiquido: (Number(valorMercado) || 0) - sd,
   };
 }
@@ -684,7 +737,9 @@ function voltarParaValoresBem() {
   document.getElementById('bemAcoesPasso2').style.display = 'flex';
 }
 
-function _linhaResumoFin(rotulo, valor, cor, forte) {
+// Uma linha do resumo. `hint` é a tradução do termo em miúdos, logo abaixo do
+// rótulo — é o que dispensa a pessoa de saber o que é "saldo devedor".
+function _linhaResumoFin(rotulo, valor, cor, forte, hint) {
   var fmt =
     typeof formatarMoeda === 'function'
       ? formatarMoeda
@@ -695,13 +750,116 @@ function _linhaResumoFin(rotulo, valor, cor, forte) {
     '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12.5px;padding:5px 0;">' +
     '<span style="color:var(--cor-texto-secundario);">' +
     rotulo +
+    (hint
+      ? '<span style="display:block;font-size:10.5px;color:var(--cor-texto-mutado);line-height:1.4;margin-top:1px;">' +
+        hint +
+        '</span>'
+      : '') +
     '</span>' +
-    "<strong style=\"font-family:'DM Mono',monospace;" +
+    "<strong style=\"font-family:'DM Mono',monospace;white-space:nowrap;" +
     (forte ? 'font-size:14px;' : '') +
     (cor ? 'color:' + cor + ';' : '') +
     '">' +
     fmt(valor) +
     '</strong></div>'
+  );
+}
+
+function _tituloBlocoFin(txt) {
+  return (
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--cor-texto-mutado);margin-bottom:6px;">' +
+    txt +
+    '</div>'
+  );
+}
+
+// Taxa em % ao mês, com casas suficientes para não virar 0,00 em juros baixos.
+function _fmtTaxaMensal(fracao) {
+  var pct = (Number(fracao) || 0) * 100;
+  var txt = pct.toFixed(pct < 0.1 ? 3 : 2);
+  // 7,30% lido em voz alta soa errado; 7,3% é como a pessoa fala e lê no contrato.
+  if (txt.indexOf('.') >= 0) txt = txt.replace(/0+$/, '').replace(/\.$/, '');
+  return txt.replace('.', ',') + '% ao mês';
+}
+
+// Adota a taxa que a parcela informada indica e refaz a conta na hora, para a
+// pessoa ver os números mudarem sem voltar um passo e perder o contexto.
+function bemUsarTaxaImplicita(taxaMensal) {
+  var el = document.getElementById('bemFinTaxa');
+  if (!el) return;
+  var pct = (Number(taxaMensal) || 0) * 100;
+  el.value = pct.toFixed(pct < 0.1 ? 3 : 2).replace('.', ',');
+  renderAnaliseFinanciamento();
+  if (typeof mostrarToast === 'function')
+    mostrarToast(
+      'Taxa trocada para ' + _fmtTaxaMensal(taxaMensal) + '. Números refeitos.',
+      'sucesso'
+    );
+}
+
+// O aviso de dados inconsistentes. Não basta dizer "não fecha": a pessoa fica
+// sem saber qual dos números conferir. Aqui dizemos qual taxa a parcela dela
+// indica, arriscamos a explicação mais provável e deixamos corrigir num clique.
+function _avisoDivergenciaFin(r) {
+  var fmt =
+    typeof formatarMoeda === 'function'
+      ? formatarMoeda
+      : function (v) {
+          return 'R$ ' + v.toFixed(2);
+        };
+  var partes = [
+    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-warning"></i> Confira a taxa de juros</div>',
+    'Com uma dívida de <strong>' +
+      fmt(r.saldoDevedor) +
+      '</strong>, <strong>' +
+      r.parcelasRestantes +
+      ' parcelas</strong> e taxa de <strong>' +
+      _fmtTaxaMensal(r.taxaMensal) +
+      '</strong>, a parcela daria <strong>' +
+      fmt(r.parcelaEsperada) +
+      '</strong> — mas você informou <strong>' +
+      fmt(r.parcelaInformada) +
+      '</strong>. Um dos dois está diferente do contrato.',
+  ];
+
+  if (r.taxaImplicita !== null && r.taxaImplicita > 0) {
+    var explicacao = '';
+    if (r.causaDivergencia === 'anual')
+      explicacao =
+        ' Parece que você digitou a taxa <strong>do ano</strong> — nesse campo vai a do mês.';
+    else if (r.causaDivergencia === 'decimal')
+      explicacao = ' Parece que faltou uma casa decimal na taxa.';
+    partes.push(
+      '<div style="margin-top:6px;">Para uma parcela de <strong>' +
+        fmt(r.parcelaInformada) +
+        '</strong>, a taxa seria <strong>' +
+        _fmtTaxaMensal(r.taxaImplicita) +
+        '</strong>.' +
+        explicacao +
+        '</div>'
+    );
+    partes.push(
+      '<button type="button" onclick="bemUsarTaxaImplicita(' +
+        r.taxaImplicita +
+        ')" style="margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid var(--cor-txt-amber);background:transparent;color:var(--cor-txt-amber);cursor:pointer;font-family:inherit;">' +
+        '<i class="ph-bold ph-arrow-counter-clockwise"></i> Refazer a conta com ' +
+        _fmtTaxaMensal(r.taxaImplicita) +
+        '</button>'
+    );
+  } else {
+    partes.push(
+      '<div style="margin-top:6px;">Essa parcela é menor que a dívida dividida pelo número de parcelas, então nenhuma taxa de juros a explica. Confira a dívida e quantas parcelas faltam.</div>'
+    );
+  }
+
+  partes.push(
+    '<div style="margin-top:8px;font-size:11px;opacity:0.85;">Por enquanto, os números abaixo usam a taxa que você digitou.</div>'
+  );
+
+  return (
+    '<div style="background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);color:var(--cor-txt-amber);border-radius:9px;padding:11px 13px;font-size:11.5px;line-height:1.55;">' +
+    partes.join('') +
+    '</div>'
   );
 }
 
@@ -726,49 +884,83 @@ function renderAnaliseFinanciamento() {
         };
   var pctJuros = r.totalAPagar > 0 ? (r.jurosRestantes / r.totalAPagar) * 100 : 0;
 
-  var aviso = '';
-  if (r.divergencia !== null) {
-    aviso =
-      '<div style="background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);color:var(--cor-txt-amber);border-radius:9px;padding:10px 12px;font-size:11.5px;line-height:1.5;">' +
-      '<i class="ph-fill ph-warning"></i> A parcela que você informou (' +
-      fmt(r.parcelaInformada) +
-      ') não fecha com saldo, taxa e prazo — pela conta, daria ' +
-      fmt(r.parcelaEsperada) +
-      '. Confira os dados no contrato; os números abaixo usam saldo, taxa e prazo.</div>';
+  // O aviso vem ANTES do número grande: se os dados não fecham, saber disso é
+  // mais importante que o valor — senão a pessoa acredita num juro que não é o
+  // dela e sai assustada da tela.
+  var aviso = r.divergencia !== null ? _avisoDivergenciaFin(r) : '';
+
+  var comoPaga =
+    r.sistema === 'sac'
+      ? 'a parcela cai um pouquinho a cada mês (SAC)'
+      : 'a parcela é sempre a mesma (Price)';
+
+  // Quanto do bem já é seu: só faz sentido se a pessoa disse quanto ele vale.
+  // Sem isso, o cálculo daria um patrimônio negativo do tamanho da dívida —
+  // número correto na fórmula e assustador na tela. Melhor pedir o dado.
+  var blocoLiquido;
+  if (valorMercado > 0) {
+    blocoLiquido =
+      '<div style="border:1px solid var(--cor-borda-primaria);background:var(--cor-bg-primaria);border-radius:10px;padding:12px 14px;">' +
+      _tituloBlocoFin('Quanto do bem já é seu') +
+      _linhaResumoFin('O bem vale hoje', valorMercado) +
+      _linhaResumoFin('Menos a dívida que falta', -r.saldoDevedor) +
+      '<div style="border-top:1px dashed var(--cor-borda-primaria);margin:6px 0 2px;"></div>' +
+      _linhaResumoFin(
+        'Já é seu',
+        r.patrimonioLiquido,
+        r.patrimonioLiquido >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)',
+        true,
+        'o que sobraria se vendesse e quitasse hoje'
+      ) +
+      '</div>';
+  } else {
+    blocoLiquido =
+      '<div style="border:1px dashed var(--cor-borda);border-radius:10px;padding:12px 14px;font-size:11.5px;color:var(--cor-texto-secundario);line-height:1.55;">' +
+      '<i class="ph ph-info" style="color:var(--cor-primaria);"></i> Você ainda não disse <strong>quanto o bem vale hoje</strong>. Preencha o "Valor atual" para ver quanto dele já é seu e quanto ainda é do banco.' +
+      '<button type="button" onclick="voltarParaValoresBem()" style="display:block;margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-principal);cursor:pointer;font-family:inherit;">' +
+      '<i class="ph-bold ph-arrow-left"></i> Voltar e preencher</button>' +
+      '</div>';
   }
 
-  var liquidoCor = r.patrimonioLiquido >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
   box.innerHTML =
     '<div style="display:flex;flex-direction:column;gap:14px;">' +
+    aviso +
     '<div style="background:linear-gradient(135deg,var(--cor-patrimonio),#7c3aed);color:#fff;border-radius:12px;padding:16px 18px;">' +
-    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;opacity:0.85;font-weight:700;">Ainda serão pagos de juros</div>' +
+    '<div style="font-size:11px;text-transform:uppercase;letter-spacing:0.6px;opacity:0.85;font-weight:700;">Você ainda vai pagar de juros</div>' +
     '<div style="font-size:28px;font-weight:800;font-family:\'DM Mono\',monospace;letter-spacing:-1px;margin:4px 0 2px;">' +
     fmt(r.jurosRestantes) +
     '</div>' +
-    '<div style="font-size:12.5px;opacity:0.92;line-height:1.5;">' +
+    '<div style="font-size:12.5px;opacity:0.92;line-height:1.5;">De cada R$ 100 que ainda saem do seu bolso, <strong>R$ ' +
     pctJuros.toFixed(0) +
-    '% de tudo o que falta pagar — ' +
-    (r.sistema === 'sac' ? 'sistema SAC' : 'sistema Price') +
-    ', ' +
+    ' são só juros</strong> — o resto abate a dívida.<br>Faltam ' +
     fin.parcelasRestantes +
-    ' parcelas restantes.</div>' +
+    ' parcelas e ' +
+    comoPaga +
+    '.</div>' +
     '</div>' +
-    aviso +
     '<div style="border:1px solid var(--cor-borda);border-radius:10px;padding:12px 14px;">' +
-    _linhaResumoFin('Já pago até aqui', r.valorPago) +
-    _linhaResumoFin('Saldo devedor', r.saldoDevedor) +
-    _linhaResumoFin('Juros que faltam', r.jurosRestantes, 'var(--cor-erro)') +
+    _tituloBlocoFin('Quanto este bem custa no total') +
+    _linhaResumoFin('Você já pagou', r.valorPago, null, false, 'o que já saiu do bolso até hoje') +
+    _linhaResumoFin(
+      'Ainda deve ao banco',
+      r.saldoDevedor,
+      null,
+      false,
+      'é o que o banco chama de saldo devedor'
+    ) +
+    _linhaResumoFin(
+      'Juros até a última parcela',
+      r.jurosRestantes,
+      'var(--cor-erro)',
+      false,
+      'o que você paga a mais por ter parcelado'
+    ) +
     '<div style="border-top:1px dashed var(--cor-borda);margin:6px 0 2px;"></div>' +
-    _linhaResumoFin('Custo total até a quitação', r.custoTotal, null, true) +
+    _linhaResumoFin('No fim, o bem terá custado', r.custoTotal, null, true) +
     '</div>' +
-    '<div style="border:1px solid var(--cor-borda-primaria);background:var(--cor-bg-primaria);border-radius:10px;padding:12px 14px;">' +
-    _linhaResumoFin('Valor de mercado do bem', valorMercado) +
-    _linhaResumoFin('Menos o saldo devedor', -r.saldoDevedor) +
-    '<div style="border-top:1px dashed var(--cor-borda-primaria);margin:6px 0 2px;"></div>' +
-    _linhaResumoFin('Patrimônio líquido do bem', r.patrimonioLiquido, liquidoCor, true) +
-    '</div>' +
+    blocoLiquido +
     '<div style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;">' +
-    '<i class="ph ph-info"></i> Depois de salvar, use <strong>Simular amortização</strong> no card do bem para ver quanto dá para economizar antecipando.' +
+    '<i class="ph ph-info"></i> Depois de salvar, use <strong>Antecipar parcelas</strong> no card do bem para ver quanto você economiza pagando um valor extra.' +
     '</div>' +
     '</div>';
 }
@@ -1464,7 +1656,7 @@ function renderMeusBens() {
         !arq && fin && fin.ativo && fin.saldoDevedor > 0
           ? '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="abrirModalAmortizacao(\'' +
             b.id +
-            '\')" title="Simular amortização"><i class="ph ph-scissors" style="color:var(--cor-primaria);"></i></button>'
+            '\')" title="Antecipar parcelas"><i class="ph ph-scissors" style="color:var(--cor-primaria);"></i></button>'
           : '';
 
       var acoes = arq

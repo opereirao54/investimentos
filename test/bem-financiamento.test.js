@@ -336,3 +336,111 @@ test('o patrimônio dos bens continua contando o valor cheio', () => {
   });
   assert.equal(w.totalBensAtual(), 500000);
 });
+
+// ============================================================
+// === TAXA IMPLÍCITA: o que a parcela informada está dizendo ===
+// ============================================================
+//
+// Quando os quatro dados (saldo, parcela, taxa, prazo) não fecham, avisar "não
+// fecha" deixa a pessoa sem saber qual conferir. Invertendo a fórmula pela
+// parcela — o número que ela tem na mão, no boleto — sai a taxa que explicaria
+// aquele valor, e daí a explicação provável do erro de digitação.
+
+test('SAC: a taxa implícita sai da parcela informada', () => {
+  const w = carregar();
+  // parcela₁ = sd/n + sd·i  →  36800/45 + 36800·0,0074 = 817,78 + 272,32
+  const i = w.finTaxaImplicita('sac', 36800, 1090, 45);
+  assert.ok(Math.abs(i - 0.007397) < 1e-5, 'esperado ~0,74% a.m., veio ' + i);
+  // Volta e meia: a taxa encontrada reproduz a parcela informada.
+  assert.ok(Math.abs(w.finPrimeiraParcelaSac(36800, i, 45) - 1090) < 0.01);
+});
+
+test('Price: a bissecção encontra a taxa que reproduz a parcela', () => {
+  const w = carregar();
+  const parcela = w.finParcelaPrice(300000, 0.008, 240); // 2.899,52...
+  const i = w.finTaxaImplicita('price', 300000, parcela, 240);
+  assert.ok(Math.abs(i - 0.008) < 1e-6, 'esperado 0,8% a.m., veio ' + i);
+});
+
+test('parcela abaixo do piso sem juros não tem taxa que explique', () => {
+  const w = carregar();
+  // Sem juros nenhum a parcela já seria 36800/45 = 817,78.
+  assert.equal(w.finTaxaImplicita('sac', 36800, 700, 45), null);
+  assert.equal(w.finTaxaImplicita('price', 36800, 700, 45), null);
+  assert.equal(w.finTaxaImplicita('sac', 0, 1090, 45), null);
+  assert.equal(w.finTaxaImplicita('sac', 36800, 0, 45), null);
+  assert.equal(w.finTaxaImplicita('sac', 36800, 1090, 0), null);
+});
+
+test('diagnóstico: casa decimal a menos na taxa', () => {
+  const w = carregar();
+  // O caso real que motivou a tela: digitou 7,3 onde cabia 0,73.
+  assert.equal(w.finDiagnosticoTaxa(0.073, 0.007397), 'decimal');
+});
+
+test('diagnóstico: taxa do ano digitada no campo do mês', () => {
+  const w = carregar();
+  const mensal = 0.0072;
+  const anualComposta = Math.pow(1 + mensal, 12) - 1; // ~8,99%
+  assert.equal(w.finDiagnosticoTaxa(anualComposta, mensal), 'anual');
+  // Muita gente usa a conta simples (×12) — cai no mesmo diagnóstico, não em
+  // 'decimal', porque 12× está dentro da faixa das duas regras.
+  assert.equal(w.finDiagnosticoTaxa(mensal * 12, mensal), 'anual');
+});
+
+test('diagnóstico não chuta quando a diferença não tem padrão conhecido', () => {
+  const w = carregar();
+  assert.equal(w.finDiagnosticoTaxa(0.012, 0.008), null, '1,5× não é erro típico');
+  assert.equal(w.finDiagnosticoTaxa(0.5, 0.008), null, '62× não é erro típico');
+  assert.equal(w.finDiagnosticoTaxa(0, 0.008), null);
+  assert.equal(w.finDiagnosticoTaxa(0.008, 0), null);
+});
+
+test('finResumo entrega a taxa implícita e a causa junto da divergência', () => {
+  const w = carregar();
+  const r = w.finResumo(
+    {
+      ativo: true,
+      sistema: 'sac',
+      saldoDevedor: 36800,
+      valorParcela: 1090,
+      taxaMensal: 0.073,
+      parcelasRestantes: 45,
+    },
+    0
+  );
+  assert.ok(r.divergencia !== null, 'a parcela informada não fecha com a taxa');
+  assert.ok(Math.abs(r.parcelaEsperada - 3504.18) < 0.01);
+  assert.ok(Math.abs(r.jurosRestantes - 61787.2) < 0.01, 'juros da taxa digitada');
+  assert.ok(Math.abs(r.taxaImplicita - 0.007397) < 1e-5);
+  assert.equal(r.causaDivergencia, 'decimal');
+  assert.equal(r.taxaMensal, 0.073, 'a taxa digitada continua disponível para a tela');
+});
+
+test('sem divergência não há taxa implícita para mostrar', () => {
+  const w = carregar();
+  const r = w.finResumo(
+    {
+      ativo: true,
+      sistema: 'sac',
+      saldoDevedor: 36800,
+      valorParcela: 1090.1,
+      taxaMensal: 0.0074,
+      parcelasRestantes: 45,
+    },
+    0
+  );
+  assert.equal(r.divergencia, null);
+  assert.equal(r.taxaImplicita, null);
+  assert.equal(r.causaDivergencia, null);
+});
+
+test('corrigindo a taxa, os juros caem para a ordem de grandeza real', () => {
+  const w = carregar();
+  // Mesmo saldo e prazo, taxa certa: R$ 61.787 viram R$ 6.261. É a diferença
+  // entre um número que assusta e um que informa.
+  const errado = w.finJurosRestantes('sac', 36800, 0.073, 45);
+  const certo = w.finJurosRestantes('sac', 36800, 0.007397, 45);
+  assert.ok(Math.abs(errado - 61787.2) < 0.01);
+  assert.ok(Math.abs(certo - 6261.0) < 5, 'esperado ~R$ 6.261, veio ' + certo);
+});

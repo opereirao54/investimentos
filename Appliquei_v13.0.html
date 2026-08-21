@@ -6957,7 +6957,7 @@
 
                         <div id="bemFinanciamentoWrap" style="display:none;margin-top:12px;">
                             <div class="form-group">
-                                <label>Sistema de amortização</label>
+                                <label>Como são as parcelas</label>
                                 <select id="bemFinSistema"></select>
                                 <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">Imóvel pela Caixa costuma ser SAC; veículo costuma ser Price. Está no contrato.</small>
                             </div>
@@ -6970,7 +6970,7 @@
                                 <div class="form-group"><label>Valor da parcela</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinParcela" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                             </div>
                             <div class="grid-2-iguais" style="gap:10px;">
-                                <div class="form-group"><label>Taxa de juros (% ao mês) <span style="color:var(--cor-erro);">*</span></label><input type="text" id="bemFinTaxa" inputmode="decimal" placeholder="Ex: 0,80"></div>
+                                <div class="form-group"><label>Taxa de juros (% ao mês) <span style="color:var(--cor-erro);">*</span></label><input type="text" id="bemFinTaxa" inputmode="decimal" placeholder="Ex: 0,80"><small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">É a taxa do <strong>mês</strong>, não a do ano. Se o contrato diz 9% ao ano, aqui vai ≈ 0,72.</small></div>
                                 <div class="form-group"><label>Parcelas restantes <span style="color:var(--cor-erro);">*</span></label><input type="number" id="bemFinParcelasRestantes" min="1" max="600" placeholder="Ex: 240"></div>
                             </div>
                         </div>
@@ -7000,7 +7000,7 @@
             <div id="modalAmortizacao" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalAmortizacao()">
                 <div style="max-width:540px;width:calc(100% - 24px);margin:12px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:26px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
-                        <h3 style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-scissors" style="color:var(--cor-primaria);"></i> <span id="tituloModalAmortizacao">Simular amortização</span></h3>
+                        <h3 style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-scissors" style="color:var(--cor-primaria);"></i> <span id="tituloModalAmortizacao">Antecipar parcelas</span></h3>
                         <button class="drawer-fechar" onclick="fecharModalAmortizacao()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
                     <input type="hidden" id="amortizacaoBemId" value="">
