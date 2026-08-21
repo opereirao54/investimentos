@@ -4250,23 +4250,11 @@
         .mp-barra-valor { font-family:'DM Mono', monospace; font-size:12.5px; font-weight:700; color:var(--cor-texto-principal); text-align:right; }
         .mp-barra-pct { font-size:10.5px; color: var(--cor-texto-mutado); display:block; }
 
-        /* ===== "Onde está o seu dinheiro" — cabeçalho + filtro premium ===== */
+        /* ===== "Onde está o seu dinheiro" — cabeçalho + lista por instituição ===== */
         .mp-onde-head { align-items:center; }
         .mp-onde-titulo { display:flex; flex-direction:column; gap:3px; min-width:0; }
         .mp-onde-titulo h3 { display:flex; align-items:center; gap:8px; font-size:15px; }
         .mp-onde-ic { color: var(--cor-primaria); font-size:18px; }
-        .mp-filtro-cat-wrap {
-            display:inline-flex; align-items:center; gap:7px; flex-shrink:0;
-            background: var(--cor-superficie); border:1px solid var(--cor-borda);
-            border-radius:10px; padding:4px 10px 4px 12px; max-width:100%;
-        }
-        .mp-filtro-cat-wrap > i { color: var(--cor-texto-mutado); font-size:15px; flex-shrink:0; }
-        .mp-filtro-cat {
-            border:none !important; background:transparent !important; padding:5px 4px !important;
-            font-weight:600; max-width:220px; cursor:pointer;
-        }
-        .mp-filtro-cat:focus { outline:none !important; }
-
         .mp-lista-inst { display:flex; flex-direction:column; gap:10px; padding:2px; }
         @media (min-width: 861px) {
             .mp-inst-extrato { max-height: 460px; overflow-y: auto; }
@@ -4349,13 +4337,6 @@
         .mp-extrato-valor.neu { color: var(--cor-texto-secundario); }
         .mp-extrato-saldo { font-size:10px; color: var(--cor-texto-mutado); font-family:'DM Mono', monospace; }
         .mp-extrato-vazio { font-size:11.5px; color: var(--cor-texto-mutado); padding:10px 8px; text-align:center; display:flex; align-items:center; justify-content:center; gap:6px; }
-        .mp-extrato-subtotal {
-            display:flex; justify-content:space-between; align-items:center; gap:10px;
-            margin-top:6px; padding:8px 10px; border-radius:8px;
-            background: var(--cor-bg-primaria); border:1px solid var(--cor-borda-primaria);
-            font-size:12px; font-weight:700; color: var(--cor-txt-primaria);
-        }
-        .mp-extrato-subtotal strong { font-family:'DM Mono', monospace; color: var(--cor-txt-primaria); }
         /* Badge de tipo por linha do extrato (cartão/variável/fixo/...) */
         .mp-extrato-meta { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
         .mp-mov-tipo {
@@ -4413,7 +4394,6 @@
         body.valores-ocultos #meu_patrimonio .mp-inst-chip strong,
         body.valores-ocultos #meu_patrimonio .mp-extrato-valor,
         body.valores-ocultos #meu_patrimonio .mp-extrato-saldo,
-        body.valores-ocultos #meu_patrimonio .mp-extrato-subtotal strong,
         body.valores-ocultos #meu_patrimonio .mp-quit-chip strong,
         body.valores-ocultos #meu_patrimonio .mp-extrato-resumo-tit strong,
         body.valores-ocultos #meu_patrimonio canvas { filter: blur(6px); }
@@ -6846,12 +6826,6 @@
                         <h3><i class="ph-fill ph-buildings mp-onde-ic"></i> Onde está o seu dinheiro</h3>
                         <span class="mp-section-sub">Caixa e investimentos em cada banco e corretora</span>
                     </div>
-                    <label class="mp-filtro-cat-wrap" title="Filtrar o extrato por categoria de gasto (cadastro do Controle Financeiro)">
-                        <i class="ph ph-funnel-simple"></i>
-                        <select id="mp-filtro-categoria" class="mp-select mp-filtro-cat" onchange="mpSetFiltroCategoria(this.value)" aria-label="Filtrar extrato por categoria de gasto">
-                            <option value="">Todas as categorias</option>
-                        </select>
-                    </label>
                 </div>
                 <div class="mp-lista-inst" id="mp-lista-inst">
                     <div class="mp-empty"><i class="ph ph-bank"></i>—</div>
