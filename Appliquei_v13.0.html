@@ -2780,6 +2780,37 @@
         .sonho-card-actions button:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .sonho-card-actions button.btn-delete:hover { border-color: var(--cor-erro); color: var(--cor-erro); background: var(--cor-bg-erro); }
 
+        /* ===== Modal de bem: firme no celular =============================
+           O Safari do iOS dá ZOOM automático ao focar campo com fonte menor
+           que 16px; depois do zoom o viewport fica maior que a tela e a página
+           inteira passa a arrastar na horizontal. 16px desliga isso na origem
+           (mexer no <meta viewport> com maximum-scale=1 também resolveria, mas
+           tira o pinch-zoom de quem precisa). Vários campos têm font-size
+           inline, que ganha de folha de estilo — daí o !important. */
+        @media (max-width: 768px) {
+            #modalBem input,
+            #modalBem select,
+            #modalBem textarea {
+                font-size: 16px !important;
+            }
+            #modalBem > div {
+                padding: 20px;
+                /* vh mede a viewport MAIOR (barra de endereço escondida); com o
+                   teclado aberto o topo do card ficaria inalcançável. */
+                max-height: 88dvh !important;
+            }
+        }
+        #modalBem {
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+        #modalBem > div {
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y pinch-zoom;
+        }
+
         .sonho-body {
             display: grid; grid-template-columns: 1fr 260px;
             gap: 0; border-top: 1px solid var(--cor-borda);
@@ -6864,38 +6895,81 @@
                     <h3><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> Meus Bens</h3>
                     <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Novo bem</button>
                 </div>
-                <div id="formNovoBem" style="display:none;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:10px;padding:12px;margin-bottom:10px;">
+                <div class="mp-lista-inst" id="listaBens"><div class="mp-empty"><i class="ph ph-package"></i>Nenhum bem cadastrado.</div></div>
+            </div>
+
+            <!-- CADASTRO DE BEM — modal em passos.
+                 O formulário morava inline neste card. Com os campos de imóvel
+                 (CEP, área, tipo) e, depois, os de financiamento, ele passaria de
+                 ~19 campos no meio de uma página que já tem KPIs, dois gráficos,
+                 contas e extrato. Em modal, a página fica só com a lista e cada
+                 bloco aparece conforme o tipo escolhido. -->
+            <div id="modalBem" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalBem()">
+                <div style="max-width:540px;width:calc(100% - 24px);margin:12px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:26px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;">
+                        <h3 id="tituloModalBem" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> <span>Novo bem</span></h3>
+                        <button class="drawer-fechar" onclick="fecharModalBem()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
+                    </div>
                     <input type="hidden" id="bemEditId" value="">
-                    <div id="tituloFormBem" style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--cor-texto-principal);">Novo bem</div>
-                    <div class="grid-2-iguais" style="gap:10px;">
-                        <div class="form-group"><label>Nome</label><input type="text" id="bemNome" placeholder="Ex: Honda Civic, Apartamento..."></div>
-                        <div class="form-group"><label>Tipo</label><select id="bemTipo" onchange="bemToggleFipe();bemLimparFipe()"></select></div>
-                    </div>
-                    <div class="form-group"><label>Descrição (opcional)</label><input type="text" id="bemDescricao" placeholder="Detalhes, placa, endereço..."></div>
-                    <!-- FIPE — só para veículos -->
-                    <div id="bemFipeWrap" style="display:none;">
-                        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-mutado);margin:10px 0 6px;display:flex;align-items:center;gap:5px;"><i class="ph ph-car-simple"></i> Consulta tabela FIPE</div>
+
+                    <div id="bemPasso1">
                         <div class="grid-2-iguais" style="gap:10px;">
-                            <div class="form-group"><label>Tipo de veículo</label><select id="bemFipeVeiculoTipo" onchange="bemFipeOnTipoVeiculo()"></select></div>
-                            <div class="form-group"><label>Marca</label><select id="bemFipeMarca" onchange="bemFipeOnMarca()" disabled></select></div>
+                            <div class="form-group"><label>Nome</label><input type="text" id="bemNome" placeholder="Ex: Honda Civic, Apartamento..."></div>
+                            <div class="form-group"><label>Tipo</label><select id="bemTipo" onchange="bemOnTrocarTipo()"></select></div>
                         </div>
+                        <div class="form-group"><label>Descrição (opcional)</label><input type="text" id="bemDescricao" placeholder="Detalhes, placa, complemento..."></div>
+
+                        <div id="bemImovelWrap" style="display:none;">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-mutado);margin:10px 0 6px;display:flex;align-items:center;gap:5px;"><i class="ph ph-map-pin"></i> Dados do imóvel</div>
+                            <div class="grid-2-iguais" style="gap:10px;">
+                                <div class="form-group">
+                                    <label>CEP</label>
+                                    <input type="text" id="bemCep" inputmode="numeric" maxlength="9" placeholder="00000-000" oninput="bemMascaraCep(this)" onblur="buscarCepBem()">
+                                </div>
+                                <div class="form-group"><label>Tipo do imóvel</label><select id="bemImovelTipo"></select></div>
+                            </div>
+                            <div id="bemEnderecoInfo" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);color:var(--cor-txt-info);margin-bottom:10px;line-height:1.45;"></div>
+                            <div class="grid-2-iguais" style="gap:10px;">
+                                <div class="form-group"><label>Área (m²)</label><input type="text" id="bemAreaM2" inputmode="decimal" placeholder="Ex: 72" oninput="bemEstimarPorM2()"></div>
+                                <div class="form-group">
+                                    <label>Referência R$/m² <small style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--cor-texto-mutado);">— opcional</small></label>
+                                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorM2" placeholder="0,00" oninput="aplicarMascaraBRL(this);bemEstimarPorM2()"></span>
+                                </div>
+                            </div>
+                            <div id="bemEstimativaM2" style="display:none;font-size:12px;padding:9px 11px;border-radius:8px;margin-bottom:10px;line-height:1.5;"></div>
+                        </div>
+
+                        <div id="bemFipeWrap" style="display:none;">
+                            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--cor-texto-mutado);margin:10px 0 6px;display:flex;align-items:center;gap:5px;"><i class="ph ph-car-simple"></i> Consulta tabela FIPE</div>
+                            <div class="grid-2-iguais" style="gap:10px;">
+                                <div class="form-group"><label>Tipo de veículo</label><select id="bemFipeVeiculoTipo" onchange="bemFipeOnTipoVeiculo()"></select></div>
+                                <div class="form-group"><label>Marca</label><select id="bemFipeMarca" onchange="bemFipeOnMarca()" disabled></select></div>
+                            </div>
+                            <div class="grid-2-iguais" style="gap:10px;">
+                                <div class="form-group"><label>Modelo</label><select id="bemFipeModelo" onchange="bemFipeOnModelo()" disabled></select></div>
+                                <div class="form-group"><label>Ano</label><select id="bemFipeAno" onchange="bemFipeOnAno()" disabled></select></div>
+                            </div>
+                            <div id="bemFipeInfo" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);color:var(--cor-txt-primaria);margin-bottom:8px;"></div>
+                        </div>
+                    </div>
+
+                    <div id="bemPasso2" style="display:none;">
                         <div class="grid-2-iguais" style="gap:10px;">
-                            <div class="form-group"><label>Modelo</label><select id="bemFipeModelo" onchange="bemFipeOnModelo()" disabled></select></div>
-                            <div class="form-group"><label>Ano</label><select id="bemFipeAno" onchange="bemFipeOnAno()" disabled></select></div>
+                            <div class="form-group"><label>Valor atual</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorAtual" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                            <div class="form-group"><label>Valor de compra (opcional)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorCompra" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                         </div>
-                        <div id="bemFipeInfo" style="display:none;font-size:12px;padding:8px 10px;border-radius:8px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);color:var(--cor-txt-primaria);margin-bottom:8px;"></div>
+                        <div class="form-group"><label>Data de compra (opcional)</label><input type="date" id="bemDataCompra"></div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:10px;">
-                        <div class="form-group"><label>Valor atual</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorAtual" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
-                        <div class="form-group"><label>Valor de compra (opcional)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemValorCompra" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+
+                    <div id="bemAcoesPasso1" style="display:flex;gap:10px;margin-top:20px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="fecharModalBem()">Cancelar</button>
+                        <button class="btn-acao" style="flex:1;background:var(--cor-patrimonio);" onclick="irParaValoresBem()">Continuar <i class="ph-bold ph-arrow-right"></i></button>
                     </div>
-                    <div class="form-group"><label>Data de compra (opcional)</label><input type="date" id="bemDataCompra"></div>
-                    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;">
-                        <button class="btn-secundario" onclick="cancelarFormBem()">Cancelar</button>
-                        <button class="btn-acao" style="background:var(--cor-primaria);" onclick="salvarFormBem()"><i class="ph ph-check"></i> Salvar</button>
+                    <div id="bemAcoesPasso2" style="display:none;gap:10px;margin-top:20px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="voltarParaDadosBem()"><i class="ph-bold ph-arrow-left"></i> Voltar</button>
+                        <button class="btn-acao" id="btnSalvarBem" style="flex:1;background:var(--cor-patrimonio);" onclick="salvarFormBem()"><i class="ph ph-check"></i> Salvar bem</button>
                     </div>
                 </div>
-                <div class="mp-lista-inst" id="listaBens"><div class="mp-empty"><i class="ph ph-package"></i>Nenhum bem cadastrado.</div></div>
             </div>
         </section>
 
