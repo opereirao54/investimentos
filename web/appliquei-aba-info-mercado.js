@@ -33,6 +33,13 @@ var IM_API_BASE = 'https://api.rss2json.com/v1/api.json';
 var IM_CACHE_KEY = 'im_noticias_cache_v1';
 var IM_CACHE_TTL_MS = 15 * 60 * 1000;
 
+// Teto e validade do acervo acumulado. O feed do InfoMoney só devolve as
+// últimas horas — com 10 categorias, uma carga isolada deixaria "Política"
+// e "Mundo" quase sempre em zero. Guardando as cargas anteriores, cada
+// categoria junta massa ao longo dos dias sem UMA chamada a mais.
+var IM_MAX_ACERVO = 90;
+var IM_JANELA_DIAS = 7;
+
 // Preferência de categoria. Esta SIM usa o prefixo sincronizado: o assunto
 // que a pessoa acompanha deve viajar junto com ela entre celular e PC.
 var IM_PREF_KEY = 'futurorico_infoMercadoCategoria';
@@ -576,6 +583,7 @@ var imCategoriaAtiva = 'todos';
 var imVisiveis = IM_PAGINA;
 var imCarregando = false;
 var imAvisoCache = '';
+var imAtualizadoEm = 0;
 
 // ============================================================
 // Classificação
@@ -694,9 +702,57 @@ function imPrepararNoticia(bruta) {
     link: String(n.link || '').trim(),
     resumo: imNormalizarResumo(n.description || n.content || ''),
     autor: String(n.author || '').trim(),
+    // Guardadas porque a editoria é o sinal mais confiável da classificação
+    // e o acervo salvo precisa poder ser reclassificado sem o item cru.
+    editorias: Array.isArray(n.categories) ? n.categories.slice(0, 6) : [],
     ts: quando ? quando.getTime() : 0,
     cats: imClassificar(n),
   };
+}
+
+/**
+ * Identidade da notícia, para dedupe entre cargas. O link sem query/hash é
+ * estável; sem link, o título normalizado serve de âncora.
+ */
+function imChaveNoticia(n) {
+  if (!n) return '';
+  var link = String(n.link || '')
+    .toLowerCase()
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '');
+  if (link) return link;
+  return imNormalizar(n.titulo || '').trim();
+}
+
+/**
+ * Junta a carga nova ao acervo guardado, sem repetir notícia.
+ *
+ * A janela de dias vale só para o que veio do cache: o que o feed acabou de
+ * mandar entra sempre, mesmo que a data pareça velha. Cortar item recém-
+ * chegado por causa de `pubDate` esquisito deixaria a aba vazia por um
+ * detalhe de formatação da fonte.
+ */
+function imMesclar(acervo, novos) {
+  var vistos = {};
+  var saida = [];
+  function absorver(lista, exigirJanela, corte) {
+    for (var i = 0; i < (lista || []).length; i++) {
+      var n = lista[i];
+      if (!n || !n.titulo) continue;
+      if (exigirJanela && n.ts && n.ts < corte) continue;
+      var k = imChaveNoticia(n);
+      if (!k || vistos[k]) continue;
+      vistos[k] = true;
+      saida.push(n);
+    }
+  }
+  // Novos primeiro: em caso de repetição, vence a versão mais fresca.
+  absorver(novos, false, 0);
+  absorver(acervo, true, Date.now() - IM_JANELA_DIAS * 24 * 3600 * 1000);
+  saida.sort(function (a, b) {
+    return b.ts - a.ts;
+  });
+  return saida.slice(0, IM_MAX_ACERVO);
 }
 
 /** Resumo em texto puro, cortado no limite de leitura de um card. */
@@ -721,23 +777,62 @@ function imNormalizarResumo(html) {
 // Cache local do feed
 // ============================================================
 
+/** Forma enxuta do item no localStorage — 90 notícias precisam caber. */
+function imParaCache(n) {
+  return { t: n.titulo, l: n.link, r: n.resumo, d: n.ts, e: n.editorias || [] };
+}
+
+/**
+ * Volta do cache RECLASSIFICANDO. Guardar o rótulo junto seria mais barato,
+ * mas congelaria o acervo nas regras da versão que o gravou — um ajuste de
+ * palavra-chave só valeria para notícia nova.
+ */
+function imDoCache(salvo) {
+  var n = salvo || {};
+  var editorias = Array.isArray(n.e) ? n.e : [];
+  return {
+    titulo: String(n.t || ''),
+    link: String(n.l || ''),
+    resumo: String(n.r || ''),
+    autor: '',
+    editorias: editorias,
+    ts: Number(n.d) || 0,
+    cats: imClassificar({
+      title: n.t,
+      description: n.r,
+      link: n.l,
+      categories: editorias,
+    }),
+  };
+}
+
 function imLerCache() {
   try {
     var cru = localStorage.getItem(IM_CACHE_KEY);
     if (!cru) return null;
     var obj = JSON.parse(cru);
     if (!obj || !Array.isArray(obj.items) || !obj.items.length) return null;
-    return { items: obj.items, ts: Number(obj.ts) || 0 };
+    return { items: obj.items.map(imDoCache), ts: Number(obj.ts) || 0 };
   } catch (_) {
     return null;
   }
 }
 
-function imGravarCache(items) {
+function imGravarCache(acervo) {
+  var compacto = (acervo || []).map(imParaCache);
   try {
-    localStorage.setItem(IM_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: items }));
+    localStorage.setItem(IM_CACHE_KEY, JSON.stringify({ ts: Date.now(), items: compacto }));
   } catch (_) {
-    // Quota estourada não pode derrubar a aba — cache é conveniência.
+    // Quota estourada: tenta guardar só a metade mais recente antes de
+    // desistir. Meio acervo ainda é melhor do que recomeçar do zero amanhã.
+    try {
+      localStorage.setItem(
+        IM_CACHE_KEY,
+        JSON.stringify({ ts: Date.now(), items: compacto.slice(0, Math.ceil(compacto.length / 2)) })
+      );
+    } catch (__) {
+      // Sem cache a aba continua funcionando — só perde o acúmulo.
+    }
   }
 }
 
@@ -779,18 +874,27 @@ async function carregarNoticias(forcar) {
     return;
   }
 
-  if (!forcar) {
-    var cache = imLerCache();
-    if (cache && Date.now() - cache.ts < IM_CACHE_TTL_MS) {
-      imNoticias = cache.items.map(imPrepararNoticia);
-      imAvisoCache = '';
-      imRenderizar();
-      return;
-    }
+  var cache = imLerCache();
+
+  // Cache fresco: mostra o acervo guardado sem tocar na rede.
+  if (!forcar && cache && Date.now() - cache.ts < IM_CACHE_TTL_MS) {
+    imNoticias = cache.items;
+    imAtualizadoEm = cache.ts;
+    imAvisoCache = '';
+    imRenderizar();
+    return;
+  }
+
+  // Acervo antigo na tela enquanto a rede responde — nada de tela em branco
+  // quando já existe conteúdo bom para ler.
+  if (cache && !imNoticias.length) {
+    imNoticias = cache.items;
+    imAtualizadoEm = cache.ts;
+    imRenderizar();
   }
 
   imCarregando = true;
-  imMostrarLoader(true);
+  imMostrarLoader(!imNoticias.length);
   try {
     var url =
       IM_API_BASE +
@@ -803,20 +907,21 @@ async function carregarNoticias(forcar) {
     if (!dados || dados.status !== 'ok' || !Array.isArray(dados.items) || !dados.items.length) {
       throw new Error('feed_invalido');
     }
-    imGravarCache(dados.items);
-    imNoticias = dados.items.map(imPrepararNoticia);
+    imNoticias = imMesclar(cache ? cache.items : [], dados.items.map(imPrepararNoticia));
+    imGravarCache(imNoticias);
+    imAtualizadoEm = Date.now();
     imAvisoCache = '';
     imVisiveis = IM_PAGINA;
     imRenderizar();
   } catch (_) {
-    // Rede caiu: se houver cache (mesmo vencido) é melhor mostrar notícia
+    // Rede caiu: se houver acervo (mesmo vencido) é melhor mostrar notícia
     // velha avisando a idade do que uma tela de erro.
-    var antigo = imLerCache();
-    if (antigo) {
-      imNoticias = antigo.items.map(imPrepararNoticia);
+    if (cache) {
+      imNoticias = cache.items;
+      imAtualizadoEm = cache.ts;
       imAvisoCache =
-        'Sem conexão com o feed — mostrando a última carga salva ' +
-        imTempoRelativo(antigo.ts) +
+        'Sem conexão com o feed — mostrando o que já estava salvo ' +
+        imTempoRelativo(cache.ts) +
         '.';
       imRenderizar();
     } else {
@@ -1006,6 +1111,14 @@ function imRenderizarLista() {
             imEscapar(imLabel(imCategoriaAtiva)) +
             '</strong>') +
         '</span>';
+      // A idade do acervo explica por que um assunto está com pouca coisa —
+      // sem ela, "Política 1" parece defeito em vez de feed devagar.
+      if (imAtualizadoEm) {
+        texto +=
+          '<span class="im-resumo-sep">·</span><span>atualizado ' +
+          imEscapar(imTempoRelativo(imAtualizadoEm)) +
+          '</span>';
+      }
     }
     resumo.innerHTML = texto;
     resumo.style.display = texto ? 'flex' : 'none';

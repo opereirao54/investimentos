@@ -529,6 +529,252 @@ test('sem rede e sem cache, a aba entra em estado de erro em vez de girar para s
   assert.ok(/Tentar de novo/.test(elementos['container-noticias'].innerHTML));
 });
 
+// ---- acervo acumulado -------------------------------------------------
+//
+// O feed do InfoMoney devolve só as últimas horas. Se cada carga
+// substituísse a anterior, "Política" e "Mundo" ficariam quase sempre em
+// zero e o filtro que a aba promete não teria o que mostrar. Por isso as
+// cargas se acumulam — mesma fonte, mesma quantidade de requests.
+
+const HORA = 3600 * 1000;
+const horasAtras = (h) => new Date(Date.now() - h * HORA).toISOString();
+
+function feedComItens(itens) {
+  return { json: async () => ({ status: 'ok', items: itens }) };
+}
+
+function itemFeed(title, link, pubDate, extra) {
+  return Object.assign({ title, link, pubDate, categories: [] }, extra || {});
+}
+
+test('segunda carga soma ao acervo em vez de substituir', async () => {
+  const store = makeStorage();
+  let lote = [
+    itemFeed('Ibovespa fecha em alta', 'https://ex.com/mercados/a/', horasAtras(3)),
+    itemFeed('Bitcoin sobe forte', 'https://ex.com/criptomoedas/b/', horasAtras(4)),
+  ];
+  const w = carregar({ localStorage: store, fetch: async () => feedComItens(lote) });
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 2);
+
+  // O feed rodou: manchetes novas entraram, as antigas saíram da janela dele.
+  lote = [
+    itemFeed('Senado aprova projeto', 'https://ex.com/politica/c/', horasAtras(1)),
+    itemFeed('Itaú divulga balanço', 'https://ex.com/negocios/d/', horasAtras(2)),
+  ];
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 4, 'a carga anterior não pode ser jogada fora');
+  const titulos = w.imNoticias.map((n) => n.titulo);
+  assert.ok(titulos.includes('Bitcoin sobe forte'), titulos.join(' | '));
+  assert.ok(titulos.includes('Senado aprova projeto'), titulos.join(' | '));
+});
+
+test('acúmulo dá massa para uma categoria que uma carga só deixaria vazia', async () => {
+  const store = makeStorage();
+  let lote = [itemFeed('Ibovespa fecha em alta', 'https://ex.com/mercados/a/', horasAtras(5))];
+  const w = carregar({ localStorage: store, fetch: async () => feedComItens(lote) });
+  await w.carregarNoticias(true);
+  w.imCategoriaAtiva = 'politica';
+  assert.equal(w.imNoticiasFiltradas().length, 0, 'nada de política ainda');
+
+  lote = [itemFeed('Senado aprova projeto de lei', 'https://ex.com/politica/c/', horasAtras(1))];
+  await w.carregarNoticias(true);
+  w.imCategoriaAtiva = 'politica';
+  assert.equal(w.imNoticiasFiltradas().length, 1);
+  w.imCategoriaAtiva = 'todos';
+  assert.equal(w.imNoticiasFiltradas().length, 2);
+});
+
+test('notícia repetida entre cargas não duplica na tela', async () => {
+  const store = makeStorage();
+  let lote = [itemFeed('Ibovespa fecha em alta', 'https://ex.com/mercados/a/', horasAtras(3))];
+  const w = carregar({ localStorage: store, fetch: async () => feedComItens(lote) });
+  await w.carregarNoticias(true);
+  // Mesma matéria, agora com utm e barra final — é o mesmo link.
+  lote = [
+    itemFeed('Ibovespa fecha em alta', 'https://ex.com/mercados/a?utm_source=x', horasAtras(3)),
+  ];
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 1, 'link com query virou notícia diferente');
+});
+
+test('na repetição vence a versão que acabou de chegar do feed', () => {
+  const w = carregar();
+  const antigo = [
+    w.imPrepararNoticia(
+      itemFeed('Título com erro de digitacao', 'https://ex.com/a/', horasAtras(3))
+    ),
+  ];
+  const novo = [
+    w.imPrepararNoticia(itemFeed('Título corrigido', 'https://ex.com/a/', horasAtras(3))),
+  ];
+  const junto = w.imMesclar(antigo, novo);
+  assert.equal(junto.length, 1);
+  assert.equal(junto[0].titulo, 'Título corrigido');
+});
+
+test('acervo velho envelhece e sai, mas carga nova entra mesmo com data estranha', () => {
+  const w = carregar();
+  const velho = [
+    w.imPrepararNoticia(
+      itemFeed('Notícia de duas semanas atrás', 'https://ex.com/velha/', horasAtras(24 * 14))
+    ),
+  ];
+  assert.equal(w.imMesclar(velho, []).length, 0, 'notícia de 14 dias deveria sair do acervo');
+
+  // Mesma data, mas vinda AGORA do feed: entra. Data esquisita da fonte não
+  // pode esvaziar a aba.
+  const recemChegada = [
+    w.imPrepararNoticia(
+      itemFeed('Chegou agora com data velha', 'https://ex.com/nova/', horasAtras(24 * 14))
+    ),
+  ];
+  assert.equal(w.imMesclar([], recemChegada).length, 1);
+});
+
+test('acervo respeita o teto e guarda as mais recentes', () => {
+  const w = carregar();
+  const muitos = [];
+  for (let i = 0; i < w.IM_MAX_ACERVO + 30; i++) {
+    muitos.push(
+      w.imPrepararNoticia(
+        itemFeed('Notícia ' + i, 'https://ex.com/n' + i + '/', horasAtras(i * 0.5))
+      )
+    );
+  }
+  const junto = w.imMesclar([], muitos);
+  assert.equal(junto.length, w.IM_MAX_ACERVO);
+  assert.equal(junto[0].titulo, 'Notícia 0', 'a mais recente tem que sobrar');
+  // Array.from: junto vem do vm, e deepEqual (strict) compara protótipo.
+  const ts = Array.from(junto, (n) => n.ts);
+  assert.deepEqual(
+    ts,
+    [...ts].sort((a, b) => b - a)
+  );
+});
+
+test('item sem título é descartado em vez de virar card vazio', () => {
+  const w = carregar();
+  const junto = w.imMesclar([], [w.imPrepararNoticia({ link: 'https://ex.com/x/' })]);
+  assert.equal(junto.length, 0);
+});
+
+// ---- cache: forma compacta e reclassificação --------------------------
+
+test('cache guarda a forma enxuta, sem o rótulo calculado', async () => {
+  const store = makeStorage();
+  const w = carregar({
+    localStorage: store,
+    fetch: async () =>
+      feedComItens([
+        itemFeed('Bitcoin dispara', 'https://ex.com/criptomoedas/a/', horasAtras(2), {
+          description: '<p>A <b>criptomoeda</b> subiu.</p>',
+          categories: ['Criptomoedas'],
+        }),
+      ]),
+  });
+  await w.carregarNoticias(true);
+  const salvo = JSON.parse(store.getItem('im_noticias_cache_v1'));
+  assert.deepEqual(Object.keys(salvo.items[0]).sort(), ['d', 'e', 'l', 'r', 't']);
+  assert.equal(salvo.items[0].r.indexOf('<'), -1, 'resumo salvo sem HTML');
+  assert.deepEqual(Array.from(salvo.items[0].e), ['Criptomoedas']);
+  const bruto = store.getItem('im_noticias_cache_v1');
+  assert.ok(!bruto.includes('cats'), 'rótulo não deve ser congelado no cache');
+});
+
+test('acervo salvo é reclassificado na leitura, com as regras da versão atual', async () => {
+  const store = makeStorage();
+  const w = carregar({
+    localStorage: store,
+    fetch: async () =>
+      feedComItens([
+        itemFeed('Título neutro', 'https://ex.com/x/', horasAtras(2), {
+          categories: ['Criptomoedas'],
+        }),
+      ]),
+  });
+  await w.carregarNoticias(true);
+  // Sessão nova lendo o mesmo storage: o rótulo tem que ser recalculado.
+  const w2 = carregar({ localStorage: store });
+  const cache = w2.imLerCache();
+  assert.equal(cache.items.length, 1);
+  assert.ok(Array.from(cache.items[0].cats).includes('cripto'), 'reclassificação não rodou');
+  assert.equal(cache.items[0].titulo, 'Título neutro');
+});
+
+test('localStorage cheio não derruba a aba — grava metade e segue', async () => {
+  let cheio = true;
+  const store = makeStorage();
+  const original = store.setItem;
+  store.setItem = (k, v) => {
+    // Estoura só na primeira tentativa (acervo inteiro); a metade passa.
+    if (k === 'im_noticias_cache_v1' && cheio) {
+      cheio = false;
+      throw new Error('QuotaExceededError');
+    }
+    return original(k, v);
+  };
+  const itens = [];
+  for (let i = 0; i < 10; i++) {
+    itens.push(itemFeed('Notícia ' + i, 'https://ex.com/n' + i + '/', horasAtras(i)));
+  }
+  const w = carregar({ localStorage: store, fetch: async () => feedComItens(itens) });
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 10, 'a tela não perde nada quando o cache falha');
+  assert.equal(JSON.parse(store.getItem('im_noticias_cache_v1')).items.length, 5);
+});
+
+test('acervo salvo aparece na tela enquanto a rede ainda responde', async () => {
+  const store = makeStorage();
+  const semear = carregar({
+    localStorage: store,
+    fetch: async () =>
+      feedComItens([itemFeed('Notícia guardada', 'https://ex.com/a/', horasAtras(2))]),
+  });
+  await semear.carregarNoticias(true);
+
+  const elementos = {
+    'container-noticias': makeDeadNode(),
+    'loader-noticias': makeDeadNode(),
+    'filtros-noticias': makeDeadNode(),
+    'resumo-noticias': makeDeadNode(),
+    'mais-noticias': makeDeadNode(),
+  };
+  let renderizouAntes = null;
+  const w = carregar({
+    localStorage: store,
+    elementos,
+    fetch: async () => {
+      // No instante do request, o acervo antigo já tem que estar na tela.
+      renderizouAntes = elementos['container-noticias'].innerHTML;
+      return feedComItens([itemFeed('Notícia nova', 'https://ex.com/b/', horasAtras(1))]);
+    },
+  });
+  await w.carregarNoticias(true);
+  assert.ok(/Notícia guardada/.test(renderizouAntes || ''), 'tela ficou vazia esperando a rede');
+  assert.equal(elementos['loader-noticias'].style.display, 'none');
+  assert.equal(w.imNoticias.length, 2);
+});
+
+test('resumo diz quando o acervo foi atualizado', async () => {
+  const elementos = {
+    'container-noticias': makeDeadNode(),
+    'loader-noticias': makeDeadNode(),
+    'filtros-noticias': makeDeadNode(),
+    'resumo-noticias': makeDeadNode(),
+    'mais-noticias': makeDeadNode(),
+  };
+  const w = carregar({
+    elementos,
+    fetch: async () => feedComItens([itemFeed('Notícia', 'https://ex.com/a/', horasAtras(1))]),
+  });
+  await w.carregarNoticias(true);
+  assert.ok(
+    /atualizado agora/.test(elementos['resumo-noticias'].innerHTML),
+    elementos['resumo-noticias'].innerHTML
+  );
+});
+
 // ---- render -----------------------------------------------------------
 
 test('título de notícia é escapado antes de virar HTML', () => {
