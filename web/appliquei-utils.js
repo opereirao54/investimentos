@@ -12,6 +12,7 @@
  *  - Toast notifications (mostrarToast)
  *  - Exportação / Importação de backup (exportarDados, importarDados,
  *    confirmarImportacao)
+ *  - Recomeçar do zero (abrirModalRecomecar, executarRecomecarDoZero)
  *
  * Quando app.js virar module (Onda 4+), este arquivo também migra.
  */
@@ -271,6 +272,218 @@ function confirmarImportacao(dadosStr) {
     fecharModal();
     mostrarToast('Erro ao importar. O arquivo pode estar corrompido.', 'erro');
   }
+}
+
+// --- RECOMEÇAR DO ZERO ---
+//
+// Apaga tudo o que o usuário registrou e devolve a Appliquei ao estado de
+// primeiro uso, sem mexer na conta, na assinatura nem no Applicash.
+//
+// A remoção passa pelo interceptador de `removeItem` (mais abaixo neste
+// arquivo), que avisa o AppliqueiCloudSync: cada chave vira um tombstone com
+// rev, a deleção sobe para o Firestore e alcança os outros aparelhos. Um
+// `localStorage.clear()` aqui limparia só este device — e o próximo pull
+// traria tudo de volta.
+
+// Palavra que o usuário digita para confirmar. Comparada sem acento e sem
+// diferenciar maiúsculas (ver _normalizarConfirmacaoReset).
+var RESET_PALAVRA_CONFIRMACAO = 'RECOMECAR';
+
+// Chaves com prefixo de app que NÃO são anotações do usuário e por isso
+// sobrevivem ao reset: identidade, indicações (vêm do backend) e preferências
+// puramente visuais. Todo o resto em futurorico_*/appliquei_* é apagado —
+// blocklist em vez de allowlist para que uma feature nova entre no reset
+// automaticamente, sem precisar lembrar de atualizar esta lista.
+var RESET_CHAVES_PRESERVADAS = [
+  'appliquei_auth_guest', // estado do gate de autenticação
+  'appliquei_user_id', // id local que gera o cupom de indicação
+  'appliquei_cupom_codigo', // cupom do usuário (vem do backend)
+  'appliquei_applicash_indicacoes',
+  'appliquei_applicash_assinatura',
+  'appliquei_applicash_creditos',
+  'appliquei_applicash_resumo',
+  'appliquei_email_verify_snooze',
+  'appliquei_valores_ocultos', // preferência de UI
+  'appliquei_sidebar_collapsed', // preferência de UI
+];
+
+function _ehChavePreservadaNoReset(key) {
+  if (typeof key !== 'string') return true;
+  // appliquei_cloud_*: metadados do sync (revs e tombstones) e caches globais
+  // como a carteira modelo. Apagar os tombstones faria o pull seguinte
+  // ressuscitar exatamente o que acabamos de apagar.
+  if (key.indexOf('appliquei_cloud_') === 0) return true;
+  return RESET_CHAVES_PRESERVADAS.indexOf(key) !== -1;
+}
+
+// Chaves do localStorage que o "Recomeçar do zero" apaga.
+function listarChavesDoUsuario() {
+  var chaves = [];
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!_ehChaveApp(k)) continue;
+      if (_ehChavePreservadaNoReset(k)) continue;
+      chaves.push(k);
+    }
+  } catch (_) {}
+  return chaves;
+}
+
+// Contagens mostradas na confirmação — o usuário precisa ver o tamanho do
+// estrago antes de aceitar.
+function resumoDadosParaApagar() {
+  function tamanho(chave) {
+    try {
+      var v = JSON.parse(localStorage.getItem(chave) || '[]');
+      return Array.isArray(v) ? v.length : 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+  return {
+    lancamentos: tamanho('futurorico_transacoes'),
+    investimentos: tamanho('futurorico_compras'),
+    contas: tamanho('appliquei_contas'),
+    cartoes: tamanho('futurorico_cartoes'),
+    bens: tamanho('appliquei_bens'),
+    sonhos: tamanho('appliquei_sonhos'),
+  };
+}
+
+function _normalizarConfirmacaoReset(txt) {
+  return String(txt == null ? '' : txt)
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
+}
+
+// Habilita o botão só quando a palavra está digitada. Chamada pelo oninput do
+// campo e uma vez ao abrir o modal (para nascer desabilitado).
+function validarConfirmacaoRecomecar() {
+  var input = document.getElementById('inputConfirmaRecomecar');
+  var btn = document.getElementById('btnConfirmaRecomecar');
+  var ok = _normalizarConfirmacaoReset(input && input.value) === RESET_PALAVRA_CONFIRMACAO;
+  if (btn) {
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.45';
+    btn.style.cursor = ok ? 'pointer' : 'not-allowed';
+  }
+  return ok;
+}
+
+function abrirModalRecomecar() {
+  var modal = document.getElementById('modalConfirmacao');
+  if (!modal) return;
+  // O modal de configurações vem depois no DOM e disputaria o mesmo z-index.
+  if (typeof fecharModalConfig === 'function') fecharModalConfig();
+
+  var r = resumoDadosParaApagar();
+  var itens = [
+    [r.lancamentos, 'lançamento', 'lançamentos'],
+    [r.investimentos, 'investimento', 'investimentos'],
+    [r.contas, 'conta', 'contas'],
+    [r.cartoes, 'cartão', 'cartões'],
+    [r.bens, 'bem', 'bens'],
+    [r.sonhos, 'sonho', 'sonhos'],
+  ]
+    .filter(function (i) {
+      return i[0] > 0;
+    })
+    .map(function (i) {
+      return '<strong>' + i[0] + '</strong> ' + (i[0] === 1 ? i[1] : i[2]);
+    });
+
+  var linhaResumo = itens.length
+    ? 'Hoje você tem ' + itens.join(' · ') + '.'
+    : 'Não encontramos nenhum registro seu para apagar.';
+
+  document.getElementById('modalTitulo').innerHTML =
+    '<i class="ph-fill ph-warning-octagon" style="color: var(--cor-erro);"></i> Recomeçar do zero';
+
+  document.getElementById('modalMensagem').innerHTML =
+    '<span style="display:block;margin-bottom:10px;">' +
+    linhaResumo +
+    '</span>' +
+    'Vamos apagar <strong>tudo o que você registrou</strong> — lançamentos, investimentos, contas, cartões, bens, sonhos, metas, perfil de investidor e progresso da Jornada.<br><br>' +
+    '<span style="display:block;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);color:var(--cor-txt-erro);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +
+    '<i class="ph-fill ph-warning" style="vertical-align:-2px;"></i> <strong>Não dá para desfazer.</strong> Se você usa a Appliquei em mais de um aparelho, todos ficam vazios. ' +
+    'Sua conta, sua assinatura e o Applicash continuam ativos.' +
+    '</span>' +
+    '<label for="inputConfirmaRecomecar" style="display:block;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;">' +
+    'Para confirmar, digite <strong style="font-family:\'DM Mono\',monospace;color:var(--cor-erro);">' +
+    RESET_PALAVRA_CONFIRMACAO +
+    '</strong></label>' +
+    '<input type="text" id="inputConfirmaRecomecar" autocomplete="off" autocapitalize="characters" spellcheck="false" ' +
+    'placeholder="' +
+    RESET_PALAVRA_CONFIRMACAO +
+    '" oninput="validarConfirmacaoRecomecar()" ' +
+    'style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;' +
+    "font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;background:var(--cor-superficie);color:var(--cor-texto-principal);\">";
+
+  // `background` e não `background-color`: .btn-acao pinta um gradiente verde
+  // (background-image), que fica POR CIMA de qualquer background-color inline —
+  // o botão destrutivo sairia idêntico ao "Salvar". O shorthand limpa a imagem.
+  document.getElementById('modalAcoes').innerHTML =
+    '<button class="btn-secundario" onclick="exportarDados()"><i class="ph ph-download-simple"></i> Baixar backup antes</button>' +
+    '<button class="btn-acao" id="btnConfirmaRecomecar" style="background:var(--cor-erro);box-shadow:0 2px 8px rgba(220,38,38,0.25);" onclick="executarRecomecarDoZero()">' +
+    '<i class="ph ph-trash"></i> Apagar tudo e recomeçar</button>';
+
+  modal.style.display = 'flex';
+  validarConfirmacaoRecomecar();
+  // Teclado virtual no mobile cobriria o texto do aviso antes de ser lido.
+  if (!isMobileViewport()) {
+    setTimeout(function () {
+      var input = document.getElementById('inputConfirmaRecomecar');
+      if (input && input.focus) input.focus();
+    }, 150);
+  }
+}
+
+function executarRecomecarDoZero() {
+  if (!validarConfirmacaoRecomecar()) {
+    mostrarToast('Digite ' + RESET_PALAVRA_CONFIRMACAO + ' para confirmar.', 'aviso');
+    return 0;
+  }
+
+  var btn = document.getElementById('btnConfirmaRecomecar');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-circle-notch"></i> Apagando…';
+  }
+
+  var apagadas = 0;
+  listarChavesDoUsuario().forEach(function (k) {
+    try {
+      localStorage.removeItem(k);
+      apagadas++;
+    } catch (_) {}
+  });
+
+  // Empurra as deleções agora, pelos dois caminhos (ambos idempotentes):
+  // o SDK manda FieldValue.delete() por chave; o beacon manda null para
+  // /api/sync/push, que faz LWW por rev no servidor. Se nenhum sair a tempo,
+  // os tombstones ficam em appliquei_cloud_deletions e seguem no próximo boot.
+  try {
+    if (window.AppliqueiCloudSync) {
+      if (typeof AppliqueiCloudSync.forceFlush === 'function') AppliqueiCloudSync.forceFlush();
+      if (typeof AppliqueiCloudSync.beaconNow === 'function') AppliqueiCloudSync.beaconNow();
+    }
+  } catch (_) {}
+
+  mostrarToast('Pronto! Recomeçando a Appliquei do zero…', 'sucesso', 2500);
+
+  // Recarrega em vez de zerar o estado em memória de ~20 módulos (transacoes,
+  // historicoCompras, contas, bens, sonhos, dbCarteira, cartEstado…): o boot
+  // relê tudo do localStorage já vazio. A espera também dá tempo do push sair.
+  setTimeout(function () {
+    try {
+      window.location.reload();
+    } catch (_) {}
+  }, 1500);
+
+  return apagadas;
 }
 
 function isMobileViewport() {

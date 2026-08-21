@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
+    <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
+         ignora o manifest e só olha apple-touch-icon + as metas apple-*.
+         Ícones gerados por scripts/gen-app-icons.js. -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/appliquei-apple-touch-180.png">
+    <meta name="theme-color" content="#059669">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Appliquei">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="Appliquei">
     <title>Appliquei - Gestão Financeira Inteligente</title>
     <script>
         (function () {
@@ -351,13 +362,17 @@
         .btn-theme:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-theme i { font-size: 16px; }
 
+        .btn-config { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
+        .btn-config:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+        .btn-config i { font-size: 16px; }
+
         .btn-eye { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
         .btn-eye:hover { border-color: var(--cor-borda2); color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .btn-eye i { font-size: 16px; }
         .btn-eye.ativo { color: var(--cor-primaria); border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
         .sidebar-quick-actions { display: flex; gap: 6px; padding: 4px 4px 10px; }
-        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme { flex: none; width: 28px; height: 28px; border-radius: 8px; }
-        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i { font-size: 14px; }
+        .sidebar-quick-actions .btn-eye, .sidebar-quick-actions .btn-theme, .sidebar-quick-actions .btn-config { flex: none; width: 28px; height: 28px; border-radius: 8px; }
+        .sidebar-quick-actions .btn-eye i, .sidebar-quick-actions .btn-theme i, .sidebar-quick-actions .btn-config i { font-size: 14px; }
         .sidebar.collapsed .sidebar-quick-actions { display: none; }
 
         /* Mascaramento estilo banco: borra valores quando .valores-ocultos no body */
@@ -2821,6 +2836,53 @@
             -webkit-overflow-scrolling: touch;
             touch-action: pan-y pinch-zoom;
         }
+
+
+        /* ===== Modal do sonho: firme no celular ==========================
+           Sintoma: no telemóvel a tela do formulário "andava para os lados".
+           Causa: o Safari do iOS dá ZOOM automático ao focar um campo com
+           fonte menor que 16px. Depois do zoom o viewport fica mais largo que
+           a tela e a página inteira passa a arrastar na horizontal — não é o
+           modal que se mexe, é a página por baixo dele.
+           16px desliga o zoom na origem. É a correção acessível: mexer no
+           <meta viewport> com maximum-scale=1 também resolveria, mas tira o
+           pinch-zoom de quem precisa dele.
+           Vários campos deste modal trazem font-size inline, que ganha de
+           regra de folha de estilo — daí o !important. */
+        @media (max-width: 768px) {
+            #modalSonho input,
+            #modalSonho select,
+            #modalSonho textarea {
+                font-size: 16px !important;
+            }
+            /* Campos com 16px pedem mais largura útil que os 28px de padding
+               deixavam sobrar numa tela de 375px. */
+            #modalSonho > div {
+                padding: 20px;
+                /* vh no telemóvel mede a viewport MAIOR (barra de endereço
+                   escondida): com a barra à vista, ou com o teclado aberto,
+                   88vh passa do que dá para ver e o topo do card fica
+                   inalcançável, já que o overlay não rola. dvh acompanha a
+                   área realmente visível. Navegador sem dvh ignora a linha e
+                   fica com o 88vh inline. */
+                max-height: 88dvh !important;
+            }
+        }
+
+        /* O card rola só na vertical, e não empurra a página por baixo
+           (overscroll-behavior corta o encadeamento do scroll). pan-y bloqueia
+           o arrasto lateral mantendo o pinch-zoom disponível. */
+        #modalSonho {
+            overflow: hidden;
+            overscroll-behavior: contain;
+        }
+        #modalSonho > div {
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y pinch-zoom;
+        }
+
 
         .sonho-body {
             display: grid; grid-template-columns: 1fr 260px;
@@ -5374,9 +5436,9 @@
     </div>
 
     <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
-        <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;">
-            <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Metas & Limites</h3>
-            <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Defina seus limites de gastos e metas de saldo.</p>
+        <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+            <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Configurações</h3>
+            <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Cartões, limites de gastos e metas de saldo.</p>
 
             <div style="margin-bottom:18px;">
                 <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Meus cartões de crédito</label>
@@ -5396,9 +5458,33 @@
                 </div>
                 <button class="btn-secundario" id="btnAbrirNovoCartao" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovoCartaoConfig()"><i class="ph ph-plus"></i> Adicionar cartão</button>
             </div>
+            <div style="margin-bottom:18px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Categorias de despesa</label>
+                <div id="listaCategoriasConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:264px;overflow-y:auto;"></div>
+                <div id="formCategoriaConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
+                    <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:8px;" id="tituloFormCategoriaConfig">Nova categoria</div>
+                    <div style="display:flex;gap:8px;align-items:center;">
+                        <button type="button" id="categoriaDespesaNovaEmojiBtnConfig" onclick="toggleEmojiPickerCategoria('Config')" title="Escolher emoji" style="flex:0 0 auto;width:40px;height:38px;display:flex;align-items:center;justify-content:center;font-size:18px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-branco);cursor:pointer;line-height:1;">🏷️</button>
+                        <input type="text" id="categoriaDespesaNovaConfig" placeholder="Ex: Viagens" maxlength="40" style="flex:1 1 auto;width:100%;padding:8px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-branco);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                    </div>
+                    <input type="hidden" id="categoriaDespesaNovaEmojiConfig" value="🏷️">
+                    <div id="categoriaDespesaEmojiPickerConfig" style="display:none;margin-top:8px;flex-wrap:wrap;gap:6px;border:1px solid var(--cor-borda);border-radius:9px;padding:8px;background:var(--cor-branco);"></div>
+                    <div style="display:flex;gap:6px;margin-top:10px;">
+                        <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarCategoriaConfig()">Cancelar</button>
+                        <button class="btn-acao" id="btnSalvarCategoriaConfig" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarCategoriaConfig()"><i class="ph ph-check"></i> Adicionar</button>
+                    </div>
+                </div>
+                <button class="btn-secundario" id="btnAbrirNovaCategoria" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovaCategoriaConfig()"><i class="ph ph-plus"></i> Adicionar categoria</button>
+            </div>
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
+            </div>
+
+            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Recomeçar do zero</label>
+                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
+                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-erro);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
             </div>
 
             <div style="display:flex;gap:10px;">
@@ -5600,6 +5686,7 @@
             <div class="sidebar-quick-actions">
                 <button class="btn-eye" onclick="toggleValoresOcultos()" title="Ocultar valores" data-tooltip="Ocultar valores"><i class="ph ph-eye"></i></button>
                 <button class="btn-theme" onclick="toggleDarkMode()" title="Alternar tema" data-tooltip="Alternar tema"><i class="ph ph-sun" id="iconTheme"></i></button>
+                <button class="btn-config" onclick="abrirModalConfig()" title="Configurações" data-tooltip="Configurações"><i class="ph ph-gear"></i></button>
             </div>
             <div class="sidebar-auth-mini" id="sidebarAuthMini">
                 <span class="sa-email" id="sidebarAuthEmail" title="">Conta</span>
@@ -5919,7 +6006,7 @@
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
-                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Metas</button>
+                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>
@@ -7211,12 +7298,15 @@
 
             <!-- MODAL CADASTRO/EDIÇÃO DE SONHO -->
             <div id="modalSonho" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalSonho()">
-                <div style="max-width:520px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
+                <div style="max-width:520px;width:calc(100% - 24px);margin:12px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:20px;">
                         <h3 id="tituloModalSonho" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-shooting-star" style="color:var(--cor-primaria);"></i> <span>Cadastrar novo sonho</span></h3>
                         <button class="drawer-fechar" onclick="fecharModalSonho()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
 
+                    <!-- Passo 1: os dados do sonho. Passo 2 (prévia) é montado
+                         por renderPreviaSonho() em web/appliquei-sonhos.js. -->
+                    <div id="sonhoPasso1">
                     <div class="form-group">
                         <label>Qual o seu sonho?</label>
                         <input type="text" id="sonhoNome" placeholder="Ex: Viagem dos sonhos para Europa">
@@ -7299,10 +7389,17 @@
                         </div>
                         <input type="hidden" id="sonhoEsforco" value="medio">
                     </div>
+                    </div><!-- /sonhoPasso1 -->
 
-                    <div style="display:flex;gap:10px;margin-top:22px;">
+                    <div id="sonhoPasso2" style="display:none;"></div>
+
+                    <div id="sonhoAcoesPasso1" style="display:flex;gap:10px;margin-top:22px;">
                         <button class="btn-secundario" style="flex:1;" onclick="fecharModalSonho()">Cancelar</button>
-                        <button class="btn-acao" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="salvarSonho()"><i class="ph-bold ph-shooting-star"></i> Salvar sonho</button>
+                        <button class="btn-acao" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="irParaPreviaSonho()">Ver prévia do plano <i class="ph-bold ph-arrow-right"></i></button>
+                    </div>
+                    <div id="sonhoAcoesPasso2" style="display:none;gap:10px;margin-top:22px;">
+                        <button class="btn-secundario" style="flex:1;" onclick="voltarParaFormularioSonho()"><i class="ph-bold ph-arrow-left"></i> Ajustar</button>
+                        <button class="btn-acao" id="btnConfirmarSonho" style="flex:1;background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);" onclick="salvarSonho()"><i class="ph-bold ph-shooting-star"></i> Criar sonho</button>
                     </div>
                 </div>
             </div>
