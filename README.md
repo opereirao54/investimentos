@@ -76,7 +76,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   ├── admin/{action,stats}.js   # Painel admin (token estático)
 │   ├── auth/resend-verification.js
 │   ├── billing/{init,subscribe,cancel,me,card,customer,webhook}.js
-│   ├── market.js                 # Dispatcher: ?op=quote|history|warmup
+│   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|rendafixa|warmup
 │   └── sync/push.js              # Beacon endpoint para mobile freeze
 ├── web/                          # JS frontend (modular: 23 arquivos)
 │   ├── appliquei-firebase-init.js    # ES module — bootstrap Firebase
@@ -90,6 +90,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   ├── appliquei-aba1-charts.js      # Classic — charts da Meus Investimentos
 │   ├── appliquei-{sonhos,patrimonio,jornada,relatorio-mensal,…}.js  # Features
 │   ├── appliquei-admin.js            # Classic — lógica do admin.html
+│   ├── appliquei-motor-carteira.js   # Classic — motor de score + alocação (puro, sem DOM)
 │   ├── appliquei-yahoo-finance.js    # Classic — proxy multi-fallback de cotações
 │   ├── appliquei-renda-fixa.js       # Classic — projeção CDI/Selic/IPCA
 │   ├── appliquei-previdencia.js      # Classic — recorrência mensal
@@ -116,20 +117,20 @@ Automático via Vercel quando push em `main`. PRs geram preview deploys.
 
 Variáveis de ambiente (Vercel Project Settings → Environment Variables):
 
-| Variável                          | Obrigatória | Descrição                                              |
-| --------------------------------- | ----------- | ------------------------------------------------------ |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                         |
-| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                       |
-| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                            |
-| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                             |
-| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`) |
-| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`              |
-| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                |
-| `BRAPI_TOKEN`                     | opt         | Cotações renda variável (free tier sem token)          |
-| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)              |
-| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail       |
-| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init` |
-| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP              |
+| Variável                          | Obrigatória | Descrição                                                         |
+| --------------------------------- | ----------- | ----------------------------------------------------------------- |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                                    |
+| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                                  |
+| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                                       |
+| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                                        |
+| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`)            |
+| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`                         |
+| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                           |
+| `BRAPI_TOKEN`                     | opt         | Cotações RV + fundamentos do motor (ver `docs/MOTOR-CARTEIRA.md`) |
+| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)                         |
+| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail                  |
+| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init`            |
+| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP                         |
 
 Para Sentry browser, edite no HTML:
 
@@ -147,6 +148,7 @@ Para Sentry browser, edite no HTML:
 - **CRÍTICO**: classic scripts NÃO podem usar `let`/`const` no top-level — viram script-scoped (invisíveis a outros arquivos). Use `var`. Test `classic-scripts-globals.test.js` enforce isso.
 - **Idempotência do webhook**: `body.id` é a chave; eventos repetidos viram no-op via `webhookEvents/<id>` doc com TTL.
 - **LWW por-chave** no sync localStorage ↔ Firestore: cada chave tem `keyRev` (timestamp local) que decide quem ganha em merge.
+- **Motor da Carteira Recomendada** (`web/appliquei-motor-carteira.js`): pontua ativos por 5 pilares e monta o plano de aporte. Puro — sem DOM, rede ou Firebase — para rodar em `node --test`. Os dados vêm de `api/market?op=fundamentals` (BRAPI/CoinGecko) e `?op=rendafixa` (Tesouro Direto). Ver `docs/MOTOR-CARTEIRA.md`.
 
 ## Documentação
 

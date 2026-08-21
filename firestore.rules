@@ -121,6 +121,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Fundamentos (BRAPI/CoinGecko) e taxas do Tesouro que alimentam o motor
+    // da Carteira Recomendada. Mesma postura do cache de cotações: só o
+    // Admin SDK escreve e lê, o cliente chega via /api/market. Ler daqui
+    // direto pelo SDK do cliente devolveria o cache inteiro do sistema.
+    match /marketFundamentals/{ticker} {
+      allow read: if false;
+      allow write: if false;
+    }
+
+    match /marketRendaFixa/{docId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // Dúvidas & Sugestões: feedback do utilizador roteado para o painel
     // admin. O cliente CRIA a própria sugestão (uid carimbado = auth.uid)
     // e LÊ apenas as suas (para ver a resposta do consultor). A resposta

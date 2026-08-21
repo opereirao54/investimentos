@@ -147,9 +147,28 @@ var dbCarteira = cartCarregarDB();
 // ── Estado da sessão ──
 var cartEstado = {
   perfil: null, // 'Conservador' | 'Moderado' | 'Arrojado'
-  capital: 10000,
+  capital: 10000, // aporte mensal
+  objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
+  prazoAnos: 10,
+  patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
+  lente: null, // null = derivada do objetivo
   selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
   simRange: '3y',
+};
+
+// ── Estado do motor de recomendação ──
+// Separado de cartEstado porque NÃO é preferência do utilizador: é cache de
+// dados de mercado, e persistir isto no localStorage guardaria fundamentos
+// vencidos que reapareceriam como se fossem de hoje.
+var cartMotor = {
+  carregando: false,
+  fundamentos: {},
+  titulosRf: [],
+  ranking: [],
+  plano: null,
+  erro: null,
+  buscadoEm: null,
+  origemRf: null,
 };
 
 // ── Chart instances ──
@@ -170,6 +189,10 @@ function carregarCarteiraCliente() {
   if (saved && saved.perfil) {
     cartEstado.perfil = saved.perfil;
     cartEstado.capital = saved.capital || 10000;
+    cartEstado.objetivo = saved.objetivo || null;
+    cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
+    cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
+    cartEstado.lente = saved.lente || null;
     cartEstado.selecionados = saved.selecionados || {
       rf: null,
       acao: null,
@@ -225,6 +248,10 @@ function cartSalvarEstado() {
     JSON.stringify({
       perfil: cartEstado.perfil,
       capital: cartEstado.capital,
+      objetivo: cartEstado.objetivo,
+      prazoAnos: cartEstado.prazoAnos,
+      patrimonio: cartEstado.patrimonio,
+      lente: cartEstado.lente,
       selecionados: cartEstado.selecionados,
     })
   );
@@ -240,6 +267,8 @@ function cartMostrarQuestionario() {
   document.getElementById('cartCallout').style.display = 'none';
   document.getElementById('cartSelecaoWrap').style.display = 'none';
   document.getElementById('cartSimCard').style.display = 'none';
+  const motorWrap = document.getElementById('cartMotorWrap');
+  if (motorWrap) motorWrap.style.display = 'none';
 
   // Wire up option buttons
   document.querySelectorAll('.cart-q-opt').forEach((btn) => {
@@ -251,6 +280,40 @@ function cartMostrarQuestionario() {
       this.classList.add('selected');
     };
   });
+
+  // "Editar perfil" reabre este mesmo formulário. Repor as respostas
+  // anteriores evita que mexer no aporte custe responder tudo de novo.
+  cartPreencherQuestionario();
+}
+
+/** Repõe no formulário as respostas já guardadas (quando existem). */
+function cartPreencherQuestionario() {
+  function marcar(q, val) {
+    if (val == null) return;
+    const alvo = document.querySelector(`.cart-q-opt[data-q="${q}"][data-val="${val}"]`);
+    if (!alvo) return;
+    document
+      .querySelectorAll(`.cart-q-opt[data-q="${q}"]`)
+      .forEach((b) => b.classList.remove('selected'));
+    alvo.classList.add('selected');
+  }
+  marcar('objetivo', cartEstado.objetivo);
+  marcar('prazo', cartEstado.prazoAnos);
+
+  const capital = document.getElementById('cartQCapital');
+  if (capital && cartEstado.capital > 0) {
+    capital.value = cartEstado.capital.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  const patrimonio = document.getElementById('cartQPatrimonio');
+  if (patrimonio && cartEstado.patrimonio != null) {
+    patrimonio.value = cartEstado.patrimonio.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 }
 
 function cartConcluirQuestionario() {
@@ -271,7 +334,17 @@ function cartConcluirQuestionario() {
   }
 
   cartEstado.perfil = perfil;
+  cartEstado.objetivo = objetivo;
+  var prazoEl = document.querySelector('.cart-q-opt[data-q="prazo"].selected');
+  cartEstado.prazoAnos = prazoEl ? parseFloat(prazoEl.dataset.val) : 10;
   cartEstado.capital = parseBRL(document.getElementById('cartQCapital').value) || 10000;
+  var patrimonioEl = document.getElementById('cartQPatrimonio');
+  var patrimonioDigitado = patrimonioEl ? parseBRL(patrimonioEl.value) : 0;
+  // Campo em branco continua null (o motor usa o patrimônio real da aba Meu
+  // Patrimônio); zero digitado é uma resposta legítima de quem está a começar.
+  cartEstado.patrimonio =
+    patrimonioEl && patrimonioEl.value.trim() !== '' ? patrimonioDigitado : null;
+  cartEstado.lente = null;
   cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
   cartSalvarEstado();
 
@@ -282,6 +355,8 @@ function cartConcluirQuestionario() {
 function cartEditarPerfil() {
   cartEstado.perfil = null;
   cartSalvarEstado();
+  // Fundamentos continuam válidos: o que muda é o perfil, não o mercado.
+  // Invalidar o cache aqui gastaria cota da API a cada ajuste de aporte.
   cartMostrarQuestionario();
 }
 
@@ -316,6 +391,7 @@ function cartRenderizarTela() {
   cartRenderizarEdu();
   cartRenderizarDonut();
   cartRenderizarSelecaoGrid();
+  cartRenderizarMotor();
   cartIniciarSimulacao();
 }
 
@@ -323,11 +399,7 @@ function cartRenderizarTela() {
 // EDUCATIONAL PANEL
 // ════════════════════════════════
 function cartRenderizarEdu() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const list = document.getElementById('cartEduList');
   list.innerHTML = '';
 
@@ -355,11 +427,7 @@ function cartRenderizarEdu() {
 // DONUT CHART
 // ════════════════════════════════
 function cartRenderizarDonut() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const capital = cartEstado.capital;
 
   const classes = ['rf', 'acao', 'fii', 'cripto'].filter((c) => (alloc[c] || 0) > 0);
@@ -452,11 +520,7 @@ function cartFmtShort(v) {
 // ASSET SELECTION GRID
 // ════════════════════════════════
 function cartRenderizarSelecaoGrid() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const capital = cartEstado.capital;
   const grid = document.getElementById('cartSelecaoGrid');
   grid.innerHTML = '';
@@ -544,6 +608,7 @@ function cartToggleAtivo(classe, ticker) {
   cartSalvarEstado();
   cartRenderizarSelecaoGrid();
   cartRenderizarDonut();
+  cartRecalcularMotor();
 }
 
 // ════════════════════════════════
@@ -575,11 +640,7 @@ async function cartCarregarSimulacao() {
   if (kpisEl) kpisEl.innerHTML = '';
 
   const range = cartEstado.simRange;
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
 
   // Tickers representativos por classe (proxy de retorno)
   const proxies = {
@@ -969,4 +1030,597 @@ function inferirClasse(ticker, nome) {
   if (n.includes('etf') || t === 'BOVA11' || t === 'IVVB11' || t === 'SMAL11' || t === 'HASH11')
     return 'etf';
   return 'acao';
+}
+
+// ════════════════════════════════════════════════════════════
+// MOTOR DE RECOMENDAÇÃO
+// ════════════════════════════════════════════════════════════
+//
+// Esta secção liga a tela ao web/appliquei-motor-carteira.js. A divisão de
+// trabalho é: o motor decide, aqui só se busca dado e se desenha resultado.
+//
+// A alocação macro deixou de sair direto de dbCarteira.alocacoes[perfil]:
+// passa por cartAlocacaoAlvo(), que aplica objetivo e prazo por cima da
+// carteira modelo publicada. Sem isso, responder "renda passiva em 20 anos"
+// ou "preservar capital em 1 ano" dava exatamente a mesma tela.
+
+/** Alocação-alvo por classe, já ajustada por objetivo e prazo. */
+function cartAlocacaoAlvo() {
+  var p = cartEstado.perfil || 'Moderado';
+  var base =
+    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
+    CART_ALLOC_DEFAULT[p] ||
+    CART_ALLOC_DEFAULT.Moderado;
+  if (typeof motorDistribuicaoClasses !== 'function') return base;
+  try {
+    return motorDistribuicaoClasses({
+      perfil: p,
+      objetivo: cartEstado.objetivo,
+      prazoAnos: cartEstado.prazoAnos,
+      base: base,
+    }).alocacao;
+  } catch (e) {
+    console.warn('[carteira] alocação-alvo falhou, usando base:', e.message);
+    return base;
+  }
+}
+
+/** Lente ativa: escolha explícita do utilizador, senão a derivada do objetivo. */
+function cartLenteAtiva() {
+  if (cartEstado.lente && MOTOR_LENTES[cartEstado.lente]) return cartEstado.lente;
+  return MOTOR_LENTE_POR_OBJETIVO[cartEstado.objetivo] || 'equilibrio';
+}
+
+async function cartTokenFirebase() {
+  if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth().currentUser)
+    return null;
+  return firebase.auth().currentUser.getIdToken();
+}
+
+/**
+ * Patrimônio já investido, por classe do motor.
+ *
+ * Vem da aba Meu Patrimônio quando ela tem dados — é o número real, e é o
+ * que faz o motor mandar o aporte para a classe que está atrasada em vez de
+ * repetir a proporção-alvo todo mês. O campo do questionário só entra como
+ * substituto quando não há carteira registada.
+ */
+function cartPatrimonioPorClasse() {
+  var out = { rf: 0, acao: 0, fii: 0, cripto: 0 };
+  var temDados = false;
+  try {
+    if (typeof mpConsolidar === 'function') {
+      var cons = mpConsolidar() || {};
+      var exib = cons.porCategoriaExibicao || {};
+      var mapa = {
+        renda_fixa: 'rf',
+        reserva_emergencia: 'rf',
+        previdencia: 'rf',
+        acoes: 'acao',
+        bdrs: 'acao',
+        etfs: 'acao',
+        fiis: 'fii',
+        cripto: 'cripto',
+      };
+      Object.keys(exib).forEach(function (k) {
+        var destino = mapa[k];
+        var valor = exib[k] && exib[k].atual;
+        if (!destino || !(valor > 0)) return;
+        out[destino] += valor;
+        temDados = true;
+      });
+    }
+  } catch (e) {
+    console.warn('[carteira] patrimônio por classe indisponível:', e.message);
+  }
+  if (temDados) return { valores: out, origem: 'carteira' };
+
+  // Sem carteira registada: distribui o valor informado pela alocação-alvo.
+  // Assim o rebalanceamento não inventa um desvio que não se sabe existir.
+  var informado = cartEstado.patrimonio;
+  if (!(informado > 0)) return { valores: null, origem: 'nenhum' };
+  var alvo = cartAlocacaoAlvo();
+  var proporcional = { rf: 0, acao: 0, fii: 0, cripto: 0 };
+  MOTOR_CLASSES.forEach(function (c) {
+    proporcional[c] = (informado * (alvo[c] || 0)) / 100;
+  });
+  return { valores: proporcional, origem: 'informado' };
+}
+
+/** Ativos publicados na carteira modelo que o utilizador não desmarcou. */
+function cartUniversoBase() {
+  var out = [];
+  MOTOR_CLASSES.forEach(function (classe) {
+    var ativos =
+      (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
+    var sel = cartEstado.selecionados[classe];
+    ativos.forEach(function (a) {
+      if (!a || !a.ticker) return;
+      if (sel && sel.indexOf(a.ticker) === -1) return;
+      out.push({ ticker: a.ticker, nome: a.nome || a.ticker, obs: a.obs || '', classe: classe });
+    });
+  });
+  return out;
+}
+
+function cartNormalizarNome(v) {
+  return String(v || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '');
+}
+
+/** Casa um item de renda fixa da carteira modelo com o título do Tesouro. */
+function cartCasarTesouro(ativo, titulos) {
+  var alvoTicker = cartNormalizarNome(ativo.ticker);
+  var alvoNome = cartNormalizarNome(ativo.nome);
+  for (var i = 0; i < titulos.length; i++) {
+    var t = titulos[i];
+    var tk = cartNormalizarNome(t.ticker);
+    var nm = cartNormalizarNome(t.nome);
+    if (tk === alvoTicker || nm === alvoNome || nm === alvoTicker || tk === alvoNome) return t;
+  }
+  return null;
+}
+
+/** Busca fundamentos (BRAPI/CoinGecko) e taxas do Tesouro para o universo. */
+async function cartBuscarDadosMotor(universo) {
+  var token = await cartTokenFirebase();
+  if (!token) throw new Error('Sessão expirada — entre novamente para o motor buscar os dados.');
+
+  var tickers = universo
+    .filter(function (a) {
+      return a.classe !== 'rf';
+    })
+    .map(function (a) {
+      return a.ticker;
+    });
+
+  var fundamentos = {};
+  var lotes = [];
+  for (var i = 0; i < tickers.length; i += 50) lotes.push(tickers.slice(i, i + 50));
+
+  var precisaRf = universo.some(function (a) {
+    return a.classe === 'rf';
+  });
+
+  var respostas = await Promise.all(
+    lotes
+      .map(function (lote) {
+        return fetch('/api/market?op=fundamentals&tickers=' + encodeURIComponent(lote.join(',')), {
+          headers: { Authorization: 'Bearer ' + token },
+        }).then(function (r) {
+          return r.json();
+        });
+      })
+      .concat(
+        precisaRf
+          ? [
+              fetch('/api/market?op=rendafixa', {
+                headers: { Authorization: 'Bearer ' + token },
+              })
+                .then(function (r) {
+                  return r.json();
+                })
+                // Tesouro fora do ar não pode derrubar o motor inteiro: as
+                // outras classes continuam com dado e a RF cai para score
+                // neutro, sinalizado no rodapé.
+                .catch(function () {
+                  return { titulos: [], erroRf: true };
+                }),
+            ]
+          : []
+      )
+  );
+
+  var titulosRf = [];
+  respostas.forEach(function (r) {
+    if (!r) return;
+    if (r.fundamentos) Object.assign(fundamentos, r.fundamentos);
+    if (r.titulos) titulosRf = r.titulos;
+  });
+
+  return { fundamentos: fundamentos, titulosRf: titulosRf };
+}
+
+/** Junta carteira modelo + fundamentos num universo pronto para pontuar. */
+function cartMontarUniverso(base, fundamentos, titulosRf) {
+  return base.map(function (a) {
+    var dados = { ticker: a.ticker, nome: a.nome, classe: a.classe, obs: a.obs };
+    if (a.classe === 'rf') {
+      var t = cartCasarTesouro(a, titulosRf || []);
+      if (t) Object.assign(dados, t, { ticker: a.ticker, nome: a.nome, classe: 'rf' });
+    } else {
+      var f = fundamentos[a.ticker];
+      if (f) {
+        Object.assign(dados, f, {
+          ticker: a.ticker,
+          // Nome da carteira modelo vence o da BRAPI: é o que o consultor
+          // escreveu e o que o utilizador reconhece na tela.
+          nome: a.nome,
+          classe: a.classe,
+        });
+      }
+    }
+    return dados;
+  });
+}
+
+// ── Render ──
+
+function cartCorScore(score) {
+  if (score >= 80) return '#059669';
+  if (score >= 65) return '#0891b2';
+  if (score >= 50) return '#d97706';
+  return '#dc2626';
+}
+
+function cartFmtNota(n) {
+  if (n === null || n === undefined) return '—';
+  return n.toFixed(1).replace('.', ',');
+}
+
+// Contador de execução: trocar de lente ou desmarcar ativo dispara um novo
+// render enquanto o anterior ainda está no ar. Sem isto, a resposta lenta da
+// primeira chamada sobrescreve o resultado da segunda.
+var cartMotorSeq = 0;
+
+function cartRenderizarMotorLentes() {
+  var wrap = document.getElementById('cartMotorLentes');
+  if (!wrap) return;
+  var ativa = cartLenteAtiva();
+  wrap.innerHTML = Object.keys(MOTOR_LENTES)
+    .map(function (id) {
+      var l = MOTOR_LENTES[id];
+      return (
+        '<button type="button" class="cart-motor-lente-btn' +
+        (id === ativa ? ' active' : '') +
+        '" data-lente="' +
+        id +
+        '" onclick="cartTrocarLente(\'' +
+        id +
+        '\')" title="' +
+        l.resumo.replace(/"/g, '&quot;') +
+        '">' +
+        l.nome +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+function cartTrocarLente(id) {
+  if (!MOTOR_LENTES[id]) return;
+  cartEstado.lente = id;
+  cartSalvarEstado();
+  cartRenderizarMotorLentes();
+  cartRecalcularMotor();
+}
+
+/** Recalcula ranking e plano com os fundamentos já em memória (sem rede). */
+function cartRecalcularMotor() {
+  if (!cartMotor.buscadoEm) return;
+  var base = cartUniversoBase();
+  var universo = cartMontarUniverso(base, cartMotor.fundamentos, cartMotor.titulosRf);
+  cartMotor.ranking = motorRanquear(universo, { lente: cartLenteAtiva() });
+  var patr = cartPatrimonioPorClasse();
+  cartMotor.origemPatrimonio = patr.origem;
+  cartMotor.plano = motorPlanoAporte({
+    aporteMensal: cartEstado.capital,
+    alocacaoAlvo: cartAlocacaoAlvo(),
+    ranking: cartMotor.ranking,
+    patrimonioAtual: patr.valores,
+  });
+  cartRenderizarMotorStatus();
+  cartRenderizarMotorPlano(cartMotor.plano);
+  cartRenderizarMotorRanking(cartMotor.ranking);
+}
+
+async function cartRenderizarMotor(forcar) {
+  var wrap = document.getElementById('cartMotorWrap');
+  if (!wrap) return;
+  // O motor vem de outro <script>. Se ele falhar ao carregar, o resto da
+  // aba (educação, donut, simulação) continua a funcionar sem esta secção —
+  // melhor do que uma exceção a cada abertura da aba.
+  if (typeof motorRanquear !== 'function') {
+    wrap.style.display = 'none';
+    console.warn('[carteira] motor não carregado — secção de recomendação escondida.');
+    return;
+  }
+  wrap.style.display = 'block';
+  cartRenderizarMotorLentes();
+
+  // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
+  if (cartMotor.buscadoEm && !forcar) return cartRecalcularMotor();
+  if (cartMotor.carregando) return;
+
+  var seq = ++cartMotorSeq;
+  cartMotor.carregando = true;
+  cartMotor.erro = null;
+  var status = document.getElementById('cartMotorStatus');
+  if (status)
+    status.innerHTML =
+      '<i class="ph ph-circle-notch ph-spin"></i> Buscando indicadores de mercado…';
+
+  try {
+    var base = cartUniversoBase();
+    var dados = await cartBuscarDadosMotor(base);
+    if (seq !== cartMotorSeq) return;
+    cartMotor.fundamentos = dados.fundamentos;
+    cartMotor.titulosRf = dados.titulosRf;
+    cartMotor.buscadoEm = Date.now();
+    cartMotor.carregando = false;
+    cartRecalcularMotor();
+  } catch (e) {
+    if (seq !== cartMotorSeq) return;
+    cartMotor.carregando = false;
+    cartMotor.erro = e.message;
+    console.warn('[carteira/motor] falhou:', e.message);
+    // Sem dado de mercado o motor ainda ordena e distribui — só que com
+    // score neutro. Mostrar a carteira com aviso é melhor do que uma aba
+    // vazia, desde que fique explícito que a nota não vale nada aqui.
+    cartMotor.buscadoEm = Date.now();
+    cartMotor.fundamentos = {};
+    cartMotor.titulosRf = [];
+    cartRecalcularMotor();
+  }
+}
+
+function cartAtualizarMotor() {
+  cartMotor.buscadoEm = null;
+  cartRenderizarMotor(true);
+}
+
+function cartRenderizarMotorStatus() {
+  var el = document.getElementById('cartMotorStatus');
+  if (!el) return;
+  var ranking = cartMotor.ranking || [];
+  var comDado = ranking.filter(function (a) {
+    return a.cobertura > 0;
+  }).length;
+  var coberturaMedia = ranking.length
+    ? ranking.reduce(function (s, a) {
+        return s + a.cobertura;
+      }, 0) / ranking.length
+    : 0;
+
+  var partes = [];
+  var lente = MOTOR_LENTES[cartLenteAtiva()];
+  partes.push(
+    '<span class="cart-motor-status-item"><i class="ph ph-funnel"></i> Lente <strong>' +
+      lente.nome +
+      '</strong></span>'
+  );
+  partes.push(
+    '<span class="cart-motor-status-item"><i class="ph ph-database"></i> ' +
+      comDado +
+      ' de ' +
+      ranking.length +
+      ' ativos com indicadores (' +
+      Math.round(coberturaMedia * 100) +
+      '% de cobertura média)</span>'
+  );
+  if (cartMotor.origemPatrimonio === 'carteira')
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Rebalanceando com base na sua carteira atual</span>'
+    );
+  else if (cartMotor.origemPatrimonio === 'informado')
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Patrimônio informado no questionário</span>'
+    );
+
+  var alerta = '';
+  if (cartMotor.erro) {
+    alerta =
+      '<div class="cart-motor-alerta erro"><i class="ph ph-warning-circle"></i> ' +
+      'Não foi possível buscar os indicadores (' +
+      cartMotor.erro +
+      '). Os scores abaixo estão neutros — a divisão por classe continua válida.</div>';
+  } else if (coberturaMedia < 0.25) {
+    alerta =
+      '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
+      'Cobertura de indicadores baixa. Os scores foram puxados para a média por precaução — ' +
+      'com um plano de dados fundamentalistas na fonte de mercado, a diferenciação entre ativos aumenta.</div>';
+  }
+
+  el.innerHTML =
+    '<div class="cart-motor-status-linha">' +
+    partes.join('') +
+    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
+    '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
+    alerta;
+}
+
+function cartRenderizarMotorPlano(plano) {
+  var el = document.getElementById('cartMotorPlano');
+  if (!el || !plano) return;
+
+  var colunas = MOTOR_CLASSES.map(function (classe) {
+    var c = plano.classes[classe];
+    if (!c) return '';
+    var pct = c.pct || 0;
+    var itens = c.itens || [];
+    var linhas = itens.length
+      ? itens
+          .map(function (it) {
+            var qtd =
+              it.quantidade != null && it.unidade
+                ? '<span class="cart-plano-qtd">' +
+                  (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
+                  '</span>'
+                : '';
+            return (
+              '<li class="cart-plano-item">' +
+              '<span class="cart-plano-score" style="background:' +
+              cartCorScore(it.score) +
+              ';">' +
+              it.score +
+              '</span>' +
+              '<span class="cart-plano-body">' +
+              '<span class="cart-plano-ticker">' +
+              it.ticker +
+              '</span>' +
+              '<span class="cart-plano-nome">' +
+              (it.nome || '') +
+              '</span>' +
+              '</span>' +
+              '<span class="cart-plano-right">' +
+              '<span class="cart-plano-vlr">' +
+              formatarMoeda(it.valorInvestido) +
+              '</span>' +
+              qtd +
+              '</span>' +
+              '</li>'
+            );
+          })
+          .join('')
+      : '<li class="cart-classe-empty">Sem alocação nesta classe</li>';
+
+    return (
+      '<div class="cart-classe-col cart-classe-' +
+      classe +
+      (pct === 0 ? ' dimmed' : '') +
+      '">' +
+      '<div class="cart-classe-col-header">' +
+      '<div class="cart-classe-col-name"><i class="ph ' +
+      CART_ICONS[classe] +
+      '"></i> ' +
+      CART_NOMES[classe] +
+      '</div>' +
+      '<div class="cart-classe-col-meta">' +
+      '<span class="cart-classe-col-pct">' +
+      pct +
+      '%</span>' +
+      '<span class="cart-classe-col-vlr">' +
+      formatarMoeda(c.alvo) +
+      '</span>' +
+      '</div></div>' +
+      '<ul class="cart-classe-list">' +
+      linhas +
+      '</ul>' +
+      '<div class="cart-classe-col-footer">' +
+      '<span class="lbl">' +
+      (c.sobra > 0.009 ? 'Sobra de caixa:' : 'Total alocado:') +
+      '</span>' +
+      '<span class="val">' +
+      formatarMoeda(c.sobra > 0.009 ? c.sobra : c.investido) +
+      '</span></div>' +
+      '</div>'
+    );
+  }).join('');
+
+  var avisos = (plano.avisos || []).length
+    ? '<div class="cart-motor-avisos">' +
+      plano.avisos
+        .map(function (a) {
+          return '<div><i class="ph ph-info"></i> ' + a + '</div>';
+        })
+        .join('') +
+      '</div>'
+    : '';
+
+  el.innerHTML =
+    '<div class="cart-plano-resumo">' +
+    '<div><span class="lbl">Aporte do mês</span><span class="val">' +
+    formatarMoeda(plano.aporte) +
+    '</span></div>' +
+    '<div><span class="lbl">Distribuído</span><span class="val">' +
+    formatarMoeda(plano.totalInvestido) +
+    '</span></div>' +
+    '<div><span class="lbl">Sobra para o próximo aporte</span><span class="val">' +
+    formatarMoeda(plano.sobra) +
+    '</span></div>' +
+    '</div>' +
+    '<div class="cart-selecao-grid">' +
+    colunas +
+    '</div>' +
+    avisos;
+}
+
+function cartRenderizarMotorRanking(ranking) {
+  var el = document.getElementById('cartMotorRanking');
+  if (!el) return;
+  if (!ranking || !ranking.length) {
+    el.innerHTML =
+      '<div class="cart-classe-empty">Nenhum ativo no universo da carteira modelo.</div>';
+    return;
+  }
+
+  el.innerHTML = ranking
+    .map(function (a) {
+      var barras = MOTOR_PILARES.map(function (chave) {
+        var p = a.pilares[chave];
+        var nota = p && p.nota;
+        var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+        return (
+          '<div class="cart-pilar" title="' +
+          p.nome +
+          ': ' +
+          cartFmtNota(nota) +
+          '/10">' +
+          '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
+          (nota == null ? ' vazio' : '') +
+          '" style="height:' +
+          altura +
+          '%;background:' +
+          (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
+          ';"></div></div>' +
+          '<div class="cart-pilar-nota">' +
+          cartFmtNota(nota) +
+          '</div>' +
+          '<div class="cart-pilar-nome">' +
+          p.nome +
+          '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      var alertas = (a.alertas || []).length
+        ? '<ul class="cart-score-alertas">' +
+          a.alertas
+            .map(function (t) {
+              return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
+            })
+            .join('') +
+          '</ul>'
+        : '';
+
+      return (
+        '<div class="cart-score-card">' +
+        '<div class="cart-score-head">' +
+        '<span class="cart-score-pos">#' +
+        a.posicao +
+        '</span>' +
+        '<span class="cart-score-id">' +
+        '<span class="cart-score-ticker">' +
+        a.ticker +
+        '</span>' +
+        '<span class="cart-score-nome">' +
+        (a.nome || '') +
+        ' · ' +
+        CART_NOMES[a.classe] +
+        '</span>' +
+        '</span>' +
+        '<span class="cart-score-badge" style="background:' +
+        cartCorScore(a.score) +
+        ';">' +
+        a.score +
+        '<small>/100</small></span>' +
+        '</div>' +
+        '<div class="cart-pilares">' +
+        barras +
+        '</div>' +
+        '<div class="cart-score-just">' +
+        motorJustificativa(a) +
+        ' <span class="cart-score-conf conf-' +
+        a.confianca +
+        '">confiança ' +
+        a.confianca +
+        '</span></div>' +
+        alertas +
+        '</div>'
+      );
+    })
+    .join('');
 }

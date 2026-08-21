@@ -84,6 +84,13 @@ let newsCache = { at: 0, items: null, failed: [] };
 // Mapa range -> meses (para corte e cache key).
 const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
 
+// Premissas anuais dos ativos sem série de preço própria (Tesouro, CDI) e
+// dos benchmarks sintéticos. Ficam aqui, e não dentro de quem usa, porque
+// duas telas dependem delas: a simulação histórica desenha as curvas com
+// estes números e a renda fixa converte taxa nominal em real com os mesmos.
+// Divergir seria a mesma tela mostrar dois CDIs diferentes.
+const PREMISSAS_ANUAIS = { CDI: 0.1325, SELIC: 0.1325, IBOV: 0.095, IFIX: 0.082, IPCA: 0.045 };
+
 function todayYmdBRT(now = Date.now()) {
   // BRT = UTC-3 (sem DST). Formata yyyy-mm-dd no fuso BRT.
   const brt = new Date(now - 3 * 3600 * 1000);
@@ -227,7 +234,7 @@ async function fetchHistorySource(ticker, range) {
   const upper = ticker.toUpperCase();
 
   // Synthetic benchmarks/RF — usa premissas estáveis pra simulação histórica.
-  const SYNTH = { CDI: 0.1325, SELIC: 0.1325, IBOV: 0.095, IFIX: 0.082, IPCA: 0.045 };
+  const SYNTH = PREMISSAS_ANUAIS;
   if (SYNTH[upper] != null) return buildSyntheticSeries(upper, SYNTH[upper], months);
   if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, 0.1325, months);
   if (upper.startsWith('TESOURO_IPCA')) return buildSyntheticSeries(upper, 0.115, months);
@@ -667,6 +674,694 @@ async function handleNews(req, res) {
   }
 }
 
+// ============================================================
+// === op=fundamentals — indicadores para o motor da carteira ===
+// ============================================================
+//
+// O motor da Carteira Recomendada (web/appliquei-motor-carteira.js) pontua
+// cada ativo a partir de indicadores fundamentalistas. Este bloco é quem os
+// busca e, principalmente, quem os NORMALIZA: a BRAPI devolve razão em uns
+// campos (returnOnEquity = 0.185) e percentagem em outros (debtToEquity =
+// 45.3), e alguns indicadores que o motor usa não existem em campo nenhum —
+// precisam ser derivados (dívida líquida/EBITDA, CAGR, payout, DY médio).
+//
+// Fazer isto no servidor e não no browser é deliberado:
+//   - a conversão fica num lugar só, testável sem DOM;
+//   - o cache poupa a cota da BRAPI (grátis ~15k req/mês);
+//   - o cliente recebe sempre o mesmo contrato, mesmo quando a fonte muda.
+//
+// Cobertura parcial é o caso NORMAL, não erro: o plano grátis da BRAPI não
+// devolve os módulos financeiros e vários campos chegam null. O motor lida
+// com isso (encolhe o score na direção da média conforme a cobertura cai),
+// então aqui devolvemos o que houver com `cobertura` explícita em vez de
+// falhar a requisição inteira.
+
+const FUNDAMENTALS_COLLECTION = 'marketFundamentals';
+const RF_COLLECTION = 'marketRendaFixa';
+const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
+const RF_TTL_MS = 12 * 60 * 60 * 1000;
+const BRAPI_MODULES = 'summaryProfile,defaultKeyStatistics,financialData,incomeStatementHistory';
+
+// Endpoint público que alimenta o site do Tesouro Direto. É a única fonte
+// oficial e leve de taxas correntes — o CSV do Tesouro Transparente traz a
+// série histórica inteira (dezenas de MB), inviável numa serverless.
+const TESOURO_URL =
+  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+
+// Ano de lançamento das criptos suportadas. A CoinGecko só devolve
+// genesis_date no endpoint por moeda (1 request cada) — para 10 símbolos
+// conhecidos, tabela estática sai mais barato e não expira.
+const CRYPTO_GENESIS = {
+  BTC: 2009,
+  ETH: 2015,
+  SOL: 2020,
+  ADA: 2017,
+  BNB: 2017,
+  XRP: 2012,
+  DOT: 2020,
+  AVAX: 2020,
+  LINK: 2017,
+  MATIC: 2019,
+};
+
+function fundNum(v) {
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Campos que a BRAPI devolve como razão (0.185 = 18,5%). */
+function fundRazaoParaPct(v) {
+  const n = fundNum(v);
+  return n === null ? null : n * 100;
+}
+
+function fundDiv(a, b) {
+  const x = fundNum(a);
+  const y = fundNum(b);
+  if (x === null || y === null || y === 0) return null;
+  return x / y;
+}
+
+function fundCagr(inicial, final, anos) {
+  const i = fundNum(inicial);
+  const f = fundNum(final);
+  if (i === null || f === null || i <= 0 || f <= 0 || !(anos > 0)) return null;
+  return (Math.pow(f / i, 1 / anos) - 1) * 100;
+}
+
+function fundAnosEntre(msInicio, msFim) {
+  if (!msInicio || !msFim || msFim <= msInicio) return null;
+  return (msFim - msInicio) / (365.25 * 24 * 3600 * 1000);
+}
+
+function fundData(v) {
+  if (!v) return null;
+  const t = typeof v === 'number' ? v * (v < 1e11 ? 1000 : 1) : Date.parse(v);
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Agrega o histórico de proventos num punhado de indicadores.
+ *
+ * `cashDividends` da BRAPI vem como lista de pagamentos avulsos. Para ação
+ * são alguns por ano; para FII é mensal — e é justamente a regularidade
+ * mensal que interessa pontuar, por isso `consistencia` conta MESES com
+ * pagamento nos últimos 24, não pagamentos totais.
+ */
+function fundAgregarDividendos(lista, preco, agora) {
+  const vazio = {
+    dividendos12m: null,
+    dividendos12mAnterior: null,
+    dy: null,
+    dyMedio5a: null,
+    dyMedio36m: null,
+    anosPagandoDividendo: null,
+    consistenciaDividendos: null,
+    crescimentoDividendo12m: null,
+  };
+  if (!Array.isArray(lista) || !lista.length) return vazio;
+  const hoje = agora || Date.now();
+  const ANO = 365.25 * 24 * 3600 * 1000;
+
+  const pagamentos = [];
+  for (const d of lista) {
+    const valor = fundNum(d && (d.rate != null ? d.rate : d.value));
+    const quando = fundData(d && (d.paymentDate || d.date || d.approvedOn || d.lastDatePrior));
+    if (valor === null || valor <= 0 || quando === null) continue;
+    pagamentos.push({ valor, quando });
+  }
+  if (!pagamentos.length) return vazio;
+
+  function somaJanela(deMs, ateMs) {
+    let s = 0;
+    let houve = false;
+    for (const p of pagamentos) {
+      if (p.quando > deMs && p.quando <= ateMs) {
+        s += p.valor;
+        houve = true;
+      }
+    }
+    return houve ? s : null;
+  }
+
+  const d12 = somaJanela(hoje - ANO, hoje);
+  const d12ant = somaJanela(hoje - 2 * ANO, hoje - ANO);
+  const d60 = somaJanela(hoje - 5 * ANO, hoje);
+  const d36 = somaJanela(hoje - 3 * ANO, hoje);
+
+  const anos = new Set();
+  for (const p of pagamentos) {
+    if (p.quando >= hoje - 21 * ANO) anos.add(new Date(p.quando).getUTCFullYear());
+  }
+
+  const mesesComPagamento = new Set();
+  for (const p of pagamentos) {
+    if (p.quando > hoje - 2 * ANO && p.quando <= hoje) {
+      const dt = new Date(p.quando);
+      mesesComPagamento.add(dt.getUTCFullYear() + '-' + dt.getUTCMonth());
+    }
+  }
+
+  const p = fundNum(preco);
+  // DY médio usa o preço de hoje sobre o dividendo médio dos anos passados.
+  // É aproximação — o correto seria o preço de cada época, que a BRAPI não
+  // devolve junto do provento. Serve para comparar ativos entre si na mesma
+  // data, que é o uso no ranking.
+  const dyDe = (soma, anosJanela) =>
+    soma !== null && p !== null && p > 0 ? (soma / anosJanela / p) * 100 : null;
+
+  return {
+    dividendos12m: d12,
+    dividendos12mAnterior: d12ant,
+    dy: dyDe(d12, 1),
+    dyMedio5a: dyDe(d60, 5),
+    dyMedio36m: dyDe(d36, 3),
+    anosPagandoDividendo: anos.size || null,
+    consistenciaDividendos: mesesComPagamento.size ? (mesesComPagamento.size / 24) * 100 : null,
+    crescimentoDividendo12m:
+      d12 !== null && d12ant !== null && d12ant > 0 ? (d12 / d12ant - 1) * 100 : null,
+  };
+}
+
+/** CAGR de receita e lucro a partir do histórico de DRE anual da BRAPI. */
+function fundCrescimentoDre(historico) {
+  const out = { cagrReceita5a: null, cagrLucro5a: null, anosDre: 0 };
+  if (!Array.isArray(historico) || historico.length < 2) return out;
+  const linhas = historico
+    .map((h) => ({
+      quando: fundData(h && (h.endDate || h.date)),
+      receita: fundNum(h && (h.totalRevenue != null ? h.totalRevenue : h.revenue)),
+      lucro: fundNum(h && (h.netIncome != null ? h.netIncome : h.netIncomeFromContinuingOps)),
+    }))
+    .filter((l) => l.quando !== null)
+    .sort((a, b) => a.quando - b.quando);
+  if (linhas.length < 2) return out;
+
+  const primeira = linhas[0];
+  const ultima = linhas[linhas.length - 1];
+  const anos = fundAnosEntre(primeira.quando, ultima.quando);
+  out.anosDre = linhas.length;
+  out.cagrReceita5a = fundCagr(primeira.receita, ultima.receita, anos);
+  out.cagrLucro5a = fundCagr(primeira.lucro, ultima.lucro, anos);
+  return out;
+}
+
+/**
+ * Um resultado da BRAPI -> o contrato de indicadores que o motor consome.
+ * Toda chave ausente vira null de propósito: o motor distingue "sem dado"
+ * de "dado ruim", e um zero fabricado aqui viraria nota zero lá.
+ */
+function mapBrapiFundamental(r, agora) {
+  const stats = (r && r.defaultKeyStatistics) || {};
+  const fin = (r && r.financialData) || {};
+  const perfil = (r && r.summaryProfile) || {};
+  const preco = fundNum(r && r.regularMarketPrice);
+  const marketCap = fundNum(r && r.marketCap);
+
+  const pvp =
+    fundNum(r && r.priceToBook) !== null ? fundNum(r.priceToBook) : fundNum(stats.priceToBook);
+  const patrimonioLiquido = pvp !== null && pvp > 0 && marketCap !== null ? marketCap / pvp : null;
+
+  const caixa = fundNum(fin.totalCash);
+  const dividaBruta = fundNum(fin.totalDebt);
+  const dividaLiquida = dividaBruta !== null ? dividaBruta - (caixa || 0) : null;
+  const ebitda = fundNum(fin.ebitda);
+
+  const divPl =
+    dividaLiquida !== null && patrimonioLiquido !== null && patrimonioLiquido > 0
+      ? dividaLiquida / patrimonioLiquido
+      : fundNum(fin.debtToEquity) !== null
+        ? fundNum(fin.debtToEquity) / 100
+        : null;
+
+  const dividendos = fundAgregarDividendos(
+    r && r.dividendsData && r.dividendsData.cashDividends,
+    preco,
+    agora
+  );
+  const lpa =
+    fundNum(r && r.earningsPerShare) !== null
+      ? fundNum(r.earningsPerShare)
+      : fundNum(stats.trailingEps);
+  const payout =
+    dividendos.dividendos12m !== null && lpa !== null && lpa > 0
+      ? (dividendos.dividendos12m / lpa) * 100
+      : null;
+
+  const dre = fundCrescimentoDre(r && r.incomeStatementHistory);
+  const volume = fundNum(r && r.regularMarketVolume);
+
+  const dados = {
+    ticker: r && r.symbol ? String(r.symbol).toUpperCase() : null,
+    nome: (r && (r.longName || r.shortName)) || null,
+    setor: perfil.sector || perfil.industry || null,
+    preco,
+    marketCap,
+    patrimonioLiquido,
+
+    pl:
+      fundNum(r && r.priceEarnings) !== null ? fundNum(r.priceEarnings) : fundNum(stats.trailingPE),
+    pvp,
+    evEbitda: fundNum(stats.enterpriseToEbitda),
+
+    dy: dividendos.dy,
+    dyMedio5a: dividendos.dyMedio5a,
+    dyMedio36m: dividendos.dyMedio36m,
+    payout,
+    anosPagandoDividendo: dividendos.anosPagandoDividendo,
+    consistenciaDividendos: dividendos.consistenciaDividendos,
+    crescimentoDividendo12m: dividendos.crescimentoDividendo12m,
+
+    cagrReceita5a: dre.cagrReceita5a,
+    cagrLucro5a: dre.cagrLucro5a,
+    crescimentoReceitaAno: fundRazaoParaPct(fin.revenueGrowth),
+
+    dividaLiquidaEbitda: ebitda !== null && ebitda > 0 ? fundDiv(dividaLiquida, ebitda) : null,
+    dividaLiquidaPl: divPl,
+    liquidezCorrente: fundNum(fin.currentRatio),
+
+    roe: fundRazaoParaPct(fin.returnOnEquity),
+    roic: null, // BRAPI não expõe ROIC; ROA no lugar seria outro indicador.
+    margemLiquida: fundRazaoParaPct(fin.profitMargins),
+    margemEbitda: fundRazaoParaPct(fin.ebitdaMargins),
+    liquidezDiaria: volume !== null && preco !== null ? volume * preco : null,
+  };
+  return dados;
+}
+
+/** Fração dos indicadores da classe que vieram preenchidos. */
+function fundCobertura(dados, chaves) {
+  if (!chaves || !chaves.length) return 0;
+  let preenchidos = 0;
+  for (const k of chaves) if (dados[k] !== null && dados[k] !== undefined) preenchidos++;
+  return preenchidos / chaves.length;
+}
+
+const CHAVES_ACAO = [
+  'pl',
+  'pvp',
+  'evEbitda',
+  'dy',
+  'dyMedio5a',
+  'payout',
+  'anosPagandoDividendo',
+  'cagrReceita5a',
+  'cagrLucro5a',
+  'crescimentoReceitaAno',
+  'dividaLiquidaEbitda',
+  'dividaLiquidaPl',
+  'liquidezCorrente',
+  'roe',
+  'margemLiquida',
+  'liquidezDiaria',
+];
+
+const CHAVES_CRIPTO = ['marketCap', 'volume24h', 'anosExistencia', 'retorno12m'];
+
+function ehCripto(t) {
+  return Object.prototype.hasOwnProperty.call(CRYPTO_MAP, t);
+}
+
+async function fetchBrapiFundamentals(tickers) {
+  if (!tickers.length) return {};
+  const params = new URLSearchParams({
+    fundamental: 'true',
+    dividends: 'true',
+    modules: BRAPI_MODULES,
+  });
+  const url = `${BRAPI_BASE}/${encodeURIComponent(tickers.join(','))}?${params}`;
+  const token = process.env.BRAPI_TOKEN;
+  const headers = { Accept: 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 12000);
+  let res;
+  try {
+    res = await fetch(url, { headers, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`brapi_${res.status}: ${body.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  const out = {};
+  const agora = Date.now();
+  for (const r of json.results || []) {
+    if (!r || !r.symbol) continue;
+    const d = mapBrapiFundamental(r, agora);
+    d.cobertura = fundCobertura(d, CHAVES_ACAO);
+    d.fonte = 'brapi';
+    out[d.ticker] = d;
+  }
+  return out;
+}
+
+/** Indicadores de cripto via CoinGecko (mesma fonte já usada no histórico). */
+async function fetchCoingeckoFundamentals(simbolos) {
+  if (!simbolos.length) return {};
+  const ids = simbolos.map((s) => CRYPTO_MAP[s]).filter(Boolean);
+  if (!ids.length) return {};
+  const url =
+    `${COINGECKO_BASE}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(ids.join(','))}` +
+    `&price_change_percentage=1y&sparkline=false`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`coingecko_${res.status}`);
+  const json = await res.json();
+  const porId = {};
+  for (const c of Array.isArray(json) ? json : []) if (c && c.id) porId[c.id] = c;
+
+  const anoAtual = new Date().getUTCFullYear();
+  const out = {};
+  for (const s of simbolos) {
+    const c = porId[CRYPTO_MAP[s]];
+    if (!c) continue;
+    const genesis = CRYPTO_GENESIS[s];
+    const d = {
+      ticker: s,
+      nome: c.name || s,
+      classe: 'cripto',
+      setor: null,
+      preco: fundNum(c.current_price),
+      marketCap: fundNum(c.market_cap),
+      volume24h: fundNum(c.total_volume),
+      retorno12m: fundNum(c.price_change_percentage_1y_in_currency),
+      anosExistencia: genesis ? anoAtual - genesis : null,
+      volatilidade30d: null,
+      fonte: 'coingecko',
+    };
+    d.cobertura = fundCobertura(d, CHAVES_CRIPTO);
+    out[s] = d;
+  }
+  return out;
+}
+
+async function handleFundamentals(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const rawTickers = (req.query.tickers || '').toString();
+  const requested = Array.from(
+    new Set(
+      rawTickers
+        .split(',')
+        .map((t) =>
+          String(t || '')
+            .trim()
+            .toUpperCase()
+        )
+        .filter(Boolean)
+        .map((t) => (ehCripto(t) ? t : sanitizeTicker(t)))
+        .filter(Boolean)
+    )
+  ).slice(0, MAX_TICKERS_PER_REQUEST);
+
+  if (!requested.length) {
+    return res
+      .status(400)
+      .json({ error: 'missing_tickers', detail: 'Use ?op=fundamentals&tickers=BBAS3,MXRF11,BTC' });
+  }
+
+  const agora = Date.now();
+  const database = db();
+  const refs = requested.map((t) => database.collection(FUNDAMENTALS_COLLECTION).doc(t));
+  const snaps = await database.getAll(...refs);
+  const fresh = {};
+  const stale = [];
+  snaps.forEach((snap, i) => {
+    const t = requested[i];
+    const d = snap.data();
+    if (d && typeof d.fetchedAtMs === 'number' && agora - d.fetchedAtMs < FUNDAMENTALS_TTL_MS) {
+      fresh[t] = d;
+    } else {
+      stale.push(t);
+    }
+  });
+
+  let fetched = {};
+  const erros = [];
+  if (stale.length) {
+    const criptos = stale.filter(ehCripto);
+    const bolsa = stale.filter((t) => !ehCripto(t));
+    const [resBolsa, resCripto] = await Promise.all([
+      bolsa.length
+        ? fetchBrapiFundamentals(bolsa).catch((e) => {
+            erros.push({ fonte: 'brapi', erro: e.message });
+            return {};
+          })
+        : Promise.resolve({}),
+      criptos.length
+        ? fetchCoingeckoFundamentals(criptos).catch((e) => {
+            erros.push({ fonte: 'coingecko', erro: e.message });
+            return {};
+          })
+        : Promise.resolve({}),
+    ]);
+    fetched = { ...resBolsa, ...resCripto };
+
+    const batch = database.batch();
+    let gravou = 0;
+    for (const t of Object.keys(fetched)) {
+      batch.set(
+        database.collection(FUNDAMENTALS_COLLECTION).doc(t),
+        {
+          ...fetched[t],
+          fetchedAtMs: agora,
+          dateYmd: todayYmdBRT(agora),
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+      gravou++;
+    }
+    if (gravou) {
+      await batch
+        .commit()
+        .catch((e) => console.warn('[market/fundamentals] cache_write_failed', e.message));
+    }
+  }
+
+  const fundamentos = {};
+  const indisponiveis = [];
+  for (const t of requested) {
+    if (fresh[t]) fundamentos[t] = { ...fresh[t], cached: true };
+    else if (fetched[t]) fundamentos[t] = { ...fetched[t], cached: false };
+    else indisponiveis.push(t);
+  }
+
+  return res.json({
+    success: true,
+    today: todayYmdBRT(agora),
+    requested: requested.length,
+    fromCache: Object.keys(fresh).length,
+    fromApi: Object.keys(fetched).length,
+    indisponiveis,
+    fundamentos,
+    erros,
+  });
+}
+
+// ============================================================
+// === op=rendafixa — taxas correntes do Tesouro Direto ===
+// ============================================================
+//
+// Renda fixa não tem "ticker" nem cotação: o que define o ativo é a taxa
+// contratada hoje. Sem esta op, a classe com maior peso na carteira de um
+// Conservador seria a única sem dado real por trás do score.
+//
+// As taxas chegam em bases diferentes conforme o título (IPCA+ traz a taxa
+// REAL, prefixado traz a nominal, Selic traz um spread sobre a Selic), e o
+// motor precisa de tudo na mesma régua. A conversão usa as premissas de
+// PREMISSAS_ANUAIS — as mesmas curvas sintéticas da simulação histórica,
+// para as duas telas não discordarem entre si.
+
+function rfClassificarTipo(nome) {
+  const n = String(nome || '').toLowerCase();
+  if (n.includes('ipca')) return 'ipca';
+  if (n.includes('selic')) return 'selic';
+  if (n.includes('renda+') || n.includes('renda +')) return 'ipca';
+  if (n.includes('educa+') || n.includes('educa +')) return 'ipca';
+  if (n.includes('prefixado')) return 'prefixado';
+  return 'outro';
+}
+
+/**
+ * Um título do Tesouro -> indicadores da classe `rf` do motor.
+ *
+ * `taxa` é sempre o número que o Tesouro publica para aquele título; o que
+ * ele significa depende do tipo, e é isso que esta função resolve.
+ */
+function mapTesouroTitulo(bruto, premissas) {
+  const ipca = (premissas && premissas.IPCA) != null ? premissas.IPCA * 100 : 4.5;
+  const cdi = (premissas && premissas.CDI) != null ? premissas.CDI * 100 : 13.25;
+  const selic = (premissas && premissas.SELIC) != null ? premissas.SELIC * 100 : cdi;
+
+  const nome = bruto.nome;
+  const taxa = fundNum(bruto.taxa);
+  if (!nome || taxa === null) return null;
+  const tipo = rfClassificarTipo(nome);
+
+  let taxaRealAnual = null;
+  let taxaNominal = null;
+  if (tipo === 'ipca') {
+    taxaRealAnual = taxa;
+    taxaNominal = ((1 + taxa / 100) * (1 + ipca / 100) - 1) * 100;
+  } else if (tipo === 'selic') {
+    taxaNominal = selic + taxa;
+    taxaRealAnual = ((1 + taxaNominal / 100) / (1 + ipca / 100) - 1) * 100;
+  } else {
+    taxaNominal = taxa;
+    taxaRealAnual = ((1 + taxa / 100) / (1 + ipca / 100) - 1) * 100;
+  }
+
+  const n = nome.toLowerCase();
+  const comCupom = n.includes('juros semestrais') || n.includes('renda+') || n.includes('educa+');
+
+  return {
+    ticker: bruto.ticker,
+    nome,
+    classe: 'rf',
+    tipo,
+    vencimento: bruto.vencimento || null,
+    precoUnitario: fundNum(bruto.precoUnitario),
+    investimentoMinimo: fundNum(bruto.investimentoMinimo),
+    taxaContratada: taxa,
+    taxaNominalAnual: taxaNominal,
+    taxaRealAnual,
+    premioSobreCdi: cdi > 0 && taxaNominal !== null ? (taxaNominal / cdi) * 100 : null,
+    geraRendaPeriodica: comCupom ? 1 : 0,
+    riscoEmissor: 10, // Tesouro Nacional: menor risco de crédito do mercado local.
+    liquidezDias: 1, // Recompra diária garantida pelo Tesouro (D+1).
+    isentoIR: 0, // Tributado pela tabela regressiva.
+    fonte: 'tesouro_direto',
+  };
+}
+
+/**
+ * Extrai a lista de títulos da resposta do Tesouro.
+ *
+ * Os nomes de campo daquele endpoint são abreviados e já mudaram de forma
+ * antes (`TrsrBdTradgList` / `TrsrBd`), então cada campo é procurado em mais
+ * de um caminho e um título malformado é descartado sozinho, sem derrubar
+ * os outros.
+ */
+function parseTesouroResposta(json) {
+  const lista =
+    (json && json.response && json.response.TrsrBdTradgList) ||
+    (json && json.TrsrBdTradgList) ||
+    (Array.isArray(json) ? json : []) ||
+    [];
+  const out = [];
+  for (const item of lista) {
+    const bd = (item && (item.TrsrBd || item.trsrBd)) || item || {};
+    const nome = bd.nm || bd.name || bd.nome || null;
+    const taxa = bd.anulInvstmtRate != null ? bd.anulInvstmtRate : bd.annualInvestmentRate;
+    if (!nome || fundNum(taxa) === null) continue;
+    out.push({
+      ticker: String(nome)
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, ''),
+      nome,
+      taxa,
+      vencimento: bd.mtrtyDt || bd.maturityDate || null,
+      precoUnitario: bd.untrInvstmtVal != null ? bd.untrInvstmtVal : bd.unitaryInvestmentValue,
+      investimentoMinimo: bd.minInvstmtAmt != null ? bd.minInvstmtAmt : bd.minimumInvestmentAmount,
+    });
+  }
+  return out;
+}
+
+async function fetchTesouroDireto() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(TESOURO_URL, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`tesouro_${res.status}`);
+  const json = await res.json();
+  const brutos = parseTesouroResposta(json);
+  if (!brutos.length) throw new Error('tesouro_formato_inesperado');
+  return brutos.map((b) => mapTesouroTitulo(b, PREMISSAS_ANUAIS)).filter(Boolean);
+}
+
+async function handleRendaFixa(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(RF_COLLECTION).doc('tesouroDireto');
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+
+  if (cache && typeof cache.fetchedAtMs === 'number' && agora - cache.fetchedAtMs < RF_TTL_MS) {
+    return res.json({
+      success: true,
+      cached: true,
+      fetchedAt: cache.fetchedAtMs,
+      premissas: cache.premissas || PREMISSAS_ANUAIS,
+      titulos: cache.titulos || [],
+    });
+  }
+
+  let titulos;
+  try {
+    titulos = await fetchTesouroDireto();
+  } catch (e) {
+    console.warn('[market/rendafixa] tesouro_failed', e.message);
+    // Cache vencido ainda vale mais do que classe vazia na tela: taxa de
+    // ontem erra na terceira casa, ausência de taxa zera o score da classe.
+    if (cache && cache.titulos) {
+      return res.json({
+        success: true,
+        cached: true,
+        stale: true,
+        fetchedAt: cache.fetchedAtMs,
+        premissas: cache.premissas || PREMISSAS_ANUAIS,
+        titulos: cache.titulos,
+        erro: e.message,
+      });
+    }
+    return res.status(502).json({ error: 'tesouro_indisponivel', detail: e.message });
+  }
+
+  await ref
+    .set(
+      {
+        titulos,
+        premissas: PREMISSAS_ANUAIS,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/rendafixa] cache_write_failed', e.message));
+
+  return res.json({
+    success: true,
+    cached: false,
+    fetchedAt: agora,
+    premissas: PREMISSAS_ANUAIS,
+    titulos,
+  });
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -687,12 +1382,20 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleNews(req, res);
     }
+    if (op === 'fundamentals') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleFundamentals(req, res);
+    }
+    if (op === 'rendafixa') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleRendaFixa(req, res);
+    }
     if (op === 'warmup') {
       return handleWarmup(req, res);
     }
     return res.status(400).json({
       error: 'unknown_op',
-      detail: 'Use ?op=quote, ?op=history, ?op=news or ?op=warmup',
+      detail: 'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=rendafixa or ?op=warmup',
     });
   },
 });
@@ -711,4 +1414,16 @@ module.exports.__test = {
   NEWS_SOURCES,
   NEWS_MAX_PER_FEED,
   NEWS_MAX_ITEMS,
+  // Normalização de fundamentos: transforma resposta de terceiro em
+  // indicador do motor. Pura, sem rede nem Firestore — a parte com mais
+  // conversão de unidade e mais chance de errar em silêncio.
+  fundAgregarDividendos,
+  fundCrescimentoDre,
+  fundCobertura,
+  mapBrapiFundamental,
+  mapTesouroTitulo,
+  parseTesouroResposta,
+  rfClassificarTipo,
+  PREMISSAS_ANUAIS,
+  CHAVES_ACAO,
 };
