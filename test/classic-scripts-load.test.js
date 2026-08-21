@@ -31,6 +31,7 @@ const LOAD_ORDER = [
   'web/appliquei-aba1-charts.js',
   'web/appliquei-renda-fixa.js',
   'web/appliquei-previdencia.js',
+  'web/appliquei-inss.js',
   'web/appliquei-aba-simulador.js',
   'web/appliquei-aba-carteira-recomendada.js',
   'web/appliquei-aba-info-mercado.js',

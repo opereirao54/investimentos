@@ -31,6 +31,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-aba1-charts.js', indent: '' },
   { file: 'web/appliquei-renda-fixa.js', indent: '' },
   { file: 'web/appliquei-previdencia.js', indent: '' },
+  { file: 'web/appliquei-inss.js', indent: '' },
   { file: 'web/appliquei-aba-simulador.js', indent: '' },
   { file: 'web/appliquei-aba-carteira-recomendada.js', indent: '' },
   { file: 'web/appliquei-aba-info-mercado.js', indent: '' },
