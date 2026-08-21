@@ -89,6 +89,7 @@ module.exports = [
       'web/appliquei-combobox.js',
       'web/appliquei-contas.js',
       'web/appliquei-utils.js',
+      'web/appliquei-inss.js',
       'web/appliquei-aba-simulador.js',
       'web/appliquei-aba-carteira-recomendada.js',
       'web/appliquei-aba-info-mercado.js',

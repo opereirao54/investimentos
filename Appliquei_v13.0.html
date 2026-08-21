@@ -408,9 +408,12 @@
         body.valores-ocultos #simulador #outTotalInvestido,
         body.valores-ocultos #simulador #outLucro,
         body.valores-ocultos #simulador #outRendaPassiva,
-        body.valores-ocultos #simulador #inssOutMontante,
-        body.valores-ocultos #simulador #inssOutInvestido,
-        body.valores-ocultos #simulador #inssOutJuros,
+        body.valores-ocultos #simulador #inssOutBeneficio,
+        body.valores-ocultos #simulador #inssOutReal,
+        body.valores-ocultos #simulador #inssOutContribuicao,
+        body.valores-ocultos #simulador #inssOutTotalPago,
+        body.valores-ocultos #simulador #legINSSReposicao,
+        body.valores-ocultos #simulador #legINSSLacuna,
         body.valores-ocultos #simulador #metaAporteMensal,
         body.valores-ocultos #simulador #metaAlvo,
         body.valores-ocultos #simulador #metaOutAportado,
@@ -6540,11 +6543,43 @@
                         </div>
                     </div>
                 </div>
+            
+                <!-- Parâmetros do lado INSS. Separados de propósito: a contribuição
+                     sai da RENDA (com teto), não do aporte que a pessoa investe. -->
+                <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--cor-borda);">
+                    <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Para comparar com o INSS</div>
+                    <div style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;margin-bottom:14px;">A contribuição não sai do quanto você investe — sai da sua renda, e trava no teto de <strong id="lblTetoInss">R$ 8.475,55</strong>. <span id="lblTabelaInss">Tabela 2026.</span></div>
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Sua renda mensal bruta (R$)</label>
+                            <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simRenda" value="3500" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Como você contribui</label>
+                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
+                            <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Anos que você já contribuiu</label>
+                            <input type="number" id="simAnosContrib" value="0" min="0" max="60" oninput="calcularSimulador()">
+                            <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Somados ao período acima. É o que decide se você atinge o tempo mínimo.</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Regra que se aplica a você</label>
+                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
+                                <option value="mulher">Mulher — 62 anos, 15 de contribuição</option>
+                                <option value="homem">Homem — 65 anos, 20 de contribuição</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div style="background:linear-gradient(135deg,#059669 0%,#047857 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;">
                 <div>
-                    <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">Você terá a mais — investindo vs. INSS</div>
+                    <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">A mais por mês — investindo vs. INSS</div>
                     <div id="heroDiff" style="font-size:36px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-1.5px;line-height:1.05;">+R$ 0,00</div>
                     <div id="heroSub" style="font-size:12.5px;color:rgba(255,255,255,.7);margin-top:8px;line-height:1.45;">Preencha os parâmetros acima para simular.</div>
                 </div>
@@ -6585,24 +6620,29 @@
                     </div>
                 </div>
 
-                <div class="card-container" style="margin-bottom:0;opacity:0.75;">
+                <div class="card-container" style="margin-bottom:0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                        <div style="font-size:13px;font-weight:600;color:var(--cor-texto-mutado);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-buildings" style="color:var(--cor-texto-mutado);font-size:17px;"></i> INSS</div>
-                        <span style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:99px;color:var(--cor-texto-mutado);background:var(--cor-superficie);">3% a.a. corrigido</span>
+                        <div style="font-size:13px;font-weight:700;color:var(--cor-texto-secundario);display:flex;align-items:center;gap:7px;font-family:'Figtree',sans-serif;"><i class="ph ph-buildings" style="color:var(--cor-texto-mutado);font-size:17px;"></i> Dependendo do INSS</div>
+                        <span id="inssBadgeVinculo" style="font-size:10px;font-weight:600;padding:3px 9px;border-radius:99px;color:var(--cor-texto-mutado);background:var(--cor-superficie);border:1px solid var(--cor-borda);">CLT</span>
                     </div>
-                    <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;font-weight:600;">Montante final</div>
-                    <div id="inssOutMontante" style="font-size:30px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--cor-texto-mutado);">R$ 0,00</div>
-                    <div style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;cursor:help;" id="iconInflacaoInfo" title=""></i> Poder de compra real: <span id="inssOutReal">—</span> <span style="font-size:10px;color:var(--cor-texto-mutado);margin-left:4px;">(média inflação: <span id="lblInflacaoMedia">4.5</span>% a.a.)</span></div>
+                    <div style="font-size:10px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin-bottom:5px;font-weight:600;">Benefício mensal estimado</div>
+                    <div id="inssOutBeneficio" style="font-size:30px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:-1px;color:var(--cor-texto-secundario);">R$ 0,00</div>
+                    <div id="inssLinhaReal" style="font-size:12px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:4px;"><i class="ph ph-warning" style="color:var(--cor-erro);font-size:13px;cursor:help;" id="iconInflacaoInfo" title=""></i> Poder de compra real: <span id="inssOutReal">—</span> <span style="font-size:10px;color:var(--cor-texto-mutado);margin-left:4px;">(média inflação: <span id="lblInflacaoMedia">4.5</span>% a.a.)</span></div>
+                    <!-- Estado em que a pessoa não atinge o tempo mínimo: é o resultado
+                         mais importante da tela em prazos curtos, e o simulador antigo
+                         mostrava um montante gordo justamente aí. -->
+                    <div id="inssAvisoTempo" style="display:none;margin-top:10px;background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);color:var(--cor-txt-amber);border-radius:9px;padding:10px 12px;font-size:11.5px;line-height:1.55;"></div>
                     <div style="display:flex;flex-direction:column;gap:7px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total contribuído</span><span id="inssOutInvestido" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">R$ 0,00</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Correção gerada</span><span id="inssOutJuros" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-mutado);">R$ 0,00</span></div>
-                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Rendimento real</span><span id="inssRentabReal" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-erro);">0%</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Contribuição mensal</span><span id="inssOutContribuicao" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-principal);">R$ 0,00</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Total pago no período</span><span id="inssOutTotalPago" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">R$ 0,00</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Tempo de contribuição</span><span id="inssOutTempo" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">0 anos</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:12.5px;"><span style="color:var(--cor-texto-mutado);">Coeficiente aplicado</span><span id="inssOutCoeficiente" style="font-family:'DM Mono',monospace;font-size:12px;color:var(--cor-texto-secundario);">—</span></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:14px;padding-top:12px;border-top:1px solid var(--cor-borda);margin-top:12px;">
                         <div style="width:72px;height:72px;flex-shrink:0;position:relative;"><canvas id="graficoPizzaINSS"></canvas></div>
                         <div style="font-size:12px;color:var(--cor-texto-secundario);flex:1;">
-                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-texto-mutado);flex-shrink:0;display:inline-block;"></span>Contribuído: <strong id="legINSSInvestido" style="color:var(--cor-texto-principal);">—</strong></div>
-                            <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#cbd5e1;flex-shrink:0;display:inline-block;"></span>Correção: <strong id="legINSSJuros" style="color:var(--cor-texto-principal);">—</strong></div>
+                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;"><span style="width:8px;height:8px;border-radius:50%;background:var(--cor-texto-mutado);flex-shrink:0;display:inline-block;"></span>Repõe da sua renda: <strong id="legINSSReposicao" style="color:var(--cor-texto-principal);">—</strong></div>
+                            <div style="display:flex;align-items:center;gap:6px;"><span style="width:8px;height:8px;border-radius:50%;background:#e2e8f0;flex-shrink:0;display:inline-block;"></span>Você teria que cobrir: <strong id="legINSSLacuna" style="color:var(--cor-texto-principal);">—</strong></div>
                         </div>
                     </div>
                 </div>
@@ -6610,10 +6650,10 @@
 
             <div class="card-container" style="margin-bottom:16px;">
                 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-                    <h3 style="font-size:13px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Evolução comparativa ao longo do tempo</h3>
+                    <h3 style="font-size:13px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Seu patrimônio × o que você paga ao INSS</h3>
                     <div style="display:flex;gap:16px;">
                         <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:var(--cor-info);display:inline-block;"></span> Investindo</div>
-                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:#94a3b8;display:inline-block;"></span> INSS</div>
+                        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cor-texto-secundario);font-weight:500;"><span style="width:22px;height:3px;border-radius:2px;background:#94a3b8;display:inline-block;"></span> Pago ao INSS</div>
                     </div>
                 </div>
                 <div style="height:240px;position:relative;"><canvas id="graficoComparativo"></canvas></div>
@@ -7746,7 +7786,8 @@
     <!-- Features extraídas — carregadas DEPOIS de app.js porque usam
          helpers e state global dele. Order ao final é tolerante (todas
          são chamadas via user action ou window.onload). -->
-    <script src="/web/appliquei-aba-simulador.js?v=onda3b"></script>
+    <script src="/web/appliquei-inss.js?v=inss1"></script>
+    <script src="/web/appliquei-aba-simulador.js?v=inss1"></script>
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
