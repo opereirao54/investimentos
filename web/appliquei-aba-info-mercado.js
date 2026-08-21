@@ -44,7 +44,11 @@ var IM_CACHE_TTL_MS = 15 * 60 * 1000;
 // últimas horas — com 10 categorias, uma carga isolada deixaria "Política"
 // e "Mundo" quase sempre em zero. Guardando as cargas anteriores, cada
 // categoria junta massa ao longo dos dias sem UMA chamada a mais.
-var IM_MAX_ACERVO = 90;
+// Acompanha o teto do /api/market?op=news, que junta as editorias do
+// InfoMoney num acervo só. ~120 notícias ficam em torno de 30 KB no
+// localStorage — folgado para a cota, e o filtro chega com massa já na
+// primeira visita em vez de encher ao longo de dias.
+var IM_MAX_ACERVO = 120;
 var IM_JANELA_DIAS = 7;
 
 // Preferência de categoria. Esta SIM usa o prefixo sincronizado: o assunto

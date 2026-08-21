@@ -13,10 +13,32 @@ const { handler } = require('./_lib/handler');
 // BRAPI grátis ~15k req/mês; cada chamada cobre N tickers num único batch.
 
 const BRAPI_BASE = 'https://brapi.dev/api/quote';
-// Feed de notícias da aba Info Mercado. FIXO no servidor de propósito: se a
+// Feeds de notícia da aba Info Mercado. FIXOS no servidor de propósito: se a
 // URL viesse do cliente, este endpoint viraria um proxy HTTP aberto (SSRF).
-const NEWS_FEED_URL = 'https://www.infomoney.com.br/feed/';
-const NEWS_MAX_ITEMS = 60;
+//
+// São as editorias do MESMO site (WordPress serve /{editoria}/feed/), não
+// fontes diferentes. O motivo é densidade: o feed principal traz só as
+// últimas horas, então categorias como Bancos e Política ficavam zeradas na
+// tela por não terem saído matéria do assunto nas últimas horas — e não por
+// falta de notícia. Buscando as editorias, cada assunto chega com massa já
+// na primeira visita.
+//
+// O cliente NÃO sabe desta lista: recebe um acervo só, e continua
+// classificando e filtrando por conta própria.
+const NEWS_FEEDS = [
+  'https://www.infomoney.com.br/feed/',
+  'https://www.infomoney.com.br/economia/feed/',
+  'https://www.infomoney.com.br/politica/feed/',
+  'https://www.infomoney.com.br/mercados/feed/',
+  'https://www.infomoney.com.br/negocios/feed/',
+  'https://www.infomoney.com.br/onde-investir/feed/',
+  'https://www.infomoney.com.br/minhas-financas/feed/',
+  'https://www.infomoney.com.br/criptomoedas/feed/',
+];
+// Teto por feed para uma editoria movimentada não abafar as outras.
+const NEWS_MAX_PER_FEED = 20;
+const NEWS_MAX_ITEMS = 120;
+const NEWS_FEED_TIMEOUT_MS = 8000;
 const NEWS_TTL_MS = 10 * 60 * 1000;
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
@@ -482,11 +504,12 @@ function pickTags(bloco, tag) {
 }
 
 /** RSS 2.0 -> itens no formato que a aba já consome. */
-function parseRssItems(xml) {
+function parseRssItems(xml, limite) {
+  const teto = limite || NEWS_MAX_ITEMS;
   const itens = [];
   const re = /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi;
   let m;
-  while ((m = re.exec(xml)) && itens.length < NEWS_MAX_ITEMS) {
+  while ((m = re.exec(xml)) && itens.length < teto) {
     const bloco = m[1];
     const title = pickTag(bloco, 'title');
     const link = pickTag(bloco, 'link');
@@ -504,23 +527,69 @@ function parseRssItems(xml) {
   return itens;
 }
 
-async function fetchFeedItems() {
+async function fetchOneFeed(url) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
+  const timer = setTimeout(() => ctrl.abort(), NEWS_FEED_TIMEOUT_MS);
   let res;
   try {
-    res = await fetch(NEWS_FEED_URL, {
+    res = await fetch(url, {
       headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
       signal: ctrl.signal,
     });
   } finally {
     clearTimeout(timer);
   }
-  if (!res.ok) throw new Error(`feed_${res.status}`);
+  if (!res.ok) throw new Error(`http_${res.status}`);
   const xml = await res.text();
-  const items = parseRssItems(xml);
-  if (!items.length) throw new Error('feed_sem_itens');
+  const items = parseRssItems(xml, NEWS_MAX_PER_FEED);
+  if (!items.length) throw new Error('sem_itens');
   return items;
+}
+
+/** Identidade da matéria — a mesma sai no feed principal e na editoria. */
+function newsKey(link) {
+  return String(link || '')
+    .toLowerCase()
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '');
+}
+
+/**
+ * Busca todas as editorias em paralelo e devolve UM acervo ordenado.
+ *
+ * allSettled e não all: uma editoria que saiu do ar (ou mudou de slug) não
+ * pode derrubar as outras sete. Basta uma responder para a aba ter conteúdo.
+ */
+async function fetchAllFeeds() {
+  const resultados = await Promise.allSettled(NEWS_FEEDS.map(fetchOneFeed));
+  const vistos = new Set();
+  const items = [];
+  const failed = [];
+
+  resultados.forEach((r, i) => {
+    if (r.status !== 'fulfilled') {
+      failed.push({ feed: NEWS_FEEDS[i], error: (r.reason && r.reason.message) || 'erro' });
+      return;
+    }
+    for (const item of r.value) {
+      const k = newsKey(item.link);
+      if (!k || vistos.has(k)) continue;
+      vistos.add(k);
+      items.push(item);
+    }
+  });
+
+  if (!items.length) {
+    throw new Error('feeds_sem_itens:' + failed.map((f) => f.error).join(','));
+  }
+
+  // Sem data legível vai para o fim, não some: o cliente ainda mostra.
+  items.sort((a, b) => {
+    const ta = Date.parse(a.pubDate) || 0;
+    const tb = Date.parse(b.pubDate) || 0;
+    return tb - ta;
+  });
+  return { items: items.slice(0, NEWS_MAX_ITEMS), failed };
 }
 
 async function handleNews(req, res) {
@@ -531,9 +600,11 @@ async function handleNews(req, res) {
     return res.json({ status: 'ok', source: 'cache', items: newsCache.items });
   }
   try {
-    const items = await fetchFeedItems();
+    const { items, failed } = await fetchAllFeeds();
     newsCache = { at: Date.now(), items };
-    return res.json({ status: 'ok', source: 'feed', items });
+    // `failed` fica na resposta para uma editoria que mudou de slug aparecer
+    // em vez de sumir calada.
+    return res.json({ status: 'ok', source: 'feed', feedsFailed: failed, items });
   } catch (e) {
     // Feed velho ainda serve melhor que erro — o cliente decide se avisa.
     if (newsCache.items) {
@@ -581,4 +652,14 @@ module.exports = handler({
 // Internos do parse de RSS expostos para teste. São regex sobre XML de
 // terceiro — a parte deste arquivo com mais chance de errar em silêncio e a
 // que dá para exercitar sem rede nem Firestore.
-module.exports.__test = { parseRssItems, decodeXmlText, pickTag, pickTags };
+module.exports.__test = {
+  fetchAllFeeds,
+  parseRssItems,
+  decodeXmlText,
+  pickTag,
+  pickTags,
+  newsKey,
+  NEWS_FEEDS,
+  NEWS_MAX_PER_FEED,
+  NEWS_MAX_ITEMS,
+};
