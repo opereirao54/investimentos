@@ -417,6 +417,18 @@ function finResolverTaxa(fin) {
   };
 }
 
+// Um bem gravado ANTES de a taxa virar opcional pode carregar uma taxa que não
+// combina com a própria parcela — e ninguém perguntou nada a quem cadastrou.
+// Enquanto isso não for revisado, tudo que lê `taxaMensal` (a simulação de
+// antecipação, principalmente) está prometendo número errado. `fonteVerdade`
+// só existe em registro escrito pela tela nova, então a ausência dele é a
+// marca exata de "nunca foi perguntado".
+function finConflitoNaoRevisado(fin) {
+  if (!fin || !fin.ativo) return false;
+  if (fin.fonteVerdade !== undefined) return false;
+  return finResolverTaxa(fin).conflito;
+}
+
 // Retrato do financiamento hoje.
 function finResumo(fin, valorMercado) {
   fin = fin || {};
@@ -756,6 +768,9 @@ function lerFinanciamentoDoForm() {
       parseInt((document.getElementById('bemFinParcelasRestantes') || {}).value, 10) || 0,
     fonteVerdade:
       (document.getElementById('bemFinFonteVerdade') || {}).value === 'taxa' ? 'taxa' : 'parcela',
+    // Todo bem financiado passa pela análise antes de salvar, então gravar este
+    // campo equivale a "a pessoa viu as duas opções". A ausência dele marca os
+    // registros anteriores à mudança, os únicos que o card ainda cutuca.
   };
   // `taxaMensal` é a taxa RESOLVIDA — a que os cálculos usam e a que fica
   // gravada. Quem lê o bem depois (simulador de antecipação, lista) encontra
@@ -782,7 +797,11 @@ function preencherFinanciamentoNoForm(fin) {
       setValorBRLInput(document.getElementById('bemFinValorPago'), fin.valorPago || 0);
       setValorBRLInput(document.getElementById('bemFinSaldoDevedor'), fin.saldoDevedor || 0);
       setValorBRLInput(document.getElementById('bemFinParcela'), fin.valorParcela || 0);
-      setValorBRLInput(document.getElementById('bemFinSeguros'), fin.segurosTarifas || 0);
+      // Opcional e vazio ≠ opcional respondido com zero.
+      setValorBRLInput(
+        document.getElementById('bemFinSeguros'),
+        fin.segurosTarifas > 0 ? fin.segurosTarifas : ''
+      );
     }
     // Só volta ao campo o que a pessoa digitou. Taxa deduzida da parcela fica
     // em branco: ela é resultado, não dado de entrada — senão a dedução de uma
@@ -835,6 +854,24 @@ function avancarDoPasso2Bem() {
 
   document.getElementById('bemPasso2').style.display = 'none';
   document.getElementById('bemAcoesPasso2').style.display = 'none';
+  document.getElementById('bemPasso3').style.display = '';
+  document.getElementById('bemAcoesPasso3').style.display = 'flex';
+  renderAnaliseFinanciamento();
+  var card = document.querySelector('#modalBem > div');
+  if (card) card.scrollTop = 0;
+}
+
+// Abre um bem já cadastrado direto na análise. Sem isso, rever o custo de um
+// financiamento custa três telas de formulário que a pessoa não quer mexer —
+// e quem tem um registro antigo com a taxa torta nunca ia chegar lá.
+function abrirAnaliseBem(id) {
+  var b = obterBem(id);
+  if (!b || !b.financiamento || !b.financiamento.ativo) return;
+  editarBemForm(id);
+  ['bemPasso1', 'bemPasso2', 'bemAcoesPasso1', 'bemAcoesPasso2'].forEach(function (i) {
+    var el = document.getElementById(i);
+    if (el) el.style.display = 'none';
+  });
   document.getElementById('bemPasso3').style.display = '';
   document.getElementById('bemAcoesPasso3').style.display = 'flex';
   renderAnaliseFinanciamento();
@@ -1207,15 +1244,33 @@ function renderSimulacaoAmortizacao() {
     box.innerHTML = '';
     return;
   }
-  var fmt =
-    typeof formatarMoeda === 'function'
-      ? formatarMoeda
-      : function (v) {
-          return 'R$ ' + v.toFixed(2);
-        };
+  var fmt = _fmtDinheiroFin();
+
+  // Toda a economia simulada aqui sai da taxa gravada. Se ela não bate com a
+  // parcela e ninguém foi perguntado, o número abaixo é promessa em cima de
+  // erro de digitação — e é grande o bastante para a pessoa tomar decisão.
+  var alerta = '';
+  if (finConflitoNaoRevisado(b.financiamento)) {
+    var t = finResolverTaxa(b.financiamento);
+    alerta =
+      _caixaAvisoFin(
+        '<i class="ph-fill ph-warning"></i> Estes números usam a taxa de <strong>' +
+          _fmtTaxaMensal(t.taxaInformada) +
+          '</strong> que está cadastrada — mas a sua parcela de <strong>' +
+          fmt(t.parcelaCheia) +
+          '</strong> indica <strong>' +
+          _fmtTaxaMensal(t.taxaImplicita) +
+          '</strong>. Confira antes de decidir com base na economia abaixo.' +
+          '<button type="button" onclick="fecharModalAmortizacao();abrirAnaliseBem(\'' +
+          b.id +
+          '\')" style="display:block;margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-family:inherit;">' +
+          '<i class="ph-bold ph-arrow-right"></i> Rever a taxa deste bem</button>'
+      ) + '<div style="height:12px;"></div>';
+  }
 
   if (sim.quitou) {
     box.innerHTML =
+      alerta +
       '<div style="background:linear-gradient(135deg,var(--cor-primaria),#7c3aed);color:#fff;border-radius:12px;padding:16px 18px;">' +
       '<div style="font-size:18px;font-weight:800;">Quita o financiamento</div>' +
       '<div style="font-size:12.5px;opacity:0.92;margin-top:6px;line-height:1.5;">Esse valor cobre todo o saldo devedor. Você deixa de pagar <strong>' +
@@ -1253,6 +1308,7 @@ function renderSimulacaoAmortizacao() {
 
   var diferenca = sim.prazo.economia - sim.parcela.economia;
   box.innerHTML =
+    alerta +
     '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:12px;">' +
     cartao(
       'Reduzir o prazo',
@@ -1855,18 +1911,33 @@ function renderMeusBens() {
           fmt(fin.saldoDevedor) +
           '</strong></div>';
       }
-      var btnSimular =
-        !arq && fin && fin.ativo && fin.saldoDevedor > 0
-          ? '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="abrirModalAmortizacao(\'' +
-            b.id +
-            '\')" title="Antecipar parcelas"><i class="ph ph-scissors" style="color:var(--cor-primaria);"></i></button>'
-          : '';
+      // Conflito nunca revisado: o card avisa e leva direto à análise, senão a
+      // pessoa nunca descobre que a taxa gravada não bate com a parcela dela.
+      if (fin && fin.ativo && finConflitoNaoRevisado(fin)) {
+        linhaFin +=
+          '<button type="button" onclick="abrirAnaliseBem(\'' +
+          b.id +
+          '\')" style="margin-top:4px;padding:2px 8px;font-size:10px;font-weight:700;border-radius:99px;border:1px solid var(--cor-borda-amber);background:var(--cor-bg-amber);color:var(--cor-txt-amber);cursor:pointer;font-family:Figtree,sans-serif;">' +
+          '<i class="ph-fill ph-warning"></i> confira a taxa</button>';
+      }
+      var financiadoAtivo = !arq && fin && fin.ativo && fin.saldoDevedor > 0;
+      var btnAnalise = financiadoAtivo
+        ? '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="abrirAnaliseBem(\'' +
+          b.id +
+          '\')" title="Ver o custo do financiamento"><i class="ph ph-receipt" style="color:var(--cor-patrimonio);"></i></button>'
+        : '';
+      var btnSimular = financiadoAtivo
+        ? '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="abrirModalAmortizacao(\'' +
+          b.id +
+          '\')" title="Antecipar parcelas"><i class="ph ph-scissors" style="color:var(--cor-primaria);"></i></button>'
+        : '';
 
       var acoes = arq
         ? '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="editarBem(\'' +
           b.id +
           '\',{arquivado:false});renderMeusBens();" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i></button>'
-        : btnSimular +
+        : btnAnalise +
+          btnSimular +
           '<button class="btn-secundario" style="padding:3px 8px;font-size:11px;" onclick="editarBemForm(\'' +
           b.id +
           '\')" title="Editar"><i class="ph ph-pencil-simple"></i></button>' +

@@ -582,3 +582,71 @@ test('registro antigo, gravado quando a taxa era obrigatória, segue valendo', (
   assert.equal(r.origem, 'informada');
   assert.equal(r.conflito, false);
 });
+
+// ============================================================
+// === REGISTRO ANTIGO: reconhecer sem obrigar a recadastrar  ===
+// ============================================================
+//
+// Quem cadastrou antes de a taxa virar opcional pode ter uma taxa que não
+// combina com a própria parcela, e nunca foi perguntado. Tudo que lê
+// `taxaMensal` — a simulação de antecipação, sobretudo — está prometendo
+// número errado até alguém revisar. O app precisa reconhecer esses registros
+// sem exigir que a pessoa apague e cadastre de novo.
+
+test('registro anterior à mudança, com taxa que não bate, é sinalizado', () => {
+  const w = carregar();
+  assert.equal(
+    w.finConflitoNaoRevisado({
+      ativo: true,
+      sistema: 'sac',
+      saldoDevedor: 36800,
+      valorParcela: 1090,
+      taxaMensal: 0.073,
+      parcelasRestantes: 45,
+    }),
+    true
+  );
+});
+
+test('registro antigo coerente não é sinalizado', () => {
+  const w = carregar();
+  assert.equal(
+    w.finConflitoNaoRevisado({
+      ativo: true,
+      sistema: 'sac',
+      saldoDevedor: 300000,
+      valorParcela: 3650,
+      taxaMensal: 0.008,
+      parcelasRestantes: 240,
+    }),
+    false
+  );
+});
+
+test('depois de revisado, o mesmo conflito para de cutucar', () => {
+  const w = carregar();
+  const revisado = {
+    ativo: true,
+    sistema: 'sac',
+    saldoDevedor: 36800,
+    valorParcela: 1090,
+    taxaInformada: 0.073,
+    taxaMensal: 0.007397,
+    parcelasRestantes: 45,
+    fonteVerdade: 'parcela',
+  };
+  // O conflito continua existindo — a pessoa é que já escolheu em quem acreditar.
+  assert.equal(w.finResolverTaxa(revisado).conflito, true);
+  assert.equal(w.finConflitoNaoRevisado(revisado), false);
+  // Inclusive quem escolheu ficar com a taxa digitada.
+  assert.equal(
+    w.finConflitoNaoRevisado(Object.assign({}, revisado, { fonteVerdade: 'taxa' })),
+    false
+  );
+});
+
+test('bem quitado ou sem financiamento nunca é sinalizado', () => {
+  const w = carregar();
+  assert.equal(w.finConflitoNaoRevisado(null), false);
+  assert.equal(w.finConflitoNaoRevisado({ ativo: false, saldoDevedor: 36800 }), false);
+});
