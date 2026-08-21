@@ -118,14 +118,84 @@ function salvarCategoriasDespesaCustom(arr) {
   }
 }
 
-function obterCategoriasDespesa() {
-  return CATEGORIAS_DESPESA_PADRAO.concat(obterCategoriasDespesaCustom());
+// A chave futurorico_categoriasDespesa guarda um array que faz TRÊS papéis, para
+// não precisar de uma segunda chave (que teria de entrar no sync, no backup e no
+// "Recomeçar do zero"):
+//   { v, label }          categoria criada pelo usuário
+//   { v, label } com v de padrão   renomeia aquela categoria padrão
+//   { v, oculta: true }   esconde a categoria (padrão ou criada)
+// Arrays antigos, que só tinham categorias criadas, continuam válidos.
+
+function ehCategoriaDespesaPadrao(v) {
+  return CATEGORIAS_DESPESA_PADRAO.some((c) => c.v === v);
 }
 
+// Categorias visíveis, na ordem: padrões primeiro, depois as criadas.
+function obterCategoriasDespesa() {
+  const ajustes = obterCategoriasDespesaCustom();
+  const porV = {};
+  ajustes.forEach((a) => {
+    if (a && a.v) porV[a.v] = a;
+  });
+
+  const out = [];
+  CATEGORIAS_DESPESA_PADRAO.forEach((c) => {
+    const a = porV[c.v];
+    if (a && a.oculta) return;
+    out.push({ v: c.v, label: (a && a.label) || c.label, padrao: true });
+  });
+  ajustes.forEach((a) => {
+    if (!a || !a.v || a.oculta || ehCategoriaDespesaPadrao(a.v)) return;
+    out.push({ v: a.v, label: a.label, padrao: false });
+  });
+  return out;
+}
+
+// Inclui as ocultas — lançamentos antigos (ou vindos de outro aparelho) ainda
+// apontam para elas e precisam de rótulo. Sem isto o extrato mostraria o slug.
 function rotuloCategoriaDespesa(v) {
   if (!v) return '';
-  const c = obterCategoriasDespesa().find((x) => x.v === v);
-  return c ? c.label : v;
+  const ajuste = obterCategoriasDespesaCustom().find((x) => x && x.v === v);
+  if (ajuste && ajuste.label) return ajuste.label;
+  const padrao = CATEGORIAS_DESPESA_PADRAO.find((x) => x.v === v);
+  if (padrao) return padrao.label;
+  return v;
+}
+
+// Quantos lançamentos usam a categoria — a exclusão precisa dizer isso ao
+// usuário antes de mexer no histórico dele.
+function contarLancamentosDaCategoria(v) {
+  if (!v || typeof transacoes === 'undefined') return 0;
+  return transacoes.filter((t) => t.categoriaDespesa === v).length;
+}
+
+// Move (ou limpa, com destino vazio) a categoria dos lançamentos. Grava via
+// localStorage.setItem porque é o interceptador de appliquei-utils.js que avisa
+// o cloud-sync — sem ele a mudança ficaria só neste aparelho.
+function reatribuirCategoriaDespesa(de, para) {
+  if (!de || typeof transacoes === 'undefined') return 0;
+  let n = 0;
+  transacoes.forEach((t) => {
+    if (t.categoriaDespesa !== de) return;
+    if (para) t.categoriaDespesa = para;
+    else delete t.categoriaDespesa;
+    n++;
+  });
+  if (n) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  return n;
+}
+
+// Slug estável a partir do nome. É a chave gravada em t.categoriaDespesa, por
+// isso NUNCA é recalculada ao renomear — só o label muda.
+function slugCategoriaDespesa(nome) {
+  return (
+    (nome || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'outros'
+  );
 }
 
 function categoriaDespesaUsada(cat) {
@@ -192,45 +262,60 @@ var EMOJIS_CATEGORIA_DESPESA = [
   '💰',
 ];
 
-function renderEmojiPickerCategoria() {
-  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+// O picker serve dois formulários: o de criar categoria dentro do lançamento
+// (sufixo '') e o de Configurações (sufixo 'Config'). Os ids são os mesmos com
+// o sufixo colado no fim.
+function _idsEmojiCategoria(sufixo) {
+  const s = sufixo || '';
+  return {
+    picker: 'categoriaDespesaEmojiPicker' + s,
+    hidden: 'categoriaDespesaNovaEmoji' + s,
+    btn: 'categoriaDespesaNovaEmojiBtn' + s,
+    nome: 'categoriaDespesaNova' + s,
+  };
+}
+
+function renderEmojiPickerCategoria(sufixo) {
+  const ids = _idsEmojiCategoria(sufixo);
+  const picker = document.getElementById(ids.picker);
   if (!picker) return;
-  const atual = document.getElementById('categoriaDespesaNovaEmoji')?.value || '🏷️';
+  const atual = document.getElementById(ids.hidden)?.value || '🏷️';
+  const suf = sufixo || '';
   picker.innerHTML = EMOJIS_CATEGORIA_DESPESA.map(
     (e) =>
-      `<button type="button" onclick="selecionarEmojiCategoria('${e}')" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;border-radius:8px;cursor:pointer;background:transparent;border:1.5px solid ${e === atual ? 'var(--cor-primaria)' : 'transparent'};">${e}</button>`
+      `<button type="button" onclick="selecionarEmojiCategoria('${e}','${suf}')" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;border-radius:8px;cursor:pointer;background:transparent;border:1.5px solid ${e === atual ? 'var(--cor-primaria)' : 'transparent'};">${e}</button>`
   ).join('');
 }
 
-function toggleEmojiPickerCategoria() {
-  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+function toggleEmojiPickerCategoria(sufixo) {
+  const picker = document.getElementById(_idsEmojiCategoria(sufixo).picker);
   if (!picker) return;
   const aberto = picker.style.display === 'flex';
   if (aberto) {
     picker.style.display = 'none';
   } else {
-    renderEmojiPickerCategoria();
+    renderEmojiPickerCategoria(sufixo);
     picker.style.display = 'flex';
   }
 }
 
-function resetarEmojiCategoriaNova() {
-  const hidden = document.getElementById('categoriaDespesaNovaEmoji');
-  const btn = document.getElementById('categoriaDespesaNovaEmojiBtn');
-  if (hidden) hidden.value = '🏷️';
-  if (btn) btn.textContent = '🏷️';
-  const picker = document.getElementById('categoriaDespesaEmojiPicker');
+function definirEmojiCategoria(emoji, sufixo) {
+  const ids = _idsEmojiCategoria(sufixo);
+  const hidden = document.getElementById(ids.hidden);
+  const btn = document.getElementById(ids.btn);
+  if (hidden) hidden.value = emoji;
+  if (btn) btn.textContent = emoji;
+  const picker = document.getElementById(ids.picker);
   if (picker) picker.style.display = 'none';
 }
 
-function selecionarEmojiCategoria(emoji) {
-  const hidden = document.getElementById('categoriaDespesaNovaEmoji');
-  const btn = document.getElementById('categoriaDespesaNovaEmojiBtn');
-  if (hidden) hidden.value = emoji;
-  if (btn) btn.textContent = emoji;
-  const picker = document.getElementById('categoriaDespesaEmojiPicker');
-  if (picker) picker.style.display = 'none';
-  document.getElementById('categoriaDespesaNova')?.focus();
+function resetarEmojiCategoriaNova(sufixo) {
+  definirEmojiCategoria('🏷️', sufixo);
+}
+
+function selecionarEmojiCategoria(emoji, sufixo) {
+  definirEmojiCategoria(emoji, sufixo);
+  document.getElementById(_idsEmojiCategoria(sufixo).nome)?.focus();
 }
 
 function onChangeCategoriaDespesa() {
@@ -254,23 +339,276 @@ function resolverCategoriaDespesaSelecionada(categoriaContabil) {
   if (valor === '__nova__') {
     const nome = (document.getElementById('categoriaDespesaNova')?.value || '').trim();
     if (!nome) return null;
-    const slug =
-      nome
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '') || 'outros';
-    const todas = obterCategoriasDespesa();
-    const existente = todas.find((c) => c.v === slug);
-    if (existente) return existente.v;
+    const slug = slugCategoriaDespesa(nome);
+    if (obterCategoriasDespesa().some((c) => c.v === slug)) return slug;
     const emoji = (document.getElementById('categoriaDespesaNovaEmoji')?.value || '🏷️').trim();
-    const custom = obterCategoriasDespesaCustom();
-    custom.push({ v: slug, label: `${emoji} ${nome}` });
-    salvarCategoriasDespesaCustom(custom);
+    // O slug pode colidir com uma categoria oculta (o usuário escondeu "Pets" e
+    // agora digitou "Pets"). Reativa a existente em vez de criar uma duplicata
+    // que ficaria invisível atrás da regra de ocultação.
+    const ajustes = obterCategoriasDespesaCustom();
+    const oculta = ajustes.find((a) => a && a.v === slug && a.oculta);
+    if (oculta) {
+      delete oculta.oculta;
+      oculta.label = `${emoji} ${nome}`;
+    } else {
+      ajustes.push({ v: slug, label: `${emoji} ${nome}` });
+    }
+    salvarCategoriasDespesaCustom(ajustes);
     return slug;
   }
   return valor || null;
+}
+
+// ============================================================
+// === Categorias de despesa: gerenciar em Configurações     ===
+// ============================================================
+// Criar já existia (pelo próprio formulário de lançamento); editar e excluir
+// não. A lista vive no modal de Configurações, no mesmo padrão dos cartões.
+//
+// Duas regras que sustentam o resto:
+//   1. RENOMEAR NUNCA MEXE NO SLUG. O slug (`v`) é o que está gravado em
+//      t.categoriaDespesa de cada lançamento; recalculá-lo a partir do nome
+//      novo desligaria a categoria de todo o histórico dela em silêncio.
+//   2. PADRÃO OCULTA, CRIADA EXCLUI. As 9 padrões são código, não dado — não
+//      dá para removê-las de verdade, então somem do formulário e voltam pelo
+//      botão de restaurar. As criadas pelo usuário somem para valer.
+
+// v da categoria aguardando confirmação de exclusão (linha expandida na lista).
+var categoriaConfigExcluindo = null;
+
+function renderizarListaCategoriasConfig() {
+  const container = document.getElementById('listaCategoriasConfig');
+  if (!container) return;
+
+  const visiveis = obterCategoriasDespesa();
+  const ocultas = obterCategoriasDespesaCustom().filter((a) => a && a.oculta);
+
+  const linhaVisivel = (c) => {
+    const usos = contarLancamentosDaCategoria(c.v);
+    const usoTxt = usos ? `${usos} lançamento${usos > 1 ? 's' : ''}` : 'Sem lançamentos';
+    const tipoTxt = c.padrao ? 'Padrão' : 'Criada por você';
+    const acaoTitulo = c.padrao ? 'Ocultar (histórico preservado)' : 'Excluir';
+    const acaoIcone = c.padrao ? 'ph-eye-slash' : 'ph-trash';
+    return `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${c.label}</div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">${tipoTxt} • ${usoTxt}</div>
+        </div>
+        <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-info);border-color:var(--cor-info);" onclick="editarCategoriaConfig('${c.v}')" title="Renomear"><i class="ph ph-pencil-simple"></i></button>
+        <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-erro);border-color:var(--cor-erro);" onclick="pedirExclusaoCategoriaConfig('${c.v}')" title="${acaoTitulo}"><i class="ph ${acaoIcone}"></i></button>
+      </div>`;
+  };
+
+  const linhaOculta = (a) => `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:9px;padding:10px 12px;opacity:0.6;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);">${rotuloCategoriaDespesa(a.v)}<span style="background:var(--cor-borda);color:var(--cor-texto-mutado);padding:1px 6px;border-radius:4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-left:6px;">Oculta</span></div>
+          <div style="font-size:11px;color:var(--cor-texto-mutado);">Não aparece em novos lançamentos</div>
+        </div>
+        <button class="btn-secundario" style="padding:4px 8px;font-size:11px;color:var(--cor-primaria);border-color:var(--cor-primaria);" onclick="restaurarCategoriaConfig('${a.v}')" title="Restaurar"><i class="ph ph-arrow-counter-clockwise"></i></button>
+      </div>`;
+
+  // Confirmação inline em vez de modal: o modalConfirmacao vem depois no DOM e
+  // ficaria por baixo do de Configurações (mesmo z-index).
+  const blocoConfirmacao = (v) => {
+    const cat = obterCategoriasDespesa().find((c) => c.v === v);
+    if (!cat) return '';
+    const usos = contarLancamentosDaCategoria(v);
+    const destinos = obterCategoriasDespesa()
+      .filter((c) => c.v !== v)
+      .map((c) => `<option value="${c.v}">${c.label}</option>`)
+      .join('');
+    // Só a exclusão de uma categoria criada apaga o slug e obriga a decidir o
+    // destino dos lançamentos. Ocultar uma padrão não mexe no histórico.
+    const seletor =
+      usos && !cat.padrao
+        ? `<label style="display:block;font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin:10px 0 5px;">Mover ${usos} lançamento${usos > 1 ? 's' : ''} para</label>
+         <select id="categoriaConfigDestino" style="width:100%;padding:8px 10px;border:1.5px solid var(--cor-borda);border-radius:8px;font-size:12.5px;background:var(--cor-branco);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+           <option value="">Deixar sem categoria</option>${destinos}
+         </select>`
+        : '';
+    const usoTxt = usos
+      ? usos === 1
+        ? ' 1 lançamento continua nela.'
+        : ` ${usos} lançamentos continuam nela.`
+      : '';
+    const explicacao = cat.padrao
+      ? `Some do formulário de novos lançamentos.${usoTxt} O histórico continua igual e dá para restaurar depois.`
+      : 'A categoria é removida de vez. Não dá para desfazer.';
+    return `
+      <div style="background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);border-radius:9px;padding:12px;">
+        <div style="font-size:12.5px;font-weight:600;color:var(--cor-txt-erro);margin-bottom:4px;">${cat.padrao ? 'Ocultar' : 'Excluir'} ${cat.label}?</div>
+        <div style="font-size:11.5px;color:var(--cor-txt-erro);line-height:1.5;">${explicacao}</div>
+        ${seletor}
+        <div style="display:flex;gap:6px;margin-top:12px;">
+          <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarExclusaoCategoriaConfig()">Cancelar</button>
+          <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-erro);box-shadow:none;" onclick="confirmarExclusaoCategoriaConfig('${v}')"><i class="ph ph-check"></i> ${cat.padrao ? 'Ocultar' : 'Excluir'}</button>
+        </div>
+      </div>`;
+  };
+
+  if (categoriaConfigExcluindo) {
+    container.innerHTML = blocoConfirmacao(categoriaConfigExcluindo);
+    return;
+  }
+  container.innerHTML = visiveis.map(linhaVisivel).join('') + ocultas.map(linhaOculta).join('');
+}
+
+function abrirNovaCategoriaConfig() {
+  const form = document.getElementById('formCategoriaConfig');
+  const btn = document.getElementById('btnAbrirNovaCategoria');
+  if (!form) return;
+  form.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+  const nome = document.getElementById('categoriaDespesaNovaConfig');
+  if (nome) {
+    nome.value = '';
+    nome.dataset.editandoV = '';
+  }
+  resetarEmojiCategoriaNova('Config');
+  const titulo = document.getElementById('tituloFormCategoriaConfig');
+  if (titulo) titulo.textContent = 'Nova categoria';
+  const salvar = document.getElementById('btnSalvarCategoriaConfig');
+  if (salvar) salvar.innerHTML = '<i class="ph ph-check"></i> Adicionar';
+  if (nome) nome.focus();
+}
+
+function cancelarCategoriaConfig() {
+  const form = document.getElementById('formCategoriaConfig');
+  const btn = document.getElementById('btnAbrirNovaCategoria');
+  if (form) form.style.display = 'none';
+  if (btn) btn.style.display = 'block';
+}
+
+// Separa "🏷️ Mercado" em emoji + nome para reabrir no formulário de edição.
+function _partesRotuloCategoria(label) {
+  const m = String(label || '').match(/^(\S+)\s+(.*)$/);
+  if (m && !/^[a-zA-Z0-9]/.test(m[1])) return { emoji: m[1], nome: m[2] };
+  return { emoji: '🏷️', nome: String(label || '') };
+}
+
+function editarCategoriaConfig(v) {
+  const cat = obterCategoriasDespesa().find((c) => c.v === v);
+  if (!cat) return;
+  categoriaConfigExcluindo = null;
+  const form = document.getElementById('formCategoriaConfig');
+  const btn = document.getElementById('btnAbrirNovaCategoria');
+  if (!form) return;
+  form.style.display = 'block';
+  if (btn) btn.style.display = 'none';
+  const partes = _partesRotuloCategoria(cat.label);
+  const nome = document.getElementById('categoriaDespesaNovaConfig');
+  if (nome) {
+    nome.value = partes.nome;
+    nome.dataset.editandoV = v;
+  }
+  definirEmojiCategoria(partes.emoji, 'Config');
+  const titulo = document.getElementById('tituloFormCategoriaConfig');
+  if (titulo) titulo.textContent = 'Renomear categoria';
+  const salvar = document.getElementById('btnSalvarCategoriaConfig');
+  if (salvar) salvar.innerHTML = '<i class="ph ph-check"></i> Salvar';
+  renderizarListaCategoriasConfig();
+  if (nome) nome.focus();
+}
+
+function salvarCategoriaConfig() {
+  const inputNome = document.getElementById('categoriaDespesaNovaConfig');
+  const nome = (inputNome?.value || '').trim();
+  if (!nome) return mostrarToast('Informe o nome da categoria.', 'erro');
+  const emoji = (document.getElementById('categoriaDespesaNovaEmojiConfig')?.value || '🏷️').trim();
+  const label = `${emoji} ${nome}`;
+  const editandoV = inputNome?.dataset.editandoV || '';
+  const ajustes = obterCategoriasDespesaCustom();
+
+  if (editandoV) {
+    // Só o rótulo muda: o slug segue amarrado aos lançamentos existentes.
+    const existente = ajustes.find((a) => a && a.v === editandoV);
+    if (existente) existente.label = label;
+    else ajustes.push({ v: editandoV, label });
+  } else {
+    const slug = slugCategoriaDespesa(nome);
+    if (obterCategoriasDespesa().some((c) => c.v === slug)) {
+      return mostrarToast('Já existe uma categoria com esse nome.', 'erro');
+    }
+    const oculta = ajustes.find((a) => a && a.v === slug && a.oculta);
+    if (oculta) {
+      delete oculta.oculta;
+      oculta.label = label;
+    } else {
+      ajustes.push({ v: slug, label });
+    }
+  }
+
+  salvarCategoriasDespesaCustom(ajustes);
+  cancelarCategoriaConfig();
+  renderizarListaCategoriasConfig();
+  popularSelectCategoriaDespesa();
+  atualizarTelaControle();
+  mostrarToast(editandoV ? 'Categoria atualizada.' : 'Categoria adicionada.', 'sucesso');
+}
+
+function pedirExclusaoCategoriaConfig(v) {
+  cancelarCategoriaConfig();
+  categoriaConfigExcluindo = v;
+  renderizarListaCategoriasConfig();
+}
+
+function cancelarExclusaoCategoriaConfig() {
+  categoriaConfigExcluindo = null;
+  renderizarListaCategoriasConfig();
+}
+
+function confirmarExclusaoCategoriaConfig(v) {
+  const cat = obterCategoriasDespesa().find((c) => c.v === v);
+  if (!cat) {
+    cancelarExclusaoCategoriaConfig();
+    return;
+  }
+  // Ocultar uma padrão deixa o histórico como está — o slug continua existindo
+  // no código e o rótulo continua resolvendo.
+  const destino = cat.padrao
+    ? ''
+    : (document.getElementById('categoriaConfigDestino') || {}).value || '';
+  const movidos = cat.padrao ? 0 : reatribuirCategoriaDespesa(v, destino);
+
+  const ajustes = obterCategoriasDespesaCustom();
+  if (cat.padrao) {
+    const existente = ajustes.find((a) => a && a.v === v);
+    if (existente) existente.oculta = true;
+    else ajustes.push({ v, oculta: true });
+  } else {
+    const i = ajustes.findIndex((a) => a && a.v === v);
+    if (i >= 0) ajustes.splice(i, 1);
+  }
+  salvarCategoriasDespesaCustom(ajustes);
+
+  categoriaConfigExcluindo = null;
+  renderizarListaCategoriasConfig();
+  popularSelectCategoriaDespesa();
+  atualizarTelaControle();
+
+  const sufixo = movidos
+    ? ` ${movidos} lançamento${movidos > 1 ? 's' : ''} ${destino ? 'movido' + (movidos > 1 ? 's' : '') : 'ficou' + (movidos > 1 ? 'ram' : '') + ' sem categoria'}${destino ? ' para ' + rotuloCategoriaDespesa(destino) : ''}.`
+    : '';
+  mostrarToast((cat.padrao ? 'Categoria oculta.' : 'Categoria excluída.') + sufixo, 'sucesso');
+}
+
+function restaurarCategoriaConfig(v) {
+  const ajustes = obterCategoriasDespesaCustom();
+  const a = ajustes.find((x) => x && x.v === v);
+  if (!a) return;
+  if (ehCategoriaDespesaPadrao(v) && !a.label) {
+    // Sem rótulo próprio, o ajuste só existia para esconder — some junto.
+    ajustes.splice(ajustes.indexOf(a), 1);
+  } else {
+    delete a.oculta;
+  }
+  salvarCategoriasDespesaCustom(ajustes);
+  renderizarListaCategoriasConfig();
+  popularSelectCategoriaDespesa();
+  atualizarTelaControle();
+  mostrarToast('Categoria restaurada.', 'sucesso');
 }
 
 function verificarRegraCartao() {
@@ -392,6 +730,15 @@ function cartaoCalcularVencimento(hoje, diaFech, diaVenc) {
   return new Date(fAno, vMes, diaFinal);
 }
 
+// Competência (mes/ano) a partir de uma data yyyy-mm-dd. Devolve null se a
+// string não for uma data válida — o chamador decide o que fazer.
+function competenciaDaData(dataStr) {
+  if (!dataStr) return null;
+  const [a, m] = String(dataStr).split('-').map(Number);
+  if (!a || !m || m < 1 || m > 12) return null;
+  return { mes: m - 1, ano: a };
+}
+
 function preencherVencimentoPorCartao() {
   const sel = document.getElementById('selectCartao');
   const inputVenc = document.getElementById('dataVencimento');
@@ -399,7 +746,27 @@ function preencherVencimentoPorCartao() {
   if (!sel.value || sel.value === '__novo__') return;
   const cartao = obterCartao(sel.value);
   const data = cartaoCalcularVencimento(new Date(), cartao?.diaFechamento, cartao?.diaVencimento);
-  if (!data) return;
+  if (!data) {
+    // Cartão sem dia de vencimento (o "Cartão principal" criado no primeiro
+    // boot é assim). Sair calado deixava no campo a data do cartão ANTERIOR:
+    // a despesa entrava na fatura de outro cartão sem ninguém perceber, e o
+    // campo fica readOnly para cartão, então nem dava para consertar à mão.
+    // Melhor esvaziar, destravar e dizer o que falta.
+    inputVenc.value = '';
+    inputVenc.readOnly = false;
+    inputVenc.style.opacity = '';
+    inputVenc.title = '';
+    mostrarToast(
+      `"${cartao?.nome || 'Este cartão'}" está sem dia de vencimento. Informe a data ou complete o cadastro do cartão em Configurações.`,
+      'aviso'
+    );
+    return;
+  }
+  // Cartão com vencimento: o campo volta a ser derivado (readOnly), caso um
+  // cartão sem data o tenha destravado antes.
+  inputVenc.readOnly = true;
+  inputVenc.style.opacity = '0.7';
+  inputVenc.title = 'Definida automaticamente pelo fechamento/vencimento do cartão cadastrado.';
   const yyyy = data.getFullYear();
   const mm = String(data.getMonth() + 1).padStart(2, '0');
   const dd = String(data.getDate()).padStart(2, '0');
@@ -564,6 +931,12 @@ function prepararEdicao(id) {
     }
     selecionarTipoCartao(trans.cartaoFixoMensal ? 'fixo' : 'parcelado');
     document.getElementById('grupoParcelas').style.display = 'none';
+    // verificarRegraCartao() acabou de chamar preencherVencimentoPorCartao(),
+    // que calcula a fatura de HOJE e sobrescreveu o campo. Numa despesa antiga
+    // isso trocava a data guardada só por ela ter sido aberta para editar a
+    // descrição — e salvar gravava a data nova. A data do lançamento manda;
+    // trocar de cartão daqui em diante recalcula normalmente pelo onchange.
+    document.getElementById('dataVencimento').value = trans.dataVencimento || '';
   }
   document.getElementById('descTransacao').focus();
 
@@ -673,6 +1046,13 @@ function executarEdicao(modo) {
   const catDespesaNovo = resolverCategoriaDespesaSelecionada(categoria);
 
   if (modo === 'todas') {
+    // Numa série recorrente, mudar o vencimento significa mudar o DIA em todos
+    // os meses ("o aluguel passou a vencer dia 25"), não empurrar as parcelas de
+    // mês. Antes deste bloco a edição "todos os meses" simplesmente ignorava a
+    // data: dava para mudar valor e descrição, nunca o vencimento.
+    const diaNovo = competenciaDaData(dataVencInput)
+      ? parseInt(String(dataVencInput).split('-')[2], 10)
+      : null;
     transacoes = transacoes.map((t) => {
       if (
         t.groupId === transAtual.groupId &&
@@ -682,6 +1062,14 @@ function executarEdicao(modo) {
         t.valor = valorTotal;
         t.categoria = categoria;
         t.obs = obs;
+        if (diaNovo) {
+          // Preserva o mês de cada parcela e respeita meses curtos (dia 31 em
+          // fevereiro vira o último dia do mês).
+          const base = competenciaDaData(t.dataVencimento) || { mes: t.mes, ano: t.ano };
+          const ultimoDia = new Date(base.ano, base.mes + 1, 0).getDate();
+          const dia = Math.min(diaNovo, ultimoDia);
+          t.dataVencimento = `${base.ano}-${String(base.mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+        }
         if (categoria === 'cartao_credito' && cartaoIdNovo && cartaoIdNovo !== '__novo__')
           t.cartaoId = cartaoIdNovo;
         if (bancoNovo !== null) {
@@ -693,6 +1081,19 @@ function executarEdicao(modo) {
       return t;
     });
   } else {
+    // A competência (mes/ano) é o que decide em QUE MÊS o lançamento aparece —
+    // toda a tela filtra por ela, não pela data. Sem isto, corrigir a data de um
+    // lançamento gravava a data nova e deixava o lançamento no mês errado: o
+    // sintoma "editei a data e não corrigiu".
+    // Só recalcula quando a data MUDA. Lançamentos em que competência e
+    // vencimento divergem de propósito (conta de agosto que vence em setembro)
+    // continuam onde estão enquanto ninguém mexer na data.
+    const dataMudou = (dataVencInput || '') !== (transAtual.dataVencimento || '');
+    const comp = dataMudou ? competenciaDaData(dataVencInput) : null;
+    if (comp) {
+      transAtual.mes = comp.mes;
+      transAtual.ano = comp.ano;
+    }
     transAtual.descricao = desc;
     transAtual.valor = valorTotal;
     transAtual.categoria = categoria;

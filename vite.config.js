@@ -42,6 +42,35 @@ function copyWebDir() {
   };
 }
 
+// Plugin: copia icons/ para dist/icons/ com os nomes intactos.
+//
+// O manifest.webmanifest em si o Vite resolve e versiona sozinho (vira
+// dist/assets/manifest-<hash>.webmanifest) — o que muda a URL dele a cada
+// alteração, mas a identidade do app instalado está fixada no campo "id",
+// não na URL do manifest.
+//
+// Os ícones é que NÃO podem ser versionados: o Vite reescreve caminhos no
+// HTML, nunca dentro do JSON do manifest. Um icons/ hasheado deixaria o
+// manifest apontando para arquivos inexistentes — e o ícone da tela de
+// início voltaria a ser o print da página. Caminho absoluto (/icons/*) para
+// valer igual em / e em /app (ver rewrites do vercel.json).
+function copyPwaIcons() {
+  return {
+    name: 'appliquei-copy-pwa-icons',
+    apply: 'build',
+    closeBundle() {
+      const src = resolve(__dirname, 'icons');
+      const dst = resolve(__dirname, 'dist', 'icons');
+      if (!fs.existsSync(src)) return;
+      fs.mkdirSync(dst, { recursive: true });
+      for (const f of fs.readdirSync(src)) {
+        const s = resolve(src, f);
+        if (fs.statSync(s).isFile()) fs.copyFileSync(s, resolve(dst, f));
+      }
+    },
+  };
+}
+
 module.exports = defineConfig({
   // appType=mpa: cada HTML é uma entrada independente; não há fallback
   // para index.html no dev server (cada rota serve seu próprio HTML).
@@ -51,7 +80,7 @@ module.exports = defineConfig({
   // appliquei-favicon.png ficam na raiz e Vite resolve via inputs.
   publicDir: false,
 
-  plugins: [copyWebDir()],
+  plugins: [copyWebDir(), copyPwaIcons()],
 
   build: {
     outDir: 'dist',

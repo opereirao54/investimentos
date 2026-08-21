@@ -47,6 +47,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 | `npm test`                | 58 unit tests (`node --test`)                           |
 | `npm run test:flows`      | 108 checks de billing/referral (mock Asaas + Firestore) |
 | `npm run optimize:assets` | Re-encoda JPGs grandes com sharp                        |
+| `npm run icons:build`     | Regera `icons/` (tela de início) a partir do SVG        |
 
 ## Estrutura
 
@@ -55,6 +56,8 @@ npx vercel dev    # serve dist/ + api/ em :3000
 ├── Appliquei_v13.0.html         # SPA principal (~6700 linhas, 99% layout/CSS)
 ├── admin.html                    # Painel admin
 ├── landing.html                  # Página de marketing
+├── manifest.webmanifest          # "Adicionar à tela de início" (nome, cores, ícones)
+├── icons/                        # Ícones da tela de início — gerados, não editar à mão
 ├── api/                          # 12 endpoints Vercel Functions
 │   ├── _lib/
 │   │   ├── handler.js            # Wrapper unificado (cors + auth + Zod + try/catch + Sentry)

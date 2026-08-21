@@ -20,6 +20,7 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "optimize:assets": "node scripts/optimize-assets.js",
+    "icons:build": "node scripts/gen-app-icons.js",
     "prepare": "husky || true"
   },
   "dependencies": {
