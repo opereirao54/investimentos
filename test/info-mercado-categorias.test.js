@@ -66,7 +66,7 @@ function carregar(opcoes) {
       createElement: () => makeDeadNode(),
     },
     localStorage: cfg.localStorage || makeStorage(),
-    fetch: cfg.fetch || (async () => ({ json: async () => ({ status: 'error' }) })),
+    fetch: cfg.fetch || (async () => ({ ok: true, json: async () => ({ status: 'error' }) })),
     console: { log() {}, warn() {}, error() {}, info() {}, debug() {} },
     setTimeout,
     clearTimeout,
@@ -436,7 +436,7 @@ test('trocar de categoria não vai à rede', async () => {
   const w = carregar({
     fetch: async () => {
       chamadas++;
-      return { json: async () => ({ status: 'error' }) };
+      return { ok: true, json: async () => ({ status: 'error' }) };
     },
   });
   w.imNoticias = ACERVO.map(w.imPrepararNoticia);
@@ -448,7 +448,7 @@ test('trocar de categoria não vai à rede', async () => {
 // ---- carga, cache e falha de rede -------------------------------------
 
 function respostaFeed(items) {
-  return { json: async () => ({ status: 'ok', items }) };
+  return { ok: true, json: async () => ({ status: 'ok', items }) };
 }
 
 test('carregarNoticias guarda o feed em cache fora do prefixo sincronizado', async () => {
@@ -481,6 +481,15 @@ test('segunda visita à aba usa o cache fresco em vez de bater na API', async ()
   assert.equal(w.imNoticias.length, 4);
 });
 
+test('atualizarNoticias devolve a promise da busca', async () => {
+  const espiao = espionarFetch([['rss2json', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  const p = w.atualizarNoticias();
+  assert.ok(p && typeof p.then === 'function', 'atualizarNoticias não devolveu promise');
+  await p;
+  assert.equal(w.imNoticias.length, 1, 'promise resolveu antes de a busca terminar');
+});
+
 test('"Atualizar" ignora o cache e busca de novo', async () => {
   const store = makeStorage();
   let chamadas = 0;
@@ -503,7 +512,7 @@ test('feed com status de erro não apaga o que já estava em cache', async () =>
 
   const ruim = carregar({
     localStorage: store,
-    fetch: async () => ({ json: async () => ({ status: 'error' }) }),
+    fetch: async () => ({ ok: true, json: async () => ({ status: 'error' }) }),
   });
   await ruim.carregarNoticias(true);
   assert.equal(ruim.imNoticias.length, 4, 'deveria cair no cache antigo');
@@ -529,6 +538,116 @@ test('sem rede e sem cache, a aba entra em estado de erro em vez de girar para s
   assert.ok(/Tentar de novo/.test(elementos['container-noticias'].innerHTML));
 });
 
+// ---- cadeia de fontes -------------------------------------------------
+//
+// A aba já caiu inteira em produção por causa de um parâmetro a mais na URL
+// do rss2json: sem api_key, `count` faz o serviço responder 200 com
+// status "error", e a tela virou "não deu para falar com o feed". Daí as
+// duas travas: a URL não pode ganhar parâmetro novo por descuido, e uma
+// fonte fora do ar não pode derrubar a aba.
+
+function espionarFetch(rotas) {
+  const chamadas = [];
+  const fetch = async (url, opcoes) => {
+    chamadas.push({ url: String(url), opcoes });
+    for (const [trecho, resposta] of rotas) {
+      if (String(url).includes(trecho)) return resposta();
+    }
+    throw new Error('rota não simulada: ' + url);
+  };
+  return { fetch, chamadas };
+}
+
+const ITENS_OK = [
+  {
+    title: 'Ibovespa fecha em alta',
+    link: 'https://ex.com/mercados/a/',
+    pubDate: '',
+    categories: [],
+  },
+];
+const ok = (items) => ({ ok: true, json: async () => ({ status: 'ok', items }) });
+
+test('URL do rss2json não leva "count" — sem api_key ele derruba a aba', async () => {
+  const espiao = espionarFetch([['rss2json', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  await w.carregarNoticias(true);
+  const url = espiao.chamadas.map((c) => c.url).find((u) => u.includes('rss2json'));
+  assert.ok(url, 'rss2json nem foi chamado');
+  assert.ok(!/[?&]count=/.test(url), 'count voltou para a URL: ' + url);
+  assert.ok(url.includes('rss_url='), url);
+});
+
+test('sem sessão, cai direto no rss2json em vez de falhar', async () => {
+  const espiao = espionarFetch([['rss2json', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 1);
+  assert.ok(!espiao.chamadas.some((c) => c.url.includes('/api/market')));
+});
+
+test('com sessão, tenta a API própria primeiro e nem chama o terceiro', async () => {
+  const espiao = espionarFetch([['/api/market', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  w.firebase = { auth: () => ({ currentUser: { getIdToken: async () => 'tok-123' } }) };
+  await w.carregarNoticias(true);
+  const nossa = espiao.chamadas.find((c) => c.url.includes('/api/market'));
+  assert.ok(nossa, 'API própria não foi tentada');
+  assert.equal(nossa.opcoes.headers.Authorization, 'Bearer tok-123');
+  assert.ok(!espiao.chamadas.some((c) => c.url.includes('rss2json')), 'não devia usar o fallback');
+  assert.equal(w.imNoticias.length, 1);
+});
+
+test('API própria fora do ar: o rss2json assume e a aba continua de pé', async () => {
+  const espiao = espionarFetch([
+    ['/api/market', () => ({ ok: false, status: 502, json: async () => ({}) })],
+    ['rss2json', () => ok(ITENS_OK)],
+  ]);
+  const w = carregar({ fetch: espiao.fetch });
+  w.firebase = { auth: () => ({ currentUser: { getIdToken: async () => 'tok' } }) };
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 1, 'fallback não entrou');
+  assert.equal(w.imUltimoErro, '');
+});
+
+test('as duas fontes fora: erro guarda o motivo de cada uma', async () => {
+  const elementos = {
+    'container-noticias': makeDeadNode(),
+    'loader-noticias': makeDeadNode(),
+    'filtros-noticias': makeDeadNode(),
+    'resumo-noticias': makeDeadNode(),
+    'mais-noticias': makeDeadNode(),
+  };
+  const espiao = espionarFetch([
+    ['/api/market', () => ({ ok: false, status: 401, json: async () => ({}) })],
+    // Exatamente a forma como o rss2json reprova `count` sem api_key.
+    [
+      'rss2json',
+      () => ({ ok: true, json: async () => ({ status: 'error', message: 'API key required' }) }),
+    ],
+  ]);
+  const w = carregar({ elementos, fetch: espiao.fetch });
+  w.firebase = { auth: () => ({ currentUser: { getIdToken: async () => 'tok' } }) };
+  await w.carregarNoticias(true);
+  assert.match(w.imUltimoErro, /api: http_401/);
+  assert.match(w.imUltimoErro, /rss2json: API key required/);
+  // O motivo tem que chegar à tela — um print do erro precisa ser acionável.
+  assert.match(elementos['container-noticias'].innerHTML, /http_401/);
+  assert.match(elementos['container-noticias'].innerHTML, /Tentar de novo/);
+});
+
+test('token que estoura não derruba a busca — segue para o fallback', async () => {
+  const espiao = espionarFetch([['rss2json', () => ok(ITENS_OK)]]);
+  const w = carregar({ fetch: espiao.fetch });
+  w.firebase = {
+    auth: () => {
+      throw new Error('auth ainda não inicializou');
+    },
+  };
+  await w.carregarNoticias(true);
+  assert.equal(w.imNoticias.length, 1);
+});
+
 // ---- acervo acumulado -------------------------------------------------
 //
 // O feed do InfoMoney devolve só as últimas horas. Se cada carga
@@ -540,7 +659,7 @@ const HORA = 3600 * 1000;
 const horasAtras = (h) => new Date(Date.now() - h * HORA).toISOString();
 
 function feedComItens(itens) {
-  return { json: async () => ({ status: 'ok', items: itens }) };
+  return { ok: true, json: async () => ({ status: 'ok', items: itens }) };
 }
 
 function itemFeed(title, link, pubDate, extra) {

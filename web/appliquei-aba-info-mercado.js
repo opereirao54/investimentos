@@ -23,9 +23,16 @@
 
 // --- ABA 6: INFO MERCADO ---
 
-// Fonte única de notícias.
+// Fonte única de notícias (o feed do InfoMoney), alcançada por dois
+// caminhos. `/api/market?op=news` busca o RSS do nosso próprio servidor:
+// sem CORS, sem cota de terceiro. O rss2json fica de rede de segurança
+// para quando a nossa function estiver fora ou o token tiver expirado.
+//
+// NÃO passe `count` para o rss2json: sem api_key ele responde status
+// "error" e a aba inteira cai — foi exatamente assim que ela quebrou.
 var IM_FEED_URL = 'https://www.infomoney.com.br/feed/';
 var IM_API_BASE = 'https://api.rss2json.com/v1/api.json';
+var IM_API_PROPRIA = '/api/market?op=news';
 
 // Cache do feed. Prefixo propositalmente FORA de futurorico_/appliquei_ para
 // o cloud-sync não empurrar payload de notícia pro Firestore (ver
@@ -584,6 +591,7 @@ var imVisiveis = IM_PAGINA;
 var imCarregando = false;
 var imAvisoCache = '';
 var imAtualizadoEm = 0;
+var imUltimoErro = '';
 
 // ============================================================
 // Classificação
@@ -896,21 +904,12 @@ async function carregarNoticias(forcar) {
   imCarregando = true;
   imMostrarLoader(!imNoticias.length);
   try {
-    var url =
-      IM_API_BASE +
-      '?rss_url=' +
-      encodeURIComponent(IM_FEED_URL) +
-      '&count=' +
-      encodeURIComponent(60);
-    var resposta = await fetch(url);
-    var dados = await resposta.json();
-    if (!dados || dados.status !== 'ok' || !Array.isArray(dados.items) || !dados.items.length) {
-      throw new Error('feed_invalido');
-    }
-    imNoticias = imMesclar(cache ? cache.items : [], dados.items.map(imPrepararNoticia));
+    var itens = await imBuscarFeed();
+    imNoticias = imMesclar(cache ? cache.items : [], itens.map(imPrepararNoticia));
     imGravarCache(imNoticias);
     imAtualizadoEm = Date.now();
     imAvisoCache = '';
+    imUltimoErro = '';
     imVisiveis = IM_PAGINA;
     imRenderizar();
   } catch (_) {
@@ -933,10 +932,67 @@ async function carregarNoticias(forcar) {
   }
 }
 
+/** Token do Firebase, quando o app já autenticou. Sem ele, seguimos sem. */
+async function imTokenAuth() {
+  try {
+    if (typeof firebase === 'undefined' || !firebase.auth) return '';
+    var u = firebase.auth().currentUser;
+    return u ? await u.getIdToken() : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+/** Uma tentativa: devolve os itens ou lança com um motivo legível. */
+async function imTentarFonte(url, cabecalhos) {
+  var resposta = await fetch(url, cabecalhos ? { headers: cabecalhos } : undefined);
+  if (!resposta.ok) throw new Error('http_' + resposta.status);
+  var dados = await resposta.json();
+  if (!dados || dados.status !== 'ok') {
+    // rss2json devolve 200 com status "error" e a razão em `message`.
+    throw new Error(
+      String((dados && (dados.message || dados.error)) || 'resposta_invalida').slice(0, 120)
+    );
+  }
+  if (!Array.isArray(dados.items) || !dados.items.length) throw new Error('feed_sem_itens');
+  return dados.items;
+}
+
+/**
+ * Busca o feed pelas duas fontes, em ordem. Guarda o motivo de cada falha em
+ * imUltimoErro: sem isso, "não deu para falar com o feed" não diz nada a
+ * quem precisa consertar.
+ */
+async function imBuscarFeed() {
+  var falhas = [];
+
+  var token = await imTokenAuth();
+  if (token) {
+    try {
+      return await imTentarFonte(IM_API_PROPRIA, { Authorization: 'Bearer ' + token });
+    } catch (e) {
+      falhas.push('api: ' + e.message);
+    }
+  } else {
+    falhas.push('api: sem sessão');
+  }
+
+  try {
+    return await imTentarFonte(IM_API_BASE + '?rss_url=' + encodeURIComponent(IM_FEED_URL));
+  } catch (e) {
+    falhas.push('rss2json: ' + e.message);
+  }
+
+  imUltimoErro = falhas.join(' · ');
+  throw new Error(imUltimoErro);
+}
+
 /** Botão "Atualizar" do cabeçalho. */
 function atualizarNoticias() {
   imVisiveis = IM_PAGINA;
-  carregarNoticias(true);
+  // Devolve a promise: sem ela ninguém consegue esperar o fim da atualização
+  // (o onclick ignora, mas teste e código futuro precisam).
+  return carregarNoticias(true);
 }
 
 // ============================================================
@@ -1223,5 +1279,8 @@ function imRenderizarErro() {
     '<p><strong>Não deu para falar com o feed de notícias.</strong></p>' +
     '<p class="im-vazio-dica">Pode ser a sua conexão ou uma instabilidade da fonte.</p>' +
     '<button type="button" class="btn-secundario" onclick="atualizarNoticias()"><i class="ph ph-arrows-clockwise"></i> Tentar de novo</button>' +
+    // O motivo técnico fica discreto, mas visível: sem ele, um print da tela
+    // de erro não permite descobrir qual das fontes caiu nem por quê.
+    (imUltimoErro ? '<p class="im-vazio-motivo">' + imEscapar(imUltimoErro) + '</p>' : '') +
     '</div>';
 }

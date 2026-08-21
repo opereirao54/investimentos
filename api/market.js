@@ -6,12 +6,18 @@ const { handler } = require('./_lib/handler');
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
 //   - GET  /api/market?op=quote&tickers=PETR4,VALE3              (auth: Firebase Bearer)
 //   - GET  /api/market?op=history&ticker=PETR4&range=1y          (auth: Firebase Bearer)
+//   - GET  /api/market?op=news                                    (auth: Firebase Bearer)
 //   - POST /api/market?op=warmup                                  (auth: Bearer CRON_SECRET)
 //
 // Cache em Firestore: marketQuotes/{TICKER}, marketHistory/{TICKER}_{RANGE}.
 // BRAPI grátis ~15k req/mês; cada chamada cobre N tickers num único batch.
 
 const BRAPI_BASE = 'https://brapi.dev/api/quote';
+// Feed de notícias da aba Info Mercado. FIXO no servidor de propósito: se a
+// URL viesse do cliente, este endpoint viraria um proxy HTTP aberto (SSRF).
+const NEWS_FEED_URL = 'https://www.infomoney.com.br/feed/';
+const NEWS_MAX_ITEMS = 60;
+const NEWS_TTL_MS = 10 * 60 * 1000;
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const MAX_TICKERS_PER_REQUEST = 50;
@@ -32,6 +38,11 @@ const CRYPTO_MAP = {
   LINK: 'chainlink',
   MATIC: 'matic-network',
 };
+
+// Cache do feed na memória do processo. A function serverless reusa o
+// container entre invocações, então isto já segura a maior parte das visitas
+// sem ida ao InfoMoney — e sem gravar nada no Firestore por notícia.
+let newsCache = { at: 0, items: null };
 
 // Mapa range -> meses (para corte e cache key).
 const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
@@ -421,6 +432,122 @@ async function handleWarmup(req, res) {
   });
 }
 
+// ============================================================
+// === op=news — feed de notícias (aba Info Mercado) ===
+// ============================================================
+//
+// Existe para a aba não ficar refém do rss2json: aquele serviço é gratuito,
+// tem limite por IP e já derrubou a aba inteira em produção. Aqui o RSS é
+// buscado do servidor (sem CORS, sem cota de terceiro) e devolvido no MESMO
+// formato do rss2json, para o cliente tratar as duas fontes igual.
+//
+// O parse é por regex de propósito: o feed é WordPress, o formato é estável
+// e um parser XML de verdade seria uma dependência nova só para isto.
+
+/** Desembrulha CDATA e converte as entidades que o RSS realmente usa. */
+function decodeXmlText(raw) {
+  let s = String(raw == null ? '' : raw);
+  s = s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  s = s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number(n);
+      return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : '';
+    })
+    // &amp; por último: antes disso, "&amp;lt;" viraria "<" indevidamente.
+    .replace(/&amp;/g, '&');
+  return s.trim();
+}
+
+/** Conteúdo da primeira <tag> do bloco, já decodificado. */
+function pickTag(bloco, tag) {
+  const m = new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + tag + '>', 'i').exec(bloco);
+  return m ? decodeXmlText(m[1]) : '';
+}
+
+/** Conteúdo de TODAS as <tag> do bloco (o RSS repete <category>). */
+function pickTags(bloco, tag) {
+  const re = new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + tag + '>', 'gi');
+  const out = [];
+  let m;
+  while ((m = re.exec(bloco))) {
+    const v = decodeXmlText(m[1]);
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+/** RSS 2.0 -> itens no formato que a aba já consome. */
+function parseRssItems(xml) {
+  const itens = [];
+  const re = /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = re.exec(xml)) && itens.length < NEWS_MAX_ITEMS) {
+    const bloco = m[1];
+    const title = pickTag(bloco, 'title');
+    const link = pickTag(bloco, 'link');
+    if (!title || !link) continue;
+    itens.push({
+      title,
+      link,
+      pubDate: pickTag(bloco, 'pubDate'),
+      // description antes de content:encoded — o resumo do card cabe em
+      // 160 caracteres e o content traz o post inteiro.
+      description: pickTag(bloco, 'description') || pickTag(bloco, 'content:encoded'),
+      categories: pickTags(bloco, 'category').slice(0, 6),
+    });
+  }
+  return itens;
+}
+
+async function fetchFeedItems() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(NEWS_FEED_URL, {
+      headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`feed_${res.status}`);
+  const xml = await res.text();
+  const items = parseRssItems(xml);
+  if (!items.length) throw new Error('feed_sem_itens');
+  return items;
+}
+
+async function handleNews(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  if (newsCache.items && Date.now() - newsCache.at < NEWS_TTL_MS) {
+    return res.json({ status: 'ok', source: 'cache', items: newsCache.items });
+  }
+  try {
+    const items = await fetchFeedItems();
+    newsCache = { at: Date.now(), items };
+    return res.json({ status: 'ok', source: 'feed', items });
+  } catch (e) {
+    // Feed velho ainda serve melhor que erro — o cliente decide se avisa.
+    if (newsCache.items) {
+      return res.json({
+        status: 'ok',
+        source: 'cache_stale',
+        cachedAt: newsCache.at,
+        items: newsCache.items,
+      });
+    }
+    return res.status(502).json({ status: 'error', error: 'feed_unavailable', detail: e.message });
+  }
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -437,11 +564,21 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleHistory(req, res);
     }
+    if (op === 'news') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleNews(req, res);
+    }
     if (op === 'warmup') {
       return handleWarmup(req, res);
     }
-    return res
-      .status(400)
-      .json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
+    return res.status(400).json({
+      error: 'unknown_op',
+      detail: 'Use ?op=quote, ?op=history, ?op=news or ?op=warmup',
+    });
   },
 });
+
+// Internos do parse de RSS expostos para teste. São regex sobre XML de
+// terceiro — a parte deste arquivo com mais chance de errar em silêncio e a
+// que dá para exercitar sem rede nem Firestore.
+module.exports.__test = { parseRssItems, decodeXmlText, pickTag, pickTags };
