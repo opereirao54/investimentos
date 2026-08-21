@@ -555,3 +555,122 @@ test('expectativa absurda do Focus é recusada como qualquer outra', async () =>
     restaurar();
   }
 });
+
+// ════════════════════════════════════════════
+// Composição CVM + cotação
+// ════════════════════════════════════════════
+//
+// As duas fontes gravam no MESMO documento do Firestore. O risco é
+// específico e destrutivo: a resposta da fonte de cotação traz null
+// explícito em quase todo campo fundamentalista, e um merge por cima
+// apagaria os indicadores que a ingestão da CVM acabou de calcular. Por isso
+// cada fonte tem o seu ramo e a junção acontece só na leitura.
+
+const { comporFundamentos } = market.__test || {};
+
+const RAMO_MERCADO = {
+  ticker: 'BBAS3',
+  preco: 28.5,
+  marketCap: 160e9,
+  liquidezDiaria: 4e7,
+  dy: 9.5,
+  dyMedio5a: 8,
+  // É assim que a fonte de cotação responde sem os módulos pagos:
+  roe: null,
+  dividaLiquidaEbitda: null,
+  cagrReceita5a: null,
+  fonte: 'brapi',
+  fonteRotulo: 'Cotação · BRAPI',
+};
+
+const RAMO_CVM = {
+  roe: 20.4,
+  roic: 16.2,
+  margemLiquida: 25.1,
+  dividaLiquidaEbitda: 1.5,
+  cagrReceita5a: 9,
+  lucroLiquido: 35e9,
+  patrimonioLiquido: 200e9,
+  classe: 'acao',
+  fonte: 'cvm',
+  fonteRotulo: 'DFP 2025 · CVM',
+  dataReferencia: '2025-12-31',
+};
+
+test('o null da cotação NÃO apaga o indicador da CVM', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO,
+    cvm: RAMO_CVM,
+    mercadoFetchedAtMs: 1000,
+    cvmFetchedAtMs: 2000,
+  });
+  assert.equal(c.roe, 20.4, 'era exatamente isto que um merge plano destruiria');
+  assert.equal(c.dividaLiquidaEbitda, 1.5);
+  assert.equal(c.cagrReceita5a, 9);
+});
+
+test('cada fonte contribui com o que só ela tem', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, cvm: RAMO_CVM });
+  assert.equal(c.dy, 9.5, 'proventos e preço só existem na cotação');
+  assert.equal(c.liquidezDiaria, 4e7);
+  assert.equal(c.roic, 16.2, 'ROIC só sai da DRE completa');
+});
+
+test('P/L e P/VP nascem do cruzamento — não existem em nenhuma fonte sozinha', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, cvm: RAMO_CVM });
+  assert.ok(Math.abs(c.pl - 160 / 35) < 0.01, `P/L veio ${c.pl}`);
+  assert.ok(Math.abs(c.pvp - 0.8) < 0.001, `P/VP veio ${c.pvp}`);
+});
+
+test('prejuízo não vira P/L: "sem P/L" e "P/L negativo" dizem coisas diferentes', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO,
+    cvm: { ...RAMO_CVM, lucroLiquido: -5e9 },
+  });
+  assert.equal(c.pl, undefined, 'inventar P/L negativo aqui mentiria sobre a origem');
+  assert.equal(c.lucroLiquido, -5e9, 'o lucro absoluto segue, para o alerta de prejuízo sair dele');
+  assert.ok(c.pvp > 0, 'P/VP continua calculável');
+});
+
+test('sem valor de mercado não há múltiplo, e nada quebra', () => {
+  const c = comporFundamentos({
+    mercado: { ...RAMO_MERCADO, marketCap: null },
+    cvm: RAMO_CVM,
+  });
+  assert.equal(c.pl, undefined);
+  assert.equal(c.pvp, undefined);
+  assert.equal(c.roe, 20.4, 'o resto dos indicadores não depende do preço');
+});
+
+test('procedência declara a CVM e a data do exercício', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO,
+    cvm: RAMO_CVM,
+    cvmFetchedAtMs: 2000,
+  });
+  assert.equal(c.fonte, 'cvm');
+  assert.ok(c.fonteRotulo.includes('DFP 2025'));
+  assert.ok(c.fonteRotulo.includes('cotação'), 'a tela tem de saber que houve duas fontes');
+  assert.equal(c.dataReferencia, '2025-12-31');
+  assert.equal(c.fetchedAtMs, 2000);
+});
+
+test('só cotação: a resposta é a da cotação, sem carimbo de CVM', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, mercadoFetchedAtMs: 1000 });
+  assert.equal(c.fonte, 'brapi');
+  assert.equal(c.roe, null);
+  assert.equal(c.fetchedAtMs, 1000);
+  assert.ok(!('cvm' in c), 'o ramo bruto não pode vazar para o cliente');
+});
+
+test('documento plano antigo continua legível', () => {
+  // Compatibilidade com o que foi gravado antes da separação em ramos.
+  const c = comporFundamentos({ ticker: 'PETR4', preco: 38, roe: 12, fetchedAtMs: 500 });
+  assert.equal(c.roe, 12);
+  assert.equal(c.fetchedAtMs, 500);
+});
+
+test('documento inexistente devolve null, não objeto vazio', () => {
+  assert.equal(comporFundamentos(null), null);
+  assert.equal(comporFundamentos(undefined), null);
+});

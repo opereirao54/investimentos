@@ -1420,6 +1420,56 @@ async function fetchCoingeckoFundamentals(simbolos) {
   return out;
 }
 
+/**
+ * Junta o que a CVM sabe com o que a cotação sabe.
+ *
+ * As duas fontes gravam no MESMO documento, em ramos separados (`cvm` e
+ * `mercado`), e isto é o que impede uma de apagar a outra: a resposta da
+ * BRAPI traz null explícito em quase todo campo fundamentalista, e um
+ * `merge: true` com esses nulls por cima limparia os indicadores que a
+ * ingestão da CVM tinha acabado de gravar.
+ *
+ * A CVM vence onde tem dado — é a fonte primária, auditável e obrigatória.
+ * O mercado entra com o que só ele tem: preço, valor de mercado, volume e
+ * proventos. P/L e P/VP não existem em nenhuma das duas sozinha: nascem
+ * aqui, do lucro e do patrimônio da CVM cruzados com o valor de mercado.
+ */
+function comporFundamentos(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  // Documentos gravados antes da separação em ramos são planos.
+  const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
+  const cvm = doc.cvm && typeof doc.cvm === 'object' ? doc.cvm : null;
+  const out = { ...mercado };
+  delete out.cvm;
+  delete out.mercado;
+
+  if (!cvm) {
+    out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
+    return out;
+  }
+
+  for (const [chave, valor] of Object.entries(cvm)) {
+    if (valor === null || valor === undefined) continue;
+    if (['fonte', 'fonteRotulo', 'dataReferencia', 'classe'].includes(chave)) continue;
+    out[chave] = valor;
+  }
+
+  const marketCap = fundNum(mercado.marketCap);
+  const lucro = fundNum(cvm.lucroLiquido);
+  const patrimonio = fundNum(cvm.patrimonioLiquido);
+  // Lucro negativo não produz P/L: o motor trata "sem P/L" e "P/L negativo"
+  // de formas diferentes, e inventar o segundo aqui seria mentir sobre a
+  // origem. O alerta de prejuízo sai do lucro absoluto, que segue no doc.
+  if (marketCap && lucro && lucro > 0) out.pl = marketCap / lucro;
+  if (marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
+
+  out.fonte = 'cvm';
+  out.fonteRotulo = cvm.fonteRotulo ? `${cvm.fonteRotulo} + cotação` : 'CVM + cotação';
+  out.dataReferencia = cvm.dataReferencia || null;
+  out.fetchedAtMs = doc.cvmFetchedAtMs || doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
+  return out;
+}
+
 async function handleFundamentals(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
@@ -1452,14 +1502,17 @@ async function handleFundamentals(req, res) {
   const snaps = await database.getAll(...refs);
   const fresh = {};
   const stale = [];
+  const documentos = {};
   snaps.forEach((snap, i) => {
     const t = requested[i];
     const d = snap.data();
-    if (d && typeof d.fetchedAtMs === 'number' && agora - d.fetchedAtMs < FUNDAMENTALS_TTL_MS) {
-      fresh[t] = d;
-    } else {
-      stale.push(t);
-    }
+    if (d) documentos[t] = d;
+    // Só a idade do ramo de MERCADO decide rebuscar: o ramo da CVM é
+    // atualizado pelo job de ingestão e tem validade de meses (uma DFP é
+    // anual), não de um dia.
+    const idade = d && (d.mercadoFetchedAtMs || d.fetchedAtMs);
+    if (typeof idade === 'number' && agora - idade < FUNDAMENTALS_TTL_MS) fresh[t] = d;
+    else stale.push(t);
   });
 
   let fetched = {};
@@ -1489,13 +1542,14 @@ async function handleFundamentals(req, res) {
       batch.set(
         database.collection(FUNDAMENTALS_COLLECTION).doc(t),
         {
-          ...fetched[t],
-          fetchedAtMs: agora,
+          mercado: fetched[t],
+          mercadoFetchedAtMs: agora,
           dateYmd: todayYmdBRT(agora),
           updatedAt: timestamp().now(),
         },
         { merge: true }
       );
+      documentos[t] = { ...(documentos[t] || {}), mercado: fetched[t], mercadoFetchedAtMs: agora };
       gravou++;
     }
     if (gravou) {
@@ -1507,10 +1561,15 @@ async function handleFundamentals(req, res) {
 
   const fundamentos = {};
   const indisponiveis = [];
+  let comCvm = 0;
   for (const t of requested) {
-    if (fresh[t]) fundamentos[t] = { ...fresh[t], cached: true };
-    else if (fetched[t]) fundamentos[t] = { ...fetched[t], cached: false };
-    else indisponiveis.push(t);
+    const composto = comporFundamentos(documentos[t]);
+    if (!composto) {
+      indisponiveis.push(t);
+      continue;
+    }
+    if (composto.fonte === 'cvm') comCvm++;
+    fundamentos[t] = { ...composto, cached: !!fresh[t] };
   }
 
   return res.json({
@@ -1519,6 +1578,7 @@ async function handleFundamentals(req, res) {
     requested: requested.length,
     fromCache: Object.keys(fresh).length,
     fromApi: Object.keys(fetched).length,
+    comCvm,
     indisponiveis,
     fundamentos,
     erros,
@@ -1794,6 +1854,7 @@ module.exports.__test = {
   fundCrescimentoDre,
   fundCobertura,
   mapBrapiFundamental,
+  comporFundamentos,
   mapTesouroTitulo,
   parseTesouroResposta,
   rfClassificarTipo,

@@ -21,7 +21,8 @@
     "test:e2e:install": "playwright install chromium",
     "optimize:assets": "node scripts/optimize-assets.js",
     "icons:build": "node scripts/gen-app-icons.js",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "ingest:cvm": "node scripts/ingest-cvm.js --dry-run"
   },
   "dependencies": {
     "@sentry/browser": "^10.62.0",
