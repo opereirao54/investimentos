@@ -255,6 +255,65 @@ test('imRemoverTrechos sem lista devolve o texto intacto', () => {
   assert.equal(win.imRemoverTrechos(' abc ', null), ' abc ');
 });
 
+// ---- HTML do feed que vaza para o card --------------------------------
+
+test('atributo com HTML dentro não vaza para o resumo do card', () => {
+  // Forma real do feed: o WordPress do InfoMoney põe <p>…</p> DENTRO do
+  // atributo. Um /<[^>]*>/ encerra a tag no ">" do atributo e despeja o
+  // resto como texto — foi o que apareceu no card em produção.
+  const desc =
+    '<figure><img src="a.jpg" data-image-caption="<p>Wall Street em alta. ' +
+    'Imagem gerada com uso de IA</p>" data-image-title="Wall Street">' +
+    '</figure><p>Texto de verdade da matéria.</p>';
+  const resumo = win.imNormalizarResumo(desc);
+  assert.equal(resumo, 'Texto de verdade da matéria.');
+  assert.ok(!resumo.includes('data-image'), resumo);
+  assert.ok(!resumo.includes('"'), resumo);
+});
+
+test('o mesmo lixo de atributo não entra na classificação', () => {
+  // imNormalizar alimenta as regras: atributo vazado viraria palavra-chave.
+  const texto = win.imNormalizar('<img data-image-caption="<p>x</p>" alt="banco">ok');
+  assert.equal(texto.indexOf('data'), -1, texto);
+  assert.equal(texto.indexOf('caption'), -1, texto);
+  assert.equal(texto.trim(), 'ok');
+});
+
+test('imTirarTags aguenta tag sem fechar e texto sem tag nenhuma', () => {
+  assert.equal(win.imTirarTags('sem tag aqui'), 'sem tag aqui');
+  assert.equal(win.imTirarTags('antes <div class="x" ').trim(), 'antes');
+  assert.equal(win.imTirarTags('').trim(), '');
+  assert.equal(win.imTirarTags(null).trim(), '');
+});
+
+test('entidade escapada não é confundida com tag', () => {
+  // Tags saem antes de as entidades serem decodificadas; na ordem inversa
+  // "&lt;b&gt;" viraria tag de verdade e sumiria do resumo.
+  assert.equal(
+    win.imNormalizarResumo('alta de &lt;b&gt;5%&lt;/b&gt; hoje'),
+    'alta de <b>5%</b> hoje'
+  );
+});
+
+// ---- lugar com nome de país -------------------------------------------
+
+test('"Jardim Europa" não vira notícia do Mundo', () => {
+  const cats = classificar(
+    noticia('Casa é vendida por R$ 6,7 milhões', {
+      description: 'O imóvel fica no Jardim Europa, em São Paulo.',
+    })
+  );
+  assert.ok(!cats.includes('mundo'), 'bairro paulistano virou Mundo: ' + cats.join(','));
+  assert.ok(cats.includes('brasil'), cats.join(','));
+});
+
+test('Europa de verdade continua caindo em Mundo', () => {
+  assert.ok(
+    classificar(noticia('Banco Central Europeu corta juros na zona do euro')).includes('mundo')
+  );
+  assert.ok(classificar(noticia('Governo francês aprova orçamento')).includes('mundo'));
+});
+
 // ---- sinais fortes: editoria do feed e seção da URL --------------------
 
 test('editoria declarada pelo feed vira rótulo', () => {

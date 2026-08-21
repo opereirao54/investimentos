@@ -540,7 +540,9 @@ var IM_REGRAS = [
   },
   {
     id: 'mundo',
-    remover: [],
+    // Bairro paulistano com nome de continente. Sem isto, "casa no Jardim
+    // Europa" entra no filtro Mundo — aconteceu em produção.
+    remover: ['jardim europa'],
     termos: [
       'eua',
       'estados unidos',
@@ -550,7 +552,10 @@ var IM_REGRAS = [
       'zona do euro',
       'japao',
       'alemanha',
-      'franca',
+      // 'franca' fica de fora de propósito: normalizado, o país colide com a
+      // cidade de Franca (SP) e com o adjetivo ("conversa franca").
+      'frances',
+      'francesa',
       'reino unido',
       'russia',
       'ucrania',
@@ -598,15 +603,57 @@ var imUltimoErro = '';
 // ============================================================
 
 /**
+ * Tira as tags HTML respeitando aspas.
+ *
+ * O regex ingênuo /<[^>]*>/ não serve para este feed: o WordPress do
+ * InfoMoney põe HTML DENTRO de atributo —
+ * data-image-caption="<p>legenda</p>" — e o regex encerra a tag no primeiro
+ * ">", que está dentro do atributo. O resto do atributo vaza como texto e
+ * vai parar no card ("... uso de IA " data-image-caption=" ..."). Foi
+ * exatamente o que apareceu em produção.
+ */
+function imTirarTags(html) {
+  var s = String(html == null ? '' : html);
+  var saida = '';
+  var i = 0;
+  while (i < s.length) {
+    var abre = s.indexOf('<', i);
+    if (abre === -1) {
+      saida += s.slice(i);
+      break;
+    }
+    saida += s.slice(i, abre);
+    var j = abre + 1;
+    var aspa = '';
+    while (j < s.length) {
+      var c = s.charAt(j);
+      if (aspa) {
+        if (c === aspa) aspa = '';
+      } else if (c === '"' || c === "'") {
+        aspa = c;
+      } else if (c === '>') {
+        break;
+      }
+      j++;
+    }
+    saida += ' ';
+    // Tag sem fechar: joga fora o resto em vez de deixar markup vazar.
+    if (j >= s.length) break;
+    i = j + 1;
+  }
+  return saida;
+}
+
+/**
  * Texto comparável: sem HTML, sem acento, minúsculo, só [a-z0-9] e espaço,
  * cercado por espaços. O padding é o truque que dá "casamento por palavra
  * inteira" de graça: procurar ' banco ' nunca acha "bancoop".
  */
 function imNormalizar(txt) {
   if (txt == null) return ' ';
-  var s = String(txt);
   // <br> e </p> viram espaço para o texto não colar entre parágrafos.
-  s = s.replace(/<[^>]*>/g, ' ');
+  // Sem isto o lixo de atributo entraria na CLASSIFICAÇÃO, não só no card.
+  var s = imTirarTags(txt);
   s = s.replace(/&[a-z]+;|&#\d+;/gi, ' ');
   if (s.normalize) s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   s = s.toLowerCase().replace(/[^a-z0-9]+/g, ' ');
@@ -765,8 +812,9 @@ function imMesclar(acervo, novos) {
 
 /** Resumo em texto puro, cortado no limite de leitura de um card. */
 function imNormalizarResumo(html) {
-  var s = String(html || '')
-    .replace(/<[^>]*>/g, ' ')
+  // Tags primeiro, entidades depois: na ordem inversa um "&lt;b&gt;" do
+  // feed viraria tag de verdade e seria removido como markup.
+  var s = imTirarTags(html)
     .replace(/&nbsp;/gi, ' ')
     .replace(/&amp;/gi, '&')
     .replace(/&quot;/gi, '"')
