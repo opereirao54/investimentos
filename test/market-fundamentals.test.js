@@ -364,3 +364,194 @@ test('as premissas de taxa são as mesmas da simulação histórica', () => {
   assert.equal(PREMISSAS_ANUAIS.IPCA, 0.045);
   assert.equal(PREMISSAS_ANUAIS.SELIC, PREMISSAS_ANUAIS.CDI);
 });
+
+// ════════════════════════════════════════════
+// Indicadores do Banco Central
+// ════════════════════════════════════════════
+//
+// PREMISSAS_ANUAIS era constante no código. A Selic muda várias vezes por
+// ano e a taxa real de todo título do Tesouro sai dela — uma constante
+// desatualizada erra em silêncio, sem nada na tela que denuncie.
+//
+// O risco ao trocar constante por série do SGS é específico: código de série
+// errado não dá erro, dá NÚMERO VÁLIDO DE OUTRA COISA. Por isso cada
+// candidata é validada contra uma faixa plausível, e é isso que estes
+// testes exercitam — com fetch dublado, sem tocar na rede.
+
+const { resolverIndicadorSgs, carregarIndicadoresBcb, anualizar252, sgsData, SGS_SERIES } =
+  market.__test || {};
+
+/** Dubla globalThis.fetch e devolve uma função para restaurar. */
+function dublarFetch(rotas) {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const alvo = String(url);
+    for (const [padrao, resposta] of rotas) {
+      if (alvo.includes(padrao)) {
+        if (resposta instanceof Error) throw resposta;
+        return { ok: true, status: 200, json: async () => resposta };
+      }
+    }
+    return { ok: false, status: 404, json: async () => ({}), text: async () => '' };
+  };
+  return () => {
+    globalThis.fetch = original;
+  };
+}
+
+const SGS = (codigo) => `bcdata.sgs.${codigo}/`;
+
+test('conversão de data e anualização do SGS', () => {
+  assert.equal(sgsData('20/08/2026'), '2026-08-20');
+  assert.equal(sgsData('lixo'), null, 'formato inesperado não pode virar data inválida');
+  // 0,0524% ao dia útil, 252 dias → ~14,1% ao ano.
+  assert.ok(Math.abs(anualizar252(0.0524) - 14.11) < 0.05, `veio ${anualizar252(0.0524)}`);
+});
+
+test('as faixas de plausibilidade cobrem o mercado brasileiro sem serem frouxas', () => {
+  // Faixa larga demais deixaria passar o número errado que o teste seguinte
+  // simula; estreita demais reprovaria juro real de um choque.
+  assert.deepEqual(SGS_SERIES.selic.faixa, [0.5, 40]);
+  assert.ok(SGS_SERIES.cdi.candidatas.length >= 2, 'CDI precisa de alternativa se a série mudar');
+});
+
+test('primeira série que responde valor plausível é a usada', async () => {
+  const restaurar = dublarFetch([[SGS(432), [{ data: '20/08/2026', valor: '15.00' }]]]);
+  try {
+    const r = await resolverIndicadorSgs('selic', []);
+    assert.equal(r.valor, 15);
+    assert.equal(r.data, '2026-08-20');
+    assert.ok(r.fonte.includes('432'), 'a procedência tem de nomear a série usada');
+  } finally {
+    restaurar();
+  }
+});
+
+test('série com valor implausível é RECUSADA e cai para a próxima', async () => {
+  // O caso perigoso: código errado devolve 200 com número válido de outra
+  // série. Sem a faixa, uma "Selic" de 0,05% entraria na conta de todo
+  // título do Tesouro e ninguém notaria.
+  const erros = [];
+  const restaurar = dublarFetch([
+    [SGS(432), [{ data: '20/08/2026', valor: '0.05' }]],
+    [SGS(4189), [{ data: '20/08/2026', valor: '14.90' }]],
+  ]);
+  try {
+    const r = await resolverIndicadorSgs('selic', erros);
+    assert.equal(r.valor, 14.9, 'devia ter usado a segunda candidata');
+    assert.ok(r.fonte.includes('4189'));
+    assert.ok(
+      erros.some((e) => e.serie === 432 && e.erro.includes('fora_da_faixa')),
+      `o descarte tem de ficar registado: ${JSON.stringify(erros)}`
+    );
+  } finally {
+    restaurar();
+  }
+});
+
+test('série diária é anualizada ANTES de checar a faixa', async () => {
+  // 0,0524% a.d. reprovaria na faixa [0,5; 40] se comparado cru.
+  const restaurar = dublarFetch([
+    [SGS(432), new Error('indisponivel')],
+    [SGS(4189), new Error('indisponivel')],
+    [SGS(11), [{ data: '20/08/2026', valor: '0.0524' }]],
+  ]);
+  try {
+    const r = await resolverIndicadorSgs('selic', []);
+    assert.ok(r !== null, 'série diária válida não podia ser descartada');
+    assert.ok(Math.abs(r.valor - 14.11) < 0.05, `veio ${r.valor}`);
+    assert.equal(r.unidade, '% a.a.');
+  } finally {
+    restaurar();
+  }
+});
+
+test('todas as candidatas falhando devolve null, não um chute', async () => {
+  const erros = [];
+  const restaurar = dublarFetch([]);
+  try {
+    assert.equal(await resolverIndicadorSgs('cdi', erros), null);
+    assert.equal(erros.length, SGS_SERIES.cdi.candidatas.length, 'cada tentativa tem de constar');
+  } finally {
+    restaurar();
+  }
+});
+
+test('BCB completo: premissas saem das séries e a origem é declarada', async () => {
+  const restaurar = dublarFetch([
+    [SGS(432), [{ data: '20/08/2026', valor: '15.00' }]],
+    [SGS(4389), [{ data: '20/08/2026', valor: '14.90' }]],
+    [SGS(13522), [{ data: '31/07/2026', valor: '4.30' }]],
+    ['Expectativas', { value: [{ Data: '2026-08-15', Mediana: 4.1, DataReferencia: 2026 }] }],
+  ]);
+  try {
+    const r = await carregarIndicadoresBcb();
+    assert.equal(r.premissas.SELIC, 0.15);
+    assert.equal(r.premissas.CDI, 0.149);
+    assert.ok(Math.abs(r.premissas.IPCA - 0.041) < 1e-9, 'IPCA vem da expectativa, não do passado');
+    assert.equal(r.degradado, false);
+    assert.ok(r.origem.SELIC.includes('432'));
+    assert.ok(r.origem.IPCA.includes('Focus'), 'a origem tem de dizer que é expectativa');
+  } finally {
+    restaurar();
+  }
+});
+
+test('Focus fora do ar cai para o IPCA passado, e diz que caiu', async () => {
+  const restaurar = dublarFetch([
+    [SGS(432), [{ data: '20/08/2026', valor: '15.00' }]],
+    [SGS(4389), [{ data: '20/08/2026', valor: '14.90' }]],
+    [SGS(13522), [{ data: '31/07/2026', valor: '4.30' }]],
+  ]);
+  try {
+    const r = await carregarIndicadoresBcb();
+    assert.ok(Math.abs(r.premissas.IPCA - 0.043) < 1e-9);
+    assert.ok(r.origem.IPCA.includes('13522'));
+    assert.equal(r.indicadores.ipcaEsperado, null);
+  } finally {
+    restaurar();
+  }
+});
+
+test('CDI indisponível é derivado da Selic, e a origem não finge medição', async () => {
+  const restaurar = dublarFetch([
+    [SGS(432), [{ data: '20/08/2026', valor: '15.00' }]],
+    [SGS(13522), [{ data: '31/07/2026', valor: '4.30' }]],
+  ]);
+  try {
+    const r = await carregarIndicadoresBcb();
+    assert.ok(Math.abs(r.premissas.CDI - 0.149) < 1e-9, 'CDI segue a Selic de perto');
+    assert.equal(r.origem.CDI, 'Derivado da Selic');
+    assert.equal(r.degradado, true, 'derivar não é medir — o estado tem de ficar marcado');
+  } finally {
+    restaurar();
+  }
+});
+
+test('BCB inteiro fora do ar mantém a constante e marca degradado', async () => {
+  const restaurar = dublarFetch([]);
+  try {
+    const r = await carregarIndicadoresBcb();
+    assert.deepEqual(r.premissas, PREMISSAS_ANUAIS, 'nenhuma conta pode ficar sem premissa');
+    assert.equal(r.degradado, true);
+    assert.equal(r.origem.SELIC, 'fallback');
+    assert.ok(r.erros.length > 0);
+  } finally {
+    restaurar();
+  }
+});
+
+test('expectativa absurda do Focus é recusada como qualquer outra', async () => {
+  const restaurar = dublarFetch([
+    [SGS(432), [{ data: '20/08/2026', valor: '15.00' }]],
+    [SGS(4389), [{ data: '20/08/2026', valor: '14.90' }]],
+    ['Expectativas', { value: [{ Data: '2026-08-15', Mediana: 900, DataReferencia: 2026 }] }],
+  ]);
+  try {
+    const r = await carregarIndicadoresBcb();
+    assert.equal(r.indicadores.ipcaEsperado, null);
+    assert.equal(r.premissas.IPCA, PREMISSAS_ANUAIS.IPCA, 'cai para a constante, não para 900%');
+  } finally {
+    restaurar();
+  }
+});

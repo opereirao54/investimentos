@@ -169,6 +169,8 @@ var cartMotor = {
   erro: null,
   buscadoEm: null,
   origemRf: null,
+  indicadores: null,
+  premissasDegradadas: false,
 };
 
 // ── Chart instances ──
@@ -1194,6 +1196,18 @@ async function cartBuscarDadosMotor(universo) {
           return r.json();
         });
       })
+      .concat([
+        // Selic/CDI/IPCA correntes. Não alimentam o score, mas são a base de
+        // toda conta de renda fixa — e mostrá-los com fonte é o que separa
+        // "confie em mim" de "confira você mesmo".
+        fetch('/api/market?op=indicadores', { headers: { Authorization: 'Bearer ' + token } })
+          .then(function (r) {
+            return r.json();
+          })
+          .catch(function () {
+            return { indicadores: null };
+          }),
+      ])
       .concat(
         precisaRf
           ? [
@@ -1215,13 +1229,24 @@ async function cartBuscarDadosMotor(universo) {
   );
 
   var titulosRf = [];
+  var indicadores = null;
+  var premissasDegradadas = false;
   respostas.forEach(function (r) {
     if (!r) return;
     if (r.fundamentos) Object.assign(fundamentos, r.fundamentos);
     if (r.titulos) titulosRf = r.titulos;
+    if (r.indicadores) {
+      indicadores = r.indicadores;
+      premissasDegradadas = !!r.degradado;
+    }
   });
 
-  return { fundamentos: fundamentos, titulosRf: titulosRf };
+  return {
+    fundamentos: fundamentos,
+    titulosRf: titulosRf,
+    indicadores: indicadores,
+    premissasDegradadas: premissasDegradadas,
+  };
 }
 
 /** Junta carteira modelo + fundamentos num universo pronto para pontuar. */
@@ -1254,6 +1279,49 @@ function cartCorScore(score) {
   if (score >= 65) return '#0891b2';
   if (score >= 50) return '#d97706';
   return '#dc2626';
+}
+
+/**
+ * Linha de procedência do card: de onde veio o indicador, de que exercício
+ * e quando foi lido.
+ *
+ * Existe porque número sem origem é opinião. "ROE 20,4%" o cliente tem de
+ * aceitar; "ROE 20,4% · DFP 2025 · CVM · lido em 14/ago" ele pode conferir —
+ * e é a conferência que sustenta a confiança num produto pago.
+ */
+function cartProcedencia(a) {
+  if (!a.fonteRotulo && !a.atualizadoEm) return '';
+  var partes = [];
+  if (a.fonteRotulo) partes.push(a.fonteRotulo);
+  if (a.dataReferencia) partes.push('ref. ' + cartFmtData(a.dataReferencia));
+
+  var vencido = false;
+  if (a.atualizadoEm) {
+    var dias = Math.floor((Date.now() - a.atualizadoEm) / 86400000);
+    vencido = dias > CART_VALIDADE_DIAS;
+    partes.push(dias <= 0 ? 'lido hoje' : 'lido há ' + dias + (dias === 1 ? ' dia' : ' dias'));
+  }
+  return (
+    '<div class="cart-score-fonte' +
+    (vencido ? ' vencido' : '') +
+    '"><i class="ph ' +
+    (vencido ? 'ph-clock-countdown' : 'ph-seal-check') +
+    '"></i> ' +
+    partes.join(' · ') +
+    (vencido ? ' — dado vencido, atualize antes de decidir' : '') +
+    '</div>'
+  );
+}
+
+// A partir de quantos dias um fundamento passa a ser sinalizado como velho.
+// Balanço não muda todo dia, mas o utilizador tem de saber que está a olhar
+// para um número de meses atrás antes de mandar dinheiro em cima dele.
+var CART_VALIDADE_DIAS = 45;
+
+function cartFmtData(v) {
+  var d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function cartFmtNota(n) {
@@ -1349,6 +1417,8 @@ async function cartRenderizarMotor(forcar) {
     if (seq !== cartMotorSeq) return;
     cartMotor.fundamentos = dados.fundamentos;
     cartMotor.titulosRf = dados.titulosRf;
+    cartMotor.indicadores = dados.indicadores;
+    cartMotor.premissasDegradadas = dados.premissasDegradadas;
     cartMotor.buscadoEm = Date.now();
     cartMotor.carregando = false;
     cartRecalcularMotor();
@@ -1376,8 +1446,11 @@ function cartRenderizarMotorStatus() {
   var el = document.getElementById('cartMotorStatus');
   if (!el) return;
   var ranking = cartMotor.ranking || [];
-  var comDado = ranking.filter(function (a) {
-    return a.cobertura > 0;
+  // A métrica honesta é quantos ativos foram PONTUADOS, não quantos têm
+  // algum dado solto: um ativo com um indicador de dezesseis não entra no
+  // ranking, e contá-lo como "com dados" inflaria a percepção de cobertura.
+  var pontuados = ranking.filter(function (a) {
+    return a.score !== null;
   }).length;
   var coberturaMedia = ranking.length
     ? ranking.reduce(function (s, a) {
@@ -1394,10 +1467,10 @@ function cartRenderizarMotorStatus() {
   );
   partes.push(
     '<span class="cart-motor-status-item"><i class="ph ph-database"></i> ' +
-      comDado +
+      pontuados +
       ' de ' +
       ranking.length +
-      ' ativos com indicadores (' +
+      ' ativos pontuados (' +
       Math.round(coberturaMedia * 100) +
       '% de cobertura média)</span>'
   );
@@ -1417,11 +1490,22 @@ function cartRenderizarMotorStatus() {
       'Não foi possível buscar os indicadores (' +
       cartMotor.erro +
       '). Os scores abaixo estão neutros — a divisão por classe continua válida.</div>';
-  } else if (coberturaMedia < 0.25) {
+  } else if (ranking.length && pontuados === 0) {
+    // Estado que o plano grátis da fonte de mercado produz. Antes ele passava
+    // despercebido atrás de uma parede de scores baixos; agora é a primeira
+    // coisa que a tela diz, porque muda o que o plano abaixo significa.
+    alerta =
+      '<div class="cart-motor-alerta erro"><i class="ph ph-warning-circle"></i> ' +
+      '<span><strong>Nenhum ativo pôde ser pontuado.</strong> Os indicadores fundamentalistas não ' +
+      'chegaram da fonte de mercado, então não há score e a divisão dentro de cada classe saiu igual — ' +
+      'não é resultado de análise. Cada card abaixo lista o que está em falta.</span></div>';
+  } else if (pontuados < ranking.length) {
     alerta =
       '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
-      'Cobertura de indicadores baixa. Os scores foram puxados para a média por precaução — ' +
-      'com um plano de dados fundamentalistas na fonte de mercado, a diferenciação entre ativos aumenta.</div>';
+      '<span>' +
+      (ranking.length - pontuados) +
+      ' ativo(s) sem indicadores suficientes ficaram fora do ranking e não recebem aporte enquanto ' +
+      'o dado não chegar. Os cards no fim da lista dizem o que falta em cada um.</span></div>';
   }
 
   el.innerHTML =
@@ -1429,7 +1513,61 @@ function cartRenderizarMotorStatus() {
     partes.join('') +
     '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
     '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
+    cartRenderizarIndicadores() +
     alerta;
+}
+
+/**
+ * Faixa com Selic, CDI e inflação esperada, cada um com a sua fonte.
+ *
+ * São os números que sustentam toda a renda fixa da tela. Enquanto eram
+ * constantes no código, ninguém — nem nós — sabia olhando a tela se estavam
+ * certos. Agora ou dizem de onde vieram, ou dizem que são premissa de
+ * reserva.
+ */
+function cartRenderizarIndicadores() {
+  var ind = cartMotor.indicadores;
+  if (!ind) return '';
+  var itens = [
+    { chave: 'selic', rotulo: 'Selic' },
+    { chave: 'cdi', rotulo: 'CDI' },
+    { chave: 'ipcaEsperado', rotulo: 'IPCA esperado' },
+    { chave: 'ipca12m', rotulo: 'IPCA 12m' },
+  ];
+  var html = itens
+    .filter(function (i) {
+      // IPCA passado só aparece se a expectativa não veio: são respostas a
+      // perguntas diferentes e mostrar as duas confunde mais do que informa.
+      if (i.chave === 'ipca12m' && ind.ipcaEsperado) return false;
+      return ind[i.chave] && typeof ind[i.chave].valor === 'number';
+    })
+    .map(function (i) {
+      var d = ind[i.chave];
+      return (
+        '<span class="cart-indicador" title="' +
+        (d.fonte || '').replace(/"/g, '&quot;') +
+        (d.data ? ' · ' + cartFmtData(d.data) : '') +
+        '">' +
+        '<span class="cart-indicador-rotulo">' +
+        i.rotulo +
+        '</span>' +
+        '<span class="cart-indicador-valor">' +
+        d.valor.toFixed(2).replace('.', ',') +
+        '%</span>' +
+        '</span>'
+      );
+    })
+    .join('');
+  if (!html) return '';
+  return (
+    '<div class="cart-indicadores">' +
+    html +
+    '<span class="cart-indicadores-fonte">' +
+    (cartMotor.premissasDegradadas
+      ? '<i class="ph ph-warning"></i> parte destes valores é premissa de reserva, não taxa do dia'
+      : '<i class="ph ph-seal-check"></i> Banco Central') +
+    '</span></div>'
+  );
 }
 
 function cartRenderizarMotorPlano(plano) {
@@ -1450,13 +1588,17 @@ function cartRenderizarMotorPlano(plano) {
                   (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
                   '</span>'
                 : '';
+            var chip =
+              it.score === null
+                ? '<span class="cart-plano-score sem-dado" title="Sem indicadores para pontuar">—</span>'
+                : '<span class="cart-plano-score" style="background:' +
+                  cartCorScore(it.score) +
+                  ';">' +
+                  it.score +
+                  '</span>';
             return (
               '<li class="cart-plano-item">' +
-              '<span class="cart-plano-score" style="background:' +
-              cartCorScore(it.score) +
-              ';">' +
-              it.score +
-              '</span>' +
+              chip +
               '<span class="cart-plano-body">' +
               '<span class="cart-plano-ticker">' +
               it.ticker +
@@ -1586,11 +1728,46 @@ function cartRenderizarMotorRanking(ranking) {
           '</ul>'
         : '';
 
+      // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
+      // cinzento continuaria a ser lido como nota. O card passa a mostrar o
+      // que falta, que é a única informação verdadeira que temos do ativo.
+      var selo =
+        a.score === null
+          ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
+            '<i class="ph ph-minus-circle"></i></span>'
+          : '<span class="cart-score-badge" style="background:' +
+            cartCorScore(a.score) +
+            ';">' +
+            a.score +
+            '<small>/100</small></span>';
+
+      var faltando =
+        a.score === null && (a.faltando || []).length
+          ? '<div class="cart-score-faltando">' +
+            '<div class="cart-score-faltando-titulo">' +
+            '<i class="ph ph-database"></i> Faltam indicadores para pontuar' +
+            '</div>' +
+            a.faltando
+              .map(function (f) {
+                return (
+                  '<div class="cart-score-faltando-linha"><strong>' +
+                  f.pilar +
+                  ':</strong> ' +
+                  f.metricas.join(', ') +
+                  '</div>'
+                );
+              })
+              .join('') +
+            '</div>'
+          : '';
+
       return (
-        '<div class="cart-score-card">' +
+        '<div class="cart-score-card' +
+        (a.score === null ? ' sem-dado' : '') +
+        '">' +
         '<div class="cart-score-head">' +
-        '<span class="cart-score-pos">#' +
-        a.posicao +
+        '<span class="cart-score-pos">' +
+        (a.score === null ? '—' : '#' + a.posicao) +
         '</span>' +
         '<span class="cart-score-id">' +
         '<span class="cart-score-ticker">' +
@@ -1602,11 +1779,7 @@ function cartRenderizarMotorRanking(ranking) {
         CART_NOMES[a.classe] +
         '</span>' +
         '</span>' +
-        '<span class="cart-score-badge" style="background:' +
-        cartCorScore(a.score) +
-        ';">' +
-        a.score +
-        '<small>/100</small></span>' +
+        selo +
         '</div>' +
         '<div class="cart-pilares">' +
         barras +
@@ -1615,9 +1788,11 @@ function cartRenderizarMotorRanking(ranking) {
         motorJustificativa(a) +
         ' <span class="cart-score-conf conf-' +
         a.confianca +
-        '">confiança ' +
-        a.confianca +
+        '">' +
+        (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
         '</span></div>' +
+        faltando +
+        cartProcedencia(a) +
         alertas +
         '</div>'
       );

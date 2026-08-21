@@ -2166,6 +2166,27 @@
             background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.25);
         }
         .cart-motor-alerta.erro i { color: var(--cor-erro, #dc2626); }
+
+        /* Selic / CDI / IPCA correntes, com fonte no title */
+        .cart-indicadores {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+        }
+        .cart-indicador { display: inline-flex; align-items: baseline; gap: 5px; cursor: help; }
+        .cart-indicador-rotulo {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+            font-weight: 700; color: var(--cor-texto-mutado);
+        }
+        .cart-indicador-valor {
+            font-size: 13px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.4px;
+        }
+        .cart-indicadores-fonte {
+            margin-left: auto; font-size: 10px; color: var(--cor-texto-mutado);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .cart-indicadores-fonte i { font-size: 12px; color: #059669; }
         .cart-motor-sub {
             display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
             font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
@@ -2299,6 +2320,45 @@
             display: flex; align-items: flex-start; gap: 5px;
         }
         .cart-score-alertas i { color: #d97706; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+        /* Ativo sem lastro: a ausência de score é a informação, não um score baixo */
+        .cart-score-card.sem-dado { border-style: dashed; background: var(--cor-superficie); }
+        .cart-score-badge.sem-dado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px dashed var(--cor-borda2); display: flex; align-items: center;
+            justify-content: center; min-width: 44px;
+        }
+        .cart-score-badge.sem-dado i { font-size: 19px; }
+        .cart-plano-score.sem-dado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px dashed var(--cor-borda2);
+        }
+        .cart-score-conf.conf-insuficiente {
+            background: rgba(107,114,128,0.14); color: #4b5563;
+        }
+        .cart-score-faltando {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: 10px; padding: 10px 12px;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .cart-score-faltando-titulo {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; color: var(--cor-texto-mutado);
+            display: flex; align-items: center; gap: 5px; margin-bottom: 2px;
+        }
+        .cart-score-faltando-linha {
+            font-size: 10.5px; color: var(--cor-texto-secundario); line-height: 1.45;
+        }
+        .cart-score-faltando-linha strong { color: var(--cor-texto-principal); }
+
+        /* Procedência: fonte, exercício e idade do dado */
+        .cart-score-fonte {
+            font-size: 10px; color: var(--cor-texto-mutado);
+            display: flex; align-items: center; gap: 5px; line-height: 1.4;
+        }
+        .cart-score-fonte i { font-size: 12px; color: #059669; flex-shrink: 0; }
+        .cart-score-fonte.vencido { color: #b45309; }
+        .cart-score-fonte.vencido i { color: #d97706; }
 
         /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
         #carteira {

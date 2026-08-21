@@ -96,6 +96,16 @@ function motorNotaMetrica(metrica, valor) {
 
 var MOTOR_PILARES = ['valuation', 'dividendos', 'crescimento', 'endividamento', 'qualidade'];
 
+// Abaixo desta cobertura o motor NÃO devolve score.
+//
+// Não é preciosismo: com os indicadores em falta, o score de todo o universo
+// converge para o mesmo número e o ranking passa a ser decidido pelo
+// desempate alfabético do ticker. Exibir "25/100" nesse estado é pior do que
+// não exibir nada — na tela, 25 lê-se como veredito sobre o ativo, quando na
+// verdade é um veredito sobre os nossos dados. Sem lastro, a resposta certa
+// é dizer o que falta.
+var MOTOR_COBERTURA_MINIMA = 0.3;
+
 var MOTOR_PILAR_NOMES = {
   valuation: 'Valuation',
   dividendos: 'Dividendos',
@@ -965,13 +975,19 @@ function motorScoreAtivo(dados, opcoes) {
   }
 
   var cobertura = covDen > 0 ? covNum / covDen : 0;
-  var scoreBruto = somaPesos > 0 ? (somaPonderada / somaPesos) * 10 : 0;
+  var temLastro = somaPesos > 0 && cobertura >= MOTOR_COBERTURA_MINIMA;
+  var scoreBruto = somaPesos > 0 ? (somaPonderada / somaPesos) * 10 : null;
 
   // Encolhimento para a média: um ativo avaliado por duas métricas não pode
   // liderar o ranking em cima de um avaliado por quinze. Puxa o score na
-  // direção de 50 conforme a cobertura cai abaixo de 60%.
-  var penal = motorClamp((0.6 - cobertura) / 0.6, 0, 0.5);
-  var score = scoreBruto + (50 - scoreBruto) * penal;
+  // direção de 50 conforme a cobertura cai abaixo de 60%. Só se aplica na
+  // faixa em que HÁ dado, ainda que parcial — abaixo do mínimo não há score
+  // nenhum para encolher.
+  var score = null;
+  if (temLastro) {
+    var penal = motorClamp((0.6 - cobertura) / 0.6, 0, 0.5);
+    score = scoreBruto + (50 - scoreBruto) * penal;
+  }
 
   // Bônus setorial: só existe em lente que declara setores preferidos.
   var setorCanon = motorNormalizarSetor(d.setor);
@@ -984,7 +1000,7 @@ function motorScoreAtivo(dados, opcoes) {
   ) {
     bonus = lente.bonusSetor || 0;
   }
-  score = motorClamp(score + bonus, 0, 100);
+  if (score !== null) score = motorClamp(score + bonus, 0, 100);
 
   var alertas = motorAlertas(classe, d);
   var elegivel = true;
@@ -1006,9 +1022,31 @@ function motorScoreAtivo(dados, opcoes) {
     }
   }
 
-  var confianca = cobertura >= 0.6 ? 'alta' : cobertura >= 0.3 ? 'media' : 'baixa';
-  if (confianca === 'baixa')
-    alertas.push('Poucos indicadores disponíveis — score puxado para a média por precaução.');
+  // Lista, por pilar, os indicadores que faltaram. É o que a tela mostra no
+  // lugar do score quando não há lastro: "faltam ROE, dívida e CAGR" é uma
+  // resposta acionável; um número baixo não é.
+  var faltando = [];
+  for (var k = 0; k < MOTOR_PILARES.length; k++) {
+    var pil = pilares[MOTOR_PILARES[k]];
+    if (!pil.aplicavel) continue;
+    var ausentes = pil.metricas
+      .filter(function (m) {
+        return m.nota === null;
+      })
+      .map(function (m) {
+        return m.nome;
+      });
+    if (ausentes.length) faltando.push({ pilar: pil.nome, metricas: ausentes });
+  }
+
+  var confianca = !temLastro ? 'insuficiente' : cobertura >= 0.6 ? 'alta' : 'media';
+  if (confianca === 'insuficiente') {
+    alertas.push(
+      'Indicadores insuficientes para pontuar este ativo — nenhum score é exibido enquanto o dado não chegar.'
+    );
+  } else if (confianca === 'media') {
+    alertas.push('Score calculado sobre parte dos indicadores — leia junto com a cobertura.');
+  }
 
   return {
     ticker: d.ticker || null,
@@ -1017,9 +1055,17 @@ function motorScoreAtivo(dados, opcoes) {
     setor: d.setor || null,
     setorCanon: setorCanon,
     preco: typeof d.preco === 'number' ? d.preco : null,
-    score: motorArred(score, 0),
-    scoreExato: motorArred(score, 2),
-    scoreBruto: motorArred(scoreBruto, 2),
+    // Procedência: indicador sem fonte e data é opinião. O motor transporta,
+    // não interpreta — quem rotula é a fonte, quem desenha é a tela.
+    fonte: d.fonte || null,
+    fonteRotulo: d.fonteRotulo || null,
+    dataReferencia: d.dataReferencia || null,
+    atualizadoEm: d.fetchedAtMs || d.atualizadoEm || null,
+    score: score === null ? null : motorArred(score, 0),
+    scoreExato: score === null ? null : motorArred(score, 2),
+    scoreBruto: scoreBruto === null ? null : motorArred(scoreBruto, 2),
+    temLastro: temLastro,
+    faltando: faltando,
     bonusSetor: bonus,
     pilares: pilares,
     cobertura: motorArred(cobertura, 2),
@@ -1039,7 +1085,13 @@ function motorRanquear(universo, opcoes) {
     return motorScoreAtivo(a, opcoes);
   });
   lista.sort(function (a, b) {
-    if (b.scoreExato !== a.scoreExato) return b.scoreExato - a.scoreExato;
+    // Ativo sem lastro não compete por posição: vai para o fim em bloco.
+    // Subtrair null daria NaN e o sort silenciosamente devolveria a ordem
+    // de entrada, que é a pior falha possível num ranking.
+    var temA = a.scoreExato !== null;
+    var temB = b.scoreExato !== null;
+    if (temA !== temB) return temA ? -1 : 1;
+    if (temA && b.scoreExato !== a.scoreExato) return b.scoreExato - a.scoreExato;
     return String(a.ticker).localeCompare(String(b.ticker));
   });
   return lista.map(function (item, i) {
@@ -1338,15 +1390,30 @@ function motorPesosPorScore(itens, opcoes) {
     if (elegiveis.length) lista = elegiveis;
   }
 
+  // Havendo ativos pontuados na classe, os sem lastro saem: recomendar o que
+  // não se conseguiu avaliar, tendo alternativa avaliada, é escolher no
+  // escuro com a luz acesa ao lado. Se NENHUM tem score, todos ficam e o
+  // peso sai igual — quem rotula esse estado na tela é motorPlanoClasse.
+  var pontuados = lista.filter(function (a) {
+    return (a.scoreExato != null ? a.scoreExato : a.score) != null;
+  });
+  if (pontuados.length) lista = pontuados;
+
   lista.sort(function (a, b) {
-    var sa = a.scoreExato != null ? a.scoreExato : a.score || 0;
-    var sb = b.scoreExato != null ? b.scoreExato : b.score || 0;
+    var sa = a.scoreExato != null ? a.scoreExato : a.score;
+    var sb = b.scoreExato != null ? b.scoreExato : b.score;
+    if (sa == null && sb == null) return String(a.ticker).localeCompare(String(b.ticker));
+    if (sa == null) return 1;
+    if (sb == null) return -1;
     if (sb !== sa) return sb - sa;
     return String(a.ticker).localeCompare(String(b.ticker));
   });
 
   var acimaDoCorte = lista.filter(function (a) {
-    return (a.scoreExato != null ? a.scoreExato : a.score || 0) >= scoreMinimo;
+    var s = a.scoreExato != null ? a.scoreExato : a.score;
+    // Corte por score não julga quem não tem score: esse caso já foi
+    // decidido acima (ou saiu, ou é a classe inteira).
+    return s == null || s >= scoreMinimo;
   });
   // Corte que zeraria a classe inteira mantém pelo menos o melhor ativo: a
   // alternativa é devolver a classe sem nenhum destino para o dinheiro.
@@ -1356,7 +1423,8 @@ function motorPesosPorScore(itens, opcoes) {
   lista = lista.slice(0, Math.max(1, topN));
 
   var pesos = lista.map(function (a) {
-    var s = a.scoreExato != null ? a.scoreExato : a.score || 0;
+    var s = a.scoreExato != null ? a.scoreExato : a.score;
+    if (s == null) return 1; // sem score: entra no piso, resultando em peso igual
     return Math.pow(Math.max(s - pisoScore, 1), expoente);
   });
   var soma = pesos.reduce(function (s, v) {
@@ -1498,7 +1566,13 @@ function motorJustificativa(ativo) {
   pilares.sort(function (a, b) {
     return b.nota - a.nota;
   });
-  if (!pilares.length) return 'Sem indicadores suficientes para justificar.';
+  if (!pilares.length || ativo.temLastro === false) {
+    var faltando = ativo.faltando || [];
+    if (!faltando.length) return 'Sem indicadores disponíveis para este ativo.';
+    var nomes = [];
+    for (var f = 0; f < faltando.length && nomes.length < 3; f++) nomes.push(faltando[f].pilar);
+    return 'Sem dados de ' + nomes.join(', ').toLowerCase() + ' — ativo não pontuado.';
+  }
   var top = pilares.slice(0, 2).map(function (p) {
     return p.nome + ' ' + motorArred(p.nota, 1).toString().replace('.', ',') + '/10';
   });
@@ -1627,6 +1701,14 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
   for (i = 0; i < itens.length; i++) investido += itens[i].valorInvestido;
   investido = motorArred(investido, 2);
 
+  // Como os pesos foram decididos. Sem nenhum ativo pontuado a divisão sai
+  // igual — o que é uma escolha defensável, mas o utilizador tem de saber
+  // que ela NÃO veio de análise nenhuma.
+  var algumPontuado = candidatos.some(function (c) {
+    return c.score != null;
+  });
+  var modo = algumPontuado ? 'score' : 'igualitario';
+
   var aviso = null;
   var semPreco = itens.filter(function (it) {
     return it.semPreco;
@@ -1640,6 +1722,10 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
         })
         .join(', ') +
       ' — valor sugerido sem conversão em quantidade.';
+  else if (modo === 'igualitario')
+    aviso =
+      'Nenhum ativo desta classe tem indicadores suficientes para pontuar. ' +
+      'A divisão saiu igual entre os ativos da carteira modelo — não é resultado de análise.';
   else if (topN < op.topN)
     aviso =
       'Aporte da classe comporta ' +
@@ -1653,6 +1739,7 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
     investido: investido,
     sobra: motorArred(valor - investido, 2),
     itens: itens,
+    modo: modo,
     aviso: aviso,
   };
 }
@@ -1732,6 +1819,7 @@ var MotorCarteira = {
   distribuirAporte: motorDistribuirAporte,
   planoClasse: motorPlanoClasse,
   planoAporte: motorPlanoAporte,
+  COBERTURA_MINIMA: MOTOR_COBERTURA_MINIMA,
   CRITERIOS: MOTOR_CRITERIOS,
   LENTES: MOTOR_LENTES,
   PILARES: MOTOR_PILARES,

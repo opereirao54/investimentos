@@ -135,6 +135,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Selic/CDI/IPCA correntes do Banco Central. Mesma postura: só o Admin
+    // SDK, cliente chega via /api/market?op=indicadores.
+    match /marketIndicadores/{docId} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // Dúvidas & Sugestões: feedback do utilizador roteado para o painel
     // admin. O cliente CRIA a própria sugestão (uid carimbado = auth.uid)
     // e LÊ apenas as suas (para ver a resposta do consultor). A resposta

@@ -221,7 +221,7 @@ test('ranking vazio não gera cards órfãos', () => {
 // Status
 // ════════════════════════════════════════════
 
-test('o status informa a lente e a cobertura real dos dados', () => {
+test('o status informa a lente e quantos ativos foram pontuados', () => {
   const s = carregar();
   s.run(SEMENTE);
   s.run(
@@ -230,8 +230,8 @@ test('o status informa a lente e a cobertura real dos dados', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(html.includes('Renda &amp; Perenidade') || html.includes('Renda & Perenidade'));
   assert.ok(
-    /\d+ de 3 ativos com indicadores/.test(html),
-    'o cliente precisa saber quantos ativos têm dado'
+    /3 de 3 ativos pontuados/.test(html),
+    `a contagem tem de ser de PONTUADOS, não de "com algum dado": ${html}`
   );
   assert.ok(html.includes('cobertura média'));
 });
@@ -248,14 +248,123 @@ test('falha na busca vira aviso explícito, não score silenciosamente neutro', 
   assert.ok(html.includes('neutros'), 'tem de dizer que o score não vale nada neste estado');
 });
 
-test('cobertura baixa avisa antes de o cliente confiar no ranking', () => {
+test('nenhum ativo pontuado é a PRIMEIRA coisa que a tela diz', () => {
+  // É o estado que o plano grátis da fonte de mercado produz. Antes passava
+  // despercebido atrás de uma parede de scores baixos, todos iguais.
   const s = carregar();
   s.run(`
     cartMotor.ranking = motorRanquear([{ ticker:'AAAA3', nome:'Quase sem dado', pl: 7 }], {});
     cartRenderizarMotorStatus();
   `);
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
-  assert.ok(html.includes('Cobertura de indicadores baixa'));
+  assert.ok(html.includes('cart-motor-alerta erro'), 'tem de ser alerta forte, não nota de rodapé');
+  assert.ok(html.includes('Nenhum ativo pôde ser pontuado'));
+  assert.ok(
+    html.includes('não é resultado de análise'),
+    'tem de dizer o que o plano abaixo significa'
+  );
+  assert.ok(/0 de 1 ativos pontuados/.test(html));
+});
+
+test('ativos parcialmente sem dado são contados e explicados', () => {
+  const s = carregar();
+  s.run(`
+    cartMotor.ranking = motorRanquear([
+      { ticker:'BBAS3', nome:'BB', setor:'Bancos', preco:28.5, pl:4.5, pvp:0.8, dy:9.5, dyMedio5a:8,
+        payout:45, anosPagandoDividendo:20, roe:20, margemLiquida:25, dividaLiquidaPl:0.3,
+        liquidezCorrente:1.6, cagrReceita5a:9, cagrLucro5a:14, liquidezDiaria:4e7 },
+      { ticker:'ZZZZ3', nome:'Sem dado' }
+    ], { lente:'renda' });
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(/1 de 2 ativos pontuados/.test(html));
+  assert.ok(html.includes('não recebem aporte enquanto'), 'tem de dizer a consequência prática');
+});
+
+test('card sem lastro mostra a ausência do score e o que falta', () => {
+  const s = carregar();
+  s.run(`
+    var semDado = motorRanquear([{ ticker:'ZZZZ3', nome:'Sem fundamentos' }], {});
+    cartRenderizarMotorRanking(semDado);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('cart-score-badge sem-dado'), 'o selo tem de ser ausência, não número');
+  assert.ok(!html.includes('/100'), 'nenhuma escala de nota pode aparecer em ativo não pontuado');
+  assert.ok(html.includes('Faltam indicadores para pontuar'));
+  assert.ok(
+    html.includes('Valuation:') && html.includes('Qualidade:'),
+    'o que falta vem por pilar'
+  );
+  assert.ok(html.includes('dados insuficientes'));
+  assert.ok(!html.includes('#1'), 'ativo sem score não ocupa posição no ranking');
+});
+
+test('card pontuado NÃO carrega a moldura de dados insuficientes', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartRenderizarMotorRanking(rankingTeste);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(!html.includes('cart-score-badge sem-dado'));
+  assert.ok(!html.includes('Faltam indicadores para pontuar'));
+  assert.ok(html.includes('/100'));
+});
+
+test('o plano marca com travessão o ativo que entrou sem score', () => {
+  const s = carregar();
+  s.run(`
+    var semDado = motorRanquear([{ ticker:'ZZZZ3', nome:'Sem fundamentos', preco: 12 }], {});
+    var planoSemDado = motorPlanoAporte({
+      aporteMensal: 1000, alocacaoAlvo: { rf:0, acao:100, fii:0, cripto:0 }, ranking: semDado
+    });
+    cartRenderizarMotorPlano(planoSemDado);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('cart-plano-score sem-dado'));
+  assert.ok(html.includes('ZZZZ3'), 'o ativo continua a receber aporte, só não finge nota');
+});
+
+test('procedência mostra fonte, exercício e idade do dado', () => {
+  const s = carregar();
+  s.run(`
+    var comFonte = motorRanquear([{
+      ticker:'BBAS3', nome:'BB', setor:'Bancos', preco:28.5, pl:4.5, pvp:0.8, dy:9.5, dyMedio5a:8,
+      payout:45, anosPagandoDividendo:20, roe:20, margemLiquida:25, dividaLiquidaPl:0.3,
+      liquidezCorrente:1.6, cagrReceita5a:9, cagrLucro5a:14, liquidezDiaria:4e7,
+      fonteRotulo:'DFP 2025 · CVM', dataReferencia:'2025-12-31', fetchedAtMs: Date.now()
+    }], { lente:'renda' });
+    cartRenderizarMotorRanking(comFonte);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('DFP 2025'), 'a fonte tem de aparecer no card');
+  assert.ok(html.includes('ref. '), 'o exercício de referência tem de aparecer');
+  assert.ok(html.includes('lido hoje'));
+  assert.ok(!html.includes('vencido'));
+});
+
+test('dado velho é sinalizado como vencido', () => {
+  const s = carregar();
+  s.run(`
+    var antigo = motorRanquear([{
+      ticker:'BBAS3', nome:'BB', setor:'Bancos', preco:28.5, pl:4.5, pvp:0.8, dy:9.5, dyMedio5a:8,
+      payout:45, anosPagandoDividendo:20, roe:20, margemLiquida:25, dividaLiquidaPl:0.3,
+      liquidezCorrente:1.6, cagrReceita5a:9, cagrLucro5a:14, liquidezDiaria:4e7,
+      fonteRotulo:'Fundamentos · BRAPI', fetchedAtMs: Date.now() - 200 * 86400000
+    }], { lente:'renda' });
+    cartRenderizarMotorRanking(antigo);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('cart-score-fonte vencido'));
+  assert.ok(html.includes('lido há 200 dias'));
+  assert.ok(html.includes('atualize antes de decidir'));
+});
+
+test('ativo sem procedência não inventa selo de fonte', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartRenderizarMotorRanking(rankingTeste);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(!html.includes('cart-score-fonte'), 'sem fonte declarada, nada de carimbo de origem');
 });
 
 test('as quatro lentes aparecem e a ativa fica marcada', () => {
@@ -404,4 +513,73 @@ test('universo montado herda os fundamentos e preserva o nome da carteira modelo
   assert.equal(r[0].roe, 20, 'os indicadores têm de chegar ao motor');
   assert.equal(r[0].nome, 'Banco do Brasil', 'o nome do consultor vence o da fonte de mercado');
   assert.equal(r[0].classe, 'acao');
+});
+
+// ════════════════════════════════════════════
+// Faixa de indicadores do Banco Central
+// ════════════════════════════════════════════
+
+test('Selic, CDI e inflação esperada aparecem com a fonte anexada', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.indicadores = {
+      selic: { valor: 15, unidade: '% a.a.', fonte: 'Meta Selic (SGS 432)', data: '2026-08-20' },
+      cdi: { valor: 14.9, unidade: '% a.a.', fonte: 'CDI anualizado (SGS 4389)', data: '2026-08-20' },
+      ipcaEsperado: { valor: 4.1, fonte: 'Expectativa Focus (BCB)', data: '2026-08-15' },
+      ipca12m: { valor: 4.3, fonte: 'IPCA 12 meses (SGS 13522)', data: '2026-07-31' }
+    };
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('15,00%'), 'a Selic corrente tem de aparecer');
+  assert.ok(html.includes('14,90%'));
+  assert.ok(html.includes('SGS 432'), 'a série usada tem de ficar disponível ao utilizador');
+  assert.ok(html.includes('Banco Central'));
+  assert.ok(
+    !html.includes('IPCA 12m'),
+    'com expectativa disponível, o IPCA passado não deve competir na mesma faixa'
+  );
+});
+
+test('sem expectativa do Focus, o IPCA passado assume o lugar', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.indicadores = {
+      selic: { valor: 15, fonte: 'Meta Selic (SGS 432)' },
+      ipca12m: { valor: 4.3, fonte: 'IPCA 12 meses (SGS 13522)' }
+    };
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('IPCA 12m'));
+  assert.ok(html.includes('4,30%'));
+});
+
+test('premissa de reserva é declarada como tal, não passada por taxa do dia', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.premissasDegradadas = true;
+    cartMotor.indicadores = { selic: { valor: 13.25, fonte: 'fallback' } };
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('premissa de reserva'));
+  assert.ok(
+    !html.includes('Banco Central'),
+    'não pode carimbar o BCB num número que não veio dele'
+  );
+});
+
+test('sem indicadores nenhuns, a faixa simplesmente não existe', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartMotor.ranking = rankingTeste; cartRenderizarMotorStatus();');
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(!html.includes('cart-indicadores'));
 });

@@ -91,6 +91,11 @@ const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 }
 // Divergir seria a mesma tela mostrar dois CDIs diferentes.
 const PREMISSAS_ANUAIS = { CDI: 0.1325, SELIC: 0.1325, IBOV: 0.095, IFIX: 0.082, IPCA: 0.045 };
 
+// Prêmio real típico de um Tesouro IPCA+ longo, usado só para desenhar a
+// curva indicativa da simulação histórica. A taxa REAL de cada título vem
+// do Tesouro (op=rendafixa) — isto aqui não decide alocação nenhuma.
+const PREMIO_REAL_IPCA = 0.07;
+
 function todayYmdBRT(now = Date.now()) {
   // BRT = UTC-3 (sem DST). Formata yyyy-mm-dd no fuso BRT.
   const brt = new Date(now - 3 * 3600 * 1000);
@@ -229,16 +234,19 @@ async function handleQuote(req, res) {
 //   - Tesouro/CDI/IBOV/IFIX (synthetic): gera curva determinística baseada em yield anual
 //   - Demais (ações, FIIs, ETFs, BDRs): brapi /quote/:ticker?range=...&interval=1mo
 //   - Fallback: Yahoo Finance v8 (BDRs internacionais, ETFs US)
-async function fetchHistorySource(ticker, range) {
+async function fetchHistorySource(ticker, range, premissas) {
   const months = RANGE_MONTHS[range] || 12;
   const upper = ticker.toUpperCase();
 
   // Synthetic benchmarks/RF — usa premissas estáveis pra simulação histórica.
-  const SYNTH = PREMISSAS_ANUAIS;
+  const SYNTH = premissas || PREMISSAS_ANUAIS;
   if (SYNTH[upper] != null) return buildSyntheticSeries(upper, SYNTH[upper], months);
-  if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, 0.1325, months);
-  if (upper.startsWith('TESOURO_IPCA')) return buildSyntheticSeries(upper, 0.115, months);
-  if (upper.startsWith('TESOURO_PREFIXADO')) return buildSyntheticSeries(upper, 0.115, months);
+  // Títulos do Tesouro sem série própria. Antes eram três constantes soltas
+  // que ninguém revisava; agora acompanham a Selic e a inflação correntes.
+  if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, SYNTH.SELIC, months);
+  if (upper.startsWith('TESOURO_IPCA'))
+    return buildSyntheticSeries(upper, SYNTH.IPCA + PREMIO_REAL_IPCA, months);
+  if (upper.startsWith('TESOURO_PREFIXADO')) return buildSyntheticSeries(upper, SYNTH.CDI, months);
 
   // Cripto via CoinGecko
   if (CRYPTO_MAP[upper]) {
@@ -371,7 +379,8 @@ async function handleHistory(req, res) {
     });
   }
 
-  const series = await fetchHistorySource(rawTicker, range);
+  const { premissas } = await resolverPremissas(database);
+  const series = await fetchHistorySource(rawTicker, range, premissas);
   if (!series || !series.length) {
     return res.status(502).json({ error: 'history_unavailable', ticker: rawTicker, range });
   }
@@ -407,6 +416,29 @@ async function handleWarmup(req, res) {
   const started = Date.now();
   const database = db();
 
+  // Indicadores do BCB junto do aquecimento de cotações: são a base de toda
+  // conta de renda fixa e não podem depender de alguém abrir a aba.
+  let indicadores = 'ok';
+  try {
+    const bcb = await carregarIndicadoresBcb();
+    await database.collection(INDICADORES_COLLECTION).doc('bcb').set(
+      {
+        indicadores: bcb.indicadores,
+        premissas: bcb.premissas,
+        origem: bcb.origem,
+        degradado: bcb.degradado,
+        fetchedAtMs: Date.now(),
+        dateYmd: todayYmdBRT(),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    );
+    if (bcb.degradado) indicadores = 'degradado';
+  } catch (e) {
+    console.warn('[market/warmup] indicadores_failed', e.message);
+    indicadores = 'falhou:' + e.message;
+  }
+
   let snapshot;
   try {
     snapshot = await database.collectionGroup('investimentos').get();
@@ -426,7 +458,7 @@ async function handleWarmup(req, res) {
 
   const tickers = Array.from(tickerSet);
   if (!tickers.length) {
-    return res.json({ success: true, tickers: 0, durationMs: Date.now() - started });
+    return res.json({ success: true, tickers: 0, indicadores, durationMs: Date.now() - started });
   }
 
   const today = todayYmdBRT();
@@ -471,6 +503,7 @@ async function handleWarmup(req, res) {
     tickers: tickers.length,
     updated,
     failed,
+    indicadores,
     errors,
     durationMs: Date.now() - started,
   });
@@ -672,6 +705,317 @@ async function handleNews(req, res) {
     }
     return res.status(502).json({ status: 'error', error: 'feed_unavailable', detail: e.message });
   }
+}
+
+// ============================================================
+// === op=indicadores — Selic, CDI e IPCA reais (BCB) ===
+// ============================================================
+//
+// PREMISSAS_ANUAIS existia como constante no código. Isso apodrece em
+// silêncio: a Selic muda várias vezes por ano e a taxa real de todo título
+// do Tesouro é calculada em cima dela. Um cliente que sabe a taxa corrente e
+// vê a conta feita com outra perde a confiança no produto inteiro — e não há
+// nada na tela que denuncie o erro.
+//
+// O SGS do Banco Central é gratuito, sem chave e é a fonte primária. O Focus
+// dá a expectativa de inflação, que é o número certo para deflacionar taxa
+// contratada — melhor do que o IPCA passado e muito melhor do que 4,5% fixo.
+//
+// Nada aqui pode DERRUBAR a renda fixa: se o BCB não responder, cai para a
+// constante e marca `degradado`. A tela mostra a procedência dos dois jeitos,
+// então o utilizador sabe se está a ver taxa de hoje ou premissa de reserva.
+
+const INDICADORES_COLLECTION = 'marketIndicadores';
+const INDICADORES_TTL_MS = 6 * 60 * 60 * 1000;
+const SGS_BASE = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs';
+const FOCUS_BASE =
+  'https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoAnuais';
+
+// Séries candidatas por indicador, em ordem de preferência.
+//
+// A lista existe porque código de série do SGS não é algo que se confira num
+// contrato: são milhares, os nomes mudam e um código errado devolve NÚMERO
+// VÁLIDO de outra coisa — o que é pior do que erro, porque passa. Por isso
+// cada candidata é validada contra uma faixa plausível antes de ser aceita:
+// um CDI de 0,05% reprova e o motor passa à próxima, em vez de propagar.
+const SGS_SERIES = {
+  selic: {
+    faixa: [0.5, 40],
+    candidatas: [
+      { codigo: 432, tipo: 'anual', rotulo: 'Meta Selic (SGS 432)' },
+      { codigo: 4189, tipo: 'anual', rotulo: 'Selic anualizada (SGS 4189)' },
+      { codigo: 11, tipo: 'diaria', rotulo: 'Selic diária (SGS 11)' },
+    ],
+  },
+  cdi: {
+    faixa: [0.5, 40],
+    candidatas: [
+      { codigo: 4389, tipo: 'anual', rotulo: 'CDI anualizado (SGS 4389)' },
+      { codigo: 12, tipo: 'diaria', rotulo: 'CDI diário (SGS 12)' },
+    ],
+  },
+  ipca12m: {
+    faixa: [-5, 40],
+    candidatas: [{ codigo: 13522, tipo: 'anual', rotulo: 'IPCA 12 meses (SGS 13522)' }],
+  },
+};
+
+/** dd/MM/yyyy do SGS -> yyyy-mm-dd. */
+function sgsData(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(v || '').trim());
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+async function fetchSgs(codigo, ultimos) {
+  const url = `${SGS_BASE}.${codigo}/dados/ultimos/${ultimos || 1}?formato=json`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`sgs_${codigo}_${res.status}`);
+  const json = await res.json();
+  if (!Array.isArray(json) || !json.length) throw new Error(`sgs_${codigo}_vazio`);
+  return json;
+}
+
+/** Taxa diária (% a.d.) -> anual (% a.a.), base 252 dias úteis. */
+function anualizar252(pctDiario) {
+  return (Math.pow(1 + pctDiario / 100, 252) - 1) * 100;
+}
+
+/**
+ * Primeira candidata que responder com valor dentro da faixa plausível.
+ * Devolve null quando nenhuma serve — quem decide o fallback é quem chama.
+ */
+async function resolverIndicadorSgs(nome, erros) {
+  const spec = SGS_SERIES[nome];
+  if (!spec) return null;
+  for (const cand of spec.candidatas) {
+    try {
+      const dados = await fetchSgs(cand.codigo, 1);
+      const ultimo = dados[dados.length - 1];
+      const bruto = fundNum(ultimo && ultimo.valor);
+      if (bruto === null) throw new Error('valor_nao_numerico');
+      const valor = cand.tipo === 'diaria' ? anualizar252(bruto) : bruto;
+      if (valor < spec.faixa[0] || valor > spec.faixa[1]) {
+        throw new Error(`fora_da_faixa_${valor.toFixed(2)}`);
+      }
+      return {
+        valor: Math.round(valor * 100) / 100,
+        unidade: '% a.a.',
+        fonte: cand.rotulo,
+        data: sgsData(ultimo && ultimo.data),
+      };
+    } catch (e) {
+      erros.push({ indicador: nome, serie: cand.codigo, erro: e.message });
+    }
+  }
+  return null;
+}
+
+/**
+ * Mediana do Focus para o IPCA do ano corrente.
+ *
+ * É a expectativa de inflação — o número certo para converter taxa nominal
+ * em taxa real de um título que vence no futuro. O IPCA dos últimos 12 meses
+ * responde outra pergunta.
+ */
+async function fetchFocusIpca(erros) {
+  const ano = new Date().getUTCFullYear();
+  const filtro = `Indicador eq 'IPCA' and DataReferencia eq ${ano}`;
+  const url =
+    `${FOCUS_BASE}?$top=1&$orderby=Data desc&$format=json` +
+    `&$select=Data,Mediana,DataReferencia&$filter=${encodeURIComponent(filtro)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  try {
+    if (!res.ok) throw new Error(`focus_${res.status}`);
+    const json = await res.json();
+    const linha = json && Array.isArray(json.value) ? json.value[0] : null;
+    const mediana = fundNum(linha && linha.Mediana);
+    if (mediana === null || mediana < -5 || mediana > 40)
+      throw new Error('focus_valor_implausivel');
+    return {
+      valor: Math.round(mediana * 100) / 100,
+      unidade: '% a.a.',
+      fonte: 'Expectativa Focus (BCB)',
+      data: linha.Data || null,
+      horizonte: linha.DataReferencia || ano,
+    };
+  } catch (e) {
+    erros.push({ indicador: 'ipcaEsperado', erro: e.message });
+    return null;
+  }
+}
+
+/** Busca tudo do BCB e monta o bloco de indicadores + premissas derivadas. */
+async function carregarIndicadoresBcb() {
+  const erros = [];
+  const [selic, cdi, ipca12m, ipcaEsperado] = await Promise.all([
+    resolverIndicadorSgs('selic', erros),
+    resolverIndicadorSgs('cdi', erros),
+    resolverIndicadorSgs('ipca12m', erros),
+    fetchFocusIpca(erros),
+  ]);
+
+  const indicadores = { selic, cdi, ipca12m, ipcaEsperado };
+
+  // Premissas em fração, no formato que o resto do arquivo já consome.
+  // Cada uma cai para a constante individualmente: perder o Focus não pode
+  // levar junto a Selic que veio certa.
+  const premissas = { ...PREMISSAS_ANUAIS };
+  const origem = { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' };
+  if (selic) {
+    premissas.SELIC = selic.valor / 100;
+    origem.SELIC = selic.fonte;
+  }
+  if (cdi) {
+    premissas.CDI = cdi.valor / 100;
+    origem.CDI = cdi.fonte;
+  } else if (selic) {
+    // O CDI acompanha a Selic de perto (historicamente ~0,1 p.p. abaixo).
+    // Derivar é melhor do que usar uma constante de anos atrás, mas a origem
+    // tem de dizer que foi derivado — não é medição.
+    premissas.CDI = (selic.valor - 0.1) / 100;
+    origem.CDI = 'Derivado da Selic';
+  }
+  const inflacao = ipcaEsperado || ipca12m;
+  if (inflacao) {
+    premissas.IPCA = inflacao.valor / 100;
+    origem.IPCA = inflacao.fonte;
+  }
+
+  const degradado = !selic || !cdi || !inflacao;
+  return { indicadores, premissas, origem, degradado, erros };
+}
+
+/**
+ * Premissas correntes para quem precisa delas numa conta.
+ *
+ * Lê o cache que op=indicadores mantém; nunca vai à rede. Endpoint que
+ * calcula taxa não pode ficar refém da latência do BCB, e uma premissa de
+ * seis horas atrás não muda a terceira casa de nada.
+ */
+async function resolverPremissas(database) {
+  try {
+    const snap = await database.collection(INDICADORES_COLLECTION).doc('bcb').get();
+    const d = snap && snap.exists ? snap.data() : null;
+    if (d && d.premissas && typeof d.premissas.CDI === 'number') {
+      return {
+        premissas: { ...PREMISSAS_ANUAIS, ...d.premissas },
+        origem: d.origem || null,
+        degradado: !!d.degradado,
+        fetchedAt: d.fetchedAtMs || null,
+      };
+    }
+  } catch (e) {
+    console.warn('[market/premissas] leitura_falhou', e.message);
+  }
+  return {
+    premissas: { ...PREMISSAS_ANUAIS },
+    origem: { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' },
+    degradado: true,
+    fetchedAt: null,
+  };
+}
+
+async function handleIndicadores(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(INDICADORES_COLLECTION).doc('bcb');
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+
+  if (
+    cache &&
+    typeof cache.fetchedAtMs === 'number' &&
+    agora - cache.fetchedAtMs < INDICADORES_TTL_MS
+  ) {
+    return res.json({
+      success: true,
+      cached: true,
+      fetchedAt: cache.fetchedAtMs,
+      indicadores: cache.indicadores || {},
+      premissas: cache.premissas || PREMISSAS_ANUAIS,
+      origem: cache.origem || null,
+      degradado: !!cache.degradado,
+    });
+  }
+
+  let resultado;
+  try {
+    resultado = await carregarIndicadoresBcb();
+  } catch (e) {
+    console.warn('[market/indicadores] bcb_failed', e.message);
+    resultado = null;
+  }
+
+  // Nenhum indicador veio: devolve o cache vencido se houver, senão a
+  // constante. Em nenhum caminho este endpoint responde erro — quem o chama
+  // precisa de UM número para continuar a conta.
+  if (!resultado || (!resultado.indicadores.selic && !resultado.indicadores.cdi)) {
+    if (cache && cache.premissas) {
+      return res.json({
+        success: true,
+        cached: true,
+        stale: true,
+        fetchedAt: cache.fetchedAtMs,
+        indicadores: cache.indicadores || {},
+        premissas: cache.premissas,
+        origem: cache.origem || null,
+        degradado: true,
+      });
+    }
+    return res.json({
+      success: true,
+      cached: false,
+      indicadores: (resultado && resultado.indicadores) || {},
+      premissas: PREMISSAS_ANUAIS,
+      origem: { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' },
+      degradado: true,
+      erros: (resultado && resultado.erros) || [{ erro: 'bcb_indisponivel' }],
+    });
+  }
+
+  await ref
+    .set(
+      {
+        indicadores: resultado.indicadores,
+        premissas: resultado.premissas,
+        origem: resultado.origem,
+        degradado: resultado.degradado,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/indicadores] cache_write_failed', e.message));
+
+  return res.json({
+    success: true,
+    cached: false,
+    fetchedAt: agora,
+    indicadores: resultado.indicadores,
+    premissas: resultado.premissas,
+    origem: resultado.origem,
+    degradado: resultado.degradado,
+    erros: resultado.erros,
+  });
 }
 
 // ============================================================
@@ -946,6 +1290,16 @@ function mapBrapiFundamental(r, agora) {
     margemEbitda: fundRazaoParaPct(fin.ebitdaMargins),
     liquidezDiaria: volume !== null && preco !== null ? volume * preco : null,
   };
+
+  // Rótulo de procedência. Montado aqui porque é aqui que se sabe DE ONDE
+  // cada campo veio — na tela só sobraria adivinhação. Sem os módulos
+  // financeiros o rótulo diz "cotação", não "fundamentos": o utilizador
+  // precisa distinguir os dois casos.
+  const temFundamentos =
+    dados.roe !== null || dados.dividaLiquidaEbitda !== null || dados.cagrReceita5a !== null;
+  dados.fonte = 'brapi';
+  dados.fonteRotulo = temFundamentos ? 'Fundamentos · BRAPI' : 'Cotação · BRAPI';
+  dados.dataReferencia = null; // a BRAPI não informa o exercício de origem
   return dados;
 }
 
@@ -1057,6 +1411,8 @@ async function fetchCoingeckoFundamentals(simbolos) {
       anosExistencia: genesis ? anoAtual - genesis : null,
       volatilidade30d: null,
       fonte: 'coingecko',
+      fonteRotulo: 'Mercado · CoinGecko',
+      dataReferencia: null,
     };
     d.cobertura = fundCobertura(d, CHAVES_CRIPTO);
     out[s] = d;
@@ -1242,6 +1598,8 @@ function mapTesouroTitulo(bruto, premissas) {
     liquidezDias: 1, // Recompra diária garantida pelo Tesouro (D+1).
     isentoIR: 0, // Tributado pela tabela regressiva.
     fonte: 'tesouro_direto',
+    fonteRotulo: 'Taxa de hoje · Tesouro Direto',
+    dataReferencia: bruto.vencimento || null,
   };
 }
 
@@ -1280,7 +1638,7 @@ function parseTesouroResposta(json) {
   return out;
 }
 
-async function fetchTesouroDireto() {
+async function fetchTesouroDireto(premissas) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   let res;
@@ -1296,7 +1654,7 @@ async function fetchTesouroDireto() {
   const json = await res.json();
   const brutos = parseTesouroResposta(json);
   if (!brutos.length) throw new Error('tesouro_formato_inesperado');
-  return brutos.map((b) => mapTesouroTitulo(b, PREMISSAS_ANUAIS)).filter(Boolean);
+  return brutos.map((b) => mapTesouroTitulo(b, premissas || PREMISSAS_ANUAIS)).filter(Boolean);
 }
 
 async function handleRendaFixa(req, res) {
@@ -1315,13 +1673,17 @@ async function handleRendaFixa(req, res) {
       cached: true,
       fetchedAt: cache.fetchedAtMs,
       premissas: cache.premissas || PREMISSAS_ANUAIS,
+      origemPremissas: cache.origemPremissas || null,
+      premissasDegradadas: !!cache.premissasDegradadas,
       titulos: cache.titulos || [],
     });
   }
 
+  const { premissas, origem, degradado } = await resolverPremissas(database);
+
   let titulos;
   try {
-    titulos = await fetchTesouroDireto();
+    titulos = await fetchTesouroDireto(premissas);
   } catch (e) {
     console.warn('[market/rendafixa] tesouro_failed', e.message);
     // Cache vencido ainda vale mais do que classe vazia na tela: taxa de
@@ -1333,6 +1695,8 @@ async function handleRendaFixa(req, res) {
         stale: true,
         fetchedAt: cache.fetchedAtMs,
         premissas: cache.premissas || PREMISSAS_ANUAIS,
+        origemPremissas: cache.origemPremissas || null,
+        premissasDegradadas: true,
         titulos: cache.titulos,
         erro: e.message,
       });
@@ -1344,7 +1708,9 @@ async function handleRendaFixa(req, res) {
     .set(
       {
         titulos,
-        premissas: PREMISSAS_ANUAIS,
+        premissas,
+        origemPremissas: origem,
+        premissasDegradadas: degradado,
         fetchedAtMs: agora,
         dateYmd: todayYmdBRT(agora),
         updatedAt: timestamp().now(),
@@ -1357,7 +1723,9 @@ async function handleRendaFixa(req, res) {
     success: true,
     cached: false,
     fetchedAt: agora,
-    premissas: PREMISSAS_ANUAIS,
+    premissas,
+    origemPremissas: origem,
+    premissasDegradadas: degradado,
     titulos,
   });
 }
@@ -1386,6 +1754,10 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleFundamentals(req, res);
     }
+    if (op === 'indicadores') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleIndicadores(req, res);
+    }
     if (op === 'rendafixa') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleRendaFixa(req, res);
@@ -1395,7 +1767,8 @@ module.exports = handler({
     }
     return res.status(400).json({
       error: 'unknown_op',
-      detail: 'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=rendafixa or ?op=warmup',
+      detail:
+        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=indicadores, ?op=rendafixa or ?op=warmup',
     });
   },
 });
@@ -1426,4 +1799,12 @@ module.exports.__test = {
   rfClassificarTipo,
   PREMISSAS_ANUAIS,
   CHAVES_ACAO,
+  // BCB: escolha de série com validação de faixa. É onde um código errado
+  // devolveria número válido de outra coisa e passaria despercebido.
+  sgsData,
+  anualizar252,
+  resolverIndicadorSgs,
+  carregarIndicadoresBcb,
+  resolverPremissas,
+  SGS_SERIES,
 };

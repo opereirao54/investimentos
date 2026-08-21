@@ -199,26 +199,165 @@ test('setor fora da lista preferida não recebe bônus', () => {
   assert.equal(r.bonusSetor, 0);
 });
 
-test('ativo com poucos indicadores é puxado para a média e marcado', () => {
-  // Um único P/L excelente não pode produzir um score de 95.
+test('sem lastro NÃO há score: o motor diz o que falta em vez de dar nota', () => {
+  // Regressão da falha que aparecia com o plano grátis da BRAPI: o score
+  // encolhia para ~25 e o cliente lia 25/100 como veredito sobre o ativo,
+  // quando era veredito sobre os nossos dados. Ranking inteiro empatado, com
+  // desempate alfabético do ticker fazendo as vezes de análise.
   const magro = M.scoreAtivo({ ticker: 'XXXX3', nome: 'Só um indicador', pl: 4 }, {});
-  assert.equal(magro.confianca, 'baixa');
-  assert.ok(magro.cobertura < 0.3);
+  assert.equal(magro.score, null, 'score sem lastro tem de ser ausência, não número baixo');
+  assert.equal(magro.scoreExato, null);
+  assert.equal(magro.temLastro, false);
+  assert.equal(magro.confianca, 'insuficiente');
+  assert.ok(magro.cobertura < M.COBERTURA_MINIMA);
   assert.ok(
-    magro.score < 75,
-    `score de ativo quase sem dado devia ficar perto da média, veio ${magro.score}`
+    magro.alertas.some((a) => a.includes('Indicadores insuficientes')),
+    'a tela precisa dizer por que não há nota'
   );
+});
+
+test('o que falta vem discriminado por pilar, para a tela ser acionável', () => {
+  const magro = M.scoreAtivo({ ticker: 'XXXX3', nome: 'Só um indicador', pl: 4 }, {});
+  const pilares = magro.faltando.map((f) => f.pilar);
+  assert.ok(pilares.includes('Qualidade'), `faltando veio ${JSON.stringify(pilares)}`);
+  assert.ok(pilares.includes('Endividamento'));
+
+  const valuation = magro.faltando.find((f) => f.pilar === 'Valuation');
+  assert.ok(valuation.metricas.includes('P/VP'), 'P/VP faltou e tem de ser nomeado');
   assert.ok(
-    magro.alertas.some((a) => a.includes('Poucos indicadores')),
-    'a tela precisa dizer por que a nota não é confiável'
+    !valuation.metricas.includes('P/L'),
+    'P/L veio preenchido: não pode constar como falta'
+  );
+});
+
+test('cobertura parcial ainda pontua, mas encolhida e marcada como média', () => {
+  // Entre o mínimo e 60% há dado suficiente para uma opinião fraca. É a
+  // faixa em que o encolhimento para a média continua a fazer sentido.
+  const parcial = M.scoreAtivo(
+    {
+      ticker: 'PARC3',
+      nome: 'Parcial',
+      pl: 4,
+      pvp: 0.7,
+      evEbitda: 4,
+      roe: 22,
+      liquidezDiaria: 3e7,
+    },
+    { lente: 'equilibrio' }
+  );
+  assert.ok(parcial.cobertura >= M.COBERTURA_MINIMA, `cobertura veio ${parcial.cobertura}`);
+  assert.ok(parcial.score !== null, 'com dado acima do mínimo tem de haver score');
+  assert.equal(parcial.confianca, 'media');
+  assert.ok(
+    parcial.score < parcial.scoreBruto,
+    `cobertura parcial devia encolher o score (bruto ${parcial.scoreBruto}, final ${parcial.score})`
   );
 });
 
 test('mesmos fundamentos com mais cobertura pontuam mais que a versão magra', () => {
   const completo = M.scoreAtivo(ACAO_DIVIDENDOS, { lente: 'equilibrio' });
   const magro = M.scoreAtivo({ ticker: 'BBAS3', nome: 'Banco do Brasil', pl: 4.5 }, {});
-  assert.ok(completo.score > magro.score);
+  assert.ok(completo.score > 0);
+  assert.equal(magro.score, null, 'não é "pontua menos": é não pontuar');
   assert.equal(completo.confianca, 'alta');
+});
+
+test('bônus setorial não ressuscita ativo sem lastro', () => {
+  // O bônus somava 4 pontos em cima do score encolhido e era o ÚNICO
+  // diferenciador quando não havia dado — banco sem indicador nenhum
+  // aparecia em primeiro lugar do ranking.
+  const semDado = M.scoreAtivo(
+    { ticker: 'BBAS3', nome: 'Banco', setor: 'Bancos' },
+    { lente: 'renda' }
+  );
+  assert.equal(semDado.score, null);
+});
+
+test('ranking manda os sem lastro para o fim, em bloco', () => {
+  const rk = M.ranquear(
+    [
+      { ticker: 'ZZZZ3', nome: 'Sem dado' },
+      ACAO_DIVIDENDOS,
+      { ticker: 'AAAA3', nome: 'Sem dado tambem' },
+      FII_TIJOLO,
+    ],
+    { lente: 'renda' }
+  );
+  assert.equal(rk[0].ticker, 'BBAS3', 'quem tem dado vem primeiro');
+  assert.ok(rk[0].score !== null && rk[1].score !== null);
+  assert.equal(rk[2].score, null);
+  assert.equal(rk[3].score, null);
+  // Sem tratamento explícito, subtrair null daria NaN e o sort devolveria a
+  // ordem de entrada — a pior falha possível num ranking.
+  assert.deepEqual(
+    [rk[2].ticker, rk[3].ticker],
+    ['AAAA3', 'ZZZZ3'],
+    'empate sem score é alfabético'
+  );
+});
+
+test('havendo ativo pontuado na classe, o sem lastro não recebe aporte', () => {
+  const lista = [
+    { ticker: 'COMDADO3', scoreExato: 72, score: 72 },
+    { ticker: 'SEMDADO3', scoreExato: null, score: null },
+  ];
+  const r = M.pesosPorScore(lista, { topN: 4, minPct: 0.01 });
+  assert.deepEqual(
+    r.map((x) => x.ativo.ticker),
+    ['COMDADO3'],
+    'escolher no escuro tendo alternativa avaliada não se justifica'
+  );
+});
+
+test('sem NENHUM ativo pontuado, o peso sai igual em vez de arbitrário', () => {
+  const lista = [
+    { ticker: 'AAA3', scoreExato: null, score: null },
+    { ticker: 'BBB3', scoreExato: null, score: null },
+    { ticker: 'CCC3', scoreExato: null, score: null },
+  ];
+  const r = M.pesosPorScore(lista, { topN: 4, minPct: 0.01 });
+  assert.equal(r.length, 3, 'a classe não pode ficar sem destino para o dinheiro');
+  r.forEach((x) => assert.ok(Math.abs(x.peso - 1 / 3) < 1e-9, `peso veio ${x.peso}`));
+});
+
+test('divisão igual por falta de dado é rotulada, não disfarçada de análise', () => {
+  const ranking = M.ranquear(
+    [
+      { ticker: 'AAAA3', nome: 'Sem dado A', preco: 10 },
+      { ticker: 'BBBB3', nome: 'Sem dado B', preco: 20 },
+    ],
+    {}
+  );
+  const plano = M.planoAporte({
+    aporteMensal: 1000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  });
+  assert.equal(plano.classes.acao.modo, 'igualitario');
+  assert.ok(
+    plano.avisos.some((a) => a.includes('não é resultado de análise')),
+    `avisos vieram ${JSON.stringify(plano.avisos)}`
+  );
+});
+
+test('classe com ativo pontuado é marcada como decidida por score', () => {
+  const plano = M.planoAporte({
+    aporteMensal: 2000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking: M.ranquear([ACAO_DIVIDENDOS, ACAO_CRESCIMENTO], { lente: 'equilibrio' }),
+  });
+  assert.equal(plano.classes.acao.modo, 'score');
+});
+
+test('a justificativa de ativo sem lastro nomeia a lacuna', () => {
+  const rk = M.ranquear([{ ticker: 'ZZZZ3', nome: 'Sem dado' }], {});
+  const texto = M.planoAporte({
+    aporteMensal: 500,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking: rk,
+  }).itens[0].justificativa;
+  assert.ok(texto.includes('não pontuado'), `justificativa veio "${texto}"`);
+  assert.ok(!texto.includes('Destaque em'), 'não pode fingir análise que não houve');
 });
 
 test('alertas apontam payout insustentável e dívida alta', () => {
