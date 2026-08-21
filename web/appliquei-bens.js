@@ -323,31 +323,113 @@ function finDiagnosticoTaxa(taxaInformada, taxaImplicita) {
   return null;
 }
 
+// O saldo devedor de hoje e o total que falta pagar são coisas diferentes — o
+// segundo já embute os juros de todo o contrato — e o app do banco mostra os
+// dois lado a lado. Copiar o de baixo é o engano mais comum depois da taxa, e
+// tem assinatura limpa: saldo ≈ parcela × parcelas restantes.
+function finSaldoPareceTotalAPagar(saldoDevedor, parcela, parcelas) {
+  var sd = Number(saldoDevedor) || 0;
+  var p = Number(parcela) || 0;
+  var n = Math.max(0, Math.round(Number(parcelas) || 0));
+  if (sd <= 0 || p <= 0 || n <= 0) return false;
+  return Math.abs(sd - p * n) / sd <= 0.05;
+}
+
+// QUAL TAXA A TELA VAI USAR.
+//
+// São quatro dados (saldo, parcela, taxa, prazo) para um sistema de três
+// incógnitas: um deles sobra, e quando não fecham alguém tem que decidir em
+// quem acreditar. Eles não são igualmente confiáveis:
+//
+//   parcela   — debita na conta todo mês, está no extrato. A pessoa sabe.
+//   prazo     — "faltam 45 de 60", no app do banco.
+//   saldo     — no extrato, mas confunde-se com o "total a pagar".
+//   taxa      — o contrato traz nominal a.a., efetiva a.a., CET a.a. e CET
+//               a.m.; a pessoa escolhe uma e converte. É a que mais erra.
+//
+// Por isso a taxa é opcional: sem ela, deduzimos da parcela. Com ela e havendo
+// conflito, o padrão é acreditar na parcela — mas a escolha fica com o usuário
+// (fonteVerdade), porque quem sabe que digitou a taxa certa precisa poder dizer.
+//
+// Ressalva embutida: a parcela do boleto não é só amortização + juros; carrega
+// seguro (MIP/DFI), taxa de administração e, em imóvel, correção. Por isso a
+// taxa deduzida sai por CIMA, e `segurosTarifas` permite descontar essa parte
+// antes de inverter a conta.
+function finResolverTaxa(fin) {
+  fin = fin || {};
+  var sistema = fin.sistema === 'price' ? 'price' : 'sac';
+  var sd = Number(fin.saldoDevedor) || 0;
+  var n = Math.max(0, Math.round(Number(fin.parcelasRestantes) || 0));
+  var seguros = Math.max(0, Number(fin.segurosTarifas) || 0);
+  var parcelaCheia = Math.max(0, Number(fin.valorParcela) || 0);
+  var parcelaLiquida = parcelaCheia > 0 ? Math.max(0, parcelaCheia - seguros) : 0;
+  // `taxaInformada` é o que foi digitado; `taxaMensal` cobre os registros
+  // gravados antes de a taxa virar opcional, quando só existia o campo digitado.
+  var informada = Number(
+    fin.taxaInformada !== undefined && fin.taxaInformada !== null
+      ? fin.taxaInformada
+      : fin.taxaMensal
+  );
+  if (!isFinite(informada) || informada < 0) informada = 0;
+
+  var implicita = finTaxaImplicita(sistema, sd, parcelaLiquida, n);
+  var parcelaEsperada = informada > 0 ? finParcelaEsperada(sistema, sd, informada, n) : 0;
+
+  // Conflito é a parcela discordar da taxa — medido nas parcelas, que é o que a
+  // pessoa vê. Vale mesmo quando nenhuma taxa explica a parcela (implicita
+  // null): aí não há escolha a oferecer, mas continua havendo o que avisar.
+  var conflito = false;
+  if (informada > 0 && parcelaLiquida > 0 && parcelaEsperada > 0) {
+    conflito = Math.abs(parcelaLiquida - parcelaEsperada) / parcelaEsperada > 0.1;
+  }
+  var escolha =
+    conflito && implicita !== null ? (fin.fonteVerdade === 'taxa' ? 'taxa' : 'parcela') : null;
+
+  var taxa;
+  var origem;
+  if (escolha) {
+    taxa = escolha === 'taxa' ? informada : implicita;
+    origem = escolha === 'taxa' ? 'informada' : 'derivada';
+  } else if (informada > 0) {
+    taxa = informada;
+    origem = 'informada';
+  } else if (implicita !== null) {
+    taxa = implicita;
+    origem = 'derivada';
+  } else {
+    taxa = 0;
+    origem = 'nenhuma';
+  }
+
+  return {
+    taxaMensal: taxa,
+    origem: origem,
+    escolha: escolha,
+    conflito: conflito,
+    causa: conflito ? finDiagnosticoTaxa(informada, implicita) : null,
+    taxaInformada: informada,
+    taxaImplicita: implicita,
+    parcelaCheia: parcelaCheia,
+    parcelaLiquida: parcelaLiquida,
+    segurosTarifas: seguros,
+    parcelaEsperada: parcelaEsperada,
+    saldoPareceTotal: finSaldoPareceTotalAPagar(sd, parcelaCheia, n),
+  };
+}
+
 // Retrato do financiamento hoje.
 function finResumo(fin, valorMercado) {
   fin = fin || {};
   var sd = Number(fin.saldoDevedor) || 0;
-  var i = Number(fin.taxaMensal) || 0;
   var n = Math.max(0, Math.round(Number(fin.parcelasRestantes) || 0));
   var pago = Number(fin.valorPago) || 0;
   var sistema = fin.sistema === 'price' ? 'price' : 'sac';
 
+  var taxa = finResolverTaxa(fin);
+  var i = taxa.taxaMensal;
+
   var juros = finJurosRestantes(sistema, sd, i, n);
   var aPagar = sd + juros;
-  var parcelaEsperada = finParcelaEsperada(sistema, sd, i, n);
-  var parcelaInformada = Number(fin.valorParcela) || 0;
-
-  // O usuário informa saldo, parcela, taxa e prazo — quatro dados para um
-  // sistema de três incógnitas. Se não fecham, é melhor avisar do que calcular
-  // em cima de dado inconsistente e apresentar o resultado como verdade.
-  var divergencia = null;
-  if (parcelaInformada > 0 && parcelaEsperada > 0) {
-    var dif = (parcelaInformada - parcelaEsperada) / parcelaEsperada;
-    if (Math.abs(dif) > 0.1) divergencia = dif;
-  }
-  // Quando não fecham, a tela precisa dizer QUAL número está estranho.
-  var taxaImplicita =
-    divergencia !== null ? finTaxaImplicita(sistema, sd, parcelaInformada, n) : null;
 
   return {
     sistema: sistema,
@@ -356,13 +438,13 @@ function finResumo(fin, valorMercado) {
     totalAPagar: aPagar,
     custoTotal: pago + aPagar,
     valorPago: pago,
-    parcelaEsperada: parcelaEsperada,
-    parcelaInformada: parcelaInformada,
-    divergencia: divergencia,
-    taxaMensal: i,
+    // A parcela que a taxa EM USO produz — com conflito resolvido pela parcela,
+    // ela reproduz a informada; resolvido pela taxa, mostra a diferença.
+    parcelaEsperada: finParcelaEsperada(sistema, sd, i, n),
+    parcelaInformada: taxa.parcelaCheia,
     parcelasRestantes: n,
-    taxaImplicita: taxaImplicita,
-    causaDivergencia: taxaImplicita !== null ? finDiagnosticoTaxa(i, taxaImplicita) : null,
+    taxaMensal: i,
+    taxa: taxa,
     patrimonioLiquido: (Number(valorMercado) || 0) - sd,
   };
 }
@@ -658,19 +740,30 @@ function lerFinanciamentoDoForm() {
   };
   var taxaTxt = String((document.getElementById('bemFinTaxa') || {}).value || '').replace(',', '.');
   var taxaPct = parseFloat(taxaTxt);
-  return {
+  var bruto = {
     ativo: true,
     sistema: (document.getElementById('bemFinSistema') || {}).value === 'price' ? 'price' : 'sac',
     valorFinanciado: brl('bemFinValorFinanciado'),
     valorPago: brl('bemFinValorPago'),
     saldoDevedor: brl('bemFinSaldoDevedor'),
     valorParcela: brl('bemFinParcela'),
+    segurosTarifas: brl('bemFinSeguros'),
     // Guardado como fração ao mês (0,8% → 0.008): é a unidade que as funções
     // de cálculo esperam, e converter uma vez só evita erro de fator 100.
-    taxaMensal: isFinite(taxaPct) && taxaPct > 0 ? taxaPct / 100 : 0,
+    // Campo opcional — 0 significa "não sei, deduza da minha parcela".
+    taxaInformada: isFinite(taxaPct) && taxaPct > 0 ? taxaPct / 100 : 0,
     parcelasRestantes:
       parseInt((document.getElementById('bemFinParcelasRestantes') || {}).value, 10) || 0,
+    fonteVerdade:
+      (document.getElementById('bemFinFonteVerdade') || {}).value === 'taxa' ? 'taxa' : 'parcela',
   };
+  // `taxaMensal` é a taxa RESOLVIDA — a que os cálculos usam e a que fica
+  // gravada. Quem lê o bem depois (simulador de antecipação, lista) encontra
+  // um número pronto e não precisa saber que ele pode ter sido deduzido.
+  var resolvida = finResolverTaxa(bruto);
+  bruto.taxaMensal = resolvida.taxaMensal;
+  bruto.taxaOrigem = resolvida.origem;
+  return bruto;
 }
 
 function preencherFinanciamentoNoForm(fin) {
@@ -689,12 +782,23 @@ function preencherFinanciamentoNoForm(fin) {
       setValorBRLInput(document.getElementById('bemFinValorPago'), fin.valorPago || 0);
       setValorBRLInput(document.getElementById('bemFinSaldoDevedor'), fin.saldoDevedor || 0);
       setValorBRLInput(document.getElementById('bemFinParcela'), fin.valorParcela || 0);
+      setValorBRLInput(document.getElementById('bemFinSeguros'), fin.segurosTarifas || 0);
     }
+    // Só volta ao campo o que a pessoa digitou. Taxa deduzida da parcela fica
+    // em branco: ela é resultado, não dado de entrada — senão a dedução de uma
+    // sessão vira "informado pelo usuário" na seguinte e o conflito some.
     var elTaxa = document.getElementById('bemFinTaxa');
-    if (elTaxa)
-      elTaxa.value = fin.taxaMensal
-        ? String((fin.taxaMensal * 100).toFixed(2)).replace('.', ',')
-        : '';
+    if (elTaxa) {
+      var digitada =
+        fin.taxaInformada !== undefined && fin.taxaInformada !== null
+          ? Number(fin.taxaInformada)
+          : fin.taxaOrigem === 'derivada'
+            ? 0
+            : Number(fin.taxaMensal) || 0;
+      elTaxa.value = digitada > 0 ? _fmtTaxaNumero(digitada) : '';
+    }
+    var elFonte = document.getElementById('bemFinFonteVerdade');
+    if (elFonte) elFonte.value = fin.fonteVerdade === 'taxa' ? 'taxa' : 'parcela';
     var elParc = document.getElementById('bemFinParcelasRestantes');
     if (elParc) elParc.value = fin.parcelasRestantes || '';
   } else {
@@ -703,12 +807,15 @@ function preencherFinanciamentoNoForm(fin) {
       'bemFinValorPago',
       'bemFinSaldoDevedor',
       'bemFinParcela',
+      'bemFinSeguros',
       'bemFinTaxa',
       'bemFinParcelasRestantes',
     ].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
+    var elFonte0 = document.getElementById('bemFinFonteVerdade');
+    if (elFonte0) elFonte0.value = 'parcela';
   }
   bemToggleFinanciamento();
 }
@@ -717,9 +824,14 @@ function preencherFinanciamentoNoForm(fin) {
 function avancarDoPasso2Bem() {
   var fin = lerFinanciamentoDoForm();
   if (!fin) return salvarFormBem();
-  if (!(fin.saldoDevedor > 0)) return mostrarToast('Informe o saldo devedor.', 'erro');
-  if (!(fin.taxaMensal > 0)) return mostrarToast('Informe a taxa de juros mensal.', 'erro');
+  if (!(fin.saldoDevedor > 0)) return mostrarToast('Informe quanto ainda falta pagar.', 'erro');
   if (!(fin.parcelasRestantes > 0)) return mostrarToast('Informe quantas parcelas faltam.', 'erro');
+  // Taxa OU parcela: com uma das duas a conta fecha. Exigir as duas era pedir
+  // que a pessoa achasse no contrato um número que a parcela já entrega.
+  if (!(fin.valorParcela > 0) && !(fin.taxaInformada > 0))
+    return mostrarToast('Informe o valor da parcela ou a taxa de juros.', 'erro');
+  // O resto (parcela que não fecha, saldo com cara de total a pagar) não trava
+  // o caminho: a análise explica e oferece a correção com o contexto na tela.
 
   document.getElementById('bemPasso2').style.display = 'none';
   document.getElementById('bemAcoesPasso2').style.display = 'none';
@@ -773,94 +885,181 @@ function _tituloBlocoFin(txt) {
   );
 }
 
-// Taxa em % ao mês, com casas suficientes para não virar 0,00 em juros baixos.
-function _fmtTaxaMensal(fracao) {
+// Taxa em % com casas suficientes para não virar 0,00 em juros baixos, e sem
+// zero à direita: 7,30% lido em voz alta soa errado; 7,3% é como a pessoa fala.
+function _fmtTaxaNumero(fracao) {
   var pct = (Number(fracao) || 0) * 100;
   var txt = pct.toFixed(pct < 0.1 ? 3 : 2);
-  // 7,30% lido em voz alta soa errado; 7,3% é como a pessoa fala e lê no contrato.
   if (txt.indexOf('.') >= 0) txt = txt.replace(/0+$/, '').replace(/\.$/, '');
-  return txt.replace('.', ',') + '% ao mês';
+  return txt.replace('.', ',');
 }
 
-// Adota a taxa que a parcela informada indica e refaz a conta na hora, para a
-// pessoa ver os números mudarem sem voltar um passo e perder o contexto.
-function bemUsarTaxaImplicita(taxaMensal) {
-  var el = document.getElementById('bemFinTaxa');
-  if (!el) return;
-  var pct = (Number(taxaMensal) || 0) * 100;
-  el.value = pct.toFixed(pct < 0.1 ? 3 : 2).replace('.', ',');
-  renderAnaliseFinanciamento();
-  if (typeof mostrarToast === 'function')
-    mostrarToast(
-      'Taxa trocada para ' + _fmtTaxaMensal(taxaMensal) + '. Números refeitos.',
-      'sucesso'
-    );
+function _fmtTaxaMensal(fracao) {
+  return _fmtTaxaNumero(fracao) + '% ao mês';
 }
 
-// O aviso de dados inconsistentes. Não basta dizer "não fecha": a pessoa fica
-// sem saber qual dos números conferir. Aqui dizemos qual taxa a parcela dela
-// indica, arriscamos a explicação mais provável e deixamos corrigir num clique.
-function _avisoDivergenciaFin(r) {
-  var fmt =
-    typeof formatarMoeda === 'function'
-      ? formatarMoeda
-      : function (v) {
-          return 'R$ ' + v.toFixed(2);
-        };
-  var partes = [
-    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-warning"></i> Confira a taxa de juros</div>',
-    'Com uma dívida de <strong>' +
-      fmt(r.saldoDevedor) +
-      '</strong>, <strong>' +
-      r.parcelasRestantes +
-      ' parcelas</strong> e taxa de <strong>' +
-      _fmtTaxaMensal(r.taxaMensal) +
-      '</strong>, a parcela daria <strong>' +
-      fmt(r.parcelaEsperada) +
-      '</strong> — mas você informou <strong>' +
-      fmt(r.parcelaInformada) +
-      '</strong>. Um dos dois está diferente do contrato.',
-  ];
+// A mesma taxa em ano — é assim que se compara com poupança, CDI ou com a taxa
+// que o banco anuncia na vitrine.
+function _fmtTaxaAnual(fracao) {
+  return _fmtTaxaNumero(Math.pow(1 + (Number(fracao) || 0), 12) - 1) + '% ao ano';
+}
 
-  if (r.taxaImplicita !== null && r.taxaImplicita > 0) {
-    var explicacao = '';
-    if (r.causaDivergencia === 'anual')
-      explicacao =
-        ' Parece que você digitou a taxa <strong>do ano</strong> — nesse campo vai a do mês.';
-    else if (r.causaDivergencia === 'decimal')
-      explicacao = ' Parece que faltou uma casa decimal na taxa.';
-    partes.push(
-      '<div style="margin-top:6px;">Para uma parcela de <strong>' +
-        fmt(r.parcelaInformada) +
-        '</strong>, a taxa seria <strong>' +
-        _fmtTaxaMensal(r.taxaImplicita) +
-        '</strong>.' +
-        explicacao +
-        '</div>'
-    );
-    partes.push(
-      '<button type="button" onclick="bemUsarTaxaImplicita(' +
-        r.taxaImplicita +
-        ')" style="margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid var(--cor-txt-amber);background:transparent;color:var(--cor-txt-amber);cursor:pointer;font-family:inherit;">' +
-        '<i class="ph-bold ph-arrow-counter-clockwise"></i> Refazer a conta com ' +
-        _fmtTaxaMensal(r.taxaImplicita) +
-        '</button>'
-    );
-  } else {
-    partes.push(
-      '<div style="margin-top:6px;">Essa parcela é menor que a dívida dividida pelo número de parcelas, então nenhuma taxa de juros a explica. Confira a dívida e quantas parcelas faltam.</div>'
-    );
-  }
-
-  partes.push(
-    '<div style="margin-top:8px;font-size:11px;opacity:0.85;">Por enquanto, os números abaixo usam a taxa que você digitou.</div>'
-  );
-
+function _caixaAvisoFin(corpo, tom) {
+  var cores =
+    tom === 'info'
+      ? 'background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);color:var(--cor-txt-primaria);'
+      : 'background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);color:var(--cor-txt-amber);';
   return (
-    '<div style="background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);color:var(--cor-txt-amber);border-radius:9px;padding:11px 13px;font-size:11.5px;line-height:1.55;">' +
-    partes.join('') +
+    '<div style="' +
+    cores +
+    'border-radius:9px;padding:11px 13px;font-size:11.5px;line-height:1.55;">' +
+    corpo +
     '</div>'
   );
+}
+
+function _botaoAvisoFin(onclick, rotulo, ativo) {
+  return (
+    '<button type="button" onclick="' +
+    onclick +
+    '" style="display:block;width:100%;text-align:left;margin-top:6px;padding:8px 11px;font-size:11.5px;border-radius:8px;cursor:pointer;font-family:inherit;line-height:1.45;' +
+    (ativo
+      ? 'border:1.5px solid currentColor;background:rgba(255,255,255,0.55);font-weight:700;'
+      : 'border:1px solid var(--cor-borda);background:transparent;color:inherit;opacity:0.75;') +
+    '">' +
+    (ativo ? '<i class="ph-fill ph-check-circle"></i> ' : '') +
+    rotulo +
+    '</button>'
+  );
+}
+
+// Em quem acreditar quando parcela e taxa se contradizem. A escolha fica no
+// formulário (input escondido) para sobreviver ao salvar e à reabertura.
+function bemEscolherFonteVerdade(fonte) {
+  var el = document.getElementById('bemFinFonteVerdade');
+  if (!el) return;
+  el.value = fonte === 'taxa' ? 'taxa' : 'parcela';
+  renderAnaliseFinanciamento();
+}
+
+// Saldo com cara de "total a pagar". Erro caro: infla a dívida e some com os
+// juros, porque parcela × prazo já é o total com juros embutidos.
+function _avisoSaldoFin(r) {
+  var fmt = _fmtDinheiroFin();
+  return _caixaAvisoFin(
+    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-warning"></i> Confira quanto você ainda deve</div>' +
+      'Os <strong>' +
+      fmt(r.saldoDevedor) +
+      '</strong> que você informou são quase exatamente ' +
+      r.parcelasRestantes +
+      ' × ' +
+      fmt(r.taxa.parcelaCheia) +
+      ' — ou seja, o <strong>total que falta pagar</strong>, com os juros já embutidos. ' +
+      'Aqui vai o <strong>saldo devedor de hoje</strong>: o valor para quitar tudo agora, que o app do banco mostra logo acima do total. Ele é bem menor.' +
+      '<div style="margin-top:6px;">Se o seu financiamento é mesmo sem juros, então está certo — siga em frente.</div>' +
+      '<button type="button" onclick="voltarParaValoresBem()" style="margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-family:inherit;">' +
+      '<i class="ph-bold ph-arrow-left"></i> Voltar e corrigir</button>'
+  );
+}
+
+// Parcela e taxa se contradizem: quem manda? A parcela é verificável no
+// extrato, a taxa é interpretada do contrato — por isso o padrão é a parcela.
+// Mas cada opção mostra a consequência, para a escolha ser por reconhecimento
+// ("essa eu sei que é a minha") e não por adivinhação.
+function _avisoConflitoFin(r) {
+  var fmt = _fmtDinheiroFin();
+  var t = r.taxa;
+  var explicacao = '';
+  if (t.causa === 'anual')
+    explicacao = ' Parece que a taxa digitada é a <strong>do ano</strong> — no campo vai a do mês.';
+  else if (t.causa === 'decimal') explicacao = ' Parece que faltou uma casa decimal na taxa.';
+
+  return _caixaAvisoFin(
+    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-warning"></i> Qual dos dois está certo?</div>' +
+      'A parcela de <strong>' +
+      fmt(t.parcelaCheia) +
+      '</strong> e a taxa de <strong>' +
+      _fmtTaxaMensal(t.taxaInformada) +
+      '</strong> não combinam.' +
+      explicacao +
+      ' Só um dos dois pode valer — escolha o que você tem certeza:' +
+      _botaoAvisoFin(
+        "bemEscolherFonteVerdade('parcela')",
+        'A parcela é <strong>' +
+          fmt(t.parcelaCheia) +
+          '</strong><span style="display:block;font-weight:400;opacity:0.85;">então o seu juro é ' +
+          _fmtTaxaMensal(t.taxaImplicita) +
+          '</span>',
+        t.escolha === 'parcela'
+      ) +
+      _botaoAvisoFin(
+        "bemEscolherFonteVerdade('taxa')",
+        'A taxa é <strong>' +
+          _fmtTaxaMensal(t.taxaInformada) +
+          '</strong><span style="display:block;font-weight:400;opacity:0.85;">então a parcela seria ' +
+          fmt(t.parcelaEsperada) +
+          '</span>',
+        t.escolha === 'taxa'
+      ) +
+      '<div style="margin-top:8px;font-size:11px;opacity:0.85;">Na dúvida, fique na parcela: ela debita na sua conta todo mês, enquanto o contrato traz várias taxas diferentes.</div>'
+  );
+}
+
+// Parcela que nenhuma taxa explica: ela é menor que a dívida dividida pelo
+// prazo, que é o piso sem juro nenhum. Aqui não há escolha a oferecer — algum
+// dos três números está errado e só a pessoa sabe qual.
+function _avisoParcelaImpossivelFin(r) {
+  var fmt = _fmtDinheiroFin();
+  var t = r.taxa;
+  return _caixaAvisoFin(
+    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-warning"></i> Esses números não se encaixam</div>' +
+      'Dividindo ' +
+      fmt(r.saldoDevedor) +
+      ' por ' +
+      r.parcelasRestantes +
+      ' parcelas dá ' +
+      fmt(r.saldoDevedor / Math.max(1, r.parcelasRestantes)) +
+      ' por mês <em>sem juro nenhum</em> — mais que a parcela de <strong>' +
+      fmt(t.parcelaCheia) +
+      '</strong> que você informou. Confira os três: quanto ainda deve, o valor da parcela e quantas faltam.' +
+      '<div style="margin-top:6px;font-size:11px;opacity:0.85;">Por enquanto os números abaixo usam a taxa de ' +
+      _fmtTaxaMensal(t.taxaInformada) +
+      ' que você digitou.</div>' +
+      '<button type="button" onclick="voltarParaValoresBem()" style="margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-family:inherit;">' +
+      '<i class="ph-bold ph-arrow-left"></i> Voltar e corrigir</button>'
+  );
+}
+
+// Taxa deduzida da parcela: não é aviso, é entrega. A maioria das pessoas não
+// sabe quanto paga de juros, e agora sabe sem ter procurado no contrato.
+function _avisoTaxaDeduzidaFin(r) {
+  var t = r.taxa;
+  var corpo =
+    '<div style="font-weight:700;margin-bottom:4px;"><i class="ph-fill ph-percent"></i> O seu juro é ≈' +
+    _fmtTaxaMensal(t.taxaImplicita) +
+    '</div>' +
+    'Deduzimos da sua parcela, do saldo e do prazo — você não precisou achar no contrato. Dá ≈' +
+    _fmtTaxaAnual(t.taxaImplicita) +
+    '.';
+  if (!(t.segurosTarifas > 0))
+    corpo +=
+      '<div style="margin-top:6px;">É uma estimativa <strong>por cima</strong>: se a parcela embute seguro (MIP/DFI) ou taxa de administração, parte dela não é juro. Informe esse valor no passo anterior para afinar a conta.</div>' +
+      '<button type="button" onclick="voltarParaValoresBem()" style="margin-top:8px;padding:6px 12px;font-size:11.5px;font-weight:600;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;cursor:pointer;font-family:inherit;">' +
+      '<i class="ph-bold ph-arrow-left"></i> Informar seguros e tarifas</button>';
+  else
+    corpo +=
+      '<div style="margin-top:6px;">Já descontamos os ' +
+      _fmtDinheiroFin()(t.segurosTarifas) +
+      ' de seguro e tarifas da parcela antes de calcular.</div>';
+  return _caixaAvisoFin(corpo, 'info');
+}
+
+function _fmtDinheiroFin() {
+  return typeof formatarMoeda === 'function'
+    ? formatarMoeda
+    : function (v) {
+        return 'R$ ' + v.toFixed(2);
+      };
 }
 
 function renderAnaliseFinanciamento() {
@@ -876,18 +1075,20 @@ function renderAnaliseFinanciamento() {
       ? parseBRL((document.getElementById('bemValorAtual') || {}).value)
       : 0;
   var r = finResumo(fin, valorMercado);
-  var fmt =
-    typeof formatarMoeda === 'function'
-      ? formatarMoeda
-      : function (v) {
-          return 'R$ ' + v.toFixed(2);
-        };
+  var fmt = _fmtDinheiroFin();
   var pctJuros = r.totalAPagar > 0 ? (r.jurosRestantes / r.totalAPagar) * 100 : 0;
 
-  // O aviso vem ANTES do número grande: se os dados não fecham, saber disso é
-  // mais importante que o valor — senão a pessoa acredita num juro que não é o
-  // dela e sai assustada da tela.
-  var aviso = r.divergencia !== null ? _avisoDivergenciaFin(r) : '';
+  // O aviso vem ANTES do número grande: se há dúvida sobre os dados, saber
+  // disso é mais importante que o valor — senão a pessoa acredita num juro que
+  // não é o dela e sai assustada da tela. Um de cada vez, na ordem do estrago:
+  // saldo errado infla tudo; conflito escolhe entre dois mundos; taxa deduzida
+  // é só uma boa notícia a dar.
+  var aviso = '';
+  if (r.taxa.saldoPareceTotal) aviso = _avisoSaldoFin(r);
+  else if (r.taxa.conflito && r.taxa.taxaImplicita !== null) aviso = _avisoConflitoFin(r);
+  else if (r.taxa.conflito) aviso = _avisoParcelaImpossivelFin(r);
+  else if (r.taxa.origem === 'derivada' && r.taxa.taxaImplicita !== null)
+    aviso = _avisoTaxaDeduzidaFin(r);
 
   var comoPaga =
     r.sistema === 'sac'
@@ -933,9 +1134,11 @@ function renderAnaliseFinanciamento() {
     '<div style="font-size:12.5px;opacity:0.92;line-height:1.5;">De cada R$ 100 que ainda saem do seu bolso, <strong>R$ ' +
     pctJuros.toFixed(0) +
     ' são só juros</strong> — o resto abate a dívida.<br>Faltam ' +
-    fin.parcelasRestantes +
-    ' parcelas e ' +
+    r.parcelasRestantes +
+    ' parcelas, ' +
     comoPaga +
+    ', a ' +
+    _fmtTaxaMensal(r.taxaMensal) +
     '.</div>' +
     '</div>' +
     '<div style="border:1px solid var(--cor-borda);border-radius:10px;padding:12px 14px;">' +

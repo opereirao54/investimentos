@@ -6966,13 +6966,19 @@
                                 <div class="form-group"><label>Valor já pago</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinValorPago" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
                             </div>
                             <div class="grid-2-iguais" style="gap:10px;">
-                                <div class="form-group"><label>Saldo devedor <span style="color:var(--cor-erro);">*</span></label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinSaldoDevedor" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
-                                <div class="form-group"><label>Valor da parcela</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinParcela" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
+                                <div class="form-group"><label>Quanto ainda deve <span style="color:var(--cor-erro);">*</span></label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinSaldoDevedor" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span><small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">O saldo devedor de <strong>hoje</strong> — o valor para quitar tudo agora, não a soma das parcelas que faltam.</small></div>
+                                <div class="form-group"><label>Valor da parcela <span style="color:var(--cor-erro);">*</span></label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinParcela" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span><small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">A que debita na sua conta todo mês.</small></div>
                             </div>
                             <div class="grid-2-iguais" style="gap:10px;">
-                                <div class="form-group"><label>Taxa de juros (% ao mês) <span style="color:var(--cor-erro);">*</span></label><input type="text" id="bemFinTaxa" inputmode="decimal" placeholder="Ex: 0,80"><small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">É a taxa do <strong>mês</strong>, não a do ano. Se o contrato diz 9% ao ano, aqui vai ≈ 0,72.</small></div>
                                 <div class="form-group"><label>Parcelas restantes <span style="color:var(--cor-erro);">*</span></label><input type="number" id="bemFinParcelasRestantes" min="1" max="600" placeholder="Ex: 240"></div>
+                                <div class="form-group"><label>Seguros e tarifas na parcela</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="bemFinSeguros" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span><small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">MIP/DFI e taxa de administração, se vierem discriminados no boleto. Essa parte não é juro.</small></div>
                             </div>
+                            <div class="form-group">
+                                <label>Taxa de juros (% ao mês) <span style="font-weight:400;color:var(--cor-texto-mutado);">— opcional</span></label>
+                                <input type="text" id="bemFinTaxa" inputmode="decimal" placeholder="Deixe em branco que a gente descobre">
+                                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:3px;">Não precisa procurar no contrato: <strong>deduzimos da sua parcela</strong>. Se quiser preencher, é a taxa do <strong>mês</strong> — 9% ao ano vira ≈ 0,72.</small>
+                            </div>
+                            <input type="hidden" id="bemFinFonteVerdade" value="parcela">
                         </div>
                     </div>
 

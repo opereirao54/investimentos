@@ -182,16 +182,20 @@ test('patrimônio líquido fica negativo quando a dívida passa o valor do bem',
 test('parcela informada muito fora da esperada é sinalizada', () => {
   const w = carregar();
   // A parcela coerente com 300k/240/0,8% no SAC é ~3.650. Informar 1.200 é
-  // incompatível — melhor avisar do que calcular por cima.
+  // incompatível — melhor avisar do que calcular por cima. E 1.200 fica ABAIXO
+  // do piso sem juros (300k/240 = 1.250), então nenhuma taxa a explica: não há
+  // alternativa a oferecer, mas o conflito continua sinalizado.
   const r = w.finResumo({
     sistema: 'sac',
     saldoDevedor: 300000,
-    taxaMensal: 0.008,
+    taxaInformada: 0.008,
     parcelasRestantes: 240,
     valorParcela: 1200,
   });
-  assert.ok(r.divergencia !== null, 'deveria sinalizar divergência');
-  assert.ok(r.divergencia < 0, 'a informada está abaixo da esperada');
+  assert.equal(r.taxa.conflito, true, 'deveria sinalizar conflito');
+  assert.equal(r.taxa.taxaImplicita, null, 'nenhuma taxa explica essa parcela');
+  assert.equal(r.taxa.escolha, null, 'sem alternativa, não há escolha a fazer');
+  assert.equal(r.taxaMensal, 0.008, 'na falta de alternativa, segue a digitada');
 });
 
 test('parcela coerente não gera alarme falso', () => {
@@ -200,11 +204,12 @@ test('parcela coerente não gera alarme falso', () => {
   const r = w.finResumo({
     sistema: 'sac',
     saldoDevedor: 300000,
-    taxaMensal: 0.008,
+    taxaInformada: 0.008,
     parcelasRestantes: 240,
     valorParcela: esperada * 1.03,
   });
-  assert.equal(r.divergencia, null);
+  assert.equal(r.taxa.conflito, false);
+  assert.equal(r.taxaMensal, 0.008, 'concordando, vale a taxa que a pessoa digitou');
 });
 
 // ---- simulação de amortização -----------------------------------------
@@ -396,7 +401,29 @@ test('diagnóstico não chuta quando a diferença não tem padrão conhecido', (
   assert.equal(w.finDiagnosticoTaxa(0.008, 0), null);
 });
 
-test('finResumo entrega a taxa implícita e a causa junto da divergência', () => {
+test('havendo conflito, a parcela ganha da taxa digitada por padrão', () => {
+  const w = carregar();
+  const caso = {
+    ativo: true,
+    sistema: 'sac',
+    saldoDevedor: 36800,
+    valorParcela: 1090,
+    taxaInformada: 0.073,
+    parcelasRestantes: 45,
+  };
+  const r = w.finResumo(caso, 0);
+  assert.equal(r.taxa.conflito, true, 'a parcela informada não fecha com a taxa');
+  assert.equal(r.taxa.escolha, 'parcela', 'o padrão é acreditar na parcela');
+  assert.equal(r.taxa.causa, 'decimal');
+  assert.ok(Math.abs(r.taxa.taxaImplicita - 0.007397) < 1e-5);
+  assert.equal(r.taxa.taxaInformada, 0.073, 'a digitada segue disponível para a tela');
+  // O que muda de verdade: o número grande da tela.
+  assert.ok(Math.abs(r.taxaMensal - 0.007397) < 1e-5, 'calcula pela taxa da parcela');
+  assert.ok(Math.abs(r.jurosRestantes - 6261.11) < 0.5, 'R$ 6.261, não R$ 61.787');
+  assert.ok(Math.abs(r.parcelaEsperada - 1090) < 0.01, 'e a parcela volta a bater');
+});
+
+test('escolhendo a taxa, a conta passa a ser feita por ela', () => {
   const w = carregar();
   const r = w.finResumo(
     {
@@ -404,20 +431,19 @@ test('finResumo entrega a taxa implícita e a causa junto da divergência', () =
       sistema: 'sac',
       saldoDevedor: 36800,
       valorParcela: 1090,
-      taxaMensal: 0.073,
+      taxaInformada: 0.073,
       parcelasRestantes: 45,
+      fonteVerdade: 'taxa',
     },
     0
   );
-  assert.ok(r.divergencia !== null, 'a parcela informada não fecha com a taxa');
-  assert.ok(Math.abs(r.parcelaEsperada - 3504.18) < 0.01);
-  assert.ok(Math.abs(r.jurosRestantes - 61787.2) < 0.01, 'juros da taxa digitada');
-  assert.ok(Math.abs(r.taxaImplicita - 0.007397) < 1e-5);
-  assert.equal(r.causaDivergencia, 'decimal');
-  assert.equal(r.taxaMensal, 0.073, 'a taxa digitada continua disponível para a tela');
+  assert.equal(r.taxa.escolha, 'taxa');
+  assert.equal(r.taxaMensal, 0.073);
+  assert.ok(Math.abs(r.jurosRestantes - 61787.2) < 0.01);
+  assert.ok(Math.abs(r.parcelaEsperada - 3504.18) < 0.01, 'a parcela que essa taxa produz');
 });
 
-test('sem divergência não há taxa implícita para mostrar', () => {
+test('sem conflito não há escolha nem alternativa a mostrar', () => {
   const w = carregar();
   const r = w.finResumo(
     {
@@ -425,14 +451,15 @@ test('sem divergência não há taxa implícita para mostrar', () => {
       sistema: 'sac',
       saldoDevedor: 36800,
       valorParcela: 1090.1,
-      taxaMensal: 0.0074,
+      taxaInformada: 0.0074,
       parcelasRestantes: 45,
     },
     0
   );
-  assert.equal(r.divergencia, null);
-  assert.equal(r.taxaImplicita, null);
-  assert.equal(r.causaDivergencia, null);
+  assert.equal(r.taxa.conflito, false);
+  assert.equal(r.taxa.escolha, null);
+  assert.equal(r.taxa.causa, null);
+  assert.equal(r.taxa.origem, 'informada');
 });
 
 test('corrigindo a taxa, os juros caem para a ordem de grandeza real', () => {
@@ -443,4 +470,115 @@ test('corrigindo a taxa, os juros caem para a ordem de grandeza real', () => {
   const certo = w.finJurosRestantes('sac', 36800, 0.007397, 45);
   assert.ok(Math.abs(errado - 61787.2) < 0.01);
   assert.ok(Math.abs(certo - 6261.0) < 5, 'esperado ~R$ 6.261, veio ' + certo);
+});
+
+// ============================================================
+// === TAXA DEDUZIDA, SEGUROS E SALDO x TOTAL A PAGAR        ===
+// ============================================================
+//
+// A taxa é o dado que a pessoa mais erra: o contrato traz nominal a.a.,
+// efetiva a.a., CET a.a. e CET a.m., e ela escolhe uma e converte. Saldo,
+// parcela e prazo estão na mesma tela do app do banco. Então a taxa deixou de
+// ser obrigatória — é deduzida da parcela — e o conflito virou escolha.
+
+test('sem taxa digitada, a taxa sai da parcela', () => {
+  const w = carregar();
+  const r = w.finResumo({
+    sistema: 'sac',
+    saldoDevedor: 36800,
+    valorParcela: 1090,
+    parcelasRestantes: 45,
+  });
+  assert.equal(r.taxa.origem, 'derivada');
+  assert.ok(Math.abs(r.taxaMensal - 0.007397) < 1e-5);
+  assert.equal(r.taxa.conflito, false, 'não há taxa digitada com que conflitar');
+  assert.ok(Math.abs(r.jurosRestantes - 6261.11) < 0.5);
+});
+
+test('seguros e tarifas saem da parcela antes de inverter a conta', () => {
+  const w = carregar();
+  const base = { sistema: 'sac', saldoDevedor: 36800, valorParcela: 1090, parcelasRestantes: 45 };
+  const semSeguro = w.finResolverTaxa(base);
+  const comSeguro = w.finResolverTaxa(Object.assign({}, base, { segurosTarifas: 80 }));
+  // R$ 80 do boleto não são juro: a taxa real é menor, e por uma margem que
+  // importa — 0,74% vira 0,52%, quase um terço a menos.
+  assert.ok(Math.abs(semSeguro.taxaMensal - 0.007397) < 1e-5);
+  assert.ok(Math.abs(comSeguro.taxaMensal - 0.005223) < 1e-5);
+  assert.equal(comSeguro.parcelaLiquida, 1010, 'inverte pela parcela sem os acessórios');
+  assert.ok(comSeguro.taxaMensal < semSeguro.taxaMensal, 'ignorar seguro superestima o juro');
+});
+
+test('seguro maior que a parcela não vira taxa negativa', () => {
+  const w = carregar();
+  const r = w.finResolverTaxa({
+    sistema: 'sac',
+    saldoDevedor: 36800,
+    valorParcela: 1090,
+    segurosTarifas: 5000,
+    parcelasRestantes: 45,
+  });
+  assert.equal(r.parcelaLiquida, 0);
+  assert.equal(r.taxaImplicita, null);
+  assert.equal(r.taxaMensal, 0);
+  assert.equal(r.origem, 'nenhuma');
+});
+
+test('saldo igual a parcela × prazo denuncia o total a pagar', () => {
+  const w = carregar();
+  // 1.090 × 45 = 49.050. Quem copia esse número do app do banco está pegando o
+  // total que falta pagar (juros embutidos), não o saldo devedor de hoje.
+  assert.equal(w.finSaldoPareceTotalAPagar(49050, 1090, 45), true);
+  assert.equal(w.finSaldoPareceTotalAPagar(48000, 1090, 45), true, 'até 5% de folga');
+  assert.equal(w.finSaldoPareceTotalAPagar(36800, 1090, 45), false, 'saldo de verdade');
+  assert.equal(w.finSaldoPareceTotalAPagar(0, 1090, 45), false);
+  assert.equal(w.finSaldoPareceTotalAPagar(49050, 0, 45), false);
+});
+
+test('o resumo carrega a suspeita do saldo para a tela', () => {
+  const w = carregar();
+  const r = w.finResumo({
+    sistema: 'sac',
+    saldoDevedor: 49050,
+    valorParcela: 1090,
+    parcelasRestantes: 45,
+  });
+  assert.equal(r.taxa.saldoPareceTotal, true);
+  // Sem juros na conta, porque parcela × prazo já é o total: o número não
+  // mente, mas a tela precisa avisar que a entrada é que está errada.
+  assert.equal(r.taxa.taxaImplicita, null);
+  assert.equal(r.jurosRestantes, 0);
+});
+
+test('a taxa resolvida é a que fica gravada e alimenta a antecipação', () => {
+  const w = carregar();
+  // O simulador de antecipação lê financiamento.taxaMensal direto. Se ali
+  // ficasse a taxa digitada errada, a economia simulada sairia inflada junto.
+  const fin = {
+    ativo: true,
+    sistema: 'sac',
+    saldoDevedor: 36800,
+    valorParcela: 1090,
+    taxaInformada: 0.073,
+    parcelasRestantes: 45,
+  };
+  const resolvida = w.finResolverTaxa(fin);
+  const gravado = Object.assign({}, fin, { taxaMensal: resolvida.taxaMensal });
+  const sim = w.finSimularAmortizacao(gravado, 5000);
+  assert.ok(Math.abs(sim.jurosAtuais - 6261.11) < 0.5, 'usa a taxa da parcela, não a digitada');
+  assert.ok(sim.prazo.economia > 0 && sim.prazo.economia < 6261.11);
+});
+
+test('registro antigo, gravado quando a taxa era obrigatória, segue valendo', () => {
+  const w = carregar();
+  // Não tem taxaInformada; o que existe é taxaMensal, digitada pela pessoa.
+  const r = w.finResolverTaxa({
+    sistema: 'sac',
+    saldoDevedor: 300000,
+    valorParcela: 3650,
+    taxaMensal: 0.008,
+    parcelasRestantes: 240,
+  });
+  assert.equal(r.taxaInformada, 0.008, 'lê a taxa do formato antigo');
+  assert.equal(r.origem, 'informada');
+  assert.equal(r.conflito, false);
 });
