@@ -88,7 +88,8 @@ function buildMonthlyReport(yyyymm) {
   const despesasTotais = despesasContas + investimentos;
   const saldoFinal = entradas - despesasTotais;
 
-  // Patrimônio (snapshot do mês)
+  // Investimentos do mês (snapshot da CARTEIRA — não inclui contas nem
+  // bens; o patrimônio consolidado vive na aba "Meu patrimônio").
   let patrimonioAplicado = 0,
     patrimonioMercado = 0;
   try {
@@ -447,7 +448,10 @@ function rmRenderTermometro(rep, repB) {
     resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo.';
   }
 
-  // Saldo e patrimônio nos hero stats
+  // Saldo e investimentos nos hero stats. O valor vem do snapshot da
+  // CARTEIRA do mês (snap.saldoTotal), não do patrimônio consolidado da aba
+  // "Meu patrimônio" — que soma também contas e bens e daria outro número.
+  // Por isso o rótulo é "Investimentos" e não "Patrimônio".
   const saldoEl = document.getElementById('rmHeroSaldo');
   if (saldoEl) {
     saldoEl.innerText = formatarMoeda(rep.saldoFinal);
@@ -530,7 +534,7 @@ function rmRenderKpis(rep, repB, serie12) {
     },
     {
       tipo: 'investimentos',
-      label: 'Investimentos',
+      label: 'Investimentos (aportes)',
       valor: rep.investimentos,
       valorB: repB ? repB.investimentos : null,
       icone: 'ph-trending-up',
@@ -862,7 +866,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     });
   }
 
-  // ===== Patrimônio (área aplicado + área mercado por cima) =====
+  // ===== Investimentos (área aplicado + área mercado por cima) =====
   const ctx2 = document.getElementById('rmChartPatrimonio');
   if (ctx2 && window.Chart) {
     if (rmChartPatrimonioInst)
@@ -1235,10 +1239,10 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
       <div class="rm-print-kpis">
         ${kpi('Entradas', f(rep.entradas), '#059669')}
         ${kpi('Despesas de consumo', f(rep.despesasContas), '#dc2626')}
-        ${kpi('Investimentos', f(rep.investimentos), '#7c3aed')}
+        ${kpi('Investimentos (aportes)', f(rep.investimentos), '#7c3aed')}
         ${kpi('Saldo do mês', f(rep.saldoFinal), rep.saldoFinal >= 0 ? '#059669' : '#dc2626')}
         ${kpi('Dividendos', f(rep.dividendos), '#0ea5e9')}
-        ${kpi('Patrimônio (mercado)', f(rep.patrimonioMercado), '#0f172a')}
+        ${kpi('Investimentos (mercado)', f(rep.patrimonioMercado), '#0f172a')}
       </div>
     </div>
 

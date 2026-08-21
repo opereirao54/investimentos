@@ -6,12 +6,55 @@ const { handler } = require('./_lib/handler');
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
 //   - GET  /api/market?op=quote&tickers=PETR4,VALE3              (auth: Firebase Bearer)
 //   - GET  /api/market?op=history&ticker=PETR4&range=1y          (auth: Firebase Bearer)
+//   - GET  /api/market?op=news                                    (auth: Firebase Bearer)
 //   - POST /api/market?op=warmup                                  (auth: Bearer CRON_SECRET)
 //
 // Cache em Firestore: marketQuotes/{TICKER}, marketHistory/{TICKER}_{RANGE}.
 // BRAPI grátis ~15k req/mês; cada chamada cobre N tickers num único batch.
 
 const BRAPI_BASE = 'https://brapi.dev/api/quote';
+// Feeds de notícia da aba Info Mercado. FIXOS no servidor de propósito: se a
+// URL viesse do cliente, este endpoint viraria um proxy HTTP aberto (SSRF).
+//
+// São as editorias do MESMO site (WordPress serve /{editoria}/feed/), não
+// fontes diferentes. O motivo é densidade: o feed principal traz só as
+// últimas horas, então categorias como Bancos e Política ficavam zeradas na
+// tela por não terem saído matéria do assunto nas últimas horas — e não por
+// falta de notícia. Buscando as editorias, cada assunto chega com massa já
+// na primeira visita.
+//
+// O cliente NÃO sabe destas URLs: recebe um acervo só, e continua
+// classificando e filtrando por conta própria. O `id` existe só para dizer
+// QUAL assunto ficou sem fonte quando um slug muda — sem isso, a categoria
+// aparece zerada na tela e não há como distinguir "não saiu notícia disso
+// hoje" de "a rota mudou de nome e ninguém percebeu".
+//
+// `urls` são alternativas, não somatório: vale a primeira que responder. O
+// slug de uma seção muda quando o site é reformulado, e um 404 numa rota
+// não pode zerar o assunto inteiro.
+const NEWS_SOURCES = [
+  { id: 'geral', urls: ['https://www.infomoney.com.br/feed/'] },
+  { id: 'economia', urls: ['https://www.infomoney.com.br/economia/feed/'] },
+  { id: 'politica', urls: ['https://www.infomoney.com.br/politica/feed/'] },
+  { id: 'mercado', urls: ['https://www.infomoney.com.br/mercados/feed/'] },
+  { id: 'empresas', urls: ['https://www.infomoney.com.br/negocios/feed/'] },
+  { id: 'investimentos', urls: ['https://www.infomoney.com.br/onde-investir/feed/'] },
+  { id: 'financas', urls: ['https://www.infomoney.com.br/minhas-financas/feed/'] },
+  {
+    id: 'cripto',
+    urls: [
+      'https://www.infomoney.com.br/criptomoedas/feed/',
+      'https://www.infomoney.com.br/tag/criptomoedas/feed/',
+      'https://www.infomoney.com.br/mercados/criptomoedas/feed/',
+      'https://www.infomoney.com.br/tudo-sobre/criptomoedas/feed/',
+    ],
+  },
+];
+// Teto por feed para uma editoria movimentada não abafar as outras.
+const NEWS_MAX_PER_FEED = 20;
+const NEWS_MAX_ITEMS = 120;
+const NEWS_FEED_TIMEOUT_MS = 8000;
+const NEWS_TTL_MS = 10 * 60 * 1000;
 const COINGECKO_BASE = 'https://api.coingecko.com/api/v3';
 const YAHOO_BASE = 'https://query1.finance.yahoo.com/v8/finance/chart';
 const MAX_TICKERS_PER_REQUEST = 50;
@@ -32,6 +75,11 @@ const CRYPTO_MAP = {
   LINK: 'chainlink',
   MATIC: 'matic-network',
 };
+
+// Cache do feed na memória do processo. A function serverless reusa o
+// container entre invocações, então isto já segura a maior parte das visitas
+// sem ida ao InfoMoney — e sem gravar nada no Firestore por notícia.
+let newsCache = { at: 0, items: null, failed: [] };
 
 // Mapa range -> meses (para corte e cache key).
 const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
@@ -421,6 +469,204 @@ async function handleWarmup(req, res) {
   });
 }
 
+// ============================================================
+// === op=news — feed de notícias (aba Info Mercado) ===
+// ============================================================
+//
+// Existe para a aba não ficar refém do rss2json: aquele serviço é gratuito,
+// tem limite por IP e já derrubou a aba inteira em produção. Aqui o RSS é
+// buscado do servidor (sem CORS, sem cota de terceiro) e devolvido no MESMO
+// formato do rss2json, para o cliente tratar as duas fontes igual.
+//
+// O parse é por regex de propósito: o feed é WordPress, o formato é estável
+// e um parser XML de verdade seria uma dependência nova só para isto.
+
+/** Desembrulha CDATA e converte as entidades que o RSS realmente usa. */
+function decodeXmlText(raw) {
+  let s = String(raw == null ? '' : raw);
+  s = s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1');
+  s = s
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => {
+      const code = Number(n);
+      return code > 0 && code < 0x110000 ? String.fromCodePoint(code) : '';
+    })
+    // &amp; por último: antes disso, "&amp;lt;" viraria "<" indevidamente.
+    .replace(/&amp;/g, '&');
+  return s.trim();
+}
+
+/** Conteúdo da primeira <tag> do bloco, já decodificado. */
+function pickTag(bloco, tag) {
+  const m = new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + tag + '>', 'i').exec(bloco);
+  return m ? decodeXmlText(m[1]) : '';
+}
+
+/** Conteúdo de TODAS as <tag> do bloco (o RSS repete <category>). */
+function pickTags(bloco, tag) {
+  const re = new RegExp('<' + tag + '(?:\\s[^>]*)?>([\\s\\S]*?)<\\/' + tag + '>', 'gi');
+  const out = [];
+  let m;
+  while ((m = re.exec(bloco))) {
+    const v = decodeXmlText(m[1]);
+    if (v) out.push(v);
+  }
+  return out;
+}
+
+/** RSS 2.0 -> itens no formato que a aba já consome. */
+function parseRssItems(xml, limite) {
+  const teto = limite || NEWS_MAX_ITEMS;
+  const itens = [];
+  const re = /<item(?:\s[^>]*)?>([\s\S]*?)<\/item>/gi;
+  let m;
+  while ((m = re.exec(xml)) && itens.length < teto) {
+    const bloco = m[1];
+    const title = pickTag(bloco, 'title');
+    const link = pickTag(bloco, 'link');
+    if (!title || !link) continue;
+    itens.push({
+      title,
+      link,
+      pubDate: pickTag(bloco, 'pubDate'),
+      // description antes de content:encoded — o resumo do card cabe em
+      // 160 caracteres e o content traz o post inteiro.
+      description: pickTag(bloco, 'description') || pickTag(bloco, 'content:encoded'),
+      categories: pickTags(bloco, 'category').slice(0, 6),
+    });
+  }
+  return itens;
+}
+
+async function fetchOneFeed(url) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), NEWS_FEED_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(url, {
+      headers: { Accept: 'application/rss+xml, application/xml, text/xml' },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`http_${res.status}`);
+  const xml = await res.text();
+  const items = parseRssItems(xml, NEWS_MAX_PER_FEED);
+  if (!items.length) throw new Error('sem_itens');
+  return items;
+}
+
+/** Identidade da matéria — a mesma sai no feed principal e na editoria. */
+function newsKey(link) {
+  return String(link || '')
+    .toLowerCase()
+    .replace(/[?#].*$/, '')
+    .replace(/\/+$/, '');
+}
+
+/** Primeira URL da fonte que responder; só falha se todas falharem. */
+async function fetchSource(source) {
+  const erros = [];
+  for (const url of source.urls) {
+    try {
+      const items = await fetchOneFeed(url);
+      return { id: source.id, url, items };
+    } catch (e) {
+      erros.push(url.replace('https://www.infomoney.com.br', '') + ': ' + e.message);
+    }
+  }
+  throw new Error(erros.join(' | '));
+}
+
+/**
+ * Busca todas as editorias em paralelo e devolve UM acervo ordenado.
+ *
+ * allSettled e não all: uma editoria que saiu do ar (ou mudou de slug) não
+ * pode derrubar as outras. Basta uma responder para a aba ter conteúdo.
+ */
+async function fetchAllFeeds() {
+  const resultados = await Promise.allSettled(NEWS_SOURCES.map(fetchSource));
+  const vistos = new Set();
+  const items = [];
+  const failed = [];
+  const used = [];
+
+  resultados.forEach((r, i) => {
+    if (r.status !== 'fulfilled') {
+      failed.push({
+        id: NEWS_SOURCES[i].id,
+        error: (r.reason && r.reason.message) || 'erro',
+      });
+      return;
+    }
+    used.push({ id: r.value.id, url: r.value.url, items: r.value.items.length });
+    for (const item of r.value.items) {
+      const k = newsKey(item.link);
+      if (!k || vistos.has(k)) continue;
+      vistos.add(k);
+      items.push(item);
+    }
+  });
+
+  if (!items.length) {
+    throw new Error('feeds_sem_itens:' + failed.map((f) => f.error).join(','));
+  }
+
+  // Sem data legível vai para o fim, não some: o cliente ainda mostra.
+  items.sort((a, b) => {
+    const ta = Date.parse(a.pubDate) || 0;
+    const tb = Date.parse(b.pubDate) || 0;
+    return tb - ta;
+  });
+  return { items: items.slice(0, NEWS_MAX_ITEMS), failed, used };
+}
+
+async function handleNews(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  if (newsCache.items && Date.now() - newsCache.at < NEWS_TTL_MS) {
+    return res.json({
+      status: 'ok',
+      source: 'cache',
+      feedsFailed: newsCache.failed || [],
+      items: newsCache.items,
+    });
+  }
+  try {
+    const { items, failed, used } = await fetchAllFeeds();
+    newsCache = { at: Date.now(), items, failed };
+    // `feedsFailed` viaja até a tela: quando um assunto zera porque a rota
+    // dele caiu, a aba diz isso em vez de mostrar só um "0" mudo.
+    // `feedsUsed` conta qual URL alternativa colou, para enxugar a lista
+    // depois sem ter de adivinhar.
+    return res.json({
+      status: 'ok',
+      source: 'feed',
+      feedsFailed: failed,
+      feedsUsed: used,
+      items,
+    });
+  } catch (e) {
+    // Feed velho ainda serve melhor que erro — o cliente decide se avisa.
+    if (newsCache.items) {
+      return res.json({
+        status: 'ok',
+        source: 'cache_stale',
+        cachedAt: newsCache.at,
+        feedsFailed: newsCache.failed || [],
+        items: newsCache.items,
+      });
+    }
+    return res.status(502).json({ status: 'error', error: 'feed_unavailable', detail: e.message });
+  }
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -437,11 +683,32 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleHistory(req, res);
     }
+    if (op === 'news') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleNews(req, res);
+    }
     if (op === 'warmup') {
       return handleWarmup(req, res);
     }
-    return res
-      .status(400)
-      .json({ error: 'unknown_op', detail: 'Use ?op=quote, ?op=history or ?op=warmup' });
+    return res.status(400).json({
+      error: 'unknown_op',
+      detail: 'Use ?op=quote, ?op=history, ?op=news or ?op=warmup',
+    });
   },
 });
+
+// Internos do parse de RSS expostos para teste. São regex sobre XML de
+// terceiro — a parte deste arquivo com mais chance de errar em silêncio e a
+// que dá para exercitar sem rede nem Firestore.
+module.exports.__test = {
+  fetchAllFeeds,
+  parseRssItems,
+  decodeXmlText,
+  pickTag,
+  pickTags,
+  fetchSource,
+  newsKey,
+  NEWS_SOURCES,
+  NEWS_MAX_PER_FEED,
+  NEWS_MAX_ITEMS,
+};
