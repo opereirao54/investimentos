@@ -637,14 +637,14 @@ test('ocupação e imóveis vêm do informe trimestral, que é quem os publica',
   // 20% vago em metade da área = 10% de vacância, 90% de ocupação.
   assert.match(
     texto,
-    /MXRF11.*imóveis 2 \(1 com vago\) · ocupação 90/,
+    /MXRF11.*imóveis 2 \(1 com vago, 100% com o dado\) · ocupação 90/,
     `ocupação errada:\n${texto}`
   );
-  assert.match(texto, /HGLG11.*imóveis 1 \(0 com vago\) · ocupação 100/, texto);
+  assert.match(texto, /HGLG11.*imóveis 1 \(0 com vago, 100% com o dado\) · ocupação 100/, texto);
   // Qual coluna virou ocupação, e em que escala, tem de estar no log:
   // "ocupação 100%" na carteira toda pode ser verdade ou pode ser a coluna
   // errada, e o resultado final não separa as duas.
-  assert.match(texto, /ocupação ← Percentual_Locado \(locado, mediana 1 → razão ×100\)/, texto);
+  assert.match(texto, /locado 4 val\., mediana 1 → razão ×100/, texto);
   // A versão 1 do mesmo trimestre existe no fixture e não pode entrar: três
   // imóveis em vez de dois seria a carteira duplicada pela correção.
   assert.ok(!/MXRF11.*imóveis 3/.test(texto), `versão antiga somou:\n${texto}`);

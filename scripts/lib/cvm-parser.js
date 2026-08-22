@@ -1238,18 +1238,21 @@ function extrairImoveisFii(registros, colunas) {
   }
   const faltando = Object.keys(COLUNAS_FII_TRIMESTRAL).filter((c) => !cols[c]);
   const porCnpj = new Map();
-  const vazio = { porCnpj, faltando, colunas: cols, origemOcupacao: null, escala: null };
+  const vazio = { porCnpj, faltando, colunas: cols, escalaLocado: null, escalaVacancia: null };
   if (!cols.cnpj) return vazio;
 
-  // Ocupação preferida à vacância: é o número que o motor pontua e o único
-  // cuja escala se decide sem ambiguidade. A vacância tem mediana zero — a
-  // maioria dos imóveis está cheia — e mediana zero não decide escala.
-  const origemOcupacao = cols.locado ? 'locado' : cols.vacancia ? 'vacancia' : null;
-  const colunaTaxa = origemOcupacao === 'locado' ? cols.locado : cols.vacancia;
-  // Imóvel cheio vale 1 como razão e 100 como percentagem; para vacância, o
-  // valor típico NÃO nulo fica abaixo de 1 como razão e acima como
-  // percentagem. Daí os dois limiares.
-  const escala = escalaPercentual(registros, colunaTaxa, origemOcupacao === 'locado' ? 1.5 : 1);
+  // As DUAS colunas, linha a linha — não uma escolhida para o arquivo
+  // inteiro. `Percentual_Locado` é o número direto, mas vem VAZIO na maioria
+  // das linhas: preferi-lo para o arquivo todo fez a ocupação sair de uma
+  // amostra de quatro imóveis em duzentos e vinte e oito, e as linhas que
+  // reportam são justamente as excepcionais. `Percentual_Vacancia` é a densa.
+  //
+  // Cada coluna tem a sua escala, porque cada uma tem um valor típico
+  // diferente: imóvel cheio é 1 (razão) ou 100 (percentagem) em "locado"; em
+  // "vacância" o valor típico NÃO nulo fica abaixo de 1 como razão e acima
+  // como percentagem.
+  const escalaLocado = escalaPercentual(registros, cols.locado, 1.5);
+  const escalaVacancia = escalaPercentual(registros, cols.vacancia, 1);
 
   // Reenvio do mesmo trimestre: vale a VERSÃO mais alta. Somar as duas
   // duplicaria a carteira inteira do fundo que corrigiu um informe.
@@ -1285,10 +1288,15 @@ function extrairImoveisFii(registros, colunas) {
     };
     acum.numeroImoveis += 1;
 
-    const bruto = colunaTaxa ? valorNumericoCvm(r[colunaTaxa]) : null;
-    const taxa = bruto === null ? null : bruto * escala.fator;
-    // Ocupação, sempre — mesmo quando a fonte publica vacância.
-    const ocupado = taxa === null ? null : origemOcupacao === 'locado' ? taxa : 100 - taxa;
+    const locado = cols.locado ? valorNumericoCvm(r[cols.locado]) : null;
+    const vago = cols.vacancia ? valorNumericoCvm(r[cols.vacancia]) : null;
+    // Ocupação, sempre — mesmo quando a linha só publica vacância.
+    const ocupado =
+      locado !== null
+        ? locado * escalaLocado.fator
+        : vago !== null
+          ? 100 - vago * escalaVacancia.fator
+          : null;
     const area = cols.area ? valorNumericoCvm(r[cols.area]) : null;
     if (ocupado !== null && ocupado >= 0 && ocupado <= 100) {
       acum.somaOcupacao += ocupado;
@@ -1302,16 +1310,22 @@ function extrairImoveisFii(registros, colunas) {
     porCnpj.set(cnpj, acum);
   }
 
+  // Abaixo desta fração de imóveis com o dado, a média descreve a amostra e
+  // não a carteira — e a amostra que reporta é enviesada, porque quem
+  // preenche o campo costuma ser justamente quem tem o que declarar.
+  const COBERTURA_MINIMA = 0.6;
   for (const acum of porCnpj.values()) {
-    acum.ocupacao =
+    acum.coberturaOcupacao = acum.numeroImoveis ? acum.comTaxa / acum.numeroImoveis : 0;
+    const media =
       acum.areaTotal > 0
         ? Math.round((acum.ocupadoPonderado / acum.areaTotal) * 1000) / 10
         : acum.comTaxa
           ? Math.round((acum.somaOcupacao / acum.comTaxa) * 10) / 10
           : null;
+    acum.ocupacao = acum.coberturaOcupacao >= COBERTURA_MINIMA ? media : null;
     acum.vacancia = acum.ocupacao === null ? null : Math.round((100 - acum.ocupacao) * 10) / 10;
   }
-  return { porCnpj, faltando, colunas: cols, origemOcupacao, escala };
+  return { porCnpj, faltando, colunas: cols, escalaLocado, escalaVacancia };
 }
 
 /**

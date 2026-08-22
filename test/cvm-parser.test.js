@@ -1567,7 +1567,6 @@ test('ocupação vem de Percentual_Locado, ponderada pela área', () => {
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
   const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
-  assert.equal(r.origemOcupacao, 'locado');
   const f = r.porCnpj.get('11728688000147');
   assert.equal(f.numeroImoveis, 3, 'a contagem é de linhas, não de coluna');
   // 150.000 de 200.200 m² ocupados = 74,9%.
@@ -1588,7 +1587,7 @@ test('Percentual_Locado em razão é reconhecido pela mediana', () => {
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
   const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
-  assert.equal(r.escala.fator, 100, 'mediana 1 só pode ser razão');
+  assert.equal(r.escalaLocado.fator, 100, 'mediana 1 só pode ser razão');
   assert.equal(r.porCnpj.get('11728688000147').ocupacao, 90);
 });
 
@@ -1600,7 +1599,6 @@ test('sem Percentual_Locado, a vacância publicada vira ocupação', () => {
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
   const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
-  assert.equal(r.origemOcupacao, 'vacancia');
   assert.equal(r.porCnpj.get('11728688000147').ocupacao, 90);
 });
 
@@ -1629,7 +1627,7 @@ test('sem coluna de ocupação os imóveis ainda são contados', () => {
   const f = r.porCnpj.get('11728688000147');
   assert.equal(f.numeroImoveis, 2);
   assert.equal(f.ocupacao, null, 'sem o dado, lacuna — nunca 100%');
-  assert.equal(r.origemOcupacao, null);
+  assert.equal(f.coberturaOcupacao, 0);
 });
 
 test('LTV do FII não conta rendimento a distribuir como dívida', () => {
@@ -1671,4 +1669,38 @@ test('LTV sem ativo, sem obrigação declarada ou fora de faixa é lacuna', () =
     '500% do ativo não é LTV, é linha lida errado'
   );
   assert.equal(P.alavancagemFii(null), null);
+});
+
+test('ocupação de poucos imóveis não descreve a carteira — vira lacuna', () => {
+  // Achado da execução real: `Percentual_Locado` vem VAZIO na maioria das
+  // linhas. Com quatro imóveis de duzentos e vinte e oito reportando, a
+  // média saiu 0% de ocupação num fundo cheio — porque quem preenche o
+  // campo costuma ser justamente quem tem algo a declarar.
+  const linhas = ['CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado'];
+  for (let i = 0; i < 4; i++) linhas.push('11.728.688/0001-47;2026-06-30;1000;0,20');
+  for (let i = 0; i < 20; i++) linhas.push('11.728.688/0001-47;2026-06-30;1000;');
+  const parsed = P.parseCsvCvm(linhas.join('\n'));
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+  assert.equal(f.numeroImoveis, 24, 'os imóveis continuam contados');
+  assert.equal(f.ocupacao, null, '4 de 24 não é a carteira');
+  assert.ok(f.coberturaOcupacao < 0.6);
+});
+
+test('a coluna densa cobre a esparsa, linha a linha', () => {
+  // `Percentual_Locado` é o número direto mas esparso; a vacância é densa.
+  // Escolher UMA para o arquivo inteiro perde a carteira toda; escolher por
+  // linha usa o melhor de cada uma.
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado;Percentual_Vacancia',
+    '11.728.688/0001-47;2026-06-30;1000;0,50;',
+    '11.728.688/0001-47;2026-06-30;1000;;0,10',
+    '11.728.688/0001-47;2026-06-30;1000;;0',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  const f = r.porCnpj.get('11728688000147');
+  // 50% + 90% + 100% em áreas iguais = 80%.
+  assert.equal(f.ocupacao, 80);
+  assert.equal(f.coberturaOcupacao, 1);
+  assert.equal(f.imoveisComVago, 2);
 });
