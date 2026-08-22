@@ -1187,6 +1187,14 @@ function fundoDoTicker(vinculo, ticker) {
 const COLUNAS_FII_TRIMESTRAL = {
   cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
   dataReferencia: ['Data_Referencia', 'DT_COMPTC'],
+  versao: ['Versao', 'VERSAO'],
+  // `Percentual_Locado` é a OCUPAÇÃO publicada — o que o motor pontua, sem
+  // subtração no meio. Prefere-se à vacância por dois motivos: é o número
+  // direto, e a sua escala é decidível sem ambiguidade (a mediana de um
+  // arquivo de imóveis locados fica em 1 se for razão e em 100 se for
+  // percentagem). A vacância tem mediana ZERO — a maioria dos imóveis está
+  // cheia —, e mediana zero não decide escala nenhuma.
+  locado: ['Percentual_Locado', 'Percentual_Ocupacao'],
   vacancia: [
     'Percentual_Vacancia',
     'Percentual_Vacancia_Fisica',
@@ -1196,6 +1204,26 @@ const COLUNAS_FII_TRIMESTRAL = {
   ],
   area: ['Area_Bruta_Locavel', 'Area_Locavel', 'Area_Total', 'Area', 'Area_M2'],
 };
+
+/**
+ * Razão ou percentagem, decidido pela mediana dos valores positivos.
+ *
+ * Mesmo problema do `Percentual_Dividend_Yield_Mes`, que se chama
+ * "percentual" e é razão. Aqui o divisor é o valor típico de um imóvel
+ * cheio: 1 como razão, 100 como percentagem.
+ */
+function escalaPercentual(registros, coluna, limiar) {
+  if (!coluna) return { fator: 1, mediana: null, amostra: 0 };
+  const vals = [];
+  for (const r of registros || []) {
+    const v = valorNumericoCvm(r[coluna]);
+    if (v !== null && v > 0) vals.push(v);
+  }
+  if (!vals.length) return { fator: 1, mediana: null, amostra: 0 };
+  vals.sort((a, b) => a - b);
+  const mediana = vals[Math.floor(vals.length / 2)];
+  return { fator: mediana <= limiar ? 100 : 1, mediana, amostra: vals.length };
+}
 
 /**
  * Imóveis e vacância por fundo, do informe trimestral.
@@ -1210,61 +1238,80 @@ function extrairImoveisFii(registros, colunas) {
   }
   const faltando = Object.keys(COLUNAS_FII_TRIMESTRAL).filter((c) => !cols[c]);
   const porCnpj = new Map();
-  if (!cols.cnpj) return { porCnpj, faltando, colunas: cols };
+  const vazio = { porCnpj, faltando, colunas: cols, origemOcupacao: null, escala: null };
+  if (!cols.cnpj) return vazio;
 
-  // Trimestre mais recente de cada fundo, por data de referência.
-  const ultimoTrimestre = new Map();
-  const linhas = [];
+  // Ocupação preferida à vacância: é o número que o motor pontua e o único
+  // cuja escala se decide sem ambiguidade. A vacância tem mediana zero — a
+  // maioria dos imóveis está cheia — e mediana zero não decide escala.
+  const origemOcupacao = cols.locado ? 'locado' : cols.vacancia ? 'vacancia' : null;
+  const colunaTaxa = origemOcupacao === 'locado' ? cols.locado : cols.vacancia;
+  // Imóvel cheio vale 1 como razão e 100 como percentagem; para vacância, o
+  // valor típico NÃO nulo fica abaixo de 1 como razão e acima como
+  // percentagem. Daí os dois limiares.
+  const escala = escalaPercentual(registros, colunaTaxa, origemOcupacao === 'locado' ? 1.5 : 1);
+
+  // Reenvio do mesmo trimestre: vale a VERSÃO mais alta. Somar as duas
+  // duplicaria a carteira inteira do fundo que corrigiu um informe.
+  const melhor = new Map();
   for (const r of registros || []) {
     const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
     if (cnpj.length !== 14) continue;
     const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
-    const atual = ultimoTrimestre.get(cnpj);
-    if (!atual || data > atual) ultimoTrimestre.set(cnpj, data);
-    linhas.push({ cnpj, data, r });
+    const versao = cols.versao ? valorNumericoCvm(r[cols.versao]) || 0 : 0;
+    const atual = melhor.get(cnpj);
+    if (!atual || data > atual.data || (data === atual.data && versao > atual.versao)) {
+      melhor.set(cnpj, { data, versao });
+    }
   }
 
-  for (const { cnpj, data, r } of linhas) {
-    if (data !== ultimoTrimestre.get(cnpj)) continue;
+  for (const r of registros || []) {
+    const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const versao = cols.versao ? valorNumericoCvm(r[cols.versao]) || 0 : 0;
+    const alvo = melhor.get(cnpj);
+    if (data !== alvo.data || versao !== alvo.versao) continue;
+
     const acum = porCnpj.get(cnpj) || {
       cnpj,
       dataReferencia: data || null,
       numeroImoveis: 0,
       areaTotal: 0,
-      vagoPonderado: 0,
-      somaVacancia: 0,
-      comVacancia: 0,
+      ocupadoPonderado: 0,
+      somaOcupacao: 0,
+      comTaxa: 0,
+      imoveisComVago: 0,
     };
     acum.numeroImoveis += 1;
-    const vac = cols.vacancia ? valorNumericoCvm(r[cols.vacancia]) : null;
+
+    const bruto = colunaTaxa ? valorNumericoCvm(r[colunaTaxa]) : null;
+    const taxa = bruto === null ? null : bruto * escala.fator;
+    // Ocupação, sempre — mesmo quando a fonte publica vacância.
+    const ocupado = taxa === null ? null : origemOcupacao === 'locado' ? taxa : 100 - taxa;
     const area = cols.area ? valorNumericoCvm(r[cols.area]) : null;
-    if (vac !== null && vac >= 0 && vac <= 100) {
-      acum.somaVacancia += vac;
-      acum.comVacancia += 1;
-      if (vac > 0) acum.imoveisComVago = (acum.imoveisComVago || 0) + 1;
+    if (ocupado !== null && ocupado >= 0 && ocupado <= 100) {
+      acum.somaOcupacao += ocupado;
+      acum.comTaxa += 1;
+      if (ocupado < 100) acum.imoveisComVago += 1;
       if (area !== null && area > 0) {
         acum.areaTotal += area;
-        acum.vagoPonderado += (vac / 100) * area;
+        acum.ocupadoPonderado += (ocupado / 100) * area;
       }
     }
     porCnpj.set(cnpj, acum);
   }
 
   for (const acum of porCnpj.values()) {
-    // Quantos imóveis de facto têm vacância declarada acima de zero. Uma
-    // carteira inteira com ocupação 100% pode ser verdade — ou a coluna
-    // lida não ser vacância. A distribuição separa as duas sem abrir o CSV.
-    acum.imoveisComVago = acum.imoveisComVago || 0;
-    acum.vacancia =
+    acum.ocupacao =
       acum.areaTotal > 0
-        ? Math.round((acum.vagoPonderado / acum.areaTotal) * 1000) / 10
-        : acum.comVacancia
-          ? Math.round((acum.somaVacancia / acum.comVacancia) * 10) / 10
+        ? Math.round((acum.ocupadoPonderado / acum.areaTotal) * 1000) / 10
+        : acum.comTaxa
+          ? Math.round((acum.somaOcupacao / acum.comTaxa) * 10) / 10
           : null;
-    // O motor pontua OCUPAÇÃO; a CVM publica vacância.
-    acum.ocupacao = acum.vacancia === null ? null : Math.max(0, Math.min(100, 100 - acum.vacancia));
+    acum.vacancia = acum.ocupacao === null ? null : Math.round((100 - acum.ocupacao) * 10) / 10;
   }
-  return { porCnpj, faltando, colunas: cols };
+  return { porCnpj, faltando, colunas: cols, origemOcupacao, escala };
 }
 
 /**

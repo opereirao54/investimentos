@@ -1548,59 +1548,77 @@ test('sem critério de desempate a ambiguidade fica, com os candidatos à vista'
 });
 
 // ════════════════════════════════════════════
-// Vacância e imóveis (informe trimestral)
+// Ocupação e imóveis (informe trimestral)
 // ════════════════════════════════════════════
+//
+// O informe mensal não publica vacância — as colunas dos três membros foram
+// impressas na execução real e ali há só rubricas de balanço. Quem publica é
+// o trimestral, com uma linha por imóvel.
 
-test('vacância é ponderada pela área, não uma média simples', () => {
+test('ocupação vem de Percentual_Locado, ponderada pela área', () => {
   // Um galpão vago de 50 mil m² não pesa o mesmo que uma loja vaga de 200:
   // a média simples trataria os dois como iguais e a ocupação sairia errada
   // justamente nos fundos de logística.
   const csv = [
-    'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
-    '11.728.688/0001-47;2026-06-30;50000;100',
-    '11.728.688/0001-47;2026-06-30;150000;0',
-    '11.728.688/0001-47;2026-06-30;200;100',
+    'CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado',
+    '11.728.688/0001-47;2026-06-30;50000;0',
+    '11.728.688/0001-47;2026-06-30;150000;100',
+    '11.728.688/0001-47;2026-06-30;200;0',
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
   const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  assert.equal(r.origemOcupacao, 'locado');
   const f = r.porCnpj.get('11728688000147');
   assert.equal(f.numeroImoveis, 3, 'a contagem é de linhas, não de coluna');
-  // (50000 + 200) vagos de 200200 = 25,1%
-  assert.equal(f.vacancia, 25.1);
+  // 150.000 de 200.200 m² ocupados = 74,9%.
   assert.equal(f.ocupacao, 74.9);
-  // A média simples daria 66,7% de vacância — muito pior.
-  assert.ok(f.vacancia < 30);
+  assert.equal(f.vacancia, 25.1);
+  assert.equal(f.imoveisComVago, 2);
 });
 
-test('só o trimestre mais recente conta os imóveis', () => {
+test('Percentual_Locado em razão é reconhecido pela mediana', () => {
+  // Mesmo problema do `Percentual_Dividend_Yield_Mes`: chama-se "percentual"
+  // e vem como razão. Imóvel cheio vale 1 como razão e 100 como
+  // percentagem — a mediana separa as duas sem ambiguidade.
   const csv = [
-    'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
-    '11.728.688/0001-47;2026-03-31;1000;0',
-    '11.728.688/0001-47;2026-03-31;1000;0',
-    '11.728.688/0001-47;2026-03-31;1000;0',
-    '11.728.688/0001-47;2026-06-30;1000;10',
+    'CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado',
+    '11.728.688/0001-47;2026-06-30;1000;1,00',
+    '11.728.688/0001-47;2026-06-30;1000;1,00',
+    '11.728.688/0001-47;2026-06-30;1000;0,70',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  assert.equal(r.escala.fator, 100, 'mediana 1 só pode ser razão');
+  assert.equal(r.porCnpj.get('11728688000147').ocupacao, 90);
+});
+
+test('sem Percentual_Locado, a vacância publicada vira ocupação', () => {
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Vacancia',
+    '11.728.688/0001-47;2026-06-30;1000;20',
     '11.728.688/0001-47;2026-06-30;1000;0',
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
-  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
-  assert.equal(f.numeroImoveis, 2, 'somar trimestres duplicaria a carteira');
-  assert.equal(f.dataReferencia, '2026-06-30');
-  assert.equal(f.vacancia, 5);
+  const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  assert.equal(r.origemOcupacao, 'vacancia');
+  assert.equal(r.porCnpj.get('11728688000147').ocupacao, 90);
 });
 
-test('sem área, a vacância cai para a média simples em vez de sumir', () => {
+test('versão mais alta do trimestre vence — correção não duplica a carteira', () => {
   const csv = [
-    'CNPJ_Fundo_Classe;Data_Referencia;Percentual_Vacancia',
-    '11.728.688/0001-47;2026-06-30;20',
-    '11.728.688/0001-47;2026-06-30;0',
+    'CNPJ_Fundo_Classe;Data_Referencia;Versao;Area;Percentual_Locado',
+    '11.728.688/0001-47;2026-03-31;1;1000;100',
+    '11.728.688/0001-47;2026-06-30;1;1000;100',
+    '11.728.688/0001-47;2026-06-30;1;1000;100',
+    '11.728.688/0001-47;2026-06-30;2;1000;100',
   ].join('\n');
   const parsed = P.parseCsvCvm(csv);
   const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
-  assert.equal(f.vacancia, 10);
-  assert.equal(f.numeroImoveis, 2);
+  assert.equal(f.numeroImoveis, 1, 'só a versão 2 do trimestre mais recente');
+  assert.equal(f.dataReferencia, '2026-06-30');
 });
 
-test('sem coluna de vacância os imóveis ainda são contados', () => {
+test('sem coluna de ocupação os imóveis ainda são contados', () => {
   const csv = [
     'CNPJ_Fundo_Classe;Data_Referencia;Nome_Imovel',
     '11.728.688/0001-47;2026-06-30;GALPÃO A',
@@ -1611,17 +1629,7 @@ test('sem coluna de vacância os imóveis ainda são contados', () => {
   const f = r.porCnpj.get('11728688000147');
   assert.equal(f.numeroImoveis, 2);
   assert.equal(f.ocupacao, null, 'sem o dado, lacuna — nunca 100%');
-  assert.ok(r.faltando.includes('vacancia'));
-});
-
-test('poucos meses não viram "DY médio" — seria o DY atual contado duas vezes', () => {
-  const r = P.indicadoresDaSerieFii([
-    { dataReferencia: '2026-06-01', dyMes: 0.8 },
-    { dataReferencia: '2026-07-01', dyMes: 0.8 },
-  ]);
-  assert.equal(r.mesesObservados, 2, 'a contagem é registada mesmo abaixo do piso');
-  assert.equal(r.dyMedio36m, null, 'média de dois meses não é um indicador à parte');
-  assert.equal(r.consistenciaDividendos, null);
+  assert.equal(r.origemOcupacao, null);
 });
 
 test('LTV do FII não conta rendimento a distribuir como dívida', () => {

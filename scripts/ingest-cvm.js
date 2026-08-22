@@ -1049,9 +1049,12 @@ async function main() {
           // verdade ou pode ser a coluna errada, e o nome dela é o que
           // separa as duas. Uma granularidade diferente da esperada (uma
           // linha por unidade, não por imóvel) também aparece aqui.
+          const colTaxa = im.origemOcupacao === 'locado' ? im.colunas.locado : im.colunas.vacancia;
           log(
             `    membro "${nomeMembroTri}" (${(membroTri.membros || []).length} arquivos, ` +
-              `${membroTri.registros.length} linhas) · vacância ← ${im.colunas.vacancia || '—'}` +
+              `${membroTri.registros.length} linhas) · ocupação ← ${colTaxa || '—'}` +
+              ` (${im.origemOcupacao || '—'}, mediana ${im.escala ? im.escala.mediana : '—'} → ` +
+              `${im.escala && im.escala.fator === 100 ? 'razão ×100' : 'já em %'})` +
               ` · área ← ${im.colunas.area || '—'}`
           );
           log(`    colunas reais: ${membroTri.colunas.slice(0, 24).join(', ')}`);
@@ -1072,7 +1075,12 @@ async function main() {
       // `faltando` — mas se nenhum dos três arquivos os traz, o pilar de
       // crescimento do FII fica sem a taxa de ocupação e ninguém fica
       // sabendo por quê. Nomear as colunas reais é o que responde isso.
-      const semImoveis = Object.keys(P.COLUNAS_FII_IMOVEIS).every((campo) => !achadas.has(campo));
+      // O informe mensal não publica vacância — isso já está estabelecido, e
+      // repeti-lo a cada execução é ruído que compete com falha de verdade.
+      // Só vira aviso se o TRIMESTRAL também não tiver entregado nada.
+      const semImoveis =
+        !imoveisPorCnpj.size &&
+        Object.keys(P.COLUNAS_FII_IMOVEIS).every((campo) => !achadas.has(campo));
       if (semImoveis) {
         log('  ! vacância e número de imóveis não estão em nenhum membro lido');
         for (const [nome, csv] of membros) {

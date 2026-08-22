@@ -291,10 +291,13 @@ function montarFetch(opcoes) {
             [
               'inf_trimestral_fii_imovel_202606.csv',
               [
-                'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
-                `${CNPJ_MXRF};2026-06-30;10000;0`,
-                `${CNPJ_MXRF};2026-06-30;10000;20`,
-                `${CNPJ_HGLG};2026-06-30;100000;0`,
+                'CNPJ_Fundo_Classe;Data_Referencia;Versao;Area;Percentual_Locado',
+                // Razão, como os outros campos "Percentual_" da CVM. E a
+                // versão 1 do mesmo trimestre não pode somar com a 2.
+                `${CNPJ_MXRF};2026-06-30;2;10000;1,00`,
+                `${CNPJ_MXRF};2026-06-30;2;10000;0,80`,
+                `${CNPJ_MXRF};2026-06-30;1;10000;0,10`,
+                `${CNPJ_HGLG};2026-06-30;1;100000;1,00`,
               ].join('\n'),
             ],
           ])
@@ -638,9 +641,13 @@ test('ocupação e imóveis vêm do informe trimestral, que é quem os publica',
     `ocupação errada:\n${texto}`
   );
   assert.match(texto, /HGLG11.*imóveis 1 \(0 com vago\) · ocupação 100/, texto);
-  // Qual coluna virou vacância tem de estar no log: "ocupação 100%" na
-  // carteira toda pode ser verdade ou pode ser a coluna errada.
-  assert.match(texto, /vacância ← Percentual_Vacancia · área ← Area_Bruta_Locavel/, texto);
+  // Qual coluna virou ocupação, e em que escala, tem de estar no log:
+  // "ocupação 100%" na carteira toda pode ser verdade ou pode ser a coluna
+  // errada, e o resultado final não separa as duas.
+  assert.match(texto, /ocupação ← Percentual_Locado \(locado, mediana 1 → razão ×100\)/, texto);
+  // A versão 1 do mesmo trimestre existe no fixture e não pode entrar: três
+  // imóveis em vez de dois seria a carteira duplicada pela correção.
+  assert.ok(!/MXRF11.*imóveis 3/.test(texto), `versão antiga somou:\n${texto}`);
 });
 
 test('sem o trimestral o FII não morre: perde ocupação e mantém o resto', async () => {
