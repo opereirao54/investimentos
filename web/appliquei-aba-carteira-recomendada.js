@@ -1969,21 +1969,43 @@ function cartRenderizarMotorRanking(ranking) {
         var p = a.pilares[chave];
         var nota = p && p.nota;
         var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
-        return (
-          '<div class="cart-pilar" title="' +
+
+        // Pilar calculado sobre menos de metade dos seus indicadores desenha
+        // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
+        // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
+        // lê-se como veredito — o mesmo erro que já corrigimos no score
+        // global, repetido dentro do pilar.
+        var comDado = p
+          ? p.metricas.filter(function (m) {
+              return m.nota !== null;
+            }).length
+          : 0;
+        var total = p ? p.metricas.length : 0;
+        var parcial = nota != null && total > 0 && comDado / total < 0.5;
+
+        var titulo =
           p.nome +
           ': ' +
           cartFmtNota(nota) +
-          '/10">' +
+          '/10' +
+          (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
+
+        return (
+          '<div class="cart-pilar" title="' +
+          titulo +
+          '">' +
           '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
-          (nota == null ? ' vazio' : '') +
+          (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
           '" style="height:' +
           altura +
           '%;background:' +
           (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
           ';"></div></div>' +
-          '<div class="cart-pilar-nota">' +
+          '<div class="cart-pilar-nota' +
+          (parcial ? ' parcial' : '') +
+          '">' +
           cartFmtNota(nota) +
+          (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
           '</div>' +
           '<div class="cart-pilar-nome">' +
           p.nome +

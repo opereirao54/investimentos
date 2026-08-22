@@ -1446,3 +1446,47 @@ test('com token, a BRAPI volta a ser preferida — 50 ativos num pedido', async 
     else process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
+
+test('a procedência da cotação diz quem respondeu, não quem foi chamado', () => {
+  // Na tela apareceu "Cotação · BRAPI · lido hoje" numa instalação que nem
+  // token de BRAPI tem — o dado veio do Yahoo, depois da degradação. Atribuir
+  // a uma fonte um dado que veio de outra é o que o protocolo de diagnóstico
+  // deste projeto proíbe explicitamente.
+  const daBrapi = mapBrapiCotacao({ ticker: 'X', price: 10, volume: 100 });
+  assert.equal(daBrapi.fonte, 'brapi');
+  assert.ok(daBrapi.fonteRotulo.includes('BRAPI'));
+
+  const doYahoo = mapBrapiCotacao({ ticker: 'X', price: 10, volume: 100, fonteCotacao: 'yahoo' });
+  assert.equal(doYahoo.fonte, 'yahoo');
+  assert.ok(doYahoo.fonteRotulo.includes('Yahoo'));
+  assert.ok(!doYahoo.fonteRotulo.includes('BRAPI'));
+});
+
+test('a degradação sem token carimba Yahoo, ponta a ponta', async () => {
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('brapi.dev')) {
+      return { ok: false, status: 401, text: async () => 'MISSING_TOKEN', json: async () => ({}) };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        chart: {
+          result: [
+            { meta: { regularMarketPrice: 28.5 }, indicators: { quote: [{ volume: [2000000] }] } },
+          ],
+        },
+      }),
+    };
+  };
+  try {
+    const r = await fetchBrapiFundamentals(['BBAS3'], []);
+    assert.equal(r.BBAS3.fonte, 'yahoo', 'o rótulo tem de acompanhar a fonte real até à tela');
+  } finally {
+    globalThis.fetch = original;
+    if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
+  }
+});

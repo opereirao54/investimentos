@@ -2306,6 +2306,19 @@
         }
         .cart-pilar-barra { width: 100%; border-radius: 0 0 5px 5px; transition: var(--transicao); }
         .cart-pilar-barra.vazio { opacity: 0.35; }
+        /* Pilar apoiado em menos de metade dos indicadores: listrado, para
+           não se confundir com um pilar completo da mesma altura. */
+        .cart-pilar-barra.parcial {
+            opacity: 0.55;
+            background-image: repeating-linear-gradient(
+                45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 7px
+            );
+        }
+        .cart-pilar-nota.parcial { color: var(--cor-texto-mutado); }
+        .cart-pilar-fracao {
+            display: block; font-size: 8px; font-weight: 700;
+            color: var(--cor-texto-mutado); letter-spacing: 0;
+        }
         .cart-pilar-nota {
             font-size: 11px; font-weight: 800; font-family: 'DM Mono', monospace;
             color: var(--cor-texto-principal);

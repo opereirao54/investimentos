@@ -109,6 +109,21 @@ Plano grátis que devolve 200 com metade dos campos nulos. Cobertura fica abaixo
 
 Três ramos (`cvm`, `yahoo`, `mercado`) no mesmo documento. Um `merge: true` plano faz o `null` de uma fonte apagar o valor de outra. Ver `comporFundamentos`. **Verificação:** no diagnóstico, comparar `documento.cvm.roe` com `composto.roe`.
 
+### S5b — Nota parcial com cara de nota completa
+
+O score global já recusa pontuar sem lastro, mas **o mesmo erro reaparece uma
+camada abaixo**: um pilar calculado sobre 1 dos seus 4 indicadores desenha
+barra cheia, idêntica à de um pilar completo. Visto na tela: `Qualidade 10,0`
+em barra verde ao lado de "DADOS INSUFICIENTES", apoiado só na liquidez
+diária, com ROE, ROIC e margem líquida ausentes.
+
+**Verificação:** compare `pilares.X.nota` com `pilares.X.cobertura`, ou conte
+quantas `metricas` têm `nota !== null`.
+
+**Regra:** sempre que um número resume vários, a tela precisa mostrar sobre
+quantos ele foi calculado. Vale para o score, para o pilar e para qualquer
+média futura.
+
 ### S6 — Unidade trocada
 
 Razão (`0.185`) tratada como percentagem, ou o contrário. Não quebra nada: só faz o ranking inteiro mentir. Cada fonte tem convenção própria **no mesmo objeto** — no Yahoo, `returnOnEquity` é razão e `debtToEquity` é percentagem. Faixas de sanidade em `FAIXAS` (cvm-parser) e nas séries do SGS existem para apanhar isto.
@@ -134,7 +149,10 @@ Só depois de nomear o elo partido. Para cada correção:
 - Baixar `MOTOR_COBERTURA_MINIMA` para o ativo aparecer.
 - Preencher indicador ausente com zero, média do setor ou estimativa.
 - Remover o corte de liquidez para o universo parecer maior.
-- Atribuir a uma fonte um dado que veio de outra.
+- Atribuir a uma fonte um dado que veio de outra. **Já aconteceu**: a
+  degradação de cotação carimbava "Cotação · BRAPI" no que tinha vindo do
+  Yahoo, numa instalação sem token de BRAPI. O rótulo sai de QUEM respondeu,
+  nunca de quem foi chamado primeiro.
 - Silenciar `erros`, `indisponiveis` ou uma degradação de fonte.
 - **Dividir o aporte igualmente entre ativos não pontuados.** A recomendação
   sai dos ativos mais bem pontuados — é o produto inteiro. Sem score, a classe

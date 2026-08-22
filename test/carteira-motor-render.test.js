@@ -866,3 +866,56 @@ test('sem pendência, o aviso genérico volta a valer', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(html.includes('Nenhum ativo pôde ser pontuado'));
 });
+
+// ════════════════════════════════════════════
+// Pilar apoiado em quase nada não pode parecer completo
+// ════════════════════════════════════════════
+//
+// Na tela: BBAS3 com "DADOS INSUFICIENTES" e, ao lado, Qualidade com barra
+// verde CHEIA em 10,0 — apoiada só na liquidez diária, com ROE, ROIC e
+// margem líquida ausentes. É o mesmo erro do score encolhido para 25,
+// repetido uma camada abaixo: um número que se lê como veredito quando é
+// veredito sobre os nossos dados.
+
+test('pilar com menos de metade dos indicadores é marcado como parcial', () => {
+  const s = carregar();
+  s.run(`
+    var soLiquidez = motorRanquear([{
+      ticker: 'BBAS3', nome: 'Banco do Brasil', classe: 'acao',
+      preco: 28.5, liquidezDiaria: 4e7
+    }], { lente: 'renda' });
+    cartRenderizarMotorRanking(soLiquidez);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('cart-pilar-barra parcial'), 'a barra tem de sair listrada');
+  assert.ok(html.includes('1/4'), 'a fração de indicadores tem de aparecer sob a nota');
+  assert.ok(
+    html.includes('1 de 4 indicadores'),
+    'e o title tem de dizer sobre quantos indicadores a nota foi calculada'
+  );
+});
+
+test('pilar completo continua a desenhar barra cheia, sem listras', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartRenderizarMotorRanking(rankingTeste);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(
+    !html.includes('cart-pilar-barra parcial'),
+    'não pode marcar de parcial o que está completo'
+  );
+  assert.ok(html.includes('indicadores'), 'o title continua a informar a contagem');
+});
+
+test('pilar sem dado nenhum continua vazio, não parcial', () => {
+  // Vazio e parcial dizem coisas diferentes: um é "não sei", o outro é
+  // "sei pouco". Confundi-los apaga a distinção que a tela existe para fazer.
+  const s = carregar();
+  s.run(`
+    var nada = motorRanquear([{ ticker: 'ZZZZ3', nome: 'Sem nada', classe: 'acao' }], {});
+    cartRenderizarMotorRanking(nada);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('cart-pilar-barra vazio'));
+  assert.ok(!html.includes('cart-pilar-barra parcial'));
+});

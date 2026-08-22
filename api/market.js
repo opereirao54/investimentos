@@ -1807,10 +1807,20 @@ function diagnosticarErrosDeFonte(erros) {
   return pendencias;
 }
 
-/** Resposta da chamada SIMPLES da BRAPI -> contrato de indicadores. */
+/**
+ * Resposta de cotação -> contrato de indicadores.
+ *
+ * O rótulo sai de QUEM respondeu, não de quem foi chamado primeiro. A versão
+ * anterior carimbava "Cotação · BRAPI" em tudo, inclusive no que tinha vindo
+ * do Yahoo depois da degradação — e atribuir a uma fonte um dado que veio de
+ * outra é exatamente o que o protocolo de diagnóstico deste projeto proíbe.
+ * Na tela isso aparecia como "Cotação · BRAPI · lido hoje" numa instalação
+ * que nem token de BRAPI tem.
+ */
 function mapBrapiCotacao(q) {
   const preco = fundNum(q.price);
   const volume = fundNum(q.volume);
+  const doYahoo = q.fonteCotacao === 'yahoo';
   return {
     ticker: q.ticker,
     nome: q.shortName || null,
@@ -1819,8 +1829,8 @@ function mapBrapiCotacao(q) {
     marketCap: fundNum(q.marketCap),
     liquidezDiaria: preco !== null && volume !== null ? volume * preco : null,
     cobertura: 0,
-    fonte: 'brapi',
-    fonteRotulo: 'Cotação · BRAPI',
+    fonte: doYahoo ? 'yahoo' : 'brapi',
+    fonteRotulo: doYahoo ? 'Cotação · Yahoo Finance' : 'Cotação · BRAPI',
     dataReferencia: null,
   };
 }
