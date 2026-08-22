@@ -2136,7 +2136,21 @@
             font-size: 10.5px; font-weight: 600; color: var(--cor-texto-mutado);
             text-transform: uppercase; letter-spacing: 0.4px; margin-left: 4px;
         }
+        .cart-motor-controles {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        }
         .cart-motor-lentes { display: flex; gap: 6px; flex-wrap: wrap; }
+        .cart-motor-modo {
+            display: flex; gap: 0; border: 1px solid var(--cor-borda);
+            border-radius: 999px; overflow: hidden; background: var(--cor-branco);
+        }
+        .cart-motor-modo-btn {
+            padding: 7px 14px; cursor: pointer; border: none; background: transparent;
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-mutado);
+            transition: var(--transicao); font-family: inherit; white-space: nowrap;
+        }
+        .cart-motor-modo-btn:hover { color: var(--cor-texto-principal); }
+        .cart-motor-modo-btn.active { background: var(--cor-texto-principal); color: #fff; }
         .cart-motor-lente-btn {
             padding: 7px 13px; border-radius: 999px; cursor: pointer;
             border: 1px solid var(--cor-borda); background: var(--cor-branco);
@@ -6858,7 +6872,10 @@
                 <div id="cartMotorWrap" style="display:none;">
                     <div class="cart-selecao-header">
                         <h3><i class="ph ph-cpu"></i> Motor de recomendação</h3>
-                        <div class="cart-motor-lentes" id="cartMotorLentes"></div>
+                        <div class="cart-motor-controles">
+                            <div class="cart-motor-modo" id="cartMotorModo"></div>
+                            <div class="cart-motor-lentes" id="cartMotorLentes"></div>
+                        </div>
                     </div>
                     <div class="cart-motor-status" id="cartMotorStatus"></div>
 

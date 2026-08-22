@@ -150,6 +150,9 @@ var cartEstado = {
   capital: 10000, // aporte mensal
   objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
   prazoAnos: 10,
+  // 'automatico' = universo vem do ranking (dado). 'consultor' = vem da
+  // carteira modelo publicada no painel. O padrão é o dado.
+  modoUniverso: 'automatico',
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
   selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
@@ -171,6 +174,11 @@ var cartMotor = {
   origemRf: null,
   indicadores: null,
   premissasDegradadas: false,
+  base: null,
+  // Resposta de op=ranking (objeto com universo/excluidos/classes). NÃO
+  // confundir com `ranking`, que é a lista já pontuada pelo motor.
+  rankingServidor: null,
+  automatico: true,
 };
 
 // ── Chart instances ──
@@ -193,6 +201,7 @@ function carregarCarteiraCliente() {
     cartEstado.capital = saved.capital || 10000;
     cartEstado.objetivo = saved.objetivo || null;
     cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
+    cartEstado.modoUniverso = saved.modoUniverso === 'consultor' ? 'consultor' : 'automatico';
     cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
     cartEstado.lente = saved.lente || null;
     cartEstado.selecionados = saved.selecionados || {
@@ -252,6 +261,7 @@ function cartSalvarEstado() {
       capital: cartEstado.capital,
       objetivo: cartEstado.objetivo,
       prazoAnos: cartEstado.prazoAnos,
+      modoUniverso: cartEstado.modoUniverso,
       patrimonio: cartEstado.patrimonio,
       lente: cartEstado.lente,
       selecionados: cartEstado.selecionados,
@@ -1166,12 +1176,135 @@ function cartCasarTesouro(ativo, titulos) {
   return null;
 }
 
-/** Busca fundamentos (BRAPI/CoinGecko) e taxas do Tesouro para o universo. */
-async function cartBuscarDadosMotor(universo) {
+// Criptos que a fonte de mercado cobre. Lista fixa porque o universo REAL é
+// fixo: o servidor só sabe converter estes símbolos. Não é curadoria — é o
+// alcance da integração.
+var CART_CRIPTO_UNIVERSO = ['BTC', 'ETH', 'SOL', 'ADA', 'BNB', 'XRP'];
+
+// Quantos candidatos pedir por classe ao ranking. O motor escolhe no máximo
+// 6 ações e 5 FIIs; pedir 15 dá folga para o corte por liquidez e para o
+// utilizador desmarcar alguns sem esvaziar a classe. Pedir a bolsa inteira
+// gastaria uma chamada de cotação por ativo sem mudar o resultado.
+var CART_CANDIDATOS_POR_CLASSE = 15;
+
+/** Ranking do universo, já pontuado e cortado no servidor. */
+async function cartBuscarRanking(token, lente) {
+  var url =
+    '/api/market?op=ranking&lente=' +
+    encodeURIComponent(lente) +
+    '&top=' +
+    CART_CANDIDATOS_POR_CLASSE;
+  var res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ranking_indisponivel');
+  return data;
+}
+
+/**
+ * Universo de candidatos.
+ *
+ * No modo automático NADA vem de lista escrita à mão: ações e FIIs saem do
+ * ranking, renda fixa sai da oferta corrente do Tesouro e cripto sai do
+ * alcance da integração. É isto que impede a carteira de envelhecer — antes,
+ * um título com vencimento em 2027 continuava na lista depois de vencer, e a
+ * classe inteira zerava sem ninguém perceber.
+ */
+function cartUniversoAutomatico(ranking, titulosRf) {
+  var out = [];
+  ['acao', 'fii'].forEach(function (classe) {
+    var bloco = ranking && ranking.classes && ranking.classes[classe];
+    (bloco && bloco.itens ? bloco.itens : []).forEach(function (item) {
+      out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
+    });
+  });
+  CART_CRIPTO_UNIVERSO.forEach(function (t) {
+    out.push({ ticker: t, nome: t, classe: 'cripto' });
+  });
+  (titulosRf || []).forEach(function (t) {
+    out.push({ ticker: t.ticker, nome: t.nome, classe: 'rf' });
+  });
+  // A desmarcação manual continua valendo: o utilizador pode tirar um ativo
+  // do universo, ele só não precisa mais escolher quais entram.
+  return out.filter(function (a) {
+    var sel = cartEstado.selecionados[a.classe];
+    return !sel || sel.indexOf(a.ticker) !== -1;
+  });
+}
+
+async function cartBuscarRendaFixa(token) {
+  try {
+    var res = await fetch('/api/market?op=rendafixa', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    var data = await res.json();
+    return data && data.titulos ? data.titulos : [];
+  } catch (e) {
+    // Tesouro fora do ar não pode derrubar as outras classes: a RF cai para
+    // score neutro e o rodapé diz por quê.
+    console.warn('[carteira/motor] renda fixa indisponível:', e.message);
+    return [];
+  }
+}
+
+async function cartBuscarIndicadoresBcb(token) {
+  try {
+    var res = await fetch('/api/market?op=indicadores', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function cartBuscarFundamentos(token, tickers) {
+  var fundamentos = {};
+  var lotes = [];
+  for (var i = 0; i < tickers.length; i += 50) lotes.push(tickers.slice(i, i + 50));
+  var respostas = await Promise.all(
+    lotes.map(function (lote) {
+      return fetch('/api/market?op=fundamentals&tickers=' + encodeURIComponent(lote.join(',')), {
+        headers: { Authorization: 'Bearer ' + token },
+      }).then(function (r) {
+        return r.json();
+      });
+    })
+  );
+  respostas.forEach(function (r) {
+    if (r && r.fundamentos) Object.assign(fundamentos, r.fundamentos);
+  });
+  return fundamentos;
+}
+
+/**
+ * Monta o universo e busca os dados de que ele precisa.
+ *
+ * São duas passagens de pontuação por desenho: o servidor peneira o universo
+ * inteiro com os indicadores da CVM, e aqui buscamos cotação só dos poucos
+ * selecionados, para o motor re-pontuar com P/L, P/VP e proventos — que
+ * dependem de preço. Fazer tudo no servidor exigiria cotação de centenas de
+ * tickers a cada cálculo; fazer tudo aqui exigiria baixar o universo inteiro
+ * para o browser.
+ */
+async function cartBuscarDadosMotor() {
   var token = await cartTokenFirebase();
   if (!token) throw new Error('Sessão expirada — entre novamente para o motor buscar os dados.');
 
-  var tickers = universo
+  var automatico = cartEstado.modoUniverso !== 'consultor';
+  var titulosRf = await cartBuscarRendaFixa(token);
+
+  var base;
+  var ranking = null;
+  if (automatico) {
+    ranking = await cartBuscarRanking(token, cartLenteAtiva());
+    base = cartUniversoAutomatico(ranking, titulosRf);
+  } else {
+    // Modo consultor: a carteira modelo publicada no painel manda, e a renda
+    // fixa dela é casada com a oferta corrente do Tesouro.
+    base = cartUniversoBase();
+  }
+
+  var tickers = base
     .filter(function (a) {
       return a.classe !== 'rf';
     })
@@ -1179,73 +1312,19 @@ async function cartBuscarDadosMotor(universo) {
       return a.ticker;
     });
 
-  var fundamentos = {};
-  var lotes = [];
-  for (var i = 0; i < tickers.length; i += 50) lotes.push(tickers.slice(i, i + 50));
-
-  var precisaRf = universo.some(function (a) {
-    return a.classe === 'rf';
-  });
-
-  var respostas = await Promise.all(
-    lotes
-      .map(function (lote) {
-        return fetch('/api/market?op=fundamentals&tickers=' + encodeURIComponent(lote.join(',')), {
-          headers: { Authorization: 'Bearer ' + token },
-        }).then(function (r) {
-          return r.json();
-        });
-      })
-      .concat([
-        // Selic/CDI/IPCA correntes. Não alimentam o score, mas são a base de
-        // toda conta de renda fixa — e mostrá-los com fonte é o que separa
-        // "confie em mim" de "confira você mesmo".
-        fetch('/api/market?op=indicadores', { headers: { Authorization: 'Bearer ' + token } })
-          .then(function (r) {
-            return r.json();
-          })
-          .catch(function () {
-            return { indicadores: null };
-          }),
-      ])
-      .concat(
-        precisaRf
-          ? [
-              fetch('/api/market?op=rendafixa', {
-                headers: { Authorization: 'Bearer ' + token },
-              })
-                .then(function (r) {
-                  return r.json();
-                })
-                // Tesouro fora do ar não pode derrubar o motor inteiro: as
-                // outras classes continuam com dado e a RF cai para score
-                // neutro, sinalizado no rodapé.
-                .catch(function () {
-                  return { titulos: [], erroRf: true };
-                }),
-            ]
-          : []
-      )
-  );
-
-  var titulosRf = [];
-  var indicadores = null;
-  var premissasDegradadas = false;
-  respostas.forEach(function (r) {
-    if (!r) return;
-    if (r.fundamentos) Object.assign(fundamentos, r.fundamentos);
-    if (r.titulos) titulosRf = r.titulos;
-    if (r.indicadores) {
-      indicadores = r.indicadores;
-      premissasDegradadas = !!r.degradado;
-    }
-  });
+  var resultados = await Promise.all([
+    tickers.length ? cartBuscarFundamentos(token, tickers) : Promise.resolve({}),
+    cartBuscarIndicadoresBcb(token),
+  ]);
 
   return {
-    fundamentos: fundamentos,
+    base: base,
+    fundamentos: resultados[0],
     titulosRf: titulosRf,
-    indicadores: indicadores,
-    premissasDegradadas: premissasDegradadas,
+    indicadores: resultados[1] ? resultados[1].indicadores : null,
+    premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
+    ranking: ranking,
+    automatico: automatico,
   };
 }
 
@@ -1358,18 +1437,74 @@ function cartRenderizarMotorLentes() {
     .join('');
 }
 
+/**
+ * Botões de modo do universo.
+ *
+ * O padrão é "todo o mercado": quem escolhe os candidatos é o dado. A
+ * carteira do consultor continua disponível porque há contexto em que um
+ * humano no circuito é desejável — mas deixou de ser o único caminho.
+ */
+function cartRenderizarModoUniverso() {
+  var wrap = document.getElementById('cartMotorModo');
+  if (!wrap) return;
+  var auto = cartEstado.modoUniverso !== 'consultor';
+  var opcoes = [
+    {
+      id: 'automatico',
+      nome: 'Todo o mercado',
+      dica: 'Os candidatos saem dos dados da CVM e do Tesouro, sem lista escrita à mão.',
+    },
+    {
+      id: 'consultor',
+      nome: 'Carteira do consultor',
+      dica: 'Considera apenas os ativos publicados no painel.',
+    },
+  ];
+  wrap.innerHTML = opcoes
+    .map(function (o) {
+      var ativo = o.id === 'automatico' ? auto : !auto;
+      return (
+        '<button type="button" class="cart-motor-modo-btn' +
+        (ativo ? ' active' : '') +
+        '" onclick="cartTrocarModoUniverso(\'' +
+        o.id +
+        '\')" title="' +
+        o.dica.replace(/"/g, '&quot;') +
+        '">' +
+        o.nome +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
 function cartTrocarLente(id) {
   if (!MOTOR_LENTES[id]) return;
   cartEstado.lente = id;
   cartSalvarEstado();
   cartRenderizarMotorLentes();
-  cartRecalcularMotor();
+  // No modo automático a lente decide QUAIS ativos entram na lista curta,
+  // não só o peso dos pilares — então o universo tem de ser rebuscado.
+  if (cartEstado.modoUniverso !== 'consultor') cartRenderizarMotor(true);
+  else cartRecalcularMotor();
+}
+
+/** Alterna entre universo descoberto por dado e carteira do consultor. */
+function cartTrocarModoUniverso(modo) {
+  var novo = modo === 'consultor' ? 'consultor' : 'automatico';
+  if (cartEstado.modoUniverso === novo) return;
+  cartEstado.modoUniverso = novo;
+  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
+  cartSalvarEstado();
+  cartRenderizarMotor(true);
 }
 
 /** Recalcula ranking e plano com os fundamentos já em memória (sem rede). */
 function cartRecalcularMotor() {
   if (!cartMotor.buscadoEm) return;
-  var base = cartUniversoBase();
+  // O universo é o que a busca montou. Remontá-lo aqui a partir da carteira
+  // modelo desfaria a descoberta automática a cada troca de lente.
+  var base = cartMotor.base || cartUniversoBase();
   var universo = cartMontarUniverso(base, cartMotor.fundamentos, cartMotor.titulosRf);
   cartMotor.ranking = motorRanquear(universo, { lente: cartLenteAtiva() });
   var patr = cartPatrimonioPorClasse();
@@ -1397,6 +1532,7 @@ async function cartRenderizarMotor(forcar) {
     return;
   }
   wrap.style.display = 'block';
+  cartRenderizarModoUniverso();
   cartRenderizarMotorLentes();
 
   // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
@@ -1412,13 +1548,15 @@ async function cartRenderizarMotor(forcar) {
       '<i class="ph ph-circle-notch ph-spin"></i> Buscando indicadores de mercado…';
 
   try {
-    var base = cartUniversoBase();
-    var dados = await cartBuscarDadosMotor(base);
+    var dados = await cartBuscarDadosMotor();
     if (seq !== cartMotorSeq) return;
+    cartMotor.base = dados.base;
     cartMotor.fundamentos = dados.fundamentos;
     cartMotor.titulosRf = dados.titulosRf;
     cartMotor.indicadores = dados.indicadores;
     cartMotor.premissasDegradadas = dados.premissasDegradadas;
+    cartMotor.rankingServidor = dados.ranking;
+    cartMotor.automatico = dados.automatico;
     cartMotor.buscadoEm = Date.now();
     cartMotor.carregando = false;
     cartRecalcularMotor();
@@ -1433,6 +1571,9 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.buscadoEm = Date.now();
     cartMotor.fundamentos = {};
     cartMotor.titulosRf = [];
+    // Sem rede não há universo descoberto; a carteira modelo é o que resta
+    // para a tela ter o que mostrar — sem score, como manda a regra.
+    cartMotor.base = cartUniversoBase();
     cartRecalcularMotor();
   }
 }
@@ -1474,6 +1615,24 @@ function cartRenderizarMotorStatus() {
       Math.round(coberturaMedia * 100) +
       '% de cobertura média)</span>'
   );
+  if (cartMotor.automatico && cartMotor.rankingServidor) {
+    var r = cartMotor.rankingServidor;
+    var cortados = Object.values(r.excluidos || {}).reduce(function (s2, v) {
+      return s2 + v;
+    }, 0);
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-globe-hemisphere-west"></i> ' +
+        'Universo: ' +
+        (r.universo || 0) +
+        ' ativos analisados' +
+        (cortados ? ', ' + cortados + ' fora do corte de porte e liquidez' : '') +
+        '</span>'
+    );
+  } else if (!cartMotor.automatico) {
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-user-circle"></i> Universo: carteira do consultor</span>'
+    );
+  }
   if (cartMotor.origemPatrimonio === 'carteira')
     partes.push(
       '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Rebalanceando com base na sua carteira atual</span>'

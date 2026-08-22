@@ -439,6 +439,32 @@ async function handleWarmup(req, res) {
     indicadores = 'falhou:' + e.message;
   }
 
+  // Ranking das quatro lentes, numa varredura só. Sem isto, o primeiro
+  // utilizador do dia paga a leitura da coleção inteira mais a pontuação.
+  let ranking = 'ok';
+  try {
+    const lentes = Object.keys(Motor.LENTES);
+    const rankings = await calcularRankings(database, lentes, RANKING_TOP_N_CRON);
+    const loteRanking = database.batch();
+    for (const lenteId of lentes) {
+      loteRanking.set(
+        database.collection(RANKING_COLLECTION).doc(`${lenteId}_${RANKING_TOP_N_CRON}`),
+        {
+          ...rankings[lenteId],
+          fetchedAtMs: Date.now(),
+          dateYmd: todayYmdBRT(),
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+    }
+    await loteRanking.commit();
+    ranking = `${rankings[lentes[0]].universo} ativos`;
+  } catch (e) {
+    console.warn('[market/warmup] ranking_failed', e.message);
+    ranking = 'falhou:' + e.message;
+  }
+
   let snapshot;
   try {
     snapshot = await database.collectionGroup('investimentos').get();
@@ -458,7 +484,13 @@ async function handleWarmup(req, res) {
 
   const tickers = Array.from(tickerSet);
   if (!tickers.length) {
-    return res.json({ success: true, tickers: 0, indicadores, durationMs: Date.now() - started });
+    return res.json({
+      success: true,
+      tickers: 0,
+      indicadores,
+      ranking,
+      durationMs: Date.now() - started,
+    });
   }
 
   const today = todayYmdBRT();
@@ -504,6 +536,7 @@ async function handleWarmup(req, res) {
     updated,
     failed,
     indicadores,
+    ranking,
     errors,
     durationMs: Date.now() - started,
   });
@@ -1790,6 +1823,196 @@ async function handleRendaFixa(req, res) {
   });
 }
 
+// ============================================================
+// === op=ranking — quais ativos, decidido por dado ===
+// ============================================================
+//
+// Até aqui o universo de candidatos era a carteira modelo publicada no
+// painel: um humano escolhia QUAIS ativos entravam e o motor só decidia
+// QUANTO em cada um. Lista escrita à mão tem dois defeitos que disciplina
+// não resolve — envelhece sem avisar (título vencido, empresa que saiu da
+// bolsa) e limita o universo ao que quem escreveu já conhecia.
+//
+// Esta op inverte: pontua TUDO o que a ingestão da CVM trouxe e devolve os
+// melhores por classe. O cliente não tem como buscar fundamento de centenas
+// de ativos, então o corte acontece aqui e ele recebe só a lista curta.
+//
+// DUAS PASSAGENS, de propósito:
+//   1. aqui, sobre os indicadores da CVM, para gerar a lista curta;
+//   2. no cliente, que busca cotação dos poucos selecionados e RE-PONTUA com
+//      P/L, P/VP e proventos — indicadores que dependem de preço.
+// A primeira passagem é peneira; a segunda é a nota que o utilizador vê.
+// Fazer tudo aqui exigiria cotação de centenas de tickers a cada cálculo;
+// fazer tudo lá exigiria baixar o universo inteiro para o browser.
+
+const Motor = require('../web/appliquei-motor-carteira.js');
+
+const RANKING_COLLECTION = 'marketRanking';
+const RANKING_TTL_MS = 12 * 60 * 60 * 1000;
+const RANKING_TOP_N = 30;
+
+// Piso de porte, medido pelo patrimônio líquido da própria DFP. Não é
+// julgamento sobre empresa pequena: é que abaixo disto a liquidez em bolsa
+// costuma ser insuficiente para o utilizador entrar e sair da posição, e
+// recomendar o que não se consegue vender é pior do que não recomendar.
+const PATRIMONIO_MINIMO = 300000000;
+
+// Quantos candidatos por classe o cron pré-calcula. Tem de bater com o que o
+// cliente pede (CART_CANDIDATOS_POR_CLASSE), senão a chave do cache não
+// coincide e o aquecimento não serve para nada.
+const RANKING_TOP_N_CRON = 15;
+
+// Liquidez diária mínima, aplicada quando a cotação já está no documento.
+// Na primeira passagem a maioria dos ativos ainda não tem — por isso o piso
+// de porte acima existe.
+const LIQUIDEZ_MINIMA = { acao: 1000000, fii: 200000, cripto: 0, rf: 0 };
+
+/**
+ * Motivo pelo qual um ativo não entra na lista curta.
+ * Devolve null quando ele passa. Existe como função separada para o
+ * relatório do endpoint poder dizer quantos caíram por quê — universo que
+ * encolhe em silêncio é impossível de depurar em produção.
+ */
+function motivoExclusao(dados, classe) {
+  if (classe === 'acao' || classe === 'fii') {
+    const patrimonio = fundNum(dados.patrimonioLiquido);
+    if (patrimonio !== null && patrimonio < PATRIMONIO_MINIMO) return 'porte_abaixo_do_piso';
+    const liquidez = fundNum(dados.liquidezDiaria);
+    if (liquidez !== null && liquidez < (LIQUIDEZ_MINIMA[classe] || 0))
+      return 'liquidez_insuficiente';
+  }
+  return null;
+}
+
+/**
+ * Pontua o universo inteiro para VÁRIAS lentes numa varredura só.
+ *
+ * A leitura da coleção é o custo dominante; pontuar é aritmética sobre dados
+ * já em memória. Varrer uma vez por lente multiplicaria o caro para poupar o
+ * barato — e é o que permite o cron aquecer as quatro lentes dentro do
+ * limite de 15s da function.
+ */
+async function calcularRankings(database, lentes, topN) {
+  const docs = await database.collection(FUNDAMENTALS_COLLECTION).get();
+
+  const candidatos = [];
+  const excluidos = { porte_abaixo_do_piso: 0, liquidez_insuficiente: 0 };
+  let universo = 0;
+
+  docs.forEach((doc) => {
+    const composto = comporFundamentos(doc.data());
+    if (!composto) return;
+    const ticker = doc.id;
+    const dados = { ...composto, ticker, nome: composto.nome || ticker };
+    const classe = Motor.inferirClasse(ticker, dados.nome, dados.classe);
+    universo++;
+    const motivo = motivoExclusao(dados, classe);
+    if (motivo) {
+      excluidos[motivo]++;
+      return;
+    }
+    candidatos.push({ dados, classe });
+  });
+
+  const porLente = {};
+  for (const lenteId of lentes) {
+    const porClasse = { rf: [], acao: [], fii: [], cripto: [] };
+    let semLastro = 0;
+    for (const c of candidatos) {
+      const pontuado = Motor.scoreAtivo(c.dados, { lente: lenteId });
+      // Sem lastro não entra na lista curta: o cliente não deve gastar uma
+      // chamada de cotação num ativo que não tem como ser pontuado.
+      if (!pontuado.temLastro) {
+        semLastro++;
+        continue;
+      }
+      (porClasse[c.classe] || (porClasse[c.classe] = [])).push({
+        ticker: c.dados.ticker,
+        nome: pontuado.nome,
+        classe: c.classe,
+        score: pontuado.score,
+        cobertura: pontuado.cobertura,
+        confianca: pontuado.confianca,
+        setor: pontuado.setor || null,
+        fonteRotulo: pontuado.fonteRotulo || null,
+        dataReferencia: pontuado.dataReferencia || null,
+      });
+    }
+    const classes = {};
+    for (const classe of Motor.CLASSES) {
+      const lista = (porClasse[classe] || []).sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.ticker.localeCompare(b.ticker);
+      });
+      classes[classe] = { total: lista.length, itens: lista.slice(0, topN) };
+    }
+    porLente[lenteId] = {
+      lente: lenteId,
+      topN,
+      universo,
+      excluidos: { ...excluidos, sem_lastro: semLastro },
+      classes,
+    };
+  }
+  return porLente;
+}
+
+async function handleRanking(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const lenteId = (req.query.lente || 'equilibrio').toString();
+  if (!Motor.LENTES[lenteId]) {
+    return res.status(400).json({
+      error: 'lente_invalida',
+      detail: `Use ${Object.keys(Motor.LENTES).join(', ')}`,
+    });
+  }
+  const topN = Math.max(1, Math.min(60, parseInt(req.query.top, 10) || RANKING_TOP_N));
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(RANKING_COLLECTION).doc(`${lenteId}_${topN}`);
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+  if (
+    cache &&
+    typeof cache.fetchedAtMs === 'number' &&
+    agora - cache.fetchedAtMs < RANKING_TTL_MS
+  ) {
+    return res.json({
+      success: true,
+      cached: true,
+      lente: lenteId,
+      fetchedAt: cache.fetchedAtMs,
+      universo: cache.universo || 0,
+      excluidos: cache.excluidos || {},
+      classes: cache.classes || {},
+    });
+  }
+
+  let resultado;
+  try {
+    resultado = (await calcularRankings(database, [lenteId], topN))[lenteId];
+  } catch (e) {
+    return res.status(500).json({ error: 'leitura_falhou', detail: e.message });
+  }
+
+  await ref
+    .set(
+      {
+        ...resultado,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/ranking] cache_write_failed', e.message));
+
+  return res.json({ success: true, cached: false, fetchedAt: agora, ...resultado });
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -1814,6 +2037,10 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleFundamentals(req, res);
     }
+    if (op === 'ranking') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleRanking(req, res);
+    }
     if (op === 'indicadores') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleIndicadores(req, res);
@@ -1828,7 +2055,7 @@ module.exports = handler({
     return res.status(400).json({
       error: 'unknown_op',
       detail:
-        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=indicadores, ?op=rendafixa or ?op=warmup',
+        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=indicadores, ?op=rendafixa or ?op=warmup',
     });
   },
 });
@@ -1862,6 +2089,11 @@ module.exports.__test = {
   CHAVES_ACAO,
   // BCB: escolha de série com validação de faixa. É onde um código errado
   // devolveria número válido de outra coisa e passaria despercebido.
+  motivoExclusao,
+  calcularRankings,
+  RANKING_TOP_N_CRON,
+  PATRIMONIO_MINIMO,
+  LIQUIDEZ_MINIMA,
   sgsData,
   anualizar252,
   resolverIndicadorSgs,

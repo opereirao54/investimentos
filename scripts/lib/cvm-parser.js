@@ -514,3 +514,83 @@ module.exports.calcularIndicadores = calcularIndicadores;
 module.exports.aliquotaEfetiva = aliquotaEfetiva;
 module.exports.cagr = cagr;
 module.exports.extrairInformeFii = extrairInformeFii;
+
+// ════════════════════════════════════════════════════════════
+// Descoberta do universo — ticker ↔ empresa, pela própria CVM
+// ════════════════════════════════════════════════════════════
+//
+// O FCA (Formulário Cadastral) declara os valores mobiliários de cada
+// companhia, com o CÓDIGO DE NEGOCIAÇÃO. É o vínculo oficial entre ticker e
+// CD_CVM — publicado pela CVM, não inferido por semelhança de nome.
+//
+// Isto é o que permite ao motor considerar a bolsa inteira em vez de uma
+// lista escrita à mão. Lista curada por humano tem dois defeitos que não se
+// resolvem com disciplina: envelhece sem avisar (título vencido, empresa que
+// saiu da bolsa) e limita o universo ao que quem escreveu já conhecia.
+
+const COLUNAS_FCA = {
+  cdCvm: ['CD_CVM', 'CODIGO_CVM'],
+  codigoNegociacao: ['Codigo_Negociacao', 'CODIGO_NEGOCIACAO', 'CD_NEGOCIACAO'],
+  valorMobiliario: ['Valor_Mobiliario', 'VALOR_MOBILIARIO', 'DS_VALOR_MOBILIARIO'],
+  mercado: ['Mercado', 'MERCADO', 'DS_MERCADO'],
+  siglaBolsa: ['Sigla_Bolsa', 'SIGLA_BOLSA', 'Entidade_Administradora'],
+  dataReferencia: ['Data_Referencia', 'DT_REFER'],
+};
+
+// Espécies que o motor pontua como ação. Recibo (units) entra; debênture,
+// bônus de subscrição e nota promissória não são renda variável negociável
+// da forma que o motor assume.
+const ESPECIES_ACAO = ['acao ordinaria', 'acao preferencial', 'unit', 'certificado de deposito'];
+
+/**
+ * Ticker -> CD_CVM a partir do FCA.
+ *
+ * Um CD_CVM tem vários tickers (ON, PN, unit) e o mesmo ticker pode aparecer
+ * repetido em exercícios diferentes; o índice é ticker -> empresa, que é a
+ * direção que a ingestão consulta.
+ */
+function extrairTickersFca(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_FCA)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_FCA[campo]);
+  }
+  const faltando = Object.keys(COLUNAS_FCA).filter((c) => !cols[c]);
+  if (!cols.cdCvm || !cols.codigoNegociacao) {
+    return { porTicker: new Map(), faltando, colunas: cols };
+  }
+
+  const porTicker = new Map();
+  for (const r of registros) {
+    const cdCvm = String(r[cols.cdCvm] || '').trim();
+    const bruto = String(r[cols.codigoNegociacao] || '')
+      .trim()
+      .toUpperCase();
+    if (!cdCvm || !bruto) continue;
+
+    // O campo às vezes traz mais de um código separado por vírgula ou barra.
+    for (const parte of bruto.split(/[,;/]+/)) {
+      const ticker = parte.trim().replace(/[^A-Z0-9]/g, '');
+      // Ticker da B3: 4 letras + 1 ou 2 dígitos.
+      if (!/^[A-Z]{4}\d{1,2}$/.test(ticker)) continue;
+
+      if (cols.valorMobiliario) {
+        const especie = normalizarTexto(r[cols.valorMobiliario]);
+        const aceita = ESPECIES_ACAO.some((e) => especie.includes(e));
+        // Espécie desconhecida passa: o filtro existe para excluir debênture
+        // e bônus de subscrição, não para exigir um vocabulário fechado que
+        // a CVM pode mudar.
+        if (especie && !aceita && /debentur|bonus|promissoria|opcao/.test(especie)) continue;
+      }
+
+      const anterior = porTicker.get(ticker);
+      const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '') : '';
+      if (anterior && anterior.dataReferencia >= data) continue;
+      porTicker.set(ticker, { ticker, cdCvm, dataReferencia: data || null });
+    }
+  }
+  return { porTicker, faltando, colunas: cols };
+}
+
+module.exports.COLUNAS_FCA = COLUNAS_FCA;
+module.exports.ESPECIES_ACAO = ESPECIES_ACAO;
+module.exports.extrairTickersFca = extrairTickersFca;

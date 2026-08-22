@@ -674,3 +674,233 @@ test('documento inexistente devolve null, não objeto vazio', () => {
   assert.equal(comporFundamentos(null), null);
   assert.equal(comporFundamentos(undefined), null);
 });
+
+// ════════════════════════════════════════════
+// Corte do universo (op=ranking)
+// ════════════════════════════════════════════
+//
+// Com o universo vindo do FCA são centenas de ativos, e nem todos são
+// investíveis pelo cliente. O corte não é julgamento sobre a empresa: é que
+// recomendar o que não se consegue vender é pior do que não recomendar.
+
+const { motivoExclusao, PATRIMONIO_MINIMO, LIQUIDEZ_MINIMA } = market.__test || {};
+
+test('ativo abaixo do piso de porte fica fora da lista curta', () => {
+  assert.equal(motivoExclusao({ patrimonioLiquido: 50e6 }, 'acao'), 'porte_abaixo_do_piso');
+  assert.equal(motivoExclusao({ patrimonioLiquido: 5e9 }, 'acao'), null);
+});
+
+test('liquidez insuficiente exclui mesmo empresa grande', () => {
+  const grande = { patrimonioLiquido: 5e9, liquidezDiaria: 50000 };
+  assert.equal(motivoExclusao(grande, 'acao'), 'liquidez_insuficiente');
+  assert.equal(motivoExclusao({ ...grande, liquidezDiaria: 4e7 }, 'acao'), null);
+});
+
+test('sem cotação ainda, o piso de porte é o único filtro possível', () => {
+  // Na primeira passagem a maioria dos ativos só tem dado da CVM. Excluir
+  // por liquidez desconhecida esvaziaria o universo inteiro.
+  assert.equal(motivoExclusao({ patrimonioLiquido: 5e9 }, 'acao'), null);
+});
+
+test('FII tem piso de liquidez menor que ação', () => {
+  assert.ok(LIQUIDEZ_MINIMA.fii < LIQUIDEZ_MINIMA.acao);
+  const fii = { patrimonioLiquido: 2e9, liquidezDiaria: 500000 };
+  assert.equal(motivoExclusao(fii, 'fii'), null);
+  assert.equal(motivoExclusao(fii, 'acao'), 'liquidez_insuficiente');
+});
+
+test('cripto e renda fixa não passam pelo corte de porte', () => {
+  // Não têm patrimônio líquido contábil nem liquidez em bolsa no mesmo
+  // sentido; aplicar o filtro os eliminaria a todos.
+  assert.equal(motivoExclusao({}, 'cripto'), null);
+  assert.equal(motivoExclusao({}, 'rf'), null);
+  assert.equal(motivoExclusao({ patrimonioLiquido: 1 }, 'rf'), null);
+});
+
+test('o piso de porte é alto o bastante para importar', () => {
+  assert.ok(PATRIMONIO_MINIMO >= 100e6, `piso veio ${PATRIMONIO_MINIMO}`);
+});
+
+// ════════════════════════════════════════════
+// Cálculo do ranking (varredura única, várias lentes)
+// ════════════════════════════════════════════
+
+const { calcularRankings, RANKING_TOP_N_CRON } = market.__test || {};
+
+/** Firestore mínimo: só o que calcularRankings consome. */
+function fakeDb(docs) {
+  return {
+    collection: () => ({
+      get: async () => ({
+        forEach: (cb) => docs.forEach((d) => cb({ id: d.id, data: () => d.dados })),
+      }),
+    }),
+  };
+}
+
+/** Documento no formato que a ingestão da CVM grava. */
+function docCvm(ticker, over) {
+  return {
+    id: ticker,
+    dados: {
+      cvm: Object.assign(
+        {
+          patrimonioLiquido: 5e9,
+          lucroLiquido: 8e8,
+          receita: 1e10,
+          roe: 16,
+          roic: 12,
+          margemLiquida: 8,
+          margemEbitda: 20,
+          liquidezCorrente: 1.8,
+          dividaLiquidaEbitda: 1.2,
+          dividaLiquidaPl: 0.4,
+          cagrReceita5a: 9,
+          cagrLucro5a: 11,
+          classe: 'acao',
+          fonte: 'cvm',
+          fonteRotulo: 'DFP 2025 · CVM',
+          dataReferencia: '2025-12-31',
+        },
+        over || {}
+      ),
+      // A ingestão grava cotação junto: sem valor de mercado o pilar de
+      // valuation fica vazio e a lente "Valor" escolheria às cegas.
+      mercado: { preco: 30, marketCap: 12e9, liquidezDiaria: 3e7, fonte: 'brapi' },
+      cvmFetchedAtMs: 1000,
+      mercadoFetchedAtMs: 1000,
+    },
+  };
+}
+
+test('varredura única produz ranking para todas as lentes pedidas', async () => {
+  const db = fakeDb([docCvm('AAAA3'), docCvm('BBBB3', { roe: 28, cagrLucro5a: 25 })]);
+  const r = await calcularRankings(db, ['renda', 'qualidade'], 10);
+  assert.deepEqual(Object.keys(r).sort(), ['qualidade', 'renda']);
+  assert.equal(r.renda.universo, 2);
+  assert.equal(r.qualidade.universo, 2);
+});
+
+test('a lente muda a ordem do ranking sobre o mesmo universo', async () => {
+  const db = fakeDb([
+    // Barata: lucro alto para o valor de mercado (P/L ~5) e balanço leve.
+    docCvm('BARATA3', {
+      roe: 9,
+      cagrLucro5a: 1,
+      cagrReceita5a: 1,
+      dividaLiquidaEbitda: 0.2,
+      lucroLiquido: 2.4e9,
+      patrimonioLiquido: 15e9,
+    }),
+    // Cara: cresce muito, mas o mercado já cobra por isso (P/L ~40).
+    docCvm('CRESCE3', {
+      roe: 30,
+      roic: 26,
+      cagrLucro5a: 28,
+      cagrReceita5a: 24,
+      dividaLiquidaEbitda: 2.8,
+      lucroLiquido: 3e8,
+      patrimonioLiquido: 2e9,
+    }),
+  ]);
+  const r = await calcularRankings(db, ['qualidade', 'valor'], 10);
+  assert.equal(r.qualidade.classes.acao.itens[0].ticker, 'CRESCE3');
+  assert.equal(r.valor.classes.acao.itens[0].ticker, 'BARATA3');
+});
+
+test('ranking vem ordenado por score e cortado no topN', async () => {
+  const docs = [];
+  for (let i = 0; i < 12; i++)
+    docs.push(docCvm(`T${String(i).padStart(3, '0')}3`, { roe: 5 + i * 2 }));
+  const r = await calcularRankings(fakeDb(docs), ['equilibrio'], 5);
+  const itens = r.equilibrio.classes.acao.itens;
+  assert.equal(itens.length, 5, 'topN tem de cortar');
+  assert.equal(r.equilibrio.classes.acao.total, 12, 'mas o total analisado continua visível');
+  for (let i = 1; i < itens.length; i++) {
+    assert.ok(itens[i - 1].score >= itens[i].score, 'ranking desordenado');
+  }
+});
+
+test('ativo abaixo do piso de porte não chega a ser pontuado', async () => {
+  const db = fakeDb([docCvm('GRANDE3'), docCvm('NANO3', { patrimonioLiquido: 10e6 })]);
+  const r = await calcularRankings(db, ['equilibrio'], 10);
+  const tickers = r.equilibrio.classes.acao.itens.map((i) => i.ticker);
+  assert.deepEqual(tickers, ['GRANDE3']);
+  assert.equal(r.equilibrio.excluidos.porte_abaixo_do_piso, 1);
+  assert.equal(r.equilibrio.universo, 2, 'o excluído continua contando como analisado');
+});
+
+test('ativo sem lastro é excluído da lista curta, com motivo contado', async () => {
+  // Não faz sentido o cliente gastar uma chamada de cotação num ativo que
+  // não tem como ser pontuado.
+  const vazio = {
+    id: 'VAZIO3',
+    dados: { cvm: { patrimonioLiquido: 5e9, classe: 'acao' }, cvmFetchedAtMs: 1 },
+  };
+  const r = await calcularRankings(fakeDb([docCvm('BOM3'), vazio]), ['equilibrio'], 10);
+  assert.deepEqual(
+    r.equilibrio.classes.acao.itens.map((i) => i.ticker),
+    ['BOM3']
+  );
+  assert.equal(r.equilibrio.excluidos.sem_lastro, 1);
+});
+
+test('cada classe é ranqueada separadamente', async () => {
+  const fii = {
+    id: 'ZZZZ11',
+    dados: {
+      cvm: {
+        patrimonioLiquido: 2e9,
+        numeroCotistas: 200000,
+        ocupacao: 97,
+        numeroImoveis: 15,
+        classe: 'fii',
+        fonte: 'cvm',
+      },
+      mercado: {
+        pvp: 0.95,
+        dy: 9.5,
+        dyMedio36m: 9,
+        consistenciaDividendos: 100,
+        liquidezDiaria: 5e6,
+      },
+      cvmFetchedAtMs: 1,
+    },
+  };
+  const r = await calcularRankings(fakeDb([docCvm('AAAA3'), fii]), ['renda'], 10);
+  assert.equal(r.renda.classes.acao.itens.length, 1);
+  assert.equal(r.renda.classes.fii.itens.length, 1);
+  assert.equal(r.renda.classes.fii.itens[0].ticker, 'ZZZZ11');
+});
+
+test('cada item do ranking carrega procedência para a tela', async () => {
+  const r = await calcularRankings(fakeDb([docCvm('AAAA3')]), ['equilibrio'], 10);
+  const item = r.equilibrio.classes.acao.itens[0];
+  assert.ok(item.fonteRotulo.includes('CVM'));
+  assert.equal(item.dataReferencia, '2025-12-31');
+  assert.ok(item.cobertura > 0 && item.confianca);
+});
+
+test('coleção vazia devolve ranking vazio, não erro', async () => {
+  const r = await calcularRankings(fakeDb([]), ['equilibrio'], 10);
+  assert.equal(r.equilibrio.universo, 0);
+  assert.deepEqual(r.equilibrio.classes.acao.itens, []);
+});
+
+test('o topN do cron bate com o que o cliente pede', () => {
+  // Chaves de cache diferentes fariam o aquecimento noturno não servir para
+  // nada: o cliente pediria outro documento e recalcularia tudo.
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const cliente = fs.readFileSync(
+    path.resolve(__dirname, '..', 'web', 'appliquei-aba-carteira-recomendada.js'),
+    'utf8'
+  );
+  const m = /CART_CANDIDATOS_POR_CLASSE\s*=\s*(\d+)/.exec(cliente);
+  assert.ok(m, 'constante do cliente não encontrada');
+  assert.equal(
+    Number(m[1]),
+    RANKING_TOP_N_CRON,
+    'cliente e cron precisam pedir o mesmo topN para partilharem o cache'
+  );
+});

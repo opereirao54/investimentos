@@ -22,7 +22,7 @@ roda como job separado.
 
 | Classe           | Fonte primária                           | Complemento                                       |
 | ---------------- | ---------------------------------------- | ------------------------------------------------- |
-| Ações            | **CVM — DFP** (job de ingestão)          | BRAPI: preço, valor de mercado, volume, proventos |
+| Ações            | **CVM — DFP + FCA** (job de ingestão)    | BRAPI: preço, valor de mercado, volume, proventos |
 | FIIs             | **CVM — Informe Mensal**                 | BRAPI: preço, proventos                           |
 | ETFs, BDRs       | BRAPI                                    | —                                                 |
 | Criptos          | CoinGecko `/coins/markets`               | —                                                 |
@@ -83,15 +83,19 @@ estão ocupados (`market warmup` e `reconcile`).
 
 O que ele faz:
 
-1. baixa `cad_cia_aberta.csv` e casa cada ticker do mapa com a empresa **pelo
-   nome**, não por código decorado;
+1. baixa o **FCA** (`fca_cia_aberta_valor_mobiliario`) e lê o vínculo oficial
+   ticker ↔ `CD_CVM` — é isto que substitui a lista escrita à mão e abre o
+   universo para a bolsa inteira. Sem FCA, cai para o mapa manual casado por
+   nome (`scripts/lib/mapa-cvm.json`), com universo reduzido;
 2. baixa as DFP dos últimos N exercícios (`BPA_con`, `BPP_con`, `DRE_con`,
    `DFC_MI_con`);
 3. extrai as contas do plano padrão e calcula ROE, ROIC, margens, liquidez
    corrente, dívida líquida/EBITDA, dívida líquida/PL e CAGR de receita e lucro;
 4. baixa o Informe Mensal de FII e extrai patrimônio, cotistas e **vacância** —
    o dado que nenhuma API gratuita entrega;
-5. grava no ramo `cvm` de `marketFundamentals/{TICKER}`.
+5. busca **cotação de todo o universo** (valor de mercado e volume), sem o que
+   o ranking pontuaria com o pilar de Valuation vazio;
+6. grava nos ramos `cvm` e `mercado` de `marketFundamentals/{TICKER}`.
 
 **Garantia central: nunca gravar número que não se sustenta.** Coluna ausente,
 conta inexistente e resultado fora da faixa plausível viram `null` com motivo
@@ -124,8 +128,8 @@ Detalhes que custam caro se ficarem errados:
 uma pessoa:
 
 ```bash
-node scripts/ingest-cvm.js --dry-run --anos=1        # confere layout e casamentos
-node scripts/ingest-cvm.js --dry-run --only=BBAS3    # investiga um ticker
+node scripts/ingest-cvm.js --dry-run --anos=1 --limite=20   # confere layout, rápido
+node scripts/ingest-cvm.js --dry-run --only=BBAS3           # investiga um ticker
 FIREBASE_SERVICE_ACCOUNT_BASE64=... node scripts/ingest-cvm.js --gravar
 ```
 
@@ -137,6 +141,58 @@ Para acrescentar um ativo, edite `scripts/lib/mapa-cvm.json` com o nome pelo qua
 ele aparece no cadastro da CVM. O mapa guarda **nome**, não `CD_CVM`: código
 decorado num arquivo envelhece e ninguém confere; o casamento por nome é
 reimpresso a cada execução, para poder ser revisado.
+
+### `GET /api/market?op=ranking&lente=renda` — quais ativos, decidido por dado
+
+Auth: Firebase Bearer. Cache: `marketRanking/{lente}_{topN}`, TTL 12h, aquecido
+pelo cron.
+
+Antes, o universo de candidatos era a carteira modelo publicada no painel: um
+humano escolhia **quais** ativos entravam e o motor só decidia **quanto** em
+cada um. Lista escrita à mão tem dois defeitos que disciplina não resolve —
+envelhece sem avisar e limita o universo ao que quem escreveu já conhecia. O
+sintoma real: a lista padrão pedia `Tesouro Selic 2027`; quando o título saiu da
+oferta, a classe inteira deixou de pontuar e nada na tela dizia por quê.
+
+Agora o universo vem do dado:
+
+| Classe     | De onde saem os candidatos                                                                                                                 |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ações      | **FCA da CVM** — `fca_cia_aberta_valor_mobiliario` declara o código de negociação de cada companhia. É o vínculo oficial ticker ↔ `CD_CVM` |
+| FIIs       | Informe Mensal da CVM, casado por nome com o cadastro de fundos                                                                            |
+| Renda fixa | Oferta corrente do Tesouro Direto — dinâmica por natureza                                                                                  |
+| Cripto     | Alcance da integração com a CoinGecko                                                                                                      |
+
+**Duas passagens de pontuação, de propósito:**
+
+1. **No servidor**, sobre o universo inteiro, para gerar a lista curta;
+2. **No cliente**, que busca cotação só dos selecionados e re-pontua com P/L,
+   P/VP e proventos.
+
+Fazer tudo no servidor exigiria cotação de centenas de tickers a cada cálculo;
+fazer tudo no cliente exigiria baixar o universo inteiro para o browser. A
+primeira passagem é peneira, a segunda é a nota que o utilizador vê.
+
+Para a peneira não ficar cega no pilar que mais importa para a lente "Valor", a
+ingestão semanal **também busca cotação** de todo o universo — sem valor de
+mercado, P/L e P/VP não existem e o pilar de Valuation ficaria vazio para todos.
+
+**Corte de investibilidade.** Não é julgamento sobre a empresa: é que recomendar
+o que o cliente não consegue vender é pior do que não recomendar.
+
+| Filtro   | Regra                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------------- |
+| Porte    | patrimônio líquido (da DFP) abaixo de R$ 300M sai                                                  |
+| Liquidez | abaixo de R$ 1M/dia em ações, R$ 200 mil em FIIs                                                   |
+| Lastro   | ativo que não pontua não entra na lista curta — não faz sentido gastar uma chamada de cotação nele |
+
+Cada corte é **contado e devolvido** na resposta. Universo que encolhe em
+silêncio é impossível de depurar em produção, e a tela mostra "412 ativos
+analisados, 245 fora do corte".
+
+A carteira do consultor não desapareceu: virou o modo **"Carteira do
+consultor"**, ao lado de **"Todo o mercado"** (padrão). Há contexto em que um
+humano no circuito é desejável — mas deixou de ser o único caminho.
 
 ### `GET /api/market?op=indicadores`
 

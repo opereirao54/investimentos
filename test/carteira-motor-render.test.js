@@ -583,3 +583,157 @@ test('sem indicadores nenhuns, a faixa simplesmente não existe', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(!html.includes('cart-indicadores'));
 });
+
+// ════════════════════════════════════════════
+// Universo automático
+// ════════════════════════════════════════════
+//
+// Até aqui um humano escolhia QUAIS ativos entravam e o motor só decidia
+// QUANTO em cada um. Lista escrita à mão envelhece sem avisar — foi assim
+// que a renda fixa parou de pontuar, com títulos de vencimento 2027 numa
+// oferta que já não os tinha.
+
+const RANKING = {
+  universo: 412,
+  excluidos: { porte_abaixo_do_piso: 180, liquidez_insuficiente: 40, sem_lastro: 25 },
+  classes: {
+    acao: {
+      total: 90,
+      itens: [
+        { ticker: 'BBAS3', nome: 'Banco do Brasil', score: 88 },
+        { ticker: 'EGIE3', nome: 'Engie Brasil', score: 81 },
+      ],
+    },
+    fii: { total: 60, itens: [{ ticker: 'BTLG11', nome: 'BTG Logística', score: 84 }] },
+    cripto: { total: 0, itens: [] },
+    rf: { total: 0, itens: [] },
+  },
+};
+
+const TITULOS_RF = [
+  { ticker: 'TESOURO_SELIC_2031', nome: 'Tesouro Selic 2031' },
+  { ticker: 'TESOURO_IPCA_2040', nome: 'Tesouro IPCA+ 2040' },
+];
+
+test('o universo automático não usa lista escrita à mão em classe nenhuma', () => {
+  const s = carregar();
+  const u = JSON.parse(
+    s.run(
+      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))`
+    )
+  );
+  const tickers = u.map((a) => a.ticker);
+
+  assert.ok(tickers.includes('BBAS3') && tickers.includes('EGIE3'), 'ações vêm do ranking');
+  assert.ok(tickers.includes('BTLG11'), 'FIIs vêm do ranking');
+  assert.ok(tickers.includes('TESOURO_SELIC_2031'), 'RF vem da oferta corrente do Tesouro');
+  assert.ok(tickers.includes('BTC'), 'cripto vem do alcance da integração');
+
+  // Nenhum dos títulos com vencimento fixo da antiga lista padrão sobrevive.
+  assert.ok(!tickers.includes('TESOURO_SELIC_2027'), 'título vencido não pode reaparecer');
+  assert.ok(!tickers.includes('MXRF11'), 'nada da carteira modelo entra sem passar pelo ranking');
+});
+
+test('cada classe do universo automático é rotulada corretamente', () => {
+  const s = carregar();
+  const u = JSON.parse(
+    s.run(
+      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))`
+    )
+  );
+  const porClasse = {};
+  u.forEach((a) => (porClasse[a.classe] = (porClasse[a.classe] || 0) + 1));
+  assert.equal(porClasse.acao, 2);
+  assert.equal(porClasse.fii, 1);
+  assert.equal(porClasse.rf, 2);
+  assert.ok(porClasse.cripto >= 2);
+});
+
+test('desmarcar um ativo continua valendo no modo automático', () => {
+  // O utilizador deixa de escolher QUAIS entram, mas continua a poder vetar.
+  const s = carregar();
+  const u = JSON.parse(
+    s.run(`
+      cartEstado.selecionados.acao = ['EGIE3'];
+      JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))
+    `)
+  );
+  const acoes = u.filter((a) => a.classe === 'acao').map((a) => a.ticker);
+  assert.deepEqual(acoes, ['EGIE3']);
+  assert.ok(
+    u.some((a) => a.classe === 'fii'),
+    'vetar uma ação não afeta as outras classes'
+  );
+});
+
+test('ranking vazio não quebra: o universo fica só com RF e cripto', () => {
+  const s = carregar();
+  const u = JSON.parse(
+    s.run(`JSON.stringify(cartUniversoAutomatico({ classes: {} }, ${JSON.stringify(TITULOS_RF)}))`)
+  );
+  assert.ok(u.length > 0);
+  assert.ok(!u.some((a) => a.classe === 'acao'));
+  assert.ok(u.some((a) => a.classe === 'rf'));
+});
+
+test('Tesouro fora do ar deixa a classe vazia, sem inventar título', () => {
+  const s = carregar();
+  const u = JSON.parse(
+    s.run(`JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, []))`)
+  );
+  assert.ok(!u.some((a) => a.classe === 'rf'), 'melhor classe vazia do que título que não existe');
+});
+
+test('o status diz quantos ativos foram analisados e quantos caíram no corte', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.rankingServidor = ${JSON.stringify(RANKING)};
+    cartMotor.automatico = true;
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('412 ativos analisados'), `veio: ${html}`);
+  assert.ok(html.includes('245 fora do corte'), 'o total peneirado tem de ser visível');
+});
+
+test('modo consultor é declarado na tela como escolha diferente', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartMotor.automatico = false; cartRenderizarMotorStatus();');
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('carteira do consultor'));
+  assert.ok(!html.includes('ativos analisados'));
+});
+
+test('o padrão é todo o mercado, não a carteira do consultor', () => {
+  const s = carregar();
+  assert.notEqual(s.run('cartEstado.modoUniverso'), 'consultor');
+  s.run('cartRenderizarModoUniverso();');
+  const html = s.dom.els.get('cartMotorModo').innerHTML;
+  assert.ok(html.includes('Todo o mercado'));
+  assert.ok(html.includes('Carteira do consultor'), 'a opção humana continua disponível');
+  assert.equal(html.split('active').length - 1, 1, 'só um modo ativo de cada vez');
+  assert.ok(
+    /class="cart-motor-modo-btn active"[^>]*onclick="cartTrocarModoUniverso\('automatico'\)"/.test(
+      html
+    )
+  );
+});
+
+test('a lista pontuada e a resposta do ranking não compartilham campo', () => {
+  // Regressão: as duas coisas moravam em cartMotor.ranking e o significado
+  // dependia da ordem de execução — o status lia um array como se fosse o
+  // objeto do servidor e quebrava.
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.rankingServidor = ${JSON.stringify(RANKING)};
+    cartMotor.automatico = true;
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('3 de 3 ativos pontuados'), 'a lista pontuada continua a ser lida');
+  assert.ok(html.includes('412 ativos analisados'), 'e a resposta do servidor também');
+});

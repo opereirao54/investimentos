@@ -128,13 +128,19 @@ function casarCadastro(cadastro, mapaTickers, colunaNome, colunaChave) {
   return resultados;
 }
 
-/** Um exercício de uma empresa, a partir dos quatro CSVs do ano. */
-function exercicioDaEmpresa(csvs, cols, cdCvm, ano) {
+/**
+ * Um exercício de uma empresa, a partir dos índices já construídos.
+ *
+ * Recebe índices em vez de CSVs porque agrupar por empresa dentro do laço
+ * seria O(n²): com o universo vindo do FCA são centenas de companhias contra
+ * arquivos de centenas de milhares de linhas. O agrupamento acontece uma vez
+ * por arquivo, em quem chama.
+ */
+function exercicioDaEmpresaIndexado(indices, cols, cdCvm, ano) {
   const pegar = (chave) => {
-    const csv = csvs[chave];
-    if (!csv) return [];
-    const grupos = P.agruparPorEmpresa(csv.registros, cols);
-    const daEmpresa = grupos.get(cdCvm);
+    const idx = indices[chave];
+    if (!idx) return [];
+    const daEmpresa = idx.get(cdCvm);
     if (!daEmpresa) return [];
     // Exercício mais recente dentro do arquivo do ano.
     const chaves = Array.from(daEmpresa.keys()).sort();
@@ -151,6 +157,68 @@ function exercicioDaEmpresa(csvs, cols, cdCvm, ano) {
   return { ano, dataReferencia: `${ano}-12-31`, ...fin };
 }
 
+/** Mesma coisa a partir dos CSVs crus. Conveniência para uso pontual. */
+function exercicioDaEmpresa(csvs, cols, cdCvm, ano) {
+  const indices = {};
+  for (const chave of Object.keys(csvs)) {
+    indices[chave] = P.agruparPorEmpresa(csvs[chave].registros, cols);
+  }
+  return exercicioDaEmpresaIndexado(indices, cols, cdCvm, ano);
+}
+
+/**
+ * Cotação, valor de mercado e volume do universo.
+ *
+ * Sem isto, o ranking do servidor pontua com o pilar de VALUATION vazio para
+ * todo mundo — P/L e P/VP nascem do lucro e do patrimônio da CVM cruzados
+ * com o valor de mercado. O efeito é pior do que parece: a lente "Valor"
+ * escolheria a lista curta sem nenhuma informação de preço, que é
+ * exatamente o pilar que ela mais pesa.
+ *
+ * Cabe aqui e não numa function porque são ~16 chamadas em série para a
+ * bolsa inteira, contra o limite de 15s do Vercel. Uma vez por semana; o
+ * op=fundamentals rebusca por cima para os poucos que a tela mostra.
+ */
+async function baixarCotacoes(tickers) {
+  const out = {};
+  const token = process.env.BRAPI_TOKEN;
+  for (let i = 0; i < tickers.length; i += 20) {
+    const lote = tickers.slice(i, i + 20);
+    const url = `https://brapi.dev/api/quote/${encodeURIComponent(lote.join(','))}`;
+    const headers = { Accept: 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      let json;
+      try {
+        const res = await fetch(url, { headers, signal: ctrl.signal });
+        if (!res.ok) throw new Error(`http_${res.status}`);
+        json = await res.json();
+      } finally {
+        clearTimeout(timer);
+      }
+      for (const r of (json && json.results) || []) {
+        if (!r || !r.symbol) continue;
+        const preco = typeof r.regularMarketPrice === 'number' ? r.regularMarketPrice : null;
+        const volume = typeof r.regularMarketVolume === 'number' ? r.regularMarketVolume : null;
+        out[String(r.symbol).toUpperCase()] = {
+          ticker: String(r.symbol).toUpperCase(),
+          nome: r.longName || r.shortName || null,
+          preco,
+          marketCap: typeof r.marketCap === 'number' ? r.marketCap : null,
+          liquidezDiaria: preco !== null && volume !== null ? volume * preco : null,
+          fonte: 'brapi',
+          fonteRotulo: 'Cotação · BRAPI',
+        };
+      }
+    } catch (e) {
+      log(`  ! cotação do lote ${i / 20 + 1} falhou (${e.message})`);
+    }
+  }
+  return out;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const gravar = args.includes('--gravar') || args.includes('--send');
@@ -159,45 +227,98 @@ async function main() {
     .split(',')
     .map((t) => t.trim().toUpperCase())
     .filter(Boolean);
+  // Teto do universo. Serve para provar o pipeline ponta a ponta sem esperar
+  // a bolsa inteira na primeira execução.
+  const limite = Math.max(0, parseInt(argValor(args, 'limite', '0'), 10) || 0);
 
   log(`\n=== Ingestão CVM — ${gravar ? 'GRAVANDO' : 'DRY-RUN (não escreve)'} ===`);
   log(
-    `Anos: ${anosAtras} · Tickers: ${soTickers.length ? soTickers.join(',') : 'todos do mapa'}\n`
+    `Anos: ${anosAtras} · Tickers: ${soTickers.length ? soTickers.join(',') : 'universo automático (FCA)'}` +
+      `${limite ? ` · limite ${limite}` : ''}\n`
   );
 
   const anoBase = new Date().getUTCFullYear() - 1; // DFP do ano corrente só sai depois do fechamento
   const anos = [];
   for (let i = 0; i < anosAtras; i++) anos.push(anoBase - i);
 
-  // ── 1. Cadastro de companhias ──
-  log('· Cadastro de companhias abertas…');
-  const cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
-  const colNome = P.acharColuna(cadastro.colunas, P.COLUNAS.denominacao);
-  const colCd = P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm);
-  if (!colNome || !colCd) {
-    log(`  ✗ cadastro sem colunas esperadas. Colunas reais: ${cadastro.colunas.join(', ')}`);
-    process.exitCode = 1;
-    return;
+  // ── 1. Universo de ações: descoberto no FCA, não escrito à mão ──
+  //
+  // O FCA declara o código de negociação de cada valor mobiliário. É o
+  // vínculo oficial ticker ↔ CD_CVM, e é o que permite considerar a bolsa
+  // inteira. O mapa em lib/mapa-cvm.json fica só como rede: entra para o
+  // que o FCA não cobrir naquele ano.
+  log('· Universo de ações (FCA da CVM)…');
+  const porTicker = new Map();
+  for (const ano of [anoBase, anoBase - 1]) {
+    try {
+      const pacote = await baixarZipCsvs(`${BASE_CIA}/DOC/FCA/DADOS/fca_cia_aberta_${ano}.zip`, [
+        'valor_mobiliario',
+      ]);
+      const csv = pacote.csvs.valor_mobiliario;
+      if (!csv) {
+        log(
+          `  ! FCA ${ano} sem CSV de valor mobiliário. No ZIP: ${pacote.nomesNoZip.slice(0, 6).join(', ')}`
+        );
+        continue;
+      }
+      const r = P.extrairTickersFca(csv.registros, csv.colunas);
+      if (r.faltando.length) log(`  ! colunas do FCA não encontradas: ${r.faltando.join(', ')}`);
+      for (const [ticker, info] of r.porTicker)
+        if (!porTicker.has(ticker)) porTicker.set(ticker, info);
+      log(`  FCA ${ano}: ${r.porTicker.size} tickers`);
+      if (porTicker.size) break; // o exercício mais recente que funcionar basta
+    } catch (e) {
+      log(`  ! FCA ${ano} indisponível (${e.message})`);
+    }
   }
-  const mapaAcoes = soTickers.length
-    ? Object.fromEntries(Object.entries(MAPA.acoes).filter(([t]) => soTickers.includes(t)))
-    : MAPA.acoes;
-  const casamentos = casarCadastro(cadastro, mapaAcoes, colNome, colCd);
 
-  log('\n  Ticker  → empresa no cadastro da CVM (CONFIRA esta lista)');
-  for (const c of casamentos) {
-    const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
+  // Rede de segurança: sem FCA, cai para o mapa manual casado por nome.
+  let cadastro = null;
+  let colNome = null;
+  let colCd = null;
+  if (!porTicker.size) {
+    log('  ! FCA indisponível — caindo para o mapa manual (universo reduzido)');
+    cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
+    colNome = P.acharColuna(cadastro.colunas, P.COLUNAS.denominacao);
+    colCd = P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm);
+    if (!colNome || !colCd) {
+      log(`  ✗ cadastro sem colunas esperadas: ${cadastro.colunas.join(', ')}`);
+      process.exitCode = 1;
+      return;
+    }
+    for (const c of casarCadastro(cadastro, MAPA.acoes, colNome, colCd)) {
+      if (c.status === 'ok' && c.chave)
+        porTicker.set(c.ticker, { ticker: c.ticker, cdCvm: c.chave });
+    }
+  }
+
+  // Filtros do operador.
+  const semFonte = new Set(MAPA.semFonteCvm.tickers);
+  let universo = Array.from(porTicker.values()).filter((t) => !semFonte.has(t.ticker));
+  if (soTickers.length) universo = universo.filter((t) => soTickers.includes(t.ticker));
+  if (limite > 0) universo = universo.slice(0, limite);
+
+  // Uma companhia tem vários tickers (ON, PN, unit) e UMA demonstração. Os
+  // indicadores são calculados por empresa e replicados para cada ticker.
+  const empresas = new Map();
+  for (const t of universo) {
+    if (!empresas.has(t.cdCvm)) empresas.set(t.cdCvm, { cdCvm: t.cdCvm, tickers: [] });
+    empresas.get(t.cdCvm).tickers.push(t.ticker);
+  }
+  log(`\n  ${universo.length} tickers em ${empresas.size} companhias.`);
+  if (universo.length <= 40) {
+    log(`  ${universo.map((t) => t.ticker).join(' ')}`);
+  } else {
     log(
-      `  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status} ${c.chave ? '(CD_CVM ' + c.chave + ')' : ''}`
+      `  amostra: ${universo
+        .slice(0, 20)
+        .map((t) => t.ticker)
+        .join(' ')} …`
     );
-    if (c.alternativas) log(`       outras: ${c.alternativas.join(' | ')}`);
   }
-
-  const utilizaveis = casamentos.filter((c) => c.status === 'ok' && c.chave);
-  log(`\n  ${utilizaveis.length} de ${casamentos.length} tickers resolvidos.`);
 
   // ── 2. DFP por ano ──
-  const porTicker = new Map();
+  const porEmpresa = new Map();
   let colsResolvidas = null;
   for (const ano of anos) {
     log(`\n· DFP ${ano}…`);
@@ -243,15 +364,22 @@ async function main() {
     }
     colsResolvidas = cols;
 
-    for (const c of utilizaveis) {
-      const ex = exercicioDaEmpresa(pacote.csvs, cols, c.chave, ano);
+    // Agrupa UMA vez por arquivo, não uma vez por empresa: com centenas de
+    // companhias, reagrupar por empresa transformaria isto em O(n²) sobre
+    // arquivos de centenas de milhares de linhas.
+    const indices = {};
+    for (const chave of achados)
+      indices[chave] = P.agruparPorEmpresa(pacote.csvs[chave].registros, cols);
+
+    let comDados = 0;
+    for (const emp of empresas.values()) {
+      const ex = exercicioDaEmpresaIndexado(indices, cols, emp.cdCvm, ano);
       if (!ex) continue;
-      if (!porTicker.has(c.ticker)) porTicker.set(c.ticker, []);
-      porTicker.get(c.ticker).push(ex);
+      if (!porEmpresa.has(emp.cdCvm)) porEmpresa.set(emp.cdCvm, []);
+      porEmpresa.get(emp.cdCvm).push(ex);
+      comDados++;
     }
-    log(
-      `  ${utilizaveis.filter((c) => porTicker.has(c.ticker)).length} empresas com dados até aqui`
-    );
+    log(`  ${comDados} companhias com dados neste exercício`);
   }
 
   if (!colsResolvidas) {
@@ -263,40 +391,49 @@ async function main() {
   // ── 3. Indicadores ──
   log('\n· Indicadores calculados:\n');
   const documentos = [];
-  for (const [ticker, exercicios] of porTicker) {
+  let semNada = 0;
+  for (const emp of empresas.values()) {
+    const exercicios = porEmpresa.get(emp.cdCvm);
+    if (!exercicios || !exercicios.length) continue;
     const r = P.calcularIndicadores(exercicios);
     const ind = r.indicadores;
     const preenchidos = Object.values(ind).filter((v) => v !== null).length;
     const total = Object.keys(ind).length;
-    log(
-      `  ${ticker.padEnd(8)} ${String(preenchidos).padStart(2)}/${total} indicadores · ` +
-        `${r.exerciciosUsados} exercícios · ROE ${ind.roe === null ? '—' : ind.roe.toFixed(1) + '%'} · ` +
-        `dívLíq/EBITDA ${ind.dividaLiquidaEbitda === null ? '—' : ind.dividaLiquidaEbitda.toFixed(2) + 'x'}`
-    );
-    if (r.descartados.length) {
-      for (const d of r.descartados)
-        log(`           descartado ${d.campo}=${d.valor} (${d.motivo})`);
-    }
+
     // Empresa sem nenhum indicador não vai para a base: gravar um documento
     // vazio faria a API servir "dado da CVM" que não tem dado nenhum.
     if (!preenchidos) {
-      log(`           ✗ nada aproveitável — não será gravado`);
+      semNada++;
       continue;
     }
-    documentos.push({
-      ticker,
-      dados: {
-        ...ind,
-        ...r.absolutos,
-        classe: 'acao',
-        fonte: 'cvm',
-        fonteRotulo: `DFP ${r.ano} · CVM`,
-        dataReferencia: r.dataReferencia,
-        exerciciosUsados: r.exerciciosUsados,
-        indicadoresPreenchidos: preenchidos,
-      },
-    });
+    if (documentos.length < 40 || soTickers.length) {
+      log(
+        `  ${emp.tickers.join('/').padEnd(14)} ${String(preenchidos).padStart(2)}/${total} · ` +
+          `${r.exerciciosUsados} exerc. · ROE ${ind.roe === null ? '—' : ind.roe.toFixed(1) + '%'} · ` +
+          `dívLíq/EBITDA ${ind.dividaLiquidaEbitda === null ? '—' : ind.dividaLiquidaEbitda.toFixed(2) + 'x'}` +
+          (r.descartados.length ? ` · ${r.descartados.length} descartado(s)` : '')
+      );
+    }
+    for (const ticker of emp.tickers) {
+      documentos.push({
+        ticker,
+        dados: {
+          ...ind,
+          ...r.absolutos,
+          classe: 'acao',
+          cdCvm: emp.cdCvm,
+          fonte: 'cvm',
+          fonteRotulo: `DFP ${r.ano} · CVM`,
+          dataReferencia: r.dataReferencia,
+          exerciciosUsados: r.exerciciosUsados,
+          indicadoresPreenchidos: preenchidos,
+        },
+      });
+    }
   }
+  if (documentos.length >= 40 && !soTickers.length)
+    log(`  … e mais ${documentos.length - 40} tickers`);
+  if (semNada) log(`  ${semNada} companhias sem indicador aproveitável — não serão gravadas`);
 
   // ── 4. Informe mensal de FII ──
   const mapaFiis = soTickers.length
@@ -362,7 +499,28 @@ async function main() {
     }
   }
 
-  // ── 5. Gravação ──
+  // ── 5. Cotações do universo ──
+  //
+  // O ranking do servidor precisa de valor de mercado para calcular P/L e
+  // P/VP. Buscar aqui, uma vez por semana, é o que evita que a lista curta
+  // seja escolhida com o pilar de valuation cego.
+  const tickersRv = documentos
+    .filter((d) => d.dados.classe === 'acao' || d.dados.classe === 'fii')
+    .map((d) => d.ticker);
+  if (tickersRv.length) {
+    log(`\n· Cotação de ${tickersRv.length} tickers…`);
+    const cotacoes = await baixarCotacoes(tickersRv);
+    const achadas = Object.keys(cotacoes).length;
+    log(
+      `  ${achadas} cotações obtidas${achadas < tickersRv.length ? ` (${tickersRv.length - achadas} sem cotação)` : ''}`
+    );
+    for (const doc of documentos) {
+      const c = cotacoes[doc.ticker];
+      if (c) doc.mercado = c;
+    }
+  }
+
+  // ── 6. Gravação ──
   log(`\n=== ${documentos.length} documentos prontos ===`);
   if (!gravar) {
     log('DRY-RUN: nada foi gravado. Confira os casamentos acima e rode com --gravar.\n');
@@ -385,11 +543,16 @@ async function main() {
       // Ramo `cvm` separado do ramo `mercado`: a API compõe os dois na
       // leitura. Gravar plano faria a próxima resposta da fonte de cotação,
       // cheia de nulls, apagar tudo o que este job acabou de calcular.
-      batch.set(
-        database.collection(COLECAO).doc(doc.ticker),
-        { cvm: doc.dados, cvmFetchedAtMs: agora, updatedAt: timestamp().now() },
-        { merge: true }
-      );
+      const payload = { cvm: doc.dados, cvmFetchedAtMs: agora, updatedAt: timestamp().now() };
+      // Cotação vai para o ramo `mercado`, o mesmo que op=fundamentals usa.
+      // Ele rebusca por cima quando o dado passa de 24h, então a tela vê
+      // preço do dia e o ranking vê preço da semana — que é o suficiente
+      // para peneirar.
+      if (doc.mercado) {
+        payload.mercado = doc.mercado;
+        payload.mercadoFetchedAtMs = agora;
+      }
+      batch.set(database.collection(COLECAO).doc(doc.ticker), payload, { merge: true });
       gravados++;
     }
     await batch.commit();
@@ -404,4 +567,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { casarCadastro, exercicioDaEmpresa };
+module.exports = { casarCadastro, exercicioDaEmpresa, exercicioDaEmpresaIndexado, baixarCotacoes };

@@ -514,3 +514,145 @@ test('o mapa de tickers cobre o universo padrão da carteira modelo', () => {
   assert.ok(mapa.semFonteCvm.tickers.includes('BOVA11'));
   assert.ok(mapa.semFonteCvm.tickers.includes('BTC'));
 });
+
+// ════════════════════════════════════════════
+// Descoberta do universo pelo FCA
+// ════════════════════════════════════════════
+//
+// É o que substitui a lista escrita à mão. Duas coisas têm de estar certas:
+// o vínculo ticker ↔ CD_CVM (errado, os indicadores de uma empresa acabam
+// noutra) e o que NÃO é ação ficar de fora (debênture pontuada com critérios
+// de renda variável seria absurdo).
+
+test('FCA devolve o vínculo oficial ticker → CD_CVM', () => {
+  const csv = [
+    'CD_CVM;Codigo_Negociacao;Valor_Mobiliario;Mercado;Data_Referencia',
+    '1023;BBAS3;Ações Ordinárias;Bolsa;2025-12-31',
+    '5410;WEGE3;Ações Ordinárias;Bolsa;2025-12-31',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker, faltando } = P.extrairTickersFca(registros, colunas);
+  assert.equal(porTicker.get('BBAS3').cdCvm, '1023');
+  assert.equal(porTicker.get('WEGE3').cdCvm, '5410');
+  assert.ok(!faltando.includes('cdCvm'));
+});
+
+test('uma companhia com vários tickers gera todos', () => {
+  // ON e PN da mesma empresa dividem a mesma demonstração.
+  const csv = [
+    'CD_CVM;Codigo_Negociacao;Valor_Mobiliario',
+    '9512;PETR3, PETR4;Ações Ordinárias',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker } = P.extrairTickersFca(registros, colunas);
+  assert.equal(porTicker.get('PETR3').cdCvm, '9512');
+  assert.equal(porTicker.get('PETR4').cdCvm, '9512');
+});
+
+test('debênture, bônus e opção ficam fora do universo de ações', () => {
+  const csv = [
+    'CD_CVM;Codigo_Negociacao;Valor_Mobiliario',
+    '1111;AAAA1;Debêntures',
+    '2222;BBBB2;Bônus de Subscrição',
+    '3333;CCCC3;Ações Ordinárias',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker } = P.extrairTickersFca(registros, colunas);
+  assert.deepEqual(Array.from(porTicker.keys()), ['CCCC3']);
+});
+
+test('espécie desconhecida passa: o filtro exclui, não exige vocabulário', () => {
+  // A CVM pode renomear "Unit" para outra coisa; recusar o que não está numa
+  // lista fechada apagaria ativos válidos a cada mudança de nomenclatura.
+  const csv = 'CD_CVM;Codigo_Negociacao;Valor_Mobiliario\n4444;DDDD4;Categoria Nova Qualquer';
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker } = P.extrairTickersFca(registros, colunas);
+  assert.ok(porTicker.has('DDDD4'));
+});
+
+test('código que não tem forma de ticker da B3 é ignorado', () => {
+  const csv = [
+    'CD_CVM;Codigo_Negociacao;Valor_Mobiliario',
+    '1;lixo;Ações Ordinárias',
+    '2;TOOLONG123;Ações Ordinárias',
+    '3;AB1;Ações Ordinárias',
+    '4;VALE3;Ações Ordinárias',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker } = P.extrairTickersFca(registros, colunas);
+  assert.deepEqual(Array.from(porTicker.keys()), ['VALE3']);
+});
+
+test('sem a coluna de código de negociação, o FCA não devolve nada', () => {
+  // Melhor universo vazio (que faz o script cair para o mapa manual) do que
+  // universo montado a partir de uma coluna que não é o ticker.
+  const { colunas, registros } = P.parseCsvCvm('CD_CVM;Outra\n1;X');
+  const r = P.extrairTickersFca(registros, colunas);
+  assert.equal(r.porTicker.size, 0);
+  assert.ok(r.faltando.includes('codigoNegociacao'));
+});
+
+test('exercício mais recente do FCA vence quando o ticker se repete', () => {
+  const csv = [
+    'CD_CVM;Codigo_Negociacao;Valor_Mobiliario;Data_Referencia',
+    '111;ABCD3;Ações Ordinárias;2023-12-31',
+    '222;ABCD3;Ações Ordinárias;2025-12-31',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker } = P.extrairTickersFca(registros, colunas);
+  assert.equal(porTicker.get('ABCD3').cdCvm, '222', 'empresa que hoje usa o código é a que vale');
+});
+
+test('cotação do universo é mapeada com liquidez derivada de volume x preço', async () => {
+  const { baixarCotacoes } = require('../scripts/ingest-cvm');
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    status: 200,
+    json: async () => ({
+      results: [
+        {
+          symbol: 'bbas3',
+          longName: 'Banco do Brasil S.A.',
+          regularMarketPrice: 28.5,
+          regularMarketVolume: 2000000,
+          marketCap: 160e9,
+        },
+        { symbol: 'SEMPRECO3', longName: 'Sem preço', marketCap: 1e9 },
+      ],
+    }),
+  });
+  try {
+    const r = await baixarCotacoes(['BBAS3', 'SEMPRECO3']);
+    assert.equal(r.BBAS3.liquidezDiaria, 2000000 * 28.5, 'liquidez é volume x preço, não volume');
+    assert.equal(r.BBAS3.marketCap, 160e9, 'valor de mercado é o que permite P/L e P/VP');
+    assert.equal(r.BBAS3.ticker, 'BBAS3', 'ticker normalizado para maiúsculas');
+    assert.equal(r.SEMPRECO3.liquidezDiaria, null, 'sem preço não há liquidez calculável');
+    assert.equal(r.SEMPRECO3.preco, null);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('lote de cotação que falha não derruba os outros', async () => {
+  const { baixarCotacoes } = require('../scripts/ingest-cvm');
+  const original = globalThis.fetch;
+  let chamada = 0;
+  globalThis.fetch = async () => {
+    chamada++;
+    if (chamada === 1) throw new Error('rede');
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({ results: [{ symbol: 'OK3', regularMarketPrice: 10 }] }),
+    };
+  };
+  try {
+    const tickers = [];
+    for (let i = 0; i < 25; i++) tickers.push(`T${i}`);
+    const r = await baixarCotacoes(tickers);
+    assert.ok(r.OK3, 'o segundo lote tem de ser aproveitado mesmo com o primeiro falhando');
+  } finally {
+    globalThis.fetch = original;
+  }
+});
