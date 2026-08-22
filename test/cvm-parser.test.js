@@ -1370,3 +1370,51 @@ test('a composição do capital guarda as linhas descartadas, com o motivo', () 
   assert.equal(linhas[1].circulacao, 40000);
   assert.equal(linhas[2].motivo, 'sem_quantidade_ordinaria');
 });
+
+test('o DY do mês é razão apesar do nome, e a escala sai da mediana do arquivo', () => {
+  // Valores do informe real: MXRF11 saiu 0,00808 num mês em que rendeu
+  // ~0,8%. O campo chama-se "Percentual_" e não é percentagem.
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Percentual_Dividend_Yield_Mes',
+    '97.521.225/0001-25;2026-07-31;0,00808',
+    '11.728.688/0001-47;2026-07-31;0,007023',
+    '00.000.000/0001-91;2026-07-31;0,012197',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+
+  assert.equal(r.escalaDy.fator, 100, 'a mediana 0,008 só pode ser razão');
+  const mxrf = r.porCnpj.get('97521225000125');
+  assert.equal(mxrf.dyMes, 0.808, 'DY do mês em percentagem');
+  assert.ok(
+    Math.abs(mxrf.dy - 9.696) < 1e-9,
+    `DY anual devia ser ~9,7%, veio ${mxrf.dy} — lido como percentagem daria 0,1%`
+  );
+});
+
+test('arquivo já em percentagem não é multiplicado de novo', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Percentual_Dividend_Yield_Mes',
+    '97.521.225/0001-25;2026-07-31;0,81',
+    '11.728.688/0001-47;2026-07-31;0,70',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+  assert.equal(r.escalaDy.fator, 1);
+  assert.equal(r.porCnpj.get('97521225000125').dyMes, 0.81);
+});
+
+test('DY de um mês fora de faixa vira lacuna, não número', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Percentual_Dividend_Yield_Mes',
+    // Mediana em percentagem; a primeira linha é impossível para um mês.
+    '97.521.225/0001-25;2026-07-31;90',
+    '11.728.688/0001-47;2026-07-31;0,70',
+    '00.000.000/0001-91;2026-07-31;0,80',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+  assert.equal(r.porCnpj.get('97521225000125').dyMes, null, '90% num mês não é DY');
+  assert.equal(r.porCnpj.get('97521225000125').dy, null);
+  assert.equal(r.porCnpj.get('11728688000147').dyMes, 0.7, 'o resto do arquivo não é afetado');
+});

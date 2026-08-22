@@ -155,14 +155,17 @@ silêncio.
 
 ### S5d — A busca acha algo, só que a coisa errada ⚠️
 
-**A família de bugs mais cara deste projeto.** Três instâncias reais, todas
+**A família de bugs mais cara deste projeto.** Seis instâncias reais, todas
 encontradas lendo o log de execução contra dados de verdade:
 
-| sintoma                                       | causa                                                               | por que passou despercebido                    |
-| --------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
-| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                         | zero linhas é indistinguível de "não há dados" |
-| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                     | 190 é um número, e números parecem certos      |
-| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras | devolveu valor real, da conta errada           |
+| sintoma                                       | causa                                                                | por que passou despercebido                    |
+| --------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
+| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                          | zero linhas é indistinguível de "não há dados" |
+| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                      | 190 é um número, e números parecem certos      |
+| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras  | devolveu valor real, da conta errada           |
+| `ELET3 ações 0,00bi` para PL de 118 bi        | linha de outra natureza vencendo no arquivo de composição do capital | 0,00bi só chama atenção ao lado do patrimônio  |
+| `? MXRF11 MAXI RENDA FIXA CURTO PRAZO…`       | nome casado contra o cadastro de TODOS os fundos, não só os FIIs     | casou — com um fundo de renda fixa             |
+| informe de FII de janeiro lido em agosto      | primeira entrada do ZIP que casa com o prefixo, num ZIP por mês      | números plausíveis, só velhos                  |
 
 O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
 não há `null`, não há linha de erro — há um número plausível o suficiente
@@ -183,6 +186,19 @@ disponível quando o código não reclama.
 - Quando o layout tem variantes (planos de conta setoriais), **detecte a
   variante pelos próprios dados** e recuse-se a aplicar o que não vale ali.
   Melhor um travessão do que um EBITDA de banco.
+- "Achou um" não é "achou o certo": onde a fonte tem MUITAS linhas por
+  chave (um arquivo por mês no ZIP, várias linhas por companhia), diga
+  explicitamente qual vence e por qual critério. `find()` devolve a
+  primeira do arquivo, que não é critério nenhum.
+- Antes de casar por NOME, verifique se o identificador existe. Só se
+  recorre a nome quando não há código — e aí o universo precisa ser
+  reduzido primeiro, senão o nome não identifica. Melhor ainda: procure o
+  código onde ele de facto está (o ISIN do informe de FII carrega a raiz
+  do ticker; ninguém precisava escrever a tabela à mão).
+- Quando uma trava recusa um número, **imprima o dado cru que a motivou.**
+  Recusar protege o ranking mas não explica a fonte, e as hipóteses
+  concorrentes ("o filtro descartou a linha certa" × "a linha certa não
+  existe assim") pedem correções opostas.
 
 ### S6 — Unidade trocada
 

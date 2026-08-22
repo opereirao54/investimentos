@@ -193,18 +193,62 @@ intermediação financeira É a operação. A identificação exige sinal positi
 (contas interfinanceiras, depósitos, provisões técnicas), nunca a mera ausência
 da linha de circulante: um balanço truncado não pode virar banco.
 
+#### O vínculo ticker ↔ FII sai de um código, não de um nome
+
+Para ações o universo vem do FCA, que declara o código de negociação de cada
+companhia. Para fundos imobiliários não há FCA, e o caminho óbvio — casar o nome
+do fundo contra o cadastro de fundos da CVM — foi **desmentido pela execução
+real**:
+
+```
+584 fundos imobiliários de 46805 no cadastro
+"MAXI" aparece em: (nenhum dos 584)
+"CSHG" aparece em: CSHG OCEANUS | CSHG RESIDENCIAL      (nenhum é o HGLG11)
+```
+
+Não é o nome que mudou: `cad_fi.csv` não cobre os fundos listados em bolsa.
+Nenhum ajuste de string conserta uma fonte que não tem o dado.
+
+O vínculo passou a sair do **próprio Informe Mensal de FII**, em duas vias:
+
+1. uma coluna de código de negociação, se a CVM publicar uma — direta;
+2. senão, a raiz do `Codigo_ISIN` da cota. O ISIN de cota de fundo brasileiro
+   tem a forma `BR` + RAIZ + `CTF` + 3 dígitos, e a RAIZ **é** a raiz do ticker:
+   `MXRF11 ↔ BRMXRFCTF004`, `HGLG11 ↔ BRHGLGCTF003`. A B3 é a agência nacional
+   de numeração; a raiz não é convenção nossa, é o código que ela atribuiu.
+
+Nas duas vias o vínculo vem de um campo publicado — não há tabela escrita à mão
+para envelhecer, e um FII novo entra sozinho. A raiz procurada é sempre a do
+ticker pedido: nenhum ticker é inventado a partir do índice, e um código que
+aparece com dois CNPJs (sucessão de fundo) é marcado, não escondido.
+
+Duas armadilhas do mesmo ZIP, ambas da família "a busca acha a coisa errada":
+
+- **o ZIP anual tem um arquivo por mês.** Pegar a primeira entrada que casava
+  com o prefixo entregava janeiro em agosto — sem erro, com números plausíveis.
+  Agora todos os meses são concatenados e o desempate é por data de referência.
+- **os campos moram em membros diferentes.** Patrimônio e cotistas no `geral`,
+  dividend yield no `complemento`, vacância no de ativos. Escolher um membro de
+  véspera deixava metade dos campos vazia; os três são lidos e completados campo
+  a campo.
+
+O P/VP de FII sai de **preço ÷ valor patrimonial da cota**, os dois publicados —
+sem contagem de cotas no meio para errar de escala.
+
 #### O que a leitura do log real corrigiu
 
 A primeira execução contra a CVM de verdade — e as três seguintes — encontraram
 quatro classes de defeito que **nenhum teste de unidade via**, porque cada peça
 estava certa isoladamente:
 
-| rodada | o que provou                          | o que expôs                                                     |
-| ------ | ------------------------------------- | --------------------------------------------------------------- |
-| 1      | —                                     | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ |
-| 2      | 477 tickers, 8 companhias casadas     | LPA ×1000, dividendo zero falso, 404 anônimo                    |
-| 3      | LPA 2,40 / 0,19 / 0,95                | ROE 43,4% num banco, 3 URLs de FII em 404                       |
-| 4      | PL 193,6 bi no BBAS3, dividendos 9/14 | dívida/EBITDA de banco                                          |
+| rodada | o que provou                            | o que expôs                                                     |
+| ------ | --------------------------------------- | --------------------------------------------------------------- |
+| 1      | —                                       | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ |
+| 2      | 477 tickers, 8 companhias casadas       | LPA ×1000, dividendo zero falso, 404 anônimo                    |
+| 3      | LPA 2,40 / 0,19 / 0,95                  | ROE 43,4% num banco, 3 URLs de FII em 404                       |
+| 4      | PL 193,6 bi no BBAS3, dividendos 9/14   | dívida/EBITDA de banco                                          |
+| 5      | valuation 14/14 pela contagem declarada | ELET3 e AESO3 com 0,00 bi de ações                              |
+| 6      | contagem implausível recusada (11/14)   | o `cad_fi.csv` não contém os FIIs listados                      |
 
 O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
 sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.
@@ -264,10 +308,10 @@ O workflow roda o dry-run **antes** de gravar, mesmo no agendamento: se o layout
 mudou, o relatório mostra qual coluna sumiu e o passo de gravação nem chega a
 correr.
 
-Para acrescentar um ativo, edite `scripts/lib/mapa-cvm.json` com o nome pelo qual
-ele aparece no cadastro da CVM. O mapa guarda **nome**, não `CD_CVM`: código
-decorado num arquivo envelhece e ninguém confere; o casamento por nome é
-reimpresso a cada execução, para poder ser revisado.
+Ações **não** precisam de cadastro manual: o universo vem do FCA. Para
+acrescentar um FII, basta o ticker em `scripts/lib/mapa-cvm.json` — o vínculo
+com o fundo é resolvido pelo código publicado no informe, e o casamento é
+reimpresso a cada execução para poder ser revisado.
 
 ### `GET /api/market?op=ranking&lente=renda` — quais ativos, decidido por dado
 

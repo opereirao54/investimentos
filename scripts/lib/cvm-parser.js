@@ -829,6 +829,23 @@ function extrairInformeFii(registros, colunas) {
   // Só o que este membro deveria ter conta como ausência: os campos de
   // imóveis vivem noutro arquivo e acusá-los aqui é ruído.
   const faltando = Object.keys(COLUNAS_FII).filter((c) => !cols[c]);
+
+  // `Percentual_Dividend_Yield_Mes` chama-se "percentual" e é RAZÃO. O
+  // informe real desmentiu o nome:
+  //
+  //   MXRF11  0,00808   num mês em que rendeu ~0,8%
+  //   HGLG11  0,007023  num mês em que rendeu ~0,7%
+  //
+  // Lido como percentagem, o DY anual de todo FII sairia ~0,1% e a classe
+  // inteira afundaria no pilar de dividendos — número errado, não ausente,
+  // que é sempre o pior dos dois.
+  //
+  // A escala é decidida UMA vez por arquivo, pela mediana dos valores
+  // positivos, e não linha a linha: a convenção é propriedade do arquivo, e
+  // a mediana não se deixa mover por um fundo atípico. Se a CVM trocar a
+  // convenção, a mediana acompanha sem que ninguém precise reeditar código.
+  const escalaDy = escalaDoDividendYield(registros, cols.dividendYieldMes);
+
   const porCnpj = new Map();
   for (const r of registros) {
     const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
@@ -838,6 +855,12 @@ function extrairInformeFii(registros, colunas) {
     if (anterior && anterior.dataReferencia >= data) continue;
 
     const num = (campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
+    // Fora de [0; 5] não é DY de um mês: vira lacuna, nunca número.
+    const dyBruto = num('dividendYieldMes');
+    // Arredondado: multiplicar por 100 em ponto flutuante produz
+    // `0.7023000000000001`, que polui log e documento sem acrescentar nada.
+    const dyEscalado = dyBruto === null ? null : Math.round(dyBruto * escalaDy.fator * 1e6) / 1e6;
+    const dyMesPct = dyEscalado !== null && dyEscalado >= 0 && dyEscalado <= 5 ? dyEscalado : null;
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
     porCnpj.set(cnpj, {
@@ -854,11 +877,32 @@ function extrairInformeFii(registros, colunas) {
       // DY do mês, oficial. O motor usa DY anual: doze meses do mesmo
       // patamar é a leitura honesta de um informe mensal — e o rótulo da
       // fonte diz de que mês veio.
-      dy: num('dividendYieldMes') === null ? null : num('dividendYieldMes') * 12,
-      dyMes: num('dividendYieldMes'),
+      dy: dyMesPct === null ? null : dyMesPct * 12,
+      dyMes: dyMesPct,
     });
   }
-  return { porCnpj, faltando, colunas: cols };
+  return { porCnpj, faltando, colunas: cols, escalaDy };
+}
+
+/**
+ * Razão ou percentagem? Decidido pela mediana dos valores positivos do
+ * arquivo.
+ *
+ * DY mensal real de FII vive entre 0,3% e 2%. Como razão isso é 0,003 a
+ * 0,02 — trinta vezes abaixo. Não há sobreposição entre as duas leituras
+ * para fundo nenhum, e é por isso que a mediana decide sem ambiguidade.
+ */
+function escalaDoDividendYield(registros, coluna) {
+  if (!coluna) return { fator: 1, mediana: null, amostra: 0 };
+  const vals = [];
+  for (const r of registros || []) {
+    const v = valorNumericoCvm(r[coluna]);
+    if (v !== null && v > 0) vals.push(v);
+  }
+  if (!vals.length) return { fator: 1, mediana: null, amostra: 0 };
+  vals.sort((a, b) => a - b);
+  const mediana = vals[Math.floor(vals.length / 2)];
+  return { fator: mediana < 0.1 ? 100 : 1, mediana, amostra: vals.length };
 }
 
 module.exports.FAIXAS = FAIXAS;

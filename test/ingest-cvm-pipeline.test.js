@@ -194,8 +194,8 @@ function informeComplemento(competencia) {
   const recente = competencia === '202607';
   return [
     'CNPJ_Fundo;Data_Referencia;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
-    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};${recente ? '10,00' : '10,00'};${recente ? '0,85' : '0,70'}`,
-    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};133,33;0,75`,
+    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};10,00;${recente ? '0,0085' : '0,0070'}`,
+    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};133,33;0,0075`,
   ].join('\n');
 }
 
@@ -496,6 +496,10 @@ test('FII casa pelo ISIN publicado e traz o mês mais recente do ZIP', async () 
   // deixaria metade dos campos vazia.
   assert.match(texto, /MXRF11.*PL 1\.60bi/, `patrimônio do mês errado:\n${texto}`);
   assert.match(texto, /MXRF11.*DY 0\.85%\/mês/, `DY não veio do complemento:\n${texto}`);
+  // `Percentual_Dividend_Yield_Mes` é RAZÃO, apesar do nome: 0,0085 é
+  // 0,85% no mês. Lido como percentagem, o DY anual de todo FII sairia
+  // ~0,1% e a classe inteira afundaria no pilar de dividendos.
+  assert.match(texto, /razão, convertido para %/, `escala do DY não detetada:\n${texto}`);
   assert.match(texto, /MXRF11.*VPC 10/, `valor patrimonial da cota ausente:\n${texto}`);
   // Um FII fora do informe não pode virar casamento aproximado.
   assert.match(texto, /✗ KNRI11/, `KNRI11 devia ficar sem correspondência:\n${texto}`);

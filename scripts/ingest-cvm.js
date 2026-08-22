@@ -931,10 +931,20 @@ async function main() {
       // execução.
       const porCnpj = new Map();
       const achadas = new Set();
-      for (const [, csv] of membros) {
+      for (const [nome, csv] of membros) {
         const parcial = P.extrairInformeFii(csv.registros, csv.colunas);
         for (const campo of Object.keys(parcial.colunas || {})) {
           if (parcial.colunas[campo]) achadas.add(campo);
+        }
+        // A convenção de unidade do DY é decidida pelo arquivo; dizer qual
+        // saiu é o que permite conferir sem abrir o CSV. `Percentual_…` que
+        // é razão já custou uma rodada.
+        const esc = parcial.escalaDy;
+        if (esc && esc.amostra) {
+          log(
+            `    DY do mês em "${nome}": mediana ${esc.mediana} em ${esc.amostra} fundos → ` +
+              (esc.fator === 100 ? 'razão, convertido para %' : 'já em %')
+          );
         }
         for (const [cnpj, inf] of parcial.porCnpj) {
           const acum = porCnpj.get(cnpj);
@@ -948,6 +958,17 @@ async function main() {
         }
       }
       const faltando = Object.keys(P.COLUNAS_FII).filter((campo) => !achadas.has(campo));
+      // Vacância e número de imóveis moram noutro membro e não entram em
+      // `faltando` — mas se nenhum dos três arquivos os traz, o pilar de
+      // crescimento do FII fica sem a taxa de ocupação e ninguém fica
+      // sabendo por quê. Nomear as colunas reais é o que responde isso.
+      const semImoveis = Object.keys(P.COLUNAS_FII_IMOVEIS).every((campo) => !achadas.has(campo));
+      if (semImoveis) {
+        log('  ! vacância e número de imóveis não estão em nenhum membro lido');
+        for (const [nome, csv] of membros) {
+          log(`    colunas de ${nome}: ${csv.colunas.join(', ')}`);
+        }
+      }
       if (faltando.length) {
         log(`  ! campos de FII em nenhum membro: ${faltando.join(', ')}`);
         for (const [nome, csv] of membros) {
