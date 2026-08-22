@@ -20,14 +20,14 @@ Tudo entra em `api/market.js` via `?op=` — o Vercel Hobby limita a 12 function
 O que não cabe numa function (processar ZIP de dezenas de MB em 15s e 256 MB)
 roda como job separado.
 
-| Classe           | Fonte primária                           | Complemento                                       |
-| ---------------- | ---------------------------------------- | ------------------------------------------------- |
-| Ações            | **CVM — DFP + FCA** (job de ingestão)    | BRAPI: preço, valor de mercado, volume, proventos |
-| FIIs             | **CVM — Informe Mensal**                 | BRAPI: preço, proventos                           |
-| ETFs, BDRs       | BRAPI                                    | —                                                 |
-| Criptos          | CoinGecko `/coins/markets`               | —                                                 |
-| Renda fixa       | **Tesouro Direto** (`op=rendafixa`)      | BCB, para converter a taxa                        |
-| Selic, CDI, IPCA | **BCB — SGS + Focus** (`op=indicadores`) | —                                                 |
+| Classe           | Fonte primária                           | Complemento                                                                 |
+| ---------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
+| Ações            | **CVM — DFP + FCA** (job de ingestão)    | **Yahoo Finance** enquanto a CVM não chega; BRAPI: preço, volume, proventos |
+| FIIs             | **CVM — Informe Mensal**                 | BRAPI: preço, proventos                                                     |
+| ETFs, BDRs       | BRAPI                                    | —                                                                           |
+| Criptos          | CoinGecko `/coins/markets`               | —                                                                           |
+| Renda fixa       | **Tesouro Direto** (`op=rendafixa`)      | BCB, para converter a taxa                                                  |
+| Selic, CDI, IPCA | **BCB — SGS + Focus** (`op=indicadores`) | —                                                                           |
 
 A fonte primária dos fundamentos **não é** uma API comercial. O motivo é
 medido, não estético: com o plano grátis da BRAPI, 13 dos 16 indicadores de
@@ -48,8 +48,32 @@ Isso não é organização, é correção: a resposta da BRAPI traz `null` expl�
 em quase todo campo fundamentalista, e um `merge: true` plano por cima apagaria
 os indicadores que a ingestão acabou de calcular.
 
+### Três fontes empilhadas
+
+O documento tem três ramos — `cvm`, `yahoo` e `mercado` — e a junção acontece
+só na leitura. **O Yahoo existe porque a CVM depende de um job semanal**, e sem
+ele o produto passa o primeiro dia (ou a primeira semana, se o job não estiver
+configurado) mostrando "dados insuficientes" para a bolsa inteira. Ele não
+compete com a CVM: entra apenas onde ela ainda não chegou, e a procedência
+mostrada na tela diz qual foi.
+
+| Ramo      | Quem escreve                   | Validade | Papel                                                                  |
+| --------- | ------------------------------ | -------- | ---------------------------------------------------------------------- |
+| `cvm`     | job de ingestão                | semanas  | Fonte primária, auditável, com exercício declarado                     |
+| `yahoo`   | `op=fundamentals`, sob demanda | 7 dias   | Cobre o intervalo até a CVM chegar, e o que ela não cobre (BDRs, ETFs) |
+| `mercado` | `op=fundamentals`              | 24h      | Preço, valor de mercado, volume, proventos                             |
+
+O `quoteSummary` do Yahoo exige cookie + crumb desde 2023; a autenticação é
+feita uma vez e guardada na memória do container. Como é **um pedido por
+ticker**, há teto por requisição e **orçamento de tempo calculado a partir do
+que resta** dos 15s de `maxDuration` — o que não couber fica sem o ramo `yahoo`
+e é buscado na chamada seguinte. Cobertura parcial converge em duas ou três
+aberturas da aba; estourar o limite devolveria 504 e o utilizador perderia até
+o que já tinha sido buscado.
+
 Regras da composição:
 
+- a CVM vence o Yahoo, e o Yahoo vence o `null` da cotação;
 - a CVM vence onde tem dado;
 - o mercado entra com o que só ele tem — preço, valor de mercado, volume, proventos;
 - **P/L e P/VP não existem em nenhuma das duas sozinha**: nascem do lucro e do

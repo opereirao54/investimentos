@@ -1369,6 +1369,246 @@ function ehCripto(t) {
   return Object.prototype.hasOwnProperty.call(CRYPTO_MAP, t);
 }
 
+// ---------- Fundamentos via Yahoo Finance ----------
+//
+// Segunda fonte de fundamentos, e a única que funciona SEM esperar o job
+// semanal da CVM e SEM plano pago. Existe por um motivo medido: com a BRAPI
+// grátis, 13 dos 16 indicadores de ação chegam nulos, a cobertura fica em 5%
+// e nenhuma ação é pontuada — a tela mostra "dados insuficientes" para a
+// bolsa inteira.
+//
+// Ordem de preferência das três fontes: CVM (primária, auditável) > Yahoo
+// (imediata) > cotação. O Yahoo não substitui a CVM: os números dele são
+// derivados e não vêm com o exercício de origem declarado. Serve para o
+// produto funcionar hoje, e para cobrir o que a CVM não cobre (BDRs, ETFs).
+//
+// O endpoint quoteSummary exige cookie + crumb desde 2023. A dança é feita
+// uma vez e guardada na memória do container, que a serverless reaproveita
+// entre invocações — o mesmo padrão do cache de notícias.
+
+const YAHOO_SUMMARY_BASE = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary';
+const YAHOO_MODULOS =
+  'summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory,price,assetProfile';
+const YAHOO_AUTH_TTL_MS = 30 * 60 * 1000;
+const YAHOO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// Fundamento muda por trimestre; cotação muda por minuto. Por isso o ramo do
+// Yahoo tem validade própria, muito maior que a do ramo de cotação.
+const YAHOO_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+// Teto por requisição. O quoteSummary é um pedido por ticker; sem teto, uma
+// lista de 30 estouraria os 15s de maxDuration da function. O que não couber
+// fica sem ramo `yahoo` e é buscado na chamada seguinte — o cache converge em
+// duas ou três aberturas da aba.
+const YAHOO_MAX_POR_REQUISICAO = 8;
+const YAHOO_ORCAMENTO_MS = 6000;
+
+let yahooAuth = { cookie: null, crumb: null, at: 0 };
+
+async function obterAuthYahoo() {
+  if (yahooAuth.crumb && Date.now() - yahooAuth.at < YAHOO_AUTH_TTL_MS) return yahooAuth;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    // fc.yahoo.com responde 404 e mesmo assim carimba o cookie. Checar res.ok
+    // aqui reprovaria o caminho feliz.
+    const resCookie = await fetch('https://fc.yahoo.com/', {
+      redirect: 'manual',
+      headers: { 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    const bruto = resCookie.headers.get('set-cookie');
+    const cookie = bruto ? bruto.split(';')[0] : null;
+    if (!cookie) throw new Error('yahoo_sem_cookie');
+
+    const resCrumb = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { Cookie: cookie, 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    const crumb = (await resCrumb.text()).trim();
+    // Um crumb é uma string curta. Corpo grande aqui é página de erro ou de
+    // consentimento — aceitar isso faria todas as requisições seguintes
+    // falharem com uma mensagem que não diz nada.
+    if (!crumb || crumb.length > 32 || crumb.includes('<')) throw new Error('yahoo_sem_crumb');
+
+    yahooAuth = { cookie, crumb, at: Date.now() };
+    return yahooAuth;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Yahoo embrulha números em { raw, fmt }. */
+function yv(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'object') return fundNum(v.raw);
+  return fundNum(v);
+}
+
+/** Resposta do quoteSummary -> o mesmo contrato de indicadores do motor. */
+function mapYahooFundamental(res, ticker, agora) {
+  const detalhe = (res && res.summaryDetail) || {};
+  const stats = (res && res.defaultKeyStatistics) || {};
+  const fin = (res && res.financialData) || {};
+  const preco = (res && res.price) || {};
+  const perfil = (res && res.assetProfile) || {};
+
+  const cotacao = yv(preco.regularMarketPrice);
+  const volume =
+    yv(preco.regularMarketVolume) !== null ? yv(preco.regularMarketVolume) : yv(detalhe.volume);
+  const marketCap = yv(preco.marketCap) !== null ? yv(preco.marketCap) : yv(detalhe.marketCap);
+
+  const pvp = yv(stats.priceToBook);
+  const patrimonioLiquido = pvp !== null && pvp > 0 && marketCap !== null ? marketCap / pvp : null;
+
+  const caixa = yv(fin.totalCash);
+  const dividaBruta = yv(fin.totalDebt);
+  const dividaLiquida = dividaBruta !== null ? dividaBruta - (caixa || 0) : null;
+  const ebitda = yv(fin.ebitda);
+
+  const divPl =
+    dividaLiquida !== null && patrimonioLiquido !== null && patrimonioLiquido > 0
+      ? dividaLiquida / patrimonioLiquido
+      : yv(fin.debtToEquity) !== null
+        ? yv(fin.debtToEquity) / 100 // este campo já vem em percentagem
+        : null;
+
+  // DY: o Yahoo dá a razão nestes dois, mas fiveYearAvgDividendYield já vem
+  // em percentagem. Misturar as duas convenções erraria por 100 vezes.
+  const dyRazao =
+    yv(detalhe.trailingAnnualDividendYield) !== null
+      ? yv(detalhe.trailingAnnualDividendYield)
+      : yv(detalhe.dividendYield);
+  const dyMedio = yv(detalhe.fiveYearAvgDividendYield);
+
+  // fundCrescimentoDre é agnóstico de fonte e espera números crus. Passar o
+  // histórico do Yahoo como vem faria todo campo virar null em silêncio, e o
+  // pilar Crescimento ficaria permanentemente vazio.
+  const historicoDre = (
+    (res && res.incomeStatementHistory && res.incomeStatementHistory.incomeStatementHistory) ||
+    []
+  ).map((linha) => ({
+    endDate: yv(linha.endDate),
+    totalRevenue: yv(linha.totalRevenue),
+    netIncome: yv(linha.netIncome),
+  }));
+  const dre = fundCrescimentoDre(historicoDre);
+
+  const dados = {
+    ticker,
+    nome: preco.longName || preco.shortName || null,
+    setor: perfil.sector || perfil.industry || null,
+    preco: cotacao,
+    marketCap,
+    patrimonioLiquido,
+
+    pl: yv(detalhe.trailingPE) !== null ? yv(detalhe.trailingPE) : yv(stats.trailingPE),
+    pvp,
+    evEbitda: yv(stats.enterpriseToEbitda),
+
+    dy: dyRazao === null ? null : dyRazao * 100,
+    // Fora de [0, 30] não é DY médio de ativo brasileiro: é outra unidade.
+    dyMedio5a: dyMedio !== null && dyMedio >= 0 && dyMedio <= 30 ? dyMedio : null,
+    dyMedio36m: null,
+    payout: fundRazaoParaPct(yv(detalhe.payoutRatio)),
+    anosPagandoDividendo: null,
+    consistenciaDividendos: null,
+    crescimentoDividendo12m: null,
+
+    cagrReceita5a: dre.cagrReceita5a,
+    cagrLucro5a: dre.cagrLucro5a,
+    crescimentoReceitaAno: fundRazaoParaPct(yv(fin.revenueGrowth)),
+
+    dividaLiquidaEbitda: ebitda !== null && ebitda > 0 ? fundDiv(dividaLiquida, ebitda) : null,
+    dividaLiquidaPl: divPl,
+    liquidezCorrente: yv(fin.currentRatio),
+
+    roe: fundRazaoParaPct(yv(fin.returnOnEquity)),
+    roic: null, // o Yahoo também não expõe ROIC
+    margemLiquida: fundRazaoParaPct(yv(fin.profitMargins)),
+    margemEbitda: fundRazaoParaPct(yv(fin.ebitdaMargins)),
+    liquidezDiaria: volume !== null && cotacao !== null ? volume * cotacao : null,
+  };
+  dados.cobertura = fundCobertura(dados, CHAVES_ACAO);
+  dados.fonte = 'yahoo';
+  dados.fonteRotulo = 'Fundamentos · Yahoo Finance';
+  // O Yahoo não declara o exercício de origem dos números.
+  dados.dataReferencia = null;
+  dados.fetchedAtMs = agora;
+  return dados;
+}
+
+async function fetchYahooUm(ticker, auth) {
+  // A B3 no Yahoo usa o sufixo .SA. Cripto e renda fixa não passam por aqui.
+  const simbolo = `${ticker}.SA`;
+  const url =
+    `${YAHOO_SUMMARY_BASE}/${encodeURIComponent(simbolo)}` +
+    `?modules=${YAHOO_MODULOS}&crumb=${encodeURIComponent(auth.crumb)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      headers: { Cookie: auth.cookie, 'User-Agent': YAHOO_UA, Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`yahoo_${res.status}`);
+    const json = await res.json();
+    const resultado =
+      json && json.quoteSummary && json.quoteSummary.result && json.quoteSummary.result[0];
+    if (!resultado) throw new Error('yahoo_sem_resultado');
+    return resultado;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Fundamentos de vários tickers, com teto e orçamento de tempo.
+ *
+ * Best-effort de propósito: o que não couber no orçamento fica sem o ramo
+ * `yahoo` e é buscado na chamada seguinte. Preferir cobertura parcial a
+ * estourar o maxDuration e devolver 504 — nesse caso o utilizador não
+ * receberia nem os que já tinham sido buscados.
+ */
+async function fetchYahooFundamentals(tickers, erros, orcamentoMs) {
+  const out = {};
+  const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_ORCAMENTO_MS;
+  if (!tickers.length || orcamento <= 500) return out;
+  let auth;
+  try {
+    auth = await obterAuthYahoo();
+  } catch (e) {
+    erros.push({ fonte: 'yahoo', erro: e.message });
+    return out;
+  }
+
+  const limite = Date.now() + orcamento;
+  const fila = tickers.slice(0, YAHOO_MAX_POR_REQUISICAO);
+  const agora = Date.now();
+  for (let i = 0; i < fila.length; i += 4) {
+    if (Date.now() > limite) break;
+    const lote = fila.slice(i, i + 4);
+    const resultados = await Promise.all(
+      lote.map((t) =>
+        fetchYahooUm(t, auth)
+          .then((r) => ({ t, r }))
+          .catch((e) => {
+            erros.push({ fonte: 'yahoo', ticker: t, erro: e.message });
+            return null;
+          })
+      )
+    );
+    for (const item of resultados) {
+      if (!item) continue;
+      const d = mapYahooFundamental(item.r, item.t, agora);
+      // Resposta que não trouxe indicador nenhum não vira ramo: gravá-la
+      // marcaria o ticker como "já buscado" por sete dias sem nada dentro.
+      if (d.cobertura > 0) out[item.t] = d;
+    }
+  }
+  return out;
+}
+
 async function fetchBrapiFundamentals(tickers) {
   if (!tickers.length) return {};
   const params = new URLSearchParams({
@@ -1381,7 +1621,7 @@ async function fetchBrapiFundamentals(tickers) {
   const headers = { Accept: 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 12000);
+  const timer = setTimeout(() => ctrl.abort(), 7000);
   let res;
   try {
     res = await fetch(url, { headers, signal: ctrl.signal });
@@ -1471,20 +1711,46 @@ function comporFundamentos(doc) {
   if (!doc || typeof doc !== 'object') return null;
   // Documentos gravados antes da separação em ramos são planos.
   const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
+  const yahoo = doc.yahoo && typeof doc.yahoo === 'object' ? doc.yahoo : null;
   const cvm = doc.cvm && typeof doc.cvm === 'object' ? doc.cvm : null;
   const out = { ...mercado };
   delete out.cvm;
   delete out.mercado;
+  delete out.yahoo;
 
-  if (!cvm) {
+  // Empilha em ordem de autoridade: cotação por baixo, Yahoo por cima,
+  // CVM em último. Cada camada só escreve onde tem valor — é isso que
+  // impede o null de uma fonte de apagar o dado de outra.
+  const METADADOS = [
+    'fonte',
+    'fonteRotulo',
+    'dataReferencia',
+    'classe',
+    'cobertura',
+    'fetchedAtMs',
+  ];
+  function aplicar(camada) {
+    if (!camada) return;
+    for (const [chave, valor] of Object.entries(camada)) {
+      if (valor === null || valor === undefined) continue;
+      if (METADADOS.includes(chave)) continue;
+      out[chave] = valor;
+    }
+  }
+  aplicar(yahoo);
+  aplicar(cvm);
+
+  if (!cvm && !yahoo) {
     out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
     return out;
   }
 
-  for (const [chave, valor] of Object.entries(cvm)) {
-    if (valor === null || valor === undefined) continue;
-    if (['fonte', 'fonteRotulo', 'dataReferencia', 'classe'].includes(chave)) continue;
-    out[chave] = valor;
+  if (!cvm) {
+    out.fonte = 'yahoo';
+    out.fonteRotulo = yahoo.fonteRotulo || 'Fundamentos · Yahoo Finance';
+    out.dataReferencia = null;
+    out.fetchedAtMs = doc.yahooFetchedAtMs || doc.mercadoFetchedAtMs || null;
+    return out;
   }
 
   const marketCap = fundNum(mercado.marketCap);
@@ -1504,6 +1770,7 @@ function comporFundamentos(doc) {
 }
 
 async function handleFundamentals(req, res) {
+  const inicio = Date.now();
   const user = await requireUser(req, res);
   if (!user) return;
 
@@ -1592,6 +1859,46 @@ async function handleFundamentals(req, res) {
     }
   }
 
+  // Enriquecimento com Yahoo. Só entra quem NÃO tem dado da CVM — a CVM é a
+  // fonte primária e o Yahoo existe para o produto funcionar antes de o job
+  // semanal rodar, não para competir com ele.
+  const precisamYahoo = [];
+  for (const t of requested) {
+    if (ehCripto(t)) continue;
+    const d = documentos[t] || {};
+    if (d.cvm && Object.keys(d.cvm).length > 3) continue;
+    if (typeof d.yahooFetchedAtMs === 'number' && agora - d.yahooFetchedAtMs < YAHOO_TTL_MS)
+      continue;
+    precisamYahoo.push(t);
+  }
+  let comYahoo = 0;
+  if (precisamYahoo.length) {
+    // maxDuration da function é 15s (vercel.json). Deixa 2s de folga para as
+    // gravações e a serialização da resposta.
+    const restante = 13000 - (Date.now() - inicio);
+    const doYahoo = await fetchYahooFundamentals(
+      precisamYahoo,
+      erros,
+      Math.min(YAHOO_ORCAMENTO_MS, restante)
+    );
+    const chaves = Object.keys(doYahoo);
+    if (chaves.length) {
+      const loteYahoo = database.batch();
+      for (const t of chaves) {
+        loteYahoo.set(
+          database.collection(FUNDAMENTALS_COLLECTION).doc(t),
+          { yahoo: doYahoo[t], yahooFetchedAtMs: agora, updatedAt: timestamp().now() },
+          { merge: true }
+        );
+        documentos[t] = { ...(documentos[t] || {}), yahoo: doYahoo[t], yahooFetchedAtMs: agora };
+        comYahoo++;
+      }
+      await loteYahoo
+        .commit()
+        .catch((e) => console.warn('[market/fundamentals] yahoo_write_failed', e.message));
+    }
+  }
+
   const fundamentos = {};
   const indisponiveis = [];
   let comCvm = 0;
@@ -1612,6 +1919,7 @@ async function handleFundamentals(req, res) {
     fromCache: Object.keys(fresh).length,
     fromApi: Object.keys(fetched).length,
     comCvm,
+    comYahoo,
     indisponiveis,
     fundamentos,
     erros,
@@ -2081,6 +2389,8 @@ module.exports.__test = {
   fundCrescimentoDre,
   fundCobertura,
   mapBrapiFundamental,
+  mapYahooFundamental,
+  fetchYahooFundamentals,
   comporFundamentos,
   mapTesouroTitulo,
   parseTesouroResposta,

@@ -904,3 +904,168 @@ test('o topN do cron bate com o que o cliente pede', () => {
     'cliente e cron precisam pedir o mesmo topN para partilharem o cache'
   );
 });
+
+// ════════════════════════════════════════════
+// Fundamentos via Yahoo Finance
+// ════════════════════════════════════════════
+//
+// É a fonte que faz ação pontuar HOJE, sem esperar o job semanal da CVM e
+// sem plano pago. O risco é o mesmo de sempre e não fica menor por a fonte
+// ser outra: o Yahoo embrulha número em { raw, fmt }, dá razão num campo
+// (returnOnEquity: 0.185) e percentagem em outro (debtToEquity: 45.3, e
+// fiveYearAvgDividendYield: 8.5). Misturar as convenções erra por 100 vezes
+// e o ranking inteiro passa a mentir sem nada quebrar.
+
+const { mapYahooFundamental } = market.__test || {};
+
+const YAHOO_COMPLETO = {
+  price: {
+    regularMarketPrice: { raw: 28.5 },
+    regularMarketVolume: { raw: 2000000 },
+    marketCap: { raw: 160e9 },
+    longName: 'Banco do Brasil S.A.',
+  },
+  assetProfile: { sector: 'Financial Services' },
+  summaryDetail: {
+    trailingPE: { raw: 4.5 },
+    trailingAnnualDividendYield: { raw: 0.095 }, // razão
+    fiveYearAvgDividendYield: { raw: 8.2 }, // JÁ em percentagem
+    payoutRatio: { raw: 0.42 }, // razão
+  },
+  defaultKeyStatistics: { priceToBook: { raw: 0.8 }, enterpriseToEbitda: { raw: 5.2 } },
+  financialData: {
+    returnOnEquity: { raw: 0.204 }, // razão
+    profitMargins: { raw: 0.251 },
+    ebitdaMargins: { raw: 0.33 },
+    revenueGrowth: { raw: 0.087 },
+    currentRatio: { raw: 1.6 },
+    totalCash: { raw: 30e9 },
+    totalDebt: { raw: 90e9 },
+    ebitda: { raw: 40e9 },
+    debtToEquity: { raw: 45.3 }, // JÁ em percentagem
+  },
+  incomeStatementHistory: {
+    incomeStatementHistory: [
+      { endDate: { raw: 1767139200 }, totalRevenue: { raw: 150000 }, netIncome: { raw: 35000 } },
+      { endDate: { raw: 1640908800 }, totalRevenue: { raw: 100000 }, netIncome: { raw: 20000 } },
+    ],
+  },
+};
+
+test('Yahoo: razão vira percentagem, percentagem não é multiplicada de novo', () => {
+  const d = mapYahooFundamental(YAHOO_COMPLETO, 'BBAS3', Date.now());
+  assert.ok(Math.abs(d.roe - 20.4) < 0.01, `ROE ${d.roe}`);
+  assert.ok(Math.abs(d.margemLiquida - 25.1) < 0.01);
+  assert.ok(Math.abs(d.dy - 9.5) < 0.01, `DY ${d.dy} — trailingAnnualDividendYield é razão`);
+  assert.ok(Math.abs(d.payout - 42) < 0.01);
+  assert.equal(d.dyMedio5a, 8.2, 'fiveYearAvgDividendYield já vem em percentagem');
+});
+
+test('Yahoo: dívida líquida é derivada, não copiada de debtToEquity', () => {
+  const d = mapYahooFundamental(YAHOO_COMPLETO, 'BBAS3', Date.now());
+  // (90bi - 30bi) / 40bi = 1,5x
+  assert.ok(Math.abs(d.dividaLiquidaEbitda - 1.5) < 0.001, `veio ${d.dividaLiquidaEbitda}`);
+  // Patrimônio = 160bi / 0,8 = 200bi -> 60bi/200bi = 0,3x
+  assert.ok(Math.abs(d.dividaLiquidaPl - 0.3) < 0.001, `veio ${d.dividaLiquidaPl}`);
+});
+
+test('Yahoo: sem P/VP, cai para debtToEquity convertido de percentagem', () => {
+  const magro = {
+    ...YAHOO_COMPLETO,
+    defaultKeyStatistics: {},
+    financialData: { debtToEquity: { raw: 45.3 } },
+  };
+  const d = mapYahooFundamental(magro, 'BBAS3', Date.now());
+  assert.ok(Math.abs(d.dividaLiquidaPl - 0.453) < 0.001, `veio ${d.dividaLiquidaPl}`);
+  assert.equal(d.dividaLiquidaEbitda, null, 'sem EBITDA não há múltiplo de dívida');
+});
+
+test('Yahoo: CAGR sai do histórico de DRE, com data em epoch', () => {
+  const d = mapYahooFundamental(YAHOO_COMPLETO, 'BBAS3', Date.now());
+  // 100 -> 150 em 4 anos ≈ 10,67%
+  assert.ok(d.cagrReceita5a > 8 && d.cagrReceita5a < 13, `CAGR receita ${d.cagrReceita5a}`);
+  assert.ok(d.cagrLucro5a > 10, `CAGR lucro ${d.cagrLucro5a}`);
+});
+
+test('Yahoo: liquidez diária é volume x preço', () => {
+  const d = mapYahooFundamental(YAHOO_COMPLETO, 'BBAS3', Date.now());
+  assert.equal(d.liquidezDiaria, 2000000 * 28.5);
+});
+
+test('Yahoo: DY médio absurdo é recusado em vez de virar indicador', () => {
+  const estranho = {
+    ...YAHOO_COMPLETO,
+    summaryDetail: { ...YAHOO_COMPLETO.summaryDetail, fiveYearAvgDividendYield: { raw: 950 } },
+  };
+  assert.equal(mapYahooFundamental(estranho, 'X', Date.now()).dyMedio5a, null);
+});
+
+test('Yahoo: cobertura alta é o que faz a ação voltar a pontuar', () => {
+  const d = mapYahooFundamental(YAHOO_COMPLETO, 'BBAS3', Date.now());
+  assert.ok(d.cobertura > 0.6, `cobertura ${d.cobertura} — abaixo de 0,3 não haveria score`);
+  const pontuado = require('../web/appliquei-motor-carteira.js').scoreAtivo(d, { lente: 'renda' });
+  assert.ok(pontuado.temLastro, 'com dado do Yahoo a ação tem de sair de "dados insuficientes"');
+  assert.ok(pontuado.score > 0);
+});
+
+test('Yahoo: resposta vazia não vira ramo com cobertura zero', () => {
+  const d = mapYahooFundamental({}, 'X', Date.now());
+  assert.equal(d.cobertura, 0, 'quem grava só grava com cobertura > 0');
+  assert.equal(d.roe, null);
+  assert.equal(d.pl, null);
+});
+
+// ── Empilhamento das três fontes ──
+
+test('CVM vence Yahoo, e Yahoo vence o null da cotação', () => {
+  const c = comporFundamentos({
+    mercado: { ...RAMO_MERCADO, roe: null },
+    yahoo: { roe: 19.8, roic: null, liquidezCorrente: 1.4, fonte: 'yahoo' },
+    cvm: { roe: 20.4, roic: 16.2, fonte: 'cvm', fonteRotulo: 'DFP 2025 · CVM' },
+  });
+  assert.equal(c.roe, 20.4, 'CVM é a fonte primária');
+  assert.equal(c.roic, 16.2);
+  assert.equal(c.liquidezCorrente, 1.4, 'onde a CVM não tem, o Yahoo preenche');
+  assert.equal(c.dy, 9.5, 'e onde nenhum tem, fica o da cotação');
+});
+
+test('só Yahoo: a procedência diz Yahoo, sem carimbo da CVM', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO,
+    yahoo: { roe: 19.8, pl: 4.6, fonte: 'yahoo', fonteRotulo: 'Fundamentos · Yahoo Finance' },
+    yahooFetchedAtMs: 4242,
+  });
+  assert.equal(c.fonte, 'yahoo');
+  assert.ok(c.fonteRotulo.includes('Yahoo'));
+  assert.ok(!c.fonteRotulo.includes('CVM'), 'não pode atribuir à CVM o que veio de outra fonte');
+  assert.equal(c.dataReferencia, null, 'o Yahoo não declara o exercício de origem');
+  assert.equal(c.fetchedAtMs, 4242);
+});
+
+test('o ramo bruto do Yahoo não vaza para o cliente', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, yahoo: { roe: 19.8 } });
+  assert.ok(!('yahoo' in c));
+  assert.ok(!('cvm' in c));
+  assert.ok(!('mercado' in c));
+});
+
+test('metadados de uma camada não sobrescrevem os da outra', () => {
+  // `cobertura` do Yahoo dentro do documento não pode virar a cobertura do
+  // ativo composto — quem calcula isso é o motor, sobre o resultado final.
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO,
+    yahoo: { roe: 19.8, cobertura: 0.7, classe: 'acao', fonte: 'yahoo' },
+    cvm: { roe: 20.4, cobertura: 0.9, classe: 'acao', fonte: 'cvm', fonteRotulo: 'DFP · CVM' },
+  });
+  assert.equal(c.cobertura, undefined, 'cobertura é calculada pelo motor, não herdada');
+  assert.equal(c.fonte, 'cvm');
+});
+
+test('Yahoo respeita o orçamento de tempo e não estoura o maxDuration', async () => {
+  const { fetchYahooFundamentals } = market.__test || {};
+  const erros = [];
+  // Orçamento esgotado: nem tenta autenticar.
+  assert.deepEqual(await fetchYahooFundamentals(['A', 'B'], erros, 0), {});
+  assert.deepEqual(await fetchYahooFundamentals(['A', 'B'], erros, 100), {});
+  assert.equal(erros.length, 0, 'desistir por orçamento não é erro a reportar');
+});

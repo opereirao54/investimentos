@@ -1573,10 +1573,27 @@ function motorJustificativa(ativo) {
     for (var f = 0; f < faltando.length && nomes.length < 3; f++) nomes.push(faltando[f].pilar);
     return 'Sem dados de ' + nomes.join(', ').toLowerCase() + ' — ativo não pontuado.';
   }
-  var top = pilares.slice(0, 2).map(function (p) {
+  function rotular(p) {
     return p.nome + ' ' + motorArred(p.nota, 1).toString().replace('.', ',') + '/10';
+  }
+
+  // "Destaque em Crescimento 0/10" é o oposto do que a frase diz. Só é
+  // destaque o pilar que sustenta a tese; abaixo disso a frase honesta é
+  // dizer qual é o melhor e admitir que nenhum é bom.
+  var fortes = pilares.filter(function (p) {
+    return p.nota >= 6;
   });
-  return 'Destaque em ' + top.join(' e ') + '.';
+  if (!fortes.length) {
+    return 'Nenhum pilar acima de 6/10 — o melhor é ' + rotular(pilares[0]) + '.';
+  }
+  var frase = 'Destaque em ' + fortes.slice(0, 2).map(rotular).join(' e ') + '.';
+  // Pilar muito fraco ao lado de um forte costuma ser o que decide a compra,
+  // e some se a frase só falar dos pontos altos.
+  var pior = pilares[pilares.length - 1];
+  if (pior.nota <= 3 && fortes.indexOf(pior) === -1) {
+    frase += ' Ponto fraco: ' + rotular(pior) + '.';
+  }
+  return frase;
 }
 
 /**
