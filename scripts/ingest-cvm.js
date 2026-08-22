@@ -318,8 +318,16 @@ async function main() {
         continue;
       }
       const r = P.extrairTickersFca(csv.registros, csv.colunas);
-      if (r.faltando.length) log(`  ! colunas do FCA não encontradas: ${r.faltando.join(', ')}`);
-      if (!r.porTicker.size)
+      // Essencial e opcional NÃO podem sair com a mesma cara. A ausência de
+      // CD_CVM no FCA é normal (o arquivo nunca o teve) e passou quatro
+      // rodadas parecendo a causa da falha.
+      if (r.faltandoEssencial && r.faltandoEssencial.length) {
+        log(`  ✗ FCA sem coluna essencial: ${r.faltandoEssencial.join(', ')}`);
+        log(`    colunas reais do arquivo: ${(r.colunasReais || csv.colunas).join(', ')}`);
+      } else if (r.faltando.length) {
+        log(`  (colunas opcionais ausentes, sem impacto no universo: ${r.faltando.join(', ')})`);
+      }
+      if (!r.porTicker.size && !(r.faltandoEssencial && r.faltandoEssencial.length))
         log(`    colunas reais do arquivo: ${(r.colunasReais || csv.colunas).join(', ')}`);
       for (const [ticker, info] of r.porTicker)
         if (!porTicker.has(ticker)) porTicker.set(ticker, info);
@@ -336,18 +344,29 @@ async function main() {
   let colCd = null;
   if (!porTicker.size) {
     log('  ! FCA indisponível — caindo para o mapa manual (universo reduzido)');
-    cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
-    colNome = P.acharColuna(cadastro.colunas, P.COLUNAS.denominacao);
-    colCd = P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm);
-    const colCnpjCad = P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj);
-    if (!colNome || (!colCd && !colCnpjCad)) {
-      log(`  ✗ cadastro sem colunas esperadas: ${cadastro.colunas.join(', ')}`);
-      process.exitCode = 1;
-      return;
-    }
-    for (const c of casarCadastro(cadastro, MAPA.acoes, colNome, colCd, colCnpjCad)) {
-      if (c.status === 'ok' && (c.chave || c.cnpj))
-        porTicker.set(c.ticker, { ticker: c.ticker, cdCvm: c.chave || null, cnpj: c.cnpj || null });
+    // O download do cadastro fica dentro do try porque a rede de segurança
+    // não pode derrubar o que ela existe para salvar: sem isto, a CVM fora
+    // do ar levava o job inteiro por exceção e o ÚLTIMO recurso logo abaixo
+    // — o mapa sozinho, que ainda serve ao Yahoo — nunca era alcançado.
+    try {
+      cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
+      colNome = P.acharColuna(cadastro.colunas, P.COLUNAS.denominacao);
+      colCd = P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm);
+      const colCnpjCad = P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj);
+      if (!colNome || (!colCd && !colCnpjCad)) {
+        log(`  ✗ cadastro sem colunas esperadas: ${cadastro.colunas.join(', ')}`);
+      } else {
+        for (const c of casarCadastro(cadastro, MAPA.acoes, colNome, colCd, colCnpjCad)) {
+          if (c.status === 'ok' && (c.chave || c.cnpj))
+            porTicker.set(c.ticker, {
+              ticker: c.ticker,
+              cdCvm: c.chave || null,
+              cnpj: c.cnpj || null,
+            });
+        }
+      }
+    } catch (e) {
+      log(`  ! cadastro da CVM indisponível (${e.message})`);
     }
   }
 
@@ -745,6 +764,12 @@ if (require.main === module) {
 }
 
 module.exports = {
+  // `main` é exportada para o teste de fumaça poder rodar o pipeline inteiro
+  // contra uma rede simulada. É o único lugar onde o encadeamento
+  // FCA → universo → DFP → indicadores → documentos é exercitado junto — e
+  // foi exatamente aí que a falha silenciosa (chave de junção errada) morou,
+  // sem que nenhum teste de unidade a visse.
+  main,
   casarCadastro,
   chavesDaEmpresa,
   exercicioDaEmpresa,

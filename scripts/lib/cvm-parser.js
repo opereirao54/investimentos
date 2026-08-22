@@ -700,10 +700,15 @@ const COLUNAS_FCA = {
   cdCvm: ['CD_CVM', 'CODIGO_CVM', 'Codigo_CVM'],
   codigoNegociacao: ['Codigo_Negociacao', 'CODIGO_NEGOCIACAO', 'CD_NEGOCIACAO'],
   valorMobiliario: ['Valor_Mobiliario', 'VALOR_MOBILIARIO', 'DS_VALOR_MOBILIARIO'],
-  mercado: ['Mercado', 'MERCADO', 'DS_MERCADO'],
-  siglaBolsa: ['Sigla_Bolsa', 'SIGLA_BOLSA', 'Entidade_Administradora'],
   dataReferencia: ['Data_Referencia', 'DT_REFER'],
 };
+
+// Sem estas não há universo. As outras refinam o filtro; a ausência delas
+// muda a qualidade do resultado, não a existência dele — e reportar as duas
+// coisas com a mesma cara foi o que mandou a investigação para o lado errado
+// durante quatro rodadas: "colunas do FCA não encontradas: cdCvm" parecia a
+// causa da falha e era uma nota de rodapé.
+const COLUNAS_FCA_ESSENCIAIS = ['codigoNegociacao'];
 
 /** CNPJ comparável: só dígitos. Os arquivos alternam entre formatado e cru. */
 function normalizarCnpj(v) {
@@ -739,8 +744,16 @@ function extrairTickersFca(registros, colunas) {
   const faltando = Object.keys(COLUNAS_FCA).filter((c) => !cols[c]);
   // Basta o código de negociação e UMA das duas identificações da companhia.
   // Exigir CD_CVM zerava o universo inteiro num arquivo que nunca o teve.
-  if (!cols.codigoNegociacao || (!cols.cnpj && !cols.cdCvm)) {
-    return { porTicker: new Map(), faltando, colunas: cols, colunasReais: colunas };
+  const faltandoEssencial = COLUNAS_FCA_ESSENCIAIS.filter((c) => !cols[c]);
+  if (!cols.cnpj && !cols.cdCvm) faltandoEssencial.push('cnpj ou cdCvm');
+  if (faltandoEssencial.length) {
+    return {
+      porTicker: new Map(),
+      faltando,
+      faltandoEssencial,
+      colunas: cols,
+      colunasReais: colunas,
+    };
   }
 
   const porTicker = new Map();
@@ -773,10 +786,11 @@ function extrairTickersFca(registros, colunas) {
       porTicker.set(ticker, { ticker, cdCvm, cnpj, dataReferencia: data || null });
     }
   }
-  return { porTicker, faltando, colunas: cols, colunasReais: colunas };
+  return { porTicker, faltando, faltandoEssencial, colunas: cols, colunasReais: colunas };
 }
 
 module.exports.COLUNAS_FCA = COLUNAS_FCA;
+module.exports.COLUNAS_FCA_ESSENCIAIS = COLUNAS_FCA_ESSENCIAIS;
 module.exports.normalizarCnpj = normalizarCnpj;
 module.exports.normalizarCdCvm = normalizarCdCvm;
 module.exports.ESPECIES_ACAO = ESPECIES_ACAO;
