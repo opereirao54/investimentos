@@ -1032,17 +1032,32 @@ async function main() {
         const dirTri = `${BASE_FII}/DOC/INF_TRIMESTRAL/DADOS/`;
         const achadoTri = await acharNoDiretorio(dirTri, /^inf_trimestral_fii_\d{4}\.zip$/i);
         const pacoteTri = await baixarZipCsvs(achadoTri.url, ['imovel', 'ativo', 'geral']);
-        const membroTri = pacoteTri.csvs.imovel || pacoteTri.csvs.ativo || pacoteTri.csvs.geral;
+        const nomeMembroTri = pacoteTri.csvs.imovel
+          ? 'imovel'
+          : pacoteTri.csvs.ativo
+            ? 'ativo'
+            : 'geral';
+        const membroTri = pacoteTri.csvs[nomeMembroTri];
         if (!membroTri) {
           log(`  ! trimestral sem membro reconhecido. No ZIP: ${pacoteTri.nomesNoZip.join(', ')}`);
         } else {
           const im = P.extrairImoveisFii(membroTri.registros, membroTri.colunas);
           imoveisPorCnpj = im.porCnpj;
           log(`  trimestral ${achadoTri.nome}: ${imoveisPorCnpj.size} fundos com imóveis`);
+          // QUAL coluna virou vacância e QUAL virou área — sempre, não só
+          // quando falta. "Ocupação 100%" em toda a carteira pode ser
+          // verdade ou pode ser a coluna errada, e o nome dela é o que
+          // separa as duas. Uma granularidade diferente da esperada (uma
+          // linha por unidade, não por imóvel) também aparece aqui.
+          log(
+            `    membro "${nomeMembroTri}" (${(membroTri.membros || []).length} arquivos, ` +
+              `${membroTri.registros.length} linhas) · vacância ← ${im.colunas.vacancia || '—'}` +
+              ` · área ← ${im.colunas.area || '—'}`
+          );
+          log(`    colunas reais: ${membroTri.colunas.slice(0, 24).join(', ')}`);
           if (im.faltando.length) {
             log(`  ! trimestral sem colunas: ${im.faltando.join(', ')}`);
             log(`    membros no ZIP: ${pacoteTri.nomesNoZip.join(', ')}`);
-            log(`    colunas reais: ${membroTri.colunas.join(', ')}`);
           }
         }
       } catch (e) {
@@ -1093,6 +1108,7 @@ async function main() {
             ` · VPC ${inf.valorPatrimonialCota ?? '—'} · DY ${inf.dyMes ?? '—'}%/mês` +
             ` · cotistas ${inf.numeroCotistas ?? '—'}` +
             ` · imóveis ${imoveis ? imoveis.numeroImoveis : '—'}` +
+            `${imoveis ? ` (${imoveis.imoveisComVago} com vago)` : ''}` +
             ` · ocupação ${imoveis && imoveis.ocupacao !== null ? imoveis.ocupacao : (inf.ocupacao ?? '—')}`
         );
         log(

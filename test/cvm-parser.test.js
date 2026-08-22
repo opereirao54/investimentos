@@ -1456,11 +1456,16 @@ test('mês sem rendimento derruba a consistência, não o DY médio', () => {
 });
 
 test('reenvio do mesmo mês conta uma vez só', () => {
-  const r = P.indicadoresDaSerieFii([
-    { dataReferencia: '2026-01-01', dyMes: 0.5 },
-    { dataReferencia: '2026-01-31', dyMes: 0.9 },
-    { dataReferencia: '2026-02-01', dyMes: 0.9 },
-  ]);
+  // Piso de meses baixado de propósito: aqui o alvo é a deduplicação, não
+  // a janela mínima.
+  const r = P.indicadoresDaSerieFii(
+    [
+      { dataReferencia: '2026-01-01', dyMes: 0.5 },
+      { dataReferencia: '2026-01-31', dyMes: 0.9 },
+      { dataReferencia: '2026-02-01', dyMes: 0.9 },
+    ],
+    { minimoMeses: 1 }
+  );
   assert.equal(r.mesesObservados, 2, 'janeiro reenviado é um mês, não dois');
   assert.ok(Math.abs(r.dyMedio36m - 10.8) < 1e-6, 'vale o último informe da competência');
 });
@@ -1607,4 +1612,14 @@ test('sem coluna de vacância os imóveis ainda são contados', () => {
   assert.equal(f.numeroImoveis, 2);
   assert.equal(f.ocupacao, null, 'sem o dado, lacuna — nunca 100%');
   assert.ok(r.faltando.includes('vacancia'));
+});
+
+test('poucos meses não viram "DY médio" — seria o DY atual contado duas vezes', () => {
+  const r = P.indicadoresDaSerieFii([
+    { dataReferencia: '2026-06-01', dyMes: 0.8 },
+    { dataReferencia: '2026-07-01', dyMes: 0.8 },
+  ]);
+  assert.equal(r.mesesObservados, 2, 'a contagem é registada mesmo abaixo do piso');
+  assert.equal(r.dyMedio36m, null, 'média de dois meses não é um indicador à parte');
+  assert.equal(r.consistenciaDividendos, null);
 });

@@ -918,6 +918,11 @@ function indicadoresDaSerieFii(serie, opcoes) {
   const op = opcoes || {};
   const janelaDy = op.janelaDy || 36;
   const janelaConsistencia = op.janelaConsistencia || 24;
+  // Piso de meses. Com dois informes, "DY médio" é o DY atual repetido, e
+  // pontuá-lo como indicador SEPARADO faria o mesmo dado valer duas vezes
+  // no pilar de dividendos. Meia dúzia de competências é o mínimo para a
+  // média dizer algo que o último mês já não diga.
+  const minimoMeses = op.minimoMeses || 6;
   if (!Array.isArray(serie) || !serie.length) {
     return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: 0 };
   }
@@ -940,6 +945,9 @@ function indicadoresDaSerieFii(serie, opcoes) {
     ? Math.round((pagando / ultimosCons.length) * 1000) / 10
     : null;
 
+  if (meses.length < minimoMeses) {
+    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: meses.length };
+  }
   return { dyMedio36m, consistenciaDividendos, mesesObservados: meses.length };
 }
 
@@ -1218,6 +1226,7 @@ function extrairImoveisFii(registros, colunas) {
     if (vac !== null && vac >= 0 && vac <= 100) {
       acum.somaVacancia += vac;
       acum.comVacancia += 1;
+      if (vac > 0) acum.imoveisComVago = (acum.imoveisComVago || 0) + 1;
       if (area !== null && area > 0) {
         acum.areaTotal += area;
         acum.vagoPonderado += (vac / 100) * area;
@@ -1227,6 +1236,10 @@ function extrairImoveisFii(registros, colunas) {
   }
 
   for (const acum of porCnpj.values()) {
+    // Quantos imóveis de facto têm vacância declarada acima de zero. Uma
+    // carteira inteira com ocupação 100% pode ser verdade — ou a coluna
+    // lida não ser vacância. A distribuição separa as duas sem abrir o CSV.
+    acum.imoveisComVago = acum.imoveisComVago || 0;
     acum.vacancia =
       acum.areaTotal > 0
         ? Math.round((acum.vagoPonderado / acum.areaTotal) * 1000) / 10

@@ -216,7 +216,7 @@ function informeComplemento(competencia) {
 }
 
 function informeZip(ano) {
-  const meses = ['01', '07'];
+  const meses = ['01', '04', '07'];
   const membros = [];
   // Fora de ordem de propósito: quem escolhe o mês é a data de referência,
   // não a ordem do arquivo.
@@ -578,12 +578,13 @@ test('a série mensal atravessa anos e alimenta DY médio e consistência', asyn
   // Só os dois anos mais recentes são baixados — a janela segue `--anos`.
   assert.match(texto, /informe: inf_mensal_fii_2025\.zip, inf_mensal_fii_2026\.zip/, texto);
   // Quatro competências observadas, três pagando: 75%.
-  assert.match(texto, /MXRF11[\s\S]{0,200}?série 4 meses/, `série não acumulou:\n${texto}`);
-  assert.match(texto, /pagando 75% dos meses/, `consistência errada:\n${texto}`);
-  // DY médio: (0,60 + 0,60 + 0 + 0,85) / 4 × 12 = 6,15% ao ano. Sem a série,
+  assert.match(texto, /MXRF11[\s\S]{0,200}?série 6 meses/, `série não acumulou:\n${texto}`);
+  // Quatro competências com rendimento em seis observadas.
+  assert.match(texto, /pagando 66\.7% dos meses/, `consistência errada:\n${texto}`);
+  // DY médio: (0,60×3 + 0 + 0 + 0,85) / 6 × 12 = 5,3% ao ano. Sem a série,
   // este indicador ficava vazio e o pilar de dividendos do FII com um
   // indicador só.
-  assert.match(texto, /DY médio 6\.15%/, `DY médio errado:\n${texto}`);
+  assert.match(texto, /DY médio 5\.3%/, `DY médio errado:\n${texto}`);
   // O último mês continua descrevendo o fundo hoje — a série não o move.
   assert.match(texto, /MXRF11\s+2026-07-01/, texto);
 });
@@ -621,8 +622,15 @@ test('ocupação e imóveis vêm do informe trimestral, que é quem os publica',
   });
   assert.match(texto, /trimestral inf_trimestral_fii_2026\.zip: 2 fundos com imóveis/, texto);
   // 20% vago em metade da área = 10% de vacância, 90% de ocupação.
-  assert.match(texto, /MXRF11.*imóveis 2 · ocupação 90/, `ocupação errada:\n${texto}`);
-  assert.match(texto, /HGLG11.*imóveis 1 · ocupação 100/, texto);
+  assert.match(
+    texto,
+    /MXRF11.*imóveis 2 \(1 com vago\) · ocupação 90/,
+    `ocupação errada:\n${texto}`
+  );
+  assert.match(texto, /HGLG11.*imóveis 1 \(0 com vago\) · ocupação 100/, texto);
+  // Qual coluna virou vacância tem de estar no log: "ocupação 100%" na
+  // carteira toda pode ser verdade ou pode ser a coluna errada.
+  assert.match(texto, /vacância ← Percentual_Vacancia · área ← Area_Bruta_Locavel/, texto);
 });
 
 test('sem o trimestral o FII não morre: perde ocupação e mantém o resto', async () => {
