@@ -1623,3 +1623,44 @@ test('poucos meses não viram "DY médio" — seria o DY atual contado duas veze
   assert.equal(r.dyMedio36m, null, 'média de dois meses não é um indicador à parte');
   assert.equal(r.consistenciaDividendos, null);
 });
+
+test('LTV do FII não conta rendimento a distribuir como dívida', () => {
+  // `Total_Passivo` inclui rendimentos a distribuir e taxa de administração
+  // a pagar. Usá-lo faria um fundo sem dívida nenhuma aparecer alavancado
+  // no mês em que declarou rendimento.
+  assert.equal(
+    P.alavancagemFii({
+      valorAtivo: 1000,
+      obrigacoesAquisicaoImoveis: 0,
+      obrigacoesSecuritizacao: 0,
+    }),
+    0
+  );
+  assert.equal(
+    P.alavancagemFii({
+      valorAtivo: 2000000000,
+      obrigacoesAquisicaoImoveis: 200000000,
+      obrigacoesSecuritizacao: 100000000,
+    }),
+    15
+  );
+});
+
+test('LTV sem ativo, sem obrigação declarada ou fora de faixa é lacuna', () => {
+  assert.equal(P.alavancagemFii({ valorAtivo: 0, obrigacoesAquisicaoImoveis: 10 }), null);
+  assert.equal(
+    P.alavancagemFii({
+      valorAtivo: 1000,
+      obrigacoesAquisicaoImoveis: null,
+      obrigacoesSecuritizacao: null,
+    }),
+    null,
+    'nenhuma das duas rubricas publicada não é o mesmo que zero dívida'
+  );
+  assert.equal(
+    P.alavancagemFii({ valorAtivo: 1000, obrigacoesAquisicaoImoveis: 5000 }),
+    null,
+    '500% do ativo não é LTV, é linha lida errado'
+  );
+  assert.equal(P.alavancagemFii(null), null);
+});

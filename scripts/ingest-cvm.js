@@ -1101,6 +1101,9 @@ async function main() {
           'dy',
         ].filter((k) => inf[k] !== null && inf[k] !== undefined).length;
         const imoveis = imoveisPorCnpj.get(String(c.chave).replace(/\D/g, '')) || null;
+        // Depois da junção dos membros: o ativo vem do `complemento` e as
+        // obrigações do `ativo_passivo`.
+        const alavancagem = P.alavancagemFii(inf);
         const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
@@ -1113,7 +1116,8 @@ async function main() {
         );
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
-            ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses`
+            ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
+            ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
         if (!preenchidos) continue;
         documentos.push({
@@ -1136,6 +1140,9 @@ async function main() {
             // perguntas de consistência que o pilar de dividendos faz.
             dyMedio36m: serie.dyMedio36m,
             consistenciaDividendos: serie.consistenciaDividendos,
+            // Único indicador do pilar Endividamento do FII: sem ele o
+            // pilar inteiro fica vazio e a cobertura da classe desaba.
+            alavancagem,
             mesesObservados: serie.mesesObservados,
             classe: 'fii',
             fonte: 'cvm',

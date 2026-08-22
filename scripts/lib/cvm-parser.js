@@ -799,6 +799,18 @@ const COLUNAS_FII = {
   // fonte oficial.
   dividendYieldMes: ['Percentual_Dividend_Yield_Mes', 'Percentual_Dividend_Yield'],
   rentabilidadeMes: ['Percentual_Rentabilidade_Efetiva_Mes'],
+  // Alavancagem. O pilar Endividamento do FII tem UM indicador — LTV — e
+  // sem ele o pilar inteiro fica vazio, o que derruba a cobertura de toda a
+  // classe. O informe publica as duas pontas: as obrigações e o ativo.
+  //
+  // Não se usa `Total_Passivo`: ali dentro estão rendimentos a distribuir e
+  // taxa de administração a pagar, que não são dívida — um fundo sem
+  // dívida nenhuma apareceria alavancado no mês em que declarou
+  // rendimento. As obrigações por aquisição de imóveis e por securitização
+  // de recebíveis são o que de facto financia a carteira.
+  valorAtivo: ['Valor_Ativo', 'Total_Ativo'],
+  obrigacoesAquisicaoImoveis: ['Obrigacoes_Aquisicao_Imoveis'],
+  obrigacoesSecuritizacao: ['Obrigacoes_Securitizacao_Recebiveis'],
 };
 
 // Vacância e número de imóveis NÃO estão no `complemento` — moram noutro
@@ -893,6 +905,9 @@ function extrairInformeFii(registros, colunas) {
       // fonte diz de que mês veio.
       dy: dyMesPct === null ? null : dyMesPct * 12,
       dyMes: dyMesPct,
+      valorAtivo: num('valorAtivo'),
+      obrigacoesAquisicaoImoveis: num('obrigacoesAquisicaoImoveis'),
+      obrigacoesSecuritizacao: num('obrigacoesSecuritizacao'),
     });
   }
   return { porCnpj, seriePorCnpj, faltando, colunas: cols, escalaDy };
@@ -1251,6 +1266,38 @@ function extrairImoveisFii(registros, colunas) {
   }
   return { porCnpj, faltando, colunas: cols };
 }
+
+/**
+ * LTV do fundo: obrigações que financiam a carteira sobre o ativo.
+ *
+ * As duas pontas vêm de MEMBROS DIFERENTES do ZIP — o ativo do
+ * `complemento`, as obrigações do `ativo_passivo` —, e por isso o cálculo
+ * mora aqui, depois de os membros terem sido reunidos.
+ *
+ * Sem obrigação declarada o resultado é 0%, não lacuna: um FII que não
+ * publica nenhuma das duas rubricas não tem essa dívida, e tratá-lo como
+ * "não sei" penalizaria justamente o fundo sem alavancagem.
+ */
+function alavancagemFii(inf) {
+  if (!inf) return null;
+  const ativo = inf.valorAtivo;
+  if (ativo === null || ativo === undefined || !(ativo > 0)) return null;
+  const aquisicao = inf.obrigacoesAquisicaoImoveis;
+  const securitizacao = inf.obrigacoesSecuritizacao;
+  if (
+    (aquisicao === null || aquisicao === undefined) &&
+    (securitizacao === null || securitizacao === undefined)
+  ) {
+    return null;
+  }
+  const divida = (aquisicao || 0) + (securitizacao || 0);
+  const ltv = (divida / ativo) * 100;
+  // Acima de 100% do ativo não é LTV: é linha lida errado.
+  if (!(ltv >= 0 && ltv <= 100)) return null;
+  return Math.round(ltv * 10) / 10;
+}
+
+module.exports.alavancagemFii = alavancagemFii;
 
 module.exports.COLUNAS_FII_TRIMESTRAL = COLUNAS_FII_TRIMESTRAL;
 module.exports.extrairImoveisFii = extrairImoveisFii;

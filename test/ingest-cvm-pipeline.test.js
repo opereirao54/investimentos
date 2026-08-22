@@ -209,9 +209,9 @@ function informeComplemento(competencia) {
   const dyMxrf = ano === '2025' ? '0,0060' : mes === '07' ? '0,0085' : '0';
   const data = dataDa(competencia);
   return [
-    'CNPJ_Fundo;Data_Referencia;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
-    `${CNPJ_MXRF};${data};10,00;${dyMxrf}`,
-    `${CNPJ_HGLG};${data};133,33;0,0075`,
+    'CNPJ_Fundo;Data_Referencia;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes;Valor_Ativo',
+    `${CNPJ_MXRF};${data};10,00;${dyMxrf};2000000000`,
+    `${CNPJ_HGLG};${data};133,33;0,0075;4200000000`,
   ].join('\n');
 }
 
@@ -227,6 +227,16 @@ function informeZip(ano) {
     membros.push([
       `inf_mensal_fii_complemento_${ano}${mes}.csv`,
       informeComplemento(`${ano}${mes}`),
+    ]);
+    // As obrigações moram noutro membro que não o do ativo: é a junção
+    // deles que dá o LTV.
+    membros.push([
+      `inf_mensal_fii_ativo_passivo_${ano}${mes}.csv`,
+      [
+        'CNPJ_Fundo_Classe;Data_Referencia;Obrigacoes_Aquisicao_Imoveis;Obrigacoes_Securitizacao_Recebiveis;Rendimentos_Distribuir;Total_Passivo',
+        `${CNPJ_MXRF};${dataDa(`${ano}${mes}`)};200000000;100000000;15000000;315000000`,
+        `${CNPJ_HGLG};${dataDa(`${ano}${mes}`)};0;0;40000000;40000000`,
+      ].join('\n'),
     ]);
   }
   return zipar(membros);
@@ -664,4 +674,23 @@ test('undefined vira null antes da gravação, em vez de derrubar o lote', () =>
   assert.equal(limpo.patrimonioLiquido, 5e9);
   assert.equal(limpo.classe, 'fii');
   assert.ok(!Object.values(limpo).includes(undefined));
+});
+
+test('LTV do FII junta o ativo de um membro com as obrigações de outro', async () => {
+  // O pilar Endividamento do FII tem UM indicador. Vazio, o pilar inteiro
+  // some e a cobertura da classe cai abaixo do piso de score.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+    },
+  });
+  // (200M aquisição + 100M securitização) / 2.000M de ativo = 15%.
+  assert.match(texto, /MXRF11[\s\S]{0,200}?LTV 15%/, `LTV errado:\n${texto}`);
+  // Sem obrigação declarada é 0%, não lacuna: o fundo não tem essa dívida,
+  // e tratá-lo como "não sei" penalizaria justamente quem não se alavanca.
+  // Rendimentos a distribuir estão no passivo e NÃO entram na conta.
+  assert.match(texto, /HGLG11[\s\S]{0,200}?LTV 0%/, `LTV do fundo sem dívida:\n${texto}`);
 });
