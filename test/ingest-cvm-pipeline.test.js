@@ -647,3 +647,21 @@ test('sem o trimestral o FII não morre: perde ocupação e mantém o resto', as
   assert.match(texto, /MXRF11.*PL 1\.60bi/, `o mensal caiu junto:\n${texto}`);
   assert.match(texto, /documentos prontos/, texto);
 });
+
+test('undefined vira null antes da gravação, em vez de derrubar o lote', () => {
+  // O Firestore RECUSA `undefined` e aborta o batch inteiro: um campo novo
+  // que uma fonte não preencheu perderia a gravação das dezenas de
+  // documentos que estavam certos. Ausente é `null` — o motor já sabe ler
+  // lacuna.
+  const limpo = ingest.semUndefined({
+    patrimonioLiquido: 5e9,
+    ocupacao: undefined,
+    dyMedio36m: null,
+    classe: 'fii',
+  });
+  assert.equal(limpo.ocupacao, null);
+  assert.equal(limpo.dyMedio36m, null);
+  assert.equal(limpo.patrimonioLiquido, 5e9);
+  assert.equal(limpo.classe, 'fii');
+  assert.ok(!Object.values(limpo).includes(undefined));
+});

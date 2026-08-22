@@ -1241,11 +1241,11 @@ async function main() {
       // cheia de nulls, apagar tudo o que este job acabou de calcular.
       const payload = { updatedAt: timestamp().now() };
       if (doc.dados) {
-        payload.cvm = doc.dados;
+        payload.cvm = semUndefined(doc.dados);
         payload.cvmFetchedAtMs = agora;
       }
       if (doc.yahoo) {
-        payload.yahoo = doc.yahoo;
+        payload.yahoo = semUndefined(doc.yahoo);
         payload.yahooFetchedAtMs = agora;
       }
       // Cotação vai para o ramo `mercado`, o mesmo que op=fundamentals usa.
@@ -1253,7 +1253,7 @@ async function main() {
       // preço do dia e o ranking vê preço da semana — que é o suficiente
       // para peneirar.
       if (doc.mercado) {
-        payload.mercado = doc.mercado;
+        payload.mercado = semUndefined(doc.mercado);
         payload.mercadoFetchedAtMs = agora;
       }
       if (!payload.cvm && !payload.yahoo && !payload.mercado) continue;
@@ -1263,6 +1263,22 @@ async function main() {
     await batch.commit();
   }
   log(`Gravados ${gravados} documentos em ${COLECAO}.\n`);
+}
+
+/**
+ * Campos `undefined` viram ausência, não erro.
+ *
+ * O Firestore RECUSA `undefined` e derruba o lote inteiro — um campo novo
+ * que uma fonte não preencheu perderia a gravação das dezenas de
+ * documentos que estavam certos. Ausente é `null`: o motor já sabe ler
+ * lacuna, e é a diferença entre um indicador vazio e nenhum dado gravado.
+ */
+function semUndefined(obj) {
+  const out = {};
+  for (const [chave, valor] of Object.entries(obj || {})) {
+    out[chave] = valor === undefined ? null : valor;
+  }
+  return out;
 }
 
 if (require.main === module) {
@@ -1286,4 +1302,5 @@ module.exports = {
   exercicioDaEmpresa,
   exercicioDaEmpresaIndexado,
   baixarCotacoes,
+  semUndefined,
 };
