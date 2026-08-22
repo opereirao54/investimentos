@@ -292,6 +292,27 @@ No dia em que houver token, definir a variável é a única mudança necessária
 sem ele não há P/L nem P/VP. Esses vêm da ingestão, que usa o `quoteSummary`
 de um IP não limitado. Preencher no request seria inventar.
 
+### Cotação sem cadastro nenhum
+
+A BRAPI passou a exigir token até na chamada simples. Como o produto não pode
+depender de um cadastro, a escolha da via vive num ponto único
+(`fetchCotacoesMercado`) e é automática:
+
+| `BRAPI_TOKEN` | Via usada            | Custo                          |
+| ------------- | -------------------- | ------------------------------ |
+| definido      | BRAPI                | 50 ativos por pedido           |
+| ausente       | **Yahoo `v8/chart`** | 1 pedido por ativo, mais lento |
+
+O `v8/chart` **não pede token, cookie nem crumb** — é outro endpoint do
+`quoteSummary`, que é o protegido e devolve 429 de IP partilhado. O projeto já
+o usava para o histórico da simulação, o que prova o caminho de rede.
+
+No dia em que houver token, definir a variável é a única mudança necessária.
+
+**O que ainda depende do job:** o `v8/chart` não devolve valor de mercado, e
+sem ele não há P/L nem P/VP. Esses vêm da ingestão, que usa o `quoteSummary`
+de um IP não limitado. Preencher no request seria inventar.
+
 ### `GET /api/market?op=indicadores`
 
 Auth: Firebase Bearer. Cache: `marketIndicadores/bcb`, TTL 6h, aquecido pelo cron
