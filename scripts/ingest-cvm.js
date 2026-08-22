@@ -699,6 +699,28 @@ async function main() {
       }
       const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);
       const colCnpjFii = P.acharColuna(cadFii.colunas, ['CNPJ_FUNDO', 'CNPJ_Fundo', 'CNPJ']);
+
+      // `cad_fi.csv` é o cadastro de TODOS os fundos — dezenas de milhares,
+      // a esmagadora maioria não imobiliários. Casar nome contra esse
+      // universo acha o fundo errado: MXRF11 casou com "MAXI RENDA FIXA
+      // CURTO PRAZO ... EM COTAS DE FUNDOS", que não é o "Maxi Renda FII".
+      //
+      // Reduzir o universo ANTES de casar é o que torna o nome um
+      // identificador utilizável. (A trava de ambiguidade segurou o caso
+      // acima, mas segurar o errado não entrega o certo.)
+      const colTipo = P.acharColuna(cadFii.colunas, ['TP_FUNDO', 'TIPO_FUNDO', 'CLASSE']);
+      const antes = (cadFii.registros || []).length;
+      const soImobiliarios = (cadFii.registros || []).filter((r) => {
+        const tipo = P.normalizarChave(colTipo ? r[colTipo] : '');
+        if (tipo === 'FII') return true;
+        const nome = P.normalizarChave(colNomeFii ? r[colNomeFii] : '');
+        return nome.includes('INVESTIMENTOIMOBILIARIO') || nome.includes('FDOINVIMOB');
+      });
+      log(`  ${soImobiliarios.length} fundos imobiliários de ${antes} no cadastro`);
+      if (!soImobiliarios.length) {
+        log(`    colunas do cadastro: ${cadFii.colunas.slice(0, 12).join(', ')}`);
+      }
+      cadFii = { ...cadFii, registros: soImobiliarios };
       if (!colNomeFii || !colCnpjFii) {
         log(`  ! cadastro de FII sem colunas esperadas: ${cadFii.colunas.slice(0, 10).join(', ')}`);
       } else {
@@ -729,7 +751,12 @@ async function main() {
           log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
         } else {
           const { porCnpj, faltando } = P.extrairInformeFii(compl.registros, compl.colunas);
-          if (faltando.length) log(`  ! campos de FII não encontrados: ${faltando.join(', ')}`);
+          if (faltando.length) {
+            log(`  ! campos de FII não encontrados: ${faltando.join(', ')}`);
+            // Sem as colunas reais, a próxima investigação recomeça no
+            // escuro — mesmo padrão do FCA e do 6.03.
+            log(`    colunas reais do informe: ${compl.colunas.join(', ')}`);
+          }
           for (const c of casFii) {
             if (c.status !== 'ok' || !c.chave) continue;
             const inf = porCnpj.get(String(c.chave).replace(/\D/g, ''));
