@@ -597,6 +597,75 @@ const RAMO_CVM = {
   dataReferencia: '2025-12-31',
 };
 
+// ── Valuation derivada da contagem de ações ──
+//
+// O v8/chart do Yahoo devolve preço mas NÃO valor de mercado, e é a única
+// via de cotação que funciona sem cadastro em fonte nenhuma. Sem estas
+// contas, VALUATION fica vazio para a bolsa inteira e o motor ranqueia sem
+// olhar para preço — que é o oposto do que a lente "Valor" promete.
+
+// Cotação sem valor de mercado, como o v8/chart entrega.
+const RAMO_MERCADO_SEM_MCAP = { ...RAMO_MERCADO, marketCap: null, dy: null, dyMedio5a: null };
+// CVM com contagem de ações e dividendo por ação, como o job passa a gravar.
+const RAMO_CVM_COM_ACOES = {
+  ...RAMO_CVM,
+  ebitda: 50e9,
+  dividaLiquida: -20e9,
+  acoesEquivalentes: 5.7e9,
+  dividendoPorAcao: 2.4,
+};
+
+test('sem valor de mercado da fonte, ele sai de preço × ações', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: RAMO_CVM_COM_ACOES,
+  });
+  assert.equal(c.marketCap, 28.5 * 5.7e9);
+  assert.equal(c.marketCapDerivado, true);
+  assert.ok(Math.abs(c.pl - (28.5 * 5.7e9) / 35e9) < 1e-9, 'P/L sai da contagem de ações');
+  assert.ok(Math.abs(c.pvp - (28.5 * 5.7e9) / 200e9) < 1e-9);
+  assert.ok(Math.abs(c.evEbitda - (28.5 * 5.7e9 - 20e9) / 50e9) < 1e-9, 'caixa líquido reduz o EV');
+  assert.ok(Math.abs(c.dy - (2.4 / 28.5) * 100) < 1e-9);
+});
+
+test('valor de mercado da própria fonte tem precedência sobre a conta', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, cvm: RAMO_CVM_COM_ACOES });
+  assert.equal(c.marketCap, 160e9, 'quem tem o número não precisa derivá-lo');
+  assert.equal(c.marketCapDerivado, undefined);
+});
+
+test('contagem de ações com escala errada é barrada pelo P/VP', () => {
+  // Ações mil vezes menores do que são: o P/L sairia mil vezes menor e a
+  // empresa lideraria a lente "Valor" com um número inventado. O patrimônio
+  // não passou pela contagem, e por isso denuncia o erro.
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: { ...RAMO_CVM_COM_ACOES, acoesEquivalentes: 5.7e6 },
+  });
+  assert.equal(c.marketCap, null, 'melhor sem P/L do que com P/L errado');
+  assert.equal(c.pl, undefined);
+  assert.equal(c.pvp, undefined);
+  assert.equal(c.marketCapDescartado.motivo, 'pvp_implausivel');
+});
+
+test('sem contagem de ações, valuation fica vazia — não zerada', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO_SEM_MCAP, cvm: RAMO_CVM });
+  assert.equal(c.marketCap, null);
+  assert.equal(c.pl, undefined);
+  assert.equal(c.dy, null, 'sem dividendo por ação não se inventa DY');
+  assert.equal(c.roe, 20.4, 'o resto do documento continua de pé');
+});
+
+test('prejuízo não vira P/L, nem com a contagem de ações em mãos', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: { ...RAMO_CVM_COM_ACOES, lucroLiquido: -3e9 },
+  });
+  assert.equal(c.marketCap, 28.5 * 5.7e9, 'o valor de mercado continua válido');
+  assert.equal(c.pl, undefined);
+  assert.ok(c.pvp > 0, 'P/VP não depende do lucro');
+});
+
 test('o null da cotação NÃO apaga o indicador da CVM', () => {
   const c = comporFundamentos({
     mercado: RAMO_MERCADO,

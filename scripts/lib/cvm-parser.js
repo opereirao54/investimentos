@@ -221,6 +221,104 @@ function valorDaConta(linhas, cols, conta) {
   return null;
 }
 
+/**
+ * Lucro por ação básico, da DRE — e, por tabela, a contagem de ações.
+ *
+ * É o que destrava VALUATION inteiro sem depender de fonte paga: com LPA e
+ * lucro, `acoes = lucro / LPA`; com ações e preço, sai o valor de mercado, e
+ * dele P/L, P/VP e EV/EBITDA. Sem isto o pilar fica vazio para a bolsa toda,
+ * porque o v8/chart do Yahoo devolve preço mas não valor de mercado.
+ *
+ * O diluído é ignorado de propósito: embute opções que ainda não foram
+ * exercidas, e a contagem que interessa é a de ações que existem hoje.
+ *
+ * Empresa com ON e PN reporta um LPA por classe. Quando são iguais (o caso
+ * normal), `lucro / LPA` dá o total de ações e está certo. Quando divergem,
+ * não há como somar as classes a partir daqui — e aí devolve null, porque
+ * um P/L errado é pior do que um P/L ausente.
+ */
+function lucroPorAcaoDaDre(linhas, cols) {
+  if (!linhas || !linhas.length) return null;
+  const valores = [];
+  for (const l of linhas) {
+    const cod = String(l[cols.codigoConta] || '').trim();
+    const ds = cols.descricaoConta ? normalizarTexto(l[cols.descricaoConta]) : '';
+    // No plano de contas da CVM, 3.99.01 é o lucro BÁSICO por ação e
+    // 3.99.02 o diluído. As folhas trazem só a classe na descrição ("ON",
+    // "PN") — quem separa básico de diluído é o código, não o texto. Filtrar
+    // por "diluído" na descrição deixava passar o 3.99.02.01 inteiro.
+    const basicoPorCodigo = cod === '3.99.01' || cod.startsWith('3.99.01.');
+    const diluidoPorCodigo = cod === '3.99.02' || cod.startsWith('3.99.02.');
+    if (diluidoPorCodigo || ds.includes('diluid')) continue;
+    const basicoPorTexto = ds.includes('por acao') || ds.includes('por acoes');
+    if (!basicoPorCodigo && !basicoPorTexto) continue;
+    const v = valorNumericoCvm(l[cols.valorConta]);
+    if (v === null || v <= 0) continue;
+    const escalado = v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+    // Lucro POR AÇÃO em reais: a CVM publica estas linhas em UNIDADE, e um
+    // emissor que marque MIL por engano multiplicaria a conta por mil sem
+    // nenhum sinal. Nenhuma ação brasileira lucra mais de mil reais por
+    // ação — fora desta faixa é erro de escala, não empresa excepcional.
+    if (escalado < 0.0001 || escalado > 1000) continue;
+    valores.push(escalado);
+  }
+  if (!valores.length) return null;
+  const min = Math.min(...valores);
+  const max = Math.max(...valores);
+  // Classes com LPA diferente: a contagem de ações não sai de uma divisão só.
+  if (min <= 0 || max / min > 1.02) return null;
+  return valores[0];
+}
+
+// Como a distribuição aos acionistas aparece na DFC. "jcp" e "juros sobre o
+// capital" entram porque metade das companhias nomeia a linha só assim — e
+// no Brasil JCP é dividendo com outro nome fiscal.
+const TERMOS_DIVIDENDO = ['dividendo', 'capital proprio', 'jcp'];
+
+/**
+ * Dividendos e JCP pagos no exercício, do fluxo de financiamento da DFC.
+ *
+ * Só o grupo 6.03 (financiamento): "dividendos recebidos" mora no 6.01 e
+ * somá-lo inverteria o sinal do indicador de uma holding.
+ *
+ * Quando o agregado E o detalhe aparecem, vale o AGREGADO. É o contrário do
+ * que o instinto sugere, e por um motivo concreto: o filtro por descrição
+ * reconhece "Dividendos Pagos" mas pode não reconhecer como a companhia
+ * nomeou a linha vizinha. Somando folhas, o que o filtro não reconhecesse
+ * sumia da conta e o payout saía menor do que é; ficando com o pai, o total
+ * é o que a própria companhia declarou.
+ */
+function dividendosPagosDaDfc(linhas, cols) {
+  if (!linhas || !linhas.length || !cols.descricaoConta) return null;
+  const candidatos = [];
+  // Só o total do financiamento não permite concluir nada: o dividendo pode
+  // estar embutido nele. É a seção DETALHADA que autoriza afirmar zero.
+  let itensDoFinanciamento = 0;
+  for (const l of linhas) {
+    const cod = String(l[cols.codigoConta] || '').trim();
+    if (!cod.startsWith('6.03')) continue;
+    if (cod.startsWith('6.03.')) itensDoFinanciamento++;
+    const ds = normalizarTexto(l[cols.descricaoConta]);
+    if (!TERMOS_DIVIDENDO.some((t) => ds.includes(t))) continue;
+    const v = valorNumericoCvm(l[cols.valorConta]);
+    if (v === null || v === 0) continue;
+    candidatos.push({
+      cod,
+      valor: Math.abs(v) * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null),
+    });
+  }
+  // "Não paguei" e "não consegui ler" não podem virar o mesmo null. Com a
+  // seção de financiamento detalhada e nenhuma linha de distribuição nela, o
+  // valor é ZERO — e é o que impede uma empresa que não distribui nada de
+  // flutuar no topo da lente de renda por ausência de dado.
+  if (!candidatos.length) return itensDoFinanciamento ? 0 : null;
+  // Conta só quem não está coberto por um ancestral já contado.
+  const total = candidatos
+    .filter((c) => !candidatos.some((o) => o !== c && c.cod.startsWith(o.cod + '.')))
+    .reduce((acc, c) => acc + c.valor, 0);
+  return total > 0 ? total : null;
+}
+
 /** Depreciação e amortização da DFC, para reconstruir o EBITDA. */
 function depreciacaoDaDfc(linhas, cols) {
   if (!linhas || !linhas.length || !cols.descricaoConta) return null;
@@ -317,6 +415,8 @@ function extrairFinanceiro(blocos, cols) {
   const antesTributos = valorDaConta(dre, cols, 'resultadoAntesTributos');
   const tributos = valorDaConta(dre, cols, 'tributos');
   const depreciacao = depreciacaoDaDfc(dfc, cols);
+  const lucroPorAcao = lucroPorAcaoDaDre(dre, cols);
+  const dividendosPagos = dividendosPagosDaDfc(dfc, cols);
 
   // Só há dívida se alguma das pontas existir. Somar dois nulls como zero
   // faria um banco alavancado parecer uma empresa sem dívida.
@@ -342,6 +442,18 @@ function extrairFinanceiro(blocos, cols) {
     lucroLiquido,
     antesTributos,
     tributos,
+    lucroPorAcao,
+    dividendosPagos,
+    // Contagem de ações implícita. A faixa é larga de propósito — serve só
+    // para barrar o absurdo (escala trocada por mil), não para julgar a
+    // empresa.
+    acoesEquivalentes:
+      lucroLiquido !== null && lucroPorAcao !== null && lucroPorAcao > 0
+        ? (() => {
+            const n = lucroLiquido / lucroPorAcao;
+            return n >= 1e5 && n <= 1e12 ? n : null;
+          })()
+        : null,
   };
 }
 
@@ -380,6 +492,10 @@ const FAIXAS = {
   dividaLiquidaPl: [-20, 50],
   cagrReceita5a: [-100, 300],
   cagrLucro5a: [-100, 300],
+  crescimentoReceitaAno: [-100, 500],
+  // Payout acima de 200% é distribuição de reserva ou linha somada duas
+  // vezes; nos dois casos não descreve a política de dividendos.
+  payout: [0, 200],
 };
 
 function cagr(inicial, final, anos) {
@@ -404,6 +520,25 @@ function calcularIndicadores(exercicios) {
       ? atual.patrimonioLiquido + Math.max(0, atual.dividaLiquida)
       : null;
   const nopat = atual.ebit !== null ? atual.ebit * (1 - aliq) : null;
+  const anterior = lista.length >= 2 ? lista[lista.length - 2] : null;
+
+  // Anos seguidos pagando, contados do exercício mais recente para trás. A
+  // sequência é o que o critério mede: dez anos com um buraco no meio não é
+  // dez anos. Um exercício SEM informação interrompe a contagem em vez de
+  // ser tratado como zero — não sabemos se pagou.
+  let anosPagando = 0;
+  for (let i = lista.length - 1; i >= 0; i--) {
+    const d = lista[i].dividendosPagos;
+    if (d === null || d === undefined) break; // sem informação: nada a afirmar
+    if (!(d > 0)) break; // pagou zero: a sequência termina aqui
+    anosPagando++;
+  }
+  // Zero só é resposta quando sabemos o do exercício mais recente; senão é
+  // ausência de dado, e o motor tem de tratá-la como ausência.
+  const ultimoConhecido = atual.dividendosPagos;
+  if (!anosPagando && (ultimoConhecido === null || ultimoConhecido === undefined)) {
+    anosPagando = null;
+  }
 
   const brutos = {
     roe: pct(atual.lucroLiquido, atual.patrimonioLiquido),
@@ -415,6 +550,11 @@ function calcularIndicadores(exercicios) {
     dividaLiquidaPl: razao(atual.dividaLiquida, atual.patrimonioLiquido),
     cagrReceita5a: anos >= 1 ? cagr(primeiro.receita, atual.receita, anos) : null,
     cagrLucro5a: anos >= 1 ? cagr(primeiro.lucroLiquido, atual.lucroLiquido, anos) : null,
+    crescimentoReceitaAno: anterior ? cagr(anterior.receita, atual.receita, 1) : null,
+    // Payout e anos pagando saem sem preço nenhum — são a parte do pilar de
+    // dividendos que não depende de valor de mercado.
+    payout: pct(atual.dividendosPagos, atual.lucroLiquido),
+    anosPagandoDividendo: anosPagando,
   };
 
   const indicadores = {};
@@ -448,6 +588,19 @@ function calcularIndicadores(exercicios) {
       ebitda: atual.ebitda,
       dividaLiquida: atual.dividaLiquida,
       ativoTotal: atual.ativoTotal,
+      // Ações e dividendo por ação: com o preço, o servidor fecha P/L, P/VP,
+      // EV/EBITDA e DY sem precisar de fonte paga.
+      acoesEquivalentes: atual.acoesEquivalentes ?? null,
+      lucroPorAcao: atual.lucroPorAcao ?? null,
+      dividendosPagos: atual.dividendosPagos ?? null,
+      // Zero conhecido vira DY zero, não ausência: quem não distribuiu tem
+      // de pontuar zero no pilar, e não ficar de fora dele.
+      dividendoPorAcao:
+        atual.dividendosPagos !== null &&
+        atual.dividendosPagos !== undefined &&
+        atual.acoesEquivalentes
+          ? atual.dividendosPagos / atual.acoesEquivalentes
+          : null,
     },
     dataReferencia: atual.dataReferencia || null,
     ano: atual.ano,

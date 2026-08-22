@@ -598,6 +598,229 @@ test('chavesDaEmpresa prefere o CNPJ e mantém o CD_CVM como alternativa', () =>
   assert.deepEqual(chavesDaEmpresa({}), [], 'sem identificação nenhuma, não há o que procurar');
 });
 
+// ════════════════════════════════════════════
+// Lucro por ação e dividendos
+// ════════════════════════════════════════════
+//
+// São o que destrava VALUATION e DIVIDENDOS sem fonte paga: o v8/chart do
+// Yahoo devolve preço mas não valor de mercado, e sem contagem de ações não
+// há P/L nem P/VP. A contagem sai de `lucro / LPA` — uma divisão que erra
+// silenciosamente se a linha errada for lida. Daí o peso destes testes.
+
+// A DRE real da CVM: o grupo 3.99 tem 3.99.01 (básico) e 3.99.02 (diluído),
+// e as FOLHAS trazem só a classe na descrição — "ON", "PN". Quem separa
+// básico de diluído é o código.
+function dreLpa(linhas) {
+  return P.parseCsvCvm([CABECALHO, ...linhas].join('\n')).registros;
+}
+const COLS_LPA = { ...COLS_TESTE };
+
+test('LPA sai do grupo básico, com a classe na descrição', () => {
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99', 'Lucro por Ação - (Reais / Ação)', '0', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.01', 'Lucro Básico por Ação', '0', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'UNIDADE' }),
+  ]);
+  const fin = P.extrairFinanceiro({ dre }, COLS_LPA);
+  assert.equal(fin.lucroPorAcao, 7.37);
+  // 21 bilhões (21.000.000 em MIL) sobre 7,37 por ação.
+  assert.ok(Math.abs(fin.acoesEquivalentes - 21e9 / 7.37) < 1);
+});
+
+test('o LPA diluído NÃO entra — o código é que o identifica', () => {
+  // A descrição da folha diluída é "ON", igual à básica. Filtrar por texto
+  // deixava o diluído passar e a contagem de ações saía menor do que é.
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99.01', 'Lucro Básico por Ação', '0', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.02', 'Lucro Diluído por Ação', '0', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.02.01', 'ON', '6.10', { escala: 'UNIDADE' }),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dre }, COLS_LPA).lucroPorAcao, 7.37);
+});
+
+test('ON e PN com LPA diferente não viram contagem de ações', () => {
+  // Uma divisão só não soma duas classes com lucros por ação distintos.
+  // Sem P/L é melhor do que com P/L errado.
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.01.02', 'PN', '8.11', { escala: 'UNIDADE' }),
+  ]);
+  const fin = P.extrairFinanceiro({ dre }, COLS_LPA);
+  assert.equal(fin.lucroPorAcao, null);
+  assert.equal(fin.acoesEquivalentes, null);
+});
+
+test('LPA com escala errada é recusado em vez de multiplicar a conta por mil', () => {
+  // Emissor que marca MIL numa linha que é por ação. R$ 7.370 por ação não
+  // existe na B3 — e passaria a contagem de ações direto se ninguém olhasse.
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'MIL' }),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dre }, COLS_LPA).lucroPorAcao, null);
+});
+
+test('contagem de ações fora de ordem de grandeza plausível é descartada', () => {
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '1', { escala: 'UNIDADE' }),
+    linha('1023', '3.99.01.01', 'ON', '0.5', { escala: 'UNIDADE' }),
+  ]);
+  const fin = P.extrairFinanceiro({ dre }, COLS_LPA);
+  assert.equal(fin.lucroPorAcao, 0.5);
+  assert.equal(fin.acoesEquivalentes, null, '2 ações não é uma companhia aberta');
+});
+
+test('dividendos pagos saem do financiamento, não do que a empresa recebeu', () => {
+  // "Dividendos recebidos" mora no 6.01 (operacional). Somá-lo inverteria o
+  // sinal do payout de uma holding.
+  const dfc = dreLpa([
+    linha('1023', '6.01.02', 'Dividendos Recebidos', '3000000'),
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+    linha('1023', '6.03.04', 'Dividendos e JCP Pagos', '-8000000'),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dfc }, COLS_LPA).dividendosPagos, 8e9);
+});
+
+test('linha-pai não soma junto com as filhas', () => {
+  // A CVM publica o agregado E o detalhe. Contar os dois dobrava o payout.
+  const dfc = dreLpa([
+    linha('1023', '6.03.04', 'Dividendos e JCP Pagos', '-8000000'),
+    linha('1023', '6.03.04.01', 'Dividendos Pagos', '-5000000'),
+    linha('1023', '6.03.04.02', 'JCP Pago', '-3000000'),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dfc }, COLS_LPA).dividendosPagos, 8e9);
+});
+
+test('só as filhas, sem agregado, somam entre si', () => {
+  const dfc = dreLpa([
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+    linha('1023', '6.03.04', 'Dividendos Pagos', '-5000000'),
+    linha('1023', '6.03.05', 'Juros sobre o Capital Próprio Pagos', '-3000000'),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dfc }, COLS_LPA).dividendosPagos, 8e9);
+});
+
+test('JCP conta como distribuição mesmo quando a linha não diz "dividendo"', () => {
+  // Metade das companhias nomeia a linha só como JCP. Ignorá-la zerava o
+  // payout de empresa que distribui todo ano.
+  const dfc = dreLpa([linha('1023', '6.03.04', 'JCP Pago', '-8000000')]);
+  assert.equal(P.extrairFinanceiro({ dfc }, COLS_LPA).dividendosPagos, 8e9);
+});
+
+test('"não distribuiu" e "não consegui ler" não são o mesmo null', () => {
+  // Distinção que decide ranking: sem ela, quem não paga dividendo nenhum
+  // ficava FORA do pilar de dividendos em vez de pontuar zero nele — e
+  // podia liderar a lente de renda por ausência de dado.
+  const comFinanciamento = dreLpa([
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+    linha('1023', '6.03.01', 'Captações de Empréstimos', '-15000000'),
+  ]);
+  assert.equal(
+    P.extrairFinanceiro({ dfc: comFinanciamento }, COLS_LPA).dividendosPagos,
+    0,
+    'seção lida e sem linha de distribuição = pagou zero'
+  );
+
+  const semFinanciamento = dreLpa([
+    linha('1023', '6.01', 'Caixa Líquido Atividades Operacionais', '30000000'),
+  ]);
+  assert.equal(
+    P.extrairFinanceiro({ dfc: semFinanciamento }, COLS_LPA).dividendosPagos,
+    null,
+    'sem a seção de financiamento não se afirma nada'
+  );
+
+  // Só o total, sem detalhe: o dividendo pode estar embutido nele.
+  const soOTotal = dreLpa([
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+  ]);
+  assert.equal(
+    P.extrairFinanceiro({ dfc: soOTotal }, COLS_LPA).dividendosPagos,
+    null,
+    'agregado sem detalhe não autoriza afirmar zero'
+  );
+});
+
+test('quem não distribuiu pontua zero no pilar, não fica fora dele', () => {
+  const r = P.calcularIndicadores([
+    {
+      ano: 2025,
+      dataReferencia: '2025-12-31',
+      lucroLiquido: 20e9,
+      patrimonioLiquido: 100e9,
+      receita: 100e9,
+      dividendosPagos: 0,
+      acoesEquivalentes: 2.85e9,
+    },
+  ]);
+  assert.equal(r.indicadores.payout, 0);
+  assert.equal(r.indicadores.anosPagandoDividendo, 0);
+  assert.equal(r.absolutos.dividendoPorAcao, 0, 'DY zero é um número, não uma lacuna');
+});
+
+test('payout e anos pagando saem sem preço nenhum', () => {
+  const exercicios = [2022, 2023, 2024, 2025].map((ano) => ({
+    ano,
+    dataReferencia: `${ano}-12-31`,
+    lucroLiquido: 20e9,
+    patrimonioLiquido: 100e9,
+    receita: 100e9,
+    dividendosPagos: 8e9,
+    acoesEquivalentes: 2.85e9,
+  }));
+  const r = P.calcularIndicadores(exercicios);
+  assert.equal(Math.round(r.indicadores.payout), 40);
+  assert.equal(r.indicadores.anosPagandoDividendo, 4);
+  assert.ok(Math.abs(r.absolutos.dividendoPorAcao - 8e9 / 2.85e9) < 1e-9);
+});
+
+test('um ano sem pagar interrompe a sequência, e um ano sem dado também', () => {
+  const base = (ano, div) => ({
+    ano,
+    dataReferencia: `${ano}-12-31`,
+    lucroLiquido: 20e9,
+    patrimonioLiquido: 100e9,
+    receita: 100e9,
+    dividendosPagos: div,
+  });
+  // Pagou, parou, voltou: são 2 anos seguidos, não 3.
+  assert.equal(
+    P.calcularIndicadores([base(2023, 8e9), base(2024, 0), base(2025, 8e9)]).indicadores
+      .anosPagandoDividendo,
+    1
+  );
+  // Exercício sem informação não conta como "não pagou" nem como "pagou".
+  assert.equal(
+    P.calcularIndicadores([base(2023, 8e9), base(2024, null), base(2025, 8e9)]).indicadores
+      .anosPagandoDividendo,
+    1
+  );
+  // Sem dado no ano mais recente, não há sequência a declarar.
+  assert.equal(
+    P.calcularIndicadores([base(2024, 8e9), base(2025, null)]).indicadores.anosPagandoDividendo,
+    null
+  );
+});
+
+test('payout acima de 200% é descartado', () => {
+  const r = P.calcularIndicadores([
+    {
+      ano: 2025,
+      dataReferencia: '2025-12-31',
+      lucroLiquido: 1e9,
+      patrimonioLiquido: 100e9,
+      receita: 10e9,
+      dividendosPagos: 9e9,
+    },
+  ]);
+  assert.equal(r.indicadores.payout, null, 'distribuição de reserva não descreve política');
+  assert.ok(r.descartados.some((d) => d.campo === 'payout'));
+});
+
 test('o mapa de tickers cobre o universo padrão da carteira modelo', () => {
   const mapa = require('../scripts/lib/mapa-cvm.json');
   for (const t of ['BBAS3', 'WEGE3', 'EGIE3']) {

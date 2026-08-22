@@ -124,6 +124,35 @@ quantas `metricas` têm `nota !== null`.
 quantos ele foi calculado. Vale para o score, para o pilar e para qualquer
 média futura.
 
+### S5c — Chave de junção que o outro lado não tem ⚠️
+
+**Aconteceu, e custou quatro rodadas de investigação.** O pipeline da CVM
+procurava a companhia por `CD_CVM`. O FCA identifica a companhia por
+`CNPJ_Companhia` e **nunca teve `CD_CVM`**. Resultado no log:
+
+```
+! colunas do FCA não encontradas: cdCvm
+FCA 2025: 0 tickers
+...
+0 companhias com dados neste exercício
+```
+
+O arquivo abria, as colunas resolviam, o parse funcionava. **Procurar por uma
+identificação que o arquivo não tem devolve zero sem lançar erro nenhum** — e
+zero linhas é indistinguível de "não há dados" para quem lê só o total.
+
+O mesmo vale para a forma da chave: CNPJ pontuado vs. cru, `CD_CVM` com e sem
+zeros à esquerda. Comparados como texto, separam a companhia dela mesma.
+
+**Verificação:** ao casar zero registos com o arquivo aberto, imprima lado a
+lado a chave procurada e uma amostra das chaves que o arquivo realmente tem. Se
+os formatos não se parecem, o problema é a chave — não os dados.
+
+**Regra:** junção entre dois arquivos usa a identificação presente nos DOIS, e
+normalizada antes de comparar. Quando houver mais de uma candidata, indexe por
+todas e tente todas — o custo é um `Map` a mais, e o prémio é não falhar em
+silêncio.
+
 ### S6 — Unidade trocada
 
 Razão (`0.185`) tratada como percentagem, ou o contrário. Não quebra nada: só faz o ranking inteiro mentir. Cada fonte tem convenção própria **no mesmo objeto** — no Yahoo, `returnOnEquity` é razão e `debtToEquity` é percentagem. Faixas de sanidade em `FAIXAS` (cvm-parser) e nas séries do SGS existem para apanhar isto.
@@ -192,15 +221,23 @@ Ops de apoio: `?op=rendafixa` (Tesouro), `?op=indicadores` (Selic/CDI/IPCA do BC
 
 Nem toda fonte funciona de todo lugar, e isso decide **onde** o trabalho mora.
 
-| Fonte               | Da function (Vercel)                        | Do job (GitHub Actions)       |
-| ------------------- | ------------------------------------------- | ----------------------------- |
-| CVM (dados abertos) | ✗ ZIPs de dezenas de MB contra 15s e 256 MB | ✓ sem limite                  |
-| Yahoo Finance       | ✗ 429 — IP de saída partilhado e limitado   | ✓ IP do runner não é limitado |
-| BRAPI               | ✓ **com** `BRAPI_TOKEN`                     | ✓ com token                   |
-| CoinGecko           | ✓                                           | ✓                             |
-| BCB, Tesouro        | ✓                                           | ✓                             |
+| Fonte                | Precisa de conta? | Da function (Vercel)                        | Do job (GitHub Actions)       |
+| -------------------- | ----------------- | ------------------------------------------- | ----------------------------- |
+| CVM (dados abertos)  | não               | ✗ ZIPs de dezenas de MB contra 15s e 256 MB | ✓ sem limite                  |
+| Yahoo `v8/chart`     | não               | ✓ preço e volume, sem cookie nem crumb      | ✓                             |
+| Yahoo `quoteSummary` | cookie + crumb    | ✗ 429                                       | ✗ 429 **também** — ver abaixo |
+| BRAPI                | sim (token)       | ✓ **com** `BRAPI_TOKEN`                     | ✓ com token                   |
+| CoinGecko            | não               | ✓                                           | ✓                             |
+| BCB, Tesouro         | não               | ✓                                           | ✓                             |
+
+**O `quoteSummary` do Yahoo dá 429 do runner do GitHub Actions também.** Isto
+foi suposição durante três rodadas ("o IP do runner não é limitado") e o log do
+job desmentiu-a: `0 com fundamentos · erros: yahoo_429 · yahoo_429_desistiu`.
+Não é uma fonte disponível em lugar nenhum sem cadastro — e por isso o valor de
+mercado passou a ser reconstruído do lucro por ação da própria CVM.
 
 **Regra:** quando uma fonte falha por limite de ambiente e não por
-configuração, mova o trabalho para o job — não insista no mesmo lugar.
+configuração, mova o trabalho para o job — **e confirme no log que lá funciona**
+antes de construir por cima. Mover não é o mesmo que resolver.
 
 Documentação completa: `docs/MOTOR-CARTEIRA.md`.

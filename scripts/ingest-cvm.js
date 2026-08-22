@@ -501,7 +501,13 @@ async function main() {
       log(
         `  ${emp.tickers.join('/').padEnd(14)} ${String(preenchidos).padStart(2)}/${total} · ` +
           `${r.exerciciosUsados} exerc. · ROE ${ind.roe === null ? '—' : ind.roe.toFixed(1) + '%'} · ` +
-          `dívLíq/EBITDA ${ind.dividaLiquidaEbitda === null ? '—' : ind.dividaLiquidaEbitda.toFixed(2) + 'x'}` +
+          `dívLíq/EBITDA ${ind.dividaLiquidaEbitda === null ? '—' : ind.dividaLiquidaEbitda.toFixed(2) + 'x'} · ` +
+          // LPA e dividendos aparecem aqui porque são o que destrava
+          // VALUATION e DIVIDENDOS. Se a CVM mudar o plano de contas, é
+          // nesta coluna que o travessão aparece — e é o que se confere
+          // antes de acreditar num ranking.
+          `LPA ${r.absolutos.lucroPorAcao === null ? '—' : r.absolutos.lucroPorAcao.toFixed(2)} · ` +
+          `div ${r.absolutos.dividendosPagos === null ? '—' : (r.absolutos.dividendosPagos / 1e6).toFixed(0) + 'M'}` +
           (r.descartados.length ? ` · ${r.descartados.length} descartado(s)` : '')
       );
     }
@@ -526,6 +532,17 @@ async function main() {
   if (documentos.length >= 40 && !soTickers.length)
     log(`  … e mais ${documentos.length - 40} tickers`);
   if (semNada) log(`  ${semNada} companhias sem indicador aproveitável — não serão gravadas`);
+  // Cobertura das duas extrações novas, agregada. Zero aqui significa pilar
+  // VALUATION ou DIVIDENDOS vazio para a bolsa inteira — é um número que
+  // tem de saltar aos olhos no log, não algo a descobrir pela tela.
+  if (documentos.length) {
+    const comLpa = documentos.filter((d) => d.dados && d.dados.acoesEquivalentes).length;
+    const comDiv = documentos.filter((d) => d.dados && d.dados.dividendosPagos).length;
+    log(
+      `\n  valuation possível em ${comLpa}/${documentos.length} (LPA na DRE) · ` +
+        `dividendos em ${comDiv}/${documentos.length} (DFC 6.03)`
+    );
+  }
 
   // ── 4. Informe mensal de FII ──
   const mapaFiis = soTickers.length
