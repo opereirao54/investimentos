@@ -1,0 +1,139 @@
+---
+name: diagnostico-motor-carteira
+description: Protocolo para diagnosticar e corrigir o motor da Carteira Recomendada quando ele não pontua ativos — "só pontuou cripto", "as ações aparecem com dados insuficientes", "score sumiu", "a classe ficou vazia", "o plano não distribuiu o aporte todo", "o ranking não trouxe nada". Localiza com evidência o elo exato da cadeia (universo → ranking → fundamentos → fonte externa → composição → score → tela) ANTES de mudar código. Use sempre que um ativo ou uma classe inteira não receber score, quando a tela mostrar "dados insuficientes" ou "sem alocação nesta classe", quando o aporte não for distribuído por completo, quando os indicadores parecerem errados por fator de 100, ou quando uma correção anterior no motor não tiver resolvido o sintoma. Use também para investigar procedência ausente ("o card não mostra a fonte") e diferença entre o que o servidor devolve e o que a tela desenha.
+---
+
+# Diagnóstico do Motor da Carteira Recomendada
+
+**Princípio central: score ausente quase nunca é bug de cálculo de score.** É a cadeia de dados quebrada em algum ponto antes do cálculo. O motor recusar-se a pontuar é o comportamento _correto_ quando o dado não chegou — a regra `MOTOR_COBERTURA_MINIMA` existe exatamente para isso. Corrigir o motor quando o problema é a fonte só apaga o aviso e faz o produto mentir.
+
+**Por que este tipo de bug resiste a várias tentativas:** o sintoma na tela ("dados insuficientes") é o mesmo para sete causas diferentes, que vivem em camadas diferentes — descoberta do universo, ranking no servidor, endpoint de fundamentos, API de terceiro, composição das fontes, limiar do motor, render. Ler o código com mais atenção não distingue as sete. Só **evidência de runtime** distingue. E cada chute contamina a cena: adiciona uma fonte, muda um limiar, e o diagnóstico seguinte fica mais difícil que o primeiro.
+
+**Regra de ouro: nenhuma correção antes de completar as Etapas 0 a 2.** Se pedirem "arruma logo", explique em uma linha por que o diagnóstico é mais rápido que a quarta tentativa de chute — e siga o protocolo.
+
+Conduza o trabalho em português brasileiro.
+
+---
+
+## Etapa 0 — Ler o sintoma com precisão
+
+Antes de qualquer coisa, extraia da descrição (ou da captura de tela) **qual dos estados** está acontecendo. Eles parecem iguais e têm causas opostas:
+
+| O que aparece na tela                                            | O que isso significa                                                     |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Card com selo `—` e "FALTAM INDICADORES PARA PONTUAR"            | O ativo chegou ao motor, mas com cobertura abaixo do mínimo              |
+| Card **sem linha de procedência** (sem "Fonte · lido há N dias") | **O endpoint não devolveu nada para este ticker.** Nem preço. Suspeito 3 |
+| Card com procedência mas sem score                               | A fonte respondeu, mas sem os indicadores. Suspeito 4                    |
+| "Sem alocação nesta classe"                                      | A classe ficou sem candidatos. Suspeito 1                                |
+| Aviso "carteira do consultor como reserva"                       | O ranking veio vazio para a classe — esperado antes da ingestão          |
+| Score existe mas parece absurdo (ROE 4000%)                      | Conversão de unidade. Suspeito 6                                         |
+
+A **ausência da linha de procedência é o sinal mais informativo da tela.** Um ativo que passou pelo `op=fundamentals` sempre volta com `fonte`, nem que seja só cotação. Se não há procedência, o ticker voltou na lista `indisponiveis` — e aí o problema está no servidor ou na fonte externa, nunca no motor.
+
+## Etapa 1 — O teste que divide o problema ao meio
+
+Um pedido, e a cadeia parte em duas:
+
+```
+GET /api/market?op=diagnostico&ticker=BBAS3
+```
+
+(Precisa do Bearer do Firebase. No browser autenticado, a aba Rede do DevTools mostra a resposta.)
+
+Ele responde, por camada, **o que cada fonte devolveu e por que falhou**. Leia nesta ordem:
+
+1. `documento` — existe o doc em `marketFundamentals/{TICKER}`? Quais ramos (`cvm`, `yahoo`, `mercado`)?
+2. `fontes` — o que cada fonte respondeu AGORA, com o erro literal.
+3. `composto` — o resultado da junção dos ramos.
+4. `score` — o que o motor faria com isso, e a cobertura obtida.
+
+O primeiro campo vazio na sequência é o elo partido. Não continue a ler depois dele.
+
+Se `op=diagnostico` não existir ainda no deploy, o equivalente mínimo é:
+
+```
+GET /api/market?op=fundamentals&tickers=BBAS3
+```
+
+e olhar `indisponiveis` e `erros`. Ticker dentro de `indisponiveis` já responde a Etapa 1.
+
+## Etapa 2 — Suspeitos, do mais provável ao menos
+
+### S1 — Universo vazio para a classe
+
+`op=ranking` devolve `classes.acao.itens: []`. Normal antes de a ingestão da CVM gravar. **Verificação:** `op=ranking&lente=equilibrio` → olhar `universo` e `excluidos`. `universo: 0` significa `marketFundamentals` vazia — o job nunca rodou. `universo` alto com `excluidos.porte_abaixo_do_piso` alto significa que o corte está agressivo demais.
+
+### S2 — Cortes de investibilidade engolindo tudo
+
+`PATRIMONIO_MINIMO` e `LIQUIDEZ_MINIMA` em `api/market.js`. Um piso de liquidez aplicado a um ativo cuja cotação ainda não foi buscada elimina candidato válido. **A regra correta é: filtro só se aplica quando o dado existe.**
+
+### S3 — Fonte que falha inteira leva junto o que funcionava ⚠️
+
+**O erro mais caro desta base, e já aconteceu.** `fetchBrapiFundamentals` pedia `modules=` e `fundamental=true`, que exigem plano pago. Sem token, a resposta era 401, a função lançava, e o ticker ficava **sem documento nenhum** — perdia-se até o preço, que a chamada simples devolveria de graça.
+
+Sintoma: card sem linha de procedência. **Regra:** toda fonte que falha tem de degradar para a versão mais simples dela, e nunca deixar o ticker sem registo. Um documento com `fonte: 'indisponivel'` e o motivo é infinitamente melhor que ausência de documento — a tela consegue explicar o primeiro e não consegue explicar o segundo.
+
+### S4 — Fonte responde, mas sem os campos
+
+Plano grátis que devolve 200 com metade dos campos nulos. Cobertura fica abaixo de `MOTOR_COBERTURA_MINIMA` (0,3) e o motor recusa pontuar — **corretamente**. A correção é arranjar dado, nunca baixar o limiar.
+
+### S5 — Composição apagando dado
+
+Três ramos (`cvm`, `yahoo`, `mercado`) no mesmo documento. Um `merge: true` plano faz o `null` de uma fonte apagar o valor de outra. Ver `comporFundamentos`. **Verificação:** no diagnóstico, comparar `documento.cvm.roe` com `composto.roe`.
+
+### S6 — Unidade trocada
+
+Razão (`0.185`) tratada como percentagem, ou o contrário. Não quebra nada: só faz o ranking inteiro mentir. Cada fonte tem convenção própria **no mesmo objeto** — no Yahoo, `returnOnEquity` é razão e `debtToEquity` é percentagem. Faixas de sanidade em `FAIXAS` (cvm-parser) e nas séries do SGS existem para apanhar isto.
+
+### S7 — Cliente não pediu o ticker
+
+O universo automático manda ao `op=fundamentals` só a lista curta do ranking. Se o ranking está vazio e o resgate para a carteira modelo não disparou, o ticker nunca é pedido. **Verificação:** aba Rede → ver os `tickers=` do pedido.
+
+### S8 — Cache servindo versão velha
+
+`marketFundamentals` guarda por ramo, com validade própria (`mercadoFetchedAtMs` 24h, `yahooFetchedAtMs` 7 dias, `cvmFetchedAtMs` semanas). Um ramo gravado vazio marca o ticker como "já buscado" e bloqueia nova tentativa. **Regra: nunca gravar ramo com cobertura zero.**
+
+## Etapa 3 — Corrigir, com o teste antes
+
+Só depois de nomear o elo partido. Para cada correção:
+
+1. Escreva o teste que **falha** com o bug presente e descreve o comportamento em linguagem de negócio, não de implementação.
+2. Corrija.
+3. Rode `npm test` inteiro — a cadeia tem acoplamentos (o topN do cron tem de bater com o do cliente, por exemplo).
+
+**Proibições** — cada uma delas transforma um bug visível num produto que mente:
+
+- Baixar `MOTOR_COBERTURA_MINIMA` para o ativo aparecer.
+- Preencher indicador ausente com zero, média do setor ou estimativa.
+- Remover o corte de liquidez para o universo parecer maior.
+- Atribuir a uma fonte um dado que veio de outra.
+- Silenciar `erros` ou `indisponiveis` na resposta.
+
+## Etapa 4 — Fechar o buraco de observabilidade
+
+Se o diagnóstico exigiu adivinhação, o sistema não estava observável o suficiente. Antes de encerrar, acrescente o que teria respondido à pergunta em um pedido: um campo na resposta, um contador de exclusão, uma linha na tela. **O objetivo é que o mesmo sintoma, da próxima vez, se resolva na Etapa 1.**
+
+---
+
+## Mapa da cadeia
+
+```
+mapa-cvm.json / FCA da CVM        → quais tickers existem
+        ↓
+scripts/ingest-cvm.js (semanal)   → ramo `cvm` de marketFundamentals
+        ↓
+api/market.js ?op=ranking         → pontua o universo, corta por porte/liquidez
+        ↓                            devolve lista curta por classe
+web/...aba-carteira-recomendada   → cartUniversoAutomatico() monta o universo
+        ↓                            (resgata da carteira modelo se vazio)
+api/market.js ?op=fundamentals    → BRAPI (cotação) + Yahoo (fundamentos)
+        ↓                            comporFundamentos() empilha cvm > yahoo > mercado
+web/appliquei-motor-carteira.js   → scoreAtivo() aplica MOTOR_COBERTURA_MINIMA
+        ↓
+cartRenderizarMotorRanking()      → desenha score ou "faltam indicadores"
+```
+
+Ops de apoio: `?op=rendafixa` (Tesouro), `?op=indicadores` (Selic/CDI/IPCA do BCB),
+`?op=quote` (cotação simples, sem parâmetros — **a que sempre funciona**).
+
+Documentação completa: `docs/MOTOR-CARTEIRA.md`.

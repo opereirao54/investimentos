@@ -77,7 +77,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   ├── admin/{action,stats}.js   # Painel admin (token estático)
 │   ├── auth/resend-verification.js
 │   ├── billing/{init,subscribe,cancel,me,card,customer,webhook}.js
-│   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|ranking|indicadores|rendafixa|warmup
+│   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|ranking|diagnostico|indicadores|rendafixa|warmup
 │   └── sync/push.js              # Beacon endpoint para mobile freeze
 ├── web/                          # JS frontend (modular: 23 arquivos)
 │   ├── appliquei-firebase-init.js    # ES module — bootstrap Firebase
@@ -150,6 +150,7 @@ Para Sentry browser, edite no HTML:
 - **Idempotência do webhook**: `body.id` é a chave; eventos repetidos viram no-op via `webhookEvents/<id>` doc com TTL.
 - **LWW por-chave** no sync localStorage ↔ Firestore: cada chave tem `keyRev` (timestamp local) que decide quem ganha em merge.
 - **Motor da Carteira Recomendada** (`web/appliquei-motor-carteira.js`): pontua ativos por 5 pilares e monta o plano de aporte. Puro — sem DOM, rede ou Firebase — para rodar em `node --test`. Abaixo de 30% de cobertura de indicadores **não devolve score**: devolve a lista do que falta. Ver `docs/MOTOR-CARTEIRA.md`.
+- **Quando o motor não pontua**, use `?op=diagnostico&ticker=X`: ele diz, por camada, o que cada fonte respondeu e qual elo partiu. O protocolo de leitura é a skill `.claude/skills/diagnostico-motor-carteira/`, que dispara sozinha nesse tipo de relato. Regra da casa: **fonte que falha degrada para a versão simples dela e nunca deixa o ticker sem registo** — card sem linha de procedência significa que o endpoint não devolveu nada.
 - **O universo de candidatos vem do dado, não de lista escrita à mão**: o FCA da CVM declara o vínculo ticker ↔ `CD_CVM`, e `?op=ranking` pontua a bolsa inteira e devolve a lista curta por classe. A carteira do consultor virou um modo opcional ao lado de "Todo o mercado". Filtros de porte e liquidez são contados e mostrados na tela — universo que encolhe em silêncio não se depura.
 - **Fundamentos vêm da CVM**, não de API comercial: `scripts/ingest-cvm.js` roda semanalmente no GitHub Actions (`.github/workflows/ingest-cvm.yml`), calcula os indicadores das DFP e do Informe Mensal de FII e grava no ramo `cvm` de `marketFundamentals`. A cotação grava no ramo `mercado`, e `api/market.js` compõe os dois na leitura — ramos separados porque a resposta da BRAPI traz `null` em quase todo campo fundamentalista e um merge plano apagaria o trabalho da ingestão.
 - **Selic, CDI e IPCA** vêm do SGS e do Focus do Banco Central (`?op=indicadores`), com validação de faixa por série: código de série errado devolve número válido de outra coisa, então cada candidata é conferida antes de ser aceita.

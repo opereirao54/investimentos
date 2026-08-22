@@ -231,6 +231,46 @@ A carteira do consultor não desapareceu: virou o modo **"Carteira do
 consultor"**, ao lado de **"Todo o mercado"** (padrão). Há contexto em que um
 humano no circuito é desejável — mas deixou de ser o único caminho.
 
+### `GET /api/market?op=diagnostico&ticker=BBAS3` — por que este ativo não pontua
+
+Auth: Firebase Bearer. Não escreve nada.
+
+O sintoma "dados insuficientes" é idêntico para sete causas que vivem em
+camadas diferentes: universo vazio, corte de investibilidade, fonte que falhou
+inteira, fonte que respondeu sem campos, composição que apagou dado, unidade
+trocada, cliente que não pediu o ticker. Três rodadas de investigação se
+perderam nessa ambiguidade — cada uma foi um palpite, um deploy e uma espera.
+
+Um pedido responde qual camada quebrou:
+
+```jsonc
+{
+  "documento": { "existe": false, "ramos": [] },
+  "fontes": {
+    "brapiFundamentos": { "ok": false, "erro": "brapi_401: plano nao permite" },
+    "brapiCotacao": { "ok": true, "preco": 28.5, "marketCap": 160000000000 },
+    "yahoo": { "ok": true, "cobertura": 0.88 },
+  },
+  "score": { "valor": 88, "temLastro": true, "cobertura": 0.88 },
+  "veredito": "OK — pontua 88/100 com cobertura de 88%.",
+}
+```
+
+O `veredito` nomeia o elo partido. O protocolo de leitura está em
+`.claude/skills/diagnostico-motor-carteira/SKILL.md`, que é uma skill do
+projeto e dispara sozinha quando alguém relatar que o motor não pontua.
+
+**Regra que essa investigação deixou:** toda fonte que falha degrada para a
+versão mais simples dela e **nunca deixa o ticker sem registo**. A chamada de
+fundamentos da BRAPI exige plano pago; sem token responde 401, e a versão
+anterior lançava — o ticker ficava sem documento nenhum e perdia-se até o
+preço, que a chamada sem parâmetros devolve de graça. Na tela isso aparecia
+como um card **sem linha de procedência**, indistinguível de "a fonte
+respondeu sem os campos".
+
+Hoje esses dois estados são visualmente distintos, e a ausência de procedência
+é o sinal mais informativo da tela.
+
 ### `GET /api/market?op=indicadores`
 
 Auth: Firebase Bearer. Cache: `marketIndicadores/bcb`, TTL 6h, aquecido pelo cron

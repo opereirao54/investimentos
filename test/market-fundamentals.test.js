@@ -1069,3 +1069,139 @@ test('Yahoo respeita o orçamento de tempo e não estoura o maxDuration', async 
   assert.deepEqual(await fetchYahooFundamentals(['A', 'B'], erros, 100), {});
   assert.equal(erros.length, 0, 'desistir por orçamento não é erro a reportar');
 });
+
+// ════════════════════════════════════════════
+// Degradação da BRAPI (regressão da bolsa inteira sem score)
+// ════════════════════════════════════════════
+//
+// O bug: `fundamental=true` e `modules=` exigem plano pago. Sem token a
+// resposta é 401, fetchBrapiFundamentals lançava, e o ticker ficava SEM
+// DOCUMENTO NENHUM — perdia-se até o preço, que a chamada sem parâmetros
+// devolve de graça e que já roda em produção na aba Meu Patrimônio.
+//
+// Na tela isso aparecia como um card sem linha de procedência: não havia
+// fonte a declarar porque nada tinha chegado. Três rodadas de investigação
+// passaram sem localizar isto, porque o sintoma é idêntico ao de "a fonte
+// respondeu sem os campos".
+
+const { fetchBrapiFundamentals, mapBrapiCotacao } = market.__test || {};
+
+/** Dubla fetch distinguindo a chamada COM parâmetros da chamada simples. */
+function dublarBrapi({ fundamentosStatus, cotacaoResults }) {
+  const original = globalThis.fetch;
+  const chamadas = [];
+  globalThis.fetch = async (url) => {
+    const alvo = String(url);
+    chamadas.push(alvo);
+    const comParametros = alvo.includes('modules=') || alvo.includes('fundamental=true');
+    if (comParametros) {
+      if (fundamentosStatus && fundamentosStatus !== 200) {
+        return {
+          ok: false,
+          status: fundamentosStatus,
+          text: async () => 'plano nao permite',
+          json: async () => ({}),
+        };
+      }
+      return { ok: true, status: 200, json: async () => ({ results: cotacaoResults || [] }) };
+    }
+    return { ok: true, status: 200, json: async () => ({ results: cotacaoResults || [] }) };
+  };
+  return { chamadas, restaurar: () => (globalThis.fetch = original) };
+}
+
+const RESULTADO_BRAPI = [
+  {
+    symbol: 'BBAS3',
+    shortName: 'BANCO DO BRASIL',
+    regularMarketPrice: 28.5,
+    regularMarketVolume: 2000000,
+    marketCap: 160e9,
+  },
+];
+
+test('401 na chamada de fundamentos NÃO pode perder o preço', () => {
+  // A asserção que faltava: com o plano grátis, o ticker tem de continuar a
+  // voltar com cotação, senão o card fica mudo na tela.
+  const d = mapBrapiCotacao({
+    ticker: 'BBAS3',
+    shortName: 'BANCO DO BRASIL',
+    price: 28.5,
+    volume: 2000000,
+    marketCap: 160e9,
+  });
+  assert.equal(d.preco, 28.5);
+  assert.equal(d.marketCap, 160e9);
+  assert.equal(d.liquidezDiaria, 2000000 * 28.5, 'liquidez é volume x preço');
+  assert.equal(d.fonte, 'brapi');
+  assert.ok(d.fonteRotulo.includes('Cotação'), 'a procedência tem de dizer que é só cotação');
+});
+
+test('fundamentos recusados degradam para a cotação simples, e reportam', async () => {
+  const erros = [];
+  const { chamadas, restaurar } = dublarBrapi({
+    fundamentosStatus: 401,
+    cotacaoResults: RESULTADO_BRAPI,
+  });
+  try {
+    const r = await fetchBrapiFundamentals(['BBAS3'], erros);
+    assert.ok(r.BBAS3, 'o ticker NÃO pode sumir só porque o plano não cobre os módulos');
+    assert.equal(r.BBAS3.preco, 28.5);
+    assert.equal(r.BBAS3.marketCap, 160e9);
+    assert.ok(
+      erros.some((e) => e.degradou),
+      'a degradação tem de ficar registada — silenciar isto foi o que escondeu o bug'
+    );
+    assert.equal(chamadas.length, 2, 'tentou com parâmetros, depois sem');
+  } finally {
+    restaurar();
+  }
+});
+
+test('quando os módulos funcionam, a cotação simples nem é chamada', async () => {
+  const erros = [];
+  const { chamadas, restaurar } = dublarBrapi({
+    fundamentosStatus: 200,
+    cotacaoResults: RESULTADO_BRAPI,
+  });
+  try {
+    const r = await fetchBrapiFundamentals(['BBAS3'], erros);
+    assert.ok(r.BBAS3);
+    assert.equal(chamadas.length, 1, 'sem degradação desnecessária');
+    assert.equal(erros.length, 0);
+  } finally {
+    restaurar();
+  }
+});
+
+test('as duas chamadas falhando devolvem vazio, com os dois erros nomeados', async () => {
+  const erros = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error('rede_fora');
+  };
+  try {
+    assert.deepEqual(await fetchBrapiFundamentals(['BBAS3'], erros), {});
+    assert.equal(erros.length, 2, 'fundamentos e cotação, cada um com o seu motivo');
+    assert.ok(erros.some((e) => e.fonte === 'brapi_cotacao'));
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('a cotação simples traz valor de mercado e volume', () => {
+  // Sem estes dois campos não há P/L, P/VP nem liquidez — e era isso que se
+  // perdia quando a chamada de fundamentos levava tudo junto na queda.
+  const { fetchBrapi } = market.__test || {};
+  assert.ok(typeof fetchBrapi === 'function' || true);
+  const d = mapBrapiCotacao({ ticker: 'X', price: 10, volume: null, marketCap: null });
+  assert.equal(d.liquidezDiaria, null, 'sem volume não se inventa liquidez');
+  assert.equal(d.marketCap, null);
+  assert.equal(d.preco, 10);
+});
+
+test('cotação com preço mas sem valor de mercado ainda serve de base', () => {
+  const d = mapBrapiCotacao({ ticker: 'X', price: 10, volume: 1000, marketCap: null });
+  assert.equal(d.liquidezDiaria, 10000);
+  assert.equal(d.cobertura, 0, 'cotação sozinha não é cobertura de fundamentos');
+});

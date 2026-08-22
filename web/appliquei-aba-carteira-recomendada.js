@@ -1961,8 +1961,21 @@ function cartRenderizarMotorRanking(ranking) {
             a.score +
             '<small>/100</small></span>';
 
+      // Fonte que não respondeu tem conserto diferente de fonte que
+      // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
+      // manda o utilizador (e quem for depurar) na direção errada.
+      var indisponivel = a.indisponivel
+        ? '<div class="cart-score-faltando">' +
+          '<div class="cart-score-faltando-titulo">' +
+          '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
+          '</div>' +
+          '<div class="cart-score-faltando-linha">' +
+          (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
+          '</div></div>'
+        : '';
+
       var faltando =
-        a.score === null && (a.faltando || []).length
+        !a.indisponivel && a.score === null && (a.faltando || []).length
           ? '<div class="cart-score-faltando">' +
             '<div class="cart-score-faltando-titulo">' +
             '<i class="ph ph-database"></i> Faltam indicadores para pontuar' +
@@ -2011,6 +2024,7 @@ function cartRenderizarMotorRanking(ranking) {
         '">' +
         (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
         '</span></div>' +
+        indisponivel +
         faltando +
         cartProcedencia(a) +
         alertas +

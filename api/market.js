@@ -146,6 +146,11 @@ async function fetchBrapi(tickers) {
       currency: r.currency || 'BRL',
       shortName: r.shortName || r.longName || null,
       marketTime: r.regularMarketTime || null,
+      // Valor de mercado e volume vêm de graça nesta chamada e são o que
+      // permite P/L, P/VP e liquidez diária quando a chamada de fundamentos
+      // (que exige plano pago) falha.
+      marketCap: typeof r.marketCap === 'number' ? r.marketCap : null,
+      volume: typeof r.regularMarketVolume === 'number' ? r.regularMarketVolume : null,
     };
   }
   return out;
@@ -1609,7 +1614,59 @@ async function fetchYahooFundamentals(tickers, erros, orcamentoMs) {
   return out;
 }
 
-async function fetchBrapiFundamentals(tickers) {
+/** Resposta da chamada SIMPLES da BRAPI -> contrato de indicadores. */
+function mapBrapiCotacao(q) {
+  const preco = fundNum(q.price);
+  const volume = fundNum(q.volume);
+  return {
+    ticker: q.ticker,
+    nome: q.shortName || null,
+    setor: null,
+    preco,
+    marketCap: fundNum(q.marketCap),
+    liquidezDiaria: preco !== null && volume !== null ? volume * preco : null,
+    cobertura: 0,
+    fonte: 'brapi',
+    fonteRotulo: 'Cotação · BRAPI',
+    dataReferencia: null,
+  };
+}
+
+/**
+ * Fundamentos da BRAPI, com degradação obrigatória para a cotação simples.
+ *
+ * ESTE FOI O BUG QUE FEZ A BOLSA INTEIRA APARECER SEM SCORE. Os parâmetros
+ * `fundamental=true` e `modules=` exigem plano pago; sem token a resposta é
+ * 401, a função lançava, e o ticker ficava SEM DOCUMENTO NENHUM — perdia-se
+ * até o preço, que a chamada sem parâmetros devolve de graça e que já roda
+ * em produção na aba Meu Patrimônio.
+ *
+ * O sintoma na tela era um card sem linha de procedência: não havia fonte
+ * nenhuma a declarar porque nada tinha chegado.
+ *
+ * Regra que fica: fonte que falha degrada para a versão mais simples dela e
+ * nunca deixa o ticker sem registo.
+ */
+async function fetchBrapiFundamentals(tickers, erros) {
+  if (!tickers.length) return {};
+  try {
+    return await fetchBrapiFundamentalsCompleto(tickers);
+  } catch (e) {
+    if (erros) erros.push({ fonte: 'brapi_fundamentos', erro: e.message, degradou: true });
+    console.warn('[market/fundamentals] brapi_modules_failed, degradando:', e.message);
+    try {
+      const simples = await fetchBrapi(tickers);
+      const out = {};
+      for (const t of Object.keys(simples)) out[t] = mapBrapiCotacao(simples[t]);
+      return out;
+    } catch (e2) {
+      if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e2.message });
+      return {};
+    }
+  }
+}
+
+async function fetchBrapiFundamentalsCompleto(tickers) {
   if (!tickers.length) return {};
   const params = new URLSearchParams({
     fundamental: 'true',
@@ -1821,12 +1878,7 @@ async function handleFundamentals(req, res) {
     const criptos = stale.filter(ehCripto);
     const bolsa = stale.filter((t) => !ehCripto(t));
     const [resBolsa, resCripto] = await Promise.all([
-      bolsa.length
-        ? fetchBrapiFundamentals(bolsa).catch((e) => {
-            erros.push({ fonte: 'brapi', erro: e.message });
-            return {};
-          })
-        : Promise.resolve({}),
+      bolsa.length ? fetchBrapiFundamentals(bolsa, erros) : Promise.resolve({}),
       criptos.length
         ? fetchCoingeckoFundamentals(criptos).catch((e) => {
             erros.push({ fonte: 'coingecko', erro: e.message });
@@ -1905,7 +1957,21 @@ async function handleFundamentals(req, res) {
   for (const t of requested) {
     const composto = comporFundamentos(documentos[t]);
     if (!composto) {
+      // Ticker que nenhuma fonte respondeu. Devolver só o nome numa lista
+      // separada deixava o cliente com um card em branco, sem procedência e
+      // sem explicação — era assim que o sintoma aparecia na tela e por isso
+      // era indistinguível de "a fonte respondeu sem os campos".
       indisponiveis.push(t);
+      fundamentos[t] = {
+        ticker: t,
+        fonte: 'indisponivel',
+        fonteRotulo: 'Nenhuma fonte respondeu',
+        indisponivel: true,
+        motivo: erros.length
+          ? erros.map((e) => `${e.fonte || e.etapa || '?'}: ${e.erro}`).join(' · ')
+          : 'sem resposta das fontes de mercado',
+        cached: false,
+      };
       continue;
     }
     if (composto.fonte === 'cvm') comCvm++;
@@ -2321,6 +2387,188 @@ async function handleRanking(req, res) {
   return res.json({ success: true, cached: false, fetchedAt: agora, ...resultado });
 }
 
+// ============================================================
+// === op=diagnostico — por que este ativo não pontua ===
+// ============================================================
+//
+// Existe porque o sintoma "dados insuficientes" é idêntico para sete causas
+// que vivem em camadas diferentes: universo vazio, corte de investibilidade,
+// fonte que falhou inteira, fonte que respondeu sem campos, composição que
+// apagou dado, unidade trocada, cliente que não pediu o ticker.
+//
+// Sem isto, cada rodada de investigação era um palpite, um deploy e uma
+// espera — e três rodadas se passaram sem localizar o elo partido. Um pedido
+// aqui responde qual camada quebrou, com o erro literal de cada fonte.
+//
+// Protocolo de uso: .claude/skills/diagnostico-motor-carteira/SKILL.md
+
+async function handleDiagnostico(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const bruto = (req.query.ticker || '').toString().trim().toUpperCase();
+  const ticker = ehCripto(bruto) ? bruto : sanitizeTicker(bruto);
+  if (!ticker) {
+    return res.status(400).json({
+      error: 'ticker_invalido',
+      detail: 'Use ?op=diagnostico&ticker=BBAS3',
+      recebido: bruto || null,
+      // sanitizeTicker recusa menos de 4 ou mais de 10 caracteres — é uma
+      // causa real de "o ativo some" que ninguém adivinha olhando a tela.
+      regra: 'Ticker precisa de 4 a 10 caracteres alfanuméricos.',
+    });
+  }
+
+  const agora = Date.now();
+  const database = db();
+  const erros = [];
+  const passos = [];
+
+  // ── 1. O que já está gravado ──
+  let doc = null;
+  try {
+    const snap = await database.collection(FUNDAMENTALS_COLLECTION).doc(ticker).get();
+    doc = snap.exists ? snap.data() : null;
+  } catch (e) {
+    erros.push({ etapa: 'firestore', erro: e.message });
+  }
+  const idadeDias = (ms) => (typeof ms === 'number' ? Math.round((agora - ms) / 86400000) : null);
+  const documento = {
+    existe: !!doc,
+    ramos: doc ? ['cvm', 'yahoo', 'mercado'].filter((r) => doc[r]) : [],
+    idadeCvmDias: doc ? idadeDias(doc.cvmFetchedAtMs) : null,
+    idadeYahooDias: doc ? idadeDias(doc.yahooFetchedAtMs) : null,
+    idadeMercadoDias: doc ? idadeDias(doc.mercadoFetchedAtMs) : null,
+  };
+  passos.push(
+    documento.existe
+      ? `documento existe com ramos: ${documento.ramos.join(', ') || 'nenhum'}`
+      : 'documento NÃO existe em marketFundamentals'
+  );
+
+  // ── 2. O que cada fonte responde AGORA ──
+  const fontes = {};
+  const resumir = (d) => {
+    if (!d) return null;
+    const preenchidos = Object.keys(d).filter(
+      (k) => d[k] !== null && d[k] !== undefined && typeof d[k] !== 'object'
+    );
+    return { campos: preenchidos.length, cobertura: d.cobertura ?? null, preco: d.preco ?? null };
+  };
+
+  if (ehCripto(ticker)) {
+    try {
+      const r = await fetchCoingeckoFundamentals([ticker]);
+      fontes.coingecko = { ok: !!r[ticker], ...resumir(r[ticker]) };
+    } catch (e) {
+      fontes.coingecko = { ok: false, erro: e.message };
+    }
+  } else {
+    // Fundamentos completos (o que exige plano pago) e cotação simples são
+    // testados SEPARADAMENTE de propósito: a diferença entre os dois é
+    // exatamente o diagnóstico de "sem token, perdi tudo".
+    try {
+      const r = await fetchBrapiFundamentalsCompleto([ticker]);
+      fontes.brapiFundamentos = { ok: !!r[ticker], ...resumir(r[ticker]) };
+    } catch (e) {
+      fontes.brapiFundamentos = { ok: false, erro: e.message };
+    }
+    try {
+      const r = await fetchBrapi([ticker]);
+      fontes.brapiCotacao = {
+        ok: !!r[ticker],
+        preco: r[ticker] ? r[ticker].price : null,
+        marketCap: r[ticker] ? r[ticker].marketCap : null,
+      };
+    } catch (e) {
+      fontes.brapiCotacao = { ok: false, erro: e.message };
+    }
+    const errosYahoo = [];
+    try {
+      const r = await fetchYahooFundamentals([ticker], errosYahoo, 8000);
+      fontes.yahoo = { ok: !!r[ticker], ...resumir(r[ticker]), erros: errosYahoo };
+    } catch (e) {
+      fontes.yahoo = { ok: false, erro: e.message, erros: errosYahoo };
+    }
+  }
+
+  // ── 3. Composição e score ──
+  const composto = comporFundamentos(doc);
+  const classe = Motor.inferirClasse(
+    ticker,
+    (composto && composto.nome) || ticker,
+    composto && composto.classe
+  );
+  const pontuado = composto
+    ? Motor.scoreAtivo(
+        { ...composto, ticker },
+        { lente: (req.query.lente || 'equilibrio').toString() }
+      )
+    : null;
+
+  // ── 4. Veredito: qual elo partiu ──
+  let veredito;
+  const algumaFonteOk = Object.values(fontes).some((f) => f && f.ok);
+  if (!documento.existe && !algumaFonteOk) {
+    veredito =
+      'NENHUMA FONTE RESPONDE para este ticker. O elo partido está fora do sistema — ' +
+      'veja o campo `erro` de cada fonte acima. É o caso em que o card aparece sem linha de procedência.';
+  } else if (!documento.existe && algumaFonteOk) {
+    veredito =
+      'As fontes respondem, mas não há documento gravado. O ticker nunca foi pedido ao ' +
+      'op=fundamentals, ou a gravação falhou. Verifique se o cliente está a pedi-lo (aba Rede).';
+  } else if (pontuado && pontuado.temLastro) {
+    veredito = `OK — pontua ${pontuado.score}/100 com cobertura de ${Math.round(pontuado.cobertura * 100)}%.`;
+  } else if (pontuado) {
+    veredito =
+      `Cobertura de ${Math.round(pontuado.cobertura * 100)}%, abaixo do mínimo de ` +
+      `${Math.round(Motor.COBERTURA_MINIMA * 100)}%. Faltam: ` +
+      (pontuado.faltando || []).map((f) => f.pilar).join(', ') +
+      '. A correção é arranjar dado, NUNCA baixar o limiar.';
+  } else {
+    veredito = 'Documento existe mas a composição devolveu vazio — investigue comporFundamentos.';
+  }
+
+  return res.json({
+    success: true,
+    ticker,
+    classe,
+    documento,
+    fontes,
+    composto: composto
+      ? {
+          fonte: composto.fonte || null,
+          fonteRotulo: composto.fonteRotulo || null,
+          camposPreenchidos: Object.keys(composto).filter(
+            (k) => composto[k] !== null && composto[k] !== undefined
+          ).length,
+          amostra: {
+            preco: composto.preco ?? null,
+            marketCap: composto.marketCap ?? null,
+            pl: composto.pl ?? null,
+            pvp: composto.pvp ?? null,
+            roe: composto.roe ?? null,
+            dy: composto.dy ?? null,
+            liquidezDiaria: composto.liquidezDiaria ?? null,
+          },
+        }
+      : null,
+    score: pontuado
+      ? {
+          valor: pontuado.score,
+          temLastro: pontuado.temLastro,
+          cobertura: pontuado.cobertura,
+          confianca: pontuado.confianca,
+          faltando: pontuado.faltando,
+        }
+      : null,
+    passos,
+    erros,
+    veredito,
+    protocolo: '.claude/skills/diagnostico-motor-carteira/SKILL.md',
+  });
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -2345,6 +2593,10 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleFundamentals(req, res);
     }
+    if (op === 'diagnostico') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleDiagnostico(req, res);
+    }
     if (op === 'ranking') {
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleRanking(req, res);
@@ -2363,7 +2615,7 @@ module.exports = handler({
     return res.status(400).json({
       error: 'unknown_op',
       detail:
-        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=indicadores, ?op=rendafixa or ?op=warmup',
+        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa or ?op=warmup',
     });
   },
 });
@@ -2389,6 +2641,8 @@ module.exports.__test = {
   fundCrescimentoDre,
   fundCobertura,
   mapBrapiFundamental,
+  mapBrapiCotacao,
+  fetchBrapiFundamentals,
   mapYahooFundamental,
   fetchYahooFundamentals,
   comporFundamentos,

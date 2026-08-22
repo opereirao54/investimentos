@@ -1059,6 +1059,10 @@ function motorScoreAtivo(dados, opcoes) {
     // não interpreta — quem rotula é a fonte, quem desenha é a tela.
     fonte: d.fonte || null,
     fonteRotulo: d.fonteRotulo || null,
+    // "Nenhuma fonte respondeu" e "a fonte respondeu sem os campos" produzem
+    // a mesma tela sem isto, e têm consertos opostos.
+    indisponivel: d.indisponivel === true,
+    motivoIndisponivel: d.motivo || null,
     dataReferencia: d.dataReferencia || null,
     atualizadoEm: d.fetchedAtMs || d.atualizadoEm || null,
     score: score === null ? null : motorArred(score, 0),

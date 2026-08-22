@@ -772,3 +772,55 @@ test('sem reserva, nenhum aviso de reserva aparece', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(!html.includes('como reserva'));
 });
+
+// ════════════════════════════════════════════
+// "Nenhuma fonte respondeu" x "fonte sem os campos"
+// ════════════════════════════════════════════
+//
+// Os dois estados produziam a MESMA tela — card com "faltam indicadores" —
+// e têm consertos opostos: um é rede/plano da fonte, o outro é cobertura de
+// dado. Três rodadas de investigação se perderam nessa ambiguidade.
+
+test('ativo sem nenhuma fonte diz isso, em vez de listar indicadores', () => {
+  const s = carregar();
+  s.run(`
+    var mudo = motorRanquear([{
+      ticker: 'BBAS3', nome: 'Banco do Brasil', classe: 'acao',
+      indisponivel: true, motivo: 'brapi_fundamentos: brapi_401 · yahoo: yahoo_sem_crumb'
+    }], {});
+    cartRenderizarMotorRanking(mudo);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('Nenhuma fonte de mercado respondeu'));
+  assert.ok(html.includes('brapi_401'), 'o motivo literal tem de chegar à tela');
+  assert.ok(
+    !html.includes('FALTAM INDICADORES') && !html.includes('Faltam indicadores'),
+    'não pode dizer que faltam indicadores quando o problema é a fonte não responder'
+  );
+});
+
+test('ativo com fonte mas sem campos continua a listar o que falta', () => {
+  const s = carregar();
+  s.run(`
+    var incompleto = motorRanquear([{
+      ticker: 'PETR4', nome: 'Petrobras', classe: 'acao', preco: 38,
+      fonteRotulo: 'Cotação · BRAPI', fetchedAtMs: Date.now()
+    }], {});
+    cartRenderizarMotorRanking(incompleto);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('Faltam indicadores para pontuar'));
+  assert.ok(!html.includes('Nenhuma fonte de mercado respondeu'));
+  assert.ok(html.includes('Cotação · BRAPI'), 'com fonte, a procedência aparece');
+});
+
+test('a linha de procedência é o que distingue os dois estados na tela', () => {
+  // Regra de leitura da skill de diagnóstico: card SEM procedência significa
+  // que o endpoint não devolveu nada para o ticker.
+  const s = carregar();
+  s.run(`
+    var mudo = motorRanquear([{ ticker: 'ZZZZ3', nome: 'Mudo', classe: 'acao', indisponivel: true }], {});
+    cartRenderizarMotorRanking(mudo);
+  `);
+  assert.ok(!s.dom.els.get('cartMotorRanking').innerHTML.includes('cart-score-fonte'));
+});
