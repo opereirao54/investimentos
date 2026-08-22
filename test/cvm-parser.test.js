@@ -1541,3 +1541,70 @@ test('sem critério de desempate a ambiguidade fica, com os candidatos à vista'
   assert.equal(f.candidatos.length, 2, 'os dois lados têm de ficar visíveis');
   assert.deepEqual(f.candidatos.map((c) => c.nome).sort(), ['OUTRO', 'UM']);
 });
+
+// ════════════════════════════════════════════
+// Vacância e imóveis (informe trimestral)
+// ════════════════════════════════════════════
+
+test('vacância é ponderada pela área, não uma média simples', () => {
+  // Um galpão vago de 50 mil m² não pesa o mesmo que uma loja vaga de 200:
+  // a média simples trataria os dois como iguais e a ocupação sairia errada
+  // justamente nos fundos de logística.
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
+    '11.728.688/0001-47;2026-06-30;50000;100',
+    '11.728.688/0001-47;2026-06-30;150000;0',
+    '11.728.688/0001-47;2026-06-30;200;100',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  const f = r.porCnpj.get('11728688000147');
+  assert.equal(f.numeroImoveis, 3, 'a contagem é de linhas, não de coluna');
+  // (50000 + 200) vagos de 200200 = 25,1%
+  assert.equal(f.vacancia, 25.1);
+  assert.equal(f.ocupacao, 74.9);
+  // A média simples daria 66,7% de vacância — muito pior.
+  assert.ok(f.vacancia < 30);
+});
+
+test('só o trimestre mais recente conta os imóveis', () => {
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
+    '11.728.688/0001-47;2026-03-31;1000;0',
+    '11.728.688/0001-47;2026-03-31;1000;0',
+    '11.728.688/0001-47;2026-03-31;1000;0',
+    '11.728.688/0001-47;2026-06-30;1000;10',
+    '11.728.688/0001-47;2026-06-30;1000;0',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+  assert.equal(f.numeroImoveis, 2, 'somar trimestres duplicaria a carteira');
+  assert.equal(f.dataReferencia, '2026-06-30');
+  assert.equal(f.vacancia, 5);
+});
+
+test('sem área, a vacância cai para a média simples em vez de sumir', () => {
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Percentual_Vacancia',
+    '11.728.688/0001-47;2026-06-30;20',
+    '11.728.688/0001-47;2026-06-30;0',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+  assert.equal(f.vacancia, 10);
+  assert.equal(f.numeroImoveis, 2);
+});
+
+test('sem coluna de vacância os imóveis ainda são contados', () => {
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Nome_Imovel',
+    '11.728.688/0001-47;2026-06-30;GALPÃO A',
+    '11.728.688/0001-47;2026-06-30;GALPÃO B',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairImoveisFii(parsed.registros, parsed.colunas);
+  const f = r.porCnpj.get('11728688000147');
+  assert.equal(f.numeroImoveis, 2);
+  assert.equal(f.ocupacao, null, 'sem o dado, lacuna — nunca 100%');
+  assert.ok(r.faltando.includes('vacancia'));
+});

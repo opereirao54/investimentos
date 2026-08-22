@@ -274,6 +274,22 @@ function montarFetch(opcoes) {
           )
         );
       }
+      if (u.includes('/FII/DOC/INF_TRIMESTRAL/DADOS/inf_trimestral_fii_')) {
+        if (!op.trimestralFii) return naoAchado;
+        return responder(
+          zipar([
+            [
+              'inf_trimestral_fii_imovel_202606.csv',
+              [
+                'CNPJ_Fundo_Classe;Data_Referencia;Area_Bruta_Locavel;Percentual_Vacancia',
+                `${CNPJ_MXRF};2026-06-30;10000;0`,
+                `${CNPJ_MXRF};2026-06-30;10000;20`,
+                `${CNPJ_HGLG};2026-06-30;100000;0`,
+              ].join('\n'),
+            ],
+          ])
+        );
+      }
       if (u.includes('/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_')) {
         if (!op.informeFii) return naoAchado;
         const ano = u.match(/inf_mensal_fii_(\d{4})\.zip/);
@@ -585,4 +601,41 @@ test('escalas diferentes no mesmo arquivo, cada companhia com a sua', async () =
   assert.match(texto, /ações 0\.80bi cap/, 'a companhia em UNIDADES, na mesma execução');
   // Com a escala aplicada, nenhuma das duas é recusada pela trava.
   assert.ok(!/contagem declarada recusada/.test(texto), `recusou uma boa:\n${texto}`);
+});
+
+test('ocupação e imóveis vêm do informe trimestral, que é quem os publica', async () => {
+  // Os três membros do informe MENSAL não trazem vacância — a execução real
+  // imprimiu as colunas e ali só há rubricas de balanço. Procurá-la lá
+  // deixava o pilar de crescimento do FII com um indicador só.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    trimestralFii: true,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_TRIMESTRAL/DADOS/': [
+        'inf_trimestral_fii_2026.zip',
+      ],
+    },
+  });
+  assert.match(texto, /trimestral inf_trimestral_fii_2026\.zip: 2 fundos com imóveis/, texto);
+  // 20% vago em metade da área = 10% de vacância, 90% de ocupação.
+  assert.match(texto, /MXRF11.*imóveis 2 · ocupação 90/, `ocupação errada:\n${texto}`);
+  assert.match(texto, /HGLG11.*imóveis 1 · ocupação 100/, texto);
+});
+
+test('sem o trimestral o FII não morre: perde ocupação e mantém o resto', async () => {
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    trimestralFii: false,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+    },
+  });
+  assert.match(texto, /informe trimestral indisponível/, texto);
+  assert.match(texto, /MXRF11.*PL 1\.60bi/, `o mensal caiu junto:\n${texto}`);
+  assert.match(texto, /documentos prontos/, texto);
 });

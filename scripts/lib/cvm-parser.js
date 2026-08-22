@@ -1144,6 +1144,104 @@ function fundoDoTicker(vinculo, ticker) {
   return vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
 }
 
+// ════════════════════════════════════════════════════════════
+// Vacância e imóveis — informe TRIMESTRAL
+// ════════════════════════════════════════════════════════════
+//
+// O informe MENSAL não publica vacância nem contagem de imóveis. Isso não é
+// suposição: a execução real imprimiu as colunas dos três membros e ali há
+// só rubricas de balanço (`Imoveis_Renda_Acabados`, `Terrenos`, …), valores
+// em reais, nenhuma taxa de ocupação.
+//
+// Quem as publica é o informe trimestral, com uma linha POR IMÓVEL. Daí
+// vêm duas coisas que o motor pontua e que estavam vazias: quantos imóveis
+// o fundo tem (é a contagem de linhas, não uma coluna) e quanto deles está
+// vago.
+//
+// A vacância é ponderada pela área quando a área existe: um galpão vago de
+// 50 mil m² não pesa o mesmo que uma loja vaga de 200 m², e a média simples
+// trataria os dois como iguais.
+const COLUNAS_FII_TRIMESTRAL = {
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
+  dataReferencia: ['Data_Referencia', 'DT_COMPTC'],
+  vacancia: [
+    'Percentual_Vacancia',
+    'Percentual_Vacancia_Fisica',
+    'Percentual_Vacancia_Financeira',
+    'Vacancia',
+    'Percentual_Area_Vacante',
+  ],
+  area: ['Area_Bruta_Locavel', 'Area_Locavel', 'Area_Total', 'Area', 'Area_M2'],
+};
+
+/**
+ * Imóveis e vacância por fundo, do informe trimestral.
+ *
+ * Só o trimestre mais recente conta: um fundo que vendeu metade da carteira
+ * ficaria com o dobro dos imóveis se todos os trimestres fossem somados.
+ */
+function extrairImoveisFii(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_FII_TRIMESTRAL)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_FII_TRIMESTRAL[campo]);
+  }
+  const faltando = Object.keys(COLUNAS_FII_TRIMESTRAL).filter((c) => !cols[c]);
+  const porCnpj = new Map();
+  if (!cols.cnpj) return { porCnpj, faltando, colunas: cols };
+
+  // Trimestre mais recente de cada fundo, por data de referência.
+  const ultimoTrimestre = new Map();
+  const linhas = [];
+  for (const r of registros || []) {
+    const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const atual = ultimoTrimestre.get(cnpj);
+    if (!atual || data > atual) ultimoTrimestre.set(cnpj, data);
+    linhas.push({ cnpj, data, r });
+  }
+
+  for (const { cnpj, data, r } of linhas) {
+    if (data !== ultimoTrimestre.get(cnpj)) continue;
+    const acum = porCnpj.get(cnpj) || {
+      cnpj,
+      dataReferencia: data || null,
+      numeroImoveis: 0,
+      areaTotal: 0,
+      vagoPonderado: 0,
+      somaVacancia: 0,
+      comVacancia: 0,
+    };
+    acum.numeroImoveis += 1;
+    const vac = cols.vacancia ? valorNumericoCvm(r[cols.vacancia]) : null;
+    const area = cols.area ? valorNumericoCvm(r[cols.area]) : null;
+    if (vac !== null && vac >= 0 && vac <= 100) {
+      acum.somaVacancia += vac;
+      acum.comVacancia += 1;
+      if (area !== null && area > 0) {
+        acum.areaTotal += area;
+        acum.vagoPonderado += (vac / 100) * area;
+      }
+    }
+    porCnpj.set(cnpj, acum);
+  }
+
+  for (const acum of porCnpj.values()) {
+    acum.vacancia =
+      acum.areaTotal > 0
+        ? Math.round((acum.vagoPonderado / acum.areaTotal) * 1000) / 10
+        : acum.comVacancia
+          ? Math.round((acum.somaVacancia / acum.comVacancia) * 10) / 10
+          : null;
+    // O motor pontua OCUPAÇÃO; a CVM publica vacância.
+    acum.ocupacao = acum.vacancia === null ? null : Math.max(0, Math.min(100, 100 - acum.vacancia));
+  }
+  return { porCnpj, faltando, colunas: cols };
+}
+
+module.exports.COLUNAS_FII_TRIMESTRAL = COLUNAS_FII_TRIMESTRAL;
+module.exports.extrairImoveisFii = extrairImoveisFii;
+
 module.exports.COLUNAS_VINCULO_FII = COLUNAS_VINCULO_FII;
 module.exports.raizDoIsin = raizDoIsin;
 module.exports.vincularFiiPorCodigo = vincularFiiPorCodigo;

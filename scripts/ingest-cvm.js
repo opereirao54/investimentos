@@ -1023,6 +1023,35 @@ async function main() {
           }
         }
       }
+      // ── vacância e imóveis: informe TRIMESTRAL ──
+      //
+      // O mensal não os publica. Não é suposição: a execução real imprimiu
+      // as colunas dos três membros e ali só há rubricas de balanço.
+      let imoveisPorCnpj = new Map();
+      try {
+        const dirTri = `${BASE_FII}/DOC/INF_TRIMESTRAL/DADOS/`;
+        const achadoTri = await acharNoDiretorio(dirTri, /^inf_trimestral_fii_\d{4}\.zip$/i);
+        const pacoteTri = await baixarZipCsvs(achadoTri.url, ['imovel', 'ativo', 'geral']);
+        const membroTri = pacoteTri.csvs.imovel || pacoteTri.csvs.ativo || pacoteTri.csvs.geral;
+        if (!membroTri) {
+          log(`  ! trimestral sem membro reconhecido. No ZIP: ${pacoteTri.nomesNoZip.join(', ')}`);
+        } else {
+          const im = P.extrairImoveisFii(membroTri.registros, membroTri.colunas);
+          imoveisPorCnpj = im.porCnpj;
+          log(`  trimestral ${achadoTri.nome}: ${imoveisPorCnpj.size} fundos com imóveis`);
+          if (im.faltando.length) {
+            log(`  ! trimestral sem colunas: ${im.faltando.join(', ')}`);
+            log(`    membros no ZIP: ${pacoteTri.nomesNoZip.join(', ')}`);
+            log(`    colunas reais: ${membroTri.colunas.join(', ')}`);
+          }
+        }
+      } catch (e) {
+        // Sem o trimestral o fundo perde ocupação e contagem de imóveis, e
+        // segue com patrimônio, cotistas, P/VP e dividendos. Lacuna, não
+        // falha — mas dita, para não virar mistério.
+        log(`  ! informe trimestral indisponível — ${e.message}`);
+      }
+
       const faltando = Object.keys(P.COLUNAS_FII).filter((campo) => !achadas.has(campo));
       // Vacância e número de imóveis moram noutro membro e não entram em
       // `faltando` — mas se nenhum dos três arquivos os traz, o pilar de
@@ -1056,12 +1085,15 @@ async function main() {
           'valorPatrimonialCota',
           'dy',
         ].filter((k) => inf[k] !== null && inf[k] !== undefined).length;
+        const imoveis = imoveisPorCnpj.get(String(c.chave).replace(/\D/g, '')) || null;
         const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
           `    ${c.ticker.padEnd(8)} ${inf.dataReferencia || '—'} · PL ${bi(inf.patrimonioLiquido)}` +
             ` · VPC ${inf.valorPatrimonialCota ?? '—'} · DY ${inf.dyMes ?? '—'}%/mês` +
-            ` · cotistas ${inf.numeroCotistas ?? '—'} · ocupação ${inf.ocupacao ?? '—'}`
+            ` · cotistas ${inf.numeroCotistas ?? '—'}` +
+            ` · imóveis ${imoveis ? imoveis.numeroImoveis : '—'}` +
+            ` · ocupação ${imoveis && imoveis.ocupacao !== null ? imoveis.ocupacao : (inf.ocupacao ?? '—')}`
         );
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
@@ -1073,8 +1105,10 @@ async function main() {
           dados: {
             patrimonioLiquido: inf.patrimonioLiquido,
             numeroCotistas: inf.numeroCotistas,
-            numeroImoveis: inf.numeroImoveis,
-            ocupacao: inf.ocupacao,
+            // Do trimestral, que é quem os publica; o mensal fica de
+            // reserva para o caso de a CVM passar a trazê-los lá.
+            numeroImoveis: imoveis ? imoveis.numeroImoveis : inf.numeroImoveis,
+            ocupacao: imoveis && imoveis.ocupacao !== null ? imoveis.ocupacao : inf.ocupacao,
             // O valor patrimonial da COTA dá P/VP sem passar por valor de
             // mercado: preço ÷ VPC, dois números publicados, nenhuma
             // contagem de cotas no meio para errar de escala.
