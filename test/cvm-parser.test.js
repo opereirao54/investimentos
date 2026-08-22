@@ -696,7 +696,9 @@ test('em banco, dívida líquida e EBITDA não existem — e não são inventado
       linha('1023', '2.01.04', 'Recursos de Aceites e Emissão de Títulos', '80000000'),
       linha('1023', '2.08', 'Patrimônio Líquido Consolidado', '180000000'),
     ]),
-    dre: bloco([linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '13700000')]),
+    // Descrição do lucro fora dos nossos termos, de propósito: no banco ela
+    // varia, e o código do grupo 3 é compartilhado entre os planos.
+    dre: bloco([linha('1023', '3.11', 'Resultado Líquido do Semestre/Exercício', '13700000')]),
   };
   const fin = P.extrairFinanceiro(blocos, COLS_TESTE);
   assert.equal(fin.plano, 'financeiro');
@@ -706,10 +708,17 @@ test('em banco, dívida líquida e EBITDA não existem — e não são inventado
   assert.equal(fin.ebit, null);
   assert.equal(fin.ebitda, null);
 
-  // E, por consequência, o indicador não é publicado.
+  // MAS o lucro tem de sobreviver. A primeira tentativa desta correção
+  // desligou o código para TODAS as contas e o BBAS3 caiu de 9/12 para 1/12,
+  // sem ROE — trocando um número sem sentido por nenhum número. Só o BALANÇO
+  // diverge entre os planos; o grupo 3 da DRE é compartilhado.
+  assert.equal(fin.lucroLiquido, 13700000000, 'sem lucro não há ROE, e o banco tem ROE');
+
   const r = P.calcularIndicadores([{ ano: 2025, dataReferencia: '2025-12-31', ...fin }]);
-  assert.equal(r.indicadores.dividaLiquidaEbitda, null);
+  assert.equal(r.indicadores.dividaLiquidaEbitda, null, 'banco não tem dívida/EBITDA');
+  assert.equal(r.indicadores.liquidezCorrente, null, 'nem liquidez corrente');
   assert.ok(r.indicadores.roe !== null, 'ROE continua saindo — esse faz sentido para banco');
+  assert.equal(Math.round(r.indicadores.roe * 10) / 10, 7.6);
 });
 
 test('em banco, o patrimônio sai da DESCRIÇÃO — o código 2.03 é outra conta', () => {

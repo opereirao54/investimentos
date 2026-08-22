@@ -504,6 +504,11 @@ async function main() {
     log(
       `  arquivos usados: ${achados.join(', ') || 'nenhum'} (de ${pacote.nomesNoZip.length} no ZIP)`
     );
+    // O ZIP tem 19 arquivos e lemos 4. Saber o que há nos outros 15 é o que
+    // decide se a contagem de ações pode vir declarada em vez de derivada —
+    // e a derivação por `lucro ÷ LPA` não funciona quando ON e PN têm LPA
+    // diferente, que é o caso comum na B3.
+    log(`    todos no ZIP: ${pacote.nomesNoZip.join(' ')}`);
     if (!achados.length) {
       log(`  ✗ nenhum CSV reconhecido. Nomes no ZIP: ${pacote.nomesNoZip.slice(0, 8).join(', ')}`);
       continue;
@@ -669,9 +674,17 @@ async function main() {
       // Descoberto no índice do diretório, não adivinhado: os três nomes
       // conhecidos deram 404 na execução real, e a CVM renomeia arquivos.
       let cadFii = null;
-      for (const dir of [`${BASE_FII}/CAD/DADOS/`, `${BASE_FII}/CAD/`]) {
+      // `/dados/FII/` contém apenas `DOC/` — não há ramo CAD sob FII. O
+      // cadastro dos fundos mora no ramo geral de fundos de investimento,
+      // que inclui os FIIs.
+      const dirsCadastro = [
+        'https://dados.cvm.gov.br/dados/FI/CAD/DADOS/',
+        `${BASE_FII}/CAD/DADOS/`,
+        `${BASE_FII}/DOC/`,
+      ];
+      for (const dir of dirsCadastro) {
         try {
-          const achado = await acharNoDiretorio(dir, /^(cad_fii|registro_fundo).*\.csv$/i);
+          const achado = await acharNoDiretorio(dir, /^(cad_fii|cad_fi|registro_fundo).*\.csv$/i);
           log(`  cadastro: ${achado.nome}`);
           cadFii = await baixarCsv(achado.url);
           break;
@@ -680,7 +693,8 @@ async function main() {
         }
       }
       if (!cadFii) {
-        await diagnosticarArvore(`${BASE_FII}/CAD/DADOS/`);
+        await diagnosticarArvore('https://dados.cvm.gov.br/dados/FI/CAD/DADOS/');
+        await diagnosticarArvore(`${BASE_FII}/DOC/INF_MENSAL/DADOS/`);
         throw new Error('cadastro_fii_indisponivel');
       }
       const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);

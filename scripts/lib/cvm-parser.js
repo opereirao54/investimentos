@@ -40,12 +40,27 @@ const COLUNAS = {
 // mudar de numeração, a descrição ainda identifica a linha.
 const CONTAS = {
   ativoTotal: { codigos: ['1'], termos: ['ativo total'], porDescricao: true },
-  ativoCirculante: { codigos: ['1.01'], termos: ['ativo circulante'] },
+  // `soPlanoPadrao`: conta que NÃO EXISTE fora do plano industrial. Num
+  // balanço de banco não há circulante, e o código `1.01` aponta outra coisa
+  // — devolver null ali é a resposta certa. Ver `planoDaEmpresa`.
+  ativoCirculante: { codigos: ['1.01'], termos: ['ativo circulante'], soPlanoPadrao: true },
   caixa: { codigos: ['1.01.01'], termos: ['caixa e equivalentes de caixa'] },
   aplicacoesFinanceiras: { codigos: ['1.01.02'], termos: ['aplicacoes financeiras'] },
-  passivoCirculante: { codigos: ['2.01'], termos: ['passivo circulante'] },
-  dividaCurtoPrazo: { codigos: ['2.01.04'], termos: ['emprestimos e financiamentos'] },
-  dividaLongoPrazo: { codigos: ['2.02.01'], termos: ['emprestimos e financiamentos'] },
+  passivoCirculante: {
+    codigos: ['2.01'],
+    termos: ['passivo circulante'],
+    soPlanoPadrao: true,
+  },
+  dividaCurtoPrazo: {
+    codigos: ['2.01.04'],
+    termos: ['emprestimos e financiamentos'],
+    soPlanoPadrao: true,
+  },
+  dividaLongoPrazo: {
+    codigos: ['2.02.01'],
+    termos: ['emprestimos e financiamentos'],
+    soPlanoPadrao: true,
+  },
   // `porDescricao` inverte a ordem de casamento: descrição primeiro, código
   // como reserva.
   //
@@ -70,7 +85,10 @@ const CONTAS = {
     termos: ['receita de venda', 'receita liquida'],
     porDescricao: true,
   },
-  ebit: { codigos: ['3.05'], termos: ['antes do resultado financeiro'] },
+  // Para um banco, o resultado financeiro É a operação: não há "resultado
+  // antes do resultado financeiro". Sem EBIT não há EBITDA nem ROIC — e é
+  // isso mesmo.
+  ebit: { codigos: ['3.05'], termos: ['antes do resultado financeiro'], soPlanoPadrao: true },
   resultadoAntesTributos: { codigos: ['3.07'], termos: ['antes dos tributos'] },
   tributos: { codigos: ['3.08'], termos: ['imposto de renda'] },
   lucroLiquido: {
@@ -219,7 +237,9 @@ function fatorEscala(escala) {
 function valorDaConta(linhas, cols, conta, opcoes) {
   const spec = CONTAS[conta];
   if (!spec) return null;
-  const soDescricao = !!(opcoes && opcoes.soDescricao);
+  // Conta exclusiva do plano padrão, lida fora dele: não existe. Devolver
+  // null é a resposta, não uma falha.
+  if (spec.soPlanoPadrao && opcoes && opcoes.plano === 'financeiro') return null;
 
   const porCodigo = () => {
     for (const codigo of spec.codigos) {
@@ -248,9 +268,6 @@ function valorDaConta(linhas, cols, conta, opcoes) {
     return null;
   };
 
-  // Fora do plano padrão, o código não é reserva — é armadilha: devolve o
-  // valor de OUTRA conta que calha no mesmo número. Ver `planoDaEmpresa`.
-  if (soDescricao) return porDescricao();
   // Ordem invertida para as contas marcadas: ver o comentário em CONTAS.
   const primeiro = spec.porDescricao ? porDescricao() : porCodigo();
   if (primeiro !== null) return primeiro;
@@ -537,7 +554,7 @@ function extrairFinanceiro(blocos, cols) {
   // Banco e seguradora usam outro plano de contas: lá o código não serve de
   // reserva, porque aponta contas diferentes com o mesmo número.
   const plano = planoDaEmpresa(blocos, cols);
-  const op = plano === 'financeiro' ? { soDescricao: true } : undefined;
+  const op = { plano };
 
   const patrimonioLiquido = valorDaConta(bpp, cols, 'patrimonioLiquido', op);
   const ativoTotal = valorDaConta(bpa, cols, 'ativoTotal', op);
