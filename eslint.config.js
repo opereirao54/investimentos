@@ -91,6 +91,7 @@ module.exports = [
       'web/appliquei-utils.js',
       'web/appliquei-inss.js',
       'web/appliquei-aba-simulador.js',
+      'web/appliquei-motor-carteira.js',
       'web/appliquei-aba-carteira-recomendada.js',
       'web/appliquei-aba-info-mercado.js',
       'web/appliquei-aba-dividendos.js',

@@ -26,6 +26,7 @@ const LOAD_ORDER = [
   'web/appliquei-renda-fixa.js',
   'web/appliquei-previdencia.js',
   'web/appliquei-aba-simulador.js',
+  'web/appliquei-motor-carteira.js',
   'web/appliquei-aba-carteira-recomendada.js',
   'web/appliquei-aba-info-mercado.js',
   'web/appliquei-aba-dividendos.js',
@@ -41,7 +42,14 @@ const LOAD_ORDER = [
 function makeDeadNode() {
   const node = {
     style: {},
-    classList: { add() {}, remove() {}, toggle() {}, contains() { return false; } },
+    classList: {
+      add() {},
+      remove() {},
+      toggle() {},
+      contains() {
+        return false;
+      },
+    },
     dataset: {},
     children: [],
     appendChild() {},
@@ -49,14 +57,30 @@ function makeDeadNode() {
     addEventListener() {},
     removeEventListener() {},
     setAttribute() {},
-    getAttribute() { return null; },
-    querySelector() { return makeDeadNode(); },
-    querySelectorAll() { return []; },
-    getContext() { return null; },
-    getBoundingClientRect() { return { top: 0, left: 0, width: 0, height: 0 }; },
-    cloneNode() { return makeDeadNode(); },
-    closest() { return null; },
-    matches() { return false; },
+    getAttribute() {
+      return null;
+    },
+    querySelector() {
+      return makeDeadNode();
+    },
+    querySelectorAll() {
+      return [];
+    },
+    getContext() {
+      return null;
+    },
+    getBoundingClientRect() {
+      return { top: 0, left: 0, width: 0, height: 0 };
+    },
+    cloneNode() {
+      return makeDeadNode();
+    },
+    closest() {
+      return null;
+    },
+    matches() {
+      return false;
+    },
     focus() {},
     innerHTML: '',
     innerText: '',
@@ -75,13 +99,24 @@ function makeStorage() {
     removeItem: (k) => map.delete(k),
     clear: () => map.clear(),
     key: (i) => Array.from(map.keys())[i] ?? null,
-    get length() { return map.size; },
+    get length() {
+      return map.size;
+    },
   };
 }
 
 function makeSandbox() {
   const win = {
-    location: { hostname: 'localhost', pathname: '/app', search: '', hash: '', origin: 'http://localhost', protocol: 'http:', replace() {}, reload() {} },
+    location: {
+      hostname: 'localhost',
+      pathname: '/app',
+      search: '',
+      hash: '',
+      origin: 'http://localhost',
+      protocol: 'http:',
+      replace() {},
+      reload() {},
+    },
     navigator: { userAgent: 'node-test', sendBeacon: () => true, clipboard: null },
     document: {
       readyState: 'complete',
@@ -99,30 +134,85 @@ function makeSandbox() {
     },
     localStorage: makeStorage(),
     sessionStorage: makeStorage(),
-    Chart: Object.assign(function ChartStub() { return { destroy() {}, update() {}, data: { datasets: [] }, options: {} }; }, {
-      register() {}, unregister() {},
-      defaults: { font: {}, plugins: { tooltip: { titleFont: {}, bodyFont: {} }, legend: { labels: {} }, datalabels: {} }, scale: { ticks: {} }, scales: { x: { ticks: {} }, y: { ticks: {} } }, elements: { line: {}, point: {}, bar: {}, arc: {} }, plugins_: {}, color: '', borderColor: '' },
-    }),
+    Chart: Object.assign(
+      function ChartStub() {
+        return { destroy() {}, update() {}, data: { datasets: [] }, options: {} };
+      },
+      {
+        register() {},
+        unregister() {},
+        defaults: {
+          font: {},
+          plugins: {
+            tooltip: { titleFont: {}, bodyFont: {} },
+            legend: { labels: {} },
+            datalabels: {},
+          },
+          scale: { ticks: {} },
+          scales: { x: { ticks: {} }, y: { ticks: {} } },
+          elements: { line: {}, point: {}, bar: {}, arc: {} },
+          plugins_: {},
+          color: '',
+          borderColor: '',
+        },
+      }
+    ),
     ChartDataLabels: {},
     firebase: undefined,
     AppliqueiFirebase: undefined,
     AppliqueiBilling: undefined,
     AppliqueiCloudSync: undefined,
     fetch: async () => ({ ok: false, status: 503, json: async () => ({}), text: async () => '' }),
-    setTimeout, clearTimeout, setInterval, clearInterval, queueMicrotask,
+    setTimeout,
+    clearTimeout,
+    setInterval,
+    clearInterval,
+    queueMicrotask,
     requestAnimationFrame: (cb) => setTimeout(cb, 0),
     cancelAnimationFrame: clearTimeout,
     console: { log() {}, warn() {}, error() {}, info() {}, debug() {} },
-    URL, URLSearchParams,
-    Blob: class Blob { constructor() {} },
-    FileReader: class FileReader { constructor() {} readAsText() {} },
-    Date, Math, JSON, Object, Array, String, Number, Boolean, Promise, Set, Map, Symbol, Error, TypeError, RangeError, Intl,
-    isFinite, isNaN, parseFloat, parseInt, encodeURIComponent, decodeURIComponent,
+    URL,
+    URLSearchParams,
+    Blob: class Blob {
+      constructor() {}
+    },
+    FileReader: class FileReader {
+      constructor() {}
+      readAsText() {}
+    },
+    Date,
+    Math,
+    JSON,
+    Object,
+    Array,
+    String,
+    Number,
+    Boolean,
+    Promise,
+    Set,
+    Map,
+    Symbol,
+    Error,
+    TypeError,
+    RangeError,
+    Intl,
+    isFinite,
+    isNaN,
+    parseFloat,
+    parseInt,
+    encodeURIComponent,
+    decodeURIComponent,
     btoa: (s) => Buffer.from(s).toString('base64'),
     atob: (s) => Buffer.from(s, 'base64').toString(),
-    addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; },
+    addEventListener() {},
+    removeEventListener() {},
+    dispatchEvent() {
+      return true;
+    },
     getComputedStyle: () => ({ getPropertyValue: () => '' }),
-    open() { return null; },
+    open() {
+      return null;
+    },
     history: { replaceState() {} },
   };
   win.window = win;
@@ -189,8 +279,8 @@ test('2.4 mpCalcularDespesasJanela soma só consumo no período', () => {
     { categoria: 'despesa_fixa', valor: 100, data: jan, pago: true },
     { categoria: 'despesa_variavel', valor: 50, data: jan, pago: true },
     { categoria: 'investimento_variavel', valor: 1000, data: jan, pago: true }, // não é despesa
-    { categoria: 'resgate_investimento', valor: 300, data: jan, pago: true },   // não é despesa
-    { categoria: 'despesa_fixa', valor: 999, data: fev, pago: true },           // fora da janela
+    { categoria: 'resgate_investimento', valor: 300, data: jan, pago: true }, // não é despesa
+    { categoria: 'despesa_fixa', valor: 999, data: fev, pago: true }, // fora da janela
   ];
   const ini = new Date(2024, 0, 1).getTime();
   const fim = new Date(2024, 0, 31, 23, 59, 59).getTime();
@@ -204,8 +294,8 @@ test('2.3/2.4 mpCalcularSaldoTotal: aporte abate, resgate devolve ao caixa', () 
   s.transacoes = [
     { categoria: 'receita', valor: 5000, data: dt, pago: true },
     { categoria: 'investimento_variavel', valor: 2000, data: dt, pago: true }, // -2000
-    { categoria: 'resgate_investimento', valor: 800, data: dt, pago: true },   // +800
-    { categoria: 'despesa_fixa', valor: 500, data: dt, pago: true },           // -500
+    { categoria: 'resgate_investimento', valor: 800, data: dt, pago: true }, // +800
+    { categoria: 'despesa_fixa', valor: 500, data: dt, pago: true }, // -500
   ];
   // 5000 - 2000 + 800 - 500 = 3300
   assert.equal(s.mpCalcularSaldoTotal(ref), 3300);
@@ -217,15 +307,36 @@ test('2.3 calcularPatrimonioTotal soma renda fixa + renda variável', () => {
   const s = loadApp();
   // RV: 10 cotas a 10 = 100 investido. RF: 1 unidade de 500.
   s.historicoCompras = [
-    { id: 1, ticker: 'XPTO3', quantidade: 10, preco_op: 10, tipo: 'compra', categoria: 'renda_variavel', subcategoria: 'acoes', data_op: new Date(2024, 0, 1).toISOString() },
-    { id: 2, ticker: 'CDB-X', quantidade: 1, preco_op: 500, tipo: 'compra', categoria: 'renda_fixa', data_op: new Date(2024, 0, 1).toISOString() },
+    {
+      id: 1,
+      ticker: 'XPTO3',
+      quantidade: 10,
+      preco_op: 10,
+      tipo: 'compra',
+      categoria: 'renda_variavel',
+      subcategoria: 'acoes',
+      data_op: new Date(2024, 0, 1).toISOString(),
+    },
+    {
+      id: 2,
+      ticker: 'CDB-X',
+      quantidade: 1,
+      preco_op: 500,
+      tipo: 'compra',
+      categoria: 'renda_fixa',
+      data_op: new Date(2024, 0, 1).toISOString(),
+    },
   ];
   const p = s.calcularPatrimonioTotal();
   assert.ok(p.totalRendaVariavel > 0, 'renda variável deve entrar no total');
   assert.ok(p.totalRendaFixa > 0, 'renda fixa deve entrar no total');
   // Total = soma exata das categorias (sem ignorar nenhuma).
-  const soma = p.totalRendaFixa + p.totalRendaVariavel + p.totalPrevidencia + p.totalReservaEmergencia;
-  assert.ok(Math.abs(p.totalPatrimonio - soma) < 1e-6, 'totalPatrimonio deve ser a soma de todas as categorias');
+  const soma =
+    p.totalRendaFixa + p.totalRendaVariavel + p.totalPrevidencia + p.totalReservaEmergencia;
+  assert.ok(
+    Math.abs(p.totalPatrimonio - soma) < 1e-6,
+    'totalPatrimonio deve ser a soma de todas as categorias'
+  );
 });
 
 // ---- 2.1: resgate para sonho abate o investimento de origem -----------
@@ -244,16 +355,40 @@ test('2.1 finalizarAporteSonho (migração) abate cotas do investimento', () => 
   silenciarUI(s);
   // Ativo fora do mockAtivosMercado → usa preço médio (10) como cotação.
   s.historicoCompras = [
-    { id: 1, ticker: 'ZZZZ9', quantidade: 100, preco_op: 10, tipo: 'compra', categoria: 'renda_variavel', subcategoria: 'acoes', corretora: 'XP', data_op: new Date(2024, 0, 1).toISOString() },
+    {
+      id: 1,
+      ticker: 'ZZZZ9',
+      quantidade: 100,
+      preco_op: 10,
+      tipo: 'compra',
+      categoria: 'renda_variavel',
+      subcategoria: 'acoes',
+      corretora: 'XP',
+      data_op: new Date(2024, 0, 1).toISOString(),
+    },
   ];
   s.transacoes = [];
-  s.sonhos = [{ id: 'sonho_1', nome: 'Viagem', valorTotal: 10000, valorAtual: 0, prazoMeses: 12, mesesRestantes: 12, planoVinculado: false, aportes: [] }];
+  s.sonhos = [
+    {
+      id: 'sonho_1',
+      nome: 'Viagem',
+      valorTotal: 10000,
+      valorAtual: 0,
+      prazoMeses: 12,
+      mesesRestantes: 12,
+      planoVinculado: false,
+      aportes: [],
+    },
+  ];
 
   const qtdAntes = s.obterResumoCarteira()['ZZZZ9'].qtdTotal;
   assert.equal(qtdAntes, 100);
 
   // Resgata R$ 200 de ZZZZ9 (preço médio 10 → 20 cotas) para o sonho.
-  s.finalizarAporteSonho('sonho_1', 200, '2024-02-01', 'migracao', { origemAtivo: 'ZZZZ9', origemDesc: 'Resgate de ZZZZ9' });
+  s.finalizarAporteSonho('sonho_1', 200, '2024-02-01', 'migracao', {
+    origemAtivo: 'ZZZZ9',
+    origemDesc: 'Resgate de ZZZZ9',
+  });
 
   const resumo = s.obterResumoCarteira();
   assert.ok(resumo['ZZZZ9'], 'ativo deve continuar existindo');
@@ -269,16 +404,44 @@ test('2.1 excluir aporte de migração devolve as cotas ao investimento', () => 
   const s = loadApp();
   silenciarUI(s);
   s.historicoCompras = [
-    { id: 1, ticker: 'ZZZZ9', quantidade: 100, preco_op: 10, tipo: 'compra', categoria: 'renda_variavel', subcategoria: 'acoes', corretora: 'XP', data_op: new Date(2024, 0, 1).toISOString() },
+    {
+      id: 1,
+      ticker: 'ZZZZ9',
+      quantidade: 100,
+      preco_op: 10,
+      tipo: 'compra',
+      categoria: 'renda_variavel',
+      subcategoria: 'acoes',
+      corretora: 'XP',
+      data_op: new Date(2024, 0, 1).toISOString(),
+    },
   ];
   s.transacoes = [];
-  s.sonhos = [{ id: 'sonho_1', nome: 'Viagem', valorTotal: 10000, valorAtual: 0, prazoMeses: 12, mesesRestantes: 12, planoVinculado: false, aportes: [] }];
+  s.sonhos = [
+    {
+      id: 'sonho_1',
+      nome: 'Viagem',
+      valorTotal: 10000,
+      valorAtual: 0,
+      prazoMeses: 12,
+      mesesRestantes: 12,
+      planoVinculado: false,
+      aportes: [],
+    },
+  ];
 
-  s.finalizarAporteSonho('sonho_1', 200, '2024-02-01', 'migracao', { origemAtivo: 'ZZZZ9', origemDesc: 'Resgate de ZZZZ9' });
+  s.finalizarAporteSonho('sonho_1', 200, '2024-02-01', 'migracao', {
+    origemAtivo: 'ZZZZ9',
+    origemDesc: 'Resgate de ZZZZ9',
+  });
   const aporteId = s.sonhos[0].aportes[s.sonhos[0].aportes.length - 1].id;
   assert.equal(s.obterResumoCarteira()['ZZZZ9'].qtdTotal, 80);
 
   s.confirmarExcluirAporteSonho('sonho_1', aporteId);
-  assert.equal(s.obterResumoCarteira()['ZZZZ9'].qtdTotal, 100, 'cotas devem voltar ao saldo original');
+  assert.equal(
+    s.obterResumoCarteira()['ZZZZ9'].qtdTotal,
+    100,
+    'cotas devem voltar ao saldo original'
+  );
   assert.equal(s.sonhos[0].valorAtual, 0, 'valor do sonho deve ser revertido');
 });

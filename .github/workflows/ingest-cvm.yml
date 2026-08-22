@@ -1,0 +1,103 @@
+name: Ingestão CVM
+
+# Alimenta marketFundamentals/{TICKER} com os indicadores calculados a partir
+# das demonstrações que as companhias entregam à CVM.
+#
+# POR QUE AQUI E NÃO NUMA FUNCTION DO VERCEL
+#   - vercel.json define maxDuration 15s e 256 MB para api/**; os ZIPs da
+#     CVM têm dezenas de MB e vários anos de histórico;
+#   - o plano Hobby permite 2 crons e os dois já estão ocupados
+#     (market warmup e reconcile de billing).
+# O job escreve na MESMA coleção que /api/market?op=fundamentals já lê, no
+# ramo `cvm` — o cliente não muda, só passa a receber dado melhor.
+
+on:
+  # Dry-run automático no PR que mexer na ingestão. É o passo de validação
+  # do layout da CVM sem exigir secret nem instalação local — o relatório sai
+  # nos logs do PR, e é lá que se confere ticker por ticker.
+  #
+  # Existe porque `schedule` e `workflow_dispatch` só disparam a partir do
+  # branch padrão: antes do merge, nenhum dos dois roda.
+  pull_request:
+    paths:
+      - 'scripts/ingest-cvm.js'
+      - 'scripts/lib/cvm-parser.js'
+      - 'scripts/lib/zip.js'
+      - 'scripts/lib/mapa-cvm.json'
+      - '.github/workflows/ingest-cvm.yml'
+  schedule:
+    # Segunda-feira, 07:00 UTC (04:00 BRT). O informe mensal de FII sai uma
+    # vez por mês e a DFP uma vez por ano: semanal é folgado e mantém o dado
+    # fresco sem torrar minutos do free tier.
+    - cron: '0 7 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só relatar, sem gravar no Firestore'
+        type: boolean
+        default: true
+      anos:
+        description: 'Quantos exercícios buscar (1 a 6)'
+        type: string
+        default: '5'
+      only:
+        description: 'Tickers específicos, separados por vírgula (vazio = todos)'
+        type: string
+        default: ''
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+# Duas execuções em paralelo escreveriam no mesmo documento com exercícios
+# possivelmente diferentes. Uma de cada vez, e a nova espera a anterior.
+concurrency:
+  group: ingest-cvm
+  cancel-in-progress: false
+
+jobs:
+  ingerir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Roda SEMPRE em dry-run antes de gravar, mesmo no agendamento. Se o
+      # layout da CVM mudou, o relatório mostra qual coluna sumiu e o passo
+      # de gravação nem chega a correr.
+      # No PR, uma amostra basta para provar o layout e é muito mais rápida.
+      - name: Validar layout e casamentos (dry-run)
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/ingest-cvm.js --dry-run --anos=1 --limite=20
+          else
+            node scripts/ingest-cvm.js --dry-run \
+              --anos=${{ github.event.inputs.anos || '5' }} \
+              ${{ github.event.inputs.only && format('--only={0}', github.event.inputs.only) || '' }}
+          fi
+
+      - name: Gravar no Firestore
+        # Agendamento grava; execução manual só grava se o operador desmarcar
+        # a caixa de dry-run.
+        # Nunca grava a partir de um PR.
+        if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run == 'false')
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_BASE64" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_BASE64 não configurado nos secrets do repositório."
+            exit 1
+          fi
+          node scripts/ingest-cvm.js --gravar \
+            --anos=${{ github.event.inputs.anos || '5' }} \
+            ${{ github.event.inputs.only && format('--only={0}', github.event.inputs.only) || '' }}

@@ -84,6 +84,18 @@ let newsCache = { at: 0, items: null, failed: [] };
 // Mapa range -> meses (para corte e cache key).
 const RANGE_MONTHS = { '1m': 1, '3m': 3, '6m': 6, '1y': 12, '3y': 36, '5y': 60 };
 
+// Premissas anuais dos ativos sem série de preço própria (Tesouro, CDI) e
+// dos benchmarks sintéticos. Ficam aqui, e não dentro de quem usa, porque
+// duas telas dependem delas: a simulação histórica desenha as curvas com
+// estes números e a renda fixa converte taxa nominal em real com os mesmos.
+// Divergir seria a mesma tela mostrar dois CDIs diferentes.
+const PREMISSAS_ANUAIS = { CDI: 0.1325, SELIC: 0.1325, IBOV: 0.095, IFIX: 0.082, IPCA: 0.045 };
+
+// Prêmio real típico de um Tesouro IPCA+ longo, usado só para desenhar a
+// curva indicativa da simulação histórica. A taxa REAL de cada título vem
+// do Tesouro (op=rendafixa) — isto aqui não decide alocação nenhuma.
+const PREMIO_REAL_IPCA = 0.07;
+
 function todayYmdBRT(now = Date.now()) {
   // BRT = UTC-3 (sem DST). Formata yyyy-mm-dd no fuso BRT.
   const brt = new Date(now - 3 * 3600 * 1000);
@@ -134,6 +146,11 @@ async function fetchBrapi(tickers) {
       currency: r.currency || 'BRL',
       shortName: r.shortName || r.longName || null,
       marketTime: r.regularMarketTime || null,
+      // Valor de mercado e volume vêm de graça nesta chamada e são o que
+      // permite P/L, P/VP e liquidez diária quando a chamada de fundamentos
+      // (que exige plano pago) falha.
+      marketCap: typeof r.marketCap === 'number' ? r.marketCap : null,
+      volume: typeof r.regularMarketVolume === 'number' ? r.regularMarketVolume : null,
     };
   }
   return out;
@@ -172,7 +189,7 @@ async function handleQuote(req, res) {
   let fetchError = null;
   if (stale.length) {
     try {
-      fetched = await fetchBrapi(stale);
+      fetched = await fetchCotacoesMercado(stale, null, 9000);
       const batch = database.batch();
       for (const t of stale) {
         const f = fetched[t];
@@ -222,16 +239,19 @@ async function handleQuote(req, res) {
 //   - Tesouro/CDI/IBOV/IFIX (synthetic): gera curva determinística baseada em yield anual
 //   - Demais (ações, FIIs, ETFs, BDRs): brapi /quote/:ticker?range=...&interval=1mo
 //   - Fallback: Yahoo Finance v8 (BDRs internacionais, ETFs US)
-async function fetchHistorySource(ticker, range) {
+async function fetchHistorySource(ticker, range, premissas) {
   const months = RANGE_MONTHS[range] || 12;
   const upper = ticker.toUpperCase();
 
   // Synthetic benchmarks/RF — usa premissas estáveis pra simulação histórica.
-  const SYNTH = { CDI: 0.1325, SELIC: 0.1325, IBOV: 0.095, IFIX: 0.082, IPCA: 0.045 };
+  const SYNTH = premissas || PREMISSAS_ANUAIS;
   if (SYNTH[upper] != null) return buildSyntheticSeries(upper, SYNTH[upper], months);
-  if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, 0.1325, months);
-  if (upper.startsWith('TESOURO_IPCA')) return buildSyntheticSeries(upper, 0.115, months);
-  if (upper.startsWith('TESOURO_PREFIXADO')) return buildSyntheticSeries(upper, 0.115, months);
+  // Títulos do Tesouro sem série própria. Antes eram três constantes soltas
+  // que ninguém revisava; agora acompanham a Selic e a inflação correntes.
+  if (upper.startsWith('TESOURO_SELIC')) return buildSyntheticSeries(upper, SYNTH.SELIC, months);
+  if (upper.startsWith('TESOURO_IPCA'))
+    return buildSyntheticSeries(upper, SYNTH.IPCA + PREMIO_REAL_IPCA, months);
+  if (upper.startsWith('TESOURO_PREFIXADO')) return buildSyntheticSeries(upper, SYNTH.CDI, months);
 
   // Cripto via CoinGecko
   if (CRYPTO_MAP[upper]) {
@@ -364,7 +384,8 @@ async function handleHistory(req, res) {
     });
   }
 
-  const series = await fetchHistorySource(rawTicker, range);
+  const { premissas } = await resolverPremissas(database);
+  const series = await fetchHistorySource(rawTicker, range, premissas);
   if (!series || !series.length) {
     return res.status(502).json({ error: 'history_unavailable', ticker: rawTicker, range });
   }
@@ -400,6 +421,55 @@ async function handleWarmup(req, res) {
   const started = Date.now();
   const database = db();
 
+  // Indicadores do BCB junto do aquecimento de cotações: são a base de toda
+  // conta de renda fixa e não podem depender de alguém abrir a aba.
+  let indicadores = 'ok';
+  try {
+    const bcb = await carregarIndicadoresBcb();
+    await database.collection(INDICADORES_COLLECTION).doc('bcb').set(
+      {
+        indicadores: bcb.indicadores,
+        premissas: bcb.premissas,
+        origem: bcb.origem,
+        degradado: bcb.degradado,
+        fetchedAtMs: Date.now(),
+        dateYmd: todayYmdBRT(),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    );
+    if (bcb.degradado) indicadores = 'degradado';
+  } catch (e) {
+    console.warn('[market/warmup] indicadores_failed', e.message);
+    indicadores = 'falhou:' + e.message;
+  }
+
+  // Ranking das quatro lentes, numa varredura só. Sem isto, o primeiro
+  // utilizador do dia paga a leitura da coleção inteira mais a pontuação.
+  let ranking = 'ok';
+  try {
+    const lentes = Object.keys(Motor.LENTES);
+    const rankings = await calcularRankings(database, lentes, RANKING_TOP_N_CRON);
+    const loteRanking = database.batch();
+    for (const lenteId of lentes) {
+      loteRanking.set(
+        database.collection(RANKING_COLLECTION).doc(`${lenteId}_${RANKING_TOP_N_CRON}`),
+        {
+          ...rankings[lenteId],
+          fetchedAtMs: Date.now(),
+          dateYmd: todayYmdBRT(),
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+    }
+    await loteRanking.commit();
+    ranking = `${rankings[lentes[0]].universo} ativos`;
+  } catch (e) {
+    console.warn('[market/warmup] ranking_failed', e.message);
+    ranking = 'falhou:' + e.message;
+  }
+
   let snapshot;
   try {
     snapshot = await database.collectionGroup('investimentos').get();
@@ -419,7 +489,13 @@ async function handleWarmup(req, res) {
 
   const tickers = Array.from(tickerSet);
   if (!tickers.length) {
-    return res.json({ success: true, tickers: 0, durationMs: Date.now() - started });
+    return res.json({
+      success: true,
+      tickers: 0,
+      indicadores,
+      ranking,
+      durationMs: Date.now() - started,
+    });
   }
 
   const today = todayYmdBRT();
@@ -430,7 +506,7 @@ async function handleWarmup(req, res) {
     const slice = tickers.slice(i, i + BATCH_SIZE);
     let results;
     try {
-      const fetched = await fetchBrapi(slice);
+      const fetched = await fetchCotacoesMercado(slice, null, 8000);
       results = Object.values(fetched);
     } catch (e) {
       failed += slice.length;
@@ -464,6 +540,8 @@ async function handleWarmup(req, res) {
     tickers: tickers.length,
     updated,
     failed,
+    indicadores,
+    ranking,
     errors,
     durationMs: Date.now() - started,
   });
@@ -667,6 +745,2060 @@ async function handleNews(req, res) {
   }
 }
 
+// ============================================================
+// === op=indicadores — Selic, CDI e IPCA reais (BCB) ===
+// ============================================================
+//
+// PREMISSAS_ANUAIS existia como constante no código. Isso apodrece em
+// silêncio: a Selic muda várias vezes por ano e a taxa real de todo título
+// do Tesouro é calculada em cima dela. Um cliente que sabe a taxa corrente e
+// vê a conta feita com outra perde a confiança no produto inteiro — e não há
+// nada na tela que denuncie o erro.
+//
+// O SGS do Banco Central é gratuito, sem chave e é a fonte primária. O Focus
+// dá a expectativa de inflação, que é o número certo para deflacionar taxa
+// contratada — melhor do que o IPCA passado e muito melhor do que 4,5% fixo.
+//
+// Nada aqui pode DERRUBAR a renda fixa: se o BCB não responder, cai para a
+// constante e marca `degradado`. A tela mostra a procedência dos dois jeitos,
+// então o utilizador sabe se está a ver taxa de hoje ou premissa de reserva.
+
+const INDICADORES_COLLECTION = 'marketIndicadores';
+const INDICADORES_TTL_MS = 6 * 60 * 60 * 1000;
+const SGS_BASE = 'https://api.bcb.gov.br/dados/serie/bcdata.sgs';
+const FOCUS_BASE =
+  'https://olinda.bcb.gov.br/olinda/servico/Expectativas/versao/v1/odata/ExpectativasMercadoAnuais';
+
+// Séries candidatas por indicador, em ordem de preferência.
+//
+// A lista existe porque código de série do SGS não é algo que se confira num
+// contrato: são milhares, os nomes mudam e um código errado devolve NÚMERO
+// VÁLIDO de outra coisa — o que é pior do que erro, porque passa. Por isso
+// cada candidata é validada contra uma faixa plausível antes de ser aceita:
+// um CDI de 0,05% reprova e o motor passa à próxima, em vez de propagar.
+const SGS_SERIES = {
+  selic: {
+    faixa: [0.5, 40],
+    candidatas: [
+      { codigo: 432, tipo: 'anual', rotulo: 'Meta Selic (SGS 432)' },
+      { codigo: 4189, tipo: 'anual', rotulo: 'Selic anualizada (SGS 4189)' },
+      { codigo: 11, tipo: 'diaria', rotulo: 'Selic diária (SGS 11)' },
+    ],
+  },
+  cdi: {
+    faixa: [0.5, 40],
+    candidatas: [
+      { codigo: 4389, tipo: 'anual', rotulo: 'CDI anualizado (SGS 4389)' },
+      { codigo: 12, tipo: 'diaria', rotulo: 'CDI diário (SGS 12)' },
+    ],
+  },
+  ipca12m: {
+    faixa: [-5, 40],
+    candidatas: [{ codigo: 13522, tipo: 'anual', rotulo: 'IPCA 12 meses (SGS 13522)' }],
+  },
+};
+
+/** dd/MM/yyyy do SGS -> yyyy-mm-dd. */
+function sgsData(v) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(v || '').trim());
+  if (!m) return null;
+  return `${m[3]}-${m[2]}-${m[1]}`;
+}
+
+async function fetchSgs(codigo, ultimos) {
+  const url = `${SGS_BASE}.${codigo}/dados/ultimos/${ultimos || 1}?formato=json`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`sgs_${codigo}_${res.status}`);
+  const json = await res.json();
+  if (!Array.isArray(json) || !json.length) throw new Error(`sgs_${codigo}_vazio`);
+  return json;
+}
+
+/** Taxa diária (% a.d.) -> anual (% a.a.), base 252 dias úteis. */
+function anualizar252(pctDiario) {
+  return (Math.pow(1 + pctDiario / 100, 252) - 1) * 100;
+}
+
+/**
+ * Primeira candidata que responder com valor dentro da faixa plausível.
+ * Devolve null quando nenhuma serve — quem decide o fallback é quem chama.
+ */
+async function resolverIndicadorSgs(nome, erros) {
+  const spec = SGS_SERIES[nome];
+  if (!spec) return null;
+  for (const cand of spec.candidatas) {
+    try {
+      const dados = await fetchSgs(cand.codigo, 1);
+      const ultimo = dados[dados.length - 1];
+      const bruto = fundNum(ultimo && ultimo.valor);
+      if (bruto === null) throw new Error('valor_nao_numerico');
+      const valor = cand.tipo === 'diaria' ? anualizar252(bruto) : bruto;
+      if (valor < spec.faixa[0] || valor > spec.faixa[1]) {
+        throw new Error(`fora_da_faixa_${valor.toFixed(2)}`);
+      }
+      return {
+        valor: Math.round(valor * 100) / 100,
+        unidade: '% a.a.',
+        fonte: cand.rotulo,
+        data: sgsData(ultimo && ultimo.data),
+      };
+    } catch (e) {
+      erros.push({ indicador: nome, serie: cand.codigo, erro: e.message });
+    }
+  }
+  return null;
+}
+
+/**
+ * Mediana do Focus para o IPCA do ano corrente.
+ *
+ * É a expectativa de inflação — o número certo para converter taxa nominal
+ * em taxa real de um título que vence no futuro. O IPCA dos últimos 12 meses
+ * responde outra pergunta.
+ */
+async function fetchFocusIpca(erros) {
+  const ano = new Date().getUTCFullYear();
+  const filtro = `Indicador eq 'IPCA' and DataReferencia eq ${ano}`;
+  const url =
+    `${FOCUS_BASE}?$top=1&$orderby=Data desc&$format=json` +
+    `&$select=Data,Mediana,DataReferencia&$filter=${encodeURIComponent(filtro)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 8000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  try {
+    if (!res.ok) throw new Error(`focus_${res.status}`);
+    const json = await res.json();
+    const linha = json && Array.isArray(json.value) ? json.value[0] : null;
+    const mediana = fundNum(linha && linha.Mediana);
+    if (mediana === null || mediana < -5 || mediana > 40)
+      throw new Error('focus_valor_implausivel');
+    return {
+      valor: Math.round(mediana * 100) / 100,
+      unidade: '% a.a.',
+      fonte: 'Expectativa Focus (BCB)',
+      data: linha.Data || null,
+      horizonte: linha.DataReferencia || ano,
+    };
+  } catch (e) {
+    erros.push({ indicador: 'ipcaEsperado', erro: e.message });
+    return null;
+  }
+}
+
+/** Busca tudo do BCB e monta o bloco de indicadores + premissas derivadas. */
+async function carregarIndicadoresBcb() {
+  const erros = [];
+  const [selic, cdi, ipca12m, ipcaEsperado] = await Promise.all([
+    resolverIndicadorSgs('selic', erros),
+    resolverIndicadorSgs('cdi', erros),
+    resolverIndicadorSgs('ipca12m', erros),
+    fetchFocusIpca(erros),
+  ]);
+
+  const indicadores = { selic, cdi, ipca12m, ipcaEsperado };
+
+  // Premissas em fração, no formato que o resto do arquivo já consome.
+  // Cada uma cai para a constante individualmente: perder o Focus não pode
+  // levar junto a Selic que veio certa.
+  const premissas = { ...PREMISSAS_ANUAIS };
+  const origem = { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' };
+  if (selic) {
+    premissas.SELIC = selic.valor / 100;
+    origem.SELIC = selic.fonte;
+  }
+  if (cdi) {
+    premissas.CDI = cdi.valor / 100;
+    origem.CDI = cdi.fonte;
+  } else if (selic) {
+    // O CDI acompanha a Selic de perto (historicamente ~0,1 p.p. abaixo).
+    // Derivar é melhor do que usar uma constante de anos atrás, mas a origem
+    // tem de dizer que foi derivado — não é medição.
+    premissas.CDI = (selic.valor - 0.1) / 100;
+    origem.CDI = 'Derivado da Selic';
+  }
+  const inflacao = ipcaEsperado || ipca12m;
+  if (inflacao) {
+    premissas.IPCA = inflacao.valor / 100;
+    origem.IPCA = inflacao.fonte;
+  }
+
+  const degradado = !selic || !cdi || !inflacao;
+  return { indicadores, premissas, origem, degradado, erros };
+}
+
+/**
+ * Premissas correntes para quem precisa delas numa conta.
+ *
+ * Lê o cache que op=indicadores mantém; nunca vai à rede. Endpoint que
+ * calcula taxa não pode ficar refém da latência do BCB, e uma premissa de
+ * seis horas atrás não muda a terceira casa de nada.
+ */
+async function resolverPremissas(database) {
+  try {
+    const snap = await database.collection(INDICADORES_COLLECTION).doc('bcb').get();
+    const d = snap && snap.exists ? snap.data() : null;
+    if (d && d.premissas && typeof d.premissas.CDI === 'number') {
+      return {
+        premissas: { ...PREMISSAS_ANUAIS, ...d.premissas },
+        origem: d.origem || null,
+        degradado: !!d.degradado,
+        fetchedAt: d.fetchedAtMs || null,
+      };
+    }
+  } catch (e) {
+    console.warn('[market/premissas] leitura_falhou', e.message);
+  }
+  return {
+    premissas: { ...PREMISSAS_ANUAIS },
+    origem: { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' },
+    degradado: true,
+    fetchedAt: null,
+  };
+}
+
+async function handleIndicadores(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(INDICADORES_COLLECTION).doc('bcb');
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+
+  if (
+    cache &&
+    typeof cache.fetchedAtMs === 'number' &&
+    agora - cache.fetchedAtMs < INDICADORES_TTL_MS
+  ) {
+    return res.json({
+      success: true,
+      cached: true,
+      fetchedAt: cache.fetchedAtMs,
+      indicadores: cache.indicadores || {},
+      premissas: cache.premissas || PREMISSAS_ANUAIS,
+      origem: cache.origem || null,
+      degradado: !!cache.degradado,
+    });
+  }
+
+  let resultado;
+  try {
+    resultado = await carregarIndicadoresBcb();
+  } catch (e) {
+    console.warn('[market/indicadores] bcb_failed', e.message);
+    resultado = null;
+  }
+
+  // Nenhum indicador veio: devolve o cache vencido se houver, senão a
+  // constante. Em nenhum caminho este endpoint responde erro — quem o chama
+  // precisa de UM número para continuar a conta.
+  if (!resultado || (!resultado.indicadores.selic && !resultado.indicadores.cdi)) {
+    if (cache && cache.premissas) {
+      return res.json({
+        success: true,
+        cached: true,
+        stale: true,
+        fetchedAt: cache.fetchedAtMs,
+        indicadores: cache.indicadores || {},
+        premissas: cache.premissas,
+        origem: cache.origem || null,
+        degradado: true,
+      });
+    }
+    return res.json({
+      success: true,
+      cached: false,
+      indicadores: (resultado && resultado.indicadores) || {},
+      premissas: PREMISSAS_ANUAIS,
+      origem: { CDI: 'fallback', SELIC: 'fallback', IPCA: 'fallback' },
+      degradado: true,
+      erros: (resultado && resultado.erros) || [{ erro: 'bcb_indisponivel' }],
+    });
+  }
+
+  await ref
+    .set(
+      {
+        indicadores: resultado.indicadores,
+        premissas: resultado.premissas,
+        origem: resultado.origem,
+        degradado: resultado.degradado,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/indicadores] cache_write_failed', e.message));
+
+  return res.json({
+    success: true,
+    cached: false,
+    fetchedAt: agora,
+    indicadores: resultado.indicadores,
+    premissas: resultado.premissas,
+    origem: resultado.origem,
+    degradado: resultado.degradado,
+    erros: resultado.erros,
+  });
+}
+
+// ============================================================
+// === op=fundamentals — indicadores para o motor da carteira ===
+// ============================================================
+//
+// O motor da Carteira Recomendada (web/appliquei-motor-carteira.js) pontua
+// cada ativo a partir de indicadores fundamentalistas. Este bloco é quem os
+// busca e, principalmente, quem os NORMALIZA: a BRAPI devolve razão em uns
+// campos (returnOnEquity = 0.185) e percentagem em outros (debtToEquity =
+// 45.3), e alguns indicadores que o motor usa não existem em campo nenhum —
+// precisam ser derivados (dívida líquida/EBITDA, CAGR, payout, DY médio).
+//
+// Fazer isto no servidor e não no browser é deliberado:
+//   - a conversão fica num lugar só, testável sem DOM;
+//   - o cache poupa a cota da BRAPI (grátis ~15k req/mês);
+//   - o cliente recebe sempre o mesmo contrato, mesmo quando a fonte muda.
+//
+// Cobertura parcial é o caso NORMAL, não erro: o plano grátis da BRAPI não
+// devolve os módulos financeiros e vários campos chegam null. O motor lida
+// com isso (encolhe o score na direção da média conforme a cobertura cai),
+// então aqui devolvemos o que houver com `cobertura` explícita em vez de
+// falhar a requisição inteira.
+
+const FUNDAMENTALS_COLLECTION = 'marketFundamentals';
+const RF_COLLECTION = 'marketRendaFixa';
+const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
+const RF_TTL_MS = 12 * 60 * 60 * 1000;
+const BRAPI_MODULES = 'summaryProfile,defaultKeyStatistics,financialData,incomeStatementHistory';
+
+// Endpoint público que alimenta o site do Tesouro Direto. É a única fonte
+// oficial e leve de taxas correntes — o CSV do Tesouro Transparente traz a
+// série histórica inteira (dezenas de MB), inviável numa serverless.
+const TESOURO_URL =
+  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+
+// Ano de lançamento das criptos suportadas. A CoinGecko só devolve
+// genesis_date no endpoint por moeda (1 request cada) — para 10 símbolos
+// conhecidos, tabela estática sai mais barato e não expira.
+const CRYPTO_GENESIS = {
+  BTC: 2009,
+  ETH: 2015,
+  SOL: 2020,
+  ADA: 2017,
+  BNB: 2017,
+  XRP: 2012,
+  DOT: 2020,
+  AVAX: 2020,
+  LINK: 2017,
+  MATIC: 2019,
+};
+
+function fundNum(v) {
+  const n = typeof v === 'number' ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Campos que a BRAPI devolve como razão (0.185 = 18,5%). */
+function fundRazaoParaPct(v) {
+  const n = fundNum(v);
+  return n === null ? null : n * 100;
+}
+
+function fundDiv(a, b) {
+  const x = fundNum(a);
+  const y = fundNum(b);
+  if (x === null || y === null || y === 0) return null;
+  return x / y;
+}
+
+function fundCagr(inicial, final, anos) {
+  const i = fundNum(inicial);
+  const f = fundNum(final);
+  if (i === null || f === null || i <= 0 || f <= 0 || !(anos > 0)) return null;
+  return (Math.pow(f / i, 1 / anos) - 1) * 100;
+}
+
+function fundAnosEntre(msInicio, msFim) {
+  if (!msInicio || !msFim || msFim <= msInicio) return null;
+  return (msFim - msInicio) / (365.25 * 24 * 3600 * 1000);
+}
+
+function fundData(v) {
+  if (!v) return null;
+  const t = typeof v === 'number' ? v * (v < 1e11 ? 1000 : 1) : Date.parse(v);
+  return Number.isFinite(t) ? t : null;
+}
+
+/**
+ * Agrega o histórico de proventos num punhado de indicadores.
+ *
+ * `cashDividends` da BRAPI vem como lista de pagamentos avulsos. Para ação
+ * são alguns por ano; para FII é mensal — e é justamente a regularidade
+ * mensal que interessa pontuar, por isso `consistencia` conta MESES com
+ * pagamento nos últimos 24, não pagamentos totais.
+ */
+function fundAgregarDividendos(lista, preco, agora) {
+  const vazio = {
+    dividendos12m: null,
+    dividendos12mAnterior: null,
+    dy: null,
+    dyMedio5a: null,
+    dyMedio36m: null,
+    anosPagandoDividendo: null,
+    consistenciaDividendos: null,
+    crescimentoDividendo12m: null,
+  };
+  if (!Array.isArray(lista) || !lista.length) return vazio;
+  const hoje = agora || Date.now();
+  const ANO = 365.25 * 24 * 3600 * 1000;
+
+  const pagamentos = [];
+  for (const d of lista) {
+    const valor = fundNum(d && (d.rate != null ? d.rate : d.value));
+    const quando = fundData(d && (d.paymentDate || d.date || d.approvedOn || d.lastDatePrior));
+    if (valor === null || valor <= 0 || quando === null) continue;
+    pagamentos.push({ valor, quando });
+  }
+  if (!pagamentos.length) return vazio;
+
+  function somaJanela(deMs, ateMs) {
+    let s = 0;
+    let houve = false;
+    for (const p of pagamentos) {
+      if (p.quando > deMs && p.quando <= ateMs) {
+        s += p.valor;
+        houve = true;
+      }
+    }
+    return houve ? s : null;
+  }
+
+  const d12 = somaJanela(hoje - ANO, hoje);
+  const d12ant = somaJanela(hoje - 2 * ANO, hoje - ANO);
+  const d60 = somaJanela(hoje - 5 * ANO, hoje);
+  const d36 = somaJanela(hoje - 3 * ANO, hoje);
+
+  const anos = new Set();
+  for (const p of pagamentos) {
+    if (p.quando >= hoje - 21 * ANO) anos.add(new Date(p.quando).getUTCFullYear());
+  }
+
+  const mesesComPagamento = new Set();
+  for (const p of pagamentos) {
+    if (p.quando > hoje - 2 * ANO && p.quando <= hoje) {
+      const dt = new Date(p.quando);
+      mesesComPagamento.add(dt.getUTCFullYear() + '-' + dt.getUTCMonth());
+    }
+  }
+
+  const p = fundNum(preco);
+  // DY médio usa o preço de hoje sobre o dividendo médio dos anos passados.
+  // É aproximação — o correto seria o preço de cada época, que a BRAPI não
+  // devolve junto do provento. Serve para comparar ativos entre si na mesma
+  // data, que é o uso no ranking.
+  const dyDe = (soma, anosJanela) =>
+    soma !== null && p !== null && p > 0 ? (soma / anosJanela / p) * 100 : null;
+
+  return {
+    dividendos12m: d12,
+    dividendos12mAnterior: d12ant,
+    dy: dyDe(d12, 1),
+    dyMedio5a: dyDe(d60, 5),
+    dyMedio36m: dyDe(d36, 3),
+    anosPagandoDividendo: anos.size || null,
+    consistenciaDividendos: mesesComPagamento.size ? (mesesComPagamento.size / 24) * 100 : null,
+    crescimentoDividendo12m:
+      d12 !== null && d12ant !== null && d12ant > 0 ? (d12 / d12ant - 1) * 100 : null,
+  };
+}
+
+/** CAGR de receita e lucro a partir do histórico de DRE anual da BRAPI. */
+function fundCrescimentoDre(historico) {
+  const out = { cagrReceita5a: null, cagrLucro5a: null, anosDre: 0 };
+  if (!Array.isArray(historico) || historico.length < 2) return out;
+  const linhas = historico
+    .map((h) => ({
+      quando: fundData(h && (h.endDate || h.date)),
+      receita: fundNum(h && (h.totalRevenue != null ? h.totalRevenue : h.revenue)),
+      lucro: fundNum(h && (h.netIncome != null ? h.netIncome : h.netIncomeFromContinuingOps)),
+    }))
+    .filter((l) => l.quando !== null)
+    .sort((a, b) => a.quando - b.quando);
+  if (linhas.length < 2) return out;
+
+  const primeira = linhas[0];
+  const ultima = linhas[linhas.length - 1];
+  const anos = fundAnosEntre(primeira.quando, ultima.quando);
+  out.anosDre = linhas.length;
+  out.cagrReceita5a = fundCagr(primeira.receita, ultima.receita, anos);
+  out.cagrLucro5a = fundCagr(primeira.lucro, ultima.lucro, anos);
+  return out;
+}
+
+/**
+ * Um resultado da BRAPI -> o contrato de indicadores que o motor consome.
+ * Toda chave ausente vira null de propósito: o motor distingue "sem dado"
+ * de "dado ruim", e um zero fabricado aqui viraria nota zero lá.
+ */
+function mapBrapiFundamental(r, agora) {
+  const stats = (r && r.defaultKeyStatistics) || {};
+  const fin = (r && r.financialData) || {};
+  const perfil = (r && r.summaryProfile) || {};
+  const preco = fundNum(r && r.regularMarketPrice);
+  const marketCap = fundNum(r && r.marketCap);
+
+  const pvp =
+    fundNum(r && r.priceToBook) !== null ? fundNum(r.priceToBook) : fundNum(stats.priceToBook);
+  const patrimonioLiquido = pvp !== null && pvp > 0 && marketCap !== null ? marketCap / pvp : null;
+
+  const caixa = fundNum(fin.totalCash);
+  const dividaBruta = fundNum(fin.totalDebt);
+  const dividaLiquida = dividaBruta !== null ? dividaBruta - (caixa || 0) : null;
+  const ebitda = fundNum(fin.ebitda);
+
+  const divPl =
+    dividaLiquida !== null && patrimonioLiquido !== null && patrimonioLiquido > 0
+      ? dividaLiquida / patrimonioLiquido
+      : fundNum(fin.debtToEquity) !== null
+        ? fundNum(fin.debtToEquity) / 100
+        : null;
+
+  const dividendos = fundAgregarDividendos(
+    r && r.dividendsData && r.dividendsData.cashDividends,
+    preco,
+    agora
+  );
+  const lpa =
+    fundNum(r && r.earningsPerShare) !== null
+      ? fundNum(r.earningsPerShare)
+      : fundNum(stats.trailingEps);
+  const payout =
+    dividendos.dividendos12m !== null && lpa !== null && lpa > 0
+      ? (dividendos.dividendos12m / lpa) * 100
+      : null;
+
+  const dre = fundCrescimentoDre(r && r.incomeStatementHistory);
+  const volume = fundNum(r && r.regularMarketVolume);
+
+  const dados = {
+    ticker: r && r.symbol ? String(r.symbol).toUpperCase() : null,
+    nome: (r && (r.longName || r.shortName)) || null,
+    setor: perfil.sector || perfil.industry || null,
+    preco,
+    marketCap,
+    patrimonioLiquido,
+
+    pl:
+      fundNum(r && r.priceEarnings) !== null ? fundNum(r.priceEarnings) : fundNum(stats.trailingPE),
+    pvp,
+    evEbitda: fundNum(stats.enterpriseToEbitda),
+
+    dy: dividendos.dy,
+    dyMedio5a: dividendos.dyMedio5a,
+    dyMedio36m: dividendos.dyMedio36m,
+    payout,
+    anosPagandoDividendo: dividendos.anosPagandoDividendo,
+    consistenciaDividendos: dividendos.consistenciaDividendos,
+    crescimentoDividendo12m: dividendos.crescimentoDividendo12m,
+
+    cagrReceita5a: dre.cagrReceita5a,
+    cagrLucro5a: dre.cagrLucro5a,
+    crescimentoReceitaAno: fundRazaoParaPct(fin.revenueGrowth),
+
+    dividaLiquidaEbitda: ebitda !== null && ebitda > 0 ? fundDiv(dividaLiquida, ebitda) : null,
+    dividaLiquidaPl: divPl,
+    liquidezCorrente: fundNum(fin.currentRatio),
+
+    roe: fundRazaoParaPct(fin.returnOnEquity),
+    roic: null, // BRAPI não expõe ROIC; ROA no lugar seria outro indicador.
+    margemLiquida: fundRazaoParaPct(fin.profitMargins),
+    margemEbitda: fundRazaoParaPct(fin.ebitdaMargins),
+    liquidezDiaria: volume !== null && preco !== null ? volume * preco : null,
+  };
+
+  // Rótulo de procedência. Montado aqui porque é aqui que se sabe DE ONDE
+  // cada campo veio — na tela só sobraria adivinhação. Sem os módulos
+  // financeiros o rótulo diz "cotação", não "fundamentos": o utilizador
+  // precisa distinguir os dois casos.
+  const temFundamentos =
+    dados.roe !== null || dados.dividaLiquidaEbitda !== null || dados.cagrReceita5a !== null;
+  dados.fonte = 'brapi';
+  dados.fonteRotulo = temFundamentos ? 'Fundamentos · BRAPI' : 'Cotação · BRAPI';
+  dados.dataReferencia = null; // a BRAPI não informa o exercício de origem
+  return dados;
+}
+
+/** Fração dos indicadores da classe que vieram preenchidos. */
+function fundCobertura(dados, chaves) {
+  if (!chaves || !chaves.length) return 0;
+  let preenchidos = 0;
+  for (const k of chaves) if (dados[k] !== null && dados[k] !== undefined) preenchidos++;
+  return preenchidos / chaves.length;
+}
+
+const CHAVES_ACAO = [
+  'pl',
+  'pvp',
+  'evEbitda',
+  'dy',
+  'dyMedio5a',
+  'payout',
+  'anosPagandoDividendo',
+  'cagrReceita5a',
+  'cagrLucro5a',
+  'crescimentoReceitaAno',
+  'dividaLiquidaEbitda',
+  'dividaLiquidaPl',
+  'liquidezCorrente',
+  'roe',
+  'margemLiquida',
+  'liquidezDiaria',
+];
+
+const CHAVES_CRIPTO = ['marketCap', 'volume24h', 'anosExistencia', 'retorno12m'];
+
+function ehCripto(t) {
+  return Object.prototype.hasOwnProperty.call(CRYPTO_MAP, t);
+}
+
+// ---------- Fundamentos via Yahoo Finance ----------
+//
+// Segunda fonte de fundamentos, e a única que funciona SEM esperar o job
+// semanal da CVM e SEM plano pago. Existe por um motivo medido: com a BRAPI
+// grátis, 13 dos 16 indicadores de ação chegam nulos, a cobertura fica em 5%
+// e nenhuma ação é pontuada — a tela mostra "dados insuficientes" para a
+// bolsa inteira.
+//
+// Ordem de preferência das três fontes: CVM (primária, auditável) > Yahoo
+// (imediata) > cotação. O Yahoo não substitui a CVM: os números dele são
+// derivados e não vêm com o exercício de origem declarado. Serve para o
+// produto funcionar hoje, e para cobrir o que a CVM não cobre (BDRs, ETFs).
+//
+// O endpoint quoteSummary exige cookie + crumb desde 2023. A dança é feita
+// uma vez e guardada na memória do container, que a serverless reaproveita
+// entre invocações — o mesmo padrão do cache de notícias.
+
+const YAHOO_SUMMARY_BASE = 'https://query2.finance.yahoo.com/v10/finance/quoteSummary';
+const YAHOO_MODULOS =
+  'summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory,price,assetProfile';
+const YAHOO_AUTH_TTL_MS = 30 * 60 * 1000;
+const YAHOO_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// Fundamento muda por trimestre; cotação muda por minuto. Por isso o ramo do
+// Yahoo tem validade própria, muito maior que a do ramo de cotação.
+const YAHOO_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+// Teto por requisição. O quoteSummary é um pedido por ticker; sem teto, uma
+// lista de 30 estouraria os 15s de maxDuration da function. O que não couber
+// fica sem ramo `yahoo` e é buscado na chamada seguinte — o cache converge em
+// duas ou três aberturas da aba.
+const YAHOO_MAX_POR_REQUISICAO = 8;
+const YAHOO_ORCAMENTO_MS = 6000;
+
+let yahooAuth = { cookie: null, crumb: null, at: 0 };
+
+async function obterAuthYahoo() {
+  if (yahooAuth.crumb && Date.now() - yahooAuth.at < YAHOO_AUTH_TTL_MS) return yahooAuth;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    // fc.yahoo.com responde 404 e mesmo assim carimba o cookie. Checar res.ok
+    // aqui reprovaria o caminho feliz.
+    const resCookie = await fetch('https://fc.yahoo.com/', {
+      redirect: 'manual',
+      headers: { 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    const bruto = resCookie.headers.get('set-cookie');
+    const cookie = bruto ? bruto.split(';')[0] : null;
+    if (!cookie) throw new Error('yahoo_sem_cookie');
+
+    const resCrumb = await fetch('https://query2.finance.yahoo.com/v1/test/getcrumb', {
+      headers: { Cookie: cookie, 'User-Agent': YAHOO_UA },
+      signal: ctrl.signal,
+    });
+    const crumb = (await resCrumb.text()).trim();
+    // Um crumb é uma string curta. Corpo grande aqui é página de erro ou de
+    // consentimento — aceitar isso faria todas as requisições seguintes
+    // falharem com uma mensagem que não diz nada.
+    if (!crumb || crumb.length > 32 || crumb.includes('<')) throw new Error('yahoo_sem_crumb');
+
+    yahooAuth = { cookie, crumb, at: Date.now() };
+    return yahooAuth;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Yahoo embrulha números em { raw, fmt }. */
+function yv(v) {
+  if (v === null || v === undefined) return null;
+  if (typeof v === 'object') return fundNum(v.raw);
+  return fundNum(v);
+}
+
+/** Resposta do quoteSummary -> o mesmo contrato de indicadores do motor. */
+function mapYahooFundamental(res, ticker, agora) {
+  const detalhe = (res && res.summaryDetail) || {};
+  const stats = (res && res.defaultKeyStatistics) || {};
+  const fin = (res && res.financialData) || {};
+  const preco = (res && res.price) || {};
+  const perfil = (res && res.assetProfile) || {};
+
+  const cotacao = yv(preco.regularMarketPrice);
+  const volume =
+    yv(preco.regularMarketVolume) !== null ? yv(preco.regularMarketVolume) : yv(detalhe.volume);
+  const marketCap = yv(preco.marketCap) !== null ? yv(preco.marketCap) : yv(detalhe.marketCap);
+
+  const pvp = yv(stats.priceToBook);
+  const patrimonioLiquido = pvp !== null && pvp > 0 && marketCap !== null ? marketCap / pvp : null;
+
+  const caixa = yv(fin.totalCash);
+  const dividaBruta = yv(fin.totalDebt);
+  const dividaLiquida = dividaBruta !== null ? dividaBruta - (caixa || 0) : null;
+  const ebitda = yv(fin.ebitda);
+
+  const divPl =
+    dividaLiquida !== null && patrimonioLiquido !== null && patrimonioLiquido > 0
+      ? dividaLiquida / patrimonioLiquido
+      : yv(fin.debtToEquity) !== null
+        ? yv(fin.debtToEquity) / 100 // este campo já vem em percentagem
+        : null;
+
+  // DY: o Yahoo dá a razão nestes dois, mas fiveYearAvgDividendYield já vem
+  // em percentagem. Misturar as duas convenções erraria por 100 vezes.
+  const dyRazao =
+    yv(detalhe.trailingAnnualDividendYield) !== null
+      ? yv(detalhe.trailingAnnualDividendYield)
+      : yv(detalhe.dividendYield);
+  const dyMedio = yv(detalhe.fiveYearAvgDividendYield);
+
+  // fundCrescimentoDre é agnóstico de fonte e espera números crus. Passar o
+  // histórico do Yahoo como vem faria todo campo virar null em silêncio, e o
+  // pilar Crescimento ficaria permanentemente vazio.
+  const historicoDre = (
+    (res && res.incomeStatementHistory && res.incomeStatementHistory.incomeStatementHistory) ||
+    []
+  ).map((linha) => ({
+    endDate: yv(linha.endDate),
+    totalRevenue: yv(linha.totalRevenue),
+    netIncome: yv(linha.netIncome),
+  }));
+  const dre = fundCrescimentoDre(historicoDre);
+
+  const dados = {
+    ticker,
+    nome: preco.longName || preco.shortName || null,
+    setor: perfil.sector || perfil.industry || null,
+    preco: cotacao,
+    marketCap,
+    patrimonioLiquido,
+
+    pl: yv(detalhe.trailingPE) !== null ? yv(detalhe.trailingPE) : yv(stats.trailingPE),
+    pvp,
+    evEbitda: yv(stats.enterpriseToEbitda),
+
+    dy: dyRazao === null ? null : dyRazao * 100,
+    // Fora de [0, 30] não é DY médio de ativo brasileiro: é outra unidade.
+    dyMedio5a: dyMedio !== null && dyMedio >= 0 && dyMedio <= 30 ? dyMedio : null,
+    dyMedio36m: null,
+    payout: fundRazaoParaPct(yv(detalhe.payoutRatio)),
+    anosPagandoDividendo: null,
+    consistenciaDividendos: null,
+    crescimentoDividendo12m: null,
+
+    cagrReceita5a: dre.cagrReceita5a,
+    cagrLucro5a: dre.cagrLucro5a,
+    crescimentoReceitaAno: fundRazaoParaPct(yv(fin.revenueGrowth)),
+
+    dividaLiquidaEbitda: ebitda !== null && ebitda > 0 ? fundDiv(dividaLiquida, ebitda) : null,
+    dividaLiquidaPl: divPl,
+    liquidezCorrente: yv(fin.currentRatio),
+
+    roe: fundRazaoParaPct(yv(fin.returnOnEquity)),
+    roic: null, // o Yahoo também não expõe ROIC
+    margemLiquida: fundRazaoParaPct(yv(fin.profitMargins)),
+    margemEbitda: fundRazaoParaPct(yv(fin.ebitdaMargins)),
+    liquidezDiaria: volume !== null && cotacao !== null ? volume * cotacao : null,
+  };
+  dados.cobertura = fundCobertura(dados, CHAVES_ACAO);
+  dados.fonte = 'yahoo';
+  dados.fonteRotulo = 'Fundamentos · Yahoo Finance';
+  // O Yahoo não declara o exercício de origem dos números.
+  dados.dataReferencia = null;
+  dados.fetchedAtMs = agora;
+  return dados;
+}
+
+async function fetchYahooUm(ticker, auth) {
+  // A B3 no Yahoo usa o sufixo .SA. Cripto e renda fixa não passam por aqui.
+  const simbolo = `${ticker}.SA`;
+  const url =
+    `${YAHOO_SUMMARY_BASE}/${encodeURIComponent(simbolo)}` +
+    `?modules=${YAHOO_MODULOS}&crumb=${encodeURIComponent(auth.crumb)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      headers: { Cookie: auth.cookie, 'User-Agent': YAHOO_UA, Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`yahoo_${res.status}`);
+    const json = await res.json();
+    const resultado =
+      json && json.quoteSummary && json.quoteSummary.result && json.quoteSummary.result[0];
+    if (!resultado) throw new Error('yahoo_sem_resultado');
+    return resultado;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/**
+ * Fundamentos de vários tickers, com teto e orçamento de tempo.
+ *
+ * Best-effort de propósito: o que não couber no orçamento fica sem o ramo
+ * `yahoo` e é buscado na chamada seguinte. Preferir cobertura parcial a
+ * estourar o maxDuration e devolver 504 — nesse caso o utilizador não
+ * receberia nem os que já tinham sido buscados.
+ */
+async function fetchYahooFundamentals(tickers, erros, orcamentoMs, maxTickers) {
+  const out = {};
+  const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_ORCAMENTO_MS;
+  const teto = maxTickers != null ? maxTickers : YAHOO_MAX_POR_REQUISICAO;
+  if (!tickers.length || orcamento <= 500) return out;
+  let auth;
+  try {
+    auth = await obterAuthYahoo();
+  } catch (e) {
+    erros.push({ fonte: 'yahoo', erro: e.message });
+    return out;
+  }
+
+  const limite = Date.now() + orcamento;
+  const fila = tickers.slice(0, teto);
+  const agora = Date.now();
+
+  // Em série, não em paralelo. Sete pedidos simultâneos de um IP de saída
+  // partilhado (que é o caso numa serverless) é o caminho mais curto para o
+  // 429 — e foi exatamente o que aconteceu: sete tentativas, sete 429.
+  let seguidos429 = 0;
+  for (const t of fila) {
+    if (Date.now() > limite) break;
+    // Dois 429 seguidos significam que o IP está limitado, não que este
+    // ticker falhou. Insistir só gasta o orçamento e aprofunda o bloqueio.
+    if (seguidos429 >= 2) {
+      erros.push({ fonte: 'yahoo', erro: 'yahoo_429_desistiu', restantes: fila.length });
+      break;
+    }
+    try {
+      const r = await fetchYahooUm(t, auth);
+      seguidos429 = 0;
+      const d = mapYahooFundamental(r, t, agora);
+      // Resposta que não trouxe indicador nenhum não vira ramo: gravá-la
+      // marcaria o ticker como "já buscado" por sete dias sem nada dentro.
+      if (d.cobertura > 0) out[t] = d;
+    } catch (e) {
+      if (/429/.test(e.message)) {
+        seguidos429++;
+        // Recuo curto: o suficiente para uma limitação momentânea passar,
+        // sem consumir o orçamento numa que não vai passar.
+        await new Promise((r) => setTimeout(r, 300 * seguidos429));
+      } else {
+        seguidos429 = 0;
+      }
+      erros.push({ fonte: 'yahoo', ticker: t, erro: e.message });
+    }
+  }
+  return out;
+}
+
+// ---------- Cotação: BRAPI quando há token, Yahoo quando não há ----------
+//
+// A BRAPI passou a exigir token até na chamada simples, e o produto não pode
+// depender de um cadastro que o dono ainda não quer fazer. O `v8/chart` do
+// Yahoo NÃO pede autenticação nenhuma — sem token, sem cookie, sem crumb — e
+// já é usado neste arquivo para o histórico da simulação, o que prova que o
+// caminho de rede funciona a partir deste deploy.
+//
+// É outro endpoint do `quoteSummary`, que é o que devolve 429: aquele é
+// protegido, este é aberto. Por isso a mesma origem serve numa camada e não
+// serve na outra.
+//
+// A BRAPI continua a ser preferida QUANDO há token, e por um motivo real:
+// resolve 50 tickers num pedido, enquanto o Yahoo exige um pedido por
+// ticker. No dia em que BRAPI_TOKEN for definida, nada mais muda.
+
+const YAHOO_CHART_TIMEOUT_MS = 6000;
+const YAHOO_COTACAO_ORCAMENTO_MS = 9000;
+
+/** Uma cotação pelo v8/chart. Sem autenticação. */
+async function fetchYahooCotacaoUma(ticker) {
+  // range=5d dá o volume dos últimos pregões; o meta sozinho nem sempre traz.
+  const url = `${YAHOO_BASE}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
+  let json;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    if (!res.ok) throw new Error(`yahoo_chart_${res.status}`);
+    json = await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+  const r = json && json.chart && json.chart.result && json.chart.result[0];
+  if (!r || !r.meta) throw new Error('yahoo_chart_sem_resultado');
+
+  const preco = fundNum(r.meta.regularMarketPrice);
+  if (preco === null) throw new Error('yahoo_chart_sem_preco');
+
+  // Volume: o do meta quando existe; senão o último pregão com valor.
+  let volume = fundNum(r.meta.regularMarketVolume);
+  if (volume === null) {
+    const serie = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+    const volumes = serie.volume || [];
+    for (let i = volumes.length - 1; i >= 0; i--) {
+      const v = fundNum(volumes[i]);
+      if (v !== null && v > 0) {
+        volume = v;
+        break;
+      }
+    }
+  }
+  const anterior = fundNum(r.meta.chartPreviousClose ?? r.meta.previousClose);
+
+  return {
+    ticker,
+    price: preco,
+    previousClose: anterior,
+    change: anterior !== null ? preco - anterior : null,
+    changePct: anterior !== null && anterior !== 0 ? ((preco - anterior) / anterior) * 100 : null,
+    currency: r.meta.currency || 'BRL',
+    shortName: r.meta.shortName || r.meta.longName || null,
+    marketTime: r.meta.regularMarketTime || null,
+    // O v8/chart não devolve valor de mercado. P/L e P/VP dependem dele e
+    // por isso continuam a vir do job de ingestão, que usa o quoteSummary de
+    // um IP não limitado.
+    marketCap: null,
+    volume,
+    fonteCotacao: 'yahoo',
+  };
+}
+
+/** Várias cotações pelo Yahoo, com paralelismo baixo e orçamento. */
+async function fetchYahooCotacoes(tickers, erros, orcamentoMs) {
+  const out = {};
+  if (!tickers.length) return out;
+  const limite = Date.now() + (orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS);
+  // Três de cada vez: o v8/chart aguenta mais que o quoteSummary, mas manter
+  // o paralelismo baixo é o que evita repetir o 429 que derrubou a outra via.
+  for (let i = 0; i < tickers.length; i += 3) {
+    if (Date.now() > limite) {
+      if (erros)
+        erros.push({
+          fonte: 'yahoo_chart',
+          erro: 'orcamento_esgotado',
+          restantes: tickers.length - i,
+        });
+      break;
+    }
+    const lote = tickers.slice(i, i + 3);
+    const res = await Promise.all(
+      lote.map((t) =>
+        fetchYahooCotacaoUma(t)
+          .then((q) => ({ t, q }))
+          .catch((e) => {
+            if (erros) erros.push({ fonte: 'yahoo_chart', ticker: t, erro: e.message });
+            return null;
+          })
+      )
+    );
+    for (const item of res) if (item) out[item.t] = item.q;
+  }
+  return out;
+}
+
+/**
+ * Cotação do mercado, pela via disponível.
+ *
+ * Ponto único de escolha: quem chama não precisa saber qual fonte respondeu.
+ * Ter isto num lugar só é o que faz "definir BRAPI_TOKEN" ser a única
+ * mudança necessária no dia em que houver token — e o que fez a falta dele
+ * quebrar cotação, patrimônio e cron de uma vez quando estava espalhado.
+ */
+async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
+  if (!tickers.length) return {};
+  if (process.env.BRAPI_TOKEN) {
+    try {
+      return await fetchBrapi(tickers);
+    } catch (e) {
+      if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
+    }
+  }
+  return fetchYahooCotacoes(tickers, erros, orcamentoMs);
+}
+
+/**
+ * Traduz erros de fonte em ação do operador.
+ *
+ * "brapi_401: MISSING_TOKEN" e "yahoo_429" são coisas MUITO diferentes de
+ * "a fonte está fora do ar", e só a primeira tem conserto do nosso lado. A
+ * resposta genérica escondia isso: a aba dizia "nenhuma fonte respondeu" e
+ * ninguém sabia que faltava uma variável de ambiente.
+ *
+ * O 401 da BRAPI tem alcance maior do que a Carteira Recomendada: a mesma
+ * função serve a cotação da aba Meu Patrimônio (que cai para preço médio em
+ * silêncio) e o cron noturno de aquecimento.
+ */
+function diagnosticarErrosDeFonte(erros) {
+  const texto = (erros || []).map((e) => `${e.fonte || ''} ${e.erro || ''}`).join(' ');
+  const pendencias = [];
+  // BRAPI sem token deixou de ser bloqueio: a cotação vem do Yahoo v8/chart,
+  // que não pede autenticação. Continua a valer a pena, mas como MELHORIA —
+  // e a diferença entre "está quebrado" e "dá para melhorar" muda o que o
+  // operador faz a seguir.
+  const brapiSemToken = /MISSING_TOKEN|401/.test(texto) && /brapi/i.test(texto);
+  const yahooCotacaoFalhou = /yahoo_chart/.test(texto);
+  if (brapiSemToken && yahooCotacaoFalhou) {
+    pendencias.push({
+      chave: 'BRAPI_TOKEN',
+      severidade: 'bloqueio',
+      fonte: 'Cotação',
+      diagnostico: 'Nem a BRAPI (sem token) nem o Yahoo responderam à cotação.',
+      acao: 'Registe-se em brapi.dev (plano grátis) e defina BRAPI_TOKEN nas variáveis de ambiente.',
+      alcance: 'Sem cotação não há preço, nem quantidade a comprar, nem liquidez.',
+    });
+  } else if (brapiSemToken) {
+    pendencias.push({
+      chave: 'BRAPI_TOKEN',
+      severidade: 'melhoria',
+      fonte: 'BRAPI',
+      diagnostico:
+        'Sem BRAPI_TOKEN a cotação vem do Yahoo, que exige um pedido por ativo. Funciona, mas é mais lento.',
+      acao: 'Opcional: registe-se em brapi.dev (plano grátis) e defina BRAPI_TOKEN — resolve 50 ativos por pedido.',
+      alcance: 'Nada fica sem funcionar por causa disto.',
+    });
+  }
+  if (/429/.test(texto) && /yahoo/i.test(texto)) {
+    pendencias.push({
+      chave: null,
+      severidade: 'informativo',
+      fonte: 'Yahoo Finance',
+      diagnostico: 'Yahoo devolveu 429 — o IP de saída está a ser limitado.',
+      acao:
+        'Sem ação de configuração. O caminho estável para fundamentos é a ingestão da CVM, ' +
+        'que roda no GitHub Actions e não sofre esse limite.',
+      alcance: 'Afeta só o enriquecimento de fundamentos em tempo de requisição.',
+    });
+  }
+  return pendencias;
+}
+
+/**
+ * Resposta de cotação -> contrato de indicadores.
+ *
+ * O rótulo sai de QUEM respondeu, não de quem foi chamado primeiro. A versão
+ * anterior carimbava "Cotação · BRAPI" em tudo, inclusive no que tinha vindo
+ * do Yahoo depois da degradação — e atribuir a uma fonte um dado que veio de
+ * outra é exatamente o que o protocolo de diagnóstico deste projeto proíbe.
+ * Na tela isso aparecia como "Cotação · BRAPI · lido hoje" numa instalação
+ * que nem token de BRAPI tem.
+ */
+function mapBrapiCotacao(q) {
+  const preco = fundNum(q.price);
+  const volume = fundNum(q.volume);
+  const doYahoo = q.fonteCotacao === 'yahoo';
+  return {
+    ticker: q.ticker,
+    nome: q.shortName || null,
+    setor: null,
+    preco,
+    marketCap: fundNum(q.marketCap),
+    liquidezDiaria: preco !== null && volume !== null ? volume * preco : null,
+    cobertura: 0,
+    fonte: doYahoo ? 'yahoo' : 'brapi',
+    fonteRotulo: doYahoo ? 'Cotação · Yahoo Finance' : 'Cotação · BRAPI',
+    dataReferencia: null,
+  };
+}
+
+/**
+ * Fundamentos da BRAPI, com degradação obrigatória para a cotação simples.
+ *
+ * ESTE FOI O BUG QUE FEZ A BOLSA INTEIRA APARECER SEM SCORE. Os parâmetros
+ * `fundamental=true` e `modules=` exigem plano pago; sem token a resposta é
+ * 401, a função lançava, e o ticker ficava SEM DOCUMENTO NENHUM — perdia-se
+ * até o preço, que a chamada sem parâmetros devolve de graça e que já roda
+ * em produção na aba Meu Patrimônio.
+ *
+ * O sintoma na tela era um card sem linha de procedência: não havia fonte
+ * nenhuma a declarar porque nada tinha chegado.
+ *
+ * Regra que fica: fonte que falha degrada para a versão mais simples dela e
+ * nunca deixa o ticker sem registo.
+ */
+async function fetchBrapiFundamentals(tickers, erros) {
+  if (!tickers.length) return {};
+  try {
+    return await fetchBrapiFundamentalsCompleto(tickers);
+  } catch (e) {
+    if (erros) erros.push({ fonte: 'brapi_fundamentos', erro: e.message, degradou: true });
+    console.warn('[market/fundamentals] brapi_modules_failed, degradando:', e.message);
+    try {
+      const simples = await fetchCotacoesMercado(tickers, erros, 6000);
+      const out = {};
+      for (const t of Object.keys(simples)) out[t] = mapBrapiCotacao(simples[t]);
+      return out;
+    } catch (e2) {
+      if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e2.message });
+      return {};
+    }
+  }
+}
+
+async function fetchBrapiFundamentalsCompleto(tickers) {
+  if (!tickers.length) return {};
+  const params = new URLSearchParams({
+    fundamental: 'true',
+    dividends: 'true',
+    modules: BRAPI_MODULES,
+  });
+  const url = `${BRAPI_BASE}/${encodeURIComponent(tickers.join(','))}?${params}`;
+  const token = process.env.BRAPI_TOKEN;
+  const headers = { Accept: 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 7000);
+  let res;
+  try {
+    res = await fetch(url, { headers, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`brapi_${res.status}: ${body.slice(0, 200)}`);
+  }
+  const json = await res.json();
+  const out = {};
+  const agora = Date.now();
+  for (const r of json.results || []) {
+    if (!r || !r.symbol) continue;
+    const d = mapBrapiFundamental(r, agora);
+    d.cobertura = fundCobertura(d, CHAVES_ACAO);
+    d.fonte = 'brapi';
+    out[d.ticker] = d;
+  }
+  return out;
+}
+
+/** Indicadores de cripto via CoinGecko (mesma fonte já usada no histórico). */
+async function fetchCoingeckoFundamentals(simbolos) {
+  if (!simbolos.length) return {};
+  const ids = simbolos.map((s) => CRYPTO_MAP[s]).filter(Boolean);
+  if (!ids.length) return {};
+  const url =
+    `${COINGECKO_BASE}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(ids.join(','))}` +
+    `&price_change_percentage=1y&sparkline=false`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`coingecko_${res.status}`);
+  const json = await res.json();
+  const porId = {};
+  for (const c of Array.isArray(json) ? json : []) if (c && c.id) porId[c.id] = c;
+
+  const anoAtual = new Date().getUTCFullYear();
+  const out = {};
+  for (const s of simbolos) {
+    const c = porId[CRYPTO_MAP[s]];
+    if (!c) continue;
+    const genesis = CRYPTO_GENESIS[s];
+    const d = {
+      ticker: s,
+      nome: c.name || s,
+      classe: 'cripto',
+      setor: null,
+      preco: fundNum(c.current_price),
+      marketCap: fundNum(c.market_cap),
+      volume24h: fundNum(c.total_volume),
+      retorno12m: fundNum(c.price_change_percentage_1y_in_currency),
+      anosExistencia: genesis ? anoAtual - genesis : null,
+      volatilidade30d: null,
+      fonte: 'coingecko',
+      fonteRotulo: 'Mercado · CoinGecko',
+      dataReferencia: null,
+    };
+    d.cobertura = fundCobertura(d, CHAVES_CRIPTO);
+    out[s] = d;
+  }
+  return out;
+}
+
+/**
+ * Junta o que a CVM sabe com o que a cotação sabe.
+ *
+ * As duas fontes gravam no MESMO documento, em ramos separados (`cvm` e
+ * `mercado`), e isto é o que impede uma de apagar a outra: a resposta da
+ * BRAPI traz null explícito em quase todo campo fundamentalista, e um
+ * `merge: true` com esses nulls por cima limparia os indicadores que a
+ * ingestão da CVM tinha acabado de gravar.
+ *
+ * A CVM vence onde tem dado — é a fonte primária, auditável e obrigatória.
+ * O mercado entra com o que só ele tem: preço, valor de mercado, volume e
+ * proventos. P/L e P/VP não existem em nenhuma das duas sozinha: nascem
+ * aqui, do lucro e do patrimônio da CVM cruzados com o valor de mercado.
+ */
+function comporFundamentos(doc) {
+  if (!doc || typeof doc !== 'object') return null;
+  // Documentos gravados antes da separação em ramos são planos.
+  const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
+  const yahoo = doc.yahoo && typeof doc.yahoo === 'object' ? doc.yahoo : null;
+  const cvm = doc.cvm && typeof doc.cvm === 'object' ? doc.cvm : null;
+  const out = { ...mercado };
+  delete out.cvm;
+  delete out.mercado;
+  delete out.yahoo;
+
+  // Empilha em ordem de autoridade: cotação por baixo, Yahoo por cima,
+  // CVM em último. Cada camada só escreve onde tem valor — é isso que
+  // impede o null de uma fonte de apagar o dado de outra.
+  const METADADOS = [
+    'fonte',
+    'fonteRotulo',
+    'dataReferencia',
+    'classe',
+    'cobertura',
+    'fetchedAtMs',
+  ];
+  function aplicar(camada) {
+    if (!camada) return;
+    for (const [chave, valor] of Object.entries(camada)) {
+      if (valor === null || valor === undefined) continue;
+      if (METADADOS.includes(chave)) continue;
+      out[chave] = valor;
+    }
+  }
+  aplicar(yahoo);
+  aplicar(cvm);
+
+  if (!cvm && !yahoo) {
+    out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
+    return out;
+  }
+
+  if (!cvm) {
+    out.fonte = 'yahoo';
+    out.fonteRotulo = yahoo.fonteRotulo || 'Fundamentos · Yahoo Finance';
+    out.dataReferencia = null;
+    out.fetchedAtMs = doc.yahooFetchedAtMs || doc.mercadoFetchedAtMs || null;
+    return out;
+  }
+
+  const marketCap = fundNum(mercado.marketCap);
+  const lucro = fundNum(cvm.lucroLiquido);
+  const patrimonio = fundNum(cvm.patrimonioLiquido);
+  // Lucro negativo não produz P/L: o motor trata "sem P/L" e "P/L negativo"
+  // de formas diferentes, e inventar o segundo aqui seria mentir sobre a
+  // origem. O alerta de prejuízo sai do lucro absoluto, que segue no doc.
+  if (marketCap && lucro && lucro > 0) out.pl = marketCap / lucro;
+  if (marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
+
+  out.fonte = 'cvm';
+  out.fonteRotulo = cvm.fonteRotulo ? `${cvm.fonteRotulo} + cotação` : 'CVM + cotação';
+  out.dataReferencia = cvm.dataReferencia || null;
+  out.fetchedAtMs = doc.cvmFetchedAtMs || doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
+  return out;
+}
+
+async function handleFundamentals(req, res) {
+  const inicio = Date.now();
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const rawTickers = (req.query.tickers || '').toString();
+  const requested = Array.from(
+    new Set(
+      rawTickers
+        .split(',')
+        .map((t) =>
+          String(t || '')
+            .trim()
+            .toUpperCase()
+        )
+        .filter(Boolean)
+        .map((t) => (ehCripto(t) ? t : sanitizeTicker(t)))
+        .filter(Boolean)
+    )
+  ).slice(0, MAX_TICKERS_PER_REQUEST);
+
+  if (!requested.length) {
+    return res
+      .status(400)
+      .json({ error: 'missing_tickers', detail: 'Use ?op=fundamentals&tickers=BBAS3,MXRF11,BTC' });
+  }
+
+  const agora = Date.now();
+  const database = db();
+  const refs = requested.map((t) => database.collection(FUNDAMENTALS_COLLECTION).doc(t));
+  const snaps = await database.getAll(...refs);
+  const fresh = {};
+  const stale = [];
+  const documentos = {};
+  snaps.forEach((snap, i) => {
+    const t = requested[i];
+    const d = snap.data();
+    if (d) documentos[t] = d;
+    // Só a idade do ramo de MERCADO decide rebuscar: o ramo da CVM é
+    // atualizado pelo job de ingestão e tem validade de meses (uma DFP é
+    // anual), não de um dia.
+    const idade = d && (d.mercadoFetchedAtMs || d.fetchedAtMs);
+    if (typeof idade === 'number' && agora - idade < FUNDAMENTALS_TTL_MS) fresh[t] = d;
+    else stale.push(t);
+  });
+
+  let fetched = {};
+  const erros = [];
+  if (stale.length) {
+    const criptos = stale.filter(ehCripto);
+    const bolsa = stale.filter((t) => !ehCripto(t));
+    const [resBolsa, resCripto] = await Promise.all([
+      bolsa.length ? fetchBrapiFundamentals(bolsa, erros) : Promise.resolve({}),
+      criptos.length
+        ? fetchCoingeckoFundamentals(criptos).catch((e) => {
+            erros.push({ fonte: 'coingecko', erro: e.message });
+            return {};
+          })
+        : Promise.resolve({}),
+    ]);
+    fetched = { ...resBolsa, ...resCripto };
+
+    const batch = database.batch();
+    let gravou = 0;
+    for (const t of Object.keys(fetched)) {
+      batch.set(
+        database.collection(FUNDAMENTALS_COLLECTION).doc(t),
+        {
+          mercado: fetched[t],
+          mercadoFetchedAtMs: agora,
+          dateYmd: todayYmdBRT(agora),
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+      documentos[t] = { ...(documentos[t] || {}), mercado: fetched[t], mercadoFetchedAtMs: agora };
+      gravou++;
+    }
+    if (gravou) {
+      await batch
+        .commit()
+        .catch((e) => console.warn('[market/fundamentals] cache_write_failed', e.message));
+    }
+  }
+
+  // Enriquecimento com Yahoo. Só entra quem NÃO tem dado da CVM — a CVM é a
+  // fonte primária e o Yahoo existe para o produto funcionar antes de o job
+  // semanal rodar, não para competir com ele.
+  const precisamYahoo = [];
+  for (const t of requested) {
+    if (ehCripto(t)) continue;
+    const d = documentos[t] || {};
+    if (d.cvm && Object.keys(d.cvm).length > 3) continue;
+    if (typeof d.yahooFetchedAtMs === 'number' && agora - d.yahooFetchedAtMs < YAHOO_TTL_MS)
+      continue;
+    precisamYahoo.push(t);
+  }
+  let comYahoo = 0;
+  if (precisamYahoo.length) {
+    // maxDuration da function é 15s (vercel.json). Deixa 2s de folga para as
+    // gravações e a serialização da resposta.
+    const restante = 13000 - (Date.now() - inicio);
+    const doYahoo = await fetchYahooFundamentals(
+      precisamYahoo,
+      erros,
+      Math.min(YAHOO_ORCAMENTO_MS, restante)
+    );
+    const chaves = Object.keys(doYahoo);
+    if (chaves.length) {
+      const loteYahoo = database.batch();
+      for (const t of chaves) {
+        loteYahoo.set(
+          database.collection(FUNDAMENTALS_COLLECTION).doc(t),
+          { yahoo: doYahoo[t], yahooFetchedAtMs: agora, updatedAt: timestamp().now() },
+          { merge: true }
+        );
+        documentos[t] = { ...(documentos[t] || {}), yahoo: doYahoo[t], yahooFetchedAtMs: agora };
+        comYahoo++;
+      }
+      await loteYahoo
+        .commit()
+        .catch((e) => console.warn('[market/fundamentals] yahoo_write_failed', e.message));
+    }
+  }
+
+  const fundamentos = {};
+  const indisponiveis = [];
+  let comCvm = 0;
+  for (const t of requested) {
+    const composto = comporFundamentos(documentos[t]);
+    if (!composto) {
+      // Ticker que nenhuma fonte respondeu. Devolver só o nome numa lista
+      // separada deixava o cliente com um card em branco, sem procedência e
+      // sem explicação — era assim que o sintoma aparecia na tela e por isso
+      // era indistinguível de "a fonte respondeu sem os campos".
+      indisponiveis.push(t);
+      fundamentos[t] = {
+        ticker: t,
+        fonte: 'indisponivel',
+        fonteRotulo: 'Nenhuma fonte respondeu',
+        indisponivel: true,
+        motivo: erros.length
+          ? // Uma linha por fonte, sem repetir o mesmo erro N vezes: sete
+            // "yahoo_429" iguais enchiam a tela e escondiam o 401 da BRAPI,
+            // que era o erro que tinha conserto.
+            Array.from(new Set(erros.map((e) => `${e.fonte || e.etapa || '?'}: ${e.erro}`))).join(
+              ' · '
+            )
+          : 'sem resposta das fontes de mercado',
+        pendencias: diagnosticarErrosDeFonte(erros),
+        cached: false,
+      };
+      continue;
+    }
+    if (composto.fonte === 'cvm') comCvm++;
+    fundamentos[t] = { ...composto, cached: !!fresh[t] };
+  }
+
+  return res.json({
+    success: true,
+    today: todayYmdBRT(agora),
+    requested: requested.length,
+    fromCache: Object.keys(fresh).length,
+    fromApi: Object.keys(fetched).length,
+    comCvm,
+    comYahoo,
+    configuracaoPendente: diagnosticarErrosDeFonte(erros),
+    indisponiveis,
+    fundamentos,
+    erros,
+  });
+}
+
+// ============================================================
+// === op=rendafixa — taxas correntes do Tesouro Direto ===
+// ============================================================
+//
+// Renda fixa não tem "ticker" nem cotação: o que define o ativo é a taxa
+// contratada hoje. Sem esta op, a classe com maior peso na carteira de um
+// Conservador seria a única sem dado real por trás do score.
+//
+// As taxas chegam em bases diferentes conforme o título (IPCA+ traz a taxa
+// REAL, prefixado traz a nominal, Selic traz um spread sobre a Selic), e o
+// motor precisa de tudo na mesma régua. A conversão usa as premissas de
+// PREMISSAS_ANUAIS — as mesmas curvas sintéticas da simulação histórica,
+// para as duas telas não discordarem entre si.
+
+function rfClassificarTipo(nome) {
+  const n = String(nome || '').toLowerCase();
+  if (n.includes('ipca')) return 'ipca';
+  if (n.includes('selic')) return 'selic';
+  if (n.includes('renda+') || n.includes('renda +')) return 'ipca';
+  if (n.includes('educa+') || n.includes('educa +')) return 'ipca';
+  if (n.includes('prefixado')) return 'prefixado';
+  return 'outro';
+}
+
+/**
+ * Um título do Tesouro -> indicadores da classe `rf` do motor.
+ *
+ * `taxa` é sempre o número que o Tesouro publica para aquele título; o que
+ * ele significa depende do tipo, e é isso que esta função resolve.
+ */
+function mapTesouroTitulo(bruto, premissas) {
+  const ipca = (premissas && premissas.IPCA) != null ? premissas.IPCA * 100 : 4.5;
+  const cdi = (premissas && premissas.CDI) != null ? premissas.CDI * 100 : 13.25;
+  const selic = (premissas && premissas.SELIC) != null ? premissas.SELIC * 100 : cdi;
+
+  const nome = bruto.nome;
+  const taxa = fundNum(bruto.taxa);
+  if (!nome || taxa === null) return null;
+  const tipo = rfClassificarTipo(nome);
+
+  let taxaRealAnual = null;
+  let taxaNominal = null;
+  if (tipo === 'ipca') {
+    taxaRealAnual = taxa;
+    taxaNominal = ((1 + taxa / 100) * (1 + ipca / 100) - 1) * 100;
+  } else if (tipo === 'selic') {
+    taxaNominal = selic + taxa;
+    taxaRealAnual = ((1 + taxaNominal / 100) / (1 + ipca / 100) - 1) * 100;
+  } else {
+    taxaNominal = taxa;
+    taxaRealAnual = ((1 + taxa / 100) / (1 + ipca / 100) - 1) * 100;
+  }
+
+  const n = nome.toLowerCase();
+  const comCupom = n.includes('juros semestrais') || n.includes('renda+') || n.includes('educa+');
+
+  return {
+    ticker: bruto.ticker,
+    nome,
+    classe: 'rf',
+    tipo,
+    vencimento: bruto.vencimento || null,
+    precoUnitario: fundNum(bruto.precoUnitario),
+    investimentoMinimo: fundNum(bruto.investimentoMinimo),
+    taxaContratada: taxa,
+    taxaNominalAnual: taxaNominal,
+    taxaRealAnual,
+    premioSobreCdi: cdi > 0 && taxaNominal !== null ? (taxaNominal / cdi) * 100 : null,
+    geraRendaPeriodica: comCupom ? 1 : 0,
+    riscoEmissor: 10, // Tesouro Nacional: menor risco de crédito do mercado local.
+    liquidezDias: 1, // Recompra diária garantida pelo Tesouro (D+1).
+    isentoIR: 0, // Tributado pela tabela regressiva.
+    fonte: 'tesouro_direto',
+    fonteRotulo: 'Taxa de hoje · Tesouro Direto',
+    dataReferencia: bruto.vencimento || null,
+  };
+}
+
+/**
+ * Extrai a lista de títulos da resposta do Tesouro.
+ *
+ * Os nomes de campo daquele endpoint são abreviados e já mudaram de forma
+ * antes (`TrsrBdTradgList` / `TrsrBd`), então cada campo é procurado em mais
+ * de um caminho e um título malformado é descartado sozinho, sem derrubar
+ * os outros.
+ */
+function parseTesouroResposta(json) {
+  const lista =
+    (json && json.response && json.response.TrsrBdTradgList) ||
+    (json && json.TrsrBdTradgList) ||
+    (Array.isArray(json) ? json : []) ||
+    [];
+  const out = [];
+  for (const item of lista) {
+    const bd = (item && (item.TrsrBd || item.trsrBd)) || item || {};
+    const nome = bd.nm || bd.name || bd.nome || null;
+    const taxa = bd.anulInvstmtRate != null ? bd.anulInvstmtRate : bd.annualInvestmentRate;
+    if (!nome || fundNum(taxa) === null) continue;
+    out.push({
+      ticker: String(nome)
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, ''),
+      nome,
+      taxa,
+      vencimento: bd.mtrtyDt || bd.maturityDate || null,
+      precoUnitario: bd.untrInvstmtVal != null ? bd.untrInvstmtVal : bd.unitaryInvestmentValue,
+      investimentoMinimo: bd.minInvstmtAmt != null ? bd.minInvstmtAmt : bd.minimumInvestmentAmount,
+    });
+  }
+  return out;
+}
+
+async function fetchTesouroDireto(premissas) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(TESOURO_URL, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!res.ok) throw new Error(`tesouro_${res.status}`);
+  const json = await res.json();
+  const brutos = parseTesouroResposta(json);
+  if (!brutos.length) throw new Error('tesouro_formato_inesperado');
+  return brutos.map((b) => mapTesouroTitulo(b, premissas || PREMISSAS_ANUAIS)).filter(Boolean);
+}
+
+async function handleRendaFixa(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(RF_COLLECTION).doc('tesouroDireto');
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+
+  if (cache && typeof cache.fetchedAtMs === 'number' && agora - cache.fetchedAtMs < RF_TTL_MS) {
+    return res.json({
+      success: true,
+      cached: true,
+      fetchedAt: cache.fetchedAtMs,
+      premissas: cache.premissas || PREMISSAS_ANUAIS,
+      origemPremissas: cache.origemPremissas || null,
+      premissasDegradadas: !!cache.premissasDegradadas,
+      titulos: cache.titulos || [],
+    });
+  }
+
+  const { premissas, origem, degradado } = await resolverPremissas(database);
+
+  let titulos;
+  try {
+    titulos = await fetchTesouroDireto(premissas);
+  } catch (e) {
+    console.warn('[market/rendafixa] tesouro_failed', e.message);
+    // Cache vencido ainda vale mais do que classe vazia na tela: taxa de
+    // ontem erra na terceira casa, ausência de taxa zera o score da classe.
+    if (cache && cache.titulos) {
+      return res.json({
+        success: true,
+        cached: true,
+        stale: true,
+        fetchedAt: cache.fetchedAtMs,
+        premissas: cache.premissas || PREMISSAS_ANUAIS,
+        origemPremissas: cache.origemPremissas || null,
+        premissasDegradadas: true,
+        titulos: cache.titulos,
+        erro: e.message,
+      });
+    }
+    return res.status(502).json({ error: 'tesouro_indisponivel', detail: e.message });
+  }
+
+  await ref
+    .set(
+      {
+        titulos,
+        premissas,
+        origemPremissas: origem,
+        premissasDegradadas: degradado,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/rendafixa] cache_write_failed', e.message));
+
+  return res.json({
+    success: true,
+    cached: false,
+    fetchedAt: agora,
+    premissas,
+    origemPremissas: origem,
+    premissasDegradadas: degradado,
+    titulos,
+  });
+}
+
+// ============================================================
+// === op=ranking — quais ativos, decidido por dado ===
+// ============================================================
+//
+// Até aqui o universo de candidatos era a carteira modelo publicada no
+// painel: um humano escolhia QUAIS ativos entravam e o motor só decidia
+// QUANTO em cada um. Lista escrita à mão tem dois defeitos que disciplina
+// não resolve — envelhece sem avisar (título vencido, empresa que saiu da
+// bolsa) e limita o universo ao que quem escreveu já conhecia.
+//
+// Esta op inverte: pontua TUDO o que a ingestão da CVM trouxe e devolve os
+// melhores por classe. O cliente não tem como buscar fundamento de centenas
+// de ativos, então o corte acontece aqui e ele recebe só a lista curta.
+//
+// DUAS PASSAGENS, de propósito:
+//   1. aqui, sobre os indicadores da CVM, para gerar a lista curta;
+//   2. no cliente, que busca cotação dos poucos selecionados e RE-PONTUA com
+//      P/L, P/VP e proventos — indicadores que dependem de preço.
+// A primeira passagem é peneira; a segunda é a nota que o utilizador vê.
+// Fazer tudo aqui exigiria cotação de centenas de tickers a cada cálculo;
+// fazer tudo lá exigiria baixar o universo inteiro para o browser.
+
+const Motor = require('../web/appliquei-motor-carteira.js');
+
+const RANKING_COLLECTION = 'marketRanking';
+const RANKING_TTL_MS = 12 * 60 * 60 * 1000;
+const RANKING_TOP_N = 30;
+
+// Piso de porte, medido pelo patrimônio líquido da própria DFP. Não é
+// julgamento sobre empresa pequena: é que abaixo disto a liquidez em bolsa
+// costuma ser insuficiente para o utilizador entrar e sair da posição, e
+// recomendar o que não se consegue vender é pior do que não recomendar.
+const PATRIMONIO_MINIMO = 300000000;
+
+// Quantos candidatos por classe o cron pré-calcula. Tem de bater com o que o
+// cliente pede (CART_CANDIDATOS_POR_CLASSE), senão a chave do cache não
+// coincide e o aquecimento não serve para nada.
+const RANKING_TOP_N_CRON = 15;
+
+// Liquidez diária mínima, aplicada quando a cotação já está no documento.
+// Na primeira passagem a maioria dos ativos ainda não tem — por isso o piso
+// de porte acima existe.
+const LIQUIDEZ_MINIMA = { acao: 1000000, fii: 200000, cripto: 0, rf: 0 };
+
+/**
+ * Motivo pelo qual um ativo não entra na lista curta.
+ * Devolve null quando ele passa. Existe como função separada para o
+ * relatório do endpoint poder dizer quantos caíram por quê — universo que
+ * encolhe em silêncio é impossível de depurar em produção.
+ */
+function motivoExclusao(dados, classe) {
+  if (classe === 'acao' || classe === 'fii') {
+    const patrimonio = fundNum(dados.patrimonioLiquido);
+    if (patrimonio !== null && patrimonio < PATRIMONIO_MINIMO) return 'porte_abaixo_do_piso';
+    const liquidez = fundNum(dados.liquidezDiaria);
+    if (liquidez !== null && liquidez < (LIQUIDEZ_MINIMA[classe] || 0))
+      return 'liquidez_insuficiente';
+  }
+  return null;
+}
+
+/**
+ * Pontua o universo inteiro para VÁRIAS lentes numa varredura só.
+ *
+ * A leitura da coleção é o custo dominante; pontuar é aritmética sobre dados
+ * já em memória. Varrer uma vez por lente multiplicaria o caro para poupar o
+ * barato — e é o que permite o cron aquecer as quatro lentes dentro do
+ * limite de 15s da function.
+ */
+async function calcularRankings(database, lentes, topN) {
+  const docs = await database.collection(FUNDAMENTALS_COLLECTION).get();
+
+  const candidatos = [];
+  const excluidos = { porte_abaixo_do_piso: 0, liquidez_insuficiente: 0 };
+  let universo = 0;
+
+  docs.forEach((doc) => {
+    const composto = comporFundamentos(doc.data());
+    if (!composto) return;
+    const ticker = doc.id;
+    const dados = { ...composto, ticker, nome: composto.nome || ticker };
+    const classe = Motor.inferirClasse(ticker, dados.nome, dados.classe);
+    universo++;
+    const motivo = motivoExclusao(dados, classe);
+    if (motivo) {
+      excluidos[motivo]++;
+      return;
+    }
+    candidatos.push({ dados, classe });
+  });
+
+  const porLente = {};
+  for (const lenteId of lentes) {
+    const porClasse = { rf: [], acao: [], fii: [], cripto: [] };
+    let semLastro = 0;
+    for (const c of candidatos) {
+      const pontuado = Motor.scoreAtivo(c.dados, { lente: lenteId });
+      // Sem lastro não entra na lista curta: o cliente não deve gastar uma
+      // chamada de cotação num ativo que não tem como ser pontuado.
+      if (!pontuado.temLastro) {
+        semLastro++;
+        continue;
+      }
+      (porClasse[c.classe] || (porClasse[c.classe] = [])).push({
+        ticker: c.dados.ticker,
+        nome: pontuado.nome,
+        classe: c.classe,
+        score: pontuado.score,
+        cobertura: pontuado.cobertura,
+        confianca: pontuado.confianca,
+        setor: pontuado.setor || null,
+        fonteRotulo: pontuado.fonteRotulo || null,
+        dataReferencia: pontuado.dataReferencia || null,
+      });
+    }
+    const classes = {};
+    for (const classe of Motor.CLASSES) {
+      const lista = (porClasse[classe] || []).sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.ticker.localeCompare(b.ticker);
+      });
+      classes[classe] = { total: lista.length, itens: lista.slice(0, topN) };
+    }
+    porLente[lenteId] = {
+      lente: lenteId,
+      topN,
+      universo,
+      excluidos: { ...excluidos, sem_lastro: semLastro },
+      classes,
+    };
+  }
+  return porLente;
+}
+
+async function handleRanking(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const lenteId = (req.query.lente || 'equilibrio').toString();
+  if (!Motor.LENTES[lenteId]) {
+    return res.status(400).json({
+      error: 'lente_invalida',
+      detail: `Use ${Object.keys(Motor.LENTES).join(', ')}`,
+    });
+  }
+  const topN = Math.max(1, Math.min(60, parseInt(req.query.top, 10) || RANKING_TOP_N));
+
+  const agora = Date.now();
+  const database = db();
+  const ref = database.collection(RANKING_COLLECTION).doc(`${lenteId}_${topN}`);
+  const snap = await ref.get().catch(() => null);
+  const cache = snap && snap.exists ? snap.data() : null;
+  if (
+    cache &&
+    typeof cache.fetchedAtMs === 'number' &&
+    agora - cache.fetchedAtMs < RANKING_TTL_MS
+  ) {
+    return res.json({
+      success: true,
+      cached: true,
+      lente: lenteId,
+      fetchedAt: cache.fetchedAtMs,
+      universo: cache.universo || 0,
+      excluidos: cache.excluidos || {},
+      classes: cache.classes || {},
+    });
+  }
+
+  let resultado;
+  try {
+    resultado = (await calcularRankings(database, [lenteId], topN))[lenteId];
+  } catch (e) {
+    return res.status(500).json({ error: 'leitura_falhou', detail: e.message });
+  }
+
+  await ref
+    .set(
+      {
+        ...resultado,
+        fetchedAtMs: agora,
+        dateYmd: todayYmdBRT(agora),
+        updatedAt: timestamp().now(),
+      },
+      { merge: true }
+    )
+    .catch((e) => console.warn('[market/ranking] cache_write_failed', e.message));
+
+  return res.json({ success: true, cached: false, fetchedAt: agora, ...resultado });
+}
+
+// ============================================================
+// === op=diagnostico — por que este ativo não pontua ===
+// ============================================================
+//
+// Existe porque o sintoma "dados insuficientes" é idêntico para sete causas
+// que vivem em camadas diferentes: universo vazio, corte de investibilidade,
+// fonte que falhou inteira, fonte que respondeu sem campos, composição que
+// apagou dado, unidade trocada, cliente que não pediu o ticker.
+//
+// Sem isto, cada rodada de investigação era um palpite, um deploy e uma
+// espera — e três rodadas se passaram sem localizar o elo partido. Um pedido
+// aqui responde qual camada quebrou, com o erro literal de cada fonte.
+//
+// Protocolo de uso: .claude/skills/diagnostico-motor-carteira/SKILL.md
+
+async function handleDiagnostico(req, res) {
+  const user = await requireUser(req, res);
+  if (!user) return;
+
+  const bruto = (req.query.ticker || '').toString().trim().toUpperCase();
+  const ticker = ehCripto(bruto) ? bruto : sanitizeTicker(bruto);
+  if (!ticker) {
+    return res.status(400).json({
+      error: 'ticker_invalido',
+      detail: 'Use ?op=diagnostico&ticker=BBAS3',
+      recebido: bruto || null,
+      // sanitizeTicker recusa menos de 4 ou mais de 10 caracteres — é uma
+      // causa real de "o ativo some" que ninguém adivinha olhando a tela.
+      regra: 'Ticker precisa de 4 a 10 caracteres alfanuméricos.',
+    });
+  }
+
+  const agora = Date.now();
+  const database = db();
+  const erros = [];
+  const passos = [];
+
+  // ── 1. O que já está gravado ──
+  let doc = null;
+  try {
+    const snap = await database.collection(FUNDAMENTALS_COLLECTION).doc(ticker).get();
+    doc = snap.exists ? snap.data() : null;
+  } catch (e) {
+    erros.push({ etapa: 'firestore', erro: e.message });
+  }
+  const idadeDias = (ms) => (typeof ms === 'number' ? Math.round((agora - ms) / 86400000) : null);
+  const documento = {
+    existe: !!doc,
+    ramos: doc ? ['cvm', 'yahoo', 'mercado'].filter((r) => doc[r]) : [],
+    idadeCvmDias: doc ? idadeDias(doc.cvmFetchedAtMs) : null,
+    idadeYahooDias: doc ? idadeDias(doc.yahooFetchedAtMs) : null,
+    idadeMercadoDias: doc ? idadeDias(doc.mercadoFetchedAtMs) : null,
+  };
+  passos.push(
+    documento.existe
+      ? `documento existe com ramos: ${documento.ramos.join(', ') || 'nenhum'}`
+      : 'documento NÃO existe em marketFundamentals'
+  );
+
+  // ── 2. O que cada fonte responde AGORA ──
+  const fontes = {};
+  const resumir = (d) => {
+    if (!d) return null;
+    const preenchidos = Object.keys(d).filter(
+      (k) => d[k] !== null && d[k] !== undefined && typeof d[k] !== 'object'
+    );
+    return { campos: preenchidos.length, cobertura: d.cobertura ?? null, preco: d.preco ?? null };
+  };
+
+  if (ehCripto(ticker)) {
+    try {
+      const r = await fetchCoingeckoFundamentals([ticker]);
+      fontes.coingecko = { ok: !!r[ticker], ...resumir(r[ticker]) };
+    } catch (e) {
+      fontes.coingecko = { ok: false, erro: e.message };
+    }
+  } else {
+    // Fundamentos completos (o que exige plano pago) e cotação simples são
+    // testados SEPARADAMENTE de propósito: a diferença entre os dois é
+    // exatamente o diagnóstico de "sem token, perdi tudo".
+    try {
+      const r = await fetchBrapiFundamentalsCompleto([ticker]);
+      fontes.brapiFundamentos = { ok: !!r[ticker], ...resumir(r[ticker]) };
+    } catch (e) {
+      fontes.brapiFundamentos = { ok: false, erro: e.message };
+    }
+    try {
+      const r = await fetchBrapi([ticker]);
+      fontes.brapiCotacao = {
+        ok: !!r[ticker],
+        preco: r[ticker] ? r[ticker].price : null,
+        marketCap: r[ticker] ? r[ticker].marketCap : null,
+        temToken: !!process.env.BRAPI_TOKEN,
+      };
+    } catch (e) {
+      fontes.brapiCotacao = { ok: false, erro: e.message, temToken: !!process.env.BRAPI_TOKEN };
+    }
+    // A via que funciona sem cadastro nenhum. Testada à parte para o
+    // diagnóstico distinguir "não tenho token" de "não tenho fonte".
+    try {
+      const r = await fetchYahooCotacoes([ticker], null, 8000);
+      fontes.yahooCotacao = {
+        ok: !!r[ticker],
+        preco: r[ticker] ? r[ticker].price : null,
+        volume: r[ticker] ? r[ticker].volume : null,
+      };
+    } catch (e) {
+      fontes.yahooCotacao = { ok: false, erro: e.message };
+    }
+    const errosYahoo = [];
+    try {
+      const r = await fetchYahooFundamentals([ticker], errosYahoo, 8000);
+      fontes.yahoo = { ok: !!r[ticker], ...resumir(r[ticker]), erros: errosYahoo };
+    } catch (e) {
+      fontes.yahoo = { ok: false, erro: e.message, erros: errosYahoo };
+    }
+  }
+
+  // ── 3. Composição e score ──
+  const composto = comporFundamentos(doc);
+  const classe = Motor.inferirClasse(
+    ticker,
+    (composto && composto.nome) || ticker,
+    composto && composto.classe
+  );
+  const pontuado = composto
+    ? Motor.scoreAtivo(
+        { ...composto, ticker },
+        { lente: (req.query.lente || 'equilibrio').toString() }
+      )
+    : null;
+
+  // ── 4. Veredito: qual elo partiu ──
+  let veredito;
+  const algumaFonteOk = Object.values(fontes).some((f) => f && f.ok);
+  if (!documento.existe && !algumaFonteOk) {
+    veredito =
+      'NENHUMA FONTE RESPONDE para este ticker. O elo partido está fora do sistema — ' +
+      'veja o campo `erro` de cada fonte acima. É o caso em que o card aparece sem linha de procedência.';
+  } else if (!documento.existe && algumaFonteOk) {
+    veredito =
+      'As fontes respondem, mas não há documento gravado. O ticker nunca foi pedido ao ' +
+      'op=fundamentals, ou a gravação falhou. Verifique se o cliente está a pedi-lo (aba Rede).';
+  } else if (pontuado && pontuado.temLastro) {
+    veredito = `OK — pontua ${pontuado.score}/100 com cobertura de ${Math.round(pontuado.cobertura * 100)}%.`;
+  } else if (pontuado) {
+    veredito =
+      `Cobertura de ${Math.round(pontuado.cobertura * 100)}%, abaixo do mínimo de ` +
+      `${Math.round(Motor.COBERTURA_MINIMA * 100)}%. Faltam: ` +
+      (pontuado.faltando || []).map((f) => f.pilar).join(', ') +
+      '. A correção é arranjar dado, NUNCA baixar o limiar.';
+  } else {
+    veredito = 'Documento existe mas a composição devolveu vazio — investigue comporFundamentos.';
+  }
+
+  return res.json({
+    success: true,
+    ticker,
+    classe,
+    documento,
+    fontes,
+    composto: composto
+      ? {
+          fonte: composto.fonte || null,
+          fonteRotulo: composto.fonteRotulo || null,
+          camposPreenchidos: Object.keys(composto).filter(
+            (k) => composto[k] !== null && composto[k] !== undefined
+          ).length,
+          amostra: {
+            preco: composto.preco ?? null,
+            marketCap: composto.marketCap ?? null,
+            pl: composto.pl ?? null,
+            pvp: composto.pvp ?? null,
+            roe: composto.roe ?? null,
+            dy: composto.dy ?? null,
+            liquidezDiaria: composto.liquidezDiaria ?? null,
+          },
+        }
+      : null,
+    score: pontuado
+      ? {
+          valor: pontuado.score,
+          temLastro: pontuado.temLastro,
+          cobertura: pontuado.cobertura,
+          confianca: pontuado.confianca,
+          faltando: pontuado.faltando,
+        }
+      : null,
+    passos,
+    erros,
+    configuracaoPendente: diagnosticarErrosDeFonte(
+      erros.concat(
+        Object.entries(fontes)
+          .filter(([, f]) => f && f.erro)
+          .map(([nome, f]) => ({ fonte: nome, erro: f.erro }))
+      )
+    ),
+    veredito,
+    protocolo: '.claude/skills/diagnostico-motor-carteira/SKILL.md',
+  });
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -687,15 +2819,47 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleNews(req, res);
     }
+    if (op === 'fundamentals') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleFundamentals(req, res);
+    }
+    if (op === 'diagnostico') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleDiagnostico(req, res);
+    }
+    if (op === 'ranking') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleRanking(req, res);
+    }
+    if (op === 'indicadores') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleIndicadores(req, res);
+    }
+    if (op === 'rendafixa') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleRendaFixa(req, res);
+    }
     if (op === 'warmup') {
       return handleWarmup(req, res);
     }
     return res.status(400).json({
       error: 'unknown_op',
-      detail: 'Use ?op=quote, ?op=history, ?op=news or ?op=warmup',
+      detail:
+        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa or ?op=warmup',
     });
   },
 });
+
+// Fontes de dados reutilizáveis fora do request. O job de ingestão usa a
+// mesma implementação de Yahoo que o endpoint, para as duas não divergirem
+// nas conversões de unidade — que é onde esta base já errou antes.
+module.exports.fontes = {
+  fetchYahooCotacoes,
+  fetchCotacoesMercado,
+  fetchYahooFundamentals,
+  mapYahooFundamental,
+  diagnosticarErrosDeFonte,
+};
 
 // Internos do parse de RSS expostos para teste. São regex sobre XML de
 // terceiro — a parte deste arquivo com mais chance de errar em silêncio e a
@@ -711,4 +2875,37 @@ module.exports.__test = {
   NEWS_SOURCES,
   NEWS_MAX_PER_FEED,
   NEWS_MAX_ITEMS,
+  // Normalização de fundamentos: transforma resposta de terceiro em
+  // indicador do motor. Pura, sem rede nem Firestore — a parte com mais
+  // conversão de unidade e mais chance de errar em silêncio.
+  fundAgregarDividendos,
+  fundCrescimentoDre,
+  fundCobertura,
+  mapBrapiFundamental,
+  mapBrapiCotacao,
+  fetchYahooCotacoes,
+  fetchCotacoesMercado,
+  diagnosticarErrosDeFonte,
+  fetchBrapiFundamentals,
+  mapYahooFundamental,
+  fetchYahooFundamentals,
+  comporFundamentos,
+  mapTesouroTitulo,
+  parseTesouroResposta,
+  rfClassificarTipo,
+  PREMISSAS_ANUAIS,
+  CHAVES_ACAO,
+  // BCB: escolha de série com validação de faixa. É onde um código errado
+  // devolveria número válido de outra coisa e passaria despercebido.
+  motivoExclusao,
+  calcularRankings,
+  RANKING_TOP_N_CRON,
+  PATRIMONIO_MINIMO,
+  LIQUIDEZ_MINIMA,
+  sgsData,
+  anualizar252,
+  resolverIndicadorSgs,
+  carregarIndicadoresBcb,
+  resolverPremissas,
+  SGS_SERIES,
 };

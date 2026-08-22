@@ -147,9 +147,42 @@ var dbCarteira = cartCarregarDB();
 // ── Estado da sessão ──
 var cartEstado = {
   perfil: null, // 'Conservador' | 'Moderado' | 'Arrojado'
-  capital: 10000,
+  capital: 10000, // aporte mensal
+  objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
+  prazoAnos: 10,
+  // 'automatico' = universo vem do ranking (dado). 'consultor' = vem da
+  // carteira modelo publicada no painel. O padrão é o dado.
+  modoUniverso: 'automatico',
+  patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
+  lente: null, // null = derivada do objetivo
   selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
   simRange: '3y',
+};
+
+// ── Estado do motor de recomendação ──
+// Separado de cartEstado porque NÃO é preferência do utilizador: é cache de
+// dados de mercado, e persistir isto no localStorage guardaria fundamentos
+// vencidos que reapareceriam como se fossem de hoje.
+var cartMotor = {
+  carregando: false,
+  fundamentos: {},
+  titulosRf: [],
+  ranking: [],
+  plano: null,
+  erro: null,
+  buscadoEm: null,
+  origemRf: null,
+  indicadores: null,
+  premissasDegradadas: false,
+  base: null,
+  // Resposta de op=ranking (objeto com universo/excluidos/classes). NÃO
+  // confundir com `ranking`, que é a lista já pontuada pelo motor.
+  rankingServidor: null,
+  automatico: true,
+  // Classes que o ranking não cobriu e caíram para a carteira modelo.
+  fallback: [],
+  // Configuração que falta do NOSSO lado (ex.: token de fonte de mercado).
+  pendencias: [],
 };
 
 // ── Chart instances ──
@@ -170,6 +203,11 @@ function carregarCarteiraCliente() {
   if (saved && saved.perfil) {
     cartEstado.perfil = saved.perfil;
     cartEstado.capital = saved.capital || 10000;
+    cartEstado.objetivo = saved.objetivo || null;
+    cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
+    cartEstado.modoUniverso = saved.modoUniverso === 'consultor' ? 'consultor' : 'automatico';
+    cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
+    cartEstado.lente = saved.lente || null;
     cartEstado.selecionados = saved.selecionados || {
       rf: null,
       acao: null,
@@ -225,6 +263,11 @@ function cartSalvarEstado() {
     JSON.stringify({
       perfil: cartEstado.perfil,
       capital: cartEstado.capital,
+      objetivo: cartEstado.objetivo,
+      prazoAnos: cartEstado.prazoAnos,
+      modoUniverso: cartEstado.modoUniverso,
+      patrimonio: cartEstado.patrimonio,
+      lente: cartEstado.lente,
       selecionados: cartEstado.selecionados,
     })
   );
@@ -240,6 +283,8 @@ function cartMostrarQuestionario() {
   document.getElementById('cartCallout').style.display = 'none';
   document.getElementById('cartSelecaoWrap').style.display = 'none';
   document.getElementById('cartSimCard').style.display = 'none';
+  const motorWrap = document.getElementById('cartMotorWrap');
+  if (motorWrap) motorWrap.style.display = 'none';
 
   // Wire up option buttons
   document.querySelectorAll('.cart-q-opt').forEach((btn) => {
@@ -251,6 +296,40 @@ function cartMostrarQuestionario() {
       this.classList.add('selected');
     };
   });
+
+  // "Editar perfil" reabre este mesmo formulário. Repor as respostas
+  // anteriores evita que mexer no aporte custe responder tudo de novo.
+  cartPreencherQuestionario();
+}
+
+/** Repõe no formulário as respostas já guardadas (quando existem). */
+function cartPreencherQuestionario() {
+  function marcar(q, val) {
+    if (val == null) return;
+    const alvo = document.querySelector(`.cart-q-opt[data-q="${q}"][data-val="${val}"]`);
+    if (!alvo) return;
+    document
+      .querySelectorAll(`.cart-q-opt[data-q="${q}"]`)
+      .forEach((b) => b.classList.remove('selected'));
+    alvo.classList.add('selected');
+  }
+  marcar('objetivo', cartEstado.objetivo);
+  marcar('prazo', cartEstado.prazoAnos);
+
+  const capital = document.getElementById('cartQCapital');
+  if (capital && cartEstado.capital > 0) {
+    capital.value = cartEstado.capital.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+  const patrimonio = document.getElementById('cartQPatrimonio');
+  if (patrimonio && cartEstado.patrimonio != null) {
+    patrimonio.value = cartEstado.patrimonio.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
 }
 
 function cartConcluirQuestionario() {
@@ -271,7 +350,17 @@ function cartConcluirQuestionario() {
   }
 
   cartEstado.perfil = perfil;
+  cartEstado.objetivo = objetivo;
+  var prazoEl = document.querySelector('.cart-q-opt[data-q="prazo"].selected');
+  cartEstado.prazoAnos = prazoEl ? parseFloat(prazoEl.dataset.val) : 10;
   cartEstado.capital = parseBRL(document.getElementById('cartQCapital').value) || 10000;
+  var patrimonioEl = document.getElementById('cartQPatrimonio');
+  var patrimonioDigitado = patrimonioEl ? parseBRL(patrimonioEl.value) : 0;
+  // Campo em branco continua null (o motor usa o patrimônio real da aba Meu
+  // Patrimônio); zero digitado é uma resposta legítima de quem está a começar.
+  cartEstado.patrimonio =
+    patrimonioEl && patrimonioEl.value.trim() !== '' ? patrimonioDigitado : null;
+  cartEstado.lente = null;
   cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
   cartSalvarEstado();
 
@@ -282,6 +371,8 @@ function cartConcluirQuestionario() {
 function cartEditarPerfil() {
   cartEstado.perfil = null;
   cartSalvarEstado();
+  // Fundamentos continuam válidos: o que muda é o perfil, não o mercado.
+  // Invalidar o cache aqui gastaria cota da API a cada ajuste de aporte.
   cartMostrarQuestionario();
 }
 
@@ -316,6 +407,7 @@ function cartRenderizarTela() {
   cartRenderizarEdu();
   cartRenderizarDonut();
   cartRenderizarSelecaoGrid();
+  cartRenderizarMotor();
   cartIniciarSimulacao();
 }
 
@@ -323,11 +415,7 @@ function cartRenderizarTela() {
 // EDUCATIONAL PANEL
 // ════════════════════════════════
 function cartRenderizarEdu() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const list = document.getElementById('cartEduList');
   list.innerHTML = '';
 
@@ -355,11 +443,7 @@ function cartRenderizarEdu() {
 // DONUT CHART
 // ════════════════════════════════
 function cartRenderizarDonut() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const capital = cartEstado.capital;
 
   const classes = ['rf', 'acao', 'fii', 'cripto'].filter((c) => (alloc[c] || 0) > 0);
@@ -452,11 +536,7 @@ function cartFmtShort(v) {
 // ASSET SELECTION GRID
 // ════════════════════════════════
 function cartRenderizarSelecaoGrid() {
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
   const capital = cartEstado.capital;
   const grid = document.getElementById('cartSelecaoGrid');
   grid.innerHTML = '';
@@ -544,6 +624,7 @@ function cartToggleAtivo(classe, ticker) {
   cartSalvarEstado();
   cartRenderizarSelecaoGrid();
   cartRenderizarDonut();
+  cartRecalcularMotor();
 }
 
 // ════════════════════════════════
@@ -575,11 +656,7 @@ async function cartCarregarSimulacao() {
   if (kpisEl) kpisEl.innerHTML = '';
 
   const range = cartEstado.simRange;
-  const p = cartEstado.perfil;
-  const alloc =
-    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
-    CART_ALLOC_DEFAULT[p] ||
-    CART_ALLOC_DEFAULT.Moderado;
+  const alloc = cartAlocacaoAlvo();
 
   // Tickers representativos por classe (proxy de retorno)
   const proxies = {
@@ -969,4 +1046,1066 @@ function inferirClasse(ticker, nome) {
   if (n.includes('etf') || t === 'BOVA11' || t === 'IVVB11' || t === 'SMAL11' || t === 'HASH11')
     return 'etf';
   return 'acao';
+}
+
+// ════════════════════════════════════════════════════════════
+// MOTOR DE RECOMENDAÇÃO
+// ════════════════════════════════════════════════════════════
+//
+// Esta secção liga a tela ao web/appliquei-motor-carteira.js. A divisão de
+// trabalho é: o motor decide, aqui só se busca dado e se desenha resultado.
+//
+// A alocação macro deixou de sair direto de dbCarteira.alocacoes[perfil]:
+// passa por cartAlocacaoAlvo(), que aplica objetivo e prazo por cima da
+// carteira modelo publicada. Sem isso, responder "renda passiva em 20 anos"
+// ou "preservar capital em 1 ano" dava exatamente a mesma tela.
+
+/** Alocação-alvo por classe, já ajustada por objetivo e prazo. */
+function cartAlocacaoAlvo() {
+  var p = cartEstado.perfil || 'Moderado';
+  var base =
+    (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
+    CART_ALLOC_DEFAULT[p] ||
+    CART_ALLOC_DEFAULT.Moderado;
+  if (typeof motorDistribuicaoClasses !== 'function') return base;
+  try {
+    return motorDistribuicaoClasses({
+      perfil: p,
+      objetivo: cartEstado.objetivo,
+      prazoAnos: cartEstado.prazoAnos,
+      base: base,
+    }).alocacao;
+  } catch (e) {
+    console.warn('[carteira] alocação-alvo falhou, usando base:', e.message);
+    return base;
+  }
+}
+
+/** Lente ativa: escolha explícita do utilizador, senão a derivada do objetivo. */
+function cartLenteAtiva() {
+  if (cartEstado.lente && MOTOR_LENTES[cartEstado.lente]) return cartEstado.lente;
+  return MOTOR_LENTE_POR_OBJETIVO[cartEstado.objetivo] || 'equilibrio';
+}
+
+async function cartTokenFirebase() {
+  if (typeof firebase === 'undefined' || !firebase.auth || !firebase.auth().currentUser)
+    return null;
+  return firebase.auth().currentUser.getIdToken();
+}
+
+/**
+ * Patrimônio já investido, por classe do motor.
+ *
+ * Vem da aba Meu Patrimônio quando ela tem dados — é o número real, e é o
+ * que faz o motor mandar o aporte para a classe que está atrasada em vez de
+ * repetir a proporção-alvo todo mês. O campo do questionário só entra como
+ * substituto quando não há carteira registada.
+ */
+function cartPatrimonioPorClasse() {
+  var out = { rf: 0, acao: 0, fii: 0, cripto: 0 };
+  var temDados = false;
+  try {
+    if (typeof mpConsolidar === 'function') {
+      var cons = mpConsolidar() || {};
+      var exib = cons.porCategoriaExibicao || {};
+      var mapa = {
+        renda_fixa: 'rf',
+        reserva_emergencia: 'rf',
+        previdencia: 'rf',
+        acoes: 'acao',
+        bdrs: 'acao',
+        etfs: 'acao',
+        fiis: 'fii',
+        cripto: 'cripto',
+      };
+      Object.keys(exib).forEach(function (k) {
+        var destino = mapa[k];
+        var valor = exib[k] && exib[k].atual;
+        if (!destino || !(valor > 0)) return;
+        out[destino] += valor;
+        temDados = true;
+      });
+    }
+  } catch (e) {
+    console.warn('[carteira] patrimônio por classe indisponível:', e.message);
+  }
+  if (temDados) return { valores: out, origem: 'carteira' };
+
+  // Sem carteira registada: distribui o valor informado pela alocação-alvo.
+  // Assim o rebalanceamento não inventa um desvio que não se sabe existir.
+  var informado = cartEstado.patrimonio;
+  if (!(informado > 0)) return { valores: null, origem: 'nenhum' };
+  var alvo = cartAlocacaoAlvo();
+  var proporcional = { rf: 0, acao: 0, fii: 0, cripto: 0 };
+  MOTOR_CLASSES.forEach(function (c) {
+    proporcional[c] = (informado * (alvo[c] || 0)) / 100;
+  });
+  return { valores: proporcional, origem: 'informado' };
+}
+
+/** Ativos publicados na carteira modelo que o utilizador não desmarcou. */
+function cartUniversoBase() {
+  var out = [];
+  MOTOR_CLASSES.forEach(function (classe) {
+    var ativos =
+      (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
+    var sel = cartEstado.selecionados[classe];
+    ativos.forEach(function (a) {
+      if (!a || !a.ticker) return;
+      if (sel && sel.indexOf(a.ticker) === -1) return;
+      out.push({ ticker: a.ticker, nome: a.nome || a.ticker, obs: a.obs || '', classe: classe });
+    });
+  });
+  return out;
+}
+
+function cartNormalizarNome(v) {
+  return String(v || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '');
+}
+
+/** Casa um item de renda fixa da carteira modelo com o título do Tesouro. */
+function cartCasarTesouro(ativo, titulos) {
+  var alvoTicker = cartNormalizarNome(ativo.ticker);
+  var alvoNome = cartNormalizarNome(ativo.nome);
+  for (var i = 0; i < titulos.length; i++) {
+    var t = titulos[i];
+    var tk = cartNormalizarNome(t.ticker);
+    var nm = cartNormalizarNome(t.nome);
+    if (tk === alvoTicker || nm === alvoNome || nm === alvoTicker || tk === alvoNome) return t;
+  }
+  return null;
+}
+
+// Criptos que a fonte de mercado cobre. Lista fixa porque o universo REAL é
+// fixo: o servidor só sabe converter estes símbolos. Não é curadoria — é o
+// alcance da integração.
+var CART_CRIPTO_UNIVERSO = ['BTC', 'ETH', 'SOL', 'ADA', 'BNB', 'XRP'];
+
+// Quantos candidatos pedir por classe ao ranking. O motor escolhe no máximo
+// 6 ações e 5 FIIs; pedir 15 dá folga para o corte por liquidez e para o
+// utilizador desmarcar alguns sem esvaziar a classe. Pedir a bolsa inteira
+// gastaria uma chamada de cotação por ativo sem mudar o resultado.
+var CART_CANDIDATOS_POR_CLASSE = 15;
+
+/** Ranking do universo, já pontuado e cortado no servidor. */
+async function cartBuscarRanking(token, lente) {
+  var url =
+    '/api/market?op=ranking&lente=' +
+    encodeURIComponent(lente) +
+    '&top=' +
+    CART_CANDIDATOS_POR_CLASSE;
+  var res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'ranking_indisponivel');
+  return data;
+}
+
+/**
+ * Universo de candidatos.
+ *
+ * No modo automático NADA vem de lista escrita à mão: ações e FIIs saem do
+ * ranking, renda fixa sai da oferta corrente do Tesouro e cripto sai do
+ * alcance da integração. É isto que impede a carteira de envelhecer — antes,
+ * um título com vencimento em 2027 continuava na lista depois de vencer, e a
+ * classe inteira zerava sem ninguém perceber.
+ */
+function cartUniversoAutomatico(ranking, titulosRf) {
+  var out = [];
+  var fallback = [];
+  var modelo = null;
+
+  // Classe sem candidatos no ranking cai para a carteira modelo.
+  //
+  // Sem isto, a classe SOME da tela — e o aporte dela vira sobra de caixa em
+  // silêncio. É o estado de hoje, antes de a ingestão da CVM rodar pela
+  // primeira vez: R$ 1.460 de um aporte de R$ 2.000 ficavam sem destino
+  // porque ações e FIIs não existiam no ranking. Mostrar a carteira modelo
+  // sem score é pior do que mostrar o ranking, mas é muito melhor do que
+  // não mostrar nada e não dizer nada.
+  function daCarteiraModelo(classe) {
+    if (!modelo) modelo = cartUniversoBase();
+    return modelo.filter(function (a) {
+      return a.classe === classe;
+    });
+  }
+
+  function preencher(classe, doRanking) {
+    if (doRanking.length) {
+      doRanking.forEach(function (item) {
+        out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
+      });
+      return;
+    }
+    var reserva = daCarteiraModelo(classe);
+    if (!reserva.length) return;
+    fallback.push(classe);
+    reserva.forEach(function (a) {
+      out.push({ ticker: a.ticker, nome: a.nome, classe: classe });
+    });
+  }
+
+  ['acao', 'fii'].forEach(function (classe) {
+    var bloco = ranking && ranking.classes && ranking.classes[classe];
+    preencher(classe, (bloco && bloco.itens) || []);
+  });
+
+  preencher(
+    'rf',
+    (titulosRf || []).map(function (t) {
+      return { ticker: t.ticker, nome: t.nome };
+    })
+  );
+
+  CART_CRIPTO_UNIVERSO.forEach(function (t) {
+    out.push({ ticker: t, nome: t, classe: 'cripto' });
+  });
+
+  // A desmarcação manual continua valendo: o utilizador pode tirar um ativo
+  // do universo, ele só não precisa mais escolher quais entram.
+  return {
+    itens: out.filter(function (a) {
+      var sel = cartEstado.selecionados[a.classe];
+      return !sel || sel.indexOf(a.ticker) !== -1;
+    }),
+    fallback: fallback,
+  };
+}
+
+async function cartBuscarRendaFixa(token) {
+  try {
+    var res = await fetch('/api/market?op=rendafixa', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    var data = await res.json();
+    return data && data.titulos ? data.titulos : [];
+  } catch (e) {
+    // Tesouro fora do ar não pode derrubar as outras classes: a RF cai para
+    // score neutro e o rodapé diz por quê.
+    console.warn('[carteira/motor] renda fixa indisponível:', e.message);
+    return [];
+  }
+}
+
+async function cartBuscarIndicadoresBcb(token) {
+  try {
+    var res = await fetch('/api/market?op=indicadores', {
+      headers: { Authorization: 'Bearer ' + token },
+    });
+    return await res.json();
+  } catch (e) {
+    return null;
+  }
+}
+
+async function cartBuscarFundamentos(token, tickers) {
+  var fundamentos = {};
+  var lotes = [];
+  for (var i = 0; i < tickers.length; i += 50) lotes.push(tickers.slice(i, i + 50));
+  var respostas = await Promise.all(
+    lotes.map(function (lote) {
+      return fetch('/api/market?op=fundamentals&tickers=' + encodeURIComponent(lote.join(',')), {
+        headers: { Authorization: 'Bearer ' + token },
+      }).then(function (r) {
+        return r.json();
+      });
+    })
+  );
+  var pendencias = [];
+  respostas.forEach(function (r) {
+    if (r && r.fundamentos) Object.assign(fundamentos, r.fundamentos);
+    if (r && r.configuracaoPendente) pendencias = pendencias.concat(r.configuracaoPendente);
+  });
+  // Anexado ao retorno em vez de um segundo valor: o chamador já desestrutura
+  // um objeto de fundamentos e a pendência é metadado dele.
+  fundamentos.__pendencias = pendencias;
+  return fundamentos;
+}
+
+/**
+ * Monta o universo e busca os dados de que ele precisa.
+ *
+ * São duas passagens de pontuação por desenho: o servidor peneira o universo
+ * inteiro com os indicadores da CVM, e aqui buscamos cotação só dos poucos
+ * selecionados, para o motor re-pontuar com P/L, P/VP e proventos — que
+ * dependem de preço. Fazer tudo no servidor exigiria cotação de centenas de
+ * tickers a cada cálculo; fazer tudo aqui exigiria baixar o universo inteiro
+ * para o browser.
+ */
+async function cartBuscarDadosMotor() {
+  var token = await cartTokenFirebase();
+  if (!token) throw new Error('Sessão expirada — entre novamente para o motor buscar os dados.');
+
+  var automatico = cartEstado.modoUniverso !== 'consultor';
+  var titulosRf = await cartBuscarRendaFixa(token);
+
+  var base;
+  var ranking = null;
+  var fallback = [];
+  if (automatico) {
+    ranking = await cartBuscarRanking(token, cartLenteAtiva());
+    var auto = cartUniversoAutomatico(ranking, titulosRf);
+    base = auto.itens;
+    fallback = auto.fallback;
+  } else {
+    // Modo consultor: a carteira modelo publicada no painel manda, e a renda
+    // fixa dela é casada com a oferta corrente do Tesouro.
+    base = cartUniversoBase();
+  }
+
+  var tickers = base
+    .filter(function (a) {
+      return a.classe !== 'rf';
+    })
+    .map(function (a) {
+      return a.ticker;
+    });
+
+  var resultados = await Promise.all([
+    tickers.length ? cartBuscarFundamentos(token, tickers) : Promise.resolve({}),
+    cartBuscarIndicadoresBcb(token),
+  ]);
+
+  var fundamentos = resultados[0] || {};
+  var pendencias = fundamentos.__pendencias || [];
+  delete fundamentos.__pendencias;
+
+  return {
+    base: base,
+    fundamentos: fundamentos,
+    pendencias: pendencias,
+    titulosRf: titulosRf,
+    indicadores: resultados[1] ? resultados[1].indicadores : null,
+    premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
+    ranking: ranking,
+    automatico: automatico,
+    fallback: fallback,
+  };
+}
+
+/** Junta carteira modelo + fundamentos num universo pronto para pontuar. */
+function cartMontarUniverso(base, fundamentos, titulosRf) {
+  return base.map(function (a) {
+    var dados = { ticker: a.ticker, nome: a.nome, classe: a.classe, obs: a.obs };
+    if (a.classe === 'rf') {
+      var t = cartCasarTesouro(a, titulosRf || []);
+      if (t) Object.assign(dados, t, { ticker: a.ticker, nome: a.nome, classe: 'rf' });
+    } else {
+      var f = fundamentos[a.ticker];
+      if (f) {
+        Object.assign(dados, f, {
+          ticker: a.ticker,
+          // Nome da carteira modelo vence o da BRAPI: é o que o consultor
+          // escreveu e o que o utilizador reconhece na tela.
+          nome: a.nome,
+          classe: a.classe,
+        });
+      }
+    }
+    return dados;
+  });
+}
+
+// ── Render ──
+
+function cartCorScore(score) {
+  if (score >= 80) return '#059669';
+  if (score >= 65) return '#0891b2';
+  if (score >= 50) return '#d97706';
+  return '#dc2626';
+}
+
+/**
+ * Linha de procedência do card: de onde veio o indicador, de que exercício
+ * e quando foi lido.
+ *
+ * Existe porque número sem origem é opinião. "ROE 20,4%" o cliente tem de
+ * aceitar; "ROE 20,4% · DFP 2025 · CVM · lido em 14/ago" ele pode conferir —
+ * e é a conferência que sustenta a confiança num produto pago.
+ */
+function cartProcedencia(a) {
+  if (!a.fonteRotulo && !a.atualizadoEm) return '';
+  var partes = [];
+  if (a.fonteRotulo) partes.push(a.fonteRotulo);
+  if (a.dataReferencia) partes.push('ref. ' + cartFmtData(a.dataReferencia));
+
+  var vencido = false;
+  if (a.atualizadoEm) {
+    var dias = Math.floor((Date.now() - a.atualizadoEm) / 86400000);
+    vencido = dias > CART_VALIDADE_DIAS;
+    partes.push(dias <= 0 ? 'lido hoje' : 'lido há ' + dias + (dias === 1 ? ' dia' : ' dias'));
+  }
+  return (
+    '<div class="cart-score-fonte' +
+    (vencido ? ' vencido' : '') +
+    '"><i class="ph ' +
+    (vencido ? 'ph-clock-countdown' : 'ph-seal-check') +
+    '"></i> ' +
+    partes.join(' · ') +
+    (vencido ? ' — dado vencido, atualize antes de decidir' : '') +
+    '</div>'
+  );
+}
+
+// A partir de quantos dias um fundamento passa a ser sinalizado como velho.
+// Balanço não muda todo dia, mas o utilizador tem de saber que está a olhar
+// para um número de meses atrás antes de mandar dinheiro em cima dele.
+var CART_VALIDADE_DIAS = 45;
+
+function cartFmtData(v) {
+  var d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function cartFmtNota(n) {
+  if (n === null || n === undefined) return '—';
+  return n.toFixed(1).replace('.', ',');
+}
+
+// Contador de execução: trocar de lente ou desmarcar ativo dispara um novo
+// render enquanto o anterior ainda está no ar. Sem isto, a resposta lenta da
+// primeira chamada sobrescreve o resultado da segunda.
+var cartMotorSeq = 0;
+
+function cartRenderizarMotorLentes() {
+  var wrap = document.getElementById('cartMotorLentes');
+  if (!wrap) return;
+  var ativa = cartLenteAtiva();
+  wrap.innerHTML = Object.keys(MOTOR_LENTES)
+    .map(function (id) {
+      var l = MOTOR_LENTES[id];
+      return (
+        '<button type="button" class="cart-motor-lente-btn' +
+        (id === ativa ? ' active' : '') +
+        '" data-lente="' +
+        id +
+        '" onclick="cartTrocarLente(\'' +
+        id +
+        '\')" title="' +
+        l.resumo.replace(/"/g, '&quot;') +
+        '">' +
+        l.nome +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+/**
+ * Botões de modo do universo.
+ *
+ * O padrão é "todo o mercado": quem escolhe os candidatos é o dado. A
+ * carteira do consultor continua disponível porque há contexto em que um
+ * humano no circuito é desejável — mas deixou de ser o único caminho.
+ */
+function cartRenderizarModoUniverso() {
+  var wrap = document.getElementById('cartMotorModo');
+  if (!wrap) return;
+  var auto = cartEstado.modoUniverso !== 'consultor';
+  var opcoes = [
+    {
+      id: 'automatico',
+      nome: 'Todo o mercado',
+      dica: 'Os candidatos saem dos dados da CVM e do Tesouro, sem lista escrita à mão.',
+    },
+    {
+      id: 'consultor',
+      nome: 'Carteira do consultor',
+      dica: 'Considera apenas os ativos publicados no painel.',
+    },
+  ];
+  wrap.innerHTML = opcoes
+    .map(function (o) {
+      var ativo = o.id === 'automatico' ? auto : !auto;
+      return (
+        '<button type="button" class="cart-motor-modo-btn' +
+        (ativo ? ' active' : '') +
+        '" onclick="cartTrocarModoUniverso(\'' +
+        o.id +
+        '\')" title="' +
+        o.dica.replace(/"/g, '&quot;') +
+        '">' +
+        o.nome +
+        '</button>'
+      );
+    })
+    .join('');
+}
+
+function cartTrocarLente(id) {
+  if (!MOTOR_LENTES[id]) return;
+  cartEstado.lente = id;
+  cartSalvarEstado();
+  cartRenderizarMotorLentes();
+  // No modo automático a lente decide QUAIS ativos entram na lista curta,
+  // não só o peso dos pilares — então o universo tem de ser rebuscado.
+  if (cartEstado.modoUniverso !== 'consultor') cartRenderizarMotor(true);
+  else cartRecalcularMotor();
+}
+
+/** Alterna entre universo descoberto por dado e carteira do consultor. */
+function cartTrocarModoUniverso(modo) {
+  var novo = modo === 'consultor' ? 'consultor' : 'automatico';
+  if (cartEstado.modoUniverso === novo) return;
+  cartEstado.modoUniverso = novo;
+  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
+  cartSalvarEstado();
+  cartRenderizarMotor(true);
+}
+
+/** Recalcula ranking e plano com os fundamentos já em memória (sem rede). */
+function cartRecalcularMotor() {
+  if (!cartMotor.buscadoEm) return;
+  // O universo é o que a busca montou. Remontá-lo aqui a partir da carteira
+  // modelo desfaria a descoberta automática a cada troca de lente.
+  var base = cartMotor.base || cartUniversoBase();
+  var universo = cartMontarUniverso(base, cartMotor.fundamentos, cartMotor.titulosRf);
+  cartMotor.ranking = motorRanquear(universo, { lente: cartLenteAtiva() });
+  var patr = cartPatrimonioPorClasse();
+  cartMotor.origemPatrimonio = patr.origem;
+  cartMotor.plano = motorPlanoAporte({
+    aporteMensal: cartEstado.capital,
+    alocacaoAlvo: cartAlocacaoAlvo(),
+    ranking: cartMotor.ranking,
+    patrimonioAtual: patr.valores,
+  });
+  cartRenderizarMotorStatus();
+  cartRenderizarMotorPlano(cartMotor.plano);
+  cartRenderizarMotorRanking(cartMotor.ranking);
+}
+
+async function cartRenderizarMotor(forcar) {
+  var wrap = document.getElementById('cartMotorWrap');
+  if (!wrap) return;
+  // O motor vem de outro <script>. Se ele falhar ao carregar, o resto da
+  // aba (educação, donut, simulação) continua a funcionar sem esta secção —
+  // melhor do que uma exceção a cada abertura da aba.
+  if (typeof motorRanquear !== 'function') {
+    wrap.style.display = 'none';
+    console.warn('[carteira] motor não carregado — secção de recomendação escondida.');
+    return;
+  }
+  wrap.style.display = 'block';
+  cartRenderizarModoUniverso();
+  cartRenderizarMotorLentes();
+
+  // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
+  if (cartMotor.buscadoEm && !forcar) return cartRecalcularMotor();
+  if (cartMotor.carregando) return;
+
+  var seq = ++cartMotorSeq;
+  cartMotor.carregando = true;
+  cartMotor.erro = null;
+  var status = document.getElementById('cartMotorStatus');
+  if (status)
+    status.innerHTML =
+      '<i class="ph ph-circle-notch ph-spin"></i> Buscando indicadores de mercado…';
+
+  try {
+    var dados = await cartBuscarDadosMotor();
+    if (seq !== cartMotorSeq) return;
+    cartMotor.base = dados.base;
+    cartMotor.fundamentos = dados.fundamentos;
+    cartMotor.titulosRf = dados.titulosRf;
+    cartMotor.indicadores = dados.indicadores;
+    cartMotor.premissasDegradadas = dados.premissasDegradadas;
+    cartMotor.rankingServidor = dados.ranking;
+    cartMotor.automatico = dados.automatico;
+    cartMotor.fallback = dados.fallback || [];
+    cartMotor.pendencias = dados.pendencias || [];
+    cartMotor.buscadoEm = Date.now();
+    cartMotor.carregando = false;
+    cartRecalcularMotor();
+  } catch (e) {
+    if (seq !== cartMotorSeq) return;
+    cartMotor.carregando = false;
+    cartMotor.erro = e.message;
+    console.warn('[carteira/motor] falhou:', e.message);
+    // Sem dado de mercado o motor ainda ordena e distribui — só que com
+    // score neutro. Mostrar a carteira com aviso é melhor do que uma aba
+    // vazia, desde que fique explícito que a nota não vale nada aqui.
+    cartMotor.buscadoEm = Date.now();
+    cartMotor.fundamentos = {};
+    cartMotor.titulosRf = [];
+    // Sem rede não há universo descoberto; a carteira modelo é o que resta
+    // para a tela ter o que mostrar — sem score, como manda a regra.
+    cartMotor.base = cartUniversoBase();
+    cartRecalcularMotor();
+  }
+}
+
+function cartAtualizarMotor() {
+  cartMotor.buscadoEm = null;
+  cartRenderizarMotor(true);
+}
+
+function cartRenderizarMotorStatus() {
+  var el = document.getElementById('cartMotorStatus');
+  if (!el) return;
+  var ranking = cartMotor.ranking || [];
+  // A métrica honesta é quantos ativos foram PONTUADOS, não quantos têm
+  // algum dado solto: um ativo com um indicador de dezesseis não entra no
+  // ranking, e contá-lo como "com dados" inflaria a percepção de cobertura.
+  var pontuados = ranking.filter(function (a) {
+    return a.score !== null;
+  }).length;
+  var coberturaMedia = ranking.length
+    ? ranking.reduce(function (s, a) {
+        return s + a.cobertura;
+      }, 0) / ranking.length
+    : 0;
+
+  var partes = [];
+  var lente = MOTOR_LENTES[cartLenteAtiva()];
+  partes.push(
+    '<span class="cart-motor-status-item"><i class="ph ph-funnel"></i> Lente <strong>' +
+      lente.nome +
+      '</strong></span>'
+  );
+  partes.push(
+    '<span class="cart-motor-status-item"><i class="ph ph-database"></i> ' +
+      pontuados +
+      ' de ' +
+      ranking.length +
+      ' ativos pontuados (' +
+      Math.round(coberturaMedia * 100) +
+      '% de cobertura média)</span>'
+  );
+  if (cartMotor.automatico && cartMotor.rankingServidor) {
+    var r = cartMotor.rankingServidor;
+    var cortados = Object.values(r.excluidos || {}).reduce(function (s2, v) {
+      return s2 + v;
+    }, 0);
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-globe-hemisphere-west"></i> ' +
+        'Universo: ' +
+        (r.universo || 0) +
+        ' ativos analisados' +
+        (cortados ? ', ' + cortados + ' fora do corte de porte e liquidez' : '') +
+        '</span>'
+    );
+  } else if (!cartMotor.automatico) {
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-user-circle"></i> Universo: carteira do consultor</span>'
+    );
+  }
+  if (cartMotor.origemPatrimonio === 'carteira')
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Rebalanceando com base na sua carteira atual</span>'
+    );
+  else if (cartMotor.origemPatrimonio === 'informado')
+    partes.push(
+      '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Patrimônio informado no questionário</span>'
+    );
+
+  // Pendência de configuração vive em variável PRÓPRIA: a cadeia de else-if
+  // abaixo termina num ramo genérico que a sobrescrevia, e o operador voltava
+  // a ver "nenhum ativo pôde ser pontuado" em vez da variável que falta.
+  var alerta = '';
+  var pend = cartMotor.pendencias || [];
+  var alertaPendencia = '';
+  if (pend.length) {
+    alertaPendencia = pend
+      .map(function (p) {
+        // Só bloqueio pinta de erro. Marcar uma melhoria opcional de vermelho
+        // treina o operador a ignorar o vermelho.
+        var bloqueio = p.severidade === 'bloqueio';
+        return (
+          '<div class="cart-motor-alerta ' +
+          (bloqueio ? 'erro' : '') +
+          '"><i class="ph ph-' +
+          (bloqueio ? 'warning-circle' : p.chave ? 'lightning' : 'hourglass-medium') +
+          '"></i><span><strong>' +
+          p.fonte +
+          ':</strong> ' +
+          p.diagnostico +
+          '<br><strong>' +
+          (p.severidade === 'melhoria' ? 'Opcional' : 'O que fazer') +
+          ':</strong> ' +
+          p.acao +
+          (p.alcance ? '<br><em>' + p.alcance + '</em>' : '') +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
+  if (cartMotor.erro) {
+    alerta =
+      '<div class="cart-motor-alerta erro"><i class="ph ph-warning-circle"></i> ' +
+      'Não foi possível buscar os indicadores (' +
+      cartMotor.erro +
+      '). Os scores abaixo estão neutros — a divisão por classe continua válida.</div>';
+  } else if (!pend.length && ranking.length && pontuados === 0) {
+    // Estado que o plano grátis da fonte de mercado produz. Antes ele passava
+    // despercebido atrás de uma parede de scores baixos; agora é a primeira
+    // coisa que a tela diz, porque muda o que o plano abaixo significa.
+    alerta =
+      '<div class="cart-motor-alerta erro"><i class="ph ph-warning-circle"></i> ' +
+      '<span><strong>Nenhum ativo pôde ser pontuado.</strong> Os indicadores fundamentalistas não ' +
+      'chegaram da fonte de mercado, então não há score e a divisão dentro de cada classe saiu igual — ' +
+      'não é resultado de análise. Cada card abaixo lista o que está em falta.</span></div>';
+  } else if (pend.length) {
+    // Com a causa nomeada, os avisos genéricos abaixo só mandariam procurar
+    // no lugar errado.
+    alerta = '';
+  } else if ((cartMotor.fallback || []).length) {
+    // Estado esperado antes de a ingestão da CVM rodar pela primeira vez.
+    // Precisa ser dito, senão o utilizador acha que aquela é a seleção do
+    // motor quando na verdade é a lista do painel, sem análise por trás.
+    var nomes = cartMotor.fallback.map(function (c) {
+      return CART_NOMES[c] || c;
+    });
+    alerta =
+      '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
+      '<span><strong>' +
+      nomes.join(' e ') +
+      ':</strong> nenhum ativo passou pelo ranking de mercado, então a classe está a usar a ' +
+      'carteira do consultor como reserva. Isso acontece enquanto a ingestão de dados da CVM ' +
+      'não tiver rodado — assim que rodar, os candidatos passam a sair do mercado inteiro.</span></div>';
+  } else if (pontuados < ranking.length) {
+    alerta =
+      '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
+      '<span>' +
+      (ranking.length - pontuados) +
+      ' ativo(s) sem indicadores suficientes ficaram fora do ranking e não recebem aporte enquanto ' +
+      'o dado não chegar. Os cards no fim da lista dizem o que falta em cada um.</span></div>';
+  }
+
+  el.innerHTML =
+    '<div class="cart-motor-status-linha">' +
+    partes.join('') +
+    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
+    '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
+    cartRenderizarIndicadores() +
+    alertaPendencia +
+    alerta;
+}
+
+/**
+ * Faixa com Selic, CDI e inflação esperada, cada um com a sua fonte.
+ *
+ * São os números que sustentam toda a renda fixa da tela. Enquanto eram
+ * constantes no código, ninguém — nem nós — sabia olhando a tela se estavam
+ * certos. Agora ou dizem de onde vieram, ou dizem que são premissa de
+ * reserva.
+ */
+function cartRenderizarIndicadores() {
+  var ind = cartMotor.indicadores;
+  if (!ind) return '';
+  var itens = [
+    { chave: 'selic', rotulo: 'Selic' },
+    { chave: 'cdi', rotulo: 'CDI' },
+    { chave: 'ipcaEsperado', rotulo: 'IPCA esperado' },
+    { chave: 'ipca12m', rotulo: 'IPCA 12m' },
+  ];
+  var html = itens
+    .filter(function (i) {
+      // IPCA passado só aparece se a expectativa não veio: são respostas a
+      // perguntas diferentes e mostrar as duas confunde mais do que informa.
+      if (i.chave === 'ipca12m' && ind.ipcaEsperado) return false;
+      return ind[i.chave] && typeof ind[i.chave].valor === 'number';
+    })
+    .map(function (i) {
+      var d = ind[i.chave];
+      return (
+        '<span class="cart-indicador" title="' +
+        (d.fonte || '').replace(/"/g, '&quot;') +
+        (d.data ? ' · ' + cartFmtData(d.data) : '') +
+        '">' +
+        '<span class="cart-indicador-rotulo">' +
+        i.rotulo +
+        '</span>' +
+        '<span class="cart-indicador-valor">' +
+        d.valor.toFixed(2).replace('.', ',') +
+        '%</span>' +
+        '</span>'
+      );
+    })
+    .join('');
+  if (!html) return '';
+  return (
+    '<div class="cart-indicadores">' +
+    html +
+    '<span class="cart-indicadores-fonte">' +
+    (cartMotor.premissasDegradadas
+      ? '<i class="ph ph-warning"></i> parte destes valores é premissa de reserva, não taxa do dia'
+      : '<i class="ph ph-seal-check"></i> Banco Central') +
+    '</span></div>'
+  );
+}
+
+function cartRenderizarMotorPlano(plano) {
+  var el = document.getElementById('cartMotorPlano');
+  if (!el || !plano) return;
+
+  var colunas = MOTOR_CLASSES.map(function (classe) {
+    var c = plano.classes[classe];
+    if (!c) return '';
+    var pct = c.pct || 0;
+    var itens = c.itens || [];
+    var aguardando = c.modo === 'aguardando_dados';
+    var linhas = aguardando
+      ? '<li class="cart-classe-empty">Aguardando indicadores para selecionar os ativos. ' +
+        'A recomendação sai dos mais bem pontuados — sem score não há seleção a fazer.</li>'
+      : itens.length
+        ? itens
+            .map(function (it) {
+              var qtd =
+                it.quantidade != null && it.unidade
+                  ? '<span class="cart-plano-qtd">' +
+                    (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
+                    '</span>'
+                  : '';
+              var chip =
+                it.score === null
+                  ? '<span class="cart-plano-score sem-dado" title="Sem indicadores para pontuar">—</span>'
+                  : '<span class="cart-plano-score" style="background:' +
+                    cartCorScore(it.score) +
+                    ';">' +
+                    it.score +
+                    '</span>';
+              return (
+                '<li class="cart-plano-item">' +
+                chip +
+                '<span class="cart-plano-body">' +
+                '<span class="cart-plano-ticker">' +
+                it.ticker +
+                '</span>' +
+                '<span class="cart-plano-nome">' +
+                (it.nome || '') +
+                '</span>' +
+                '</span>' +
+                '<span class="cart-plano-right">' +
+                '<span class="cart-plano-vlr">' +
+                formatarMoeda(it.valorInvestido) +
+                '</span>' +
+                qtd +
+                '</span>' +
+                '</li>'
+              );
+            })
+            .join('')
+        : '<li class="cart-classe-empty">Sem alocação nesta classe</li>';
+
+    return (
+      '<div class="cart-classe-col cart-classe-' +
+      classe +
+      (pct === 0 ? ' dimmed' : '') +
+      '">' +
+      '<div class="cart-classe-col-header">' +
+      '<div class="cart-classe-col-name"><i class="ph ' +
+      CART_ICONS[classe] +
+      '"></i> ' +
+      CART_NOMES[classe] +
+      '</div>' +
+      '<div class="cart-classe-col-meta">' +
+      '<span class="cart-classe-col-pct">' +
+      pct +
+      '%</span>' +
+      '<span class="cart-classe-col-vlr">' +
+      formatarMoeda(c.alvo) +
+      '</span>' +
+      '</div></div>' +
+      '<ul class="cart-classe-list">' +
+      linhas +
+      '</ul>' +
+      '<div class="cart-classe-col-footer">' +
+      '<span class="lbl">' +
+      (aguardando ? 'Retido:' : c.sobra > 0.009 ? 'Sobra de caixa:' : 'Total alocado:') +
+      '</span>' +
+      '<span class="val">' +
+      formatarMoeda(aguardando ? c.retido : c.sobra > 0.009 ? c.sobra : c.investido) +
+      '</span></div>' +
+      '</div>'
+    );
+  }).join('');
+
+  var avisos = (plano.avisos || []).length
+    ? '<div class="cart-motor-avisos">' +
+      plano.avisos
+        .map(function (a) {
+          return '<div><i class="ph ph-info"></i> ' + a + '</div>';
+        })
+        .join('') +
+      '</div>'
+    : '';
+
+  el.innerHTML =
+    '<div class="cart-plano-resumo">' +
+    '<div><span class="lbl">Aporte do mês</span><span class="val">' +
+    formatarMoeda(plano.aporte) +
+    '</span></div>' +
+    '<div><span class="lbl">Distribuído</span><span class="val">' +
+    formatarMoeda(plano.totalInvestido) +
+    '</span></div>' +
+    '<div><span class="lbl">' +
+    (plano.retido > 0.009 ? 'Retido por falta de dados' : 'Sobra para o próximo aporte') +
+    '</span><span class="val">' +
+    formatarMoeda(plano.retido > 0.009 ? plano.retido : plano.sobra) +
+    '</span></div>' +
+    '</div>' +
+    '<div class="cart-selecao-grid">' +
+    colunas +
+    '</div>' +
+    avisos;
+}
+
+function cartRenderizarMotorRanking(ranking) {
+  var el = document.getElementById('cartMotorRanking');
+  if (!el) return;
+  if (!ranking || !ranking.length) {
+    el.innerHTML =
+      '<div class="cart-classe-empty">Nenhum ativo no universo da carteira modelo.</div>';
+    return;
+  }
+
+  el.innerHTML = ranking
+    .map(function (a) {
+      var barras = MOTOR_PILARES.map(function (chave) {
+        var p = a.pilares[chave];
+        var nota = p && p.nota;
+        var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+
+        // Pilar calculado sobre menos de metade dos seus indicadores desenha
+        // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
+        // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
+        // lê-se como veredito — o mesmo erro que já corrigimos no score
+        // global, repetido dentro do pilar.
+        var comDado = p
+          ? p.metricas.filter(function (m) {
+              return m.nota !== null;
+            }).length
+          : 0;
+        var total = p ? p.metricas.length : 0;
+        var parcial = nota != null && total > 0 && comDado / total < 0.5;
+
+        var titulo =
+          p.nome +
+          ': ' +
+          cartFmtNota(nota) +
+          '/10' +
+          (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
+
+        return (
+          '<div class="cart-pilar" title="' +
+          titulo +
+          '">' +
+          '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
+          (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
+          '" style="height:' +
+          altura +
+          '%;background:' +
+          (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
+          ';"></div></div>' +
+          '<div class="cart-pilar-nota' +
+          (parcial ? ' parcial' : '') +
+          '">' +
+          cartFmtNota(nota) +
+          (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
+          '</div>' +
+          '<div class="cart-pilar-nome">' +
+          p.nome +
+          '</div>' +
+          '</div>'
+        );
+      }).join('');
+
+      var alertas = (a.alertas || []).length
+        ? '<ul class="cart-score-alertas">' +
+          a.alertas
+            .map(function (t) {
+              return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
+            })
+            .join('') +
+          '</ul>'
+        : '';
+
+      // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
+      // cinzento continuaria a ser lido como nota. O card passa a mostrar o
+      // que falta, que é a única informação verdadeira que temos do ativo.
+      var selo =
+        a.score === null
+          ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
+            '<i class="ph ph-minus-circle"></i></span>'
+          : '<span class="cart-score-badge" style="background:' +
+            cartCorScore(a.score) +
+            ';">' +
+            a.score +
+            '<small>/100</small></span>';
+
+      // Fonte que não respondeu tem conserto diferente de fonte que
+      // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
+      // manda o utilizador (e quem for depurar) na direção errada.
+      var indisponivel = a.indisponivel
+        ? '<div class="cart-score-faltando">' +
+          '<div class="cart-score-faltando-titulo">' +
+          '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
+          '</div>' +
+          '<div class="cart-score-faltando-linha">' +
+          (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
+          '</div></div>'
+        : '';
+
+      var faltando =
+        !a.indisponivel && a.score === null && (a.faltando || []).length
+          ? '<div class="cart-score-faltando">' +
+            '<div class="cart-score-faltando-titulo">' +
+            '<i class="ph ph-database"></i> Faltam indicadores para pontuar' +
+            '</div>' +
+            a.faltando
+              .map(function (f) {
+                return (
+                  '<div class="cart-score-faltando-linha"><strong>' +
+                  f.pilar +
+                  ':</strong> ' +
+                  f.metricas.join(', ') +
+                  '</div>'
+                );
+              })
+              .join('') +
+            '</div>'
+          : '';
+
+      return (
+        '<div class="cart-score-card' +
+        (a.score === null ? ' sem-dado' : '') +
+        '">' +
+        '<div class="cart-score-head">' +
+        '<span class="cart-score-pos">' +
+        (a.score === null ? '—' : '#' + a.posicao) +
+        '</span>' +
+        '<span class="cart-score-id">' +
+        '<span class="cart-score-ticker">' +
+        a.ticker +
+        '</span>' +
+        '<span class="cart-score-nome">' +
+        (a.nome || '') +
+        ' · ' +
+        CART_NOMES[a.classe] +
+        '</span>' +
+        '</span>' +
+        selo +
+        '</div>' +
+        '<div class="cart-pilares">' +
+        barras +
+        '</div>' +
+        '<div class="cart-score-just">' +
+        motorJustificativa(a) +
+        ' <span class="cart-score-conf conf-' +
+        a.confianca +
+        '">' +
+        (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
+        '</span></div>' +
+        indisponivel +
+        faltando +
+        cartProcedencia(a) +
+        alertas +
+        '</div>'
+      );
+    })
+    .join('');
 }

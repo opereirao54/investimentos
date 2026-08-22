@@ -2131,6 +2131,262 @@
             font-style: italic; text-align: center;
         }
 
+        /* ===== MOTOR DE RECOMENDAÇÃO ===== */
+        .cart-q-hint {
+            font-size: 10.5px; font-weight: 600; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.4px; margin-left: 4px;
+        }
+        .cart-motor-controles {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+        }
+        .cart-motor-lentes { display: flex; gap: 6px; flex-wrap: wrap; }
+        .cart-motor-modo {
+            display: flex; gap: 0; border: 1px solid var(--cor-borda);
+            border-radius: 999px; overflow: hidden; background: var(--cor-branco);
+        }
+        .cart-motor-modo-btn {
+            padding: 7px 14px; cursor: pointer; border: none; background: transparent;
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-mutado);
+            transition: var(--transicao); font-family: inherit; white-space: nowrap;
+        }
+        .cart-motor-modo-btn:hover { color: var(--cor-texto-principal); }
+        .cart-motor-modo-btn.active { background: var(--cor-texto-principal); color: #fff; }
+        .cart-motor-lente-btn {
+            padding: 7px 13px; border-radius: 999px; cursor: pointer;
+            border: 1px solid var(--cor-borda); background: var(--cor-branco);
+            font-size: 11.5px; font-weight: 600; color: var(--cor-texto-mutado);
+            transition: var(--transicao); font-family: inherit;
+        }
+        .cart-motor-lente-btn:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+        .cart-motor-lente-btn.active {
+            background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff;
+        }
+        .cart-motor-status { margin-bottom: 16px; }
+        .cart-motor-status-linha {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            font-size: 11.5px; color: var(--cor-texto-mutado);
+        }
+        .cart-motor-status-item { display: inline-flex; align-items: center; gap: 5px; }
+        .cart-motor-status-item i { font-size: 14px; color: var(--cor-primaria); }
+        .cart-motor-status-linha .cart-btn-mini { margin-left: auto; }
+        .cart-motor-alerta {
+            margin-top: 10px; padding: 10px 13px; border-radius: 10px;
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda);
+            font-size: 12px; color: var(--cor-texto-secundario);
+            display: flex; align-items: flex-start; gap: 8px; line-height: 1.5;
+        }
+        .cart-motor-alerta i { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+        .cart-motor-alerta.erro {
+            background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.25);
+        }
+        .cart-motor-alerta.erro i { color: var(--cor-erro, #dc2626); }
+
+        /* Selic / CDI / IPCA correntes, com fonte no title */
+        .cart-indicadores {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-top: 10px; padding: 9px 12px; border-radius: 10px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+        }
+        .cart-indicador { display: inline-flex; align-items: baseline; gap: 5px; cursor: help; }
+        .cart-indicador-rotulo {
+            font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px;
+            font-weight: 700; color: var(--cor-texto-mutado);
+        }
+        .cart-indicador-valor {
+            font-size: 13px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.4px;
+        }
+        .cart-indicadores-fonte {
+            margin-left: auto; font-size: 10px; color: var(--cor-texto-mutado);
+            display: inline-flex; align-items: center; gap: 4px;
+        }
+        .cart-indicadores-fonte i { font-size: 12px; color: #059669; }
+        .cart-motor-sub {
+            display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+            font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
+            color: var(--cor-texto-principal); margin: 22px 0 12px;
+        }
+        .cart-motor-sub i { color: var(--cor-primaria); font-size: 17px; }
+        .cart-motor-sub-nota {
+            font-size: 11px; font-weight: 500; font-family: inherit;
+            color: var(--cor-texto-mutado);
+        }
+
+        /* Resumo do plano */
+        .cart-plano-resumo {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+            margin-bottom: 16px;
+        }
+        @media (max-width: 620px) { .cart-plano-resumo { grid-template-columns: 1fr; } }
+        .cart-plano-resumo > div {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 13px 16px;
+            display: flex; flex-direction: column; gap: 3px;
+        }
+        .cart-plano-resumo .lbl {
+            font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px;
+            color: var(--cor-texto-mutado); font-weight: 700;
+        }
+        .cart-plano-resumo .val {
+            font-size: 19px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.8px;
+        }
+
+        /* Linha de ativo no plano */
+        .cart-plano-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 9px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+        }
+        .cart-plano-score {
+            width: 30px; height: 30px; border-radius: 8px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 12px; font-weight: 800;
+            font-family: 'DM Mono', monospace;
+        }
+        .cart-plano-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .cart-plano-ticker {
+            font-size: 12.5px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .cart-plano-nome {
+            font-size: 10.5px; color: var(--cor-texto-mutado);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cart-plano-right { text-align: right; display: flex; flex-direction: column; }
+        .cart-plano-vlr {
+            font-size: 12.5px; font-weight: 700; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+        }
+        .cart-plano-qtd { font-size: 10.5px; color: var(--cor-texto-mutado); }
+        .cart-motor-avisos {
+            margin-top: 4px; display: flex; flex-direction: column; gap: 6px;
+            font-size: 11.5px; color: var(--cor-texto-mutado);
+        }
+        .cart-motor-avisos i { color: var(--cor-primaria); margin-right: 4px; }
+
+        /* Cards de score */
+        .cart-motor-ranking {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 14px;
+        }
+        .cart-score-card {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); box-shadow: var(--shadow-card);
+            padding: 15px 16px; display: flex; flex-direction: column; gap: 12px;
+        }
+        .cart-score-head { display: flex; align-items: center; gap: 10px; }
+        .cart-score-pos {
+            font-size: 11px; font-weight: 800; color: var(--cor-texto-mutado);
+            font-family: 'DM Mono', monospace; flex-shrink: 0;
+        }
+        .cart-score-id { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .cart-score-ticker {
+            font-size: 14px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal); letter-spacing: -0.4px;
+        }
+        .cart-score-nome {
+            font-size: 10.5px; color: var(--cor-texto-mutado);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .cart-score-badge {
+            flex-shrink: 0; padding: 7px 11px; border-radius: 10px; color: #fff;
+            font-size: 17px; font-weight: 800; font-family: 'DM Mono', monospace;
+            letter-spacing: -0.8px; line-height: 1;
+        }
+        .cart-score-badge small { font-size: 9.5px; font-weight: 600; opacity: 0.8; }
+
+        /* Barras dos cinco pilares */
+        .cart-pilares { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        .cart-pilar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .cart-pilar-trilho {
+            width: 100%; height: 46px; border-radius: 6px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            display: flex; align-items: flex-end; overflow: hidden;
+        }
+        .cart-pilar-barra { width: 100%; border-radius: 0 0 5px 5px; transition: var(--transicao); }
+        .cart-pilar-barra.vazio { opacity: 0.35; }
+        /* Pilar apoiado em menos de metade dos indicadores: listrado, para
+           não se confundir com um pilar completo da mesma altura. */
+        .cart-pilar-barra.parcial {
+            opacity: 0.55;
+            background-image: repeating-linear-gradient(
+                45deg, rgba(255,255,255,0.55) 0 3px, transparent 3px 7px
+            );
+        }
+        .cart-pilar-nota.parcial { color: var(--cor-texto-mutado); }
+        .cart-pilar-fracao {
+            display: block; font-size: 8px; font-weight: 700;
+            color: var(--cor-texto-mutado); letter-spacing: 0;
+        }
+        .cart-pilar-nota {
+            font-size: 11px; font-weight: 800; font-family: 'DM Mono', monospace;
+            color: var(--cor-texto-principal);
+        }
+        .cart-pilar-nome {
+            font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.3px;
+            color: var(--cor-texto-mutado); font-weight: 700; text-align: center;
+            line-height: 1.15;
+        }
+        .cart-score-just {
+            font-size: 11.5px; color: var(--cor-texto-secundario); line-height: 1.5;
+        }
+        .cart-score-conf {
+            display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 999px;
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .cart-score-conf.conf-alta  { background: rgba(5,150,105,0.12); color: #047857; }
+        .cart-score-conf.conf-media { background: rgba(217,119,6,0.12); color: #b45309; }
+        .cart-score-conf.conf-baixa { background: rgba(107,114,128,0.14); color: #4b5563; }
+        .cart-score-alertas {
+            list-style: none; padding: 0; margin: 0;
+            display: flex; flex-direction: column; gap: 5px;
+        }
+        .cart-score-alertas li {
+            font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.45;
+            display: flex; align-items: flex-start; gap: 5px;
+        }
+        .cart-score-alertas i { color: #d97706; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+        /* Ativo sem lastro: a ausência de score é a informação, não um score baixo */
+        .cart-score-card.sem-dado { border-style: dashed; background: var(--cor-superficie); }
+        .cart-score-badge.sem-dado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px dashed var(--cor-borda2); display: flex; align-items: center;
+            justify-content: center; min-width: 44px;
+        }
+        .cart-score-badge.sem-dado i { font-size: 19px; }
+        .cart-plano-score.sem-dado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px dashed var(--cor-borda2);
+        }
+        .cart-score-conf.conf-insuficiente {
+            background: rgba(107,114,128,0.14); color: #4b5563;
+        }
+        .cart-score-faltando {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: 10px; padding: 10px 12px;
+            display: flex; flex-direction: column; gap: 4px;
+        }
+        .cart-score-faltando-titulo {
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.4px; color: var(--cor-texto-mutado);
+            display: flex; align-items: center; gap: 5px; margin-bottom: 2px;
+        }
+        .cart-score-faltando-linha {
+            font-size: 10.5px; color: var(--cor-texto-secundario); line-height: 1.45;
+        }
+        .cart-score-faltando-linha strong { color: var(--cor-texto-principal); }
+
+        /* Procedência: fonte, exercício e idade do dado */
+        .cart-score-fonte {
+            font-size: 10px; color: var(--cor-texto-mutado);
+            display: flex; align-items: center; gap: 5px; line-height: 1.4;
+        }
+        .cart-score-fonte i { font-size: 12px; color: #059669; flex-shrink: 0; }
+        .cart-score-fonte.vencido { color: #b45309; }
+        .cart-score-fonte.vencido i { color: #d97706; }
+
         /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
         #carteira {
             --cart-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
@@ -6526,13 +6782,44 @@
                         </div>
                     </div>
 
+                    <div class="cart-q-section">
+                        <div class="cart-q-section-title" data-step="3">Prazo do dinheiro</div>
+                        <div class="cart-q-opts" id="cartQPrazo">
+                            <button type="button" class="cart-q-opt" data-q="prazo" data-val="2">
+                                <span class="icon">⏱️</span>
+                                <span class="body"><span class="title">Até 2 anos</span><span class="sub">Vou precisar em breve</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="prazo" data-val="5">
+                                <span class="icon">📅</span>
+                                <span class="body"><span class="title">3 a 5 anos</span><span class="sub">Objetivo de médio prazo</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt selected" data-q="prazo" data-val="10">
+                                <span class="icon">🌱</span>
+                                <span class="body"><span class="title">6 a 10 anos</span><span class="sub">Construindo com calma</span></span>
+                            </button>
+                            <button type="button" class="cart-q-opt" data-q="prazo" data-val="25">
+                                <span class="icon">🏔️</span>
+                                <span class="body"><span class="title">Mais de 10 anos</span><span class="sub">Longo prazo de verdade</span></span>
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="cart-q-capital-row">
                         <div class="form-group">
-                            <label>Aporte mensal de simulação (R$)</label>
+                            <label>Aporte mensal (R$)</label>
                             <span class="input-brl-wrap" style="display:block;">
                                 <input type="text" inputmode="decimal" data-brl="1" id="cartQCapital" value="10.000,00"
                                        oninput="aplicarMascaraBRL(this)"
                                        style="font-weight:700; font-size:17px; color:var(--cor-primaria); padding-left:42px !important;">
+                            </span>
+                        </div>
+                        <div class="form-group">
+                            <label>Patrimônio já investido (R$) <span class="cart-q-hint">opcional</span></label>
+                            <span class="input-brl-wrap" style="display:block;">
+                                <input type="text" inputmode="decimal" data-brl="1" id="cartQPatrimonio" value=""
+                                       placeholder="0,00"
+                                       oninput="aplicarMascaraBRL(this)"
+                                       style="font-weight:700; font-size:17px; padding-left:42px !important;">
                             </span>
                         </div>
                         <button class="btn-acao" onclick="cartConcluirQuestionario()" style="padding:13px 26px;">
@@ -6592,6 +6879,35 @@
                         <h3><i class="ph ph-list-checks"></i> Ativos selecionados — mês atual</h3>
                     </div>
                     <div class="cart-selecao-grid" id="cartSelecaoGrid"></div>
+                </div>
+
+                <!-- Recommendation engine: scores + plano de aporte -->
+                <div id="cartMotorWrap" style="display:none;">
+                    <div class="cart-selecao-header">
+                        <h3><i class="ph ph-cpu"></i> Motor de recomendação</h3>
+                        <div class="cart-motor-controles">
+                            <div class="cart-motor-modo" id="cartMotorModo"></div>
+                            <div class="cart-motor-lentes" id="cartMotorLentes"></div>
+                        </div>
+                    </div>
+                    <div class="cart-motor-status" id="cartMotorStatus"></div>
+
+                    <div class="cart-motor-sub">
+                        <i class="ph ph-target"></i> Onde investir este mês
+                    </div>
+                    <div id="cartMotorPlano"></div>
+
+                    <div class="cart-motor-sub">
+                        <i class="ph ph-ranking"></i> Score dos ativos
+                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco conforme a lente escolhida.</span>
+                    </div>
+                    <div class="cart-motor-ranking" id="cartMotorRanking"></div>
+
+                    <div class="cart-sim-disclaimer">
+                        Os scores são calculados por critérios objetivos a partir de indicadores públicos de mercado e
+                        não constituem recomendação de investimento. Indicador indisponível não vira nota zero: o score
+                        é puxado para a média e a confiança do ativo cai.
+                    </div>
                 </div>
 
                 <!-- Historical Simulation -->
@@ -7919,7 +8235,8 @@
          são chamadas via user action ou window.onload). -->
     <script src="/web/appliquei-inss.js?v=inss1"></script>
     <script src="/web/appliquei-aba-simulador.js?v=inss1"></script>
-    <script src="/web/appliquei-aba-carteira-recomendada.js?v=onda4-central"></script>
+    <script src="/web/appliquei-motor-carteira.js?v=motor-carteira-1"></script>
+    <script src="/web/appliquei-aba-carteira-recomendada.js?v=motor-carteira-1"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>

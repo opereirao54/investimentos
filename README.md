@@ -48,6 +48,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 | `npm run test:flows`      | 108 checks de billing/referral (mock Asaas + Firestore) |
 | `npm run optimize:assets` | Re-encoda JPGs grandes com sharp                        |
 | `npm run icons:build`     | Regera `icons/` (tela de início) a partir do SVG        |
+| `npm run ingest:cvm`      | Dry-run da ingestão da CVM (relatório, não grava)       |
 
 ## Estrutura
 
@@ -76,7 +77,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   ├── admin/{action,stats}.js   # Painel admin (token estático)
 │   ├── auth/resend-verification.js
 │   ├── billing/{init,subscribe,cancel,me,card,customer,webhook}.js
-│   ├── market.js                 # Dispatcher: ?op=quote|history|warmup
+│   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|ranking|diagnostico|indicadores|rendafixa|warmup
 │   └── sync/push.js              # Beacon endpoint para mobile freeze
 ├── web/                          # JS frontend (modular: 23 arquivos)
 │   ├── appliquei-firebase-init.js    # ES module — bootstrap Firebase
@@ -90,6 +91,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   ├── appliquei-aba1-charts.js      # Classic — charts da Meus Investimentos
 │   ├── appliquei-{sonhos,patrimonio,jornada,relatorio-mensal,…}.js  # Features
 │   ├── appliquei-admin.js            # Classic — lógica do admin.html
+│   ├── appliquei-motor-carteira.js   # Classic — motor de score + alocação (puro, sem DOM)
 │   ├── appliquei-yahoo-finance.js    # Classic — proxy multi-fallback de cotações
 │   ├── appliquei-renda-fixa.js       # Classic — projeção CDI/Selic/IPCA
 │   ├── appliquei-previdencia.js      # Classic — recorrência mensal
@@ -116,20 +118,20 @@ Automático via Vercel quando push em `main`. PRs geram preview deploys.
 
 Variáveis de ambiente (Vercel Project Settings → Environment Variables):
 
-| Variável                          | Obrigatória | Descrição                                              |
-| --------------------------------- | ----------- | ------------------------------------------------------ |
-| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                         |
-| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                       |
-| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                            |
-| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                             |
-| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`) |
-| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`              |
-| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                |
-| `BRAPI_TOKEN`                     | opt         | Cotações renda variável (free tier sem token)          |
-| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)              |
-| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail       |
-| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init` |
-| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP              |
+| Variável                          | Obrigatória | Descrição                                                               |
+| --------------------------------- | ----------- | ----------------------------------------------------------------------- |
+| `FIREBASE_SERVICE_ACCOUNT_BASE64` | ✓           | Service account JSON em base64                                          |
+| `FIREBASE_PROJECT_ID`             | ✓           | `appliquei-prod`                                                        |
+| `ASAAS_API_KEY`                   | ✓           | Token Asaas                                                             |
+| `ASAAS_API_URL`                   | ✓           | `https://api.asaas.com/v3`                                              |
+| `ASAAS_WEBHOOK_TOKEN`             | ✓           | Token do webhook (Asaas envia em `asaas-access-token`)                  |
+| `CRON_SECRET`                     | auto        | Vercel injeta para `api/market?op=warmup`                               |
+| `ADMIN_API_TOKEN`                 | opt         | Habilita `/api/admin/*`                                                 |
+| `BRAPI_TOKEN`                     | opt         | Cotações e proventos. Fundamentos vêm da CVM (`docs/MOTOR-CARTEIRA.md`) |
+| `SENTRY_DSN`                      | opt         | Observabilidade API (Sentry @sentry/node)                               |
+| `EMAIL_VERIFY_ENFORCE`            | opt         | `true` = bloqueia hard quem não verificou e-mail                        |
+| `ANTIFRAUD_INIT_ENABLED`          | opt         | `true` = rate-limit 5/dia IP + 3/mês device em `/init`                  |
+| `REFERRAL_BLOCK_SAME_IP`          | opt         | `true` = bloqueia referral entre mesmo IP                               |
 
 Para Sentry browser, edite no HTML:
 
@@ -147,6 +149,11 @@ Para Sentry browser, edite no HTML:
 - **CRÍTICO**: classic scripts NÃO podem usar `let`/`const` no top-level — viram script-scoped (invisíveis a outros arquivos). Use `var`. Test `classic-scripts-globals.test.js` enforce isso.
 - **Idempotência do webhook**: `body.id` é a chave; eventos repetidos viram no-op via `webhookEvents/<id>` doc com TTL.
 - **LWW por-chave** no sync localStorage ↔ Firestore: cada chave tem `keyRev` (timestamp local) que decide quem ganha em merge.
+- **Motor da Carteira Recomendada** (`web/appliquei-motor-carteira.js`): pontua ativos por 5 pilares e monta o plano de aporte. Puro — sem DOM, rede ou Firebase — para rodar em `node --test`. Abaixo de 30% de cobertura de indicadores **não devolve score**: devolve a lista do que falta. Ver `docs/MOTOR-CARTEIRA.md`.
+- **Quando o motor não pontua**, use `?op=diagnostico&ticker=X`: ele diz, por camada, o que cada fonte respondeu e qual elo partiu. O protocolo de leitura é a skill `.claude/skills/diagnostico-motor-carteira/`, que dispara sozinha nesse tipo de relato. Regra da casa: **fonte que falha degrada para a versão simples dela e nunca deixa o ticker sem registo** — card sem linha de procedência significa que o endpoint não devolveu nada.
+- **O universo de candidatos vem do dado, não de lista escrita à mão**: o FCA da CVM declara o vínculo ticker ↔ `CD_CVM`, e `?op=ranking` pontua a bolsa inteira e devolve a lista curta por classe. A carteira do consultor virou um modo opcional ao lado de "Todo o mercado". Filtros de porte e liquidez são contados e mostrados na tela — universo que encolhe em silêncio não se depura.
+- **Fundamentos vêm da CVM**, não de API comercial: `scripts/ingest-cvm.js` roda semanalmente no GitHub Actions (`.github/workflows/ingest-cvm.yml`), calcula os indicadores das DFP e do Informe Mensal de FII e grava no ramo `cvm` de `marketFundamentals`. A cotação grava no ramo `mercado`, e `api/market.js` compõe os dois na leitura — ramos separados porque a resposta da BRAPI traz `null` em quase todo campo fundamentalista e um merge plano apagaria o trabalho da ingestão.
+- **Selic, CDI e IPCA** vêm do SGS e do Focus do Banco Central (`?op=indicadores`), com validação de faixa por série: código de série errado devolve número válido de outra coisa, então cada candidata é conferida antes de ser aceita.
 
 ## Documentação
 
