@@ -101,9 +101,13 @@ function linhaDfp(cnpj, cdCvm, ano, cod, ds, valor, escala) {
   ].join(';');
 }
 
-function dfpCsv(qual, ano) {
+function dfpCsv(qual, ano, opcoes) {
+  const op = opcoes || {};
+  // No cenário "absurdo" a companhia A tem patrimônio de dezenas de bilhões,
+  // como a Eletrobras — é o contraste com a contagem minúscula que denuncia
+  // o defeito. Com patrimônio pequeno, R$ 500 por ação passaria por normal.
   const empresas = [
-    { cnpj: CNPJ_A, cd: '1023', mult: 1 },
+    { cnpj: CNPJ_A, cd: '1023', mult: op.absurdo ? 1000 : 1 },
     { cnpj: CNPJ_B, cd: '5410', mult: 0.4 },
   ];
   const linhas = [CAB_DFP];
@@ -128,7 +132,11 @@ function dfpCsv(qual, ano) {
       // Grupo 3.99: básico em 3.99.01, diluído em 3.99.02, classe na folha.
       add('3.99', 'Lucro por Ação - (Reais / Ação)', 0, 'UNIDADE');
       add('3.99.01', 'Lucro Básico por Ação', 0, 'UNIDADE');
-      add('3.99.01.01', 'ON', ((21000 * m * 1000) / 2850000).toFixed(4), 'UNIDADE');
+      // O divisor acompanha a escala para o LPA continuar plausível mesmo no
+      // cenário de patrimônio inflado — é o que permite testar a QUEDA para a
+      // derivação depois de a contagem declarada ser recusada.
+      const acoesFicticias = 2850000 * (op.absurdo ? 1000 : 1);
+      add('3.99.01.01', 'ON', ((21000 * m * 1000) / acoesFicticias).toFixed(4), 'UNIDADE');
       add('3.99.02', 'Lucro Diluído por Ação', 0, 'UNIDADE');
       add('3.99.02.01', 'ON', ((21000 * m * 1000) / 3000000).toFixed(4), 'UNIDADE');
     } else if (qual === 'DFC_MI_con') {
@@ -148,10 +156,16 @@ function dfpCsv(qual, ano) {
 const CAB_CAPITAL =
   'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
 
-function capitalCsv(ano) {
+function capitalCsv(ano, opcoes) {
+  const op = opcoes || {};
+  // Contagem minúscula para uma companhia com patrimônio de bilhões: é o
+  // formato do defeito que a execução real mostrou na Eletrobras.
+  const onA = op.absurdo ? '150000' : '2000000000';
+  const pnA = op.absurdo ? '0' : '900000000';
+  const tesA = op.absurdo ? '0;0' : '50000000;10000000';
   return [
     CAB_CAPITAL,
-    `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;1023;${ano}-12-31;2000000000;900000000;50000000;10000000`,
+    `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;1023;${ano}-12-31;${onA};${pnA};${tesA}`,
     `${CNPJ_B};${ano}-12-31;1;COMPANHIA TESTE S.A.;5410;${ano}-12-31;800000000;0;0;0`,
   ].join('\n');
 }
@@ -185,8 +199,16 @@ function montarFetch(opcoes) {
         return responder(
           zipar(
             ['BPA_con', 'BPP_con', 'DRE_con', 'DFC_MI_con']
-              .map((q) => [`dfp_cia_aberta_${q}_${ano}.csv`, dfpCsv(q, ano)])
-              .concat([[`dfp_cia_aberta_composicao_capital_${ano}.csv`, capitalCsv(ano)]])
+              .map((q) => [
+                `dfp_cia_aberta_${q}_${ano}.csv`,
+                dfpCsv(q, ano, { absurdo: op.capitalAbsurdo }),
+              ])
+              .concat([
+                [
+                  `dfp_cia_aberta_composicao_capital_${ano}.csv`,
+                  capitalCsv(ano, { absurdo: op.capitalAbsurdo }),
+                ],
+              ])
           )
         );
       }
@@ -293,6 +315,22 @@ test('a contagem de ações DECLARADA vence a derivada por LPA', async () => {
   assert.match(texto, /ações 2\.84bi cap/, 'a contagem sai da composição, não do LPA');
   assert.ok(!/ações .*bi lpa/.test(texto), 'com a declarada em mãos, ninguém deriva');
   assert.match(texto, /2 pela composição do capital, 0 pelo LPA/);
+});
+
+test('contagem declarada implausível é recusada, conferida pelo patrimônio', async () => {
+  // O patrimônio NÃO passou pela contagem de ações, e por isso a denuncia.
+  // Achado da execução real: a Eletrobras saiu com 0,00 bi de ações para um
+  // patrimônio de 118,5 bi — R$ 118 mil por ação. Com esse número o valor de
+  // mercado sairia mil vezes menor e ela lideraria a lente "Valor".
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    capitalAbsurdo: true,
+  });
+  assert.match(texto, /contagem declarada recusada/);
+  assert.match(texto, /por ação/, 'a mensagem mostra a conta que denuncia');
+  // Recusada a declarada, a derivação por LPA assume — não fica sem nada.
+  assert.match(texto, /ações .*bi lpa/);
 });
 
 test('sem FCA o pipeline não morre: cai para o mapa e diz que caiu', async () => {

@@ -648,9 +648,32 @@ async function main() {
   for (const emp of empresas.values()) {
     const exercicios = porEmpresa.get(emp.chave);
     if (!exercicios || !exercicios.length) continue;
-    const capitalDaEmpresa = emp.chaves.map((k) => capitalPorChave.get(k)).find(Boolean);
+    let capitalDaEmpresa = emp.chaves.map((k) => capitalPorChave.get(k)).find(Boolean);
     const r = P.calcularIndicadores(exercicios);
     const ind = r.indicadores;
+
+    // A contagem declarada é conferida contra o PATRIMÔNIO, que não passou
+    // por ela. Valor patrimonial por ação fora de faixa denuncia que a linha
+    // lida não é a da companhia inteira — foi o que a execução real mostrou:
+    //
+    //   ELET3  PL 118,5 bi · ações 0,00 bi  →  R$ 118 mil por ação
+    //
+    // Com essa contagem o valor de mercado sairia mil vezes menor, o P/L
+    // viraria o menor da bolsa e a Eletrobras lideraria a lente "Valor".
+    // Recusar e cair para a derivação por LPA é melhor do que publicar isso.
+    if (capitalDaEmpresa) {
+      const pl = r.absolutos.patrimonioLiquido;
+      const vpa =
+        pl && capitalDaEmpresa.acoesEmCirculacao ? pl / capitalDaEmpresa.acoesEmCirculacao : null;
+      if (vpa !== null && (vpa < 0.01 || vpa > 10000)) {
+        log(
+          `  ! ${emp.tickers[0]}: contagem declarada recusada — ` +
+            `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações para ` +
+            `PL de ${(pl / 1e9).toFixed(1)}bi dá R$ ${vpa.toFixed(0)} por ação`
+        );
+        capitalDaEmpresa = null;
+      }
+    }
     const preenchidos = Object.values(ind).filter((v) => v !== null).length;
     const total = Object.keys(ind).length;
 
