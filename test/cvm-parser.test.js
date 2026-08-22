@@ -22,7 +22,7 @@ const assert = require('node:assert/strict');
 
 const { lerZip } = require('../scripts/lib/zip');
 const P = require('../scripts/lib/cvm-parser');
-const { casarCadastro, exercicioDaEmpresa } = require('../scripts/ingest-cvm');
+const { casarCadastro, chavesDaEmpresa, exercicioDaEmpresa } = require('../scripts/ingest-cvm');
 
 // ── Construtor de ZIP para os testes ──
 function zipar(arquivos, opcoes) {
@@ -114,7 +114,7 @@ const CABECALHO =
 function linha(cdCvm, conta, descricao, valor, opts) {
   const o = opts || {};
   return [
-    '00.000.000/0001-91',
+    o.cnpj || '00.000.000/0001-91',
     o.dtRefer || '2025-12-31',
     '1',
     o.denom || 'EMPRESA TESTE S.A.',
@@ -220,7 +220,7 @@ test('exercício anterior do mesmo arquivo é ignorado', () => {
     'escalaMoeda',
   ]);
   const grupos = P.agruparPorEmpresa(registros, mapa);
-  const exercicios = grupos.get('1023');
+  const exercicios = grupos.get('cd:1023');
   assert.equal(exercicios.size, 1);
   assert.equal(P.valorDaConta(exercicios.get('2025-12-31'), mapa, 'patrimonioLiquido'), 180000000);
 });
@@ -495,10 +495,107 @@ test('exercicioDaEmpresa isola a empresa certa dentro do arquivo do ano', () => 
       ].join('\n')
     ),
   };
-  const ex = exercicioDaEmpresa(csvs, COLS_TESTE, '5410', 2025);
+  const ex = exercicioDaEmpresa(csvs, COLS_TESTE, 'cd:5410', 2025);
   assert.equal(ex.patrimonioLiquido, 25000000, 'não pode pegar a linha da outra empresa');
   assert.equal(ex.ano, 2025);
-  assert.equal(exercicioDaEmpresa(csvs, COLS_TESTE, '0000', 2025), null);
+  assert.equal(exercicioDaEmpresa(csvs, COLS_TESTE, 'cd:0000', 2025), null);
+});
+
+// ════════════════════════════════════════════
+// Junção por CNPJ
+// ════════════════════════════════════════════
+//
+// A primeira execução real do pipeline devolveu "0 tickers" no FCA e
+// "0 companhias com dados" na DFP — com o arquivo certo aberto e as
+// colunas todas resolvidas. A causa: o FCA identifica a companhia por
+// CNPJ_Companhia e nunca teve CD_CVM. Os testes abaixo existem para que
+// esse silêncio não volte: cada um falha se a junção voltar a depender de
+// uma identificação que o arquivo do outro lado não tem.
+
+test('FCA sem CD_CVM ainda devolve o universo, pelo CNPJ', () => {
+  const csv = [
+    'CNPJ_Companhia;Codigo_Negociacao;Valor_Mobiliario;Mercado;Data_Referencia',
+    '00.000.000/0001-91;BBAS3;Ações Ordinárias;Bolsa;2025-12-31',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { porTicker, faltando } = P.extrairTickersFca(registros, colunas);
+  assert.equal(porTicker.size, 1, 'exigir CD_CVM zerava o universo inteiro');
+  assert.equal(porTicker.get('BBAS3').cnpj, '00000000000191');
+  assert.equal(porTicker.get('BBAS3').cdCvm, null);
+  assert.ok(faltando.includes('cdCvm'), 'a coluna ausente continua reportada');
+});
+
+test('CNPJ formatado e cru são a MESMA chave', () => {
+  // O FCA traz com pontuação, a DFP às vezes sem. Comparar como texto
+  // separaria a companhia dela mesma.
+  assert.equal(P.normalizarCnpj('00.000.000/0001-91'), '00000000000191');
+  assert.equal(P.normalizarCnpj('00000000000191'), '00000000000191');
+  assert.equal(P.normalizarCnpj('123'), null, 'CNPJ truncado não vira chave');
+  assert.equal(P.normalizarCnpj(''), null);
+});
+
+test('CD_CVM com e sem zeros à esquerda é a MESMA chave', () => {
+  assert.equal(P.normalizarCdCvm('001023'), '1023');
+  assert.equal(P.normalizarCdCvm('1023'), '1023');
+  assert.equal(P.normalizarCdCvm('  01023 '), '1023');
+  assert.equal(P.normalizarCdCvm(''), null);
+});
+
+test('o índice da DFP responde pelas DUAS identificações', () => {
+  const csv = [CABECALHO, linha('1023', '2.03', 'Patrimônio Líquido Consolidado', '180000')].join(
+    '\n'
+  );
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const { mapa } = P.resolverColunas(colunas, [
+    'cdCvm',
+    'cnpj',
+    'dataReferencia',
+    'dataFimExercicio',
+    'ordemExercicio',
+    'codigoConta',
+    'descricaoConta',
+    'valorConta',
+    'escalaMoeda',
+  ]);
+  const grupos = P.agruparPorEmpresa(registros, mapa);
+  assert.ok(grupos.get('cd:1023'), 'quem só tem CD_CVM continua achando');
+  assert.ok(grupos.get('cnpj:00000000000191'), 'quem vem do FCA acha pelo CNPJ');
+  assert.equal(
+    grupos.get('cd:1023').get('2025-12-31').length,
+    grupos.get('cnpj:00000000000191').get('2025-12-31').length,
+    'as duas chaves têm de apontar para as mesmas linhas'
+  );
+});
+
+test('universo vindo do FCA (só CNPJ) casa com a DFP (que tem as duas)', () => {
+  // Esta é a junção inteira, ponta a ponta: é o teste que falharia se o
+  // pipeline voltasse a procurar a companhia por uma chave que o universo
+  // não conhece.
+  const csvs = {
+    BPP_con: P.parseCsvCvm(
+      [
+        CABECALHO,
+        linha('1023', '2.03', 'Patrimônio Líquido Consolidado', '180000'),
+        linha('5410', '2.03', 'Patrimônio Líquido Consolidado', '25000', {
+          cnpj: '84.429.695/0001-11',
+        }),
+      ].join('\n')
+    ),
+  };
+  const cols = { ...COLS_TESTE, cnpj: 'CNPJ_CIA' };
+  const doFca = { ticker: 'WEGE3', cnpj: '84429695000111', cdCvm: null };
+  const ex = exercicioDaEmpresa(csvs, cols, chavesDaEmpresa(doFca), 2025);
+  assert.ok(ex, 'ticker descoberto pelo FCA precisa achar a demonstração');
+  assert.equal(ex.patrimonioLiquido, 25000000, 'não pode pegar a linha da outra empresa');
+});
+
+test('chavesDaEmpresa prefere o CNPJ e mantém o CD_CVM como alternativa', () => {
+  assert.deepEqual(chavesDaEmpresa({ cnpj: '00000000000191', cdCvm: '001023' }), [
+    'cnpj:00000000000191',
+    'cd:1023',
+  ]);
+  assert.deepEqual(chavesDaEmpresa({ cdCvm: '1023' }), ['cd:1023']);
+  assert.deepEqual(chavesDaEmpresa({}), [], 'sem identificação nenhuma, não há o que procurar');
 });
 
 test('o mapa de tickers cobre o universo padrão da carteira modelo', () => {

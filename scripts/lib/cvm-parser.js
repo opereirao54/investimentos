@@ -272,16 +272,26 @@ function agruparPorEmpresa(registros, cols) {
       const ordem = normalizarChave(r[cols.ordemExercicio]);
       if (ordem && ordem !== 'ULTIMO') continue;
     }
-    const chave = String(r[cols.cdCvm] || '').trim();
-    if (!chave) continue;
+    // Indexa pelas DUAS identificações. O FCA junta por CNPJ, o cadastro
+    // antigo junta por CD_CVM, e o mesmo índice tem de servir aos dois — sem
+    // isto, "0 companhias com dados" era o resultado mesmo com o arquivo
+    // certo aberto e as colunas todas resolvidas.
+    const chaves = [];
+    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
+    if (cd) chaves.push('cd:' + cd);
+    if (cnpj) chaves.push('cnpj:' + cnpj);
+    if (!chaves.length) continue;
     const exercicio = String(
       (cols.dataFimExercicio && r[cols.dataFimExercicio]) || r[cols.dataReferencia] || ''
     ).trim();
     if (!exercicio) continue;
-    if (!porEmpresa.has(chave)) porEmpresa.set(chave, new Map());
-    const porExercicio = porEmpresa.get(chave);
-    if (!porExercicio.has(exercicio)) porExercicio.set(exercicio, []);
-    porExercicio.get(exercicio).push(r);
+    for (const chave of chaves) {
+      if (!porEmpresa.has(chave)) porEmpresa.set(chave, new Map());
+      const porExercicio = porEmpresa.get(chave);
+      if (!porExercicio.has(exercicio)) porExercicio.set(exercicio, []);
+      porExercicio.get(exercicio).push(r);
+    }
   }
   return porEmpresa;
 }
@@ -528,14 +538,33 @@ module.exports.extrairInformeFii = extrairInformeFii;
 // resolvem com disciplina: envelhece sem avisar (título vencido, empresa que
 // saiu da bolsa) e limita o universo ao que quem escreveu já conhecia.
 
+// O FCA identifica a companhia pelo CNPJ, NÃO por CD_CVM — foi o que fez a
+// primeira execução real devolver "colunas do FCA não encontradas: cdCvm" e
+// zero tickers. O CNPJ é a única chave presente nos dois arquivos (FCA e
+// DFP), e por isso é ele que junta os dois.
 const COLUNAS_FCA = {
-  cdCvm: ['CD_CVM', 'CODIGO_CVM'],
+  cnpj: ['CNPJ_Companhia', 'CNPJ_CIA', 'CNPJ'],
+  cdCvm: ['CD_CVM', 'CODIGO_CVM', 'Codigo_CVM'],
   codigoNegociacao: ['Codigo_Negociacao', 'CODIGO_NEGOCIACAO', 'CD_NEGOCIACAO'],
   valorMobiliario: ['Valor_Mobiliario', 'VALOR_MOBILIARIO', 'DS_VALOR_MOBILIARIO'],
   mercado: ['Mercado', 'MERCADO', 'DS_MERCADO'],
   siglaBolsa: ['Sigla_Bolsa', 'SIGLA_BOLSA', 'Entidade_Administradora'],
   dataReferencia: ['Data_Referencia', 'DT_REFER'],
 };
+
+/** CNPJ comparável: só dígitos. Os arquivos alternam entre formatado e cru. */
+function normalizarCnpj(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  return d.length === 14 ? d : null;
+}
+
+/** CD_CVM comparável: o cadastro traz com zeros à esquerda, a DFP sem. */
+function normalizarCdCvm(v) {
+  const d = String(v || '')
+    .trim()
+    .replace(/^0+/, '');
+  return d || null;
+}
 
 // Espécies que o motor pontua como ação. Recibo (units) entra; debênture,
 // bônus de subscrição e nota promissória não são renda variável negociável
@@ -555,17 +584,20 @@ function extrairTickersFca(registros, colunas) {
     cols[campo] = acharColuna(colunas, COLUNAS_FCA[campo]);
   }
   const faltando = Object.keys(COLUNAS_FCA).filter((c) => !cols[c]);
-  if (!cols.cdCvm || !cols.codigoNegociacao) {
-    return { porTicker: new Map(), faltando, colunas: cols };
+  // Basta o código de negociação e UMA das duas identificações da companhia.
+  // Exigir CD_CVM zerava o universo inteiro num arquivo que nunca o teve.
+  if (!cols.codigoNegociacao || (!cols.cnpj && !cols.cdCvm)) {
+    return { porTicker: new Map(), faltando, colunas: cols, colunasReais: colunas };
   }
 
   const porTicker = new Map();
   for (const r of registros) {
-    const cdCvm = String(r[cols.cdCvm] || '').trim();
+    const cdCvm = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
     const bruto = String(r[cols.codigoNegociacao] || '')
       .trim()
       .toUpperCase();
-    if (!cdCvm || !bruto) continue;
+    if ((!cdCvm && !cnpj) || !bruto) continue;
 
     // O campo às vezes traz mais de um código separado por vírgula ou barra.
     for (const parte of bruto.split(/[,;/]+/)) {
@@ -585,12 +617,14 @@ function extrairTickersFca(registros, colunas) {
       const anterior = porTicker.get(ticker);
       const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '') : '';
       if (anterior && anterior.dataReferencia >= data) continue;
-      porTicker.set(ticker, { ticker, cdCvm, dataReferencia: data || null });
+      porTicker.set(ticker, { ticker, cdCvm, cnpj, dataReferencia: data || null });
     }
   }
-  return { porTicker, faltando, colunas: cols };
+  return { porTicker, faltando, colunas: cols, colunasReais: colunas };
 }
 
 module.exports.COLUNAS_FCA = COLUNAS_FCA;
+module.exports.normalizarCnpj = normalizarCnpj;
+module.exports.normalizarCdCvm = normalizarCdCvm;
 module.exports.ESPECIES_ACAO = ESPECIES_ACAO;
 module.exports.extrairTickersFca = extrairTickersFca;

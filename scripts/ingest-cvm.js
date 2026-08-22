@@ -95,7 +95,7 @@ async function baixarZipCsvs(url, prefixos) {
  * REPORTADA e o ticker é pulado — casar com a empresa errada é o pior
  * resultado possível, pior do que não casar.
  */
-function casarCadastro(cadastro, mapaTickers, colunaNome, colunaChave) {
+function casarCadastro(cadastro, mapaTickers, colunaNome, colunaChave, colunaCnpj) {
   const resultados = [];
   const registros = cadastro.registros || [];
   for (const [ticker, info] of Object.entries(mapaTickers)) {
@@ -122,6 +122,7 @@ function casarCadastro(cadastro, mapaTickers, colunaNome, colunaChave) {
       denominacao: info.denominacao,
       casouCom: escolhido[colunaNome],
       chave: String(escolhido[colunaChave] || '').trim(),
+      cnpj: colunaCnpj ? P.normalizarCnpj(escolhido[colunaCnpj]) : null,
       alternativas: candidatos.length > 1 ? candidatos.slice(0, 5).map((r) => r[colunaNome]) : null,
     });
   }
@@ -136,11 +137,22 @@ function casarCadastro(cadastro, mapaTickers, colunaNome, colunaChave) {
  * arquivos de centenas de milhares de linhas. O agrupamento acontece uma vez
  * por arquivo, em quem chama.
  */
-function exercicioDaEmpresaIndexado(indices, cols, cdCvm, ano) {
+function exercicioDaEmpresaIndexado(indices, cols, chaveEmpresa, ano) {
+  // Aceita mais de uma chave porque nem todo arquivo traz as duas
+  // identificações: o FCA junta por CNPJ, o cadastro antigo por CD_CVM, e a
+  // DFP pode ter só uma delas. Tentar as duas é o que impede o
+  // "0 companhias com dados" quando o universo e o arquivo usam chaves
+  // diferentes para a MESMA companhia.
+  const candidatas = Array.isArray(chaveEmpresa) ? chaveEmpresa : [chaveEmpresa];
   const pegar = (chave) => {
     const idx = indices[chave];
     if (!idx) return [];
-    const daEmpresa = idx.get(cdCvm);
+    let daEmpresa = null;
+    for (const c of candidatas) {
+      if (!c) continue;
+      daEmpresa = idx.get(c);
+      if (daEmpresa) break;
+    }
     if (!daEmpresa) return [];
     // Exercício mais recente dentro do arquivo do ano.
     const chaves = Array.from(daEmpresa.keys()).sort();
@@ -158,12 +170,28 @@ function exercicioDaEmpresaIndexado(indices, cols, cdCvm, ano) {
 }
 
 /** Mesma coisa a partir dos CSVs crus. Conveniência para uso pontual. */
-function exercicioDaEmpresa(csvs, cols, cdCvm, ano) {
+function exercicioDaEmpresa(csvs, cols, chaveEmpresa, ano) {
   const indices = {};
   for (const chave of Object.keys(csvs)) {
     indices[chave] = P.agruparPorEmpresa(csvs[chave].registros, cols);
   }
-  return exercicioDaEmpresaIndexado(indices, cols, cdCvm, ano);
+  return exercicioDaEmpresaIndexado(indices, cols, chaveEmpresa, ano);
+}
+
+/**
+ * A chave com que uma companhia é procurada dentro dos arquivos da CVM.
+ *
+ * CNPJ primeiro porque é a única identificação presente em TODOS os
+ * arquivos (FCA, DFP e cadastro); CD_CVM entra como alternativa para o
+ * caminho antigo, que só tinha ele.
+ */
+function chavesDaEmpresa(t) {
+  const chaves = [];
+  const cnpj = P.normalizarCnpj(t.cnpj);
+  const cd = P.normalizarCdCvm(t.cdCvm);
+  if (cnpj) chaves.push('cnpj:' + cnpj);
+  if (cd) chaves.push('cd:' + cd);
+  return chaves;
 }
 
 /**
@@ -291,6 +319,8 @@ async function main() {
       }
       const r = P.extrairTickersFca(csv.registros, csv.colunas);
       if (r.faltando.length) log(`  ! colunas do FCA não encontradas: ${r.faltando.join(', ')}`);
+      if (!r.porTicker.size)
+        log(`    colunas reais do arquivo: ${(r.colunasReais || csv.colunas).join(', ')}`);
       for (const [ticker, info] of r.porTicker)
         if (!porTicker.has(ticker)) porTicker.set(ticker, info);
       log(`  FCA ${ano}: ${r.porTicker.size} tickers`);
@@ -309,14 +339,15 @@ async function main() {
     cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
     colNome = P.acharColuna(cadastro.colunas, P.COLUNAS.denominacao);
     colCd = P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm);
-    if (!colNome || !colCd) {
+    const colCnpjCad = P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj);
+    if (!colNome || (!colCd && !colCnpjCad)) {
       log(`  ✗ cadastro sem colunas esperadas: ${cadastro.colunas.join(', ')}`);
       process.exitCode = 1;
       return;
     }
-    for (const c of casarCadastro(cadastro, MAPA.acoes, colNome, colCd)) {
-      if (c.status === 'ok' && c.chave)
-        porTicker.set(c.ticker, { ticker: c.ticker, cdCvm: c.chave });
+    for (const c of casarCadastro(cadastro, MAPA.acoes, colNome, colCd, colCnpjCad)) {
+      if (c.status === 'ok' && (c.chave || c.cnpj))
+        porTicker.set(c.ticker, { ticker: c.ticker, cdCvm: c.chave || null, cnpj: c.cnpj || null });
     }
   }
 
@@ -326,8 +357,10 @@ async function main() {
   // indisponíveis.
   if (!porTicker.size) {
     log('  ! sem cadastro da CVM — universo reduzido ao mapa, só para o Yahoo');
-    for (const t of Object.keys(MAPA.acoes)) porTicker.set(t, { ticker: t, cdCvm: null });
-    for (const t of Object.keys(MAPA.fiis)) porTicker.set(t, { ticker: t, cdCvm: null });
+    for (const t of Object.keys(MAPA.acoes))
+      porTicker.set(t, { ticker: t, cdCvm: null, cnpj: null });
+    for (const t of Object.keys(MAPA.fiis))
+      porTicker.set(t, { ticker: t, cdCvm: null, cnpj: null });
   }
 
   // Filtros do operador.
@@ -340,9 +373,18 @@ async function main() {
   // indicadores são calculados por empresa e replicados para cada ticker.
   const empresas = new Map();
   for (const t of universo) {
-    if (!t.cdCvm) continue; // sem CD_CVM não há demonstração a ler
-    if (!empresas.has(t.cdCvm)) empresas.set(t.cdCvm, { cdCvm: t.cdCvm, tickers: [] });
-    empresas.get(t.cdCvm).tickers.push(t.ticker);
+    const chaves = chavesDaEmpresa(t);
+    if (!chaves.length) continue; // sem identificação não há demonstração a ler
+    const chave = chaves[0];
+    if (!empresas.has(chave))
+      empresas.set(chave, {
+        chave,
+        chaves,
+        cdCvm: t.cdCvm || null,
+        cnpj: t.cnpj || null,
+        tickers: [],
+      });
+    empresas.get(chave).tickers.push(t.ticker);
   }
   log(`\n  ${universo.length} tickers em ${empresas.size} companhias.`);
   if (universo.length <= 40) {
@@ -385,6 +427,7 @@ async function main() {
     const qualquer = pacote.csvs[achados[0]];
     const { mapa: cols, faltando } = P.resolverColunas(qualquer.colunas, [
       'cdCvm',
+      'cnpj',
       'dataReferencia',
       'dataFimExercicio',
       'ordemExercicio',
@@ -397,7 +440,9 @@ async function main() {
       log(`  ! colunas não encontradas: ${faltando.join(', ')}`);
       log(`    colunas reais do arquivo: ${qualquer.colunas.join(', ')}`);
     }
-    if (!cols.cdCvm || !cols.codigoConta || !cols.valorConta) {
+    // Uma das duas identificações basta: exigir CD_CVM descartava o arquivo
+    // inteiro num ano em que a CVM só publicou CNPJ.
+    if ((!cols.cdCvm && !cols.cnpj) || !cols.codigoConta || !cols.valorConta) {
       log('  ✗ colunas essenciais ausentes — ano ignorado (nada será gravado a partir dele)');
       continue;
     }
@@ -412,13 +457,22 @@ async function main() {
 
     let comDados = 0;
     for (const emp of empresas.values()) {
-      const ex = exercicioDaEmpresaIndexado(indices, cols, emp.cdCvm, ano);
+      const ex = exercicioDaEmpresaIndexado(indices, cols, emp.chaves, ano);
       if (!ex) continue;
-      if (!porEmpresa.has(emp.cdCvm)) porEmpresa.set(emp.cdCvm, []);
-      porEmpresa.get(emp.cdCvm).push(ex);
+      if (!porEmpresa.has(emp.chave)) porEmpresa.set(emp.chave, []);
+      porEmpresa.get(emp.chave).push(ex);
       comDados++;
     }
     log(`  ${comDados} companhias com dados neste exercício`);
+    // Diagnóstico: casar zero companhias com o arquivo aberto e as colunas
+    // resolvidas é o sintoma de chave errada, não de arquivo vazio.
+    if (!comDados && empresas.size) {
+      const amostra = Array.from(indices[achados[0]].keys()).slice(0, 4);
+      log(
+        `    nenhuma casou. procurando por: ${empresas.values().next().value.chaves.join(' ou ')}`
+      );
+      log(`    chaves no arquivo (amostra): ${amostra.join(', ')}`);
+    }
   }
 
   if (!colsResolvidas) {
@@ -430,7 +484,7 @@ async function main() {
   const documentos = [];
   let semNada = 0;
   for (const emp of empresas.values()) {
-    const exercicios = porEmpresa.get(emp.cdCvm);
+    const exercicios = porEmpresa.get(emp.chave);
     if (!exercicios || !exercicios.length) continue;
     const r = P.calcularIndicadores(exercicios);
     const ind = r.indicadores;
@@ -459,6 +513,7 @@ async function main() {
           ...r.absolutos,
           classe: 'acao',
           cdCvm: emp.cdCvm,
+          cnpj: emp.cnpj,
           fonte: 'cvm',
           fonteRotulo: `DFP ${r.ano} · CVM`,
           dataReferencia: r.dataReferencia,
@@ -490,13 +545,26 @@ async function main() {
           const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
           log(`  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}`);
         }
-        const anoInf = new Date().getUTCFullYear();
-        const pacote = await baixarZipCsvs(
-          `${BASE_FII}/DOC/INF_MENSAL/DADOS/inf_mensal_fii_${anoInf}.zip`,
-          ['complemento', 'geral', 'ativo_passivo']
-        );
-        const compl = pacote.csvs.complemento || pacote.csvs.geral;
-        if (!compl) {
+        // O arquivo do ano corrente só passa a existir depois do primeiro
+        // informe do ano; em janeiro (e enquanto a CVM não publica) a URL
+        // devolve 404. Cair para o ano anterior é a diferença entre um
+        // informe velho de meses e nenhum informe — e o anterior serve.
+        const anoAtual = new Date().getUTCFullYear();
+        let pacote = null;
+        for (const anoInf of [anoAtual, anoAtual - 1]) {
+          const url = `${BASE_FII}/DOC/INF_MENSAL/DADOS/inf_mensal_fii_${anoInf}.zip`;
+          try {
+            pacote = await baixarZipCsvs(url, ['complemento', 'geral', 'ativo_passivo']);
+            log(`  informe de ${anoInf}`);
+            break;
+          } catch (e) {
+            log(`  ! ${anoInf} indisponível (${e.message}) — ${url}`);
+          }
+        }
+        const compl = pacote && (pacote.csvs.complemento || pacote.csvs.geral);
+        if (!pacote) {
+          log('  ✗ nenhum informe mensal de FII disponível nos dois últimos anos');
+        } else if (!compl) {
           log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
         } else {
           const { porCnpj, faltando } = P.extrairInformeFii(compl.registros, compl.colunas);
@@ -659,4 +727,10 @@ if (require.main === module) {
   });
 }
 
-module.exports = { casarCadastro, exercicioDaEmpresa, exercicioDaEmpresaIndexado, baixarCotacoes };
+module.exports = {
+  casarCadastro,
+  chavesDaEmpresa,
+  exercicioDaEmpresa,
+  exercicioDaEmpresaIndexado,
+  baixarCotacoes,
+};
