@@ -183,6 +183,16 @@ async function acharNoDiretorio(dirUrl, padrao) {
 /**
  * Baixa um ZIP e devolve os CSVs que interessam, por sufixo do nome.
  * Ex.: prefixos ['BPA_con', 'BPP_con'] -> { BPA_con: {...}, BPP_con: {...} }
+ *
+ * TODOS os membros que casam, concatenados — não o primeiro. No ZIP anual do
+ * informe de FII há um arquivo por MÊS (`inf_mensal_fii_geral_202601.csv`,
+ * `..._202602.csv`, …); pegar o primeiro entregava janeiro em agosto, sem
+ * erro nenhum, com números plausíveis. É o mesmo defeito da chave de junção
+ * e da escala do LPA: a busca não falha, ela acha a coisa errada.
+ *
+ * Concatenar é seguro porque quem consome já desempata por data de
+ * referência — e devolve o mês mais recente de cada fundo, inclusive dos
+ * que não entregaram informe no último mês.
  */
 async function baixarZipCsvs(url, prefixos) {
   const buf = await baixar(url);
@@ -190,10 +200,20 @@ async function baixarZipCsvs(url, prefixos) {
   const out = {};
   const nomes = entradas.map((e) => e.nome);
   for (const prefixo of prefixos) {
-    const alvo = entradas.find((e) =>
-      P.normalizarChave(e.nome).includes(P.normalizarChave(prefixo))
-    );
-    if (alvo) out[prefixo] = P.parseCsvCvm(alvo.dados.toString('latin1'));
+    const alvos = entradas
+      .filter((e) => P.normalizarChave(e.nome).includes(P.normalizarChave(prefixo)))
+      .sort((a, b) => (a.nome < b.nome ? -1 : a.nome > b.nome ? 1 : 0));
+    if (!alvos.length) continue;
+    const colunas = [];
+    const registros = [];
+    for (const alvo of alvos) {
+      const csv = P.parseCsvCvm(alvo.dados.toString('latin1'));
+      for (const c of csv.colunas || []) if (!colunas.includes(c)) colunas.push(c);
+      for (const r of csv.registros || []) registros.push(r);
+    }
+    // Os registros são objetos com as colunas por nome: concatenar meses com
+    // ordem de coluna diferente continua correto.
+    out[prefixo] = { colunas, registros, membros: alvos.map((a) => a.nome) };
   }
   return { csvs: out, nomesNoZip: nomes };
 }
@@ -798,157 +818,166 @@ async function main() {
   if (Object.keys(mapaFiis).length) {
     log('\n· Informe mensal de FII…');
     try {
-      // Descoberto no índice do diretório, não adivinhado: os três nomes
-      // conhecidos deram 404 na execução real, e a CVM renomeia arquivos.
-      let cadFii = null;
-      // `/dados/FII/` contém apenas `DOC/` — não há ramo CAD sob FII. O
-      // cadastro dos fundos mora no ramo geral de fundos de investimento,
-      // que inclui os FIIs.
-      const dirsCadastro = [
-        'https://dados.cvm.gov.br/dados/FI/CAD/DADOS/',
-        `${BASE_FII}/CAD/DADOS/`,
-        `${BASE_FII}/DOC/`,
-      ];
-      for (const dir of dirsCadastro) {
-        try {
-          const achado = await acharNoDiretorio(dir, /^(cad_fii|cad_fi|registro_fundo).*\.csv$/i);
-          log(`  cadastro: ${achado.nome}`);
-          cadFii = await baixarCsv(achado.url);
-          break;
-        } catch (e) {
-          log(`  ! ${dir} — ${e.message}`);
-        }
+      // O informe é a FONTE, não apenas os números: é dele que sai o código
+      // que liga ticker a fundo. O casamento por nome contra o `cad_fi.csv`
+      // saiu daqui porque a execução real o desmentiu — "MAXI" não aparece
+      // em nenhum dos 584 fundos imobiliários daquele cadastro. Nenhum
+      // ajuste de string conserta uma fonte que não cobre os fundos
+      // listados; manter o caminho seria manter um passo que já provou não
+      // entregar nada, e uma leitura de 46 mil linhas por execução.
+      const dirInf = `${BASE_FII}/DOC/INF_MENSAL/DADOS/`;
+      let pacote = null;
+      try {
+        const achado = await acharNoDiretorio(dirInf, /^inf_mensal_fii_\d{4}\.zip$/i);
+        log(`  informe: ${achado.nome}`);
+        pacote = await baixarZipCsvs(achado.url, ['geral', 'complemento', 'ativo_passivo']);
+      } catch (e) {
+        log(`  ! informe indisponível em ${dirInf} — ${e.message}`);
+        // Diretório mudou de lugar é falha diferente de arquivo ausente, e
+        // exige correção diferente. Subir a árvore diz qual das duas é.
+        await diagnosticarArvore(dirInf);
       }
-      if (!cadFii) {
-        await diagnosticarArvore('https://dados.cvm.gov.br/dados/FI/CAD/DADOS/');
-        await diagnosticarArvore(`${BASE_FII}/DOC/INF_MENSAL/DADOS/`);
-        throw new Error('cadastro_fii_indisponivel');
-      }
-      const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);
-      const colCnpjFii = P.acharColuna(cadFii.colunas, ['CNPJ_FUNDO', 'CNPJ_Fundo', 'CNPJ']);
+      if (!pacote) throw new Error('sem_informe_mensal');
 
-      // `cad_fi.csv` é o cadastro de TODOS os fundos — dezenas de milhares,
-      // a esmagadora maioria não imobiliários. Casar nome contra esse
-      // universo acha o fundo errado: MXRF11 casou com "MAXI RENDA FIXA
-      // CURTO PRAZO ... EM COTAS DE FUNDOS", que não é o "Maxi Renda FII".
-      //
-      // Reduzir o universo ANTES de casar é o que torna o nome um
-      // identificador utilizável. (A trava de ambiguidade segurou o caso
-      // acima, mas segurar o errado não entrega o certo.)
-      const colTipo = P.acharColuna(cadFii.colunas, ['TP_FUNDO', 'TIPO_FUNDO', 'CLASSE']);
-      const antes = (cadFii.registros || []).length;
-      const soImobiliarios = (cadFii.registros || []).filter((r) => {
-        const tipo = P.normalizarChave(colTipo ? r[colTipo] : '');
-        if (tipo === 'FII') return true;
-        const nome = P.normalizarChave(colNomeFii ? r[colNomeFii] : '');
-        return nome.includes('INVESTIMENTOIMOBILIARIO') || nome.includes('FDOINVIMOB');
-      });
-      log(`  ${soImobiliarios.length} fundos imobiliários de ${antes} no cadastro`);
-      if (!soImobiliarios.length) {
-        log(`    colunas do cadastro: ${cadFii.colunas.slice(0, 12).join(', ')}`);
+      const membros = ['geral', 'complemento', 'ativo_passivo']
+        .map((chave) => [chave, pacote.csvs[chave]])
+        .filter((par) => par[1] && par[1].registros && par[1].registros.length);
+      if (!membros.length) {
+        log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
+        throw new Error('informe_sem_csv');
       }
-      cadFii = { ...cadFii, registros: soImobiliarios };
-      if (!colNomeFii || !colCnpjFii) {
-        log(`  ! cadastro de FII sem colunas esperadas: ${cadFii.colunas.slice(0, 10).join(', ')}`);
-      } else {
-        const casFii = casarCadastro(cadFii, mapaFiis, colNomeFii, colCnpjFii);
-        for (const c of casFii) {
-          const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
-          log(`  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}`);
+      for (const [nome, csv] of membros) {
+        log(`    ${nome}: ${csv.registros.length} linhas · ${(csv.membros || []).length} mês(es)`);
+      }
+
+      // ── o vínculo ticker ↔ fundo ──
+      let vinculo = null;
+      for (const [nome, csv] of membros) {
+        const v = P.vincularFiiPorCodigo(csv.registros, csv.colunas);
+        if (!v.total) continue;
+        vinculo = v;
+        log(`  vínculo por ${v.via} (coluna ${v.coluna} de "${nome}"): ${v.porCodigo.size} fundos`);
+        break;
+      }
+      if (!vinculo) {
+        // Sem o vínculo nada mais adianta, e a próxima investigação precisa
+        // começar sabendo o que o arquivo tem — mesmo padrão do FCA e do
+        // 6.03: mostrar os dois lados em vez de pedir mais uma rodada.
+        log('  ! nenhum membro do informe traz código de negociação nem ISIN');
+        for (const [nome, csv] of membros) {
+          log(`    colunas de ${nome}: ${csv.colunas.join(', ')}`);
         }
-        // Nenhum casar, com 584 fundos imobiliários na mão, não é "o fundo
-        // não existe" — é o nome procurado não se parecer com o nome
-        // publicado. Mostrar os dois lados é o que evita mais uma rodada de
-        // palpite: foi assim que o 6.03 da Eletrobras e as colunas do
-        // informe se resolveram.
-        if (!casFii.some((c) => c.status === 'ok')) {
-          log(`  ✗ nenhum FII casou. coluna de nome usada: ${colNomeFii}`);
-          log(
-            `    procurando por: ${casFii
-              .map((c) => c.denominacao)
-              .slice(0, 4)
-              .join(' | ')}`
-          );
-          const amostra = cadFii.registros
-            .slice(0, 6)
-            .map((r) => String(r[colNomeFii] || '').slice(0, 40));
-          log(`    nomes publicados (amostra): ${amostra.join(' | ')}`);
-          // Os seis primeiros do arquivo não dizem se o fundo procurado está
-          // lá sob outro nome ou se não está lá de todo. Procurar pela
-          // palavra distintiva de cada um responde exatamente isso — e é a
-          // diferença entre "o nome mudou" e "a fonte não cobre este fundo",
-          // que exigem correções opostas.
-          // A resposta de onde vem o vínculo ticker↔fundo. Roda só quando
-          // nada casou, que é exatamente quando ela é necessária.
-          log('  · procurando o vínculo oficial ticker↔fundo…');
-          await procurarVinculoTickerFundo();
-          for (const c of casFii.slice(0, 4)) {
-            const marca = P.normalizarChave(String(c.denominacao).split(/\s+/)[0]);
-            if (marca.length < 3) continue;
-            const perto = cadFii.registros
-              .map((r) => String(r[colNomeFii] || ''))
-              .filter((n) => P.normalizarChave(n).includes(marca))
-              .slice(0, 3);
-            log(`    "${marca}" aparece em: ${perto.join(' | ') || '(nenhum dos 584)'}`);
+        log('  · procurando o vínculo oficial ticker↔fundo…');
+        await procurarVinculoTickerFundo();
+        throw new Error('sem_vinculo_ticker_fundo');
+      }
+
+      const casFii = Object.entries(mapaFiis).map(([ticker, info]) => {
+        const achado = P.fundoDoTicker(vinculo, ticker);
+        if (!achado) {
+          return { ticker, status: 'sem_correspondencia', denominacao: info.denominacao };
+        }
+        return {
+          ticker,
+          // Um código com dois CNPJs é sucessão de fundo, não sinônimo:
+          // casar com o errado é pior do que não casar.
+          status: achado.ambiguo ? 'ambiguo' : 'ok',
+          chave: achado.cnpj,
+          casouCom: achado.nome || achado.isin || achado.cnpj,
+          via: achado.via,
+          denominacao: info.denominacao,
+        };
+      });
+      for (const c of casFii) {
+        const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
+        log(`  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}`);
+      }
+      if (!casFii.some((c) => c.status === 'ok')) {
+        // O índice existe e nenhum ticker está nele: ou o padrão do código
+        // publicado não é o que supomos, ou estes fundos não entregam
+        // informe. Uma amostra do índice separa as duas — sem ela, a
+        // correção vira palpite.
+        const amostra = Array.from(vinculo.porCodigo.values())
+          .slice(0, 6)
+          .map((f) => `${f.codigo}=${f.isin || '—'}`);
+        log(`  ✗ nenhum ticker no índice. amostra: ${amostra.join(' | ')}`);
+      }
+
+      // ── os números ──
+      //
+      // Cada membro do ZIP traz um pedaço: patrimônio e cotistas num,
+      // dividend yield noutro, vacância no de ativos. Ler todos e completar
+      // campo a campo evita escolher de véspera qual arquivo tem o quê —
+      // escolha que já errou uma vez, quando vacância foi procurada no
+      // membro errado e o relatório acusou quatro campos ausentes por
+      // execução.
+      const porCnpj = new Map();
+      const achadas = new Set();
+      for (const [, csv] of membros) {
+        const parcial = P.extrairInformeFii(csv.registros, csv.colunas);
+        for (const campo of Object.keys(parcial.colunas || {})) {
+          if (parcial.colunas[campo]) achadas.add(campo);
+        }
+        for (const [cnpj, inf] of parcial.porCnpj) {
+          const acum = porCnpj.get(cnpj);
+          if (!acum) {
+            porCnpj.set(cnpj, { ...inf });
+            continue;
+          }
+          for (const campo of Object.keys(inf)) {
+            if (acum[campo] === null || acum[campo] === undefined) acum[campo] = inf[campo];
           }
         }
-        // O arquivo do ano corrente só passa a existir depois do primeiro
-        // informe do ano; em janeiro (e enquanto a CVM não publica) a URL
-        // devolve 404. Cair para o ano anterior é a diferença entre um
-        // informe velho de meses e nenhum informe — e o anterior serve.
-        // O nome traz o ano; ordenar e pegar o último dá o informe mais
-        // recente sem precisar saber que ano a CVM já publicou.
-        const dirInf = `${BASE_FII}/DOC/INF_MENSAL/DADOS/`;
-        let pacote = null;
-        try {
-          const achado = await acharNoDiretorio(dirInf, /^inf_mensal_fii_\d{4}\.zip$/i);
-          log(`  informe: ${achado.nome}`);
-          pacote = await baixarZipCsvs(achado.url, ['complemento', 'geral', 'ativo_passivo']);
-        } catch (e) {
-          log(`  ! informe indisponível em ${dirInf} — ${e.message}`);
+      }
+      const faltando = Object.keys(P.COLUNAS_FII).filter((campo) => !achadas.has(campo));
+      if (faltando.length) {
+        log(`  ! campos de FII em nenhum membro: ${faltando.join(', ')}`);
+        for (const [nome, csv] of membros) {
+          log(`    colunas de ${nome}: ${csv.colunas.join(', ')}`);
         }
-        const compl = pacote && (pacote.csvs.complemento || pacote.csvs.geral);
-        if (!pacote) {
-          log('  ✗ sem informe mensal de FII neste ciclo');
-        } else if (!compl) {
-          log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
-        } else {
-          const { porCnpj, faltando } = P.extrairInformeFii(compl.registros, compl.colunas);
-          if (faltando.length) {
-            log(`  ! campos de FII não encontrados: ${faltando.join(', ')}`);
-            // Sem as colunas reais, a próxima investigação recomeça no
-            // escuro — mesmo padrão do FCA e do 6.03.
-            log(`    colunas reais do informe: ${compl.colunas.join(', ')}`);
-          }
-          for (const c of casFii) {
-            if (c.status !== 'ok' || !c.chave) continue;
-            const inf = porCnpj.get(String(c.chave).replace(/\D/g, ''));
-            if (!inf) {
-              log(`  ✗ ${c.ticker} sem informe no período`);
-              continue;
-            }
-            const preenchidos = ['patrimonioLiquido', 'numeroCotistas', 'ocupacao'].filter(
-              (k) => inf[k] !== null
-            ).length;
-            log(
-              `    ${c.ticker.padEnd(8)} PL ${inf.patrimonioLiquido ?? '—'} · cotistas ${inf.numeroCotistas ?? '—'} · ocupação ${inf.ocupacao ?? '—'}`
-            );
-            if (!preenchidos) continue;
-            documentos.push({
-              ticker: c.ticker,
-              dados: {
-                patrimonioLiquido: inf.patrimonioLiquido,
-                numeroCotistas: inf.numeroCotistas,
-                numeroImoveis: inf.numeroImoveis,
-                ocupacao: inf.ocupacao,
-                classe: 'fii',
-                fonte: 'cvm',
-                fonteRotulo: `Informe Mensal · CVM`,
-                dataReferencia: inf.dataReferencia,
-              },
-            });
-          }
+      }
+
+      for (const c of casFii) {
+        if (c.status !== 'ok' || !c.chave) continue;
+        const inf = porCnpj.get(String(c.chave).replace(/\D/g, ''));
+        if (!inf) {
+          log(`  ✗ ${c.ticker} sem informe no período`);
+          continue;
         }
+        const preenchidos = [
+          'patrimonioLiquido',
+          'numeroCotistas',
+          'ocupacao',
+          'valorPatrimonialCota',
+          'dy',
+        ].filter((k) => inf[k] !== null && inf[k] !== undefined).length;
+        const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
+        log(
+          `    ${c.ticker.padEnd(8)} ${inf.dataReferencia || '—'} · PL ${bi(inf.patrimonioLiquido)}` +
+            ` · VPC ${inf.valorPatrimonialCota ?? '—'} · DY ${inf.dyMes ?? '—'}%/mês` +
+            ` · cotistas ${inf.numeroCotistas ?? '—'} · ocupação ${inf.ocupacao ?? '—'}`
+        );
+        if (!preenchidos) continue;
+        documentos.push({
+          ticker: c.ticker,
+          dados: {
+            patrimonioLiquido: inf.patrimonioLiquido,
+            numeroCotistas: inf.numeroCotistas,
+            numeroImoveis: inf.numeroImoveis,
+            ocupacao: inf.ocupacao,
+            // O valor patrimonial da COTA dá P/VP sem passar por valor de
+            // mercado: preço ÷ VPC, dois números publicados, nenhuma
+            // contagem de cotas no meio para errar de escala.
+            valorPatrimonialCota: inf.valorPatrimonialCota,
+            numeroCotas: inf.numeroCotas,
+            dy: inf.dy,
+            dyMes: inf.dyMes,
+            classe: 'fii',
+            fonte: 'cvm',
+            fonteRotulo: `Informe Mensal · CVM${inf.dataReferencia ? ` (${inf.dataReferencia})` : ''}`,
+            dataReferencia: inf.dataReferencia,
+          },
+        });
       }
     } catch (e) {
       log(`  ✗ informe de FII falhou: ${e.message}`);

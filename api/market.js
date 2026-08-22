@@ -2038,6 +2038,22 @@ function comporFundamentos(doc) {
       out.marketCapDescartado = { motivo: 'pvp_implausivel', pvp: pvpImplicito };
     }
   }
+  // FII: o P/VP sai direto do informe, sem passar por valor de mercado.
+  // A CVM publica o VALOR PATRIMONIAL DA COTA; preço ÷ VPC são dois números
+  // publicados, e nenhuma contagem de cotas entra na conta para errar de
+  // escala — o defeito que já apareceu na contagem de ações.
+  const vpc = fundNum(cvm.valorPatrimonialCota);
+  if (vpc !== null && vpc > 0 && preco !== null && preco > 0) {
+    out.pvp = preco / vpc;
+    out.pvpDireto = true;
+  }
+  const cotas = fundNum(cvm.numeroCotas);
+  if (marketCap === null && vpc !== null && cotas !== null && cotas > 0 && preco !== null) {
+    marketCap = preco * cotas;
+    out.marketCap = marketCap;
+    out.marketCapDerivado = true;
+  }
+
   const ebitda = fundNum(cvm.ebitda);
   const dividaLiquida = fundNum(cvm.dividaLiquida);
   const dpa = fundNum(cvm.dividendoPorAcao);
@@ -2045,7 +2061,7 @@ function comporFundamentos(doc) {
   // de formas diferentes, e inventar o segundo aqui seria mentir sobre a
   // origem. O alerta de prejuízo sai do lucro absoluto, que segue no doc.
   if (marketCap && lucro && lucro > 0) out.pl = marketCap / lucro;
-  if (marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
+  if (!out.pvpDireto && marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
   // EV = valor de mercado + dívida líquida. Caixa líquido (dívida negativa)
   // reduz o EV, que é o comportamento certo.
   if (marketCap && ebitda && ebitda > 0 && dividaLiquida !== null) {

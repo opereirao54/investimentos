@@ -170,6 +170,46 @@ function capitalCsv(ano, opcoes) {
   ].join('\n');
 }
 
+// ── Informe mensal de FII ──
+//
+// O ZIP anual traz um arquivo POR MÊS. Pegar o primeiro que casava com o
+// prefixo entregava janeiro em agosto, sem erro nenhum — por isso os
+// fixtures têm dois meses, em ordem, e o teste cobra o mais recente.
+//
+// E o vínculo ticker↔fundo sai do `Codigo_ISIN`, não do nome: o casamento
+// por nome foi desmentido pela execução real.
+const CNPJ_MXRF = '97.521.225/0001-25';
+const CNPJ_HGLG = '11.728.688/0001-47';
+
+function informeGeral(competencia) {
+  const recente = competencia === '202607';
+  return [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Patrimonio_Liquido;Cotas_Emitidas;Total_Numero_Cotistas',
+    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};MAXI RENDA FUNDO DE INVESTIMENTO IMOBILIARIO;BRMXRFCTF004;${recente ? '1600000000' : '1500000000'};${recente ? '160000000' : '150000000'};${recente ? '480000' : '450000'}`,
+    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};CSHG LOGISTICA - FII;BRHGLGCTF003;4000000000;30000000;120000`,
+  ].join('\n');
+}
+
+function informeComplemento(competencia) {
+  const recente = competencia === '202607';
+  return [
+    'CNPJ_Fundo;Data_Referencia;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
+    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};${recente ? '10,00' : '10,00'};${recente ? '0,85' : '0,70'}`,
+    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};133,33;0,75`,
+  ].join('\n');
+}
+
+function informeZip() {
+  // Fora de ordem de propósito: quem escolhe o mês é a data de referência,
+  // não a ordem do arquivo.
+  return zipar([
+    ['inf_mensal_fii_geral_202607.csv', informeGeral('202607')],
+    ['inf_mensal_fii_complemento_202601.csv', informeComplemento('202601')],
+    ['inf_mensal_fii_geral_202601.csv', informeGeral('202601')],
+    ['inf_mensal_fii_complemento_202607.csv', informeComplemento('202607')],
+  ]);
+}
+
 // ── Rede simulada ──
 function montarFetch(opcoes) {
   const op = opcoes || {};
@@ -211,6 +251,10 @@ function montarFetch(opcoes) {
               ])
           )
         );
+      }
+      if (u.includes('/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_')) {
+        if (!op.informeFii) return naoAchado;
+        return responder(informeZip());
       }
       // Índice de diretório da CVM, como o portal serve: HTML com links.
       if (op.indice && u.endsWith('/')) {
@@ -413,4 +457,53 @@ test('DRY-RUN não grava, e diz isso', async () => {
   });
   assert.match(texto, /DRY-RUN: nada foi gravado/);
   assert.ok(!pedidos.some((u) => u.includes('firestore')), 'dry-run não pode tocar o Firestore');
+});
+
+// ════════════════════════════════════════════
+// FII: o vínculo e o mês
+// ════════════════════════════════════════════
+//
+// Dois defeitos da mesma família — a busca não falha, ela acha a coisa
+// errada — cabem aqui: casar o fundo pelo nome contra um cadastro que não
+// o contém (zero fundos, em silêncio) e ler o primeiro mês do ZIP anual
+// achando que é o último (números plausíveis, seis meses velhos).
+
+test('FII casa pelo ISIN publicado e traz o mês mais recente do ZIP', async () => {
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': [
+        'inf_mensal_fii_2025.zip',
+        'inf_mensal_fii_2026.zip',
+      ],
+    },
+  });
+
+  assert.match(texto, /vínculo por isin/, `sem vínculo:\n${texto}`);
+  assert.match(texto, /MXRF11\s+MAXI RENDA/, `MXRF11 não casou:\n${texto}`);
+  assert.match(texto, /HGLG11\s+CSHG LOGISTICA/, `HGLG11 não casou:\n${texto}`);
+  // O mês: janeiro está no ZIP e não pode ser o escolhido.
+  assert.match(texto, /MXRF11\s+2026-07-31/, `mês errado:\n${texto}`);
+  assert.ok(!/MXRF11\s+2026-01-31/.test(texto), `pegou janeiro:\n${texto}`);
+  // Patrimônio e DY do mês certo, e de MEMBROS DIFERENTES do ZIP: o
+  // patrimônio vem do `geral`, o DY do `complemento`. Ler um só arquivo
+  // deixaria metade dos campos vazia.
+  assert.match(texto, /MXRF11.*PL 1\.60bi/, `patrimônio do mês errado:\n${texto}`);
+  assert.match(texto, /MXRF11.*DY 0\.85%\/mês/, `DY não veio do complemento:\n${texto}`);
+  assert.match(texto, /MXRF11.*VPC 10/, `valor patrimonial da cota ausente:\n${texto}`);
+  // Um FII fora do informe não pode virar casamento aproximado.
+  assert.match(texto, /✗ KNRI11/, `KNRI11 devia ficar sem correspondência:\n${texto}`);
+});
+
+test('sem informe de FII o pipeline segue e diz o que faltou', async () => {
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: false,
+  });
+  assert.match(texto, /informe indisponível|informe de FII falhou/, texto);
+  // As ações não podem cair junto: são pipelines independentes.
+  assert.match(texto, /documentos prontos/, `o pipeline parou no FII:\n${texto}`);
 });

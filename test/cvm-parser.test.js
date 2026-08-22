@@ -1258,3 +1258,94 @@ test('lote de cotação que falha não derruba os outros', async () => {
     else process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
+
+// ════════════════════════════════════════════
+// Vínculo ticker ↔ FII
+// ════════════════════════════════════════════
+//
+// A execução real desmentiu o casamento por nome: dos 584 fundos
+// imobiliários do `cad_fi.csv`, "MAXI" não aparece em nenhum. A fonte não
+// cobre os fundos listados, e nenhum ajuste de string conserta isso. O
+// vínculo passou a sair de um CÓDIGO publicado — coluna de negociação
+// quando existe, senão a raiz do ISIN da cota.
+
+test('ISIN de cota de fundo entrega a raiz do ticker', () => {
+  assert.equal(P.raizDoIsin('BRMXRFCTF004'), 'MXRF');
+  assert.equal(P.raizDoIsin('brhglgctf003'), 'HGLG', 'minúsculas e espaços não podem derrubar');
+  assert.equal(P.raizDoIsin('  BRKNRICTF000 '), 'KNRI');
+  // ACNOR é ação, não cota: casar a raiz aqui ligaria um FII a uma empresa.
+  assert.equal(P.raizDoIsin('BRPETRACNOR9'), null);
+  assert.equal(P.raizDoIsin(''), null);
+  assert.equal(P.raizDoIsin(null), null);
+});
+
+test('o informe liga ticker a CNPJ pelo ISIN, sem tabela escrita à mão', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Patrimonio_Liquido',
+    '97.521.225/0001-25;2026-06-30;MAXI RENDA FUNDO DE INVESTIMENTO IMOBILIARIO;BRMXRFCTF004;1500000000',
+    '11.728.688/0001-47;2026-06-30;CSHG LOGISTICA - FII;BRHGLGCTF003;4000000000',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+
+  assert.equal(v.via, 'isin');
+  assert.equal(v.total, 2);
+  const mxrf = P.fundoDoTicker(v, 'MXRF11');
+  assert.ok(mxrf, 'MXRF11 tem de casar pela raiz MXRF do ISIN');
+  assert.equal(mxrf.cnpj, '97521225000125');
+  assert.equal(mxrf.via, 'isin');
+  assert.match(mxrf.nome, /MAXI RENDA/);
+  assert.equal(P.fundoDoTicker(v, 'HGLG11').cnpj, '11728688000147');
+  // Um ticker que não está no índice não pode virar casamento aproximado.
+  assert.equal(P.fundoDoTicker(v, 'KNRI11'), null);
+});
+
+test('coluna de código de negociação, quando existe, tem precedência sobre o ISIN', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Codigo_Negociacao;Codigo_ISIN',
+    '97.521.225/0001-25;2026-06-30;MXRF11;BRMXRFCTF004',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  assert.equal(v.via, 'codigo_negociacao');
+  const f = P.fundoDoTicker(v, 'MXRF11');
+  assert.equal(f.codigo, 'MXRF11', 'o código publicado é mais específico que a raiz');
+  assert.equal(f.cnpj, '97521225000125');
+});
+
+test('informe mais recente vence quando o mesmo fundo aparece em vários meses', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN',
+    '97.521.225/0001-25;2026-01-31;MAXI RENDA FII;BRMXRFCTF004',
+    '97.521.225/0001-25;2026-07-31;MAXI RENDA FII (NOVO NOME);BRMXRFCTF004',
+    '97.521.225/0001-25;2026-04-30;MAXI RENDA FII;BRMXRFCTF004',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'MXRF11');
+  assert.equal(f.dataReferencia, '2026-07-31', 'a ordem do arquivo não decide qual mês é o último');
+  assert.equal(f.ambiguo, false, 'o mesmo CNPJ repetido não é ambiguidade');
+});
+
+test('o mesmo código com dois CNPJs é marcado, não escondido', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Codigo_ISIN',
+    '97.521.225/0001-25;2026-01-31;BRMXRFCTF004',
+    '11.111.111/0001-11;2026-07-31;BRMXRFCTF004',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'MXRF11');
+  assert.equal(f.ambiguo, true, 'sucessão de fundo não pode passar como sinônimo');
+});
+
+test('sem coluna de código nem de ISIN, o vínculo não inventa nada', () => {
+  const csv = ['CNPJ_Fundo;Data_Referencia;Nome_Fundo', '97.521.225/0001-25;2026-06-30;MAXI'].join(
+    '\n'
+  );
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  assert.equal(v.via, null);
+  assert.equal(v.total, 0);
+  assert.equal(P.fundoDoTicker(v, 'MXRF11'), null);
+});

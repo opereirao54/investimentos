@@ -874,6 +874,137 @@ module.exports.cagr = cagr;
 module.exports.extrairInformeFii = extrairInformeFii;
 
 // ════════════════════════════════════════════════════════════
+// Vínculo ticker ↔ fundo
+// ════════════════════════════════════════════════════════════
+//
+// O casamento por NOME contra o `cad_fi.csv` não funciona, e a execução real
+// mostrou por quê: dos 584 fundos imobiliários daquele cadastro, "MAXI" não
+// aparece em nenhum. Não é o nome que mudou — a fonte não cobre os fundos
+// listados em bolsa. Nenhum ajuste de string conserta isso.
+//
+// O vínculo tem de vir de um CÓDIGO publicado, não de um nome. Duas fontes,
+// nesta ordem:
+//
+//  1. Uma coluna de código de negociação, se a CVM publicar uma. Direta.
+//  2. O `Codigo_ISIN` do próprio informe. O ISIN de cota de fundo brasileiro
+//     tem forma `BR` + RAIZ + `CTF` + 3 dígitos, e a RAIZ é exatamente a raiz
+//     do ticker: MXRF11 ↔ BRMXRFCTF004, HGLG11 ↔ BRHGLGCTF003. A B3 é a
+//     agência nacional de numeração; a raiz não é convenção nossa, é o
+//     código que ela atribuiu.
+//
+// Nos dois casos o vínculo sai de um campo publicado. Não há tabela escrita
+// à mão para envelhecer, e um FII novo entra sozinho.
+const COLUNAS_VINCULO_FII = {
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
+  dataReferencia: ['Data_Referencia', 'DT_COMPTC', 'DATA_REFERENCIA'],
+  nome: ['Nome_Fundo_Classe', 'Nome_Fundo', 'NOME_FUNDO', 'DENOM_SOCIAL', 'NM_FUNDO'],
+  codigoNegociacao: [
+    'Codigo_Negociacao',
+    'CODIGO_NEGOCIACAO',
+    'Cod_Negociacao',
+    'COD_NEGOCIACAO',
+    'Codigo_Negociacao_Cota',
+    'Ticker',
+  ],
+  isin: ['Codigo_ISIN', 'CODIGO_ISIN', 'Codigo_Isin', 'ISIN'],
+};
+
+// `CTF` = cota de fundo. Restringir ao tipo evita casar a raiz de um ISIN de
+// outra espécie que por acaso tenha as mesmas quatro letras.
+const ISIN_COTA_FUNDO = /^BR([A-Z0-9]{4})CTF\d{3}$/;
+
+/** Raiz do ticker embutida no ISIN de cota de fundo, ou null. */
+function raizDoIsin(isin) {
+  const m = ISIN_COTA_FUNDO.exec(
+    String(isin === null || isin === undefined ? '' : isin)
+      .trim()
+      .toUpperCase()
+  );
+  return m ? m[1] : null;
+}
+
+/**
+ * Índice código de negociação → fundo, tirado do próprio informe.
+ *
+ * Quando o mesmo código aparece com CNPJs diferentes (fusão, sucessão), o
+ * informe mais recente vence e a entrada fica marcada — casar com o fundo
+ * errado é pior do que não casar, e quem chama precisa poder mostrar isso.
+ */
+function vincularFiiPorCodigo(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_VINCULO_FII)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_VINCULO_FII[campo]);
+  }
+  const vazio = { via: null, coluna: null, porCodigo: new Map(), total: 0, colunas: cols };
+  if (!cols.cnpj) return vazio;
+
+  const usarCodigo = !!cols.codigoNegociacao;
+  if (!usarCodigo && !cols.isin) return vazio;
+
+  const porCodigo = new Map();
+  let total = 0;
+  for (const r of registros || []) {
+    const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+
+    // A coluna direta, quando existe, pode vir vazia em parte das linhas;
+    // o ISIN cobre o resto sem que a fonte precise ser escolhida de véspera.
+    const bruto = usarCodigo ? String(r[cols.codigoNegociacao] || '').trim() : '';
+    const direto = bruto.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const isin = cols.isin ? String(r[cols.isin] || '').trim() : '';
+    const raiz = raizDoIsin(isin);
+    const codigo = direto.length >= 4 ? direto : raiz;
+    if (!codigo) continue;
+
+    total += 1;
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const anterior = porCodigo.get(codigo);
+    if (anterior) {
+      if (anterior.cnpj !== cnpj) anterior.ambiguo = true;
+      if (anterior.dataReferencia && anterior.dataReferencia >= data) continue;
+    }
+    porCodigo.set(codigo, {
+      codigo,
+      cnpj,
+      isin: isin || null,
+      nome: cols.nome ? String(r[cols.nome] || '').trim() || null : null,
+      dataReferencia: data || null,
+      via: direto.length >= 4 ? 'codigo_negociacao' : 'isin',
+      ambiguo: anterior ? anterior.ambiguo === true : false,
+    });
+  }
+  const via = usarCodigo && total ? 'codigo_negociacao' : total ? 'isin' : null;
+  return {
+    via,
+    coluna: usarCodigo ? cols.codigoNegociacao : cols.isin,
+    porCodigo,
+    total,
+    colunas: cols,
+  };
+}
+
+/**
+ * Fundo de um ticker, pelo índice acima.
+ *
+ * Tenta o ticker inteiro (quando a fonte publica o código de negociação) e
+ * depois a raiz de quatro caracteres (quando veio do ISIN). Não inventa
+ * ticker a partir de raiz: a raiz procurada é sempre a do ticker pedido.
+ */
+function fundoDoTicker(vinculo, ticker) {
+  if (!vinculo || !vinculo.porCodigo) return null;
+  const limpo = String(ticker || '')
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase();
+  if (limpo.length < 4) return null;
+  return vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+}
+
+module.exports.COLUNAS_VINCULO_FII = COLUNAS_VINCULO_FII;
+module.exports.raizDoIsin = raizDoIsin;
+module.exports.vincularFiiPorCodigo = vincularFiiPorCodigo;
+module.exports.fundoDoTicker = fundoDoTicker;
+
+// ════════════════════════════════════════════════════════════
 // Composição do capital
 // ════════════════════════════════════════════════════════════
 //
