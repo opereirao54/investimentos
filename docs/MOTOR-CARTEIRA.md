@@ -241,14 +241,16 @@ A primeira execução contra a CVM de verdade — e as três seguintes — encon
 quatro classes de defeito que **nenhum teste de unidade via**, porque cada peça
 estava certa isoladamente:
 
-| rodada | o que provou                            | o que expôs                                                     |
-| ------ | --------------------------------------- | --------------------------------------------------------------- |
-| 1      | —                                       | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ |
-| 2      | 477 tickers, 8 companhias casadas       | LPA ×1000, dividendo zero falso, 404 anônimo                    |
-| 3      | LPA 2,40 / 0,19 / 0,95                  | ROE 43,4% num banco, 3 URLs de FII em 404                       |
-| 4      | PL 193,6 bi no BBAS3, dividendos 9/14   | dívida/EBITDA de banco                                          |
-| 5      | valuation 14/14 pela contagem declarada | ELET3 e AESO3 com 0,00 bi de ações                              |
-| 6      | contagem implausível recusada (11/14)   | o `cad_fi.csv` não contém os FIIs listados                      |
+| rodada | o que provou                            | o que expôs                                                      |
+| ------ | --------------------------------------- | ---------------------------------------------------------------- |
+| 1      | —                                       | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ  |
+| 2      | 477 tickers, 8 companhias casadas       | LPA ×1000, dividendo zero falso, 404 anônimo                     |
+| 3      | LPA 2,40 / 0,19 / 0,95                  | ROE 43,4% num banco, 3 URLs de FII em 404                        |
+| 4      | PL 193,6 bi no BBAS3, dividendos 9/14   | dívida/EBITDA de banco                                           |
+| 5      | valuation 14/14 pela contagem declarada | ELET3 e AESO3 com 0,00 bi de ações                               |
+| 6      | contagem implausível recusada (11/14)   | o `cad_fi.csv` não contém os FIIs listados                       |
+| 7      | 9 dos 10 FIIs casados pelo ISIN         | `Percentual_Dividend_Yield_Mes` é razão; XPML11 com duas classes |
+| 8      | ELET3 = 2.028.544 **mil** ações         | a escala da quantidade varia de linha para linha                 |
 
 O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
 sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.

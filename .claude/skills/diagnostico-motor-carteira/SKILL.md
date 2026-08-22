@@ -155,17 +155,20 @@ silêncio.
 
 ### S5d — A busca acha algo, só que a coisa errada ⚠️
 
-**A família de bugs mais cara deste projeto.** Seis instâncias reais, todas
+**A família de bugs mais cara deste projeto.** Nove instâncias reais, todas
 encontradas lendo o log de execução contra dados de verdade:
 
-| sintoma                                       | causa                                                                | por que passou despercebido                    |
-| --------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------- |
-| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                          | zero linhas é indistinguível de "não há dados" |
-| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                      | 190 é um número, e números parecem certos      |
-| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras  | devolveu valor real, da conta errada           |
-| `ELET3 ações 0,00bi` para PL de 118 bi        | linha de outra natureza vencendo no arquivo de composição do capital | 0,00bi só chama atenção ao lado do patrimônio  |
-| `? MXRF11 MAXI RENDA FIXA CURTO PRAZO…`       | nome casado contra o cadastro de TODOS os fundos, não só os FIIs     | casou — com um fundo de renda fixa             |
-| informe de FII de janeiro lido em agosto      | primeira entrada do ZIP que casa com o prefixo, num ZIP por mês      | números plausíveis, só velhos                  |
+| sintoma                                       | causa                                                                 | por que passou despercebido                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                           | zero linhas é indistinguível de "não há dados"       |
+| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                       | 190 é um número, e números parecem certos            |
+| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras   | devolveu valor real, da conta errada                 |
+| `ELET3 ações 0,00bi` para PL de 118 bi        | linha de outra natureza vencendo no arquivo de composição do capital  | 0,00bi só chama atenção ao lado do patrimônio        |
+| `? MXRF11 MAXI RENDA FIXA CURTO PRAZO…`       | nome casado contra o cadastro de TODOS os fundos, não só os FIIs      | casou — com um fundo de renda fixa                   |
+| informe de FII de janeiro lido em agosto      | primeira entrada do ZIP que casa com o prefixo, num ZIP por mês       | números plausíveis, só velhos                        |
+| `DY 0,008%/mês` em todo FII                   | campo chamado `Percentual_` que é razão                               | um número, e números parecem certos                  |
+| `ELET3 2,92M ações` para 118 bi de patrimônio | escala da quantidade declarada por linha, ignorada                    | BBAS3 saía certo — a escala dele é UNIDADE           |
+| `? XPML11 PENINSULA FII`                      | duas classes com a mesma raiz de ISIN, vencedor pela ordem do arquivo | casou, e o nome não parece errado a quem não conhece |
 
 O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
 não há `null`, não há linha de erro — há um número plausível o suficiente
