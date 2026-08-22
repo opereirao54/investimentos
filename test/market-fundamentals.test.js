@@ -1137,24 +1137,46 @@ test('401 na chamada de fundamentos NÃO pode perder o preço', () => {
   assert.ok(d.fonteRotulo.includes('Cotação'), 'a procedência tem de dizer que é só cotação');
 });
 
-test('fundamentos recusados degradam para a cotação simples, e reportam', async () => {
+test('fundamentos recusados degradam para a cotação, e reportam', async () => {
+  // Sem BRAPI_TOKEN a degradação vai para o Yahoo v8/chart, que não pede
+  // autenticação nenhuma. O ticker NÃO pode sumir só porque o plano da BRAPI
+  // não cobre os módulos — era assim que a bolsa inteira ficava sem card.
   const erros = [];
-  const { chamadas, restaurar } = dublarBrapi({
-    fundamentosStatus: 401,
-    cotacaoResults: RESULTADO_BRAPI,
-  });
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    const alvo = String(url);
+    if (alvo.includes('brapi.dev')) {
+      return { ok: false, status: 401, text: async () => 'MISSING_TOKEN', json: async () => ({}) };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        chart: {
+          result: [
+            {
+              meta: { regularMarketPrice: 28.5, chartPreviousClose: 28 },
+              indicators: { quote: [{ volume: [2000000] }] },
+            },
+          ],
+        },
+      }),
+    };
+  };
   try {
     const r = await fetchBrapiFundamentals(['BBAS3'], erros);
-    assert.ok(r.BBAS3, 'o ticker NÃO pode sumir só porque o plano não cobre os módulos');
-    assert.equal(r.BBAS3.preco, 28.5);
-    assert.equal(r.BBAS3.marketCap, 160e9);
+    assert.ok(r.BBAS3, 'o ticker tem de continuar a voltar, com o que houver');
+    assert.equal(r.BBAS3.preco, 28.5, 'o preço vem do Yahoo, sem cadastro nenhum');
+    assert.equal(r.BBAS3.liquidezDiaria, 2000000 * 28.5);
     assert.ok(
       erros.some((e) => e.degradou),
       'a degradação tem de ficar registada — silenciar isto foi o que escondeu o bug'
     );
-    assert.equal(chamadas.length, 2, 'tentou com parâmetros, depois sem');
   } finally {
-    restaurar();
+    globalThis.fetch = original;
+    if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
 
@@ -1174,18 +1196,24 @@ test('quando os módulos funcionam, a cotação simples nem é chamada', async (
   }
 });
 
-test('as duas chamadas falhando devolvem vazio, com os dois erros nomeados', async () => {
+test('BRAPI e Yahoo falhando devolvem vazio, com os motivos nomeados', async () => {
   const erros = [];
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
   const original = globalThis.fetch;
   globalThis.fetch = async () => {
     throw new Error('rede_fora');
   };
   try {
     assert.deepEqual(await fetchBrapiFundamentals(['BBAS3'], erros), {});
-    assert.equal(erros.length, 2, 'fundamentos e cotação, cada um com o seu motivo');
-    assert.ok(erros.some((e) => e.fonte === 'brapi_cotacao'));
+    assert.ok(erros.length >= 2, 'cada via tem de reportar o seu motivo');
+    assert.ok(
+      erros.some((e) => e.fonte === 'yahoo_chart'),
+      `a via sem token tem de constar: ${JSON.stringify(erros)}`
+    );
   } finally {
     globalThis.fetch = original;
+    if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
 
@@ -1223,18 +1251,27 @@ test('cotação com preço mas sem valor de mercado ainda serve de base', () => 
 
 const { diagnosticarErrosDeFonte } = market.__test || {};
 
-test('401 por token ausente vira instrução, não "fonte indisponível"', () => {
+test('BRAPI sem token vira MELHORIA, não bloqueio, quando o Yahoo cobre', () => {
+  // A diferença importa: marcar de vermelho uma melhoria opcional treina o
+  // operador a ignorar o vermelho.
   const p = diagnosticarErrosDeFonte([
     { fonte: 'brapi_fundamentos', erro: 'brapi_401: {"code":"MISSING_TOKEN"}' },
-    { fonte: 'brapi_cotacao', erro: 'brapi_401: {"code":"MISSING_TOKEN"}' },
   ]);
   const brapi = p.find((x) => x.chave === 'BRAPI_TOKEN');
-  assert.ok(brapi, 'a pendência tem de nomear a variável que falta');
-  assert.ok(brapi.acao.includes('brapi.dev'), 'e dizer onde obter o token');
-  assert.ok(
-    brapi.alcance.includes('Meu Patrimônio'),
-    'o alcance real é maior que a aba da carteira e tem de ser dito'
-  );
+  assert.ok(brapi);
+  assert.equal(brapi.severidade, 'melhoria');
+  assert.ok(brapi.acao.toLowerCase().includes('opcional'));
+  assert.ok(brapi.alcance.includes('Nada fica sem funcionar'));
+});
+
+test('BRAPI sem token E Yahoo fora vira bloqueio de verdade', () => {
+  const p = diagnosticarErrosDeFonte([
+    { fonte: 'brapi_cotacao', erro: 'brapi_401: MISSING_TOKEN' },
+    { fonte: 'yahoo_chart', erro: 'yahoo_chart_503' },
+  ]);
+  const bloqueio = p.find((x) => x.severidade === 'bloqueio');
+  assert.ok(bloqueio, 'sem NENHUMA via de cotação, aí sim é bloqueio');
+  assert.ok(bloqueio.alcance.includes('Sem cotação'));
 });
 
 test('429 do Yahoo é reportado como limite de IP, sem pedir configuração', () => {
@@ -1290,5 +1327,122 @@ test('Yahoo desiste após dois 429 seguidos em vez de insistir', async () => {
     );
   } finally {
     globalThis.fetch = original;
+  }
+});
+
+// ════════════════════════════════════════════
+// Cotação sem cadastro nenhum (Yahoo v8/chart)
+// ════════════════════════════════════════════
+//
+// A BRAPI passou a exigir token até na chamada simples, e o dono do produto
+// não quer registar-se. O v8/chart não pede autenticação — nem token, nem
+// cookie, nem crumb — e já era usado neste arquivo para o histórico, o que
+// prova que o caminho funciona a partir deste deploy.
+//
+// É outro endpoint do quoteSummary (o que dá 429): aquele é protegido, este
+// é aberto. Por isso a mesma origem serve numa camada e não serve na outra.
+
+const { fetchYahooCotacoes, fetchCotacoesMercado } = market.__test || {};
+
+function dublarChart(resposta) {
+  const original = globalThis.fetch;
+  const urls = [];
+  globalThis.fetch = async (url) => {
+    urls.push(String(url));
+    if (resposta instanceof Error) throw resposta;
+    return { ok: true, status: 200, json: async () => resposta };
+  };
+  return { urls, restaurar: () => (globalThis.fetch = original) };
+}
+
+const CHART_OK = {
+  chart: {
+    result: [
+      {
+        meta: { regularMarketPrice: 28.5, chartPreviousClose: 28, currency: 'BRL' },
+        indicators: { quote: [{ volume: [900000, 2000000] }] },
+      },
+    ],
+  },
+};
+
+test('cotação do Yahoo não usa token, cookie nem crumb', async () => {
+  const { urls, restaurar } = dublarChart(CHART_OK);
+  try {
+    const r = await fetchYahooCotacoes(['BBAS3'], []);
+    assert.equal(r.BBAS3.price, 28.5);
+    assert.ok(urls[0].includes('BBAS3.SA'), 'ticker da B3 leva sufixo .SA');
+    assert.ok(!urls[0].includes('crumb'), 'este endpoint não é o protegido');
+  } finally {
+    restaurar();
+  }
+});
+
+test('volume vem da série quando o meta não traz', async () => {
+  // Sem volume não há liquidez diária, e sem liquidez o corte de
+  // investibilidade não consegue separar o que dá para vender.
+  const { restaurar } = dublarChart(CHART_OK);
+  try {
+    const r = await fetchYahooCotacoes(['BBAS3'], []);
+    assert.equal(r.BBAS3.volume, 2000000, 'último pregão com valor');
+    assert.ok(Math.abs(r.BBAS3.changePct - (0.5 / 28) * 100) < 0.01);
+  } finally {
+    restaurar();
+  }
+});
+
+test('o v8/chart não devolve valor de mercado, e isso não é fingido', async () => {
+  // P/L e P/VP dependem dele e continuam a vir do job, que usa o
+  // quoteSummary de um IP não limitado. Preencher aqui seria inventar.
+  const { restaurar } = dublarChart(CHART_OK);
+  try {
+    const r = await fetchYahooCotacoes(['BBAS3'], []);
+    assert.equal(r.BBAS3.marketCap, null);
+  } finally {
+    restaurar();
+  }
+});
+
+test('resposta sem preço é descartada em vez de virar cotação nula', async () => {
+  const { restaurar } = dublarChart({ chart: { result: [{ meta: { currency: 'BRL' } }] } });
+  try {
+    const erros = [];
+    assert.deepEqual(await fetchYahooCotacoes(['BBAS3'], erros), {});
+    assert.ok(erros.some((e) => e.erro.includes('sem_preco')));
+  } finally {
+    restaurar();
+  }
+});
+
+test('a escolha da fonte de cotação é feita num lugar só', async () => {
+  // Ter isto espalhado foi o que fez a falta do token quebrar cotação,
+  // patrimônio e cron de uma vez.
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  const { urls, restaurar } = dublarChart(CHART_OK);
+  try {
+    delete process.env.BRAPI_TOKEN;
+    await fetchCotacoesMercado(['BBAS3'], []);
+    assert.ok(urls[0].includes('finance/chart'), 'sem token vai para o Yahoo');
+  } finally {
+    restaurar();
+    if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
+  }
+});
+
+test('com token, a BRAPI volta a ser preferida — 50 ativos num pedido', async () => {
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  process.env.BRAPI_TOKEN = 'token-de-teste';
+  const { urls, restaurar } = dublarChart({
+    results: [{ symbol: 'BBAS3', regularMarketPrice: 28.5 }],
+  });
+  try {
+    const r = await fetchCotacoesMercado(['BBAS3'], []);
+    assert.ok(urls[0].includes('brapi.dev'), 'com token, a via em lote é a melhor');
+    assert.equal(r.BBAS3.price, 28.5);
+    assert.equal(urls.length, 1, 'um pedido só, não um por ticker');
+  } finally {
+    restaurar();
+    if (tokenAntes === undefined) delete process.env.BRAPI_TOKEN;
+    else process.env.BRAPI_TOKEN = tokenAntes;
   }
 });

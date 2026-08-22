@@ -180,8 +180,36 @@ function exercicioDaEmpresa(csvs, cols, cdCvm, ano) {
  * op=fundamentals rebusca por cima para os poucos que a tela mostra.
  */
 async function baixarCotacoes(tickers) {
-  const out = {};
   const token = process.env.BRAPI_TOKEN;
+  // Sem token, a BRAPI devolve 401 até na chamada simples. O Yahoo v8/chart
+  // não pede autenticação e o runner não sofre o limite de IP que a Vercel
+  // sofre — aqui dá para percorrer o universo inteiro.
+  if (!token) {
+    log('  (sem BRAPI_TOKEN — usando o Yahoo, um pedido por ativo)');
+    const { fetchYahooCotacoes } = require(path.join(__dirname, '..', 'api', 'market.js')).fontes;
+    const erros = [];
+    const cot = await fetchYahooCotacoes(tickers, erros, 10 * 60 * 1000);
+    if (erros.length) {
+      const amostra = Array.from(new Set(erros.map((e) => e.erro))).slice(0, 3);
+      log(`  ${erros.length} falha(s) de cotação: ${amostra.join(' · ')}`);
+    }
+    const out = {};
+    for (const t of Object.keys(cot)) {
+      const q = cot[t];
+      out[t] = {
+        ticker: t,
+        nome: q.shortName || null,
+        preco: q.price,
+        marketCap: q.marketCap,
+        liquidezDiaria: q.price !== null && q.volume !== null ? q.volume * q.price : null,
+        fonte: 'yahoo',
+        fonteRotulo: 'Cotação · Yahoo Finance',
+      };
+    }
+    return out;
+  }
+
+  const out = {};
   for (let i = 0; i < tickers.length; i += 20) {
     const lote = tickers.slice(i, i + 20);
     const url = `https://brapi.dev/api/quote/${encodeURIComponent(lote.join(','))}`;

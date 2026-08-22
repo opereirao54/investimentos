@@ -189,7 +189,7 @@ async function handleQuote(req, res) {
   let fetchError = null;
   if (stale.length) {
     try {
-      fetched = await fetchBrapi(stale);
+      fetched = await fetchCotacoesMercado(stale, null, 9000);
       const batch = database.batch();
       for (const t of stale) {
         const f = fetched[t];
@@ -506,7 +506,7 @@ async function handleWarmup(req, res) {
     const slice = tickers.slice(i, i + BATCH_SIZE);
     let results;
     try {
-      const fetched = await fetchBrapi(slice);
+      const fetched = await fetchCotacoesMercado(slice, null, 8000);
       results = Object.values(fetched);
     } catch (e) {
       failed += slice.length;
@@ -1626,6 +1626,131 @@ async function fetchYahooFundamentals(tickers, erros, orcamentoMs, maxTickers) {
   return out;
 }
 
+// ---------- Cotação: BRAPI quando há token, Yahoo quando não há ----------
+//
+// A BRAPI passou a exigir token até na chamada simples, e o produto não pode
+// depender de um cadastro que o dono ainda não quer fazer. O `v8/chart` do
+// Yahoo NÃO pede autenticação nenhuma — sem token, sem cookie, sem crumb — e
+// já é usado neste arquivo para o histórico da simulação, o que prova que o
+// caminho de rede funciona a partir deste deploy.
+//
+// É outro endpoint do `quoteSummary`, que é o que devolve 429: aquele é
+// protegido, este é aberto. Por isso a mesma origem serve numa camada e não
+// serve na outra.
+//
+// A BRAPI continua a ser preferida QUANDO há token, e por um motivo real:
+// resolve 50 tickers num pedido, enquanto o Yahoo exige um pedido por
+// ticker. No dia em que BRAPI_TOKEN for definida, nada mais muda.
+
+const YAHOO_CHART_TIMEOUT_MS = 6000;
+const YAHOO_COTACAO_ORCAMENTO_MS = 9000;
+
+/** Uma cotação pelo v8/chart. Sem autenticação. */
+async function fetchYahooCotacaoUma(ticker) {
+  // range=5d dá o volume dos últimos pregões; o meta sozinho nem sempre traz.
+  const url = `${YAHOO_BASE}/${encodeURIComponent(ticker + '.SA')}?range=5d&interval=1d`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), YAHOO_CHART_TIMEOUT_MS);
+  let json;
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    if (!res.ok) throw new Error(`yahoo_chart_${res.status}`);
+    json = await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+  const r = json && json.chart && json.chart.result && json.chart.result[0];
+  if (!r || !r.meta) throw new Error('yahoo_chart_sem_resultado');
+
+  const preco = fundNum(r.meta.regularMarketPrice);
+  if (preco === null) throw new Error('yahoo_chart_sem_preco');
+
+  // Volume: o do meta quando existe; senão o último pregão com valor.
+  let volume = fundNum(r.meta.regularMarketVolume);
+  if (volume === null) {
+    const serie = (r.indicators && r.indicators.quote && r.indicators.quote[0]) || {};
+    const volumes = serie.volume || [];
+    for (let i = volumes.length - 1; i >= 0; i--) {
+      const v = fundNum(volumes[i]);
+      if (v !== null && v > 0) {
+        volume = v;
+        break;
+      }
+    }
+  }
+  const anterior = fundNum(r.meta.chartPreviousClose ?? r.meta.previousClose);
+
+  return {
+    ticker,
+    price: preco,
+    previousClose: anterior,
+    change: anterior !== null ? preco - anterior : null,
+    changePct: anterior !== null && anterior !== 0 ? ((preco - anterior) / anterior) * 100 : null,
+    currency: r.meta.currency || 'BRL',
+    shortName: r.meta.shortName || r.meta.longName || null,
+    marketTime: r.meta.regularMarketTime || null,
+    // O v8/chart não devolve valor de mercado. P/L e P/VP dependem dele e
+    // por isso continuam a vir do job de ingestão, que usa o quoteSummary de
+    // um IP não limitado.
+    marketCap: null,
+    volume,
+    fonteCotacao: 'yahoo',
+  };
+}
+
+/** Várias cotações pelo Yahoo, com paralelismo baixo e orçamento. */
+async function fetchYahooCotacoes(tickers, erros, orcamentoMs) {
+  const out = {};
+  if (!tickers.length) return out;
+  const limite = Date.now() + (orcamentoMs != null ? orcamentoMs : YAHOO_COTACAO_ORCAMENTO_MS);
+  // Três de cada vez: o v8/chart aguenta mais que o quoteSummary, mas manter
+  // o paralelismo baixo é o que evita repetir o 429 que derrubou a outra via.
+  for (let i = 0; i < tickers.length; i += 3) {
+    if (Date.now() > limite) {
+      if (erros)
+        erros.push({
+          fonte: 'yahoo_chart',
+          erro: 'orcamento_esgotado',
+          restantes: tickers.length - i,
+        });
+      break;
+    }
+    const lote = tickers.slice(i, i + 3);
+    const res = await Promise.all(
+      lote.map((t) =>
+        fetchYahooCotacaoUma(t)
+          .then((q) => ({ t, q }))
+          .catch((e) => {
+            if (erros) erros.push({ fonte: 'yahoo_chart', ticker: t, erro: e.message });
+            return null;
+          })
+      )
+    );
+    for (const item of res) if (item) out[item.t] = item.q;
+  }
+  return out;
+}
+
+/**
+ * Cotação do mercado, pela via disponível.
+ *
+ * Ponto único de escolha: quem chama não precisa saber qual fonte respondeu.
+ * Ter isto num lugar só é o que faz "definir BRAPI_TOKEN" ser a única
+ * mudança necessária no dia em que houver token — e o que fez a falta dele
+ * quebrar cotação, patrimônio e cron de uma vez quando estava espalhado.
+ */
+async function fetchCotacoesMercado(tickers, erros, orcamentoMs) {
+  if (!tickers.length) return {};
+  if (process.env.BRAPI_TOKEN) {
+    try {
+      return await fetchBrapi(tickers);
+    } catch (e) {
+      if (erros) erros.push({ fonte: 'brapi_cotacao', erro: e.message, degradou: true });
+    }
+  }
+  return fetchYahooCotacoes(tickers, erros, orcamentoMs);
+}
+
 /**
  * Traduz erros de fonte em ação do operador.
  *
@@ -1641,18 +1766,36 @@ async function fetchYahooFundamentals(tickers, erros, orcamentoMs, maxTickers) {
 function diagnosticarErrosDeFonte(erros) {
   const texto = (erros || []).map((e) => `${e.fonte || ''} ${e.erro || ''}`).join(' ');
   const pendencias = [];
-  if (/MISSING_TOKEN|401/.test(texto) && /brapi/i.test(texto)) {
+  // BRAPI sem token deixou de ser bloqueio: a cotação vem do Yahoo v8/chart,
+  // que não pede autenticação. Continua a valer a pena, mas como MELHORIA —
+  // e a diferença entre "está quebrado" e "dá para melhorar" muda o que o
+  // operador faz a seguir.
+  const brapiSemToken = /MISSING_TOKEN|401/.test(texto) && /brapi/i.test(texto);
+  const yahooCotacaoFalhou = /yahoo_chart/.test(texto);
+  if (brapiSemToken && yahooCotacaoFalhou) {
     pendencias.push({
       chave: 'BRAPI_TOKEN',
-      fonte: 'BRAPI',
-      diagnostico: 'A BRAPI passou a exigir token mesmo na cotação simples.',
+      severidade: 'bloqueio',
+      fonte: 'Cotação',
+      diagnostico: 'Nem a BRAPI (sem token) nem o Yahoo responderam à cotação.',
       acao: 'Registe-se em brapi.dev (plano grátis) e defina BRAPI_TOKEN nas variáveis de ambiente.',
-      alcance: 'Afeta também as cotações da aba Meu Patrimônio e o aquecimento noturno.',
+      alcance: 'Sem cotação não há preço, nem quantidade a comprar, nem liquidez.',
+    });
+  } else if (brapiSemToken) {
+    pendencias.push({
+      chave: 'BRAPI_TOKEN',
+      severidade: 'melhoria',
+      fonte: 'BRAPI',
+      diagnostico:
+        'Sem BRAPI_TOKEN a cotação vem do Yahoo, que exige um pedido por ativo. Funciona, mas é mais lento.',
+      acao: 'Opcional: registe-se em brapi.dev (plano grátis) e defina BRAPI_TOKEN — resolve 50 ativos por pedido.',
+      alcance: 'Nada fica sem funcionar por causa disto.',
     });
   }
   if (/429/.test(texto) && /yahoo/i.test(texto)) {
     pendencias.push({
       chave: null,
+      severidade: 'informativo',
       fonte: 'Yahoo Finance',
       diagnostico: 'Yahoo devolveu 429 — o IP de saída está a ser limitado.',
       acao:
@@ -1705,7 +1848,7 @@ async function fetchBrapiFundamentals(tickers, erros) {
     if (erros) erros.push({ fonte: 'brapi_fundamentos', erro: e.message, degradou: true });
     console.warn('[market/fundamentals] brapi_modules_failed, degradando:', e.message);
     try {
-      const simples = await fetchBrapi(tickers);
+      const simples = await fetchCotacoesMercado(tickers, erros, 6000);
       const out = {};
       for (const t of Object.keys(simples)) out[t] = mapBrapiCotacao(simples[t]);
       return out;
@@ -2536,9 +2679,22 @@ async function handleDiagnostico(req, res) {
         ok: !!r[ticker],
         preco: r[ticker] ? r[ticker].price : null,
         marketCap: r[ticker] ? r[ticker].marketCap : null,
+        temToken: !!process.env.BRAPI_TOKEN,
       };
     } catch (e) {
-      fontes.brapiCotacao = { ok: false, erro: e.message };
+      fontes.brapiCotacao = { ok: false, erro: e.message, temToken: !!process.env.BRAPI_TOKEN };
+    }
+    // A via que funciona sem cadastro nenhum. Testada à parte para o
+    // diagnóstico distinguir "não tenho token" de "não tenho fonte".
+    try {
+      const r = await fetchYahooCotacoes([ticker], null, 8000);
+      fontes.yahooCotacao = {
+        ok: !!r[ticker],
+        preco: r[ticker] ? r[ticker].price : null,
+        volume: r[ticker] ? r[ticker].volume : null,
+      };
+    } catch (e) {
+      fontes.yahooCotacao = { ok: false, erro: e.message };
     }
     const errosYahoo = [];
     try {
@@ -2688,6 +2844,8 @@ module.exports = handler({
 // mesma implementação de Yahoo que o endpoint, para as duas não divergirem
 // nas conversões de unidade — que é onde esta base já errou antes.
 module.exports.fontes = {
+  fetchYahooCotacoes,
+  fetchCotacoesMercado,
   fetchYahooFundamentals,
   mapYahooFundamental,
   diagnosticarErrosDeFonte,
@@ -2715,6 +2873,8 @@ module.exports.__test = {
   fundCobertura,
   mapBrapiFundamental,
   mapBrapiCotacao,
+  fetchYahooCotacoes,
+  fetchCotacoesMercado,
   diagnosticarErrosDeFonte,
   fetchBrapiFundamentals,
   mapYahooFundamental,

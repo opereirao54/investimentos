@@ -1711,16 +1711,21 @@ function cartRenderizarMotorStatus() {
   if (pend.length) {
     alertaPendencia = pend
       .map(function (p) {
+        // Só bloqueio pinta de erro. Marcar uma melhoria opcional de vermelho
+        // treina o operador a ignorar o vermelho.
+        var bloqueio = p.severidade === 'bloqueio';
         return (
           '<div class="cart-motor-alerta ' +
-          (p.chave ? 'erro' : '') +
+          (bloqueio ? 'erro' : '') +
           '"><i class="ph ph-' +
-          (p.chave ? 'wrench' : 'hourglass-medium') +
+          (bloqueio ? 'warning-circle' : p.chave ? 'lightning' : 'hourglass-medium') +
           '"></i><span><strong>' +
           p.fonte +
           ':</strong> ' +
           p.diagnostico +
-          '<br><strong>O que fazer:</strong> ' +
+          '<br><strong>' +
+          (p.severidade === 'melhoria' ? 'Opcional' : 'O que fazer') +
+          ':</strong> ' +
           p.acao +
           (p.alcance ? '<br><em>' + p.alcance + '</em>' : '') +
           '</span></div>'

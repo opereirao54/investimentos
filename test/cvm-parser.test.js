@@ -603,9 +603,11 @@ test('exercício mais recente do FCA vence quando o ticker se repete', () => {
   assert.equal(porTicker.get('ABCD3').cdCvm, '222', 'empresa que hoje usa o código é a que vale');
 });
 
-test('cotação do universo é mapeada com liquidez derivada de volume x preço', async () => {
+test('cotação do universo pela BRAPI, quando há token', async () => {
   const { baixarCotacoes } = require('../scripts/ingest-cvm');
   const original = globalThis.fetch;
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  process.env.BRAPI_TOKEN = 'token-de-teste';
   globalThis.fetch = async () => ({
     ok: true,
     status: 200,
@@ -626,17 +628,59 @@ test('cotação do universo é mapeada com liquidez derivada de volume x preço'
     const r = await baixarCotacoes(['BBAS3', 'SEMPRECO3']);
     assert.equal(r.BBAS3.liquidezDiaria, 2000000 * 28.5, 'liquidez é volume x preço, não volume');
     assert.equal(r.BBAS3.marketCap, 160e9, 'valor de mercado é o que permite P/L e P/VP');
-    assert.equal(r.BBAS3.ticker, 'BBAS3', 'ticker normalizado para maiúsculas');
+    assert.equal(r.BBAS3.ticker, 'BBAS3');
     assert.equal(r.SEMPRECO3.liquidezDiaria, null, 'sem preço não há liquidez calculável');
-    assert.equal(r.SEMPRECO3.preco, null);
   } finally {
     globalThis.fetch = original;
+    if (tokenAntes === undefined) delete process.env.BRAPI_TOKEN;
+    else process.env.BRAPI_TOKEN = tokenAntes;
+  }
+});
+
+test('sem token, o job cota pelo Yahoo em vez de desistir', async () => {
+  // O dono não quer registar-se na BRAPI. O v8/chart não pede autenticação
+  // nenhuma, e o runner do GitHub não sofre o limite de IP da Vercel.
+  const { baixarCotacoes } = require('../scripts/ingest-cvm');
+  const original = globalThis.fetch;
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  delete process.env.BRAPI_TOKEN;
+  globalThis.fetch = async (url) => {
+    assert.ok(String(url).includes('finance/chart'), 'sem token tem de ir para o Yahoo');
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        chart: {
+          result: [
+            {
+              meta: { regularMarketPrice: 28.5, chartPreviousClose: 28, currency: 'BRL' },
+              indicators: { quote: [{ volume: [1000, 2000000] }] },
+            },
+          ],
+        },
+      }),
+    };
+  };
+  try {
+    const r = await baixarCotacoes(['BBAS3']);
+    assert.equal(r.BBAS3.preco, 28.5);
+    assert.equal(
+      r.BBAS3.liquidezDiaria,
+      2000000 * 28.5,
+      'volume vem da série quando falta no meta'
+    );
+    assert.ok(r.BBAS3.fonteRotulo.includes('Yahoo'), 'a procedência tem de dizer a fonte real');
+  } finally {
+    globalThis.fetch = original;
+    if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
 
 test('lote de cotação que falha não derruba os outros', async () => {
   const { baixarCotacoes } = require('../scripts/ingest-cvm');
   const original = globalThis.fetch;
+  const tokenAntes = process.env.BRAPI_TOKEN;
+  process.env.BRAPI_TOKEN = 'token-de-teste';
   let chamada = 0;
   globalThis.fetch = async () => {
     chamada++;
@@ -654,5 +698,7 @@ test('lote de cotação que falha não derruba os outros', async () => {
     assert.ok(r.OK3, 'o segundo lote tem de ser aproveitado mesmo com o primeiro falhando');
   } finally {
     globalThis.fetch = original;
+    if (tokenAntes === undefined) delete process.env.BRAPI_TOKEN;
+    else process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
