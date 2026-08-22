@@ -874,6 +874,96 @@ module.exports.cagr = cagr;
 module.exports.extrairInformeFii = extrairInformeFii;
 
 // ════════════════════════════════════════════════════════════
+// Composição do capital
+// ════════════════════════════════════════════════════════════
+//
+// A DFP publica a QUANTIDADE DE AÇÕES da companhia, num arquivo que o job
+// baixava sem ler (`dfp_cia_aberta_composicao_capital_AAAA.csv`, um dos 19
+// do ZIP). Isto substitui a derivação `lucro ÷ LPA`, que só funcionava para
+// companhia de classe única — quando ON e PN têm lucro por ação diferente,
+// uma divisão não separa as duas classes, e a valuation saía em 5 de 14.
+//
+// Aqui a contagem é DECLARADA. Não há o que derivar nem faixa de sanidade a
+// arbitrar: o número é o que a companhia informou.
+
+const COLUNAS_CAPITAL = {
+  cnpj: ['CNPJ_CIA', 'CNPJ_Companhia', 'CNPJ'],
+  cdCvm: ['CD_CVM', 'CODIGO_CVM'],
+  dataReferencia: ['DT_FIM_EXERC', 'DT_REFER', 'Data_Referencia'],
+  ordinarias: [
+    'QT_ACAO_ORDIN_CAP_INTEGR',
+    'Quantidade_Acao_Ordinaria_Capital_Integralizado',
+    'QT_ACAO_ORDIN',
+  ],
+  preferenciais: [
+    'QT_ACAO_PREF_CAP_INTEGR',
+    'Quantidade_Acao_Preferencial_Capital_Integralizado',
+    'QT_ACAO_PREF',
+  ],
+  ordinariasTesouraria: ['QT_ACAO_ORDIN_TESOURARIA', 'Quantidade_Acao_Ordinaria_Tesouraria'],
+  preferenciaisTesouraria: ['QT_ACAO_PREF_TESOURARIA', 'Quantidade_Acao_Preferencial_Tesouraria'],
+};
+
+/**
+ * Ações em circulação por companhia, do arquivo de composição do capital.
+ *
+ * Ações em tesouraria são DESCONTADAS: o valor de mercado é preço vezes o
+ * que está em circulação, e cota recomprada não está. Ignorá-las inflaria o
+ * valor de mercado e, com ele, o P/L e o P/VP de toda companhia que recompra.
+ *
+ * Indexa pelas duas identificações, com prefixo, igual a `agruparPorEmpresa`
+ * — para a busca poder usar a mesma chave.
+ */
+function extrairComposicaoCapital(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_CAPITAL)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_CAPITAL[campo]);
+  }
+  const faltando = Object.keys(COLUNAS_CAPITAL).filter((c) => !cols[c]);
+  const porChave = new Map();
+  if (!cols.ordinarias || (!cols.cnpj && !cols.cdCvm)) {
+    return { porChave, faltando, colunas: cols, colunasReais: colunas };
+  }
+
+  const num = (r, campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
+  for (const r of registros || []) {
+    const on = num(r, 'ordinarias');
+    if (on === null) continue;
+    const pn = num(r, 'preferenciais') || 0;
+    const onTes = num(r, 'ordinariasTesouraria') || 0;
+    const pnTes = num(r, 'preferenciaisTesouraria') || 0;
+    const circulacao = on + pn - onTes - pnTes;
+    // Uma companhia aberta tem mais do que cem mil ações. Abaixo disso é
+    // linha de outra natureza, não a composição do capital.
+    if (!(circulacao >= 1e5)) continue;
+
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const registro = {
+      acoesOrdinarias: on,
+      acoesPreferenciais: pn,
+      acoesTesouraria: onTes + pnTes,
+      acoesEmCirculacao: circulacao,
+      dataReferencia: data || null,
+    };
+    const chaves = [];
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
+    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    if (cnpj) chaves.push('cnpj:' + cnpj);
+    if (cd) chaves.push('cd:' + cd);
+    for (const chave of chaves) {
+      // Reenvio: vence a data de referência, não a ordem do arquivo.
+      const anterior = porChave.get(chave);
+      if (anterior && anterior.dataReferencia >= registro.dataReferencia) continue;
+      porChave.set(chave, registro);
+    }
+  }
+  return { porChave, faltando, colunas: cols, colunasReais: colunas };
+}
+
+module.exports.COLUNAS_CAPITAL = COLUNAS_CAPITAL;
+module.exports.extrairComposicaoCapital = extrairComposicaoCapital;
+
+// ════════════════════════════════════════════════════════════
 // Descoberta do universo — ticker ↔ empresa, pela própria CVM
 // ════════════════════════════════════════════════════════════
 //

@@ -431,6 +431,73 @@ test('informe de FII: vacância vira ocupação e o mais recente vence', () => {
   assert.ok(!faltando.includes('vacanciaFisica'));
 });
 
+// ════════════════════════════════════════════
+// Composição do capital
+// ════════════════════════════════════════════
+//
+// A quantidade de ações vem DECLARADA num arquivo do ZIP da DFP que o job
+// baixava sem ler. Substitui `lucro ÷ LPA`, que não separa ON de PN quando
+// as classes têm lucro por ação diferente — e era isso que deixava a
+// valuation em 5 de 14 companhias na execução real.
+
+const CAB_CAPITAL =
+  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
+
+function capitalCsv(linhas) {
+  return P.parseCsvCvm([CAB_CAPITAL, ...linhas].join('\n'));
+}
+
+test('ações em circulação: ON mais PN, menos tesouraria', () => {
+  // Tesouraria descontada porque o valor de mercado é preço × o que está em
+  // circulação. Ignorá-la infla o valor de mercado — e, com ele, o P/L e o
+  // P/VP — de toda companhia que recompra ação.
+  const { colunas, registros } = capitalCsv([
+    '00.000.000/0001-91;2025-12-31;1;EMPRESA TESTE;1023;2025-12-31;2000000000;900000000;50000000;10000000',
+  ]);
+  const r = P.extrairComposicaoCapital(registros, colunas);
+  const c = r.porChave.get('cnpj:00000000000191');
+  assert.equal(c.acoesOrdinarias, 2000000000);
+  assert.equal(c.acoesPreferenciais, 900000000);
+  assert.equal(c.acoesTesouraria, 60000000);
+  assert.equal(c.acoesEmCirculacao, 2840000000);
+  // Indexada pelas duas identificações, como o resto do pipeline.
+  assert.equal(r.porChave.get('cd:1023').acoesEmCirculacao, 2840000000);
+});
+
+test('sem preferenciais, o total é só o ordinário', () => {
+  const { colunas, registros } = capitalCsv([
+    '00.000.000/0001-91;2025-12-31;1;EMPRESA TESTE;1023;2025-12-31;500000000;;;',
+  ]);
+  const c = P.extrairComposicaoCapital(registros, colunas).porChave.get('cd:1023');
+  assert.equal(c.acoesEmCirculacao, 500000000, 'coluna vazia é zero, não quebra a conta');
+});
+
+test('reenvio fora de ordem: vence a data, não a posição', () => {
+  const { colunas, registros } = capitalCsv([
+    '00.000.000/0001-91;2025-12-31;1;EMPRESA TESTE;1023;2025-12-31;2000000000;0;0;0',
+    '00.000.000/0001-91;2024-12-31;1;EMPRESA TESTE;1023;2024-12-31;1000000000;0;0;0',
+  ]);
+  const c = P.extrairComposicaoCapital(registros, colunas).porChave.get('cd:1023');
+  assert.equal(c.acoesEmCirculacao, 2000000000);
+});
+
+test('linha com contagem implausível é ignorada', () => {
+  // Companhia aberta não tem trezentas ações. Linha assim é de outra
+  // natureza — e viraria um valor de mercado absurdo.
+  const { colunas, registros } = capitalCsv([
+    '00.000.000/0001-91;2025-12-31;1;EMPRESA TESTE;1023;2025-12-31;300;0;0;0',
+  ]);
+  assert.equal(P.extrairComposicaoCapital(registros, colunas).porChave.size, 0);
+});
+
+test('colunas ausentes reportam o que havia no arquivo', () => {
+  const { colunas, registros } = P.parseCsvCvm('OUTRA;COISA\n1;2');
+  const r = P.extrairComposicaoCapital(registros, colunas);
+  assert.equal(r.porChave.size, 0);
+  assert.ok(r.faltando.includes('ordinarias'));
+  assert.deepEqual(r.colunasReais, ['OUTRA', 'COISA']);
+});
+
 test('o DY do FII vem calculado pela CVM, não é derivado', () => {
   // `Percentual_Dividend_Yield_Mes` está no informe. É o indicador mais
   // importante do pilar de dividendos de um FII, e vem da fonte oficial —

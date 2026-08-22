@@ -486,6 +486,8 @@ async function main() {
   // ── 2. DFP por ano ──
   const porEmpresa = new Map();
   let colsResolvidas = null;
+  // Preenchido pelo exercício mais recente que trouxer o arquivo.
+  let capitalPorChave = new Map();
   for (const ano of anos) {
     log(`\n· DFP ${ano}…`);
     let pacote;
@@ -495,6 +497,11 @@ async function main() {
         'BPP_con',
         'DRE_con',
         'DFC_MI_con',
+        // A quantidade de ações vem DECLARADA aqui. Substitui a derivação
+        // `lucro ÷ LPA`, que não separa ON de PN quando as duas classes têm
+        // lucro por ação diferente — e era isso que deixava a valuation em
+        // 5 de 14 companhias.
+        'composicao_capital',
       ]);
     } catch (e) {
       log(`  ✗ ${e.message} — ano ignorado`);
@@ -538,6 +545,26 @@ async function main() {
     }
     colsResolvidas = cols;
 
+    // Contagem de ações declarada, do mesmo ZIP. Sem ela o pipeline segue
+    // como antes (derivando por LPA); com ela, a valuation deixa de depender
+    // de a companhia ter uma classe só.
+    if (pacote.csvs.composicao_capital) {
+      const cap = P.extrairComposicaoCapital(
+        pacote.csvs.composicao_capital.registros,
+        pacote.csvs.composicao_capital.colunas
+      );
+      if (!cap.porChave.size) {
+        log(`  ! composição do capital não lida (faltando: ${cap.faltando.join(', ')})`);
+        log(`    colunas reais: ${pacote.csvs.composicao_capital.colunas.join(', ')}`);
+      } else {
+        // Conta COMPANHIAS, não chaves: cada uma é indexada por CNPJ e por
+        // CD_CVM, e o mapa tem o dobro de entradas. Um log que diz 4 onde há
+        // 2 é a mesma família de erro que este PR passou o dia corrigindo.
+        log(`  composição do capital: ${new Set(cap.porChave.values()).size} companhias`);
+        capitalPorChave = cap.porChave;
+      }
+    }
+
     // Agrupa UMA vez por arquivo, não uma vez por empresa: com centenas de
     // companhias, reagrupar por empresa transformaria isto em O(n²) sobre
     // arquivos de centenas de milhares de linhas.
@@ -576,6 +603,7 @@ async function main() {
   for (const emp of empresas.values()) {
     const exercicios = porEmpresa.get(emp.chave);
     if (!exercicios || !exercicios.length) continue;
+    const capitalDaEmpresa = emp.chaves.map((k) => capitalPorChave.get(k)).find(Boolean);
     const r = P.calcularIndicadores(exercicios);
     const ind = r.indicadores;
     const preenchidos = Object.values(ind).filter((v) => v !== null).length;
@@ -602,6 +630,15 @@ async function main() {
           // antes de acreditar num ranking.
           `PL ${r.absolutos.patrimonioLiquido === null ? '—' : (r.absolutos.patrimonioLiquido / 1e9).toFixed(1) + 'bi'} · ` +
           `LPA ${r.absolutos.lucroPorAcao === null ? '—' : r.absolutos.lucroPorAcao.toFixed(2)} · ` +
+          // De onde veio a contagem de ações importa tanto quanto o número:
+          // "cap" é declarada pela companhia, "lpa" é inferida por divisão.
+          `ações ${
+            capitalDaEmpresa
+              ? (capitalDaEmpresa.acoesEmCirculacao / 1e9).toFixed(2) + 'bi cap'
+              : r.absolutos.acoesEquivalentes
+                ? (r.absolutos.acoesEquivalentes / 1e9).toFixed(2) + 'bi lpa'
+                : '—'
+          } · ` +
           `div ${r.absolutos.dividendosPagos === null ? '—' : (r.absolutos.dividendosPagos / 1e6).toFixed(0) + 'M'}` +
           (r.descartados.length ? ` · ${r.descartados.length} descartado(s)` : '')
       );
@@ -628,6 +665,24 @@ async function main() {
     // não reconhecidas encheria o documento de texto que ninguém lê e que
     // conta contra o teto de tamanho do Firestore.
     const { dividendosMotivo, dividendosNaoReconhecidas, linhas399, ...absolutos } = r.absolutos;
+
+    // Declarada vence derivada. `lucro ÷ LPA` é uma inferência que falha em
+    // companhia com duas classes; a composição do capital é o número que a
+    // própria companhia informou.
+    const capital = capitalDaEmpresa;
+    if (capital) {
+      absolutos.acoesEquivalentes = capital.acoesEmCirculacao;
+      absolutos.acoesOrigem = 'composicao_capital';
+      absolutos.acoesTesouraria = capital.acoesTesouraria;
+      // O dividendo por ação segue a mesma contagem, senão o DY sairia
+      // calculado sobre uma base e o P/L sobre outra.
+      absolutos.dividendoPorAcao =
+        absolutos.dividendosPagos !== null && absolutos.dividendosPagos !== undefined
+          ? absolutos.dividendosPagos / capital.acoesEmCirculacao
+          : null;
+    } else if (absolutos.acoesEquivalentes) {
+      absolutos.acoesOrigem = 'lucro_por_acao';
+    }
     void dividendosMotivo;
     void dividendosNaoReconhecidas;
     void linhas399;
@@ -656,10 +711,14 @@ async function main() {
   // VALUATION ou DIVIDENDOS vazio para a bolsa inteira — é um número que
   // tem de saltar aos olhos no log, não algo a descobrir pela tela.
   if (documentos.length) {
+    const comCap = documentos.filter(
+      (d) => d.dados && d.dados.acoesOrigem === 'composicao_capital'
+    ).length;
     const comLpa = documentos.filter((d) => d.dados && d.dados.acoesEquivalentes).length;
     const comDiv = documentos.filter((d) => d.dados && d.dados.dividendosPagos).length;
     log(
-      `\n  valuation possível em ${comLpa}/${documentos.length} (LPA na DRE) · ` +
+      `\n  valuation possível em ${comLpa}/${documentos.length} ` +
+        `(${comCap} pela composição do capital, ${comLpa - comCap} pelo LPA) · ` +
         `dividendos em ${comDiv}/${documentos.length} (DFC 6.03)`
     );
   }

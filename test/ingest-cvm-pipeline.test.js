@@ -142,6 +142,20 @@ function dfpCsv(qual, ano) {
   return linhas.join('\n');
 }
 
+// A quantidade de ações vem declarada num quinto membro do ZIP. As duas
+// companhias do fixture têm ON e PN — o caso em que `lucro ÷ LPA` NÃO
+// resolve, e que na execução real deixava a valuation em 5 de 14.
+const CAB_CAPITAL =
+  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
+
+function capitalCsv(ano) {
+  return [
+    CAB_CAPITAL,
+    `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;1023;${ano}-12-31;2000000000;900000000;50000000;10000000`,
+    `${CNPJ_B};${ano}-12-31;1;COMPANHIA TESTE S.A.;5410;${ano}-12-31;800000000;0;0;0`,
+  ].join('\n');
+}
+
 // ── Rede simulada ──
 function montarFetch(opcoes) {
   const op = opcoes || {};
@@ -170,10 +184,9 @@ function montarFetch(opcoes) {
         if (!op.anosDfp.includes(ano)) return naoAchado;
         return responder(
           zipar(
-            ['BPA_con', 'BPP_con', 'DRE_con', 'DFC_MI_con'].map((q) => [
-              `dfp_cia_aberta_${q}_${ano}.csv`,
-              dfpCsv(q, ano),
-            ])
+            ['BPA_con', 'BPP_con', 'DRE_con', 'DFC_MI_con']
+              .map((q) => [`dfp_cia_aberta_${q}_${ano}.csv`, dfpCsv(q, ano)])
+              .concat([[`dfp_cia_aberta_composicao_capital_${ano}.csv`, capitalCsv(ano)]])
           )
         );
       }
@@ -264,6 +277,22 @@ test('LPA e dividendos chegam ao relatório — os dois pilares novos', async ()
   assert.ok(!/div — /.test(texto), `dividendos não extraídos:\n${texto}`);
   assert.match(texto, /valuation possível em 2\/2/);
   assert.match(texto, /dividendos em 2\/2/);
+});
+
+test('a contagem de ações DECLARADA vence a derivada por LPA', async () => {
+  // `lucro ÷ LPA` é uma inferência que falha em companhia com duas classes.
+  // A composição do capital é o número que a própria companhia informou —
+  // e é o que destrava P/L e P/VP para a bolsa toda, não só para quem tem
+  // classe única.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+  });
+  assert.match(texto, /composição do capital: 2 companhias/);
+  // 2.000.000.000 ON + 900.000.000 PN − 60.000.000 em tesouraria = 2,84 bi
+  assert.match(texto, /ações 2\.84bi cap/, 'a contagem sai da composição, não do LPA');
+  assert.ok(!/ações .*bi lpa/.test(texto), 'com a declarada em mãos, ninguém deriva');
+  assert.match(texto, /2 pela composição do capital, 0 pelo LPA/);
 });
 
 test('sem FCA o pipeline não morre: cai para o mapa e diz que caiu', async () => {
