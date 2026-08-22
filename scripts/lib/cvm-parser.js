@@ -39,24 +39,44 @@ const COLUNAS = {
 // Plano de contas padrão da CVM. `termos` é rede de segurança: se o código
 // mudar de numeração, a descrição ainda identifica a linha.
 const CONTAS = {
-  ativoTotal: { codigos: ['1'], termos: ['ativo total'] },
+  ativoTotal: { codigos: ['1'], termos: ['ativo total'], porDescricao: true },
   ativoCirculante: { codigos: ['1.01'], termos: ['ativo circulante'] },
   caixa: { codigos: ['1.01.01'], termos: ['caixa e equivalentes de caixa'] },
   aplicacoesFinanceiras: { codigos: ['1.01.02'], termos: ['aplicacoes financeiras'] },
   passivoCirculante: { codigos: ['2.01'], termos: ['passivo circulante'] },
   dividaCurtoPrazo: { codigos: ['2.01.04'], termos: ['emprestimos e financiamentos'] },
   dividaLongoPrazo: { codigos: ['2.02.01'], termos: ['emprestimos e financiamentos'] },
+  // `porDescricao` inverte a ordem de casamento: descrição primeiro, código
+  // como reserva.
+  //
+  // MOTIVO CONCRETO. Banco, seguradora e empresa industrial não usam o mesmo
+  // plano de contas na DFP. O código 2.03 é "Patrimônio Líquido" no plano
+  // industrial e OUTRA conta no plano das instituições financeiras — então
+  // casar por código devolvia um número real, da conta errada, sem erro
+  // nenhum. Foi o que a execução real mostrou:
+  //
+  //   BBAS3  ROE 43,4%   (o ROE do Banco do Brasil é ~20%)
+  //
+  // O lucro estava certo e o patrimônio ~6x abaixo. A DESCRIÇÃO, essa, é
+  // padronizada nos três planos — "Patrimônio Líquido Consolidado" é a mesma
+  // frase no banco e na indústria.
   patrimonioLiquido: {
     codigos: ['2.03'],
     termos: ['patrimonio liquido consolidado', 'patrimonio liquido'],
+    porDescricao: true,
   },
-  receita: { codigos: ['3.01'], termos: ['receita de venda', 'receita liquida'] },
+  receita: {
+    codigos: ['3.01'],
+    termos: ['receita de venda', 'receita liquida'],
+    porDescricao: true,
+  },
   ebit: { codigos: ['3.05'], termos: ['antes do resultado financeiro'] },
   resultadoAntesTributos: { codigos: ['3.07'], termos: ['antes dos tributos'] },
   tributos: { codigos: ['3.08'], termos: ['imposto de renda'] },
   lucroLiquido: {
     codigos: ['3.11', '3.09'],
     termos: ['lucro/prejuizo consolidado do periodo', 'lucro/prejuizo do periodo'],
+    porDescricao: true,
   },
 };
 
@@ -199,26 +219,38 @@ function fatorEscala(escala) {
 function valorDaConta(linhas, cols, conta) {
   const spec = CONTAS[conta];
   if (!spec) return null;
-  for (const codigo of spec.codigos) {
-    for (const l of linhas) {
-      if (String(l[cols.codigoConta] || '').trim() === codigo) {
-        const v = valorNumericoCvm(l[cols.valorConta]);
-        if (v === null) continue;
-        return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+
+  const porCodigo = () => {
+    for (const codigo of spec.codigos) {
+      for (const l of linhas) {
+        if (String(l[cols.codigoConta] || '').trim() === codigo) {
+          const v = valorNumericoCvm(l[cols.valorConta]);
+          if (v === null) continue;
+          return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+        }
       }
     }
-  }
-  if (!cols.descricaoConta) return null;
-  for (const termo of spec.termos) {
-    for (const l of linhas) {
-      if (normalizarTexto(l[cols.descricaoConta]) === termo) {
-        const v = valorNumericoCvm(l[cols.valorConta]);
-        if (v === null) continue;
-        return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+    return null;
+  };
+
+  const porDescricao = () => {
+    if (!cols.descricaoConta) return null;
+    for (const termo of spec.termos) {
+      for (const l of linhas) {
+        if (normalizarTexto(l[cols.descricaoConta]) === termo) {
+          const v = valorNumericoCvm(l[cols.valorConta]);
+          if (v === null) continue;
+          return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+        }
       }
     }
-  }
-  return null;
+    return null;
+  };
+
+  // Ordem invertida para as contas marcadas: ver o comentário em CONTAS.
+  const primeiro = spec.porDescricao ? porDescricao() : porCodigo();
+  if (primeiro !== null) return primeiro;
+  return spec.porDescricao ? porCodigo() : porDescricao();
 }
 
 /**
@@ -281,7 +313,17 @@ function lucroPorAcaoDaDre(linhas, cols) {
 // Como a distribuição aos acionistas aparece na DFC. "jcp" e "juros sobre o
 // capital" entram porque metade das companhias nomeia a linha só assim — e
 // no Brasil JCP é dividendo com outro nome fiscal.
-const TERMOS_DIVIDENDO = ['dividendo', 'capital proprio', 'jcp'];
+// "remuneracao ao(s) acionista(s)" entrou depois de o log mostrar, na
+// Eletrobras, a linha `pagamento e remuneracao aos acionistas` — que É a
+// distribuição, nomeada sem a palavra "dividendo". Sem o termo, o resultado
+// era `div 0M` numa companhia que paga.
+const TERMOS_DIVIDENDO = [
+  'dividendo',
+  'capital proprio',
+  'jcp',
+  'remuneracao ao acionista',
+  'remuneracao aos acionistas',
+];
 
 /**
  * Dividendos e JCP pagos no exercício, do fluxo de financiamento da DFC.

@@ -654,6 +654,46 @@ test('ON e PN com LPA diferente não viram contagem de ações', () => {
   assert.equal(fin.acoesEquivalentes, null);
 });
 
+test('em banco, o patrimônio sai da DESCRIÇÃO — o código 2.03 é outra conta', () => {
+  // Achado da execução real: BBAS3 saiu com ROE 43,4% (o do Banco do Brasil
+  // é ~20%). O lucro estava certo e o patrimônio ~6x abaixo — porque banco,
+  // seguradora e indústria não usam o mesmo plano de contas na DFP, e casar
+  // por código devolvia um número REAL da conta ERRADA, sem erro nenhum.
+  //
+  // A descrição, essa, é padronizada nos três planos.
+  const bpp = bloco([
+    linha('1023', '2.03', 'Relações Interfinanceiras', '30000000'),
+    linha('1023', '2.08', 'Patrimônio Líquido Consolidado', '180000000'),
+  ]);
+  assert.equal(
+    P.valorDaConta(bpp, COLS_TESTE, 'patrimonioLiquido'),
+    180000000000,
+    'a conta certa é a que se chama patrimônio líquido, não a que calha no 2.03'
+  );
+});
+
+test('no plano industrial nada muda: código e descrição apontam a mesma linha', () => {
+  const bpp = bloco([linha('1023', '2.03', 'Patrimônio Líquido Consolidado', '180000')]);
+  assert.equal(P.valorDaConta(bpp, COLS_TESTE, 'patrimonioLiquido'), 180000000);
+});
+
+test('sem descrição no arquivo, o código continua servindo', () => {
+  // A reserva importa: arquivo antigo sem DS_CONTA não pode ficar sem valor.
+  const bpp = bloco([linha('1023', '2.03', '', '180000')]);
+  assert.equal(P.valorDaConta(bpp, COLS_TESTE, 'patrimonioLiquido'), 180000000);
+});
+
+test('distribuição nomeada sem a palavra "dividendo" continua sendo distribuição', () => {
+  // A Eletrobras nomeia a linha `Pagamento e Remuneração aos Acionistas`. Sem
+  // o termo, o resultado era `div 0M` numa companhia que paga — e o log foi
+  // quem entregou o nome, ao imprimir as linhas do 6.03 não reconhecidas.
+  const dfc = dreLpa([
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+    linha('1023', '6.03.05', 'Pagamento e Remuneração aos Acionistas', '-8000000'),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dfc }, COLS_LPA).dividendosPagos, 8e9);
+});
+
 test('a escala do arquivo NÃO se aplica à conta por ação', () => {
   // Achado da primeira execução real contra a CVM: boa parte dos emissores
   // repete ESCALA_MOEDA=MIL nas linhas do grupo 3.99, por herança do resto

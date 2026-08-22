@@ -177,6 +177,16 @@ function montarFetch(opcoes) {
           )
         );
       }
+      // Índice de diretório da CVM, como o portal serve: HTML com links.
+      if (op.indice && u.endsWith('/')) {
+        const itens = op.indice[u];
+        if (!itens) return naoAchado;
+        const html =
+          '<html><body><pre><a href="../">Parent Directory</a>\n' +
+          itens.map((n) => `<a href="${n}">${n}</a>`).join('\n') +
+          '</pre></body></html>';
+        return responder(Buffer.from(html, 'latin1'));
+      }
       // FII e cotação não são o alvo deste teste: falham como falhariam sem
       // rede, e o pipeline tem de sobreviver a isso.
       if (u.includes('query1.finance.yahoo.com') || u.includes('brapi.dev')) return naoAchado;
@@ -274,6 +284,59 @@ test('exercício indisponível é ignorado sem derrubar os outros', async () => 
   });
   assert.match(texto, /ano ignorado|http_404/);
   assert.match(texto, /=== 2 documentos prontos ===/);
+});
+
+// ── Descoberta de arquivo pelo índice do diretório ──
+//
+// Existe porque os três nomes conhecidos do cadastro de FII deram 404 na
+// execução real. Adivinhar nome de arquivo de um publicador que renomeia é
+// uma dívida que vence sozinha; ler o índice, não.
+
+test('o índice do diretório entrega os arquivos, ignorando navegação', async () => {
+  const fetchOriginal = globalThis.fetch;
+  const dir = 'https://dados.cvm.gov.br/dados/FII/CAD/DADOS/';
+  globalThis.fetch = montarFetch({
+    indice: { [dir]: ['cad_fii.csv', 'cad_fii_hist.csv', 'leiame.txt'] },
+  }).fetch;
+  try {
+    const nomes = await ingest.listarDiretorio(dir);
+    assert.deepEqual(nomes.sort(), ['cad_fii.csv', 'cad_fii_hist.csv', 'leiame.txt']);
+    assert.ok(!nomes.includes('../'), 'link de navegação não é arquivo');
+  } finally {
+    globalThis.fetch = fetchOriginal;
+  }
+});
+
+test('entre vários anos, vale o mais recente — sem saber qual é de antemão', async () => {
+  const fetchOriginal = globalThis.fetch;
+  const dir = 'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/';
+  globalThis.fetch = montarFetch({
+    indice: {
+      [dir]: ['inf_mensal_fii_2023.zip', 'inf_mensal_fii_2025.zip', 'inf_mensal_fii_2024.zip'],
+    },
+  }).fetch;
+  try {
+    const r = await ingest.acharNoDiretorio(dir, /^inf_mensal_fii_\d{4}\.zip$/i);
+    assert.equal(r.nome, 'inf_mensal_fii_2025.zip');
+    assert.equal(r.url, dir + 'inf_mensal_fii_2025.zip');
+  } finally {
+    globalThis.fetch = fetchOriginal;
+  }
+});
+
+test('diretório sem nada que case falha dizendo o que havia lá', async () => {
+  const fetchOriginal = globalThis.fetch;
+  const dir = 'https://dados.cvm.gov.br/dados/FII/CAD/DADOS/';
+  globalThis.fetch = montarFetch({ indice: { [dir]: ['outra_coisa.csv'] } }).fetch;
+  try {
+    await assert.rejects(
+      () => ingest.acharNoDiretorio(dir, /^cad_fii.*\.csv$/i),
+      /nenhum arquivo casa/,
+      'a mensagem tem de dizer onde procurou e quantos arquivos viu'
+    );
+  } finally {
+    globalThis.fetch = fetchOriginal;
+  }
 });
 
 test('DRY-RUN não grava, e diz isso', async () => {

@@ -70,26 +70,39 @@ async function baixarCsv(url) {
 }
 
 /**
- * Tenta uma lista de URLs e devolve a primeira que responder, dizendo no log
- * qual foi e por que as outras falharam.
+ * Lista os arquivos de um diretório do portal de dados abertos da CVM.
  *
- * Existe porque um `catch` só, em volta de três downloads diferentes, produz
- * sempre a mesma mensagem — `✗ informe de FII falhou: http_404` — sem dizer
- * QUAL das três URLs deu 404. Foi exatamente esse log que escondeu o
- * problema do FII enquanto o resto do pipeline era depurado.
+ * O portal serve um índice HTML por diretório. Ler o índice em vez de
+ * adivinhar nomes é o que resolve, de uma vez, um problema que já custou
+ * duas rodadas: a CVM renomeia e move arquivos, e uma lista de candidatos
+ * escrita à mão envelhece em silêncio. Os três nomes conhecidos do cadastro
+ * de FII devolveram 404 na execução real — todos.
  */
-async function baixarPrimeiroQueResponder(urls, baixador) {
-  const falhas = [];
-  for (const url of urls) {
-    try {
-      const r = await baixador(url);
-      if (urls.length > 1) log(`    via ${url}`);
-      return { ok: true, dados: r, url };
-    } catch (e) {
-      falhas.push(`${e.message} — ${url}`);
-    }
+async function listarDiretorio(url) {
+  const buf = await baixar(url);
+  const html = buf.toString('latin1');
+  const nomes = new Set();
+  const re = /href\s*=\s*["']([^"'?#]+)["']/gi;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const alvo = m[1].split('/').filter(Boolean).pop();
+    // Só arquivos: entradas de navegação ("../", "?C=N") não interessam.
+    if (alvo && /\.(csv|zip|txt)$/i.test(alvo)) nomes.add(alvo);
   }
-  return { ok: false, falhas };
+  return Array.from(nomes);
+}
+
+/**
+ * Acha, num diretório da CVM, o arquivo que casa com um padrão — o mais
+ * recente quando há vários (o nome traz o ano).
+ */
+async function acharNoDiretorio(dirUrl, padrao) {
+  const nomes = await listarDiretorio(dirUrl);
+  const casam = nomes.filter((n) => padrao.test(n)).sort();
+  if (!casam.length) {
+    throw new Error(`nenhum arquivo casa ${padrao} em ${dirUrl} (${nomes.length} arquivos)`);
+  }
+  return { url: dirUrl + casam[casam.length - 1], nome: casam[casam.length - 1], nomes };
 }
 
 /**
@@ -548,6 +561,7 @@ async function main() {
           // VALUATION e DIVIDENDOS. Se a CVM mudar o plano de contas, é
           // nesta coluna que o travessão aparece — e é o que se confere
           // antes de acreditar num ranking.
+          `PL ${r.absolutos.patrimonioLiquido === null ? '—' : (r.absolutos.patrimonioLiquido / 1e9).toFixed(1) + 'bi'} · ` +
           `LPA ${r.absolutos.lucroPorAcao === null ? '—' : r.absolutos.lucroPorAcao.toFixed(2)} · ` +
           `div ${r.absolutos.dividendosPagos === null ? '—' : (r.absolutos.dividendosPagos / 1e6).toFixed(0) + 'M'}` +
           (r.descartados.length ? ` · ${r.descartados.length} descartado(s)` : '')
@@ -607,23 +621,20 @@ async function main() {
   if (Object.keys(mapaFiis).length) {
     log('\n· Informe mensal de FII…');
     try {
-      // A CVM reorganizou o cadastro de fundos e o nome do arquivo mudou de
-      // lugar mais de uma vez. Tentar os nomes conhecidos e DIZER qual
-      // respondeu é o que impede este bloco de morrer com um 404 anônimo.
-      const rCad = await baixarPrimeiroQueResponder(
-        [
-          `${BASE_FII}/CAD/DADOS/cad_fii.csv`,
-          `${BASE_FII}/CAD/DADOS/registro_fundo.csv`,
-          `${BASE_FII}/CAD/DADOS/cad_fii_hist.csv`,
-        ],
-        baixarCsv
-      );
-      if (!rCad.ok) {
-        log('  ✗ cadastro de FII indisponível em todos os caminhos conhecidos:');
-        for (const f of rCad.falhas) log(`      ${f}`);
-        throw new Error('cadastro_fii_indisponivel');
+      // Descoberto no índice do diretório, não adivinhado: os três nomes
+      // conhecidos deram 404 na execução real, e a CVM renomeia arquivos.
+      let cadFii = null;
+      for (const dir of [`${BASE_FII}/CAD/DADOS/`, `${BASE_FII}/CAD/`]) {
+        try {
+          const achado = await acharNoDiretorio(dir, /^(cad_fii|registro_fundo).*\.csv$/i);
+          log(`  cadastro: ${achado.nome}`);
+          cadFii = await baixarCsv(achado.url);
+          break;
+        } catch (e) {
+          log(`  ! ${dir} — ${e.message}`);
+        }
       }
-      const cadFii = rCad.dados;
+      if (!cadFii) throw new Error('cadastro_fii_indisponivel');
       const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);
       const colCnpjFii = P.acharColuna(cadFii.colunas, ['CNPJ_FUNDO', 'CNPJ_Fundo', 'CNPJ']);
       if (!colNomeFii || !colCnpjFii) {
@@ -638,18 +649,20 @@ async function main() {
         // informe do ano; em janeiro (e enquanto a CVM não publica) a URL
         // devolve 404. Cair para o ano anterior é a diferença entre um
         // informe velho de meses e nenhum informe — e o anterior serve.
-        const anoAtual = new Date().getUTCFullYear();
-        const rInf = await baixarPrimeiroQueResponder(
-          [anoAtual, anoAtual - 1].map(
-            (a) => `${BASE_FII}/DOC/INF_MENSAL/DADOS/inf_mensal_fii_${a}.zip`
-          ),
-          (url) => baixarZipCsvs(url, ['complemento', 'geral', 'ativo_passivo'])
-        );
-        const pacote = rInf.ok ? rInf.dados : null;
+        // O nome traz o ano; ordenar e pegar o último dá o informe mais
+        // recente sem precisar saber que ano a CVM já publicou.
+        const dirInf = `${BASE_FII}/DOC/INF_MENSAL/DADOS/`;
+        let pacote = null;
+        try {
+          const achado = await acharNoDiretorio(dirInf, /^inf_mensal_fii_\d{4}\.zip$/i);
+          log(`  informe: ${achado.nome}`);
+          pacote = await baixarZipCsvs(achado.url, ['complemento', 'geral', 'ativo_passivo']);
+        } catch (e) {
+          log(`  ! informe indisponível em ${dirInf} — ${e.message}`);
+        }
         const compl = pacote && (pacote.csvs.complemento || pacote.csvs.geral);
         if (!pacote) {
-          log('  ✗ nenhum informe mensal de FII nos dois últimos anos:');
-          for (const f of rInf.falhas) log(`      ${f}`);
+          log('  ✗ sem informe mensal de FII neste ciclo');
         } else if (!compl) {
           log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
         } else {
@@ -814,6 +827,8 @@ if (require.main === module) {
 }
 
 module.exports = {
+  listarDiretorio,
+  acharNoDiretorio,
   // `main` é exportada para o teste de fumaça poder rodar o pipeline inteiro
   // contra uma rede simulada. É o único lugar onde o encadeamento
   // FCA → universo → DFP → indicadores → documentos é exercitado junto — e
