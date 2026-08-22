@@ -729,6 +729,24 @@ async function main() {
           const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
           log(`  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}`);
         }
+        // Nenhum casar, com 584 fundos imobiliários na mão, não é "o fundo
+        // não existe" — é o nome procurado não se parecer com o nome
+        // publicado. Mostrar os dois lados é o que evita mais uma rodada de
+        // palpite: foi assim que o 6.03 da Eletrobras e as colunas do
+        // informe se resolveram.
+        if (!casFii.some((c) => c.status === 'ok')) {
+          log(`  ✗ nenhum FII casou. coluna de nome usada: ${colNomeFii}`);
+          log(
+            `    procurando por: ${casFii
+              .map((c) => c.denominacao)
+              .slice(0, 4)
+              .join(' | ')}`
+          );
+          const amostra = cadFii.registros
+            .slice(0, 6)
+            .map((r) => String(r[colNomeFii] || '').slice(0, 40));
+          log(`    nomes publicados (amostra): ${amostra.join(' | ')}`);
+        }
         // O arquivo do ano corrente só passa a existir depois do primeiro
         // informe do ano; em janeiro (e enquanto a CVM não publica) a URL
         // devolve 404. Cair para o ano anterior é a diferença entre um
