@@ -1418,3 +1418,126 @@ test('DY de um mês fora de faixa vira lacuna, não número', () => {
   assert.equal(r.porCnpj.get('97521225000125').dy, null);
   assert.equal(r.porCnpj.get('11728688000147').dyMes, 0.7, 'o resto do arquivo não é afetado');
 });
+
+// ════════════════════════════════════════════
+// Série mensal do FII
+// ════════════════════════════════════════════
+//
+// O ZIP anual traz doze informes de cada fundo. Ler só o último deixava dois
+// indicadores do pilar de dividendos vazios — por falta de dado que já
+// estava na mão.
+
+test('a série mensal responde DY médio e consistência', () => {
+  const serie = [];
+  // 24 meses pagando 0,8% e mais 12 pagando 0,6%: média 12×((0,8×24+0,6×12)/36).
+  for (let i = 0; i < 12; i++) serie.push({ dataReferencia: `2024-${pad(i + 1)}-01`, dyMes: 0.6 });
+  for (let i = 0; i < 12; i++) serie.push({ dataReferencia: `2025-${pad(i + 1)}-01`, dyMes: 0.8 });
+  for (let i = 0; i < 12; i++) serie.push({ dataReferencia: `2026-${pad(i + 1)}-01`, dyMes: 0.8 });
+  const r = P.indicadoresDaSerieFii(serie);
+  assert.equal(r.mesesObservados, 36);
+  assert.ok(Math.abs(r.dyMedio36m - 8.8) < 1e-6, `DY médio anualizado veio ${r.dyMedio36m}`);
+  assert.equal(r.consistenciaDividendos, 100);
+});
+
+test('mês sem rendimento derruba a consistência, não o DY médio', () => {
+  const serie = [];
+  for (let i = 0; i < 24; i++) {
+    serie.push({ dataReferencia: `2025-${pad((i % 12) + 1)}-01`, dyMes: 0 });
+  }
+  // A janela de consistência é 24 meses: seis pagando em doze competências
+  // distintas dá 50%.
+  const s2 = [];
+  for (let i = 0; i < 12; i++) {
+    s2.push({ dataReferencia: `2026-${pad(i + 1)}-01`, dyMes: i % 2 === 0 ? 0.9 : 0 });
+  }
+  const r = P.indicadoresDaSerieFii(s2);
+  assert.equal(r.consistenciaDividendos, 50);
+  assert.ok(Math.abs(r.dyMedio36m - 5.4) < 1e-6, `veio ${r.dyMedio36m}`);
+});
+
+test('reenvio do mesmo mês conta uma vez só', () => {
+  const r = P.indicadoresDaSerieFii([
+    { dataReferencia: '2026-01-01', dyMes: 0.5 },
+    { dataReferencia: '2026-01-31', dyMes: 0.9 },
+    { dataReferencia: '2026-02-01', dyMes: 0.9 },
+  ]);
+  assert.equal(r.mesesObservados, 2, 'janeiro reenviado é um mês, não dois');
+  assert.ok(Math.abs(r.dyMedio36m - 10.8) < 1e-6, 'vale o último informe da competência');
+});
+
+test('série vazia não inventa média', () => {
+  const r = P.indicadoresDaSerieFii([]);
+  assert.equal(r.dyMedio36m, null);
+  assert.equal(r.consistenciaDividendos, null);
+  assert.equal(r.mesesObservados, 0);
+});
+
+function pad(n) {
+  return String(n).padStart(2, '0');
+}
+
+test('a escala declarada é aplicada à quantidade de ações', () => {
+  const cab =
+    'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;ESCALA_QUANTIDADE;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
+  const csv = [
+    cab,
+    // Eletrobras, como está no arquivo: 2.028.544 em MILHARES.
+    `00.000.000/0001-91;2025-12-31;1;ELETROBRAS;2437;2025-12-31;MIL;2028544;886884;0;0`,
+    // Banco do Brasil, no mesmo arquivo, em UNIDADES.
+    `00.000.000/0001-92;2025-12-31;1;BANCO DO BRASIL;1023;2025-12-31;UNIDADE;5730000000;0;0;0`,
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const cap = P.extrairComposicaoCapital(parsed.registros, parsed.colunas);
+
+  const elet = cap.porChave.get('cnpj:00000000000191');
+  assert.equal(elet.acoesEmCirculacao, 2915428000, 'milhares: 2.028.544 mil = 2,03 bi de ON');
+  assert.equal(elet.escalaAplicada, 1000);
+  const bbas = cap.porChave.get('cnpj:00000000000192');
+  assert.equal(bbas.acoesEmCirculacao, 5730000000, 'unidades ficam como estão');
+  assert.equal(bbas.escalaAplicada, 1);
+});
+
+test('sem coluna de escala, a contagem fica como está — e o fato é observável', () => {
+  const csv = [
+    'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA',
+    '00.000.000/0001-91;2025-12-31;1;X;1023;2025-12-31;2000000000;0;0;0',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const cap = P.extrairComposicaoCapital(parsed.registros, parsed.colunas);
+  assert.equal(cap.porChave.get('cnpj:00000000000191').acoesEmCirculacao, 2000000000);
+  assert.ok(
+    cap.faltando.includes('escalaQuantidade'),
+    'a ausência da coluna precisa ser reportável — é ela que denuncia 1000×'
+  );
+});
+
+test('classe negociada em bolsa desempata a raiz partilhada', () => {
+  // Achado da execução real: XPML11 casou com dois CNPJs e o vencedor foi
+  // decidido pela ordem do arquivo — que não é critério nenhum. O ticker
+  // designa a classe NEGOCIADA, e a fonte diz qual é.
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '11.111.111/0001-11;2026-07-01;CLASSE NAO NEGOCIADA;BRXPMLCTF001;N',
+    '22.222.222/0001-22;2026-07-01;XP MALLS FII;BRXPMLCTF001;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'XPML11');
+  assert.equal(f.cnpj, '22222222000122', 'a classe em bolsa é a do ticker');
+  assert.equal(f.ambiguo, false);
+  assert.equal(f.desempate, 'bolsa');
+});
+
+test('sem critério de desempate a ambiguidade fica, com os candidatos à vista', () => {
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '11.111.111/0001-11;2026-07-01;UM;BRXPMLCTF001;S',
+    '22.222.222/0001-22;2026-07-01;OUTRO;BRXPMLCTF001;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'XPML11');
+  assert.equal(f.ambiguo, true, 'duas em bolsa: não há como escolher');
+  assert.equal(f.candidatos.length, 2, 'os dois lados têm de ficar visíveis');
+  assert.deepEqual(f.candidatos.map((c) => c.nome).sort(), ['OUTRO', 'UM']);
+});

@@ -154,19 +154,25 @@ function dfpCsv(qual, ano, opcoes) {
 // companhias do fixture têm ON e PN — o caso em que `lucro ÷ LPA` NÃO
 // resolve, e que na execução real deixava a valuation em 5 de 14.
 const CAB_CAPITAL =
-  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
+  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;ESCALA_QUANTIDADE;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
 
 function capitalCsv(ano, opcoes) {
   const op = opcoes || {};
-  // Contagem minúscula para uma companhia com patrimônio de bilhões: é o
-  // formato do defeito que a execução real mostrou na Eletrobras.
-  const onA = op.absurdo ? '150000' : '2000000000';
-  const pnA = op.absurdo ? '0' : '900000000';
-  const tesA = op.absurdo ? '0;0' : '50000000;10000000';
+  // As DUAS escalas no MESMO arquivo, como na CVM de verdade: a Eletrobras
+  // declara em milhares (2.028.544 = 2,03 bi) e o Banco do Brasil em
+  // unidades. Ignorar a escala fazia a primeira sair mil vezes menor, com
+  // um número plausível e sem erro nenhum.
+  //
+  // No cenário "absurdo" a contagem é minúscula MESMO em unidades: é o que
+  // a trava do patrimônio ainda tem de recusar depois da escala aplicada.
+  const escalaA = op.absurdo ? 'UNIDADE' : 'MIL';
+  const onA = op.absurdo ? '150000' : '2028544';
+  const pnA = op.absurdo ? '0' : '886884';
+  const tesA = op.absurdo ? '0;0' : '50000;10000';
   return [
     CAB_CAPITAL,
-    `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;1023;${ano}-12-31;${onA};${pnA};${tesA}`,
-    `${CNPJ_B};${ano}-12-31;1;COMPANHIA TESTE S.A.;5410;${ano}-12-31;800000000;0;0;0`,
+    `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;1023;${ano}-12-31;${escalaA};${onA};${pnA};${tesA}`,
+    `${CNPJ_B};${ano}-12-31;1;COMPANHIA TESTE S.A.;5410;${ano}-12-31;UNIDADE;800000000;0;0;0`,
   ].join('\n');
 }
 
@@ -181,33 +187,49 @@ function capitalCsv(ano, opcoes) {
 const CNPJ_MXRF = '97.521.225/0001-25';
 const CNPJ_HGLG = '11.728.688/0001-47';
 
+function dataDa(competencia) {
+  return `${competencia.slice(0, 4)}-${competencia.slice(4)}-01`;
+}
+
 function informeGeral(competencia) {
   const recente = competencia === '202607';
+  const data = dataDa(competencia);
   return [
     'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Patrimonio_Liquido;Cotas_Emitidas;Total_Numero_Cotistas',
-    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};MAXI RENDA FUNDO DE INVESTIMENTO IMOBILIARIO;BRMXRFCTF004;${recente ? '1600000000' : '1500000000'};${recente ? '160000000' : '150000000'};${recente ? '480000' : '450000'}`,
-    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};CSHG LOGISTICA - FII;BRHGLGCTF003;4000000000;30000000;120000`,
+    `${CNPJ_MXRF};${data};MAXI RENDA FUNDO DE INVESTIMENTO IMOBILIARIO;BRMXRFCTF004;${recente ? '1600000000' : '1500000000'};${recente ? '160000000' : '150000000'};${recente ? '480000' : '450000'}`,
+    `${CNPJ_HGLG};${data};CSHG LOGISTICA - FII;BRHGLGCTF003;4000000000;30000000;120000`,
   ].join('\n');
 }
 
 function informeComplemento(competencia) {
-  const recente = competencia === '202607';
+  // 2025 rendeu menos que 2026, e num mês o Maxi Renda não pagou: é o que
+  // torna DY médio e consistência distinguíveis de "o último mês repetido".
+  const ano = competencia.slice(0, 4);
+  const mes = competencia.slice(4);
+  const dyMxrf = ano === '2025' ? '0,0060' : mes === '07' ? '0,0085' : '0';
+  const data = dataDa(competencia);
   return [
     'CNPJ_Fundo;Data_Referencia;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
-    `${CNPJ_MXRF};${recente ? '2026-07-31' : '2026-01-31'};10,00;${recente ? '0,0085' : '0,0070'}`,
-    `${CNPJ_HGLG};${recente ? '2026-07-31' : '2026-01-31'};133,33;0,0075`,
+    `${CNPJ_MXRF};${data};10,00;${dyMxrf}`,
+    `${CNPJ_HGLG};${data};133,33;0,0075`,
   ].join('\n');
 }
 
-function informeZip() {
+function informeZip(ano) {
+  const meses = ['01', '07'];
+  const membros = [];
   // Fora de ordem de propósito: quem escolhe o mês é a data de referência,
   // não a ordem do arquivo.
-  return zipar([
-    ['inf_mensal_fii_geral_202607.csv', informeGeral('202607')],
-    ['inf_mensal_fii_complemento_202601.csv', informeComplemento('202601')],
-    ['inf_mensal_fii_geral_202601.csv', informeGeral('202601')],
-    ['inf_mensal_fii_complemento_202607.csv', informeComplemento('202607')],
-  ]);
+  for (const mes of meses.slice().reverse()) {
+    membros.push([`inf_mensal_fii_geral_${ano}${mes}.csv`, informeGeral(`${ano}${mes}`)]);
+  }
+  for (const mes of meses) {
+    membros.push([
+      `inf_mensal_fii_complemento_${ano}${mes}.csv`,
+      informeComplemento(`${ano}${mes}`),
+    ]);
+  }
+  return zipar(membros);
 }
 
 // ── Rede simulada ──
@@ -254,7 +276,9 @@ function montarFetch(opcoes) {
       }
       if (u.includes('/FII/DOC/INF_MENSAL/DADOS/inf_mensal_fii_')) {
         if (!op.informeFii) return naoAchado;
-        return responder(informeZip());
+        const ano = u.match(/inf_mensal_fii_(\d{4})\.zip/);
+        if (!ano) return naoAchado;
+        return responder(informeZip(ano[1]));
       }
       // Índice de diretório da CVM, como o portal serve: HTML com links.
       if (op.indice && u.endsWith('/')) {
@@ -355,8 +379,10 @@ test('a contagem de ações DECLARADA vence a derivada por LPA', async () => {
     anosDfp: [ANO_BASE],
   });
   assert.match(texto, /composição do capital: 2 companhias/);
-  // 2.000.000.000 ON + 900.000.000 PN − 60.000.000 em tesouraria = 2,84 bi
-  assert.match(texto, /ações 2\.84bi cap/, 'a contagem sai da composição, não do LPA');
+  // Em MILHARES, como a Eletrobras declara: 2.028.544 ON + 886.884 PN −
+  // 60.000 em tesouraria, tudo ×1000 → 2,86 bi. Sem aplicar a escala daria
+  // 2,86 M — mil vezes menos, e plausível o bastante para ninguém olhar.
+  assert.match(texto, /ações 2\.86bi cap/, 'a escala declarada não foi aplicada');
   assert.ok(!/ações .*bi lpa/.test(texto), 'com a declarada em mãos, ninguém deriva');
   assert.match(texto, /2 pela composição do capital, 0 pelo LPA/);
 });
@@ -489,8 +515,8 @@ test('FII casa pelo ISIN publicado e traz o mês mais recente do ZIP', async () 
   assert.match(texto, /MXRF11\s+MAXI RENDA/, `MXRF11 não casou:\n${texto}`);
   assert.match(texto, /HGLG11\s+CSHG LOGISTICA/, `HGLG11 não casou:\n${texto}`);
   // O mês: janeiro está no ZIP e não pode ser o escolhido.
-  assert.match(texto, /MXRF11\s+2026-07-31/, `mês errado:\n${texto}`);
-  assert.ok(!/MXRF11\s+2026-01-31/.test(texto), `pegou janeiro:\n${texto}`);
+  assert.match(texto, /MXRF11\s+2026-07-01/, `mês errado:\n${texto}`);
+  assert.ok(!/MXRF11\s+2026-01-01/.test(texto), `pegou janeiro:\n${texto}`);
   // Patrimônio e DY do mês certo, e de MEMBROS DIFERENTES do ZIP: o
   // patrimônio vem do `geral`, o DY do `complemento`. Ler um só arquivo
   // deixaria metade dos campos vazia.
@@ -514,4 +540,49 @@ test('sem informe de FII o pipeline segue e diz o que faltou', async () => {
   assert.match(texto, /informe indisponível|informe de FII falhou/, texto);
   // As ações não podem cair junto: são pipelines independentes.
   assert.match(texto, /documentos prontos/, `o pipeline parou no FII:\n${texto}`);
+});
+
+test('a série mensal atravessa anos e alimenta DY médio e consistência', async () => {
+  // Dois anos de informe, dois meses cada. O Maxi Renda pagou em três das
+  // quatro competências: é o que separa "consistência" de "o último mês
+  // repetido quatro vezes".
+  const { texto } = await rodar(['--dry-run', '--anos=2'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE, ANO_BASE - 1],
+    informeFii: true,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': [
+        'inf_mensal_fii_2024.zip',
+        'inf_mensal_fii_2025.zip',
+        'inf_mensal_fii_2026.zip',
+      ],
+    },
+  });
+
+  // Só os dois anos mais recentes são baixados — a janela segue `--anos`.
+  assert.match(texto, /informe: inf_mensal_fii_2025\.zip, inf_mensal_fii_2026\.zip/, texto);
+  // Quatro competências observadas, três pagando: 75%.
+  assert.match(texto, /MXRF11[\s\S]{0,200}?série 4 meses/, `série não acumulou:\n${texto}`);
+  assert.match(texto, /pagando 75% dos meses/, `consistência errada:\n${texto}`);
+  // DY médio: (0,60 + 0,60 + 0 + 0,85) / 4 × 12 = 6,15% ao ano. Sem a série,
+  // este indicador ficava vazio e o pilar de dividendos do FII com um
+  // indicador só.
+  assert.match(texto, /DY médio 6\.15%/, `DY médio errado:\n${texto}`);
+  // O último mês continua descrevendo o fundo hoje — a série não o move.
+  assert.match(texto, /MXRF11\s+2026-07-01/, texto);
+});
+
+test('escalas diferentes no mesmo arquivo, cada companhia com a sua', async () => {
+  // O achado da execução real: a Eletrobras declara a quantidade em
+  // milhares e o Banco do Brasil em unidades, no MESMO arquivo. Supor uma
+  // das duas erra a outra por mil — e o erro é silencioso, com número
+  // plausível. A escala tem de ser lida linha a linha.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+  });
+  assert.match(texto, /ações 2\.86bi cap/, 'a companhia em MILHARES');
+  assert.match(texto, /ações 0\.80bi cap/, 'a companhia em UNIDADES, na mesma execução');
+  // Com a escala aplicada, nenhuma das duas é recusada pela trava.
+  assert.ok(!/contagem declarada recusada/.test(texto), `recusou uma boa:\n${texto}`);
 });

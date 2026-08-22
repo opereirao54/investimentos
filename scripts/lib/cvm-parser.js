@@ -847,12 +847,16 @@ function extrairInformeFii(registros, colunas) {
   const escalaDy = escalaDoDividendYield(registros, cols.dividendYieldMes);
 
   const porCnpj = new Map();
+  // A SÉRIE, não só o último mês. O ZIP anual traz doze informes de cada
+  // fundo e o job já os lê todos: descartá-los deixaria dois indicadores do
+  // pilar de dividendos vazios por falta de dado que está na mão.
+  const seriePorCnpj = new Map();
   for (const r of registros) {
     const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
     if (cnpj.length !== 14) continue;
     const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
     const anterior = porCnpj.get(cnpj);
-    if (anterior && anterior.dataReferencia >= data) continue;
+    const maisVelho = anterior && anterior.dataReferencia >= data;
 
     const num = (campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
     // Fora de [0; 5] não é DY de um mês: vira lacuna, nunca número.
@@ -863,6 +867,16 @@ function extrairInformeFii(registros, colunas) {
     const dyMesPct = dyEscalado !== null && dyEscalado >= 0 && dyEscalado <= 5 ? dyEscalado : null;
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
+
+    if (dyMesPct !== null && data) {
+      const serie = seriePorCnpj.get(cnpj) || [];
+      serie.push({ dataReferencia: data, dyMes: dyMesPct });
+      seriePorCnpj.set(cnpj, serie);
+    }
+    // O mês mais recente descreve o fundo hoje; os anteriores só alimentam a
+    // série. Sem esta guarda um reenvio antigo sobrescreveria o atual.
+    if (maisVelho) continue;
+
     porCnpj.set(cnpj, {
       cnpj,
       dataReferencia: data || null,
@@ -881,8 +895,55 @@ function extrairInformeFii(registros, colunas) {
       dyMes: dyMesPct,
     });
   }
-  return { porCnpj, faltando, colunas: cols, escalaDy };
+  return { porCnpj, seriePorCnpj, faltando, colunas: cols, escalaDy };
 }
+
+/**
+ * Indicadores que só a SÉRIE mensal responde.
+ *
+ * O motor pontua "DY médio (36 meses)" e "meses pagando (24m)" — duas
+ * perguntas sobre consistência, que um informe isolado não responde e que
+ * ficavam vazias enquanto o job lia um mês só.
+ *
+ * Ambos saem de dado publicado, sem estimar nada. O que NÃO sai daqui é o
+ * crescimento do dividendo: o informe publica o yield (rendimento ÷ preço),
+ * e a variação do yield confunde mudança de rendimento com mudança de
+ * preço. Fica nulo — inventá-lo seria pior do que não tê-lo.
+ *
+ * A janela é a dos meses observados, e o número deles vai junto: "média de
+ * 8 meses" e "média de 36" não merecem a mesma confiança, e quem lê precisa
+ * poder distinguir.
+ */
+function indicadoresDaSerieFii(serie, opcoes) {
+  const op = opcoes || {};
+  const janelaDy = op.janelaDy || 36;
+  const janelaConsistencia = op.janelaConsistencia || 24;
+  if (!Array.isArray(serie) || !serie.length) {
+    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: 0 };
+  }
+  // Um mês pode ser reenviado: vale um informe por competência, o último.
+  const porMes = new Map();
+  for (const p of serie) {
+    const mes = String(p.dataReferencia).slice(0, 7);
+    porMes.set(mes, p.dyMes);
+  }
+  const meses = Array.from(porMes.keys()).sort();
+
+  const ultimosDy = meses.slice(-janelaDy).map((m) => porMes.get(m));
+  const dyMedio36m = ultimosDy.length
+    ? Math.round((ultimosDy.reduce((a, b) => a + b, 0) / ultimosDy.length) * 12 * 1e4) / 1e4
+    : null;
+
+  const ultimosCons = meses.slice(-janelaConsistencia);
+  const pagando = ultimosCons.filter((m) => porMes.get(m) > 0).length;
+  const consistenciaDividendos = ultimosCons.length
+    ? Math.round((pagando / ultimosCons.length) * 1000) / 10
+    : null;
+
+  return { dyMedio36m, consistenciaDividendos, mesesObservados: meses.length };
+}
+
+module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
 
 /**
  * Razão ou percentagem? Decidido pela mediana dos valores positivos do
@@ -951,6 +1012,11 @@ const COLUNAS_VINCULO_FII = {
     'Ticker',
   ],
   isin: ['Codigo_ISIN', 'CODIGO_ISIN', 'Codigo_Isin', 'ISIN'],
+  // Desempate: sob a RCVM 175 um fundo tem classes, e mais de uma pode
+  // carregar a mesma raiz de ISIN. Só uma é negociada em bolsa, e é essa
+  // que o ticker designa. A execução real mostrou o risco: XPML11 casou com
+  // dois CNPJs e o vencedor foi decidido pela ordem do arquivo.
+  negociaBolsa: ['Mercado_Negociacao_Bolsa', 'MERCADO_NEGOCIACAO_BOLSA'],
 };
 
 // `CTF` = cota de fundo. Restringir ao tipo evita casar a raiz de um ISIN de
@@ -985,7 +1051,10 @@ function vincularFiiPorCodigo(registros, colunas) {
   const usarCodigo = !!cols.codigoNegociacao;
   if (!usarCodigo && !cols.isin) return vazio;
 
-  const porCodigo = new Map();
+  // Um código pode ter vários candidatos (classes do mesmo fundo, sucessão).
+  // Reunir TODOS antes de escolher é o que permite desempatar por critério
+  // em vez de por ordem do arquivo — que não é critério nenhum.
+  const candidatosPorCodigo = new Map();
   let total = 0;
   for (const r of registros || []) {
     const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
@@ -1002,21 +1071,53 @@ function vincularFiiPorCodigo(registros, colunas) {
 
     total += 1;
     const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
-    const anterior = porCodigo.get(codigo);
-    if (anterior) {
-      if (anterior.cnpj !== cnpj) anterior.ambiguo = true;
-      if (anterior.dataReferencia && anterior.dataReferencia >= data) continue;
+    const bolsa = cols.negociaBolsa
+      ? normalizarChave(r[cols.negociaBolsa]) === 'S' ||
+        normalizarChave(r[cols.negociaBolsa]) === 'SIM'
+      : null;
+    const porCnpj = candidatosPorCodigo.get(codigo) || new Map();
+    const anterior = porCnpj.get(cnpj);
+    if (!anterior || !anterior.dataReferencia || anterior.dataReferencia < data) {
+      porCnpj.set(cnpj, {
+        codigo,
+        cnpj,
+        isin: isin || null,
+        nome: cols.nome ? String(r[cols.nome] || '').trim() || null : null,
+        dataReferencia: data || null,
+        bolsa,
+        via: direto.length >= 4 ? 'codigo_negociacao' : 'isin',
+      });
     }
+    candidatosPorCodigo.set(codigo, porCnpj);
+  }
+
+  const porCodigo = new Map();
+  for (const [codigo, porCnpj] of candidatosPorCodigo) {
+    const candidatos = Array.from(porCnpj.values());
+    let escolhidos = candidatos;
+    let desempate = null;
+    if (candidatos.length > 1) {
+      // O ticker designa a classe NEGOCIADA. Quando a fonte diz quais são,
+      // isso resolve sozinho e sem heurística de nome.
+      const emBolsa = candidatos.filter((c) => c.bolsa === true);
+      if (emBolsa.length === 1) {
+        escolhidos = emBolsa;
+        desempate = 'bolsa';
+      }
+    }
+    const vencedor = escolhidos
+      .slice()
+      .sort((a, b) =>
+        String(b.dataReferencia || '').localeCompare(String(a.dataReferencia || ''))
+      )[0];
     porCodigo.set(codigo, {
-      codigo,
-      cnpj,
-      isin: isin || null,
-      nome: cols.nome ? String(r[cols.nome] || '').trim() || null : null,
-      dataReferencia: data || null,
-      via: direto.length >= 4 ? 'codigo_negociacao' : 'isin',
-      ambiguo: anterior ? anterior.ambiguo === true : false,
+      ...vencedor,
+      ambiguo: escolhidos.length > 1,
+      desempate,
+      candidatos: candidatos.map((c) => ({ cnpj: c.cnpj, nome: c.nome, bolsa: c.bolsa })),
     });
   }
+
   const via = usarCodigo && total ? 'codigo_negociacao' : total ? 'isin' : null;
   return {
     via,
@@ -1077,6 +1178,13 @@ const COLUNAS_CAPITAL = {
   ],
   ordinariasTesouraria: ['QT_ACAO_ORDIN_TESOURARIA', 'Quantidade_Acao_Ordinaria_Tesouraria'],
   preferenciaisTesouraria: ['QT_ACAO_PREF_TESOURARIA', 'Quantidade_Acao_Preferencial_Tesouraria'],
+  // A ESCALA da quantidade, declarada linha a linha. Ignorá-la fazia a
+  // Eletrobras sair com 2,92 M de ações para 118,5 bi de patrimônio —
+  // R$ 40.646 por ação. O arquivo dizia 2.028.544 ON, em MILHARES: 2,03 bi,
+  // que é a contagem real. E o Banco do Brasil, na mesma execução, saiu
+  // certo sem escala nenhuma: as duas convivem no mesmo arquivo, e é por
+  // isso que a escala tem de ser LIDA, nunca suposta.
+  escalaQuantidade: ['ESCALA_QUANTIDADE', 'ESCALA_MOEDA', 'ESCALA'],
 };
 
 /**
@@ -1129,16 +1237,18 @@ function extrairComposicaoCapital(registros, colunas) {
   for (const r of registros || []) {
     const chaves = chavesDaLinha(r);
     const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
-    const on = num(r, 'ordinarias');
-    if (on === null) {
+    const bruto = num(r, 'ordinarias');
+    if (bruto === null) {
       anotar(chaves, { data: data || null, motivo: 'sem_quantidade_ordinaria' });
       continue;
     }
-    const pn = num(r, 'preferenciais') || 0;
-    const onTes = num(r, 'ordinariasTesouraria') || 0;
-    const pnTes = num(r, 'preferenciaisTesouraria') || 0;
+    const escala = cols.escalaQuantidade ? fatorEscala(r[cols.escalaQuantidade]) : 1;
+    const on = bruto * escala;
+    const pn = (num(r, 'preferenciais') || 0) * escala;
+    const onTes = (num(r, 'ordinariasTesouraria') || 0) * escala;
+    const pnTes = (num(r, 'preferenciaisTesouraria') || 0) * escala;
     const circulacao = on + pn - onTes - pnTes;
-    anotar(chaves, { data: data || null, on, pn, onTes, pnTes, circulacao });
+    anotar(chaves, { data: data || null, on, pn, onTes, pnTes, circulacao, escala });
     // Uma companhia aberta tem mais do que cem mil ações. Abaixo disso é
     // linha de outra natureza, não a composição do capital.
     if (!(circulacao >= 1e5)) continue;
@@ -1148,6 +1258,7 @@ function extrairComposicaoCapital(registros, colunas) {
       acoesPreferenciais: pn,
       acoesTesouraria: onTes + pnTes,
       acoesEmCirculacao: circulacao,
+      escalaAplicada: escala,
       dataReferencia: data || null,
     };
     for (const chave of chaves) {

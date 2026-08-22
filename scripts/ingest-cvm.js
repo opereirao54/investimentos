@@ -628,6 +628,17 @@ async function main() {
         // CD_CVM, e o mapa tem o dobro de entradas. Um log que diz 4 onde há
         // 2 é a mesma família de erro que este PR passou o dia corrigindo.
         log(`  composição do capital: ${new Set(cap.porChave.values()).size} companhias`);
+        // Sem a coluna de escala, TODA companhia que declara em milhares sai
+        // mil vezes menor — silenciosamente, com um número plausível. É o
+        // defeito que a Eletrobras expôs, e ele volta se a CVM renomear a
+        // coluna. Nomear as colunas reais é o que permite corrigir numa
+        // linha em vez de reabrir a investigação.
+        if (!cap.colunas.escalaQuantidade) {
+          log(
+            '  ! composição do capital sem coluna de escala — contagens em milhares sairão 1000× menores'
+          );
+          log(`    colunas reais: ${pacote.csvs.composicao_capital.colunas.join(', ')}`);
+        }
         capitalPorChave = cap.porChave;
         capitalLinhasPorChave = cap.linhasPorChave || new Map();
       }
@@ -691,7 +702,8 @@ async function main() {
       if (vpa !== null && (vpa < 0.01 || vpa > 10000)) {
         log(
           `  ! ${emp.tickers[0]}: contagem declarada recusada — ` +
-            `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações para ` +
+            `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações ` +
+            `(escala ${capitalDaEmpresa.escalaAplicada}×) para ` +
             `PL de ${(pl / 1e9).toFixed(1)}bi dá R$ ${vpa.toFixed(0)} por ação`
         );
         // A recusa protege o ranking, mas não explica o arquivo. Estas são
@@ -706,6 +718,7 @@ async function main() {
               (l.motivo
                 ? l.motivo
                 : `ON ${l.on} · PN ${l.pn} · tes ${l.onTes + l.pnTes} → ${l.circulacao}` +
+                  ` (escala ${l.escala}×)` +
                   (l.circulacao >= 1e5 ? '' : ' (descartada: abaixo de 100 mil)'))
           );
         }
@@ -844,19 +857,39 @@ async function main() {
       // listados; manter o caminho seria manter um passo que já provou não
       // entregar nada, e uma leitura de 46 mil linhas por execução.
       const dirInf = `${BASE_FII}/DOC/INF_MENSAL/DADOS/`;
-      let pacote = null;
+      // Vários ANOS, não só o corrente. O motor pontua "DY médio (36 meses)"
+      // e "meses pagando (24m)" — duas perguntas sobre consistência que um
+      // ano isolado não responde, e que ficavam vazias por falta de um dado
+      // publicado ao lado do que já era lido.
+      const pacotes = [];
       try {
         const achado = await acharNoDiretorio(dirInf, /^inf_mensal_fii_\d{4}\.zip$/i);
-        log(`  informe: ${achado.nome}`);
-        pacote = await baixarZipCsvs(achado.url, ['geral', 'complemento', 'ativo_passivo']);
+        const anosInforme = achado.nomes
+          .filter((nome) => /^inf_mensal_fii_\d{4}\.zip$/i.test(nome))
+          .sort()
+          .slice(-anosAtras);
+        log(`  informe: ${anosInforme.join(', ')}`);
+        for (const nome of anosInforme) {
+          try {
+            pacotes.push(
+              await baixarZipCsvs(dirInf + nome, ['geral', 'complemento', 'ativo_passivo'])
+            );
+          } catch (e) {
+            // Um ano indisponível encurta a janela, não derruba o resto.
+            log(`  ! ${nome} — ${e.message}`);
+          }
+        }
       } catch (e) {
         log(`  ! informe indisponível em ${dirInf} — ${e.message}`);
         // Diretório mudou de lugar é falha diferente de arquivo ausente, e
         // exige correção diferente. Subir a árvore diz qual das duas é.
         await diagnosticarArvore(dirInf);
       }
-      if (!pacote) throw new Error('sem_informe_mensal');
+      if (!pacotes.length) throw new Error('sem_informe_mensal');
 
+      // O ano corrente descreve o fundo hoje; os anteriores só alimentam a
+      // série. Vem por último na lista ordenada.
+      const pacote = pacotes[pacotes.length - 1];
       const membros = ['geral', 'complemento', 'ativo_passivo']
         .map((chave) => [chave, pacote.csvs[chave]])
         .filter((par) => par[1] && par[1].registros && par[1].registros.length);
@@ -903,12 +936,25 @@ async function main() {
           chave: achado.cnpj,
           casouCom: achado.nome || achado.isin || achado.cnpj,
           via: achado.via,
+          desempate: achado.desempate,
+          candidatos: achado.candidatos,
           denominacao: info.denominacao,
         };
       });
       for (const c of casFii) {
         const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
-        log(`  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}`);
+        log(
+          `  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}` +
+            (c.desempate ? ` (desempatado por ${c.desempate})` : '')
+        );
+        // Ambiguidade pula o ticker — e sem ver os candidatos ninguém sabe
+        // se falta um critério de desempate ou se a raiz está sendo
+        // partilhada por engano.
+        if (c.status === 'ambiguo' && c.candidatos) {
+          for (const cand of c.candidatos) {
+            log(`       candidato ${cand.cnpj} · bolsa ${cand.bolsa} · ${cand.nome || '—'}`);
+          }
+        }
       }
       if (!casFii.some((c) => c.status === 'ok')) {
         // O índice existe e nenhum ticker está nele: ou o padrão do código
@@ -931,6 +977,25 @@ async function main() {
       // execução.
       const porCnpj = new Map();
       const achadas = new Set();
+      // A série atravessa ANOS e MEMBROS: cada ZIP traz doze meses, e o
+      // dividend yield mora só no `complemento`. Acumular tudo antes de
+      // calcular é o que torna a janela de 36 meses possível.
+      const seriePorCnpj = new Map();
+      const empilharSerie = (parcial) => {
+        for (const [cnpj, pontos] of parcial.seriePorCnpj || new Map()) {
+          const acum = seriePorCnpj.get(cnpj) || [];
+          for (const ponto of pontos) acum.push(ponto);
+          seriePorCnpj.set(cnpj, acum);
+        }
+      };
+      for (const pct of pacotes) {
+        if (pct === pacote) continue;
+        for (const chave of ['geral', 'complemento', 'ativo_passivo']) {
+          const csv = pct.csvs[chave];
+          if (!csv || !csv.registros || !csv.registros.length) continue;
+          empilharSerie(P.extrairInformeFii(csv.registros, csv.colunas));
+        }
+      }
       for (const [nome, csv] of membros) {
         const parcial = P.extrairInformeFii(csv.registros, csv.colunas);
         for (const campo of Object.keys(parcial.colunas || {})) {
@@ -946,6 +1011,7 @@ async function main() {
               (esc.fator === 100 ? 'razão, convertido para %' : 'já em %')
           );
         }
+        empilharSerie(parcial);
         for (const [cnpj, inf] of parcial.porCnpj) {
           const acum = porCnpj.get(cnpj);
           if (!acum) {
@@ -990,11 +1056,16 @@ async function main() {
           'valorPatrimonialCota',
           'dy',
         ].filter((k) => inf[k] !== null && inf[k] !== undefined).length;
+        const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
           `    ${c.ticker.padEnd(8)} ${inf.dataReferencia || '—'} · PL ${bi(inf.patrimonioLiquido)}` +
             ` · VPC ${inf.valorPatrimonialCota ?? '—'} · DY ${inf.dyMes ?? '—'}%/mês` +
             ` · cotistas ${inf.numeroCotistas ?? '—'} · ocupação ${inf.ocupacao ?? '—'}`
+        );
+        log(
+          `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
+            ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses`
         );
         if (!preenchidos) continue;
         documentos.push({
@@ -1011,6 +1082,11 @@ async function main() {
             numeroCotas: inf.numeroCotas,
             dy: inf.dy,
             dyMes: inf.dyMes,
+            // Da série mensal, não de um informe isolado: são as duas
+            // perguntas de consistência que o pilar de dividendos faz.
+            dyMedio36m: serie.dyMedio36m,
+            consistenciaDividendos: serie.consistenciaDividendos,
+            mesesObservados: serie.mesesObservados,
             classe: 'fii',
             fonte: 'cvm',
             fonteRotulo: `Informe Mensal · CVM${inf.dataReferencia ? ` (${inf.dataReferencia})` : ''}`,
