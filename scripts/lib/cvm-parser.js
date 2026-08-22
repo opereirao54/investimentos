@@ -216,9 +216,10 @@ function fatorEscala(escala) {
  * Valor de uma conta dentro de um conjunto de linhas já filtrado por
  * empresa e exercício. Tenta o código; se não achar, cai na descrição.
  */
-function valorDaConta(linhas, cols, conta) {
+function valorDaConta(linhas, cols, conta, opcoes) {
   const spec = CONTAS[conta];
   if (!spec) return null;
+  const soDescricao = !!(opcoes && opcoes.soDescricao);
 
   const porCodigo = () => {
     for (const codigo of spec.codigos) {
@@ -247,10 +248,54 @@ function valorDaConta(linhas, cols, conta) {
     return null;
   };
 
+  // Fora do plano padrão, o código não é reserva — é armadilha: devolve o
+  // valor de OUTRA conta que calha no mesmo número. Ver `planoDaEmpresa`.
+  if (soDescricao) return porDescricao();
   // Ordem invertida para as contas marcadas: ver o comentário em CONTAS.
   const primeiro = spec.porDescricao ? porDescricao() : porCodigo();
   if (primeiro !== null) return primeiro;
   return spec.porDescricao ? porCodigo() : porDescricao();
+}
+
+/**
+ * Qual plano de contas a companhia usou — e, por tabela, quais indicadores
+ * fazem sentido para ela.
+ *
+ * O plano padrão separa o balanço em circulante e não circulante. Banco e
+ * seguradora NÃO fazem essa separação: o balanço deles é outro, e os códigos
+ * `1.01`, `2.01`, `2.03` apontam contas diferentes. Isto identifica o caso
+ * pelo próprio arquivo, sem lista de setor escrita à mão — que envelheceria
+ * como toda lista escrita à mão neste projeto.
+ *
+ * O efeito prático, medido: o Banco do Brasil aparecia com dívida
+ * líquida/EBITDA de 12,49x. Um banco não tem "dívida líquida" nesse sentido
+ * nem EBITDA — a intermediação financeira É a operação dele. O número saía
+ * de contas que existem no código mas significam outra coisa, e um número
+ * sem sentido no ranking é pior do que a ausência dele.
+ */
+function planoDaEmpresa(blocos, cols) {
+  if (!cols.descricaoConta) return 'padrao';
+  const descricoes = []
+    .concat(blocos.bpa || [], blocos.bpp || [])
+    .map((l) => normalizarTexto(l[cols.descricaoConta]));
+  const temCirculante = descricoes.some(
+    (ds) => ds.startsWith('ativo circulante') || ds.startsWith('passivo circulante')
+  );
+  if (temCirculante) return 'padrao';
+  // EXIGE SINAL POSITIVO. Classificar como financeiro pela mera ausência da
+  // linha de circulante transformaria qualquer balanço truncado em banco — e
+  // ausência de evidência não é evidência. Estas contas só existem no plano
+  // das instituições financeiras.
+  const MARCAS_FINANCEIRO = [
+    'interfinanceir',
+    'operacoes de credito',
+    'captacoes no mercado aberto',
+    'recursos de aceites',
+    'provisoes tecnicas',
+    'depositos',
+  ];
+  const temMarca = descricoes.some((ds) => MARCAS_FINANCEIRO.some((m) => ds.includes(m)));
+  return temMarca ? 'financeiro' : 'padrao';
 }
 
 /**
@@ -268,10 +313,15 @@ function valorDaConta(linhas, cols, conta) {
  * normal), `lucro / LPA` dá o total de ações e está certo. Quando divergem,
  * não há como somar as classes a partir daqui — e aí devolve null, porque
  * um P/L errado é pior do que um P/L ausente.
+ *
+ * Devolve `linhas399` — o que existe no grupo, com código, descrição e valor.
+ * O job imprime isso quando o LPA não sai: é o que separa "a companhia não
+ * publica a conta" de "o nosso filtro não a reconhece".
  */
-function lucroPorAcaoDaDre(linhas, cols) {
-  if (!linhas || !linhas.length) return null;
+function lucroPorAcaoDetalhado(linhas, cols) {
+  if (!linhas || !linhas.length) return { valor: null, linhas399: [] };
   const valores = [];
+  const linhas399 = [];
   for (const l of linhas) {
     const cod = String(l[cols.codigoConta] || '').trim();
     const ds = cols.descricaoConta ? normalizarTexto(l[cols.descricaoConta]) : '';
@@ -279,6 +329,10 @@ function lucroPorAcaoDaDre(linhas, cols) {
     // 3.99.02 o diluído. As folhas trazem só a classe na descrição ("ON",
     // "PN") — quem separa básico de diluído é o código, não o texto. Filtrar
     // por "diluído" na descrição deixava passar o 3.99.02.01 inteiro.
+    if (cod.startsWith('3.99')) {
+      const v0 = valorNumericoCvm(l[cols.valorConta]);
+      linhas399.push(`${cod}=${ds.slice(0, 24)}:${v0 === null ? '—' : v0}`);
+    }
     const basicoPorCodigo = cod === '3.99.01' || cod.startsWith('3.99.01.');
     const diluidoPorCodigo = cod === '3.99.02' || cod.startsWith('3.99.02.');
     if (diluidoPorCodigo || ds.includes('diluid')) continue;
@@ -302,12 +356,12 @@ function lucroPorAcaoDaDre(linhas, cols) {
     if (v < 0.0001 || v > 1000) continue;
     valores.push(v);
   }
-  if (!valores.length) return null;
+  if (!valores.length) return { valor: null, linhas399 };
   const min = Math.min(...valores);
   const max = Math.max(...valores);
   // Classes com LPA diferente: a contagem de ações não sai de uma divisão só.
-  if (min <= 0 || max / min > 1.02) return null;
-  return valores[0];
+  if (min <= 0 || max / min > 1.02) return { valor: null, linhas399 };
+  return { valor: valores[0], linhas399 };
 }
 
 // Como a distribuição aos acionistas aparece na DFC. "jcp" e "juros sobre o
@@ -480,21 +534,27 @@ function extrairFinanceiro(blocos, cols) {
   const dre = blocos.dre || [];
   const dfc = blocos.dfc || [];
 
-  const patrimonioLiquido = valorDaConta(bpp, cols, 'patrimonioLiquido');
-  const ativoTotal = valorDaConta(bpa, cols, 'ativoTotal');
-  const ativoCirculante = valorDaConta(bpa, cols, 'ativoCirculante');
-  const passivoCirculante = valorDaConta(bpp, cols, 'passivoCirculante');
-  const caixa = valorDaConta(bpa, cols, 'caixa');
-  const aplicacoes = valorDaConta(bpa, cols, 'aplicacoesFinanceiras');
-  const dividaCp = valorDaConta(bpp, cols, 'dividaCurtoPrazo');
-  const dividaLp = valorDaConta(bpp, cols, 'dividaLongoPrazo');
-  const receita = valorDaConta(dre, cols, 'receita');
-  const ebit = valorDaConta(dre, cols, 'ebit');
-  const lucroLiquido = valorDaConta(dre, cols, 'lucroLiquido');
-  const antesTributos = valorDaConta(dre, cols, 'resultadoAntesTributos');
-  const tributos = valorDaConta(dre, cols, 'tributos');
+  // Banco e seguradora usam outro plano de contas: lá o código não serve de
+  // reserva, porque aponta contas diferentes com o mesmo número.
+  const plano = planoDaEmpresa(blocos, cols);
+  const op = plano === 'financeiro' ? { soDescricao: true } : undefined;
+
+  const patrimonioLiquido = valorDaConta(bpp, cols, 'patrimonioLiquido', op);
+  const ativoTotal = valorDaConta(bpa, cols, 'ativoTotal', op);
+  const ativoCirculante = valorDaConta(bpa, cols, 'ativoCirculante', op);
+  const passivoCirculante = valorDaConta(bpp, cols, 'passivoCirculante', op);
+  const caixa = valorDaConta(bpa, cols, 'caixa', op);
+  const aplicacoes = valorDaConta(bpa, cols, 'aplicacoesFinanceiras', op);
+  const dividaCp = valorDaConta(bpp, cols, 'dividaCurtoPrazo', op);
+  const dividaLp = valorDaConta(bpp, cols, 'dividaLongoPrazo', op);
+  const receita = valorDaConta(dre, cols, 'receita', op);
+  const ebit = valorDaConta(dre, cols, 'ebit', op);
+  const lucroLiquido = valorDaConta(dre, cols, 'lucroLiquido', op);
+  const antesTributos = valorDaConta(dre, cols, 'resultadoAntesTributos', op);
+  const tributos = valorDaConta(dre, cols, 'tributos', op);
   const depreciacao = depreciacaoDaDfc(dfc, cols);
-  const lucroPorAcao = lucroPorAcaoDaDre(dre, cols);
+  const lpa = lucroPorAcaoDetalhado(dre, cols);
+  const lucroPorAcao = lpa.valor;
   const dividendos = dividendosPagosDetalhado(dfc, cols);
   const dividendosPagos = dividendos.valor;
 
@@ -522,7 +582,9 @@ function extrairFinanceiro(blocos, cols) {
     lucroLiquido,
     antesTributos,
     tributos,
+    plano,
     lucroPorAcao,
+    linhas399: lpa.linhas399,
     dividendosPagos,
     // Rastro para o log do job: sem isto, "não paga" e "nomeia diferente"
     // são indistinguíveis de fora.
@@ -674,6 +736,8 @@ function calcularIndicadores(exercicios) {
       ativoTotal: atual.ativoTotal,
       // Ações e dividendo por ação: com o preço, o servidor fecha P/L, P/VP,
       // EV/EBITDA e DY sem precisar de fonte paga.
+      plano: atual.plano ?? null,
+      linhas399: atual.linhas399 ?? null,
       acoesEquivalentes: atual.acoesEquivalentes ?? null,
       lucroPorAcao: atual.lucroPorAcao ?? null,
       dividendosPagos: atual.dividendosPagos ?? null,
@@ -759,6 +823,7 @@ module.exports.FAIXAS = FAIXAS;
 module.exports.COLUNAS_FII = COLUNAS_FII;
 module.exports.agruparPorEmpresa = agruparPorEmpresa;
 module.exports.extrairFinanceiro = extrairFinanceiro;
+module.exports.planoDaEmpresa = planoDaEmpresa;
 module.exports.dividendosPagosDetalhado = dividendosPagosDetalhado;
 module.exports.calcularIndicadores = calcularIndicadores;
 module.exports.aliquotaEfetiva = aliquotaEfetiva;

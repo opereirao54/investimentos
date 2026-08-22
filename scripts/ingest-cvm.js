@@ -78,18 +78,48 @@ async function baixarCsv(url) {
  * escrita à mão envelhece em silêncio. Os três nomes conhecidos do cadastro
  * de FII devolveram 404 na execução real — todos.
  */
-async function listarDiretorio(url) {
+async function listarDiretorio(url, opcoes) {
+  const incluirPastas = !!(opcoes && opcoes.incluirPastas);
   const buf = await baixar(url);
   const html = buf.toString('latin1');
   const nomes = new Set();
   const re = /href\s*=\s*["']([^"'?#]+)["']/gi;
   let m;
   while ((m = re.exec(html)) !== null) {
-    const alvo = m[1].split('/').filter(Boolean).pop();
-    // Só arquivos: entradas de navegação ("../", "?C=N") não interessam.
-    if (alvo && /\.(csv|zip|txt)$/i.test(alvo)) nomes.add(alvo);
+    const bruto = m[1];
+    const alvo = bruto.split('/').filter(Boolean).pop();
+    if (!alvo) continue;
+    if (/\.(csv|zip|txt)$/i.test(alvo)) {
+      nomes.add(alvo);
+      continue;
+    }
+    // Pasta: só interessa ao diagnóstico ("o que existe aqui, afinal?").
+    // Entradas de navegação do índice não são pasta.
+    if (incluirPastas && bruto.endsWith('/') && !/^[.?]/.test(bruto)) nomes.add(alvo + '/');
   }
   return Array.from(nomes);
+}
+
+/**
+ * Sobe a árvore dizendo o que existe em cada nível.
+ *
+ * Chamado quando o diretório esperado some por completo — foi o caso do FII,
+ * cujo `CAD/DADOS/` e `CAD/` deram 404 os dois. Sem isto, a próxima
+ * investigação recomeça adivinhando; com isto, o log já traz a resposta.
+ */
+async function diagnosticarArvore(url) {
+  const partes = url.replace(/\/+$/, '').split('/');
+  for (let i = 0; i < 3 && partes.length > 4; i++) {
+    partes.pop();
+    const acima = partes.join('/') + '/';
+    try {
+      const itens = await listarDiretorio(acima, { incluirPastas: true });
+      log(`      ${acima} contém: ${itens.slice(0, 15).join(' ') || '(vazio)'}`);
+      return;
+    } catch (e) {
+      log(`      ${acima} — ${e.message}`);
+    }
+  }
 }
 
 /**
@@ -555,6 +585,10 @@ async function main() {
     if (documentos.length < 40 || soTickers.length) {
       log(
         `  ${emp.tickers.join('/').padEnd(14)} ${String(preenchidos).padStart(2)}/${total} · ` +
+          // Plano financeiro no log porque explica, sozinho, por que aquela
+          // companhia tem menos indicadores: banco não tem EBITDA nem dívida
+          // líquida, e o travessão ali é a resposta certa, não uma falha.
+          `${r.absolutos.plano === 'financeiro' ? '[banco] ' : ''}` +
           `${r.exerciciosUsados} exerc. · ROE ${ind.roe === null ? '—' : ind.roe.toFixed(1) + '%'} · ` +
           `dívLíq/EBITDA ${ind.dividaLiquidaEbitda === null ? '—' : ind.dividaLiquidaEbitda.toFixed(2) + 'x'} · ` +
           // LPA e dividendos aparecem aqui porque são o que destrava
@@ -570,6 +604,16 @@ async function main() {
       // são idênticos de fora. Quando não achamos distribuição, o log mostra
       // as linhas do 6.03 que ficaram de fora — é com isso que se decide se
       // o termo tem de entrar no filtro ou se a empresa não distribui mesmo.
+      // Valuation vazia é o pilar mais frágil hoje (LPA em 5 de 14). Quando
+      // o LPA não sai, o log mostra o que existe no grupo 3.99 daquela
+      // companhia — é o que diz se falta a conta ou falta o nosso filtro.
+      if (
+        r.absolutos.lucroPorAcao === null &&
+        r.absolutos.linhas399 &&
+        r.absolutos.linhas399.length
+      ) {
+        log(`      3.99 presentes: ${r.absolutos.linhas399.slice(0, 4).join(' | ')}`);
+      }
       const naoLidas = r.absolutos.dividendosNaoReconhecidas;
       if (!r.absolutos.dividendosPagos && naoLidas && naoLidas.length) {
         log(`      6.03 não reconhecidas: ${naoLidas.slice(0, 4).join(' | ')}`);
@@ -578,9 +622,10 @@ async function main() {
     // Rastro de diagnóstico é do LOG, não do banco: gravar as descrições
     // não reconhecidas encheria o documento de texto que ninguém lê e que
     // conta contra o teto de tamanho do Firestore.
-    const { dividendosMotivo, dividendosNaoReconhecidas, ...absolutos } = r.absolutos;
+    const { dividendosMotivo, dividendosNaoReconhecidas, linhas399, ...absolutos } = r.absolutos;
     void dividendosMotivo;
     void dividendosNaoReconhecidas;
+    void linhas399;
     for (const ticker of emp.tickers) {
       documentos.push({
         ticker,
@@ -634,7 +679,10 @@ async function main() {
           log(`  ! ${dir} — ${e.message}`);
         }
       }
-      if (!cadFii) throw new Error('cadastro_fii_indisponivel');
+      if (!cadFii) {
+        await diagnosticarArvore(`${BASE_FII}/CAD/DADOS/`);
+        throw new Error('cadastro_fii_indisponivel');
+      }
       const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);
       const colCnpjFii = P.acharColuna(cadFii.colunas, ['CNPJ_FUNDO', 'CNPJ_Fundo', 'CNPJ']);
       if (!colNomeFii || !colCnpjFii) {

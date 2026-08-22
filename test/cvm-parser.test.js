@@ -654,6 +654,64 @@ test('ON e PN com LPA diferente não viram contagem de ações', () => {
   assert.equal(fin.acoesEquivalentes, null);
 });
 
+test('banco é identificado pelo próprio balanço, sem lista de setor', () => {
+  // O plano padrão separa circulante de não circulante. Banco e seguradora
+  // não fazem essa separação — e é isso que os identifica. Nenhuma lista de
+  // setor escrita à mão, que envelheceria como toda lista escrita à mão.
+  const bancoBpp = bloco([
+    linha('1023', '2.01', 'Depósitos', '900000000'),
+    linha('1023', '2.02', 'Captações no Mercado Aberto', '400000000'),
+    linha('1023', '2.08', 'Patrimônio Líquido Consolidado', '180000000'),
+  ]);
+  assert.equal(P.planoDaEmpresa({ bpp: bancoBpp }, COLS_TESTE), 'financeiro');
+
+  const industriaBpp = bloco([
+    linha('1023', '2.01', 'Passivo Circulante', '700000'),
+    linha('1023', '2.03', 'Patrimônio Líquido Consolidado', '180000'),
+  ]);
+  assert.equal(P.planoDaEmpresa({ bpp: industriaBpp }, COLS_TESTE), 'padrao');
+});
+
+test('balanço truncado NÃO vira banco — ausência de prova não é prova', () => {
+  // Sem a linha de circulante E sem nenhuma marca do plano financeiro, o
+  // seguro é assumir o plano padrão: classificar errado como financeiro
+  // apagaria indicadores válidos de uma empresa comum.
+  const truncado = bloco([linha('1023', '2.03', 'Patrimônio Líquido Consolidado', '180000')]);
+  assert.equal(P.planoDaEmpresa({ bpp: truncado }, COLS_TESTE), 'padrao');
+});
+
+test('em banco, dívida líquida e EBITDA não existem — e não são inventados', () => {
+  // Achado da execução real: BBAS3 saía com dívida líquida/EBITDA de 12,49x.
+  // Um banco não tem "dívida líquida" nesse sentido nem EBITDA: a
+  // intermediação financeira É a operação dele. O número vinha de contas que
+  // existem no código mas significam outra coisa.
+  const blocos = {
+    bpa: bloco([
+      linha('1023', '1', 'Ativo Total', '2000000000'),
+      linha('1023', '1.01', 'Caixa e Equivalentes de Caixa', '50000000'),
+      linha('1023', '1.02', 'Aplicações Interfinanceiras de Liquidez', '300000000'),
+    ]),
+    bpp: bloco([
+      linha('1023', '2.01', 'Depósitos', '900000000'),
+      linha('1023', '2.01.04', 'Recursos de Aceites e Emissão de Títulos', '80000000'),
+      linha('1023', '2.08', 'Patrimônio Líquido Consolidado', '180000000'),
+    ]),
+    dre: bloco([linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '13700000')]),
+  };
+  const fin = P.extrairFinanceiro(blocos, COLS_TESTE);
+  assert.equal(fin.plano, 'financeiro');
+  assert.equal(fin.patrimonioLiquido, 180000000000, 'o patrimônio, esse, é confiável');
+  assert.equal(fin.ativoCirculante, null, 'banco não tem ativo circulante');
+  assert.equal(fin.dividaBruta, null, 'o 2.01.04 do banco não é empréstimo tomado');
+  assert.equal(fin.ebit, null);
+  assert.equal(fin.ebitda, null);
+
+  // E, por consequência, o indicador não é publicado.
+  const r = P.calcularIndicadores([{ ano: 2025, dataReferencia: '2025-12-31', ...fin }]);
+  assert.equal(r.indicadores.dividaLiquidaEbitda, null);
+  assert.ok(r.indicadores.roe !== null, 'ROE continua saindo — esse faz sentido para banco');
+});
+
 test('em banco, o patrimônio sai da DESCRIÇÃO — o código 2.03 é outra conta', () => {
   // Achado da execução real: BBAS3 saiu com ROE 43,4% (o do Banco do Brasil
   // é ~20%). O lucro estava certo e o patrimônio ~6x abaixo — porque banco,
