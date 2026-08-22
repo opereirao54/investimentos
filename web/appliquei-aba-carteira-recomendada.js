@@ -181,6 +181,8 @@ var cartMotor = {
   automatico: true,
   // Classes que o ranking não cobriu e caíram para a carteira modelo.
   fallback: [],
+  // Configuração que falta do NOSSO lado (ex.: token de fonte de mercado).
+  pendencias: [],
 };
 
 // ── Chart instances ──
@@ -1312,9 +1314,14 @@ async function cartBuscarFundamentos(token, tickers) {
       });
     })
   );
+  var pendencias = [];
   respostas.forEach(function (r) {
     if (r && r.fundamentos) Object.assign(fundamentos, r.fundamentos);
+    if (r && r.configuracaoPendente) pendencias = pendencias.concat(r.configuracaoPendente);
   });
+  // Anexado ao retorno em vez de um segundo valor: o chamador já desestrutura
+  // um objeto de fundamentos e a pendência é metadado dele.
+  fundamentos.__pendencias = pendencias;
   return fundamentos;
 }
 
@@ -1362,9 +1369,14 @@ async function cartBuscarDadosMotor() {
     cartBuscarIndicadoresBcb(token),
   ]);
 
+  var fundamentos = resultados[0] || {};
+  var pendencias = fundamentos.__pendencias || [];
+  delete fundamentos.__pendencias;
+
   return {
     base: base,
-    fundamentos: resultados[0],
+    fundamentos: fundamentos,
+    pendencias: pendencias,
     titulosRf: titulosRf,
     indicadores: resultados[1] ? resultados[1].indicadores : null,
     premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
@@ -1604,6 +1616,7 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.rankingServidor = dados.ranking;
     cartMotor.automatico = dados.automatico;
     cartMotor.fallback = dados.fallback || [];
+    cartMotor.pendencias = dados.pendencias || [];
     cartMotor.buscadoEm = Date.now();
     cartMotor.carregando = false;
     cartRecalcularMotor();
@@ -1689,14 +1702,39 @@ function cartRenderizarMotorStatus() {
       '<span class="cart-motor-status-item"><i class="ph ph-scales"></i> Patrimônio informado no questionário</span>'
     );
 
+  // Pendência de configuração vive em variável PRÓPRIA: a cadeia de else-if
+  // abaixo termina num ramo genérico que a sobrescrevia, e o operador voltava
+  // a ver "nenhum ativo pôde ser pontuado" em vez da variável que falta.
   var alerta = '';
+  var pend = cartMotor.pendencias || [];
+  var alertaPendencia = '';
+  if (pend.length) {
+    alertaPendencia = pend
+      .map(function (p) {
+        return (
+          '<div class="cart-motor-alerta ' +
+          (p.chave ? 'erro' : '') +
+          '"><i class="ph ph-' +
+          (p.chave ? 'wrench' : 'hourglass-medium') +
+          '"></i><span><strong>' +
+          p.fonte +
+          ':</strong> ' +
+          p.diagnostico +
+          '<br><strong>O que fazer:</strong> ' +
+          p.acao +
+          (p.alcance ? '<br><em>' + p.alcance + '</em>' : '') +
+          '</span></div>'
+        );
+      })
+      .join('');
+  }
   if (cartMotor.erro) {
     alerta =
       '<div class="cart-motor-alerta erro"><i class="ph ph-warning-circle"></i> ' +
       'Não foi possível buscar os indicadores (' +
       cartMotor.erro +
       '). Os scores abaixo estão neutros — a divisão por classe continua válida.</div>';
-  } else if (ranking.length && pontuados === 0) {
+  } else if (!pend.length && ranking.length && pontuados === 0) {
     // Estado que o plano grátis da fonte de mercado produz. Antes ele passava
     // despercebido atrás de uma parede de scores baixos; agora é a primeira
     // coisa que a tela diz, porque muda o que o plano abaixo significa.
@@ -1705,6 +1743,10 @@ function cartRenderizarMotorStatus() {
       '<span><strong>Nenhum ativo pôde ser pontuado.</strong> Os indicadores fundamentalistas não ' +
       'chegaram da fonte de mercado, então não há score e a divisão dentro de cada classe saiu igual — ' +
       'não é resultado de análise. Cada card abaixo lista o que está em falta.</span></div>';
+  } else if (pend.length) {
+    // Com a causa nomeada, os avisos genéricos abaixo só mandariam procurar
+    // no lugar errado.
+    alerta = '';
   } else if ((cartMotor.fallback || []).length) {
     // Estado esperado antes de a ingestão da CVM rodar pela primeira vez.
     // Precisa ser dito, senão o utilizador acha que aquela é a seleção do
@@ -1734,6 +1776,7 @@ function cartRenderizarMotorStatus() {
     '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
     '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
     cartRenderizarIndicadores() +
+    alertaPendencia +
     alerta;
 }
 
@@ -1799,45 +1842,49 @@ function cartRenderizarMotorPlano(plano) {
     if (!c) return '';
     var pct = c.pct || 0;
     var itens = c.itens || [];
-    var linhas = itens.length
-      ? itens
-          .map(function (it) {
-            var qtd =
-              it.quantidade != null && it.unidade
-                ? '<span class="cart-plano-qtd">' +
-                  (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
-                  '</span>'
-                : '';
-            var chip =
-              it.score === null
-                ? '<span class="cart-plano-score sem-dado" title="Sem indicadores para pontuar">—</span>'
-                : '<span class="cart-plano-score" style="background:' +
-                  cartCorScore(it.score) +
-                  ';">' +
-                  it.score +
-                  '</span>';
-            return (
-              '<li class="cart-plano-item">' +
-              chip +
-              '<span class="cart-plano-body">' +
-              '<span class="cart-plano-ticker">' +
-              it.ticker +
-              '</span>' +
-              '<span class="cart-plano-nome">' +
-              (it.nome || '') +
-              '</span>' +
-              '</span>' +
-              '<span class="cart-plano-right">' +
-              '<span class="cart-plano-vlr">' +
-              formatarMoeda(it.valorInvestido) +
-              '</span>' +
-              qtd +
-              '</span>' +
-              '</li>'
-            );
-          })
-          .join('')
-      : '<li class="cart-classe-empty">Sem alocação nesta classe</li>';
+    var aguardando = c.modo === 'aguardando_dados';
+    var linhas = aguardando
+      ? '<li class="cart-classe-empty">Aguardando indicadores para selecionar os ativos. ' +
+        'A recomendação sai dos mais bem pontuados — sem score não há seleção a fazer.</li>'
+      : itens.length
+        ? itens
+            .map(function (it) {
+              var qtd =
+                it.quantidade != null && it.unidade
+                  ? '<span class="cart-plano-qtd">' +
+                    (it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade) +
+                    '</span>'
+                  : '';
+              var chip =
+                it.score === null
+                  ? '<span class="cart-plano-score sem-dado" title="Sem indicadores para pontuar">—</span>'
+                  : '<span class="cart-plano-score" style="background:' +
+                    cartCorScore(it.score) +
+                    ';">' +
+                    it.score +
+                    '</span>';
+              return (
+                '<li class="cart-plano-item">' +
+                chip +
+                '<span class="cart-plano-body">' +
+                '<span class="cart-plano-ticker">' +
+                it.ticker +
+                '</span>' +
+                '<span class="cart-plano-nome">' +
+                (it.nome || '') +
+                '</span>' +
+                '</span>' +
+                '<span class="cart-plano-right">' +
+                '<span class="cart-plano-vlr">' +
+                formatarMoeda(it.valorInvestido) +
+                '</span>' +
+                qtd +
+                '</span>' +
+                '</li>'
+              );
+            })
+            .join('')
+        : '<li class="cart-classe-empty">Sem alocação nesta classe</li>';
 
     return (
       '<div class="cart-classe-col cart-classe-' +
@@ -1863,10 +1910,10 @@ function cartRenderizarMotorPlano(plano) {
       '</ul>' +
       '<div class="cart-classe-col-footer">' +
       '<span class="lbl">' +
-      (c.sobra > 0.009 ? 'Sobra de caixa:' : 'Total alocado:') +
+      (aguardando ? 'Retido:' : c.sobra > 0.009 ? 'Sobra de caixa:' : 'Total alocado:') +
       '</span>' +
       '<span class="val">' +
-      formatarMoeda(c.sobra > 0.009 ? c.sobra : c.investido) +
+      formatarMoeda(aguardando ? c.retido : c.sobra > 0.009 ? c.sobra : c.investido) +
       '</span></div>' +
       '</div>'
     );
@@ -1890,8 +1937,10 @@ function cartRenderizarMotorPlano(plano) {
     '<div><span class="lbl">Distribuído</span><span class="val">' +
     formatarMoeda(plano.totalInvestido) +
     '</span></div>' +
-    '<div><span class="lbl">Sobra para o próximo aporte</span><span class="val">' +
-    formatarMoeda(plano.sobra) +
+    '<div><span class="lbl">' +
+    (plano.retido > 0.009 ? 'Retido por falta de dados' : 'Sobra para o próximo aporte') +
+    '</span><span class="val">' +
+    formatarMoeda(plano.retido > 0.009 ? plano.retido : plano.sobra) +
     '</span></div>' +
     '</div>' +
     '<div class="cart-selecao-grid">' +

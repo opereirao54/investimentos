@@ -1205,3 +1205,90 @@ test('cotação com preço mas sem valor de mercado ainda serve de base', () => 
   assert.equal(d.liquidezDiaria, 10000);
   assert.equal(d.cobertura, 0, 'cotação sozinha não é cobertura de fundamentos');
 });
+
+// ════════════════════════════════════════════
+// Configuração pendente x fonte fora do ar
+// ════════════════════════════════════════════
+//
+// O diagnóstico em produção devolveu isto:
+//
+//   brapi_fundamentos: brapi_401 MISSING_TOKEN
+//   brapi_cotacao:     brapi_401 MISSING_TOKEN
+//   yahoo: 429 (sete vezes)
+//
+// Duas causas completamente diferentes, e só a primeira tem conserto do
+// nosso lado. A mensagem genérica "nenhuma fonte respondeu" escondia que
+// faltava uma variável de ambiente — e que o mesmo 401 derruba as cotações
+// da aba Meu Patrimônio e o aquecimento noturno.
+
+const { diagnosticarErrosDeFonte } = market.__test || {};
+
+test('401 por token ausente vira instrução, não "fonte indisponível"', () => {
+  const p = diagnosticarErrosDeFonte([
+    { fonte: 'brapi_fundamentos', erro: 'brapi_401: {"code":"MISSING_TOKEN"}' },
+    { fonte: 'brapi_cotacao', erro: 'brapi_401: {"code":"MISSING_TOKEN"}' },
+  ]);
+  const brapi = p.find((x) => x.chave === 'BRAPI_TOKEN');
+  assert.ok(brapi, 'a pendência tem de nomear a variável que falta');
+  assert.ok(brapi.acao.includes('brapi.dev'), 'e dizer onde obter o token');
+  assert.ok(
+    brapi.alcance.includes('Meu Patrimônio'),
+    'o alcance real é maior que a aba da carteira e tem de ser dito'
+  );
+});
+
+test('429 do Yahoo é reportado como limite de IP, sem pedir configuração', () => {
+  const p = diagnosticarErrosDeFonte([{ fonte: 'yahoo', erro: 'yahoo_429' }]);
+  const yahoo = p.find((x) => x.fonte === 'Yahoo Finance');
+  assert.ok(yahoo);
+  assert.equal(yahoo.chave, null, 'não há variável a configurar para um 429');
+  assert.ok(yahoo.acao.includes('CVM'), 'tem de apontar o caminho que não sofre esse limite');
+});
+
+test('as duas pendências convivem sem se confundir', () => {
+  const p = diagnosticarErrosDeFonte([
+    { fonte: 'brapi_cotacao', erro: 'brapi_401: MISSING_TOKEN' },
+    { fonte: 'yahoo', erro: 'yahoo_429' },
+  ]);
+  assert.equal(p.length, 2);
+  assert.equal(p.filter((x) => x.chave).length, 1, 'só uma delas é acionável por configuração');
+});
+
+test('erro comum de rede não vira pendência de configuração', () => {
+  // Nem toda falha tem conserto do nosso lado. Sugerir configuração onde não
+  // há nada a configurar manda o operador procurar o que não existe.
+  assert.deepEqual(diagnosticarErrosDeFonte([{ fonte: 'brapi', erro: 'ETIMEDOUT' }]), []);
+  assert.deepEqual(diagnosticarErrosDeFonte([]), []);
+  assert.deepEqual(diagnosticarErrosDeFonte(null), []);
+});
+
+test('Yahoo desiste após dois 429 seguidos em vez de insistir', async () => {
+  // Sete tentativas, sete 429 — foi o que o diagnóstico mostrou. Insistir de
+  // um IP limitado só gasta o orçamento e aprofunda o bloqueio.
+  const { fetchYahooFundamentals } = market.__test || {};
+  const original = globalThis.fetch;
+  let pedidosSummary = 0;
+  globalThis.fetch = async (url) => {
+    const alvo = String(url);
+    if (alvo.includes('fc.yahoo.com')) {
+      return { ok: true, headers: { get: () => 'A3=abc; Path=/' }, text: async () => '' };
+    }
+    if (alvo.includes('getcrumb')) {
+      return { ok: true, headers: { get: () => null }, text: async () => 'migalha' };
+    }
+    pedidosSummary++;
+    return { ok: false, status: 429, json: async () => ({}), text: async () => '' };
+  };
+  try {
+    const erros = [];
+    const r = await fetchYahooFundamentals(['A3', 'B3', 'C3', 'D3', 'E3'], erros, 20000, 5);
+    assert.deepEqual(r, {});
+    assert.ok(pedidosSummary <= 2, `insistiu ${pedidosSummary} vezes num IP limitado`);
+    assert.ok(
+      erros.some((e) => e.erro === 'yahoo_429_desistiu'),
+      'a desistência tem de ficar registada, para o diagnóstico distinguir de falha pontual'
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});

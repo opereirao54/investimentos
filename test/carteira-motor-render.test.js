@@ -325,7 +325,7 @@ test('card pontuado NÃO carrega a moldura de dados insuficientes', () => {
   assert.ok(html.includes('/100'));
 });
 
-test('o plano marca com travessão o ativo que entrou sem score', () => {
+test('classe retida aparece como retida, não como vazia nem como sobra', () => {
   const s = carregar();
   s.run(`
     var semDado = motorRanquear([{ ticker:'ZZZZ3', nome:'Sem fundamentos', preco: 12 }], {});
@@ -335,8 +335,11 @@ test('o plano marca com travessão o ativo que entrou sem score', () => {
     cartRenderizarMotorPlano(planoSemDado);
   `);
   const html = s.dom.els.get('cartMotorPlano').innerHTML;
-  assert.ok(html.includes('cart-plano-score sem-dado'));
-  assert.ok(html.includes('ZZZZ3'), 'o ativo continua a receber aporte, só não finge nota');
+  assert.ok(html.includes('Aguardando indicadores para selecionar os ativos'));
+  assert.ok(html.includes('mais bem pontuados'), 'tem de dizer por que não há seleção');
+  assert.ok(html.includes('Retido:'), 'o rodapé da classe diz retido, não sobra');
+  assert.ok(html.includes('Retido por falta de dados'), 'o resumo do topo também');
+  assert.ok(!html.includes('ZZZZ3'), 'ativo não pontuado não pode ser recomendado');
 });
 
 test('procedência mostra fonte, exercício e idade do dado', () => {
@@ -823,4 +826,43 @@ test('a linha de procedência é o que distingue os dois estados na tela', () =>
     cartRenderizarMotorRanking(mudo);
   `);
   assert.ok(!s.dom.els.get('cartMotorRanking').innerHTML.includes('cart-score-fonte'));
+});
+
+test('pendência de configuração aparece antes de tudo, com a ação a tomar', () => {
+  // Enquanto falta uma variável de ambiente, tudo o mais na tela é
+  // consequência. O aviso genérico "nenhum ativo pôde ser pontuado" mandava
+  // o operador procurar no lugar errado.
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = motorRanquear([{ ticker:'AAAA3', nome:'Sem dado' }], {});
+    cartMotor.pendencias = [{
+      chave: 'BRAPI_TOKEN', fonte: 'BRAPI',
+      diagnostico: 'A BRAPI passou a exigir token mesmo na cotação simples.',
+      acao: 'Registe-se em brapi.dev e defina BRAPI_TOKEN.',
+      alcance: 'Afeta também as cotações da aba Meu Patrimônio.'
+    }];
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('BRAPI'), 'a fonte tem de ser nomeada');
+  assert.ok(html.includes('O que fazer'), 'e a ação concreta tem de estar na tela');
+  assert.ok(html.includes('brapi.dev'));
+  assert.ok(html.includes('Meu Patrimônio'), 'o alcance real evita procurar no lugar errado');
+  assert.ok(
+    !html.includes('Nenhum ativo pôde ser pontuado'),
+    'com pendência conhecida, o aviso genérico só atrapalha'
+  );
+});
+
+test('sem pendência, o aviso genérico volta a valer', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = motorRanquear([{ ticker:'AAAA3', nome:'Sem dado' }], {});
+    cartMotor.pendencias = [];
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('Nenhum ativo pôde ser pontuado'));
 });

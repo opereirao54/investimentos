@@ -292,6 +292,16 @@ async function main() {
     }
   }
 
+  // Último recurso: o mapa sozinho, sem CD_CVM. Não dá para ler demonstração
+  // da CVM assim, mas dá para buscar fundamentos no Yahoo — que só precisa do
+  // ticker. É o que mantém o produto de pé quando CVM e BRAPI estão ambas
+  // indisponíveis.
+  if (!porTicker.size) {
+    log('  ! sem cadastro da CVM — universo reduzido ao mapa, só para o Yahoo');
+    for (const t of Object.keys(MAPA.acoes)) porTicker.set(t, { ticker: t, cdCvm: null });
+    for (const t of Object.keys(MAPA.fiis)) porTicker.set(t, { ticker: t, cdCvm: null });
+  }
+
   // Filtros do operador.
   const semFonte = new Set(MAPA.semFonteCvm.tickers);
   let universo = Array.from(porTicker.values()).filter((t) => !semFonte.has(t.ticker));
@@ -302,6 +312,7 @@ async function main() {
   // indicadores são calculados por empresa e replicados para cada ticker.
   const empresas = new Map();
   for (const t of universo) {
+    if (!t.cdCvm) continue; // sem CD_CVM não há demonstração a ler
     if (!empresas.has(t.cdCvm)) empresas.set(t.cdCvm, { cdCvm: t.cdCvm, tickers: [] });
     empresas.get(t.cdCvm).tickers.push(t.ticker);
   }
@@ -383,9 +394,7 @@ async function main() {
   }
 
   if (!colsResolvidas) {
-    log('\n✗ Nenhum ano utilizável. Nada gravado.');
-    process.exitCode = 1;
-    return;
+    log('\n! Nenhum exercício da CVM utilizável — seguindo só com o Yahoo.');
   }
 
   // ── 3. Indicadores ──
@@ -499,14 +508,52 @@ async function main() {
     }
   }
 
+  // ── 4.5. Fundamentos do Yahoo ──
+  //
+  // Roda AQUI e não no endpoint por uma razão medida: a Vercel recebeu 429
+  // em sete tentativas seguidas (IP de saída partilhado e limitado). O
+  // runner do GitHub Actions não sofre isso, e não tem o limite de 15s — dá
+  // para percorrer o universo inteiro em série, com calma.
+  //
+  // É também o caminho que mantém o produto funcionando SEM token de
+  // cotação e SEM a CVM: o Yahoo só precisa do ticker.
+  const jaTemCvm = new Set(documentos.map((d) => d.ticker));
+  const paraYahoo = universo.map((t) => t.ticker).filter((t) => !jaTemCvm.has(t));
+  const docsYahoo = [];
+  if (paraYahoo.length) {
+    log(`\n· Fundamentos do Yahoo para ${paraYahoo.length} tickers…`);
+    const errosYahoo = [];
+    const { fetchYahooFundamentals } = require(
+      path.join(__dirname, '..', 'api', 'market.js')
+    ).fontes;
+    // Orçamento de 10 minutos e sem teto de tickers: o job pode demorar.
+    const res = await fetchYahooFundamentals(
+      paraYahoo,
+      errosYahoo,
+      10 * 60 * 1000,
+      paraYahoo.length
+    );
+    for (const ticker of Object.keys(res)) {
+      docsYahoo.push({ ticker, yahoo: res[ticker] });
+    }
+    log(`  ${docsYahoo.length} com fundamentos · ${errosYahoo.length} falha(s)`);
+    const amostraErros = Array.from(new Set(errosYahoo.map((e) => e.erro))).slice(0, 3);
+    if (amostraErros.length) log(`  erros: ${amostraErros.join(' · ')}`);
+    for (const d of docsYahoo.slice(0, 15)) {
+      log(
+        `    ${d.ticker.padEnd(8)} cobertura ${Math.round((d.yahoo.cobertura || 0) * 100)}% · ` +
+          `ROE ${d.yahoo.roe === null ? '—' : d.yahoo.roe.toFixed(1) + '%'} · ` +
+          `P/L ${d.yahoo.pl === null ? '—' : d.yahoo.pl.toFixed(1)}`
+      );
+    }
+  }
+
   // ── 5. Cotações do universo ──
   //
   // O ranking do servidor precisa de valor de mercado para calcular P/L e
   // P/VP. Buscar aqui, uma vez por semana, é o que evita que a lista curta
   // seja escolhida com o pilar de valuation cego.
-  const tickersRv = documentos
-    .filter((d) => d.dados.classe === 'acao' || d.dados.classe === 'fii')
-    .map((d) => d.ticker);
+  const tickersRv = universo.map((t) => t.ticker);
   if (tickersRv.length) {
     log(`\n· Cotação de ${tickersRv.length} tickers…`);
     const cotacoes = await baixarCotacoes(tickersRv);
@@ -514,13 +561,21 @@ async function main() {
     log(
       `  ${achadas} cotações obtidas${achadas < tickersRv.length ? ` (${tickersRv.length - achadas} sem cotação)` : ''}`
     );
-    for (const doc of documentos) {
-      const c = cotacoes[doc.ticker];
-      if (c) doc.mercado = c;
+    for (const ticker of Object.keys(cotacoes)) {
+      const existente = documentos.find((d) => d.ticker === ticker);
+      if (existente) existente.mercado = cotacoes[ticker];
+      else documentos.push({ ticker, dados: null, mercado: cotacoes[ticker] });
     }
   }
 
   // ── 6. Gravação ──
+  // Junta os que só têm Yahoo aos que têm CVM.
+  for (const dy of docsYahoo) {
+    const existente = documentos.find((d) => d.ticker === dy.ticker);
+    if (existente) existente.yahoo = dy.yahoo;
+    else documentos.push({ ticker: dy.ticker, dados: null, yahoo: dy.yahoo });
+  }
+
   log(`\n=== ${documentos.length} documentos prontos ===`);
   if (!gravar) {
     log('DRY-RUN: nada foi gravado. Confira os casamentos acima e rode com --gravar.\n');
@@ -543,7 +598,15 @@ async function main() {
       // Ramo `cvm` separado do ramo `mercado`: a API compõe os dois na
       // leitura. Gravar plano faria a próxima resposta da fonte de cotação,
       // cheia de nulls, apagar tudo o que este job acabou de calcular.
-      const payload = { cvm: doc.dados, cvmFetchedAtMs: agora, updatedAt: timestamp().now() };
+      const payload = { updatedAt: timestamp().now() };
+      if (doc.dados) {
+        payload.cvm = doc.dados;
+        payload.cvmFetchedAtMs = agora;
+      }
+      if (doc.yahoo) {
+        payload.yahoo = doc.yahoo;
+        payload.yahooFetchedAtMs = agora;
+      }
       // Cotação vai para o ramo `mercado`, o mesmo que op=fundamentals usa.
       // Ele rebusca por cima quando o dado passa de 24h, então a tela vê
       // preço do dia e o ranking vê preço da semana — que é o suficiente
@@ -552,6 +615,7 @@ async function main() {
         payload.mercado = doc.mercado;
         payload.mercadoFetchedAtMs = agora;
       }
+      if (!payload.cvm && !payload.yahoo && !payload.mercado) continue;
       batch.set(database.collection(COLECAO).doc(doc.ticker), payload, { merge: true });
       gravados++;
     }

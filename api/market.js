@@ -1575,9 +1575,10 @@ async function fetchYahooUm(ticker, auth) {
  * estourar o maxDuration e devolver 504 — nesse caso o utilizador não
  * receberia nem os que já tinham sido buscados.
  */
-async function fetchYahooFundamentals(tickers, erros, orcamentoMs) {
+async function fetchYahooFundamentals(tickers, erros, orcamentoMs, maxTickers) {
   const out = {};
   const orcamento = orcamentoMs != null ? orcamentoMs : YAHOO_ORCAMENTO_MS;
+  const teto = maxTickers != null ? maxTickers : YAHOO_MAX_POR_REQUISICAO;
   if (!tickers.length || orcamento <= 500) return out;
   let auth;
   try {
@@ -1588,30 +1589,79 @@ async function fetchYahooFundamentals(tickers, erros, orcamentoMs) {
   }
 
   const limite = Date.now() + orcamento;
-  const fila = tickers.slice(0, YAHOO_MAX_POR_REQUISICAO);
+  const fila = tickers.slice(0, teto);
   const agora = Date.now();
-  for (let i = 0; i < fila.length; i += 4) {
+
+  // Em série, não em paralelo. Sete pedidos simultâneos de um IP de saída
+  // partilhado (que é o caso numa serverless) é o caminho mais curto para o
+  // 429 — e foi exatamente o que aconteceu: sete tentativas, sete 429.
+  let seguidos429 = 0;
+  for (const t of fila) {
     if (Date.now() > limite) break;
-    const lote = fila.slice(i, i + 4);
-    const resultados = await Promise.all(
-      lote.map((t) =>
-        fetchYahooUm(t, auth)
-          .then((r) => ({ t, r }))
-          .catch((e) => {
-            erros.push({ fonte: 'yahoo', ticker: t, erro: e.message });
-            return null;
-          })
-      )
-    );
-    for (const item of resultados) {
-      if (!item) continue;
-      const d = mapYahooFundamental(item.r, item.t, agora);
+    // Dois 429 seguidos significam que o IP está limitado, não que este
+    // ticker falhou. Insistir só gasta o orçamento e aprofunda o bloqueio.
+    if (seguidos429 >= 2) {
+      erros.push({ fonte: 'yahoo', erro: 'yahoo_429_desistiu', restantes: fila.length });
+      break;
+    }
+    try {
+      const r = await fetchYahooUm(t, auth);
+      seguidos429 = 0;
+      const d = mapYahooFundamental(r, t, agora);
       // Resposta que não trouxe indicador nenhum não vira ramo: gravá-la
       // marcaria o ticker como "já buscado" por sete dias sem nada dentro.
-      if (d.cobertura > 0) out[item.t] = d;
+      if (d.cobertura > 0) out[t] = d;
+    } catch (e) {
+      if (/429/.test(e.message)) {
+        seguidos429++;
+        // Recuo curto: o suficiente para uma limitação momentânea passar,
+        // sem consumir o orçamento numa que não vai passar.
+        await new Promise((r) => setTimeout(r, 300 * seguidos429));
+      } else {
+        seguidos429 = 0;
+      }
+      erros.push({ fonte: 'yahoo', ticker: t, erro: e.message });
     }
   }
   return out;
+}
+
+/**
+ * Traduz erros de fonte em ação do operador.
+ *
+ * "brapi_401: MISSING_TOKEN" e "yahoo_429" são coisas MUITO diferentes de
+ * "a fonte está fora do ar", e só a primeira tem conserto do nosso lado. A
+ * resposta genérica escondia isso: a aba dizia "nenhuma fonte respondeu" e
+ * ninguém sabia que faltava uma variável de ambiente.
+ *
+ * O 401 da BRAPI tem alcance maior do que a Carteira Recomendada: a mesma
+ * função serve a cotação da aba Meu Patrimônio (que cai para preço médio em
+ * silêncio) e o cron noturno de aquecimento.
+ */
+function diagnosticarErrosDeFonte(erros) {
+  const texto = (erros || []).map((e) => `${e.fonte || ''} ${e.erro || ''}`).join(' ');
+  const pendencias = [];
+  if (/MISSING_TOKEN|401/.test(texto) && /brapi/i.test(texto)) {
+    pendencias.push({
+      chave: 'BRAPI_TOKEN',
+      fonte: 'BRAPI',
+      diagnostico: 'A BRAPI passou a exigir token mesmo na cotação simples.',
+      acao: 'Registe-se em brapi.dev (plano grátis) e defina BRAPI_TOKEN nas variáveis de ambiente.',
+      alcance: 'Afeta também as cotações da aba Meu Patrimônio e o aquecimento noturno.',
+    });
+  }
+  if (/429/.test(texto) && /yahoo/i.test(texto)) {
+    pendencias.push({
+      chave: null,
+      fonte: 'Yahoo Finance',
+      diagnostico: 'Yahoo devolveu 429 — o IP de saída está a ser limitado.',
+      acao:
+        'Sem ação de configuração. O caminho estável para fundamentos é a ingestão da CVM, ' +
+        'que roda no GitHub Actions e não sofre esse limite.',
+      alcance: 'Afeta só o enriquecimento de fundamentos em tempo de requisição.',
+    });
+  }
+  return pendencias;
 }
 
 /** Resposta da chamada SIMPLES da BRAPI -> contrato de indicadores. */
@@ -1968,8 +2018,14 @@ async function handleFundamentals(req, res) {
         fonteRotulo: 'Nenhuma fonte respondeu',
         indisponivel: true,
         motivo: erros.length
-          ? erros.map((e) => `${e.fonte || e.etapa || '?'}: ${e.erro}`).join(' · ')
+          ? // Uma linha por fonte, sem repetir o mesmo erro N vezes: sete
+            // "yahoo_429" iguais enchiam a tela e escondiam o 401 da BRAPI,
+            // que era o erro que tinha conserto.
+            Array.from(new Set(erros.map((e) => `${e.fonte || e.etapa || '?'}: ${e.erro}`))).join(
+              ' · '
+            )
           : 'sem resposta das fontes de mercado',
+        pendencias: diagnosticarErrosDeFonte(erros),
         cached: false,
       };
       continue;
@@ -1986,6 +2042,7 @@ async function handleFundamentals(req, res) {
     fromApi: Object.keys(fetched).length,
     comCvm,
     comYahoo,
+    configuracaoPendente: diagnosticarErrosDeFonte(erros),
     indisponiveis,
     fundamentos,
     erros,
@@ -2564,6 +2621,13 @@ async function handleDiagnostico(req, res) {
       : null,
     passos,
     erros,
+    configuracaoPendente: diagnosticarErrosDeFonte(
+      erros.concat(
+        Object.entries(fontes)
+          .filter(([, f]) => f && f.erro)
+          .map(([nome, f]) => ({ fonte: nome, erro: f.erro }))
+      )
+    ),
     veredito,
     protocolo: '.claude/skills/diagnostico-motor-carteira/SKILL.md',
   });
@@ -2620,6 +2684,15 @@ module.exports = handler({
   },
 });
 
+// Fontes de dados reutilizáveis fora do request. O job de ingestão usa a
+// mesma implementação de Yahoo que o endpoint, para as duas não divergirem
+// nas conversões de unidade — que é onde esta base já errou antes.
+module.exports.fontes = {
+  fetchYahooFundamentals,
+  mapYahooFundamental,
+  diagnosticarErrosDeFonte,
+};
+
 // Internos do parse de RSS expostos para teste. São regex sobre XML de
 // terceiro — a parte deste arquivo com mais chance de errar em silêncio e a
 // que dá para exercitar sem rede nem Firestore.
@@ -2642,6 +2715,7 @@ module.exports.__test = {
   fundCobertura,
   mapBrapiFundamental,
   mapBrapiCotacao,
+  diagnosticarErrosDeFonte,
   fetchBrapiFundamentals,
   mapYahooFundamental,
   fetchYahooFundamentals,

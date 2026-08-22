@@ -320,7 +320,11 @@ test('sem NENHUM ativo pontuado, o peso sai igual em vez de arbitrário', () => 
   r.forEach((x) => assert.ok(Math.abs(x.peso - 1 / 3) < 1e-9, `peso veio ${x.peso}`));
 });
 
-test('divisão igual por falta de dado é rotulada, não disfarçada de análise', () => {
+test('classe sem ativo pontuado NÃO recomenda: retém o valor e explica', () => {
+  // Requisito do produto: a recomendação sai dos ativos mais bem pontuados.
+  // Dividir igual entre ativos não pontuados fabricaria uma seleção que
+  // análise nenhuma sustenta, e o utilizador não teria como distinguir isso
+  // de uma recomendação de verdade.
   const ranking = M.ranquear(
     [
       { ticker: 'AAAA3', nome: 'Sem dado A', preco: 10 },
@@ -333,10 +337,32 @@ test('divisão igual por falta de dado é rotulada, não disfarçada de análise
     alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
     ranking,
   });
-  assert.equal(plano.classes.acao.modo, 'igualitario');
+  assert.equal(plano.classes.acao.modo, 'aguardando_dados');
+  assert.deepEqual(plano.classes.acao.itens, [], 'nenhum ativo pode ser recomendado');
+  assert.equal(plano.classes.acao.retido, 1000, 'o valor fica retido, não alocado');
+  assert.equal(plano.classes.acao.investido, 0);
+  assert.equal(plano.retido, 1000);
+  assert.equal(plano.sobra, 0, 'retido não é sobra de caixa: sobra é troco de lote');
+  assert.deepEqual(plano.aguardandoDados, ['acao']);
+  assert.ok(plano.avisos.some((a) => a.includes('mais bem pontuados')));
+});
+
+test('classe com ativo pontuado recomenda normalmente ao lado de outra retida', () => {
+  const ranking = M.ranquear(
+    [ACAO_DIVIDENDOS, { ticker: 'ZZZZ11', nome: 'FII sem dado', preco: 100 }],
+    { lente: 'renda' }
+  );
+  const plano = M.planoAporte({
+    aporteMensal: 2000,
+    alocacaoAlvo: { rf: 0, acao: 60, fii: 40, cripto: 0 },
+    ranking,
+  });
+  assert.ok(plano.classes.acao.investido > 0, 'a classe com dado continua a recomendar');
+  assert.equal(plano.classes.fii.modo, 'aguardando_dados');
+  assert.equal(plano.classes.fii.retido, 800);
   assert.ok(
-    plano.avisos.some((a) => a.includes('não é resultado de análise')),
-    `avisos vieram ${JSON.stringify(plano.avisos)}`
+    plano.totalInvestido + plano.retido + plano.sobra - 2000 < 0.02,
+    'investido + retido + sobra tem de reconstituir o aporte'
   );
 });
 
@@ -351,13 +377,12 @@ test('classe com ativo pontuado é marcada como decidida por score', () => {
 
 test('a justificativa de ativo sem lastro nomeia a lacuna', () => {
   const rk = M.ranquear([{ ticker: 'ZZZZ3', nome: 'Sem dado' }], {});
-  const texto = M.planoAporte({
-    aporteMensal: 500,
-    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
-    ranking: rk,
-  }).itens[0].justificativa;
-  assert.ok(texto.includes('não pontuado'), `justificativa veio "${texto}"`);
-  assert.ok(!texto.includes('Destaque em'), 'não pode fingir análise que não houve');
+  const texto = M.justificativa ? M.justificativa(rk[0]) : rk[0].alertas.join(' ');
+  assert.ok(rk[0].score === null, 'sem lastro não pontua');
+  assert.ok(
+    (rk[0].faltando || []).length > 0,
+    'e a lacuna tem de vir nomeada por pilar, para a tela poder dizer o que falta'
+  );
 });
 
 test('alertas apontam payout insustentável e dívida alta', () => {

@@ -73,6 +73,34 @@ e olhar `indisponiveis` e `erros`. Ticker dentro de `indisponiveis` já responde
 
 Sintoma: card sem linha de procedência. **Regra:** toda fonte que falha tem de degradar para a versão mais simples dela, e nunca deixar o ticker sem registo. Um documento com `fonte: 'indisponivel'` e o motivo é infinitamente melhor que ausência de documento — a tela consegue explicar o primeiro e não consegue explicar o segundo.
 
+### S3b — 401 por token ausente ≠ fonte fora do ar ⚠️
+
+Caso real, encontrado com `op=diagnostico`:
+
+```
+brapi_fundamentos: brapi_401 {"code":"MISSING_TOKEN"}
+brapi_cotacao:     brapi_401 {"code":"MISSING_TOKEN"}
+yahoo: 429 (sete vezes)
+```
+
+Duas causas distintas na mesma resposta, e **só a primeira tem conserto do
+nosso lado**. Sempre separe:
+
+| Erro                  | Natureza               | Ação                                                                                           |
+| --------------------- | ---------------------- | ---------------------------------------------------------------------------------------------- |
+| 401 / `MISSING_TOKEN` | Configuração           | Definir a variável de ambiente. `diagnosticarErrosDeFonte` traduz isto em instrução            |
+| 429                   | Limite de IP de saída  | Não há o que configurar. Mover o trabalho para o job do GitHub Actions, cujo IP não é limitado |
+| Timeout / DNS         | Indisponibilidade real | Esperar e degradar                                                                             |
+
+**Verifique sempre o alcance.** A mesma `fetchBrapi` serve `op=quote` (aba
+Meu Patrimônio, que cai para preço médio em silêncio) e o cron de aquecimento.
+Um token em falta não quebra só a Carteira Recomendada — quebra três coisas, e
+duas delas sem nenhum sintoma visível.
+
+**429 em série é diferente de 429 pontual.** Sete tentativas com sete 429
+significa IP limitado, não ticker problemático. Insistir gasta o orçamento e
+aprofunda o bloqueio: desista após dois seguidos e reporte esse estado à parte.
+
 ### S4 — Fonte responde, mas sem os campos
 
 Plano grátis que devolve 200 com metade dos campos nulos. Cobertura fica abaixo de `MOTOR_COBERTURA_MINIMA` (0,3) e o motor recusa pontuar — **corretamente**. A correção é arranjar dado, nunca baixar o limiar.
@@ -107,7 +135,13 @@ Só depois de nomear o elo partido. Para cada correção:
 - Preencher indicador ausente com zero, média do setor ou estimativa.
 - Remover o corte de liquidez para o universo parecer maior.
 - Atribuir a uma fonte um dado que veio de outra.
-- Silenciar `erros` ou `indisponiveis` na resposta.
+- Silenciar `erros`, `indisponiveis` ou uma degradação de fonte.
+- **Dividir o aporte igualmente entre ativos não pontuados.** A recomendação
+  sai dos ativos mais bem pontuados — é o produto inteiro. Sem score, a classe
+  não recomenda: o valor fica **retido**, com o motivo declarado. Retido é
+  diferente de sobra: sobra é troco de lote, retido é decisão adiada. Uma
+  divisão igual disfarçada de recomendação é indistinguível, para quem olha a
+  tela, de uma recomendação de verdade.
 
 ## Etapa 4 — Fechar o buraco de observabilidade
 
@@ -134,6 +168,21 @@ cartRenderizarMotorRanking()      → desenha score ou "faltam indicadores"
 ```
 
 Ops de apoio: `?op=rendafixa` (Tesouro), `?op=indicadores` (Selic/CDI/IPCA do BCB),
-`?op=quote` (cotação simples, sem parâmetros — **a que sempre funciona**).
+`?op=quote` (cotação simples — **também exige token desde que a BRAPI apertou**).
+
+## Onde cada fonte funciona
+
+Nem toda fonte funciona de todo lugar, e isso decide **onde** o trabalho mora.
+
+| Fonte               | Da function (Vercel)                        | Do job (GitHub Actions)       |
+| ------------------- | ------------------------------------------- | ----------------------------- |
+| CVM (dados abertos) | ✗ ZIPs de dezenas de MB contra 15s e 256 MB | ✓ sem limite                  |
+| Yahoo Finance       | ✗ 429 — IP de saída partilhado e limitado   | ✓ IP do runner não é limitado |
+| BRAPI               | ✓ **com** `BRAPI_TOKEN`                     | ✓ com token                   |
+| CoinGecko           | ✓                                           | ✓                             |
+| BCB, Tesouro        | ✓                                           | ✓                             |
+
+**Regra:** quando uma fonte falha por limite de ambiente e não por
+configuração, mova o trabalho para o job — não insista no mesmo lugar.
 
 Documentação completa: `docs/MOTOR-CARTEIRA.md`.

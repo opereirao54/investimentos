@@ -1722,13 +1722,33 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
   for (i = 0; i < itens.length; i++) investido += itens[i].valorInvestido;
   investido = motorArred(investido, 2);
 
-  // Como os pesos foram decididos. Sem nenhum ativo pontuado a divisão sai
-  // igual — o que é uma escolha defensável, mas o utilizador tem de saber
-  // que ela NÃO veio de análise nenhuma.
+  // A recomendação sai dos ativos mais bem pontuados — é o produto inteiro.
+  // Sem NENHUM ativo pontuado na classe, dividir igual seria fabricar uma
+  // seleção que análise nenhuma sustenta, e o utilizador não teria como
+  // distinguir isso de uma recomendação de verdade.
+  //
+  // Então a classe não recomenda. O valor dela fica RETIDO, com o motivo
+  // declarado — retido é diferente de sobra de caixa: sobra é troco de lote,
+  // retido é dinheiro que aguarda dado para ser alocado.
   var algumPontuado = candidatos.some(function (c) {
     return c.score != null;
   });
-  var modo = algumPontuado ? 'score' : 'igualitario';
+  if (!algumPontuado) {
+    return {
+      classe: classe,
+      alvo: motorArred(valor, 2),
+      investido: 0,
+      sobra: 0,
+      retido: motorArred(valor, 2),
+      itens: [],
+      modo: 'aguardando_dados',
+      aviso:
+        'Nenhum ativo desta classe tem indicadores suficientes para pontuar. ' +
+        'A recomendação sai dos ativos mais bem pontuados, então não há seleção a fazer ' +
+        'enquanto o dado não chegar — o valor da classe fica retido.',
+    };
+  }
+  var modo = 'score';
 
   var aviso = null;
   var semPreco = itens.filter(function (it) {
@@ -1743,10 +1763,6 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
         })
         .join(', ') +
       ' — valor sugerido sem conversão em quantidade.';
-  else if (modo === 'igualitario')
-    aviso =
-      'Nenhum ativo desta classe tem indicadores suficientes para pontuar. ' +
-      'A divisão saiu igual entre os ativos da carteira modelo — não é resultado de análise.';
   else if (topN < op.topN)
     aviso =
       'Aporte da classe comporta ' +
@@ -1759,6 +1775,7 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
     alvo: motorArred(valor, 2),
     investido: investido,
     sobra: motorArred(valor - investido, 2),
+    retido: 0,
     itens: itens,
     modo: modo,
     aviso: aviso,
@@ -1787,6 +1804,7 @@ function motorPlanoAporte(opcoes) {
   var classes = {};
   var itens = [];
   var totalInvestido = 0;
+  var totalRetido = 0;
   var avisos = [];
   for (var i = 0; i < MOTOR_CLASSES.length; i++) {
     var c = MOTOR_CLASSES[i];
@@ -1797,6 +1815,7 @@ function motorPlanoAporte(opcoes) {
     plano.pct = Math.max(0, Number(alvo[c]) || 0);
     classes[c] = plano;
     totalInvestido += plano.investido;
+    totalRetido += plano.retido || 0;
     if (plano.aviso) avisos.push(MOTOR_CLASSE_NOMES[c] + ': ' + plano.aviso);
     for (var j = 0; j < plano.itens.length; j++) {
       var it = plano.itens[j];
@@ -1815,7 +1834,14 @@ function motorPlanoAporte(opcoes) {
     classes: classes,
     itens: itens,
     totalInvestido: totalInvestido,
-    sobra: motorArred(aporte - totalInvestido, 2),
+    // Retido: dinheiro de classe que não pôde ser recomendada por falta de
+    // dado. Separado da sobra de propósito — sobra é troco de lote inteiro,
+    // retido é decisão adiada.
+    retido: motorArred(totalRetido, 2),
+    sobra: motorArred(aporte - totalInvestido - totalRetido, 2),
+    aguardandoDados: MOTOR_CLASSES.filter(function (c) {
+      return classes[c] && classes[c].modo === 'aguardando_dados' && classes[c].alvo > 0;
+    }),
     avisos: avisos,
   };
 }
