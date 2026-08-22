@@ -254,13 +254,21 @@ function lucroPorAcaoDaDre(linhas, cols) {
     if (!basicoPorCodigo && !basicoPorTexto) continue;
     const v = valorNumericoCvm(l[cols.valorConta]);
     if (v === null || v <= 0) continue;
-    const escalado = v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
-    // Lucro POR AÇÃO em reais: a CVM publica estas linhas em UNIDADE, e um
-    // emissor que marque MIL por engano multiplicaria a conta por mil sem
-    // nenhum sinal. Nenhuma ação brasileira lucra mais de mil reais por
-    // ação — fora desta faixa é erro de escala, não empresa excepcional.
-    if (escalado < 0.0001 || escalado > 1000) continue;
-    valores.push(escalado);
+    // A ESCALA DO ARQUIVO NÃO SE APLICA AQUI. A conta 3.99 é, por definição
+    // do plano da CVM, "Lucro por Ação - (Reais / Ação)": a unidade vem do
+    // plano de contas, não da escala monetária declarada no arquivo. Boa
+    // parte dos emissores repete ESCALA_MOEDA=MIL nestas linhas por herança
+    // do resto da DFP, e multiplicar por mil produzia exatamente o que a
+    // primeira execução real mostrou:
+    //
+    //   ARML3  LPA 190,00   (era 0,19)
+    //   ENGI11 LPA 950,00   (era 0,95)
+    //   BBAS3  LPA —        (7,4 × 1000 = 7400, cortado pelo teto)
+    //
+    // Ou seja: valores errados nos que passavam e valuation apagada nos que
+    // não passavam. O teto continua, agora como guarda de verdade.
+    if (v < 0.0001 || v > 1000) continue;
+    valores.push(v);
   }
   if (!valores.length) return null;
   const min = Math.min(...valores);
@@ -287,36 +295,65 @@ const TERMOS_DIVIDENDO = ['dividendo', 'capital proprio', 'jcp'];
  * nomeou a linha vizinha. Somando folhas, o que o filtro não reconhecesse
  * sumia da conta e o payout saía menor do que é; ficando com o pai, o total
  * é o que a própria companhia declarou.
+ *
+ * Devolve também o RASTRO. `naoReconhecidas` lista as linhas do 6.03 que o
+ * filtro não casou, e o job imprime-as quando não acha distribuição: é a
+ * diferença entre "esta empresa não paga" e "esta empresa nomeia a linha de
+ * um jeito que o filtro não conhece", que de fora são idênticas.
  */
-function dividendosPagosDaDfc(linhas, cols) {
-  if (!linhas || !linhas.length || !cols.descricaoConta) return null;
+function dividendosPagosDetalhado(linhas, cols) {
+  const vazio = { valor: null, naoReconhecidas: [], motivo: 'sem_dfc' };
+  if (!linhas || !linhas.length || !cols.descricaoConta) return vazio;
   const candidatos = [];
-  // Só o total do financiamento não permite concluir nada: o dividendo pode
-  // estar embutido nele. É a seção DETALHADA que autoriza afirmar zero.
-  let itensDoFinanciamento = 0;
+  const naoReconhecidas = [];
+  // Filhas de primeiro nível (6.03.NN) e o total (6.03). Só quando as filhas
+  // FECHAM com o total sabemos que a seção está inteira à nossa frente — e
+  // só então a ausência de linha de dividendo significa que não houve.
+  let total = null;
+  const filhas = [];
   for (const l of linhas) {
     const cod = String(l[cols.codigoConta] || '').trim();
     if (!cod.startsWith('6.03')) continue;
-    if (cod.startsWith('6.03.')) itensDoFinanciamento++;
-    const ds = normalizarTexto(l[cols.descricaoConta]);
-    if (!TERMOS_DIVIDENDO.some((t) => ds.includes(t))) continue;
+    const escala = fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
     const v = valorNumericoCvm(l[cols.valorConta]);
+    if (cod === '6.03') {
+      if (v !== null) total = v * escala;
+      continue;
+    }
+    const primeiroNivel = /^6\.03\.\d+$/.test(cod);
+    if (primeiroNivel && v !== null) filhas.push(v * escala);
+    const ds = normalizarTexto(l[cols.descricaoConta]);
+    if (!TERMOS_DIVIDENDO.some((t) => ds.includes(t))) {
+      if (primeiroNivel && v !== null && v !== 0) naoReconhecidas.push(ds.slice(0, 60));
+      continue;
+    }
     if (v === null || v === 0) continue;
-    candidatos.push({
-      cod,
-      valor: Math.abs(v) * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null),
-    });
+    candidatos.push({ cod, valor: Math.abs(v) * escala });
   }
-  // "Não paguei" e "não consegui ler" não podem virar o mesmo null. Com a
-  // seção de financiamento detalhada e nenhuma linha de distribuição nela, o
-  // valor é ZERO — e é o que impede uma empresa que não distribui nada de
-  // flutuar no topo da lente de renda por ausência de dado.
-  if (!candidatos.length) return itensDoFinanciamento ? 0 : null;
+
+  if (!candidatos.length) {
+    // Zero só quando a seção fecha: as filhas de primeiro nível somam o
+    // total declarado. Se sobra diferença, existe linha que não lemos — e
+    // afirmar zero ali penalizaria quem paga. A primeira execução real
+    // marcou 3 de 8 companhias com "div 0M", uma delas pagadora conhecida:
+    // um zero falso é pior do que uma lacuna, porque afunda no ranking de
+    // renda justamente quem deveria subir.
+    const somaFilhas = filhas.reduce((a, b) => a + b, 0);
+    const fecha =
+      total !== null &&
+      filhas.length > 0 &&
+      Math.abs(somaFilhas - total) <= Math.max(1, Math.abs(total) * 0.01);
+    return {
+      valor: fecha ? 0 : null,
+      naoReconhecidas,
+      motivo: fecha ? 'nao_distribuiu' : 'secao_incompleta',
+    };
+  }
   // Conta só quem não está coberto por um ancestral já contado.
-  const total = candidatos
+  const somado = candidatos
     .filter((c) => !candidatos.some((o) => o !== c && c.cod.startsWith(o.cod + '.')))
     .reduce((acc, c) => acc + c.valor, 0);
-  return total > 0 ? total : null;
+  return { valor: somado > 0 ? somado : null, naoReconhecidas, motivo: 'distribuiu' };
 }
 
 /** Depreciação e amortização da DFC, para reconstruir o EBITDA. */
@@ -416,7 +453,8 @@ function extrairFinanceiro(blocos, cols) {
   const tributos = valorDaConta(dre, cols, 'tributos');
   const depreciacao = depreciacaoDaDfc(dfc, cols);
   const lucroPorAcao = lucroPorAcaoDaDre(dre, cols);
-  const dividendosPagos = dividendosPagosDaDfc(dfc, cols);
+  const dividendos = dividendosPagosDetalhado(dfc, cols);
+  const dividendosPagos = dividendos.valor;
 
   // Só há dívida se alguma das pontas existir. Somar dois nulls como zero
   // faria um banco alavancado parecer uma empresa sem dívida.
@@ -444,6 +482,10 @@ function extrairFinanceiro(blocos, cols) {
     tributos,
     lucroPorAcao,
     dividendosPagos,
+    // Rastro para o log do job: sem isto, "não paga" e "nomeia diferente"
+    // são indistinguíveis de fora.
+    dividendosMotivo: dividendos.motivo,
+    dividendosNaoReconhecidas: dividendos.naoReconhecidas,
     // Contagem de ações implícita. A faixa é larga de propósito — serve só
     // para barrar o absurdo (escala trocada por mil), não para julgar a
     // empresa.
@@ -593,6 +635,8 @@ function calcularIndicadores(exercicios) {
       acoesEquivalentes: atual.acoesEquivalentes ?? null,
       lucroPorAcao: atual.lucroPorAcao ?? null,
       dividendosPagos: atual.dividendosPagos ?? null,
+      dividendosMotivo: atual.dividendosMotivo ?? null,
+      dividendosNaoReconhecidas: atual.dividendosNaoReconhecidas ?? null,
       // Zero conhecido vira DY zero, não ausência: quem não distribuiu tem
       // de pontuar zero no pilar, e não ficar de fora dele.
       dividendoPorAcao:
@@ -673,6 +717,7 @@ module.exports.FAIXAS = FAIXAS;
 module.exports.COLUNAS_FII = COLUNAS_FII;
 module.exports.agruparPorEmpresa = agruparPorEmpresa;
 module.exports.extrairFinanceiro = extrairFinanceiro;
+module.exports.dividendosPagosDetalhado = dividendosPagosDetalhado;
 module.exports.calcularIndicadores = calcularIndicadores;
 module.exports.aliquotaEfetiva = aliquotaEfetiva;
 module.exports.cagr = cagr;

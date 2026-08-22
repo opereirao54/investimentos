@@ -70,6 +70,29 @@ async function baixarCsv(url) {
 }
 
 /**
+ * Tenta uma lista de URLs e devolve a primeira que responder, dizendo no log
+ * qual foi e por que as outras falharam.
+ *
+ * Existe porque um `catch` só, em volta de três downloads diferentes, produz
+ * sempre a mesma mensagem — `✗ informe de FII falhou: http_404` — sem dizer
+ * QUAL das três URLs deu 404. Foi exatamente esse log que escondeu o
+ * problema do FII enquanto o resto do pipeline era depurado.
+ */
+async function baixarPrimeiroQueResponder(urls, baixador) {
+  const falhas = [];
+  for (const url of urls) {
+    try {
+      const r = await baixador(url);
+      if (urls.length > 1) log(`    via ${url}`);
+      return { ok: true, dados: r, url };
+    } catch (e) {
+      falhas.push(`${e.message} — ${url}`);
+    }
+  }
+  return { ok: false, falhas };
+}
+
+/**
  * Baixa um ZIP e devolve os CSVs que interessam, por sufixo do nome.
  * Ex.: prefixos ['BPA_con', 'BPP_con'] -> { BPA_con: {...}, BPP_con: {...} }
  */
@@ -529,13 +552,27 @@ async function main() {
           `div ${r.absolutos.dividendosPagos === null ? '—' : (r.absolutos.dividendosPagos / 1e6).toFixed(0) + 'M'}` +
           (r.descartados.length ? ` · ${r.descartados.length} descartado(s)` : '')
       );
+      // "Não paga" e "nomeia a linha de um jeito que o filtro não conhece"
+      // são idênticos de fora. Quando não achamos distribuição, o log mostra
+      // as linhas do 6.03 que ficaram de fora — é com isso que se decide se
+      // o termo tem de entrar no filtro ou se a empresa não distribui mesmo.
+      const naoLidas = r.absolutos.dividendosNaoReconhecidas;
+      if (!r.absolutos.dividendosPagos && naoLidas && naoLidas.length) {
+        log(`      6.03 não reconhecidas: ${naoLidas.slice(0, 4).join(' | ')}`);
+      }
     }
+    // Rastro de diagnóstico é do LOG, não do banco: gravar as descrições
+    // não reconhecidas encheria o documento de texto que ninguém lê e que
+    // conta contra o teto de tamanho do Firestore.
+    const { dividendosMotivo, dividendosNaoReconhecidas, ...absolutos } = r.absolutos;
+    void dividendosMotivo;
+    void dividendosNaoReconhecidas;
     for (const ticker of emp.tickers) {
       documentos.push({
         ticker,
         dados: {
           ...ind,
-          ...r.absolutos,
+          ...absolutos,
           classe: 'acao',
           cdCvm: emp.cdCvm,
           cnpj: emp.cnpj,
@@ -570,7 +607,23 @@ async function main() {
   if (Object.keys(mapaFiis).length) {
     log('\n· Informe mensal de FII…');
     try {
-      const cadFii = await baixarCsv(`${BASE_FII}/CAD/DADOS/cad_fii.csv`);
+      // A CVM reorganizou o cadastro de fundos e o nome do arquivo mudou de
+      // lugar mais de uma vez. Tentar os nomes conhecidos e DIZER qual
+      // respondeu é o que impede este bloco de morrer com um 404 anônimo.
+      const rCad = await baixarPrimeiroQueResponder(
+        [
+          `${BASE_FII}/CAD/DADOS/cad_fii.csv`,
+          `${BASE_FII}/CAD/DADOS/registro_fundo.csv`,
+          `${BASE_FII}/CAD/DADOS/cad_fii_hist.csv`,
+        ],
+        baixarCsv
+      );
+      if (!rCad.ok) {
+        log('  ✗ cadastro de FII indisponível em todos os caminhos conhecidos:');
+        for (const f of rCad.falhas) log(`      ${f}`);
+        throw new Error('cadastro_fii_indisponivel');
+      }
+      const cadFii = rCad.dados;
       const colNomeFii = P.acharColuna(cadFii.colunas, ['DENOM_SOCIAL', 'NM_FUNDO', 'DENOM_FUNDO']);
       const colCnpjFii = P.acharColuna(cadFii.colunas, ['CNPJ_FUNDO', 'CNPJ_Fundo', 'CNPJ']);
       if (!colNomeFii || !colCnpjFii) {
@@ -586,20 +639,17 @@ async function main() {
         // devolve 404. Cair para o ano anterior é a diferença entre um
         // informe velho de meses e nenhum informe — e o anterior serve.
         const anoAtual = new Date().getUTCFullYear();
-        let pacote = null;
-        for (const anoInf of [anoAtual, anoAtual - 1]) {
-          const url = `${BASE_FII}/DOC/INF_MENSAL/DADOS/inf_mensal_fii_${anoInf}.zip`;
-          try {
-            pacote = await baixarZipCsvs(url, ['complemento', 'geral', 'ativo_passivo']);
-            log(`  informe de ${anoInf}`);
-            break;
-          } catch (e) {
-            log(`  ! ${anoInf} indisponível (${e.message}) — ${url}`);
-          }
-        }
+        const rInf = await baixarPrimeiroQueResponder(
+          [anoAtual, anoAtual - 1].map(
+            (a) => `${BASE_FII}/DOC/INF_MENSAL/DADOS/inf_mensal_fii_${a}.zip`
+          ),
+          (url) => baixarZipCsvs(url, ['complemento', 'geral', 'ativo_passivo'])
+        );
+        const pacote = rInf.ok ? rInf.dados : null;
         const compl = pacote && (pacote.csvs.complemento || pacote.csvs.geral);
         if (!pacote) {
-          log('  ✗ nenhum informe mensal de FII disponível nos dois últimos anos');
+          log('  ✗ nenhum informe mensal de FII nos dois últimos anos:');
+          for (const f of rInf.falhas) log(`      ${f}`);
         } else if (!compl) {
           log(`  ! nenhum CSV de informe reconhecido. No ZIP: ${pacote.nomesNoZip.join(', ')}`);
         } else {

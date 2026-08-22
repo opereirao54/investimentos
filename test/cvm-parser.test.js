@@ -654,12 +654,39 @@ test('ON e PN com LPA diferente não viram contagem de ações', () => {
   assert.equal(fin.acoesEquivalentes, null);
 });
 
-test('LPA com escala errada é recusado em vez de multiplicar a conta por mil', () => {
-  // Emissor que marca MIL numa linha que é por ação. R$ 7.370 por ação não
-  // existe na B3 — e passaria a contagem de ações direto se ninguém olhasse.
-  const dre = dreLpa([
+test('a escala do arquivo NÃO se aplica à conta por ação', () => {
+  // Achado da primeira execução real contra a CVM: boa parte dos emissores
+  // repete ESCALA_MOEDA=MIL nas linhas do grupo 3.99, por herança do resto
+  // da DFP. A conta 3.99 é, por definição do plano, "Reais / Ação" — a
+  // unidade vem do plano de contas, não da escala declarada no arquivo.
+  //
+  // Aplicando a escala, o log saiu assim:
+  //   ARML3  LPA 190,00  (era 0,19)   ← valor errado, e passou
+  //   ENGI11 LPA 950,00  (era 0,95)   ← valor errado, e passou
+  //   BBAS3  LPA —       (7,4 × 1000 = 7400, cortado pelo teto)
+  const comMil = dreLpa([
     linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
     linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'MIL' }),
+  ]);
+  assert.equal(P.extrairFinanceiro({ dre: comMil }, COLS_LPA).lucroPorAcao, 7.37);
+
+  const comUnidade = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99.01.01', 'ON', '7.37', { escala: 'UNIDADE' }),
+  ]);
+  assert.equal(
+    P.extrairFinanceiro({ dre: comUnidade }, COLS_LPA).lucroPorAcao,
+    7.37,
+    'as duas escalas têm de dar o MESMO LPA'
+  );
+});
+
+test('LPA absurdo continua recusado — o teto é guarda de verdade', () => {
+  // R$ 7.370 por ação não existe na B3. Passaria a contagem de ações direto
+  // se ninguém olhasse.
+  const dre = dreLpa([
+    linha('1023', '3.11', 'Lucro/Prejuízo Consolidado do Período', '21000000'),
+    linha('1023', '3.99.01.01', 'ON', '7370', { escala: 'UNIDADE' }),
   ]);
   assert.equal(P.extrairFinanceiro({ dre }, COLS_LPA).lucroPorAcao, null);
 });
@@ -722,7 +749,21 @@ test('"não distribuiu" e "não consegui ler" não são o mesmo null', () => {
   assert.equal(
     P.extrairFinanceiro({ dfc: comFinanciamento }, COLS_LPA).dividendosPagos,
     0,
-    'seção lida e sem linha de distribuição = pagou zero'
+    'seção FECHADA e sem linha de distribuição = pagou zero'
+  );
+
+  // Seção que não fecha: sobra diferença entre o total e as filhas, logo
+  // existe linha que não lemos. Achado da execução real — 3 de 8 companhias
+  // saíram com "div 0M", uma delas pagadora conhecida. Um zero falso afunda
+  // no ranking de renda justamente quem deveria subir; a lacuna não.
+  const naoFecha = dreLpa([
+    linha('1023', '6.03', 'Caixa Líquido Atividades de Financiamento', '-15000000'),
+    linha('1023', '6.03.01', 'Captações de Empréstimos', '-7000000'),
+  ]);
+  assert.equal(
+    P.extrairFinanceiro({ dfc: naoFecha }, COLS_LPA).dividendosPagos,
+    null,
+    'sobrou diferença: há linha não lida, e zero ali seria mentira'
   );
 
   const semFinanciamento = dreLpa([
