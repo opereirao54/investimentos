@@ -1349,3 +1349,24 @@ test('sem coluna de código nem de ISIN, o vínculo não inventa nada', () => {
   assert.equal(v.total, 0);
   assert.equal(P.fundoDoTicker(v, 'MXRF11'), null);
 });
+
+test('a composição do capital guarda as linhas descartadas, com o motivo', () => {
+  const csv = [
+    'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA',
+    // Linha boa.
+    '00.000.000/0001-91;2025-12-31;1;X S.A.;1023;2025-12-31;2000000000;0;0;0',
+    // Abaixo do piso: descartada, mas registrada — pode ser ela a linha
+    // certa e o piso o defeito.
+    '00.000.000/0001-91;2025-12-31;1;X S.A.;1023;2025-12-31;40000;0;0;0',
+    // Sem quantidade: registrada com o motivo.
+    '00.000.000/0001-91;2025-12-31;1;X S.A.;1023;2025-12-31;;;;',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const cap = P.extrairComposicaoCapital(parsed.registros, parsed.colunas);
+
+  assert.equal(cap.porChave.get('cnpj:00000000000191').acoesEmCirculacao, 2000000000);
+  const linhas = cap.linhasPorChave.get('cnpj:00000000000191');
+  assert.equal(linhas.length, 3, 'as três linhas têm de ficar registadas');
+  assert.equal(linhas[1].circulacao, 40000);
+  assert.equal(linhas[2].motivo, 'sem_quantidade_ordinaria');
+});

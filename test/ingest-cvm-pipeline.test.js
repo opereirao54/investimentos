@@ -375,6 +375,10 @@ test('contagem declarada implausível é recusada, conferida pelo patrimônio', 
   assert.match(texto, /por ação/, 'a mensagem mostra a conta que denuncia');
   // Recusada a declarada, a derivação por LPA assume — não fica sem nada.
   assert.match(texto, /ações .*bi lpa/);
+  // E a recusa vem acompanhada das linhas cruas: sem elas o log diz que o
+  // número está errado sem dizer o que o arquivo tem, e a próxima
+  // investigação recomeça no escuro.
+  assert.match(texto, /ON 150000 · PN 0 · tes 0 → 150000/, `linhas cruas ausentes:\n${texto}`);
 });
 
 test('sem FCA o pipeline não morre: cai para o mapa e diz que caiu', async () => {

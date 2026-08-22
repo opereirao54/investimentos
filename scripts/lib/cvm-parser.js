@@ -1057,18 +1057,48 @@ function extrairComposicaoCapital(registros, colunas) {
   }
 
   const num = (r, campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
+  // Todas as linhas de cada companhia, inclusive as DESCARTADAS e com o
+  // motivo do descarte. Duas companhias saíram da execução real com
+  // contagem impossível (ELET3 e AESO3, 0,00 bi de ações para dezenas de
+  // bilhões de patrimônio) e nenhuma inspeção do resultado final explica
+  // isso: a linha que venceu pode ser a errada, ou a certa pode ter sido
+  // filtrada aqui. Só as linhas cruas separam as duas hipóteses — é o
+  // mesmo movimento que resolveu o 6.03 e as colunas do informe.
+  const LINHAS_POR_EMPRESA = 8;
+  const linhasPorChave = new Map();
+  const anotar = (chaves, linha) => {
+    for (const chave of chaves) {
+      const lista = linhasPorChave.get(chave) || [];
+      if (lista.length < LINHAS_POR_EMPRESA) lista.push(linha);
+      linhasPorChave.set(chave, lista);
+    }
+  };
+  const chavesDaLinha = (r) => {
+    const chaves = [];
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
+    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    if (cnpj) chaves.push('cnpj:' + cnpj);
+    if (cd) chaves.push('cd:' + cd);
+    return chaves;
+  };
+
   for (const r of registros || []) {
+    const chaves = chavesDaLinha(r);
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
     const on = num(r, 'ordinarias');
-    if (on === null) continue;
+    if (on === null) {
+      anotar(chaves, { data: data || null, motivo: 'sem_quantidade_ordinaria' });
+      continue;
+    }
     const pn = num(r, 'preferenciais') || 0;
     const onTes = num(r, 'ordinariasTesouraria') || 0;
     const pnTes = num(r, 'preferenciaisTesouraria') || 0;
     const circulacao = on + pn - onTes - pnTes;
+    anotar(chaves, { data: data || null, on, pn, onTes, pnTes, circulacao });
     // Uma companhia aberta tem mais do que cem mil ações. Abaixo disso é
     // linha de outra natureza, não a composição do capital.
     if (!(circulacao >= 1e5)) continue;
 
-    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
     const registro = {
       acoesOrdinarias: on,
       acoesPreferenciais: pn,
@@ -1076,11 +1106,6 @@ function extrairComposicaoCapital(registros, colunas) {
       acoesEmCirculacao: circulacao,
       dataReferencia: data || null,
     };
-    const chaves = [];
-    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
-    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
-    if (cnpj) chaves.push('cnpj:' + cnpj);
-    if (cd) chaves.push('cd:' + cd);
     for (const chave of chaves) {
       // Reenvio: vence a data de referência, não a ordem do arquivo.
       const anterior = porChave.get(chave);
@@ -1088,7 +1113,7 @@ function extrairComposicaoCapital(registros, colunas) {
       porChave.set(chave, registro);
     }
   }
-  return { porChave, faltando, colunas: cols, colunasReais: colunas };
+  return { porChave, linhasPorChave, faltando, colunas: cols, colunasReais: colunas };
 }
 
 module.exports.COLUNAS_CAPITAL = COLUNAS_CAPITAL;

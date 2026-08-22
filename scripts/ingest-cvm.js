@@ -553,6 +553,8 @@ async function main() {
   let colsResolvidas = null;
   // Preenchido pelo exercício mais recente que trouxer o arquivo.
   let capitalPorChave = new Map();
+  // As linhas cruas de cada companhia, para explicar uma contagem recusada.
+  let capitalLinhasPorChave = new Map();
   for (const ano of anos) {
     log(`\n· DFP ${ano}…`);
     let pacote;
@@ -627,6 +629,7 @@ async function main() {
         // 2 é a mesma família de erro que este PR passou o dia corrigindo.
         log(`  composição do capital: ${new Set(cap.porChave.values()).size} companhias`);
         capitalPorChave = cap.porChave;
+        capitalLinhasPorChave = cap.linhasPorChave || new Map();
       }
     }
 
@@ -691,6 +694,21 @@ async function main() {
             `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações para ` +
             `PL de ${(pl / 1e9).toFixed(1)}bi dá R$ ${vpa.toFixed(0)} por ação`
         );
+        // A recusa protege o ranking, mas não explica o arquivo. Estas são
+        // TODAS as linhas daquela companhia, inclusive as que o filtro
+        // descartou: se a linha certa estiver entre as descartadas, o
+        // problema é o filtro; se não estiver, é a estrutura do arquivo.
+        // São hipóteses opostas, e só o dado cru as separa.
+        const cruas = emp.chaves.map((k) => capitalLinhasPorChave.get(k)).find(Boolean) || [];
+        for (const l of cruas) {
+          log(
+            `      ${l.data || '—'} · ` +
+              (l.motivo
+                ? l.motivo
+                : `ON ${l.on} · PN ${l.pn} · tes ${l.onTes + l.pnTes} → ${l.circulacao}` +
+                  (l.circulacao >= 1e5 ? '' : ' (descartada: abaixo de 100 mil)'))
+          );
+        }
         capitalDaEmpresa = null;
       }
     }
