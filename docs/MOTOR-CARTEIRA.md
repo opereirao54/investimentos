@@ -170,6 +170,47 @@ O que a conta recusa fazer, de propósito:
 Fica de fora o `dyMedio5a`: exige preço histórico, que nenhuma destas fontes
 entrega. É reportado como métrica ausente, não estimado.
 
+#### Banco e seguradora usam outro plano de contas
+
+Na DFP, o código `2.03` é "Patrimônio Líquido" no plano industrial e **outra
+conta** no plano das instituições financeiras. Casar por código devolvia um
+número real, da conta errada, sem erro nenhum — o Banco do Brasil aparecia com
+ROE de 43,4% (o real é ~20%) e patrimônio ~6x abaixo do verdadeiro.
+
+Duas defesas, ambas necessárias:
+
+1. **Patrimônio, ativo total, receita e lucro casam por DESCRIÇÃO primeiro.** A
+   frase "Patrimônio Líquido Consolidado" é a mesma nos três planos; o código
+   não é. O código fica como reserva, para arquivo antigo sem `DS_CONTA`.
+2. **O plano é identificado pelo próprio balanço.** O padrão separa circulante
+   de não circulante; banco e seguradora não. Fora do plano padrão o código
+   deixa de servir de reserva — ali ele não é reserva, é armadilha —, e
+   dívida líquida, EBITDA e liquidez corrente saem **nulos**.
+
+O resultado é que um banco é pontuado por ROE, margem, P/L, P/VP e dividendos,
+e não por "dívida líquida/EBITDA de 12,49x" — que não significa nada quando a
+intermediação financeira É a operação. A identificação exige sinal positivo
+(contas interfinanceiras, depósitos, provisões técnicas), nunca a mera ausência
+da linha de circulante: um balanço truncado não pode virar banco.
+
+#### O que a leitura do log real corrigiu
+
+A primeira execução contra a CVM de verdade — e as três seguintes — encontraram
+quatro classes de defeito que **nenhum teste de unidade via**, porque cada peça
+estava certa isoladamente:
+
+| rodada | o que provou                          | o que expôs                                                     |
+| ------ | ------------------------------------- | --------------------------------------------------------------- |
+| 1      | —                                     | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ |
+| 2      | 477 tickers, 8 companhias casadas     | LPA ×1000, dividendo zero falso, 404 anônimo                    |
+| 3      | LPA 2,40 / 0,19 / 0,95                | ROE 43,4% num banco, 3 URLs de FII em 404                       |
+| 4      | PL 193,6 bi no BBAS3, dividendos 9/14 | dívida/EBITDA de banco                                          |
+
+O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
+sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.
+O que os encontrou foi cruzar cada número derivado com uma grandeza pública
+conhecida.
+
 **Garantia central: nunca gravar número que não se sustenta.** Coluna ausente,
 conta inexistente e resultado fora da faixa plausível viram `null` com motivo
 registado. Empresa sem nenhum indicador aproveitável é pulada e reportada, nunca

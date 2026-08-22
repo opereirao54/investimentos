@@ -153,6 +153,37 @@ normalizada antes de comparar. Quando houver mais de uma candidata, indexe por
 todas e tente todas — o custo é um `Map` a mais, e o prémio é não falhar em
 silêncio.
 
+### S5d — A busca acha algo, só que a coisa errada ⚠️
+
+**A família de bugs mais cara deste projeto.** Três instâncias reais, todas
+encontradas lendo o log de execução contra dados de verdade:
+
+| sintoma                                       | causa                                                               | por que passou despercebido                    |
+| --------------------------------------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                         | zero linhas é indistinguível de "não há dados" |
+| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                     | 190 é um número, e números parecem certos      |
+| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras | devolveu valor real, da conta errada           |
+
+O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
+não há `null`, não há linha de erro — há um número plausível o suficiente
+para ninguém olhar duas vezes.
+
+**Verificação:** cruze o número com uma grandeza pública conhecida. O ROE do
+Banco do Brasil é ~20%, não 43%; o patrimônio dele é ~180 bi, não 31 bi.
+Um indicador derivado que não fecha com o mundo real é a única evidência
+disponível quando o código não reclama.
+
+**Regras que ficam:**
+
+- Identificador presente nos DOIS lados, normalizado antes de comparar.
+- Unidade vem do significado da conta, não do metadado do arquivo.
+- Antes de aceitar um número derivado, confira-o contra uma grandeza que
+  NÃO passou pelo mesmo caminho (o patrimônio confere a contagem de ações;
+  o total do grupo confere a soma das folhas).
+- Quando o layout tem variantes (planos de conta setoriais), **detecte a
+  variante pelos próprios dados** e recuse-se a aplicar o que não vale ali.
+  Melhor um travessão do que um EBITDA de banco.
+
 ### S6 — Unidade trocada
 
 Razão (`0.185`) tratada como percentagem, ou o contrário. Não quebra nada: só faz o ranking inteiro mentir. Cada fonte tem convenção própria **no mesmo objeto** — no Yahoo, `returnOnEquity` é razão e `debtToEquity` é percentagem. Faixas de sanidade em `FAIXAS` (cvm-parser) e nas séries do SGS existem para apanhar isto.
@@ -189,6 +220,36 @@ Só depois de nomear o elo partido. Para cada correção:
   diferente de sobra: sobra é troco de lote, retido é decisão adiada. Uma
   divisão igual disfarçada de recomendação é indistinguível, para quem olha a
   tela, de uma recomendação de verdade.
+
+## Etapa 3.5 — O log é o instrumento, não o subproduto
+
+Quatro rodadas contra a CVM real corrigiram quatro classes de defeito, e
+**nenhuma delas teria sido encontrada por teste de unidade** — cada peça
+estava certa isoladamente. O que as encontrou foi o log, e cada rodada só
+foi possível porque a anterior tinha acrescentado o rastro certo.
+
+O ciclo que funcionou:
+
+1. rodar contra dados reais;
+2. ler o log procurando número implausível, não só erro;
+3. corrigir o que se entendeu **e acrescentar o rastro do que não se
+   entendeu**;
+4. repetir.
+
+O passo 3 é o que faz a diferença. Exemplos concretos deste projeto:
+
+- imprimir as linhas do `6.03` não reconhecidas revelou, na rodada
+  seguinte, que a Eletrobras nomeia a distribuição como
+  `pagamento e remuneracao aos acionistas` — sem a palavra "dividendo";
+- imprimir o patrimônio absoluto permitiu cruzar o ROE com o valor público
+  e descobrir o problema do plano de contas;
+- nomear cada URL num bloco que tinha um `catch` só revelou que o 404 vinha
+  do cadastro, não do informe.
+
+**Regra:** ao corrigir um sintoma, pergunte o que ainda não sabe explicar
+naquele mesmo relatório — e faça o log responder isso na próxima execução.
+Um `catch` em volta de três operações produz sempre a mesma mensagem e
+esconde qual das três falhou.
 
 ## Etapa 4 — Fechar o buraco de observabilidade
 
