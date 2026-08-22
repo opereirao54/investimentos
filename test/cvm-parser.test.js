@@ -422,7 +422,28 @@ test('informe de FII: vacância vira ocupação e o mais recente vence', () => {
   assert.equal(fii.numeroCotistas, 300000);
   assert.equal(fii.ocupacao, 96, 'o motor pontua ocupação; a CVM publica vacância');
   assert.equal(fii.vacancia, 4);
-  assert.ok(faltando.includes('numeroImoveis'), 'campo ausente tem de ser reportado');
+  // Campo que ESTE membro deveria ter e não tem: reportado.
+  assert.ok(faltando.includes('numeroCotas'), 'campo ausente tem de ser reportado');
+  // Vacância e imóveis moram noutro membro do ZIP. Acusá-los aqui gerava
+  // quatro "não encontrados" a cada execução — ruído que compete com falha
+  // de verdade no mesmo relatório.
+  assert.ok(!faltando.includes('numeroImoveis'), 'não é ausência: é outro arquivo');
+  assert.ok(!faltando.includes('vacanciaFisica'));
+});
+
+test('o DY do FII vem calculado pela CVM, não é derivado', () => {
+  // `Percentual_Dividend_Yield_Mes` está no informe. É o indicador mais
+  // importante do pilar de dividendos de um FII, e vem da fonte oficial —
+  // não há o que derivar nem o que supor.
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Patrimonio_Liquido;Cotas_Emitidas;Percentual_Dividend_Yield_Mes',
+    '11.111.111/0001-11;2026-07-31;3200000000;30000000;0.85',
+  ].join('\n');
+  const { colunas, registros } = P.parseCsvCvm(csv);
+  const fii = P.extrairInformeFii(registros, colunas).porCnpj.get('11111111000111');
+  assert.equal(fii.dyMes, 0.85);
+  assert.ok(Math.abs(fii.dy - 10.2) < 1e-9, 'doze meses do mesmo patamar');
+  assert.equal(fii.numeroCotas, 30000000, 'o arquivo chama de Cotas_Emitidas');
 });
 
 test('informe de FII sem coluna de CNPJ não devolve dado nenhum', () => {

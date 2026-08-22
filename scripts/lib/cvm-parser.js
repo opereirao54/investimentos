@@ -783,13 +783,30 @@ function calcularIndicadores(exercicios) {
 // exatamente a leitura ingênua que faz um fundo com 40% de vacância parecer
 // uma boa oportunidade por causa do yield alto.
 
+// Nomes confirmados contra o arquivo real (`inf_mensal_fii_2026.zip`,
+// membro `complemento`), depois de o log imprimir as colunas de verdade.
+// Antes disto eram palpites, e quatro deles estavam errados.
 const COLUNAS_FII = {
-  cnpj: ['CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ_Fundo_Classe', 'CNPJ'],
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
   dataReferencia: ['Data_Referencia', 'DT_COMPTC', 'DATA_REFERENCIA'],
   patrimonioLiquido: ['Patrimonio_Liquido', 'PATRIMONIO_LIQUIDO', 'Valor_Patrimonio_Liquido'],
   numeroCotistas: ['Total_Numero_Cotistas', 'Cotistas', 'Numero_Cotistas', 'Qtd_Cotistas'],
   valorPatrimonialCota: ['Valor_Patrimonial_Cotas', 'Valor_Patrimonial_Cota'],
-  numeroCotas: ['Total_Numero_Cotas', 'Numero_Cotas', 'Qtd_Cotas'],
+  // O arquivo chama de "Cotas_Emitidas"; "Total_Numero_Cotas" era palpite.
+  numeroCotas: ['Cotas_Emitidas', 'Total_Numero_Cotas', 'Numero_Cotas', 'Qtd_Cotas'],
+  // A CVM publica o DY do MÊS já calculado. Não é preciso derivar nada: é o
+  // indicador mais importante do pilar de dividendos de um FII, vindo da
+  // fonte oficial.
+  dividendYieldMes: ['Percentual_Dividend_Yield_Mes', 'Percentual_Dividend_Yield'],
+  rentabilidadeMes: ['Percentual_Rentabilidade_Efetiva_Mes'],
+};
+
+// Vacância e número de imóveis NÃO estão no `complemento` — moram noutro
+// membro do ZIP, com os dados de ativo. Deixá-los aqui fazia o relatório
+// acusar quatro campos "não encontrados" a cada execução, ruído que compete
+// com falha de verdade. Ficam declarados à parte, para quando esse membro
+// for lido.
+const COLUNAS_FII_IMOVEIS = {
   vacanciaFinanceira: ['Percentual_Vacancia_Financeira', 'Vacancia_Financeira'],
   vacanciaFisica: ['Percentual_Vacancia_Fisica', 'Vacancia_Fisica'],
   numeroImoveis: ['Quantidade_Imoveis', 'Total_Imoveis', 'Numero_Imoveis'],
@@ -803,11 +820,14 @@ const COLUNAS_FII = {
  * garante nada.
  */
 function extrairInformeFii(registros, colunas) {
-  const acharFii = (campo) => acharColuna(colunas, COLUNAS_FII[campo] || [campo]);
+  const TODAS = { ...COLUNAS_FII, ...COLUNAS_FII_IMOVEIS };
+  const acharFii = (campo) => acharColuna(colunas, TODAS[campo] || [campo]);
   const cols = {};
-  for (const campo of Object.keys(COLUNAS_FII)) cols[campo] = acharFii(campo);
+  for (const campo of Object.keys(TODAS)) cols[campo] = acharFii(campo);
   if (!cols.cnpj) return { porCnpj: new Map(), faltando: ['cnpj'], colunas: cols };
 
+  // Só o que este membro deveria ter conta como ausência: os campos de
+  // imóveis vivem noutro arquivo e acusá-los aqui é ruído.
   const faltando = Object.keys(COLUNAS_FII).filter((c) => !cols[c]);
   const porCnpj = new Map();
   for (const r of registros) {
@@ -831,6 +851,11 @@ function extrairInformeFii(registros, colunas) {
       ocupacao: vacancia === null ? null : Math.max(0, Math.min(100, 100 - vacancia)),
       vacancia,
       numeroImoveis: num('numeroImoveis'),
+      // DY do mês, oficial. O motor usa DY anual: doze meses do mesmo
+      // patamar é a leitura honesta de um informe mensal — e o rótulo da
+      // fonte diz de que mês veio.
+      dy: num('dividendYieldMes') === null ? null : num('dividendYieldMes') * 12,
+      dyMes: num('dividendYieldMes'),
     });
   }
   return { porCnpj, faltando, colunas: cols };
@@ -838,6 +863,7 @@ function extrairInformeFii(registros, colunas) {
 
 module.exports.FAIXAS = FAIXAS;
 module.exports.COLUNAS_FII = COLUNAS_FII;
+module.exports.COLUNAS_FII_IMOVEIS = COLUNAS_FII_IMOVEIS;
 module.exports.agruparPorEmpresa = agruparPorEmpresa;
 module.exports.extrairFinanceiro = extrairFinanceiro;
 module.exports.planoDaEmpresa = planoDaEmpresa;
