@@ -107,6 +107,51 @@ async function listarDiretorio(url, opcoes) {
  * cujo `CAD/DADOS/` e `CAD/` deram 404 os dois. Sem isto, a próxima
  * investigação recomeça adivinhando; com isto, o log já traz a resposta.
  */
+/**
+ * Procura, no cadastro de fundos da CVM, um arquivo que traga o CÓDIGO DE
+ * NEGOCIAÇÃO — o vínculo ticker ↔ fundo.
+ *
+ * POR QUE ISTO EXISTE. Para AÇÕES, o FCA declara o código de negociação e
+ * por isso o universo vem do dado. Para FII, o job depende de uma lista de
+ * dez nomes escrita à mão, que casa por denominação contra o `cad_fi.csv` —
+ * e a execução real provou que ali não estão os fundos listados:
+ *
+ *     "MAXI"  aparece em: (nenhum dos 584)
+ *     "CSHG"  aparece em: CSHG OCEANUS | CSHG RESIDENCIAL   (não o Logística)
+ *
+ * Ajustar o termo não resolveria: a informação não está naquele arquivo.
+ * Esta varredura responde se ELA EXISTE em algum outro — e é a diferença
+ * entre destravar a bolsa inteira de FIIs e continuar preso a dez nomes.
+ */
+async function procurarVinculoTickerFundo() {
+  const dirs = [
+    'https://dados.cvm.gov.br/dados/FI/CAD/DADOS/',
+    `${BASE_FII}/DOC/INF_MENSAL/DADOS/`,
+  ];
+  const RE_TICKER = /negocia|ticker|codigo_neg|cod_neg|sigla/i;
+  for (const dir of dirs) {
+    let nomes;
+    try {
+      nomes = await listarDiretorio(dir);
+    } catch (e) {
+      log(`    ${dir} — ${e.message}`);
+      continue;
+    }
+    log(`    ${dir} contém: ${nomes.join(' ')}`);
+    for (const nome of nomes.filter((n) => /\.csv$/i.test(n)).slice(0, 8)) {
+      try {
+        const csv = await baixarCsv(dir + nome);
+        const candidatas = csv.colunas.filter((c) => RE_TICKER.test(c));
+        if (candidatas.length) {
+          log(`    ✓ ${nome} TEM coluna de negociação: ${candidatas.join(', ')}`);
+        }
+      } catch (e) {
+        log(`    ${nome} — ${e.message}`);
+      }
+    }
+  }
+}
+
 async function diagnosticarArvore(url) {
   const partes = url.replace(/\/+$/, '').split('/');
   for (let i = 0; i < 3 && partes.length > 4; i++) {
@@ -810,6 +855,10 @@ async function main() {
           // palavra distintiva de cada um responde exatamente isso — e é a
           // diferença entre "o nome mudou" e "a fonte não cobre este fundo",
           // que exigem correções opostas.
+          // A resposta de onde vem o vínculo ticker↔fundo. Roda só quando
+          // nada casou, que é exatamente quando ela é necessária.
+          log('  · procurando o vínculo oficial ticker↔fundo…');
+          await procurarVinculoTickerFundo();
           for (const c of casFii.slice(0, 4)) {
             const marca = P.normalizarChave(String(c.denominacao).split(/\s+/)[0]);
             if (marca.length < 3) continue;
