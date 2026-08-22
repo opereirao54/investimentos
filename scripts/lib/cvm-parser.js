@@ -39,24 +39,62 @@ const COLUNAS = {
 // Plano de contas padrão da CVM. `termos` é rede de segurança: se o código
 // mudar de numeração, a descrição ainda identifica a linha.
 const CONTAS = {
-  ativoTotal: { codigos: ['1'], termos: ['ativo total'] },
-  ativoCirculante: { codigos: ['1.01'], termos: ['ativo circulante'] },
+  ativoTotal: { codigos: ['1'], termos: ['ativo total'], porDescricao: true },
+  // `soPlanoPadrao`: conta que NÃO EXISTE fora do plano industrial. Num
+  // balanço de banco não há circulante, e o código `1.01` aponta outra coisa
+  // — devolver null ali é a resposta certa. Ver `planoDaEmpresa`.
+  ativoCirculante: { codigos: ['1.01'], termos: ['ativo circulante'], soPlanoPadrao: true },
   caixa: { codigos: ['1.01.01'], termos: ['caixa e equivalentes de caixa'] },
   aplicacoesFinanceiras: { codigos: ['1.01.02'], termos: ['aplicacoes financeiras'] },
-  passivoCirculante: { codigos: ['2.01'], termos: ['passivo circulante'] },
-  dividaCurtoPrazo: { codigos: ['2.01.04'], termos: ['emprestimos e financiamentos'] },
-  dividaLongoPrazo: { codigos: ['2.02.01'], termos: ['emprestimos e financiamentos'] },
+  passivoCirculante: {
+    codigos: ['2.01'],
+    termos: ['passivo circulante'],
+    soPlanoPadrao: true,
+  },
+  dividaCurtoPrazo: {
+    codigos: ['2.01.04'],
+    termos: ['emprestimos e financiamentos'],
+    soPlanoPadrao: true,
+  },
+  dividaLongoPrazo: {
+    codigos: ['2.02.01'],
+    termos: ['emprestimos e financiamentos'],
+    soPlanoPadrao: true,
+  },
+  // `porDescricao` inverte a ordem de casamento: descrição primeiro, código
+  // como reserva.
+  //
+  // MOTIVO CONCRETO. Banco, seguradora e empresa industrial não usam o mesmo
+  // plano de contas na DFP. O código 2.03 é "Patrimônio Líquido" no plano
+  // industrial e OUTRA conta no plano das instituições financeiras — então
+  // casar por código devolvia um número real, da conta errada, sem erro
+  // nenhum. Foi o que a execução real mostrou:
+  //
+  //   BBAS3  ROE 43,4%   (o ROE do Banco do Brasil é ~20%)
+  //
+  // O lucro estava certo e o patrimônio ~6x abaixo. A DESCRIÇÃO, essa, é
+  // padronizada nos três planos — "Patrimônio Líquido Consolidado" é a mesma
+  // frase no banco e na indústria.
   patrimonioLiquido: {
     codigos: ['2.03'],
     termos: ['patrimonio liquido consolidado', 'patrimonio liquido'],
+    porDescricao: true,
   },
-  receita: { codigos: ['3.01'], termos: ['receita de venda', 'receita liquida'] },
-  ebit: { codigos: ['3.05'], termos: ['antes do resultado financeiro'] },
+  receita: {
+    codigos: ['3.01'],
+    termos: ['receita de venda', 'receita liquida'],
+    porDescricao: true,
+  },
+  // Para um banco, o resultado financeiro É a operação: não há "resultado
+  // antes do resultado financeiro". Sem EBIT não há EBITDA nem ROIC — e é
+  // isso mesmo.
+  ebit: { codigos: ['3.05'], termos: ['antes do resultado financeiro'], soPlanoPadrao: true },
   resultadoAntesTributos: { codigos: ['3.07'], termos: ['antes dos tributos'] },
   tributos: { codigos: ['3.08'], termos: ['imposto de renda'] },
   lucroLiquido: {
     codigos: ['3.11', '3.09'],
     termos: ['lucro/prejuizo consolidado do periodo', 'lucro/prejuizo do periodo'],
+    porDescricao: true,
   },
 };
 
@@ -196,29 +234,239 @@ function fatorEscala(escala) {
  * Valor de uma conta dentro de um conjunto de linhas já filtrado por
  * empresa e exercício. Tenta o código; se não achar, cai na descrição.
  */
-function valorDaConta(linhas, cols, conta) {
+function valorDaConta(linhas, cols, conta, opcoes) {
   const spec = CONTAS[conta];
   if (!spec) return null;
-  for (const codigo of spec.codigos) {
-    for (const l of linhas) {
-      if (String(l[cols.codigoConta] || '').trim() === codigo) {
-        const v = valorNumericoCvm(l[cols.valorConta]);
-        if (v === null) continue;
-        return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+  // Conta exclusiva do plano padrão, lida fora dele: não existe. Devolver
+  // null é a resposta, não uma falha.
+  if (spec.soPlanoPadrao && opcoes && opcoes.plano === 'financeiro') return null;
+
+  const porCodigo = () => {
+    for (const codigo of spec.codigos) {
+      for (const l of linhas) {
+        if (String(l[cols.codigoConta] || '').trim() === codigo) {
+          const v = valorNumericoCvm(l[cols.valorConta]);
+          if (v === null) continue;
+          return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+        }
       }
     }
-  }
-  if (!cols.descricaoConta) return null;
-  for (const termo of spec.termos) {
-    for (const l of linhas) {
-      if (normalizarTexto(l[cols.descricaoConta]) === termo) {
-        const v = valorNumericoCvm(l[cols.valorConta]);
-        if (v === null) continue;
-        return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+    return null;
+  };
+
+  const porDescricao = () => {
+    if (!cols.descricaoConta) return null;
+    for (const termo of spec.termos) {
+      for (const l of linhas) {
+        if (normalizarTexto(l[cols.descricaoConta]) === termo) {
+          const v = valorNumericoCvm(l[cols.valorConta]);
+          if (v === null) continue;
+          return v * fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+        }
       }
     }
+    return null;
+  };
+
+  // Ordem invertida para as contas marcadas: ver o comentário em CONTAS.
+  const primeiro = spec.porDescricao ? porDescricao() : porCodigo();
+  if (primeiro !== null) return primeiro;
+  return spec.porDescricao ? porCodigo() : porDescricao();
+}
+
+/**
+ * Qual plano de contas a companhia usou — e, por tabela, quais indicadores
+ * fazem sentido para ela.
+ *
+ * O plano padrão separa o balanço em circulante e não circulante. Banco e
+ * seguradora NÃO fazem essa separação: o balanço deles é outro, e os códigos
+ * `1.01`, `2.01`, `2.03` apontam contas diferentes. Isto identifica o caso
+ * pelo próprio arquivo, sem lista de setor escrita à mão — que envelheceria
+ * como toda lista escrita à mão neste projeto.
+ *
+ * O efeito prático, medido: o Banco do Brasil aparecia com dívida
+ * líquida/EBITDA de 12,49x. Um banco não tem "dívida líquida" nesse sentido
+ * nem EBITDA — a intermediação financeira É a operação dele. O número saía
+ * de contas que existem no código mas significam outra coisa, e um número
+ * sem sentido no ranking é pior do que a ausência dele.
+ */
+function planoDaEmpresa(blocos, cols) {
+  if (!cols.descricaoConta) return 'padrao';
+  const descricoes = []
+    .concat(blocos.bpa || [], blocos.bpp || [])
+    .map((l) => normalizarTexto(l[cols.descricaoConta]));
+  const temCirculante = descricoes.some(
+    (ds) => ds.startsWith('ativo circulante') || ds.startsWith('passivo circulante')
+  );
+  if (temCirculante) return 'padrao';
+  // EXIGE SINAL POSITIVO. Classificar como financeiro pela mera ausência da
+  // linha de circulante transformaria qualquer balanço truncado em banco — e
+  // ausência de evidência não é evidência. Estas contas só existem no plano
+  // das instituições financeiras.
+  const MARCAS_FINANCEIRO = [
+    'interfinanceir',
+    'operacoes de credito',
+    'captacoes no mercado aberto',
+    'recursos de aceites',
+    'provisoes tecnicas',
+    'depositos',
+  ];
+  const temMarca = descricoes.some((ds) => MARCAS_FINANCEIRO.some((m) => ds.includes(m)));
+  return temMarca ? 'financeiro' : 'padrao';
+}
+
+/**
+ * Lucro por ação básico, da DRE — e, por tabela, a contagem de ações.
+ *
+ * É o que destrava VALUATION inteiro sem depender de fonte paga: com LPA e
+ * lucro, `acoes = lucro / LPA`; com ações e preço, sai o valor de mercado, e
+ * dele P/L, P/VP e EV/EBITDA. Sem isto o pilar fica vazio para a bolsa toda,
+ * porque o v8/chart do Yahoo devolve preço mas não valor de mercado.
+ *
+ * O diluído é ignorado de propósito: embute opções que ainda não foram
+ * exercidas, e a contagem que interessa é a de ações que existem hoje.
+ *
+ * Empresa com ON e PN reporta um LPA por classe. Quando são iguais (o caso
+ * normal), `lucro / LPA` dá o total de ações e está certo. Quando divergem,
+ * não há como somar as classes a partir daqui — e aí devolve null, porque
+ * um P/L errado é pior do que um P/L ausente.
+ *
+ * Devolve `linhas399` — o que existe no grupo, com código, descrição e valor.
+ * O job imprime isso quando o LPA não sai: é o que separa "a companhia não
+ * publica a conta" de "o nosso filtro não a reconhece".
+ */
+function lucroPorAcaoDetalhado(linhas, cols) {
+  if (!linhas || !linhas.length) return { valor: null, linhas399: [] };
+  const valores = [];
+  const linhas399 = [];
+  for (const l of linhas) {
+    const cod = String(l[cols.codigoConta] || '').trim();
+    const ds = cols.descricaoConta ? normalizarTexto(l[cols.descricaoConta]) : '';
+    // No plano de contas da CVM, 3.99.01 é o lucro BÁSICO por ação e
+    // 3.99.02 o diluído. As folhas trazem só a classe na descrição ("ON",
+    // "PN") — quem separa básico de diluído é o código, não o texto. Filtrar
+    // por "diluído" na descrição deixava passar o 3.99.02.01 inteiro.
+    if (cod.startsWith('3.99')) {
+      const v0 = valorNumericoCvm(l[cols.valorConta]);
+      linhas399.push(`${cod}=${ds.slice(0, 24)}:${v0 === null ? '—' : v0}`);
+    }
+    const basicoPorCodigo = cod === '3.99.01' || cod.startsWith('3.99.01.');
+    const diluidoPorCodigo = cod === '3.99.02' || cod.startsWith('3.99.02.');
+    if (diluidoPorCodigo || ds.includes('diluid')) continue;
+    const basicoPorTexto = ds.includes('por acao') || ds.includes('por acoes');
+    if (!basicoPorCodigo && !basicoPorTexto) continue;
+    const v = valorNumericoCvm(l[cols.valorConta]);
+    if (v === null || v <= 0) continue;
+    // A ESCALA DO ARQUIVO NÃO SE APLICA AQUI. A conta 3.99 é, por definição
+    // do plano da CVM, "Lucro por Ação - (Reais / Ação)": a unidade vem do
+    // plano de contas, não da escala monetária declarada no arquivo. Boa
+    // parte dos emissores repete ESCALA_MOEDA=MIL nestas linhas por herança
+    // do resto da DFP, e multiplicar por mil produzia exatamente o que a
+    // primeira execução real mostrou:
+    //
+    //   ARML3  LPA 190,00   (era 0,19)
+    //   ENGI11 LPA 950,00   (era 0,95)
+    //   BBAS3  LPA —        (7,4 × 1000 = 7400, cortado pelo teto)
+    //
+    // Ou seja: valores errados nos que passavam e valuation apagada nos que
+    // não passavam. O teto continua, agora como guarda de verdade.
+    if (v < 0.0001 || v > 1000) continue;
+    valores.push(v);
   }
-  return null;
+  if (!valores.length) return { valor: null, linhas399 };
+  const min = Math.min(...valores);
+  const max = Math.max(...valores);
+  // Classes com LPA diferente: a contagem de ações não sai de uma divisão só.
+  if (min <= 0 || max / min > 1.02) return { valor: null, linhas399 };
+  return { valor: valores[0], linhas399 };
+}
+
+// Como a distribuição aos acionistas aparece na DFC. "jcp" e "juros sobre o
+// capital" entram porque metade das companhias nomeia a linha só assim — e
+// no Brasil JCP é dividendo com outro nome fiscal.
+// "remuneracao ao(s) acionista(s)" entrou depois de o log mostrar, na
+// Eletrobras, a linha `pagamento e remuneracao aos acionistas` — que É a
+// distribuição, nomeada sem a palavra "dividendo". Sem o termo, o resultado
+// era `div 0M` numa companhia que paga.
+const TERMOS_DIVIDENDO = [
+  'dividendo',
+  'capital proprio',
+  'jcp',
+  'remuneracao ao acionista',
+  'remuneracao aos acionistas',
+];
+
+/**
+ * Dividendos e JCP pagos no exercício, do fluxo de financiamento da DFC.
+ *
+ * Só o grupo 6.03 (financiamento): "dividendos recebidos" mora no 6.01 e
+ * somá-lo inverteria o sinal do indicador de uma holding.
+ *
+ * Quando o agregado E o detalhe aparecem, vale o AGREGADO. É o contrário do
+ * que o instinto sugere, e por um motivo concreto: o filtro por descrição
+ * reconhece "Dividendos Pagos" mas pode não reconhecer como a companhia
+ * nomeou a linha vizinha. Somando folhas, o que o filtro não reconhecesse
+ * sumia da conta e o payout saía menor do que é; ficando com o pai, o total
+ * é o que a própria companhia declarou.
+ *
+ * Devolve também o RASTRO. `naoReconhecidas` lista as linhas do 6.03 que o
+ * filtro não casou, e o job imprime-as quando não acha distribuição: é a
+ * diferença entre "esta empresa não paga" e "esta empresa nomeia a linha de
+ * um jeito que o filtro não conhece", que de fora são idênticas.
+ */
+function dividendosPagosDetalhado(linhas, cols) {
+  const vazio = { valor: null, naoReconhecidas: [], motivo: 'sem_dfc' };
+  if (!linhas || !linhas.length || !cols.descricaoConta) return vazio;
+  const candidatos = [];
+  const naoReconhecidas = [];
+  // Filhas de primeiro nível (6.03.NN) e o total (6.03). Só quando as filhas
+  // FECHAM com o total sabemos que a seção está inteira à nossa frente — e
+  // só então a ausência de linha de dividendo significa que não houve.
+  let total = null;
+  const filhas = [];
+  for (const l of linhas) {
+    const cod = String(l[cols.codigoConta] || '').trim();
+    if (!cod.startsWith('6.03')) continue;
+    const escala = fatorEscala(cols.escalaMoeda ? l[cols.escalaMoeda] : null);
+    const v = valorNumericoCvm(l[cols.valorConta]);
+    if (cod === '6.03') {
+      if (v !== null) total = v * escala;
+      continue;
+    }
+    const primeiroNivel = /^6\.03\.\d+$/.test(cod);
+    if (primeiroNivel && v !== null) filhas.push(v * escala);
+    const ds = normalizarTexto(l[cols.descricaoConta]);
+    if (!TERMOS_DIVIDENDO.some((t) => ds.includes(t))) {
+      if (primeiroNivel && v !== null && v !== 0) naoReconhecidas.push(ds.slice(0, 60));
+      continue;
+    }
+    if (v === null || v === 0) continue;
+    candidatos.push({ cod, valor: Math.abs(v) * escala });
+  }
+
+  if (!candidatos.length) {
+    // Zero só quando a seção fecha: as filhas de primeiro nível somam o
+    // total declarado. Se sobra diferença, existe linha que não lemos — e
+    // afirmar zero ali penalizaria quem paga. A primeira execução real
+    // marcou 3 de 8 companhias com "div 0M", uma delas pagadora conhecida:
+    // um zero falso é pior do que uma lacuna, porque afunda no ranking de
+    // renda justamente quem deveria subir.
+    const somaFilhas = filhas.reduce((a, b) => a + b, 0);
+    const fecha =
+      total !== null &&
+      filhas.length > 0 &&
+      Math.abs(somaFilhas - total) <= Math.max(1, Math.abs(total) * 0.01);
+    return {
+      valor: fecha ? 0 : null,
+      naoReconhecidas,
+      motivo: fecha ? 'nao_distribuiu' : 'secao_incompleta',
+    };
+  }
+  // Conta só quem não está coberto por um ancestral já contado.
+  const somado = candidatos
+    .filter((c) => !candidatos.some((o) => o !== c && c.cod.startsWith(o.cod + '.')))
+    .reduce((acc, c) => acc + c.valor, 0);
+  return { valor: somado > 0 ? somado : null, naoReconhecidas, motivo: 'distribuiu' };
 }
 
 /** Depreciação e amortização da DFC, para reconstruir o EBITDA. */
@@ -272,16 +520,26 @@ function agruparPorEmpresa(registros, cols) {
       const ordem = normalizarChave(r[cols.ordemExercicio]);
       if (ordem && ordem !== 'ULTIMO') continue;
     }
-    const chave = String(r[cols.cdCvm] || '').trim();
-    if (!chave) continue;
+    // Indexa pelas DUAS identificações. O FCA junta por CNPJ, o cadastro
+    // antigo junta por CD_CVM, e o mesmo índice tem de servir aos dois — sem
+    // isto, "0 companhias com dados" era o resultado mesmo com o arquivo
+    // certo aberto e as colunas todas resolvidas.
+    const chaves = [];
+    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
+    if (cd) chaves.push('cd:' + cd);
+    if (cnpj) chaves.push('cnpj:' + cnpj);
+    if (!chaves.length) continue;
     const exercicio = String(
       (cols.dataFimExercicio && r[cols.dataFimExercicio]) || r[cols.dataReferencia] || ''
     ).trim();
     if (!exercicio) continue;
-    if (!porEmpresa.has(chave)) porEmpresa.set(chave, new Map());
-    const porExercicio = porEmpresa.get(chave);
-    if (!porExercicio.has(exercicio)) porExercicio.set(exercicio, []);
-    porExercicio.get(exercicio).push(r);
+    for (const chave of chaves) {
+      if (!porEmpresa.has(chave)) porEmpresa.set(chave, new Map());
+      const porExercicio = porEmpresa.get(chave);
+      if (!porExercicio.has(exercicio)) porExercicio.set(exercicio, []);
+      porExercicio.get(exercicio).push(r);
+    }
   }
   return porEmpresa;
 }
@@ -293,20 +551,29 @@ function extrairFinanceiro(blocos, cols) {
   const dre = blocos.dre || [];
   const dfc = blocos.dfc || [];
 
-  const patrimonioLiquido = valorDaConta(bpp, cols, 'patrimonioLiquido');
-  const ativoTotal = valorDaConta(bpa, cols, 'ativoTotal');
-  const ativoCirculante = valorDaConta(bpa, cols, 'ativoCirculante');
-  const passivoCirculante = valorDaConta(bpp, cols, 'passivoCirculante');
-  const caixa = valorDaConta(bpa, cols, 'caixa');
-  const aplicacoes = valorDaConta(bpa, cols, 'aplicacoesFinanceiras');
-  const dividaCp = valorDaConta(bpp, cols, 'dividaCurtoPrazo');
-  const dividaLp = valorDaConta(bpp, cols, 'dividaLongoPrazo');
-  const receita = valorDaConta(dre, cols, 'receita');
-  const ebit = valorDaConta(dre, cols, 'ebit');
-  const lucroLiquido = valorDaConta(dre, cols, 'lucroLiquido');
-  const antesTributos = valorDaConta(dre, cols, 'resultadoAntesTributos');
-  const tributos = valorDaConta(dre, cols, 'tributos');
+  // Banco e seguradora usam outro plano de contas: lá o código não serve de
+  // reserva, porque aponta contas diferentes com o mesmo número.
+  const plano = planoDaEmpresa(blocos, cols);
+  const op = { plano };
+
+  const patrimonioLiquido = valorDaConta(bpp, cols, 'patrimonioLiquido', op);
+  const ativoTotal = valorDaConta(bpa, cols, 'ativoTotal', op);
+  const ativoCirculante = valorDaConta(bpa, cols, 'ativoCirculante', op);
+  const passivoCirculante = valorDaConta(bpp, cols, 'passivoCirculante', op);
+  const caixa = valorDaConta(bpa, cols, 'caixa', op);
+  const aplicacoes = valorDaConta(bpa, cols, 'aplicacoesFinanceiras', op);
+  const dividaCp = valorDaConta(bpp, cols, 'dividaCurtoPrazo', op);
+  const dividaLp = valorDaConta(bpp, cols, 'dividaLongoPrazo', op);
+  const receita = valorDaConta(dre, cols, 'receita', op);
+  const ebit = valorDaConta(dre, cols, 'ebit', op);
+  const lucroLiquido = valorDaConta(dre, cols, 'lucroLiquido', op);
+  const antesTributos = valorDaConta(dre, cols, 'resultadoAntesTributos', op);
+  const tributos = valorDaConta(dre, cols, 'tributos', op);
   const depreciacao = depreciacaoDaDfc(dfc, cols);
+  const lpa = lucroPorAcaoDetalhado(dre, cols);
+  const lucroPorAcao = lpa.valor;
+  const dividendos = dividendosPagosDetalhado(dfc, cols);
+  const dividendosPagos = dividendos.valor;
 
   // Só há dívida se alguma das pontas existir. Somar dois nulls como zero
   // faria um banco alavancado parecer uma empresa sem dívida.
@@ -332,6 +599,24 @@ function extrairFinanceiro(blocos, cols) {
     lucroLiquido,
     antesTributos,
     tributos,
+    plano,
+    lucroPorAcao,
+    linhas399: lpa.linhas399,
+    dividendosPagos,
+    // Rastro para o log do job: sem isto, "não paga" e "nomeia diferente"
+    // são indistinguíveis de fora.
+    dividendosMotivo: dividendos.motivo,
+    dividendosNaoReconhecidas: dividendos.naoReconhecidas,
+    // Contagem de ações implícita. A faixa é larga de propósito — serve só
+    // para barrar o absurdo (escala trocada por mil), não para julgar a
+    // empresa.
+    acoesEquivalentes:
+      lucroLiquido !== null && lucroPorAcao !== null && lucroPorAcao > 0
+        ? (() => {
+            const n = lucroLiquido / lucroPorAcao;
+            return n >= 1e5 && n <= 1e12 ? n : null;
+          })()
+        : null,
   };
 }
 
@@ -370,6 +655,10 @@ const FAIXAS = {
   dividaLiquidaPl: [-20, 50],
   cagrReceita5a: [-100, 300],
   cagrLucro5a: [-100, 300],
+  crescimentoReceitaAno: [-100, 500],
+  // Payout acima de 200% é distribuição de reserva ou linha somada duas
+  // vezes; nos dois casos não descreve a política de dividendos.
+  payout: [0, 200],
 };
 
 function cagr(inicial, final, anos) {
@@ -394,6 +683,25 @@ function calcularIndicadores(exercicios) {
       ? atual.patrimonioLiquido + Math.max(0, atual.dividaLiquida)
       : null;
   const nopat = atual.ebit !== null ? atual.ebit * (1 - aliq) : null;
+  const anterior = lista.length >= 2 ? lista[lista.length - 2] : null;
+
+  // Anos seguidos pagando, contados do exercício mais recente para trás. A
+  // sequência é o que o critério mede: dez anos com um buraco no meio não é
+  // dez anos. Um exercício SEM informação interrompe a contagem em vez de
+  // ser tratado como zero — não sabemos se pagou.
+  let anosPagando = 0;
+  for (let i = lista.length - 1; i >= 0; i--) {
+    const d = lista[i].dividendosPagos;
+    if (d === null || d === undefined) break; // sem informação: nada a afirmar
+    if (!(d > 0)) break; // pagou zero: a sequência termina aqui
+    anosPagando++;
+  }
+  // Zero só é resposta quando sabemos o do exercício mais recente; senão é
+  // ausência de dado, e o motor tem de tratá-la como ausência.
+  const ultimoConhecido = atual.dividendosPagos;
+  if (!anosPagando && (ultimoConhecido === null || ultimoConhecido === undefined)) {
+    anosPagando = null;
+  }
 
   const brutos = {
     roe: pct(atual.lucroLiquido, atual.patrimonioLiquido),
@@ -405,6 +713,11 @@ function calcularIndicadores(exercicios) {
     dividaLiquidaPl: razao(atual.dividaLiquida, atual.patrimonioLiquido),
     cagrReceita5a: anos >= 1 ? cagr(primeiro.receita, atual.receita, anos) : null,
     cagrLucro5a: anos >= 1 ? cagr(primeiro.lucroLiquido, atual.lucroLiquido, anos) : null,
+    crescimentoReceitaAno: anterior ? cagr(anterior.receita, atual.receita, 1) : null,
+    // Payout e anos pagando saem sem preço nenhum — são a parte do pilar de
+    // dividendos que não depende de valor de mercado.
+    payout: pct(atual.dividendosPagos, atual.lucroLiquido),
+    anosPagandoDividendo: anosPagando,
   };
 
   const indicadores = {};
@@ -438,6 +751,23 @@ function calcularIndicadores(exercicios) {
       ebitda: atual.ebitda,
       dividaLiquida: atual.dividaLiquida,
       ativoTotal: atual.ativoTotal,
+      // Ações e dividendo por ação: com o preço, o servidor fecha P/L, P/VP,
+      // EV/EBITDA e DY sem precisar de fonte paga.
+      plano: atual.plano ?? null,
+      linhas399: atual.linhas399 ?? null,
+      acoesEquivalentes: atual.acoesEquivalentes ?? null,
+      lucroPorAcao: atual.lucroPorAcao ?? null,
+      dividendosPagos: atual.dividendosPagos ?? null,
+      dividendosMotivo: atual.dividendosMotivo ?? null,
+      dividendosNaoReconhecidas: atual.dividendosNaoReconhecidas ?? null,
+      // Zero conhecido vira DY zero, não ausência: quem não distribuiu tem
+      // de pontuar zero no pilar, e não ficar de fora dele.
+      dividendoPorAcao:
+        atual.dividendosPagos !== null &&
+        atual.dividendosPagos !== undefined &&
+        atual.acoesEquivalentes
+          ? atual.dividendosPagos / atual.acoesEquivalentes
+          : null,
     },
     dataReferencia: atual.dataReferencia || null,
     ano: atual.ano,
@@ -453,13 +783,42 @@ function calcularIndicadores(exercicios) {
 // exatamente a leitura ingênua que faz um fundo com 40% de vacância parecer
 // uma boa oportunidade por causa do yield alto.
 
+// Nomes confirmados contra o arquivo real (`inf_mensal_fii_2026.zip`,
+// membro `complemento`), depois de o log imprimir as colunas de verdade.
+// Antes disto eram palpites, e quatro deles estavam errados.
 const COLUNAS_FII = {
-  cnpj: ['CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ_Fundo_Classe', 'CNPJ'],
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
   dataReferencia: ['Data_Referencia', 'DT_COMPTC', 'DATA_REFERENCIA'],
   patrimonioLiquido: ['Patrimonio_Liquido', 'PATRIMONIO_LIQUIDO', 'Valor_Patrimonio_Liquido'],
   numeroCotistas: ['Total_Numero_Cotistas', 'Cotistas', 'Numero_Cotistas', 'Qtd_Cotistas'],
   valorPatrimonialCota: ['Valor_Patrimonial_Cotas', 'Valor_Patrimonial_Cota'],
-  numeroCotas: ['Total_Numero_Cotas', 'Numero_Cotas', 'Qtd_Cotas'],
+  // O arquivo chama de "Cotas_Emitidas"; "Total_Numero_Cotas" era palpite.
+  numeroCotas: ['Cotas_Emitidas', 'Total_Numero_Cotas', 'Numero_Cotas', 'Qtd_Cotas'],
+  // A CVM publica o DY do MÊS já calculado. Não é preciso derivar nada: é o
+  // indicador mais importante do pilar de dividendos de um FII, vindo da
+  // fonte oficial.
+  dividendYieldMes: ['Percentual_Dividend_Yield_Mes', 'Percentual_Dividend_Yield'],
+  rentabilidadeMes: ['Percentual_Rentabilidade_Efetiva_Mes'],
+  // Alavancagem. O pilar Endividamento do FII tem UM indicador — LTV — e
+  // sem ele o pilar inteiro fica vazio, o que derruba a cobertura de toda a
+  // classe. O informe publica as duas pontas: as obrigações e o ativo.
+  //
+  // Não se usa `Total_Passivo`: ali dentro estão rendimentos a distribuir e
+  // taxa de administração a pagar, que não são dívida — um fundo sem
+  // dívida nenhuma apareceria alavancado no mês em que declarou
+  // rendimento. As obrigações por aquisição de imóveis e por securitização
+  // de recebíveis são o que de facto financia a carteira.
+  valorAtivo: ['Valor_Ativo', 'Total_Ativo'],
+  obrigacoesAquisicaoImoveis: ['Obrigacoes_Aquisicao_Imoveis'],
+  obrigacoesSecuritizacao: ['Obrigacoes_Securitizacao_Recebiveis'],
+};
+
+// Vacância e número de imóveis NÃO estão no `complemento` — moram noutro
+// membro do ZIP, com os dados de ativo. Deixá-los aqui fazia o relatório
+// acusar quatro campos "não encontrados" a cada execução, ruído que compete
+// com falha de verdade. Ficam declarados à parte, para quando esse membro
+// for lido.
+const COLUNAS_FII_IMOVEIS = {
   vacanciaFinanceira: ['Percentual_Vacancia_Financeira', 'Vacancia_Financeira'],
   vacanciaFisica: ['Percentual_Vacancia_Fisica', 'Vacancia_Fisica'],
   numeroImoveis: ['Quantidade_Imoveis', 'Total_Imoveis', 'Numero_Imoveis'],
@@ -473,23 +832,63 @@ const COLUNAS_FII = {
  * garante nada.
  */
 function extrairInformeFii(registros, colunas) {
-  const acharFii = (campo) => acharColuna(colunas, COLUNAS_FII[campo] || [campo]);
+  const TODAS = { ...COLUNAS_FII, ...COLUNAS_FII_IMOVEIS };
+  const acharFii = (campo) => acharColuna(colunas, TODAS[campo] || [campo]);
   const cols = {};
-  for (const campo of Object.keys(COLUNAS_FII)) cols[campo] = acharFii(campo);
+  for (const campo of Object.keys(TODAS)) cols[campo] = acharFii(campo);
   if (!cols.cnpj) return { porCnpj: new Map(), faltando: ['cnpj'], colunas: cols };
 
+  // Só o que este membro deveria ter conta como ausência: os campos de
+  // imóveis vivem noutro arquivo e acusá-los aqui é ruído.
   const faltando = Object.keys(COLUNAS_FII).filter((c) => !cols[c]);
+
+  // `Percentual_Dividend_Yield_Mes` chama-se "percentual" e é RAZÃO. O
+  // informe real desmentiu o nome:
+  //
+  //   MXRF11  0,00808   num mês em que rendeu ~0,8%
+  //   HGLG11  0,007023  num mês em que rendeu ~0,7%
+  //
+  // Lido como percentagem, o DY anual de todo FII sairia ~0,1% e a classe
+  // inteira afundaria no pilar de dividendos — número errado, não ausente,
+  // que é sempre o pior dos dois.
+  //
+  // A escala é decidida UMA vez por arquivo, pela mediana dos valores
+  // positivos, e não linha a linha: a convenção é propriedade do arquivo, e
+  // a mediana não se deixa mover por um fundo atípico. Se a CVM trocar a
+  // convenção, a mediana acompanha sem que ninguém precise reeditar código.
+  const escalaDy = escalaDoDividendYield(registros, cols.dividendYieldMes);
+
   const porCnpj = new Map();
+  // A SÉRIE, não só o último mês. O ZIP anual traz doze informes de cada
+  // fundo e o job já os lê todos: descartá-los deixaria dois indicadores do
+  // pilar de dividendos vazios por falta de dado que está na mão.
+  const seriePorCnpj = new Map();
   for (const r of registros) {
     const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
     if (cnpj.length !== 14) continue;
     const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
     const anterior = porCnpj.get(cnpj);
-    if (anterior && anterior.dataReferencia >= data) continue;
+    const maisVelho = anterior && anterior.dataReferencia >= data;
 
     const num = (campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
+    // Fora de [0; 5] não é DY de um mês: vira lacuna, nunca número.
+    const dyBruto = num('dividendYieldMes');
+    // Arredondado: multiplicar por 100 em ponto flutuante produz
+    // `0.7023000000000001`, que polui log e documento sem acrescentar nada.
+    const dyEscalado = dyBruto === null ? null : Math.round(dyBruto * escalaDy.fator * 1e6) / 1e6;
+    const dyMesPct = dyEscalado !== null && dyEscalado >= 0 && dyEscalado <= 5 ? dyEscalado : null;
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
+
+    if (dyMesPct !== null && data) {
+      const serie = seriePorCnpj.get(cnpj) || [];
+      serie.push({ dataReferencia: data, dyMes: dyMesPct });
+      seriePorCnpj.set(cnpj, serie);
+    }
+    // O mês mais recente descreve o fundo hoje; os anteriores só alimentam a
+    // série. Sem esta guarda um reenvio antigo sobrescreveria o atual.
+    if (maisVelho) continue;
+
     porCnpj.set(cnpj, {
       cnpj,
       dataReferencia: data || null,
@@ -501,19 +900,537 @@ function extrairInformeFii(registros, colunas) {
       ocupacao: vacancia === null ? null : Math.max(0, Math.min(100, 100 - vacancia)),
       vacancia,
       numeroImoveis: num('numeroImoveis'),
+      // DY do mês, oficial. O motor usa DY anual: doze meses do mesmo
+      // patamar é a leitura honesta de um informe mensal — e o rótulo da
+      // fonte diz de que mês veio.
+      dy: dyMesPct === null ? null : dyMesPct * 12,
+      dyMes: dyMesPct,
+      valorAtivo: num('valorAtivo'),
+      obrigacoesAquisicaoImoveis: num('obrigacoesAquisicaoImoveis'),
+      obrigacoesSecuritizacao: num('obrigacoesSecuritizacao'),
     });
   }
-  return { porCnpj, faltando, colunas: cols };
+  return { porCnpj, seriePorCnpj, faltando, colunas: cols, escalaDy };
+}
+
+/**
+ * Indicadores que só a SÉRIE mensal responde.
+ *
+ * O motor pontua "DY médio (36 meses)" e "meses pagando (24m)" — duas
+ * perguntas sobre consistência, que um informe isolado não responde e que
+ * ficavam vazias enquanto o job lia um mês só.
+ *
+ * Ambos saem de dado publicado, sem estimar nada. O que NÃO sai daqui é o
+ * crescimento do dividendo: o informe publica o yield (rendimento ÷ preço),
+ * e a variação do yield confunde mudança de rendimento com mudança de
+ * preço. Fica nulo — inventá-lo seria pior do que não tê-lo.
+ *
+ * A janela é a dos meses observados, e o número deles vai junto: "média de
+ * 8 meses" e "média de 36" não merecem a mesma confiança, e quem lê precisa
+ * poder distinguir.
+ */
+function indicadoresDaSerieFii(serie, opcoes) {
+  const op = opcoes || {};
+  const janelaDy = op.janelaDy || 36;
+  const janelaConsistencia = op.janelaConsistencia || 24;
+  // Piso de meses. Com dois informes, "DY médio" é o DY atual repetido, e
+  // pontuá-lo como indicador SEPARADO faria o mesmo dado valer duas vezes
+  // no pilar de dividendos. Meia dúzia de competências é o mínimo para a
+  // média dizer algo que o último mês já não diga.
+  const minimoMeses = op.minimoMeses || 6;
+  if (!Array.isArray(serie) || !serie.length) {
+    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: 0 };
+  }
+  // Um mês pode ser reenviado: vale um informe por competência, o último.
+  const porMes = new Map();
+  for (const p of serie) {
+    const mes = String(p.dataReferencia).slice(0, 7);
+    porMes.set(mes, p.dyMes);
+  }
+  const meses = Array.from(porMes.keys()).sort();
+
+  const ultimosDy = meses.slice(-janelaDy).map((m) => porMes.get(m));
+  const dyMedio36m = ultimosDy.length
+    ? Math.round((ultimosDy.reduce((a, b) => a + b, 0) / ultimosDy.length) * 12 * 1e4) / 1e4
+    : null;
+
+  const ultimosCons = meses.slice(-janelaConsistencia);
+  const pagando = ultimosCons.filter((m) => porMes.get(m) > 0).length;
+  const consistenciaDividendos = ultimosCons.length
+    ? Math.round((pagando / ultimosCons.length) * 1000) / 10
+    : null;
+
+  if (meses.length < minimoMeses) {
+    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: meses.length };
+  }
+  return { dyMedio36m, consistenciaDividendos, mesesObservados: meses.length };
+}
+
+module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
+
+/**
+ * Razão ou percentagem? Decidido pela mediana dos valores positivos do
+ * arquivo.
+ *
+ * DY mensal real de FII vive entre 0,3% e 2%. Como razão isso é 0,003 a
+ * 0,02 — trinta vezes abaixo. Não há sobreposição entre as duas leituras
+ * para fundo nenhum, e é por isso que a mediana decide sem ambiguidade.
+ */
+function escalaDoDividendYield(registros, coluna) {
+  if (!coluna) return { fator: 1, mediana: null, amostra: 0 };
+  const vals = [];
+  for (const r of registros || []) {
+    const v = valorNumericoCvm(r[coluna]);
+    if (v !== null && v > 0) vals.push(v);
+  }
+  if (!vals.length) return { fator: 1, mediana: null, amostra: 0 };
+  vals.sort((a, b) => a - b);
+  const mediana = vals[Math.floor(vals.length / 2)];
+  return { fator: mediana < 0.1 ? 100 : 1, mediana, amostra: vals.length };
 }
 
 module.exports.FAIXAS = FAIXAS;
 module.exports.COLUNAS_FII = COLUNAS_FII;
+module.exports.COLUNAS_FII_IMOVEIS = COLUNAS_FII_IMOVEIS;
 module.exports.agruparPorEmpresa = agruparPorEmpresa;
 module.exports.extrairFinanceiro = extrairFinanceiro;
+module.exports.planoDaEmpresa = planoDaEmpresa;
+module.exports.dividendosPagosDetalhado = dividendosPagosDetalhado;
 module.exports.calcularIndicadores = calcularIndicadores;
 module.exports.aliquotaEfetiva = aliquotaEfetiva;
 module.exports.cagr = cagr;
 module.exports.extrairInformeFii = extrairInformeFii;
+
+// ════════════════════════════════════════════════════════════
+// Vínculo ticker ↔ fundo
+// ════════════════════════════════════════════════════════════
+//
+// O casamento por NOME contra o `cad_fi.csv` não funciona, e a execução real
+// mostrou por quê: dos 584 fundos imobiliários daquele cadastro, "MAXI" não
+// aparece em nenhum. Não é o nome que mudou — a fonte não cobre os fundos
+// listados em bolsa. Nenhum ajuste de string conserta isso.
+//
+// O vínculo tem de vir de um CÓDIGO publicado, não de um nome. Duas fontes,
+// nesta ordem:
+//
+//  1. Uma coluna de código de negociação, se a CVM publicar uma. Direta.
+//  2. O `Codigo_ISIN` do próprio informe. O ISIN de cota de fundo brasileiro
+//     tem forma `BR` + RAIZ + `CTF` + 3 dígitos, e a RAIZ é exatamente a raiz
+//     do ticker: MXRF11 ↔ BRMXRFCTF004, HGLG11 ↔ BRHGLGCTF003. A B3 é a
+//     agência nacional de numeração; a raiz não é convenção nossa, é o
+//     código que ela atribuiu.
+//
+// Nos dois casos o vínculo sai de um campo publicado. Não há tabela escrita
+// à mão para envelhecer, e um FII novo entra sozinho.
+const COLUNAS_VINCULO_FII = {
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
+  dataReferencia: ['Data_Referencia', 'DT_COMPTC', 'DATA_REFERENCIA'],
+  nome: ['Nome_Fundo_Classe', 'Nome_Fundo', 'NOME_FUNDO', 'DENOM_SOCIAL', 'NM_FUNDO'],
+  codigoNegociacao: [
+    'Codigo_Negociacao',
+    'CODIGO_NEGOCIACAO',
+    'Cod_Negociacao',
+    'COD_NEGOCIACAO',
+    'Codigo_Negociacao_Cota',
+    'Ticker',
+  ],
+  isin: ['Codigo_ISIN', 'CODIGO_ISIN', 'Codigo_Isin', 'ISIN'],
+  // Desempate: sob a RCVM 175 um fundo tem classes, e mais de uma pode
+  // carregar a mesma raiz de ISIN. Só uma é negociada em bolsa, e é essa
+  // que o ticker designa. A execução real mostrou o risco: XPML11 casou com
+  // dois CNPJs e o vencedor foi decidido pela ordem do arquivo.
+  negociaBolsa: ['Mercado_Negociacao_Bolsa', 'MERCADO_NEGOCIACAO_BOLSA'],
+};
+
+// `CTF` = cota de fundo. Restringir ao tipo evita casar a raiz de um ISIN de
+// outra espécie que por acaso tenha as mesmas quatro letras.
+const ISIN_COTA_FUNDO = /^BR([A-Z0-9]{4})CTF\d{3}$/;
+
+/** Raiz do ticker embutida no ISIN de cota de fundo, ou null. */
+function raizDoIsin(isin) {
+  const m = ISIN_COTA_FUNDO.exec(
+    String(isin === null || isin === undefined ? '' : isin)
+      .trim()
+      .toUpperCase()
+  );
+  return m ? m[1] : null;
+}
+
+/**
+ * Índice código de negociação → fundo, tirado do próprio informe.
+ *
+ * Quando o mesmo código aparece com CNPJs diferentes (fusão, sucessão), o
+ * informe mais recente vence e a entrada fica marcada — casar com o fundo
+ * errado é pior do que não casar, e quem chama precisa poder mostrar isso.
+ */
+function vincularFiiPorCodigo(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_VINCULO_FII)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_VINCULO_FII[campo]);
+  }
+  const vazio = { via: null, coluna: null, porCodigo: new Map(), total: 0, colunas: cols };
+  if (!cols.cnpj) return vazio;
+
+  const usarCodigo = !!cols.codigoNegociacao;
+  if (!usarCodigo && !cols.isin) return vazio;
+
+  // Um código pode ter vários candidatos (classes do mesmo fundo, sucessão).
+  // Reunir TODOS antes de escolher é o que permite desempatar por critério
+  // em vez de por ordem do arquivo — que não é critério nenhum.
+  const candidatosPorCodigo = new Map();
+  let total = 0;
+  for (const r of registros || []) {
+    const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+
+    // A coluna direta, quando existe, pode vir vazia em parte das linhas;
+    // o ISIN cobre o resto sem que a fonte precise ser escolhida de véspera.
+    const bruto = usarCodigo ? String(r[cols.codigoNegociacao] || '').trim() : '';
+    const direto = bruto.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const isin = cols.isin ? String(r[cols.isin] || '').trim() : '';
+    const raiz = raizDoIsin(isin);
+    const codigo = direto.length >= 4 ? direto : raiz;
+    if (!codigo) continue;
+
+    total += 1;
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const bolsa = cols.negociaBolsa
+      ? normalizarChave(r[cols.negociaBolsa]) === 'S' ||
+        normalizarChave(r[cols.negociaBolsa]) === 'SIM'
+      : null;
+    const porCnpj = candidatosPorCodigo.get(codigo) || new Map();
+    const anterior = porCnpj.get(cnpj);
+    if (!anterior || !anterior.dataReferencia || anterior.dataReferencia < data) {
+      porCnpj.set(cnpj, {
+        codigo,
+        cnpj,
+        isin: isin || null,
+        nome: cols.nome ? String(r[cols.nome] || '').trim() || null : null,
+        dataReferencia: data || null,
+        bolsa,
+        via: direto.length >= 4 ? 'codigo_negociacao' : 'isin',
+      });
+    }
+    candidatosPorCodigo.set(codigo, porCnpj);
+  }
+
+  const porCodigo = new Map();
+  for (const [codigo, porCnpj] of candidatosPorCodigo) {
+    const candidatos = Array.from(porCnpj.values());
+    let escolhidos = candidatos;
+    let desempate = null;
+    if (candidatos.length > 1) {
+      // O ticker designa a classe NEGOCIADA. Quando a fonte diz quais são,
+      // isso resolve sozinho e sem heurística de nome.
+      const emBolsa = candidatos.filter((c) => c.bolsa === true);
+      if (emBolsa.length === 1) {
+        escolhidos = emBolsa;
+        desempate = 'bolsa';
+      }
+    }
+    const vencedor = escolhidos
+      .slice()
+      .sort((a, b) =>
+        String(b.dataReferencia || '').localeCompare(String(a.dataReferencia || ''))
+      )[0];
+    porCodigo.set(codigo, {
+      ...vencedor,
+      ambiguo: escolhidos.length > 1,
+      desempate,
+      candidatos: candidatos.map((c) => ({ cnpj: c.cnpj, nome: c.nome, bolsa: c.bolsa })),
+    });
+  }
+
+  const via = usarCodigo && total ? 'codigo_negociacao' : total ? 'isin' : null;
+  return {
+    via,
+    coluna: usarCodigo ? cols.codigoNegociacao : cols.isin,
+    porCodigo,
+    total,
+    colunas: cols,
+  };
+}
+
+/**
+ * Fundo de um ticker, pelo índice acima.
+ *
+ * Tenta o ticker inteiro (quando a fonte publica o código de negociação) e
+ * depois a raiz de quatro caracteres (quando veio do ISIN). Não inventa
+ * ticker a partir de raiz: a raiz procurada é sempre a do ticker pedido.
+ */
+function fundoDoTicker(vinculo, ticker) {
+  if (!vinculo || !vinculo.porCodigo) return null;
+  const limpo = String(ticker || '')
+    .replace(/[^A-Za-z0-9]/g, '')
+    .toUpperCase();
+  if (limpo.length < 4) return null;
+  return vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+}
+
+// ════════════════════════════════════════════════════════════
+// Vacância e imóveis — informe TRIMESTRAL
+// ════════════════════════════════════════════════════════════
+//
+// O informe MENSAL não publica vacância nem contagem de imóveis. Isso não é
+// suposição: a execução real imprimiu as colunas dos três membros e ali há
+// só rubricas de balanço (`Imoveis_Renda_Acabados`, `Terrenos`, …), valores
+// em reais, nenhuma taxa de ocupação.
+//
+// Quem as publica é o informe trimestral, com uma linha POR IMÓVEL. Daí
+// vêm duas coisas que o motor pontua e que estavam vazias: quantos imóveis
+// o fundo tem (é a contagem de linhas, não uma coluna) e quanto deles está
+// vago.
+//
+// A vacância é ponderada pela área quando a área existe: um galpão vago de
+// 50 mil m² não pesa o mesmo que uma loja vaga de 200 m², e a média simples
+// trataria os dois como iguais.
+const COLUNAS_FII_TRIMESTRAL = {
+  cnpj: ['CNPJ_Fundo_Classe', 'CNPJ_Fundo', 'CNPJ_FUNDO', 'CNPJ'],
+  dataReferencia: ['Data_Referencia', 'DT_COMPTC'],
+  vacancia: [
+    'Percentual_Vacancia',
+    'Percentual_Vacancia_Fisica',
+    'Percentual_Vacancia_Financeira',
+    'Vacancia',
+    'Percentual_Area_Vacante',
+  ],
+  area: ['Area_Bruta_Locavel', 'Area_Locavel', 'Area_Total', 'Area', 'Area_M2'],
+};
+
+/**
+ * Imóveis e vacância por fundo, do informe trimestral.
+ *
+ * Só o trimestre mais recente conta: um fundo que vendeu metade da carteira
+ * ficaria com o dobro dos imóveis se todos os trimestres fossem somados.
+ */
+function extrairImoveisFii(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_FII_TRIMESTRAL)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_FII_TRIMESTRAL[campo]);
+  }
+  const faltando = Object.keys(COLUNAS_FII_TRIMESTRAL).filter((c) => !cols[c]);
+  const porCnpj = new Map();
+  if (!cols.cnpj) return { porCnpj, faltando, colunas: cols };
+
+  // Trimestre mais recente de cada fundo, por data de referência.
+  const ultimoTrimestre = new Map();
+  const linhas = [];
+  for (const r of registros || []) {
+    const cnpj = String(r[cols.cnpj] || '').replace(/\D/g, '');
+    if (cnpj.length !== 14) continue;
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const atual = ultimoTrimestre.get(cnpj);
+    if (!atual || data > atual) ultimoTrimestre.set(cnpj, data);
+    linhas.push({ cnpj, data, r });
+  }
+
+  for (const { cnpj, data, r } of linhas) {
+    if (data !== ultimoTrimestre.get(cnpj)) continue;
+    const acum = porCnpj.get(cnpj) || {
+      cnpj,
+      dataReferencia: data || null,
+      numeroImoveis: 0,
+      areaTotal: 0,
+      vagoPonderado: 0,
+      somaVacancia: 0,
+      comVacancia: 0,
+    };
+    acum.numeroImoveis += 1;
+    const vac = cols.vacancia ? valorNumericoCvm(r[cols.vacancia]) : null;
+    const area = cols.area ? valorNumericoCvm(r[cols.area]) : null;
+    if (vac !== null && vac >= 0 && vac <= 100) {
+      acum.somaVacancia += vac;
+      acum.comVacancia += 1;
+      if (vac > 0) acum.imoveisComVago = (acum.imoveisComVago || 0) + 1;
+      if (area !== null && area > 0) {
+        acum.areaTotal += area;
+        acum.vagoPonderado += (vac / 100) * area;
+      }
+    }
+    porCnpj.set(cnpj, acum);
+  }
+
+  for (const acum of porCnpj.values()) {
+    // Quantos imóveis de facto têm vacância declarada acima de zero. Uma
+    // carteira inteira com ocupação 100% pode ser verdade — ou a coluna
+    // lida não ser vacância. A distribuição separa as duas sem abrir o CSV.
+    acum.imoveisComVago = acum.imoveisComVago || 0;
+    acum.vacancia =
+      acum.areaTotal > 0
+        ? Math.round((acum.vagoPonderado / acum.areaTotal) * 1000) / 10
+        : acum.comVacancia
+          ? Math.round((acum.somaVacancia / acum.comVacancia) * 10) / 10
+          : null;
+    // O motor pontua OCUPAÇÃO; a CVM publica vacância.
+    acum.ocupacao = acum.vacancia === null ? null : Math.max(0, Math.min(100, 100 - acum.vacancia));
+  }
+  return { porCnpj, faltando, colunas: cols };
+}
+
+/**
+ * LTV do fundo: obrigações que financiam a carteira sobre o ativo.
+ *
+ * As duas pontas vêm de MEMBROS DIFERENTES do ZIP — o ativo do
+ * `complemento`, as obrigações do `ativo_passivo` —, e por isso o cálculo
+ * mora aqui, depois de os membros terem sido reunidos.
+ *
+ * Sem obrigação declarada o resultado é 0%, não lacuna: um FII que não
+ * publica nenhuma das duas rubricas não tem essa dívida, e tratá-lo como
+ * "não sei" penalizaria justamente o fundo sem alavancagem.
+ */
+function alavancagemFii(inf) {
+  if (!inf) return null;
+  const ativo = inf.valorAtivo;
+  if (ativo === null || ativo === undefined || !(ativo > 0)) return null;
+  const aquisicao = inf.obrigacoesAquisicaoImoveis;
+  const securitizacao = inf.obrigacoesSecuritizacao;
+  if (
+    (aquisicao === null || aquisicao === undefined) &&
+    (securitizacao === null || securitizacao === undefined)
+  ) {
+    return null;
+  }
+  const divida = (aquisicao || 0) + (securitizacao || 0);
+  const ltv = (divida / ativo) * 100;
+  // Acima de 100% do ativo não é LTV: é linha lida errado.
+  if (!(ltv >= 0 && ltv <= 100)) return null;
+  return Math.round(ltv * 10) / 10;
+}
+
+module.exports.alavancagemFii = alavancagemFii;
+
+module.exports.COLUNAS_FII_TRIMESTRAL = COLUNAS_FII_TRIMESTRAL;
+module.exports.extrairImoveisFii = extrairImoveisFii;
+
+module.exports.COLUNAS_VINCULO_FII = COLUNAS_VINCULO_FII;
+module.exports.raizDoIsin = raizDoIsin;
+module.exports.vincularFiiPorCodigo = vincularFiiPorCodigo;
+module.exports.fundoDoTicker = fundoDoTicker;
+
+// ════════════════════════════════════════════════════════════
+// Composição do capital
+// ════════════════════════════════════════════════════════════
+//
+// A DFP publica a QUANTIDADE DE AÇÕES da companhia, num arquivo que o job
+// baixava sem ler (`dfp_cia_aberta_composicao_capital_AAAA.csv`, um dos 19
+// do ZIP). Isto substitui a derivação `lucro ÷ LPA`, que só funcionava para
+// companhia de classe única — quando ON e PN têm lucro por ação diferente,
+// uma divisão não separa as duas classes, e a valuation saía em 5 de 14.
+//
+// Aqui a contagem é DECLARADA. Não há o que derivar nem faixa de sanidade a
+// arbitrar: o número é o que a companhia informou.
+
+const COLUNAS_CAPITAL = {
+  cnpj: ['CNPJ_CIA', 'CNPJ_Companhia', 'CNPJ'],
+  cdCvm: ['CD_CVM', 'CODIGO_CVM'],
+  dataReferencia: ['DT_FIM_EXERC', 'DT_REFER', 'Data_Referencia'],
+  ordinarias: [
+    'QT_ACAO_ORDIN_CAP_INTEGR',
+    'Quantidade_Acao_Ordinaria_Capital_Integralizado',
+    'QT_ACAO_ORDIN',
+  ],
+  preferenciais: [
+    'QT_ACAO_PREF_CAP_INTEGR',
+    'Quantidade_Acao_Preferencial_Capital_Integralizado',
+    'QT_ACAO_PREF',
+  ],
+  ordinariasTesouraria: ['QT_ACAO_ORDIN_TESOURARIA', 'Quantidade_Acao_Ordinaria_Tesouraria'],
+  preferenciaisTesouraria: ['QT_ACAO_PREF_TESOURARIA', 'Quantidade_Acao_Preferencial_Tesouraria'],
+  // A ESCALA da quantidade, declarada linha a linha. Ignorá-la fazia a
+  // Eletrobras sair com 2,92 M de ações para 118,5 bi de patrimônio —
+  // R$ 40.646 por ação. O arquivo dizia 2.028.544 ON, em MILHARES: 2,03 bi,
+  // que é a contagem real. E o Banco do Brasil, na mesma execução, saiu
+  // certo sem escala nenhuma: as duas convivem no mesmo arquivo, e é por
+  // isso que a escala tem de ser LIDA, nunca suposta.
+  escalaQuantidade: ['ESCALA_QUANTIDADE', 'ESCALA_MOEDA', 'ESCALA'],
+};
+
+/**
+ * Ações em circulação por companhia, do arquivo de composição do capital.
+ *
+ * Ações em tesouraria são DESCONTADAS: o valor de mercado é preço vezes o
+ * que está em circulação, e cota recomprada não está. Ignorá-las inflaria o
+ * valor de mercado e, com ele, o P/L e o P/VP de toda companhia que recompra.
+ *
+ * Indexa pelas duas identificações, com prefixo, igual a `agruparPorEmpresa`
+ * — para a busca poder usar a mesma chave.
+ */
+function extrairComposicaoCapital(registros, colunas) {
+  const cols = {};
+  for (const campo of Object.keys(COLUNAS_CAPITAL)) {
+    cols[campo] = acharColuna(colunas, COLUNAS_CAPITAL[campo]);
+  }
+  const faltando = Object.keys(COLUNAS_CAPITAL).filter((c) => !cols[c]);
+  const porChave = new Map();
+  if (!cols.ordinarias || (!cols.cnpj && !cols.cdCvm)) {
+    return { porChave, faltando, colunas: cols, colunasReais: colunas };
+  }
+
+  const num = (r, campo) => (cols[campo] ? valorNumericoCvm(r[cols[campo]]) : null);
+  // Todas as linhas de cada companhia, inclusive as DESCARTADAS e com o
+  // motivo do descarte. Duas companhias saíram da execução real com
+  // contagem impossível (ELET3 e AESO3, 0,00 bi de ações para dezenas de
+  // bilhões de patrimônio) e nenhuma inspeção do resultado final explica
+  // isso: a linha que venceu pode ser a errada, ou a certa pode ter sido
+  // filtrada aqui. Só as linhas cruas separam as duas hipóteses — é o
+  // mesmo movimento que resolveu o 6.03 e as colunas do informe.
+  const LINHAS_POR_EMPRESA = 8;
+  const linhasPorChave = new Map();
+  const anotar = (chaves, linha) => {
+    for (const chave of chaves) {
+      const lista = linhasPorChave.get(chave) || [];
+      if (lista.length < LINHAS_POR_EMPRESA) lista.push(linha);
+      linhasPorChave.set(chave, lista);
+    }
+  };
+  const chavesDaLinha = (r) => {
+    const chaves = [];
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
+    const cd = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    if (cnpj) chaves.push('cnpj:' + cnpj);
+    if (cd) chaves.push('cd:' + cd);
+    return chaves;
+  };
+
+  for (const r of registros || []) {
+    const chaves = chavesDaLinha(r);
+    const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '').trim() : '';
+    const bruto = num(r, 'ordinarias');
+    if (bruto === null) {
+      anotar(chaves, { data: data || null, motivo: 'sem_quantidade_ordinaria' });
+      continue;
+    }
+    const escala = cols.escalaQuantidade ? fatorEscala(r[cols.escalaQuantidade]) : 1;
+    const on = bruto * escala;
+    const pn = (num(r, 'preferenciais') || 0) * escala;
+    const onTes = (num(r, 'ordinariasTesouraria') || 0) * escala;
+    const pnTes = (num(r, 'preferenciaisTesouraria') || 0) * escala;
+    const circulacao = on + pn - onTes - pnTes;
+    anotar(chaves, { data: data || null, on, pn, onTes, pnTes, circulacao, escala });
+    // Uma companhia aberta tem mais do que cem mil ações. Abaixo disso é
+    // linha de outra natureza, não a composição do capital.
+    if (!(circulacao >= 1e5)) continue;
+
+    const registro = {
+      acoesOrdinarias: on,
+      acoesPreferenciais: pn,
+      acoesTesouraria: onTes + pnTes,
+      acoesEmCirculacao: circulacao,
+      escalaAplicada: escala,
+      dataReferencia: data || null,
+    };
+    for (const chave of chaves) {
+      // Reenvio: vence a data de referência, não a ordem do arquivo.
+      const anterior = porChave.get(chave);
+      if (anterior && anterior.dataReferencia >= registro.dataReferencia) continue;
+      porChave.set(chave, registro);
+    }
+  }
+  return { porChave, linhasPorChave, faltando, colunas: cols, colunasReais: colunas };
+}
+
+module.exports.COLUNAS_CAPITAL = COLUNAS_CAPITAL;
+module.exports.extrairComposicaoCapital = extrairComposicaoCapital;
 
 // ════════════════════════════════════════════════════════════
 // Descoberta do universo — ticker ↔ empresa, pela própria CVM
@@ -528,14 +1445,38 @@ module.exports.extrairInformeFii = extrairInformeFii;
 // resolvem com disciplina: envelhece sem avisar (título vencido, empresa que
 // saiu da bolsa) e limita o universo ao que quem escreveu já conhecia.
 
+// O FCA identifica a companhia pelo CNPJ, NÃO por CD_CVM — foi o que fez a
+// primeira execução real devolver "colunas do FCA não encontradas: cdCvm" e
+// zero tickers. O CNPJ é a única chave presente nos dois arquivos (FCA e
+// DFP), e por isso é ele que junta os dois.
 const COLUNAS_FCA = {
-  cdCvm: ['CD_CVM', 'CODIGO_CVM'],
+  cnpj: ['CNPJ_Companhia', 'CNPJ_CIA', 'CNPJ'],
+  cdCvm: ['CD_CVM', 'CODIGO_CVM', 'Codigo_CVM'],
   codigoNegociacao: ['Codigo_Negociacao', 'CODIGO_NEGOCIACAO', 'CD_NEGOCIACAO'],
   valorMobiliario: ['Valor_Mobiliario', 'VALOR_MOBILIARIO', 'DS_VALOR_MOBILIARIO'],
-  mercado: ['Mercado', 'MERCADO', 'DS_MERCADO'],
-  siglaBolsa: ['Sigla_Bolsa', 'SIGLA_BOLSA', 'Entidade_Administradora'],
   dataReferencia: ['Data_Referencia', 'DT_REFER'],
 };
+
+// Sem estas não há universo. As outras refinam o filtro; a ausência delas
+// muda a qualidade do resultado, não a existência dele — e reportar as duas
+// coisas com a mesma cara foi o que mandou a investigação para o lado errado
+// durante quatro rodadas: "colunas do FCA não encontradas: cdCvm" parecia a
+// causa da falha e era uma nota de rodapé.
+const COLUNAS_FCA_ESSENCIAIS = ['codigoNegociacao'];
+
+/** CNPJ comparável: só dígitos. Os arquivos alternam entre formatado e cru. */
+function normalizarCnpj(v) {
+  const d = String(v || '').replace(/\D/g, '');
+  return d.length === 14 ? d : null;
+}
+
+/** CD_CVM comparável: o cadastro traz com zeros à esquerda, a DFP sem. */
+function normalizarCdCvm(v) {
+  const d = String(v || '')
+    .trim()
+    .replace(/^0+/, '');
+  return d || null;
+}
 
 // Espécies que o motor pontua como ação. Recibo (units) entra; debênture,
 // bônus de subscrição e nota promissória não são renda variável negociável
@@ -555,17 +1496,28 @@ function extrairTickersFca(registros, colunas) {
     cols[campo] = acharColuna(colunas, COLUNAS_FCA[campo]);
   }
   const faltando = Object.keys(COLUNAS_FCA).filter((c) => !cols[c]);
-  if (!cols.cdCvm || !cols.codigoNegociacao) {
-    return { porTicker: new Map(), faltando, colunas: cols };
+  // Basta o código de negociação e UMA das duas identificações da companhia.
+  // Exigir CD_CVM zerava o universo inteiro num arquivo que nunca o teve.
+  const faltandoEssencial = COLUNAS_FCA_ESSENCIAIS.filter((c) => !cols[c]);
+  if (!cols.cnpj && !cols.cdCvm) faltandoEssencial.push('cnpj ou cdCvm');
+  if (faltandoEssencial.length) {
+    return {
+      porTicker: new Map(),
+      faltando,
+      faltandoEssencial,
+      colunas: cols,
+      colunasReais: colunas,
+    };
   }
 
   const porTicker = new Map();
   for (const r of registros) {
-    const cdCvm = String(r[cols.cdCvm] || '').trim();
+    const cdCvm = cols.cdCvm ? normalizarCdCvm(r[cols.cdCvm]) : null;
+    const cnpj = cols.cnpj ? normalizarCnpj(r[cols.cnpj]) : null;
     const bruto = String(r[cols.codigoNegociacao] || '')
       .trim()
       .toUpperCase();
-    if (!cdCvm || !bruto) continue;
+    if ((!cdCvm && !cnpj) || !bruto) continue;
 
     // O campo às vezes traz mais de um código separado por vírgula ou barra.
     for (const parte of bruto.split(/[,;/]+/)) {
@@ -585,12 +1537,15 @@ function extrairTickersFca(registros, colunas) {
       const anterior = porTicker.get(ticker);
       const data = cols.dataReferencia ? String(r[cols.dataReferencia] || '') : '';
       if (anterior && anterior.dataReferencia >= data) continue;
-      porTicker.set(ticker, { ticker, cdCvm, dataReferencia: data || null });
+      porTicker.set(ticker, { ticker, cdCvm, cnpj, dataReferencia: data || null });
     }
   }
-  return { porTicker, faltando, colunas: cols };
+  return { porTicker, faltando, faltandoEssencial, colunas: cols, colunasReais: colunas };
 }
 
 module.exports.COLUNAS_FCA = COLUNAS_FCA;
+module.exports.COLUNAS_FCA_ESSENCIAIS = COLUNAS_FCA_ESSENCIAIS;
+module.exports.normalizarCnpj = normalizarCnpj;
+module.exports.normalizarCdCvm = normalizarCdCvm;
 module.exports.ESPECIES_ACAO = ESPECIES_ACAO;
 module.exports.extrairTickersFca = extrairTickersFca;

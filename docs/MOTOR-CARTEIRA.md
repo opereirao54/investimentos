@@ -108,18 +108,154 @@ estão ocupados (`market warmup` e `reconcile`).
 O que ele faz:
 
 1. baixa o **FCA** (`fca_cia_aberta_valor_mobiliario`) e lê o vínculo oficial
-   ticker ↔ `CD_CVM` — é isto que substitui a lista escrita à mão e abre o
+   ticker ↔ **CNPJ** — é isto que substitui a lista escrita à mão e abre o
    universo para a bolsa inteira. Sem FCA, cai para o mapa manual casado por
    nome (`scripts/lib/mapa-cvm.json`), com universo reduzido;
 2. baixa as DFP dos últimos N exercícios (`BPA_con`, `BPP_con`, `DRE_con`,
    `DFC_MI_con`);
 3. extrai as contas do plano padrão e calcula ROE, ROIC, margens, liquidez
    corrente, dívida líquida/EBITDA, dívida líquida/PL e CAGR de receita e lucro;
-4. baixa o Informe Mensal de FII e extrai patrimônio, cotistas e **vacância** —
+4. lê o **lucro por ação** (grupo `3.99.01` da DRE) e os **dividendos e JCP
+   pagos** (grupo `6.03` da DFC) — é o que preenche os pilares de Valuation e
+   Dividendos sem depender de fonte paga (ver abaixo);
+5. baixa o Informe Mensal de FII e extrai patrimônio, cotistas e **vacância** —
    o dado que nenhuma API gratuita entrega;
-5. busca **cotação de todo o universo** (valor de mercado e volume), sem o que
-   o ranking pontuaria com o pilar de Valuation vazio;
-6. grava nos ramos `cvm` e `mercado` de `marketFundamentals/{TICKER}`.
+6. busca **cotação de todo o universo** (preço e volume);
+7. grava nos ramos `cvm` e `mercado` de `marketFundamentals/{TICKER}`.
+
+#### A chave de junção é o CNPJ, não o `CD_CVM`
+
+A primeira execução real devolveu universo vazio em silêncio — `0 tickers`, `0
+companhias com dados` — com o arquivo certo aberto e as colunas resolvidas. O
+FCA identifica a companhia por `CNPJ_Companhia` e **nunca teve `CD_CVM`**.
+Procurar por uma identificação que o arquivo não tem devolve zero sem erro
+nenhum.
+
+O CNPJ é a única identificação presente nos três arquivos (FCA, DFP e
+cadastro), e por isso é a chave. O índice da DFP responde pelas **duas**
+(`cnpj:…` e `cd:…`) para o caminho antigo continuar a funcionar, e a busca
+tenta as duas chaves da companhia. CNPJ é comparado por dígitos e `CD_CVM` sem
+zeros à esquerda: como texto, a companhia era separada dela mesma.
+
+#### Valor de mercado sem fonte paga
+
+O `v8/chart` do Yahoo — a única via de cotação que dispensa cadastro — devolve
+preço mas **não** valor de mercado. E o `quoteSummary`, que devolveria, responde
+429 tanto do Vercel **quanto do runner do GitHub Actions**: a suposição de que
+um IP não limitado resolveria foi testada e desmentida pelo log do job.
+
+Sem valor de mercado não há P/L, P/VP nem EV/EBITDA, e o pilar de Valuation
+ficaria vazio para a bolsa inteira. A saída está no próprio arquivo da CVM:
+
+    ações  = lucro líquido ÷ lucro por ação   (DRE, grupo 3.99.01)
+    valor de mercado = preço × ações
+    DY     = dividendo por ação ÷ preço       (DFC, grupo 6.03)
+
+O que a conta recusa fazer, de propósito:
+
+- **LPA diluído não entra.** No plano da CVM, `3.99.01` é o básico e `3.99.02` o
+  diluído; as folhas trazem só a classe na descrição (`ON`, `PN`), então quem os
+  separa é o código, nunca o texto.
+- **ON e PN com LPA diferente devolvem `null`.** Uma divisão só não soma duas
+  classes; um P/L errado é pior do que um P/L ausente.
+- **LPA fora de `[0,0001; 1000]` é recusado** — é erro de escala do emissor
+  (`MIL` numa linha por ação), não empresa excepcional.
+- **A contagem é conferida pelo P/VP** antes de valer. O patrimônio não passou
+  pela contagem de ações, e por isso denuncia um erro de escala nela: P/VP fora
+  de `[0,01; 100]` descarta o valor de mercado derivado inteiro.
+- **Na DFC vale o agregado, não a soma das folhas.** O filtro por descrição
+  reconhece "Dividendos Pagos" mas pode não reconhecer a linha vizinha; somando
+  folhas, o que não fosse reconhecido sumia e o payout saía menor do que é.
+
+Fica de fora o `dyMedio5a`: exige preço histórico, que nenhuma destas fontes
+entrega. É reportado como métrica ausente, não estimado.
+
+#### Banco e seguradora usam outro plano de contas
+
+Na DFP, o código `2.03` é "Patrimônio Líquido" no plano industrial e **outra
+conta** no plano das instituições financeiras. Casar por código devolvia um
+número real, da conta errada, sem erro nenhum — o Banco do Brasil aparecia com
+ROE de 43,4% (o real é ~20%) e patrimônio ~6x abaixo do verdadeiro.
+
+Duas defesas, ambas necessárias:
+
+1. **Patrimônio, ativo total, receita e lucro casam por DESCRIÇÃO primeiro.** A
+   frase "Patrimônio Líquido Consolidado" é a mesma nos três planos; o código
+   não é. O código fica como reserva, para arquivo antigo sem `DS_CONTA`.
+2. **O plano é identificado pelo próprio balanço.** O padrão separa circulante
+   de não circulante; banco e seguradora não. Fora do plano padrão o código
+   deixa de servir de reserva — ali ele não é reserva, é armadilha —, e
+   dívida líquida, EBITDA e liquidez corrente saem **nulos**.
+
+O resultado é que um banco é pontuado por ROE, margem, P/L, P/VP e dividendos,
+e não por "dívida líquida/EBITDA de 12,49x" — que não significa nada quando a
+intermediação financeira É a operação. A identificação exige sinal positivo
+(contas interfinanceiras, depósitos, provisões técnicas), nunca a mera ausência
+da linha de circulante: um balanço truncado não pode virar banco.
+
+#### O vínculo ticker ↔ FII sai de um código, não de um nome
+
+Para ações o universo vem do FCA, que declara o código de negociação de cada
+companhia. Para fundos imobiliários não há FCA, e o caminho óbvio — casar o nome
+do fundo contra o cadastro de fundos da CVM — foi **desmentido pela execução
+real**:
+
+```
+584 fundos imobiliários de 46805 no cadastro
+"MAXI" aparece em: (nenhum dos 584)
+"CSHG" aparece em: CSHG OCEANUS | CSHG RESIDENCIAL      (nenhum é o HGLG11)
+```
+
+Não é o nome que mudou: `cad_fi.csv` não cobre os fundos listados em bolsa.
+Nenhum ajuste de string conserta uma fonte que não tem o dado.
+
+O vínculo passou a sair do **próprio Informe Mensal de FII**, em duas vias:
+
+1. uma coluna de código de negociação, se a CVM publicar uma — direta;
+2. senão, a raiz do `Codigo_ISIN` da cota. O ISIN de cota de fundo brasileiro
+   tem a forma `BR` + RAIZ + `CTF` + 3 dígitos, e a RAIZ **é** a raiz do ticker:
+   `MXRF11 ↔ BRMXRFCTF004`, `HGLG11 ↔ BRHGLGCTF003`. A B3 é a agência nacional
+   de numeração; a raiz não é convenção nossa, é o código que ela atribuiu.
+
+Nas duas vias o vínculo vem de um campo publicado — não há tabela escrita à mão
+para envelhecer, e um FII novo entra sozinho. A raiz procurada é sempre a do
+ticker pedido: nenhum ticker é inventado a partir do índice, e um código que
+aparece com dois CNPJs (sucessão de fundo) é marcado, não escondido.
+
+Duas armadilhas do mesmo ZIP, ambas da família "a busca acha a coisa errada":
+
+- **o ZIP anual tem um arquivo por mês.** Pegar a primeira entrada que casava
+  com o prefixo entregava janeiro em agosto — sem erro, com números plausíveis.
+  Agora todos os meses são concatenados e o desempate é por data de referência.
+- **os campos moram em membros diferentes.** Patrimônio e cotistas no `geral`,
+  dividend yield no `complemento`, vacância no de ativos. Escolher um membro de
+  véspera deixava metade dos campos vazia; os três são lidos e completados campo
+  a campo.
+
+O P/VP de FII sai de **preço ÷ valor patrimonial da cota**, os dois publicados —
+sem contagem de cotas no meio para errar de escala.
+
+#### O que a leitura do log real corrigiu
+
+A primeira execução contra a CVM de verdade — e as três seguintes — encontraram
+quatro classes de defeito que **nenhum teste de unidade via**, porque cada peça
+estava certa isoladamente:
+
+| rodada | o que provou                            | o que expôs                                                      |
+| ------ | --------------------------------------- | ---------------------------------------------------------------- |
+| 1      | —                                       | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ  |
+| 2      | 477 tickers, 8 companhias casadas       | LPA ×1000, dividendo zero falso, 404 anônimo                     |
+| 3      | LPA 2,40 / 0,19 / 0,95                  | ROE 43,4% num banco, 3 URLs de FII em 404                        |
+| 4      | PL 193,6 bi no BBAS3, dividendos 9/14   | dívida/EBITDA de banco                                           |
+| 5      | valuation 14/14 pela contagem declarada | ELET3 e AESO3 com 0,00 bi de ações                               |
+| 6      | contagem implausível recusada (11/14)   | o `cad_fi.csv` não contém os FIIs listados                       |
+| 7      | 9 dos 10 FIIs casados pelo ISIN         | `Percentual_Dividend_Yield_Mes` é razão; XPML11 com duas classes |
+| 8      | ELET3 = 2.028.544 **mil** ações         | a escala da quantidade varia de linha para linha                 |
+
+O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
+sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.
+O que os encontrou foi cruzar cada número derivado com uma grandeza pública
+conhecida.
 
 **Garantia central: nunca gravar número que não se sustenta.** Coluna ausente,
 conta inexistente e resultado fora da faixa plausível viram `null` com motivo
@@ -174,10 +310,10 @@ O workflow roda o dry-run **antes** de gravar, mesmo no agendamento: se o layout
 mudou, o relatório mostra qual coluna sumiu e o passo de gravação nem chega a
 correr.
 
-Para acrescentar um ativo, edite `scripts/lib/mapa-cvm.json` com o nome pelo qual
-ele aparece no cadastro da CVM. O mapa guarda **nome**, não `CD_CVM`: código
-decorado num arquivo envelhece e ninguém confere; o casamento por nome é
-reimpresso a cada execução, para poder ser revisado.
+Ações **não** precisam de cadastro manual: o universo vem do FCA. Para
+acrescentar um FII, basta o ticker em `scripts/lib/mapa-cvm.json` — o vínculo
+com o fundo é resolvido pelo código publicado no informe, e o casamento é
+reimpresso a cada execução para poder ser revisado.
 
 ### `GET /api/market?op=ranking&lente=renda` — quais ativos, decidido por dado
 
@@ -193,12 +329,12 @@ oferta, a classe inteira deixou de pontuar e nada na tela dizia por quê.
 
 Agora o universo vem do dado:
 
-| Classe     | De onde saem os candidatos                                                                                                                 |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Ações      | **FCA da CVM** — `fca_cia_aberta_valor_mobiliario` declara o código de negociação de cada companhia. É o vínculo oficial ticker ↔ `CD_CVM` |
-| FIIs       | Informe Mensal da CVM, casado por nome com o cadastro de fundos                                                                            |
-| Renda fixa | Oferta corrente do Tesouro Direto — dinâmica por natureza                                                                                  |
-| Cripto     | Alcance da integração com a CoinGecko                                                                                                      |
+| Classe     | De onde saem os candidatos                                                                                                             |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Ações      | **FCA da CVM** — `fca_cia_aberta_valor_mobiliario` declara o código de negociação de cada companhia. É o vínculo oficial ticker ↔ CNPJ |
+| FIIs       | Informe Mensal da CVM, casado por nome com o cadastro de fundos                                                                        |
+| Renda fixa | Oferta corrente do Tesouro Direto — dinâmica por natureza                                                                              |
+| Cripto     | Alcance da integração com a CoinGecko                                                                                                  |
 
 **Duas passagens de pontuação, de propósito:**
 
@@ -211,8 +347,9 @@ fazer tudo no cliente exigiria baixar o universo inteiro para o browser. A
 primeira passagem é peneira, a segunda é a nota que o utilizador vê.
 
 Para a peneira não ficar cega no pilar que mais importa para a lente "Valor", a
-ingestão semanal **também busca cotação** de todo o universo — sem valor de
-mercado, P/L e P/VP não existem e o pilar de Valuation ficaria vazio para todos.
+ingestão semanal **também busca cotação** de todo o universo e grava a contagem
+de ações implícita no lucro por ação — é o par preço × ações que faz existir
+P/L, P/VP e EV/EBITDA sem fonte paga.
 
 **Corte de investibilidade.** Não é julgamento sobre a empresa: é que recomendar
 o que o cliente não consegue vender é pior do que não recomendar.
@@ -288,30 +425,10 @@ o usava para o histórico da simulação, o que prova o caminho de rede.
 
 No dia em que houver token, definir a variável é a única mudança necessária.
 
-**O que ainda depende do job:** o `v8/chart` não devolve valor de mercado, e
-sem ele não há P/L nem P/VP. Esses vêm da ingestão, que usa o `quoteSummary`
-de um IP não limitado. Preencher no request seria inventar.
-
-### Cotação sem cadastro nenhum
-
-A BRAPI passou a exigir token até na chamada simples. Como o produto não pode
-depender de um cadastro, a escolha da via vive num ponto único
-(`fetchCotacoesMercado`) e é automática:
-
-| `BRAPI_TOKEN` | Via usada            | Custo                          |
-| ------------- | -------------------- | ------------------------------ |
-| definido      | BRAPI                | 50 ativos por pedido           |
-| ausente       | **Yahoo `v8/chart`** | 1 pedido por ativo, mais lento |
-
-O `v8/chart` **não pede token, cookie nem crumb** — é outro endpoint do
-`quoteSummary`, que é o protegido e devolve 429 de IP partilhado. O projeto já
-o usava para o histórico da simulação, o que prova o caminho de rede.
-
-No dia em que houver token, definir a variável é a única mudança necessária.
-
-**O que ainda depende do job:** o `v8/chart` não devolve valor de mercado, e
-sem ele não há P/L nem P/VP. Esses vêm da ingestão, que usa o `quoteSummary`
-de um IP não limitado. Preencher no request seria inventar.
+**O que ainda depende do job:** o `v8/chart` não devolve valor de mercado. Ele
+é reconstruído como preço × ações, com a contagem de ações vindo do lucro por
+ação que a ingestão extrai da DRE — ver "Valor de mercado sem fonte paga".
+Preencher no request seria inventar.
 
 ### `GET /api/market?op=indicadores`
 
