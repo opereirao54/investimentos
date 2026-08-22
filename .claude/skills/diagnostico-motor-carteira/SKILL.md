@@ -155,7 +155,7 @@ silêncio.
 
 ### S5d — A busca acha algo, só que a coisa errada ⚠️
 
-**A família de bugs mais cara deste projeto.** Nove instâncias reais, todas
+**A família de bugs mais cara deste projeto.** Dez instâncias reais, todas
 encontradas lendo o log de execução contra dados de verdade:
 
 | sintoma                                       | causa                                                                 | por que passou despercebido                          |
@@ -169,6 +169,7 @@ encontradas lendo o log de execução contra dados de verdade:
 | `DY 0,008%/mês` em todo FII                   | campo chamado `Percentual_` que é razão                               | um número, e números parecem certos                  |
 | `ELET3 2,92M ações` para 118 bi de patrimônio | escala da quantidade declarada por linha, ignorada                    | BBAS3 saía certo — a escala dele é UNIDADE           |
 | `? XPML11 PENINSULA FII`                      | duas classes com a mesma raiz de ISIN, vencedor pela ordem do arquivo | casou, e o nome não parece errado a quem não conhece |
+| `GGRC11 ocupação 0` num fundo cheio           | média sobre os 4 imóveis de 228 que preenchem a coluna esparsa        | 0% é um número, e a coluna existe mesmo              |
 
 O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
 não há `null`, não há linha de erro — há um número plausível o suficiente
@@ -198,6 +199,11 @@ disponível quando o código não reclama.
   reduzido primeiro, senão o nome não identifica. Melhor ainda: procure o
   código onde ele de facto está (o ISIN do informe de FII carrega a raiz
   do ticker; ninguém precisava escrever a tabela à mão).
+- Média sobre subconjunto é pior do que lacuna quando o subconjunto é
+  ENVIESADO — e uma coluna esparsa quase sempre o é: quem preenche o campo
+  é quem tem algo a declarar. Exija cobertura mínima e imprima-a ao lado
+  do número; "ocupação 90%" e "ocupação 90% medida em 2 de 40" são a mesma
+  linha sem ela.
 - Quando uma trava recusa um número, **imprima o dado cru que a motivou.**
   Recusar protege o ranking mas não explica a fonte, e as hipóteses
   concorrentes ("o filtro descartou a linha certa" × "a linha certa não

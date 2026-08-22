@@ -235,22 +235,91 @@ Duas armadilhas do mesmo ZIP, ambas da família "a busca acha a coisa errada":
 O P/VP de FII sai de **preço ÷ valor patrimonial da cota**, os dois publicados —
 sem contagem de cotas no meio para errar de escala.
 
+#### A quantidade de ações tem escala, e ela varia por linha
+
+O arquivo de composição do capital declara a escala de cada linha. Duas
+companhias, na mesma execução e no mesmo arquivo:
+
+```
+ELET3   ON 2028544 · PN 886884   escala MIL      →  2,92 bi de ações
+BBAS3                            escala UNIDADE  →  5,73 bi de ações
+```
+
+Ignorar a escala fazia a Eletrobras sair com 2,92 **milhões** de ações para
+118,5 bi de patrimônio — R$ 40.646 por ação. Com ela aplicada: R$ 40,6, que é
+o valor patrimonial real.
+
+É a segunda vez que a escala é a causa neste motor, e nas duas em direções
+opostas: no lucro por ação o erro foi **aplicá-la** (a conta 3.99 já é por
+ação, por definição do plano); aqui foi **não a aplicar**. O que decide é o que
+o arquivo declara, nunca o que parece razoável.
+
+A trava que apanhou isto continua no lugar: patrimônio ÷ ações fora de
+`[R$ 0,01; R$ 10.000]` recusa a contagem, porque o patrimônio não passou por
+ela. E quando recusa, as linhas cruas daquela companhia vão para o log —
+incluindo as descartadas e o motivo do descarte, que é o que separa "o filtro
+comeu a linha certa" de "a linha certa não existe assim".
+
+#### O que o FII pontua, e de onde vem cada número
+
+| indicador                | fonte                                                     |
+| ------------------------ | --------------------------------------------------------- |
+| P/VP                     | preço ÷ `Valor_Patrimonial_Cotas` (informe mensal)        |
+| DY (12m)                 | `Percentual_Dividend_Yield_Mes` × 12                      |
+| DY médio (36m)           | média das competências observadas, anualizada             |
+| Meses pagando (24m)      | fração das competências com rendimento                    |
+| Patrimônio, cotistas     | informe mensal                                            |
+| Ocupação, nº de imóveis  | informe **trimestral**, uma linha por imóvel — ver abaixo |
+| Alavancagem (LTV)        | obrigações de aquisição e securitização ÷ `Valor_Ativo`   |
+| Crescimento do dividendo | **não é derivado** — ver abaixo                           |
+
+O informe mensal traz `Percentual_Dividend_Yield_Mes` — que, apesar do nome, é
+**razão**: `0,00808` significa 0,808% no mês. A escala é decidida uma vez por
+arquivo, pela mediana dos valores positivos: DY mensal real vive entre 0,3% e
+2%, e como razão entre 0,003 e 0,02 — trinta vezes de distância, sem
+sobreposição. Se a CVM trocar a convenção, a mediana acompanha.
+
+A ocupação e a contagem de imóveis saem do informe **trimestral**, que traz uma
+linha por imóvel — o mensal publica só rubricas de balanço. Três cuidados,
+todos vindos de execução real:
+
+- **A escolha da coluna é por linha.** `Percentual_Locado` é o número direto
+  mas vem vazio na maioria das linhas; `Percentual_Vacancia` é a densa. Cada
+  imóvel usa a que traz, e cada coluna tem a sua escala (ambas são razão, como
+  o DY).
+- **Piso de cobertura de 60%.** Abaixo disso a ocupação sai nula: com quatro
+  imóveis de duzentos e vinte e oito reportando, a média descreve a amostra — e
+  quem preenche o campo costuma ser justamente quem tem algo a declarar.
+- **Ponderação por área e versão mais alta do trimestre.** Um galpão vago de 50
+  mil m² não pesa como uma loja de 200; e um informe corrigido não pode somar
+  com o original, ou a carteira dobra.
+
+O LTV não usa `Total_Passivo`: ali dentro estão rendimentos a distribuir e taxa
+de administração, que não são dívida — um fundo sem alavancagem apareceria
+alavancado no mês em que declarou rendimento.
+
+O crescimento do dividendo fica **nulo de propósito**: o informe publica o
+_yield_, e a variação do yield confunde mudança de rendimento com mudança de
+preço. Um número que mistura as duas coisas é pior do que a sua ausência.
+
 #### O que a leitura do log real corrigiu
 
 A primeira execução contra a CVM de verdade — e as três seguintes — encontraram
 quatro classes de defeito que **nenhum teste de unidade via**, porque cada peça
 estava certa isoladamente:
 
-| rodada | o que provou                            | o que expôs                                                      |
-| ------ | --------------------------------------- | ---------------------------------------------------------------- |
-| 1      | —                                       | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ  |
-| 2      | 477 tickers, 8 companhias casadas       | LPA ×1000, dividendo zero falso, 404 anônimo                     |
-| 3      | LPA 2,40 / 0,19 / 0,95                  | ROE 43,4% num banco, 3 URLs de FII em 404                        |
-| 4      | PL 193,6 bi no BBAS3, dividendos 9/14   | dívida/EBITDA de banco                                           |
-| 5      | valuation 14/14 pela contagem declarada | ELET3 e AESO3 com 0,00 bi de ações                               |
-| 6      | contagem implausível recusada (11/14)   | o `cad_fi.csv` não contém os FIIs listados                       |
-| 7      | 9 dos 10 FIIs casados pelo ISIN         | `Percentual_Dividend_Yield_Mes` é razão; XPML11 com duas classes |
-| 8      | ELET3 = 2.028.544 **mil** ações         | a escala da quantidade varia de linha para linha                 |
+| rodada | o que provou                              | o que expôs                                                      |
+| ------ | ----------------------------------------- | ---------------------------------------------------------------- |
+| 1      | —                                         | universo vazio: junção por `CD_CVM` num arquivo que só tem CNPJ  |
+| 2      | 477 tickers, 8 companhias casadas         | LPA ×1000, dividendo zero falso, 404 anônimo                     |
+| 3      | LPA 2,40 / 0,19 / 0,95                    | ROE 43,4% num banco, 3 URLs de FII em 404                        |
+| 4      | PL 193,6 bi no BBAS3, dividendos 9/14     | dívida/EBITDA de banco                                           |
+| 5      | valuation 14/14 pela contagem declarada   | ELET3 e AESO3 com 0,00 bi de ações                               |
+| 6      | contagem implausível recusada (11/14)     | o `cad_fi.csv` não contém os FIIs listados                       |
+| 7      | 9 dos 10 FIIs casados pelo ISIN           | `Percentual_Dividend_Yield_Mes` é razão; XPML11 com duas classes |
+| 8      | ELET3 = 2.028.544 **mil** ações           | a escala da quantidade varia de linha para linha                 |
+| 9      | LTV e série mensal do FII                 | ocupação 100% em toda a carteira: `Percentual_Vacancia` é razão  |
+| 10     | ocupação por linha, com piso de cobertura | `Percentual_Locado` é esparso — média sobre 4 de 228 imóveis     |
 
 O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
 sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.
