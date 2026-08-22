@@ -746,6 +746,20 @@ async function main() {
             .slice(0, 6)
             .map((r) => String(r[colNomeFii] || '').slice(0, 40));
           log(`    nomes publicados (amostra): ${amostra.join(' | ')}`);
+          // Os seis primeiros do arquivo não dizem se o fundo procurado está
+          // lá sob outro nome ou se não está lá de todo. Procurar pela
+          // palavra distintiva de cada um responde exatamente isso — e é a
+          // diferença entre "o nome mudou" e "a fonte não cobre este fundo",
+          // que exigem correções opostas.
+          for (const c of casFii.slice(0, 4)) {
+            const marca = P.normalizarChave(String(c.denominacao).split(/\s+/)[0]);
+            if (marca.length < 3) continue;
+            const perto = cadFii.registros
+              .map((r) => String(r[colNomeFii] || ''))
+              .filter((n) => P.normalizarChave(n).includes(marca))
+              .slice(0, 3);
+            log(`    "${marca}" aparece em: ${perto.join(' | ') || '(nenhum dos 584)'}`);
+          }
         }
         // O arquivo do ano corrente só passa a existir depois do primeiro
         // informe do ano; em janeiro (e enquanto a CVM não publica) a URL
