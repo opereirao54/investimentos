@@ -179,6 +179,8 @@ var cartMotor = {
   // confundir com `ranking`, que é a lista já pontuada pelo motor.
   rankingServidor: null,
   automatico: true,
+  // Classes que o ranking não cobriu e caíram para a carteira modelo.
+  fallback: [],
 };
 
 // ── Chart instances ──
@@ -1211,24 +1213,64 @@ async function cartBuscarRanking(token, lente) {
  */
 function cartUniversoAutomatico(ranking, titulosRf) {
   var out = [];
+  var fallback = [];
+  var modelo = null;
+
+  // Classe sem candidatos no ranking cai para a carteira modelo.
+  //
+  // Sem isto, a classe SOME da tela — e o aporte dela vira sobra de caixa em
+  // silêncio. É o estado de hoje, antes de a ingestão da CVM rodar pela
+  // primeira vez: R$ 1.460 de um aporte de R$ 2.000 ficavam sem destino
+  // porque ações e FIIs não existiam no ranking. Mostrar a carteira modelo
+  // sem score é pior do que mostrar o ranking, mas é muito melhor do que
+  // não mostrar nada e não dizer nada.
+  function daCarteiraModelo(classe) {
+    if (!modelo) modelo = cartUniversoBase();
+    return modelo.filter(function (a) {
+      return a.classe === classe;
+    });
+  }
+
+  function preencher(classe, doRanking) {
+    if (doRanking.length) {
+      doRanking.forEach(function (item) {
+        out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
+      });
+      return;
+    }
+    var reserva = daCarteiraModelo(classe);
+    if (!reserva.length) return;
+    fallback.push(classe);
+    reserva.forEach(function (a) {
+      out.push({ ticker: a.ticker, nome: a.nome, classe: classe });
+    });
+  }
+
   ['acao', 'fii'].forEach(function (classe) {
     var bloco = ranking && ranking.classes && ranking.classes[classe];
-    (bloco && bloco.itens ? bloco.itens : []).forEach(function (item) {
-      out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
-    });
+    preencher(classe, (bloco && bloco.itens) || []);
   });
+
+  preencher(
+    'rf',
+    (titulosRf || []).map(function (t) {
+      return { ticker: t.ticker, nome: t.nome };
+    })
+  );
+
   CART_CRIPTO_UNIVERSO.forEach(function (t) {
     out.push({ ticker: t, nome: t, classe: 'cripto' });
   });
-  (titulosRf || []).forEach(function (t) {
-    out.push({ ticker: t.ticker, nome: t.nome, classe: 'rf' });
-  });
+
   // A desmarcação manual continua valendo: o utilizador pode tirar um ativo
   // do universo, ele só não precisa mais escolher quais entram.
-  return out.filter(function (a) {
-    var sel = cartEstado.selecionados[a.classe];
-    return !sel || sel.indexOf(a.ticker) !== -1;
-  });
+  return {
+    itens: out.filter(function (a) {
+      var sel = cartEstado.selecionados[a.classe];
+      return !sel || sel.indexOf(a.ticker) !== -1;
+    }),
+    fallback: fallback,
+  };
 }
 
 async function cartBuscarRendaFixa(token) {
@@ -1295,9 +1337,12 @@ async function cartBuscarDadosMotor() {
 
   var base;
   var ranking = null;
+  var fallback = [];
   if (automatico) {
     ranking = await cartBuscarRanking(token, cartLenteAtiva());
-    base = cartUniversoAutomatico(ranking, titulosRf);
+    var auto = cartUniversoAutomatico(ranking, titulosRf);
+    base = auto.itens;
+    fallback = auto.fallback;
   } else {
     // Modo consultor: a carteira modelo publicada no painel manda, e a renda
     // fixa dela é casada com a oferta corrente do Tesouro.
@@ -1325,6 +1370,7 @@ async function cartBuscarDadosMotor() {
     premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
     ranking: ranking,
     automatico: automatico,
+    fallback: fallback,
   };
 }
 
@@ -1557,6 +1603,7 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.premissasDegradadas = dados.premissasDegradadas;
     cartMotor.rankingServidor = dados.ranking;
     cartMotor.automatico = dados.automatico;
+    cartMotor.fallback = dados.fallback || [];
     cartMotor.buscadoEm = Date.now();
     cartMotor.carregando = false;
     cartRecalcularMotor();
@@ -1658,6 +1705,20 @@ function cartRenderizarMotorStatus() {
       '<span><strong>Nenhum ativo pôde ser pontuado.</strong> Os indicadores fundamentalistas não ' +
       'chegaram da fonte de mercado, então não há score e a divisão dentro de cada classe saiu igual — ' +
       'não é resultado de análise. Cada card abaixo lista o que está em falta.</span></div>';
+  } else if ((cartMotor.fallback || []).length) {
+    // Estado esperado antes de a ingestão da CVM rodar pela primeira vez.
+    // Precisa ser dito, senão o utilizador acha que aquela é a seleção do
+    // motor quando na verdade é a lista do painel, sem análise por trás.
+    var nomes = cartMotor.fallback.map(function (c) {
+      return CART_NOMES[c] || c;
+    });
+    alerta =
+      '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
+      '<span><strong>' +
+      nomes.join(' e ') +
+      ':</strong> nenhum ativo passou pelo ranking de mercado, então a classe está a usar a ' +
+      'carteira do consultor como reserva. Isso acontece enquanto a ingestão de dados da CVM ' +
+      'não tiver rodado — assim que rodar, os candidatos passam a sair do mercado inteiro.</span></div>';
   } else if (pontuados < ranking.length) {
     alerta =
       '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +

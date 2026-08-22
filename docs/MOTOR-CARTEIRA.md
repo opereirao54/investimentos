@@ -124,6 +124,19 @@ Detalhes que custam caro se ficarem errados:
 - linha de CSV com contagem de campos diferente do cabeçalho é descartada —
   aceitar deslocaria todas as colunas seguintes.
 
+**Como o dado começa a chegar.** Enquanto a ingestão não gravar, ações e FIIs
+não têm indicador nenhum e as classes caem para a carteira do consultor como
+reserva — a tela declara isso. Três caminhos para destravar:
+
+| Caminho          | O que exige                                                                                                                               |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Local**        | `npm run ingest:cvm` (dry-run, sem credencial nenhuma), depois `--gravar` com `FIREBASE_SERVICE_ACCOUNT_BASE64`                           |
+| **Pull request** | Abrir PR que toque na ingestão dispara o dry-run automático; o relatório sai nos logs, sem setup                                          |
+| **Agendado**     | Só depois do merge: `schedule` e `workflow_dispatch` **só disparam a partir do branch padrão**. Exige o secret configurado no repositório |
+
+O dry-run sozinho **nunca faz nada pontuar** — ele não escreve. Quem escreve é
+`--gravar`, e é isso que o agendamento faz depois de o dry-run passar.
+
 **Operação.** O primeiro uso deve ser `--dry-run`, e o relatório revisado por
 uma pessoa:
 
@@ -483,6 +496,11 @@ defesa tem teste — mas a primeira execução real precisa de revisão humana:
 
 Onde algo divergir, o ajuste é sempre numa lista de apelidos ou de códigos
 candidatos, não na lógica.
+
+Enquanto isso não acontece, o produto continua utilizável: classe sem candidatos
+no ranking cai para a carteira do consultor, com aviso na tela. Sem esse resgate,
+a classe sumiria e o aporte dela viraria sobra de caixa em silêncio — num aporte
+de R$ 2.000 com alocação 27/38/35, R$ 1.460 ficavam sem destino.
 
 ---
 

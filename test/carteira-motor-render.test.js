@@ -217,6 +217,21 @@ test('ranking vazio não gera cards órfãos', () => {
   assert.ok(html.includes('Nenhum ativo'));
 });
 
+test('ranking vazio não deixa classe sem destino para o dinheiro', () => {
+  // Estado de hoje, antes de a ingestão da CVM rodar: sem este resgate,
+  // R$ 1.460 de um aporte de R$ 2.000 ficavam sem destino porque ações e
+  // FIIs desapareciam da tela.
+  const s = carregar();
+  const r = JSON.parse(
+    s.run(`JSON.stringify(cartUniversoAutomatico({ classes: {} }, ${JSON.stringify(TITULOS_RF)}))`)
+  );
+  const classes = new Set(r.itens.map((a) => a.classe));
+  assert.ok(classes.has('acao'), 'ações caem para a carteira modelo');
+  assert.ok(classes.has('fii'), 'FIIs também');
+  assert.ok(classes.has('rf'), 'RF veio do Tesouro, não da reserva');
+  assert.deepEqual(r.fallback.sort(), ['acao', 'fii']);
+});
+
 // ════════════════════════════════════════════
 // Status
 // ════════════════════════════════════════════
@@ -619,7 +634,7 @@ test('o universo automático não usa lista escrita à mão em classe nenhuma', 
   const s = carregar();
   const u = JSON.parse(
     s.run(
-      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))`
+      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}).itens)`
     )
   );
   const tickers = u.map((a) => a.ticker);
@@ -638,7 +653,7 @@ test('cada classe do universo automático é rotulada corretamente', () => {
   const s = carregar();
   const u = JSON.parse(
     s.run(
-      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))`
+      `JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}).itens)`
     )
   );
   const porClasse = {};
@@ -652,36 +667,32 @@ test('cada classe do universo automático é rotulada corretamente', () => {
 test('desmarcar um ativo continua valendo no modo automático', () => {
   // O utilizador deixa de escolher QUAIS entram, mas continua a poder vetar.
   const s = carregar();
-  const u = JSON.parse(
+  const r = JSON.parse(
     s.run(`
       cartEstado.selecionados.acao = ['EGIE3'];
       JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))
     `)
   );
-  const acoes = u.filter((a) => a.classe === 'acao').map((a) => a.ticker);
+  const acoes = r.itens.filter((a) => a.classe === 'acao').map((a) => a.ticker);
   assert.deepEqual(acoes, ['EGIE3']);
   assert.ok(
-    u.some((a) => a.classe === 'fii'),
+    r.itens.some((a) => a.classe === 'fii'),
     'vetar uma ação não afeta as outras classes'
   );
 });
 
-test('ranking vazio não quebra: o universo fica só com RF e cripto', () => {
+test('Tesouro fora do ar cai para a carteira modelo, e a tela diz', () => {
+  // Antes esta classe simplesmente sumia — e o aporte dela virava sobra de
+  // caixa sem nada explicar. Reserva declarada é melhor que buraco mudo.
   const s = carregar();
-  const u = JSON.parse(
-    s.run(`JSON.stringify(cartUniversoAutomatico({ classes: {} }, ${JSON.stringify(TITULOS_RF)}))`)
-  );
-  assert.ok(u.length > 0);
-  assert.ok(!u.some((a) => a.classe === 'acao'));
-  assert.ok(u.some((a) => a.classe === 'rf'));
-});
-
-test('Tesouro fora do ar deixa a classe vazia, sem inventar título', () => {
-  const s = carregar();
-  const u = JSON.parse(
+  const r = JSON.parse(
     s.run(`JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, []))`)
   );
-  assert.ok(!u.some((a) => a.classe === 'rf'), 'melhor classe vazia do que título que não existe');
+  assert.ok(
+    r.itens.some((a) => a.classe === 'rf'),
+    'a classe não pode ficar vazia'
+  );
+  assert.ok(r.fallback.includes('rf'), 'e a origem da reserva tem de ser declarada');
 });
 
 test('o status diz quantos ativos foram analisados e quantos caíram no corte', () => {
@@ -736,4 +747,28 @@ test('a lista pontuada e a resposta do ranking não compartilham campo', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(html.includes('3 de 3 ativos pontuados'), 'a lista pontuada continua a ser lida');
   assert.ok(html.includes('412 ativos analisados'), 'e a resposta do servidor também');
+});
+
+test('a reserva é anunciada na tela, não passada por seleção do motor', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.automatico = true;
+    cartMotor.rankingServidor = { universo: 0, excluidos: {}, classes: {} };
+    cartMotor.fallback = ['acao', 'fii'];
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('Ações e FIIs'), `veio: ${html}`);
+  assert.ok(html.includes('carteira do consultor como reserva'));
+  assert.ok(html.includes('ingestão de dados da CVM'), 'tem de dizer o que resolve');
+});
+
+test('sem reserva, nenhum aviso de reserva aparece', () => {
+  const s = carregar();
+  s.run(SEMENTE);
+  s.run('cartMotor.ranking = rankingTeste; cartMotor.fallback = []; cartRenderizarMotorStatus();');
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(!html.includes('como reserva'));
 });
