@@ -271,7 +271,7 @@ comeu a linha certa" de "a linha certa não existe assim".
 | Patrimônio, cotistas     | informe mensal                                            |
 | Ocupação, nº de imóveis  | informe **trimestral**, uma linha por imóvel — ver abaixo |
 | Alavancagem (LTV)        | obrigações de aquisição e securitização ÷ `Valor_Ativo`   |
-| Crescimento do dividendo | **não é derivado** — ver abaixo                           |
+| Crescimento do dividendo | `Rendimentos_Distribuir` ÷ `Cotas_Emitidas`, 12m vs. 12m  |
 
 O informe mensal traz `Percentual_Dividend_Yield_Mes` — que, apesar do nome, é
 **razão**: `0,00808` significa 0,808% no mês. A escala é decidida uma vez por
@@ -302,9 +302,27 @@ O LTV não usa `Total_Passivo`: ali dentro estão rendimentos a distribuir e tax
 de administração, que não são dívida — um fundo sem alavancagem apareceria
 alavancado no mês em que declarou rendimento.
 
-O crescimento do dividendo fica **nulo de propósito**: o informe publica o
-_yield_, e a variação do yield confunde mudança de rendimento com mudança de
-preço. Um número que mistura as duas coisas é pior do que a sua ausência.
+O crescimento do dividendo **não sai do yield**, e é a distinção que decide o
+número. Yield é rendimento ÷ PREÇO: um fundo que não mexeu num centavo de
+distribuição aparece "crescendo" quando a cota cai. O caminho honesto é o
+rendimento POR COTA — `Rendimentos_Distribuir` (no `ativo_passivo`) ÷
+`Cotas_Emitidas` (no `complemento`) —, comparando a média dos últimos 12
+meses com a dos 12 anteriores. Nenhum preço entra na conta.
+
+Quatro cuidados: média por mês e não soma (janelas de tamanhos diferentes
+inventariam uma queda); nove meses mínimos por janela; faixa de
+`[-95%, +200%]`, fora da qual é mudança de estrutura e não distribuição; e o
+travessão diz **quantos meses** trouxeram o dado, porque "série curta" e
+"coluna vazia" pedem correções opostas.
+
+Emissão de cotas aparece corretamente como queda: o fundo que dobra a
+distribuição em reais com o quádruplo de cotas caiu 50% por cota, e é isso
+que o cotista recebe.
+
+Medido contra a CVM real (série de 31 meses): KNRI +8,4%, KNCR +9,7%, GGRC
++6,8%, VISC +3,1%, HGLG −0,8%, HGRU −5,1%, VGHF −20,4%. Com o indicador
+vivo, cinco FIIs de tijolo passam a 100% de cobertura — antes o pilar
+Crescimento estava travado em 40% para todo fundo, sempre.
 
 #### O que a leitura do log real corrigiu
 
