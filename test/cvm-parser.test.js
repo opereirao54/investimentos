@@ -1763,3 +1763,116 @@ test('sem coluna de área nenhuma, a cobertura cai para contagem — pior que na
   assert.equal(f.coberturaOcupacao, f.coberturaContagem, 'cai para a contagem');
   assert.equal(f.ocupacao, null, '2 de 5 fica abaixo do piso de qualquer forma');
 });
+
+// ════════════════════════════════════════════
+// Crescimento do dividendo do FII
+// ════════════════════════════════════════════
+//
+// O informe publica o YIELD (rendimento ÷ preço). A variação dele confunde
+// mudança de distribuição com mudança de cotação — por isso o indicador
+// ficou nulo até existir a série do rendimento POR COTA.
+
+function serieFii(pontos) {
+  return pontos.map(function (p) {
+    return {
+      dataReferencia: p[0] + '-01',
+      dyMes: p[1] === undefined ? 0.8 : p[1],
+      rendimentosDistribuir: p[2] === undefined ? null : p[2],
+      numeroCotas: p[3] === undefined ? null : p[3],
+    };
+  });
+}
+
+test('crescimento do dividendo sai do rendimento por cota, não do yield', () => {
+  const pontos = [];
+  // 12 meses antigos: R$ 1.000.000 para 1.000.000 de cotas = R$ 0,10/cota.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000000, 1000000]);
+  }
+  // 12 meses recentes: R$ 1.200.000 para as mesmas cotas = R$ 0,12/cota.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1200000, 1000000]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, 20, '0,10 → 0,12 por cota é +20%');
+});
+
+test('emissão de cotas dilui o rendimento por cota, e isso aparece', () => {
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000000, 1000000]);
+  }
+  // Distribui o DOBRO em reais, mas com o quádruplo de cotas: por cota
+  // caiu pela metade. É o número que interessa ao cotista.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 2000000, 4000000]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, -50, 'o total dobrou, por cota caiu 50%');
+});
+
+test('série curta não vira crescimento — a razão mediria a lacuna', () => {
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1000000, 1000000]);
+  }
+  // Só uma janela de 12 meses: não há com o que comparar.
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, null);
+  // Mas os outros indicadores da série continuam saindo.
+  assert.ok(r.dyMedio36m !== null, 'DY médio não depende do rendimento por cota');
+});
+
+test('sem rendimento a distribuir publicado, o crescimento é lacuna e o resto sobrevive', () => {
+  const pontos = [];
+  for (let i = 1; i <= 24; i++) {
+    const ano = i <= 12 ? '2024' : '2025';
+    const mes = String(((i - 1) % 12) + 1).padStart(2, '0');
+    pontos.push([`${ano}-${mes}`, 0.8]); // sem rendimentos nem cotas
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, null);
+  assert.equal(r.mesesObservados, 24);
+  assert.ok(r.dyMedio36m !== null);
+  assert.equal(r.consistenciaDividendos, 100);
+});
+
+test('variação absurda é recusada — é mudança de estrutura, não distribuição', () => {
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000, 1000000]);
+  }
+  // Mil vezes mais por cota: incorporação, não crescimento de aluguel.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1000000, 1000000]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, null, 'fora da faixa vira lacuna, não número');
+});
+
+test('as duas pontas vêm de membros diferentes do ZIP e são reunidas por mês', () => {
+  // O `ativo_passivo` traz o rendimento; o `complemento` traz as cotas.
+  // Nenhum dos dois sozinho permite a conta.
+  const serie = [];
+  for (let i = 1; i <= 12; i++) {
+    const mes = `2024-${String(i).padStart(2, '0')}-01`;
+    serie.push({ dataReferencia: mes, dyMes: 0.8, rendimentosDistribuir: null, numeroCotas: 1e6 });
+    serie.push({ dataReferencia: mes, dyMes: null, rendimentosDistribuir: 1e5, numeroCotas: null });
+  }
+  for (let i = 1; i <= 12; i++) {
+    const mes = `2025-${String(i).padStart(2, '0')}-01`;
+    serie.push({ dataReferencia: mes, dyMes: 0.8, rendimentosDistribuir: null, numeroCotas: 1e6 });
+    serie.push({
+      dataReferencia: mes,
+      dyMes: null,
+      rendimentosDistribuir: 1.1e5,
+      numeroCotas: null,
+    });
+  }
+  const r = P.indicadoresDaSerieFii(serie);
+  assert.ok(
+    Math.abs(r.crescimentoDividendo12m - 10) < 0.05,
+    `esperado ~+10%, veio ${r.crescimentoDividendo12m}`
+  );
+  assert.equal(r.mesesObservados, 24, 'o mês repartido entre membros conta uma vez');
+});

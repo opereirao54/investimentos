@@ -1135,6 +1135,7 @@ async function main() {
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
             ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
+            ` · cresc.div ${serie.crescimentoDividendo12m === null ? '—' : serie.crescimentoDividendo12m + '%'}` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
         if (!preenchidos) continue;
@@ -1158,6 +1159,10 @@ async function main() {
             // perguntas de consistência que o pilar de dividendos faz.
             dyMedio36m: serie.dyMedio36m,
             consistenciaDividendos: serie.consistenciaDividendos,
+            // Do rendimento POR COTA da série, não do yield: yield é
+            // rendimento ÷ preço, e a variação dele confunde mudança de
+            // distribuição com mudança de cotação.
+            crescimentoDividendo12m: serie.crescimentoDividendo12m,
             // Único indicador do pilar Endividamento do FII: sem ele o
             // pilar inteiro fica vazio e a cobertura da classe desaba.
             alavancagem,

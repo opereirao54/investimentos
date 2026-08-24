@@ -811,6 +811,15 @@ const COLUNAS_FII = {
   valorAtivo: ['Valor_Ativo', 'Total_Ativo'],
   obrigacoesAquisicaoImoveis: ['Obrigacoes_Aquisicao_Imoveis'],
   obrigacoesSecuritizacao: ['Obrigacoes_Securitizacao_Recebiveis'],
+  // Rendimento a distribuir do mês. Dividido pelas cotas emitidas dá o
+  // rendimento POR COTA — e a variação dele, ao longo de 24 meses, é o
+  // crescimento do dividendo SEM preço na conta.
+  //
+  // É a diferença entre este número e o `Percentual_Dividend_Yield_Mes`:
+  // o yield é rendimento ÷ PREÇO, e a variação dele confunde mudança de
+  // rendimento com mudança de cotação. Um fundo que não mudou um centavo
+  // de distribuição aparece "crescendo" só porque a cota caiu.
+  rendimentosDistribuir: ['Rendimentos_Distribuir', 'Rendimentos_A_Distribuir'],
 };
 
 // Vacância e número de imóveis NÃO estão no `complemento` — moram noutro
@@ -880,9 +889,20 @@ function extrairInformeFii(registros, colunas) {
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
 
-    if (dyMesPct !== null && data) {
+    // O ponto da série carrega TODOS os campos mensais, não só o DY. O
+    // rendimento a distribuir mora no `ativo_passivo` e as cotas emitidas
+    // no `complemento`: são membros diferentes do mesmo ZIP, e só depois de
+    // reunidos por mês é que o rendimento por cota existe. Por isso o ponto
+    // é gravado mesmo sem DY — antes, `dyMes === null` descartava a linha
+    // inteira e levava junto o que o outro membro traria.
+    if (data) {
       const serie = seriePorCnpj.get(cnpj) || [];
-      serie.push({ dataReferencia: data, dyMes: dyMesPct });
+      serie.push({
+        dataReferencia: data,
+        dyMes: dyMesPct,
+        rendimentosDistribuir: num('rendimentosDistribuir'),
+        numeroCotas: num('numeroCotas'),
+      });
       seriePorCnpj.set(cnpj, serie);
     }
     // O mês mais recente descreve o fundo hoje; os anteriores só alimentam a
@@ -908,6 +928,7 @@ function extrairInformeFii(registros, colunas) {
       valorAtivo: num('valorAtivo'),
       obrigacoesAquisicaoImoveis: num('obrigacoesAquisicaoImoveis'),
       obrigacoesSecuritizacao: num('obrigacoesSecuritizacao'),
+      rendimentosDistribuir: num('rendimentosDistribuir'),
     });
   }
   return { porCnpj, seriePorCnpj, faltando, colunas: cols, escalaDy };
@@ -938,32 +959,96 @@ function indicadoresDaSerieFii(serie, opcoes) {
   // no pilar de dividendos. Meia dúzia de competências é o mínimo para a
   // média dizer algo que o último mês já não diga.
   const minimoMeses = op.minimoMeses || 6;
-  if (!Array.isArray(serie) || !serie.length) {
-    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: 0 };
-  }
-  // Um mês pode ser reenviado: vale um informe por competência, o último.
+  const vazio = {
+    dyMedio36m: null,
+    consistenciaDividendos: null,
+    crescimentoDividendo12m: null,
+    mesesObservados: 0,
+  };
+  if (!Array.isArray(serie) || !serie.length) return vazio;
+
+  // Um mês pode ser reenviado, E vem repartido entre membros do ZIP: o DY
+  // do `complemento`, o rendimento a distribuir do `ativo_passivo`. Reunir
+  // por competência, completando campo a campo, é o que torna o rendimento
+  // por cota calculável — nenhum membro sozinho tem as duas pontas.
   const porMes = new Map();
   for (const p of serie) {
     const mes = String(p.dataReferencia).slice(0, 7);
-    porMes.set(mes, p.dyMes);
+    const acum = porMes.get(mes) || { dyMes: null, rendimentosDistribuir: null, numeroCotas: null };
+    for (const campo of ['dyMes', 'rendimentosDistribuir', 'numeroCotas']) {
+      if (p[campo] !== null && p[campo] !== undefined) acum[campo] = p[campo];
+    }
+    porMes.set(mes, acum);
   }
   const meses = Array.from(porMes.keys()).sort();
 
-  const ultimosDy = meses.slice(-janelaDy).map((m) => porMes.get(m));
+  const comDy = meses.filter((m) => porMes.get(m).dyMes !== null);
+  const ultimosDy = comDy.slice(-janelaDy).map((m) => porMes.get(m).dyMes);
   const dyMedio36m = ultimosDy.length
     ? Math.round((ultimosDy.reduce((a, b) => a + b, 0) / ultimosDy.length) * 12 * 1e4) / 1e4
     : null;
 
-  const ultimosCons = meses.slice(-janelaConsistencia);
-  const pagando = ultimosCons.filter((m) => porMes.get(m) > 0).length;
+  const ultimosCons = comDy.slice(-janelaConsistencia);
+  const pagando = ultimosCons.filter((m) => porMes.get(m).dyMes > 0).length;
   const consistenciaDividendos = ultimosCons.length
     ? Math.round((pagando / ultimosCons.length) * 1000) / 10
     : null;
 
-  if (meses.length < minimoMeses) {
-    return { dyMedio36m: null, consistenciaDividendos: null, mesesObservados: meses.length };
+  if (comDy.length < minimoMeses) {
+    return { ...vazio, mesesObservados: comDy.length };
   }
-  return { dyMedio36m, consistenciaDividendos, mesesObservados: meses.length };
+  return {
+    dyMedio36m,
+    consistenciaDividendos,
+    crescimentoDividendo12m: crescimentoDividendoFii(porMes, meses),
+    mesesObservados: comDy.length,
+  };
+}
+
+/**
+ * Crescimento do dividendo em 12 meses, SEM preço na conta.
+ *
+ * `Rendimentos_Distribuir` ÷ `Cotas_Emitidas` é o rendimento por cota
+ * declarado naquele mês. Somar doze e comparar com os doze anteriores
+ * responde "o fundo está distribuindo mais por cota do que distribuía?" —
+ * que é a pergunta do pilar de crescimento.
+ *
+ * O caminho pelo DY não responde isso: yield é rendimento ÷ PREÇO, e um
+ * fundo que não mudou um centavo de distribuição aparece "crescendo" só
+ * porque a cota caiu. Por isso este indicador ficou nulo até existir a
+ * série do rendimento em si.
+ *
+ * Exige as duas janelas razoavelmente completas: com três meses de um lado
+ * e doze do outro, a razão mede a lacuna, não o crescimento.
+ */
+function crescimentoDividendoFii(porMes, meses) {
+  const MIN_POR_JANELA = 9;
+  const porCota = new Map();
+  for (const mes of meses) {
+    const p = porMes.get(mes);
+    if (p.rendimentosDistribuir === null || p.numeroCotas === null) continue;
+    if (!(p.numeroCotas > 0) || p.rendimentosDistribuir < 0) continue;
+    porCota.set(mes, p.rendimentosDistribuir / p.numeroCotas);
+  }
+  const comDado = Array.from(porCota.keys()).sort();
+  if (comDado.length < MIN_POR_JANELA * 2) return null;
+
+  const recentes = comDado.slice(-12);
+  const anteriores = comDado.slice(-24, -12);
+  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) return null;
+
+  const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
+  // Média por mês, não soma: as janelas podem ter contagens diferentes, e
+  // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
+  const mediaRecente = soma(recentes) / recentes.length;
+  const mediaAnterior = soma(anteriores) / anteriores.length;
+  if (!(mediaAnterior > 0)) return null;
+
+  const cresc = (mediaRecente / mediaAnterior - 1) * 100;
+  // Fora desta faixa não é crescimento de distribuição: é mudança de
+  // estrutura (emissão, incorporação) ou linha lida errado.
+  if (!(cresc >= -95 && cresc <= 200)) return null;
+  return Math.round(cresc * 10) / 10;
 }
 
 module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
