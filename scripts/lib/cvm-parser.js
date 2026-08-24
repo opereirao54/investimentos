@@ -988,6 +988,8 @@ function indicadoresDaSerieFii(serie, opcoes) {
     dyMedio36m: null,
     consistenciaDividendos: null,
     crescimentoDividendo12m: null,
+    crescimentoMotivo: 'sem_serie',
+    crescimentoBruto: null,
     mesesComRendimento: 0,
     mesesObservados: 0,
   };
@@ -1021,13 +1023,15 @@ function indicadoresDaSerieFii(serie, opcoes) {
     : null;
 
   if (comDy.length < minimoMeses) {
-    return { ...vazio, mesesObservados: comDy.length };
+    return { ...vazio, crescimentoMotivo: 'poucos_meses', mesesObservados: comDy.length };
   }
   const cresc = crescimentoDividendoFii(porMes, meses);
   return {
     dyMedio36m,
     consistenciaDividendos,
     crescimentoDividendo12m: cresc.valor,
+    crescimentoMotivo: cresc.motivo,
+    crescimentoBruto: cresc.bruto,
     mesesComRendimento: cresc.mesesComRendimento,
     mesesObservados: comDy.length,
   };
@@ -1063,25 +1067,48 @@ function crescimentoDividendoFii(porMes, meses) {
   // "série curta" e "coluna vazia" produzem o mesmo travessão no log e
   // pedem correções opostas — uma é aumentar a janela, a outra é procurar
   // a coluna noutro lugar.
-  const diagnostico = { mesesComRendimento: comDado.length, valor: null };
-  if (comDado.length < MIN_POR_JANELA * 2) return diagnostico;
+  // `motivo` e `bruto` existem porque uma trava que recusa em silêncio custou
+  // uma rodada inteira: o BTLG11 saiu com travessão tendo 31 meses de
+  // rendimento, e "série curta", "base zero" e "número fora de faixa" produzem
+  // o mesmo travessão pedindo correções opostas. O valor recusado vai junto —
+  // recusar protege o ranking, mas só o dado cru explica a fonte.
+  const diagnostico = {
+    mesesComRendimento: comDado.length,
+    valor: null,
+    motivo: null,
+    bruto: null,
+  };
+  if (comDado.length < MIN_POR_JANELA * 2) {
+    diagnostico.motivo = 'serie_curta';
+    return diagnostico;
+  }
 
   const recentes = comDado.slice(-12);
   const anteriores = comDado.slice(-24, -12);
-  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) return diagnostico;
+  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) {
+    diagnostico.motivo = 'janela_incompleta';
+    return diagnostico;
+  }
 
   const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
   // Média por mês, não soma: as janelas podem ter contagens diferentes, e
   // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
   const mediaRecente = soma(recentes) / recentes.length;
   const mediaAnterior = soma(anteriores) / anteriores.length;
-  if (!(mediaAnterior > 0)) return diagnostico;
+  if (!(mediaAnterior > 0)) {
+    diagnostico.motivo = 'base_zero';
+    return diagnostico;
+  }
 
   const cresc = (mediaRecente / mediaAnterior - 1) * 100;
+  diagnostico.bruto = Math.round(cresc * 10) / 10;
   // Fora desta faixa não é crescimento de distribuição: é mudança de
   // estrutura (emissão, incorporação) ou linha lida errado.
-  if (!(cresc >= -95 && cresc <= 200)) return diagnostico;
-  diagnostico.valor = Math.round(cresc * 10) / 10;
+  if (!(cresc >= -95 && cresc <= 200)) {
+    diagnostico.motivo = 'fora_de_faixa';
+    return diagnostico;
+  }
+  diagnostico.valor = diagnostico.bruto;
   return diagnostico;
 }
 
@@ -1505,6 +1532,9 @@ function alavancagemFii(inf) {
   return Math.round(ltv * 10) / 10;
 }
 
+/** A maioria da carteira em imóvel é o que faz o fundo ser de tijolo. */
+const FRACAO_TIJOLO = 0.5;
+
 /**
  * Fundo de TIJOLO ou de PAPEL, decidido pela carteira publicada.
  *
@@ -1518,15 +1548,24 @@ function alavancagemFii(inf) {
  * fora do informe trimestral pode ser de papel, mas também pode ser um que
  * não entregou. Só a rubrica imobiliária do balanço decide.
  *
- *   `Direitos_Bens_Imoveis` > 0  → tem imóvel, é tijolo
- *   = 0 com carteira declarada   → não tem imóvel, é papel
- *   sem a coluna                 → null, e aí valem os critérios de sempre
+ * A decisão é pela FATIA da carteira, não pela presença. "Tem algum imóvel"
+ * classificou o MXRF11 como tijolo na execução real — um fundo de recebíveis
+ * com dois imóveis marginais numa carteira de 5,25 bi. E o efeito apareceu na
+ * mesma linha do log: `imóveis 2 · cobertura área 0% · ocupação —`. Ele era
+ * cobrado por uma ocupação que não descreve a receita dele, perdia cobertura
+ * e levava o encolhimento do score por um defeito que não tem.
  *
- * Híbrido conta como tijolo: se há imóvel na carteira, ocupação e contagem
- * de imóveis descrevem alguma coisa, ainda que parte dela.
+ * O critério é a maioria da carteira, porque é isso que a pergunta significa:
+ * a ocupação dos imóveis só caracteriza o fundo se o aluguel for o que paga o
+ * rendimento. Numa fatia minoritária, ela descreve um canto da carteira.
+ *
+ *   imóveis ≥ 50% do investido  → tijolo
+ *   imóveis <  50% do investido → papel
+ *   sem a rubrica ou sem total  → null, e aí valem os critérios de sempre
  */
-function tipoCarteiraFii(inf) {
-  if (!inf) return null;
+function carteiraFii(inf) {
+  const nada = { tipo: null, fracaoImoveis: null, imoveis: null, total: null };
+  if (!inf) return nada;
   const agregado = inf.direitosBensImoveis;
   // As folhas servem de reserva quando o agregado não vem, e de conferência
   // quando vem — mesmo cuidado do 6.03, onde somar pai e filhas contava
@@ -1546,16 +1585,29 @@ function tipoCarteiraFii(inf) {
     somaFolhas = (somaFolhas || 0) + v;
   }
   const imoveis = agregado !== null && agregado !== undefined ? agregado : somaFolhas;
-  if (imoveis === null || imoveis === undefined) return null;
-  if (imoveis > 0) return 'tijolo';
-  // Zero de imóvel só significa "fundo de papel" se houver carteira
-  // declarada. Zero em tudo é fundo que não preencheu, não fundo vazio.
+  if (imoveis === null || imoveis === undefined) return nada;
+  // A fatia exige as duas pontas. Sem o total declarado não há denominador, e
+  // "tem imóvel" sozinho não distingue o fundo de tijolo do de papel que
+  // carrega dois — foi exatamente essa a confusão. Zero em tudo é fundo que
+  // não preencheu, não fundo vazio.
   const total = inf.totalInvestido;
-  if (total === null || total === undefined || !(total > 0)) return null;
-  return 'papel';
+  if (total === null || total === undefined || !(total > 0)) return nada;
+  const fracao = imoveis / total;
+  return {
+    tipo: fracao >= FRACAO_TIJOLO ? 'tijolo' : 'papel',
+    fracaoImoveis: Math.round(fracao * 1000) / 10,
+    imoveis,
+    total,
+  };
+}
+
+function tipoCarteiraFii(inf) {
+  return carteiraFii(inf).tipo;
 }
 
 module.exports.tipoCarteiraFii = tipoCarteiraFii;
+module.exports.carteiraFii = carteiraFii;
+module.exports.FRACAO_TIJOLO = FRACAO_TIJOLO;
 
 module.exports.alavancagemFii = alavancagemFii;
 
@@ -1594,14 +1646,27 @@ const COLUNAS_CAPITAL = {
     'Quantidade_Acao_Preferencial_Capital_Integralizado',
     'QT_ACAO_PREF',
   ],
-  ordinariasTesouraria: ['QT_ACAO_ORDIN_TESOURARIA', 'Quantidade_Acao_Ordinaria_Tesouraria'],
-  preferenciaisTesouraria: ['QT_ACAO_PREF_TESOURARIA', 'Quantidade_Acao_Preferencial_Tesouraria'],
-  // A ESCALA da quantidade, declarada linha a linha. Ignorá-la fazia a
-  // Eletrobras sair com 2,92 M de ações para 118,5 bi de patrimônio —
-  // R$ 40.646 por ação. O arquivo dizia 2.028.544 ON, em MILHARES: 2,03 bi,
-  // que é a contagem real. E o Banco do Brasil, na mesma execução, saiu
-  // certo sem escala nenhuma: as duas convivem no mesmo arquivo, e é por
-  // isso que a escala tem de ser LIDA, nunca suposta.
+  // `TESOURO` vem primeiro porque é o nome do arquivo REAL. O mapa só
+  // conhecia `TESOURARIA`, que a CVM não usa: as ações em tesouraria eram
+  // lidas como zero em toda companhia, sem aviso nenhum, e o log dizia
+  // `tes 0` — indistinguível de uma companhia que de facto não tem nenhuma.
+  // Contar a tesouraria como zero infla as ações em circulação, e com elas o
+  // valor de mercado e o P/L.
+  ordinariasTesouraria: [
+    'QT_ACAO_ORDIN_TESOURO',
+    'QT_ACAO_ORDIN_TESOURARIA',
+    'Quantidade_Acao_Ordinaria_Tesouraria',
+  ],
+  preferenciaisTesouraria: [
+    'QT_ACAO_PREF_TESOURO',
+    'QT_ACAO_PREF_TESOURARIA',
+    'Quantidade_Acao_Preferencial_Tesouraria',
+  ],
+  // A ESCALA da quantidade, quando declarada. O arquivo real da CVM NÃO a
+  // declara — a execução real listou as dez colunas de
+  // `dfp_cia_aberta_composicao_capital` e nenhuma delas é escala. Fica no
+  // mapa porque outros arquivos da CVM a trazem, mas quem decide a unidade
+  // na prática é `conciliarContagemComPatrimonio`, pelo patrimônio.
   escalaQuantidade: ['ESCALA_QUANTIDADE', 'ESCALA_MOEDA', 'ESCALA'],
 };
 
@@ -1689,8 +1754,70 @@ function extrairComposicaoCapital(registros, colunas) {
   return { porChave, linhasPorChave, faltando, colunas: cols, colunasReais: colunas };
 }
 
+/**
+ * Em que unidade a companhia declarou a contagem de ações — decidido pelo
+ * PATRIMÔNIO, porque o arquivo não diz.
+ *
+ * `dfp_cia_aberta_composicao_capital` não tem coluna de escala nenhuma (o log
+ * da execução real lista as dez colunas: nenhuma delas é escala), e as
+ * companhias não seguem a mesma convenção:
+ *
+ *   BBAS3  2.865.417.020  → unidades
+ *   ELET3  2.307.099      → milhares (2,31 bi de ações de facto)
+ *
+ * Sem escala declarada, os dois números são igualmente plausíveis lidos
+ * isoladamente — e foi assim que a Eletrobras saiu com 2,31 M de ações para
+ * 118,5 bi de patrimônio. O desempate vem de uma grandeza que NÃO passou pela
+ * contagem: o valor patrimonial por ação.
+ *
+ *   ELET3 a 1×     → R$ 51.364 por ação   (não existe na B3)
+ *   ELET3 a 1000×  → R$ 51,4 por ação     (é o valor real)
+ *   BBAS3 a 1×     → R$ 67,5 por ação     (plausível)
+ *   BBAS3 a 1000×  → R$ 0,067 por ação    (não existe)
+ *
+ * A correção é de mão única, e isso é deliberado: só se tenta o ×1000 quando
+ * a leitura em unidades dá um VPA IMPOSSÍVEL para cima. Para baixo não se
+ * mexe, porque VPA de centavos existe de verdade — companhia em recuperação,
+ * capital diluído — e "corrigir" esse caso inventaria mil vezes menos ações
+ * numa empresa que já está mal. O teto é a única ponta da faixa em que a
+ * absurdez é certa: não há papel na B3 com patrimônio de dez mil reais por
+ * ação.
+ *
+ * Como só se entra pela ponta de cima, as duas leituras nunca cabem ao mesmo
+ * tempo — o ×1000 de um número acima do teto cai, no máximo, logo abaixo
+ * dele. Não há empate a desfazer.
+ */
+const VPA_MIN = 0.01;
+const VPA_MAX = 10000;
+
+function conciliarContagemComPatrimonio(circulacao, patrimonioLiquido) {
+  if (!(circulacao > 0)) return { acoes: null, fator: null, vpa: null, motivo: 'sem_contagem' };
+  // Sem patrimônio não há conferência possível. Recusar aqui seria descartar
+  // contagem boa por falta do aferidor, não por defeito dela.
+  if (!(patrimonioLiquido > 0)) {
+    return { acoes: circulacao, fator: 1, vpa: null, motivo: 'sem_patrimonio' };
+  }
+  const cabe = (vpa) => vpa >= VPA_MIN && vpa <= VPA_MAX;
+  const vpaUnidades = patrimonioLiquido / circulacao;
+  if (cabe(vpaUnidades)) {
+    return { acoes: circulacao, fator: 1, vpa: vpaUnidades, motivo: 'unidades' };
+  }
+  if (vpaUnidades > VPA_MAX && cabe(vpaUnidades / 1000)) {
+    return {
+      acoes: circulacao * 1000,
+      fator: 1000,
+      vpa: vpaUnidades / 1000,
+      motivo: 'milhares',
+    };
+  }
+  return { acoes: null, fator: null, vpa: vpaUnidades, motivo: 'fora_de_faixa' };
+}
+
 module.exports.COLUNAS_CAPITAL = COLUNAS_CAPITAL;
 module.exports.extrairComposicaoCapital = extrairComposicaoCapital;
+module.exports.conciliarContagemComPatrimonio = conciliarContagemComPatrimonio;
+module.exports.VPA_MIN = VPA_MIN;
+module.exports.VPA_MAX = VPA_MAX;
 
 // ════════════════════════════════════════════════════════════
 // Descoberta do universo — ticker ↔ empresa, pela própria CVM

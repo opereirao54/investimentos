@@ -1848,6 +1848,33 @@ test('variação absurda é recusada — é mudança de estrutura, não distribu
   }
   const r = P.indicadoresDaSerieFii(serieFii(pontos));
   assert.equal(r.crescimentoDividendo12m, null, 'fora da faixa vira lacuna, não número');
+  // A trava tem de dizer o que recusou. O BTLG11 saiu com travessão tendo 31
+  // meses de rendimento na execução real, e o log não distinguia "série
+  // curta" de "número absurdo" — que pedem correções opostas: uma é alargar
+  // a janela, a outra é procurar a coluna noutro lugar.
+  assert.equal(r.crescimentoMotivo, 'fora_de_faixa');
+  assert.ok(r.crescimentoBruto > 200, `o valor recusado tem de ir junto: ${r.crescimentoBruto}`);
+});
+
+test('cada porta de saída do crescimento tem um motivo próprio', () => {
+  // Recusar protege o ranking; só o motivo explica a fonte.
+  const curta = [];
+  for (let i = 1; i <= 10; i++) curta.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  assert.equal(P.indicadoresDaSerieFii(serieFii(curta)).crescimentoMotivo, 'serie_curta');
+
+  const semDy = [];
+  for (let i = 1; i <= 3; i++) semDy.push([`2025-0${i}`, 0.8, 1000, 1e6]);
+  assert.equal(P.indicadoresDaSerieFii(serieFii(semDy)).crescimentoMotivo, 'poucos_meses');
+
+  assert.equal(P.indicadoresDaSerieFii([]).crescimentoMotivo, 'sem_serie');
+
+  // E quando dá certo, não há motivo nenhum a reportar.
+  const boa = [];
+  for (let i = 1; i <= 12; i++) boa.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  for (let i = 1; i <= 12; i++) boa.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1200, 1e6]);
+  const ok = P.indicadoresDaSerieFii(serieFii(boa));
+  assert.equal(ok.crescimentoMotivo, null);
+  assert.equal(ok.crescimentoDividendo12m, 20);
 });
 
 test('as duas pontas vêm de membros diferentes do ZIP e são reunidas por mês', () => {
@@ -1931,8 +1958,30 @@ test('carteira com imóvel é tijolo; sem imóvel e com carteira declarada é pa
   );
 });
 
-test('híbrido conta como tijolo — a ocupação ainda descreve parte da carteira', () => {
-  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 }), 'tijolo');
+test('o que decide é a FATIA da carteira, não a presença de imóvel', () => {
+  // "Tem algum imóvel → tijolo" classificou o MXRF11 como fundo de tijolo na
+  // execução real: um fundo de recebíveis com dois imóveis marginais numa
+  // carteira de 5,25 bi. Ele passava a ser cobrado por uma ocupação que não
+  // descreve a receita dele, perdia cobertura, e o encolhimento do score o
+  // punia por um defeito que não tem.
+  assert.equal(
+    P.tipoCarteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 }),
+    'papel',
+    '20% da carteira em imóvel não faz um fundo de tijolo'
+  );
+  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 8e8, totalInvestido: 1e9 }), 'tijolo');
+  // Na fronteira, a maioria decide.
+  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 5e8, totalInvestido: 1e9 }), 'tijolo');
+});
+
+test('a fatia acompanha o tipo, para o log poder mostrar por que decidiu', () => {
+  // Sem ela, "tijolo" num fundo de recebíveis com dois imóveis é
+  // indistinguível de "tijolo" num galpão logístico — e foi assim que a
+  // classificação errada passou uma rodada inteira sem ser notada.
+  const c = P.carteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 });
+  assert.equal(c.tipo, 'papel');
+  assert.equal(c.fracaoImoveis, 20);
+  assert.equal(P.carteiraFii({}).fracaoImoveis, null);
 });
 
 test('ausência de dado não classifica — evidência positiva ou nada', () => {

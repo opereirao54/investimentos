@@ -633,10 +633,14 @@ async function main() {
         // defeito que a Eletrobras expôs, e ele volta se a CVM renomear a
         // coluna. Nomear as colunas reais é o que permite corrigir numa
         // linha em vez de reabrir a investigação.
-        if (!cap.colunas.escalaQuantidade) {
-          log(
-            '  ! composição do capital sem coluna de escala — contagens em milhares sairão 1000× menores'
-          );
+        // TODA coluna que não resolveu, não só a escala. A de tesouraria
+        // faltava calada — o mapa procurava `TESOURARIA` e o arquivo traz
+        // `TESOURO` — e o resultado era `tes 0` em toda companhia, que é
+        // exatamente o que uma empresa sem tesouraria também imprime. Coluna
+        // ausente e valor zero têm de ser distinguíveis no log.
+        const faltando = cap.faltando || [];
+        if (faltando.length) {
+          log(`  ! composição do capital sem as colunas: ${faltando.join(', ')}`);
           log(`    colunas reais: ${pacote.csvs.composicao_capital.colunas.join(', ')}`);
         }
         capitalPorChave = cap.porChave;
@@ -687,24 +691,38 @@ async function main() {
     const ind = r.indicadores;
 
     // A contagem declarada é conferida contra o PATRIMÔNIO, que não passou
-    // por ela. Valor patrimonial por ação fora de faixa denuncia que a linha
-    // lida não é a da companhia inteira — foi o que a execução real mostrou:
+    // por ela — e o mesmo cálculo decide a UNIDADE, porque o arquivo da CVM
+    // não declara escala nenhuma e as companhias não usam a mesma:
     //
-    //   ELET3  PL 118,5 bi · ações 0,00 bi  →  R$ 118 mil por ação
+    //   BBAS3  2.865.417.020 → unidades  → VPA R$ 67,5
+    //   ELET3      2.307.099 → milhares  → VPA R$ 51,4  (a 1× dava R$ 51.364)
     //
-    // Com essa contagem o valor de mercado sairia mil vezes menor, o P/L
-    // viraria o menor da bolsa e a Eletrobras lideraria a lente "Valor".
-    // Recusar e cair para a derivação por LPA é melhor do que publicar isso.
+    // Lidas isoladamente as duas são plausíveis; só o valor patrimonial por
+    // ação separa. Quando nenhuma das leituras cabe na faixa, a contagem é
+    // recusada e a derivação cai para o LPA — melhor um travessão do que a
+    // Eletrobras com valor de mercado mil vezes menor liderando a lente
+    // "Valor".
     if (capitalDaEmpresa) {
       const pl = r.absolutos.patrimonioLiquido;
-      const vpa =
-        pl && capitalDaEmpresa.acoesEmCirculacao ? pl / capitalDaEmpresa.acoesEmCirculacao : null;
-      if (vpa !== null && (vpa < 0.01 || vpa > 10000)) {
+      const conc = P.conciliarContagemComPatrimonio(capitalDaEmpresa.acoesEmCirculacao, pl);
+      if (conc.acoes && conc.fator !== 1) {
         log(
-          `  ! ${emp.tickers[0]}: contagem declarada recusada — ` +
+          `  · ${emp.tickers[0]}: contagem declarada em milhares — ` +
+            `${capitalDaEmpresa.acoesEmCirculacao.toLocaleString('pt-BR')} → ` +
+            `${(conc.acoes / 1e9).toFixed(2)}bi ações, VPA R$ ${conc.vpa.toFixed(2)}` +
+            ` (a 1× daria R$ ${(pl / capitalDaEmpresa.acoesEmCirculacao).toFixed(0)})`
+        );
+        capitalDaEmpresa = {
+          ...capitalDaEmpresa,
+          acoesEmCirculacao: conc.acoes,
+          escalaAplicada: conc.fator,
+        };
+      } else if (!conc.acoes && conc.motivo !== 'sem_patrimonio') {
+        log(
+          `  ! ${emp.tickers[0]}: contagem declarada recusada (${conc.motivo}) — ` +
             `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações ` +
             `(escala ${capitalDaEmpresa.escalaAplicada}×) para ` +
-            `PL de ${(pl / 1e9).toFixed(1)}bi dá R$ ${vpa.toFixed(0)} por ação`
+            `PL de ${pl === null ? '—' : (pl / 1e9).toFixed(1) + 'bi'} dá R$ ${conc.vpa === null ? '—' : conc.vpa.toFixed(0)} por ação`
         );
         // A recusa protege o ranking, mas não explica o arquivo. Estas são
         // TODAS as linhas daquela companhia, inclusive as que o filtro
@@ -1116,7 +1134,8 @@ async function main() {
         const alavancagem = P.alavancagemFii(inf);
         // Tijolo ou papel, pela carteira publicada. Decide QUAIS indicadores
         // se aplicam ao fundo — não a classe dele na alocação.
-        const tipoFii = P.tipoCarteiraFii(inf);
+        const carteira = P.carteiraFii(inf);
+        const tipoFii = carteira.tipo;
         const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
@@ -1138,8 +1157,20 @@ async function main() {
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
             ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
-            ` · ${tipoFii || 'tipo?'}` +
-            ` · cresc.div ${serie.crescimentoDividendo12m === null ? `— (${serie.mesesComRendimento}m c/ rend.)` : serie.crescimentoDividendo12m + '%'}` +
+            // A fatia vai junto com o rótulo porque é ela que o decide: sem
+            // ela, "tijolo" num fundo de recebíveis com dois imóveis é
+            // indistinguível de "tijolo" num galpão logístico.
+            ` · ${tipoFii || 'tipo?'}${carteira.fracaoImoveis === null ? '' : ` (${carteira.fracaoImoveis}% imóvel)`}` +
+            // O motivo da recusa, não só o travessão: 31 meses de rendimento
+            // com nota vazia pediu uma rodada inteira só para descobrir qual
+            // das quatro portas de saída tinha sido usada.
+            ` · cresc.div ${
+              serie.crescimentoDividendo12m === null
+                ? `— (${serie.crescimentoMotivo}, ${serie.mesesComRendimento}m c/ rend.${
+                    serie.crescimentoBruto === null ? '' : `, recusou ${serie.crescimentoBruto}%`
+                  })`
+                : serie.crescimentoDividendo12m + '%'
+            }` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
         if (!preenchidos) continue;

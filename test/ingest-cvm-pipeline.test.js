@@ -156,6 +156,14 @@ function dfpCsv(qual, ano, opcoes) {
 const CAB_CAPITAL =
   'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;CD_CVM;DT_FIM_EXERC;ESCALA_QUANTIDADE;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_ORDIN_TESOURARIA;QT_ACAO_PREF_TESOURARIA';
 
+// O cabeçalho REAL, copiado do log da execução contra a CVM. Ele não tem
+// escala, não tem CD_CVM, e a tesouraria chama-se TESOURO — não TESOURARIA.
+// O fixture acima inventava um arquivo mais generoso do que o publicado, e é
+// por isso que a suíte passava enquanto a Eletrobras saía sem contagem: um
+// fixture mais fácil que a realidade não testa a realidade.
+const CAB_CAPITAL_REAL =
+  'CNPJ_CIA;DT_REFER;VERSAO;DENOM_CIA;QT_ACAO_ORDIN_CAP_INTEGR;QT_ACAO_PREF_CAP_INTEGR;QT_ACAO_TOTAL_CAP_INTEGR;QT_ACAO_ORDIN_TESOURO;QT_ACAO_PREF_TESOURO;QT_ACAO_TOTAL_TESOURO';
+
 function capitalCsv(ano, opcoes) {
   const op = opcoes || {};
   // As DUAS escalas no MESMO arquivo, como na CVM de verdade: a Eletrobras
@@ -163,8 +171,18 @@ function capitalCsv(ano, opcoes) {
   // unidades. Ignorar a escala fazia a primeira sair mil vezes menor, com
   // um número plausível e sem erro nenhum.
   //
-  // No cenário "absurdo" a contagem é minúscula MESMO em unidades: é o que
-  // a trava do patrimônio ainda tem de recusar depois da escala aplicada.
+  // O cenário "real" reproduz o arquivo publicado: SEM coluna de escala, com
+  // os números da Eletrobras em milhares (2.027.011 ON + 280.088 PN = 2,31 bi
+  // de ações de facto). Lido em unidades dá 2,31 M para um patrimônio de
+  // bilhões — R$ 51 mil por ação. É o defeito que a execução real expôs, e
+  // quem tem de desfazê-lo é a conferência contra o patrimônio.
+  if (op.semEscala) {
+    return [
+      CAB_CAPITAL_REAL,
+      `${CNPJ_A};${ano}-12-31;1;COMPANHIA TESTE S.A.;2027011;280088;2307099;0;0;0`,
+      `${CNPJ_B};${ano}-12-31;1;COMPANHIA TESTE S.A.;800000000;0;800000000;0;0;0`,
+    ].join('\n');
+  }
   const escalaA = op.absurdo ? 'UNIDADE' : 'MIL';
   const onA = op.absurdo ? '150000' : '2028544';
   const pnA = op.absurdo ? '0' : '886884';
@@ -273,12 +291,16 @@ function montarFetch(opcoes) {
             ['BPA_con', 'BPP_con', 'DRE_con', 'DFC_MI_con']
               .map((q) => [
                 `dfp_cia_aberta_${q}_${ano}.csv`,
-                dfpCsv(q, ano, { absurdo: op.capitalAbsurdo }),
+                // Os dois cenários precisam da companhia GRANDE: é o
+                // patrimônio de dezenas de bilhões que torna a contagem
+                // minúscula detectável. Com 0,2 bi de patrimônio, 2,3 M de
+                // ações dá R$ 87 por ação — plausível, e nada a denunciaria.
+                dfpCsv(q, ano, { absurdo: op.capitalAbsurdo || op.capitalSemEscala }),
               ])
               .concat([
                 [
                   `dfp_cia_aberta_composicao_capital_${ano}.csv`,
-                  capitalCsv(ano, { absurdo: op.capitalAbsurdo }),
+                  capitalCsv(ano, { absurdo: op.capitalAbsurdo, semEscala: op.capitalSemEscala }),
                 ],
               ])
           )
@@ -416,24 +438,80 @@ test('a contagem de ações DECLARADA vence a derivada por LPA', async () => {
   assert.match(texto, /2 pela composição do capital, 0 pelo LPA/);
 });
 
-test('contagem declarada implausível é recusada, conferida pelo patrimônio', async () => {
-  // O patrimônio NÃO passou pela contagem de ações, e por isso a denuncia.
-  // Achado da execução real: a Eletrobras saiu com 0,00 bi de ações para um
-  // patrimônio de 118,5 bi — R$ 118 mil por ação. Com esse número o valor de
-  // mercado sairia mil vezes menor e ela lideraria a lente "Valor".
+test('a conferência pelo patrimônio decide a unidade da contagem', () => {
+  // O patrimônio NÃO passou pela contagem de ações, e é por isso que pode
+  // arbitrá-la. Os quatro casos que importam, com os números que a execução
+  // real produziu.
+  const P = require('../scripts/lib/cvm-parser.js');
+
+  // Banco do Brasil: 2,87 bi de ações para 193,6 bi de patrimônio, em
+  // unidades. R$ 67 por ação — não se mexe.
+  const bb = P.conciliarContagemComPatrimonio(2.87e9, 193.6e9);
+  assert.equal(bb.fator, 1);
+  assert.equal(bb.acoes, 2.87e9);
+
+  // Eletrobras: 2.307.099 declarados para 118,5 bi. Em unidades dá R$ 51.364
+  // por ação, que não existe na B3; em milhares dá R$ 51,4, que é o valor
+  // real. Só uma das leituras sobrevive.
+  const elet = P.conciliarContagemComPatrimonio(2307099, 118.5e9);
+  assert.equal(elet.fator, 1000);
+  assert.equal(elet.acoes, 2307099000);
+  assert.ok(elet.vpa > 40 && elet.vpa < 60, `VPA fora do esperado: ${elet.vpa}`);
+
+  // Companhia diluída, VPA de centavos: existe de verdade, e NÃO se corrige.
+  // Multiplicar aqui inventaria mil vezes menos ações numa empresa que já
+  // está mal — o erro que a correção de mão única existe para não cometer.
+  const diluida = P.conciliarContagemComPatrimonio(5e9, 1.5e8);
+  assert.equal(diluida.fator, 1);
+  assert.equal(diluida.acoes, 5e9);
+
+  // Nem uma leitura nem outra: recusa, e a derivação por LPA assume.
+  const impossivel = P.conciliarContagemComPatrimonio(150000, 196e12);
+  assert.equal(impossivel.acoes, null);
+  assert.equal(impossivel.motivo, 'fora_de_faixa');
+});
+
+test('contagem em milhares é reconhecida pelo patrimônio, não recusada', async () => {
+  // O arquivo real da CVM não declara escala nenhuma, e as companhias não
+  // usam a mesma: a Eletrobras publica 2.027.011 ON querendo dizer 2,03 bi.
+  // Lido em unidades isso dá R$ 51 mil por ação — impossível na B3 — e a
+  // execução real recusava a contagem e perdia a valuation da companhia.
+  //
+  // Recusar era melhor do que publicar o número errado, mas continua sendo
+  // uma lacuna. O patrimônio, que não passou pela contagem, diz qual das
+  // duas leituras existe no mundo real, e só uma delas existe.
   const { texto } = await rodar(['--dry-run', '--anos=1'], {
     anoFca: ANO_BASE,
     anosDfp: [ANO_BASE],
-    capitalAbsurdo: true,
+    capitalSemEscala: true,
   });
-  assert.match(texto, /contagem declarada recusada/);
-  assert.match(texto, /por ação/, 'a mensagem mostra a conta que denuncia');
-  // Recusada a declarada, a derivação por LPA assume — não fica sem nada.
-  assert.match(texto, /ações .*bi lpa/);
-  // E a recusa vem acompanhada das linhas cruas: sem elas o log diz que o
-  // número está errado sem dizer o que o arquivo tem, e a próxima
-  // investigação recomeça no escuro.
-  assert.match(texto, /ON 150000 · PN 0 · tes 0 → 150000/, `linhas cruas ausentes:\n${texto}`);
+  assert.match(texto, /contagem declarada em milhares/, `não reconheceu a escala:\n${texto}`);
+  assert.match(texto, /ações 2\.31bi cap/, `contagem corrigida ausente:\n${texto}`);
+  // A correção não pode passar calada: o log mostra as duas leituras lado a
+  // lado, para que quem confere veja POR QUE uma foi escolhida.
+  assert.match(texto, /a 1× daria R\$ \d{4,}/, `o log não mostra a leitura descartada:\n${texto}`);
+  assert.ok(!/contagem declarada recusada/.test(texto), `recusou uma corrigível:\n${texto}`);
+});
+
+test('a coluna de tesouraria do arquivo real chama-se TESOURO, e é lida', async () => {
+  // O mapa só conhecia `TESOURARIA`, que a CVM não usa. Toda companhia saía
+  // com tesouraria zero — indistinguível de quem de facto não tem nenhuma —
+  // e as ações em circulação vinham infladas, com elas o valor de mercado.
+  const P = require('../scripts/lib/cvm-parser.js');
+  const csv = P.parseCsvCvm(
+    [
+      CAB_CAPITAL_REAL,
+      `${CNPJ_A};${ANO_BASE}-12-31;1;COMPANHIA TESTE S.A.;1000000000;0;1000000000;40000000;0;40000000`,
+    ].join('\n')
+  );
+  const cap = P.extrairComposicaoCapital(csv.registros, csv.colunas);
+  assert.ok(
+    !cap.faltando.includes('ordinariasTesouraria'),
+    `coluna de tesouraria não resolvida: ${cap.faltando.join(', ')}`
+  );
+  const reg = cap.porChave.get('cnpj:' + CNPJ_A.replace(/\D/g, ''));
+  assert.equal(reg.acoesTesouraria, 40000000);
+  assert.equal(reg.acoesEmCirculacao, 960000000, 'a tesouraria tem de sair da circulação');
 });
 
 test('sem FCA o pipeline não morre: cai para o mapa e diz que caiu', async () => {
@@ -698,10 +776,17 @@ test('LTV do FII junta o ativo de um membro com as obrigações de outro', async
       'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
     },
   });
+  // Ancorado na DATA, não só no ticker: o ticker também aparece na lista de
+  // vínculos acima, e uma janela larga o bastante para o bloco de
+  // indicadores deixaria a asserção casar a partir da linha errada.
   // (200M aquisição + 100M securitização) / 2.000M de ativo = 15%.
-  assert.match(texto, /MXRF11[\s\S]{0,200}?LTV 15%/, `LTV errado:\n${texto}`);
+  assert.match(texto, /MXRF11\s+2026-07-01[\s\S]{0,300}?LTV 15%/, `LTV errado:\n${texto}`);
   // Sem obrigação declarada é 0%, não lacuna: o fundo não tem essa dívida,
   // e tratá-lo como "não sei" penalizaria justamente quem não se alavanca.
   // Rendimentos a distribuir estão no passivo e NÃO entram na conta.
-  assert.match(texto, /HGLG11[\s\S]{0,200}?LTV 0%/, `LTV do fundo sem dívida:\n${texto}`);
+  assert.match(
+    texto,
+    /HGLG11\s+2026-07-01[\s\S]{0,300}?LTV 0%/,
+    `LTV do fundo sem dívida:\n${texto}`
+  );
 });
