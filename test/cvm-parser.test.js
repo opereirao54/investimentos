@@ -1957,3 +1957,29 @@ test('sem o agregado, as folhas do bloco imobiliário decidem', () => {
     'papel'
   );
 });
+
+test('as colunas de carteira são de facto encontradas no cabeçalho real da CVM', () => {
+  // Este teste existe porque o bug aconteceu: os campos foram acrescentados
+  // ao objeto do registro mas NUNCA ao mapa de colunas. Resultado —
+  // `acharColuna` devolvia undefined, todo fundo saía sem tipo, e nada
+  // reclamou. Testar a extração com dado sintético em objeto não pegaria:
+  // só o cabeçalho REAL, atravessando o parse, pega.
+  const cab =
+    'CNPJ_Fundo_Classe;Data_Referencia;Versao;Total_Necessidades_Liquidez;Disponibilidades;' +
+    'Titulos_Publicos;Titulos_Privados;Fundos_Renda_Fixa;Total_Investido;Direitos_Bens_Imoveis;' +
+    'Terrenos;Imoveis_Renda_Acabados;Imoveis_Renda_Construcao;Imoveis_Venda_Acabados;' +
+    'Imoveis_Venda_Construcao;Outros_Direitos_Reais;Acoes;Debentures;CRI;LCI;' +
+    'Rendimentos_Distribuir;Obrigacoes_Aquisicao_Imoveis;Obrigacoes_Securitizacao_Recebiveis;Total_Passivo';
+  const csv = [
+    cab,
+    '11.728.688/0001-47;2026-07-01;1;0;0;0;0;0;7000000000;6500000000;100000000;6000000000;0;0;0;400000000;0;0;0;0;50000000;0;0;50000000',
+    '16.706.958/0001-32;2026-07-01;1;0;0;0;0;0;10000000000;0;0;0;0;0;0;0;0;0;9000000000;1000000000;60000000;0;0;60000000',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+
+  assert.equal(r.colunas.direitosBensImoveis, 'Direitos_Bens_Imoveis', 'a coluna tem de resolver');
+  assert.equal(r.colunas.totalInvestido, 'Total_Investido');
+  assert.equal(P.tipoCarteiraFii(r.porCnpj.get('11728688000147')), 'tijolo');
+  assert.equal(P.tipoCarteiraFii(r.porCnpj.get('16706958000132')), 'papel');
+});

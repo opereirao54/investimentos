@@ -820,6 +820,23 @@ const COLUNAS_FII = {
   // rendimento com mudança de cotação. Um fundo que não mudou um centavo
   // de distribuição aparece "crescendo" só porque a cota caiu.
   rendimentosDistribuir: ['Rendimentos_Distribuir', 'Rendimentos_A_Distribuir'],
+  // Composição da carteira — o que separa fundo de TIJOLO de fundo de
+  // PAPEL. Cobrar ocupação e número de imóveis de um fundo de recebíveis é
+  // o mesmo erro de cobrar EBITDA de banco: o indicador não está ausente,
+  // ele não se aplica.
+  //
+  // `Direitos_Bens_Imoveis` é o agregado do bloco imobiliário (vem logo
+  // depois de `Total_Investido` e antes das categorias específicas). As
+  // folhas ficam como reserva — mesmo cuidado do 6.03, onde somar o pai
+  // com as filhas contava tudo duas vezes.
+  direitosBensImoveis: ['Direitos_Bens_Imoveis'],
+  terrenos: ['Terrenos'],
+  imoveisRendaAcabados: ['Imoveis_Renda_Acabados'],
+  imoveisRendaConstrucao: ['Imoveis_Renda_Construcao'],
+  imoveisVendaAcabados: ['Imoveis_Venda_Acabados'],
+  imoveisVendaConstrucao: ['Imoveis_Venda_Construcao'],
+  outrosDireitosReais: ['Outros_Direitos_Reais'],
+  totalInvestido: ['Total_Investido'],
 };
 
 // Vacância e número de imóveis NÃO estão no `complemento` — moram noutro
