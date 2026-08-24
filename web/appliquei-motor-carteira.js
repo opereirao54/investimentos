@@ -538,6 +538,160 @@ var MOTOR_CRITERIOS = {
     ],
   },
 
+  // Fundo de PAPEL (CRI, recebíveis). Não é uma classe à parte para efeito
+  // de alocação — continua sendo FII na carteira —, mas os critérios são
+  // outros: cobrar taxa de ocupação e número de imóveis de quem não tem
+  // imóvel é o mesmo erro que cobrar EBITDA de banco. O indicador não está
+  // ausente, ele não se aplica, e tratá-lo como ausente derruba a cobertura
+  // e aciona o encolhimento do score contra um fundo sem defeito nenhum.
+  //
+  // O que muda em relação ao tijolo é SÓ a remoção do que não se aplica.
+  // Valuation, dividendos e o crescimento do dividendo são os mesmos — um
+  // fundo de papel distribui rendimento como qualquer outro, e é isso que
+  // o cotista recebe.
+  fiiPapel: {
+    valuation: [
+      {
+        id: 'pvp',
+        nome: 'P/VP',
+        peso: 4,
+        unidade: 'x',
+        exigePositivo: true,
+        notaSeNegativo: 0.5,
+        pontos: [
+          [0.6, 10],
+          [0.8, 9],
+          [0.95, 8],
+          [1.05, 6.5],
+          [1.2, 4.5],
+          [1.5, 2],
+          [2, 0.5],
+        ],
+      },
+    ],
+    dividendos: [
+      {
+        id: 'dy',
+        nome: 'Dividend Yield (12m)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [4, 3],
+          [7, 6],
+          [9, 8],
+          [11, 9.5],
+          [14, 10],
+          [20, 6],
+        ],
+      },
+      {
+        id: 'dyMedio36m',
+        nome: 'DY médio (36 meses)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [4, 3],
+          [7, 6.5],
+          [9.5, 9],
+          [12, 10],
+          [18, 7],
+        ],
+      },
+      {
+        id: 'consistenciaDividendos',
+        nome: 'Meses pagando (24m)',
+        peso: 2,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [50, 3],
+          [80, 7],
+          [95, 9.5],
+          [100, 10],
+        ],
+      },
+    ],
+    // Sem taxa de ocupação: não há imóvel para ocupar. O crescimento do
+    // dividendo carrega o pilar sozinho, e é o indicador certo — mede se o
+    // fundo está distribuindo mais por cota do que distribuía.
+    crescimento: [
+      {
+        id: 'crescimentoDividendo12m',
+        nome: 'Crescimento do dividendo (12m)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [-20, 0],
+          [-5, 3],
+          [0, 5],
+          [5, 7.5],
+          [12, 9.5],
+          [25, 10],
+        ],
+      },
+    ],
+    endividamento: [
+      {
+        id: 'alavancagem',
+        nome: 'Alavancagem / LTV',
+        peso: 4,
+        unidade: '%',
+        pontos: [
+          [0, 10],
+          [10, 9],
+          [20, 7.5],
+          [30, 6],
+          [45, 3.5],
+          [60, 1],
+        ],
+      },
+    ],
+    // Sem contagem de imóveis, pelo mesmo motivo.
+    qualidade: [
+      {
+        id: 'liquidezDiaria',
+        nome: 'Liquidez diária',
+        peso: 3,
+        unidade: 'R$',
+        pontos: [
+          [0, 0],
+          [200000, 3],
+          [1000000, 6.5],
+          [5000000, 9],
+          [20000000, 10],
+        ],
+      },
+      {
+        id: 'patrimonioLiquido',
+        nome: 'Patrimônio líquido',
+        peso: 2,
+        unidade: 'R$',
+        pontos: [
+          [0, 0],
+          [100000000, 3],
+          [500000000, 6.5],
+          [2000000000, 9],
+          [8000000000, 10],
+        ],
+      },
+      {
+        id: 'numeroCotistas',
+        nome: 'Número de cotistas',
+        peso: 2,
+        unidade: '',
+        pontos: [
+          [0, 0],
+          [5000, 3],
+          [30000, 6.5],
+          [100000, 9],
+          [400000, 10],
+        ],
+      },
+    ],
+  },
+
   cripto: {
     // Valuation e dividendos não existem aqui: não há lucro nem distribuição.
     // Os pilares ficam vazios de propósito — motorScoreAtivo redistribui o
@@ -821,9 +975,33 @@ function motorNormalizarSetor(setor) {
 // ════════════════════════════════════════════════════════════
 
 /** Classe macro do motor: só existem rf, acao, fii e cripto. ETF e BDR entram como ação. */
+/**
+ * Critérios a aplicar — a classe decide, e dentro do FII o TIPO de carteira
+ * decide de novo.
+ *
+ * Fundo de papel não tem imóvel: taxa de ocupação e contagem de imóveis não
+ * estão ausentes nele, elas não se aplicam. Cobrá-las derruba a cobertura e
+ * aciona o encolhimento do score contra um fundo sem defeito nenhum — o
+ * mesmo erro que cobrar EBITDA de um banco.
+ *
+ * A alocação continua vendo uma classe só: o fundo de papel é FII na
+ * carteira. O que muda é apenas a régua com que ele é medido.
+ */
+function motorCriteriosDe(classe, dados) {
+  if (classe === 'fii' && dados && dados.tipoFii === 'papel') {
+    return MOTOR_CRITERIOS.fiiPapel;
+  }
+  return MOTOR_CRITERIOS[classe] || MOTOR_CRITERIOS.acao;
+}
+
 function motorInferirClasse(ticker, nome, dica) {
   if (dica === 'etf' || dica === 'bdr') return 'acao';
-  if (dica && MOTOR_CRITERIOS[dica]) return dica;
+  // `fiiPapel` é um conjunto de CRITÉRIOS, não uma classe de alocação: o
+  // fundo de papel continua sendo FII na carteira. Sem esta guarda ele
+  // viraria uma quinta classe e sumiria da distribuição do aporte, que
+  // percorre MOTOR_CLASSES.
+  if (dica === 'fiiPapel') return 'fii';
+  if (dica && MOTOR_CLASSES.indexOf(dica) !== -1) return dica;
   var t = String(ticker || '').toUpperCase();
   var n = String(nome || '').toLowerCase();
   if (['BTC', 'ETH', 'SOL', 'ADA', 'BNB', 'XRP', 'DOT', 'AVAX', 'LINK', 'MATIC'].indexOf(t) !== -1)
@@ -941,7 +1119,7 @@ function motorScoreAtivo(dados, opcoes) {
       ? op.lente
       : MOTOR_LENTES[op.lente] || MOTOR_LENTES.equilibrio;
   var classe = motorInferirClasse(d.ticker, d.nome, d.classe);
-  var criterios = MOTOR_CRITERIOS[classe] || MOTOR_CRITERIOS.acao;
+  var criterios = motorCriteriosDe(classe, d);
 
   var pilares = {};
   var somaPonderada = 0;
@@ -1868,6 +2046,7 @@ var MotorCarteira = {
   planoAporte: motorPlanoAporte,
   COBERTURA_MINIMA: MOTOR_COBERTURA_MINIMA,
   CRITERIOS: MOTOR_CRITERIOS,
+  criteriosDe: motorCriteriosDe,
   LENTES: MOTOR_LENTES,
   PILARES: MOTOR_PILARES,
   CLASSES: MOTOR_CLASSES,

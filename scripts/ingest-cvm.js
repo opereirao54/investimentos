@@ -1114,6 +1114,9 @@ async function main() {
         // Depois da junção dos membros: o ativo vem do `complemento` e as
         // obrigações do `ativo_passivo`.
         const alavancagem = P.alavancagemFii(inf);
+        // Tijolo ou papel, pela carteira publicada. Decide QUAIS indicadores
+        // se aplicam ao fundo — não a classe dele na alocação.
+        const tipoFii = P.tipoCarteiraFii(inf);
         const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
@@ -1135,6 +1138,7 @@ async function main() {
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
             ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
+            ` · ${tipoFii || 'tipo?'}` +
             ` · cresc.div ${serie.crescimentoDividendo12m === null ? `— (${serie.mesesComRendimento}m c/ rend.)` : serie.crescimentoDividendo12m + '%'}` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
@@ -1168,6 +1172,7 @@ async function main() {
             alavancagem,
             mesesObservados: serie.mesesObservados,
             classe: 'fii',
+            tipoFii,
             fonte: 'cvm',
             fonteRotulo: `Informe Mensal · CVM${inf.dataReferencia ? ` (${inf.dataReferencia})` : ''}`,
             dataReferencia: inf.dataReferencia,

@@ -929,6 +929,14 @@ function extrairInformeFii(registros, colunas) {
       obrigacoesAquisicaoImoveis: num('obrigacoesAquisicaoImoveis'),
       obrigacoesSecuritizacao: num('obrigacoesSecuritizacao'),
       rendimentosDistribuir: num('rendimentosDistribuir'),
+      direitosBensImoveis: num('direitosBensImoveis'),
+      terrenos: num('terrenos'),
+      imoveisRendaAcabados: num('imoveisRendaAcabados'),
+      imoveisRendaConstrucao: num('imoveisRendaConstrucao'),
+      imoveisVendaAcabados: num('imoveisVendaAcabados'),
+      imoveisVendaConstrucao: num('imoveisVendaConstrucao'),
+      outrosDireitosReais: num('outrosDireitosReais'),
+      totalInvestido: num('totalInvestido'),
     });
   }
   return { porCnpj, seriePorCnpj, faltando, colunas: cols, escalaDy };
@@ -1479,6 +1487,58 @@ function alavancagemFii(inf) {
   if (!(ltv >= 0 && ltv <= 100)) return null;
   return Math.round(ltv * 10) / 10;
 }
+
+/**
+ * Fundo de TIJOLO ou de PAPEL, decidido pela carteira publicada.
+ *
+ * Cobrar taxa de ocupação e número de imóveis de um fundo de recebíveis é o
+ * mesmo erro que cobrar EBITDA de um banco: o indicador não está ausente,
+ * ele **não se aplica**. E o efeito é o mesmo — cobertura artificialmente
+ * baixa, que aciona o encolhimento do score contra um fundo que não tem
+ * defeito nenhum.
+ *
+ * A classificação exige EVIDÊNCIA POSITIVA, nunca a mera ausência: um fundo
+ * fora do informe trimestral pode ser de papel, mas também pode ser um que
+ * não entregou. Só a rubrica imobiliária do balanço decide.
+ *
+ *   `Direitos_Bens_Imoveis` > 0  → tem imóvel, é tijolo
+ *   = 0 com carteira declarada   → não tem imóvel, é papel
+ *   sem a coluna                 → null, e aí valem os critérios de sempre
+ *
+ * Híbrido conta como tijolo: se há imóvel na carteira, ocupação e contagem
+ * de imóveis descrevem alguma coisa, ainda que parte dela.
+ */
+function tipoCarteiraFii(inf) {
+  if (!inf) return null;
+  const agregado = inf.direitosBensImoveis;
+  // As folhas servem de reserva quando o agregado não vem, e de conferência
+  // quando vem — mesmo cuidado do 6.03, onde somar pai e filhas contava
+  // tudo duas vezes.
+  const folhas = [
+    'terrenos',
+    'imoveisRendaAcabados',
+    'imoveisRendaConstrucao',
+    'imoveisVendaAcabados',
+    'imoveisVendaConstrucao',
+    'outrosDireitosReais',
+  ];
+  let somaFolhas = null;
+  for (const campo of folhas) {
+    const v = inf[campo];
+    if (v === null || v === undefined) continue;
+    somaFolhas = (somaFolhas || 0) + v;
+  }
+  const imoveis = agregado !== null && agregado !== undefined ? agregado : somaFolhas;
+  if (imoveis === null || imoveis === undefined) return null;
+  if (imoveis > 0) return 'tijolo';
+  // Zero de imóvel só significa "fundo de papel" se houver carteira
+  // declarada. Zero em tudo é fundo que não preencheu, não fundo vazio.
+  const total = inf.totalInvestido;
+  if (total === null || total === undefined || !(total > 0)) return null;
+  return 'papel';
+}
+
+module.exports.tipoCarteiraFii = tipoCarteiraFii;
 
 module.exports.alavancagemFii = alavancagemFii;
 

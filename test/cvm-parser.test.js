@@ -1908,3 +1908,52 @@ test('travessão de série curta e travessão de coluna vazia são distinguívei
   assert.equal(rSem.crescimentoDividendo12m, null);
   assert.equal(rSem.mesesComRendimento, 0, 'coluna vazia: meses de sobra, dado nenhum');
 });
+
+// ════════════════════════════════════════════
+// Tijolo ou papel
+// ════════════════════════════════════════════
+//
+// Cobrar ocupação e contagem de imóveis de um fundo de recebíveis é o mesmo
+// erro que cobrar EBITDA de um banco: o indicador não está ausente, ele não
+// se aplica — e tratá-lo como ausente derruba a cobertura contra um fundo
+// sem defeito nenhum.
+
+test('carteira com imóvel é tijolo; sem imóvel e com carteira declarada é papel', () => {
+  assert.equal(
+    P.tipoCarteiraFii({ direitosBensImoveis: 5e8, totalInvestido: 7e8 }),
+    'tijolo',
+    'tem imóvel na carteira'
+  );
+  assert.equal(
+    P.tipoCarteiraFii({ direitosBensImoveis: 0, totalInvestido: 1e9 }),
+    'papel',
+    'zero de imóvel COM carteira declarada'
+  );
+});
+
+test('híbrido conta como tijolo — a ocupação ainda descreve parte da carteira', () => {
+  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 }), 'tijolo');
+});
+
+test('ausência de dado não classifica — evidência positiva ou nada', () => {
+  // Um fundo fora do informe pode ser de papel, mas também pode ser um que
+  // simplesmente não entregou. Chutar "papel" apagaria indicadores válidos.
+  assert.equal(P.tipoCarteiraFii({}), null, 'sem a rubrica imobiliária, não se decide');
+  assert.equal(
+    P.tipoCarteiraFii({ direitosBensImoveis: 0, totalInvestido: 0 }),
+    null,
+    'zero em tudo é fundo que não preencheu, não fundo de papel'
+  );
+  assert.equal(P.tipoCarteiraFii(null), null);
+});
+
+test('sem o agregado, as folhas do bloco imobiliário decidem', () => {
+  assert.equal(
+    P.tipoCarteiraFii({ terrenos: 1e7, imoveisRendaAcabados: 3e8, totalInvestido: 5e8 }),
+    'tijolo'
+  );
+  assert.equal(
+    P.tipoCarteiraFii({ terrenos: 0, imoveisRendaAcabados: 0, totalInvestido: 5e8 }),
+    'papel'
+  );
+});
