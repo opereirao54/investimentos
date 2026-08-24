@@ -1135,7 +1135,7 @@ async function main() {
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
             ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
-            ` · cresc.div ${serie.crescimentoDividendo12m === null ? '—' : serie.crescimentoDividendo12m + '%'}` +
+            ` · cresc.div ${serie.crescimentoDividendo12m === null ? `— (${serie.mesesComRendimento}m c/ rend.)` : serie.crescimentoDividendo12m + '%'}` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
         if (!preenchidos) continue;

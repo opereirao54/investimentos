@@ -1876,3 +1876,35 @@ test('as duas pontas vêm de membros diferentes do ZIP e são reunidas por mês'
   );
   assert.equal(r.mesesObservados, 24, 'o mês repartido entre membros conta uma vez');
 });
+
+test('travessão de série curta e travessão de coluna vazia são distinguíveis', () => {
+  // As duas situações produzem `crescimentoDividendo12m: null` e pedem
+  // correções OPOSTAS — uma é aumentar a janela, a outra é procurar a
+  // coluna noutro lugar. Sem a contagem, o log não separa as duas.
+  const curta = [];
+  for (let i = 1; i <= 7; i++) {
+    curta.push({
+      dataReferencia: `2026-${String(i).padStart(2, '0')}-01`,
+      dyMes: 0.8,
+      rendimentosDistribuir: 1e5,
+      numeroCotas: 1e6,
+    });
+  }
+  const rCurta = P.indicadoresDaSerieFii(curta);
+  assert.equal(rCurta.crescimentoDividendo12m, null);
+  assert.equal(rCurta.mesesComRendimento, 7, 'série curta: o dado existe, faltam meses');
+
+  const semColuna = [];
+  for (let i = 1; i <= 24; i++) {
+    const ano = i <= 12 ? '2024' : '2025';
+    semColuna.push({
+      dataReferencia: `${ano}-${String(((i - 1) % 12) + 1).padStart(2, '0')}-01`,
+      dyMes: 0.8,
+      rendimentosDistribuir: null,
+      numeroCotas: 1e6,
+    });
+  }
+  const rSem = P.indicadoresDaSerieFii(semColuna);
+  assert.equal(rSem.crescimentoDividendo12m, null);
+  assert.equal(rSem.mesesComRendimento, 0, 'coluna vazia: meses de sobra, dado nenhum');
+});

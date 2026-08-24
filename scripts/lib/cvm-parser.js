@@ -963,6 +963,7 @@ function indicadoresDaSerieFii(serie, opcoes) {
     dyMedio36m: null,
     consistenciaDividendos: null,
     crescimentoDividendo12m: null,
+    mesesComRendimento: 0,
     mesesObservados: 0,
   };
   if (!Array.isArray(serie) || !serie.length) return vazio;
@@ -997,10 +998,12 @@ function indicadoresDaSerieFii(serie, opcoes) {
   if (comDy.length < minimoMeses) {
     return { ...vazio, mesesObservados: comDy.length };
   }
+  const cresc = crescimentoDividendoFii(porMes, meses);
   return {
     dyMedio36m,
     consistenciaDividendos,
-    crescimentoDividendo12m: crescimentoDividendoFii(porMes, meses),
+    crescimentoDividendo12m: cresc.valor,
+    mesesComRendimento: cresc.mesesComRendimento,
     mesesObservados: comDy.length,
   };
 }
@@ -1031,24 +1034,30 @@ function crescimentoDividendoFii(porMes, meses) {
     porCota.set(mes, p.rendimentosDistribuir / p.numeroCotas);
   }
   const comDado = Array.from(porCota.keys()).sort();
-  if (comDado.length < MIN_POR_JANELA * 2) return null;
+  // Quantos meses de facto trouxeram as duas pontas. Sem este número,
+  // "série curta" e "coluna vazia" produzem o mesmo travessão no log e
+  // pedem correções opostas — uma é aumentar a janela, a outra é procurar
+  // a coluna noutro lugar.
+  const diagnostico = { mesesComRendimento: comDado.length, valor: null };
+  if (comDado.length < MIN_POR_JANELA * 2) return diagnostico;
 
   const recentes = comDado.slice(-12);
   const anteriores = comDado.slice(-24, -12);
-  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) return null;
+  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) return diagnostico;
 
   const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
   // Média por mês, não soma: as janelas podem ter contagens diferentes, e
   // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
   const mediaRecente = soma(recentes) / recentes.length;
   const mediaAnterior = soma(anteriores) / anteriores.length;
-  if (!(mediaAnterior > 0)) return null;
+  if (!(mediaAnterior > 0)) return diagnostico;
 
   const cresc = (mediaRecente / mediaAnterior - 1) * 100;
   // Fora desta faixa não é crescimento de distribuição: é mudança de
   // estrutura (emissão, incorporação) ou linha lida errado.
-  if (!(cresc >= -95 && cresc <= 200)) return null;
-  return Math.round(cresc * 10) / 10;
+  if (!(cresc >= -95 && cresc <= 200)) return diagnostico;
+  diagnostico.valor = Math.round(cresc * 10) / 10;
+  return diagnostico;
 }
 
 module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
