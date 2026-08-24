@@ -856,3 +856,95 @@ test('cada item traz score, justificativa e a fatia do aporte', () => {
   const somaPct = plano.itens.reduce((s, i) => s + i.pctAporte, 0);
   assert.ok(somaPct <= 100.5, `as fatias somaram ${somaPct}% do aporte`);
 });
+
+// ════════════════════════════════════════════
+// FII de papel: régua própria, mesma classe
+// ════════════════════════════════════════════
+
+test('fundo de papel não é cobrado por ocupação nem por contagem de imóveis', () => {
+  const papel = {
+    ticker: 'KNCR11',
+    classe: 'fii',
+    tipoFii: 'papel',
+    pvp: 1.0,
+    dy: 14.6,
+    dyMedio36m: 12.9,
+    consistenciaDividendos: 100,
+    crescimentoDividendo12m: 9.7,
+    alavancagem: null,
+    liquidezDiaria: 3e6,
+    patrimonioLiquido: 10.98e9,
+    numeroCotistas: 578802,
+    ocupacao: null,
+    numeroImoveis: null,
+  };
+  const r = M.scoreAtivo(papel, { lente: 'equilibrio' });
+  const ausentes = (r.faltando || []).flatMap((f) => f.metricas);
+  assert.ok(
+    !ausentes.includes('Taxa de ocupação'),
+    'ocupação não se aplica a fundo sem imóvel — não pode ser cobrada'
+  );
+  assert.ok(!ausentes.includes('Imóveis na carteira'), 'idem para a contagem de imóveis');
+  // E o pilar de crescimento existe, apoiado no indicador que se aplica.
+  assert.ok(r.pilares.crescimento.nota !== null, 'crescimento do dividendo carrega o pilar');
+  assert.equal(r.pilares.crescimento.cobertura, 1);
+});
+
+test('o mesmo fundo, cobrado como tijolo, perde cobertura por dado que não existe nele', () => {
+  const base = {
+    ticker: 'KNCR11',
+    classe: 'fii',
+    pvp: 1.0,
+    dy: 14.6,
+    dyMedio36m: 12.9,
+    consistenciaDividendos: 100,
+    crescimentoDividendo12m: 9.7,
+    alavancagem: null,
+    liquidezDiaria: 3e6,
+    patrimonioLiquido: 10.98e9,
+    numeroCotistas: 578802,
+    ocupacao: null,
+    numeroImoveis: null,
+  };
+  const comoTijolo = M.scoreAtivo(base, { lente: 'equilibrio' });
+  const comoPapel = M.scoreAtivo({ ...base, tipoFii: 'papel' }, { lente: 'equilibrio' });
+  assert.ok(
+    comoPapel.cobertura > comoTijolo.cobertura,
+    `papel devia ter cobertura maior: ${comoPapel.cobertura} vs ${comoTijolo.cobertura}`
+  );
+});
+
+test('fundo de papel continua sendo FII na alocação, não uma quinta classe', () => {
+  // A régua muda; a classe não. Sem esta garantia o fundo sumiria da
+  // distribuição do aporte, que percorre MOTOR_CLASSES.
+  assert.equal(M.inferirClasse('KNCR11', 'Kinea Rendimentos', 'fiiPapel'), 'fii');
+  assert.equal(M.CLASSES.indexOf('fiiPapel'), -1, 'não entra na lista de classes');
+  const r = M.scoreAtivo(
+    { ticker: 'KNCR11', classe: 'fii', tipoFii: 'papel', pvp: 1, dy: 12 },
+    { lente: 'equilibrio' }
+  );
+  assert.equal(r.classe, 'fii');
+});
+
+test('tijolo segue com a régua de sempre — ocupação continua sendo cobrada', () => {
+  const tijolo = {
+    ticker: 'HGLG11',
+    classe: 'fii',
+    tipoFii: 'tijolo',
+    pvp: 1.0,
+    dy: 8.4,
+    dyMedio36m: 8.1,
+    consistenciaDividendos: 100,
+    crescimentoDividendo12m: -0.8,
+    alavancagem: 7.5,
+    liquidezDiaria: 3e6,
+    patrimonioLiquido: 7.59e9,
+    numeroCotistas: 608345,
+    ocupacao: null,
+    numeroImoveis: null,
+  };
+  const r = M.scoreAtivo(tijolo, { lente: 'equilibrio' });
+  const ausentes = (r.faltando || []).flatMap((f) => f.metricas);
+  assert.ok(ausentes.includes('Taxa de ocupação'), 'de um fundo de tijolo, a ocupação se cobra');
+  assert.ok(ausentes.includes('Imóveis na carteira'));
+});

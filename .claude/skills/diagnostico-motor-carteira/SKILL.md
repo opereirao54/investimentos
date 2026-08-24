@@ -124,6 +124,91 @@ quantas `metricas` têm `nota !== null`.
 quantos ele foi calculado. Vale para o score, para o pilar e para qualquer
 média futura.
 
+### S5c — Chave de junção que o outro lado não tem ⚠️
+
+**Aconteceu, e custou quatro rodadas de investigação.** O pipeline da CVM
+procurava a companhia por `CD_CVM`. O FCA identifica a companhia por
+`CNPJ_Companhia` e **nunca teve `CD_CVM`**. Resultado no log:
+
+```
+! colunas do FCA não encontradas: cdCvm
+FCA 2025: 0 tickers
+...
+0 companhias com dados neste exercício
+```
+
+O arquivo abria, as colunas resolviam, o parse funcionava. **Procurar por uma
+identificação que o arquivo não tem devolve zero sem lançar erro nenhum** — e
+zero linhas é indistinguível de "não há dados" para quem lê só o total.
+
+O mesmo vale para a forma da chave: CNPJ pontuado vs. cru, `CD_CVM` com e sem
+zeros à esquerda. Comparados como texto, separam a companhia dela mesma.
+
+**Verificação:** ao casar zero registos com o arquivo aberto, imprima lado a
+lado a chave procurada e uma amostra das chaves que o arquivo realmente tem. Se
+os formatos não se parecem, o problema é a chave — não os dados.
+
+**Regra:** junção entre dois arquivos usa a identificação presente nos DOIS, e
+normalizada antes de comparar. Quando houver mais de uma candidata, indexe por
+todas e tente todas — o custo é um `Map` a mais, e o prémio é não falhar em
+silêncio.
+
+### S5d — A busca acha algo, só que a coisa errada ⚠️
+
+**A família de bugs mais cara deste projeto.** Dez instâncias reais, todas
+encontradas lendo o log de execução contra dados de verdade:
+
+| sintoma                                       | causa                                                                 | por que passou despercebido                          |
+| --------------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------- |
+| `0 tickers`, `0 companhias`                   | chave de junção que o outro arquivo não tem                           | zero linhas é indistinguível de "não há dados"       |
+| `LPA 190,00` (o real é 0,19)                  | escala do arquivo aplicada a uma conta por ação                       | 190 é um número, e números parecem certos            |
+| `ROE 43,4%`, `dívLíq/EBITDA 12,49x` num banco | o código `2.03` é outra conta no plano das instituições financeiras   | devolveu valor real, da conta errada                 |
+| `ELET3 ações 0,00bi` para PL de 118 bi        | linha de outra natureza vencendo no arquivo de composição do capital  | 0,00bi só chama atenção ao lado do patrimônio        |
+| `? MXRF11 MAXI RENDA FIXA CURTO PRAZO…`       | nome casado contra o cadastro de TODOS os fundos, não só os FIIs      | casou — com um fundo de renda fixa                   |
+| informe de FII de janeiro lido em agosto      | primeira entrada do ZIP que casa com o prefixo, num ZIP por mês       | números plausíveis, só velhos                        |
+| `DY 0,008%/mês` em todo FII                   | campo chamado `Percentual_` que é razão                               | um número, e números parecem certos                  |
+| `ELET3 2,92M ações` para 118 bi de patrimônio | escala da quantidade declarada por linha, ignorada                    | BBAS3 saía certo — a escala dele é UNIDADE           |
+| `? XPML11 PENINSULA FII`                      | duas classes com a mesma raiz de ISIN, vencedor pela ordem do arquivo | casou, e o nome não parece errado a quem não conhece |
+| `GGRC11 ocupação 0` num fundo cheio           | média sobre os 4 imóveis de 228 que preenchem a coluna esparsa        | 0% é um número, e a coluna existe mesmo              |
+
+O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
+não há `null`, não há linha de erro — há um número plausível o suficiente
+para ninguém olhar duas vezes.
+
+**Verificação:** cruze o número com uma grandeza pública conhecida. O ROE do
+Banco do Brasil é ~20%, não 43%; o patrimônio dele é ~180 bi, não 31 bi.
+Um indicador derivado que não fecha com o mundo real é a única evidência
+disponível quando o código não reclama.
+
+**Regras que ficam:**
+
+- Identificador presente nos DOIS lados, normalizado antes de comparar.
+- Unidade vem do significado da conta, não do metadado do arquivo.
+- Antes de aceitar um número derivado, confira-o contra uma grandeza que
+  NÃO passou pelo mesmo caminho (o patrimônio confere a contagem de ações;
+  o total do grupo confere a soma das folhas).
+- Quando o layout tem variantes (planos de conta setoriais), **detecte a
+  variante pelos próprios dados** e recuse-se a aplicar o que não vale ali.
+  Melhor um travessão do que um EBITDA de banco.
+- "Achou um" não é "achou o certo": onde a fonte tem MUITAS linhas por
+  chave (um arquivo por mês no ZIP, várias linhas por companhia), diga
+  explicitamente qual vence e por qual critério. `find()` devolve a
+  primeira do arquivo, que não é critério nenhum.
+- Antes de casar por NOME, verifique se o identificador existe. Só se
+  recorre a nome quando não há código — e aí o universo precisa ser
+  reduzido primeiro, senão o nome não identifica. Melhor ainda: procure o
+  código onde ele de facto está (o ISIN do informe de FII carrega a raiz
+  do ticker; ninguém precisava escrever a tabela à mão).
+- Média sobre subconjunto é pior do que lacuna quando o subconjunto é
+  ENVIESADO — e uma coluna esparsa quase sempre o é: quem preenche o campo
+  é quem tem algo a declarar. Exija cobertura mínima e imprima-a ao lado
+  do número; "ocupação 90%" e "ocupação 90% medida em 2 de 40" são a mesma
+  linha sem ela.
+- Quando uma trava recusa um número, **imprima o dado cru que a motivou.**
+  Recusar protege o ranking mas não explica a fonte, e as hipóteses
+  concorrentes ("o filtro descartou a linha certa" × "a linha certa não
+  existe assim") pedem correções opostas.
+
 ### S6 — Unidade trocada
 
 Razão (`0.185`) tratada como percentagem, ou o contrário. Não quebra nada: só faz o ranking inteiro mentir. Cada fonte tem convenção própria **no mesmo objeto** — no Yahoo, `returnOnEquity` é razão e `debtToEquity` é percentagem. Faixas de sanidade em `FAIXAS` (cvm-parser) e nas séries do SGS existem para apanhar isto.
@@ -161,6 +246,36 @@ Só depois de nomear o elo partido. Para cada correção:
   divisão igual disfarçada de recomendação é indistinguível, para quem olha a
   tela, de uma recomendação de verdade.
 
+## Etapa 3.5 — O log é o instrumento, não o subproduto
+
+Quatro rodadas contra a CVM real corrigiram quatro classes de defeito, e
+**nenhuma delas teria sido encontrada por teste de unidade** — cada peça
+estava certa isoladamente. O que as encontrou foi o log, e cada rodada só
+foi possível porque a anterior tinha acrescentado o rastro certo.
+
+O ciclo que funcionou:
+
+1. rodar contra dados reais;
+2. ler o log procurando número implausível, não só erro;
+3. corrigir o que se entendeu **e acrescentar o rastro do que não se
+   entendeu**;
+4. repetir.
+
+O passo 3 é o que faz a diferença. Exemplos concretos deste projeto:
+
+- imprimir as linhas do `6.03` não reconhecidas revelou, na rodada
+  seguinte, que a Eletrobras nomeia a distribuição como
+  `pagamento e remuneracao aos acionistas` — sem a palavra "dividendo";
+- imprimir o patrimônio absoluto permitiu cruzar o ROE com o valor público
+  e descobrir o problema do plano de contas;
+- nomear cada URL num bloco que tinha um `catch` só revelou que o 404 vinha
+  do cadastro, não do informe.
+
+**Regra:** ao corrigir um sintoma, pergunte o que ainda não sabe explicar
+naquele mesmo relatório — e faça o log responder isso na próxima execução.
+Um `catch` em volta de três operações produz sempre a mesma mensagem e
+esconde qual das três falhou.
+
 ## Etapa 4 — Fechar o buraco de observabilidade
 
 Se o diagnóstico exigiu adivinhação, o sistema não estava observável o suficiente. Antes de encerrar, acrescente o que teria respondido à pergunta em um pedido: um campo na resposta, um contador de exclusão, uma linha na tela. **O objetivo é que o mesmo sintoma, da próxima vez, se resolva na Etapa 1.**
@@ -192,15 +307,23 @@ Ops de apoio: `?op=rendafixa` (Tesouro), `?op=indicadores` (Selic/CDI/IPCA do BC
 
 Nem toda fonte funciona de todo lugar, e isso decide **onde** o trabalho mora.
 
-| Fonte               | Da function (Vercel)                        | Do job (GitHub Actions)       |
-| ------------------- | ------------------------------------------- | ----------------------------- |
-| CVM (dados abertos) | ✗ ZIPs de dezenas de MB contra 15s e 256 MB | ✓ sem limite                  |
-| Yahoo Finance       | ✗ 429 — IP de saída partilhado e limitado   | ✓ IP do runner não é limitado |
-| BRAPI               | ✓ **com** `BRAPI_TOKEN`                     | ✓ com token                   |
-| CoinGecko           | ✓                                           | ✓                             |
-| BCB, Tesouro        | ✓                                           | ✓                             |
+| Fonte                | Precisa de conta? | Da function (Vercel)                        | Do job (GitHub Actions)       |
+| -------------------- | ----------------- | ------------------------------------------- | ----------------------------- |
+| CVM (dados abertos)  | não               | ✗ ZIPs de dezenas de MB contra 15s e 256 MB | ✓ sem limite                  |
+| Yahoo `v8/chart`     | não               | ✓ preço e volume, sem cookie nem crumb      | ✓                             |
+| Yahoo `quoteSummary` | cookie + crumb    | ✗ 429                                       | ✗ 429 **também** — ver abaixo |
+| BRAPI                | sim (token)       | ✓ **com** `BRAPI_TOKEN`                     | ✓ com token                   |
+| CoinGecko            | não               | ✓                                           | ✓                             |
+| BCB, Tesouro         | não               | ✓                                           | ✓                             |
+
+**O `quoteSummary` do Yahoo dá 429 do runner do GitHub Actions também.** Isto
+foi suposição durante três rodadas ("o IP do runner não é limitado") e o log do
+job desmentiu-a: `0 com fundamentos · erros: yahoo_429 · yahoo_429_desistiu`.
+Não é uma fonte disponível em lugar nenhum sem cadastro — e por isso o valor de
+mercado passou a ser reconstruído do lucro por ação da própria CVM.
 
 **Regra:** quando uma fonte falha por limite de ambiente e não por
-configuração, mova o trabalho para o job — não insista no mesmo lugar.
+configuração, mova o trabalho para o job — **e confirme no log que lá funciona**
+antes de construir por cima. Mover não é o mesmo que resolver.
 
 Documentação completa: `docs/MOTOR-CARTEIRA.md`.

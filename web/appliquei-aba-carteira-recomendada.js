@@ -2050,11 +2050,23 @@ function cartRenderizarMotorRanking(ranking) {
           '</div></div>'
         : '';
 
+      // Mostra o que faltou MESMO quando o ativo pontua. Antes só aparecia
+      // com score nulo, e o resultado era a pergunta que ninguém conseguia
+      // responder pela tela: "por que este FII não tem Crescimento e aquele
+      // tem?". O ativo pontuado é justamente o caso em que a lacuna passa
+      // despercebida — o número parece completo.
+      //
+      // O título muda conforme o papel da lacuna: com score nulo ela é o
+      // motivo de não haver nota; com score, é a ressalva de leitura.
       var faltando =
-        !a.indisponivel && a.score === null && (a.faltando || []).length
-          ? '<div class="cart-score-faltando">' +
+        !a.indisponivel && (a.faltando || []).length
+          ? '<div class="cart-score-faltando' +
+            (a.score === null ? '' : ' informativo') +
+            '">' +
             '<div class="cart-score-faltando-titulo">' +
-            '<i class="ph ph-database"></i> Faltam indicadores para pontuar' +
+            (a.score === null
+              ? '<i class="ph ph-database"></i> Faltam indicadores para pontuar'
+              : '<i class="ph ph-info"></i> Indicadores sem dado (não derrubam a nota, reduzem a cobertura)') +
             '</div>' +
             a.faltando
               .map(function (f) {

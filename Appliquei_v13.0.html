@@ -2377,6 +2377,15 @@
             font-size: 10.5px; color: var(--cor-texto-secundario); line-height: 1.45;
         }
         .cart-score-faltando-linha strong { color: var(--cor-texto-principal); }
+        /* Ativo que PONTUA e mesmo assim tem lacuna: a ressalva é de
+           leitura, não o motivo de não haver nota. Peso visual menor para
+           não competir com o bloco que de facto bloqueia o score. */
+        .cart-score-faltando.informativo {
+            background: transparent; border-style: dashed;
+        }
+        .cart-score-faltando.informativo .cart-score-faltando-titulo {
+            text-transform: none; letter-spacing: 0; font-weight: 600;
+        }
 
         /* Procedência: fonte, exercício e idade do dado */
         .cart-score-fonte {
