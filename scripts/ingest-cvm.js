@@ -1168,7 +1168,7 @@ async function main() {
               serie.crescimentoDividendo12m === null
                 ? `— (${serie.crescimentoMotivo}, ${serie.mesesComRendimento}m c/ rend.${
                     serie.crescimentoBruto === null ? '' : `, recusou ${serie.crescimentoBruto}%`
-                  })`
+                  }${serie.mesesSaldoQuitado ? `, ${serie.mesesSaldoQuitado}m saldo quitado` : ''})`
                 : serie.crescimentoDividendo12m + '%'
             }` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`

@@ -1856,6 +1856,41 @@ test('variação absurda é recusada — é mudança de estrutura, não distribu
   assert.ok(r.crescimentoBruto > 200, `o valor recusado tem de ir junto: ${r.crescimentoBruto}`);
 });
 
+test('saldo zerado num mês que rendeu é lacuna, não distribuição nula', () => {
+  // `Rendimentos_Distribuir` é saldo de balanço. Num fundo que liquida
+  // dentro do mês, ele fecha em zero mesmo tendo pago tudo — e foi assim que
+  // o BTLG11 produziu −100% de crescimento pagando em 100% dos meses.
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  // Doze meses com yield positivo E saldo zero: o fundo pagou, o saldo é que
+  // não descreve o pagamento.
+  for (let i = 1; i <= 12; i++) pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 0, 1e6]);
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.mesesSaldoQuitado, 12, 'os meses de saldo quitado têm de ser contados');
+  assert.equal(
+    r.crescimentoDividendo12m,
+    null,
+    'sem a janela recente não se inventa crescimento — mas também não se inventa queda'
+  );
+  assert.notEqual(r.crescimentoBruto, -100, 'o −100% falso não pode voltar a ser calculado');
+  // E o log tem de dizer que a janela recente ficou vazia — é isso que
+  // aponta para a coluna, não para o fundo.
+  assert.equal(r.crescimentoMotivo, 'serie_curta');
+
+  // Saldo zero com yield zero continua a ser um zero de verdade: o fundo
+  // não distribuiu, e isso é dado, não contradição.
+  const semPagar = [];
+  for (let i = 1; i <= 24; i++) {
+    semPagar.push([
+      `202${i <= 12 ? 4 : 5}-${String(((i - 1) % 12) + 1).padStart(2, '0')}`,
+      0,
+      0,
+      1e6,
+    ]);
+  }
+  assert.equal(P.indicadoresDaSerieFii(serieFii(semPagar)).mesesSaldoQuitado, 0);
+});
+
 test('cada porta de saída do crescimento tem um motivo próprio', () => {
   // Recusar protege o ranking; só o motivo explica a fonte.
   const curta = [];

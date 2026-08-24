@@ -990,6 +990,7 @@ function indicadoresDaSerieFii(serie, opcoes) {
     crescimentoDividendo12m: null,
     crescimentoMotivo: 'sem_serie',
     crescimentoBruto: null,
+    mesesSaldoQuitado: 0,
     mesesComRendimento: 0,
     mesesObservados: 0,
   };
@@ -1032,6 +1033,7 @@ function indicadoresDaSerieFii(serie, opcoes) {
     crescimentoDividendo12m: cresc.valor,
     crescimentoMotivo: cresc.motivo,
     crescimentoBruto: cresc.bruto,
+    mesesSaldoQuitado: cresc.mesesSaldoQuitado,
     mesesComRendimento: cresc.mesesComRendimento,
     mesesObservados: comDy.length,
   };
@@ -1056,10 +1058,24 @@ function indicadoresDaSerieFii(serie, opcoes) {
 function crescimentoDividendoFii(porMes, meses) {
   const MIN_POR_JANELA = 9;
   const porCota = new Map();
+  let saldoQuitado = 0;
   for (const mes of meses) {
     const p = porMes.get(mes);
     if (p.rendimentosDistribuir === null || p.numeroCotas === null) continue;
     if (!(p.numeroCotas > 0) || p.rendimentosDistribuir < 0) continue;
+    // `Rendimentos_Distribuir` é SALDO de balanço — o que foi declarado e
+    // ainda não saiu do caixa — não o que foi distribuído no mês. Num fundo
+    // que liquida dentro do próprio mês, o saldo fecha em zero mesmo tendo
+    // pago tudo. Contar esse zero como "distribuiu nada" produziu, no
+    // BTLG11, um crescimento de exatamente −100% num fundo que paga em 100%
+    // dos meses; a trava de faixa recusou, e o indicador ficou vazio.
+    //
+    // Mês com yield positivo e saldo zero é CONTRADIÇÃO, não zero: o fundo
+    // pagou, o saldo é que não descreve o pagamento. Contradição é lacuna.
+    if (p.rendimentosDistribuir === 0 && p.dyMes > 0) {
+      saldoQuitado++;
+      continue;
+    }
     porCota.set(mes, p.rendimentosDistribuir / p.numeroCotas);
   }
   const comDado = Array.from(porCota.keys()).sort();
@@ -1074,6 +1090,10 @@ function crescimentoDividendoFii(porMes, meses) {
   // recusar protege o ranking, mas só o dado cru explica a fonte.
   const diagnostico = {
     mesesComRendimento: comDado.length,
+    // Quantos meses foram descartados por saldo quitado. Vai ao log porque é
+    // a diferença entre "o fundo não distribui" e "a coluna não descreve a
+    // distribuição deste fundo" — hipóteses opostas com o mesmo travessão.
+    mesesSaldoQuitado: saldoQuitado,
     valor: null,
     motivo: null,
     bruto: null,
