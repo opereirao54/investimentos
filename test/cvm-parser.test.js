@@ -1704,3 +1704,62 @@ test('a coluna densa cobre a esparsa, linha a linha', () => {
   assert.equal(f.coberturaOcupacao, 1);
   assert.equal(f.imoveisComVago, 2);
 });
+
+test('cobertura é por ÁREA, não por contagem de imóvel', () => {
+  // O cenário real que motivou a troca: poucos imóveis GRANDES bem
+  // cobertos, muitos PEQUENOS sem dado. Por contagem isso reprova (2 de 22
+  // = 9%); por área, os dois grandes são a maior parte do patrimônio.
+  const linhas = ['CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado'];
+  // Dois imóveis grandes, 100.000 m² cada, ambos reportando 90% locado.
+  linhas.push('11.728.688/0001-47;2026-06-30;100000;0,90');
+  linhas.push('11.728.688/0001-47;2026-06-30;100000;0,90');
+  // Vinte imóveis pequenos, 100 m² cada, nenhum reportando.
+  for (let i = 0; i < 20; i++) linhas.push('11.728.688/0001-47;2026-06-30;100;');
+  const parsed = P.parseCsvCvm(linhas.join('\n'));
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+
+  assert.equal(f.numeroImoveis, 22);
+  // Por contagem: 2 de 22 = 9%, bem abaixo do piso.
+  assert.ok(f.coberturaContagem < 0.1, `contagem devia ser baixa, veio ${f.coberturaContagem}`);
+  // Por área: 200.000 de 202.000 m² = 99%, muito acima do piso.
+  assert.ok(f.coberturaArea > 0.98, `área devia ser alta, veio ${f.coberturaArea}`);
+  // A decisão segue a área, não a contagem — por isso o fundo pontua.
+  assert.equal(f.ocupacao, 90, 'a cobertura por área devia liberar a ocupação');
+});
+
+test('o inverso também vale: muitos imóveis pequenos cobertos não escondem o resto do patrimônio', () => {
+  const linhas = ['CNPJ_Fundo_Classe;Data_Referencia;Area;Percentual_Locado'];
+  // Vinte imóveis pequenos, todos reportando 100%.
+  for (let i = 0; i < 20; i++) linhas.push('11.728.688/0001-47;2026-06-30;100;1,00');
+  // Um imóvel gigante, sem dado — é a maior parte da área e ninguém sabe a
+  // ocupação dele.
+  linhas.push('11.728.688/0001-47;2026-06-30;100000;');
+  const parsed = P.parseCsvCvm(linhas.join('\n'));
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+
+  // Por contagem: 20 de 21 = 95%, passaria fácil.
+  assert.ok(f.coberturaContagem > 0.9, `contagem devia ser alta, veio ${f.coberturaContagem}`);
+  // Por área: 2.000 de 102.000 m² = 2%, quase nada do patrimônio explicado.
+  assert.ok(f.coberturaArea < 0.05, `área devia ser baixa, veio ${f.coberturaArea}`);
+  assert.equal(
+    f.ocupacao,
+    null,
+    'a maior parte do patrimônio segue sem dado — não é hora de opinar'
+  );
+});
+
+test('sem coluna de área nenhuma, a cobertura cai para contagem — pior que nada, melhor que sem piso', () => {
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Percentual_Locado',
+    '11.728.688/0001-47;2026-06-30;1,00',
+    '11.728.688/0001-47;2026-06-30;1,00',
+    '11.728.688/0001-47;2026-06-30;',
+    '11.728.688/0001-47;2026-06-30;',
+    '11.728.688/0001-47;2026-06-30;',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const f = P.extrairImoveisFii(parsed.registros, parsed.colunas).porCnpj.get('11728688000147');
+  assert.equal(f.coberturaArea, null, 'sem área nenhuma, não há o que pesar');
+  assert.equal(f.coberturaOcupacao, f.coberturaContagem, 'cai para a contagem');
+  assert.equal(f.ocupacao, null, '2 de 5 fica abaixo do piso de qualquer forma');
+});

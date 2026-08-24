@@ -287,9 +287,13 @@ todos vindos de execução real:
   mas vem vazio na maioria das linhas; `Percentual_Vacancia` é a densa. Cada
   imóvel usa a que traz, e cada coluna tem a sua escala (ambas são razão, como
   o DY).
-- **Piso de cobertura de 60%.** Abaixo disso a ocupação sai nula: com quatro
-  imóveis de duzentos e vinte e oito reportando, a média descreve a amostra — e
-  quem preenche o campo costuma ser justamente quem tem algo a declarar.
+- **Piso de cobertura de 60%, por ÁREA — não por contagem de imóvel.** Um
+  fundo com poucos imóveis grandes bem cobertos e muitos pequenos sem dado
+  reprovava por contagem mesmo cobrindo quase todo o patrimônio (achado real:
+  HGLG11, 157 imóveis, só 7 reportando = 24% por contagem, nulo). Por área —
+  quanto do PATRIMÔNIO em imóveis tem taxa publicada — a mesma carteira conta
+  outra história. Sem coluna de área nenhuma, cai para a contagem: pior do
+  que nada, melhor do que não ter piso algum.
 - **Ponderação por área e versão mais alta do trimestre.** Um galpão vago de 50
   mil m² não pesa como uma loja de 200; e um informe corrigido não pode somar
   com o original, ou a carteira dobra.

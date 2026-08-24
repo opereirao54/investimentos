@@ -1280,6 +1280,11 @@ function extrairImoveisFii(registros, colunas) {
       cnpj,
       dataReferencia: data || null,
       numeroImoveis: 0,
+      // As DUAS áreas: a do portfólio inteiro e a que de facto tem taxa
+      // publicada. É a razão entre as duas que decide se o dado presta —
+      // ver a nota abaixo sobre por que CONTAGEM de imóvel é a métrica
+      // errada para isso.
+      areaTotalGeral: 0,
       areaTotal: 0,
       ocupadoPonderado: 0,
       somaOcupacao: 0,
@@ -1298,6 +1303,7 @@ function extrairImoveisFii(registros, colunas) {
           ? 100 - vago * escalaVacancia.fator
           : null;
     const area = cols.area ? valorNumericoCvm(r[cols.area]) : null;
+    if (area !== null && area > 0) acum.areaTotalGeral += area;
     if (ocupado !== null && ocupado >= 0 && ocupado <= 100) {
       acum.somaOcupacao += ocupado;
       acum.comTaxa += 1;
@@ -1310,12 +1316,34 @@ function extrairImoveisFii(registros, colunas) {
     porCnpj.set(cnpj, acum);
   }
 
-  // Abaixo desta fração de imóveis com o dado, a média descreve a amostra e
-  // não a carteira — e a amostra que reporta é enviesada, porque quem
+  // Abaixo desta fração do PORTFÓLIO com o dado, a média descreve a amostra
+  // e não a carteira — e a amostra que reporta é enviesada, porque quem
   // preenche o campo costuma ser justamente quem tem o que declarar.
+  //
+  // A fração é por ÁREA, não por contagem de imóvel. Achado real: com a
+  // cobertura por CONTAGEM, oito dos nove FIIs ficaram nulos — inclusive
+  // HGLG11 (157 imóveis, só 7 reportando = 24%) e BTLG11 (121 imóveis, 4
+  // reportando = 25%), fundos de logística consolidados, não sem dado. A
+  // hipótese: o informe mistura linhas de natureza diferente — a coluna
+  // real traz `Percentual_Vendido` e `Percentual_Conclusao_Obras`, sinal de
+  // imóvel em obras ou à venda, sem ocupação para reportar por definição —
+  // e um fundo com poucos imóveis GRANDES bem cobertos reprova no piso por
+  // CONTAGEM mesmo cobrindo a maior parte do patrimônio. Pesar por área é
+  // consistente com o que a própria média já faz (ponderação por área) e
+  // não depende de adivinhar o que `Categoria`/`Classe` significam.
+  //
+  // Isto ainda não foi conferido contra o resultado real — o log abaixo
+  // imprime as duas coberturas lado a lado para a próxima execução provar
+  // ou desmentir a hipótese, não para escondê-la atrás de um número só.
   const COBERTURA_MINIMA = 0.6;
   for (const acum of porCnpj.values()) {
-    acum.coberturaOcupacao = acum.numeroImoveis ? acum.comTaxa / acum.numeroImoveis : 0;
+    const coberturaContagem = acum.numeroImoveis ? acum.comTaxa / acum.numeroImoveis : 0;
+    const coberturaArea = acum.areaTotalGeral > 0 ? acum.areaTotal / acum.areaTotalGeral : null;
+    // Sem área nenhuma reportada (fundo que não publica a coluna), cai para
+    // a contagem — pior do que nada, melhor do que não ter piso algum.
+    acum.coberturaOcupacao = coberturaArea === null ? coberturaContagem : coberturaArea;
+    acum.coberturaContagem = coberturaContagem;
+    acum.coberturaArea = coberturaArea;
     const media =
       acum.areaTotal > 0
         ? Math.round((acum.ocupadoPonderado / acum.areaTotal) * 1000) / 10

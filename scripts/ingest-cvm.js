@@ -1121,7 +1121,15 @@ async function main() {
             ` · VPC ${inf.valorPatrimonialCota ?? '—'} · DY ${inf.dyMes ?? '—'}%/mês` +
             ` · cotistas ${inf.numeroCotistas ?? '—'}` +
             ` · imóveis ${imoveis ? imoveis.numeroImoveis : '—'}` +
-            `${imoveis ? ` (${imoveis.imoveisComVago} com vago, ${Math.round(imoveis.coberturaOcupacao * 100)}% com o dado)` : ''}` +
+            `${
+              imoveis
+                ? ` (${imoveis.imoveisComVago} com vago · cobertura área ${
+                    imoveis.coberturaArea === null
+                      ? '—'
+                      : Math.round(imoveis.coberturaArea * 100) + '%'
+                  } · contagem ${Math.round(imoveis.coberturaContagem * 100)}%)`
+                : ''
+            }` +
             ` · ocupação ${imoveis && imoveis.ocupacao !== null ? imoveis.ocupacao : (inf.ocupacao ?? '—')}`
         );
         log(
