@@ -407,71 +407,86 @@ async function baixarCotacoes(tickers) {
 }
 
 /**
- * O que o endpoint do Tesouro Direto devolve HOJE.
+ * Onde estão as taxas do Tesouro Direto, agora que o endpoint antigo morreu.
  *
- * Não corrige nada e não grava nada: imprime a resposta crua o suficiente
- * para separar "mudou de forma" de "recusou a chamada". Sem isto a correção
- * vira palpite, que é o que produziu os últimos oito defeitos deste projeto.
+ * A sonda anterior respondeu de forma decisiva:
+ *
+ *   https://www.tesourodireto.com.br/json/.../treasurybondsinfo.json
+ *   HTTP 410 · text/html · 4 bytes · corpo: "gone"
+ *
+ * 410 é "foi-se e não volta" — não é bloqueio de WAF nem mudança de formato,
+ * e por isso nem consertar o parser nem mudar o trabalho de lugar resolve.
+ * É preciso outra fonte.
+ *
+ * Esta rodada NÃO escolhe a fonte: ela pergunta a várias e imprime o que cada
+ * uma responde. Escolher pela mais plausível foi o que produziu os oito
+ * defeitos da CVM; escolher pela que responde é o que os corrigiu.
+ *
+ * O catálogo CKAN vem primeiro de propósito: perguntar ao catálogo ONDE está
+ * o arquivo é mais durável do que fixar o UUID do recurso, que muda quando o
+ * Tesouro republica o dataset. É o mesmo raciocínio do índice de diretório da
+ * CVM, que sobreviveu a várias mudanças de nome de arquivo.
  */
-const TESOURO_URL =
-  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+const FONTES_TESOURO = [
+  {
+    nome: 'ckan/package_show (catálogo)',
+    url: 'https://www.tesourotransparente.gov.br/ckan/api/3/action/package_show?id=taxas-dos-titulos-ofertados-pelo-tesouro-direto',
+  },
+  {
+    nome: 'ckan/CSV direto',
+    url: 'https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/precotaxatesourodireto.csv',
+    cabecalhoSo: true,
+  },
+  {
+    nome: 'tesourodireto.com.br (antigo)',
+    url: 'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json',
+  },
+];
 
 async function sondarTesouro() {
-  log('\n· Sonda do Tesouro Direto…');
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 20000);
-  let res;
-  let corpo;
-  try {
-    res = await fetch(TESOURO_URL, {
-      headers: { Accept: 'application/json' },
-      signal: ctrl.signal,
-    });
-    corpo = await res.text();
-  } catch (e) {
-    log(`  ✗ nem chegou a responder: ${e.name} ${e.message}`);
-    return;
-  } finally {
-    clearTimeout(timer);
+  log('\n· Sonda das fontes de Tesouro Direto…');
+  for (const fonte of FONTES_TESOURO) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 25000);
+    try {
+      // HEAD não serve: o CKAN responde 200 a HEAD em recurso que dá 404 no
+      // GET. Só o GET diz a verdade — e o `Range` evita puxar o histórico
+      // inteiro só para saber se o arquivo existe.
+      const headers = { Accept: '*/*' };
+      if (fonte.cabecalhoSo) headers.Range = 'bytes=0-2000';
+      const res = await fetch(fonte.url, { headers, signal: ctrl.signal });
+      const tipo = res.headers.get('content-type') || '—';
+      const tamanho = res.headers.get('content-range') || res.headers.get('content-length') || '—';
+      const corpo = await res.text();
+      log(`  ${fonte.nome}`);
+      log(`    HTTP ${res.status} · ${tipo} · ${tamanho}`);
+      if (!res.ok) {
+        log(`    corpo: ${corpo.slice(0, 200).replace(/\s+/g, ' ')}`);
+        continue;
+      }
+      if (tipo.includes('json')) {
+        const json = JSON.parse(corpo);
+        const recursos = (json.result && json.result.resources) || [];
+        if (recursos.length) {
+          log(`    ${recursos.length} recurso(s) no dataset:`);
+          for (const r of recursos.slice(0, 8)) {
+            log(`      ${r.format || '?'} · ${r.name || '(sem nome)'} · ${r.url}`);
+          }
+        } else {
+          log(`    chaves: ${Object.keys(json).join(', ')}`);
+        }
+      } else {
+        // Cabeçalho + primeira linha de dados: é o que decide se o CSV traz
+        // taxa corrente por título ou só a série histórica.
+        const linhas = corpo.split(/\r?\n/).filter(Boolean).slice(0, 2);
+        for (const l of linhas) log(`    ${l.slice(0, 220)}`);
+      }
+    } catch (e) {
+      log(`  ${fonte.nome}\n    ✗ ${e.name}: ${e.message}`);
+    } finally {
+      clearTimeout(timer);
+    }
   }
-
-  const tipo = res.headers.get('content-type') || '—';
-  log(`  HTTP ${res.status} · ${tipo} · ${corpo.length} bytes`);
-  if (!res.ok) {
-    // Corpo de erro é o que distingue WAF de indisponibilidade: um devolve
-    // HTML de bloqueio, o outro devolve nada ou uma página de manutenção.
-    log(`  corpo (300 primeiros): ${corpo.slice(0, 300).replace(/\s+/g, ' ')}`);
-    return;
-  }
-
-  let json;
-  try {
-    json = JSON.parse(corpo);
-  } catch (e) {
-    log(`  ✗ resposta não é JSON: ${e.message}`);
-    log(`  corpo (300 primeiros): ${corpo.slice(0, 300).replace(/\s+/g, ' ')}`);
-    return;
-  }
-
-  log(`  chaves de topo: ${Object.keys(json).join(', ') || '(nenhuma)'}`);
-  const lista =
-    (json.response && json.response.TrsrBdTradgList) ||
-    json.TrsrBdTradgList ||
-    (Array.isArray(json) ? json : null);
-  if (!Array.isArray(lista)) {
-    log('  ✗ nenhum dos caminhos conhecidos da lista existe nesta resposta');
-    if (json.response) log(`    chaves de response: ${Object.keys(json.response).join(', ')}`);
-    return;
-  }
-  log(`  lista com ${lista.length} títulos`);
-  const primeiro = lista[0] || {};
-  const bd = primeiro.TrsrBd || primeiro.trsrBd || primeiro;
-  log(`  campos do 1º item: ${Object.keys(primeiro).join(', ')}`);
-  log(`  campos do título:  ${Object.keys(bd).join(', ')}`);
-  // As duas chaves de que o parser depende, pelo nome, com o valor lido.
-  log(
-    `  nm=${bd.nm ?? bd.name ?? bd.nome ?? '—'} · anulInvstmtRate=${bd.anulInvstmtRate ?? bd.annualInvestmentRate ?? '—'}`
-  );
 }
 
 async function main() {
@@ -1397,16 +1412,12 @@ async function main() {
   // ── Sonda do Tesouro Direto ──
   //
   // A renda fixa NÃO passa por este job: ela é buscada pela function do
-  // Vercel em `op=rendafixa`, e é a única classe que chega vazia à tela. As
-  // hipóteses são opostas e produzem o mesmo sintoma:
+  // Vercel em `op=rendafixa`, e é a única classe que chega vazia à tela.
   //
-  //   o endpoint mudou de forma  → o parser precisa de outra chave
-  //   o endpoint recusa a chamada → o trabalho precisa mudar de lugar
-  //
-  // Do sandbox não dá para distinguir (o proxy devolve 403 antes de sair), e
-  // do Vercel só se vê o `catch`. O runner tem rede limpa, então é aqui que
-  // a pergunta se responde — imprimindo o que o Tesouro devolve HOJE, não o
-  // que se supõe que ele devolva.
+  // A rodada anterior já respondeu POR QUÊ: o endpoint antigo devolve
+  // `HTTP 410 · gone`. Não é WAF nem mudança de formato — foi desativado.
+  // Esta rodada pergunta às fontes candidatas qual delas responde, para a
+  // substituição sair de evidência e não da mais plausível.
   await sondarTesouro();
 
   log(`\n=== ${documentos.length} documentos prontos ===`);
