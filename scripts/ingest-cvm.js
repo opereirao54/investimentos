@@ -917,6 +917,13 @@ async function main() {
       }
       for (const [nome, csv] of membros) {
         log(`    ${nome}: ${csv.registros.length} linhas · ${(csv.membros || []).length} mês(es)`);
+        // As colunas REAIS de cada membro. Não é ruído: o crescimento do
+        // dividendo sai de `Rendimentos_Distribuir`, que é saldo de balanço —
+        // e no BTLG11 esse saldo fecha em zero em 29 dos 31 meses, num fundo
+        // que paga todos eles. A derivação está correta e a fonte é que não
+        // serve para essa classe de fundo. Só a lista do que o arquivo
+        // realmente traz permite escolher outra coluna sem adivinhar.
+        log(`      colunas: ${csv.colunas.join(', ')}`);
       }
 
       // ── o vínculo ticker ↔ fundo ──
