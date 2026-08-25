@@ -1081,14 +1081,13 @@ async function handleIndicadores(req, res) {
 const FUNDAMENTALS_COLLECTION = 'marketFundamentals';
 const RF_COLLECTION = 'marketRendaFixa';
 const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
-const RF_TTL_MS = 12 * 60 * 60 * 1000;
 const BRAPI_MODULES = 'summaryProfile,defaultKeyStatistics,financialData,incomeStatementHistory';
 
-// Endpoint público que alimenta o site do Tesouro Direto. É a única fonte
-// oficial e leve de taxas correntes — o CSV do Tesouro Transparente traz a
-// série histórica inteira (dezenas de MB), inviável numa serverless.
-const TESOURO_URL =
-  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+// O endpoint do site do Tesouro Direto morreu — `HTTP 410 · gone`, medido no
+// runner. As taxas passaram a vir do CSV do Tesouro Transparente, baixado
+// pelo job de ingestão (14,4 MB não cabem nesta function), e esta op lê o que
+// ele gravou. Sem endpoint ao vivo não há TTL a respeitar: a validade passou
+// a ser a cadência do job.
 
 // Ano de lançamento das criptos suportadas. A CoinGecko só devolve
 // genesis_date no endpoint por moeda (1 request cada) — para 10 símbolos
@@ -2325,131 +2324,63 @@ function mapTesouroTitulo(bruto, premissas) {
     liquidezDias: 1, // Recompra diária garantida pelo Tesouro (D+1).
     isentoIR: 0, // Tributado pela tabela regressiva.
     fonte: 'tesouro_direto',
-    fonteRotulo: 'Taxa de hoje · Tesouro Direto',
-    dataReferencia: bruto.vencimento || null,
+    fonteRotulo: 'Tesouro Direto · Tesouro Transparente',
+    // O PREGÃO de onde a taxa veio, não o vencimento. Antes isto carregava
+    // `vencimento`, e a tela mostrava "lido em 2035" num título de 2035 —
+    // um campo de procedência a dizer uma coisa que não é procedência.
+    dataReferencia: bruto.dataBase || null,
   };
 }
 
 /**
- * Extrai a lista de títulos da resposta do Tesouro.
+ * `op=rendafixa` — lê o que o job de ingestão gravou e converte na régua do
+ * motor.
  *
- * Os nomes de campo daquele endpoint são abreviados e já mudaram de forma
- * antes (`TrsrBdTradgList` / `TrsrBd`), então cada campo é procurado em mais
- * de um caminho e um título malformado é descartado sozinho, sem derrubar
- * os outros.
+ * ANTES esta op buscava o Tesouro Direto ao vivo. O endpoint foi desativado
+ * (`HTTP 410 · gone`, medido no runner) e o substituto é a série histórica
+ * inteira em CSV: 14,4 MB, que não cabem nos 15 s e 256 MB desta function.
+ * A busca mudou para `scripts/ingest-cvm.js`, que já baixa arquivos maiores.
+ *
+ * A CONVERSÃO fica aqui, e não no job, de propósito: `taxaRealAnual` e
+ * `premioSobreCdi` dependem das premissas de IPCA e CDI do Banco Central, que
+ * mudam por conta própria. Convertendo na leitura, uma revisão da Focus
+ * corrige o número na hora — se o job convertesse, a taxa real ficaria presa
+ * à expectativa da semana em que ele rodou.
  */
-function parseTesouroResposta(json) {
-  const lista =
-    (json && json.response && json.response.TrsrBdTradgList) ||
-    (json && json.TrsrBdTradgList) ||
-    (Array.isArray(json) ? json : []) ||
-    [];
-  const out = [];
-  for (const item of lista) {
-    const bd = (item && (item.TrsrBd || item.trsrBd)) || item || {};
-    const nome = bd.nm || bd.name || bd.nome || null;
-    const taxa = bd.anulInvstmtRate != null ? bd.anulInvstmtRate : bd.annualInvestmentRate;
-    if (!nome || fundNum(taxa) === null) continue;
-    out.push({
-      ticker: String(nome)
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, ''),
-      nome,
-      taxa,
-      vencimento: bd.mtrtyDt || bd.maturityDate || null,
-      precoUnitario: bd.untrInvstmtVal != null ? bd.untrInvstmtVal : bd.unitaryInvestmentValue,
-      investimentoMinimo: bd.minInvstmtAmt != null ? bd.minInvstmtAmt : bd.minimumInvestmentAmount,
-    });
-  }
-  return out;
-}
-
-async function fetchTesouroDireto(premissas) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  let res;
-  try {
-    res = await fetch(TESOURO_URL, {
-      headers: { Accept: 'application/json' },
-      signal: ctrl.signal,
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-  if (!res.ok) throw new Error(`tesouro_${res.status}`);
-  const json = await res.json();
-  const brutos = parseTesouroResposta(json);
-  if (!brutos.length) throw new Error('tesouro_formato_inesperado');
-  return brutos.map((b) => mapTesouroTitulo(b, premissas || PREMISSAS_ANUAIS)).filter(Boolean);
-}
-
 async function handleRendaFixa(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const agora = Date.now();
   const database = db();
-  const ref = database.collection(RF_COLLECTION).doc('tesouroDireto');
-  const snap = await ref.get().catch(() => null);
+  const snap = await database
+    .collection(RF_COLLECTION)
+    .doc('tesouroDireto')
+    .get()
+    .catch(() => null);
   const cache = snap && snap.exists ? snap.data() : null;
+  const brutos = (cache && cache.titulos) || [];
 
-  if (cache && typeof cache.fetchedAtMs === 'number' && agora - cache.fetchedAtMs < RF_TTL_MS) {
-    return res.json({
-      success: true,
-      cached: true,
-      fetchedAt: cache.fetchedAtMs,
-      premissas: cache.premissas || PREMISSAS_ANUAIS,
-      origemPremissas: cache.origemPremissas || null,
-      premissasDegradadas: !!cache.premissasDegradadas,
-      titulos: cache.titulos || [],
+  if (!brutos.length) {
+    // Erro nomeado em vez de lista vazia: sem isto, "o job nunca rodou" e "o
+    // Tesouro não tem títulos hoje" chegam à tela como a mesma coisa — e a
+    // classe some sem ninguém saber por quê.
+    return res.status(503).json({
+      error: 'rendafixa_sem_ingestao',
+      detail:
+        'A coleção marketRendaFixa está vazia. As taxas passaram a vir do job ' +
+        'de ingestão (workflow "Ingestão CVM"); rode-o com dry_run desmarcado.',
+      titulos: [],
     });
   }
 
   const { premissas, origem, degradado } = await resolverPremissas(database);
-
-  let titulos;
-  try {
-    titulos = await fetchTesouroDireto(premissas);
-  } catch (e) {
-    console.warn('[market/rendafixa] tesouro_failed', e.message);
-    // Cache vencido ainda vale mais do que classe vazia na tela: taxa de
-    // ontem erra na terceira casa, ausência de taxa zera o score da classe.
-    if (cache && cache.titulos) {
-      return res.json({
-        success: true,
-        cached: true,
-        stale: true,
-        fetchedAt: cache.fetchedAtMs,
-        premissas: cache.premissas || PREMISSAS_ANUAIS,
-        origemPremissas: cache.origemPremissas || null,
-        premissasDegradadas: true,
-        titulos: cache.titulos,
-        erro: e.message,
-      });
-    }
-    return res.status(502).json({ error: 'tesouro_indisponivel', detail: e.message });
-  }
-
-  await ref
-    .set(
-      {
-        titulos,
-        premissas,
-        origemPremissas: origem,
-        premissasDegradadas: degradado,
-        fetchedAtMs: agora,
-        dateYmd: todayYmdBRT(agora),
-        updatedAt: timestamp().now(),
-      },
-      { merge: true }
-    )
-    .catch((e) => console.warn('[market/rendafixa] cache_write_failed', e.message));
+  const titulos = brutos.map((b) => mapTesouroTitulo(b, premissas)).filter(Boolean);
 
   return res.json({
     success: true,
-    cached: false,
-    fetchedAt: agora,
+    cached: true,
+    fetchedAt: cache.fetchedAtMs || null,
+    fonteRotulo: cache.fonteRotulo || 'Tesouro Transparente',
     premissas,
     origemPremissas: origem,
     premissasDegradadas: degradado,
@@ -2941,7 +2872,6 @@ module.exports.__test = {
   fetchYahooFundamentals,
   comporFundamentos,
   mapTesouroTitulo,
-  parseTesouroResposta,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,
   CHAVES_ACAO,

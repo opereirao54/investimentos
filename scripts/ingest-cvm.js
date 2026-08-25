@@ -34,6 +34,7 @@
 
 const path = require('node:path');
 const { lerZip } = require('./lib/zip');
+const T = require(path.join(__dirname, 'lib', 'tesouro.js'));
 const P = require('./lib/cvm-parser');
 const MAPA = require('./lib/mapa-cvm.json');
 
@@ -407,86 +408,83 @@ async function baixarCotacoes(tickers) {
 }
 
 /**
- * Onde estão as taxas do Tesouro Direto, agora que o endpoint antigo morreu.
+ * Taxas correntes do Tesouro Direto → coleção `marketRendaFixa`.
  *
- * A sonda anterior respondeu de forma decisiva:
- *
- *   https://www.tesourodireto.com.br/json/.../treasurybondsinfo.json
- *   HTTP 410 · text/html · 4 bytes · corpo: "gone"
- *
- * 410 é "foi-se e não volta" — não é bloqueio de WAF nem mudança de formato,
- * e por isso nem consertar o parser nem mudar o trabalho de lugar resolve.
- * É preciso outra fonte.
- *
- * Esta rodada NÃO escolhe a fonte: ela pergunta a várias e imprime o que cada
- * uma responde. Escolher pela mais plausível foi o que produziu os oito
- * defeitos da CVM; escolher pela que responde é o que os corrigiu.
- *
- * O catálogo CKAN vem primeiro de propósito: perguntar ao catálogo ONDE está
- * o arquivo é mais durável do que fixar o UUID do recurso, que muda quando o
- * Tesouro republica o dataset. É o mesmo raciocínio do índice de diretório da
- * CVM, que sobreviveu a várias mudanças de nome de arquivo.
+ * O endpoint que alimentava `op=rendafixa` foi desativado — a sonda no runner
+ * registou `HTTP 410 · gone`, que é "foi-se e não volta". O substituto é o
+ * dado aberto oficial, e o catálogo CKAN é consultado em vez de se fixar o
+ * UUID do recurso: o UUID muda quando o Tesouro republica o dataset, e o
+ * catálogo continua a apontar para o arquivo certo. Mesmo raciocínio do
+ * índice de diretório da CVM, que sobreviveu a várias mudanças de nome.
  */
-const FONTES_TESOURO = [
-  {
-    nome: 'ckan/package_show (catálogo)',
-    url: 'https://www.tesourotransparente.gov.br/ckan/api/3/action/package_show?id=taxas-dos-titulos-ofertados-pelo-tesouro-direto',
-  },
-  {
-    nome: 'ckan/CSV direto',
-    url: 'https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/resource/796d2059-14e9-44e3-80c9-2d9e30b405c1/download/precotaxatesourodireto.csv',
-    cabecalhoSo: true,
-  },
-  {
-    nome: 'tesourodireto.com.br (antigo)',
-    url: 'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json',
-  },
-];
+const CKAN_TESOURO =
+  'https://www.tesourotransparente.gov.br/ckan/api/3/action/package_show' +
+  '?id=taxas-dos-titulos-ofertados-pelo-tesouro-direto';
 
-async function sondarTesouro() {
-  log('\n· Sonda das fontes de Tesouro Direto…');
-  for (const fonte of FONTES_TESOURO) {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 25000);
-    try {
-      // HEAD não serve: o CKAN responde 200 a HEAD em recurso que dá 404 no
-      // GET. Só o GET diz a verdade — e o `Range` evita puxar o histórico
-      // inteiro só para saber se o arquivo existe.
-      const headers = { Accept: '*/*' };
-      if (fonte.cabecalhoSo) headers.Range = 'bytes=0-2000';
-      const res = await fetch(fonte.url, { headers, signal: ctrl.signal });
-      const tipo = res.headers.get('content-type') || '—';
-      const tamanho = res.headers.get('content-range') || res.headers.get('content-length') || '—';
-      const corpo = await res.text();
-      log(`  ${fonte.nome}`);
-      log(`    HTTP ${res.status} · ${tipo} · ${tamanho}`);
-      if (!res.ok) {
-        log(`    corpo: ${corpo.slice(0, 200).replace(/\s+/g, ' ')}`);
-        continue;
-      }
-      if (tipo.includes('json')) {
-        const json = JSON.parse(corpo);
-        const recursos = (json.result && json.result.resources) || [];
-        if (recursos.length) {
-          log(`    ${recursos.length} recurso(s) no dataset:`);
-          for (const r of recursos.slice(0, 8)) {
-            log(`      ${r.format || '?'} · ${r.name || '(sem nome)'} · ${r.url}`);
-          }
-        } else {
-          log(`    chaves: ${Object.keys(json).join(', ')}`);
-        }
-      } else {
-        // Cabeçalho + primeira linha de dados: é o que decide se o CSV traz
-        // taxa corrente por título ou só a série histórica.
-        const linhas = corpo.split(/\r?\n/).filter(Boolean).slice(0, 2);
-        for (const l of linhas) log(`    ${l.slice(0, 220)}`);
-      }
-    } catch (e) {
-      log(`  ${fonte.nome}\n    ✗ ${e.name}: ${e.message}`);
-    } finally {
-      clearTimeout(timer);
-    }
+async function urlDoCsvTesouro() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await fetch(CKAN_TESOURO, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`ckan_${res.status}`);
+    const json = await res.json();
+    const recursos = (json.result && json.result.resources) || [];
+    const csv = recursos.find((r) => String(r.format || '').toUpperCase() === 'CSV' && r.url);
+    if (!csv) throw new Error(`ckan_sem_csv (${recursos.length} recursos)`);
+    return csv.url;
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+async function ingerirTesouro() {
+  log('\n· Tesouro Direto (Tesouro Transparente)…');
+  let url;
+  try {
+    url = await urlDoCsvTesouro();
+    log(`  catálogo aponta para: ${url}`);
+  } catch (e) {
+    log(`  ✗ catálogo indisponível: ${e.message}`);
+    return null;
+  }
+
+  let texto;
+  try {
+    const buf = await baixar(url);
+    // Medida, não suposta: se o arquivo dobrar de tamanho, é aqui que se vê
+    // antes de o job começar a estourar tempo.
+    log(`  CSV: ${(buf.length / 1e6).toFixed(1)} MB`);
+    texto = buf.toString('utf8');
+  } catch (e) {
+    log(`  ✗ download falhou: ${e.message}`);
+    return null;
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const r = T.extrairTaxasTesouro(texto, hoje);
+  if (r.semEssencial && r.semEssencial.length) {
+    log(`  ✗ cabeçalho mudou — faltam: ${r.semEssencial.join(', ')}`);
+    log(`    colunas reais: ${(r.cabecalho || []).join(', ')}`);
+    return null;
+  }
+  log(
+    `  ${r.titulos.length} títulos vivos · ${r.linhasLidas} linhas lidas · ` +
+      `${r.vencidos} vencidos descartados`
+  );
+  for (const t of r.titulos.slice(0, 8)) {
+    // Compra e venda lado a lado: o spread é de poucos pontos-base, e vê-los
+    // juntos é o que denuncia colunas lidas trocadas. Sozinha, qualquer uma
+    // das duas parece certa.
+    log(
+      `    ${t.ticker.padEnd(38)} taxa ${t.taxa}% (venda ${t.taxaVenda ?? '—'}%) · ` +
+        `PU ${t.precoUnitario ?? '—'} · base ${t.dataBase}`
+    );
+  }
+  if (r.titulos.length > 8) log(`    … e mais ${r.titulos.length - 8}`);
+  return r.titulos;
 }
 
 async function main() {
@@ -1411,14 +1409,11 @@ async function main() {
 
   // ── Sonda do Tesouro Direto ──
   //
-  // A renda fixa NÃO passa por este job: ela é buscada pela function do
-  // Vercel em `op=rendafixa`, e é a única classe que chega vazia à tela.
-  //
-  // A rodada anterior já respondeu POR QUÊ: o endpoint antigo devolve
-  // `HTTP 410 · gone`. Não é WAF nem mudança de formato — foi desativado.
-  // Esta rodada pergunta às fontes candidatas qual delas responde, para a
-  // substituição sair de evidência e não da mais plausível.
-  await sondarTesouro();
+  // A renda fixa agora passa por aqui. O CSV do Tesouro Transparente é a
+  // série histórica inteira (14,4 MB medidos): não cabe nos 15 s e 256 MB da
+  // function do Vercel, e cabe folgado neste job, que já baixa ZIPs maiores
+  // da CVM. `op=rendafixa` passa a ler o que ficou gravado.
+  const titulosRf = await ingerirTesouro();
 
   log(`\n=== ${documentos.length} documentos prontos ===`);
   if (!gravar) {
@@ -1465,7 +1460,34 @@ async function main() {
     }
     await batch.commit();
   }
-  log(`Gravados ${gravados} documentos em ${COLECAO}.\n`);
+  log(`Gravados ${gravados} documentos em ${COLECAO}.`);
+
+  // As taxas do Tesouro num documento único, na coleção que `op=rendafixa`
+  // já lê. Documento só, e não um por título: a resposta da API é a lista
+  // inteira, e 40 leituras onde bastava uma custam quota e latência sem
+  // devolver nada em troca.
+  //
+  // Só grava com título: sobrescrever a lista boa por uma vazia porque o
+  // Tesouro esteve fora do ar cinco minutos apagaria a classe da tela até a
+  // próxima execução semanal.
+  if (titulosRf && titulosRf.length) {
+    await database
+      .collection('marketRendaFixa')
+      .doc('tesouroDireto')
+      .set(
+        {
+          titulos: titulosRf.map(semUndefined),
+          fonte: 'tesouro_transparente',
+          fonteRotulo: 'Taxas do Tesouro Direto · Tesouro Transparente',
+          fetchedAtMs: agora,
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+    log(`Gravados ${titulosRf.length} títulos em marketRendaFixa.\n`);
+  } else {
+    log('Renda fixa sem títulos nesta execução — a lista anterior fica de pé.\n');
+  }
 }
 
 /**

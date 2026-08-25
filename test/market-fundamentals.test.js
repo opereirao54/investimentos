@@ -24,7 +24,6 @@ const {
   fundCobertura,
   mapBrapiFundamental,
   mapTesouroTitulo,
-  parseTesouroResposta,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,
   CHAVES_ACAO,
@@ -326,36 +325,49 @@ test('título sem nome ou sem taxa é descartado em vez de virar NaN', () => {
   );
 });
 
-test('parse do Tesouro aceita os dois formatos e ignora item quebrado', () => {
-  const resposta = {
-    response: {
-      TrsrBdTradgList: [
-        {
-          TrsrBd: {
-            nm: 'Tesouro Selic 2029',
-            anulInvstmtRate: 0.15,
-            mtrtyDt: '2029-03-01',
-            untrInvstmtVal: 15000,
-          },
-        },
-        { TrsrBd: { nm: 'Tesouro IPCA+ 2035', anulInvstmtRate: 7.2 } },
-        { TrsrBd: { nm: 'Sem taxa' } },
-        { TrsrBd: { anulInvstmtRate: 9 } },
-        null,
-      ],
-    },
+test('o título do CSV do Tesouro entra no mapeamento sem tabela de tradução', () => {
+  // A fonte mudou de um JSON com a oferta do dia para o CSV histórico do
+  // Tesouro Transparente — o endpoint antigo devolve `HTTP 410 · gone`.
+  //
+  // O que NÃO mudou é a forma que `mapTesouroTitulo` consome, e é isso que
+  // este teste fixa: o job grava `{ nome, ticker, taxa, vencimento,
+  // dataBase, precoUnitario }` e a conversão continua a valer. Se alguém
+  // renomear um desses campos no job, a renda fixa volta a ficar sem
+  // indicadores e nada mais quebraria para avisar.
+  const doJob = {
+    ticker: 'TESOURO_IPCA_2035',
+    nome: 'Tesouro IPCA+ 2035',
+    taxa: 7.2,
+    taxaVenda: 7.25,
+    vencimento: '2035-05-15',
+    dataBase: '2026-08-21',
+    precoUnitario: 2101.5,
+    investimentoMinimo: null,
   };
-  const r = parseTesouroResposta(resposta);
-  assert.equal(r.length, 2, 'os dois títulos válidos passam, os quebrados caem');
-  assert.equal(r[0].ticker, 'TESOURO_SELIC_2029');
-  assert.equal(r[1].ticker, 'TESOURO_IPCA_2035');
-  assert.equal(r[0].precoUnitario, 15000);
+  const t = mapTesouroTitulo(doJob, PREMISSAS_ANUAIS);
+  assert.equal(t.tipo, 'ipca');
+  assert.equal(t.taxaRealAnual, 7.2, 'IPCA+ publica a taxa REAL');
+  assert.equal(t.classe, 'rf');
+  assert.equal(t.precoUnitario, 2101.5);
 });
 
-test('parse do Tesouro tolera resposta com formato inesperado', () => {
-  assert.deepEqual(parseTesouroResposta(null), []);
-  assert.deepEqual(parseTesouroResposta({}), []);
-  assert.deepEqual(parseTesouroResposta({ response: {} }), []);
+test('a procedência da taxa é o PREGÃO, não o vencimento do título', () => {
+  // Antes `dataReferencia` recebia o vencimento: a tela dizia "lido em 2035"
+  // num título que vence em 2035 — um campo de procedência a mostrar algo
+  // que não é procedência. Quem confere a validade do dado via uma data no
+  // futuro e concluía que estava fresquíssimo.
+  const t = mapTesouroTitulo(
+    {
+      ticker: 'T',
+      nome: 'Tesouro Prefixado 2027',
+      taxa: 13.5,
+      vencimento: '2027-01-01',
+      dataBase: '2026-08-21',
+    },
+    PREMISSAS_ANUAIS
+  );
+  assert.equal(t.dataReferencia, '2026-08-21');
+  assert.notEqual(t.dataReferencia, '2027-01-01');
 });
 
 test('as premissas de taxa são as mesmas da simulação histórica', () => {
