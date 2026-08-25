@@ -1281,7 +1281,19 @@ async function cartBuscarRendaFixa(token) {
       headers: { Authorization: 'Bearer ' + token },
     });
     var data = await res.json();
-    return data && data.titulos ? data.titulos : [];
+    // `fetch` só rejeita por falha de REDE — um 502 do endpoint ainda é
+    // `.json()` válido, e caía direto no `data.titulos ? ... : []` de
+    // antes sem passar pelo catch. O console ficava mudo: nenhum warning,
+    // nenhuma pista, só a classe RF vazia na tela — indistinguível de
+    // "o Tesouro não tem título nenhum hoje".
+    if (!res.ok || !data || data.error) {
+      console.warn(
+        '[carteira/motor] renda fixa indisponível:',
+        (data && (data.error || data.detail)) || 'HTTP ' + res.status
+      );
+      return [];
+    }
+    return data.titulos || [];
   } catch (e) {
     // Tesouro fora do ar não pode derrubar as outras classes: a RF cai para
     // score neutro e o rodapé diz por quê.
