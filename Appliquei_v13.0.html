@@ -2131,6 +2131,68 @@
             font-style: italic; text-align: center;
         }
 
+        /* ===== AVISO DE RISCO + CRITÉRIOS ===== */
+        /* Usa os tokens amber, que já têm variante dark definida — cor escrita
+           à mão aqui ficaria ilegível no tema escuro. */
+        .cart-risco {
+            margin-top: 20px; padding: 14px 16px; border-radius: var(--radius-sm);
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+        }
+        .cart-risco-titulo {
+            display: flex; align-items: center; gap: 7px; font-weight: 700;
+            font-size: 12.5px; color: var(--cor-txt-amber); margin-bottom: 6px;
+        }
+        .cart-risco-corpo {
+            font-size: 11.5px; line-height: 1.6; color: var(--cor-txt-amber);
+        }
+        .cart-criterios { margin-top: 20px; }
+        .cart-criterios-intro {
+            font-size: 11.5px; line-height: 1.6; color: var(--cor-texto-secundario);
+            margin-bottom: 12px;
+        }
+        .cart-criterios-grupo {
+            border: 1px solid var(--cor-borda); border-radius: var(--radius-sm);
+            background: var(--cor-branco); margin-bottom: 8px; overflow: hidden;
+        }
+        .cart-criterios-head {
+            display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+            cursor: pointer; user-select: none;
+        }
+        .cart-criterios-head:hover { background: var(--cor-superficie); }
+        .cart-criterios-nome {
+            font-weight: 700; font-size: 12.5px; color: var(--cor-texto-principal);
+        }
+        .cart-criterios-conta {
+            margin-left: auto; font-size: 10.5px; font-weight: 600;
+            color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace;
+        }
+        .cart-criterios-body { display: none; padding: 0 14px 12px; }
+        .cart-criterios-grupo.aberto .cart-criterios-body { display: block; }
+        .cart-criterios-pilar { margin-top: 10px; }
+        .cart-criterios-pilar-nome {
+            font-size: 10px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.5px; color: var(--cor-texto-mutado); margin-bottom: 5px;
+        }
+        .cart-criterios-lista {
+            display: flex; flex-wrap: wrap; gap: 6px;
+        }
+        .cart-criterios-metrica {
+            display: inline-flex; align-items: baseline; gap: 5px;
+            padding: 3px 9px; border-radius: 999px; background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda); font-size: 11px;
+            color: var(--cor-texto-principal);
+        }
+        .cart-criterios-peso {
+            font-family: 'DM Mono', monospace; font-size: 10px;
+            color: var(--cor-texto-mutado);
+        }
+        .cart-criterios-lente {
+            margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--cor-borda);
+            font-size: 11.5px; line-height: 1.6; color: var(--cor-texto-secundario);
+        }
+        .cart-criterios-lente ul { margin: 6px 0 0; padding-left: 18px; }
+        .cart-criterios-lente li { margin-bottom: 3px; }
+
         /* ===== MOTOR DE RECOMENDAÇÃO ===== */
         .cart-q-hint {
             font-size: 10.5px; font-weight: 600; color: var(--cor-texto-mutado);
@@ -6057,7 +6119,7 @@
                 <button class="menu-btn" onclick="mudarAba(event,'meu_patrimonio')" data-tooltip="Meu patrimônio"><i class="ph ph-bank"></i><span class="menu-btn-label">Meu patrimônio</span></button>
                 <button class="menu-btn ativo" onclick="mudarAba(event,'controle')" data-tooltip="Controle financeiro"><i class="ph ph-receipt"></i><span class="menu-btn-label">Controle financeiro</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'patrimonio')" data-tooltip="Meus investimentos"><i class="ph ph-wallet"></i><span class="menu-btn-label">Meus investimentos</span></button>
-                <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira recomendada"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira recomendada</span></button>
+                <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tooltip="Carteira sugerida"><i class="ph ph-chart-pie-slice"></i><span class="menu-btn-label">Carteira sugerida</span></button>
                 <button class="menu-btn" onclick="mudarAba(event,'relatorio_mensal')" data-tooltip="Relatório mensal"><i class="ph ph-file-text"></i><span class="menu-btn-label">Relatório mensal</span></button>
             </div>
             <div class="nav-group">
@@ -6738,7 +6800,7 @@
         <section id="carteira" class="section">
             <div class="page-header" style="margin-bottom:16px;">
                 <div class="page-header-left">
-                    <h1>Carteira recomendada</h1>
+                    <h1>Carteira sugerida</h1>
                     <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação personalizada, com educação financeira e simulação histórica real.</p>
                 </div>
             </div>
@@ -6863,7 +6925,7 @@
 
                     <div class="cart-donut-card">
                         <div class="cart-donut-title">
-                            <i class="ph ph-chart-pie-slice"></i> Distribuição da carteira
+                            <i class="ph ph-chart-pie-slice"></i> Distribuição
                         </div>
                         <div class="cart-donut-wrap">
                             <canvas id="cartDonutChart"></canvas>
@@ -6882,18 +6944,10 @@
                     <div><strong>📌 Dica:</strong> Misturar esses investimentos ajuda a reduzir riscos e melhorar seus resultados no longo prazo.</div>
                 </div>
 
-                <!-- Asset Selection Grid -->
-                <div id="cartSelecaoWrap" style="display:none;">
-                    <div class="cart-selecao-header">
-                        <h3><i class="ph ph-list-checks"></i> Ativos selecionados — mês atual</h3>
-                    </div>
-                    <div class="cart-selecao-grid" id="cartSelecaoGrid"></div>
-                </div>
-
                 <!-- Recommendation engine: scores + plano de aporte -->
                 <div id="cartMotorWrap" style="display:none;">
                     <div class="cart-selecao-header">
-                        <h3><i class="ph ph-cpu"></i> Motor de recomendação</h3>
+                        <h3><i class="ph ph-cpu"></i> Score Appliquei</h3>
                         <div class="cart-motor-controles">
                             <div class="cart-motor-modo" id="cartMotorModo"></div>
                             <div class="cart-motor-lentes" id="cartMotorLentes"></div>
@@ -6902,7 +6956,7 @@
                     <div class="cart-motor-status" id="cartMotorStatus"></div>
 
                     <div class="cart-motor-sub">
-                        <i class="ph ph-target"></i> Onde investir este mês
+                        <i class="ph ph-target"></i> Sugestões do mês
                     </div>
                     <div id="cartMotorPlano"></div>
 
@@ -6916,6 +6970,26 @@
                         Os scores são calculados por critérios objetivos a partir de indicadores públicos de mercado e
                         não constituem recomendação de investimento. Indicador indisponível não vira nota zero: o score
                         é puxado para a média e a confiança do ativo cai.
+                    </div>
+
+                    <!-- Critérios: quais métricas produziram os scores acima.
+                         Renderizado a partir do MOTOR_CRITERIOS, não escrito à
+                         mão: uma lista estática divergiria do motor no primeiro
+                         ajuste de peso e passaria a descrever algo que o
+                         produto não faz. -->
+                    <div class="cart-criterios" id="cartCriterios"></div>
+
+                    <div class="cart-risco">
+                        <div class="cart-risco-titulo">
+                            <i class="ph-fill ph-warning"></i> Aviso de risco
+                        </div>
+                        <div class="cart-risco-corpo">
+                            As informações e recomendações apresentadas têm caráter informativo e educacional e não
+                            representam garantia de rentabilidade. As projeções são estimativas baseadas em premissas e
+                            informações disponíveis no momento, podendo não se concretizar. Investimentos envolvem riscos
+                            e podem resultar em perdas, inclusive do capital investido. Rentabilidade passada não é
+                            garantia de rentabilidade futura.
+                        </div>
                     </div>
                 </div>
 
@@ -8156,7 +8230,7 @@
                             <option value="">Selecione…</option>
                             <option value="patrimonio">Visão geral do patrimônio</option>
                             <option value="controle">Controle financeiro</option>
-                            <option value="carteira">Carteira recomendada</option>
+                            <option value="carteira">Carteira sugerida</option>
                             <option value="relatorio_mensal">Relatório mensal</option>
                             <option value="simulador">Simule sua liberdade</option>
                             <option value="meus_sonhos">Meus sonhos</option>

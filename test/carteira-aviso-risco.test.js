@@ -1,0 +1,69 @@
+'use strict';
+
+// Aviso de risco na aba Carteira sugerida.
+//
+// É requisito de conformidade, não de estética: o produto exibe sugestões de
+// investimento a cliente pagante, e a ausência do aviso é um problema legal
+// que nenhum teste de motor ou de render apanharia — o bloco é HTML estático,
+// fora do alcance das funções de desenho.
+//
+// Um `git revert` distraído ou um refactor de layout apaga o bloco sem
+// quebrar nada visível. Este teste é o que impede isso de chegar a produção.
+
+const fs = require('node:fs');
+const path = require('node:path');
+const test = require('node:test');
+const assert = require('node:assert/strict');
+
+const ROOT = path.resolve(__dirname, '..');
+const html = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
+
+/** Só a secção da carteira — o aviso tem de estar NELA, não noutra aba. */
+function secaoCarteira() {
+  const ini = html.indexOf('<section id="carteira"');
+  assert.ok(ini > 0, 'secção da carteira não encontrada');
+  const fim = html.indexOf('<section ', ini + 10);
+  const bruto = html.slice(ini, fim > 0 ? fim : undefined);
+  // Espaço normalizado: a indentação do HTML parte as frases do aviso no meio,
+  // e uma asserção sobre o texto cru cobraria o formatador em vez do conteúdo.
+  return bruto.replace(/\s+/g, ' ');
+}
+
+test('o aviso de risco está na aba, com as quatro afirmações obrigatórias', () => {
+  const sec = secaoCarteira();
+  assert.ok(sec.includes('Aviso de risco'), 'o título do aviso');
+
+  // Cada frase carrega uma afirmação distinta e nenhuma é decorativa:
+  // caráter educacional, projeção que pode não se concretizar, risco de
+  // perda do capital, e passado que não garante futuro.
+  const obrigatorias = [
+    'caráter informativo e educacional',
+    'não representam garantia de rentabilidade',
+    'podendo não se concretizar',
+    'inclusive do capital investido',
+    'Rentabilidade passada não é garantia de rentabilidade futura',
+  ];
+  for (const frase of obrigatorias) {
+    assert.ok(sec.includes(frase), `frase obrigatória ausente do aviso: "${frase}"`);
+  }
+});
+
+test('a aba não exibe a grade de seleção duplicada', () => {
+  // A grade "Ativos selecionados" repetia o plano do motor e dividia o
+  // aporte igualmente entre os ativos — divisão igual disfarçada de
+  // recomendação, que é o que a regra do projeto proíbe.
+  const sec = secaoCarteira();
+  assert.ok(!sec.includes('cartSelecaoWrap'), 'a grade duplicada voltou ao HTML');
+  assert.ok(!sec.includes('Ativos selecionados'), 'o título da grade duplicada voltou');
+  // O contentor dos critérios continua no lugar que o JS procura.
+  assert.ok(sec.includes('id="cartCriterios"'), 'o contentor dos critérios sumiu');
+});
+
+test('a tela não chama a carteira de "recomendada" nem expõe o consultor', () => {
+  // Produto vendido: "recomendação" tem peso regulatório que "sugestão" não
+  // tem, e "consultor" é vocabulário interno.
+  const sec = secaoCarteira();
+  assert.ok(sec.includes('<h1>Carteira sugerida</h1>'));
+  assert.ok(!/<h1>Carteira recomendada<\/h1>/.test(html), 'o título antigo continua algures');
+  assert.ok(!/menu-btn-label">Carteira recomendada</.test(html), 'o menu continua no nome antigo');
+});
