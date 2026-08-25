@@ -1176,7 +1176,7 @@ async function main() {
                 ? `— (${serie.crescimentoMotivo}, ${serie.mesesComRendimento}m c/ rend.${
                     serie.crescimentoBruto === null ? '' : `, recusou ${serie.crescimentoBruto}%`
                   }${serie.mesesSaldoQuitado ? `, ${serie.mesesSaldoQuitado}m saldo quitado` : ''})`
-                : serie.crescimentoDividendo12m + '%'
+                : `${serie.crescimentoDividendo12m}% (${serie.crescimentoFonte})`
             }` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
@@ -1187,7 +1187,9 @@ async function main() {
         // pode assumir nos fundos onde o saldo fecha em zero. Longe de 1
         // desmente, e é melhor sabê-lo aqui do que num ranking publicado.
         log(
-          `             cresc. por DY×VPC ${
+          `             reserva (saldo) ${
+            serie.crescimentoBruto === null ? '—' : serie.crescimentoBruto + '%'
+          } · cresc. por DY×VPC ${
             serie.crescimentoPorDy === null
               ? `— (${serie.crescimentoPorDyMotivo})`
               : serie.crescimentoPorDy + '%'
@@ -1216,10 +1218,20 @@ async function main() {
             // perguntas de consistência que o pilar de dividendos faz.
             dyMedio36m: serie.dyMedio36m,
             consistenciaDividendos: serie.consistenciaDividendos,
-            // Do rendimento POR COTA da série, não do yield: yield é
-            // rendimento ÷ preço, e a variação dele confunde mudança de
-            // distribuição com mudança de cotação.
+            // Do rendimento POR COTA da série. A objeção original a usar o
+            // yield era que yield é rendimento ÷ PREÇO, e a variação dele
+            // confundiria mudança de distribuição com mudança de cotação.
+            // A execução real desmentiu a premissa: o informe da CVM não tem
+            // coluna de preço nenhuma, e o `Percentual_Dividend_Yield_Mes` é
+            // sobre o valor patrimonial. Medido em seis fundos com 31 meses
+            // cada, `DY × VPC` e `saldo ÷ cotas` deram a MESMA grandeza —
+            // razão 1 em 186 comparações mensais.
             crescimentoDividendo12m: serie.crescimentoDividendo12m,
+            // Qual dos dois caminhos produziu o número. Vai para a base pelo
+            // mesmo motivo que a fonte de qualquer indicador: dois caminhos
+            // com coberturas diferentes não são intercambiáveis para quem
+            // audita, mesmo dando o mesmo resultado onde ambos existem.
+            crescimentoFonte: serie.crescimentoFonte,
             // Único indicador do pilar Endividamento do FII: sem ele o
             // pilar inteiro fica vazio e a cobertura da classe desaba.
             alavancagem,

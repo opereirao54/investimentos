@@ -999,6 +999,7 @@ function indicadoresDaSerieFii(serie, opcoes) {
     dyMedio36m: null,
     consistenciaDividendos: null,
     crescimentoDividendo12m: null,
+    crescimentoFonte: null,
     crescimentoMotivo: 'sem_serie',
     crescimentoBruto: null,
     mesesSaldoQuitado: 0,
@@ -1052,12 +1053,33 @@ function indicadoresDaSerieFii(serie, opcoes) {
   // Ainda não substitui o indicador: primeiro o log tem de mostrar que as
   // duas leituras concordam onde ambas são possíveis.
   const porDy = crescimentoPorDyFii(porMes, meses);
+
+  // MEDIDO, não suposto. A rodada de validação comparou os dois caminhos em
+  // seis fundos com 31 meses cada — HGLG11, KNRI11, VISC11, HGRU11, KNCR11 e
+  // VGHF11 — e a razão entre eles deu 1 (1,01 num). Cento e oitenta e seis
+  // comparações mensais concordando respondem à pergunta que o raciocínio
+  // não respondia: o `Percentual_Dividend_Yield_Mes` da CVM é sobre o valor
+  // PATRIMONIAL, não sobre o preço. `DY × VPC` reconstrói a mesma grandeza
+  // que o saldo de balanço.
+  //
+  // O DY passa a ser o caminho principal por COBERTURA: o saldo fecha em
+  // zero em fundos que liquidam dentro do mês (29 dos 31 meses no BTLG11), e
+  // o DY existe em todo mês que teve rendimento. O saldo fica de reserva —
+  // ele salva o GGRC11, que paga em 20,8% dos meses e dá base zero pelo DY.
+  //
+  // Um detalhe que reforça a escolha: o crescimento é a razão entre duas
+  // janelas da MESMA série, então um erro uniforme de escala no DY (a
+  // detecção razão-vs-percentagem) cancela-se por completo. Este caminho é
+  // imune àquela heurística; o saldo não seria.
+  const usouDy = porDy.valor !== null;
+  const escolhido = usouDy ? porDy : cresc;
   return {
     dyMedio36m,
     consistenciaDividendos,
-    crescimentoDividendo12m: cresc.valor,
-    crescimentoMotivo: cresc.motivo,
-    crescimentoBruto: cresc.bruto,
+    crescimentoDividendo12m: escolhido.valor,
+    crescimentoFonte: escolhido.valor === null ? null : usouDy ? 'dy_vpc' : 'saldo',
+    crescimentoMotivo: escolhido.motivo,
+    crescimentoBruto: escolhido.bruto,
     mesesSaldoQuitado: cresc.mesesSaldoQuitado,
     mesesComRendimento: cresc.mesesComRendimento,
     crescimentoPorDy: porDy.valor,

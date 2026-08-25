@@ -345,6 +345,8 @@ estava certa isoladamente:
 | 11     | tijolo/papel certo em 8 dos 9 fundos      | MXRF11 de papel classificado como tijolo por ter 2 imóveis         |
 | 11     | 7 dos 9 FIIs com crescimento derivado     | a trava de faixa recusava em silêncio (BTLG11, 31 meses)           |
 | 11     | valuation em 12 de 16 companhias          | a composição do capital não tem escala, e `TESOURO` ≠ `TESOURARIA` |
+| 12     | `DY × VPC` = `saldo ÷ cotas`, razão 1     | o yield da CVM é sobre o patrimônio — 186 comparações mensais      |
+| 12     | o BTLG11 ganhou crescimento pelo DY       | a série não carregava o VPC, e a medição saiu `0m` nos nove        |
 
 O padrão comum: **a busca não falhava, acertava o alvo errado** — sem exceção,
 sem `null`, com um número plausível o suficiente para ninguém olhar duas vezes.

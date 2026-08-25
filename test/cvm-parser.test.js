@@ -1934,12 +1934,32 @@ test('o segundo caminho recupera o fundo que liquida dentro do mês', () => {
     pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.88, 0, 1e6, 100]);
   }
   const r = P.indicadoresDaSerieFii(serieFii(pontos));
-  assert.equal(r.crescimentoDividendo12m, null, 'pelo saldo não dá — e não deve dar');
-  assert.equal(r.mesesSaldoQuitado, 24);
+  assert.equal(r.mesesSaldoQuitado, 24, 'o saldo não descreve este fundo em nenhum mês');
   assert.ok(
     Math.abs(r.crescimentoPorDy - 10) < 0.05,
     `esperado ~+10% pelo DY×VPC, veio ${r.crescimentoPorDy}`
   );
+  // E o indicador publicado passa a existir, pelo caminho que tem dado.
+  assert.equal(r.crescimentoDividendo12m, r.crescimentoPorDy);
+  assert.equal(r.crescimentoFonte, 'dy_vpc', 'a procedência do número vai junto com ele');
+});
+
+test('o saldo fica de reserva para quem o DY não alcança', () => {
+  // O GGRC11 paga em 20,8% dos meses: pelo DY a janela anterior dá média
+  // zero, e não há crescimento a calcular. O saldo, esse, tem os meses em
+  // que houve pagamento — e é ele que salva o indicador.
+  const pontos = [];
+  // Doze meses sem pagar: DY zero, e saldo zero de verdade (não quitado).
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0, 100000, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0, 110000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoPorDy, null, 'pelo DY a base é zero');
+  assert.equal(r.crescimentoDividendo12m, 10, 'o saldo assume');
+  assert.equal(r.crescimentoFonte, 'saldo');
 });
 
 test('a razão entre os dois caminhos é medida, não suposta', () => {
