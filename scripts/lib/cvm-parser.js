@@ -1000,6 +1000,7 @@ function indicadoresDaSerieFii(serie, opcoes) {
     consistenciaDividendos: null,
     crescimentoDividendo12m: null,
     crescimentoFonte: null,
+    crescimentoSaldo: null,
     crescimentoMotivo: 'sem_serie',
     crescimentoBruto: null,
     mesesSaldoQuitado: 0,
@@ -1080,6 +1081,14 @@ function indicadoresDaSerieFii(serie, opcoes) {
     crescimentoFonte: escolhido.valor === null ? null : usouDy ? 'dy_vpc' : 'saldo',
     crescimentoMotivo: escolhido.motivo,
     crescimentoBruto: escolhido.bruto,
+    // O valor do caminho do SALDO, sempre, à parte do escolhido. Existe
+    // porque o log rotulava `crescimentoBruto` como "reserva (saldo)" depois
+    // de ele passar a carregar o caminho escolhido: em todo fundo os dois
+    // números passaram a ser o mesmo, e a linha de comparação concordava
+    // consigo própria. Rótulo que sai de quem foi CHAMADO em vez de quem
+    // RESPONDEU é a proibição que este projeto já pagou uma vez, na
+    // degradação de cotação que carimbava BRAPI no que vinha do Yahoo.
+    crescimentoSaldo: cresc.valor,
     mesesSaldoQuitado: cresc.mesesSaldoQuitado,
     mesesComRendimento: cresc.mesesComRendimento,
     crescimentoPorDy: porDy.valor,

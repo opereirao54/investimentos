@@ -1187,9 +1187,9 @@ async function main() {
         // pode assumir nos fundos onde o saldo fecha em zero. Longe de 1
         // desmente, e é melhor sabê-lo aqui do que num ranking publicado.
         log(
-          `             reserva (saldo) ${
-            serie.crescimentoBruto === null ? '—' : serie.crescimentoBruto + '%'
-          } · cresc. por DY×VPC ${
+          `             pelo saldo ${
+            serie.crescimentoSaldo === null ? '—' : serie.crescimentoSaldo + '%'
+          } · pelo DY×VPC ${
             serie.crescimentoPorDy === null
               ? `— (${serie.crescimentoPorDyMotivo})`
               : serie.crescimentoPorDy + '%'

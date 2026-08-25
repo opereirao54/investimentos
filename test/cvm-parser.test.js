@@ -1962,6 +1962,29 @@ test('o saldo fica de reserva para quem o DY não alcança', () => {
   assert.equal(r.crescimentoFonte, 'saldo');
 });
 
+test('os dois caminhos ficam distinguíveis mesmo quando concordam', () => {
+  // Rótulo que sai de quem foi CHAMADO em vez de quem RESPONDEU já custou
+  // caro a este projeto. Depois de o DY passar a principal, o log rotulava
+  // "reserva (saldo)" um número que era o do caminho escolhido: em todo
+  // fundo os dois passaram a ser iguais e a linha de comparação concordava
+  // consigo própria — uma verificação que não verifica nada.
+  //
+  // Aqui os dois caminhos DIVERGEM de propósito: o saldo cresce 10%, o DY
+  // cresce 20%. Cada campo tem de carregar o seu.
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 1.0, 100000, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 1.2, 110000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoSaldo, 10, 'o campo do saldo carrega o saldo');
+  assert.equal(r.crescimentoPorDy, 20, 'o campo do DY carrega o DY');
+  assert.equal(r.crescimentoDividendo12m, 20, 'o publicado é o principal');
+  assert.equal(r.crescimentoFonte, 'dy_vpc');
+});
+
 test('a razão entre os dois caminhos é medida, não suposta', () => {
   // Onde os dois existem, a razão diz sobre que base a CVM calcula o yield.
   // Com o saldo montado para bater exatamente com DY × VPC, ela tem de dar 1
