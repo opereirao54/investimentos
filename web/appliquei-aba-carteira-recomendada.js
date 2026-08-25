@@ -150,9 +150,15 @@ var cartEstado = {
   capital: 10000, // aporte mensal
   objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
   prazoAnos: 10,
-  // 'automatico' = universo vem do ranking (dado). 'consultor' = vem da
-  // carteira modelo publicada no painel. O padrão é o dado.
-  modoUniverso: 'automatico',
+  // O universo vem SEMPRE do ranking. A carteira modelo continua a existir
+  // como reserva declarada quando uma classe volta vazia — mas isso é
+  // degradação, não uma opção que o cliente escolha.
+  //
+  // O par de botões saiu porque a diferença entre eles não é escolha de
+  // gosto: um é o produto (dados públicos, auditáveis) e o outro é uma
+  // lista escrita à mão. Oferecer os dois lado a lado sugeria que valem o
+  // mesmo, e convidava a desligar exatamente o que se está a vender.
+  // (antes: modoUniverso 'automatico' | 'consultor')
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
   simRange: '3y',
@@ -177,7 +183,6 @@ var cartMotor = {
   // Resposta de op=ranking (objeto com universo/excluidos/classes). NÃO
   // confundir com `ranking`, que é a lista já pontuada pelo motor.
   rankingServidor: null,
-  automatico: true,
   // Classes que o ranking não cobriu e caíram para a carteira modelo.
   fallback: [],
   // Configuração que falta do NOSSO lado (ex.: token de fonte de mercado).
@@ -204,7 +209,6 @@ function carregarCarteiraCliente() {
     cartEstado.capital = saved.capital || 10000;
     cartEstado.objetivo = saved.objetivo || null;
     cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
-    cartEstado.modoUniverso = saved.modoUniverso === 'consultor' ? 'consultor' : 'automatico';
     cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
     cartEstado.lente = saved.lente || null;
     cartRenderizarTela();
@@ -258,7 +262,6 @@ function cartSalvarEstado() {
       capital: cartEstado.capital,
       objetivo: cartEstado.objetivo,
       prazoAnos: cartEstado.prazoAnos,
-      modoUniverso: cartEstado.modoUniverso,
       patrimonio: cartEstado.patrimonio,
       lente: cartEstado.lente,
     })
@@ -1240,22 +1243,11 @@ async function cartBuscarDadosMotor() {
   var token = await cartTokenFirebase();
   if (!token) throw new Error('Sessão expirada — entre novamente para o motor buscar os dados.');
 
-  var automatico = cartEstado.modoUniverso !== 'consultor';
   var titulosRf = await cartBuscarRendaFixa(token);
-
-  var base;
-  var ranking = null;
-  var fallback = [];
-  if (automatico) {
-    ranking = await cartBuscarRanking(token, cartLenteAtiva());
-    var auto = cartUniversoAutomatico(ranking, titulosRf);
-    base = auto.itens;
-    fallback = auto.fallback;
-  } else {
-    // Modo consultor: a carteira modelo publicada no painel manda, e a renda
-    // fixa dela é casada com a oferta corrente do Tesouro.
-    base = cartUniversoBase();
-  }
+  var ranking = await cartBuscarRanking(token, cartLenteAtiva());
+  var auto = cartUniversoAutomatico(ranking, titulosRf);
+  var base = auto.itens;
+  var fallback = auto.fallback;
 
   var tickers = base
     .filter(function (a) {
@@ -1282,7 +1274,6 @@ async function cartBuscarDadosMotor() {
     indicadores: resultados[1] ? resultados[1].indicadores : null,
     premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
     ranking: ranking,
-    automatico: automatico,
     fallback: fallback,
   };
 }
@@ -1403,57 +1394,13 @@ function cartRenderizarMotorLentes() {
  * carteira do consultor continua disponível porque há contexto em que um
  * humano no circuito é desejável — mas deixou de ser o único caminho.
  */
-function cartRenderizarModoUniverso() {
-  var wrap = document.getElementById('cartMotorModo');
-  if (!wrap) return;
-  var auto = cartEstado.modoUniverso !== 'consultor';
-  var opcoes = [
-    {
-      id: 'automatico',
-      nome: 'Todo o mercado',
-      dica: 'Os candidatos saem dos dados da CVM e do Tesouro, sem lista escrita à mão.',
-    },
-    {
-      id: 'consultor',
-      nome: 'Sugestão baseada no perfil',
-      dica: 'Considera apenas a lista curada para o seu perfil.',
-    },
-  ];
-  wrap.innerHTML = opcoes
-    .map(function (o) {
-      var ativo = o.id === 'automatico' ? auto : !auto;
-      return (
-        '<button type="button" class="cart-motor-modo-btn' +
-        (ativo ? ' active' : '') +
-        '" onclick="cartTrocarModoUniverso(\'' +
-        o.id +
-        '\')" title="' +
-        o.dica.replace(/"/g, '&quot;') +
-        '">' +
-        o.nome +
-        '</button>'
-      );
-    })
-    .join('');
-}
-
 function cartTrocarLente(id) {
   if (!MOTOR_LENTES[id]) return;
   cartEstado.lente = id;
   cartSalvarEstado();
   cartRenderizarMotorLentes();
-  // No modo automático a lente decide QUAIS ativos entram na lista curta,
-  // não só o peso dos pilares — então o universo tem de ser rebuscado.
-  if (cartEstado.modoUniverso !== 'consultor') cartRenderizarMotor(true);
-  else cartRecalcularMotor();
-}
-
-/** Alterna entre universo descoberto por dado e carteira do consultor. */
-function cartTrocarModoUniverso(modo) {
-  var novo = modo === 'consultor' ? 'consultor' : 'automatico';
-  if (cartEstado.modoUniverso === novo) return;
-  cartEstado.modoUniverso = novo;
-  cartSalvarEstado();
+  // A lente decide QUAIS ativos entram na lista curta, não só o peso dos
+  // pilares — então o universo tem de ser rebuscado, não só repontuado.
   cartRenderizarMotor(true);
 }
 
@@ -1494,7 +1441,6 @@ async function cartRenderizarMotor(forcar) {
     return;
   }
   wrap.style.display = 'block';
-  cartRenderizarModoUniverso();
   cartRenderizarMotorLentes();
 
   // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
@@ -1518,7 +1464,6 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.indicadores = dados.indicadores;
     cartMotor.premissasDegradadas = dados.premissasDegradadas;
     cartMotor.rankingServidor = dados.ranking;
-    cartMotor.automatico = dados.automatico;
     cartMotor.fallback = dados.fallback || [];
     cartMotor.pendencias = dados.pendencias || [];
     cartMotor.buscadoEm = Date.now();
@@ -1579,7 +1524,7 @@ function cartRenderizarMotorStatus() {
       Math.round(coberturaMedia * 100) +
       '% de cobertura média)</span>'
   );
-  if (cartMotor.automatico && cartMotor.rankingServidor) {
+  if (cartMotor.rankingServidor) {
     var r = cartMotor.rankingServidor;
     var cortados = Object.values(r.excluidos || {}).reduce(function (s2, v) {
       return s2 + v;
@@ -1591,10 +1536,6 @@ function cartRenderizarMotorStatus() {
         ' ativos analisados' +
         (cortados ? ', ' + cortados + ' fora do corte de porte e liquidez' : '') +
         '</span>'
-    );
-  } else if (!cartMotor.automatico) {
-    partes.push(
-      '<span class="cart-motor-status-item"><i class="ph ph-user-circle"></i> Universo: carteira do consultor</span>'
     );
   }
   if (cartMotor.origemPatrimonio === 'carteira')

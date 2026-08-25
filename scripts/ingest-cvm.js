@@ -406,6 +406,74 @@ async function baixarCotacoes(tickers) {
   return out;
 }
 
+/**
+ * O que o endpoint do Tesouro Direto devolve HOJE.
+ *
+ * Não corrige nada e não grava nada: imprime a resposta crua o suficiente
+ * para separar "mudou de forma" de "recusou a chamada". Sem isto a correção
+ * vira palpite, que é o que produziu os últimos oito defeitos deste projeto.
+ */
+const TESOURO_URL =
+  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+
+async function sondarTesouro() {
+  log('\n· Sonda do Tesouro Direto…');
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 20000);
+  let res;
+  let corpo;
+  try {
+    res = await fetch(TESOURO_URL, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    corpo = await res.text();
+  } catch (e) {
+    log(`  ✗ nem chegou a responder: ${e.name} ${e.message}`);
+    return;
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const tipo = res.headers.get('content-type') || '—';
+  log(`  HTTP ${res.status} · ${tipo} · ${corpo.length} bytes`);
+  if (!res.ok) {
+    // Corpo de erro é o que distingue WAF de indisponibilidade: um devolve
+    // HTML de bloqueio, o outro devolve nada ou uma página de manutenção.
+    log(`  corpo (300 primeiros): ${corpo.slice(0, 300).replace(/\s+/g, ' ')}`);
+    return;
+  }
+
+  let json;
+  try {
+    json = JSON.parse(corpo);
+  } catch (e) {
+    log(`  ✗ resposta não é JSON: ${e.message}`);
+    log(`  corpo (300 primeiros): ${corpo.slice(0, 300).replace(/\s+/g, ' ')}`);
+    return;
+  }
+
+  log(`  chaves de topo: ${Object.keys(json).join(', ') || '(nenhuma)'}`);
+  const lista =
+    (json.response && json.response.TrsrBdTradgList) ||
+    json.TrsrBdTradgList ||
+    (Array.isArray(json) ? json : null);
+  if (!Array.isArray(lista)) {
+    log('  ✗ nenhum dos caminhos conhecidos da lista existe nesta resposta');
+    if (json.response) log(`    chaves de response: ${Object.keys(json.response).join(', ')}`);
+    return;
+  }
+  log(`  lista com ${lista.length} títulos`);
+  const primeiro = lista[0] || {};
+  const bd = primeiro.TrsrBd || primeiro.trsrBd || primeiro;
+  log(`  campos do 1º item: ${Object.keys(primeiro).join(', ')}`);
+  log(`  campos do título:  ${Object.keys(bd).join(', ')}`);
+  // As duas chaves de que o parser depende, pelo nome, com o valor lido.
+  log(
+    `  nm=${bd.nm ?? bd.name ?? bd.nome ?? '—'} · anulInvstmtRate=${bd.anulInvstmtRate ?? bd.annualInvestmentRate ?? '—'}`
+  );
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const gravar = args.includes('--gravar') || args.includes('--send');
@@ -1325,6 +1393,21 @@ async function main() {
     if (existente) existente.yahoo = dy.yahoo;
     else documentos.push({ ticker: dy.ticker, dados: null, yahoo: dy.yahoo });
   }
+
+  // ── Sonda do Tesouro Direto ──
+  //
+  // A renda fixa NÃO passa por este job: ela é buscada pela function do
+  // Vercel em `op=rendafixa`, e é a única classe que chega vazia à tela. As
+  // hipóteses são opostas e produzem o mesmo sintoma:
+  //
+  //   o endpoint mudou de forma  → o parser precisa de outra chave
+  //   o endpoint recusa a chamada → o trabalho precisa mudar de lugar
+  //
+  // Do sandbox não dá para distinguir (o proxy devolve 403 antes de sair), e
+  // do Vercel só se vê o `catch`. O runner tem rede limpa, então é aqui que
+  // a pergunta se responde — imprimindo o que o Tesouro devolve HOJE, não o
+  // que se supõe que ele devolva.
+  await sondarTesouro();
 
   log(`\n=== ${documentos.length} documentos prontos ===`);
   if (!gravar) {

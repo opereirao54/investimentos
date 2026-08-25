@@ -715,39 +715,30 @@ test('o status diz quantos ativos foram analisados e quantos caíram no corte', 
   assert.ok(html.includes('245 fora do corte'), 'o total peneirado tem de ser visível');
 });
 
-test('modo consultor é declarado na tela como escolha diferente', () => {
+test('não há escolha de universo: o dado é o produto, não uma opção', () => {
+  // Os dois botões — "Todo o mercado" e a lista curada — não eram escolha de
+  // gosto: um é o produto (CVM e Tesouro, auditável) e o outro é uma lista
+  // escrita à mão. Lado a lado sugeriam valer o mesmo, e convidavam a
+  // desligar exatamente o que se está a vender.
+  //
+  // A carteira modelo continua a existir como RESERVA declarada quando uma
+  // classe volta vazia do ranking — degradação com aviso, não alternativa.
   const s = carregar();
-  s.run(SEMENTE);
-  s.run('cartMotor.automatico = false; cartRenderizarMotorStatus();');
-  const html = s.dom.els.get('cartMotorStatus').innerHTML;
-  assert.ok(html.includes('carteira do consultor'));
-  assert.ok(!html.includes('ativos analisados'));
-});
+  assert.equal(s.run('typeof cartRenderizarModoUniverso'), 'undefined');
+  assert.equal(s.run('typeof cartTrocarModoUniverso'), 'undefined');
+  assert.equal(s.run('cartEstado.modoUniverso'), undefined, 'o modo saiu do estado');
 
-test('o padrão é todo o mercado, não a carteira do consultor', () => {
-  const s = carregar();
-  assert.notEqual(s.run('cartEstado.modoUniverso'), 'consultor');
-  s.run('cartRenderizarModoUniverso();');
-  const html = s.dom.els.get('cartMotorModo').innerHTML;
-  assert.ok(html.includes('Todo o mercado'));
-  assert.ok(
-    html.includes('Sugestão baseada no perfil'),
-    'a opção curada continua disponível, com nome que o cliente entende'
-  );
-  // O id interno continua 'consultor' no onclick — trocá-lo invalidaria o
-  // modoUniverso já gravado no localStorage de quem usa. O que não pode
-  // aparecer é o RÓTULO: é o texto entre tags que o cliente lê.
-  const rotulos = html.match(/>([^<>]+)<\/button>/g) || [];
-  assert.ok(
-    !rotulos.some((t) => /consultor/i.test(t)),
-    `jargão interno visível ao cliente: ${rotulos.join(' | ')}`
-  );
-  assert.equal(html.split('active').length - 1, 1, 'só um modo ativo de cada vez');
-  assert.ok(
-    /class="cart-motor-modo-btn active"[^>]*onclick="cartTrocarModoUniverso\('automatico'\)"/.test(
-      html
-    )
-  );
+  // E o status continua a declarar o universo analisado, que é o que
+  // substitui a informação que o par de botões dava.
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.rankingServidor = { universo: 400, excluidos: { porte_abaixo_do_piso: 245 } };
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('400 ativos analisados'));
+  assert.ok(!/consultor/i.test(html), 'o jargão interno não sobrevive no status');
 });
 
 test('a lista pontuada e a resposta do ranking não compartilham campo', () => {
