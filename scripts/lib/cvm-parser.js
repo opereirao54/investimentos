@@ -991,6 +991,10 @@ function indicadoresDaSerieFii(serie, opcoes) {
     crescimentoMotivo: 'sem_serie',
     crescimentoBruto: null,
     mesesSaldoQuitado: 0,
+    crescimentoPorDy: null,
+    crescimentoPorDyMotivo: 'sem_serie',
+    razaoSaldoDy: null,
+    mesesComparados: 0,
     mesesComRendimento: 0,
     mesesObservados: 0,
   };
@@ -1003,8 +1007,13 @@ function indicadoresDaSerieFii(serie, opcoes) {
   const porMes = new Map();
   for (const p of serie) {
     const mes = String(p.dataReferencia).slice(0, 7);
-    const acum = porMes.get(mes) || { dyMes: null, rendimentosDistribuir: null, numeroCotas: null };
-    for (const campo of ['dyMes', 'rendimentosDistribuir', 'numeroCotas']) {
+    const acum = porMes.get(mes) || {
+      dyMes: null,
+      rendimentosDistribuir: null,
+      numeroCotas: null,
+      valorPatrimonialCota: null,
+    };
+    for (const campo of ['dyMes', 'rendimentosDistribuir', 'numeroCotas', 'valorPatrimonialCota']) {
       if (p[campo] !== null && p[campo] !== undefined) acum[campo] = p[campo];
     }
     porMes.set(mes, acum);
@@ -1027,6 +1036,11 @@ function indicadoresDaSerieFii(serie, opcoes) {
     return { ...vazio, crescimentoMotivo: 'poucos_meses', mesesObservados: comDy.length };
   }
   const cresc = crescimentoDividendoFii(porMes, meses);
+  // O segundo caminho corre SEMPRE, mesmo quando o primeiro deu resultado —
+  // é nos fundos onde os dois existem que a comparação vale alguma coisa.
+  // Ainda não substitui o indicador: primeiro o log tem de mostrar que as
+  // duas leituras concordam onde ambas são possíveis.
+  const porDy = crescimentoPorDyFii(porMes, meses);
   return {
     dyMedio36m,
     consistenciaDividendos,
@@ -1035,6 +1049,10 @@ function indicadoresDaSerieFii(serie, opcoes) {
     crescimentoBruto: cresc.bruto,
     mesesSaldoQuitado: cresc.mesesSaldoQuitado,
     mesesComRendimento: cresc.mesesComRendimento,
+    crescimentoPorDy: porDy.valor,
+    crescimentoPorDyMotivo: porDy.motivo,
+    razaoSaldoDy: cresc.razaoSaldoDy,
+    mesesComparados: cresc.mesesComparados,
     mesesObservados: comDy.length,
   };
 }
@@ -1055,10 +1073,80 @@ function indicadoresDaSerieFii(serie, opcoes) {
  * Exige as duas janelas razoavelmente completas: com três meses de um lado
  * e doze do outro, a razão mede a lacuna, não o crescimento.
  */
-function crescimentoDividendoFii(porMes, meses) {
+/**
+ * Duas janelas de doze meses comparadas, com as travas de sempre.
+ *
+ * Vive à parte porque há DOIS caminhos até o rendimento por cota — o saldo
+ * do balanço e o yield sobre o valor patrimonial — e comparar os dois exige
+ * que a janela, o mínimo por janela e a faixa de sanidade sejam idênticos.
+ * Duplicar essa lógica faria a divergência entre os caminhos medir a
+ * diferença entre duas implementações, não entre duas fontes.
+ */
+function compararJanelas(porCota) {
   const MIN_POR_JANELA = 9;
+  const comDado = Array.from(porCota.keys()).sort();
+  const d = { mesesComRendimento: comDado.length, valor: null, motivo: null, bruto: null };
+  if (comDado.length < MIN_POR_JANELA * 2) {
+    d.motivo = 'serie_curta';
+    return d;
+  }
+  const recentes = comDado.slice(-12);
+  const anteriores = comDado.slice(-24, -12);
+  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) {
+    d.motivo = 'janela_incompleta';
+    return d;
+  }
+  const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
+  // Média por mês, não soma: as janelas podem ter contagens diferentes, e
+  // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
+  const mediaRecente = soma(recentes) / recentes.length;
+  const mediaAnterior = soma(anteriores) / anteriores.length;
+  if (!(mediaAnterior > 0)) {
+    d.motivo = 'base_zero';
+    return d;
+  }
+  const cresc = (mediaRecente / mediaAnterior - 1) * 100;
+  d.bruto = Math.round(cresc * 10) / 10;
+  // Fora desta faixa não é crescimento de distribuição: é mudança de
+  // estrutura (emissão, incorporação) ou linha lida errado.
+  if (!(cresc >= -95 && cresc <= 200)) {
+    d.motivo = 'fora_de_faixa';
+    return d;
+  }
+  d.valor = d.bruto;
+  return d;
+}
+
+/**
+ * O MESMO crescimento, pelo yield declarado sobre o valor patrimonial.
+ *
+ * Caminho independente do saldo de balanço, e existe porque o saldo não
+ * serve para todo fundo: no BTLG11 ele fecha em zero em 29 dos 31 meses.
+ *
+ * O informe mensal NÃO tem coluna de preço nenhuma — a listagem real de
+ * `complemento` traz `Valor_Patrimonial_Cotas` e nada de cotação. Uma
+ * declaração que não registra o preço não pode calcular yield sobre ele, e
+ * é isso que torna `DY × VPC` uma reconstrução do rendimento por cota, não
+ * uma mistura de rendimento com variação de cotação.
+ *
+ * Continua a ser hipótese até o log a confrontar com o saldo nos fundos que
+ * têm os dois. É para isso que os dois caminhos são calculados lado a lado.
+ */
+function crescimentoPorDyFii(porMes, meses) {
+  const porCota = new Map();
+  for (const mes of meses) {
+    const p = porMes.get(mes);
+    if (p.dyMes === null || p.valorPatrimonialCota === null) continue;
+    if (!(p.valorPatrimonialCota > 0) || p.dyMes < 0) continue;
+    porCota.set(mes, (p.dyMes / 100) * p.valorPatrimonialCota);
+  }
+  return compararJanelas(porCota);
+}
+
+function crescimentoDividendoFii(porMes, meses) {
   const porCota = new Map();
   let saldoQuitado = 0;
+  const razoes = [];
   for (const mes of meses) {
     const p = porMes.get(mes);
     if (p.rendimentosDistribuir === null || p.numeroCotas === null) continue;
@@ -1076,62 +1164,30 @@ function crescimentoDividendoFii(porMes, meses) {
       saldoQuitado++;
       continue;
     }
-    porCota.set(mes, p.rendimentosDistribuir / p.numeroCotas);
+    const valor = p.rendimentosDistribuir / p.numeroCotas;
+    porCota.set(mes, valor);
+    // A razão entre os dois caminhos, mês a mês, é a evidência que decide
+    // sobre que base a CVM calcula o `Percentual_Dividend_Yield_Mes`. Perto
+    // de 1 significa que o yield é sobre o valor patrimonial, e aí `DY × VPC`
+    // reconstrói o rendimento por cota nos fundos onde o saldo não serve.
+    // Sistematicamente longe de 1 desmente a hipótese, e é melhor sabê-lo
+    // pelo log do que descobri-lo num ranking publicado.
+    if (p.dyMes > 0 && p.valorPatrimonialCota > 0 && valor > 0) {
+      razoes.push(valor / ((p.dyMes / 100) * p.valorPatrimonialCota));
+    }
   }
-  const comDado = Array.from(porCota.keys()).sort();
-  // Quantos meses de facto trouxeram as duas pontas. Sem este número,
-  // "série curta" e "coluna vazia" produzem o mesmo travessão no log e
-  // pedem correções opostas — uma é aumentar a janela, a outra é procurar
-  // a coluna noutro lugar.
-  // `motivo` e `bruto` existem porque uma trava que recusa em silêncio custou
-  // uma rodada inteira: o BTLG11 saiu com travessão tendo 31 meses de
-  // rendimento, e "série curta", "base zero" e "número fora de faixa" produzem
-  // o mesmo travessão pedindo correções opostas. O valor recusado vai junto —
-  // recusar protege o ranking, mas só o dado cru explica a fonte.
-  const diagnostico = {
-    mesesComRendimento: comDado.length,
-    // Quantos meses foram descartados por saldo quitado. Vai ao log porque é
-    // a diferença entre "o fundo não distribui" e "a coluna não descreve a
-    // distribuição deste fundo" — hipóteses opostas com o mesmo travessão.
-    mesesSaldoQuitado: saldoQuitado,
-    valor: null,
-    motivo: null,
-    bruto: null,
-  };
-  if (comDado.length < MIN_POR_JANELA * 2) {
-    diagnostico.motivo = 'serie_curta';
-    return diagnostico;
-  }
-
-  const recentes = comDado.slice(-12);
-  const anteriores = comDado.slice(-24, -12);
-  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) {
-    diagnostico.motivo = 'janela_incompleta';
-    return diagnostico;
-  }
-
-  const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
-  // Média por mês, não soma: as janelas podem ter contagens diferentes, e
-  // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
-  const mediaRecente = soma(recentes) / recentes.length;
-  const mediaAnterior = soma(anteriores) / anteriores.length;
-  if (!(mediaAnterior > 0)) {
-    diagnostico.motivo = 'base_zero';
-    return diagnostico;
-  }
-
-  const cresc = (mediaRecente / mediaAnterior - 1) * 100;
-  diagnostico.bruto = Math.round(cresc * 10) / 10;
-  // Fora desta faixa não é crescimento de distribuição: é mudança de
-  // estrutura (emissão, incorporação) ou linha lida errado.
-  if (!(cresc >= -95 && cresc <= 200)) {
-    diagnostico.motivo = 'fora_de_faixa';
-    return diagnostico;
-  }
-  diagnostico.valor = diagnostico.bruto;
-  return diagnostico;
+  const d = compararJanelas(porCota);
+  // Quantos meses foram descartados por saldo quitado. Vai ao log porque é
+  // a diferença entre "o fundo não distribui" e "a coluna não descreve a
+  // distribuição deste fundo" — hipóteses opostas com o mesmo travessão.
+  d.mesesSaldoQuitado = saldoQuitado;
+  razoes.sort((a, b) => a - b);
+  d.razaoSaldoDy = razoes.length
+    ? Math.round(razoes[Math.floor(razoes.length / 2)] * 100) / 100
+    : null;
+  d.mesesComparados = razoes.length;
+  return d;
 }
-
 module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
 
 /**

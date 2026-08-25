@@ -1779,6 +1779,9 @@ function serieFii(pontos) {
       dyMes: p[1] === undefined ? 0.8 : p[1],
       rendimentosDistribuir: p[2] === undefined ? null : p[2],
       numeroCotas: p[3] === undefined ? null : p[3],
+      // O valor patrimonial da cota: quinta posição, porque o segundo
+      // caminho do crescimento (DY × VPC) precisa dele.
+      valorPatrimonialCota: p[4] === undefined ? null : p[4],
     };
   });
 }
@@ -1889,6 +1892,42 @@ test('saldo zerado num mês que rendeu é lacuna, não distribuição nula', () 
     ]);
   }
   assert.equal(P.indicadoresDaSerieFii(serieFii(semPagar)).mesesSaldoQuitado, 0);
+});
+
+test('o segundo caminho recupera o fundo que liquida dentro do mês', () => {
+  // O BTLG11 tem saldo zero em 29 dos 31 meses. Pelo saldo não há
+  // crescimento a calcular; pelo yield sobre o valor patrimonial há, e é a
+  // mesma grandeza — rendimento por cota — reconstruída de outra coluna.
+  const pontos = [];
+  // dyMes em %, VPC constante: 0,80% de 100 = R$ 0,80/cota; depois 0,88.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 0, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.88, 0, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoDividendo12m, null, 'pelo saldo não dá — e não deve dar');
+  assert.equal(r.mesesSaldoQuitado, 24);
+  assert.ok(
+    Math.abs(r.crescimentoPorDy - 10) < 0.05,
+    `esperado ~+10% pelo DY×VPC, veio ${r.crescimentoPorDy}`
+  );
+});
+
+test('a razão entre os dois caminhos é medida, não suposta', () => {
+  // Onde os dois existem, a razão diz sobre que base a CVM calcula o yield.
+  // Com o saldo montado para bater exatamente com DY × VPC, ela tem de dar 1
+  // — é este número que, no dado real, confirma ou desmente a hipótese.
+  const pontos = [];
+  for (let i = 1; i <= 24; i++) {
+    const mes = `202${i <= 12 ? 4 : 5}-${String(((i - 1) % 12) + 1).padStart(2, '0')}`;
+    // 0,80% de VPC 100 = 0,80/cota; com 1e6 cotas, saldo de 800000.
+    pontos.push([mes, 0.8, 800000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.razaoSaldoDy, 1, 'as duas leituras descrevem a mesma grandeza');
+  assert.equal(r.mesesComparados, 24);
 });
 
 test('cada porta de saída do crescimento tem um motivo próprio', () => {

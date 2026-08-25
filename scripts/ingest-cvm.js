@@ -1180,6 +1180,21 @@ async function main() {
             }` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
         );
+        // Os dois caminhos lado a lado. `razão` é a evidência: o rendimento
+        // por cota tirado do saldo dividido pelo tirado de `DY × VPC`, na
+        // mediana dos meses em que os dois existem. Perto de 1 confirma que o
+        // yield da CVM é sobre o valor patrimonial — e aí o segundo caminho
+        // pode assumir nos fundos onde o saldo fecha em zero. Longe de 1
+        // desmente, e é melhor sabê-lo aqui do que num ranking publicado.
+        log(
+          `             cresc. por DY×VPC ${
+            serie.crescimentoPorDy === null
+              ? `— (${serie.crescimentoPorDyMotivo})`
+              : serie.crescimentoPorDy + '%'
+          }` +
+            ` · razão saldo/DY ${serie.razaoSaldoDy === null ? '—' : serie.razaoSaldoDy}` +
+            ` em ${serie.mesesComparados}m`
+        );
         if (!preenchidos) continue;
         documentos.push({
           ticker: c.ticker,
