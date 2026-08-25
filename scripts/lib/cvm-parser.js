@@ -906,12 +906,20 @@ function extrairInformeFii(registros, colunas) {
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
 
-    // O ponto da série carrega TODOS os campos mensais, não só o DY. O
+    // O ponto da série carrega os campos MENSAIS de que a série precisa. O
     // rendimento a distribuir mora no `ativo_passivo` e as cotas emitidas
     // no `complemento`: são membros diferentes do mesmo ZIP, e só depois de
     // reunidos por mês é que o rendimento por cota existe. Por isso o ponto
     // é gravado mesmo sem DY — antes, `dyMes === null` descartava a linha
     // inteira e levava junto o que o outro membro traria.
+    //
+    // A lista é EXPLÍCITA de propósito, e cada campo aqui é consumido por
+    // `indicadoresDaSerieFii`. O comentário antigo dizia "TODOS os campos
+    // mensais" e o código gravava três: acrescentei um consumidor de
+    // `valorPatrimonialCota` confiando na frase, e a medição saiu `0m` em
+    // todos os nove fundos — um zero plausível, do mesmo tipo que este
+    // projeto passou a semana a caçar. Comentário que promete mais do que o
+    // código entrega é uma armadilha, não documentação.
     if (data) {
       const serie = seriePorCnpj.get(cnpj) || [];
       serie.push({
@@ -919,6 +927,9 @@ function extrairInformeFii(registros, colunas) {
         dyMes: dyMesPct,
         rendimentosDistribuir: num('rendimentosDistribuir'),
         numeroCotas: num('numeroCotas'),
+        // Base do segundo caminho do crescimento: `DY × VPC` reconstrói o
+        // rendimento por cota onde o saldo de balanço fecha em zero.
+        valorPatrimonialCota: num('valorPatrimonialCota'),
       });
       seriePorCnpj.set(cnpj, serie);
     }

@@ -1392,6 +1392,33 @@ test('o DY do mês é razão apesar do nome, e a escala sai da mediana do arquiv
   );
 });
 
+test('o ponto da série carrega o que a série consome — VPC incluído', () => {
+  // Regressão do defeito mais instrutivo desta rodada: o comentário prometia
+  // "TODOS os campos mensais", o código gravava três, e o consumidor de
+  // `valorPatrimonialCota` que confiou na frase mediu `0m` nos nove fundos —
+  // um zero plausível, indistinguível de "o dado não sustenta a hipótese".
+  //
+  // O teste vai pelo `parseCsvCvm` com o cabeçalho REAL do `complemento`: um
+  // fixture montado à mão passaria mesmo com a coluna por resolver.
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Cotas_Emitidas;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
+    '97.521.225/0001-25;2026-07-31;1000000;9,262499;0,00808',
+    '97.521.225/0001-25;2026-06-30;1000000;9,20;0,008',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+  const serie = r.seriePorCnpj.get('97521225000125');
+  assert.ok(serie && serie.length === 2, `série ausente: ${JSON.stringify(serie)}`);
+  for (const ponto of serie) {
+    assert.ok(
+      ponto.valorPatrimonialCota > 0,
+      `VPC não chegou ao ponto da série: ${JSON.stringify(ponto)}`
+    );
+  }
+  // E chegando ao ponto, o segundo caminho passa a ter as duas pontas.
+  assert.equal(serie[0].numeroCotas, 1000000);
+});
+
 test('arquivo já em percentagem não é multiplicado de novo', () => {
   const csv = [
     'CNPJ_Fundo;Data_Referencia;Percentual_Dividend_Yield_Mes',
