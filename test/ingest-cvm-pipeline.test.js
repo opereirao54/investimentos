@@ -209,13 +209,25 @@ function dataDa(competencia) {
   return `${competencia.slice(0, 4)}-${competencia.slice(4)}-01`;
 }
 
-function informeGeral(competencia) {
+function informeGeral(competencia, opcoes) {
+  const op = opcoes || {};
   const recente = competencia === '202607';
   const data = dataDa(competencia);
   return [
     'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Patrimonio_Liquido;Cotas_Emitidas;Total_Numero_Cotistas',
     `${CNPJ_MXRF};${data};MAXI RENDA FUNDO DE INVESTIMENTO IMOBILIARIO;BRMXRFCTF004;${recente ? '1600000000' : '1500000000'};${recente ? '160000000' : '150000000'};${recente ? '480000' : '450000'}`,
     `${CNPJ_HGLG};${data};CSHG LOGISTICA - FII;BRHGLGCTF003;4000000000;30000000;120000`,
+    // DOIS fundos com a mesma raiz de ISIN, como o Peninsula e o XP Malls
+    // partilham a raiz XPML no arquivo real. Fica atrás de uma opção para não
+    // tornar ambíguo um ticker que os outros testes usam: casar com o errado
+    // publicaria os indicadores de um fundo sob o ticker de outro, e é esse
+    // o caso que precisa de garantia própria.
+    ...(op.fiiAmbiguo
+      ? [
+          `33.333.333/0001-33;${data};XP MALLS FII;BRXPMLCTF001;3000000000;25000000;300000`,
+          `44.444.444/0001-44;${data};PENINSULA FII RL;BRXPMLCTF999;90000000;900000;900`,
+        ]
+      : []),
   ].join('\n');
 }
 
@@ -233,13 +245,14 @@ function informeComplemento(competencia) {
   ].join('\n');
 }
 
-function informeZip(ano) {
+function informeZip(ano, opcoes) {
+  const op = opcoes || {};
   const meses = ['01', '04', '07'];
   const membros = [];
   // Fora de ordem de propósito: quem escolhe o mês é a data de referência,
   // não a ordem do arquivo.
   for (const mes of meses.slice().reverse()) {
-    membros.push([`inf_mensal_fii_geral_${ano}${mes}.csv`, informeGeral(`${ano}${mes}`)]);
+    membros.push([`inf_mensal_fii_geral_${ano}${mes}.csv`, informeGeral(`${ano}${mes}`, op)]);
   }
   for (const mes of meses) {
     membros.push([
@@ -329,7 +342,7 @@ function montarFetch(opcoes) {
         if (!op.informeFii) return naoAchado;
         const ano = u.match(/inf_mensal_fii_(\d{4})\.zip/);
         if (!ano) return naoAchado;
-        return responder(informeZip(ano[1]));
+        return responder(informeZip(ano[1], { fiiAmbiguo: op.fiiAmbiguo }));
       }
       // Índice de diretório da CVM, como o portal serve: HTML com links.
       if (op.indice && u.endsWith('/')) {
@@ -763,6 +776,36 @@ test('undefined vira null antes da gravação, em vez de derrubar o lote', () =>
   assert.equal(limpo.patrimonioLiquido, 5e9);
   assert.equal(limpo.classe, 'fii');
   assert.ok(!Object.values(limpo).includes(undefined));
+});
+
+test('ticker ambíguo não recebe os indicadores do fundo errado', async () => {
+  // O XPML11 partilha a raiz de ISIN com o Peninsula FII, e os dois declaram
+  // negociação em bolsa: o desempate atual não os separa. A garantia que
+  // importa comercialmente não é acertar o desempate — é NUNCA publicar os
+  // indicadores de um fundo sob o ticker de outro.
+  const { texto, documentos } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    fiiAmbiguo: true,
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+    },
+  });
+  const xpml = (documentos || []).find((d) => d.ticker === 'XPML11');
+  assert.equal(xpml, undefined, `XPML11 não podia ter documento:\n${texto}`);
+  // E o log tem de descrever a DECISÃO, não o candidato que venceu a
+  // ordenação interna: "? XPML11 PENINSULA FII RL" lê-se como "casou com o
+  // Peninsula", quando o que aconteceu foi "recusou casar".
+  assert.match(texto, /XPML11\s+— não casado/, `o log não diz que recusou:\n${texto}`);
+  assert.ok(
+    !/XPML11\s+PENINSULA/.test(texto),
+    `o log ainda sugere que o XPML11 casou com o Peninsula:\n${texto}`
+  );
+  // Os dois candidatos continuam impressos: sem eles ninguém sabe se falta
+  // critério de desempate ou se a raiz está partilhada por engano.
+  assert.match(texto, /candidato 33333333000133/, `candidatos ausentes:\n${texto}`);
+  assert.match(texto, /candidato 44444444000144/, `candidatos ausentes:\n${texto}`);
 });
 
 test('LTV do FII junta o ativo de um membro com as obrigações de outro', async () => {

@@ -968,9 +968,18 @@ async function main() {
       });
       for (const c of casFii) {
         const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
+        // Ticker ambíguo NÃO casou — o pipeline exclui-o logo abaixo. Imprimir
+        // o nome do candidato que venceu a ordenação interna dizia o contrário
+        // ao olho: `? XPML11 PENINSULA FII RL` lê-se como "casou com o
+        // Peninsula", quando o que aconteceu foi "recusou casar". O rótulo tem
+        // de descrever a DECISÃO, não o estado intermédio que a produziu.
         log(
-          `  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}` +
-            (c.desempate ? ` (desempatado por ${c.desempate})` : '')
+          `  ${marca} ${c.ticker.padEnd(8)} ` +
+            (c.status === 'ok'
+              ? c.casouCom + (c.desempate ? ` (desempatado por ${c.desempate})` : '')
+              : c.status === 'ambiguo'
+                ? '— não casado: dois fundos com a mesma raiz, sem critério que os separe'
+                : '— ' + c.status)
         );
         // Ambiguidade pula o ticker — e sem ver os candidatos ninguém sabe
         // se falta um critério de desempate ou se a raiz está sendo
