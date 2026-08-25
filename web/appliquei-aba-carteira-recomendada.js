@@ -150,12 +150,17 @@ var cartEstado = {
   capital: 10000, // aporte mensal
   objetivo: null, // 'preservar' | 'renda' | 'aposentadoria' | 'aumentar'
   prazoAnos: 10,
-  // 'automatico' = universo vem do ranking (dado). 'consultor' = vem da
-  // carteira modelo publicada no painel. O padrão é o dado.
-  modoUniverso: 'automatico',
+  // O universo vem SEMPRE do ranking. A carteira modelo continua a existir
+  // como reserva declarada quando uma classe volta vazia — mas isso é
+  // degradação, não uma opção que o cliente escolha.
+  //
+  // O par de botões saiu porque a diferença entre eles não é escolha de
+  // gosto: um é o produto (dados públicos, auditáveis) e o outro é uma
+  // lista escrita à mão. Oferecer os dois lado a lado sugeria que valem o
+  // mesmo, e convidava a desligar exatamente o que se está a vender.
+  // (antes: modoUniverso 'automatico' | 'consultor')
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
-  selecionados: { rf: null, acao: null, fii: null, cripto: null }, // null = todos
   simRange: '3y',
 };
 
@@ -178,7 +183,6 @@ var cartMotor = {
   // Resposta de op=ranking (objeto com universo/excluidos/classes). NÃO
   // confundir com `ranking`, que é a lista já pontuada pelo motor.
   rankingServidor: null,
-  automatico: true,
   // Classes que o ranking não cobriu e caíram para a carteira modelo.
   fallback: [],
   // Configuração que falta do NOSSO lado (ex.: token de fonte de mercado).
@@ -205,15 +209,8 @@ function carregarCarteiraCliente() {
     cartEstado.capital = saved.capital || 10000;
     cartEstado.objetivo = saved.objetivo || null;
     cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
-    cartEstado.modoUniverso = saved.modoUniverso === 'consultor' ? 'consultor' : 'automatico';
     cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
     cartEstado.lente = saved.lente || null;
-    cartEstado.selecionados = saved.selecionados || {
-      rf: null,
-      acao: null,
-      fii: null,
-      cripto: null,
-    };
     cartRenderizarTela();
   } else {
     cartMostrarQuestionario();
@@ -265,10 +262,8 @@ function cartSalvarEstado() {
       capital: cartEstado.capital,
       objetivo: cartEstado.objetivo,
       prazoAnos: cartEstado.prazoAnos,
-      modoUniverso: cartEstado.modoUniverso,
       patrimonio: cartEstado.patrimonio,
       lente: cartEstado.lente,
-      selecionados: cartEstado.selecionados,
     })
   );
 }
@@ -281,7 +276,6 @@ function cartMostrarQuestionario() {
   document.getElementById('cartPerfilHeader').style.display = 'none';
   document.getElementById('cartHero').style.display = 'none';
   document.getElementById('cartCallout').style.display = 'none';
-  document.getElementById('cartSelecaoWrap').style.display = 'none';
   document.getElementById('cartSimCard').style.display = 'none';
   const motorWrap = document.getElementById('cartMotorWrap');
   if (motorWrap) motorWrap.style.display = 'none';
@@ -361,7 +355,6 @@ function cartConcluirQuestionario() {
   cartEstado.patrimonio =
     patrimonioEl && patrimonioEl.value.trim() !== '' ? patrimonioDigitado : null;
   cartEstado.lente = null;
-  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
   cartSalvarEstado();
 
   document.getElementById('cartQuestionnaire').style.display = 'none';
@@ -401,12 +394,10 @@ function cartRenderizarTela() {
   // Hero + callout
   document.getElementById('cartHero').style.display = 'grid';
   document.getElementById('cartCallout').style.display = 'flex';
-  document.getElementById('cartSelecaoWrap').style.display = 'block';
   document.getElementById('cartSimCard').style.display = 'block';
 
   cartRenderizarEdu();
   cartRenderizarDonut();
-  cartRenderizarSelecaoGrid();
   cartRenderizarMotor();
   cartIniciarSimulacao();
 }
@@ -535,98 +526,6 @@ function cartFmtShort(v) {
 // ════════════════════════════════
 // ASSET SELECTION GRID
 // ════════════════════════════════
-function cartRenderizarSelecaoGrid() {
-  const alloc = cartAlocacaoAlvo();
-  const capital = cartEstado.capital;
-  const grid = document.getElementById('cartSelecaoGrid');
-  grid.innerHTML = '';
-
-  const classesVisiveis = ['rf', 'acao', 'fii', 'cripto'].filter(
-    (c) => (alloc[c] || 0) > 0 || c !== 'cripto'
-  );
-
-  classesVisiveis.forEach((classe) => {
-    const macropct = alloc[classe] || 0;
-    const macroVlr = (capital * macropct) / 100;
-    const ativos =
-      (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
-    let selecionados = cartEstado.selecionados[classe];
-    if (!selecionados) selecionados = ativos.map((a) => a.ticker);
-
-    const n = selecionados.length || 1;
-    const percPorAtivo = macropct > 0 ? +(macropct / n).toFixed(1) : 0;
-    const vlrPorAtivo = macroVlr / n;
-
-    const col = document.createElement('div');
-    col.className = `cart-classe-col cart-classe-${classe}`;
-    if (macropct === 0) col.classList.add('dimmed');
-
-    const ativosHtml =
-      ativos.length === 0
-        ? `<div class="cart-classe-empty">Nenhum ativo cadastrado</div>`
-        : ativos
-            .map((a) => {
-              const checked = selecionados.includes(a.ticker);
-              const ativoN = checked ? n : 0;
-              const vlrDisp = checked ? formatarMoeda(vlrPorAtivo) : 'R$ 0,00';
-              const pctDisp = checked ? percPorAtivo.toFixed(1) + '%' : '—';
-              return `<li class="cart-ativo-item${checked ? '' : ' unchecked'}"
-                            onclick="cartToggleAtivo('${classe}','${a.ticker}')"
-                            data-classe="${classe}" data-ticker="${a.ticker}">
-                    <div class="cart-ativo-check">
-                        ${checked ? '<i class="ph ph-check-bold"></i>' : ''}
-                    </div>
-                    <div class="cart-ativo-body">
-                        <div class="cart-ativo-ticker">${a.ticker}</div>
-                        <div class="cart-ativo-nome">${a.nome}</div>
-                    </div>
-                    <div class="cart-ativo-right">
-                        <div class="cart-ativo-pct">${pctDisp}</div>
-                        <div class="cart-ativo-vlr">${vlrDisp}</div>
-                    </div>
-                </li>`;
-            })
-            .join('');
-
-    const totalSelecionadoVlr = selecionados.length > 0 ? formatarMoeda(macroVlr) : 'R$ 0,00';
-    col.innerHTML = `
-            <div class="cart-classe-col-header">
-                <div class="cart-classe-col-name">
-                    <i class="ph ${CART_ICONS[classe]}"></i> ${CART_NOMES[classe]}
-                </div>
-                <div class="cart-classe-col-meta">
-                    <span class="cart-classe-col-pct">${macropct}%</span>
-                    <span class="cart-classe-col-vlr">${formatarMoeda(macroVlr)}</span>
-                </div>
-            </div>
-            <ul class="cart-classe-list">${ativosHtml}</ul>
-            <div class="cart-classe-col-footer">
-                <span class="lbl">Total alocado:</span>
-                <span class="val">${totalSelecionadoVlr}</span>
-            </div>`;
-    grid.appendChild(col);
-  });
-}
-
-function cartToggleAtivo(classe, ticker) {
-  const ativos =
-    (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
-  let sel = cartEstado.selecionados[classe];
-  if (!sel) sel = ativos.map((a) => a.ticker);
-
-  if (sel.includes(ticker)) {
-    if (sel.length <= 1)
-      return mostrarToast('Pelo menos um ativo deve estar selecionado por classe.', 'info');
-    cartEstado.selecionados[classe] = sel.filter((t) => t !== ticker);
-  } else {
-    cartEstado.selecionados[classe] = [...sel, ticker];
-  }
-  cartSalvarEstado();
-  cartRenderizarSelecaoGrid();
-  cartRenderizarDonut();
-  cartRecalcularMotor();
-}
-
 // ════════════════════════════════
 // HISTORICAL SIMULATION
 // ════════════════════════════════
@@ -1143,16 +1042,14 @@ function cartPatrimonioPorClasse() {
   return { valores: proporcional, origem: 'informado' };
 }
 
-/** Ativos publicados na carteira modelo que o utilizador não desmarcou. */
+/** Ativos publicados na carteira modelo. */
 function cartUniversoBase() {
   var out = [];
   MOTOR_CLASSES.forEach(function (classe) {
     var ativos =
       (dbCarteira.ativos && dbCarteira.ativos[classe]) || CART_ATIVOS_DEFAULT[classe] || [];
-    var sel = cartEstado.selecionados[classe];
     ativos.forEach(function (a) {
       if (!a || !a.ticker) return;
-      if (sel && sel.indexOf(a.ticker) === -1) return;
       out.push({ ticker: a.ticker, nome: a.nome || a.ticker, obs: a.obs || '', classe: classe });
     });
   });
@@ -1264,15 +1161,10 @@ function cartUniversoAutomatico(ranking, titulosRf) {
     out.push({ ticker: t, nome: t, classe: 'cripto' });
   });
 
-  // A desmarcação manual continua valendo: o utilizador pode tirar um ativo
-  // do universo, ele só não precisa mais escolher quais entram.
-  return {
-    itens: out.filter(function (a) {
-      var sel = cartEstado.selecionados[a.classe];
-      return !sel || sel.indexOf(a.ticker) !== -1;
-    }),
-    fallback: fallback,
-  };
+  // A desmarcação manual saiu junto com a grade que a operava. Um filtro
+  // gravado sem tela que o mostre encolheria o universo em silêncio, e
+  // ninguém conseguiria descobrir por quê olhando o produto.
+  return { itens: out, fallback: fallback };
 }
 
 async function cartBuscarRendaFixa(token) {
@@ -1281,7 +1173,19 @@ async function cartBuscarRendaFixa(token) {
       headers: { Authorization: 'Bearer ' + token },
     });
     var data = await res.json();
-    return data && data.titulos ? data.titulos : [];
+    // `fetch` só rejeita por falha de REDE — um 502 do endpoint ainda é
+    // `.json()` válido, e caía direto no `data.titulos ? ... : []` de
+    // antes sem passar pelo catch. O console ficava mudo: nenhum warning,
+    // nenhuma pista, só a classe RF vazia na tela — indistinguível de
+    // "o Tesouro não tem título nenhum hoje".
+    if (!res.ok || !data || data.error) {
+      console.warn(
+        '[carteira/motor] renda fixa indisponível:',
+        (data && (data.error || data.detail)) || 'HTTP ' + res.status
+      );
+      return [];
+    }
+    return data.titulos || [];
   } catch (e) {
     // Tesouro fora do ar não pode derrubar as outras classes: a RF cai para
     // score neutro e o rodapé diz por quê.
@@ -1339,22 +1243,11 @@ async function cartBuscarDadosMotor() {
   var token = await cartTokenFirebase();
   if (!token) throw new Error('Sessão expirada — entre novamente para o motor buscar os dados.');
 
-  var automatico = cartEstado.modoUniverso !== 'consultor';
   var titulosRf = await cartBuscarRendaFixa(token);
-
-  var base;
-  var ranking = null;
-  var fallback = [];
-  if (automatico) {
-    ranking = await cartBuscarRanking(token, cartLenteAtiva());
-    var auto = cartUniversoAutomatico(ranking, titulosRf);
-    base = auto.itens;
-    fallback = auto.fallback;
-  } else {
-    // Modo consultor: a carteira modelo publicada no painel manda, e a renda
-    // fixa dela é casada com a oferta corrente do Tesouro.
-    base = cartUniversoBase();
-  }
+  var ranking = await cartBuscarRanking(token, cartLenteAtiva());
+  var auto = cartUniversoAutomatico(ranking, titulosRf);
+  var base = auto.itens;
+  var fallback = auto.fallback;
 
   var tickers = base
     .filter(function (a) {
@@ -1381,7 +1274,6 @@ async function cartBuscarDadosMotor() {
     indicadores: resultados[1] ? resultados[1].indicadores : null,
     premissasDegradadas: !!(resultados[1] && resultados[1].degradado),
     ranking: ranking,
-    automatico: automatico,
     fallback: fallback,
   };
 }
@@ -1502,58 +1394,13 @@ function cartRenderizarMotorLentes() {
  * carteira do consultor continua disponível porque há contexto em que um
  * humano no circuito é desejável — mas deixou de ser o único caminho.
  */
-function cartRenderizarModoUniverso() {
-  var wrap = document.getElementById('cartMotorModo');
-  if (!wrap) return;
-  var auto = cartEstado.modoUniverso !== 'consultor';
-  var opcoes = [
-    {
-      id: 'automatico',
-      nome: 'Todo o mercado',
-      dica: 'Os candidatos saem dos dados da CVM e do Tesouro, sem lista escrita à mão.',
-    },
-    {
-      id: 'consultor',
-      nome: 'Carteira do consultor',
-      dica: 'Considera apenas os ativos publicados no painel.',
-    },
-  ];
-  wrap.innerHTML = opcoes
-    .map(function (o) {
-      var ativo = o.id === 'automatico' ? auto : !auto;
-      return (
-        '<button type="button" class="cart-motor-modo-btn' +
-        (ativo ? ' active' : '') +
-        '" onclick="cartTrocarModoUniverso(\'' +
-        o.id +
-        '\')" title="' +
-        o.dica.replace(/"/g, '&quot;') +
-        '">' +
-        o.nome +
-        '</button>'
-      );
-    })
-    .join('');
-}
-
 function cartTrocarLente(id) {
   if (!MOTOR_LENTES[id]) return;
   cartEstado.lente = id;
   cartSalvarEstado();
   cartRenderizarMotorLentes();
-  // No modo automático a lente decide QUAIS ativos entram na lista curta,
-  // não só o peso dos pilares — então o universo tem de ser rebuscado.
-  if (cartEstado.modoUniverso !== 'consultor') cartRenderizarMotor(true);
-  else cartRecalcularMotor();
-}
-
-/** Alterna entre universo descoberto por dado e carteira do consultor. */
-function cartTrocarModoUniverso(modo) {
-  var novo = modo === 'consultor' ? 'consultor' : 'automatico';
-  if (cartEstado.modoUniverso === novo) return;
-  cartEstado.modoUniverso = novo;
-  cartEstado.selecionados = { rf: null, acao: null, fii: null, cripto: null };
-  cartSalvarEstado();
+  // A lente decide QUAIS ativos entram na lista curta, não só o peso dos
+  // pilares — então o universo tem de ser rebuscado, não só repontuado.
   cartRenderizarMotor(true);
 }
 
@@ -1576,6 +1423,10 @@ function cartRecalcularMotor() {
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
   cartRenderizarMotorRanking(cartMotor.ranking);
+  // Junto com o ranking porque descreve os pesos da lente ATIVA: trocar de
+  // lente sem redesenhar isto deixaria a explicação a descrever o cálculo
+  // anterior.
+  cartRenderizarCriterios();
 }
 
 async function cartRenderizarMotor(forcar) {
@@ -1590,7 +1441,6 @@ async function cartRenderizarMotor(forcar) {
     return;
   }
   wrap.style.display = 'block';
-  cartRenderizarModoUniverso();
   cartRenderizarMotorLentes();
 
   // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
@@ -1614,7 +1464,6 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.indicadores = dados.indicadores;
     cartMotor.premissasDegradadas = dados.premissasDegradadas;
     cartMotor.rankingServidor = dados.ranking;
-    cartMotor.automatico = dados.automatico;
     cartMotor.fallback = dados.fallback || [];
     cartMotor.pendencias = dados.pendencias || [];
     cartMotor.buscadoEm = Date.now();
@@ -1675,7 +1524,7 @@ function cartRenderizarMotorStatus() {
       Math.round(coberturaMedia * 100) +
       '% de cobertura média)</span>'
   );
-  if (cartMotor.automatico && cartMotor.rankingServidor) {
+  if (cartMotor.rankingServidor) {
     var r = cartMotor.rankingServidor;
     var cortados = Object.values(r.excluidos || {}).reduce(function (s2, v) {
       return s2 + v;
@@ -1687,10 +1536,6 @@ function cartRenderizarMotorStatus() {
         ' ativos analisados' +
         (cortados ? ', ' + cortados + ' fora do corte de porte e liquidez' : '') +
         '</span>'
-    );
-  } else if (!cartMotor.automatico) {
-    partes.push(
-      '<span class="cart-motor-status-item"><i class="ph ph-user-circle"></i> Universo: carteira do consultor</span>'
     );
   }
   if (cartMotor.origemPatrimonio === 'carteira')
@@ -2120,4 +1965,127 @@ function cartRenderizarMotorRanking(ranking) {
       );
     })
     .join('');
+}
+
+// ════════════════════════════════
+// CRITÉRIOS DE ANÁLISE E PONTUAÇÃO
+// ════════════════════════════════
+//
+// Lê o MOTOR_CRITERIOS em vez de descrever à mão o que ele faz. Uma lista
+// estática divergiria do motor no primeiro ajuste de peso — e a tela passaria
+// a explicar um cálculo que o produto já não executa, que é pior do que não
+// explicar nada. Se um pilar deixar de existir, esta secção deixa de o
+// mostrar sozinha.
+
+var CART_CRITERIOS_CLASSES = [
+  { chave: 'acao', nome: 'Ações' },
+  { chave: 'fii', nome: 'FIIs de tijolo' },
+  { chave: 'fiiPapel', nome: 'FIIs de papel' },
+  { chave: 'rf', nome: 'Renda Fixa' },
+  { chave: 'cripto', nome: 'Criptos' },
+];
+
+function cartRenderizarCriterios() {
+  var el = document.getElementById('cartCriterios');
+  if (!el || typeof MOTOR_CRITERIOS === 'undefined') return;
+
+  // `cartLenteAtiva()` devolve o ID, não o objeto — resolver aqui, com
+  // queda para `equilibrio`, evita depender de um id gravado que já não
+  // exista.
+  var lente = MOTOR_LENTES[cartLenteAtiva()] || MOTOR_LENTES.equilibrio;
+
+  var grupos = CART_CRITERIOS_CLASSES.map(function (c) {
+    var criterios = MOTOR_CRITERIOS[c.chave];
+    if (!criterios) return '';
+
+    var total = 0;
+    var pilares = MOTOR_PILARES.map(function (pilar) {
+      var metricas = criterios[pilar] || [];
+      if (!metricas.length) return '';
+      total += metricas.length;
+      var chips = metricas
+        .map(function (m) {
+          // O peso vai junto porque é o que distingue "entra na conta" de
+          // "decide a conta": P/L com peso 3 e EV/EBITDA com peso 2 não são
+          // o mesmo critério, e sem o número a lista sugere que são.
+          return (
+            '<span class="cart-criterios-metrica">' +
+            m.nome +
+            '<span class="cart-criterios-peso">peso ' +
+            m.peso +
+            '</span></span>'
+          );
+        })
+        .join('');
+      return (
+        '<div class="cart-criterios-pilar">' +
+        '<div class="cart-criterios-pilar-nome">' +
+        MOTOR_PILAR_NOMES[pilar] +
+        '</div>' +
+        '<div class="cart-criterios-lista">' +
+        chips +
+        '</div></div>'
+      );
+    }).join('');
+
+    return (
+      '<div class="cart-criterios-grupo">' +
+      '<div class="cart-criterios-head" onclick="this.parentElement.classList.toggle(\'aberto\')">' +
+      '<i class="ph ph-caret-right"></i>' +
+      '<span class="cart-criterios-nome">' +
+      c.nome +
+      '</span>' +
+      '<span class="cart-criterios-conta">' +
+      total +
+      ' indicadores</span>' +
+      '</div>' +
+      '<div class="cart-criterios-body">' +
+      pilares +
+      '</div></div>'
+    );
+  }).join('');
+
+  // A lente ativa muda o PESO de cada pilar no score final. Sem ela, a lista
+  // acima explicaria os indicadores e esconderia o que faz a mesma carteira
+  // ordenar diferente ao trocar de lente.
+  var pesos = MOTOR_PILARES.map(function (pilar) {
+    var peso = lente.pesos[pilar] != null ? lente.pesos[pilar] : 1;
+    return (
+      '<span class="cart-criterios-metrica">' +
+      MOTOR_PILAR_NOMES[pilar] +
+      '<span class="cart-criterios-peso">×' +
+      peso +
+      '</span></span>'
+    );
+  }).join('');
+
+  var principios = (lente.principios || [])
+    .map(function (t) {
+      return '<li>' + t + '</li>';
+    })
+    .join('');
+
+  el.innerHTML =
+    '<div class="cart-motor-sub"><i class="ph ph-list-magnifying-glass"></i> ' +
+    'Critérios de análise e pontuação' +
+    '<span class="cart-motor-sub-nota">Cada indicador recebe nota de 0 a 10 por faixas fixas; ' +
+    'o pilar é a média ponderada dos seus indicadores, e o score é a média dos pilares pela lente ativa.</span>' +
+    '</div>' +
+    '<div class="cart-criterios-intro">' +
+    'Indicador sem dado não vira nota zero — ele sai da conta e reduz a cobertura do ativo. ' +
+    'Abaixo de ' +
+    Math.round(MOTOR_COBERTURA_MINIMA * 100) +
+    '% de cobertura o ativo deixa de ser pontuado, em vez de receber uma nota sem lastro.' +
+    '</div>' +
+    grupos +
+    '<div class="cart-criterios-lente">' +
+    '<strong>Lente ativa: ' +
+    lente.nome +
+    '</strong> — ' +
+    lente.resumo +
+    '<div class="cart-criterios-lista" style="margin-top:8px;">' +
+    pesos +
+    '</div>' +
+    (principios ? '<ul>' + principios + '</ul>' : '') +
+    '</div>';
 }

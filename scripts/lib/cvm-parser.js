@@ -906,12 +906,20 @@ function extrairInformeFii(registros, colunas) {
     const vacancia =
       num('vacanciaFinanceira') !== null ? num('vacanciaFinanceira') : num('vacanciaFisica');
 
-    // O ponto da série carrega TODOS os campos mensais, não só o DY. O
+    // O ponto da série carrega os campos MENSAIS de que a série precisa. O
     // rendimento a distribuir mora no `ativo_passivo` e as cotas emitidas
     // no `complemento`: são membros diferentes do mesmo ZIP, e só depois de
     // reunidos por mês é que o rendimento por cota existe. Por isso o ponto
     // é gravado mesmo sem DY — antes, `dyMes === null` descartava a linha
     // inteira e levava junto o que o outro membro traria.
+    //
+    // A lista é EXPLÍCITA de propósito, e cada campo aqui é consumido por
+    // `indicadoresDaSerieFii`. O comentário antigo dizia "TODOS os campos
+    // mensais" e o código gravava três: acrescentei um consumidor de
+    // `valorPatrimonialCota` confiando na frase, e a medição saiu `0m` em
+    // todos os nove fundos — um zero plausível, do mesmo tipo que este
+    // projeto passou a semana a caçar. Comentário que promete mais do que o
+    // código entrega é uma armadilha, não documentação.
     if (data) {
       const serie = seriePorCnpj.get(cnpj) || [];
       serie.push({
@@ -919,6 +927,9 @@ function extrairInformeFii(registros, colunas) {
         dyMes: dyMesPct,
         rendimentosDistribuir: num('rendimentosDistribuir'),
         numeroCotas: num('numeroCotas'),
+        // Base do segundo caminho do crescimento: `DY × VPC` reconstrói o
+        // rendimento por cota onde o saldo de balanço fecha em zero.
+        valorPatrimonialCota: num('valorPatrimonialCota'),
       });
       seriePorCnpj.set(cnpj, serie);
     }
@@ -988,6 +999,15 @@ function indicadoresDaSerieFii(serie, opcoes) {
     dyMedio36m: null,
     consistenciaDividendos: null,
     crescimentoDividendo12m: null,
+    crescimentoFonte: null,
+    crescimentoSaldo: null,
+    crescimentoMotivo: 'sem_serie',
+    crescimentoBruto: null,
+    mesesSaldoQuitado: 0,
+    crescimentoPorDy: null,
+    crescimentoPorDyMotivo: 'sem_serie',
+    razaoSaldoDy: null,
+    mesesComparados: 0,
     mesesComRendimento: 0,
     mesesObservados: 0,
   };
@@ -1000,8 +1020,13 @@ function indicadoresDaSerieFii(serie, opcoes) {
   const porMes = new Map();
   for (const p of serie) {
     const mes = String(p.dataReferencia).slice(0, 7);
-    const acum = porMes.get(mes) || { dyMes: null, rendimentosDistribuir: null, numeroCotas: null };
-    for (const campo of ['dyMes', 'rendimentosDistribuir', 'numeroCotas']) {
+    const acum = porMes.get(mes) || {
+      dyMes: null,
+      rendimentosDistribuir: null,
+      numeroCotas: null,
+      valorPatrimonialCota: null,
+    };
+    for (const campo of ['dyMes', 'rendimentosDistribuir', 'numeroCotas', 'valorPatrimonialCota']) {
       if (p[campo] !== null && p[campo] !== undefined) acum[campo] = p[campo];
     }
     porMes.set(mes, acum);
@@ -1021,14 +1046,55 @@ function indicadoresDaSerieFii(serie, opcoes) {
     : null;
 
   if (comDy.length < minimoMeses) {
-    return { ...vazio, mesesObservados: comDy.length };
+    return { ...vazio, crescimentoMotivo: 'poucos_meses', mesesObservados: comDy.length };
   }
   const cresc = crescimentoDividendoFii(porMes, meses);
+  // O segundo caminho corre SEMPRE, mesmo quando o primeiro deu resultado —
+  // é nos fundos onde os dois existem que a comparação vale alguma coisa.
+  // Ainda não substitui o indicador: primeiro o log tem de mostrar que as
+  // duas leituras concordam onde ambas são possíveis.
+  const porDy = crescimentoPorDyFii(porMes, meses);
+
+  // MEDIDO, não suposto. A rodada de validação comparou os dois caminhos em
+  // seis fundos com 31 meses cada — HGLG11, KNRI11, VISC11, HGRU11, KNCR11 e
+  // VGHF11 — e a razão entre eles deu 1 (1,01 num). Cento e oitenta e seis
+  // comparações mensais concordando respondem à pergunta que o raciocínio
+  // não respondia: o `Percentual_Dividend_Yield_Mes` da CVM é sobre o valor
+  // PATRIMONIAL, não sobre o preço. `DY × VPC` reconstrói a mesma grandeza
+  // que o saldo de balanço.
+  //
+  // O DY passa a ser o caminho principal por COBERTURA: o saldo fecha em
+  // zero em fundos que liquidam dentro do mês (29 dos 31 meses no BTLG11), e
+  // o DY existe em todo mês que teve rendimento. O saldo fica de reserva —
+  // ele salva o GGRC11, que paga em 20,8% dos meses e dá base zero pelo DY.
+  //
+  // Um detalhe que reforça a escolha: o crescimento é a razão entre duas
+  // janelas da MESMA série, então um erro uniforme de escala no DY (a
+  // detecção razão-vs-percentagem) cancela-se por completo. Este caminho é
+  // imune àquela heurística; o saldo não seria.
+  const usouDy = porDy.valor !== null;
+  const escolhido = usouDy ? porDy : cresc;
   return {
     dyMedio36m,
     consistenciaDividendos,
-    crescimentoDividendo12m: cresc.valor,
+    crescimentoDividendo12m: escolhido.valor,
+    crescimentoFonte: escolhido.valor === null ? null : usouDy ? 'dy_vpc' : 'saldo',
+    crescimentoMotivo: escolhido.motivo,
+    crescimentoBruto: escolhido.bruto,
+    // O valor do caminho do SALDO, sempre, à parte do escolhido. Existe
+    // porque o log rotulava `crescimentoBruto` como "reserva (saldo)" depois
+    // de ele passar a carregar o caminho escolhido: em todo fundo os dois
+    // números passaram a ser o mesmo, e a linha de comparação concordava
+    // consigo própria. Rótulo que sai de quem foi CHAMADO em vez de quem
+    // RESPONDEU é a proibição que este projeto já pagou uma vez, na
+    // degradação de cotação que carimbava BRAPI no que vinha do Yahoo.
+    crescimentoSaldo: cresc.valor,
+    mesesSaldoQuitado: cresc.mesesSaldoQuitado,
     mesesComRendimento: cresc.mesesComRendimento,
+    crescimentoPorDy: porDy.valor,
+    crescimentoPorDyMotivo: porDy.motivo,
+    razaoSaldoDy: cresc.razaoSaldoDy,
+    mesesComparados: cresc.mesesComparados,
     mesesObservados: comDy.length,
   };
 }
@@ -1049,42 +1115,121 @@ function indicadoresDaSerieFii(serie, opcoes) {
  * Exige as duas janelas razoavelmente completas: com três meses de um lado
  * e doze do outro, a razão mede a lacuna, não o crescimento.
  */
-function crescimentoDividendoFii(porMes, meses) {
+/**
+ * Duas janelas de doze meses comparadas, com as travas de sempre.
+ *
+ * Vive à parte porque há DOIS caminhos até o rendimento por cota — o saldo
+ * do balanço e o yield sobre o valor patrimonial — e comparar os dois exige
+ * que a janela, o mínimo por janela e a faixa de sanidade sejam idênticos.
+ * Duplicar essa lógica faria a divergência entre os caminhos medir a
+ * diferença entre duas implementações, não entre duas fontes.
+ */
+function compararJanelas(porCota) {
   const MIN_POR_JANELA = 9;
-  const porCota = new Map();
-  for (const mes of meses) {
-    const p = porMes.get(mes);
-    if (p.rendimentosDistribuir === null || p.numeroCotas === null) continue;
-    if (!(p.numeroCotas > 0) || p.rendimentosDistribuir < 0) continue;
-    porCota.set(mes, p.rendimentosDistribuir / p.numeroCotas);
-  }
   const comDado = Array.from(porCota.keys()).sort();
-  // Quantos meses de facto trouxeram as duas pontas. Sem este número,
-  // "série curta" e "coluna vazia" produzem o mesmo travessão no log e
-  // pedem correções opostas — uma é aumentar a janela, a outra é procurar
-  // a coluna noutro lugar.
-  const diagnostico = { mesesComRendimento: comDado.length, valor: null };
-  if (comDado.length < MIN_POR_JANELA * 2) return diagnostico;
-
+  const d = { mesesComRendimento: comDado.length, valor: null, motivo: null, bruto: null };
+  if (comDado.length < MIN_POR_JANELA * 2) {
+    d.motivo = 'serie_curta';
+    return d;
+  }
   const recentes = comDado.slice(-12);
   const anteriores = comDado.slice(-24, -12);
-  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) return diagnostico;
-
+  if (recentes.length < MIN_POR_JANELA || anteriores.length < MIN_POR_JANELA) {
+    d.motivo = 'janela_incompleta';
+    return d;
+  }
   const soma = (lista) => lista.reduce((t, m) => t + porCota.get(m), 0);
   // Média por mês, não soma: as janelas podem ter contagens diferentes, e
   // comparar soma de 12 com soma de 10 inventaria uma queda de 17%.
   const mediaRecente = soma(recentes) / recentes.length;
   const mediaAnterior = soma(anteriores) / anteriores.length;
-  if (!(mediaAnterior > 0)) return diagnostico;
-
+  if (!(mediaAnterior > 0)) {
+    d.motivo = 'base_zero';
+    return d;
+  }
   const cresc = (mediaRecente / mediaAnterior - 1) * 100;
+  d.bruto = Math.round(cresc * 10) / 10;
   // Fora desta faixa não é crescimento de distribuição: é mudança de
   // estrutura (emissão, incorporação) ou linha lida errado.
-  if (!(cresc >= -95 && cresc <= 200)) return diagnostico;
-  diagnostico.valor = Math.round(cresc * 10) / 10;
-  return diagnostico;
+  if (!(cresc >= -95 && cresc <= 200)) {
+    d.motivo = 'fora_de_faixa';
+    return d;
+  }
+  d.valor = d.bruto;
+  return d;
 }
 
+/**
+ * O MESMO crescimento, pelo yield declarado sobre o valor patrimonial.
+ *
+ * Caminho independente do saldo de balanço, e existe porque o saldo não
+ * serve para todo fundo: no BTLG11 ele fecha em zero em 29 dos 31 meses.
+ *
+ * O informe mensal NÃO tem coluna de preço nenhuma — a listagem real de
+ * `complemento` traz `Valor_Patrimonial_Cotas` e nada de cotação. Uma
+ * declaração que não registra o preço não pode calcular yield sobre ele, e
+ * é isso que torna `DY × VPC` uma reconstrução do rendimento por cota, não
+ * uma mistura de rendimento com variação de cotação.
+ *
+ * Continua a ser hipótese até o log a confrontar com o saldo nos fundos que
+ * têm os dois. É para isso que os dois caminhos são calculados lado a lado.
+ */
+function crescimentoPorDyFii(porMes, meses) {
+  const porCota = new Map();
+  for (const mes of meses) {
+    const p = porMes.get(mes);
+    if (p.dyMes === null || p.valorPatrimonialCota === null) continue;
+    if (!(p.valorPatrimonialCota > 0) || p.dyMes < 0) continue;
+    porCota.set(mes, (p.dyMes / 100) * p.valorPatrimonialCota);
+  }
+  return compararJanelas(porCota);
+}
+
+function crescimentoDividendoFii(porMes, meses) {
+  const porCota = new Map();
+  let saldoQuitado = 0;
+  const razoes = [];
+  for (const mes of meses) {
+    const p = porMes.get(mes);
+    if (p.rendimentosDistribuir === null || p.numeroCotas === null) continue;
+    if (!(p.numeroCotas > 0) || p.rendimentosDistribuir < 0) continue;
+    // `Rendimentos_Distribuir` é SALDO de balanço — o que foi declarado e
+    // ainda não saiu do caixa — não o que foi distribuído no mês. Num fundo
+    // que liquida dentro do próprio mês, o saldo fecha em zero mesmo tendo
+    // pago tudo. Contar esse zero como "distribuiu nada" produziu, no
+    // BTLG11, um crescimento de exatamente −100% num fundo que paga em 100%
+    // dos meses; a trava de faixa recusou, e o indicador ficou vazio.
+    //
+    // Mês com yield positivo e saldo zero é CONTRADIÇÃO, não zero: o fundo
+    // pagou, o saldo é que não descreve o pagamento. Contradição é lacuna.
+    if (p.rendimentosDistribuir === 0 && p.dyMes > 0) {
+      saldoQuitado++;
+      continue;
+    }
+    const valor = p.rendimentosDistribuir / p.numeroCotas;
+    porCota.set(mes, valor);
+    // A razão entre os dois caminhos, mês a mês, é a evidência que decide
+    // sobre que base a CVM calcula o `Percentual_Dividend_Yield_Mes`. Perto
+    // de 1 significa que o yield é sobre o valor patrimonial, e aí `DY × VPC`
+    // reconstrói o rendimento por cota nos fundos onde o saldo não serve.
+    // Sistematicamente longe de 1 desmente a hipótese, e é melhor sabê-lo
+    // pelo log do que descobri-lo num ranking publicado.
+    if (p.dyMes > 0 && p.valorPatrimonialCota > 0 && valor > 0) {
+      razoes.push(valor / ((p.dyMes / 100) * p.valorPatrimonialCota));
+    }
+  }
+  const d = compararJanelas(porCota);
+  // Quantos meses foram descartados por saldo quitado. Vai ao log porque é
+  // a diferença entre "o fundo não distribui" e "a coluna não descreve a
+  // distribuição deste fundo" — hipóteses opostas com o mesmo travessão.
+  d.mesesSaldoQuitado = saldoQuitado;
+  razoes.sort((a, b) => a - b);
+  d.razaoSaldoDy = razoes.length
+    ? Math.round(razoes[Math.floor(razoes.length / 2)] * 100) / 100
+    : null;
+  d.mesesComparados = razoes.length;
+  return d;
+}
 module.exports.indicadoresDaSerieFii = indicadoresDaSerieFii;
 
 /**
@@ -1505,6 +1650,9 @@ function alavancagemFii(inf) {
   return Math.round(ltv * 10) / 10;
 }
 
+/** A maioria da carteira em imóvel é o que faz o fundo ser de tijolo. */
+const FRACAO_TIJOLO = 0.5;
+
 /**
  * Fundo de TIJOLO ou de PAPEL, decidido pela carteira publicada.
  *
@@ -1518,15 +1666,24 @@ function alavancagemFii(inf) {
  * fora do informe trimestral pode ser de papel, mas também pode ser um que
  * não entregou. Só a rubrica imobiliária do balanço decide.
  *
- *   `Direitos_Bens_Imoveis` > 0  → tem imóvel, é tijolo
- *   = 0 com carteira declarada   → não tem imóvel, é papel
- *   sem a coluna                 → null, e aí valem os critérios de sempre
+ * A decisão é pela FATIA da carteira, não pela presença. "Tem algum imóvel"
+ * classificou o MXRF11 como tijolo na execução real — um fundo de recebíveis
+ * com dois imóveis marginais numa carteira de 5,25 bi. E o efeito apareceu na
+ * mesma linha do log: `imóveis 2 · cobertura área 0% · ocupação —`. Ele era
+ * cobrado por uma ocupação que não descreve a receita dele, perdia cobertura
+ * e levava o encolhimento do score por um defeito que não tem.
  *
- * Híbrido conta como tijolo: se há imóvel na carteira, ocupação e contagem
- * de imóveis descrevem alguma coisa, ainda que parte dela.
+ * O critério é a maioria da carteira, porque é isso que a pergunta significa:
+ * a ocupação dos imóveis só caracteriza o fundo se o aluguel for o que paga o
+ * rendimento. Numa fatia minoritária, ela descreve um canto da carteira.
+ *
+ *   imóveis ≥ 50% do investido  → tijolo
+ *   imóveis <  50% do investido → papel
+ *   sem a rubrica ou sem total  → null, e aí valem os critérios de sempre
  */
-function tipoCarteiraFii(inf) {
-  if (!inf) return null;
+function carteiraFii(inf) {
+  const nada = { tipo: null, fracaoImoveis: null, imoveis: null, total: null };
+  if (!inf) return nada;
   const agregado = inf.direitosBensImoveis;
   // As folhas servem de reserva quando o agregado não vem, e de conferência
   // quando vem — mesmo cuidado do 6.03, onde somar pai e filhas contava
@@ -1546,16 +1703,29 @@ function tipoCarteiraFii(inf) {
     somaFolhas = (somaFolhas || 0) + v;
   }
   const imoveis = agregado !== null && agregado !== undefined ? agregado : somaFolhas;
-  if (imoveis === null || imoveis === undefined) return null;
-  if (imoveis > 0) return 'tijolo';
-  // Zero de imóvel só significa "fundo de papel" se houver carteira
-  // declarada. Zero em tudo é fundo que não preencheu, não fundo vazio.
+  if (imoveis === null || imoveis === undefined) return nada;
+  // A fatia exige as duas pontas. Sem o total declarado não há denominador, e
+  // "tem imóvel" sozinho não distingue o fundo de tijolo do de papel que
+  // carrega dois — foi exatamente essa a confusão. Zero em tudo é fundo que
+  // não preencheu, não fundo vazio.
   const total = inf.totalInvestido;
-  if (total === null || total === undefined || !(total > 0)) return null;
-  return 'papel';
+  if (total === null || total === undefined || !(total > 0)) return nada;
+  const fracao = imoveis / total;
+  return {
+    tipo: fracao >= FRACAO_TIJOLO ? 'tijolo' : 'papel',
+    fracaoImoveis: Math.round(fracao * 1000) / 10,
+    imoveis,
+    total,
+  };
+}
+
+function tipoCarteiraFii(inf) {
+  return carteiraFii(inf).tipo;
 }
 
 module.exports.tipoCarteiraFii = tipoCarteiraFii;
+module.exports.carteiraFii = carteiraFii;
+module.exports.FRACAO_TIJOLO = FRACAO_TIJOLO;
 
 module.exports.alavancagemFii = alavancagemFii;
 
@@ -1594,14 +1764,27 @@ const COLUNAS_CAPITAL = {
     'Quantidade_Acao_Preferencial_Capital_Integralizado',
     'QT_ACAO_PREF',
   ],
-  ordinariasTesouraria: ['QT_ACAO_ORDIN_TESOURARIA', 'Quantidade_Acao_Ordinaria_Tesouraria'],
-  preferenciaisTesouraria: ['QT_ACAO_PREF_TESOURARIA', 'Quantidade_Acao_Preferencial_Tesouraria'],
-  // A ESCALA da quantidade, declarada linha a linha. Ignorá-la fazia a
-  // Eletrobras sair com 2,92 M de ações para 118,5 bi de patrimônio —
-  // R$ 40.646 por ação. O arquivo dizia 2.028.544 ON, em MILHARES: 2,03 bi,
-  // que é a contagem real. E o Banco do Brasil, na mesma execução, saiu
-  // certo sem escala nenhuma: as duas convivem no mesmo arquivo, e é por
-  // isso que a escala tem de ser LIDA, nunca suposta.
+  // `TESOURO` vem primeiro porque é o nome do arquivo REAL. O mapa só
+  // conhecia `TESOURARIA`, que a CVM não usa: as ações em tesouraria eram
+  // lidas como zero em toda companhia, sem aviso nenhum, e o log dizia
+  // `tes 0` — indistinguível de uma companhia que de facto não tem nenhuma.
+  // Contar a tesouraria como zero infla as ações em circulação, e com elas o
+  // valor de mercado e o P/L.
+  ordinariasTesouraria: [
+    'QT_ACAO_ORDIN_TESOURO',
+    'QT_ACAO_ORDIN_TESOURARIA',
+    'Quantidade_Acao_Ordinaria_Tesouraria',
+  ],
+  preferenciaisTesouraria: [
+    'QT_ACAO_PREF_TESOURO',
+    'QT_ACAO_PREF_TESOURARIA',
+    'Quantidade_Acao_Preferencial_Tesouraria',
+  ],
+  // A ESCALA da quantidade, quando declarada. O arquivo real da CVM NÃO a
+  // declara — a execução real listou as dez colunas de
+  // `dfp_cia_aberta_composicao_capital` e nenhuma delas é escala. Fica no
+  // mapa porque outros arquivos da CVM a trazem, mas quem decide a unidade
+  // na prática é `conciliarContagemComPatrimonio`, pelo patrimônio.
   escalaQuantidade: ['ESCALA_QUANTIDADE', 'ESCALA_MOEDA', 'ESCALA'],
 };
 
@@ -1689,8 +1872,70 @@ function extrairComposicaoCapital(registros, colunas) {
   return { porChave, linhasPorChave, faltando, colunas: cols, colunasReais: colunas };
 }
 
+/**
+ * Em que unidade a companhia declarou a contagem de ações — decidido pelo
+ * PATRIMÔNIO, porque o arquivo não diz.
+ *
+ * `dfp_cia_aberta_composicao_capital` não tem coluna de escala nenhuma (o log
+ * da execução real lista as dez colunas: nenhuma delas é escala), e as
+ * companhias não seguem a mesma convenção:
+ *
+ *   BBAS3  2.865.417.020  → unidades
+ *   ELET3  2.307.099      → milhares (2,31 bi de ações de facto)
+ *
+ * Sem escala declarada, os dois números são igualmente plausíveis lidos
+ * isoladamente — e foi assim que a Eletrobras saiu com 2,31 M de ações para
+ * 118,5 bi de patrimônio. O desempate vem de uma grandeza que NÃO passou pela
+ * contagem: o valor patrimonial por ação.
+ *
+ *   ELET3 a 1×     → R$ 51.364 por ação   (não existe na B3)
+ *   ELET3 a 1000×  → R$ 51,4 por ação     (é o valor real)
+ *   BBAS3 a 1×     → R$ 67,5 por ação     (plausível)
+ *   BBAS3 a 1000×  → R$ 0,067 por ação    (não existe)
+ *
+ * A correção é de mão única, e isso é deliberado: só se tenta o ×1000 quando
+ * a leitura em unidades dá um VPA IMPOSSÍVEL para cima. Para baixo não se
+ * mexe, porque VPA de centavos existe de verdade — companhia em recuperação,
+ * capital diluído — e "corrigir" esse caso inventaria mil vezes menos ações
+ * numa empresa que já está mal. O teto é a única ponta da faixa em que a
+ * absurdez é certa: não há papel na B3 com patrimônio de dez mil reais por
+ * ação.
+ *
+ * Como só se entra pela ponta de cima, as duas leituras nunca cabem ao mesmo
+ * tempo — o ×1000 de um número acima do teto cai, no máximo, logo abaixo
+ * dele. Não há empate a desfazer.
+ */
+const VPA_MIN = 0.01;
+const VPA_MAX = 10000;
+
+function conciliarContagemComPatrimonio(circulacao, patrimonioLiquido) {
+  if (!(circulacao > 0)) return { acoes: null, fator: null, vpa: null, motivo: 'sem_contagem' };
+  // Sem patrimônio não há conferência possível. Recusar aqui seria descartar
+  // contagem boa por falta do aferidor, não por defeito dela.
+  if (!(patrimonioLiquido > 0)) {
+    return { acoes: circulacao, fator: 1, vpa: null, motivo: 'sem_patrimonio' };
+  }
+  const cabe = (vpa) => vpa >= VPA_MIN && vpa <= VPA_MAX;
+  const vpaUnidades = patrimonioLiquido / circulacao;
+  if (cabe(vpaUnidades)) {
+    return { acoes: circulacao, fator: 1, vpa: vpaUnidades, motivo: 'unidades' };
+  }
+  if (vpaUnidades > VPA_MAX && cabe(vpaUnidades / 1000)) {
+    return {
+      acoes: circulacao * 1000,
+      fator: 1000,
+      vpa: vpaUnidades / 1000,
+      motivo: 'milhares',
+    };
+  }
+  return { acoes: null, fator: null, vpa: vpaUnidades, motivo: 'fora_de_faixa' };
+}
+
 module.exports.COLUNAS_CAPITAL = COLUNAS_CAPITAL;
 module.exports.extrairComposicaoCapital = extrairComposicaoCapital;
+module.exports.conciliarContagemComPatrimonio = conciliarContagemComPatrimonio;
+module.exports.VPA_MIN = VPA_MIN;
+module.exports.VPA_MAX = VPA_MAX;
 
 // ════════════════════════════════════════════════════════════
 // Descoberta do universo — ticker ↔ empresa, pela própria CVM

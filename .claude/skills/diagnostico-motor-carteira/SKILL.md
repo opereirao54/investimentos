@@ -170,6 +170,9 @@ encontradas lendo o log de execução contra dados de verdade:
 | `ELET3 2,92M ações` para 118 bi de patrimônio | escala da quantidade declarada por linha, ignorada                    | BBAS3 saía certo — a escala dele é UNIDADE           |
 | `? XPML11 PENINSULA FII`                      | duas classes com a mesma raiz de ISIN, vencedor pela ordem do arquivo | casou, e o nome não parece errado a quem não conhece |
 | `GGRC11 ocupação 0` num fundo cheio           | média sobre os 4 imóveis de 228 que preenchem a coluna esparsa        | 0% é um número, e a coluna existe mesmo              |
+| `MXRF11 tijolo` num fundo de recebíveis       | regra binária ("tem imóvel") onde a realidade é proporcional          | ele tem mesmo dois imóveis — a regra respondeu certo |
+| `ELET3 2,31M ações` para 118 bi de patrimônio | arquivo sem coluna de escala e duas convenções nele                   | 2.307.099 é o que está escrito no arquivo            |
+| `tes 0` em TODA companhia                     | o mapa procurava `TESOURARIA`, o arquivo traz `TESOURO`               | zero é o que uma empresa sem tesouraria também tem   |
 
 O padrão: **a busca não falha, ela acerta o alvo errado.** Não há exceção,
 não há `null`, não há linha de erro — há um número plausível o suficiente
@@ -204,6 +207,30 @@ disponível quando o código não reclama.
   é quem tem algo a declarar. Exija cobertura mínima e imprima-a ao lado
   do número; "ocupação 90%" e "ocupação 90% medida em 2 de 40" são a mesma
   linha sem ela.
+- **Regra binária onde a realidade é proporcional** responde certo à
+  pergunta errada. "Tem imóvel?" e "o imóvel é o que paga o rendimento?"
+  separam-se num fundo de recebíveis com dois imóveis — e é a segunda que
+  decide quais indicadores se aplicam. Quando a classificação governa a
+  cobertura, ela precisa da FATIA, e a fatia precisa de ir no log ao lado
+  do rótulo: sem ela os dois "tijolo" são indistinguíveis.
+- **Coluna com nome quase certo falha calada.** O mapa procurava
+  `QT_ACAO_ORDIN_TESOURARIA`; o arquivo traz `QT_ACAO_ORDIN_TESOURO`. Não
+  resolver uma coluna opcional devolve zero, e zero é o que uma companhia
+  sem tesouraria também tem. **Nomeie no log TODA coluna que não resolveu**,
+  nunca só a que se está a investigar naquele dia.
+- **Fixture mais fácil que a realidade não testa a realidade.** O cabeçalho
+  inventado da composição do capital tinha escala, tinha `CD_CVM` e
+  chamava a tesouraria de `TESOURARIA` — nenhum dos três existe no arquivo
+  publicado. A suíte passava enquanto a produção falhava. Ao descobrir um
+  layout real pelo log, **copie-o para o fixture** em vez de descrever o
+  que se imagina que ele seja.
+- **Metadado ausente não autoriza supor a unidade — mas o cruzamento
+  decide.** O arquivo da CVM não declara escala nenhuma e as companhias
+  usam convenções diferentes no MESMO arquivo. Quem arbitra é uma grandeza
+  independente (o patrimônio). E a correção tem de ser de **mão única**:
+  só se corrige a ponta em que a absurdez é certa. VPA de dez mil reais não
+  existe; VPA de centavos existe, e "corrigir" esse lado inventaria um erro
+  onde não havia.
 - Quando uma trava recusa um número, **imprima o dado cru que a motivou.**
   Recusar protege o ranking mas não explica a fonte, e as hipóteses
   concorrentes ("o filtro descartou a linha certa" × "a linha certa não

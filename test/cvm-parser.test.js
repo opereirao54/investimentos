@@ -1392,6 +1392,33 @@ test('o DY do mês é razão apesar do nome, e a escala sai da mediana do arquiv
   );
 });
 
+test('o ponto da série carrega o que a série consome — VPC incluído', () => {
+  // Regressão do defeito mais instrutivo desta rodada: o comentário prometia
+  // "TODOS os campos mensais", o código gravava três, e o consumidor de
+  // `valorPatrimonialCota` que confiou na frase mediu `0m` nos nove fundos —
+  // um zero plausível, indistinguível de "o dado não sustenta a hipótese".
+  //
+  // O teste vai pelo `parseCsvCvm` com o cabeçalho REAL do `complemento`: um
+  // fixture montado à mão passaria mesmo com a coluna por resolver.
+  const csv = [
+    'CNPJ_Fundo_Classe;Data_Referencia;Cotas_Emitidas;Valor_Patrimonial_Cotas;Percentual_Dividend_Yield_Mes',
+    '97.521.225/0001-25;2026-07-31;1000000;9,262499;0,00808',
+    '97.521.225/0001-25;2026-06-30;1000000;9,20;0,008',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const r = P.extrairInformeFii(parsed.registros, parsed.colunas);
+  const serie = r.seriePorCnpj.get('97521225000125');
+  assert.ok(serie && serie.length === 2, `série ausente: ${JSON.stringify(serie)}`);
+  for (const ponto of serie) {
+    assert.ok(
+      ponto.valorPatrimonialCota > 0,
+      `VPC não chegou ao ponto da série: ${JSON.stringify(ponto)}`
+    );
+  }
+  // E chegando ao ponto, o segundo caminho passa a ter as duas pontas.
+  assert.equal(serie[0].numeroCotas, 1000000);
+});
+
 test('arquivo já em percentagem não é multiplicado de novo', () => {
   const csv = [
     'CNPJ_Fundo;Data_Referencia;Percentual_Dividend_Yield_Mes',
@@ -1779,6 +1806,9 @@ function serieFii(pontos) {
       dyMes: p[1] === undefined ? 0.8 : p[1],
       rendimentosDistribuir: p[2] === undefined ? null : p[2],
       numeroCotas: p[3] === undefined ? null : p[3],
+      // O valor patrimonial da cota: quinta posição, porque o segundo
+      // caminho do crescimento (DY × VPC) precisa dele.
+      valorPatrimonialCota: p[4] === undefined ? null : p[4],
     };
   });
 }
@@ -1848,6 +1878,147 @@ test('variação absurda é recusada — é mudança de estrutura, não distribu
   }
   const r = P.indicadoresDaSerieFii(serieFii(pontos));
   assert.equal(r.crescimentoDividendo12m, null, 'fora da faixa vira lacuna, não número');
+  // A trava tem de dizer o que recusou. O BTLG11 saiu com travessão tendo 31
+  // meses de rendimento na execução real, e o log não distinguia "série
+  // curta" de "número absurdo" — que pedem correções opostas: uma é alargar
+  // a janela, a outra é procurar a coluna noutro lugar.
+  assert.equal(r.crescimentoMotivo, 'fora_de_faixa');
+  assert.ok(r.crescimentoBruto > 200, `o valor recusado tem de ir junto: ${r.crescimentoBruto}`);
+});
+
+test('saldo zerado num mês que rendeu é lacuna, não distribuição nula', () => {
+  // `Rendimentos_Distribuir` é saldo de balanço. Num fundo que liquida
+  // dentro do mês, ele fecha em zero mesmo tendo pago tudo — e foi assim que
+  // o BTLG11 produziu −100% de crescimento pagando em 100% dos meses.
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  // Doze meses com yield positivo E saldo zero: o fundo pagou, o saldo é que
+  // não descreve o pagamento.
+  for (let i = 1; i <= 12; i++) pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 0, 1e6]);
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.mesesSaldoQuitado, 12, 'os meses de saldo quitado têm de ser contados');
+  assert.equal(
+    r.crescimentoDividendo12m,
+    null,
+    'sem a janela recente não se inventa crescimento — mas também não se inventa queda'
+  );
+  assert.notEqual(r.crescimentoBruto, -100, 'o −100% falso não pode voltar a ser calculado');
+  // E o log tem de dizer que a janela recente ficou vazia — é isso que
+  // aponta para a coluna, não para o fundo.
+  assert.equal(r.crescimentoMotivo, 'serie_curta');
+
+  // Saldo zero com yield zero continua a ser um zero de verdade: o fundo
+  // não distribuiu, e isso é dado, não contradição.
+  const semPagar = [];
+  for (let i = 1; i <= 24; i++) {
+    semPagar.push([
+      `202${i <= 12 ? 4 : 5}-${String(((i - 1) % 12) + 1).padStart(2, '0')}`,
+      0,
+      0,
+      1e6,
+    ]);
+  }
+  assert.equal(P.indicadoresDaSerieFii(serieFii(semPagar)).mesesSaldoQuitado, 0);
+});
+
+test('o segundo caminho recupera o fundo que liquida dentro do mês', () => {
+  // O BTLG11 tem saldo zero em 29 dos 31 meses. Pelo saldo não há
+  // crescimento a calcular; pelo yield sobre o valor patrimonial há, e é a
+  // mesma grandeza — rendimento por cota — reconstruída de outra coluna.
+  const pontos = [];
+  // dyMes em %, VPC constante: 0,80% de 100 = R$ 0,80/cota; depois 0,88.
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 0, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0.88, 0, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.mesesSaldoQuitado, 24, 'o saldo não descreve este fundo em nenhum mês');
+  assert.ok(
+    Math.abs(r.crescimentoPorDy - 10) < 0.05,
+    `esperado ~+10% pelo DY×VPC, veio ${r.crescimentoPorDy}`
+  );
+  // E o indicador publicado passa a existir, pelo caminho que tem dado.
+  assert.equal(r.crescimentoDividendo12m, r.crescimentoPorDy);
+  assert.equal(r.crescimentoFonte, 'dy_vpc', 'a procedência do número vai junto com ele');
+});
+
+test('o saldo fica de reserva para quem o DY não alcança', () => {
+  // O GGRC11 paga em 20,8% dos meses: pelo DY a janela anterior dá média
+  // zero, e não há crescimento a calcular. O saldo, esse, tem os meses em
+  // que houve pagamento — e é ele que salva o indicador.
+  const pontos = [];
+  // Doze meses sem pagar: DY zero, e saldo zero de verdade (não quitado).
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 0, 100000, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 0, 110000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoPorDy, null, 'pelo DY a base é zero');
+  assert.equal(r.crescimentoDividendo12m, 10, 'o saldo assume');
+  assert.equal(r.crescimentoFonte, 'saldo');
+});
+
+test('os dois caminhos ficam distinguíveis mesmo quando concordam', () => {
+  // Rótulo que sai de quem foi CHAMADO em vez de quem RESPONDEU já custou
+  // caro a este projeto. Depois de o DY passar a principal, o log rotulava
+  // "reserva (saldo)" um número que era o do caminho escolhido: em todo
+  // fundo os dois passaram a ser iguais e a linha de comparação concordava
+  // consigo própria — uma verificação que não verifica nada.
+  //
+  // Aqui os dois caminhos DIVERGEM de propósito: o saldo cresce 10%, o DY
+  // cresce 20%. Cada campo tem de carregar o seu.
+  const pontos = [];
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2024-${String(i).padStart(2, '0')}`, 1.0, 100000, 1e6, 100]);
+  }
+  for (let i = 1; i <= 12; i++) {
+    pontos.push([`2025-${String(i).padStart(2, '0')}`, 1.2, 110000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.crescimentoSaldo, 10, 'o campo do saldo carrega o saldo');
+  assert.equal(r.crescimentoPorDy, 20, 'o campo do DY carrega o DY');
+  assert.equal(r.crescimentoDividendo12m, 20, 'o publicado é o principal');
+  assert.equal(r.crescimentoFonte, 'dy_vpc');
+});
+
+test('a razão entre os dois caminhos é medida, não suposta', () => {
+  // Onde os dois existem, a razão diz sobre que base a CVM calcula o yield.
+  // Com o saldo montado para bater exatamente com DY × VPC, ela tem de dar 1
+  // — é este número que, no dado real, confirma ou desmente a hipótese.
+  const pontos = [];
+  for (let i = 1; i <= 24; i++) {
+    const mes = `202${i <= 12 ? 4 : 5}-${String(((i - 1) % 12) + 1).padStart(2, '0')}`;
+    // 0,80% de VPC 100 = 0,80/cota; com 1e6 cotas, saldo de 800000.
+    pontos.push([mes, 0.8, 800000, 1e6, 100]);
+  }
+  const r = P.indicadoresDaSerieFii(serieFii(pontos));
+  assert.equal(r.razaoSaldoDy, 1, 'as duas leituras descrevem a mesma grandeza');
+  assert.equal(r.mesesComparados, 24);
+});
+
+test('cada porta de saída do crescimento tem um motivo próprio', () => {
+  // Recusar protege o ranking; só o motivo explica a fonte.
+  const curta = [];
+  for (let i = 1; i <= 10; i++) curta.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  assert.equal(P.indicadoresDaSerieFii(serieFii(curta)).crescimentoMotivo, 'serie_curta');
+
+  const semDy = [];
+  for (let i = 1; i <= 3; i++) semDy.push([`2025-0${i}`, 0.8, 1000, 1e6]);
+  assert.equal(P.indicadoresDaSerieFii(serieFii(semDy)).crescimentoMotivo, 'poucos_meses');
+
+  assert.equal(P.indicadoresDaSerieFii([]).crescimentoMotivo, 'sem_serie');
+
+  // E quando dá certo, não há motivo nenhum a reportar.
+  const boa = [];
+  for (let i = 1; i <= 12; i++) boa.push([`2024-${String(i).padStart(2, '0')}`, 0.8, 1000, 1e6]);
+  for (let i = 1; i <= 12; i++) boa.push([`2025-${String(i).padStart(2, '0')}`, 0.8, 1200, 1e6]);
+  const ok = P.indicadoresDaSerieFii(serieFii(boa));
+  assert.equal(ok.crescimentoMotivo, null);
+  assert.equal(ok.crescimentoDividendo12m, 20);
 });
 
 test('as duas pontas vêm de membros diferentes do ZIP e são reunidas por mês', () => {
@@ -1931,8 +2102,30 @@ test('carteira com imóvel é tijolo; sem imóvel e com carteira declarada é pa
   );
 });
 
-test('híbrido conta como tijolo — a ocupação ainda descreve parte da carteira', () => {
-  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 }), 'tijolo');
+test('o que decide é a FATIA da carteira, não a presença de imóvel', () => {
+  // "Tem algum imóvel → tijolo" classificou o MXRF11 como fundo de tijolo na
+  // execução real: um fundo de recebíveis com dois imóveis marginais numa
+  // carteira de 5,25 bi. Ele passava a ser cobrado por uma ocupação que não
+  // descreve a receita dele, perdia cobertura, e o encolhimento do score o
+  // punia por um defeito que não tem.
+  assert.equal(
+    P.tipoCarteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 }),
+    'papel',
+    '20% da carteira em imóvel não faz um fundo de tijolo'
+  );
+  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 8e8, totalInvestido: 1e9 }), 'tijolo');
+  // Na fronteira, a maioria decide.
+  assert.equal(P.tipoCarteiraFii({ direitosBensImoveis: 5e8, totalInvestido: 1e9 }), 'tijolo');
+});
+
+test('a fatia acompanha o tipo, para o log poder mostrar por que decidiu', () => {
+  // Sem ela, "tijolo" num fundo de recebíveis com dois imóveis é
+  // indistinguível de "tijolo" num galpão logístico — e foi assim que a
+  // classificação errada passou uma rodada inteira sem ser notada.
+  const c = P.carteiraFii({ direitosBensImoveis: 2e8, totalInvestido: 1e9 });
+  assert.equal(c.tipo, 'papel');
+  assert.equal(c.fracaoImoveis, 20);
+  assert.equal(P.carteiraFii({}).fracaoImoveis, null);
 });
 
 test('ausência de dado não classifica — evidência positiva ou nada', () => {

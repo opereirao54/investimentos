@@ -501,22 +501,26 @@ test('item da carteira modelo casa com o título do Tesouro apesar do acento e d
   assert.equal(cdb, null, 'o que não é do Tesouro fica sem taxa, e não com a taxa errada');
 });
 
-test('ativo desmarcado sai do universo do motor', () => {
+test('o universo base é a carteira modelo inteira, sem filtro invisível', () => {
+  // A grade "Ativos selecionados" saiu: ela duplicava o plano do motor e
+  // dividia o aporte IGUALMENTE entre os ativos, que é exatamente o que a
+  // regra do projeto proíbe — divisão igual disfarçada de recomendação.
+  //
+  // Com a grade fora, o veto gravado não teria tela que o mostrasse nem que
+  // o desfizesse: o universo encolheria em silêncio e ninguém descobriria
+  // por quê olhando o produto. Por isso o filtro saiu junto.
   const s = carregar();
-  const antes = JSON.parse(
+  const tickers = JSON.parse(
     s.run('JSON.stringify(cartUniversoBase().map(function(a){return a.ticker}))')
   );
-  assert.ok(antes.includes('BBAS3'), 'a carteira modelo padrão tem BBAS3');
-
-  const depois = JSON.parse(
-    s.run(`
-      cartEstado.selecionados.acao = ['EGIE3'];
-      JSON.stringify(cartUniversoBase().map(function(a){ return a.ticker }))
-    `)
+  assert.ok(tickers.includes('BBAS3'), 'a carteira modelo padrão tem BBAS3');
+  assert.ok(tickers.includes('MXRF11'), 'e as outras classes continuam presentes');
+  assert.equal(
+    s.run('typeof cartRenderizarSelecaoGrid'),
+    'undefined',
+    'a grade duplicada não pode voltar'
   );
-  assert.ok(!depois.includes('BBAS3'), 'desmarcar tem de tirar o ativo dos candidatos');
-  assert.ok(depois.includes('EGIE3'));
-  assert.ok(depois.includes('MXRF11'), 'desmarcar em ações não pode afetar as outras classes');
+  assert.equal(s.run('typeof cartToggleAtivo'), 'undefined', 'nem o toggle que a operava');
 });
 
 test('universo montado herda os fundamentos e preserva o nome da carteira modelo', () => {
@@ -667,21 +671,21 @@ test('cada classe do universo automático é rotulada corretamente', () => {
   assert.ok(porClasse.cripto >= 2);
 });
 
-test('desmarcar um ativo continua valendo no modo automático', () => {
-  // O utilizador deixa de escolher QUAIS entram, mas continua a poder vetar.
+test('o universo automático entrega o ranking inteiro, sem veto gravado', () => {
+  // Um veto gravado numa sessão anterior, sem tela que o revele, seria
+  // indistinguível de "o ranking não trouxe esse ativo". O filtro saiu com
+  // a grade que o operava.
   const s = carregar();
   const r = JSON.parse(
     s.run(`
-      cartEstado.selecionados.acao = ['EGIE3'];
+      cartEstado.selecionados = { acao: ['EGIE3'] };
       JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING)}, ${JSON.stringify(TITULOS_RF)}))
     `)
   );
   const acoes = r.itens.filter((a) => a.classe === 'acao').map((a) => a.ticker);
-  assert.deepEqual(acoes, ['EGIE3']);
-  assert.ok(
-    r.itens.some((a) => a.classe === 'fii'),
-    'vetar uma ação não afeta as outras classes'
-  );
+  assert.ok(acoes.length > 1, `estado antigo não pode filtrar o universo: ${acoes.join(',')}`);
+  assert.ok(acoes.includes('EGIE3'));
+  assert.ok(r.itens.some((a) => a.classe === 'fii'));
 });
 
 test('Tesouro fora do ar cai para a carteira modelo, e a tela diz', () => {
@@ -711,28 +715,30 @@ test('o status diz quantos ativos foram analisados e quantos caíram no corte', 
   assert.ok(html.includes('245 fora do corte'), 'o total peneirado tem de ser visível');
 });
 
-test('modo consultor é declarado na tela como escolha diferente', () => {
+test('não há escolha de universo: o dado é o produto, não uma opção', () => {
+  // Os dois botões — "Todo o mercado" e a lista curada — não eram escolha de
+  // gosto: um é o produto (CVM e Tesouro, auditável) e o outro é uma lista
+  // escrita à mão. Lado a lado sugeriam valer o mesmo, e convidavam a
+  // desligar exatamente o que se está a vender.
+  //
+  // A carteira modelo continua a existir como RESERVA declarada quando uma
+  // classe volta vazia do ranking — degradação com aviso, não alternativa.
   const s = carregar();
-  s.run(SEMENTE);
-  s.run('cartMotor.automatico = false; cartRenderizarMotorStatus();');
-  const html = s.dom.els.get('cartMotorStatus').innerHTML;
-  assert.ok(html.includes('carteira do consultor'));
-  assert.ok(!html.includes('ativos analisados'));
-});
+  assert.equal(s.run('typeof cartRenderizarModoUniverso'), 'undefined');
+  assert.equal(s.run('typeof cartTrocarModoUniverso'), 'undefined');
+  assert.equal(s.run('cartEstado.modoUniverso'), undefined, 'o modo saiu do estado');
 
-test('o padrão é todo o mercado, não a carteira do consultor', () => {
-  const s = carregar();
-  assert.notEqual(s.run('cartEstado.modoUniverso'), 'consultor');
-  s.run('cartRenderizarModoUniverso();');
-  const html = s.dom.els.get('cartMotorModo').innerHTML;
-  assert.ok(html.includes('Todo o mercado'));
-  assert.ok(html.includes('Carteira do consultor'), 'a opção humana continua disponível');
-  assert.equal(html.split('active').length - 1, 1, 'só um modo ativo de cada vez');
-  assert.ok(
-    /class="cart-motor-modo-btn active"[^>]*onclick="cartTrocarModoUniverso\('automatico'\)"/.test(
-      html
-    )
-  );
+  // E o status continua a declarar o universo analisado, que é o que
+  // substitui a informação que o par de botões dava.
+  s.run(SEMENTE);
+  s.run(`
+    cartMotor.ranking = rankingTeste;
+    cartMotor.rankingServidor = { universo: 400, excluidos: { porte_abaixo_do_piso: 245 } };
+    cartRenderizarMotorStatus();
+  `);
+  const html = s.dom.els.get('cartMotorStatus').innerHTML;
+  assert.ok(html.includes('400 ativos analisados'));
+  assert.ok(!/consultor/i.test(html), 'o jargão interno não sobrevive no status');
 });
 
 test('a lista pontuada e a resposta do ranking não compartilham campo', () => {
@@ -918,4 +924,66 @@ test('pilar sem dado nenhum continua vazio, não parcial', () => {
   const html = s.dom.els.get('cartMotorRanking').innerHTML;
   assert.ok(html.includes('cart-pilar-barra vazio'));
   assert.ok(!html.includes('cart-pilar-barra parcial'));
+});
+
+// ════════════════════════════════════════════
+// Critérios de análise e pontuação
+// ════════════════════════════════════════════
+
+test('os critérios exibidos saem do motor, não de uma lista escrita à mão', () => {
+  // A tela explica COMO o score é calculado. Se essa explicação for escrita
+  // à parte, ela diverge do motor no primeiro ajuste de peso — e passa a
+  // descrever um cálculo que o produto já não executa, o que é pior do que
+  // não explicar nada. Este teste falha se a lista deixar de ser derivada.
+  const s = carregar();
+  s.run('cartRenderizarCriterios();');
+  const html = s.dom.els.get('cartCriterios').innerHTML;
+
+  // Um indicador que existe SÓ no motor tem de aparecer aqui sem ninguém o
+  // ter copiado: se alguém trocar a fonte por texto fixo, isto quebra.
+  const nomes = JSON.parse(
+    s.run('JSON.stringify(MOTOR_CRITERIOS.acao.valuation.map(function(m){return m.nome}))')
+  );
+  for (const nome of nomes) {
+    assert.ok(html.includes(nome), `indicador do motor ausente na explicação: ${nome}`);
+  }
+  // O peso distingue "entra na conta" de "decide a conta".
+  const peso = s.run('MOTOR_CRITERIOS.acao.valuation[0].peso');
+  assert.ok(html.includes('peso ' + peso), 'o peso de cada indicador tem de ir junto');
+});
+
+test('a explicação cobre as classes com critérios próprios, tijolo e papel à parte', () => {
+  const s = carregar();
+  s.run('cartRenderizarCriterios();');
+  const html = s.dom.els.get('cartCriterios').innerHTML;
+  assert.ok(html.includes('FIIs de tijolo'));
+  assert.ok(html.includes('FIIs de papel'), 'o fundo de papel tem critérios próprios');
+  // Ocupação só se aplica a tijolo — é a diferença que justifica separá-los.
+  assert.ok(html.includes('Taxa de ocupação'));
+});
+
+test('a explicação acompanha a lente ativa, não uma lente fixa', () => {
+  // Trocar de lente muda o PESO de cada pilar e reordena a carteira. Uma
+  // explicação presa a uma lente descreveria o cálculo errado.
+  const s = carregar();
+  s.run("cartEstado.lente = 'renda'; cartRenderizarCriterios();");
+  const renda = s.dom.els.get('cartCriterios').innerHTML;
+  assert.ok(renda.includes('Renda &amp; Perenidade') || renda.includes('Renda & Perenidade'));
+  assert.ok(renda.includes('×2.2'), 'o peso do pilar de dividendos da lente renda');
+
+  s.run("cartEstado.lente = 'valor'; cartRenderizarCriterios();");
+  const valor = s.dom.els.get('cartCriterios').innerHTML;
+  assert.ok(valor.includes('Valor & Margem') || valor.includes('Valor &amp; Margem'));
+  assert.notEqual(renda, valor, 'trocar de lente tem de mudar a explicação');
+});
+
+test('a explicação diz o que acontece quando falta indicador', () => {
+  // É a pergunta que o utilizador faz olhando um travessão no card. Sem
+  // resposta na tela, "sem dado" parece nota zero.
+  const s = carregar();
+  s.run('cartRenderizarCriterios();');
+  const html = s.dom.els.get('cartCriterios').innerHTML;
+  assert.ok(html.includes('não vira nota zero'));
+  const minimo = Math.round(s.run('MOTOR_COBERTURA_MINIMA') * 100);
+  assert.ok(html.includes(minimo + '%'), 'o piso de cobertura real tem de ser o exibido');
 });

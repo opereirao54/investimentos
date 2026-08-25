@@ -34,6 +34,7 @@
 
 const path = require('node:path');
 const { lerZip } = require('./lib/zip');
+const T = require(path.join(__dirname, 'lib', 'tesouro.js'));
 const P = require('./lib/cvm-parser');
 const MAPA = require('./lib/mapa-cvm.json');
 
@@ -406,6 +407,86 @@ async function baixarCotacoes(tickers) {
   return out;
 }
 
+/**
+ * Taxas correntes do Tesouro Direto → coleção `marketRendaFixa`.
+ *
+ * O endpoint que alimentava `op=rendafixa` foi desativado — a sonda no runner
+ * registou `HTTP 410 · gone`, que é "foi-se e não volta". O substituto é o
+ * dado aberto oficial, e o catálogo CKAN é consultado em vez de se fixar o
+ * UUID do recurso: o UUID muda quando o Tesouro republica o dataset, e o
+ * catálogo continua a apontar para o arquivo certo. Mesmo raciocínio do
+ * índice de diretório da CVM, que sobreviveu a várias mudanças de nome.
+ */
+const CKAN_TESOURO =
+  'https://www.tesourotransparente.gov.br/ckan/api/3/action/package_show' +
+  '?id=taxas-dos-titulos-ofertados-pelo-tesouro-direto';
+
+async function urlDoCsvTesouro() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const res = await fetch(CKAN_TESOURO, {
+      headers: { Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (!res.ok) throw new Error(`ckan_${res.status}`);
+    const json = await res.json();
+    const recursos = (json.result && json.result.resources) || [];
+    const csv = recursos.find((r) => String(r.format || '').toUpperCase() === 'CSV' && r.url);
+    if (!csv) throw new Error(`ckan_sem_csv (${recursos.length} recursos)`);
+    return csv.url;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function ingerirTesouro() {
+  log('\n· Tesouro Direto (Tesouro Transparente)…');
+  let url;
+  try {
+    url = await urlDoCsvTesouro();
+    log(`  catálogo aponta para: ${url}`);
+  } catch (e) {
+    log(`  ✗ catálogo indisponível: ${e.message}`);
+    return null;
+  }
+
+  let texto;
+  try {
+    const buf = await baixar(url);
+    // Medida, não suposta: se o arquivo dobrar de tamanho, é aqui que se vê
+    // antes de o job começar a estourar tempo.
+    log(`  CSV: ${(buf.length / 1e6).toFixed(1)} MB`);
+    texto = buf.toString('utf8');
+  } catch (e) {
+    log(`  ✗ download falhou: ${e.message}`);
+    return null;
+  }
+
+  const hoje = new Date().toISOString().slice(0, 10);
+  const r = T.extrairTaxasTesouro(texto, hoje);
+  if (r.semEssencial && r.semEssencial.length) {
+    log(`  ✗ cabeçalho mudou — faltam: ${r.semEssencial.join(', ')}`);
+    log(`    colunas reais: ${(r.cabecalho || []).join(', ')}`);
+    return null;
+  }
+  log(
+    `  ${r.titulos.length} títulos vivos · ${r.linhasLidas} linhas lidas · ` +
+      `${r.vencidos} vencidos descartados`
+  );
+  for (const t of r.titulos.slice(0, 8)) {
+    // Compra e venda lado a lado: o spread é de poucos pontos-base, e vê-los
+    // juntos é o que denuncia colunas lidas trocadas. Sozinha, qualquer uma
+    // das duas parece certa.
+    log(
+      `    ${t.ticker.padEnd(38)} taxa ${t.taxa}% (venda ${t.taxaVenda ?? '—'}%) · ` +
+        `PU ${t.precoUnitario ?? '—'} · base ${t.dataBase}`
+    );
+  }
+  if (r.titulos.length > 8) log(`    … e mais ${r.titulos.length - 8}`);
+  return r.titulos;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const gravar = args.includes('--gravar') || args.includes('--send');
@@ -633,10 +714,14 @@ async function main() {
         // defeito que a Eletrobras expôs, e ele volta se a CVM renomear a
         // coluna. Nomear as colunas reais é o que permite corrigir numa
         // linha em vez de reabrir a investigação.
-        if (!cap.colunas.escalaQuantidade) {
-          log(
-            '  ! composição do capital sem coluna de escala — contagens em milhares sairão 1000× menores'
-          );
+        // TODA coluna que não resolveu, não só a escala. A de tesouraria
+        // faltava calada — o mapa procurava `TESOURARIA` e o arquivo traz
+        // `TESOURO` — e o resultado era `tes 0` em toda companhia, que é
+        // exatamente o que uma empresa sem tesouraria também imprime. Coluna
+        // ausente e valor zero têm de ser distinguíveis no log.
+        const faltando = cap.faltando || [];
+        if (faltando.length) {
+          log(`  ! composição do capital sem as colunas: ${faltando.join(', ')}`);
           log(`    colunas reais: ${pacote.csvs.composicao_capital.colunas.join(', ')}`);
         }
         capitalPorChave = cap.porChave;
@@ -687,24 +772,38 @@ async function main() {
     const ind = r.indicadores;
 
     // A contagem declarada é conferida contra o PATRIMÔNIO, que não passou
-    // por ela. Valor patrimonial por ação fora de faixa denuncia que a linha
-    // lida não é a da companhia inteira — foi o que a execução real mostrou:
+    // por ela — e o mesmo cálculo decide a UNIDADE, porque o arquivo da CVM
+    // não declara escala nenhuma e as companhias não usam a mesma:
     //
-    //   ELET3  PL 118,5 bi · ações 0,00 bi  →  R$ 118 mil por ação
+    //   BBAS3  2.865.417.020 → unidades  → VPA R$ 67,5
+    //   ELET3      2.307.099 → milhares  → VPA R$ 51,4  (a 1× dava R$ 51.364)
     //
-    // Com essa contagem o valor de mercado sairia mil vezes menor, o P/L
-    // viraria o menor da bolsa e a Eletrobras lideraria a lente "Valor".
-    // Recusar e cair para a derivação por LPA é melhor do que publicar isso.
+    // Lidas isoladamente as duas são plausíveis; só o valor patrimonial por
+    // ação separa. Quando nenhuma das leituras cabe na faixa, a contagem é
+    // recusada e a derivação cai para o LPA — melhor um travessão do que a
+    // Eletrobras com valor de mercado mil vezes menor liderando a lente
+    // "Valor".
     if (capitalDaEmpresa) {
       const pl = r.absolutos.patrimonioLiquido;
-      const vpa =
-        pl && capitalDaEmpresa.acoesEmCirculacao ? pl / capitalDaEmpresa.acoesEmCirculacao : null;
-      if (vpa !== null && (vpa < 0.01 || vpa > 10000)) {
+      const conc = P.conciliarContagemComPatrimonio(capitalDaEmpresa.acoesEmCirculacao, pl);
+      if (conc.acoes && conc.fator !== 1) {
         log(
-          `  ! ${emp.tickers[0]}: contagem declarada recusada — ` +
+          `  · ${emp.tickers[0]}: contagem declarada em milhares — ` +
+            `${capitalDaEmpresa.acoesEmCirculacao.toLocaleString('pt-BR')} → ` +
+            `${(conc.acoes / 1e9).toFixed(2)}bi ações, VPA R$ ${conc.vpa.toFixed(2)}` +
+            ` (a 1× daria R$ ${(pl / capitalDaEmpresa.acoesEmCirculacao).toFixed(0)})`
+        );
+        capitalDaEmpresa = {
+          ...capitalDaEmpresa,
+          acoesEmCirculacao: conc.acoes,
+          escalaAplicada: conc.fator,
+        };
+      } else if (!conc.acoes && conc.motivo !== 'sem_patrimonio') {
+        log(
+          `  ! ${emp.tickers[0]}: contagem declarada recusada (${conc.motivo}) — ` +
             `${(capitalDaEmpresa.acoesEmCirculacao / 1e6).toFixed(2)}M ações ` +
             `(escala ${capitalDaEmpresa.escalaAplicada}×) para ` +
-            `PL de ${(pl / 1e9).toFixed(1)}bi dá R$ ${vpa.toFixed(0)} por ação`
+            `PL de ${pl === null ? '—' : (pl / 1e9).toFixed(1) + 'bi'} dá R$ ${conc.vpa === null ? '—' : conc.vpa.toFixed(0)} por ação`
         );
         // A recusa protege o ranking, mas não explica o arquivo. Estas são
         // TODAS as linhas daquela companhia, inclusive as que o filtro
@@ -899,6 +998,13 @@ async function main() {
       }
       for (const [nome, csv] of membros) {
         log(`    ${nome}: ${csv.registros.length} linhas · ${(csv.membros || []).length} mês(es)`);
+        // As colunas REAIS de cada membro. Não é ruído: o crescimento do
+        // dividendo sai de `Rendimentos_Distribuir`, que é saldo de balanço —
+        // e no BTLG11 esse saldo fecha em zero em 29 dos 31 meses, num fundo
+        // que paga todos eles. A derivação está correta e a fonte é que não
+        // serve para essa classe de fundo. Só a lista do que o arquivo
+        // realmente traz permite escolher outra coluna sem adivinhar.
+        log(`      colunas: ${csv.colunas.join(', ')}`);
       }
 
       // ── o vínculo ticker ↔ fundo ──
@@ -943,9 +1049,18 @@ async function main() {
       });
       for (const c of casFii) {
         const marca = c.status === 'ok' ? '  ' : c.status === 'ambiguo' ? ' ?' : ' ✗';
+        // Ticker ambíguo NÃO casou — o pipeline exclui-o logo abaixo. Imprimir
+        // o nome do candidato que venceu a ordenação interna dizia o contrário
+        // ao olho: `? XPML11 PENINSULA FII RL` lê-se como "casou com o
+        // Peninsula", quando o que aconteceu foi "recusou casar". O rótulo tem
+        // de descrever a DECISÃO, não o estado intermédio que a produziu.
         log(
-          `  ${marca} ${c.ticker.padEnd(8)} ${c.casouCom || '— ' + c.status}` +
-            (c.desempate ? ` (desempatado por ${c.desempate})` : '')
+          `  ${marca} ${c.ticker.padEnd(8)} ` +
+            (c.status === 'ok'
+              ? c.casouCom + (c.desempate ? ` (desempatado por ${c.desempate})` : '')
+              : c.status === 'ambiguo'
+                ? '— não casado: dois fundos com a mesma raiz, sem critério que os separe'
+                : '— ' + c.status)
         );
         // Ambiguidade pula o ticker — e sem ver os candidatos ninguém sabe
         // se falta um critério de desempate ou se a raiz está sendo
@@ -1116,7 +1231,8 @@ async function main() {
         const alavancagem = P.alavancagemFii(inf);
         // Tijolo ou papel, pela carteira publicada. Decide QUAIS indicadores
         // se aplicam ao fundo — não a classe dele na alocação.
-        const tipoFii = P.tipoCarteiraFii(inf);
+        const carteira = P.carteiraFii(inf);
+        const tipoFii = carteira.tipo;
         const serie = P.indicadoresDaSerieFii(seriePorCnpj.get(String(c.chave).replace(/\D/g, '')));
         const bi = (v) => (v === null || v === undefined ? '—' : (v / 1e9).toFixed(2) + 'bi');
         log(
@@ -1138,9 +1254,38 @@ async function main() {
         log(
           `             série ${serie.mesesObservados} meses · DY médio ${serie.dyMedio36m ?? '—'}%` +
             ` · pagando ${serie.consistenciaDividendos ?? '—'}% dos meses` +
-            ` · ${tipoFii || 'tipo?'}` +
-            ` · cresc.div ${serie.crescimentoDividendo12m === null ? `— (${serie.mesesComRendimento}m c/ rend.)` : serie.crescimentoDividendo12m + '%'}` +
+            // A fatia vai junto com o rótulo porque é ela que o decide: sem
+            // ela, "tijolo" num fundo de recebíveis com dois imóveis é
+            // indistinguível de "tijolo" num galpão logístico.
+            ` · ${tipoFii || 'tipo?'}${carteira.fracaoImoveis === null ? '' : ` (${carteira.fracaoImoveis}% imóvel)`}` +
+            // O motivo da recusa, não só o travessão: 31 meses de rendimento
+            // com nota vazia pediu uma rodada inteira só para descobrir qual
+            // das quatro portas de saída tinha sido usada.
+            ` · cresc.div ${
+              serie.crescimentoDividendo12m === null
+                ? `— (${serie.crescimentoMotivo}, ${serie.mesesComRendimento}m c/ rend.${
+                    serie.crescimentoBruto === null ? '' : `, recusou ${serie.crescimentoBruto}%`
+                  }${serie.mesesSaldoQuitado ? `, ${serie.mesesSaldoQuitado}m saldo quitado` : ''})`
+                : `${serie.crescimentoDividendo12m}% (${serie.crescimentoFonte})`
+            }` +
             ` · LTV ${alavancagem === null ? '—' : alavancagem + '%'}`
+        );
+        // Os dois caminhos lado a lado. `razão` é a evidência: o rendimento
+        // por cota tirado do saldo dividido pelo tirado de `DY × VPC`, na
+        // mediana dos meses em que os dois existem. Perto de 1 confirma que o
+        // yield da CVM é sobre o valor patrimonial — e aí o segundo caminho
+        // pode assumir nos fundos onde o saldo fecha em zero. Longe de 1
+        // desmente, e é melhor sabê-lo aqui do que num ranking publicado.
+        log(
+          `             pelo saldo ${
+            serie.crescimentoSaldo === null ? '—' : serie.crescimentoSaldo + '%'
+          } · pelo DY×VPC ${
+            serie.crescimentoPorDy === null
+              ? `— (${serie.crescimentoPorDyMotivo})`
+              : serie.crescimentoPorDy + '%'
+          }` +
+            ` · razão saldo/DY ${serie.razaoSaldoDy === null ? '—' : serie.razaoSaldoDy}` +
+            ` em ${serie.mesesComparados}m`
         );
         if (!preenchidos) continue;
         documentos.push({
@@ -1163,10 +1308,20 @@ async function main() {
             // perguntas de consistência que o pilar de dividendos faz.
             dyMedio36m: serie.dyMedio36m,
             consistenciaDividendos: serie.consistenciaDividendos,
-            // Do rendimento POR COTA da série, não do yield: yield é
-            // rendimento ÷ preço, e a variação dele confunde mudança de
-            // distribuição com mudança de cotação.
+            // Do rendimento POR COTA da série. A objeção original a usar o
+            // yield era que yield é rendimento ÷ PREÇO, e a variação dele
+            // confundiria mudança de distribuição com mudança de cotação.
+            // A execução real desmentiu a premissa: o informe da CVM não tem
+            // coluna de preço nenhuma, e o `Percentual_Dividend_Yield_Mes` é
+            // sobre o valor patrimonial. Medido em seis fundos com 31 meses
+            // cada, `DY × VPC` e `saldo ÷ cotas` deram a MESMA grandeza —
+            // razão 1 em 186 comparações mensais.
             crescimentoDividendo12m: serie.crescimentoDividendo12m,
+            // Qual dos dois caminhos produziu o número. Vai para a base pelo
+            // mesmo motivo que a fonte de qualquer indicador: dois caminhos
+            // com coberturas diferentes não são intercambiáveis para quem
+            // audita, mesmo dando o mesmo resultado onde ambos existem.
+            crescimentoFonte: serie.crescimentoFonte,
             // Único indicador do pilar Endividamento do FII: sem ele o
             // pilar inteiro fica vazio e a cobertura da classe desaba.
             alavancagem,
@@ -1252,6 +1407,14 @@ async function main() {
     else documentos.push({ ticker: dy.ticker, dados: null, yahoo: dy.yahoo });
   }
 
+  // ── Sonda do Tesouro Direto ──
+  //
+  // A renda fixa agora passa por aqui. O CSV do Tesouro Transparente é a
+  // série histórica inteira (14,4 MB medidos): não cabe nos 15 s e 256 MB da
+  // function do Vercel, e cabe folgado neste job, que já baixa ZIPs maiores
+  // da CVM. `op=rendafixa` passa a ler o que ficou gravado.
+  const titulosRf = await ingerirTesouro();
+
   log(`\n=== ${documentos.length} documentos prontos ===`);
   if (!gravar) {
     log('DRY-RUN: nada foi gravado. Confira os casamentos acima e rode com --gravar.\n');
@@ -1297,7 +1460,34 @@ async function main() {
     }
     await batch.commit();
   }
-  log(`Gravados ${gravados} documentos em ${COLECAO}.\n`);
+  log(`Gravados ${gravados} documentos em ${COLECAO}.`);
+
+  // As taxas do Tesouro num documento único, na coleção que `op=rendafixa`
+  // já lê. Documento só, e não um por título: a resposta da API é a lista
+  // inteira, e 40 leituras onde bastava uma custam quota e latência sem
+  // devolver nada em troca.
+  //
+  // Só grava com título: sobrescrever a lista boa por uma vazia porque o
+  // Tesouro esteve fora do ar cinco minutos apagaria a classe da tela até a
+  // próxima execução semanal.
+  if (titulosRf && titulosRf.length) {
+    await database
+      .collection('marketRendaFixa')
+      .doc('tesouroDireto')
+      .set(
+        {
+          titulos: titulosRf.map(semUndefined),
+          fonte: 'tesouro_transparente',
+          fonteRotulo: 'Taxas do Tesouro Direto · Tesouro Transparente',
+          fetchedAtMs: agora,
+          updatedAt: timestamp().now(),
+        },
+        { merge: true }
+      );
+    log(`Gravados ${titulosRf.length} títulos em marketRendaFixa.\n`);
+  } else {
+    log('Renda fixa sem títulos nesta execução — a lista anterior fica de pé.\n');
+  }
 }
 
 /**
