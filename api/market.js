@@ -2019,14 +2019,13 @@ function comporFundamentos(doc, ticker) {
   // Empilha em ordem de autoridade: cotação por baixo, Yahoo por cima,
   // CVM em último. Cada camada só escreve onde tem valor — é isso que
   // impede o null de uma fonte de apagar o dado de outra.
-  const METADADOS = [
-    'fonte',
-    'fonteRotulo',
-    'dataReferencia',
-    'classe',
-    'cobertura',
-    'fetchedAtMs',
-  ];
+  // Metadado é o que descreve a CAMADA — de onde veio, de quando, quão
+  // completa. `classe` não é isso: é uma propriedade do ATIVO, e a camada da
+  // CVM é a única que a sabe com certeza (o job grava 'fii' no informe de
+  // fundo e 'acao' na DFP de companhia). Mantê-la aqui deitava fora a
+  // classificação autoritativa e entregava a decisão à heurística do sufixo,
+  // que classificava toda unit terminada em 11 como fundo imobiliário.
+  const METADADOS = ['fonte', 'fonteRotulo', 'dataReferencia', 'cobertura', 'fetchedAtMs'];
   function aplicar(camada) {
     if (!camada) return;
     for (const [chave, valor] of Object.entries(camada)) {
@@ -2049,6 +2048,14 @@ function comporFundamentos(doc, ticker) {
       out.setor = curado;
       out.setorFonte = 'curado';
     }
+  }
+
+  // Ticker que está na lista curada de FIIs É um FII. É a pista mais barata
+  // que temos para o fundo que a ingestão ainda não alcançou — sem ela, um
+  // fundo cujo nome não diz 'FII' fica dependente do sufixo, que também é o
+  // sufixo das units.
+  if (!out.classe && SETORES_B3.fiis && SETORES_B3.fiis[String(ticker || '').toUpperCase()]) {
+    out.classe = 'fii';
   }
 
   // Mesma regra do lado dos FIIs: preenche a lacuna, nunca sobrescreve o

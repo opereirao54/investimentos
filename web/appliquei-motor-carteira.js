@@ -1255,12 +1255,22 @@ function motorInferirClasse(ticker, nome, dica) {
     n.indexOf('renda fixa') !== -1
   )
     return 'rf';
-  // FII na B3 termina em 11 — mas 11 também é sufixo de unit (ex.: SANB11) e
-  // de ETF (BOVA11). O nome desempata; sem nome, o sufixo decide.
+  // FII na B3 termina em 11 — mas 11 também é sufixo de UNIT (SANB11, TAEE11,
+  // ENGI11, KLBN11, BPAC11, ALUP11, SAPR11, IGTI11) e de ETF (BOVA11). O nome
+  // desempata; sem nome, o sufixo decide.
+  //
+  // A ordem é o conserto: evidência POSITIVA de fundo primeiro, unit depois,
+  // e só então o sufixo. E o teste de unit procurava 'unit' — a B3 escreve
+  // **UNT**. Nenhuma unit casava, TODAS entravam como FII, e o efeito medido
+  // na tela foi a aba de FIIs com um item só: o SANB11, com critérios de
+  // fundo imobiliário aplicados a um banco. Pior, ocupar a classe impedia o
+  // resgate para a carteira modelo, que teria trazido os FIIs de verdade.
   if (/^[A-Z]{4}11$/.test(t)) {
     if (n.indexOf('etf') !== -1 || n.indexOf('index') !== -1 || n.indexOf('ishares') !== -1)
       return 'acao';
-    if (n.indexOf('unit') !== -1) return 'acao';
+    // Fundo que se declara fundo vence qualquer outra pista.
+    if (/fii|imobiliar|fdo\s*inv|fundo de investimento/.test(n)) return 'fii';
+    if (/unt\b/.test(n) || n.indexOf('unit') !== -1) return 'acao';
     return 'fii';
   }
   return 'acao';

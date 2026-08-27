@@ -1745,3 +1745,33 @@ test('todo segmento curado é um dos quatro que a política conhece', () => {
     assert.ok(validos.includes(seg), `${ticker}: segmento "${seg}" não existe na política`);
   }
 });
+
+test('a classe gravada pela CVM sobrevive à composição das fontes', () => {
+  // `classe` estava na lista de METADADOS e era descartada na junção. Metadado
+  // descreve a CAMADA (de onde veio, de quando); classe é propriedade do
+  // ATIVO, e só a camada da CVM a sabe com certeza. Descartá-la entregava a
+  // decisão à heurística do sufixo — que punha toda unit terminada em 11 na
+  // classe dos fundos imobiliários.
+  const c = comporFundamentos(
+    { mercado: { preco: 30, fonte: 'brapi' }, cvm: { classe: 'acao', roe: 15 } },
+    'SANB11'
+  );
+  assert.equal(c.classe, 'acao', 'a classe da CVM tem de chegar ao motor');
+
+  const fii = comporFundamentos(
+    { mercado: { preco: 100, fonte: 'brapi' }, cvm: { classe: 'fii', tipoFii: 'tijolo' } },
+    'HGLG11'
+  );
+  assert.equal(fii.classe, 'fii');
+});
+
+test('ticker da lista curada de FIIs é classificado como FII sem depender do nome', () => {
+  // Um fundo cujo nome não diz "FII" ficava dependente do sufixo — que também
+  // é o sufixo das units.
+  const c = comporFundamentos({ mercado: { preco: 10, fonte: 'brapi' } }, 'MXRF11');
+  assert.equal(c.classe, 'fii');
+
+  // E não inventa classe para quem não está na lista.
+  const outro = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'SANB11');
+  assert.equal(outro.classe, undefined);
+});

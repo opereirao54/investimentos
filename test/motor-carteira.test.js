@@ -1306,3 +1306,46 @@ test('os quatro segmentos aparecem quando o aporte comporta quatro nomes', () =>
     `a classe saiu concentrada: ${c.itens.map((i) => i.ticker + '/' + i.setorChave).join(', ')}`
   );
 });
+
+test('unit de companhia não é fundo imobiliário', () => {
+  // O 11 no fim é sufixo de FII **e** de unit. O teste procurava 'unit' e a
+  // B3 escreve UNT: nenhuma unit casava, TODAS entravam como FII. O efeito
+  // medido na tela foi a aba de FIIs com um item só — o SANB11, um banco, com
+  // critérios de fundo imobiliário aplicados a ele. E ocupar a classe impedia
+  // o resgate para a carteira modelo, que traria os FIIs de verdade.
+  [
+    ['SANB11', 'SANTANDER BRUNT'],
+    ['SANB11', 'SANTANDER BR UNT'],
+    ['TAEE11', 'TAESA UNT'],
+    ['ENGI11', 'ENERGISA UNT'],
+    ['KLBN11', 'KLABIN UNT'],
+    ['BPAC11', 'BTGP BANCO UNT'],
+    ['ALUP11', 'ALUPAR UNT'],
+    ['SAPR11', 'SANEPAR UNT'],
+    ['IGTI11', 'IGUATEMI UNT'],
+  ].forEach(([ticker, nome]) => {
+    assert.equal(M.inferirClasse(ticker, nome), 'acao', `${ticker} "${nome}" virou FII`);
+  });
+});
+
+test('fundo que se declara fundo continua sendo fundo', () => {
+  [
+    ['MXRF11', 'FII MAXI RENDA RL'],
+    ['BTLG11', 'BTGP LOGISTICA FII'],
+    ['KNRI11', 'KINEA RENDA IMOBILIARIA FII RESPONSABILIDADE LIMITADA'],
+    ['HGLG11', 'PATRIA LOG - FUNDO DE INVESTIMENTO IMOBILIARIO'],
+    ['XPML11', 'XP MALLS FII'],
+    ['MXRF11', 'MXRF11'],
+  ].forEach(([ticker, nome]) => {
+    assert.equal(M.inferirClasse(ticker, nome), 'fii', `${ticker} "${nome}" deixou de ser FII`);
+  });
+  // ETF continua fora dos dois.
+  assert.equal(M.inferirClasse('BOVA11', 'ISHARES IBOVESPA'), 'acao');
+});
+
+test('a classe declarada pela fonte vence qualquer heurística de sufixo', () => {
+  // O job da CVM grava 'fii' no informe de fundo e 'acao' na DFP de companhia.
+  // Essa é a classificação autoritativa — o sufixo é o último recurso.
+  assert.equal(M.inferirClasse('SANB11', 'SANTANDER BRUNT', 'acao'), 'acao');
+  assert.equal(M.inferirClasse('XXXX11', 'Nome Que Não Diz Nada', 'fii'), 'fii');
+});
