@@ -5,45 +5,181 @@
     "e ninguém confere. O script casa este nome contra cad_cia_aberta.csv e",
     "cad_fii.csv na hora, e o --dry-run imprime o que casou com o quê — é isso",
     "que um humano revisa antes de a ingestão escrever qualquer coisa.",
-    "Para adicionar um ativo à carteira modelo, acrescente-o aqui."
+    "Para adicionar um ativo à carteira modelo, acrescente-o aqui.",
+    "",
+    "`setor` existe porque NENHUMA fonte de mercado no-lo entrega de graça: o",
+    "perfil da BRAPI vem de `modules=`, que exige plano pago, e o do Yahoo vem",
+    "do quoteSummary, que responde 429 tanto da function como do runner. Sem",
+    "ele, a política de diversificação setorial não tem o campo que decide e a",
+    "tela mostra 'setor não informado' em toda ação — que era verdade, e por",
+    "isso o conserto é dar-lhe o dado, não calar o aviso.",
+    "É uma camada de RESERVA: setor que uma fonte real traga vence este.",
+    "O rótulo é o do mercado brasileiro, e quem o traduz para os blocos da",
+    "política é MOTOR_SETOR_MAPA — não repita aqui o nome do bloco."
   ],
   "acoes": {
-    "BBAS3": { "denominacao": "BANCO DO BRASIL", "nome": "Banco do Brasil" },
-    "BBDC4": { "denominacao": "BANCO BRADESCO", "nome": "Bradesco" },
-    "ITUB4": { "denominacao": "ITAU UNIBANCO", "nome": "Itaú Unibanco" },
-    "SANB11": { "denominacao": "BANCO SANTANDER", "nome": "Santander Brasil" },
-    "BBSE3": { "denominacao": "BB SEGURIDADE", "nome": "BB Seguridade" },
-    "PSSA3": { "denominacao": "PORTO SEGURO", "nome": "Porto Seguro" },
-    "EGIE3": { "denominacao": "ENGIE BRASIL", "nome": "Engie Brasil Energia" },
-    "TAEE11": { "denominacao": "TRANSMISSORA ALIANCA", "nome": "Taesa" },
-    "CPLE6": { "denominacao": "COPEL", "nome": "Copel" },
-    "CMIG4": { "denominacao": "CEMIG", "nome": "Cemig" },
-    "ELET3": { "denominacao": "CENTRAIS ELET", "nome": "Eletrobras" },
-    "SBSP3": { "denominacao": "SABESP", "nome": "Sabesp" },
-    "CSMG3": { "denominacao": "COPASA", "nome": "Copasa" },
-    "SAPR11": { "denominacao": "SANEPAR", "nome": "Sanepar" },
-    "VIVT3": { "denominacao": "TELEFONICA BRASIL", "nome": "Vivo" },
-    "WEGE3": { "denominacao": "WEG", "nome": "WEG" },
-    "PETR4": { "denominacao": "PETROLEO BRASILEIRO", "nome": "Petrobras" },
-    "VALE3": { "denominacao": "VALE", "nome": "Vale" },
-    "ITSA4": { "denominacao": "ITAUSA", "nome": "Itaúsa" },
-    "KLBN11": { "denominacao": "KLABIN", "nome": "Klabin" },
-    "SUZB3": { "denominacao": "SUZANO", "nome": "Suzano" },
-    "RENT3": { "denominacao": "LOCALIZA", "nome": "Localiza" },
-    "RADL3": { "denominacao": "RAIA DROGASIL", "nome": "Raia Drogasil" },
-    "ABEV3": { "denominacao": "AMBEV", "nome": "Ambev" }
+    "BBAS3": {
+      "denominacao": "BANCO DO BRASIL",
+      "nome": "Banco do Brasil",
+      "setor": "Bancos"
+    },
+    "BBDC4": {
+      "denominacao": "BANCO BRADESCO",
+      "nome": "Bradesco",
+      "setor": "Bancos"
+    },
+    "ITUB4": {
+      "denominacao": "ITAU UNIBANCO",
+      "nome": "Itaú Unibanco",
+      "setor": "Bancos"
+    },
+    "SANB11": {
+      "denominacao": "BANCO SANTANDER",
+      "nome": "Santander Brasil",
+      "setor": "Bancos"
+    },
+    "BBSE3": {
+      "denominacao": "BB SEGURIDADE",
+      "nome": "BB Seguridade",
+      "setor": "Seguros"
+    },
+    "PSSA3": {
+      "denominacao": "PORTO SEGURO",
+      "nome": "Porto Seguro",
+      "setor": "Seguros"
+    },
+    "EGIE3": {
+      "denominacao": "ENGIE BRASIL",
+      "nome": "Engie Brasil Energia",
+      "setor": "Energia Elétrica"
+    },
+    "TAEE11": {
+      "denominacao": "TRANSMISSORA ALIANCA",
+      "nome": "Taesa",
+      "setor": "Energia Elétrica"
+    },
+    "CPLE6": {
+      "denominacao": "COPEL",
+      "nome": "Copel",
+      "setor": "Energia Elétrica"
+    },
+    "CMIG4": {
+      "denominacao": "CEMIG",
+      "nome": "Cemig",
+      "setor": "Energia Elétrica"
+    },
+    "ELET3": {
+      "denominacao": "CENTRAIS ELET",
+      "nome": "Eletrobras",
+      "setor": "Energia Elétrica"
+    },
+    "SBSP3": {
+      "denominacao": "SABESP",
+      "nome": "Sabesp",
+      "setor": "Saneamento"
+    },
+    "CSMG3": {
+      "denominacao": "COPASA",
+      "nome": "Copasa",
+      "setor": "Saneamento"
+    },
+    "SAPR11": {
+      "denominacao": "SANEPAR",
+      "nome": "Sanepar",
+      "setor": "Saneamento"
+    },
+    "VIVT3": {
+      "denominacao": "TELEFONICA BRASIL",
+      "nome": "Vivo",
+      "setor": "Telecomunicações"
+    },
+    "WEGE3": {
+      "denominacao": "WEG",
+      "nome": "WEG",
+      "setor": "Bens de Capital"
+    },
+    "PETR4": {
+      "denominacao": "PETROLEO BRASILEIRO",
+      "nome": "Petrobras",
+      "setor": "Petróleo e Gás"
+    },
+    "VALE3": {
+      "denominacao": "VALE",
+      "nome": "Vale",
+      "setor": "Mineração"
+    },
+    "ITSA4": {
+      "denominacao": "ITAUSA",
+      "nome": "Itaúsa",
+      "setor": "Holding Financeira"
+    },
+    "KLBN11": {
+      "denominacao": "KLABIN",
+      "nome": "Klabin",
+      "setor": "Papel e Celulose"
+    },
+    "SUZB3": {
+      "denominacao": "SUZANO",
+      "nome": "Suzano",
+      "setor": "Papel e Celulose"
+    },
+    "RENT3": {
+      "denominacao": "LOCALIZA",
+      "nome": "Localiza",
+      "setor": "Consumo Cíclico"
+    },
+    "RADL3": {
+      "denominacao": "RAIA DROGASIL",
+      "nome": "Raia Drogasil",
+      "setor": "Saúde"
+    },
+    "ABEV3": {
+      "denominacao": "AMBEV",
+      "nome": "Ambev",
+      "setor": "Alimentos e Bebidas"
+    }
   },
   "fiis": {
-    "MXRF11": { "denominacao": "MAXI RENDA", "nome": "Maxi Renda" },
-    "BTLG11": { "denominacao": "BTG PACTUAL LOGISTICA", "nome": "BTG Pactual Logística" },
-    "HGLG11": { "denominacao": "CSHG LOGISTICA", "nome": "CSHG Logística" },
-    "KNRI11": { "denominacao": "KINEA RENDA IMOBILIARIA", "nome": "Kinea Renda Imobiliária" },
-    "XPML11": { "denominacao": "XP MALLS", "nome": "XP Malls" },
-    "VISC11": { "denominacao": "VINCI SHOPPING", "nome": "Vinci Shopping Centers" },
-    "HGRU11": { "denominacao": "CSHG RENDA URBANA", "nome": "CSHG Renda Urbana" },
-    "KNCR11": { "denominacao": "KINEA RENDIMENTOS", "nome": "Kinea Rendimentos" },
-    "GGRC11": { "denominacao": "GGR COVEPI", "nome": "GGR Covepi Renda" },
-    "VGHF11": { "denominacao": "VALORA HEDGE FUND", "nome": "Valora Hedge Fund" }
+    "MXRF11": {
+      "denominacao": "MAXI RENDA",
+      "nome": "Maxi Renda"
+    },
+    "BTLG11": {
+      "denominacao": "BTG PACTUAL LOGISTICA",
+      "nome": "BTG Pactual Logística"
+    },
+    "HGLG11": {
+      "denominacao": "CSHG LOGISTICA",
+      "nome": "CSHG Logística"
+    },
+    "KNRI11": {
+      "denominacao": "KINEA RENDA IMOBILIARIA",
+      "nome": "Kinea Renda Imobiliária"
+    },
+    "XPML11": {
+      "denominacao": "XP MALLS",
+      "nome": "XP Malls"
+    },
+    "VISC11": {
+      "denominacao": "VINCI SHOPPING",
+      "nome": "Vinci Shopping Centers"
+    },
+    "HGRU11": {
+      "denominacao": "CSHG RENDA URBANA",
+      "nome": "CSHG Renda Urbana"
+    },
+    "KNCR11": {
+      "denominacao": "KINEA RENDIMENTOS",
+      "nome": "Kinea Rendimentos"
+    },
+    "GGRC11": {
+      "denominacao": "GGR COVEPI",
+      "nome": "GGR Covepi Renda"
+    },
+    "VGHF11": {
+      "denominacao": "VALORA HEDGE FUND",
+      "nome": "Valora Hedge Fund"
+    }
   },
   "semFonteCvm": {
     "_comentario": "ETFs, BDRs, cripto e Tesouro não têm demonstração na CVM. Ficam com a fonte de mercado.",

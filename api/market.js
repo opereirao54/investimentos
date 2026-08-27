@@ -1,6 +1,10 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
 const { requireUser } = require('./_lib/auth');
 const { handler } = require('./_lib/handler');
+// Mapa curado do universo. Vive em scripts/lib porque é o job de ingestão quem
+// mais o usa, mas a function também precisa dele: é a única fonte de SETOR que
+// não depende de plano pago — ver comporFundamentos.
+const MAPA_CURADO = require('../scripts/lib/mapa-cvm.json');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -1966,7 +1970,28 @@ async function fetchCoingeckoFundamentals(simbolos) {
  * proventos. P/L e P/VP não existem em nenhuma das duas sozinha: nascem
  * aqui, do lucro e do patrimônio da CVM cruzados com o valor de mercado.
  */
-function comporFundamentos(doc) {
+/**
+ * Setor curado de um ticker, do mapa revisado por humano.
+ *
+ * É RESERVA, e existe porque nenhuma fonte de mercado no-lo entrega de graça:
+ * o perfil da BRAPI vem de `modules=`, que exige plano pago, e o do Yahoo vem
+ * do quoteSummary, que responde 429 tanto da function como do runner. Sem esta
+ * camada, `setor` é null em TODA ação — e não é um detalhe cosmético: é o
+ * campo que a política de diversificação setorial usa para decidir quanto vai
+ * para cada setor. Sem ele a política não se aplica e a seleção cai para score
+ * puro, com a carteira inteira podendo sair de um setor só.
+ */
+function setorCurado(ticker) {
+  if (!ticker) return null;
+  const t = String(ticker).toUpperCase();
+  const acao = MAPA_CURADO.acoes && MAPA_CURADO.acoes[t];
+  if (acao && acao.setor) return acao.setor;
+  const fii = MAPA_CURADO.fiis && MAPA_CURADO.fiis[t];
+  if (fii && fii.setor) return fii.setor;
+  return null;
+}
+
+function comporFundamentos(doc, ticker) {
   if (!doc || typeof doc !== 'object') return null;
   // Documentos gravados antes da separação em ramos são planos.
   const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
@@ -1998,6 +2023,19 @@ function comporFundamentos(doc) {
   }
   aplicar(yahoo);
   aplicar(cvm);
+
+  // Reserva, e só reserva: preenche o setor quando NENHUMA fonte o trouxe.
+  // Setor que a BRAPI ou o Yahoo tenham devolvido vence este — a mesma regra
+  // que impede o null de uma camada de apagar o dado de outra, na direção
+  // contrária. `setorFonte` fica gravado porque atribuir a uma fonte um dado
+  // que veio de outra é o que este arquivo já proíbe em cima da cotação.
+  if (!out.setor) {
+    const curado = setorCurado(ticker || out.ticker || doc.ticker);
+    if (curado) {
+      out.setor = curado;
+      out.setorFonte = 'curado';
+    }
+  }
 
   if (!cvm && !yahoo) {
     out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
@@ -2207,7 +2245,7 @@ async function handleFundamentals(req, res) {
   const indisponiveis = [];
   let comCvm = 0;
   for (const t of requested) {
-    const composto = comporFundamentos(documentos[t]);
+    const composto = comporFundamentos(documentos[t], t);
     if (!composto) {
       // Ticker que nenhuma fonte respondeu. Devolver só o nome numa lista
       // separada deixava o cliente com um card em branco, sem procedência e
@@ -2465,9 +2503,9 @@ async function calcularRankings(database, lentes, topN) {
   let universo = 0;
 
   docs.forEach((doc) => {
-    const composto = comporFundamentos(doc.data());
-    if (!composto) return;
     const ticker = doc.id;
+    const composto = comporFundamentos(doc.data(), ticker);
+    if (!composto) return;
     const dados = { ...composto, ticker, nome: composto.nome || ticker };
     const classe = Motor.inferirClasse(ticker, dados.nome, dados.classe);
     universo++;
@@ -2703,7 +2741,7 @@ async function handleDiagnostico(req, res) {
   }
 
   // ── 3. Composição e score ──
-  const composto = comporFundamentos(doc);
+  const composto = comporFundamentos(doc, ticker);
   const classe = Motor.inferirClasse(
     ticker,
     (composto && composto.nome) || ticker,
@@ -2877,6 +2915,7 @@ module.exports.__test = {
   mapYahooFundamental,
   fetchYahooFundamentals,
   comporFundamentos,
+  setorCurado,
   mapTesouroTitulo,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,

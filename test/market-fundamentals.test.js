@@ -1571,3 +1571,82 @@ test('a degradação sem token carimba Yahoo, ponta a ponta', async () => {
     if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
   }
 });
+
+// ════════════════════════════════════════════
+// Setor: a camada de reserva curada
+// ════════════════════════════════════════════
+//
+// Sintoma que trouxe esta camada: TODA ação aparecia como "setor não
+// informado" na Carteira Recomendada. Não era bug de render — o campo nunca
+// existiu. Os dois únicos produtores de `setor` em api/market.js dependem do
+// perfil da BRAPI (`modules=`, plano pago) ou do quoteSummary do Yahoo (429 da
+// function e do runner), e todo caminho degradado grava `setor: null`. O job
+// da CVM nunca gravou setor nenhum.
+//
+// O efeito não era cosmético: `setor` é o campo que a política de
+// diversificação setorial usa para decidir quanto vai para cada setor. Sem
+// ele a política não se aplica, cai para score puro, e a carteira inteira
+// pode sair de um setor só — que é exatamente o que ela existe para evitar.
+
+const { setorCurado } = market.__test || {};
+const MAPA = require('../scripts/lib/mapa-cvm.json');
+const Motor = require('../web/appliquei-motor-carteira.js');
+
+test('a reserva curada preenche o setor que nenhuma fonte trouxe', () => {
+  const c = comporFundamentos({ mercado: { ...RAMO_MERCADO, setor: null } }, 'BBAS3');
+  assert.equal(c.setor, 'Bancos');
+  assert.equal(c.setorFonte, 'curado', 'a procedência do dado curado tem de ficar gravada');
+});
+
+test('setor vindo de fonte real vence a reserva', () => {
+  // A regra que já vale entre os ramos, na direção contrária: a reserva
+  // preenche lacuna, nunca sobrescreve medição.
+  const c = comporFundamentos(
+    { mercado: { ...RAMO_MERCADO, setor: 'Financial Services' } },
+    'BBAS3'
+  );
+  assert.equal(c.setor, 'Financial Services');
+  assert.equal(c.setorFonte, undefined, 'dado de fonte real não se carimba como curado');
+});
+
+test('ticker fora do mapa continua sem setor, em vez de receber um inventado', () => {
+  const c = comporFundamentos({ mercado: { ...RAMO_MERCADO, setor: null } }, 'XPTO9');
+  assert.equal(c.setor, null);
+  assert.equal(c.setorFonte, undefined);
+});
+
+test('o ticker é comparado sem depender de caixa', () => {
+  assert.equal(setorCurado('bbas3'), 'Bancos');
+  assert.equal(setorCurado('BBAS3'), 'Bancos');
+  assert.equal(setorCurado(null), null);
+});
+
+test('toda ação do mapa curado tem setor, e todo setor cai num bloco da política', () => {
+  // O mapa é o universo que o produto de facto recomenda. Um ticker sem setor
+  // aqui volta a produzir "setor não informado" na tela; um setor que não cai
+  // em bloco nenhum sai da política em silêncio, que é pior — o ativo aparece
+  // normal e nunca é escolhido.
+  const buckets = Motor.SETORES_ALVO.acao;
+  for (const [ticker, info] of Object.entries(MAPA.acoes)) {
+    assert.ok(info.setor, `${ticker} está sem setor no mapa curado`);
+    const canon = Motor.normalizarSetor(info.setor);
+    assert.notEqual(canon, 'outros', `${ticker}: "${info.setor}" não é reconhecido pelo motor`);
+    const bloco = Motor.bucketSetor({ classe: 'acao', setorCanon: canon }, buckets);
+    assert.ok(bloco, `${ticker}: setor "${info.setor}" (${canon}) não cai em bloco nenhum`);
+  }
+});
+
+test('os cinco blocos da política têm candidato no mapa curado', () => {
+  // Bloco sem nenhum ticker curado nunca recebe aporte enquanto a fonte de
+  // mercado não devolver setor — e a diversificação fica incompleta sem que
+  // nada na tela denuncie a causa.
+  const buckets = Motor.SETORES_ALVO.acao;
+  const cobertos = new Set(
+    Object.values(MAPA.acoes).map((info) =>
+      Motor.bucketSetor({ classe: 'acao', setorCanon: Motor.normalizarSetor(info.setor) }, buckets)
+    )
+  );
+  for (const b of buckets) {
+    assert.ok(cobertos.has(b.chave), `nenhum ticker curado cobre o bloco "${b.nome}"`);
+  }
+});
