@@ -1718,18 +1718,43 @@ function cartRenderizarSetoresClasse(c) {
   if (!c || c.selecao !== 'setor' || !(c.setores || []).length) return '';
   var chips = c.setores
     .map(function (s) {
+      // Quais ativos caíram neste bloco. É o que liga a faixa à lista abaixo:
+      // sem os tickers, ler 'Consumo/Commodities 20%' e ver 'Vale · Mineração
+      // e Siderurgia' na linha seguinte não fecha — e a Vale está mesmo no
+      // bloco de commodities.
+      var dentro = (c.itens || [])
+        .filter(function (it) {
+          return it.setorChave === s.chave;
+        })
+        .map(function (it) {
+          return it.ticker;
+        });
+      // Alvo e aplicado divergem quando o teto por ativo morde. Dizer só o
+      // aplicado faria a política parecer ignorada; dizer só o alvo esconderia
+      // que ela cedeu.
+      var cedeu = s.alvoPct != null && Math.abs(s.alvoPct - s.peso) > 0.01;
       return (
-        '<span class="cart-setor-chip" title="' +
+        '<span class="cart-setor-chip' +
+        (cedeu ? ' cedeu' : '') +
+        '" title="' +
         cartEsc(
           s.nome +
             ' — ' +
-            Math.round(s.peso * 100) +
-            '% da classe, em ' +
-            s.nomes +
-            (s.nomes === 1 ? ' ativo' : ' ativos') +
-            ' de ' +
+            (cedeu
+              ? 'alvo ' +
+                Math.round(s.alvoPct * 100) +
+                '% da classe, aplicado ' +
+                Math.round(s.peso * 100) +
+                '% (teto de concentração por ativo, com ' +
+                s.nomes +
+                (s.nomes === 1 ? ' nome' : ' nomes') +
+                ' no setor)'
+              : Math.round(s.peso * 100) + '% da classe') +
+            (dentro.length ? ': ' + dentro.join(', ') : '') +
+            ' · ' +
             s.candidatos +
-            ' pontuados no setor'
+            (s.candidatos === 1 ? ' candidato pontuado' : ' candidatos pontuados') +
+            ' no setor'
         ) +
         '">' +
         '<span class="cart-setor-nome">' +
@@ -1802,11 +1827,16 @@ function cartRenderizarMotorPlano(plano) {
               // Nome longo do Tesouro entrava aqui inteiro, em monoespaçada e
               // sem corte — era ele que esticava a coluna e empurrava a
               // página para o lado no telemóvel.
-              var segunda = [it.nome || '', it.setorNome || '']
-                .filter(function (v) {
-                  return v;
-                })
-                .join(' · ');
+              // Mesma régua da lista: o que aparece é o setor A QUE O ATIVO
+              // PERTENCE. O bloco da política (`it.setorNome`) fica no title e
+              // na faixa acima — ele explica a alocação, não identifica o ativo.
+              var linhaIt = cartLinhaSetor(it);
+              var segunda = linhaIt.texto;
+              var tituloIt =
+                segunda +
+                (it.setorNome && it.setorNome !== linhaIt.rotulo
+                  ? ' — bloco ' + it.setorNome + ' da política'
+                  : '');
               return (
                 '<li class="cart-plano-item">' +
                 chip +
@@ -1815,7 +1845,7 @@ function cartRenderizarMotorPlano(plano) {
                 cartEsc(rot.codigo) +
                 '</span>' +
                 '<span class="cart-plano-nome" title="' +
-                cartEsc(segunda) +
+                cartEsc(tituloIt) +
                 '">' +
                 cartEsc(segunda) +
                 '</span>' +
@@ -1980,31 +2010,78 @@ function cartRotuloAtivo(a) {
 }
 
 /**
- * Setor do ativo na régua da política de diversificação.
+ * Identidade setorial de um ativo, nas duas réguas que a tela usa.
  *
- * Devolve o BALDE quando o ativo cabe num — é o rótulo que explica a seleção
- * do plano. Quando não cabe, devolve o setor cru, que ainda informa; e quando
- * não há setor nenhum, devolve null, porque inventar um rótulo aqui esconderia
- * exatamente o dado em falta.
+ * `nome` é o SETOR A QUE O ATIVO PERTENCE — 'Mineração e Siderurgia' para a
+ * Vale, 'Logística' para o BTLG11. É o que identifica o ativo, e é o que a
+ * lista mostra ao lado do nome.
+ *
+ * `bucket` é o BLOCO DA POLÍTICA que vai decidir quanto ele recebe. Nos FIIs
+ * os dois coincidem, porque a política é feita sobre os segmentos do fundo.
+ * Nas ações NÃO coincidem, e era daí que vinha o rótulo errado: a Vale
+ * aparecia como 'Consumo/Commodities' — que é onde ela entra na alocação, não
+ * o que ela é. O bloco continua visível, mas na faixa de diversificação do
+ * plano, que é onde ele explica alguma coisa.
+ *
+ * Setor ausente devolve `nome: null`, e quem desenha diz que não foi
+ * informado. Preencher com o nome da classe faria 'Ações' parecer um setor.
  */
 function cartSetorDoAtivo(a) {
   if (!a) return null;
   var buckets =
     typeof MOTOR_SETORES_ALVO !== 'undefined' ? MOTOR_SETORES_ALVO[a.classe] || null : null;
+  var bucket = null;
   if (buckets && typeof motorBucketSetor === 'function') {
-    var chave = motorBucketSetor(a, buckets);
-    for (var i = 0; chave && i < buckets.length; i++) {
-      if (buckets[i].chave === chave) return { chave: chave, nome: buckets[i].nome, alvo: true };
+    var chaveBucket = motorBucketSetor(a, buckets);
+    for (var i = 0; chaveBucket && i < buckets.length; i++) {
+      if (buckets[i].chave === chaveBucket) bucket = buckets[i].nome;
     }
   }
-  if (a.setor) return { chave: a.setorCanon || 'outros', nome: a.setor, alvo: false };
-  return null;
+
+  if (a.classe === 'fii') {
+    var seg =
+      a.segmentoFii || (typeof motorSegmentoFii === 'function' ? motorSegmentoFii(a) : null);
+    return { chave: seg, nome: (seg && MOTOR_FII_SEGMENTO_NOMES[seg]) || bucket, bucket: bucket };
+  }
+
+  var canon = a.setorCanon || motorNormalizarSetor(a.setor);
+  if (!canon) return { chave: null, nome: null, bucket: bucket };
+  // 'outros' é setor que EXISTE e não está no mapa. Aí o rótulo do provedor
+  // informa mais do que um genérico nosso — 'Aeroespacial' vale mais que
+  // 'Outros setores'.
+  var nome = canon === 'outros' ? a.setor : MOTOR_SETOR_NOMES[canon] || a.setor;
+  return { chave: canon, nome: nome || null, bucket: bucket };
+}
+
+/**
+ * Segunda linha do ativo: nome da empresa e o setor a que ela pertence.
+ *
+ * Renda fixa e cripto não têm setor — e nem faz sentido terem: um título do
+ * Tesouro não pertence a um ramo da economia. Nessas duas a linha fica com o
+ * nome da classe, que é a informação disponível.
+ */
+function cartLinhaSetor(a) {
+  var setor = cartSetorDoAtivo(a);
+  var rotulo;
+  if (setor && setor.nome) rotulo = setor.nome;
+  else if (a.classe === 'acao' || a.classe === 'fii') rotulo = 'setor não informado';
+  else rotulo = CART_NOMES[a.classe];
+  return {
+    texto: [a.nome || '', rotulo]
+      .filter(function (v) {
+        return v;
+      })
+      .join(' · '),
+    setor: setor,
+    rotulo: rotulo,
+  };
 }
 
 /** Um card do ranking. `posicao` é a colocação DENTRO da classe. */
 function cartCardAtivo(a, posicao) {
   var rotulo = cartRotuloAtivo(a);
-  var setor = cartSetorDoAtivo(a);
+  var linha = cartLinhaSetor(a);
+  var setor = linha.setor;
 
   var barras = MOTOR_PILARES.map(function (chave) {
     var p = a.pilares[chave];
@@ -2128,15 +2205,29 @@ function cartCardAtivo(a, posicao) {
 
   // Chave de busca: código, nome e setor já sem acento nem pontuação, para o
   // filtro comparar substring sem repetir a normalização a cada tecla.
+  // Busca pelas TRÊS formas de nomear o setor: o rótulo da tela, o bloco da
+  // política e o texto cru do provedor. Quem digita 'consumo' procura o bloco;
+  // quem digita 'mineração' procura o setor; quem digita 'basic materials'
+  // está a repetir o que viu noutro lugar. Os três têm de achar a Vale.
   var chaveBusca = cartNormalizarNome(
-    [a.ticker, rotulo.codigo, a.nome, setor ? setor.nome : '', a.setor || ''].join(' ')
+    [
+      a.ticker,
+      rotulo.codigo,
+      a.nome,
+      linha.rotulo,
+      setor && setor.bucket ? setor.bucket : '',
+      a.setor || '',
+    ].join(' ')
   );
 
-  var linhaNome = [a.nome || '', setor ? setor.nome : CART_NOMES[a.classe]]
-    .filter(function (v) {
-      return v;
-    })
-    .join(' · ');
+  var linhaNome = linha.texto;
+  // O bloco da política fica no title: na lista ele não identifica o ativo, e
+  // no plano ele já tem faixa própria.
+  var tituloNome =
+    linhaNome +
+    (setor && setor.bucket && setor.bucket !== linha.rotulo
+      ? ' — no plano entra no bloco ' + setor.bucket
+      : '');
 
   return (
     '<article class="cart-score-card' +
@@ -2157,7 +2248,7 @@ function cartCardAtivo(a, posicao) {
     (rotulo.cupom ? '<span class="cart-score-tag">juros semestrais</span>' : '') +
     '</span>' +
     '<span class="cart-score-nome" title="' +
-    cartEsc(linhaNome) +
+    cartEsc(tituloNome) +
     '">' +
     cartEsc(linhaNome) +
     '</span>' +

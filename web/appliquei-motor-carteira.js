@@ -983,6 +983,44 @@ var MOTOR_SETOR_MAPA = [
   { canon: 'industria', termos: ['industr', 'machin', 'bens de capital', 'manufact'] },
 ];
 
+// Canon -> rótulo de tela, em português.
+//
+// O canon é chave interna ('mineracao'), e o rótulo do provedor é imprestável
+// para mostrar: vem 'Basic Materials' num ativo e 'Comércio Varejista' no
+// outro, misturando idioma e granularidade na mesma lista. A tela precisa de
+// um nome por setor, sempre o mesmo, sempre em português.
+//
+// Existe porque a ação passou a mostrar o setor a que pertence, como o FII já
+// mostrava o seu segmento. Antes ela exibia o BALDE da política, e o balde
+// descreve mal o ativo: a Vale aparecia como 'Consumo/Commodities', que é o
+// bloco de alocação dela, não o setor dela.
+var MOTOR_SETOR_NOMES = {
+  banco: 'Bancos e Financeiro',
+  seguro: 'Seguros e Previdência',
+  saneamento: 'Saneamento',
+  petroleo: 'Petróleo e Gás',
+  energia: 'Energia Elétrica',
+  telecom: 'Telecomunicações',
+  mineracao: 'Mineração e Siderurgia',
+  papel: 'Papel e Celulose',
+  saude: 'Saúde',
+  construcao: 'Construção e Imobiliário',
+  alimentos: 'Alimentos e Bebidas',
+  varejo: 'Varejo e Consumo',
+  tecnologia: 'Tecnologia',
+  transporte: 'Transporte e Logística',
+  educacao: 'Educação',
+  industria: 'Indústria',
+};
+
+// Segmento do FII -> rótulo de tela. Mesma régua dos setores de ação.
+var MOTOR_FII_SEGMENTO_NOMES = {
+  papel: 'Papel (recebíveis)',
+  logistica: 'Logística',
+  shoppings: 'Shoppings',
+  imoveis: 'Imóveis (tijolo)',
+};
+
 /**
  * Rótulo de setor -> canon do motor.
  *
@@ -1997,6 +2035,11 @@ function motorPesosPorSetor(itens, opcoes) {
       chave: b.chave,
       nome: b.nome,
       alvo: b.alvo,
+      // O alvo depois de normalizado entre os setores presentes, ao lado do
+      // peso que de facto saiu. Os dois divergem quando o teto por ativo
+      // morde — um setor de alvo grande com um único nome elegível — e a
+      // tela precisa dos dois números para dizer que cedeu, e por quê.
+      alvoPct: somaAlvo > 0 ? motorArred((b.alvo > 0 ? b.alvo : 0) / somaAlvo, 4) : null,
       nomes: vagas[b.chave],
       candidatos: porBucket[b.chave].length,
       peso: motorArred(peso, 4),
@@ -2480,6 +2523,8 @@ var MotorCarteira = {
   OPCOES_CLASSE: MOTOR_OPCOES_CLASSE,
   SETORES_ALVO: MOTOR_SETORES_ALVO,
   SETOR_MAPA: MOTOR_SETOR_MAPA,
+  SETOR_NOMES: MOTOR_SETOR_NOMES,
+  FII_SEGMENTO_NOMES: MOTOR_FII_SEGMENTO_NOMES,
   LENTE_POR_OBJETIVO: MOTOR_LENTE_POR_OBJETIVO,
 };
 if (typeof window !== 'undefined') window.MotorCarteira = MotorCarteira;

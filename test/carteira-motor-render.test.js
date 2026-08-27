@@ -1018,6 +1018,36 @@ const SEMENTE_LISTA = `
   ];
   var rankingLista = motorRanquear(universoLista, { lente: 'equilibrio' });
 `;
+/** Dois rótulos de setor do provedor: um em inglês, outro em português. */
+const SEMENTE_MISTA = `
+  var rankingMisto = motorRanquear([
+    { ticker:'VALE3', nome:'Vale', setor:'Basic Materials', preco:60, pl:6, pvp:1.4, dy:9,
+      dyMedio5a:8, payout:60, anosPagandoDividendo:12, roe:18, margemLiquida:20,
+      dividaLiquidaPl:0.5, liquidezCorrente:1.5, cagrReceita5a:7, cagrLucro5a:6, liquidezDiaria:9e7 },
+    { ticker:'LREN3', nome:'Lojas Renner', setor:'Comércio Varejista', preco:15, pl:14, pvp:2,
+      dy:3, dyMedio5a:3, payout:40, anosPagandoDividendo:10, roe:12, margemLiquida:9,
+      dividaLiquidaPl:0.6, liquidezCorrente:1.9, cagrReceita5a:11, cagrLucro5a:8, liquidezDiaria:3e7 }
+  ], { lente:'equilibrio' });
+`;
+/** Cinco setores com um nome cada — cenário em que o teto por ativo morde. */
+const SEMENTE_TETO = `
+  function acaoTeto(t, n, setor, q) {
+    return { ticker:t, nome:n, classe:'acao', setor:setor, preco:20, pl:q, pvp:1, dy:8,
+      dyMedio5a:7, payout:50, anosPagandoDividendo:15, roe:q*2.2, margemLiquida:20,
+      dividaLiquidaPl:0.3, liquidezCorrente:1.6, cagrReceita5a:q, cagrLucro5a:q, liquidezDiaria:4e7 };
+  }
+  var rankingTeto = motorRanquear([
+    acaoTeto('BBAS3','Banco do Brasil','Bancos',6),
+    acaoTeto('EGIE3','Engie Brasil','Utilities',5),
+    acaoTeto('SBSP3','Sabesp','Saneamento',4),
+    acaoTeto('WEGE3','WEG','Industrials',8),
+    acaoTeto('LREN3','Lojas Renner','Comércio Varejista',7)
+  ], { lente:'equilibrio' });
+  var planoTeto = motorPlanoAporte({
+    aporteMensal: 6000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking: rankingTeto
+  });
+`;
 
 test('o ticker gigante do Tesouro vira código curto, com o nome inteiro ao lado', () => {
   // TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055 tem 38 caracteres em fonte
@@ -1105,13 +1135,98 @@ test('a busca acha por setor e ignora acento — normalização compartilhada', 
   assert.ok(html.includes(chave), `chave "${chave}" não está em nenhum card`);
 });
 
-test('o card mostra o setor junto do nome, que é o que explica a seleção', () => {
+test('o card mostra o setor A QUE O ATIVO PERTENCE, não o bloco da política', () => {
+  // O FII já mostrava o tipo dele (Papel, Logística). A ação mostrava o BALDE
+  // — e o balde descreve mal o ativo: a Vale aparecia como
+  // 'Consumo/Commodities', que é onde ela entra na alocação, não o que ela é.
   const s = carregar();
   s.run(SEMENTE_LISTA);
   s.run('cartRenderizarMotorRanking(rankingLista);');
   const html = s.dom.els.get('cartMotorRanking').innerHTML;
-  assert.ok(html.includes('Bancos/Financeiro'), 'ação mostra o balde da política');
-  assert.ok(html.includes('Logística'), 'FII mostra o segmento');
+
+  assert.ok(html.includes('Banco do Brasil · Bancos e Financeiro'), 'ação mostra o próprio setor');
+  assert.ok(html.includes('Engie Brasil · Energia Elétrica'));
+  assert.ok(html.includes('BTLG Logística · Logística'), 'FII continua mostrando o segmento');
+  // O bloco da política não some: muda de lugar, para onde explica alguma
+  // coisa — o title do ativo e a faixa do plano.
+  assert.ok(html.includes('no plano entra no bloco Bancos/Financeiro'));
+});
+
+test('o rótulo do setor é sempre em português, seja qual for a régua do provedor', () => {
+  // O provedor devolve 'Basic Materials' num ativo e 'Comércio Varejista' no
+  // outro. Repassar cru misturava idioma e granularidade na mesma lista.
+  const s = carregar();
+  s.run(SEMENTE_MISTA);
+  s.run('cartRenderizarMotorRanking(rankingMisto);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('Mineração e Siderurgia'), 'Basic Materials tem de virar rótulo local');
+  assert.ok(html.includes('Varejo e Consumo'));
+  assert.ok(
+    !/cart-score-nome[^>]*>[^<]*Basic Materials/.test(html),
+    'o rótulo cru do provedor não vai para a linha do ativo'
+  );
+});
+
+test('ação sem setor diz que não foi informado, em vez de repetir a classe', () => {
+  // 'Ações' na linha do setor lê-se como se fosse um setor. A ausência é a
+  // informação — e é ela que explica por que o ativo fica fora da política.
+  const s = carregar();
+  s.run(`
+    var semSetor = motorRanquear([
+      { ticker:'XPTO3', nome:'Empresa Sem Setor', preco:15, pl:8, pvp:1.2, dy:5, dyMedio5a:5,
+        payout:40, anosPagandoDividendo:8, roe:14, margemLiquida:12, dividaLiquidaPl:0.4,
+        liquidezCorrente:1.5, cagrReceita5a:6, cagrLucro5a:5, liquidezDiaria:2e7 }
+    ], { lente:'equilibrio' });
+    cartRenderizarMotorRanking(semSetor);
+  `);
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('setor não informado'));
+  assert.ok(!html.includes('Empresa Sem Setor · Ações'));
+});
+
+test('a busca acha o ativo pelo setor E pelo bloco da política', () => {
+  // São dois nomes para a mesma coisa na cabeça do utilizador: a Vale é
+  // 'mineração' e está no bloco 'commodities'. Os dois têm de achar.
+  const s = carregar();
+  s.run(SEMENTE_MISTA);
+  s.run('cartRenderizarMotorRanking(rankingMisto);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  ['mineração', 'commodities', 'basic materials', 'vale'].forEach((termo) => {
+    const chave = s.run('cartNormalizarNome(' + JSON.stringify(termo) + ')');
+    assert.ok(
+      new RegExp('data-busca="[^"]*' + chave).test(html),
+      `buscar por "${termo}" tem de achar a Vale`
+    );
+  });
+});
+
+test('setor que cedeu ao teto mostra alvo e aplicado, não só o aplicado', () => {
+  // Bancos tem alvo de 40% da classe; com um único nome elegível, o teto de
+  // concentração por ativo corta para 30%. Mostrar só os 30% faria a política
+  // parecer ignorada.
+  const s = carregar();
+  s.run(SEMENTE_TETO);
+  s.run('cartRenderizarMotorPlano(planoTeto);');
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('cart-setor-chip cedeu'), 'o chip tem de se marcar como cedido');
+  assert.ok(html.includes('alvo 40% da classe, aplicado'));
+  assert.ok(html.includes('teto de concentração por ativo'));
+});
+
+test('o chip do setor lista os ativos que caíram nele', () => {
+  // É o que liga a faixa à lista: sem os tickers, ler 'Consumo/Commodities' e
+  // ver 'Vale · Mineração e Siderurgia' na linha seguinte não fecha.
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run(`
+    var planoChips = motorPlanoAporte({
+      aporteMensal: 6000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      ranking: rankingLista
+    });
+    cartRenderizarMotorPlano(planoChips);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(/Bancos\/Financeiro[^"]*BBAS3/.test(html), 'o chip precisa nomear quem entrou');
 });
 
 test('o detalhe do card nasce fechado, mas continua no HTML', () => {

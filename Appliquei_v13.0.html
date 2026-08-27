@@ -2666,6 +2666,10 @@
             font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 800;
             color: var(--cor-texto-principal);
         }
+        /* Setor cujo alvo cedeu ao teto por ativo: o número não é o alvo, e a
+           borda tracejada diz isso antes do title. */
+        #carteira .cart-setor-chip.cedeu { border-style: dashed; }
+        #carteira .cart-setor-chip.cedeu .cart-setor-pct { color: var(--cor-texto-mutado); }
         #carteira .cart-setores-nota {
             display: flex; align-items: flex-start; gap: 5px;
             font-size: 10px; line-height: 1.45; color: var(--cor-texto-mutado);
