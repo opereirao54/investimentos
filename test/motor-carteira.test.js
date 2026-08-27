@@ -948,3 +948,278 @@ test('tijolo segue com a régua de sempre — ocupação continua sendo cobrada'
   assert.ok(ausentes.includes('Taxa de ocupação'), 'de um fundo de tijolo, a ocupação se cobra');
   assert.ok(ausentes.includes('Imóveis na carteira'));
 });
+
+// ════════════════════════════════════════════
+// Diversificação setorial
+// ════════════════════════════════════════════
+//
+// O que estes testes protegem é o caso que motivou a mudança: quando um setor
+// inteiro domina o ranking, a seleção por score puro compra o setor todo. O
+// score continua a decidir QUEM leva dentro do setor — o que passou a existir
+// é a decisão anterior, de QUANTO cada setor recebe.
+
+/** Ação plausível; `q` empurra a qualidade para cima ou para baixo. */
+function acaoDeTeste(ticker, setor, q) {
+  return {
+    ticker,
+    nome: ticker,
+    classe: 'acao',
+    setor,
+    preco: 20,
+    pl: q,
+    pvp: 1,
+    dy: 8,
+    dyMedio5a: 7,
+    payout: 50,
+    anosPagandoDividendo: 15,
+    roe: q * 2.2,
+    margemLiquida: 20,
+    dividaLiquidaPl: 0.3,
+    liquidezCorrente: 1.6,
+    cagrReceita5a: q,
+    cagrLucro5a: q,
+    liquidezDiaria: 4e7,
+  };
+}
+
+const UNIVERSO_SETORIAL = [
+  acaoDeTeste('CONS1', 'Construção Civil', 14),
+  acaoDeTeste('CONS2', 'Construção Civil', 13),
+  acaoDeTeste('CONS3', 'Construção Civil', 12),
+  acaoDeTeste('CONS4', 'Construção Civil', 11),
+  acaoDeTeste('CONS5', 'Construção Civil', 10),
+  acaoDeTeste('BANC1', 'Bancos', 6),
+  acaoDeTeste('BANC2', 'Bancos', 5),
+  acaoDeTeste('ENGI1', 'Energia Elétrica', 4),
+  acaoDeTeste('SANE1', 'Saneamento', 3),
+  acaoDeTeste('VARE1', 'Comércio Varejista', 7),
+];
+
+test('setor inteiro no topo do ranking não leva a carteira inteira', () => {
+  const ranking = M.ranquear(UNIVERSO_SETORIAL, { lente: 'equilibrio' });
+  const topo = ranking.slice(0, 5).map((a) => a.ticker);
+  assert.deepEqual(
+    topo.filter((t) => t.startsWith('CONS')).length,
+    5,
+    'o cenário exige que as cinco melhores notas sejam do mesmo setor'
+  );
+
+  const plano = M.planoAporte({
+    aporteMensal: 5000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  });
+  const acoes = plano.classes.acao;
+  assert.equal(acoes.selecao, 'setor');
+  const construtoras = acoes.itens.filter((i) => i.ticker.startsWith('CONS'));
+  assert.ok(
+    construtoras.length <= 2,
+    `carteira ficou com ${construtoras.length} construtoras: ${acoes.itens.map((i) => i.ticker).join(', ')}`
+  );
+  const setores = new Set(acoes.itens.map((i) => i.setorChave));
+  assert.ok(setores.size >= 4, `esperava pelo menos 4 setores, veio ${setores.size}`);
+});
+
+test('o peso de cada setor segue o alvo da política, normalizado dentro da classe', () => {
+  const ranking = M.ranquear(UNIVERSO_SETORIAL, { lente: 'equilibrio' });
+  const acoes = M.planoAporte({
+    aporteMensal: 5000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  }).classes.acao;
+
+  const porSetor = {};
+  acoes.setores.forEach((s) => {
+    porSetor[s.chave] = s.peso;
+  });
+  // Alvos 20/5/5/10/10 somam 50 — dentro da classe valem 40/10/10/20/20%.
+  assert.ok(Math.abs(porSetor.financeiro - 0.4) < 0.02, `financeiro: ${porSetor.financeiro}`);
+  assert.ok(Math.abs(porSetor.energia - 0.1) < 0.02, `energia: ${porSetor.energia}`);
+  assert.ok(Math.abs(porSetor.saneamento - 0.1) < 0.02, `saneamento: ${porSetor.saneamento}`);
+  assert.ok(Math.abs(porSetor.tecindustria - 0.2) < 0.02, `tecindústria: ${porSetor.tecindustria}`);
+  assert.ok(Math.abs(porSetor.consumo - 0.2) < 0.02, `consumo: ${porSetor.consumo}`);
+});
+
+test('dentro do setor quem decide continua sendo o score', () => {
+  const ranking = M.ranquear(UNIVERSO_SETORIAL, { lente: 'equilibrio' });
+  const acoes = M.planoAporte({
+    aporteMensal: 5000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  }).classes.acao;
+  const construtoras = acoes.itens
+    .filter((i) => i.setorChave === 'tecindustria')
+    .map((i) => i.ticker);
+  // CONS1/CONS2 são as melhores notas do balde — nenhuma construtora pior
+  // pode entrar à frente delas.
+  construtoras.forEach((t) => {
+    assert.ok(['CONS1', 'CONS2'].includes(t), `entrou ${t} em vez das melhores do setor`);
+  });
+});
+
+test('setor sem candidato devolve o alvo aos outros e diz que devolveu', () => {
+  const ranking = M.ranquear(
+    [acaoDeTeste('BANC1', 'Bancos', 6), acaoDeTeste('ENGI1', 'Energia Elétrica', 5)],
+    { lente: 'equilibrio' }
+  );
+  const acoes = M.planoAporte({
+    aporteMensal: 4000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  }).classes.acao;
+
+  const soma = acoes.setores.reduce((s, x) => s + x.peso, 0);
+  assert.ok(Math.abs(soma - 1) < 0.01, `os setores presentes têm de fechar em 100%: ${soma}`);
+  const vazios = acoes.setoresVazios.map((v) => v.chave).sort();
+  assert.deepEqual(vazios, ['consumo', 'saneamento', 'tecindustria']);
+  assert.ok(acoes.investido > 0, 'a classe continua recebendo o aporte inteiro');
+});
+
+test('sem setor nenhum a política não é inventada — cai para score e declara', () => {
+  // Estado real: a fonte de mercado degradou para cotação simples e não
+  // devolve setor. Fabricar baldes aqui produziria uma diversificação de
+  // mentira, com a mesma cara da verdadeira.
+  const semSetor = ['AAAA3', 'BBBB3', 'CCCC3'].map((t) => {
+    const a = acaoDeTeste(t, null, 8);
+    delete a.setor;
+    return a;
+  });
+  const ranking = M.ranquear(semSetor, { lente: 'equilibrio' });
+  const acoes = M.planoAporte({
+    aporteMensal: 3000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  }).classes.acao;
+
+  assert.equal(acoes.selecao, 'score');
+  assert.equal(acoes.setores, null);
+  assert.ok(acoes.itens.length > 0, 'a classe não pode ficar sem destino para o dinheiro');
+  assert.match(acoes.aviso || '', /diversificação setorial não pôde ser aplicada/);
+});
+
+test('setor com rótulo acentuado do provedor não cai em "outros"', () => {
+  // 'Comércio Varejista' e 'Saúde' vinham da fonte com acento e a comparação
+  // literal falhava — o ativo saía inteiro da política, calado.
+  assert.equal(M.normalizarSetor('Comércio Varejista'), 'varejo');
+  assert.equal(M.normalizarSetor('Saúde'), 'saude');
+  assert.equal(M.normalizarSetor('Construção Civil'), 'construcao');
+  assert.equal(M.normalizarSetor('Água e Saneamento'), 'saneamento');
+});
+
+test('Energy é petróleo e Utilities é elétrica — taxonomias diferentes', () => {
+  // Na régua em inglês do provedor, Energy é óleo e gás; a elétrica é
+  // Utilities. Juntá-las dava à Petrobras o bônus de setor perene da lente
+  // Renda, que só as reguladas deviam receber.
+  assert.equal(M.normalizarSetor('Energy'), 'petroleo');
+  assert.equal(M.normalizarSetor('Utilities'), 'energia');
+  assert.equal(M.normalizarSetor('Energia Elétrica'), 'energia');
+});
+
+test('segmento do FII sai do balanço primeiro e do nome só depois', () => {
+  // O informe da CVM diz a fatia da carteira em imóvel; o nome não diz nada
+  // que se possa conferir. Um fundo de recebíveis chamado "Renda Logística"
+  // continua sendo de papel.
+  assert.equal(M.segmentoFii({ nome: 'Renda Logística', tipoFii: 'papel' }), 'papel');
+  assert.equal(M.segmentoFii({ nome: 'REC Recebíveis Imobiliários' }), 'papel');
+  assert.equal(M.segmentoFii({ nome: 'BTLG Logística', tipoFii: 'tijolo' }), 'logistica');
+  assert.equal(M.segmentoFii({ nome: 'XP Malls', tipoFii: 'tijolo' }), 'shoppings');
+  assert.equal(M.segmentoFii({ nome: 'CSHG Real Estate', tipoFii: 'tijolo' }), 'imoveis');
+  // Sem informe e sem palavra no nome, continua a ser um fundo de imóveis —
+  // devolver null mandaria para fora da política todo FII ainda não ingerido.
+  assert.equal(M.segmentoFii({ nome: 'Fundo Qualquer' }), 'imoveis');
+});
+
+test('FIIs cobrem os quatro segmentos em vez de empilhar num só', () => {
+  function fii(ticker, nome, tipo, dy) {
+    return {
+      ticker,
+      nome,
+      classe: 'fii',
+      tipoFii: tipo,
+      preco: 100,
+      pvp: 1,
+      dy,
+      dyMedio36m: dy - 1,
+      consistenciaDividendos: 100,
+      crescimentoDividendo12m: 2,
+      alavancagem: 8,
+      liquidezDiaria: 9e6,
+      patrimonioLiquido: 2e9,
+      numeroCotistas: 200000,
+      ocupacao: tipo === 'tijolo' ? 95 : null,
+      numeroImoveis: tipo === 'tijolo' ? 12 : null,
+    };
+  }
+  const ranking = M.ranquear(
+    [
+      fii('KNCR11', 'Kinea Rendimentos', 'papel', 12),
+      fii('MXRF11', 'Maxi Renda', 'papel', 11.5),
+      fii('BTLG11', 'BTLG Logística', 'tijolo', 10),
+      fii('HGLG11', 'CSHG Logística', 'tijolo', 9.5),
+      fii('XPML11', 'XP Malls', 'tijolo', 9),
+      fii('KNRI11', 'Kinea Renda Imobiliária', 'tijolo', 8.5),
+      fii('HGRE11', 'CSHG Real Estate', 'tijolo', 8),
+    ],
+    { lente: 'renda' }
+  );
+  const fiis = M.planoAporte({
+    aporteMensal: 4000,
+    alocacaoAlvo: { rf: 0, acao: 0, fii: 100, cripto: 0 },
+    ranking,
+  }).classes.fii;
+
+  assert.equal(fiis.selecao, 'setor');
+  const segmentos = new Set(fiis.itens.map((i) => i.setorChave));
+  assert.deepEqual(
+    [...segmentos].sort(),
+    ['imoveis', 'logistica', 'papel', 'shoppings'],
+    'os quatro segmentos têm de aparecer'
+  );
+  const imoveis = fiis.setores.find((s) => s.chave === 'imoveis');
+  assert.ok(Math.abs(imoveis.peso - 0.4) < 0.02, `Imóveis tem alvo dobrado: ${imoveis.peso}`);
+});
+
+test('renda fixa e cripto continuam fora da política setorial', () => {
+  // Não há política declarada para elas, e inventar uma faria o motor cortar
+  // títulos do Tesouro por "setor" — que não existe em renda fixa.
+  assert.equal(M.SETORES_ALVO.rf, undefined);
+  assert.equal(M.SETORES_ALVO.cripto, undefined);
+  const ranking = M.ranquear(
+    [
+      {
+        ticker: 'TESOURO_SELIC_2029',
+        nome: 'Tesouro Selic 2029',
+        classe: 'rf',
+        taxaRealAnual: 6.5,
+        premioSobreCdi: 100,
+        geraRendaPeriodica: 0,
+        riscoEmissor: 10,
+        liquidezDias: 1,
+        isentoIR: 0,
+      },
+    ],
+    {}
+  );
+  const rf = M.planoAporte({
+    aporteMensal: 1000,
+    alocacaoAlvo: { rf: 100, acao: 0, fii: 0, cripto: 0 },
+    ranking,
+  }).classes.rf;
+  assert.equal(rf.selecao, 'score');
+  assert.equal(rf.investido, 1000);
+});
+
+test('o aporte inteiro continua distribuído com a política ligada', () => {
+  // A regressão mais cara possível: a política corta candidatos e o dinheiro
+  // fica sem destino sem ninguém perceber.
+  const ranking = M.ranquear(UNIVERSO_SETORIAL, { lente: 'equilibrio' });
+  const plano = M.planoAporte({
+    aporteMensal: 5000,
+    alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+    ranking,
+  });
+  const somaItens = plano.classes.acao.itens.reduce((s, i) => s + i.valorInvestido, 0);
+  assert.ok(Math.abs(somaItens - plano.totalInvestido) < 0.01);
+  assert.ok(plano.sobra >= 0 && plano.sobra < 60, `sobra de lote alta demais: ${plano.sobra}`);
+  assert.equal(plano.retido, 0);
+});

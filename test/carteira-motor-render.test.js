@@ -987,3 +987,240 @@ test('a explicação diz o que acontece quando falta indicador', () => {
   const minimo = Math.round(s.run('MOTOR_COBERTURA_MINIMA') * 100);
   assert.ok(html.includes(minimo + '%'), 'o piso de cobertura real tem de ser o exibido');
 });
+
+// ════════════════════════════════════════════
+// Lista de ativos: nome curto, abas e busca
+// ════════════════════════════════════════════
+//
+// O que estes testes protegem é o que o utilizador relatou: no telemóvel a
+// lista era um bloco único de cards abertos, os nomes do Tesouro
+// transbordavam o card e a página rolava para o lado. As asserções olham para
+// o HTML porque é ele que carrega os atributos de que o filtro depende.
+
+/** Ranking com as quatro classes e um nome de Tesouro dos longos. */
+const SEMENTE_LISTA = `
+  var universoLista = [
+    { ticker:'BBAS3', nome:'Banco do Brasil', setor:'Bancos', preco:28.5, pl:4.5, pvp:0.8,
+      dy:9.5, dyMedio5a:8, payout:45, anosPagandoDividendo:20, roe:20, margemLiquida:25,
+      dividaLiquidaPl:0.3, liquidezCorrente:1.6, cagrReceita5a:9, cagrLucro5a:14, liquidezDiaria:4e7 },
+    { ticker:'EGIE3', nome:'Engie Brasil', setor:'Energia Elétrica', preco:40, pl:9, pvp:2.4,
+      dy:7.5, dyMedio5a:7, payout:80, anosPagandoDividendo:18, roe:24, margemLiquida:22,
+      dividaLiquidaPl:1.1, liquidezCorrente:1.2, cagrReceita5a:8, cagrLucro5a:9, liquidezDiaria:2e7 },
+    { ticker:'BTLG11', nome:'BTLG Logística', classe:'fii', tipoFii:'tijolo', preco:100, pvp:1,
+      dy:10, dyMedio36m:9, consistenciaDividendos:100, crescimentoDividendo12m:2,
+      alavancagem:8, liquidezDiaria:9e6, patrimonioLiquido:2e9, numeroCotistas:200000,
+      ocupacao:96, numeroImoveis:14 },
+    { ticker:'TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055',
+      nome:'Tesouro IPCA+ com Juros Semestrais 2055', classe:'rf', taxaRealAnual:7.1,
+      premioSobreCdi:106, geraRendaPeriodica:1, riscoEmissor:10, liquidezDias:1, isentoIR:0 },
+    { ticker:'BTC', nome:'Bitcoin', classe:'cripto', preco:300000, marketCap:1e12,
+      volume24h:2e10, retorno12m:35, anosExistencia:17 }
+  ];
+  var rankingLista = motorRanquear(universoLista, { lente: 'equilibrio' });
+`;
+
+test('o ticker gigante do Tesouro vira código curto, com o nome inteiro ao lado', () => {
+  // TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055 tem 38 caracteres em fonte
+  // monoespaçada. Era ele que esticava o card e a coluna do plano, e era daí
+  // que vinha a rolagem lateral no telemóvel.
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+
+  assert.ok(html.includes('IPCA+ 2055'), 'o código curto tem de aparecer');
+  assert.ok(html.includes('juros semestrais'), 'o cupom é parte da identidade do título');
+  assert.ok(
+    html.includes('Tesouro IPCA+ com Juros Semestrais 2055'),
+    'o nome completo continua na tela — encurtar não é esconder'
+  );
+  assert.ok(
+    !/cart-score-ticker[^>]*>TESOURO_IPCA/.test(html),
+    'o ticker cru não pode voltar a ser o rótulo do card'
+  );
+});
+
+test('ação e FII continuam identificados pelo próprio ticker', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('>BBAS3<'), 'ticker de ação é o código de verdade, não se encurta');
+  assert.ok(html.includes('>BTLG11<'));
+});
+
+test('a lista separa por classe, com aba e contagem de cada uma', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+
+  ['rf', 'acao', 'fii', 'cripto'].forEach((c) => {
+    assert.ok(
+      html.includes('cart-rank-grupo" data-classe="' + c + '"'),
+      `faltou o grupo da classe ${c}`
+    );
+    assert.ok(html.includes('data-classe="' + c + '"'), `faltou a aba da classe ${c}`);
+  });
+  // Todos os cards ficam no DOM: quem esconde é o filtro, não o render — é
+  // isso que deixa a busca atravessar classes sem redesenhar nada.
+  assert.equal(html.split('cart-score-card').length - 1, 5);
+});
+
+test('a colocação é dentro da classe, não no bolo de todas', () => {
+  // "Ranking por tipo de ativo" só significa alguma coisa se o #1 for o
+  // primeiro da classe. Com a numeração global, a melhor ação podia aparecer
+  // como #7 atrás de FIIs e cripto.
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  const primeiros = html.split('cart-score-pos">#1<').length - 1;
+  assert.equal(primeiros, 4, `cada classe tem o seu #1; vieram ${primeiros}`);
+});
+
+test('o campo de busca existe e carrega a chave de cada ativo', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+
+  assert.ok(html.includes('id="cartRankBusca"'), 'sem campo não há busca');
+  assert.ok(html.includes('oninput="cartFiltrarRanking()"'));
+  // A chave é normalizada no render, uma vez, para o filtro não repetir a
+  // normalização a cada tecla.
+  assert.ok(html.includes('data-busca="'), 'cada card precisa da chave de busca');
+  assert.ok(/data-busca="[^"]*BANCODOBRASIL/.test(html), 'nome entra na chave');
+  assert.ok(/data-busca="[^"]*IPCA/.test(html), 'código curto entra na chave');
+});
+
+test('a busca acha por setor e ignora acento — normalização compartilhada', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  // 'Energia elétrica' é o nome do balde; digitando "energia eletrica" a
+  // chave normalizada tem de casar.
+  const chave = s.run("cartNormalizarNome('energia eletrica')");
+  assert.ok(html.includes(chave), `chave "${chave}" não está em nenhum card`);
+});
+
+test('o card mostra o setor junto do nome, que é o que explica a seleção', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('Bancos/Financeiro'), 'ação mostra o balde da política');
+  assert.ok(html.includes('Logística'), 'FII mostra o segmento');
+});
+
+test('o detalhe do card nasce fechado, mas continua no HTML', () => {
+  // Esconder por CSS e não por render é o que permite abrir sem ir à rede e
+  // buscar sem redesenhar. Se o detalhe saísse do HTML, a busca deixaria de
+  // encontrar o que está dentro dele.
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.ok(html.includes('cart-score-detalhe'));
+  assert.ok(html.includes('aria-expanded="false"'), 'o estado tem de ser anunciado');
+  assert.ok(html.includes('onclick="cartAlternarCard(this)"'));
+  assert.ok(html.includes('confiança'), 'o conteúdo do detalhe continua presente');
+});
+
+test('cada classe tem o seu "ver mais" — a lista não é rolagem infinita', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  assert.equal(html.split('cart-rank-mais').length - 1, 4);
+  assert.ok(html.includes("cartVerMaisRanking('acao')"));
+});
+
+test('a lista nova não deixa escapar undefined nem NaN', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartRenderizarMotorRanking(rankingLista);');
+  const html = s.dom.els.get('cartMotorRanking').innerHTML;
+  ['undefined', 'NaN', '[object Object]'].forEach((lixo) => {
+    assert.ok(!html.includes(lixo), `a lista imprimiu "${lixo}"`);
+  });
+});
+
+test('o plano mostra o setor de cada ativo e a faixa de diversificação', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run(`
+    var planoLista = motorPlanoAporte({
+      aporteMensal: 4000, alocacaoAlvo: { rf: 30, acao: 40, fii: 25, cripto: 5 },
+      ranking: rankingLista
+    });
+    cartRenderizarMotorPlano(planoLista);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('Diversificação por setor'), 'a política tem de ser visível');
+  assert.ok(html.includes('cart-setor-chip'));
+  assert.ok(html.includes('Bancos/Financeiro'));
+  // Nome longo também encurtado na coluna do plano — era ele que empurrava a
+  // coluna e a página para o lado.
+  assert.ok(html.includes('IPCA+ 2055'));
+  assert.ok(html.includes('Tesouro IPCA+ com Juros Semestrais 2055'), 'o nome inteiro fica junto');
+});
+
+test('setor sem candidato é nomeado na tela, não some em silêncio', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run(`
+    var planoParcial = motorPlanoAporte({
+      aporteMensal: 4000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      ranking: rankingLista
+    });
+    cartRenderizarMotorPlano(planoParcial);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('sem candidato pontuado neste ciclo'));
+  assert.ok(html.includes('alvo foi redistribuído'), 'tem de dizer para onde foi o dinheiro');
+});
+
+test('o setor do ranking do servidor sobrevive à segunda busca de dados', () => {
+  // Era aqui que o setor morria: o universo automático descartava o campo, e
+  // a cotação simples devolve `setor: null`, que o Object.assign cru
+  // escrevia por cima. Sem setor, a política inteira deixa de se aplicar.
+  const s = carregar();
+  const RANKING_COM_SETOR = {
+    classes: {
+      acao: {
+        total: 2,
+        itens: [
+          { ticker: 'BBAS3', nome: 'Banco do Brasil', score: 88, setor: 'Bancos' },
+          { ticker: 'EGIE3', nome: 'Engie Brasil', score: 81, setor: 'Utilities' },
+        ],
+      },
+      fii: {
+        total: 1,
+        itens: [
+          { ticker: 'KNCR11', nome: 'Kinea Rendimentos', score: 84, setor: null, tipoFii: 'papel' },
+        ],
+      },
+      cripto: { total: 0, itens: [] },
+      rf: { total: 0, itens: [] },
+    },
+  };
+  const base = JSON.parse(
+    s.run(`JSON.stringify(cartUniversoAutomatico(${JSON.stringify(RANKING_COM_SETOR)}, []).itens)`)
+  );
+  const bbas = base.find((a) => a.ticker === 'BBAS3');
+  assert.equal(bbas.setor, 'Bancos', 'o setor do ranking tem de entrar no universo');
+  assert.equal(base.find((a) => a.ticker === 'KNCR11').tipoFii, 'papel');
+
+  // Fundamentos que voltam sem setor (cotação simples) não podem apagá-lo.
+  const universo = JSON.parse(
+    s.run(`JSON.stringify(cartMontarUniverso(
+      ${JSON.stringify(base)},
+      { BBAS3: { preco: 28.5, setor: null }, KNCR11: { preco: 100, tipoFii: null } },
+      []
+    ))`)
+  );
+  assert.equal(universo.find((a) => a.ticker === 'BBAS3').setor, 'Bancos');
+  assert.equal(universo.find((a) => a.ticker === 'KNCR11').tipoFii, 'papel');
+});

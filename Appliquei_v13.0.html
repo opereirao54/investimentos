@@ -169,6 +169,10 @@
         body.dark #carteira .cart-classe-col-footer,
         body.dark #carteira .cart-sim-card,
         body.dark #carteira .cart-sim-kpi { background: var(--cor-branco); }
+        /* No escuro a barra e os cards partilham o mesmo `--cor-branco`: sem
+           uma sombra forte, o card a passar por baixo da barra fixa parece
+           colado a ela. */
+        body.dark #carteira .cart-rank-toolbar { box-shadow: 0 8px 20px rgba(0,0,0,0.55); }
         body.dark #carteira .cart-edu-item-body { background: linear-gradient(180deg, var(--cor-superficie), var(--cor-branco)); }
         body.dark #carteira .cart-q-opt.selected,
         body.dark #carteira .cart-ativo-item:not(.unchecked) { background: var(--cor-bg-primaria); }
@@ -2317,9 +2321,14 @@
         .cart-motor-avisos i { color: var(--cor-primaria); margin-right: 4px; }
 
         /* Cards de score */
-        .cart-motor-ranking {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
-            gap: 14px;
+        .cart-motor-ranking { display: block; }
+        /* `minmax(310px, 1fr)` era o que punha o telemóvel a rolar para o
+           lado: num ecrã de 360px com as margens da página, a coluna mínima
+           de 310px não cabia e a grelha transbordava. `min(300px, 100%)`
+           deixa a coluna encolher com o ecrã em vez de empurrar a página. */
+        .cart-rank-cards {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+            gap: 12px; align-items: start;
         }
         .cart-score-card {
             background: var(--cor-branco); border: 1px solid var(--cor-borda);
@@ -2348,7 +2357,13 @@
         .cart-score-badge small { font-size: 9.5px; font-weight: 600; opacity: 0.8; }
 
         /* Barras dos cinco pilares */
-        .cart-pilares { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+        /* `1fr` é `minmax(auto, 1fr)`: a coluna não encolhe abaixo do
+           min-content do seu conteúdo. Com 'Endividamento' a medir 75px, as
+           cinco colunas fixavam o card em 410px — e era ESSE o piso que punha
+           a página a rolar para o lado num ecrã de 360px, não o texto solto.
+           `minmax(0, 1fr)` deixa a coluna encolher; o rótulo curto e a quebra
+           abaixo tratam da legibilidade. */
+        .cart-pilares { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
         .cart-pilar { display: flex; flex-direction: column; align-items: center; gap: 4px; }
         .cart-pilar-trilho {
             width: 100%; height: 46px; border-radius: 6px;
@@ -2377,8 +2392,9 @@
         .cart-pilar-nome {
             font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.3px;
             color: var(--cor-texto-mutado); font-weight: 700; text-align: center;
-            line-height: 1.15;
+            line-height: 1.15; overflow-wrap: anywhere;
         }
+        .cart-pilar-curto { display: none; }
         .cart-score-just {
             font-size: 11.5px; color: var(--cor-texto-secundario); line-height: 1.5;
         }
@@ -2446,6 +2462,231 @@
         .cart-score-fonte i { font-size: 12px; color: #059669; flex-shrink: 0; }
         .cart-score-fonte.vencido { color: #b45309; }
         .cart-score-fonte.vencido i { color: #d97706; }
+
+
+        /* ═══════════════════════════════════════════════════════════
+           LISTA DE ATIVOS — barra fixa, abas por classe, busca e
+           cards que abrem sob toque
+           ═══════════════════════════════════════════════════════════
+
+           `hidden` precisa de força aqui: os elementos abaixo declaram
+           display explícito (flex/grid), que vence a regra do agente do
+           utilizador e deixaria o atributo sem efeito nenhum — o filtro
+           esconderia e nada sumiria da tela. */
+        #carteira .cart-rank-grupo[hidden],
+        #carteira .cart-score-card[hidden],
+        #carteira .cart-rank-mais[hidden],
+        #carteira .cart-rank-limpar[hidden] { display: none !important; }
+
+        #carteira .cart-rank-toolbar {
+            position: sticky; top: 0; z-index: 6;
+            display: flex; flex-direction: column; gap: 10px;
+            padding: 10px; margin-bottom: 12px;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(15,23,42,0.07);
+        }
+        /* O botão flutuante do menu ocupa o topo do ecrã em mobile
+           (fixed, 12px + 42px). A barra encosta ABAIXO dele — encostar em
+           zero punha o campo de busca por baixo de um botão de z-index 110. */
+        @media (max-width: 768px) {
+            #carteira .cart-rank-toolbar { top: 58px; }
+        }
+
+        #carteira .cart-rank-busca {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--cor-superficie);
+            border: 1px solid var(--cor-borda);
+            border-radius: 11px; padding: 0 10px;
+            transition: var(--transicao);
+        }
+        #carteira .cart-rank-busca:focus-within {
+            border-color: var(--cart-rf);
+            box-shadow: 0 0 0 3px var(--cart-rf-bg);
+        }
+        #carteira .cart-rank-busca > i {
+            font-size: 17px; color: var(--cor-texto-mutado); flex-shrink: 0;
+        }
+        #carteira .cart-rank-input {
+            flex: 1; min-width: 0; border: none; background: transparent;
+            outline: none; padding: 11px 0;
+            font-family: 'Figtree', sans-serif; font-size: 15px;
+            color: var(--cor-texto-principal);
+        }
+        #carteira .cart-rank-input::placeholder { color: var(--cor-texto-mutado); }
+        #carteira .cart-rank-input::-webkit-search-cancel-button { display: none; }
+        #carteira .cart-rank-limpar {
+            display: flex; align-items: center; justify-content: center;
+            border: none; background: transparent; cursor: pointer;
+            color: var(--cor-texto-mutado); padding: 5px; border-radius: 7px;
+            font-size: 14px; flex-shrink: 0;
+        }
+        #carteira .cart-rank-limpar:hover { background: var(--cor-borda); color: var(--cor-texto-principal); }
+
+        /* Abas roláveis: quatro classes não cabem lado a lado num ecrã de
+           360px, e quebrar em duas linhas empurraria a lista para baixo. */
+        #carteira .cart-rank-tabs {
+            display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        #carteira .cart-rank-tabs::-webkit-scrollbar { display: none; }
+        #carteira .cart-rank-tab {
+            flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 13px; border-radius: 999px; white-space: nowrap;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 700;
+            transition: var(--transicao);
+        }
+        #carteira .cart-rank-tab i { font-size: 15px; }
+        #carteira .cart-rank-tab-rf i     { color: var(--cart-rf); }
+        #carteira .cart-rank-tab-acao i   { color: var(--cart-acao); }
+        #carteira .cart-rank-tab-fii i    { color: var(--cart-fii); }
+        #carteira .cart-rank-tab-cripto i { color: var(--cart-cripto); }
+        #carteira .cart-rank-tab-n {
+            font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 800;
+            background: var(--cor-branco); color: var(--cor-texto-mutado);
+            border-radius: 999px; padding: 1px 7px;
+        }
+        #carteira .cart-rank-tab.active { color: #fff; border-color: transparent; }
+        #carteira .cart-rank-tab.active i { color: #fff; }
+        #carteira .cart-rank-tab.active .cart-rank-tab-n {
+            background: rgba(255,255,255,0.24); color: #fff;
+        }
+        #carteira .cart-rank-tab-rf.active     { background: var(--cart-rf); }
+        #carteira .cart-rank-tab-acao.active   { background: var(--cart-acao); }
+        #carteira .cart-rank-tab-fii.active    { background: var(--cart-fii); }
+        #carteira .cart-rank-tab-cripto.active { background: var(--cart-cripto); }
+
+        /* Durante a busca quem manda é o termo, não a aba. Manter a aba
+           acesa diria que ela está a filtrar — e o resultado pode vir de
+           outra classe, como o cabeçalho de cada grupo mostra. */
+        #carteira .cart-motor-ranking.buscando .cart-rank-tabs { opacity: 0.45; }
+        #carteira .cart-rank-status:empty { display: none; }
+        #carteira .cart-rank-status {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+            font-size: 12px; color: var(--cor-texto-mutado);
+            margin: -4px 0 12px 2px;
+        }
+        #carteira .cart-rank-link {
+            border: none; background: transparent; padding: 0; cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 12px; font-weight: 700;
+            color: var(--cart-rf); text-decoration: underline;
+        }
+
+        /* O cabeçalho do grupo só aparece na busca: fora dela, a aba ativa
+           já diz de que classe é a lista, e repetir seria ruído. */
+        #carteira .cart-rank-grupo-head { display: none; }
+        #carteira .cart-motor-ranking.buscando .cart-rank-grupo-head {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 11px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.7px; color: var(--cor-texto-mutado);
+            margin-bottom: 10px;
+        }
+        #carteira .cart-rank-grupo + .cart-rank-grupo { margin-top: 18px; }
+        #carteira .cart-rank-mais {
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            width: 100%; margin-top: 12px; padding: 12px;
+            border: 1px dashed var(--cor-borda2); border-radius: 12px;
+            background: var(--cor-superficie); color: var(--cor-texto-secundario);
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 700;
+            cursor: pointer; transition: var(--transicao);
+        }
+        #carteira .cart-rank-mais:hover {
+            border-color: var(--cart-rf); color: var(--cart-rf);
+            background: var(--cart-rf-bg);
+        }
+
+        /* Cabeçalho do card vira botão: é ele que abre o detalhe. */
+        #carteira .cart-score-head {
+            width: 100%; margin: 0; padding: 0; border: none; background: transparent;
+            font: inherit; color: inherit; text-align: left; cursor: pointer;
+            display: flex; align-items: center; gap: 10px;
+        }
+        #carteira .cart-score-head:focus-visible {
+            outline: 2px solid var(--cart-rf); outline-offset: 3px; border-radius: 8px;
+        }
+        #carteira .cart-score-caret {
+            flex-shrink: 0; font-size: 14px; color: var(--cor-texto-mutado);
+            transition: transform 0.18s ease;
+        }
+        #carteira .cart-score-card.aberto .cart-score-caret { transform: rotate(180deg); }
+        /* O texto do card é o que o fazia ter 300px de altura. Fica atrás de
+           um toque; o cabeçalho e os cinco pilares continuam à vista, que é
+           o que se lê de relance. */
+        #carteira .cart-score-detalhe { display: none; flex-direction: column; gap: 10px; }
+        #carteira .cart-score-card.aberto .cart-score-detalhe { display: flex; }
+        /* `min-width: auto` é o valor inicial de um item de grelha, e vale
+           o min-content dele. Com um nome de título do Tesouro dentro, esse
+           min-content dá 410px e o card RECUSA-SE a encolher para os 340
+           disponíveis — a coluna cede, não ele. Zerar aqui é o que deixa o
+           corte com reticências acontecer em vez do transbordo. */
+        #carteira .cart-score-card { padding: 13px 14px; gap: 11px; min-width: 0; }
+        #carteira .cart-score-head,
+        #carteira .cart-score-id { min-width: 0; }
+
+        /* Código longo (TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055) era o que
+           esticava o card e punha a página a rolar para o lado. */
+        #carteira .cart-score-ticker {
+            display: block; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #carteira .cart-score-tag {
+            display: inline-block; margin-left: 6px; vertical-align: 1px;
+            font-family: 'Figtree', sans-serif; font-size: 8.5px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: 0.4px;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px solid var(--cor-borda); border-radius: 5px; padding: 1px 5px;
+        }
+        #carteira .cart-plano-ticker {
+            display: block; min-width: 0;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+
+        /* Diversificação por setor, dentro da coluna da classe no plano */
+        #carteira .cart-setores {
+            display: flex; flex-direction: column; gap: 7px;
+            padding: 10px 14px; background: var(--cor-superficie);
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-setores-titulo {
+            display: flex; align-items: center; gap: 5px;
+            font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-setores-lista { display: flex; flex-wrap: wrap; gap: 5px; }
+        #carteira .cart-setor-chip {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: 999px; padding: 3px 9px;
+            font-size: 10.5px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        #carteira .cart-setor-pct {
+            font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 800;
+            color: var(--cor-texto-principal);
+        }
+        #carteira .cart-setores-nota {
+            display: flex; align-items: flex-start; gap: 5px;
+            font-size: 10px; line-height: 1.45; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-setores-nota i { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+
+        @media (max-width: 560px) {
+            /* Um card por linha e pilares mais baixos: no telemóvel a coluna
+               dupla dava 150px de largura por card e o nome não cabia. */
+            /* `1fr` sozinho é `minmax(auto, 1fr)` e traz de volta o piso de
+               min-content na coluna. Aqui a coluna tem de valer exatamente o
+               ecrã. */
+            #carteira .cart-rank-cards { grid-template-columns: minmax(0, 1fr); }
+            #carteira .cart-pilar-trilho { height: 38px; }
+            #carteira .cart-rank-toolbar { padding: 9px; }
+            /* Rótulo curto no lugar do longo: 'Dívida' cabe na coluna, e o
+               nome completo continua no title do pilar. */
+            #carteira .cart-pilar-longo { display: none; }
+            #carteira .cart-pilar-curto { display: inline; }
+            #carteira .cart-pilar-nome { font-size: 8px; letter-spacing: 0.2px; }
+        }
 
         /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
         #carteira {
@@ -6950,7 +7191,9 @@
 
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
-                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco conforme a lente escolhida.</span>
+                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco conforme a lente escolhida.
+                        O ranking é por classe — troque de aba para comparar dentro dela, ou busque um ativo pelo nome.
+                        Toque num ativo para ver a justificativa, as lacunas de dado e a procedência.</span>
                     </div>
                     <div class="cart-motor-ranking" id="cartMotorRanking"></div>
 

@@ -1133,7 +1133,19 @@ function cartUniversoAutomatico(ranking, titulosRf) {
   function preencher(classe, doRanking) {
     if (doRanking.length) {
       doRanking.forEach(function (item) {
-        out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
+        out.push({
+          ticker: item.ticker,
+          nome: item.nome || item.ticker,
+          classe: classe,
+          // O SETOR VEM DAQUI. O ranking do servidor é a única passagem que o
+          // traz de graça — a segunda busca do cliente é de cotação e, quando
+          // a fonte degrada, devolve setor nulo. Descartá-lo aqui, como se
+          // fazia, deixava a política de diversificação sem o campo que ela
+          // decide, e a seleção caía para score puro sem ninguém perceber.
+          setor: item.setor || null,
+          tipoFii: item.tipoFii || null,
+          segmentoFii: item.segmentoFii || null,
+        });
       });
       return;
     }
@@ -1286,6 +1298,8 @@ function cartMontarUniverso(base, fundamentos, titulosRf) {
       var t = cartCasarTesouro(a, titulosRf || []);
       if (t) Object.assign(dados, t, { ticker: a.ticker, nome: a.nome, classe: 'rf' });
     } else {
+      dados.setor = a.setor || null;
+      dados.tipoFii = a.tipoFii || null;
       var f = fundamentos[a.ticker];
       if (f) {
         Object.assign(dados, f, {
@@ -1294,6 +1308,13 @@ function cartMontarUniverso(base, fundamentos, titulosRf) {
           // escreveu e o que o utilizador reconhece na tela.
           nome: a.nome,
           classe: a.classe,
+          // Nulo de uma fonte não apaga o dado de outra — a mesma regra que
+          // comporFundamentos aplica no servidor. A cotação simples devolve
+          // `setor: null`, e o Object.assign cru apagava com ele o setor que
+          // o ranking tinha trazido, levando a classe inteira para fora da
+          // política de diversificação.
+          setor: f.setor || a.setor || null,
+          tipoFii: f.tipoFii || a.tipoFii || null,
         });
       }
     }
@@ -1683,6 +1704,70 @@ function cartRenderizarIndicadores() {
   );
 }
 
+/**
+ * Faixa de diversificação setorial da classe.
+ *
+ * É a metade visível da política: sem ela, uma seleção diversificada e uma
+ * seleção por score puro desenham a mesma lista de ativos, e não há como
+ * saber pela tela qual das duas rodou. A faixa diz o alvo de cada setor, o
+ * que ele levou de facto, e nomeia o setor que ficou de fora — que é a
+ * informação mais acionável das três, porque explica por que o dinheiro dele
+ * foi parar noutro lugar.
+ */
+function cartRenderizarSetoresClasse(c) {
+  if (!c || c.selecao !== 'setor' || !(c.setores || []).length) return '';
+  var chips = c.setores
+    .map(function (s) {
+      return (
+        '<span class="cart-setor-chip" title="' +
+        cartEsc(
+          s.nome +
+            ' — ' +
+            Math.round(s.peso * 100) +
+            '% da classe, em ' +
+            s.nomes +
+            (s.nomes === 1 ? ' ativo' : ' ativos') +
+            ' de ' +
+            s.candidatos +
+            ' pontuados no setor'
+        ) +
+        '">' +
+        '<span class="cart-setor-nome">' +
+        cartEsc(s.nome) +
+        '</span>' +
+        '<span class="cart-setor-pct">' +
+        Math.round(s.peso * 100) +
+        '%</span></span>'
+      );
+    })
+    .join('');
+
+  var vazios = (c.setoresVazios || []).filter(function (v) {
+    return !v.candidatos;
+  });
+  var nota = vazios.length
+    ? '<div class="cart-setores-nota"><i class="ph ph-info"></i> ' +
+      vazios
+        .map(function (v) {
+          return cartEsc(v.nome);
+        })
+        .join(', ') +
+      (vazios.length === 1 ? ' ficou' : ' ficaram') +
+      ' sem candidato pontuado neste ciclo — o alvo foi redistribuído entre os setores acima.' +
+      '</div>'
+    : '';
+
+  return (
+    '<div class="cart-setores">' +
+    '<div class="cart-setores-titulo"><i class="ph ph-squares-four"></i> Diversificação por setor</div>' +
+    '<div class="cart-setores-lista">' +
+    chips +
+    '</div>' +
+    nota +
+    '</div>'
+  );
+}
+
 function cartRenderizarMotorPlano(plano) {
   var el = document.getElementById('cartMotorPlano');
   if (!el || !plano) return;
@@ -1713,15 +1798,26 @@ function cartRenderizarMotorPlano(plano) {
                     ';">' +
                     it.score +
                     '</span>';
+              var rot = cartRotuloAtivo(it);
+              // Nome longo do Tesouro entrava aqui inteiro, em monoespaçada e
+              // sem corte — era ele que esticava a coluna e empurrava a
+              // página para o lado no telemóvel.
+              var segunda = [it.nome || '', it.setorNome || '']
+                .filter(function (v) {
+                  return v;
+                })
+                .join(' · ');
               return (
                 '<li class="cart-plano-item">' +
                 chip +
                 '<span class="cart-plano-body">' +
                 '<span class="cart-plano-ticker">' +
-                it.ticker +
+                cartEsc(rot.codigo) +
                 '</span>' +
-                '<span class="cart-plano-nome">' +
-                (it.nome || '') +
+                '<span class="cart-plano-nome" title="' +
+                cartEsc(segunda) +
+                '">' +
+                cartEsc(segunda) +
                 '</span>' +
                 '</span>' +
                 '<span class="cart-plano-right">' +
@@ -1755,6 +1851,7 @@ function cartRenderizarMotorPlano(plano) {
       formatarMoeda(c.alvo) +
       '</span>' +
       '</div></div>' +
+      cartRenderizarSetoresClasse(c) +
       '<ul class="cart-classe-list">' +
       linhas +
       '</ul>' +
@@ -1799,6 +1896,295 @@ function cartRenderizarMotorPlano(plano) {
     avisos;
 }
 
+// ════════════════════════════════════════════════════════════
+// LISTA DE ATIVOS — nome curto, separação por classe e busca
+// ════════════════════════════════════════════════════════════
+//
+// O problema que esta secção resolve não é de estilo, é de leitura. A lista
+// era um bloco único de quarenta e tal cards abertos: no telemóvel dava mais
+// de dez mil pixels de rolagem, e o utilizador tinha de percorrer FIIs e
+// cripto para chegar às ações. Ver tudo continua a ser possível — deixou é de
+// ser obrigatório para ver qualquer coisa.
+//
+// Três decisões, nesta ordem de importância:
+//   1. Um nível de cada vez (classe ativa), porque comparar ativos só faz
+//      sentido dentro da classe — não se escolhe entre um FII e um título do
+//      Tesouro pela mesma régua, e o motor nem os pontua pela mesma tabela.
+//   2. Card fechado por omissão, com o cabeçalho e os cinco pilares à vista.
+//      O que fica escondido é o texto (justificativa, lacunas, procedência),
+//      que é o que faz o card ter 300px — e é também o que só se lê depois de
+//      o ativo interessar.
+//   3. Página de 8 com "ver mais" em vez de rolagem infinita: o utilizador
+//      sabe quanto falta e o fim da lista existe.
+
+/** Quantos ativos a classe mostra antes do "ver mais". */
+var CART_RANK_PAGINA = 8;
+
+// Estado da lista. Vive fora do render porque sobrevive a ele: trocar de
+// lente redesenha os cards e não pode perder a classe aberta nem a busca.
+var cartRank = { classe: null, busca: '', limite: {} };
+
+function cartEsc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Tipo do título do Tesouro -> etiqueta curta. O nome publicado é a frase
+// inteira ("Tesouro IPCA+ com Juros Semestrais 2055"); o que identifica o
+// papel são três coisas: indexador, ano e se paga cupom.
+var CART_RF_TIPOS = [
+  { re: /renda\s*\+/i, curto: 'Renda+' },
+  { re: /educa\s*\+/i, curto: 'Educa+' },
+  { re: /ipca/i, curto: 'IPCA+' },
+  { re: /selic/i, curto: 'Selic' },
+  { re: /prefixado/i, curto: 'Prefixado' },
+  { re: /igpm|igp-m/i, curto: 'IGP-M' },
+];
+
+/**
+ * Rótulo de um ativo: o código curto que identifica, e o nome completo.
+ *
+ * Existe por causa da renda fixa. O "ticker" de um título do Tesouro é o nome
+ * inteiro maiúsculo com underscores — TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055,
+ * 44 caracteres em fonte monoespaçada dentro de um card de 310px. Não havia
+ * corte nenhum aplicado a ele: o card esticava, a grelha empurrava a página e
+ * o telemóvel ganhava rolagem horizontal — que era o sintoma relatado.
+ *
+ * O nome completo NÃO desaparece: fica na segunda linha, cortada com
+ * reticências, e no `title` do elemento. Encurtar o código e esconder o resto
+ * seria trocar um defeito por outro.
+ */
+function cartRotuloAtivo(a) {
+  var ticker = String((a && a.ticker) || '');
+  var nome = String((a && a.nome) || ticker || '');
+  if (!a || a.classe !== 'rf') {
+    return { codigo: ticker || nome, nome: nome, cupom: false };
+  }
+  var base = nome || ticker.replace(/_/g, ' ');
+  var curto = '';
+  for (var i = 0; i < CART_RF_TIPOS.length; i++) {
+    if (CART_RF_TIPOS[i].re.test(base)) {
+      curto = CART_RF_TIPOS[i].curto;
+      break;
+    }
+  }
+  var ano = (base.match(/(20\d\d)/) || [])[1] || '';
+  var cupom = /juros\s*semestrais|renda\s*\+|educa\s*\+/i.test(base);
+  // Sem indexador reconhecido o código curto seria uma invenção: fica o nome
+  // como está, e quem corta é o CSS.
+  if (!curto) return { codigo: nome || ticker, nome: nome, cupom: cupom };
+  return { codigo: (curto + (ano ? ' ' + ano : '')).trim(), nome: nome, cupom: cupom };
+}
+
+/**
+ * Setor do ativo na régua da política de diversificação.
+ *
+ * Devolve o BALDE quando o ativo cabe num — é o rótulo que explica a seleção
+ * do plano. Quando não cabe, devolve o setor cru, que ainda informa; e quando
+ * não há setor nenhum, devolve null, porque inventar um rótulo aqui esconderia
+ * exatamente o dado em falta.
+ */
+function cartSetorDoAtivo(a) {
+  if (!a) return null;
+  var buckets =
+    typeof MOTOR_SETORES_ALVO !== 'undefined' ? MOTOR_SETORES_ALVO[a.classe] || null : null;
+  if (buckets && typeof motorBucketSetor === 'function') {
+    var chave = motorBucketSetor(a, buckets);
+    for (var i = 0; chave && i < buckets.length; i++) {
+      if (buckets[i].chave === chave) return { chave: chave, nome: buckets[i].nome, alvo: true };
+    }
+  }
+  if (a.setor) return { chave: a.setorCanon || 'outros', nome: a.setor, alvo: false };
+  return null;
+}
+
+/** Um card do ranking. `posicao` é a colocação DENTRO da classe. */
+function cartCardAtivo(a, posicao) {
+  var rotulo = cartRotuloAtivo(a);
+  var setor = cartSetorDoAtivo(a);
+
+  var barras = MOTOR_PILARES.map(function (chave) {
+    var p = a.pilares[chave];
+    var nota = p && p.nota;
+    var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+
+    // Pilar calculado sobre menos de metade dos seus indicadores desenha
+    // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
+    // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
+    // lê-se como veredito — o mesmo erro que já corrigimos no score
+    // global, repetido dentro do pilar.
+    var comDado = p
+      ? p.metricas.filter(function (m) {
+          return m.nota !== null;
+        }).length
+      : 0;
+    var total = p ? p.metricas.length : 0;
+    var parcial = nota != null && total > 0 && comDado / total < 0.5;
+
+    var titulo =
+      p.nome +
+      ': ' +
+      cartFmtNota(nota) +
+      '/10' +
+      (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
+
+    return (
+      '<div class="cart-pilar" title="' +
+      titulo +
+      '">' +
+      '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
+      (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
+      '" style="height:' +
+      altura +
+      '%;background:' +
+      (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
+      ';"></div></div>' +
+      '<div class="cart-pilar-nota' +
+      (parcial ? ' parcial' : '') +
+      '">' +
+      cartFmtNota(nota) +
+      (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
+      '</div>' +
+      '<div class="cart-pilar-nome">' +
+      '<span class="cart-pilar-longo">' +
+      p.nome +
+      '</span><span class="cart-pilar-curto">' +
+      (MOTOR_PILAR_NOMES_CURTOS[chave] || p.nome) +
+      '</span></div>' +
+      '</div>'
+    );
+  }).join('');
+
+  var alertas = (a.alertas || []).length
+    ? '<ul class="cart-score-alertas">' +
+      a.alertas
+        .map(function (t) {
+          return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
+        })
+        .join('') +
+      '</ul>'
+    : '';
+
+  // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
+  // cinzento continuaria a ser lido como nota. O card passa a mostrar o
+  // que falta, que é a única informação verdadeira que temos do ativo.
+  var selo =
+    a.score === null
+      ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
+        '<i class="ph ph-minus-circle"></i></span>'
+      : '<span class="cart-score-badge" style="background:' +
+        cartCorScore(a.score) +
+        ';">' +
+        a.score +
+        '<small>/100</small></span>';
+
+  // Fonte que não respondeu tem conserto diferente de fonte que
+  // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
+  // manda o utilizador (e quem for depurar) na direção errada.
+  var indisponivel = a.indisponivel
+    ? '<div class="cart-score-faltando">' +
+      '<div class="cart-score-faltando-titulo">' +
+      '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
+      '</div>' +
+      '<div class="cart-score-faltando-linha">' +
+      (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
+      '</div></div>'
+    : '';
+
+  // Mostra o que faltou MESMO quando o ativo pontua. Antes só aparecia
+  // com score nulo, e o resultado era a pergunta que ninguém conseguia
+  // responder pela tela: "por que este FII não tem Crescimento e aquele
+  // tem?". O ativo pontuado é justamente o caso em que a lacuna passa
+  // despercebida — o número parece completo.
+  //
+  // O título muda conforme o papel da lacuna: com score nulo ela é o
+  // motivo de não haver nota; com score, é a ressalva de leitura.
+  var faltando =
+    !a.indisponivel && (a.faltando || []).length
+      ? '<div class="cart-score-faltando' +
+        (a.score === null ? '' : ' informativo') +
+        '">' +
+        '<div class="cart-score-faltando-titulo">' +
+        (a.score === null
+          ? '<i class="ph ph-database"></i> Faltam indicadores para pontuar'
+          : '<i class="ph ph-info"></i> Indicadores sem dado (não derrubam a nota, reduzem a cobertura)') +
+        '</div>' +
+        a.faltando
+          .map(function (f) {
+            return (
+              '<div class="cart-score-faltando-linha"><strong>' +
+              f.pilar +
+              ':</strong> ' +
+              f.metricas.join(', ') +
+              '</div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
+
+  // Chave de busca: código, nome e setor já sem acento nem pontuação, para o
+  // filtro comparar substring sem repetir a normalização a cada tecla.
+  var chaveBusca = cartNormalizarNome(
+    [a.ticker, rotulo.codigo, a.nome, setor ? setor.nome : '', a.setor || ''].join(' ')
+  );
+
+  var linhaNome = [a.nome || '', setor ? setor.nome : CART_NOMES[a.classe]]
+    .filter(function (v) {
+      return v;
+    })
+    .join(' · ');
+
+  return (
+    '<article class="cart-score-card' +
+    (a.score === null ? ' sem-dado' : '') +
+    '" data-classe="' +
+    a.classe +
+    '" data-busca="' +
+    cartEsc(chaveBusca) +
+    '">' +
+    '<button type="button" class="cart-score-head" aria-expanded="false" ' +
+    'onclick="cartAlternarCard(this)">' +
+    '<span class="cart-score-pos">' +
+    (posicao == null ? '—' : '#' + posicao) +
+    '</span>' +
+    '<span class="cart-score-id">' +
+    '<span class="cart-score-ticker">' +
+    cartEsc(rotulo.codigo) +
+    (rotulo.cupom ? '<span class="cart-score-tag">juros semestrais</span>' : '') +
+    '</span>' +
+    '<span class="cart-score-nome" title="' +
+    cartEsc(linhaNome) +
+    '">' +
+    cartEsc(linhaNome) +
+    '</span>' +
+    '</span>' +
+    selo +
+    '<i class="ph ph-caret-down cart-score-caret" aria-hidden="true"></i>' +
+    '</button>' +
+    '<div class="cart-pilares">' +
+    barras +
+    '</div>' +
+    '<div class="cart-score-detalhe">' +
+    '<div class="cart-score-just">' +
+    motorJustificativa(a) +
+    ' <span class="cart-score-conf conf-' +
+    a.confianca +
+    '">' +
+    (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
+    '</span></div>' +
+    indisponivel +
+    faltando +
+    cartProcedencia(a) +
+    alertas +
+    '</div>' +
+    '</article>'
+  );
+}
+
 function cartRenderizarMotorRanking(ranking) {
   var el = document.getElementById('cartMotorRanking');
   if (!el) return;
@@ -1808,163 +2194,239 @@ function cartRenderizarMotorRanking(ranking) {
     return;
   }
 
-  el.innerHTML = ranking
-    .map(function (a) {
-      var barras = MOTOR_PILARES.map(function (chave) {
-        var p = a.pilares[chave];
-        var nota = p && p.nota;
-        var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+  var porClasse = {};
+  MOTOR_CLASSES.forEach(function (c) {
+    porClasse[c] = [];
+  });
+  ranking.forEach(function (a) {
+    (porClasse[a.classe] || (porClasse[a.classe] = [])).push(a);
+  });
 
-        // Pilar calculado sobre menos de metade dos seus indicadores desenha
-        // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
-        // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
-        // lê-se como veredito — o mesmo erro que já corrigimos no score
-        // global, repetido dentro do pilar.
-        var comDado = p
-          ? p.metricas.filter(function (m) {
-              return m.nota !== null;
-            }).length
-          : 0;
-        var total = p ? p.metricas.length : 0;
-        var parcial = nota != null && total > 0 && comDado / total < 0.5;
+  var comAtivos = Object.keys(porClasse).filter(function (c) {
+    return porClasse[c].length;
+  });
+  // Classe gravada que deixou de existir no universo não pode deixar a tela
+  // vazia com a lista cheia por baixo.
+  if (comAtivos.indexOf(cartRank.classe) === -1) cartRank.classe = comAtivos[0] || null;
 
-        var titulo =
-          p.nome +
-          ': ' +
-          cartFmtNota(nota) +
-          '/10' +
-          (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
-
-        return (
-          '<div class="cart-pilar" title="' +
-          titulo +
-          '">' +
-          '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
-          (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
-          '" style="height:' +
-          altura +
-          '%;background:' +
-          (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
-          ';"></div></div>' +
-          '<div class="cart-pilar-nota' +
-          (parcial ? ' parcial' : '') +
-          '">' +
-          cartFmtNota(nota) +
-          (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
-          '</div>' +
-          '<div class="cart-pilar-nome">' +
-          p.nome +
-          '</div>' +
-          '</div>'
-        );
-      }).join('');
-
-      var alertas = (a.alertas || []).length
-        ? '<ul class="cart-score-alertas">' +
-          a.alertas
-            .map(function (t) {
-              return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
-            })
-            .join('') +
-          '</ul>'
-        : '';
-
-      // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
-      // cinzento continuaria a ser lido como nota. O card passa a mostrar o
-      // que falta, que é a única informação verdadeira que temos do ativo.
-      var selo =
-        a.score === null
-          ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
-            '<i class="ph ph-minus-circle"></i></span>'
-          : '<span class="cart-score-badge" style="background:' +
-            cartCorScore(a.score) +
-            ';">' +
-            a.score +
-            '<small>/100</small></span>';
-
-      // Fonte que não respondeu tem conserto diferente de fonte que
-      // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
-      // manda o utilizador (e quem for depurar) na direção errada.
-      var indisponivel = a.indisponivel
-        ? '<div class="cart-score-faltando">' +
-          '<div class="cart-score-faltando-titulo">' +
-          '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
-          '</div>' +
-          '<div class="cart-score-faltando-linha">' +
-          (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
-          '</div></div>'
-        : '';
-
-      // Mostra o que faltou MESMO quando o ativo pontua. Antes só aparecia
-      // com score nulo, e o resultado era a pergunta que ninguém conseguia
-      // responder pela tela: "por que este FII não tem Crescimento e aquele
-      // tem?". O ativo pontuado é justamente o caso em que a lacuna passa
-      // despercebida — o número parece completo.
-      //
-      // O título muda conforme o papel da lacuna: com score nulo ela é o
-      // motivo de não haver nota; com score, é a ressalva de leitura.
-      var faltando =
-        !a.indisponivel && (a.faltando || []).length
-          ? '<div class="cart-score-faltando' +
-            (a.score === null ? '' : ' informativo') +
-            '">' +
-            '<div class="cart-score-faltando-titulo">' +
-            (a.score === null
-              ? '<i class="ph ph-database"></i> Faltam indicadores para pontuar'
-              : '<i class="ph ph-info"></i> Indicadores sem dado (não derrubam a nota, reduzem a cobertura)') +
-            '</div>' +
-            a.faltando
-              .map(function (f) {
-                return (
-                  '<div class="cart-score-faltando-linha"><strong>' +
-                  f.pilar +
-                  ':</strong> ' +
-                  f.metricas.join(', ') +
-                  '</div>'
-                );
-              })
-              .join('') +
-            '</div>'
-          : '';
-
+  var tabs = comAtivos
+    .map(function (classe) {
+      var pontuados = porClasse[classe].filter(function (a) {
+        return a.score !== null;
+      }).length;
       return (
-        '<div class="cart-score-card' +
-        (a.score === null ? ' sem-dado' : '') +
-        '">' +
-        '<div class="cart-score-head">' +
-        '<span class="cart-score-pos">' +
-        (a.score === null ? '—' : '#' + a.posicao) +
+        '<button type="button" role="tab" class="cart-rank-tab cart-rank-tab-' +
+        classe +
+        (classe === cartRank.classe ? ' active' : '') +
+        '" data-classe="' +
+        classe +
+        '" aria-selected="' +
+        (classe === cartRank.classe ? 'true' : 'false') +
+        '" title="' +
+        pontuados +
+        ' de ' +
+        porClasse[classe].length +
+        ' pontuados" onclick="cartTrocarClasseRanking(\'' +
+        classe +
+        '\')">' +
+        '<i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i><span>' +
+        (CART_NOMES[classe] || classe) +
         '</span>' +
-        '<span class="cart-score-id">' +
-        '<span class="cart-score-ticker">' +
-        a.ticker +
-        '</span>' +
-        '<span class="cart-score-nome">' +
-        (a.nome || '') +
-        ' · ' +
-        CART_NOMES[a.classe] +
-        '</span>' +
-        '</span>' +
-        selo +
-        '</div>' +
-        '<div class="cart-pilares">' +
-        barras +
-        '</div>' +
-        '<div class="cart-score-just">' +
-        motorJustificativa(a) +
-        ' <span class="cart-score-conf conf-' +
-        a.confianca +
-        '">' +
-        (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
-        '</span></div>' +
-        indisponivel +
-        faltando +
-        cartProcedencia(a) +
-        alertas +
-        '</div>'
+        '<span class="cart-rank-tab-n">' +
+        porClasse[classe].length +
+        '</span></button>'
       );
     })
     .join('');
+
+  var grupos = comAtivos
+    .map(function (classe) {
+      var lista = porClasse[classe];
+      var pos = 0;
+      var cards = lista
+        .map(function (a) {
+          // Ativo sem score não ocupa colocação: entra na lista, fora do
+          // ranking. Numerá-lo diria que ele perdeu para os de cima, quando
+          // na verdade ele nem foi medido.
+          return cartCardAtivo(a, a.score === null ? null : ++pos);
+        })
+        .join('');
+      return (
+        '<section class="cart-rank-grupo" data-classe="' +
+        classe +
+        '">' +
+        '<div class="cart-rank-grupo-head"><i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i> ' +
+        (CART_NOMES[classe] || classe) +
+        '</div>' +
+        '<div class="cart-rank-cards">' +
+        cards +
+        '</div>' +
+        '<button type="button" class="cart-rank-mais" data-classe="' +
+        classe +
+        '" onclick="cartVerMaisRanking(\'' +
+        classe +
+        '\')" hidden></button>' +
+        '</section>'
+      );
+    })
+    .join('');
+
+  el.innerHTML =
+    '<div class="cart-rank-toolbar">' +
+    '<div class="cart-rank-busca">' +
+    '<i class="ph ph-magnifying-glass"></i>' +
+    '<input type="search" id="cartRankBusca" class="cart-rank-input" autocomplete="off" ' +
+    'placeholder="Buscar por código, nome ou setor" aria-label="Buscar ativo" value="' +
+    cartEsc(cartRank.busca) +
+    '" oninput="cartFiltrarRanking()">' +
+    '<button type="button" class="cart-rank-limpar" id="cartRankLimpar" ' +
+    'aria-label="Limpar busca" onclick="cartLimparBuscaRanking()"' +
+    (cartRank.busca ? '' : ' hidden') +
+    '><i class="ph ph-x"></i></button>' +
+    '</div>' +
+    '<div class="cart-rank-tabs" role="tablist">' +
+    tabs +
+    '</div>' +
+    '</div>' +
+    '<div class="cart-rank-status" id="cartRankStatus"></div>' +
+    grupos;
+
+  cartAplicarFiltroRanking();
+}
+
+/**
+ * Aplica classe ativa, busca e paginação sobre os cards JÁ desenhados.
+ *
+ * Filtra por atributo em vez de redesenhar: redesenhar a cada tecla tira o
+ * foco do campo de busca no telemóvel — o teclado fecha e a pessoa perde o
+ * que estava a escrever. Todos os cards ficam no DOM; o que muda é quem está
+ * visível.
+ */
+function cartAplicarFiltroRanking() {
+  var wrap = document.getElementById('cartMotorRanking');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  var termo = cartNormalizarNome(cartRank.busca);
+  var buscando = termo.length > 0;
+  // A busca atravessa as classes: quem procura 'BBAS' não devia ter de
+  // adivinhar em que aba o ativo está. Com o resultado espalhado por várias
+  // classes, o cabeçalho de cada grupo passa a ser necessário — daí a classe
+  // no contentor, que é quem o liga no CSS.
+  if (wrap.classList && wrap.classList.toggle) wrap.classList.toggle('buscando', buscando);
+  var grupos = wrap.querySelectorAll('.cart-rank-grupo');
+  var achados = 0;
+  var totalClasses = 0;
+
+  // Classe ativa que não existe entre os grupos deixaria a lista inteira
+  // escondida com os cards todos no DOM — o pior estado possível, porque
+  // parece "sem ativos" e não é. Cai para o primeiro grupo.
+  var classes = Array.prototype.map.call(grupos, function (g) {
+    return g.getAttribute('data-classe');
+  });
+  if (classes.length && classes.indexOf(cartRank.classe) === -1) cartRank.classe = classes[0];
+
+  Array.prototype.forEach.call(grupos, function (grupo) {
+    var classe = grupo.getAttribute('data-classe');
+    var cards = grupo.querySelectorAll('.cart-score-card');
+    var casaram = [];
+    Array.prototype.forEach.call(cards, function (card) {
+      var chave = card.getAttribute('data-busca') || '';
+      if (!buscando || chave.indexOf(termo) !== -1) casaram.push(card);
+      else card.hidden = true;
+    });
+
+    // Durante a busca não há paginação: quem procurou um ativo pelo nome quer
+    // vê-lo, não descobrir que ele estava atrás de um "ver mais".
+    var limite = buscando ? casaram.length : cartRank.limite[classe] || CART_RANK_PAGINA;
+    casaram.forEach(function (card, i) {
+      card.hidden = i >= limite;
+    });
+
+    var visivel = buscando ? casaram.length > 0 : classe === cartRank.classe;
+    grupo.hidden = !visivel;
+    if (visivel) totalClasses++;
+    achados += casaram.length;
+
+    var mais = grupo.querySelector('.cart-rank-mais');
+    if (mais) {
+      var restam = casaram.length - limite;
+      mais.hidden = buscando || restam <= 0;
+      if (!mais.hidden)
+        mais.innerHTML =
+          '<i class="ph ph-caret-down"></i> Ver mais ' +
+          Math.min(restam, CART_RANK_PAGINA) +
+          ' de ' +
+          restam;
+    }
+  });
+
+  var limpar = document.getElementById('cartRankLimpar');
+  if (limpar) limpar.hidden = !buscando;
+
+  var status = document.getElementById('cartRankStatus');
+  if (!status) return;
+  if (buscando) {
+    status.innerHTML = achados
+      ? '<i class="ph ph-magnifying-glass"></i> ' +
+        achados +
+        (achados === 1 ? ' ativo encontrado' : ' ativos encontrados') +
+        ' em ' +
+        totalClasses +
+        (totalClasses === 1 ? ' classe' : ' classes') +
+        ' · <button type="button" class="cart-rank-link" onclick="cartLimparBuscaRanking()">limpar busca</button>'
+      : '<i class="ph ph-magnifying-glass"></i> Nenhum ativo com <strong>' +
+        cartEsc(cartRank.busca) +
+        '</strong> no código, no nome ou no setor. ' +
+        '<button type="button" class="cart-rank-link" onclick="cartLimparBuscaRanking()">limpar busca</button>';
+  } else {
+    status.innerHTML = '';
+  }
+}
+
+function cartTrocarClasseRanking(classe) {
+  cartRank.classe = classe;
+  var wrap = document.getElementById('cartMotorRanking');
+  if (wrap && typeof wrap.querySelectorAll === 'function') {
+    Array.prototype.forEach.call(wrap.querySelectorAll('.cart-rank-tab'), function (b) {
+      var ativa = b.getAttribute('data-classe') === classe;
+      b.classList.toggle('active', ativa);
+      b.setAttribute('aria-selected', ativa ? 'true' : 'false');
+    });
+  }
+  cartAplicarFiltroRanking();
+}
+
+function cartVerMaisRanking(classe) {
+  cartRank.limite[classe] = (cartRank.limite[classe] || CART_RANK_PAGINA) + CART_RANK_PAGINA;
+  cartAplicarFiltroRanking();
+}
+
+function cartFiltrarRanking() {
+  var input = document.getElementById('cartRankBusca');
+  cartRank.busca = input && input.value != null ? String(input.value) : '';
+  cartAplicarFiltroRanking();
+}
+
+function cartLimparBuscaRanking() {
+  cartRank.busca = '';
+  var input = document.getElementById('cartRankBusca');
+  if (input) {
+    input.value = '';
+    if (typeof input.focus === 'function') input.focus();
+  }
+  cartAplicarFiltroRanking();
+}
+
+/** Abre/fecha o detalhe de um card. */
+function cartAlternarCard(botao) {
+  if (!botao || typeof botao.closest !== 'function') return;
+  var card = botao.closest('.cart-score-card');
+  if (!card) return;
+  var aberto = card.classList.toggle('aberto');
+  botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
 }
 
 // ════════════════════════════════

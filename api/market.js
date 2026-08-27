@@ -2499,6 +2499,12 @@ async function calcularRankings(database, lentes, topN) {
         cobertura: pontuado.cobertura,
         confianca: pontuado.confianca,
         setor: pontuado.setor || null,
+        // Papel ou tijolo sai do balanço publicado, não do nome do fundo — e
+        // é o cliente que aplica a política de setores, então tem de viajar
+        // com o item. Sem isto, um fundo de recebíveis chamado 'Renda
+        // Logística' entraria no balde de logística na tela.
+        tipoFii: pontuado.tipoFii || null,
+        segmentoFii: pontuado.segmentoFii || null,
         fonteRotulo: pontuado.fonteRotulo || null,
         dataReferencia: pontuado.dataReferencia || null,
       });
