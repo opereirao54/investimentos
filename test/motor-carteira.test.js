@@ -1225,3 +1225,84 @@ test('o aporte inteiro continua distribuído com a política ligada', () => {
   assert.ok(plano.sobra >= 0 && plano.sobra < 60, `sobra de lote alta demais: ${plano.sobra}`);
   assert.equal(plano.retido, 0);
 });
+
+test('segmento que já vem resolvido não é deitado fora pelo nome do fundo', () => {
+  // Regressão cara: scoreAtivo recalculava o segmento SEMPRE pelo nome, e o
+  // segmento curado que o servidor tinha resolvido era descartado. Efeito
+  // medido: todo FII sem informe da CVM caía em 'imoveis', os quatro segmentos
+  // viravam um só, e a diversificação da classe deixava de existir.
+  const r = M.scoreAtivo(
+    { ticker: 'BTLG11', nome: 'BTLG', classe: 'fii', segmentoFii: 'logistica', pvp: 1, dy: 10 },
+    { lente: 'equilibrio' }
+  );
+  assert.equal(r.segmentoFii, 'logistica');
+
+  // Sem nada resolvido, o nome continua a ser o último recurso.
+  const semNada = M.scoreAtivo(
+    { ticker: 'XPTO11', nome: 'XP Malls', classe: 'fii', pvp: 1, dy: 10 },
+    { lente: 'equilibrio' }
+  );
+  assert.equal(semNada.segmentoFii, 'shoppings');
+});
+
+test('o informe continua decidindo papel × tijolo, acima de tudo', () => {
+  // A fatia da carteira em imóvel é medida; a lista curada é curadoria. Um
+  // fundo que a CVM diz ser de papel não vira de logística por causa dela.
+  const r = M.scoreAtivo(
+    {
+      ticker: 'XXXX11',
+      nome: 'Renda Logística',
+      classe: 'fii',
+      tipoFii: 'papel',
+      segmentoFii: 'logistica',
+      pvp: 1,
+      dy: 12,
+    },
+    { lente: 'equilibrio' }
+  );
+  assert.equal(r.segmentoFii, 'papel', 'o balanço vence a lista e vence o nome');
+});
+
+test('os quatro segmentos aparecem quando o aporte comporta quatro nomes', () => {
+  // O sintoma relatado: a classe inteira num segmento só. Com o segmento
+  // resolvido, a política volta a repartir.
+  function fii(t, seg, dy) {
+    return {
+      ticker: t,
+      nome: t,
+      classe: 'fii',
+      segmentoFii: seg,
+      preco: 100,
+      pvp: 1,
+      dy,
+      dyMedio36m: dy - 1,
+      consistenciaDividendos: 100,
+      crescimentoDividendo12m: 2,
+      alavancagem: 8,
+      liquidezDiaria: 9e6,
+      patrimonioLiquido: 2e9,
+      numeroCotistas: 200000,
+    };
+  }
+  const ranking = M.ranquear(
+    [
+      fii('AAAA11', 'papel', 12),
+      fii('BBBB11', 'logistica', 11),
+      fii('CCCC11', 'shoppings', 10),
+      fii('DDDD11', 'imoveis', 9),
+      fii('EEEE11', 'imoveis', 8),
+    ],
+    { lente: 'renda' }
+  );
+  const c = M.planoAporte({
+    aporteMensal: 2000,
+    alocacaoAlvo: { rf: 0, acao: 0, fii: 100, cripto: 0 },
+    ranking,
+  }).classes.fii;
+  const segmentos = new Set(c.itens.map((i) => i.setorChave));
+  assert.deepEqual(
+    [...segmentos].sort(),
+    ['imoveis', 'logistica', 'papel', 'shoppings'],
+    `a classe saiu concentrada: ${c.itens.map((i) => i.ticker + '/' + i.setorChave).join(', ')}`
+  );
+});

@@ -37,6 +37,8 @@ const { lerZip } = require('./lib/zip');
 const T = require(path.join(__dirname, 'lib', 'tesouro.js'));
 const P = require('./lib/cvm-parser');
 const MAPA = require('./lib/mapa-cvm.json');
+// Ticker -> setor, curado. Reserva para o que o cadastro da CVM não cobrir.
+const SETORES_B3 = require('./lib/setores-b3.json');
 
 const BASE_CIA = 'https://dados.cvm.gov.br/dados/CIA_ABERTA';
 const BASE_FII = 'https://dados.cvm.gov.br/dados/FII';
@@ -962,7 +964,7 @@ async function main() {
       }
     }
     for (const ticker of emp.tickers) {
-      const curado = MAPA.acoes[ticker] && MAPA.acoes[ticker].setor;
+      const curado = SETORES_B3.acoes && SETORES_B3.acoes[ticker];
       documentos.push({
         ticker,
         dados: {

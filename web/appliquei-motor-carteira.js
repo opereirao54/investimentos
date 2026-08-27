@@ -973,6 +973,7 @@ var MOTOR_SETOR_MAPA = [
   { canon: 'telecom', termos: ['telecom', 'telefon', 'communication'] },
   { canon: 'mineracao', termos: ['miner', 'metal', 'siderurg', 'steel', 'material'] },
   { canon: 'papel', termos: ['papel', 'celulose', 'paper', 'pulp'] },
+  { canon: 'quimica', termos: ['quimic', 'chemical', 'petroquim', 'fertiliz'] },
   { canon: 'saude', termos: ['saude', 'health', 'farmac', 'pharma', 'hospital'] },
   { canon: 'construcao', termos: ['constru', 'imobili', 'real estate', 'incorpora'] },
   { canon: 'alimentos', termos: ['aliment', 'food', 'bebida', 'beverage', 'agro'] },
@@ -1003,6 +1004,7 @@ var MOTOR_SETOR_NOMES = {
   telecom: 'Telecomunicações',
   mineracao: 'Mineração e Siderurgia',
   papel: 'Papel e Celulose',
+  quimica: 'Química e Petroquímica',
   saude: 'Saúde',
   construcao: 'Construção e Imobiliário',
   alimentos: 'Alimentos e Bebidas',
@@ -1081,7 +1083,16 @@ var MOTOR_SETORES_ALVO = {
       chave: 'consumo',
       nome: 'Consumo/Commodities',
       alvo: 10,
-      setores: ['varejo', 'alimentos', 'saude', 'educacao', 'petroleo', 'mineracao', 'papel'],
+      setores: [
+        'varejo',
+        'alimentos',
+        'saude',
+        'educacao',
+        'petroleo',
+        'mineracao',
+        'papel',
+        'quimica',
+      ],
     },
     // Balde de quem não cai em nenhum dos declarados: setor que existe e não
     // está no mapa (aeroespacial, hotelaria) ou setor que a fonte não
@@ -1399,7 +1410,17 @@ function motorScoreAtivo(dados, opcoes) {
   var setorCanon = motorNormalizarSetor(d.setor);
   // Segmento do FII sai aqui, uma vez, e viaja com o ativo: a tela, o plano e
   // a política de setores têm de concordar sobre o que é um fundo de papel.
-  var segmentoFii = classe === 'fii' ? motorSegmentoFii(d) : null;
+  //
+  // Precedência, e ela importa: o INFORME decide papel × tijolo, porque mede a
+  // fatia da carteira em imóvel; um segmento que já venha resolvido (a lista
+  // curada do servidor) decide a quebra do tijolo, que o informe não tem; e o
+  // nome do fundo é o último recurso. Recalcular sempre pelo nome — que era o
+  // que esta linha fazia — deitava fora o segmento curado e punha todo FII sem
+  // informe no mesmo balde 'imoveis', apagando a diversificação da classe.
+  var segmentoFii = null;
+  if (classe === 'fii') {
+    segmentoFii = d.tipoFii === 'papel' ? 'papel' : d.segmentoFii || motorSegmentoFii(d);
+  }
   var bonus = 0;
   if (
     lente.setoresPreferidos &&

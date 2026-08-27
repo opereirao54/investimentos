@@ -1,10 +1,11 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
 const { requireUser } = require('./_lib/auth');
 const { handler } = require('./_lib/handler');
-// Mapa curado do universo. Vive em scripts/lib porque é o job de ingestão quem
-// mais o usa, mas a function também precisa dele: é a única fonte de SETOR que
-// não depende de plano pago — ver comporFundamentos.
-const MAPA_CURADO = require('../scripts/lib/mapa-cvm.json');
+// Ticker -> setor, curado. Arquivo separado do mapa acima de propósito:
+// mapa-cvm.json responde "que ativos existem e como casá-los na CVM", este
+// responde "a que setor um ticker pertence". Duas fontes para o mesmo facto
+// divergem no primeiro ajuste.
+const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -1984,11 +1985,24 @@ async function fetchCoingeckoFundamentals(simbolos) {
 function setorCurado(ticker) {
   if (!ticker) return null;
   const t = String(ticker).toUpperCase();
-  const acao = MAPA_CURADO.acoes && MAPA_CURADO.acoes[t];
-  if (acao && acao.setor) return acao.setor;
-  const fii = MAPA_CURADO.fiis && MAPA_CURADO.fiis[t];
-  if (fii && fii.setor) return fii.setor;
-  return null;
+  return (SETORES_B3.acoes && SETORES_B3.acoes[t]) || null;
+}
+
+/**
+ * Segmento curado de um FII: papel, logística, shoppings ou imóveis.
+ *
+ * RESERVA, e por baixo do informe: a CVM separa papel de tijolo pela fatia da
+ * carteira em imóvel, e essa evidência vence esta lista. O que ela acrescenta
+ * é a quebra do tijolo entre logística, shopping e o resto — que não existe em
+ * campo nenhum do informe — e o segmento dos fundos que a ingestão ainda não
+ * alcançou.
+ *
+ * Sem ela, todo FII sem informe cai em 'imoveis' pelo nome, os quatro
+ * segmentos viram um só, e a diversificação de FII deixa de existir.
+ */
+function segmentoCurado(ticker) {
+  if (!ticker) return null;
+  return (SETORES_B3.fiis && SETORES_B3.fiis[String(ticker).toUpperCase()]) || null;
 }
 
 function comporFundamentos(doc, ticker) {
@@ -2034,6 +2048,16 @@ function comporFundamentos(doc, ticker) {
     if (curado) {
       out.setor = curado;
       out.setorFonte = 'curado';
+    }
+  }
+
+  // Mesma regra do lado dos FIIs: preenche a lacuna, nunca sobrescreve o
+  // informe. `tipoFii` vem do balanço e continua a decidir papel × tijolo.
+  if (!out.segmentoFii) {
+    const seg = segmentoCurado(ticker || out.ticker || doc.ticker);
+    if (seg && !(out.tipoFii === 'papel' && seg !== 'papel')) {
+      out.segmentoFii = seg;
+      out.segmentoFonte = 'curado';
     }
   }
 
@@ -2916,6 +2940,7 @@ module.exports.__test = {
   fetchYahooFundamentals,
   comporFundamentos,
   setorCurado,
+  segmentoCurado,
   mapTesouroTitulo,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,

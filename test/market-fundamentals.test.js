@@ -1590,6 +1590,7 @@ test('a degradação sem token carimba Yahoo, ponta a ponta', async () => {
 
 const { setorCurado } = market.__test || {};
 const MAPA = require('../scripts/lib/mapa-cvm.json');
+const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 const Motor = require('../web/appliquei-motor-carteira.js');
 
 test('a reserva curada preenche o setor que nenhuma fonte trouxe', () => {
@@ -1621,36 +1622,126 @@ test('o ticker é comparado sem depender de caixa', () => {
   assert.equal(setorCurado(null), null);
 });
 
-test('toda ação do mapa curado tem setor, e todo setor cai num bloco da política', () => {
-  // O mapa é o universo que o produto de facto recomenda. Um ticker sem setor
-  // aqui volta a produzir "setor não informado" na tela; um setor que não cai
-  // em bloco nenhum sai da política em silêncio, que é pior — o ativo aparece
-  // normal e nunca é escolhido.
+test('todo ticker do mapa de setores cai num bloco declarado da política', () => {
+  // Um rótulo que caia em 'outros' tira o ativo do bloco certo em silêncio —
+  // ele vira "Outros setores" e o setor de verdade dele fica sem candidato.
+  // Foi assim que a carteira saiu 100% em bancos: os únicos com setor eram os
+  // poucos já curados, e quatro dos cinco blocos ficaram vazios.
   const buckets = Motor.SETORES_ALVO.acao;
-  for (const [ticker, info] of Object.entries(MAPA.acoes)) {
-    assert.ok(info.setor, `${ticker} está sem setor no mapa curado`);
-    const canon = Motor.normalizarSetor(info.setor);
-    assert.notEqual(canon, 'outros', `${ticker}: "${info.setor}" não é reconhecido pelo motor`);
+  const fora = [];
+  for (const [ticker, setor] of Object.entries(SETORES_B3.acoes)) {
+    const canon = Motor.normalizarSetor(setor);
     const bloco = Motor.bucketSetor({ classe: 'acao', setorCanon: canon }, buckets);
-    assert.ok(bloco, `${ticker}: setor "${info.setor}" (${canon}) não cai em bloco nenhum`);
+    if (canon === 'outros' || !bloco || bloco === 'outros') fora.push(`${ticker} "${setor}"`);
+  }
+  assert.deepEqual(fora, [], `rótulos não reconhecidos: ${fora.join(', ')}`);
+});
+
+test('os blocos declarados têm candidatos de sobra no mapa de setores', () => {
+  // Bloco sem nenhum ticker curado nunca recebe aporte enquanto a fonte de
+  // mercado não devolver setor — e a diversificação fica incompleta sem que
+  // nada na tela denuncie a causa. Exigimos mais de um por bloco: com um só,
+  // basta ele não entrar no ranking do mês para o bloco sumir.
+  const buckets = Motor.SETORES_ALVO.acao;
+  const conta = {};
+  for (const setor of Object.values(SETORES_B3.acoes)) {
+    const bloco = Motor.bucketSetor(
+      { classe: 'acao', setorCanon: Motor.normalizarSetor(setor) },
+      buckets
+    );
+    if (bloco) conta[bloco] = (conta[bloco] || 0) + 1;
+  }
+  for (const b of buckets) {
+    if ((b.setores || b.segmentos || []).includes('*')) continue;
+    assert.ok(
+      (conta[b.chave] || 0) >= 3,
+      `bloco "${b.nome}" tem só ${conta[b.chave] || 0} candidatos curados`
+    );
   }
 });
 
-test('os cinco blocos da política têm candidato no mapa curado', () => {
-  // Bloco sem nenhum ticker curado nunca recebe aporte enquanto a fonte de
-  // mercado não devolver setor — e a diversificação fica incompleta sem que
-  // nada na tela denuncie a causa.
-  const buckets = Motor.SETORES_ALVO.acao;
-  const cobertos = new Set(
-    Object.values(MAPA.acoes).map((info) =>
-      Motor.bucketSetor({ classe: 'acao', setorCanon: Motor.normalizarSetor(info.setor) }, buckets)
-    )
+test('o mapa de setores cobre os nomes mais líquidos da bolsa', () => {
+  // Não é exaustividade — é cobrir o que o ranking de facto devolve. Doze dos
+  // quinze candidatos do ciclo medido em produção ficaram sem setor porque a
+  // lista tinha 24 tickers.
+  const esperados = [
+    'PETR4',
+    'VALE3',
+    'ITUB4',
+    'BBAS3',
+    'BBDC4',
+    'ABEV3',
+    'WEGE3',
+    'B3SA3',
+    'ELET3',
+    'RENT3',
+    'SUZB3',
+    'JBSS3',
+    'RADL3',
+    'EQTL3',
+    'PRIO3',
+    'GGBR4',
+    'CSNA3',
+    'LREN3',
+    'RAIL3',
+    'EMBR3',
+  ];
+  const faltando = esperados.filter((t) => !SETORES_B3.acoes[t]);
+  assert.deepEqual(faltando, [], `sem setor curado: ${faltando.join(', ')}`);
+  assert.ok(
+    Object.keys(SETORES_B3.acoes).length >= 120,
+    'a lista precisa cobrir o universo que o ranking devolve, não uma amostra'
   );
+});
+
+test('setor não vive em dois arquivos', () => {
+  // Duas fontes para o mesmo facto divergem no primeiro ajuste. mapa-cvm.json
+  // responde "que ativos existem e como casá-los na CVM"; setores-b3.json
+  // responde "a que setor um ticker pertence".
+  for (const [ticker, info] of Object.entries(MAPA.acoes)) {
+    assert.equal(info.setor, undefined, `${ticker} ainda tem setor em mapa-cvm.json`);
+  }
+});
+
+test('o segmento curado preenche o FII que a ingestão ainda não alcançou', () => {
+  // Sem ele, todo FII sem informe cai em 'imoveis' pelo nome, os quatro
+  // segmentos viram um só, e a diversificação de FII deixa de existir.
+  const c = comporFundamentos({ mercado: { preco: 100, fonte: 'brapi' } }, 'BTLG11');
+  assert.equal(c.segmentoFii, 'logistica');
+  assert.equal(c.segmentoFonte, 'curado');
+});
+
+test('o informe da CVM vence a lista curada no que ele de facto decide', () => {
+  // A CVM separa papel de tijolo pela fatia da carteira em imóvel. Um fundo
+  // que ELA diz ser de papel não vira de tijolo por causa da nossa lista — foi
+  // o mesmo princípio que já impediu "Renda Logística" de virar logística.
+  const c = comporFundamentos(
+    { mercado: { preco: 100, fonte: 'brapi' }, cvm: { tipoFii: 'papel' } },
+    'BTLG11'
+  );
+  assert.equal(c.segmentoFii, undefined, 'a lista não sobrepõe o balanço');
+  assert.equal(c.tipoFii, 'papel');
+});
+
+test('os quatro segmentos de FII têm candidatos de sobra na lista curada', () => {
+  const buckets = Motor.SETORES_ALVO.fii;
+  const conta = {};
+  for (const seg of Object.values(SETORES_B3.fiis)) {
+    const bloco = Motor.bucketSetor({ classe: 'fii', segmentoFii: seg }, buckets);
+    if (bloco) conta[bloco] = (conta[bloco] || 0) + 1;
+  }
   for (const b of buckets) {
-    // O balde curinga é a exceção legítima: ele existe para o ativo cujo setor
-    // NÃO conhecemos, e um ticker curado tem setor por definição. Exigir
-    // candidato dele seria exigir o contrário do que ele é.
-    if ((b.setores || b.segmentos || []).includes('*')) continue;
-    assert.ok(cobertos.has(b.chave), `nenhum ticker curado cobre o bloco "${b.nome}"`);
+    if ((b.segmentos || []).includes('*')) continue;
+    assert.ok(
+      (conta[b.chave] || 0) >= 5,
+      `segmento "${b.nome}" tem só ${conta[b.chave] || 0} fundos curados`
+    );
+  }
+});
+
+test('todo segmento curado é um dos quatro que a política conhece', () => {
+  const validos = ['papel', 'logistica', 'shoppings', 'imoveis'];
+  for (const [ticker, seg] of Object.entries(SETORES_B3.fiis)) {
+    assert.ok(validos.includes(seg), `${ticker}: segmento "${seg}" não existe na política`);
   }
 });

@@ -7,136 +7,106 @@
     "que um humano revisa antes de a ingestão escrever qualquer coisa.",
     "Para adicionar um ativo à carteira modelo, acrescente-o aqui.",
     "",
-    "`setor` existe porque NENHUMA fonte de mercado no-lo entrega de graça: o",
-    "perfil da BRAPI vem de `modules=`, que exige plano pago, e o do Yahoo vem",
-    "do quoteSummary, que responde 429 tanto da function como do runner. Sem",
-    "ele, a política de diversificação setorial não tem o campo que decide e a",
-    "tela mostra 'setor não informado' em toda ação — que era verdade, e por",
-    "isso o conserto é dar-lhe o dado, não calar o aviso.",
-    "É uma camada de RESERVA: setor que uma fonte real traga vence este.",
-    "O rótulo é o do mercado brasileiro, e quem o traduz para os blocos da",
-    "política é MOTOR_SETOR_MAPA — não repita aqui o nome do bloco."
+    "SETOR não mora aqui: vive em setores-b3.json, que responde outra pergunta",
+    "(\"a que setor um ticker pertence\") e cobre muito mais tickers do que este.",
+    "Duas fontes para o mesmo facto divergem no primeiro ajuste."
   ],
   "acoes": {
     "BBAS3": {
       "denominacao": "BANCO DO BRASIL",
-      "nome": "Banco do Brasil",
-      "setor": "Bancos"
+      "nome": "Banco do Brasil"
     },
     "BBDC4": {
       "denominacao": "BANCO BRADESCO",
-      "nome": "Bradesco",
-      "setor": "Bancos"
+      "nome": "Bradesco"
     },
     "ITUB4": {
       "denominacao": "ITAU UNIBANCO",
-      "nome": "Itaú Unibanco",
-      "setor": "Bancos"
+      "nome": "Itaú Unibanco"
     },
     "SANB11": {
       "denominacao": "BANCO SANTANDER",
-      "nome": "Santander Brasil",
-      "setor": "Bancos"
+      "nome": "Santander Brasil"
     },
     "BBSE3": {
       "denominacao": "BB SEGURIDADE",
-      "nome": "BB Seguridade",
-      "setor": "Seguros"
+      "nome": "BB Seguridade"
     },
     "PSSA3": {
       "denominacao": "PORTO SEGURO",
-      "nome": "Porto Seguro",
-      "setor": "Seguros"
+      "nome": "Porto Seguro"
     },
     "EGIE3": {
       "denominacao": "ENGIE BRASIL",
-      "nome": "Engie Brasil Energia",
-      "setor": "Energia Elétrica"
+      "nome": "Engie Brasil Energia"
     },
     "TAEE11": {
       "denominacao": "TRANSMISSORA ALIANCA",
-      "nome": "Taesa",
-      "setor": "Energia Elétrica"
+      "nome": "Taesa"
     },
     "CPLE6": {
       "denominacao": "COPEL",
-      "nome": "Copel",
-      "setor": "Energia Elétrica"
+      "nome": "Copel"
     },
     "CMIG4": {
       "denominacao": "CEMIG",
-      "nome": "Cemig",
-      "setor": "Energia Elétrica"
+      "nome": "Cemig"
     },
     "ELET3": {
       "denominacao": "CENTRAIS ELET",
-      "nome": "Eletrobras",
-      "setor": "Energia Elétrica"
+      "nome": "Eletrobras"
     },
     "SBSP3": {
       "denominacao": "SABESP",
-      "nome": "Sabesp",
-      "setor": "Saneamento"
+      "nome": "Sabesp"
     },
     "CSMG3": {
       "denominacao": "COPASA",
-      "nome": "Copasa",
-      "setor": "Saneamento"
+      "nome": "Copasa"
     },
     "SAPR11": {
       "denominacao": "SANEPAR",
-      "nome": "Sanepar",
-      "setor": "Saneamento"
+      "nome": "Sanepar"
     },
     "VIVT3": {
       "denominacao": "TELEFONICA BRASIL",
-      "nome": "Vivo",
-      "setor": "Telecomunicações"
+      "nome": "Vivo"
     },
     "WEGE3": {
       "denominacao": "WEG",
-      "nome": "WEG",
-      "setor": "Bens de Capital"
+      "nome": "WEG"
     },
     "PETR4": {
       "denominacao": "PETROLEO BRASILEIRO",
-      "nome": "Petrobras",
-      "setor": "Petróleo e Gás"
+      "nome": "Petrobras"
     },
     "VALE3": {
       "denominacao": "VALE",
-      "nome": "Vale",
-      "setor": "Mineração"
+      "nome": "Vale"
     },
     "ITSA4": {
       "denominacao": "ITAUSA",
-      "nome": "Itaúsa",
-      "setor": "Holding Financeira"
+      "nome": "Itaúsa"
     },
     "KLBN11": {
       "denominacao": "KLABIN",
-      "nome": "Klabin",
-      "setor": "Papel e Celulose"
+      "nome": "Klabin"
     },
     "SUZB3": {
       "denominacao": "SUZANO",
-      "nome": "Suzano",
-      "setor": "Papel e Celulose"
+      "nome": "Suzano"
     },
     "RENT3": {
       "denominacao": "LOCALIZA",
-      "nome": "Localiza",
-      "setor": "Consumo Cíclico"
+      "nome": "Localiza"
     },
     "RADL3": {
       "denominacao": "RAIA DROGASIL",
-      "nome": "Raia Drogasil",
-      "setor": "Saúde"
+      "nome": "Raia Drogasil"
     },
     "ABEV3": {
       "denominacao": "AMBEV",
-      "nome": "Ambev",
-      "setor": "Alimentos e Bebidas"
+      "nome": "Ambev"
     }
   },
   "fiis": {
