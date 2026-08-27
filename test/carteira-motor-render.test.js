@@ -1339,3 +1339,37 @@ test('o setor do ranking do servidor sobrevive à segunda busca de dados', () =>
   assert.equal(universo.find((a) => a.ticker === 'BBAS3').setor, 'Bancos');
   assert.equal(universo.find((a) => a.ticker === 'KNCR11').tipoFii, 'papel');
 });
+
+test('ativo pontuado sem setor é declarado como fora do plano, não some calado', () => {
+  // A política aloca por setor. Ativo sem setor não tem bloco onde caber, então
+  // aparece no ranking com nota e NUNCA recebe aporte. Sem esta linha na tela,
+  // o utilizador vê o ativo bem pontuado na lista, não o vê no plano, e não há
+  // nada que ligue as duas coisas — o pior estado, porque parece arbitrário.
+  const s = carregar();
+  s.run(`
+    function acaoSemSetor(t, n, setor, q) {
+      return { ticker:t, nome:n, classe:'acao', setor:setor, preco:20, pl:q, pvp:1, dy:8,
+        dyMedio5a:7, payout:50, anosPagandoDividendo:15, roe:q*2.2, margemLiquida:20,
+        dividaLiquidaPl:0.3, liquidezCorrente:1.6, cagrReceita5a:q, cagrLucro5a:q,
+        liquidezDiaria:4e7 };
+    }
+    var comLacuna = motorRanquear([
+      acaoSemSetor('BBAS3','Banco do Brasil','Bancos',6),
+      acaoSemSetor('EGIE3','Engie Brasil','Utilities',5),
+      acaoSemSetor('XPTO3','Sem Setor A',null,9),
+      acaoSemSetor('ZZZZ3','Sem Setor B',null,8)
+    ], { lente:'equilibrio' });
+    var planoLacuna = motorPlanoAporte({
+      aporteMensal: 4000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      ranking: comLacuna
+    });
+    cartRenderizarMotorPlano(planoLacuna);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(
+    html.includes('2 ativos pontuados ficaram fora do plano por não terem setor'),
+    'a contagem tem de aparecer na tela'
+  );
+  assert.ok(html.includes('não há bloco onde os pôr'), 'tem de dizer o porquê');
+  assert.ok(!html.includes('XPTO3'), 'o ativo sem setor de facto não recebe aporte');
+});

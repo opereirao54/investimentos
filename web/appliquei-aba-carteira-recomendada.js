@@ -1782,6 +1782,19 @@ function cartRenderizarSetoresClasse(c) {
       '</div>'
     : '';
 
+  // Ativo sem setor NÃO entra na política — não há bloco onde o colocar. Ele
+  // continua no ranking, com nota, e nunca recebe aporte. Sem esta linha isso
+  // acontece em silêncio: o utilizador vê o ativo bem pontuado na lista, não o
+  // vê no plano, e não há nada na tela que ligue as duas coisas.
+  var semSetor = c.semSetor
+    ? '<div class="cart-setores-nota"><i class="ph ph-warning"></i> ' +
+      c.semSetor +
+      (c.semSetor === 1
+        ? ' ativo pontuado ficou fora do plano por não ter setor'
+        : ' ativos pontuados ficaram fora do plano por não terem setor') +
+      ' — a política aloca por setor, e sem ele não há bloco onde os pôr.</div>'
+    : '';
+
   return (
     '<div class="cart-setores">' +
     '<div class="cart-setores-titulo"><i class="ph ph-squares-four"></i> Diversificação por setor</div>' +
@@ -1789,6 +1802,7 @@ function cartRenderizarSetoresClasse(c) {
     chips +
     '</div>' +
     nota +
+    semSetor +
     '</div>'
   );
 }
