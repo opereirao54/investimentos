@@ -1647,6 +1647,10 @@ test('os cinco blocos da política têm candidato no mapa curado', () => {
     )
   );
   for (const b of buckets) {
+    // O balde curinga é a exceção legítima: ele existe para o ativo cujo setor
+    // NÃO conhecemos, e um ticker curado tem setor por definição. Exigir
+    // candidato dele seria exigir o contrário do que ele é.
+    if ((b.setores || b.segmentos || []).includes('*')) continue;
     assert.ok(cobertos.has(b.chave), `nenhum ticker curado cobre o bloco "${b.nome}"`);
   }
 });

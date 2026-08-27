@@ -1661,6 +1661,9 @@ function cartRecalcularMotor() {
     patrimonioAtual: patr.valores,
     porClasse: cartPorClasseCustom(),
   });
+  // Depois do motor, nunca dentro: a carteira calculada é a mesma, e a troca
+  // é uma decisão do utilizador sobre o resultado dela.
+  cartAplicarTrocas(cartMotor.plano, cartMotor.ranking);
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
   cartRenderizarMotorRanking(cartMotor.ranking);
@@ -2073,7 +2076,9 @@ function cartRenderizarMotorPlano(plano) {
                   ? ' — bloco ' + it.setorNome + ' da política'
                   : '');
               return (
-                '<li class="cart-plano-item">' +
+                '<li class="cart-plano-item' +
+                (it.trocadoDe ? ' trocado' : '') +
+                '">' +
                 chip +
                 '<span class="cart-plano-body">' +
                 '<span class="cart-plano-ticker">' +
@@ -2091,6 +2096,18 @@ function cartRenderizarMotorPlano(plano) {
                 '</span>' +
                 qtd +
                 '</span>' +
+                '<button type="button" class="cart-plano-trocar" ' +
+                'onclick="cartAbrirTroca(\'' +
+                cartEsc(it.ticker) +
+                "','" +
+                it.classe +
+                '\')" title="' +
+                (it.trocadoDe
+                  ? 'Trocado por você no lugar de ' + cartEsc(it.trocadoDe)
+                  : 'Trocar este ativo') +
+                '" aria-label="Trocar ' +
+                cartEsc(it.ticker) +
+                '"><i class="ph ph-arrows-left-right"></i></button>' +
                 '</li>'
               );
             })
@@ -2753,6 +2770,243 @@ function cartAlternarCard(botao) {
   if (!card) return;
   var aberto = card.classList.toggle('aberto');
   botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+}
+
+// ── Trocar um ativo do plano ──
+//
+// A troca é do LUGAR, não da carteira: o motor decidiu que aquele slot vale
+// R$ 320, e pôr outro ticker ali não reordena nada. É o que a torna previsível
+// — trocar um banco por outro não pode mudar quanto vai para energia.
+//
+// Vive fora do motor porque é uma decisão do utilizador sobre o resultado, não
+// uma regra de cálculo: o motor continua a produzir a MESMA carteira, e a
+// troca é aplicada por cima, declarada na tela e desfazível.
+
+/** Índice ticker -> ativo pontuado, para a troca achar o substituto. */
+function cartIndicePorTicker(ranking) {
+  var idx = {};
+  (ranking || []).forEach(function (a) {
+    if (a && a.ticker) idx[a.ticker] = a;
+  });
+  return idx;
+}
+
+/** Aplica as trocas gravadas sobre o plano já calculado. */
+function cartAplicarTrocas(plano, ranking) {
+  var trocas = cartCustom().trocas;
+  if (!plano || !trocas || !Object.keys(trocas).length) return plano;
+  var idx = cartIndicePorTicker(ranking);
+  var total = 0;
+
+  MOTOR_CLASSES.forEach(function (classe) {
+    var c = plano.classes[classe];
+    if (!c || !c.itens || !c.itens.length) return;
+    var jaNaClasse = {};
+    c.itens.forEach(function (it) {
+      jaNaClasse[it.ticker] = true;
+    });
+
+    c.itens.forEach(function (it) {
+      var para = trocas[it.ticker];
+      var novo = para && idx[para];
+      // Troca inválida é ignorada em silêncio de propósito: o substituto pode
+      // ter saído do universo entre uma sessão e outra, e nesse caso o certo é
+      // voltar ao ativo do motor — não deixar o plano sem aquele lugar.
+      if (!novo || novo.classe !== classe || jaNaClasse[para]) return;
+      var deOriginal = it.ticker;
+      it.trocadoDe = deOriginal;
+      it.ticker = novo.ticker;
+      it.nome = novo.nome;
+      it.score = novo.score;
+      it.confianca = novo.confianca;
+      it.alertas = novo.alertas || [];
+      it.preco = typeof novo.preco === 'number' ? novo.preco : null;
+      it.setor = novo.setor || null;
+      it.setorCanon = novo.setorCanon || null;
+      it.segmentoFii = novo.segmentoFii || null;
+      it.justificativa = motorJustificativa(novo);
+      motorRecalcularItemTrocado(it, classe);
+      jaNaClasse[novo.ticker] = true;
+      delete jaNaClasse[deOriginal];
+    });
+
+    var investido = 0;
+    c.itens.forEach(function (it) {
+      investido += it.valorInvestido;
+    });
+    c.investido = motorArred(investido, 2);
+    c.sobra = motorArred(c.alvo - investido, 2);
+    total += c.investido;
+  });
+
+  plano.totalInvestido = motorArred(total, 2);
+  plano.sobra = motorArred(plano.aporte - plano.totalInvestido - (plano.retido || 0), 2);
+  plano.itens = [];
+  MOTOR_CLASSES.forEach(function (classe) {
+    var c = plano.classes[classe];
+    if (!c || !c.itens) return;
+    c.itens.forEach(function (it) {
+      it.pctAporte = plano.aporte > 0 ? motorArred((it.valorInvestido / plano.aporte) * 100, 1) : 0;
+      plano.itens.push(it);
+    });
+  });
+  return plano;
+}
+
+/** Candidatos para substituir um ativo: mesma classe, fora do plano. */
+function cartCandidatosTroca(classe, atual) {
+  var noPlano = {};
+  var c = cartMotor.plano && cartMotor.plano.classes && cartMotor.plano.classes[classe];
+  (c && c.itens ? c.itens : []).forEach(function (it) {
+    if (it.ticker !== atual) noPlano[it.ticker] = true;
+  });
+  return (cartMotor.ranking || [])
+    .filter(function (a) {
+      // Ativo sem setor aparece aqui como qualquer outro: quem escolhe à mão
+      // não devia ser barrado por uma lacuna da nossa fonte de dados.
+      return a.classe === classe && a.ticker !== atual && !noPlano[a.ticker];
+    })
+    .sort(function (x, y) {
+      var sx = x.score == null ? -1 : x.score;
+      var sy = y.score == null ? -1 : y.score;
+      if (sy !== sx) return sy - sx;
+      return String(x.ticker).localeCompare(String(y.ticker));
+    });
+}
+
+var cartTrocaAberta = null;
+
+function cartAbrirTroca(ticker, classe) {
+  cartTrocaAberta = { ticker: ticker, classe: classe, busca: '' };
+  cartRenderizarTroca();
+}
+
+function cartFecharTroca() {
+  cartTrocaAberta = null;
+  cartRenderizarTroca();
+}
+
+function cartFiltrarTroca() {
+  var input = document.getElementById('cartTrocaBusca');
+  if (cartTrocaAberta) cartTrocaAberta.busca = (input && input.value) || '';
+  cartRenderizarTroca(true);
+}
+
+/** Confirma a troca e recalcula. */
+function cartConfirmarTroca(de, para) {
+  var c = cartCustom();
+  if (!c.trocas) c.trocas = {};
+  if (para) c.trocas[de] = para;
+  else delete c.trocas[de];
+  if (!Object.keys(c.trocas).length) c.trocas = null;
+  // Trocar é personalizar: sem isto a troca seria apagada no próximo render,
+  // que lê o estado a partir de cartCustomAtivo().
+  c.ativo = true;
+  cartSalvarEstado();
+  cartFecharTroca();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+}
+
+/** Desfaz a troca de um lugar, voltando ao ativo que o motor escolheu. */
+function cartDesfazerTroca(ticker) {
+  var c = cartCustom();
+  if (!c.trocas) return;
+  // A chave é o ativo ORIGINAL; na tela vê-se o substituto.
+  Object.keys(c.trocas).forEach(function (de) {
+    if (de === ticker || c.trocas[de] === ticker) delete c.trocas[de];
+  });
+  if (!Object.keys(c.trocas).length) c.trocas = null;
+  cartSalvarEstado();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+}
+
+/** Folha de escolha do substituto. */
+function cartRenderizarTroca(soLista) {
+  var el = document.getElementById('cartTrocaWrap');
+  if (!el) return;
+  if (!cartTrocaAberta) {
+    el.innerHTML = '';
+    return;
+  }
+  var alvo = cartTrocaAberta;
+  var candidatos = cartCandidatosTroca(alvo.classe, alvo.ticker);
+  var termo = cartNormalizarNome(alvo.busca || '');
+  if (termo) {
+    candidatos = candidatos.filter(function (a) {
+      var linha = cartLinhaSetor(a);
+      return cartNormalizarNome(a.ticker + ' ' + a.nome + ' ' + linha.rotulo).indexOf(termo) !== -1;
+    });
+  }
+
+  var linhas = candidatos.length
+    ? candidatos
+        .map(function (a) {
+          var rot = cartRotuloAtivo(a);
+          var linha = cartLinhaSetor(a);
+          return (
+            '<button type="button" class="cart-troca-op" onclick="cartConfirmarTroca(\'' +
+            cartEsc(alvo.ticker) +
+            "','" +
+            cartEsc(a.ticker) +
+            '\')">' +
+            '<span class="cart-troca-op-score" style="background:' +
+            (a.score == null ? 'var(--cor-borda2)' : cartCorScore(a.score)) +
+            ';">' +
+            (a.score == null ? '—' : a.score) +
+            '</span>' +
+            '<span class="cart-troca-op-id">' +
+            '<span class="cart-troca-op-cod">' +
+            cartEsc(rot.codigo) +
+            '</span>' +
+            '<span class="cart-troca-op-nome">' +
+            cartEsc(linha.texto) +
+            '</span></span>' +
+            '<i class="ph ph-arrow-right"></i></button>'
+          );
+        })
+        .join('')
+    : '<div class="cart-troca-vazio">Nenhum candidato' +
+      (termo ? ' com esse termo' : ' disponível nesta classe') +
+      '.</div>';
+
+  if (soLista) {
+    var lista = document.getElementById('cartTrocaLista');
+    if (lista) {
+      lista.innerHTML = linhas;
+      return;
+    }
+  }
+
+  var trocado = cartCustom().trocas && cartCustom().trocas[alvo.ticker];
+  el.innerHTML =
+    '<div class="cart-troca-fundo" onclick="cartFecharTroca()"></div>' +
+    '<div class="cart-troca-folha" role="dialog" aria-label="Trocar ativo">' +
+    '<div class="cart-troca-head">' +
+    '<span>Trocar <strong>' +
+    cartEsc(alvo.ticker) +
+    '</strong></span>' +
+    '<button type="button" class="cart-troca-fechar" onclick="cartFecharTroca()" ' +
+    'aria-label="Fechar"><i class="ph ph-x"></i></button></div>' +
+    '<div class="cart-troca-nota">O lugar mantém o valor que o motor destinou a ele. ' +
+    'A divisão por classe e por setor não muda.</div>' +
+    '<div class="cart-rank-busca cart-troca-busca">' +
+    '<i class="ph ph-magnifying-glass"></i>' +
+    '<input type="search" id="cartTrocaBusca" class="cart-rank-input" autocomplete="off" ' +
+    'placeholder="Buscar por código, nome ou setor" aria-label="Buscar substituto" ' +
+    'value="' +
+    cartEsc(alvo.busca || '') +
+    '" oninput="cartFiltrarTroca()"></div>' +
+    '<div class="cart-troca-lista" id="cartTrocaLista">' +
+    linhas +
+    '</div>' +
+    (trocado
+      ? '<button type="button" class="cart-troca-desfazer" onclick="cartDesfazerTroca(\'' +
+        cartEsc(alvo.ticker) +
+        '\')"><i class="ph ph-arrow-counter-clockwise"></i> Voltar ao ativo do motor</button>'
+      : '') +
+    '</div>';
 }
 
 // ── Painel de personalização ──

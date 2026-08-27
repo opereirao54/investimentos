@@ -1340,11 +1340,10 @@ test('o setor do ranking do servidor sobrevive à segunda busca de dados', () =>
   assert.equal(universo.find((a) => a.ticker === 'KNCR11').tipoFii, 'papel');
 });
 
-test('ativo pontuado sem setor é declarado como fora do plano, não some calado', () => {
-  // A política aloca por setor. Ativo sem setor não tem bloco onde caber, então
-  // aparece no ranking com nota e NUNCA recebe aporte. Sem esta linha na tela,
-  // o utilizador vê o ativo bem pontuado na lista, não o vê no plano, e não há
-  // nada que ligue as duas coisas — o pior estado, porque parece arbitrário.
+test('ativo sem setor entra no plano pelo balde "Outros setores"', () => {
+  // Antes ele ficava FORA: aparecia pontuado na lista e nunca recebia aporte.
+  // O balde curinga existe para isso — e cede o lugar sozinho quando não há
+  // ninguém para pôr nele, deixando as proporções declaradas exatas.
   const s = carregar();
   s.run(`
     function acaoSemSetor(t, n, setor, q) {
@@ -1356,22 +1355,54 @@ test('ativo pontuado sem setor é declarado como fora do plano, não some calado
     var comLacuna = motorRanquear([
       acaoSemSetor('BBAS3','Banco do Brasil','Bancos',6),
       acaoSemSetor('EGIE3','Engie Brasil','Utilities',5),
-      acaoSemSetor('XPTO3','Sem Setor A',null,9),
-      acaoSemSetor('ZZZZ3','Sem Setor B',null,8)
+      acaoSemSetor('XPTO3','Sem Setor A',null,9)
     ], { lente:'equilibrio' });
     var planoLacuna = motorPlanoAporte({
-      aporteMensal: 4000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      aporteMensal: 6000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
       ranking: comLacuna
     });
     cartRenderizarMotorPlano(planoLacuna);
   `);
   const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('XPTO3'), 'o ativo sem setor tem de receber aporte');
+  assert.ok(html.includes('Outros setores'), 'e o balde dele tem de aparecer na faixa');
   assert.ok(
-    html.includes('2 ativos pontuados ficaram fora do plano por não terem setor'),
-    'a contagem tem de aparecer na tela'
+    !html.includes('ficaram fora do plano por não terem setor'),
+    'não há mais ninguém de fora para declarar'
   );
-  assert.ok(html.includes('não há bloco onde os pôr'), 'tem de dizer o porquê');
-  assert.ok(!html.includes('XPTO3'), 'o ativo sem setor de facto não recebe aporte');
+});
+
+test('zerar "Outros setores" volta a excluir — e a tela diz quantos', () => {
+  // A exclusão passa a ser uma ESCOLHA do utilizador, não uma limitação nossa.
+  // Continua a ter de ser dita: o ativo aparece pontuado na lista e nunca no
+  // plano, e sem esta linha a seleção pareceria arbitrária.
+  const s = carregar();
+  s.run(`
+    function acaoSemSetor2(t, n, setor, q) {
+      return { ticker:t, nome:n, classe:'acao', setor:setor, preco:20, pl:q, pvp:1, dy:8,
+        dyMedio5a:7, payout:50, anosPagandoDividendo:15, roe:q*2.2, margemLiquida:20,
+        dividaLiquidaPl:0.3, liquidezCorrente:1.6, cagrReceita5a:q, cagrLucro5a:q,
+        liquidezDiaria:4e7 };
+    }
+    var rankLacuna = motorRanquear([
+      acaoSemSetor2('BBAS3','Banco do Brasil','Bancos',6),
+      acaoSemSetor2('EGIE3','Engie Brasil','Utilities',5),
+      acaoSemSetor2('XPTO3','Sem Setor A',null,9),
+      acaoSemSetor2('ZZZZ3','Sem Setor B',null,8)
+    ], { lente:'equilibrio' });
+    // Política do utilizador SEM o curinga.
+    cartEstado.custom = { ativo: true, alloc: null, ativos: null,
+      setores: { acao: { financeiro: 50, energia: 50, saneamento: 0,
+                         tecindustria: 0, consumo: 0, outros: 0 } } };
+    var planoSemCuringa = motorPlanoAporte({
+      aporteMensal: 6000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      ranking: rankLacuna, porClasse: cartPorClasseCustom()
+    });
+    cartRenderizarMotorPlano(planoSemCuringa);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('2 ativos pontuados ficaram fora do plano por não terem setor'));
+  assert.ok(!html.includes('XPTO3'), 'zerado é zerado');
 });
 
 // ════════════════════════════════════════════
@@ -1611,4 +1642,206 @@ test('sem CDI a comparação some, em vez de imprimir travessão ou zero', () =>
   ['undefined', 'NaN', 'null'].forEach((lixo) => {
     assert.ok(!html.includes(lixo), `a simulação imprimiu "${lixo}"`);
   });
+});
+
+// ════════════════════════════════════════════
+// Trocar o ativo de um lugar do plano
+// ════════════════════════════════════════════
+//
+// A troca é do LUGAR, não da carteira: o motor decidiu que aquele slot vale
+// R$ 1.800, e pôr outro ticker ali não pode reordenar nada. É isso que a torna
+// previsível — trocar um banco por outro não muda quanto vai para energia.
+
+const SEMENTE_TROCA = `
+  function acaoTroca(t, setor, q, preco) {
+    return { ticker:t, nome:t, classe:'acao', setor:setor, preco:preco, pl:q, pvp:1, dy:8,
+      dyMedio5a:7, payout:50, anosPagandoDividendo:15, roe:q*2.2, margemLiquida:20,
+      dividaLiquidaPl:0.3, liquidezCorrente:1.6, cagrReceita5a:q, cagrLucro5a:q,
+      liquidezDiaria:4e7 };
+  }
+  var rankTroca = motorRanquear([
+    acaoTroca('BBAS3','Bancos',9,28.5), acaoTroca('ITUB4','Bancos',8,33),
+    acaoTroca('BBDC4','Bancos',5,14), acaoTroca('EGIE3','Utilities',7,40),
+    acaoTroca('TAEE11','Utilities',4,11), acaoTroca('SBSP3','Saneamento',6,90),
+    acaoTroca('CSMG3','Saneamento',3,22), acaoTroca('WEGE3','Industrials',8,50),
+    acaoTroca('TOTS3','Technology',3,35), acaoTroca('LREN3','Comércio Varejista',7,15),
+    acaoTroca('XPTO3',null,9,20)
+  ], { lente:'equilibrio' });
+  var planoTroca = motorPlanoAporte({
+    aporteMensal: 6000, alocacaoAlvo: { rf: 0, acao: 100, fii: 0, cripto: 0 }, ranking: rankTroca
+  });
+  cartMotor.ranking = rankTroca;
+  cartMotor.plano = planoTroca;
+`;
+
+test('a troca mantém o valor do lugar e recalcula a quantidade pelo preço novo', () => {
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  const r = JSON.parse(
+    s.run(`
+    var lugar = planoTroca.classes.acao.itens[0];
+    var de = lugar.ticker, alvo = lugar.valorAlvo;
+    var para = cartCandidatosTroca('acao', de)[0].ticker;
+    var precoNovo = rankTroca.filter(function (x) { return x.ticker === para; })[0].preco;
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null, trocas:{} };
+    cartCustom().trocas[de] = para;
+    cartAplicarTrocas(planoTroca, rankTroca);
+    var novo = planoTroca.classes.acao.itens.filter(function (i) { return i.trocadoDe; })[0];
+    JSON.stringify({ de: de, para: para, alvo: alvo, precoNovo: precoNovo,
+      ticker: novo.ticker, trocadoDe: novo.trocadoDe, quantidade: novo.quantidade,
+      valorInvestido: novo.valorInvestido, valorAlvo: novo.valorAlvo });
+  `)
+  );
+
+  assert.equal(r.ticker, r.para, 'o lugar passa a ser do substituto');
+  assert.equal(r.trocadoDe, r.de, 'e guarda de quem era, para a tela poder dizer');
+  assert.equal(r.valorAlvo, r.alvo, 'o VALOR do lugar não muda — é o ponto da troca');
+  assert.equal(
+    r.quantidade,
+    Math.floor(r.alvo / r.precoNovo),
+    'a quantidade sai do preço novo, em lote inteiro'
+  );
+  assert.equal(r.valorInvestido, Math.round(r.quantidade * r.precoNovo * 100) / 100);
+});
+
+test('depois da troca o dinheiro continua fechando com o aporte', () => {
+  // A invariante que importa: investido + retido + sobra = aporte. A diferença
+  // de lote do ativo trocado cai na sobra da classe, não desaparece.
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  const r = JSON.parse(
+    s.run(`
+    var de = planoTroca.classes.acao.itens[0].ticker;
+    var para = cartCandidatosTroca('acao', de)[0].ticker;
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null, trocas:{} };
+    cartCustom().trocas[de] = para;
+    cartAplicarTrocas(planoTroca, rankTroca);
+    var somaClasses = 0;
+    MOTOR_CLASSES.forEach(function (c) {
+      if (planoTroca.classes[c]) somaClasses += planoTroca.classes[c].investido;
+    });
+    JSON.stringify({ aporte: planoTroca.aporte, total: planoTroca.totalInvestido,
+      retido: planoTroca.retido, sobra: planoTroca.sobra, somaClasses: somaClasses,
+      itens: planoTroca.itens.length, naClasse: planoTroca.classes.acao.itens.length });
+  `)
+  );
+  assert.ok(
+    Math.abs(r.total + r.retido + r.sobra - r.aporte) < 0.02,
+    `não fechou: ${r.total} + ${r.retido} + ${r.sobra} != ${r.aporte}`
+  );
+  assert.ok(Math.abs(r.somaClasses - r.total) < 0.02, 'o total tem de ser a soma das classes');
+  assert.equal(r.itens, r.naClasse, 'a lista achatada tem de acompanhar a troca');
+});
+
+test('candidatos à troca incluem quem não tem setor', () => {
+  // Quem escolhe à mão não devia ser barrado por uma lacuna da NOSSA fonte de
+  // dados. O ativo sem setor aparece como qualquer outro.
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  s.run(`
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null,
+      trocas:{} };
+    // Tira o XPTO3 do plano para ele virar candidato.
+    planoTroca.classes.acao.itens = planoTroca.classes.acao.itens.filter(
+      function (i) { return i.ticker !== 'XPTO3'; });
+  `);
+  const cands = JSON.parse(
+    s.run(
+      "JSON.stringify(cartCandidatosTroca('acao', 'BBAS3').map(function (a) { return a.ticker; }))"
+    )
+  );
+  assert.ok(cands.includes('XPTO3'), `ativo sem setor tem de ser oferecido: ${cands.join(', ')}`);
+  assert.ok(!cands.includes('BBAS3'), 'o próprio não se troca por si');
+});
+
+test('candidato já no plano não é oferecido — trocar por ele seria duplicar', () => {
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  const r = JSON.parse(
+    s.run(`
+    var noPlano = planoTroca.classes.acao.itens.map(function (i) { return i.ticker; });
+    var de = noPlano[0];
+    JSON.stringify({ noPlano: noPlano,
+      cands: cartCandidatosTroca('acao', de).map(function (a) { return a.ticker; }) });
+  `)
+  );
+  r.cands.forEach((t) => {
+    assert.ok(!r.noPlano.includes(t), `${t} já está no plano e foi oferecido`);
+  });
+});
+
+test('troca para um ticker que saiu do universo é ignorada, sem furar o plano', () => {
+  // O substituto pode ter saído do ranking entre uma sessão e outra. O certo é
+  // voltar ao ativo do motor, não deixar o lugar vazio.
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  const r = JSON.parse(
+    s.run(`
+    var de = planoTroca.classes.acao.itens[0].ticker;
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null,
+      trocas: {} };
+    cartCustom().trocas[de] = 'FANTASMA9';
+    cartAplicarTrocas(planoTroca, rankTroca);
+    JSON.stringify({ primeiro: planoTroca.classes.acao.itens[0].ticker, de: de,
+      trocados: planoTroca.classes.acao.itens.filter(function (i) { return i.trocadoDe; }).length });
+  `)
+  );
+  assert.equal(r.primeiro, r.de, 'o lugar continua com o ativo que o motor escolheu');
+  assert.equal(r.trocados, 0);
+});
+
+test('a folha de troca lista, busca e oferece o caminho de volta', () => {
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  s.run("cartAbrirTroca('BBAS3', 'acao');");
+  const html = s.dom.els.get('cartTrocaWrap').innerHTML;
+
+  assert.ok(html.includes('Trocar <strong>BBAS3</strong>'));
+  assert.ok(html.includes('cart-troca-op'), 'os candidatos têm de aparecer');
+  assert.ok(html.includes('id="cartTrocaBusca"'), 'com busca, como o resto da aba');
+  assert.ok(html.includes('O lugar mantém o valor'), 'tem de dizer o que a troca faz');
+  ['undefined', 'NaN', '[object Object]'].forEach((lixo) => {
+    assert.ok(!html.includes(lixo), `a folha imprimiu "${lixo}"`);
+  });
+
+  s.run('cartFecharTroca();');
+  assert.equal(s.dom.els.get('cartTrocaWrap').innerHTML, '', 'fechar limpa a sobreposição');
+});
+
+test('desfazer a troca aceita tanto o ativo original quanto o substituto', () => {
+  // Na tela vê-se o SUBSTITUTO; a chave gravada é o original. Aceitar só um
+  // dos dois deixaria o botão da tela sem efeito.
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  s.run(`
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null,
+      trocas: { BBAS3: 'ITUB4' } };
+    cartMotor.buscadoEm = null;
+    cartDesfazerTroca('ITUB4');
+  `);
+  assert.equal(s.run('String(cartCustom().trocas)'), 'null', 'desfez pelo substituto');
+
+  s.run(`
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null,
+      trocas: { BBAS3: 'ITUB4' } };
+    cartDesfazerTroca('BBAS3');
+  `);
+  assert.equal(s.run('String(cartCustom().trocas)'), 'null', 'e pelo original');
+});
+
+test('o plano marca o lugar trocado e oferece o botão de troca em cada item', () => {
+  const s = carregar();
+  s.run(SEMENTE_TROCA);
+  s.run(`
+    cartEstado.custom = { ativo:true, alloc:null, setores:null, ativos:null, trocas:{} };
+    var de = planoTroca.classes.acao.itens[0].ticker;
+    cartCustom().trocas[de] = cartCandidatosTroca('acao', de)[0].ticker;
+    cartAplicarTrocas(planoTroca, rankTroca);
+    cartRenderizarMotorPlano(planoTroca);
+  `);
+  const html = s.dom.els.get('cartMotorPlano').innerHTML;
+  assert.ok(html.includes('cart-plano-item trocado'), 'o lugar trocado tem de se identificar');
+  assert.ok(html.includes('cart-plano-trocar'), 'todo item oferece a troca');
+  assert.ok(html.includes('cartAbrirTroca('));
+  assert.ok(html.includes('Trocado por você no lugar de'), 'e diz de quem era');
 });

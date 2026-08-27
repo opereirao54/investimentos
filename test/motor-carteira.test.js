@@ -1071,7 +1071,9 @@ test('setor sem candidato devolve o alvo aos outros e diz que devolveu', () => {
   const soma = acoes.setores.reduce((s, x) => s + x.peso, 0);
   assert.ok(Math.abs(soma - 1) < 0.01, `os setores presentes têm de fechar em 100%: ${soma}`);
   const vazios = acoes.setoresVazios.map((v) => v.chave).sort();
-  assert.deepEqual(vazios, ['consumo', 'saneamento', 'tecindustria']);
+  // 'outros' entra na conta: é um balde declarado como os demais, e ficar
+  // sem candidato é exatamente o caso normal quando todo ativo tem setor.
+  assert.deepEqual(vazios, ['consumo', 'outros', 'saneamento', 'tecindustria']);
   assert.ok(acoes.investido > 0, 'a classe continua recebendo o aporte inteiro');
 });
 

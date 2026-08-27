@@ -3081,6 +3081,117 @@
             #carteira .cart-sim-principais .cart-sim-kpi:last-child { grid-column: auto; }
         }
 
+
+        /* ═══════════════════════════════════════════════════════════
+           TROCAR O ATIVO DE UM LUGAR DO PLANO
+           ═══════════════════════════════════════════════════════════ */
+        #carteira .cart-plano-item { position: relative; }
+        #carteira .cart-plano-trocar {
+            flex-shrink: 0; border: 1px solid transparent; background: transparent;
+            color: var(--cor-texto-mutado); cursor: pointer;
+            width: 30px; height: 30px; border-radius: 8px; font-size: 15px;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--transicao); opacity: 0.55;
+        }
+        #carteira .cart-plano-item:hover .cart-plano-trocar { opacity: 1; }
+        #carteira .cart-plano-trocar:hover {
+            background: var(--cart-acao-bg); color: var(--cart-acao);
+            border-color: var(--cart-acao);
+        }
+        /* No toque não há hover: o botão fica sempre visível. */
+        @media (hover: none) {
+            #carteira .cart-plano-trocar { opacity: 1; }
+        }
+        /* Lugar trocado se identifica: sem isto o plano parece o do motor, e
+           a diferença entre o que ELE escolheu e o que o utilizador pôs no
+           lugar desaparece na primeira recarga da página. */
+        #carteira .cart-plano-item.trocado {
+            border-color: var(--cart-acao);
+            background: var(--cart-acao-bg);
+        }
+        #carteira .cart-plano-item.trocado .cart-plano-trocar {
+            opacity: 1; color: var(--cart-acao);
+        }
+
+        #carteira .cart-troca-fundo {
+            position: fixed; inset: 0; z-index: 120;
+            background: rgba(15,23,42,0.45); backdrop-filter: blur(2px);
+        }
+        #carteira .cart-troca-folha {
+            position: fixed; z-index: 121;
+            left: 50%; top: 50%; transform: translate(-50%, -50%);
+            width: min(460px, calc(100vw - 32px)); max-height: min(72vh, 620px);
+            display: flex; flex-direction: column; gap: 12px;
+            padding: 18px; border-radius: var(--cart-radius-lg);
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            box-shadow: 0 24px 60px rgba(15,23,42,0.28);
+        }
+        #carteira .cart-troca-head {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 14.5px; font-weight: 700; color: var(--cor-texto-principal);
+        }
+        #carteira .cart-troca-head strong { font-family: 'DM Mono', monospace; }
+        #carteira .cart-troca-fechar {
+            border: none; background: transparent; cursor: pointer; padding: 6px;
+            border-radius: 8px; color: var(--cor-texto-mutado); font-size: 16px;
+        }
+        #carteira .cart-troca-fechar:hover { background: var(--cor-superficie); }
+        #carteira .cart-troca-nota {
+            font-size: 11px; line-height: 1.5; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-troca-busca { margin: 0; }
+        #carteira .cart-troca-lista {
+            display: flex; flex-direction: column; gap: 4px;
+            overflow-y: auto; margin: 0 -4px; padding: 0 4px;
+        }
+        #carteira .cart-troca-op {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 9px 11px; border-radius: 10px; cursor: pointer; text-align: left;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            font-family: 'Figtree', sans-serif; transition: var(--transicao);
+        }
+        #carteira .cart-troca-op:hover {
+            border-color: var(--cart-acao); background: var(--cart-acao-bg);
+        }
+        #carteira .cart-troca-op-score {
+            flex-shrink: 0; width: 32px; height: 32px; border-radius: 9px;
+            display: flex; align-items: center; justify-content: center; color: #fff;
+            font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 800;
+        }
+        #carteira .cart-troca-op-id { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        #carteira .cart-troca-op-cod {
+            font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 700;
+            color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #carteira .cart-troca-op-nome {
+            font-size: 10.5px; color: var(--cor-texto-mutado);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #carteira .cart-troca-op > i { color: var(--cor-texto-mutado); font-size: 14px; flex-shrink: 0; }
+        #carteira .cart-troca-vazio {
+            padding: 22px 12px; text-align: center; font-size: 12px;
+            color: var(--cor-texto-mutado); font-style: italic;
+        }
+        #carteira .cart-troca-desfazer {
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            width: 100%; padding: 11px; border-radius: 10px; cursor: pointer;
+            border: 1px dashed var(--cor-borda2); background: transparent;
+            color: var(--cor-texto-secundario);
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 700;
+        }
+        #carteira .cart-troca-desfazer:hover { border-color: var(--cart-rf); color: var(--cart-rf); }
+
+        @media (max-width: 560px) {
+            /* Folha por baixo, como as folhas nativas do telemóvel: o polegar
+               alcança a lista sem esticar até o meio do ecrã. */
+            #carteira .cart-troca-folha {
+                left: 0; right: 0; bottom: 0; top: auto; transform: none;
+                width: 100%; max-height: 82vh;
+                border-radius: var(--cart-radius-lg) var(--cart-radius-lg) 0 0;
+            }
+        }
+
         /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
         #carteira {
             --cart-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
@@ -7589,6 +7700,9 @@
                          com um formulário em branco devolveria ao utilizador a
                          decisão que ele veio buscar. -->
                     <div id="cartCustomWrap"></div>
+
+                    <!-- Folha de troca de ativo (sobreposição) -->
+                    <div id="cartTrocaWrap"></div>
 
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos

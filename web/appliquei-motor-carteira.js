@@ -1083,12 +1083,24 @@ var MOTOR_SETORES_ALVO = {
       alvo: 10,
       setores: ['varejo', 'alimentos', 'saude', 'educacao', 'petroleo', 'mineracao', 'papel'],
     },
+    // Balde de quem não cai em nenhum dos declarados: setor que existe e não
+    // está no mapa (aeroespacial, hotelaria) ou setor que a fonte não
+    // informou. Sem ele esses ativos ficavam FORA do plano — apareciam
+    // pontuados na lista e nunca recebiam aporte.
+    //
+    // O alvo é pequeno e cede o lugar sozinho: setor sem candidato tem o alvo
+    // redistribuído entre os outros, então numa carteira em que todo ativo tem
+    // setor conhecido este balde não existe e as proporções declaradas saem
+    // exatas. Ele só dilui quando há mesmo alguém para pôr nele — que é
+    // precisamente quando se quer que ele exista.
+    { chave: 'outros', nome: 'Outros setores', alvo: 5, setores: ['*'] },
   ],
   fii: [
     { chave: 'papel', nome: 'Papel', alvo: 10, segmentos: ['papel'] },
     { chave: 'logistica', nome: 'Logística', alvo: 10, segmentos: ['logistica'] },
     { chave: 'shoppings', nome: 'Shoppings', alvo: 10, segmentos: ['shoppings'] },
     { chave: 'imoveis', nome: 'Imóveis', alvo: 20, segmentos: ['imoveis'] },
+    { chave: 'outros', nome: 'Outros segmentos', alvo: 5, segmentos: ['*'] },
   ],
 };
 
@@ -1152,24 +1164,38 @@ function motorBucketSetor(ativo, buckets) {
   if (!ativo || !buckets || !buckets.length) return null;
   var classe = ativo.classe;
   var i, j;
+  // '*' é o balde curinga: recebe quem não casou com nenhum declarado. Ele é
+  // procurado DEPOIS de todos, e só uma vez, para não engolir um ativo que
+  // tinha balde próprio.
+  function curinga() {
+    for (var k = 0; k < buckets.length; k++) {
+      var campo = classe === 'fii' ? buckets[k].segmentos : buckets[k].setores;
+      if (campo && campo.indexOf('*') !== -1) return buckets[k].chave;
+    }
+    return null;
+  }
+
   if (classe === 'fii') {
     var seg = ativo.segmentoFii || motorSegmentoFii(ativo);
     for (i = 0; i < buckets.length; i++) {
       var segs = buckets[i].segmentos || [];
-      for (j = 0; j < segs.length; j++) if (segs[j] === seg) return buckets[i].chave;
+      for (j = 0; j < segs.length; j++)
+        if (segs[j] === seg && segs[j] !== '*') return buckets[i].chave;
     }
-    return null;
+    return curinga();
   }
   var canon = ativo.setorCanon || motorNormalizarSetor(ativo.setor);
   // 'outros' é o que motorNormalizarSetor devolve para um setor que EXISTE e
-  // não está no mapa. Não dá para colocá-lo num balde sem inventar, e
-  // colocá-lo no maior deles distorceria justamente o balde mais pesado.
-  if (!canon || canon === 'outros') return null;
+  // não está no mapa; null é setor que a fonte não informou. Nos dois casos
+  // não dá para escolher um balde declarado sem inventar — e colocá-lo no
+  // maior deles distorceria justamente o mais pesado. Vão para o curinga.
+  if (!canon || canon === 'outros') return curinga();
   for (i = 0; i < buckets.length; i++) {
     var lista = buckets[i].setores || [];
-    for (j = 0; j < lista.length; j++) if (lista[j] === canon) return buckets[i].chave;
+    for (j = 0; j < lista.length; j++)
+      if (lista[j] === canon && lista[j] !== '*') return buckets[i].chave;
   }
-  return null;
+  return curinga();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1922,6 +1948,17 @@ function motorPesosPorSetor(itens, opcoes) {
   });
   if (!presentes.length) return null;
 
+  // SÓ o curinga com candidatos é a ausência de dado vestida de política:
+  // "Outros setores 100%" na tela pareceria uma decisão de diversificação
+  // quando na verdade nenhum ativo tem setor conhecido. Esse estado tem
+  // conserto (a fonte de setor) e precisa continuar a ser declarado como o que
+  // é — daí voltar para a seleção por score, com o motivo dito.
+  var soCuringa = presentes.every(function (b) {
+    var campo = b.segmentos || b.setores || [];
+    return campo.indexOf('*') !== -1;
+  });
+  if (soCuringa) return null;
+
   presentes.forEach(function (b) {
     porBucket[b.chave].sort(function (x, y) {
       var sx = x.scoreExato != null ? x.scoreExato : x.score;
@@ -2424,6 +2461,44 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
 }
 
 /**
+ * Recalcula quantidade e valor de um item cujo TICKER mudou.
+ *
+ * Vive aqui, ao lado de motorPlanoClasse, porque a regra de arredondamento é
+ * a mesma e uma cópia dela no cliente divergiria no primeiro ajuste — ação e
+ * FII compram lote inteiro, cripto aceita fração, renda fixa aceita centavo.
+ *
+ * A troca preserva o VALOR DO LUGAR, não o ativo: o motor decidiu que aquele
+ * slot vale R$ 320, e trocar o ticker não muda essa decisão. É o que faz a
+ * troca ser previsível — trocar um banco por outro não pode reordenar a
+ * carteira inteira.
+ *
+ * O troco da passada gulosa não é refeito: o item trocado fica no lote inteiro
+ * que cabe no alvo dele, e a diferença cai na sobra da classe. Refazer a
+ * passada mexeria nas quantidades dos OUTROS ativos, que o utilizador não
+ * pediu para mexer.
+ */
+function motorRecalcularItemTrocado(item, classe) {
+  if (!item) return item;
+  var preco =
+    typeof item.preco === 'number' && isFinite(item.preco) && item.preco > 0 ? item.preco : null;
+  item.semPreco = !preco && classe !== 'rf';
+  if (classe === 'rf') {
+    item.quantidade = null;
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else if (!preco) {
+    item.quantidade = null;
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else if (classe === 'cripto') {
+    item.quantidade = motorArred(item.valorAlvo / preco, 8);
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else {
+    item.quantidade = Math.floor(item.valorAlvo / preco);
+    item.valorInvestido = motorArred(item.quantidade * preco, 2);
+  }
+  return item;
+}
+
+/**
  * Plano completo do mês: quanto vai para cada classe, quais ativos e quanto
  * de cada um. É a função que a aba chama.
  *
@@ -2509,6 +2584,7 @@ var MotorCarteira = {
   aplicarTeto: motorAplicarTeto,
   distribuirAporte: motorDistribuirAporte,
   planoClasse: motorPlanoClasse,
+  recalcularItemTrocado: motorRecalcularItemTrocado,
   planoAporte: motorPlanoAporte,
   COBERTURA_MINIMA: MOTOR_COBERTURA_MINIMA,
   CRITERIOS: MOTOR_CRITERIOS,
