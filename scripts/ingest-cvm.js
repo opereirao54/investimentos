@@ -1030,7 +1030,7 @@ async function main() {
       }
 
       const casFii = Object.entries(mapaFiis).map(([ticker, info]) => {
-        const achado = P.fundoDoTicker(vinculo, ticker);
+        const achado = P.fundoDoTicker(vinculo, ticker, info.denominacao);
         if (!achado) {
           return { ticker, status: 'sem_correspondencia', denominacao: info.denominacao };
         }

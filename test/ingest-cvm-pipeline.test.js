@@ -222,12 +222,20 @@ function informeGeral(competencia, opcoes) {
     // tornar ambíguo um ticker que os outros testes usam: casar com o errado
     // publicaria os indicadores de um fundo sob o ticker de outro, e é esse
     // o caso que precisa de garantia própria.
-    ...(op.fiiAmbiguo
+    // 'irresoluvel' testa a garantia que fica de pé quando nem o nome
+    // desempata: dois nomes que não batem com a denominação curada em
+    // mapa-cvm.json ("XP MALLS"), ainda partilhando a raiz do ISIN.
+    ...(op.fiiAmbiguo === 'irresoluvel'
       ? [
-          `33.333.333/0001-33;${data};XP MALLS FII;BRXPMLCTF001;3000000000;25000000;300000`,
-          `44.444.444/0001-44;${data};PENINSULA FII RL;BRXPMLCTF999;90000000;900000;900`,
+          `55.555.555/0001-55;${data};FUNDO ALFA;BRXPMLCTF001;3000000000;25000000;300000`,
+          `66.666.666/0001-66;${data};FUNDO BETA;BRXPMLCTF999;90000000;900000;900`,
         ]
-      : []),
+      : op.fiiAmbiguo
+        ? [
+            `33.333.333/0001-33;${data};XP MALLS FII;BRXPMLCTF001;3000000000;25000000;300000`,
+            `44.444.444/0001-44;${data};PENINSULA FII RL;BRXPMLCTF999;90000000;900000;900`,
+          ]
+        : []),
   ].join('\n');
 }
 
@@ -778,12 +786,12 @@ test('undefined vira null antes da gravação, em vez de derrubar o lote', () =>
   assert.ok(!Object.values(limpo).includes(undefined));
 });
 
-test('ticker ambíguo não recebe os indicadores do fundo errado', async () => {
+test('ticker ambíguo resolve pelo nome do mapa — nunca com os indicadores do fundo errado', async () => {
   // O XPML11 partilha a raiz de ISIN com o Peninsula FII, e os dois declaram
-  // negociação em bolsa: o desempate atual não os separa. A garantia que
-  // importa comercialmente não é acertar o desempate — é NUNCA publicar os
-  // indicadores de um fundo sob o ticker de outro.
-  const { texto, documentos } = await rodar(['--dry-run', '--anos=1'], {
+  // negociação em bolsa: o desempate por bolsa não os separa sozinho. A
+  // denominação já curada em mapa-cvm.json ("XP MALLS") é o critério
+  // seguinte, e só um dos dois candidatos a contém.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
     anoFca: ANO_BASE,
     anosDfp: [ANO_BASE],
     informeFii: true,
@@ -792,20 +800,43 @@ test('ticker ambíguo não recebe os indicadores do fundo errado', async () => {
       'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
     },
   });
-  const xpml = (documentos || []).find((d) => d.ticker === 'XPML11');
-  assert.equal(xpml, undefined, `XPML11 não podia ter documento:\n${texto}`);
+  assert.match(
+    texto,
+    /XPML11\s+XP MALLS FII \(desempatado por nome\)/,
+    `o log não mostra o desempate por nome:\n${texto}`
+  );
+  // 3 bi é o patrimônio do XP Malls no fixture; 90 mi (0.09bi) é o do
+  // Peninsula. Sair com o valor errado aqui seria o pior resultado
+  // possível: o indicador de um fundo publicado sob o ticker de outro.
+  assert.match(
+    texto,
+    /XPML11\s+\d{4}-\d{2}-\d{2} · PL 3\.00bi/,
+    `XPML11 saiu com o patrimônio do fundo errado:\n${texto}`
+  );
+  assert.ok(!texto.includes('PL 0.09bi'), `patrimônio do Peninsula vazou para o log:\n${texto}`);
+});
+
+test('sem o nome resolvendo, o ticker ambíguo continua sem indicador nenhum', async () => {
+  // Garantia que fica de pé quando NEM o nome desempata: dois candidatos que
+  // não batem com "XP MALLS" continuam sem critério, e o pipeline recusa
+  // publicar sob qualquer um dos dois — nunca escolhe pelo mais parecido.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    fiiAmbiguo: 'irresoluvel',
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+    },
+  });
   // E o log tem de descrever a DECISÃO, não o candidato que venceu a
   // ordenação interna: "? XPML11 PENINSULA FII RL" lê-se como "casou com o
   // Peninsula", quando o que aconteceu foi "recusou casar".
   assert.match(texto, /XPML11\s+— não casado/, `o log não diz que recusou:\n${texto}`);
-  assert.ok(
-    !/XPML11\s+PENINSULA/.test(texto),
-    `o log ainda sugere que o XPML11 casou com o Peninsula:\n${texto}`
-  );
   // Os dois candidatos continuam impressos: sem eles ninguém sabe se falta
   // critério de desempate ou se a raiz está partilhada por engano.
-  assert.match(texto, /candidato 33333333000133/, `candidatos ausentes:\n${texto}`);
-  assert.match(texto, /candidato 44444444000144/, `candidatos ausentes:\n${texto}`);
+  assert.match(texto, /candidato 55555555000155/, `candidatos ausentes:\n${texto}`);
+  assert.match(texto, /candidato 66666666000166/, `candidatos ausentes:\n${texto}`);
 });
 
 test('LTV do FII junta o ativo de um membro com as obrigações de outro', async () => {

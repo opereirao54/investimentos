@@ -23,6 +23,7 @@ on:
       - 'scripts/ingest-cvm.js'
       - 'scripts/lib/cvm-parser.js'
       - 'scripts/lib/zip.js'
+      - 'scripts/lib/tesouro.js'
       - 'scripts/lib/mapa-cvm.json'
       - '.github/workflows/ingest-cvm.yml'
   schedule:

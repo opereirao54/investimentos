@@ -1574,6 +1574,49 @@ test('sem critério de desempate a ambiguidade fica, com os candidatos à vista'
   assert.deepEqual(f.candidatos.map((c) => c.nome).sort(), ['OUTRO', 'UM']);
 });
 
+test('nome curado em mapa-cvm.json desempata quando os dois declaram bolsa', () => {
+  // Achado da execução real: XPML11 partilha a raiz do ISIN com o Peninsula
+  // FII, e os DOIS vêm marcados como negociados em bolsa — o desempate por
+  // bolsa não separa os dois. A denominação que já casa as ações em
+  // casarCadastro é o critério seguinte, passada pelo chamador.
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '33.333.333/0001-33;2026-07-01;XP MALLS FII;BRXPMLCTF001;S',
+    '44.444.444/0001-44;2026-07-01;PENINSULA FII RL;BRXPMLCTF999;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'XPML11', 'XP MALLS');
+  assert.equal(f.ambiguo, false, 'o nome do mapa resolve quando só um candidato contém o termo');
+  assert.equal(
+    f.cnpj,
+    '33333333000133',
+    'o candidato é o que o nome do mapa aponta, nunca o outro'
+  );
+  assert.equal(f.desempate, 'nome');
+  assert.equal(f.candidatos.length, 2, 'os dois candidatos continuam visíveis mesmo resolvido');
+});
+
+test('nome curado não força escolha quando não isola um candidato sozinho', () => {
+  // Sem nomeEsperado, ou com um termo que não isola exatamente um candidato,
+  // a ambiguidade tem de ficar. Resolver por semelhança seria repetir o erro
+  // que este critério existe para evitar (o MXRF11 casado com um fundo de
+  // renda fixa homônimo).
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '11.111.111/0001-11;2026-07-01;UM;BRXPMLCTF001;S',
+    '22.222.222/0001-22;2026-07-01;OUTRO;BRXPMLCTF001;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  assert.equal(P.fundoDoTicker(v, 'XPML11').ambiguo, true, 'sem nome esperado, continua ambíguo');
+  assert.equal(
+    P.fundoDoTicker(v, 'XPML11', 'TERCEIRO').ambiguo,
+    true,
+    'nome que não bate com nenhum candidato não pode resolver sozinho'
+  );
+});
+
 // ════════════════════════════════════════════
 // Ocupação e imóveis (informe trimestral)
 // ════════════════════════════════════════════

@@ -1385,7 +1385,9 @@ function vincularFiiPorCodigo(registros, colunas) {
     let desempate = null;
     if (candidatos.length > 1) {
       // O ticker designa a classe NEGOCIADA. Quando a fonte diz quais são,
-      // isso resolve sozinho e sem heurística de nome.
+      // isso resolve sozinho. Quando as duas se declaram em bolsa — visto na
+      // execução real do XPML11 —, fundoDoTicker tenta um segundo critério
+      // pelo nome curado em mapa-cvm.json; só este aqui é nativo da CVM.
       const emBolsa = candidatos.filter((c) => c.bolsa === true);
       if (emBolsa.length === 1) {
         escolhidos = emBolsa;
@@ -1401,7 +1403,10 @@ function vincularFiiPorCodigo(registros, colunas) {
       ...vencedor,
       ambiguo: escolhidos.length > 1,
       desempate,
-      candidatos: candidatos.map((c) => ({ cnpj: c.cnpj, nome: c.nome, bolsa: c.bolsa })),
+      // Objetos completos, não só {cnpj, nome, bolsa}: fundoDoTicker precisa
+      // de isin/dataReferencia/via para reconstruir um vencedor se resolver
+      // pelo nome depois daqui.
+      candidatos: candidatos.slice(),
     });
   }
 
@@ -1421,14 +1426,34 @@ function vincularFiiPorCodigo(registros, colunas) {
  * Tenta o ticker inteiro (quando a fonte publica o código de negociação) e
  * depois a raiz de quatro caracteres (quando veio do ISIN). Não inventa
  * ticker a partir de raiz: a raiz procurada é sempre a do ticker pedido.
+ *
+ * `nomeEsperado` (a denominação curada em mapa-cvm.json, a mesma que já casa
+ * as ações em casarCadastro) é o critério de desempate SEGUINTE ao de bolsa.
+ * A execução real mostrou os dois candidatos do XPML11 declarando negociação
+ * em bolsa — o desempate nativo da CVM não os separa. Só resolve quando
+ * exatamente um candidato contém o termo: nenhum batendo ou os dois batendo
+ * deixa a ambiguidade como estava, porque casar pelo candidato mais parecido
+ * é o mesmo erro que já juntou o MXRF11 a um fundo de renda fixa homônimo.
  */
-function fundoDoTicker(vinculo, ticker) {
+function fundoDoTicker(vinculo, ticker, nomeEsperado) {
   if (!vinculo || !vinculo.porCodigo) return null;
   const limpo = String(ticker || '')
     .replace(/[^A-Za-z0-9]/g, '')
     .toUpperCase();
   if (limpo.length < 4) return null;
-  return vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+  const achado = vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+  if (!achado || !achado.ambiguo || !nomeEsperado) return achado;
+
+  const alvo = normalizarChave(nomeEsperado);
+  if (!alvo) return achado;
+  const porNome = (achado.candidatos || []).filter((c) => normalizarChave(c.nome).includes(alvo));
+  if (porNome.length !== 1) return achado;
+  return {
+    ...porNome[0],
+    ambiguo: false,
+    desempate: 'nome',
+    candidatos: achado.candidatos,
+  };
 }
 
 // ════════════════════════════════════════════════════════════
