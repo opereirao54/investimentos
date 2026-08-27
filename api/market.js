@@ -2058,6 +2058,17 @@ function comporFundamentos(doc, ticker) {
     out.classe = 'fii';
   }
 
+  // A mesma pergunta do outro lado, que faltava: ticker na lista curada de
+  // AÇÕES É uma ação. Sem esta metade a unit chegava ao cliente SEM classe, e
+  // o desempate caía no nome — mas o nome que o Yahoo devolve é o da
+  // companhia ("Banco Santander (Brasil) S.A."), não o do pregão da B3
+  // ("SANB11 UNT"). A pista de unit nunca aparecia, o sufixo 11 decidia
+  // sozinho, e o banco entrava na aba dos fundos imobiliários. Vale para
+  // SANB11, BPAC11, TAEE11, ENGI11, ALUP11, SAPR11, KLBN11, IGTI11, CPLE11.
+  if (!out.classe && SETORES_B3.acoes && SETORES_B3.acoes[String(ticker || '').toUpperCase()]) {
+    out.classe = 'acao';
+  }
+
   // Mesma regra do lado dos FIIs: preenche a lacuna, nunca sobrescreve o
   // informe. `tipoFii` vem do balanço e continua a decidir papel × tijolo.
   if (!out.segmentoFii) {

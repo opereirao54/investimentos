@@ -1771,7 +1771,47 @@ test('ticker da lista curada de FIIs é classificado como FII sem depender do no
   const c = comporFundamentos({ mercado: { preco: 10, fonte: 'brapi' } }, 'MXRF11');
   assert.equal(c.classe, 'fii');
 
-  // E não inventa classe para quem não está na lista.
-  const outro = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'SANB11');
+  // E não inventa classe para quem não está em lista nenhuma.
+  const outro = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'ZZZZ11');
   assert.equal(outro.classe, undefined);
+});
+
+test('unit não é FII: o sufixo 11 não pode mandar o banco para a aba de fundos', () => {
+  // O nome que chega do Yahoo é o da companhia, não o do pregão: "Banco
+  // Santander (Brasil) S.A." não tem "UNT" em lugar nenhum, então a pista de
+  // unit não existe no cliente. Quem sabe a verdade é a lista curada — e ela
+  // já sabia, com SANB11 em `acoes`. Faltava perguntar.
+  const sanb = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'SANB11');
+  assert.equal(sanb.classe, 'acao');
+  assert.equal(Motor.inferirClasse('SANB11', 'Banco Santander (Brasil) S.A.', sanb.classe), 'acao');
+
+  // As outras units com sufixo 11, pelo mesmo caminho.
+  for (const t of [
+    'BPAC11',
+    'TAEE11',
+    'ENGI11',
+    'ALUP11',
+    'SAPR11',
+    'KLBN11',
+    'IGTI11',
+    'CPLE11',
+  ]) {
+    const c = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, t);
+    assert.equal(c.classe, 'acao', `${t} deveria ser ação`);
+  }
+
+  // E o conserto não pode custar os FIIs: eles continuam FII.
+  for (const t of ['MXRF11', 'BTLG11', 'HGLG11', 'KNRI11', 'XPML11', 'KNCR11']) {
+    const c = comporFundamentos({ mercado: { preco: 100, fonte: 'brapi' } }, t);
+    assert.equal(c.classe, 'fii', `${t} deveria ser FII`);
+  }
+});
+
+test('o informe da CVM vence a lista curada quando os dois falam', () => {
+  // A lista é reserva. Se a ingestão resolveu a classe, é ela que vale.
+  const c = comporFundamentos(
+    { mercado: { preco: 30, fonte: 'brapi' }, cvm: { classe: 'acao' } },
+    'SANB11'
+  );
+  assert.equal(c.classe, 'acao');
 });
