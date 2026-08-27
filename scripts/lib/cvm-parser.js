@@ -34,6 +34,21 @@ const COLUNAS = {
   valorConta: ['VL_CONTA', 'VALOR_CONTA'],
   escalaMoeda: ['ESCALA_MOEDA', 'ESCALA'],
   versao: ['VERSAO'],
+  // Setor de atividade do cadastro de companhias abertas. Vários apelidos
+  // porque o nome REAL da coluna não foi verificado contra o arquivo
+  // publicado — e escrever um de memória é o defeito que este projeto já
+  // catalogou: o mapa procurava QT_ACAO_ORDIN_TESOURARIA e o arquivo traz
+  // TESOURO, o que devolveu zero calado. Nenhum apelido casar é tratado
+  // como o que é — falta de dado, com o cabeçalho real impresso no log —,
+  // nunca como setor vazio.
+  setorAtividade: [
+    'SETOR_ATIV',
+    'SETOR_ATIVID',
+    'SETOR_ATIVIDADE',
+    'DS_SETOR_ATIV',
+    'SETOR',
+    'CD_SETOR_ATIV',
+  ],
 };
 
 // Plano de contas padrão da CVM. `termos` é rede de segurança: se o código
@@ -1744,10 +1759,43 @@ function carteiraFii(inf) {
   };
 }
 
+/**
+ * CD_CVM/CNPJ -> setor de atividade, do cadastro de companhias abertas.
+ *
+ * É a única fonte de setor que não custa dinheiro nem esbarra em limite de
+ * IP: a CVM publica `cad_cia_aberta.csv` aberto, e o job já o baixa. As duas
+ * alternativas — o perfil da BRAPI e o quoteSummary do Yahoo — exigem plano
+ * pago e devolvem 429, respetivamente, e é por isso que TODA ação aparecia
+ * sem setor na tela.
+ *
+ * Indexa pelas DUAS identificações porque nem toda companhia traz as duas, e
+ * porque foi exatamente uma junção por chave ausente que já devolveu zero em
+ * silêncio neste pipeline. Quem procura usa `chavesDaEmpresa`, que monta as
+ * chaves na mesma forma normalizada.
+ *
+ * Primeira linha não vazia vence: o cadastro pode trazer mais de um registo
+ * por companhia (mudança de situação cadastral), e sobrescrever faria o
+ * resultado depender da ordem do arquivo — que não é critério nenhum.
+ */
+function setoresDoCadastro(cadastro, cols) {
+  const porChave = new Map();
+  if (!cadastro || !cols || !cols.setor) return porChave;
+  for (const reg of cadastro.registros || []) {
+    const setor = String(reg[cols.setor] || '').trim();
+    if (!setor) continue;
+    const cnpj = cols.cnpj ? normalizarCnpj(reg[cols.cnpj]) : null;
+    const cd = cols.cdCvm ? normalizarCdCvm(reg[cols.cdCvm]) : null;
+    if (cnpj && !porChave.has('cnpj:' + cnpj)) porChave.set('cnpj:' + cnpj, setor);
+    if (cd && !porChave.has('cd:' + cd)) porChave.set('cd:' + cd, setor);
+  }
+  return porChave;
+}
+
 function tipoCarteiraFii(inf) {
   return carteiraFii(inf).tipo;
 }
 
+module.exports.setoresDoCadastro = setoresDoCadastro;
 module.exports.tipoCarteiraFii = tipoCarteiraFii;
 module.exports.carteiraFii = carteiraFii;
 module.exports.FRACAO_TIJOLO = FRACAO_TIJOLO;

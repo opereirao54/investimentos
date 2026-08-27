@@ -2219,3 +2219,103 @@ test('as colunas de carteira são de facto encontradas no cabeçalho real da CVM
   assert.equal(P.tipoCarteiraFii(r.porCnpj.get('11728688000147')), 'tijolo');
   assert.equal(P.tipoCarteiraFii(r.porCnpj.get('16706958000132')), 'papel');
 });
+
+// ════════════════════════════════════════════
+// Setor de atividade, do cadastro de companhias
+// ════════════════════════════════════════════
+//
+// Existe porque TODA ação aparecia sem setor na tela: os dois produtores do
+// campo em api/market.js dependem do perfil da BRAPI (`modules=`, plano pago)
+// ou do quoteSummary do Yahoo (429 da function e do runner). O cadastro da
+// CVM é aberto, o job já o baixa, e cobre o universo inteiro.
+
+test('o setor sai do cadastro indexado pelas DUAS identificações', () => {
+  // Junção por chave que o outro lado não tem já devolveu zero em silêncio
+  // neste pipeline. Indexar por CNPJ e por CD_CVM é o que evita repetir isso.
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Bancos;ATIVO',
+      '33.592.510/0001-54;VALE S.A.;004170;Extração Mineral;ATIVO',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  assert.equal(cols.setor, 'SETOR_ATIV', 'a coluna tem de resolver por apelido');
+
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.get('cnpj:' + P.normalizarCnpj('00.000.000/0001-91')), 'Bancos');
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('004170')), 'Extração Mineral');
+  // Zeros à esquerda no CD_CVM separavam a companhia dela mesma quando
+  // comparados como texto — a normalização é o que os junta de novo.
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('1023')), 'Bancos');
+});
+
+test('coluna de setor ausente devolve índice vazio, não setor em branco', () => {
+  // O caso que o log tem de denunciar. Um índice vazio deixa `setor` nulo, e
+  // a tela declara a lacuna; um setor em branco entraria na política como se
+  // fosse dado.
+  const cadastro = P.parseCsvCvm(
+    ['CNPJ_CIA;DENOM_CIA;CD_CVM;SIT', '00.000.000/0001-91;BANCO DO BRASIL SA;001023;ATIVO'].join(
+      '\n'
+    )
+  );
+  const col = P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade);
+  assert.equal(col, null, 'sem coluna de setor, nenhum apelido pode casar');
+  assert.equal(P.setoresDoCadastro(cadastro, { setor: col }).size, 0);
+});
+
+test('linha com setor vazio não entra no índice', () => {
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV',
+      '11.111.111/0001-11;SEM SETOR SA;009999;',
+      '22.222.222/0001-22;COM SETOR SA;008888;Energia Elétrica',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.has('cd:' + P.normalizarCdCvm('009999')), false, 'vazio não é dado');
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('008888')), 'Energia Elétrica');
+});
+
+test('registo duplicado da mesma companhia não depende da ordem do arquivo', () => {
+  // O cadastro traz mais de uma linha por companhia quando a situação
+  // cadastral muda. Sobrescrever faria o resultado depender da ordem — que
+  // não é critério nenhum.
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Bancos;ATIVO',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Outro Setor;CANCELADA',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.get('cnpj:' + P.normalizarCnpj('00.000.000/0001-91')), 'Bancos');
+});
+
+test('os apelidos da coluna cobrem as grafias plausíveis do cadastro', () => {
+  // O nome real da coluna não foi verificado contra o arquivo publicado —
+  // dados.cvm.gov.br está fora de alcance da sandbox. Cobrir as grafias
+  // plausíveis é o que faz a diferença entre resolver e não resolver, e o
+  // job imprime o cabeçalho real quando nenhuma casa.
+  for (const nome of ['SETOR_ATIV', 'SETOR_ATIVID', 'SETOR_ATIVIDADE', 'DS_SETOR_ATIV']) {
+    assert.equal(
+      P.acharColuna(['CNPJ_CIA', nome, 'SIT'], P.COLUNAS.setorAtividade),
+      nome,
+      `a grafia ${nome} tem de casar`
+    );
+  }
+});

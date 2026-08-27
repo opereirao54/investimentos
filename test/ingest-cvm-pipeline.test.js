@@ -352,6 +352,22 @@ function montarFetch(opcoes) {
         if (!ano) return naoAchado;
         return responder(informeZip(ano[1], { fiiAmbiguo: op.fiiAmbiguo }));
       }
+      // Cadastro de companhias abertas — de onde sai o SETOR DE ATIVIDADE.
+      // Sem ele, `setor` fica nulo em toda ação e a política de
+      // diversificação setorial não tem o campo que a decide.
+      if (u.includes('/CIA_ABERTA/CAD/DADOS/cad_cia_aberta.csv')) {
+        if (!op.cadastro) return naoAchado;
+        const cab = op.cadastroSemSetor
+          ? 'CNPJ_CIA;DENOM_CIA;CD_CVM;SIT'
+          : 'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT';
+        const linhas = op.cadastroSemSetor
+          ? [`${CNPJ_A};COMPANHIA A SA;001023;ATIVO`, `${CNPJ_B};COMPANHIA B SA;004170;ATIVO`]
+          : [
+              `${CNPJ_A};COMPANHIA A SA;001023;Bancos;ATIVO`,
+              `${CNPJ_B};COMPANHIA B SA;004170;Energia Elétrica;ATIVO`,
+            ];
+        return responder(Buffer.from([cab, ...linhas].join('\n'), 'latin1'));
+      }
       // Índice de diretório da CVM, como o portal serve: HTML com links.
       if (op.indice && u.endsWith('/')) {
         const itens = op.indice[u];
@@ -863,4 +879,53 @@ test('LTV do FII junta o ativo de um membro com as obrigações de outro', async
     /HGLG11\s+2026-07-01[\s\S]{0,300}?LTV 0%/,
     `LTV do fundo sem dívida:\n${texto}`
   );
+});
+
+// ════════════════════════════════════════════
+// Setor de atividade no documento gravado
+// ════════════════════════════════════════════
+//
+// O sintoma que trouxe isto: TODA ação aparecia como "setor não informado" na
+// Carteira Recomendada, e a política de diversificação setorial — que decide
+// quanto vai para cada setor — ficava sem o campo que ela usa, caindo para
+// score puro sem que nada denunciasse a causa.
+
+test('o setor sai do cadastro da CVM e chega ao documento da ação', async () => {
+  const { texto } = await rodar(['--dry-run', '--anos=3'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE, ANO_BASE - 1, ANO_BASE - 2],
+    cadastro: true,
+  });
+
+  assert.match(texto, /setor de atividade: coluna SETOR_ATIV/, `coluna não resolveu:\n${texto}`);
+  assert.match(
+    texto,
+    /setor em \d+\/\d+ \(\d+ do cadastro da CVM/,
+    `a cobertura do setor tem de ir para o log:\n${texto}`
+  );
+  assert.ok(
+    !/setor em 0\//.test(texto),
+    `zero setores significa a política inteira desligada:\n${texto}`
+  );
+});
+
+test('cadastro sem a coluna de setor imprime o cabeçalho real, em vez de calar', () => {
+  // O defeito que este projeto já catalogou: o mapa procurava
+  // QT_ACAO_ORDIN_TESOURARIA e o arquivo trazia TESOURO. Zero é o que uma
+  // companhia sem o dado também devolve, e por isso a ausência tem de ser
+  // NOMEADA — com as colunas que o arquivo de facto tem, senão a próxima
+  // investigação começa às cegas.
+  return rodar(['--dry-run', '--anos=3'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE, ANO_BASE - 1, ANO_BASE - 2],
+    cadastro: true,
+    cadastroSemSetor: true,
+  }).then(({ texto }) => {
+    assert.match(texto, /coluna de setor não encontrada no cadastro da CVM/);
+    assert.match(texto, /apelidos tentados: SETOR_ATIV/);
+    assert.match(texto, /colunas reais do arquivo: .*DENOM_CIA/, 'o cabeçalho real tem de sair');
+    // Sem a coluna, o mapa curado ainda cobre os tickers que ele conhece — a
+    // rede que impede a tela de voltar a "setor não informado" em tudo.
+    assert.match(texto, /setor em \d+\/\d+ \(0 do cadastro da CVM, [1-9]\d* do mapa curado\)/);
+  });
 });
