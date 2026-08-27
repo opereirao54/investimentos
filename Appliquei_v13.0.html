@@ -2692,6 +2692,395 @@
             #carteira .cart-pilar-nome { font-size: 8px; letter-spacing: 0.2px; }
         }
 
+
+        /* ═══════════════════════════════════════════════════════════
+           MONTAR DO MEU JEITO — a porta para quem já tem estratégia
+           ═══════════════════════════════════════════════════════════ */
+        #carteira .cart-custom-painel[hidden] { display: none !important; }
+
+        #carteira .cart-custom-cta {
+            display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+            padding: 14px 18px; margin: 4px 0 22px;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-left: 3px solid var(--cart-rf);
+            border-radius: var(--cart-radius);
+            box-shadow: var(--cart-shadow);
+        }
+        #carteira .cart-custom-cta.ligado { border-left-color: var(--cart-acao); }
+        #carteira .cart-custom-cta > i {
+            font-size: 22px; color: var(--cart-rf); flex-shrink: 0;
+        }
+        #carteira .cart-custom-cta.ligado > i { color: var(--cart-acao); }
+        #carteira .cart-custom-cta-txt {
+            flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 3px;
+        }
+        #carteira .cart-custom-cta-txt strong {
+            font-size: 13.5px; color: var(--cor-texto-principal); letter-spacing: -0.2px;
+        }
+        #carteira .cart-custom-cta-txt span {
+            font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.5;
+        }
+        #carteira .cart-custom-abrir,
+        #carteira .cart-custom-voltar {
+            display: inline-flex; align-items: center; gap: 7px; flex-shrink: 0;
+            padding: 10px 16px; border-radius: 10px; cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 700;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            color: var(--cor-texto-principal); transition: var(--transicao);
+        }
+        #carteira .cart-custom-abrir {
+            background: var(--cart-rf); border-color: transparent; color: #fff;
+        }
+        #carteira .cart-custom-cta.ligado .cart-custom-abrir { background: var(--cart-acao); }
+        #carteira .cart-custom-abrir:hover { filter: brightness(1.06); }
+        #carteira .cart-custom-voltar:hover {
+            border-color: var(--cart-rf); color: var(--cart-rf);
+        }
+
+        #carteira .cart-custom-painel {
+            display: flex; flex-direction: column; gap: 18px;
+            padding: 20px; margin: -14px 0 22px;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--cart-radius-lg);
+            box-shadow: var(--cart-shadow-hover);
+        }
+        #carteira .cart-custom-head {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 15px; font-weight: 800; letter-spacing: -0.2px;
+            padding-bottom: 12px; border-bottom: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-custom-head i { color: var(--cart-acao); margin-right: 6px; }
+        #carteira .cart-custom-fechar {
+            border: none; background: transparent; cursor: pointer; padding: 6px;
+            border-radius: 8px; color: var(--cor-texto-mutado); font-size: 16px;
+        }
+        #carteira .cart-custom-fechar:hover { background: var(--cor-superficie); }
+        #carteira .cart-custom-aviso {
+            display: flex; gap: 8px; align-items: flex-start;
+            padding: 11px 13px; border-radius: 11px;
+            background: var(--cart-acao-bg); border: 1px solid transparent;
+            font-size: 11.5px; line-height: 1.55; color: var(--cor-texto-secundario);
+        }
+        #carteira .cart-custom-aviso i { color: var(--cart-acao); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+        #carteira .cart-custom-passo {
+            display: flex; flex-direction: column; gap: 8px;
+        }
+        #carteira .cart-custom-passo-head {
+            display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+            font-size: 12.5px; font-weight: 800; color: var(--cor-texto-principal);
+            margin-bottom: 2px;
+        }
+        #carteira .cart-custom-n {
+            width: 20px; height: 20px; flex-shrink: 0; border-radius: 50%;
+            background: var(--cart-acao); color: #fff;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 800;
+        }
+        #carteira .cart-custom-passo-nota {
+            font-size: 10.5px; font-weight: 500; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-custom-total {
+            margin-left: auto; font-family: 'DM Mono', monospace;
+            font-size: 12px; font-weight: 800; color: var(--cor-texto-mutado);
+            background: var(--cor-superficie); border: 1px dashed var(--cor-borda2);
+            border-radius: 999px; padding: 2px 10px;
+        }
+        #carteira .cart-custom-total.ok {
+            color: var(--cart-rf); border-style: solid; border-color: var(--cart-rf);
+            background: var(--cart-rf-bg);
+        }
+
+        /* Linha de peso: nome, controle, percentagem */
+        #carteira .cart-custom-linha {
+            display: grid; grid-template-columns: minmax(0, 150px) 1fr 52px;
+            align-items: center; gap: 12px;
+            padding: 7px 10px; border-radius: 10px;
+        }
+        #carteira .cart-custom-linha:hover { background: var(--cor-superficie); }
+        #carteira .cart-custom-linha-nome {
+            display: flex; align-items: center; gap: 7px; min-width: 0;
+            font-size: 12.5px; font-weight: 600; color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #carteira .cart-custom-linha-nome i { font-size: 15px; color: var(--cor-texto-mutado); }
+        #carteira .cart-custom-linha-pct {
+            font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 800;
+            color: var(--cor-texto-principal); text-align: right;
+        }
+        #carteira .cart-custom-range {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 6px; border-radius: 99px; background: var(--cor-borda);
+            outline: none; cursor: pointer; margin: 0;
+        }
+        #carteira .cart-custom-range::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--cart-acao); border: 3px solid var(--cor-branco);
+            box-shadow: 0 1px 5px rgba(15,23,42,0.28); cursor: pointer;
+        }
+        #carteira .cart-custom-range::-moz-range-thumb {
+            width: 20px; height: 20px; border-radius: 50%;
+            background: var(--cart-acao); border: 3px solid var(--cor-branco);
+            box-shadow: 0 1px 5px rgba(15,23,42,0.28); cursor: pointer;
+        }
+        #carteira .cart-custom-range:focus-visible {
+            outline: 2px solid var(--cart-acao); outline-offset: 3px;
+        }
+
+        #carteira .cart-custom-setor-bloco {
+            border: 1px solid var(--cor-borda); border-radius: 12px;
+            padding: 10px 8px 8px; margin-bottom: 10px;
+        }
+        #carteira .cart-custom-setor-titulo {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 11.5px; font-weight: 800; color: var(--cor-texto-secundario);
+            padding: 0 10px 8px; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+
+        /* Passo 3: quais ativos podem entrar */
+        #carteira .cart-custom-ativos-grupo {
+            border: 1px solid var(--cor-borda); border-radius: 12px;
+            margin-bottom: 10px; overflow: hidden;
+        }
+        #carteira .cart-custom-ativos-head {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            padding: 9px 12px; background: var(--cor-superficie);
+            border-bottom: 1px solid var(--cor-borda);
+            font-size: 11.5px; font-weight: 800; color: var(--cor-texto-principal);
+        }
+        #carteira .cart-custom-ativos-head > span:first-child {
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        #carteira .cart-custom-conta {
+            margin-left: auto; font-family: 'DM Mono', monospace;
+            font-size: 11px; font-weight: 700; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-custom-todos {
+            border: 1px solid var(--cor-borda2); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 10.5px; font-weight: 700;
+            border-radius: 7px; padding: 3px 9px;
+        }
+        #carteira .cart-custom-todos:hover { border-color: var(--cart-acao); color: var(--cart-acao); }
+        #carteira .cart-custom-ativos-lista {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+            gap: 4px; padding: 8px; max-height: 230px; overflow-y: auto;
+        }
+        #carteira .cart-custom-ativo {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 9px; border-radius: 8px; cursor: pointer;
+            border: 1px solid transparent; transition: var(--transicao);
+        }
+        #carteira .cart-custom-ativo:hover { background: var(--cor-superficie); }
+        #carteira .cart-custom-ativo.fora { opacity: 0.42; }
+        #carteira .cart-custom-ativo input { accent-color: var(--cart-acao); flex-shrink: 0; }
+        #carteira .cart-custom-ativo-cod {
+            flex: 1; min-width: 0; font-family: 'DM Mono', monospace;
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #carteira .cart-custom-ativo-score {
+            font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 800;
+            color: var(--cor-texto-mutado); flex-shrink: 0;
+        }
+
+        #carteira .cart-custom-rodape {
+            display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+            padding-top: 14px; border-top: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-custom-restaurar,
+        #carteira .cart-custom-aplicar {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 11px 18px; border-radius: 10px; cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 13px; font-weight: 700;
+            transition: var(--transicao);
+        }
+        #carteira .cart-custom-restaurar {
+            border: 1px solid var(--cor-borda); background: transparent;
+            color: var(--cor-texto-secundario);
+        }
+        #carteira .cart-custom-restaurar:hover { border-color: var(--cor-erro); color: var(--cor-erro); }
+        #carteira .cart-custom-aplicar {
+            border: none; background: var(--cart-acao); color: #fff;
+            box-shadow: 0 4px 14px rgba(124,58,237,0.28);
+        }
+        #carteira .cart-custom-aplicar:hover { filter: brightness(1.07); }
+
+        @media (max-width: 640px) {
+            #carteira .cart-custom-painel { padding: 15px; border-radius: var(--cart-radius); }
+            /* Nome em cima, controle e número embaixo: 150px de rótulo + slider
+               não cabem lado a lado num ecrã de 360px sem espremer os dois. */
+            #carteira .cart-custom-linha {
+                grid-template-columns: 1fr 52px;
+                grid-template-areas: 'nome pct' 'range range';
+                gap: 6px 10px; padding: 9px 8px;
+            }
+            #carteira .cart-custom-linha-nome { grid-area: nome; }
+            #carteira .cart-custom-linha-pct { grid-area: pct; }
+            #carteira .cart-custom-range { grid-area: range; height: 8px; }
+            #carteira .cart-custom-range::-webkit-slider-thumb { width: 24px; height: 24px; }
+            #carteira .cart-custom-ativos-lista { grid-template-columns: 1fr 1fr; }
+            #carteira .cart-custom-rodape > button { flex: 1; justify-content: center; }
+        }
+
+
+        /* ═══════════════════════════════════════════════════════════
+           PERFORMANCE HISTÓRICA — hierarquia em três níveis
+           ═══════════════════════════════════════════════════════════
+           Oito caixas do mesmo tamanho é o mesmo que não ter destaque: a
+           pergunta do título tem UMA resposta, e ela competia com o drawdown.
+           Aqui o número vem primeiro, os que o sustentam depois, e os de risco
+           numa faixa mais leve. */
+        #carteira .cart-sim-kpis {
+            display: flex; flex-direction: column; gap: 14px;
+        }
+
+        #carteira .cart-sim-hero {
+            display: flex; align-items: stretch; gap: 18px; flex-wrap: wrap;
+            padding: 20px 22px; border-radius: var(--cart-radius);
+            background:
+                radial-gradient(680px 200px at 100% 0%, rgba(5,150,105,0.08), transparent 62%),
+                linear-gradient(135deg, var(--cor-superficie), var(--cor-branco));
+            border: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-sim-hero-main { flex: 1 1 260px; min-width: 0; }
+        #carteira .cart-sim-hero-lbl {
+            font-size: 10.5px; font-weight: 800; letter-spacing: 1px;
+            text-transform: uppercase; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-sim-hero-val {
+            font-family: 'DM Mono', monospace; font-weight: 800;
+            font-size: clamp(28px, 6vw, 40px); line-height: 1.1;
+            letter-spacing: -1.6px; color: var(--cor-texto-principal);
+            margin: 4px 0 8px;
+        }
+        #carteira .cart-sim-hero-frase {
+            font-size: 12px; line-height: 1.55; color: var(--cor-texto-secundario);
+            max-width: 46ch;
+        }
+        #carteira .cart-sim-hero-delta {
+            flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center;
+            gap: 2px; padding: 14px 18px; border-radius: 14px; min-width: 168px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-sim-hero-delta.pos { border-color: rgba(5,150,105,0.35); }
+        #carteira .cart-sim-hero-delta.neg { border-color: rgba(220,38,38,0.35); }
+        #carteira .cart-sim-hero-delta-lbl {
+            font-size: 10px; font-weight: 800; letter-spacing: 0.7px;
+            text-transform: uppercase; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-sim-hero-delta-val {
+            font-family: 'DM Mono', monospace; font-size: 19px; font-weight: 800;
+            letter-spacing: -0.8px;
+        }
+        #carteira .cart-sim-hero-delta.pos .cart-sim-hero-delta-val { color: var(--cart-rf); }
+        #carteira .cart-sim-hero-delta.neg .cart-sim-hero-delta-val { color: var(--cor-erro); }
+        #carteira .cart-sim-hero-delta-pct {
+            font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700;
+            color: var(--cor-texto-mutado);
+        }
+
+        #carteira .cart-sim-principais {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
+        }
+        #carteira .cart-sim-kpi {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: 13px; padding: 14px 16px;
+            display: flex; flex-direction: column; gap: 3px;
+            transition: var(--transicao);
+        }
+        #carteira .cart-sim-kpi:hover { box-shadow: var(--cart-shadow); }
+        #carteira .cart-sim-kpi .lbl {
+            font-size: 10px; font-weight: 800; letter-spacing: 0.6px;
+            text-transform: uppercase; color: var(--cor-texto-mutado); margin: 0;
+        }
+        #carteira .cart-sim-kpi .val {
+            font-family: 'DM Mono', monospace; font-weight: 800;
+            /* Encolhe com a coluna: 'R$ 74.000,00' em 20px não cabe numa
+               coluna de meia largura de 390px, e quebrava em duas linhas. */
+            font-size: clamp(15px, 4.4vw, 20px);
+            letter-spacing: -0.8px; color: var(--cor-texto-principal);
+            white-space: nowrap;
+        }
+        #carteira .cart-sim-kpi .val.pos { color: var(--cart-rf); }
+        #carteira .cart-sim-kpi .val.neg { color: var(--cor-erro); }
+        #carteira .cart-sim-kpi .sub {
+            font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.4;
+        }
+
+        #carteira .cart-sim-secundarios {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(min(140px, 100%), 1fr));
+            gap: 1px; background: var(--cor-borda);
+            border: 1px solid var(--cor-borda); border-radius: 13px; overflow: hidden;
+        }
+        #carteira .cart-sim-mini {
+            display: flex; flex-direction: column; gap: 2px;
+            padding: 12px 14px; background: var(--cor-superficie);
+        }
+        #carteira .cart-sim-mini-lbl {
+            font-size: 10px; font-weight: 800; letter-spacing: 0.5px;
+            text-transform: uppercase; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-sim-mini-val {
+            font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 800;
+            letter-spacing: -0.5px; color: var(--cor-texto-principal);
+        }
+        #carteira .cart-sim-mini-val.pos { color: var(--cart-rf); }
+        #carteira .cart-sim-mini-val.neg { color: var(--cor-erro); }
+        #carteira .cart-sim-mini-sub { font-size: 10px; color: var(--cor-texto-mutado); }
+
+        /* Períodos: sete botões não cabem lado a lado num telemóvel, e quebrar
+           em duas linhas empurra o gráfico para fora do primeiro ecrã. Vira a
+           mesma faixa rolável das abas da lista de ativos. */
+        #carteira .cart-sim-ranges {
+            display: flex; gap: 3px; overflow-x: auto; max-width: 100%;
+            -webkit-overflow-scrolling: touch; scrollbar-width: none;
+        }
+        #carteira .cart-sim-ranges::-webkit-scrollbar { display: none; }
+        #carteira .cart-sim-range-btn { flex: 0 0 auto; white-space: nowrap; }
+
+        #carteira .cart-sim-chart-wrap {
+            height: 340px; margin-bottom: 6px;
+            padding: 10px 4px 0; border-radius: 14px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+        }
+        #carteira .cart-sim-legenda {
+            display: flex; gap: 14px; flex-wrap: wrap;
+            padding: 0 4px; margin: 0 0 14px;
+            font-size: 11px; color: var(--cor-texto-mutado);
+        }
+        #carteira .cart-sim-legenda span {
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+        #carteira .cart-sim-legenda i {
+            width: 14px; height: 3px; border-radius: 99px; display: inline-block;
+        }
+
+        @media (max-width: 760px) {
+            #carteira .cart-sim-principais { grid-template-columns: 1fr 1fr; }
+            /* A rentabilidade da carteira ocupa a linha inteira: é o número
+               que dá contexto aos outros dois. */
+            #carteira .cart-sim-principais .cart-sim-kpi:last-child { grid-column: 1 / -1; }
+            #carteira .cart-sim-chart-wrap { height: 250px; }
+            #carteira .cart-sim-hero { padding: 16px; gap: 14px; }
+            #carteira .cart-sim-hero-delta {
+                min-width: 0; width: 100%;
+                flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: wrap;
+                padding: 11px 14px;
+            }
+            #carteira .cart-sim-hero-delta-lbl { width: 100%; }
+        }
+        @media (max-width: 400px) {
+            /* Coluna dupla + `nowrap` no valor: 'R$ 74.000,00' não cabe em
+               metade de 320px, e o card empurrava a página para o lado. Uma
+               por linha lê melhor neste ecrã de qualquer forma. */
+            #carteira .cart-sim-principais { grid-template-columns: 1fr; }
+            #carteira .cart-sim-principais .cart-sim-kpi:last-child { grid-column: auto; }
+        }
+
         /* ===== CARTEIRA RECOMENDADA — premium overrides ===== */
         #carteira {
             --cart-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 4px 16px rgba(15,23,42,0.05);
@@ -7193,6 +7582,14 @@
                     </div>
                     <div id="cartMotorPlano"></div>
 
+                    <!-- Personalização: vem DEPOIS do plano de propósito.
+                         Quem não entende de investimento recebe a recomendação
+                         pronta; quem já tem estratégia própria encontra aqui a
+                         porta para executá-la com o mesmo motor. Abrir a aba
+                         com um formulário em branco devolveria ao utilizador a
+                         decisão que ele veio buscar. -->
+                    <div id="cartCustomWrap"></div>
+
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
                         <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco conforme a lente escolhida.
@@ -7247,6 +7644,11 @@
                         <div class="cart-sim-loading" id="cartSimLoading" style="display:none;">
                             <i class="ph ph-circle-notch ph-spin"></i> Buscando preços históricos…
                         </div>
+                    </div>
+                    <div class="cart-sim-legenda">
+                        <span><i style="background:#059669"></i> Sua carteira</span>
+                        <span><i style="background:#64748b"></i> CDI</span>
+                        <span><i style="background:#2563eb"></i> Ibovespa</span>
                     </div>
                     <div class="cart-sim-kpis" id="cartSimKpis"></div>
                     <div class="cart-sim-disclaimer" id="cartSimDisclaimer">

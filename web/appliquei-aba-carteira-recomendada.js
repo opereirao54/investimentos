@@ -162,6 +162,9 @@ var cartEstado = {
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
   simRange: '3y',
+  // Carteira montada à mão pelo utilizador. Fica DESLIGADA por omissão: a
+  // recomendação é o que a tela apresenta primeiro, sempre.
+  custom: null,
 };
 
 // ── Estado do motor de recomendação ──
@@ -211,6 +214,7 @@ function carregarCarteiraCliente() {
     cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
     cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
     cartEstado.lente = saved.lente || null;
+    cartEstado.custom = saved.custom || cartCustomVazio();
     cartRenderizarTela();
   } else {
     cartMostrarQuestionario();
@@ -264,6 +268,7 @@ function cartSalvarEstado() {
       prazoAnos: cartEstado.prazoAnos,
       patrimonio: cartEstado.patrimonio,
       lente: cartEstado.lente,
+      custom: cartEstado.custom || null,
     })
   );
 }
@@ -824,6 +829,21 @@ function cartRenderizarSimChart(blended, cdi, ibov, range) {
   });
 }
 
+/**
+ * Resultado da simulação, com hierarquia.
+ *
+ * Antes eram OITO caixas do mesmo tamanho, o que é o mesmo que não ter
+ * destaque nenhum: a pergunta do título ("como teria performado?") tem UMA
+ * resposta — quanto o dinheiro teria virado — e ela competia em pé de
+ * igualdade com o drawdown máximo. No telemóvel as oito viravam uma coluna
+ * de oito caixas idênticas, e a resposta ficava na terceira.
+ *
+ * Três níveis agora:
+ *   1. o número: patrimônio final, e quanto disso é ganho;
+ *   2. os três que o sustentam: aportado, rentabilidade da carteira, ganho %;
+ *   3. os de risco e comparação, numa faixa mais leve — importam, mas não
+ *      são a resposta.
+ */
 function cartRenderizarSimKpis(blended, cdi) {
   const el = document.getElementById('cartSimKpis');
   if (!el || !blended || blended.length < 2) return;
@@ -843,6 +863,7 @@ function cartRenderizarSimKpis(blended, cdi) {
   blended.forEach((pt) => {
     if (pt.p > 0) vlrFinal += aporteMensal * (end / pt.p);
   });
+  const ganho = vlrFinal - totalAportado;
   const retornoSobreAporte = totalAportado > 0 ? (vlrFinal / totalAportado - 1) * 100 : 0;
 
   let maiorDrawdown = 0,
@@ -864,46 +885,93 @@ function cartRenderizarSimKpis(blended, cdi) {
   }
   const alphaCDI = rentCDI !== null ? retorno - rentCDI : null;
 
-  el.innerHTML = `
-        <div class="cart-sim-kpi">
-            <div class="lbl">Rentabilidade no período</div>
-            <div class="val ${retorno >= 0 ? 'pos' : 'neg'}">${retorno >= 0 ? '+' : ''}${retorno}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Total aportado (${blended.length}× ${formatarMoeda(aporteMensal)})</div>
-            <div class="val">${formatarMoeda(totalAportado)}</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Patrimônio final estimado</div>
-            <div class="val">${formatarMoeda(vlrFinal)}</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Ganho sobre o aportado</div>
-            <div class="val ${retornoSobreAporte >= 0 ? 'pos' : 'neg'}">${retornoSobreAporte >= 0 ? '+' : ''}${retornoSobreAporte.toFixed(1)}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Retorno médio mensal</div>
-            <div class="val ${rentMensal >= 0 ? 'pos' : 'neg'}">${rentMensal >= 0 ? '+' : ''}${rentMensal}%/mês</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Drawdown máximo</div>
-            <div class="val neg">-${maiorDrawdown.toFixed(1)}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Queda esperada (ano ruim)</div>
-            <div class="val neg">-${CART_QUEDA_ANO_RUIM[cartEstado.perfil] || 10}%</div>
-        </div>
-        ${
-          alphaCDI !== null
-            ? `<div class="cart-sim-kpi">
-            <div class="lbl">Alpha vs CDI</div>
-            <div class="val ${alphaCDI >= 0 ? 'pos' : 'neg'}">${alphaCDI >= 0 ? '+' : ''}${alphaCDI.toFixed(1)}%</div>
-        </div>`
-            : ''
-        }`;
-}
+  const sinal = (v) => (v >= 0 ? '+' : '');
+  const classe = (v) => (v >= 0 ? 'pos' : 'neg');
+  const anos = months / 12;
+  const periodo =
+    anos >= 1 ? Math.round(anos) + (Math.round(anos) === 1 ? ' ano' : ' anos') : months + ' meses';
 
-// Legacy shim — necessário para calls que ainda referenciam calcularCarteiraRecomendada
+  // A frase existe para quem não lê número: ela diz a mesma coisa que o hero,
+  // em português, e é o que faz a secção informar em vez de exibir.
+  const frase =
+    'Aportando ' +
+    formatarMoeda(aporteMensal) +
+    ' por mês durante ' +
+    periodo +
+    ', você teria colocado ' +
+    formatarMoeda(totalAportado) +
+    ' do próprio bolso.';
+
+  const secundarios = [
+    {
+      lbl: 'Retorno médio',
+      val: sinal(rentMensal) + rentMensal + '%',
+      sub: 'ao mês',
+      cls: classe(rentMensal),
+      dica: 'Rentabilidade média mensal composta da carteira no período.',
+    },
+    {
+      lbl: 'Maior queda',
+      val: '-' + maiorDrawdown.toFixed(1) + '%',
+      sub: 'do topo ao fundo',
+      cls: 'neg',
+      dica: 'A pior queda entre um pico e o fundo seguinte dentro do período.',
+    },
+    {
+      lbl: 'Ano ruim',
+      val: '-' + (CART_QUEDA_ANO_RUIM[cartEstado.perfil] || 10) + '%',
+      sub: 'esperado no perfil',
+      cls: 'neg',
+      dica: 'Queda que o perfil ' + (cartEstado.perfil || '') + ' deve tolerar sem vender.',
+    },
+  ];
+
+  el.innerHTML = `
+        <div class="cart-sim-hero">
+            <div class="cart-sim-hero-main">
+                <div class="cart-sim-hero-lbl">Patrimônio final estimado</div>
+                <div class="cart-sim-hero-val">${formatarMoeda(vlrFinal)}</div>
+                <div class="cart-sim-hero-frase">${frase}</div>
+            </div>
+            <div class="cart-sim-hero-delta ${classe(ganho)}">
+                <span class="cart-sim-hero-delta-lbl">Ganho sobre o aportado</span>
+                <span class="cart-sim-hero-delta-val">${sinal(ganho)}${formatarMoeda(ganho)}</span>
+                <span class="cart-sim-hero-delta-pct">${sinal(retornoSobreAporte)}${retornoSobreAporte.toFixed(1)}%</span>
+            </div>
+        </div>
+        <div class="cart-sim-principais">
+            <div class="cart-sim-kpi">
+                <div class="lbl">Total aportado</div>
+                <div class="val">${formatarMoeda(totalAportado)}</div>
+                <div class="sub">${blended.length} aportes de ${formatarMoeda(aporteMensal)}</div>
+            </div>
+            <div class="cart-sim-kpi">
+                <div class="lbl">Rentabilidade da carteira</div>
+                <div class="val ${classe(retorno)}">${sinal(retorno)}${retorno}%</div>
+                <div class="sub">variação da cota no período</div>
+            </div>
+            ${
+              rentCDI === null
+                ? ''
+                : `<div class="cart-sim-kpi">
+                <div class="lbl">CDI no mesmo período</div>
+                <div class="val">${sinal(rentCDI)}${rentCDI}%</div>
+                <div class="sub">sua carteira: ${sinal(alphaCDI)}${alphaCDI.toFixed(1)}pp ${alphaCDI >= 0 ? 'acima' : 'abaixo'}</div>
+            </div>`
+            }
+        </div>
+        <div class="cart-sim-secundarios">
+            ${secundarios
+              .map(
+                (k) => `<div class="cart-sim-mini" title="${cartEsc(k.dica)}">
+                <span class="cart-sim-mini-lbl">${k.lbl}</span>
+                <span class="cart-sim-mini-val ${k.cls}">${k.val}</span>
+                <span class="cart-sim-mini-sub">${k.sub}</span>
+            </div>`
+              )
+              .join('')}
+        </div>`;
+}
 function calcularCarteiraRecomendada() {
   /* no-op — lógica migrada para cartRenderizarTela() */
 }
@@ -960,7 +1028,156 @@ function inferirClasse(ticker, nome) {
 // ou "preservar capital em 1 ano" dava exatamente a mesma tela.
 
 /** Alocação-alvo por classe, já ajustada por objetivo e prazo. */
+// ════════════════════════════════════════════════════════════
+// MODO PERSONALIZADO
+// ════════════════════════════════════════════════════════════
+//
+// A recomendação é o que a tela apresenta primeiro, sempre, e é o que um
+// utilizador que não entende de investimento recebe sem ter de decidir nada.
+// Esta secção existe para o outro caso: quem já tem estratégia própria e quer
+// a mesma máquina a executar a carteira DELE.
+//
+// A ordem não é detalhe de layout, é o produto: abrir com um formulário em
+// branco transferiria para o utilizador uma decisão que ele veio aqui buscar.
+// Por isso o personalizado é opt-in explícito, mora DEPOIS do plano, e volta
+// atrás num clique.
+//
+// Três níveis, do mais grosso ao mais fino, porque é a ordem em que a decisão
+// se toma e a ordem em que ela importa para o resultado:
+//   1. quanto vai para cada CLASSE  (o que mais move risco e retorno);
+//   2. quanto vai para cada SETOR dentro da classe;
+//   3. QUAIS ativos podem ser escolhidos.
+// Nenhum nível é obrigatório: mexer só no primeiro deixa os outros dois na
+// recomendação.
+
+var cartCustomVazio = function () {
+  return { ativo: false, alloc: null, setores: null, ativos: null };
+};
+
+/** O custom em uso, sempre um objeto — nunca null, para a tela não ramificar. */
+function cartCustom() {
+  if (!cartEstado.custom) cartEstado.custom = cartCustomVazio();
+  return cartEstado.custom;
+}
+
+/** Está personalizando de facto? Ligado sem nenhuma escolha continua sendo a recomendação. */
+function cartCustomAtivo() {
+  var c = cartCustom();
+  return !!(c.ativo && (c.alloc || c.setores || c.ativos));
+}
+
+/**
+ * Reescala um conjunto de pesos para somar 100.
+ *
+ * Existe para o painel não obrigar o utilizador a fechar a conta na unha. Ele
+ * mexe nos números que lhe interessam, a tela mostra o total ao vivo, e a
+ * aplicação normaliza — DECLARANDO que normalizou. Bloquear em "tem de dar
+ * exatamente 100" transforma um ajuste de dez segundos numa aritmética
+ * chata, e recusar em silêncio seria pior.
+ */
+function cartNormalizar100(pesos) {
+  var chaves = Object.keys(pesos || {});
+  var soma = 0;
+  chaves.forEach(function (k) {
+    var v = Number(pesos[k]);
+    if (isFinite(v) && v > 0) soma += v;
+  });
+  var out = {};
+  if (soma <= 0) return null;
+  var acumulado = 0;
+  chaves.forEach(function (k, i) {
+    var v = Number(pesos[k]);
+    v = isFinite(v) && v > 0 ? v : 0;
+    if (i === chaves.length - 1) {
+      // O resto vai para o último: arredondar cada um por si deixaria o total
+      // em 99 ou 101, e a tela mostraria uma alocação que não fecha.
+      out[k] = Math.max(0, motorArred(100 - acumulado, 1));
+    } else {
+      out[k] = motorArred((v / soma) * 100, 1);
+      acumulado += out[k];
+    }
+  });
+  return out;
+}
+
+/**
+ * Política de setores da classe, na régua do motor.
+ *
+ * Devolve `undefined` quando o utilizador não mexeu — e `undefined` é o que
+ * faz motorPlanoClasse cair na política padrão. Um objeto vazio significaria
+ * "sem política nenhuma", que é outra coisa.
+ *
+ * Setor com peso zero SAI da lista em vez de ficar com alvo 0: é isso que o
+ * utilizador quis dizer ao zerá-lo, e um balde de alvo zero continuaria a
+ * ganhar vaga na repartição por maior média.
+ */
+function cartSetoresCustom(classe) {
+  if (!cartCustomAtivo()) return undefined;
+  var pesos = cartCustom().setores && cartCustom().setores[classe];
+  if (!pesos) return undefined;
+  var base = (typeof MOTOR_SETORES_ALVO !== 'undefined' && MOTOR_SETORES_ALVO[classe]) || null;
+  if (!base) return undefined;
+  var lista = base
+    .map(function (b) {
+      var v = Number(pesos[b.chave]);
+      return Object.assign({}, b, { alvo: isFinite(v) && v > 0 ? v : 0 });
+    })
+    .filter(function (b) {
+      return b.alvo > 0;
+    });
+  // Zerar tudo não pode significar "classe sem política": significaria classe
+  // sem seleção nenhuma. Aí a recomendação volta a valer.
+  return lista.length ? lista : undefined;
+}
+
+/** Ativos que o utilizador liberou nesta classe, ou null quando não escolheu. */
+function cartAtivosCustom(classe) {
+  if (!cartCustomAtivo()) return null;
+  var escolha = cartCustom().ativos && cartCustom().ativos[classe];
+  if (!escolha || !escolha.length) return null;
+  return escolha;
+}
+
+/**
+ * Ranking filtrado pelos ativos escolhidos, para o PLANO.
+ *
+ * A lista da tela continua completa de propósito: esconder o que ficou de
+ * fora tiraria do utilizador a única forma de rever a própria escolha. O que
+ * muda é só quem pode receber aporte.
+ */
+function cartRankingParaPlano(ranking) {
+  if (!cartCustomAtivo()) return ranking;
+  var algum = false;
+  MOTOR_CLASSES.forEach(function (c) {
+    if (cartAtivosCustom(c)) algum = true;
+  });
+  if (!algum) return ranking;
+  return (ranking || []).filter(function (a) {
+    var permitidos = cartAtivosCustom(a.classe);
+    if (!permitidos) return true; // classe sem escolha: universo inteiro
+    return permitidos.indexOf(a.ticker) !== -1;
+  });
+}
+
+/** Overrides por classe para motorPlanoAporte. */
+function cartPorClasseCustom() {
+  var out = {};
+  var tem = false;
+  MOTOR_CLASSES.forEach(function (c) {
+    var setores = cartSetoresCustom(c);
+    if (setores !== undefined) {
+      out[c] = { setores: setores };
+      tem = true;
+    }
+  });
+  return tem ? out : undefined;
+}
+
 function cartAlocacaoAlvo() {
+  // Distribuição escolhida à mão vence perfil, objetivo e prazo. É o ponto do
+  // modo personalizado: quem já sabe o que quer não devia ter o próprio
+  // número reescrito por um questionário.
+  if (cartCustomAtivo() && cartCustom().alloc) return cartCustom().alloc;
   var p = cartEstado.perfil || 'Moderado';
   var base =
     (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
@@ -1438,12 +1655,16 @@ function cartRecalcularMotor() {
   cartMotor.plano = motorPlanoAporte({
     aporteMensal: cartEstado.capital,
     alocacaoAlvo: cartAlocacaoAlvo(),
-    ranking: cartMotor.ranking,
+    // A LISTA continua completa; só o PLANO respeita a escolha de ativos.
+    // Filtrar os dois esconderia do utilizador o que ele deixou de fora.
+    ranking: cartRankingParaPlano(cartMotor.ranking),
     patrimonioAtual: patr.valores,
+    porClasse: cartPorClasseCustom(),
   });
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
   cartRenderizarMotorRanking(cartMotor.ranking);
+  cartRenderizarCustom();
   // Junto com o ranking porque descreve os pesos da lente ATIVA: trocar de
   // lente sem redesenhar isto deixaria a explicação a descrever o cálculo
   // anterior.
@@ -2532,6 +2753,366 @@ function cartAlternarCard(botao) {
   if (!card) return;
   var aberto = card.classList.toggle('aberto');
   botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+}
+
+// ── Painel de personalização ──
+
+/** Uma linha de peso: nome, controle e percentagem. */
+function cartCustomLinha(grupo, chave, nome, valor, icone) {
+  return (
+    '<label class="cart-custom-linha">' +
+    '<span class="cart-custom-linha-nome">' +
+    (icone ? '<i class="ph ' + icone + '"></i>' : '') +
+    cartEsc(nome) +
+    '</span>' +
+    '<input type="range" min="0" max="100" step="1" value="' +
+    Math.round(valor) +
+    '" class="cart-custom-range" data-grupo="' +
+    grupo +
+    '" data-chave="' +
+    chave +
+    '" oninput="cartCustomMudou(this)" aria-label="' +
+    cartEsc(nome) +
+    '">' +
+    '<output class="cart-custom-linha-pct">' +
+    Math.round(valor) +
+    '%</output>' +
+    '</label>'
+  );
+}
+
+/** Lista de ativos de uma classe, com marcação. */
+function cartCustomAtivosClasse(classe, ranking) {
+  var lista = (ranking || []).filter(function (a) {
+    return a.classe === classe;
+  });
+  if (!lista.length) return '';
+  var escolha = cartCustom().ativos && cartCustom().ativos[classe];
+  var itens = lista
+    .map(function (a) {
+      // Sem escolha gravada, tudo entra — é o estado "a recomendação decide".
+      var marcado = !escolha || !escolha.length || escolha.indexOf(a.ticker) !== -1;
+      var rot = cartRotuloAtivo(a);
+      return (
+        '<label class="cart-custom-ativo' +
+        (marcado ? '' : ' fora') +
+        '">' +
+        '<input type="checkbox" data-grupo="ativo" data-classe="' +
+        classe +
+        '" value="' +
+        cartEsc(a.ticker) +
+        '"' +
+        (marcado ? ' checked' : '') +
+        ' onchange="cartCustomMudouAtivo(this)">' +
+        '<span class="cart-custom-ativo-cod">' +
+        cartEsc(rot.codigo) +
+        '</span>' +
+        '<span class="cart-custom-ativo-score">' +
+        (a.score == null ? '—' : a.score) +
+        '</span>' +
+        '</label>'
+      );
+    })
+    .join('');
+
+  return (
+    '<div class="cart-custom-ativos-grupo" data-classe="' +
+    classe +
+    '">' +
+    '<div class="cart-custom-ativos-head">' +
+    '<span><i class="ph ' +
+    CART_ICONS[classe] +
+    '"></i> ' +
+    (CART_NOMES[classe] || classe) +
+    '</span>' +
+    '<span class="cart-custom-conta" data-classe="' +
+    classe +
+    '"></span>' +
+    '<button type="button" class="cart-custom-todos" onclick="cartCustomTodos(\'' +
+    classe +
+    '\')">todos</button>' +
+    '<button type="button" class="cart-custom-todos" onclick="cartCustomNenhum(\'' +
+    classe +
+    '\')">nenhum</button>' +
+    '</div>' +
+    '<div class="cart-custom-ativos-lista">' +
+    itens +
+    '</div></div>'
+  );
+}
+
+/**
+ * Desenha o painel inteiro a partir do estado atual.
+ *
+ * Os valores de partida são SEMPRE os da recomendação quando o utilizador
+ * ainda não mexeu. Abrir com tudo em zero obrigaria a montar do nada; abrir
+ * com a nossa proposta transforma o painel num ajuste em cima de algo que já
+ * faz sentido — que é a diferença entre uma ferramenta e um formulário.
+ */
+function cartRenderizarCustom() {
+  var el = document.getElementById('cartCustomWrap');
+  if (!el) return;
+  var ranking = cartMotor.ranking || [];
+  var c = cartCustom();
+  var alocRecomendada = (function () {
+    var antes = c.ativo;
+    c.ativo = false;
+    var a = cartAlocacaoAlvo();
+    c.ativo = antes;
+    return a;
+  })();
+  var aloc = c.alloc || alocRecomendada;
+
+  var linhasClasse = MOTOR_CLASSES.map(function (classe) {
+    return cartCustomLinha(
+      'classe',
+      classe,
+      CART_NOMES[classe] || classe,
+      Number(aloc[classe]) || 0,
+      CART_ICONS[classe]
+    );
+  }).join('');
+
+  var blocosSetor = ['acao', 'fii']
+    .map(function (classe) {
+      var buckets = (typeof MOTOR_SETORES_ALVO !== 'undefined' && MOTOR_SETORES_ALVO[classe]) || [];
+      if (!buckets.length) return '';
+      var somaBase = buckets.reduce(function (s, b) {
+        return s + b.alvo;
+      }, 0);
+      var pesos = (c.setores && c.setores[classe]) || null;
+      var linhas = buckets
+        .map(function (b) {
+          // Sem escolha, o valor de partida é o alvo da política já
+          // normalizado para a classe — o mesmo número que a faixa do plano
+          // mostra, para o painel e o resultado não discordarem.
+          var v = pesos ? Number(pesos[b.chave]) || 0 : (b.alvo / somaBase) * 100;
+          return cartCustomLinha('setor:' + classe, b.chave, b.nome, v, null);
+        })
+        .join('');
+      return (
+        '<div class="cart-custom-setor-bloco">' +
+        '<div class="cart-custom-setor-titulo"><i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i> ' +
+        (CART_NOMES[classe] || classe) +
+        '<span class="cart-custom-total" data-grupo="setor:' +
+        classe +
+        '"></span></div>' +
+        linhas +
+        '</div>'
+      );
+    })
+    .join('');
+
+  var blocosAtivos = MOTOR_CLASSES.map(function (classe) {
+    return cartCustomAtivosClasse(classe, ranking);
+  }).join('');
+
+  var ligado = cartCustomAtivo();
+
+  el.innerHTML =
+    '<div class="cart-custom-cta' +
+    (ligado ? ' ligado' : '') +
+    '">' +
+    '<i class="ph ' +
+    (ligado ? 'ph-sliders-horizontal' : 'ph-seal-check') +
+    '"></i>' +
+    '<div class="cart-custom-cta-txt"><strong>' +
+    (ligado ? 'Carteira personalizada por você' : 'Esta é a nossa recomendação') +
+    '</strong><span>' +
+    (ligado
+      ? 'A divisão, os setores e os ativos acima seguem o que você definiu. ' +
+        'A recomendação continua a um clique de distância.'
+      : 'Perfil, objetivo e prazo definiram a divisão entre classes; a política de setores ' +
+        'decidiu quanto vai para cada setor; e o score escolheu os ativos dentro de cada um.') +
+    '</span></div>' +
+    '<button type="button" class="cart-custom-abrir" onclick="cartAbrirCustom()">' +
+    '<i class="ph ph-sliders-horizontal"></i> ' +
+    (ligado ? 'Ajustar' : 'Montar do meu jeito') +
+    '</button>' +
+    (ligado
+      ? '<button type="button" class="cart-custom-voltar" onclick="cartRestaurarRecomendacao()">' +
+        '<i class="ph ph-arrow-counter-clockwise"></i> Voltar à recomendação</button>'
+      : '') +
+    '</div>' +
+    '<div class="cart-custom-painel" id="cartCustomPainel" hidden>' +
+    '<div class="cart-custom-head">' +
+    '<span><i class="ph ph-sliders-horizontal"></i> Montar do meu jeito</span>' +
+    '<button type="button" class="cart-custom-fechar" onclick="cartFecharCustom()" ' +
+    'aria-label="Fechar"><i class="ph ph-x"></i></button>' +
+    '</div>' +
+    '<div class="cart-custom-aviso"><i class="ph ph-info"></i> ' +
+    'A partir daqui a decisão é sua: o motor passa a executar a SUA carteira, e continua ' +
+    'a pontuar os ativos e a distribuir o aporte — só deixa de escolher a divisão. ' +
+    'Deixar um passo como está mantém a recomendação naquele passo.</div>' +
+    // Passo 1
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">1</span>' +
+    'Divisão entre as classes' +
+    '<span class="cart-custom-total" data-grupo="classe"></span></div>' +
+    linhasClasse +
+    '</section>' +
+    // Passo 2
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">2</span>' +
+    'Setores dentro de cada classe' +
+    '<span class="cart-custom-passo-nota">zerar um setor tira-o da carteira</span></div>' +
+    blocosSetor +
+    '</section>' +
+    // Passo 3
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">3</span>' +
+    'Ativos que podem entrar' +
+    '<span class="cart-custom-passo-nota">desmarcados continuam na lista, fora do plano</span>' +
+    '</div>' +
+    blocosAtivos +
+    '</section>' +
+    '<div class="cart-custom-rodape">' +
+    '<button type="button" class="cart-custom-restaurar" onclick="cartRestaurarRecomendacao()">' +
+    'Voltar à recomendação</button>' +
+    '<button type="button" class="cart-custom-aplicar" onclick="cartAplicarCustom()">' +
+    '<i class="ph ph-check"></i> Aplicar minha carteira</button>' +
+    '</div></div>';
+
+  cartCustomAtualizarTotais();
+}
+
+/** Soma de um grupo de controles, para o rodapé do passo. */
+function cartCustomAtualizarTotais() {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  var somas = {};
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-range'), function (r) {
+    var g = r.getAttribute('data-grupo');
+    somas[g] = (somas[g] || 0) + (Number(r.value) || 0);
+  });
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-total'), function (t) {
+    var g = t.getAttribute('data-grupo');
+    var soma = Math.round(somas[g] || 0);
+    t.textContent = soma + '%';
+    // 100 é o alvo, mas não é obrigação: o "Aplicar" normaliza. A cor diz que
+    // ainda não fecha, sem impedir de continuar.
+    t.className = 'cart-custom-total' + (soma === 100 ? ' ok' : '');
+    t.title =
+      soma === 100
+        ? 'Fecha em 100%'
+        : 'Soma ' + soma + '% — ao aplicar, os pesos são reescalados para 100%';
+  });
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-conta'), function (c) {
+    var classe = c.getAttribute('data-classe');
+    var caixas = wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]');
+    var marcados = 0;
+    Array.prototype.forEach.call(caixas, function (x) {
+      if (x.checked) marcados++;
+    });
+    c.textContent = marcados + ' de ' + caixas.length;
+  });
+}
+
+function cartCustomMudou(input) {
+  if (!input) return;
+  var out = input.parentElement && input.parentElement.querySelector('.cart-custom-linha-pct');
+  if (out) out.textContent = Math.round(Number(input.value) || 0) + '%';
+  cartCustomAtualizarTotais();
+}
+
+function cartCustomMudouAtivo(input) {
+  if (input && input.parentElement && input.parentElement.classList)
+    input.parentElement.classList.toggle('fora', !input.checked);
+  cartCustomAtualizarTotais();
+}
+
+function cartCustomMarcar(classe, valor) {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  Array.prototype.forEach.call(
+    wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]'),
+    function (x) {
+      x.checked = valor;
+      if (x.parentElement && x.parentElement.classList)
+        x.parentElement.classList.toggle('fora', !valor);
+    }
+  );
+  cartCustomAtualizarTotais();
+}
+function cartCustomTodos(classe) {
+  cartCustomMarcar(classe, true);
+}
+function cartCustomNenhum(classe) {
+  cartCustomMarcar(classe, false);
+}
+
+function cartAbrirCustom() {
+  var p = document.getElementById('cartCustomPainel');
+  if (!p) return;
+  p.hidden = false;
+  if (typeof p.scrollIntoView === 'function')
+    p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cartFecharCustom() {
+  var p = document.getElementById('cartCustomPainel');
+  if (p) p.hidden = true;
+}
+
+/** Lê o painel, normaliza e recalcula o plano. */
+function cartAplicarCustom() {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+
+  var brutos = {};
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-range'), function (r) {
+    var g = r.getAttribute('data-grupo');
+    (brutos[g] || (brutos[g] = {}))[r.getAttribute('data-chave')] = Number(r.value) || 0;
+  });
+
+  var c = cartCustom();
+  c.alloc = cartNormalizar100(brutos.classe || {});
+  c.setores = {};
+  ['acao', 'fii'].forEach(function (classe) {
+    var g = brutos['setor:' + classe];
+    var n = g ? cartNormalizar100(g) : null;
+    if (n) c.setores[classe] = n;
+  });
+  if (!Object.keys(c.setores).length) c.setores = null;
+
+  c.ativos = {};
+  MOTOR_CLASSES.forEach(function (classe) {
+    var caixas = wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]');
+    if (!caixas.length) return;
+    var marcados = [];
+    Array.prototype.forEach.call(caixas, function (x) {
+      if (x.checked) marcados.push(x.value);
+    });
+    // Tudo marcado é o mesmo que não restringir. Gravar a lista inteira
+    // congelaria o universo de hoje e faria o ativo novo de amanhã nascer
+    // excluído, sem ninguém perceber.
+    if (marcados.length && marcados.length < caixas.length) c.ativos[classe] = marcados;
+  });
+  if (!Object.keys(c.ativos).length) c.ativos = null;
+
+  c.ativo = true;
+  cartSalvarEstado();
+  cartFecharCustom();
+  cartRecalcularMotor();
+  // A tela do painel não pode depender de haver dado do motor.
+  // `cartRecalcularMotor` desiste cedo enquanto a busca não aconteceu, e sem
+  // esta linha o utilizador clicava em Aplicar, o painel fechava, e a barra
+  // continuava a dizer "Esta é a nossa recomendação" — que a essa altura já
+  // era mentira, e sem nenhum caminho de volta à vista.
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (typeof mostrarToast === 'function') mostrarToast('Carteira personalizada aplicada.');
+}
+
+/** Desliga o modo personalizado e apaga as escolhas. */
+function cartRestaurarRecomendacao() {
+  cartEstado.custom = cartCustomVazio();
+  cartSalvarEstado();
+  cartFecharCustom();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (typeof mostrarToast === 'function') mostrarToast('De volta à carteira recomendada.');
 }
 
 // ════════════════════════════════

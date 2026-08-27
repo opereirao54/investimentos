@@ -1373,3 +1373,242 @@ test('ativo pontuado sem setor é declarado como fora do plano, não some calado
   assert.ok(html.includes('não há bloco onde os pôr'), 'tem de dizer o porquê');
   assert.ok(!html.includes('XPTO3'), 'o ativo sem setor de facto não recebe aporte');
 });
+
+// ════════════════════════════════════════════
+// Montar do meu jeito
+// ════════════════════════════════════════════
+//
+// A regra de produto que estes testes protegem: a RECOMENDAÇÃO é o que a tela
+// apresenta primeiro, sempre. Quem não entende de investimento recebe uma
+// carteira pronta sem ter de decidir nada; o personalizado é opt-in explícito
+// e volta atrás num clique. Um bug que ligue o custom sozinho, ou que não
+// consiga desligá-lo, quebra o produto para o utilizador que ele mais serve.
+
+test('o modo personalizado nasce desligado e não interfere na recomendação', () => {
+  const s = carregar();
+  s.run("cartEstado.perfil = 'Moderado';");
+  const padrao = s.run('JSON.stringify(cartAlocacaoAlvo())');
+  assert.equal(s.run('cartCustomAtivo()'), false);
+  assert.equal(s.run("String(cartSetoresCustom('acao'))"), 'undefined', 'usa a política padrão');
+  // Ligar sem escolher nada continua sendo a recomendação: o interruptor não
+  // é a personalização, as escolhas é que são.
+  s.run('cartCustom().ativo = true;');
+  assert.equal(s.run('cartCustomAtivo()'), false);
+  assert.equal(s.run('JSON.stringify(cartAlocacaoAlvo())'), padrao);
+});
+
+test('a divisão escolhida à mão vence perfil, objetivo e prazo', () => {
+  const s = carregar();
+  s.run(`
+    cartEstado.perfil = 'Conservador';
+    cartEstado.custom = { ativo: true, alloc: { rf: 10, acao: 60, fii: 25, cripto: 5 },
+      setores: null, ativos: null };
+  `);
+  assert.deepEqual(JSON.parse(s.run('JSON.stringify(cartAlocacaoAlvo())')), {
+    rf: 10,
+    acao: 60,
+    fii: 25,
+    cripto: 5,
+  });
+});
+
+test('setor zerado sai da política em vez de ficar com alvo zero', () => {
+  // Alvo zero continuaria a ganhar vaga na repartição por maior média — o
+  // utilizador zerou porque não quer o setor, não porque quer pouco dele.
+  const s = carregar();
+  s.run(`
+    cartEstado.custom = { ativo: true, alloc: null, ativos: null,
+      setores: { acao: { financeiro: 50, energia: 0, saneamento: 0, tecindustria: 25, consumo: 25 } } };
+  `);
+  const chaves = JSON.parse(
+    s.run("JSON.stringify(cartSetoresCustom('acao').map(function (b) { return b.chave; }))")
+  );
+  assert.deepEqual(chaves, ['financeiro', 'tecindustria', 'consumo']);
+  // FIIs, que ele não tocou, continuam na recomendação.
+  assert.equal(s.run("String(cartSetoresCustom('fii'))"), 'undefined');
+});
+
+test('zerar TODOS os setores devolve a classe à recomendação, não a esvazia', () => {
+  const s = carregar();
+  s.run(`
+    cartEstado.custom = { ativo: true, alloc: null, ativos: null,
+      setores: { acao: { financeiro: 0, energia: 0, saneamento: 0, tecindustria: 0, consumo: 0 } } };
+  `);
+  assert.equal(
+    s.run("String(cartSetoresCustom('acao'))"),
+    'undefined',
+    'classe sem nenhum setor seria classe sem seleção nenhuma'
+  );
+});
+
+test('a escolha de ativos filtra o PLANO e deixa a lista inteira', () => {
+  // Esconder o que ficou de fora tiraria do utilizador a única forma de rever
+  // a própria escolha.
+  const s = carregar();
+  s.run(`
+    cartEstado.custom = { ativo: true, alloc: null, setores: null,
+      ativos: { acao: ['BBAS3', 'WEGE3'] } };
+    var rankFake = [
+      { ticker: 'BBAS3', classe: 'acao' }, { ticker: 'ITUB4', classe: 'acao' },
+      { ticker: 'WEGE3', classe: 'acao' }, { ticker: 'MXRF11', classe: 'fii' }
+    ];
+  `);
+  const filtrado = JSON.parse(
+    s.run('JSON.stringify(cartRankingParaPlano(rankFake).map(function (a) { return a.ticker; }))')
+  );
+  assert.deepEqual(filtrado, ['BBAS3', 'WEGE3', 'MXRF11'], 'classe sem escolha passa inteira');
+});
+
+test('os pesos são reescalados para 100 sem perder nem inventar ponto', () => {
+  // O painel não obriga o utilizador a fechar a conta na unha. Arredondar
+  // cada peso por si deixaria o total em 99 ou 101, e a tela mostraria uma
+  // alocação que não fecha.
+  const s = carregar();
+  [
+    { a: 3, b: 3, c: 3 },
+    { a: 10, b: 20, c: 70 },
+    { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1 },
+    { a: 250, b: 250 },
+  ].forEach((entrada) => {
+    const r = JSON.parse(
+      s.run('JSON.stringify(cartNormalizar100(' + JSON.stringify(entrada) + '))')
+    );
+    const soma = Object.values(r).reduce((x, y) => x + y, 0);
+    assert.ok(Math.abs(soma - 100) < 0.001, `${JSON.stringify(entrada)} somou ${soma}, não 100`);
+  });
+  assert.equal(s.run('String(cartNormalizar100({ a: 0, b: 0 }))'), 'null', 'tudo zero não fecha');
+});
+
+test('voltar à recomendação apaga as escolhas, não só o interruptor', () => {
+  // Desligar guardando a escolha faria a próxima ativação ressuscitar uma
+  // carteira que o utilizador achava ter descartado.
+  const s = carregar();
+  s.run(`
+    cartEstado.perfil = 'Moderado';
+    cartEstado.custom = { ativo: true, alloc: { rf: 0, acao: 100, fii: 0, cripto: 0 },
+      setores: { acao: { financeiro: 100 } }, ativos: { acao: ['BBAS3'] } };
+    cartMotor.buscadoEm = null;
+    cartRestaurarRecomendacao();
+  `);
+  assert.equal(s.run('cartCustomAtivo()'), false);
+  assert.equal(s.run('String(cartCustom().alloc)'), 'null');
+  assert.equal(s.run('String(cartCustom().setores)'), 'null');
+  assert.equal(s.run('String(cartCustom().ativos)'), 'null');
+
+  // E a BARRA tem de acompanhar. O painel dependia de cartRecalcularMotor
+  // para se redesenhar, e essa função desiste cedo enquanto a busca não
+  // aconteceu: o utilizador aplicava, o painel fechava, e a barra continuava
+  // a dizer o contrário do estado — sem caminho de volta à vista.
+  const cta = s.dom.els.get('cartCustomWrap').innerHTML;
+  assert.ok(cta.includes('Esta é a nossa recomendação'), 'a barra tem de voltar ao texto padrão');
+  assert.ok(!cta.includes('Carteira personalizada por você'));
+});
+
+test('o painel abre com a recomendação carregada, não com tudo em zero', () => {
+  // Abrir em branco devolveria ao utilizador a decisão que ele veio buscar.
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run(
+    "cartEstado.perfil = 'Moderado'; cartMotor.ranking = rankingLista; cartRenderizarCustom();"
+  );
+  const html = s.dom.els.get('cartCustomWrap').innerHTML;
+
+  assert.ok(html.includes('Esta é a nossa recomendação'), 'a recomendação é o que se apresenta');
+  assert.ok(html.includes('Montar do meu jeito'));
+  assert.ok(html.includes('cart-custom-painel'));
+  assert.ok(html.includes('hidden'), 'o painel nasce fechado');
+  // Os três níveis existem.
+  assert.ok(html.includes('Divisão entre as classes'));
+  assert.ok(html.includes('Setores dentro de cada classe'));
+  assert.ok(html.includes('Ativos que podem entrar'));
+  // E os controles partem dos valores da recomendação.
+  assert.ok(/data-grupo="classe" data-chave="rf"/.test(html));
+  assert.ok(/data-grupo="setor:acao" data-chave="financeiro"/.test(html));
+  assert.ok(!/value="0"[^>]*data-grupo="classe"/.test(html), 'não abre tudo zerado');
+});
+
+test('com o custom ligado, a tela diz de quem é a carteira e como voltar', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run(`
+    cartEstado.perfil = 'Moderado';
+    cartEstado.custom = { ativo: true, alloc: { rf: 20, acao: 50, fii: 25, cripto: 5 },
+      setores: null, ativos: null };
+    cartMotor.ranking = rankingLista;
+    cartRenderizarCustom();
+  `);
+  const html = s.dom.els.get('cartCustomWrap').innerHTML;
+  assert.ok(html.includes('Carteira personalizada por você'));
+  assert.ok(html.includes('Voltar à recomendação'), 'o caminho de volta tem de estar à vista');
+});
+
+test('o painel não deixa escapar undefined nem NaN', () => {
+  const s = carregar();
+  s.run(SEMENTE_LISTA);
+  s.run('cartMotor.ranking = rankingLista; cartRenderizarCustom();');
+  const html = s.dom.els.get('cartCustomWrap').innerHTML;
+  ['undefined', 'NaN', '[object Object]'].forEach((lixo) => {
+    assert.ok(!html.includes(lixo), `o painel imprimiu "${lixo}"`);
+  });
+});
+
+// ════════════════════════════════════════════
+// Performance histórica
+// ════════════════════════════════════════════
+
+/** Série mensal sintética: 36 meses subindo, com oscilação. */
+function serieDeTeste(meses, taxa) {
+  const out = [];
+  let p = 100;
+  for (let i = 0; i <= meses; i++) {
+    out.push({ t: i, p });
+    p *= 1 + taxa;
+  }
+  return out;
+}
+
+test('a simulação responde à pergunta do título antes de tudo', () => {
+  // Oito caixas do mesmo tamanho é o mesmo que não ter destaque: a pergunta
+  // ("como teria performado?") tem UMA resposta, e ela competia em pé de
+  // igualdade com o drawdown máximo.
+  const s = carregar();
+  s.ctx.cartEstado.capital = 2000;
+  s.ctx.cartEstado.perfil = 'Moderado';
+  s.ctx.serie = serieDeTeste(36, 0.011);
+  s.ctx.cdiSerie = serieDeTeste(36, 0.0095);
+  s.run('cartRenderizarSimKpis(serie, cdiSerie);');
+  const html = s.dom.els.get('cartSimKpis').innerHTML;
+
+  assert.ok(html.includes('cart-sim-hero'), 'o número principal precisa de destaque próprio');
+  assert.ok(html.includes('Patrimônio final estimado'));
+  assert.ok(html.includes('cart-sim-principais'), 'os que sustentam a resposta');
+  assert.ok(html.includes('cart-sim-secundarios'), 'os de risco, em peso menor');
+  // A frase em português é o que faz a secção informar quem não lê número.
+  assert.ok(/Aportando .* por mês durante 3 anos/.test(html));
+});
+
+test('o ganho aparece uma vez só, no destaque', () => {
+  // Ele estava no hero E numa das caixas principais: o mesmo número duas
+  // vezes gasta a atenção que o resto da secção precisa.
+  const s = carregar();
+  s.ctx.cartEstado.capital = 2000;
+  s.ctx.serie = serieDeTeste(36, 0.011);
+  s.ctx.cdiSerie = serieDeTeste(36, 0.0095);
+  s.run('cartRenderizarSimKpis(serie, cdiSerie);');
+  const html = s.dom.els.get('cartSimKpis').innerHTML;
+  const vezes = html.split('Ganho sobre o aportado').length - 1;
+  assert.equal(vezes, 1, `"Ganho sobre o aportado" apareceu ${vezes} vezes`);
+});
+
+test('sem CDI a comparação some, em vez de imprimir travessão ou zero', () => {
+  const s = carregar();
+  s.ctx.cartEstado.capital = 1000;
+  s.ctx.serie = serieDeTeste(24, 0.01);
+  s.run('cartRenderizarSimKpis(serie, null);');
+  const html = s.dom.els.get('cartSimKpis').innerHTML;
+  assert.ok(!html.includes('CDI'), 'sem a série, nada de CDI na tela');
+  assert.ok(html.includes('Patrimônio final estimado'), 'o resto continua de pé');
+  ['undefined', 'NaN', 'null'].forEach((lixo) => {
+    assert.ok(!html.includes(lixo), `a simulação imprimiu "${lixo}"`);
+  });
+});
