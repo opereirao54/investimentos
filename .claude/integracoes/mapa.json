@@ -4,7 +4,6 @@
   "onda": 1,
   "atualizadoEm": "2026-08-28",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
-
   "entidades": {
     "transacao": {
       "titulo": "Transação (lançamento do Controle Financeiro)",
@@ -33,28 +32,85 @@
         "web/appliquei-jornada.js"
       ],
       "camposDeLigacao": [
-        { "campo": "contaId", "apontaPara": "conta.id", "resolvidoPor": "resolverContaDeTransacao", "obrigatorio": "condicional", "quando": "categorias em controleBancoObrigatorio" },
-        { "campo": "banco", "apontaPara": "conta.nome | conta.aliases", "resolvidoPor": "obterContaPorNomeOuAlias", "obrigatorio": "condicional", "nota": "fallback textual legado do contaId" },
-        { "campo": "operacaoId", "apontaPara": "operacao.id", "obrigatorio": "condicional", "quando": "categorias investimento_* e transferencia_saida de aporte" },
-        { "campo": "sonhoId", "apontaPara": "sonho.id", "obrigatorio": "condicional", "quando": "categoria sonho", "onda": 2 },
-        { "campo": "cartaoId", "apontaPara": "cartao.id", "obrigatorio": "condicional", "quando": "categoria cartao_credito", "onda": 3 },
-        { "campo": "groupId", "apontaPara": "transacao.groupId (série recorrente)", "obrigatorio": "condicional" }
+        {
+          "campo": "contaId",
+          "apontaPara": "conta.id",
+          "resolvidoPor": "resolverContaDeTransacao",
+          "obrigatorio": "condicional",
+          "quando": "categorias em controleBancoObrigatorio"
+        },
+        {
+          "campo": "banco",
+          "apontaPara": "conta.nome | conta.aliases",
+          "resolvidoPor": "obterContaPorNomeOuAlias",
+          "obrigatorio": "condicional",
+          "nota": "fallback textual legado do contaId"
+        },
+        {
+          "campo": "operacaoId",
+          "apontaPara": "operacao.id",
+          "obrigatorio": "condicional",
+          "quando": "categorias investimento_* e transferencia_saida de aporte"
+        },
+        {
+          "campo": "sonhoId",
+          "apontaPara": "sonho.id",
+          "obrigatorio": "condicional",
+          "quando": "categoria sonho",
+          "onda": 2
+        },
+        {
+          "campo": "cartaoId",
+          "apontaPara": "cartao.id",
+          "obrigatorio": "condicional",
+          "quando": "categoria cartao_credito",
+          "onda": 3
+        },
+        {
+          "campo": "groupId",
+          "apontaPara": "transacao.groupId (série recorrente)",
+          "obrigatorio": "condicional"
+        }
       ],
       "camposDeCompetencia": {
-        "canonico": ["mes", "ano"],
-        "derivados": ["data", "dataVencimento"],
+        "canonico": [
+          "mes",
+          "ano"
+        ],
+        "derivados": [
+          "data",
+          "dataVencimento"
+        ],
         "nota": "mes/ano é a competência canônica usada por calcularResumoMes e por toda a filtragem de tela. data/dataVencimento NÃO substituem — ver mpTimestampTransacao."
       },
       "vocabularioCategorias": {
-        "entradaCaixa": ["receita", "dividendo", "resgate_investimento", "transferencia_entrada"],
-        "aporte": ["investimento_fixo", "investimento_variavel"],
-        "transferenciaSaida": ["transferencia_saida"],
-        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito", "sonho", "previdencia"],
-        "classificadoPor": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "mpTransacaoComputaCaixa"],
-        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true."
+        "entradaCaixa": [
+          "receita",
+          "dividendo",
+          "resgate_investimento",
+          "transferencia_entrada"
+        ],
+        "aporte": [
+          "investimento_fixo",
+          "investimento_variavel"
+        ],
+        "transferenciaSaida": [
+          "transferencia_saida"
+        ],
+        "despesaConsumo": [
+          "despesa_fixa",
+          "despesa_variavel",
+          "cartao_credito",
+          "sonho"
+        ],
+        "classificadoPor": [
+          "mpEhEntradaCaixa",
+          "mpEhDespesaConsumo",
+          "mpTransacaoComputaCaixa"
+        ],
+        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo."
       }
     },
-
     "conta": {
       "titulo": "Conta / Instituição financeira (cadastro-mestre)",
       "chaveArmazenamento": "appliquei_contas",
@@ -62,11 +118,33 @@
       "declaradaEm": "web/appliquei-contas.js:24",
       "topologia": "escrita-central-leitura-espalhada",
       "notaTopologia": "Topologia SAUDÁVEL, oposta à de transacao: todo CRUD passa por criarConta/editarConta/salvarContas, e salvarContas() dispara AppliqueiCloudSync.forceFlush(). É o modelo a seguir.",
-      "produtores": ["web/appliquei-contas.js"],
+      "produtores": [
+        "web/appliquei-contas.js"
+      ],
       "produtoresIndiretos": [
-        { "arquivo": "web/appliquei-aba-controle-financeiro.js", "via": "obterOuCriarContaPorNome", "linhas": [1043, 1167] },
-        { "arquivo": "web/appliquei-aba-dividendos.js", "via": "obterOuCriarContaPorNome", "linhas": [492] },
-        { "arquivo": "web/appliquei-renda-fixa.js", "via": "obterOuCriarContaPorNome", "linhas": [889, 930] }
+        {
+          "arquivo": "web/appliquei-aba-controle-financeiro.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [
+            1043,
+            1167
+          ]
+        },
+        {
+          "arquivo": "web/appliquei-aba-dividendos.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [
+            492
+          ]
+        },
+        {
+          "arquivo": "web/appliquei-renda-fixa.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [
+            889,
+            930
+          ]
+        }
       ],
       "consumidores": [
         "web/appliquei-patrimonio.js",
@@ -76,42 +154,129 @@
         "web/appliquei-sonhos.js"
       ],
       "camposDeLigacao": [
-        { "campo": "id", "formato": "conta_{timestamp}_{rand}", "referenciadoPor": ["transacao.contaId", "operacao.contaId", "sonho.contaOrigemId"] },
-        { "campo": "aliases", "nota": "nomes absorvidos numa fusão de contas; obterContaPorNomeOuAlias casa por aqui. Perder um alias órfã todos os registros legados que citavam aquele nome." }
+        {
+          "campo": "id",
+          "formato": "conta_{timestamp}_{rand}",
+          "referenciadoPor": [
+            "transacao.contaId",
+            "operacao.contaId",
+            "sonho.contaOrigemId"
+          ]
+        },
+        {
+          "campo": "aliases",
+          "nota": "nomes absorvidos numa fusão de contas; obterContaPorNomeOuAlias casa por aqui. Perder um alias órfã todos os registros legados que citavam aquele nome."
+        }
       ]
     },
-
     "operacao": {
       "titulo": "Operação de investimento (compra/venda de ativo)",
       "chaveArmazenamento": "futurorico_compras",
       "globalWindow": "historicoCompras",
-      "produtores": ["web/appliquei-renda-fixa.js", "web/appliquei-previdencia.js"],
-      "consumidores": ["web/appliquei-patrimonio.js", "web/appliquei-aba1-charts.js", "web/appliquei-sonhos.js", "web/appliquei-aba-dividendos.js"],
+      "produtores": [
+        "web/appliquei-renda-fixa.js",
+        "web/appliquei-previdencia.js"
+      ],
+      "consumidores": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba1-charts.js",
+        "web/appliquei-sonhos.js",
+        "web/appliquei-aba-dividendos.js"
+      ],
       "camposDeLigacao": [
-        { "campo": "id", "referenciadoPor": ["transacao.operacaoId", "transacao.id (perna do ativo)", "transacao.id = tx_origem_{id} (perna de caixa)"] },
-        { "campo": "contaOrigemId", "apontaPara": "conta.id", "nota": "propagado para as recorrências" },
-        { "campo": "corretora", "apontaPara": "conta.nome | conta.aliases", "resolvidoPor": "resolverContaDeOperacao" }
-      ]
+        {
+          "campo": "id",
+          "referenciadoPor": [
+            "transacao.operacaoId",
+            "transacao.id (perna do ativo)",
+            "transacao.id = tx_origem_{id} (perna de caixa)"
+          ]
+        },
+        {
+          "campo": "contaOrigemId",
+          "apontaPara": "conta.id",
+          "nota": "propagado para as recorrências"
+        },
+        {
+          "campo": "corretora",
+          "apontaPara": "conta.nome | conta.aliases",
+          "resolvidoPor": "resolverContaDeOperacao"
+        }
+      ],
+      "vocabularioCategorias": {
+        "valores": [
+          "renda_variavel",
+          "renda_fixa",
+          "reserva_emergencia",
+          "previdencia"
+        ],
+        "semQuantidade": [
+          "renda_fixa",
+          "reserva_emergencia",
+          "previdencia"
+        ],
+        "nota": "Categoria da OPERAÇÃO (historicoCompras), distinta de transacao.categoria. As \"semQuantidade\" viram investimento_fixo na transação; renda_variavel vira investimento_variavel. Ver renda-fixa.js:881."
+      }
     }
   },
-
   "prefixosDeId": {
-    "conta_": { "entidade": "conta", "geradoEm": "web/appliquei-contas.js:criarConta" },
-    "tx_origem_": { "entidade": "transacao", "significado": "perna de caixa de um aporte; sufixo é o operacao.id", "geradoEm": "web/appliquei-renda-fixa.js:909", "consumidoEm": "web/appliquei-patrimonio.js:1198" },
-    "tx_": { "entidade": "transacao", "geradoEm": "web/appliquei-sonhos.js", "onda": 2 },
-    "sonho_grp_": { "entidade": "transacao.groupId", "significado": "série de compromissos mensais de um sonho", "onda": 2 },
-    "bem_": { "entidade": "bem", "onda": 3 }
+    "conta_": {
+      "entidade": "conta",
+      "geradoEm": "web/appliquei-contas.js:criarConta"
+    },
+    "tx_origem_": {
+      "entidade": "transacao",
+      "significado": "perna de caixa de um aporte; sufixo é o operacao.id",
+      "geradoEm": "web/appliquei-renda-fixa.js:909",
+      "consumidoEm": "web/appliquei-patrimonio.js:1198"
+    },
+    "tx_": {
+      "entidade": "transacao",
+      "geradoEm": "web/appliquei-sonhos.js",
+      "onda": 2
+    },
+    "sonho_grp_": {
+      "entidade": "transacao.groupId",
+      "significado": "série de compromissos mensais de um sonho",
+      "onda": 2
+    },
+    "bem_": {
+      "entidade": "bem",
+      "onda": 3
+    },
+    "tx_compromisso_": {
+      "entidade": "transacao",
+      "significado": "parcela de compromisso recorrente; padrão B de aporte (perna única)",
+      "geradoEm": "web/appliquei-previdencia.js:85"
+    },
+    "div_": {
+      "entidade": "transacao",
+      "significado": "dividendo gerado a partir de divKey (ticker+competência); idempotente",
+      "geradoEm": "web/appliquei-aba-dividendos.js:496"
+    }
   },
-
   "invariantes": [
     {
       "id": "INV-01",
       "titulo": "Todo gasto pago desconta de uma conta identificável",
       "regra": "Toda transação com pago:true cuja categoria não seja de entrada tem de resolver para uma conta real via resolverContaDeTransacao (contaId válido OU banco que casa por nome/alias). Se resolver para 'a-reconciliar', o dinheiro saiu do total do patrimônio mas não saiu de nenhuma instituição.",
       "gravidade": "critica",
-      "entidades": ["transacao", "conta"],
-      "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
-      "simbolos": ["resolverContaDeTransacao", "mpChaveInstTransacao", "obterContaPorNomeOuAlias", "mpCalcularSaldoPorInstituicao", "contaId"],
+      "entidades": [
+        "transacao",
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-contas.js",
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "resolverContaDeTransacao",
+        "mpChaveInstTransacao",
+        "obterContaPorNomeOuAlias",
+        "mpCalcularSaldoPorInstituicao",
+        "contaId"
+      ],
       "sintoma": "\"Gastei e o saldo do banco não mudou\" · aparece um bucket \"A reconciliar\" no Meu Patrimônio · saldo da instituição inflado.",
       "prova": "test/integracao-inv01-gasto-desconta-conta.test.js",
       "status": "pendente"
@@ -121,9 +286,19 @@
       "titulo": "Banco é obrigatório nas categorias que movimentam caixa direto",
       "regra": "Salvar receita, resgate_investimento, despesa_fixa ou despesa_variavel SEM banco tem de ser bloqueado no formulário. controleBancoObrigatorio e controleCategoriaUsaBanco têm de cobrir exatamente o mesmo conjunto — se divergirem, existe categoria que mostra o campo e não o exige (ou o contrário).",
       "gravidade": "critica",
-      "entidades": ["transacao", "conta"],
-      "arquivos": ["web/appliquei-aba-controle-financeiro.js"],
-      "simbolos": ["controleBancoObrigatorio", "controleCategoriaUsaBanco", "executarInsercao", "salvarEdicaoTransacao"],
+      "entidades": [
+        "transacao",
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "controleBancoObrigatorio",
+        "controleCategoriaUsaBanco",
+        "executarInsercao",
+        "salvarEdicaoTransacao"
+      ],
       "sintoma": "Despesa cai no bucket \"Sem banco\" e o saldo da instituição fica inflado.",
       "historico": "Regressão real já corrigida: antes só receita/resgate eram obrigatórios (ver comentário em aba-controle-financeiro.js:75).",
       "prova": "test/integracao-inv02-banco-obrigatorio.test.js",
@@ -132,24 +307,64 @@
     {
       "id": "INV-03",
       "titulo": "Compra de ativo tem duas pernas e só uma debita o caixa",
-      "regra": "registrarOperacaoAtivo grava DUAS transações: a perna do ativo (categoria investimento_fixo|investimento_variavel, temLegCaixa:true, sem contaId) e a perna de caixa (id tx_origem_{operacaoId}, categoria transferencia_saida, com contaId). Ambas com o mesmo valor. A perna do ativo NÃO pode contar no caixa (mpTransacaoComputaCaixa devolve false por causa do temLegCaixa); a perna de caixa é a única que debita.",
+      "regra": "registrarOperacaoAtivo grava DUAS transações: a perna do ativo (categoria investimento_fixo|investimento_variavel, temLegCaixa:true, sem contaId) e a perna de caixa (id tx_origem_{operacaoId}, categoria transferencia_saida, com contaId). Ambas com o mesmo valor. A perna do ativo NÃO pode contar no caixa (mpTransacaoComputaCaixa devolve false por causa do temLegCaixa); a perna de caixa é a única que debita. EXISTEM DOIS PADRÕES LEGÍTIMOS (ver `padroes`): o de duas pernas (compra avulsa) e o de perna única (parcela de compromisso recorrente, que debita direto pelo contaId e por isso NÃO leva temLegCaixa). A violação é misturar os dois: aporte sem temLegCaixa que coexiste com uma transferencia_saida do mesmo operacaoId = duplo débito.",
       "gravidade": "critica",
-      "entidades": ["transacao", "operacao", "conta"],
-      "arquivos": ["web/appliquei-renda-fixa.js", "web/appliquei-patrimonio.js"],
-      "simbolos": ["temLegCaixa", "registrarOperacaoAtivo", "mpTransacaoComputaCaixa", "tx_origem_", "transferencia_saida"],
+      "entidades": [
+        "transacao",
+        "operacao",
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-renda-fixa.js",
+        "web/appliquei-patrimonio.js"
+      ],
+      "simbolos": [
+        "temLegCaixa",
+        "registrarOperacaoAtivo",
+        "mpTransacaoComputaCaixa",
+        "tx_origem_",
+        "transferencia_saida"
+      ],
       "sintoma": "Sem a flag: o saldo cai DUAS vezes na mesma compra. Sem a perna de caixa: a compra não desconta de conta nenhuma.",
-      "fragilidade": "temLegCaixa tem UM produtor (renda-fixa.js:906) e UM consumidor (patrimonio.js:288), sem contrato declarado. Qualquer produtor novo de investimento_* que crie perna de caixa sem setar a flag causa duplo-débito silencioso.",
+      "fragilidade": "temLegCaixa tem UM produtor (renda-fixa.js:906) e UM consumidor (patrimonio.js:288), sem contrato declarado. Qualquer produtor novo de investimento_* que crie perna de caixa sem setar a flag causa duplo-débito silencioso. Agrava: como o padrão B grava investimento_fixo SEM a flag legitimamente, não dá para exigir temLegCaixa em todo aporte — a checagem tem de ser relacional (existe perna de caixa irmã?), nunca por presença da flag isolada.",
       "prova": "test/integracao-inv03-duas-pernas-aporte.test.js",
-      "status": "pendente"
+      "status": "pendente",
+      "padroes": {
+        "A-duas-pernas": {
+          "quando": "Compra avulsa via registrarOperacaoAtivo (renda-fixa.js).",
+          "forma": "perna do ativo com temLegCaixa:true e SEM contaId + perna tx_origem_{opId} transferencia_saida COM contaId. Só a segunda debita.",
+          "produtores": [
+            "web/appliquei-renda-fixa.js"
+          ]
+        },
+        "B-perna-unica": {
+          "quando": "Parcela de compromisso recorrente (previdência/reserva), gerada por gerarLancamentosFuturosCompromisso.",
+          "forma": "UMA transação investimento_fixo com contaId direto e SEM temLegCaixa. Ela mesma debita quando marcada como paga — não há perna separada.",
+          "produtores": [
+            "web/appliquei-previdencia.js"
+          ],
+          "idPrefixo": "tx_compromisso_{operacaoId}_{i}"
+        }
+      }
     },
     {
       "id": "INV-04",
       "titulo": "Nenhuma perna de caixa órfã",
       "regra": "Toda transação com id tx_origem_{X} tem de ter a operação X em historicoCompras. Apagar uma operação tem de apagar as duas pernas.",
       "gravidade": "alta",
-      "entidades": ["transacao", "operacao"],
-      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-renda-fixa.js"],
-      "simbolos": ["tx_origem_", "operacaoId", "historicoCompras"],
+      "entidades": [
+        "transacao",
+        "operacao"
+      ],
+      "arquivos": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-renda-fixa.js"
+      ],
+      "simbolos": [
+        "tx_origem_",
+        "operacaoId",
+        "historicoCompras"
+      ],
       "sintoma": "Débito fantasma: o saldo continua descontado de uma compra que já não existe.",
       "historico": "Já quebrou. Existe rotina de limpeza em patrimonio.js:1188 removendo tx_origem_* órfãs — a limpeza é o remendo; este teste é a trava.",
       "prova": "test/integracao-inv04-perna-orfa.test.js",
@@ -160,9 +375,18 @@
       "titulo": "Vocabulário de categorias é fechado e classificado",
       "regra": "Toda string gravada em transacao.categoria por qualquer produtor tem de constar no vocabularioCategorias deste mapa, e estar classificada em exatamente um grupo (entradaCaixa | aporte | transferenciaSaida | despesaConsumo).",
       "gravidade": "alta",
-      "entidades": ["transacao"],
-      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
-      "simbolos": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "categoria"],
+      "entidades": [
+        "transacao"
+      ],
+      "arquivos": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "mpEhEntradaCaixa",
+        "mpEhDespesaConsumo",
+        "categoria"
+      ],
       "sintoma": "Categoria nova entra como despesa de consumo por omissão: infla o indicador de Despesa, ou some do relatório.",
       "prova": "test/integracao-inv05-vocabulario-categorias.test.js",
       "status": "pendente"
@@ -172,9 +396,20 @@
       "titulo": "Resgate credita a conta de destino",
       "regra": "Toda transação resgate_investimento tem contaId que resolve para conta existente. O valor creditado é o LÍQUIDO (valor), com o bruto preservado em valorBruto e o imposto em irRetido quando houver retenção na fonte.",
       "gravidade": "alta",
-      "entidades": ["transacao", "conta"],
-      "arquivos": ["web/appliquei-renda-fixa.js", "web/appliquei-patrimonio.js"],
-      "simbolos": ["resgate_investimento", "valorBruto", "irRetido", "contaDestinoId"],
+      "entidades": [
+        "transacao",
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-renda-fixa.js",
+        "web/appliquei-patrimonio.js"
+      ],
+      "simbolos": [
+        "resgate_investimento",
+        "valorBruto",
+        "irRetido",
+        "contaDestinoId"
+      ],
       "sintoma": "Resgatei e o dinheiro não apareceu em banco nenhum · saldo creditado bruto, ignorando o IR retido.",
       "prova": "test/integracao-inv06-resgate-credita-destino.test.js",
       "status": "pendente"
@@ -184,9 +419,20 @@
       "titulo": "Saldo de abertura entra uma única vez",
       "regra": "mpCalcularSaldoPorInstituicao soma saldoInicial apenas de contasAtivas(). Conta arquivada ou absorvida numa fusão não pode reintroduzir saldo, e a fusão tem de transferir os aliases para a conta de destino.",
       "gravidade": "alta",
-      "entidades": ["conta"],
-      "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js"],
-      "simbolos": ["contasAtivas", "mpSaldoInicialConta", "fundirContas", "arquivarConta", "aliases"],
+      "entidades": [
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-contas.js",
+        "web/appliquei-patrimonio.js"
+      ],
+      "simbolos": [
+        "contasAtivas",
+        "mpSaldoInicialConta",
+        "fundirContas",
+        "arquivarConta",
+        "aliases"
+      ],
       "sintoma": "Patrimônio total sobe sozinho depois de arquivar ou fundir uma conta.",
       "prova": "test/integracao-inv07-saldo-abertura-unico.test.js",
       "status": "pendente"
@@ -194,31 +440,54 @@
     {
       "id": "INV-08",
       "titulo": "mes/ano é a competência canônica",
-      "regra": "Toda escrita ou edição de transação que mexa em data/dataVencimento tem de reescrever mes/ano coerentemente. Toda a filtragem de tela usa mes/ano; data sozinha não move o lançamento de competência.",
+      "regra": "(a) Toda transação tem mes/ano — é a competência canônica que toda a filtragem de tela usa. (b) SÓ cartao_credito amarra competência ao dataVencimento (a compra entra na fatura daquele mês); nas demais categorias a competência é o mês em VISÃO no momento do lançamento, e diferir do vencimento é legítimo. (c) Ao EDITAR, mudar a data move a competência via competenciaDaData. (d) Numa série (mesmo groupId) o deslocamento entre competência e vencimento é constante — parcela fora de passo cai no mês errado.",
       "gravidade": "alta",
-      "entidades": ["transacao"],
-      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-patrimonio.js"],
-      "simbolos": ["mes", "ano", "dataVencimento", "competenciaDaData", "mpTimestampTransacao", "calcularResumoMes"],
+      "entidades": [
+        "transacao"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-patrimonio.js"
+      ],
+      "simbolos": [
+        "mes",
+        "ano",
+        "dataVencimento",
+        "competenciaDaData",
+        "mpTimestampTransacao",
+        "calcularResumoMes"
+      ],
       "sintoma": "\"Editei a data e não corrigiu\" — o lançamento fica no mês errado.",
       "historico": "Bug real já corrigido; coberto parcialmente por test/edicao-lancamento.test.js.",
       "prova": "test/integracao-inv08-competencia-canonica.test.js",
-      "status": "pendente"
+      "status": "pendente",
+      "fragilidade": "A regra NÃO é \"mes/ano batem com dataVencimento\" — essa leitura ingênua quebra o fluxo normal de despesa fixa. Inserção usa visaoMes/visaoAno; edição usa competenciaDaData; cartão sobrescreve com o mês da fatura. Três caminhos, três origens de competência."
     },
     {
       "id": "INV-09",
       "titulo": "Toda chave compartilhada usa prefixo sincronizável",
       "regra": "Todo dado que precisa atravessar dispositivos vive numa chave com prefixo futurorico_ ou appliquei_. O interceptador de setItem instalado no protótipo de Storage só marca essas como sujas; uma chave fora do prefixo grava local e NUNCA sobe.",
       "gravidade": "critica",
-      "entidades": ["transacao", "conta", "operacao"],
-      "arquivos": ["web/appliquei-utils.js", "web/appliquei-cloud-sync.js"],
-      "simbolos": ["_ehChaveApp", "_interceptarSetItem", "_storageProto"],
+      "entidades": [
+        "transacao",
+        "conta",
+        "operacao"
+      ],
+      "arquivos": [
+        "web/appliquei-utils.js",
+        "web/appliquei-cloud-sync.js"
+      ],
+      "simbolos": [
+        "_ehChaveApp",
+        "_interceptarSetItem",
+        "_storageProto"
+      ],
       "sintoma": "\"Cadastrei no celular e não aparece no PC\".",
       "historico": "Bug real de plataforma: o interceptador era instalado por atribuição direta e no Safari/iOS não sombreava o método do protótipo. Ver comentário em utils.js:555 e a skill diagnostico-de-persistencia.",
       "prova": "test/storage-interceptor.test.js",
       "status": "coberta-parcialmente"
     }
   ],
-
   "riscosConhecidos": [
     {
       "id": "RISCO-01",
@@ -232,6 +501,13 @@
       "titulo": "Categoria 'sonho' não exige conta de origem",
       "descricao": "controleBancoObrigatorio não cobre a categoria sonho, e sonhos.js grava contaId: sonho.contaOrigemId || undefined. Um sonho sem conta de origem gera compromissos que, quando pagos, debitam 'a-reconciliar' — violando INV-01 pela porta dos fundos.",
       "recomendacao": "Confirmar na Onda 2 se contaOrigemId deve ser obrigatório no cadastro do sonho.",
+      "decisao": "pendente-do-usuario"
+    },
+    {
+      "id": "RISCO-03",
+      "titulo": "Inserção e edição derivam a competência de fontes diferentes",
+      "descricao": "executarInsercao grava mes/ano a partir de visaoMes/visaoAno (o mês em que o usuário estava olhando). salvarEdicaoTransacao grava a partir de competenciaDaData(dataVencimento). Consequência: um lançamento criado em agosto com vencimento em setembro nasce na competência de agosto; se o usuário abrir e salvar a edição sem mudar nada, ele MUDA para setembro. Mesmo registro, competência diferente conforme o caminho.",
+      "recomendacao": "Decidir qual é a regra certa para despesa com vencimento futuro e alinhar os dois caminhos. Hoje o teste INV-08 documenta o comportamento atual sem endossá-lo.",
       "decisao": "pendente-do-usuario"
     }
   ]
