@@ -5913,6 +5913,13 @@
             margin: 0 0 18px;
             max-width: 540px;
         }
+        /* Régua do score — o conteúdo vem de rmBarraFaixasHtml() com estilo
+           inline (a mesma barra é reaproveitada no PDF, que não tem este CSS). */
+        #relatorio_mensal .rm-hero-faixas {
+            max-width: 540px;
+            margin: 0 0 18px;
+        }
+        #relatorio_mensal .rm-hero-faixas:empty { display: none; }
         #relatorio_mensal .rm-hero-stats {
             display: flex; gap: 12px; flex-wrap: wrap;
         }
@@ -6358,6 +6365,7 @@
         #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
         #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
         #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: #b45309; --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -8591,6 +8599,8 @@
                         <span class="rm-hero-mes" id="rmHeroMesLabel">—</span>
                         <h2 class="rm-hero-titulo"><i class="ph-fill ph-thermometer-hot"></i> Termômetro financeiro</h2>
                         <p id="rmTermometroResumo" class="rm-hero-resumo">Selecione um mês para ver o termômetro.</p>
+                        <!-- Régua do score: as 3 faixas de cor com a atual destacada (montada em JS) -->
+                        <div class="rm-hero-faixas" id="rmHeroFaixas"></div>
                         <div class="rm-hero-stats">
                             <div class="rm-hero-stat">
                                 <span class="rm-hero-stat-label">Saldo final</span>
@@ -9184,7 +9194,7 @@
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
-    <script src="/web/appliquei-relatorio-mensal.js?v=rotulo-investimentos"></script>
+    <script src="/web/appliquei-relatorio-mensal.js?v=regua-score-bens"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>
