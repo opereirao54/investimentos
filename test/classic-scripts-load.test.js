@@ -41,6 +41,7 @@ const LOAD_ORDER = [
   'web/appliquei-relatorio-mensal.js',
   'web/appliquei-applicash.js',
   'web/appliquei-duvidas.js',
+  'web/appliquei-disclaimer.js',
   'web/appliquei-patrimonio.js',
   'web/appliquei-jornada.js',
   'web/appliquei-sonhos.js',

@@ -624,8 +624,18 @@ function renderizarSonhos() {
 
       const mensalFmtCol = mensal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
       const faltaFmtCol = falta.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-      let tempoLbl;
+      // Duas informações diferentes, e o card só tinha a primeira:
+      //  · tempoLbl     — o desfecho já dado (conquistado/vencido) ou QUANDO o
+      //                   sonho começa, que só existe em sonho agendado;
+      //  · conquistaLbl — QUANTO TEMPO até conquistar, contado de hoje.
+      // Num sonho agendado o card dizia só "Inicia em set de 26" — o horizonte
+      // até a conquista vinha do bloco de mini-cards, que repetia o resto deste
+      // card e por isso saiu. Em sonho já em andamento os dois seriam a mesma
+      // coisa ("7 meses restantes" = "conquista em 7 meses"), então lá só o
+      // segundo aparece.
+      let tempoLbl = '';
       if (conquistado) tempoLbl = '🏆 Conquistado';
+      else if (status === 'vencido') tempoLbl = '⏰ Prazo encerrado';
       else if (status === 'agendado') {
         const d = diasAteInicioSonho(s);
         const dIni = new Date(s.dataInicio);
@@ -633,12 +643,12 @@ function renderizarSonhos() {
           .toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })
           .replace('.', '');
         tempoLbl = `🕒 Inicia em ${mesIniLabel}${d > 0 ? ` (${d}d)` : ''}`;
-      } else if (status === 'vencido') tempoLbl = '⏰ Prazo encerrado';
-      else
-        tempoLbl =
-          s.mesesRestantes > 0
-            ? `⏱ ${s.mesesRestantes} ${s.mesesRestantes === 1 ? 'mês restante' : 'meses restantes'}`
-            : '⏰ Prazo encerrado';
+      } else if (!(s.mesesRestantes > 0)) tempoLbl = '⏰ Prazo encerrado';
+
+      const conquistaLbl =
+        !conquistado && status !== 'vencido' && s.mesesRestantes > 0
+          ? `⏳ Conquista em ${formatarPrazoMeses(s.mesesRestantes)}`
+          : '';
 
       let statusBadge = '';
       if (status === 'agendado')
@@ -666,7 +676,8 @@ function renderizarSonhos() {
                     <div class="sonho-collapsed-nome">${s.nome}${statusBadge}</div>
                     <div class="sonho-collapsed-meta">
                         <span class="sonho-esforco-badge ${esforcoClass}">${esforcoLbl}</span>
-                        <span>${tempoLbl}</span>
+                        ${tempoLbl ? `<span>${tempoLbl}</span>` : ''}
+                        ${conquistaLbl ? `<span class="sonho-conquista-chip" title="Tempo até conquistar, contado de hoje">${conquistaLbl}</span>` : ''}
                         <span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:600;" title="Meta total do sonho">🎯 ${s.valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
                         ${conquistado ? '' : `<span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:600;color:var(--cor-primaria);" title="Aporte mensal sugerido para bater a meta">💰 ${mensalFmtCol}/mês</span>`}
                         ${conquistado ? '' : `<span class="valor-mascarado" style="font-family:'DM Mono',monospace;font-weight:500;color:var(--cor-texto-mutado);" title="Quanto falta para atingir a meta">Falta ${faltaFmtCol}</span>`}
@@ -762,13 +773,6 @@ function formatarPrazoMeses(m) {
   return `${anos}a ${resto}m`;
 }
 
-function corUrgenciaPorMeses(m) {
-  if (m <= 0) return 'urg-conquistado';
-  if (m <= 6) return 'urg-alta';
-  if (m <= 12) return 'urg-media';
-  return 'urg-baixa';
-}
-
 function renderResumoSonhos() {
   const container = document.getElementById('sonhosResumoContainer');
   if (!container) return;
@@ -788,20 +792,7 @@ function renderResumoSonhos() {
   const conquistados = sonhos.filter((s) => s.valorAtual >= s.valorTotal).length;
   const agendados = sonhos.filter((s) => statusSonho(s) === 'agendado').length;
 
-  // Lista por sonho NÃO conquistado, ordenado por urgência (menos meses primeiro,
-  // mas com agendados ao final pois ainda não começaram)
-  const naoConquistados = sonhos
-    .filter((s) => s.valorAtual / s.valorTotal < 1)
-    .sort((a, b) => {
-      const sa = statusSonho(a),
-        sb = statusSonho(b);
-      if (sa === 'agendado' && sb !== 'agendado') return 1;
-      if (sb === 'agendado' && sa !== 'agendado') return -1;
-      return (a.mesesRestantes || 0) - (b.mesesRestantes || 0);
-    });
-
   const pctGeral = totalMeta > 0 ? (totalGuardado / totalMeta) * 100 : 0;
-  const SONHO_CATS = typeof SONHO_CATEGORIAS !== 'undefined' ? SONHO_CATEGORIAS : {};
 
   container.innerHTML = `
     <div class="sonhos-overview">
@@ -843,70 +834,6 @@ function renderResumoSonhos() {
                 <div class="sonhos-progresso-fill" style="width:${Math.min(100, pctGeral)}%;"></div>
             </div>
         </div>
-
-        ${
-          naoConquistados.length > 0
-            ? `
-        <div class="tempo-conquistar-section">
-            <div class="tempo-conquistar-title">
-                <i class="ph-fill ph-hourglass-medium" style="color:#7c3aed;"></i> Tempo para conquistar cada sonho
-            </div>
-            <div class="tempo-conquistar-grid">
-                ${naoConquistados
-                  .map((s) => {
-                    const pctIndiv = Math.min(100, (s.valorAtual / s.valorTotal) * 100);
-                    const status = statusSonho(s);
-                    const statusLbl =
-                      status === 'agendado'
-                        ? 'Agendado'
-                        : status === 'vencido'
-                          ? 'Vencido'
-                          : 'Em andamento';
-                    const mensal = calcSonhoMensal(s.valorTotal, s.valorAtual, s.mesesRestantes);
-                    const falta = Math.max(0, s.valorTotal - s.valorAtual);
-                    const emoji = SONHO_CATS[s.categoria] || '🌟';
-                    const corBar =
-                      pctIndiv >= 60
-                        ? 'linear-gradient(90deg,#10b981,#059669)'
-                        : pctIndiv >= 30
-                          ? 'linear-gradient(90deg,#f59e0b,#d97706)'
-                          : 'linear-gradient(90deg,#ef4444,#dc2626)';
-                    const urgClass = corUrgenciaPorMeses(s.mesesRestantes);
-                    let prazoTxt;
-                    if (status === 'agendado') {
-                      const d = diasAteInicioSonho(s);
-                      prazoTxt = d > 30 ? formatarPrazoMeses(Math.ceil(d / 30)) : `em ${d}d`;
-                    } else {
-                      prazoTxt = formatarPrazoMeses(s.mesesRestantes);
-                    }
-                    return `
-                    <div class="tempo-card" onclick="document.getElementById('card_${s.id}')?.scrollIntoView({behavior:'smooth',block:'center'});if(!document.getElementById('card_${s.id}')?.classList.contains('expanded'))toggleSonhoCard('${s.id}');">
-                        <div class="tempo-card-head">
-                            <div class="tempo-card-icon cat-${s.categoria}">${emoji}</div>
-                            <div class="tempo-card-info">
-                                <div class="tempo-card-nome">${s.nome}</div>
-                                <span class="tempo-card-status st-${status}">${statusLbl}</span>
-                            </div>
-                            <div>
-                                <div class="tempo-card-prazo-lbl" style="text-align:right;">${status === 'agendado' ? 'Inicia' : 'Falta'}</div>
-                                <div class="tempo-card-prazo ${urgClass}">${prazoTxt}</div>
-                            </div>
-                        </div>
-                        <div class="tempo-card-bar">
-                            <div class="tempo-card-bar-fill" style="width:${pctIndiv}%;background:${corBar};"></div>
-                        </div>
-                        <div class="tempo-card-meta">
-                            <span><strong class="valor-mascarado">${formatarMoeda(mensal)}</strong>/mês</span>
-                            <span>Falta <strong class="valor-mascarado">${formatarMoeda(falta)}</strong></span>
-                            <span>${pctIndiv.toFixed(0)}%</span>
-                        </div>
-                    </div>`;
-                  })
-                  .join('')}
-            </div>
-        </div>`
-            : ''
-        }
     </div>`;
 }
 

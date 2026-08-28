@@ -114,6 +114,18 @@ var MOTOR_PILAR_NOMES = {
   qualidade: 'Qualidade',
 };
 
+// Mesmos pilares, rótulo curto. Existe para a barra de cinco colunas do card:
+// num ecrã de 360px cada coluna tem ~55px, e 'Endividamento' mede 75 — era ele
+// que impedia o card de encolher e punha a página a rolar para o lado. O nome
+// completo continua no `title` de cada pilar e na secção de critérios.
+var MOTOR_PILAR_NOMES_CURTOS = {
+  valuation: 'Valuation',
+  dividendos: 'Dividendo',
+  crescimento: 'Cresc.',
+  endividamento: 'Dívida',
+  qualidade: 'Qualidade',
+};
+
 var MOTOR_CRITERIOS = {
   acao: {
     valuation: [
@@ -538,6 +550,160 @@ var MOTOR_CRITERIOS = {
     ],
   },
 
+  // Fundo de PAPEL (CRI, recebíveis). Não é uma classe à parte para efeito
+  // de alocação — continua sendo FII na carteira —, mas os critérios são
+  // outros: cobrar taxa de ocupação e número de imóveis de quem não tem
+  // imóvel é o mesmo erro que cobrar EBITDA de banco. O indicador não está
+  // ausente, ele não se aplica, e tratá-lo como ausente derruba a cobertura
+  // e aciona o encolhimento do score contra um fundo sem defeito nenhum.
+  //
+  // O que muda em relação ao tijolo é SÓ a remoção do que não se aplica.
+  // Valuation, dividendos e o crescimento do dividendo são os mesmos — um
+  // fundo de papel distribui rendimento como qualquer outro, e é isso que
+  // o cotista recebe.
+  fiiPapel: {
+    valuation: [
+      {
+        id: 'pvp',
+        nome: 'P/VP',
+        peso: 4,
+        unidade: 'x',
+        exigePositivo: true,
+        notaSeNegativo: 0.5,
+        pontos: [
+          [0.6, 10],
+          [0.8, 9],
+          [0.95, 8],
+          [1.05, 6.5],
+          [1.2, 4.5],
+          [1.5, 2],
+          [2, 0.5],
+        ],
+      },
+    ],
+    dividendos: [
+      {
+        id: 'dy',
+        nome: 'Dividend Yield (12m)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [4, 3],
+          [7, 6],
+          [9, 8],
+          [11, 9.5],
+          [14, 10],
+          [20, 6],
+        ],
+      },
+      {
+        id: 'dyMedio36m',
+        nome: 'DY médio (36 meses)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [4, 3],
+          [7, 6.5],
+          [9.5, 9],
+          [12, 10],
+          [18, 7],
+        ],
+      },
+      {
+        id: 'consistenciaDividendos',
+        nome: 'Meses pagando (24m)',
+        peso: 2,
+        unidade: '%',
+        pontos: [
+          [0, 0],
+          [50, 3],
+          [80, 7],
+          [95, 9.5],
+          [100, 10],
+        ],
+      },
+    ],
+    // Sem taxa de ocupação: não há imóvel para ocupar. O crescimento do
+    // dividendo carrega o pilar sozinho, e é o indicador certo — mede se o
+    // fundo está distribuindo mais por cota do que distribuía.
+    crescimento: [
+      {
+        id: 'crescimentoDividendo12m',
+        nome: 'Crescimento do dividendo (12m)',
+        peso: 3,
+        unidade: '%',
+        pontos: [
+          [-20, 0],
+          [-5, 3],
+          [0, 5],
+          [5, 7.5],
+          [12, 9.5],
+          [25, 10],
+        ],
+      },
+    ],
+    endividamento: [
+      {
+        id: 'alavancagem',
+        nome: 'Alavancagem / LTV',
+        peso: 4,
+        unidade: '%',
+        pontos: [
+          [0, 10],
+          [10, 9],
+          [20, 7.5],
+          [30, 6],
+          [45, 3.5],
+          [60, 1],
+        ],
+      },
+    ],
+    // Sem contagem de imóveis, pelo mesmo motivo.
+    qualidade: [
+      {
+        id: 'liquidezDiaria',
+        nome: 'Liquidez diária',
+        peso: 3,
+        unidade: 'R$',
+        pontos: [
+          [0, 0],
+          [200000, 3],
+          [1000000, 6.5],
+          [5000000, 9],
+          [20000000, 10],
+        ],
+      },
+      {
+        id: 'patrimonioLiquido',
+        nome: 'Patrimônio líquido',
+        peso: 2,
+        unidade: 'R$',
+        pontos: [
+          [0, 0],
+          [100000000, 3],
+          [500000000, 6.5],
+          [2000000000, 9],
+          [8000000000, 10],
+        ],
+      },
+      {
+        id: 'numeroCotistas',
+        nome: 'Número de cotistas',
+        peso: 2,
+        unidade: '',
+        pontos: [
+          [0, 0],
+          [5000, 3],
+          [30000, 6.5],
+          [100000, 9],
+          [400000, 10],
+        ],
+      },
+    ],
+  },
+
   cripto: {
     // Valuation e dividendos não existem aqui: não há lucro nem distribuição.
     // Os pilares ficam vazios de propósito — motorScoreAtivo redistribui o
@@ -783,30 +949,94 @@ var MOTOR_LENTE_POR_OBJETIVO = {
   aumentar: 'qualidade',
 };
 
-// Setores canônicos — a BRAPI devolve o nome em inglês ou português conforme
-// o ativo, então normalizamos por palavra-chave em vez de igualdade exata.
+// Setores canônicos — a fonte de mercado devolve o nome em inglês ou em
+// português conforme o ativo, então normalizamos por palavra-chave em vez de
+// igualdade exata.
+//
+// A ORDEM É SIGNIFICATIVA: ganha o primeiro que casar. Os canons mais
+// específicos vêm primeiro porque os genéricos os engoliriam — 'utilit' de
+// energia casa com a Utilities de uma empresa de água antes de 'sanea'
+// chegar a ser testado.
+//
+// 'energy' fica em petróleo e 'energia' fica em energia elétrica de
+// propósito: são taxonomias diferentes a usar a mesma raiz. Na régua do
+// provedor em inglês, Energy é óleo e gás e a elétrica é Utilities; no rótulo
+// em português, energia é elétrica. Juntar as duas colocava a Petrobras no
+// balde da distribuidora de luz — e, na lente Renda, dava-lhe o bônus de
+// setor perene que só as reguladas deviam receber.
 var MOTOR_SETOR_MAPA = [
   { canon: 'banco', termos: ['banco', 'bank', 'financ', 'credit'] },
-  { canon: 'energia', termos: ['energia', 'energy', 'eletric', 'electric', 'utilit', 'power'] },
-  { canon: 'saneamento', termos: ['saneamento', 'water', 'agua', 'sanea'] },
   { canon: 'seguro', termos: ['seguro', 'insur', 'previd'] },
+  { canon: 'saneamento', termos: ['saneamento', 'water', 'agua', 'sanea'] },
+  { canon: 'petroleo', termos: ['petrol', 'oil', 'gas', 'combustiv', 'energy'] },
+  { canon: 'energia', termos: ['energia', 'eletric', 'electric', 'utilit', 'power'] },
   { canon: 'telecom', termos: ['telecom', 'telefon', 'communication'] },
-  { canon: 'petroleo', termos: ['petrol', 'oil', 'gas', 'combustiv'] },
-  { canon: 'mineracao', termos: ['miner', 'metal', 'siderurg', 'steel'] },
-  { canon: 'varejo', termos: ['varejo', 'retail', 'consumer', 'comerc'] },
-  { canon: 'saude', termos: ['saude', 'saúde', 'health', 'farmac', 'pharma', 'hospital'] },
+  { canon: 'mineracao', termos: ['miner', 'metal', 'siderurg', 'steel', 'material'] },
+  { canon: 'papel', termos: ['papel', 'celulose', 'paper', 'pulp'] },
+  { canon: 'quimica', termos: ['quimic', 'chemical', 'petroquim', 'fertiliz'] },
+  { canon: 'saude', termos: ['saude', 'health', 'farmac', 'pharma', 'hospital'] },
   { canon: 'construcao', termos: ['constru', 'imobili', 'real estate', 'incorpora'] },
   { canon: 'alimentos', termos: ['aliment', 'food', 'bebida', 'beverage', 'agro'] },
-  { canon: 'papel', termos: ['papel', 'celulose', 'paper', 'pulp'] },
+  { canon: 'varejo', termos: ['varej', 'retail', 'consumer', 'comerc', 'consumo'] },
   { canon: 'tecnologia', termos: ['tecnolog', 'technolog', 'software', 'internet'] },
   { canon: 'transporte', termos: ['transport', 'logist', 'aeropor', 'rodovi', 'airline'] },
   { canon: 'educacao', termos: ['educa', 'education', 'ensino'] },
   { canon: 'industria', termos: ['industr', 'machin', 'bens de capital', 'manufact'] },
 ];
 
+// Canon -> rótulo de tela, em português.
+//
+// O canon é chave interna ('mineracao'), e o rótulo do provedor é imprestável
+// para mostrar: vem 'Basic Materials' num ativo e 'Comércio Varejista' no
+// outro, misturando idioma e granularidade na mesma lista. A tela precisa de
+// um nome por setor, sempre o mesmo, sempre em português.
+//
+// Existe porque a ação passou a mostrar o setor a que pertence, como o FII já
+// mostrava o seu segmento. Antes ela exibia o BALDE da política, e o balde
+// descreve mal o ativo: a Vale aparecia como 'Consumo/Commodities', que é o
+// bloco de alocação dela, não o setor dela.
+var MOTOR_SETOR_NOMES = {
+  banco: 'Bancos e Financeiro',
+  seguro: 'Seguros e Previdência',
+  saneamento: 'Saneamento',
+  petroleo: 'Petróleo e Gás',
+  energia: 'Energia Elétrica',
+  telecom: 'Telecomunicações',
+  mineracao: 'Mineração e Siderurgia',
+  papel: 'Papel e Celulose',
+  quimica: 'Química e Petroquímica',
+  saude: 'Saúde',
+  construcao: 'Construção e Imobiliário',
+  alimentos: 'Alimentos e Bebidas',
+  varejo: 'Varejo e Consumo',
+  tecnologia: 'Tecnologia',
+  transporte: 'Transporte e Logística',
+  educacao: 'Educação',
+  industria: 'Indústria',
+};
+
+// Segmento do FII -> rótulo de tela. Mesma régua dos setores de ação.
+var MOTOR_FII_SEGMENTO_NOMES = {
+  papel: 'Papel (recebíveis)',
+  logistica: 'Logística',
+  shoppings: 'Shoppings',
+  imoveis: 'Imóveis (tijolo)',
+};
+
+/**
+ * Rótulo de setor -> canon do motor.
+ *
+ * Compara SEM ACENTO. O provedor devolve 'Comércio Varejista' e 'Saúde', e a
+ * comparação literal contra 'comerc' e 'saude' falhava nos dois — o ativo caía
+ * em 'outros' e, agora que o setor decide alocação, saía inteiro da política
+ * de diversificação sem nada na tela a dizer por quê.
+ */
 function motorNormalizarSetor(setor) {
   if (!setor || typeof setor !== 'string') return null;
-  var s = setor.toLowerCase();
+  var s = setor
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
   for (var i = 0; i < MOTOR_SETOR_MAPA.length; i++) {
     var m = MOTOR_SETOR_MAPA[i];
     for (var j = 0; j < m.termos.length; j++) {
@@ -817,13 +1047,200 @@ function motorNormalizarSetor(setor) {
 }
 
 // ════════════════════════════════════════════════════════════
+// 3.1 POLÍTICA DE DIVERSIFICAÇÃO SETORIAL
+// ════════════════════════════════════════════════════════════
+//
+// O ranking sozinho concentra. Se as cinco ações mais bem pontuadas do mês
+// forem construtoras, o plano compra cinco construtoras — cada uma com nota
+// alta e a carteira inteira apostada num único ciclo de crédito e juros. O
+// score mede o ATIVO; ele não tem como medir o que a carteira já tem.
+//
+// Por isso a seleção passa a ter duas perguntas em vez de uma:
+//   1. QUANTO vai para cada setor  → esta tabela (política declarada);
+//   2. QUEM leva dentro do setor   → o score, como sempre.
+//
+// `alvo` é a fatia do bloco de renda variável (ações + FIIs) que a política
+// reserva ao setor. Os alvos de uma classe são NORMALIZADOS entre si na hora
+// de aplicar — a divisão macro entre RF/ações/FIIs/cripto continua saindo do
+// perfil, do objetivo e do prazo, e não é esta tabela que a decide. Ou seja:
+// dentro de ações, os 20 de Bancos valem 20/50 = 40% do que a classe receber.
+//
+// Setor sem candidato elegível não trava a classe: o alvo dele é redistribuído
+// entre os que têm, e o plano DECLARA que redistribuiu. Silenciar isso faria a
+// tela mostrar uma diversificação que não aconteceu.
+var MOTOR_SETORES_ALVO = {
+  acao: [
+    { chave: 'financeiro', nome: 'Bancos/Financeiro', alvo: 20, setores: ['banco', 'seguro'] },
+    { chave: 'energia', nome: 'Energia elétrica', alvo: 5, setores: ['energia'] },
+    { chave: 'saneamento', nome: 'Saneamento', alvo: 5, setores: ['saneamento'] },
+    {
+      chave: 'tecindustria',
+      nome: 'Tecnologia/Indústria',
+      alvo: 10,
+      setores: ['tecnologia', 'industria', 'telecom', 'transporte', 'construcao'],
+    },
+    {
+      chave: 'consumo',
+      nome: 'Consumo/Commodities',
+      alvo: 10,
+      setores: [
+        'varejo',
+        'alimentos',
+        'saude',
+        'educacao',
+        'petroleo',
+        'mineracao',
+        'papel',
+        'quimica',
+      ],
+    },
+    // Balde de quem não cai em nenhum dos declarados: setor que existe e não
+    // está no mapa (aeroespacial, hotelaria) ou setor que a fonte não
+    // informou. Sem ele esses ativos ficavam FORA do plano — apareciam
+    // pontuados na lista e nunca recebiam aporte.
+    //
+    // O alvo é pequeno e cede o lugar sozinho: setor sem candidato tem o alvo
+    // redistribuído entre os outros, então numa carteira em que todo ativo tem
+    // setor conhecido este balde não existe e as proporções declaradas saem
+    // exatas. Ele só dilui quando há mesmo alguém para pôr nele — que é
+    // precisamente quando se quer que ele exista.
+    { chave: 'outros', nome: 'Outros setores', alvo: 5, setores: ['*'] },
+  ],
+  fii: [
+    { chave: 'papel', nome: 'Papel', alvo: 10, segmentos: ['papel'] },
+    { chave: 'logistica', nome: 'Logística', alvo: 10, segmentos: ['logistica'] },
+    { chave: 'shoppings', nome: 'Shoppings', alvo: 10, segmentos: ['shoppings'] },
+    { chave: 'imoveis', nome: 'Imóveis', alvo: 20, segmentos: ['imoveis'] },
+    { chave: 'outros', nome: 'Outros segmentos', alvo: 5, segmentos: ['*'] },
+  ],
+};
+
+// Segmento do FII por palavra no nome. É reserva, não a fonte principal: a
+// CVM publica a carteira do fundo e é ela que separa papel de tijolo
+// (`tipoFii`, ver scripts/lib/cvm-parser.js). O nome só entra depois, e só
+// para dividir o tijolo entre logística, shopping e o resto — essa quebra
+// não existe em nenhum campo do informe.
+var MOTOR_FII_SEGMENTO_MAPA = [
+  { canon: 'logistica', re: /logist|galp|industrial|\blog\b/ },
+  { canon: 'shoppings', re: /shopping|mall|outlet/ },
+  { canon: 'papel', re: /papel|recebiv|credito|high grade|\bcri\b/ },
+];
+
+/**
+ * Segmento de um FII: papel, logística, shoppings ou imóveis.
+ *
+ * A ordem das provas é deliberada. `tipoFii` vem do balanço publicado — a
+ * fatia da carteira em imóvel — e por isso decide primeiro: um fundo de
+ * recebíveis chamado "Renda Logística" continua sendo de papel. O nome só
+ * fala depois, e apenas sobre o tijolo, onde não há campo nenhum a
+ * consultar.
+ *
+ * `imoveis` é o destino do tijolo que o nome não classifica (laje
+ * corporativa, agência bancária, híbrido) — não é um balde de sobras: é o
+ * segmento mais genérico e o de maior alvo, justamente por isso.
+ */
+function motorSegmentoFii(dados) {
+  var d = dados || {};
+  if (d.tipoFii === 'papel') return 'papel';
+  var n = String(d.nome || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
+  for (var i = 0; i < MOTOR_FII_SEGMENTO_MAPA.length; i++) {
+    var m = MOTOR_FII_SEGMENTO_MAPA[i];
+    if (!m.re.test(n)) continue;
+    // Fundo declarado de tijolo pela CVM não vira papel por causa do nome:
+    // aí a evidência do balanço vence a palavra.
+    if (m.canon === 'papel' && d.tipoFii === 'tijolo') continue;
+    return m.canon;
+  }
+  if (d.tipoFii === 'tijolo') return 'imoveis';
+  // Sem informe e sem palavra no nome, o fundo continua sendo um fundo de
+  // imóveis — é o que a classe é. Devolver null aqui mandaria para fora da
+  // política todo FII que a ingestão ainda não alcançou.
+  return 'imoveis';
+}
+
+/**
+ * Balde da política a que um ativo pertence, ou null quando não há como
+ * dizer.
+ *
+ * Null NÃO é "outros": é a ausência da informação. Ação sem setor acontece
+ * quando a fonte de mercado degrada para cotação simples, e nesse estado a
+ * política inteira não pode ser aplicada — quem trata isso é
+ * motorPesosPorSetor, caindo de volta para a seleção por score e dizendo
+ * que caiu.
+ */
+function motorBucketSetor(ativo, buckets) {
+  if (!ativo || !buckets || !buckets.length) return null;
+  var classe = ativo.classe;
+  var i, j;
+  // '*' é o balde curinga: recebe quem não casou com nenhum declarado. Ele é
+  // procurado DEPOIS de todos, e só uma vez, para não engolir um ativo que
+  // tinha balde próprio.
+  function curinga() {
+    for (var k = 0; k < buckets.length; k++) {
+      var campo = classe === 'fii' ? buckets[k].segmentos : buckets[k].setores;
+      if (campo && campo.indexOf('*') !== -1) return buckets[k].chave;
+    }
+    return null;
+  }
+
+  if (classe === 'fii') {
+    var seg = ativo.segmentoFii || motorSegmentoFii(ativo);
+    for (i = 0; i < buckets.length; i++) {
+      var segs = buckets[i].segmentos || [];
+      for (j = 0; j < segs.length; j++)
+        if (segs[j] === seg && segs[j] !== '*') return buckets[i].chave;
+    }
+    return curinga();
+  }
+  var canon = ativo.setorCanon || motorNormalizarSetor(ativo.setor);
+  // 'outros' é o que motorNormalizarSetor devolve para um setor que EXISTE e
+  // não está no mapa; null é setor que a fonte não informou. Nos dois casos
+  // não dá para escolher um balde declarado sem inventar — e colocá-lo no
+  // maior deles distorceria justamente o mais pesado. Vão para o curinga.
+  if (!canon || canon === 'outros') return curinga();
+  for (i = 0; i < buckets.length; i++) {
+    var lista = buckets[i].setores || [];
+    for (j = 0; j < lista.length; j++)
+      if (lista[j] === canon && lista[j] !== '*') return buckets[i].chave;
+  }
+  return curinga();
+}
+
+// ════════════════════════════════════════════════════════════
 // 4. SCORE DE UM ATIVO
 // ════════════════════════════════════════════════════════════
 
 /** Classe macro do motor: só existem rf, acao, fii e cripto. ETF e BDR entram como ação. */
+/**
+ * Critérios a aplicar — a classe decide, e dentro do FII o TIPO de carteira
+ * decide de novo.
+ *
+ * Fundo de papel não tem imóvel: taxa de ocupação e contagem de imóveis não
+ * estão ausentes nele, elas não se aplicam. Cobrá-las derruba a cobertura e
+ * aciona o encolhimento do score contra um fundo sem defeito nenhum — o
+ * mesmo erro que cobrar EBITDA de um banco.
+ *
+ * A alocação continua vendo uma classe só: o fundo de papel é FII na
+ * carteira. O que muda é apenas a régua com que ele é medido.
+ */
+function motorCriteriosDe(classe, dados) {
+  if (classe === 'fii' && dados && dados.tipoFii === 'papel') {
+    return MOTOR_CRITERIOS.fiiPapel;
+  }
+  return MOTOR_CRITERIOS[classe] || MOTOR_CRITERIOS.acao;
+}
+
 function motorInferirClasse(ticker, nome, dica) {
   if (dica === 'etf' || dica === 'bdr') return 'acao';
-  if (dica && MOTOR_CRITERIOS[dica]) return dica;
+  // `fiiPapel` é um conjunto de CRITÉRIOS, não uma classe de alocação: o
+  // fundo de papel continua sendo FII na carteira. Sem esta guarda ele
+  // viraria uma quinta classe e sumiria da distribuição do aporte, que
+  // percorre MOTOR_CLASSES.
+  if (dica === 'fiiPapel') return 'fii';
+  if (dica && MOTOR_CLASSES.indexOf(dica) !== -1) return dica;
   var t = String(ticker || '').toUpperCase();
   var n = String(nome || '').toLowerCase();
   if (['BTC', 'ETH', 'SOL', 'ADA', 'BNB', 'XRP', 'DOT', 'AVAX', 'LINK', 'MATIC'].indexOf(t) !== -1)
@@ -838,12 +1255,22 @@ function motorInferirClasse(ticker, nome, dica) {
     n.indexOf('renda fixa') !== -1
   )
     return 'rf';
-  // FII na B3 termina em 11 — mas 11 também é sufixo de unit (ex.: SANB11) e
-  // de ETF (BOVA11). O nome desempata; sem nome, o sufixo decide.
+  // FII na B3 termina em 11 — mas 11 também é sufixo de UNIT (SANB11, TAEE11,
+  // ENGI11, KLBN11, BPAC11, ALUP11, SAPR11, IGTI11) e de ETF (BOVA11). O nome
+  // desempata; sem nome, o sufixo decide.
+  //
+  // A ordem é o conserto: evidência POSITIVA de fundo primeiro, unit depois,
+  // e só então o sufixo. E o teste de unit procurava 'unit' — a B3 escreve
+  // **UNT**. Nenhuma unit casava, TODAS entravam como FII, e o efeito medido
+  // na tela foi a aba de FIIs com um item só: o SANB11, com critérios de
+  // fundo imobiliário aplicados a um banco. Pior, ocupar a classe impedia o
+  // resgate para a carteira modelo, que teria trazido os FIIs de verdade.
   if (/^[A-Z]{4}11$/.test(t)) {
     if (n.indexOf('etf') !== -1 || n.indexOf('index') !== -1 || n.indexOf('ishares') !== -1)
       return 'acao';
-    if (n.indexOf('unit') !== -1) return 'acao';
+    // Fundo que se declara fundo vence qualquer outra pista.
+    if (/fii|imobiliar|fdo\s*inv|fundo de investimento/.test(n)) return 'fii';
+    if (/unt\b/.test(n) || n.indexOf('unit') !== -1) return 'acao';
     return 'fii';
   }
   return 'acao';
@@ -941,7 +1368,7 @@ function motorScoreAtivo(dados, opcoes) {
       ? op.lente
       : MOTOR_LENTES[op.lente] || MOTOR_LENTES.equilibrio;
   var classe = motorInferirClasse(d.ticker, d.nome, d.classe);
-  var criterios = MOTOR_CRITERIOS[classe] || MOTOR_CRITERIOS.acao;
+  var criterios = motorCriteriosDe(classe, d);
 
   var pilares = {};
   var somaPonderada = 0;
@@ -991,6 +1418,19 @@ function motorScoreAtivo(dados, opcoes) {
 
   // Bônus setorial: só existe em lente que declara setores preferidos.
   var setorCanon = motorNormalizarSetor(d.setor);
+  // Segmento do FII sai aqui, uma vez, e viaja com o ativo: a tela, o plano e
+  // a política de setores têm de concordar sobre o que é um fundo de papel.
+  //
+  // Precedência, e ela importa: o INFORME decide papel × tijolo, porque mede a
+  // fatia da carteira em imóvel; um segmento que já venha resolvido (a lista
+  // curada do servidor) decide a quebra do tijolo, que o informe não tem; e o
+  // nome do fundo é o último recurso. Recalcular sempre pelo nome — que era o
+  // que esta linha fazia — deitava fora o segmento curado e punha todo FII sem
+  // informe no mesmo balde 'imoveis', apagando a diversificação da classe.
+  var segmentoFii = null;
+  if (classe === 'fii') {
+    segmentoFii = d.tipoFii === 'papel' ? 'papel' : d.segmentoFii || motorSegmentoFii(d);
+  }
   var bonus = 0;
   if (
     lente.setoresPreferidos &&
@@ -1054,6 +1494,8 @@ function motorScoreAtivo(dados, opcoes) {
     classe: classe,
     setor: d.setor || null,
     setorCanon: setorCanon,
+    tipoFii: d.tipoFii || null,
+    segmentoFii: segmentoFii,
     preco: typeof d.preco === 'number' ? d.preco : null,
     // Procedência: indicador sem fonte e data é opinião. O motor transporta,
     // não interpreta — quem rotula é a fonte, quem desenha é a tela.
@@ -1475,6 +1917,218 @@ function motorPesosPorScore(itens, opcoes) {
   });
 }
 
+/**
+ * Seleção com diversificação setorial: o alvo do setor decide QUANTO, e o
+ * score decide QUEM leva dentro dele.
+ *
+ * O caminho por score puro (motorPesosPorScore) responde "quais são os
+ * melhores ativos". Esta função responde outra pergunta — "qual é a melhor
+ * carteira" — e as duas respostas divergem exatamente quando o mês favorece
+ * um setor inteiro: seis construtoras bem pontuadas produzem seis notas altas
+ * e uma carteira com um risco só.
+ *
+ * As vagas são repartidas por método de maior média (D'Hondt), com uma vaga
+ * garantida a cada setor presente antes de a proporcionalidade valer. A
+ * garantia é o que faz Saneamento (alvo 5) aparecer numa seleção de seis
+ * nomes — pela proporção pura ele nunca chegaria à primeira vaga, e a
+ * política existe justamente para ele estar lá.
+ *
+ * Devolve `null` quando a política NÃO PÔDE ser aplicada — nenhum candidato
+ * com setor conhecido. Null é uma resposta, não uma falha: quem chama cai
+ * para a seleção por score e declara o motivo na tela. Fabricar baldes a
+ * partir de setor desconhecido produziria uma diversificação de mentira.
+ */
+function motorPesosPorSetor(itens, opcoes) {
+  var op = opcoes || {};
+  var buckets = op.buckets || [];
+  var i;
+
+  var lista = (itens || []).filter(function (a) {
+    return a && a.ticker;
+  });
+  if (!lista.length || !buckets.length) return null;
+
+  if (op.somenteElegiveis) {
+    var elegiveis = lista.filter(function (a) {
+      return a.elegivel !== false;
+    });
+    if (elegiveis.length) lista = elegiveis;
+  }
+
+  // Mesma regra do caminho por score: havendo pontuados, os sem lastro saem.
+  var pontuados = lista.filter(function (a) {
+    return (a.scoreExato != null ? a.scoreExato : a.score) != null;
+  });
+  if (!pontuados.length) return null;
+  lista = pontuados;
+
+  // Agrupa por balde, cada um já ordenado por score.
+  var porBucket = {};
+  var semSetor = [];
+  lista.forEach(function (a) {
+    var chave = motorBucketSetor(a, buckets);
+    if (!chave) {
+      semSetor.push(a);
+      return;
+    }
+    (porBucket[chave] || (porBucket[chave] = [])).push(a);
+  });
+
+  var presentes = buckets.filter(function (b) {
+    return porBucket[b.chave] && porBucket[b.chave].length;
+  });
+  if (!presentes.length) return null;
+
+  // SÓ o curinga com candidatos é a ausência de dado vestida de política:
+  // "Outros setores 100%" na tela pareceria uma decisão de diversificação
+  // quando na verdade nenhum ativo tem setor conhecido. Esse estado tem
+  // conserto (a fonte de setor) e precisa continuar a ser declarado como o que
+  // é — daí voltar para a seleção por score, com o motivo dito.
+  var soCuringa = presentes.every(function (b) {
+    var campo = b.segmentos || b.setores || [];
+    return campo.indexOf('*') !== -1;
+  });
+  if (soCuringa) return null;
+
+  presentes.forEach(function (b) {
+    porBucket[b.chave].sort(function (x, y) {
+      var sx = x.scoreExato != null ? x.scoreExato : x.score;
+      var sy = y.scoreExato != null ? y.scoreExato : y.score;
+      if (sy !== sx) return sy - sx;
+      return String(x.ticker).localeCompare(String(y.ticker));
+    });
+  });
+
+  var topN = Math.max(1, op.topN != null ? op.topN : 6);
+
+  // ── Vagas: uma garantida por setor presente, o resto por maior média ──
+  var vagas = {};
+  presentes.forEach(function (b) {
+    vagas[b.chave] = 0;
+  });
+  var ordemAlvo = presentes.slice().sort(function (x, y) {
+    if (y.alvo !== x.alvo) return y.alvo - x.alvo;
+    return String(x.chave).localeCompare(String(y.chave));
+  });
+  var usadas = 0;
+  for (i = 0; i < ordemAlvo.length && usadas < topN; i++) {
+    vagas[ordemAlvo[i].chave] = 1;
+    usadas++;
+  }
+  while (usadas < topN) {
+    var melhor = null;
+    var melhorQuociente = -1;
+    for (i = 0; i < presentes.length; i++) {
+      var b = presentes[i];
+      if (porBucket[b.chave].length <= vagas[b.chave]) continue; // sem candidato de sobra
+      var q = b.alvo / (vagas[b.chave] + 1);
+      if (q > melhorQuociente + 1e-9) {
+        melhorQuociente = q;
+        melhor = b;
+      }
+    }
+    if (!melhor) break;
+    vagas[melhor.chave]++;
+    usadas++;
+  }
+
+  // Setor sem vaga não entra na normalização: o alvo dele volta para os
+  // outros, senão sobraria peso sem dono e a classe não fecharia em 100%.
+  var comVaga = presentes.filter(function (b) {
+    return vagas[b.chave] > 0;
+  });
+  var somaAlvo = comVaga.reduce(function (s, b) {
+    return s + (b.alvo > 0 ? b.alvo : 0);
+  }, 0);
+
+  var selecao = [];
+  comVaga.forEach(function (b) {
+    var pesoBucket = somaAlvo > 0 ? (b.alvo > 0 ? b.alvo : 0) / somaAlvo : 1 / comVaga.length;
+    // Dentro do balde é o score que manda, sem teto nem piso próprios: o
+    // teto do balde já é o alvo dele, e um piso aqui cortaria o segundo
+    // nome de um setor que só tem duas vagas.
+    var dentro = motorPesosPorScore(porBucket[b.chave], {
+      topN: vagas[b.chave],
+      maxPct: 1,
+      minPct: 0,
+      expoente: op.expoente,
+      pisoScore: op.pisoScore,
+      scoreMinimo: 0,
+    });
+    dentro.forEach(function (d) {
+      selecao.push({
+        ativo: d.ativo,
+        peso: pesoBucket * d.peso,
+        setorChave: b.chave,
+        setorNome: b.nome,
+        setorAlvo: b.alvo,
+      });
+    });
+  });
+  if (!selecao.length) return null;
+
+  selecao.sort(function (a, b2) {
+    if (b2.peso !== a.peso) return b2.peso - a.peso;
+    return String(a.ativo.ticker).localeCompare(String(b2.ativo.ticker));
+  });
+
+  // Teto por ativo continua valendo como cerca de risco. Quando um setor de
+  // alvo grande tem um nome só, o teto morde e a diferença volta para os
+  // outros setores — a política cede ao limite de concentração, não o
+  // contrário. `tetoRelativo / n` mantém o teto factível com poucos nomes,
+  // pela mesma razão que em motorPesosPorScore.
+  var maxPct = op.maxPct != null ? op.maxPct : 0.35;
+  var tetoRelativo = op.tetoRelativo != null ? op.tetoRelativo : 1.6;
+  var pesos = motorAplicarTeto(
+    selecao.map(function (s) {
+      return s.peso;
+    }),
+    Math.max(maxPct, tetoRelativo / selecao.length)
+  );
+  for (i = 0; i < selecao.length; i++) selecao[i].peso = pesos[i];
+
+  var vazios = buckets.filter(function (b) {
+    return !porBucket[b.chave] || !porBucket[b.chave].length;
+  });
+  var semVaga = presentes.filter(function (b) {
+    return vagas[b.chave] === 0;
+  });
+
+  var setores = comVaga.map(function (b) {
+    var peso = 0;
+    selecao.forEach(function (s) {
+      if (s.setorChave === b.chave) peso += s.peso;
+    });
+    return {
+      chave: b.chave,
+      nome: b.nome,
+      alvo: b.alvo,
+      // O alvo depois de normalizado entre os setores presentes, ao lado do
+      // peso que de facto saiu. Os dois divergem quando o teto por ativo
+      // morde — um setor de alvo grande com um único nome elegível — e a
+      // tela precisa dos dois números para dizer que cedeu, e por quê.
+      alvoPct: somaAlvo > 0 ? motorArred((b.alvo > 0 ? b.alvo : 0) / somaAlvo, 4) : null,
+      nomes: vagas[b.chave],
+      candidatos: porBucket[b.chave].length,
+      peso: motorArred(peso, 4),
+    };
+  });
+  var setoresVazios = vazios.concat(semVaga).map(function (b) {
+    return {
+      chave: b.chave,
+      nome: b.nome,
+      alvo: b.alvo,
+      candidatos: (porBucket[b.chave] || []).length,
+    };
+  });
+  return {
+    itens: selecao,
+    setores: setores,
+    setoresVazios: setoresVazios,
+    semSetor: semSetor.length,
+  };
+}
+
 // ════════════════════════════════════════════════════════════
 // 7. PLANO DE APORTE
 // ════════════════════════════════════════════════════════════
@@ -1623,15 +2277,41 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
   var cabem = Math.max(1, Math.floor(valor / (op.ticketMinimo || 100)));
   var topN = Math.min(op.topN, cabem);
 
-  var selecao = motorPesosPorScore(candidatos, {
-    topN: topN,
-    maxPct: op.maxPct,
-    minPct: op.minPct,
-    expoente: op.expoente,
-    pisoScore: op.pisoScore,
-    scoreMinimo: op.scoreMinimo,
-    somenteElegiveis: op.somenteElegiveis,
-  });
+  // Diversificação setorial primeiro, score puro como reserva.
+  //
+  // A ordem importa e é o núcleo do pedido: sem ela, um mês em que as seis
+  // ações mais bem pontuadas são construtoras produz uma carteira de seis
+  // construtoras. A política responde "quanto vai para cada setor"; o score
+  // continua respondendo "quem leva dentro do setor".
+  //
+  // A reserva é obrigatória, não um luxo: quando a fonte de mercado degrada
+  // para cotação simples, NENHUM ativo traz setor, e aí não há política a
+  // aplicar. Preferimos a seleção por score com o motivo declarado a uma
+  // diversificação inventada em cima de setor desconhecido.
+  var politica = op.setores !== undefined ? op.setores : MOTOR_SETORES_ALVO[classe];
+  var porSetor = null;
+  if (politica && politica.length) {
+    porSetor = motorPesosPorSetor(candidatos, {
+      buckets: politica,
+      topN: topN,
+      maxPct: op.maxPct,
+      expoente: op.expoente,
+      pisoScore: op.pisoScore,
+      somenteElegiveis: op.somenteElegiveis,
+    });
+  }
+
+  var selecao = porSetor
+    ? porSetor.itens
+    : motorPesosPorScore(candidatos, {
+        topN: topN,
+        maxPct: op.maxPct,
+        minPct: op.minPct,
+        expoente: op.expoente,
+        pisoScore: op.pisoScore,
+        scoreMinimo: op.scoreMinimo,
+        somenteElegiveis: op.somenteElegiveis,
+      });
 
   var itens = selecao.map(function (s) {
     var precoRaw =
@@ -1652,6 +2332,14 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
       valorInvestido: 0,
       unidade: MOTOR_UNIDADE_CLASSE[classe],
       justificativa: motorJustificativa(s.ativo),
+      // O setor viaja com o item porque é ele que explica por que ESTE ativo
+      // entrou: sem o rótulo na tela, uma seleção diversificada é
+      // indistinguível de uma seleção por score que por acaso variou.
+      setorChave: s.setorChave || null,
+      setorNome: s.setorNome || null,
+      setor: s.ativo.setor || null,
+      setorCanon: s.ativo.setorCanon || null,
+      segmentoFii: s.ativo.segmentoFii || null,
       semPreco: false,
     };
   });
@@ -1750,25 +2438,38 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
   }
   var modo = 'score';
 
-  var aviso = null;
+  var avisos = [];
   var semPreco = itens.filter(function (it) {
     return it.semPreco;
   });
   if (semPreco.length)
-    aviso =
+    avisos.push(
       'Sem cotação para ' +
-      semPreco
-        .map(function (it) {
-          return it.ticker;
-        })
-        .join(', ') +
-      ' — valor sugerido sem conversão em quantidade.';
+        semPreco
+          .map(function (it) {
+            return it.ticker;
+          })
+          .join(', ') +
+        ' — valor sugerido sem conversão em quantidade.'
+    );
   else if (topN < op.topN)
-    aviso =
+    avisos.push(
       'Aporte da classe comporta ' +
-      topN +
-      (topN === 1 ? ' ativo' : ' ativos') +
-      ' sem virar troco. Aumentando o aporte, o motor abre mais posições.';
+        topN +
+        (topN === 1 ? ' ativo' : ' ativos') +
+        ' sem virar troco. Aumentando o aporte, o motor abre mais posições.'
+    );
+
+  // Política pedida e não aplicada tem de ser dita. Sem esta linha, a tela
+  // mostraria uma seleção por score com a mesma cara de uma seleção
+  // diversificada, e ninguém saberia que a diversificação não aconteceu.
+  if (politica && politica.length && !porSetor)
+    avisos.push(
+      'Sem o setor dos ativos, a diversificação setorial não pôde ser aplicada — ' +
+        'a seleção saiu por score. Assim que a fonte de mercado devolver o setor, ' +
+        'o alvo de cada setor volta a valer.'
+    );
+  var aviso = avisos.length ? avisos.join(' ') : null;
 
   return {
     classe: classe,
@@ -1778,8 +2479,54 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
     retido: 0,
     itens: itens,
     modo: modo,
+    // Como a seleção foi feita, e o que a política não conseguiu cobrir.
+    // 'setor' e 'score' produzem carteiras diferentes a partir do mesmo
+    // ranking — esconder qual dos dois rodou tornaria a tela impossível de
+    // auditar.
+    selecao: porSetor ? 'setor' : 'score',
+    setores: porSetor ? porSetor.setores : null,
+    setoresVazios: porSetor ? porSetor.setoresVazios : null,
+    semSetor: porSetor ? porSetor.semSetor : null,
     aviso: aviso,
   };
+}
+
+/**
+ * Recalcula quantidade e valor de um item cujo TICKER mudou.
+ *
+ * Vive aqui, ao lado de motorPlanoClasse, porque a regra de arredondamento é
+ * a mesma e uma cópia dela no cliente divergiria no primeiro ajuste — ação e
+ * FII compram lote inteiro, cripto aceita fração, renda fixa aceita centavo.
+ *
+ * A troca preserva o VALOR DO LUGAR, não o ativo: o motor decidiu que aquele
+ * slot vale R$ 320, e trocar o ticker não muda essa decisão. É o que faz a
+ * troca ser previsível — trocar um banco por outro não pode reordenar a
+ * carteira inteira.
+ *
+ * O troco da passada gulosa não é refeito: o item trocado fica no lote inteiro
+ * que cabe no alvo dele, e a diferença cai na sobra da classe. Refazer a
+ * passada mexeria nas quantidades dos OUTROS ativos, que o utilizador não
+ * pediu para mexer.
+ */
+function motorRecalcularItemTrocado(item, classe) {
+  if (!item) return item;
+  var preco =
+    typeof item.preco === 'number' && isFinite(item.preco) && item.preco > 0 ? item.preco : null;
+  item.semPreco = !preco && classe !== 'rf';
+  if (classe === 'rf') {
+    item.quantidade = null;
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else if (!preco) {
+    item.quantidade = null;
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else if (classe === 'cripto') {
+    item.quantidade = motorArred(item.valorAlvo / preco, 8);
+    item.valorInvestido = motorArred(item.valorAlvo, 2);
+  } else {
+    item.quantidade = Math.floor(item.valorAlvo / preco);
+    item.valorInvestido = motorArred(item.quantidade * preco, 2);
+  }
+  return item;
 }
 
 /**
@@ -1862,18 +2609,29 @@ var MotorCarteira = {
   distribuicaoClasses: motorDistribuicaoClasses,
   normalizarComLimites: motorNormalizarComLimites,
   pesosPorScore: motorPesosPorScore,
+  pesosPorSetor: motorPesosPorSetor,
+  segmentoFii: motorSegmentoFii,
+  bucketSetor: motorBucketSetor,
   aplicarTeto: motorAplicarTeto,
   distribuirAporte: motorDistribuirAporte,
   planoClasse: motorPlanoClasse,
+  recalcularItemTrocado: motorRecalcularItemTrocado,
   planoAporte: motorPlanoAporte,
   COBERTURA_MINIMA: MOTOR_COBERTURA_MINIMA,
   CRITERIOS: MOTOR_CRITERIOS,
+  criteriosDe: motorCriteriosDe,
   LENTES: MOTOR_LENTES,
   PILARES: MOTOR_PILARES,
+  PILAR_NOMES: MOTOR_PILAR_NOMES,
+  PILAR_NOMES_CURTOS: MOTOR_PILAR_NOMES_CURTOS,
   CLASSES: MOTOR_CLASSES,
   ALLOC_BASE: MOTOR_ALLOC_BASE,
   LIMITES_PERFIL: MOTOR_LIMITES_PERFIL,
   OPCOES_CLASSE: MOTOR_OPCOES_CLASSE,
+  SETORES_ALVO: MOTOR_SETORES_ALVO,
+  SETOR_MAPA: MOTOR_SETOR_MAPA,
+  SETOR_NOMES: MOTOR_SETOR_NOMES,
+  FII_SEGMENTO_NOMES: MOTOR_FII_SEGMENTO_NOMES,
   LENTE_POR_OBJETIVO: MOTOR_LENTE_POR_OBJETIVO,
 };
 if (typeof window !== 'undefined') window.MotorCarteira = MotorCarteira;
