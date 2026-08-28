@@ -169,12 +169,24 @@
         {
           "campo": "contaOrigemId",
           "apontaPara": "conta.id",
-          "nota": "propagado para as recorrências"
+          "nota": "propagado para as recorrências. Ausente quando origemRecurso é retroativo/externo — não há conta debitada."
         },
         {
           "campo": "corretora",
           "apontaPara": "conta.nome | conta.aliases",
-          "resolvidoPor": "resolverContaDeOperacao"
+          "resolvidoPor": "resolverContaDeOperacao",
+          "nota": "IDENTIFICA a instituição onde o ativo está. Não implica que exista caixa nela: numa operação retroativa o dinheiro saiu da conta anos atrás."
+        },
+        {
+          "campo": "origemRecurso",
+          "valores": ["conta", "retroativo", "externo"],
+          "obrigatorio": "condicional",
+          "quando": "compras (tipo 'compra') gravadas por registrarOperacaoAtivo",
+          "nota": "Decide se a operação gera pernas de caixa. 'conta' segue o padrão A de INV-03 (duas pernas, contaOrigemId preenchido); 'retroativo' e 'externo' seguem o padrão C (nenhuma transação). Operação antiga não tem o campo — ausência equivale a 'conta', exceto quando saldoInicial é true (o \"já guardado\" legado, que sempre foi padrão C)."
+        },
+        {
+          "campo": "saldoInicial",
+          "nota": "Marca de VALORAÇÃO, não de origem: o valor gravado é o de HOJE, então a posição rende a partir de cadastradoEm e não de data_op (que num cadastro retroativo é antiga). Lida por valorAtualRendaFixa e calcularSaldoPrevidencia. Sem ela, R$ 10.000 informados com data de 2019 apareceriam capitalizados por 7 anos."
         }
       ],
       "vocabularioCategorias": {
@@ -381,6 +393,13 @@
           "forma": "UMA transação investimento_fixo com contaId direto e SEM temLegCaixa. Ela mesma debita quando marcada como paga — não há perna separada.",
           "produtores": ["web/appliquei-previdencia.js"],
           "idPrefixo": "tx_compromisso_{operacaoId}_{i}"
+        },
+        "C-sem-perna": {
+          "quando": "Compra com origemRecurso 'retroativo' (posição que já existia antes do app) ou 'externo' (dinheiro que nunca passou por conta cadastrada). Também o \"já guardado\" legado (operacao.saldoInicial).",
+          "forma": "NENHUMA transação. A operação existe só em historicoCompras: entra na carteira e no patrimônio, e não toca o caixa nem o Controle Financeiro. É a única forma correta aqui — um investimento_* avulso debitaria o bucket \"A reconciliar\" (INV-01), e com temLegCaixa acusaria perna de caixa faltando (INV-03).",
+          "produtores": ["web/appliquei-renda-fixa.js"],
+          "regraDoProduto": "Operação retroativa não pode impactar o saldo atual das contas. Aporte novo feito dentro do app segue o padrão A: conta de origem → saída de dinheiro → investimento.",
+          "prova": "test/investimento-retroativo.test.js"
         }
       }
     },

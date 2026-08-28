@@ -82,10 +82,17 @@ function contasAtivas() {
 // Retorna um mapa { contaId: saldoEmCaixa }. Sem o módulo de patrimônio (ex.:
 // testes), cai para o saldo inicial cadastrado.
 function saldoCaixaPorConta(refMs) {
-  const ref = refMs != null ? refMs : Date.now();
+  const agora = Date.now();
+  const ref = refMs != null ? refMs : agora;
+  // Numa data FUTURA o saldo relevante é o PROJETADO: parte da foto de hoje e
+  // aplica o que já está agendado até lá. mpCalcularSaldoPorInstituicao sozinha
+  // não serve para isso — ela só desconta saída com `pago:true`, e lançamento
+  // futuro nasce `pago:false`; passar um ref futuro devolveria um saldo
+  // otimista (contaria a receita de amanhã e ignoraria a fatura de amanhã).
+  const base = ref > agora ? agora : ref;
   const mapa = {};
   if (typeof mpCalcularSaldoPorInstituicao === 'function') {
-    const porInst = mpCalcularSaldoPorInstituicao(ref) || {};
+    const porInst = mpCalcularSaldoPorInstituicao(base) || {};
     Object.keys(porInst).forEach(function (k) {
       mapa[k] = Number(porInst[k] && porInst[k].caixa) || 0;
     });
@@ -94,6 +101,55 @@ function saldoCaixaPorConta(refMs) {
       mapa[c.id] = Number(c.saldoInicial) || 0;
     });
   }
+  if (ref > agora) aplicarAgendadoNoSaldo(mapa, agora, ref);
+  return mapa;
+}
+
+// Soma ao mapa de saldos tudo o que está AGENDADO na janela (agora, refMs],
+// pago ou não — é a diferença entre "quanto tenho" e "quanto terei naquele dia".
+// Espelha as regras de caixa do Patrimônio (mpTransacaoComputaCaixa) menos a
+// exigência de `pago`, que é justamente o que ainda não aconteceu:
+//   · perna do ativo com temLegCaixa não conta (quem debita é a perna de caixa);
+//   · entrada soma, qualquer outra categoria subtrai.
+function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
+  if (typeof transacoes === 'undefined') return mapa;
+  if (typeof mpTimestampTransacao !== 'function') return mapa;
+  // Aqui a granularidade é o DIA, não o mês: a pergunta é "quanto vou ter no dia
+  // 15?", e mpTimestampTransacao devolve sempre o 1º dia da competência — o
+  // aluguel do dia 20 apareceria descontado já no dia 15. mpDataMovimento é a
+  // data real do lançamento (vencimento primeiro), que é a que responde isso.
+  const quando = typeof mpDataMovimento === 'function' ? mpDataMovimento : mpTimestampTransacao;
+  const ehEntrada =
+    typeof mpEhEntradaCaixa === 'function'
+      ? mpEhEntradaCaixa
+      : function (cat) {
+          return (
+            cat === 'receita' ||
+            cat === 'dividendo' ||
+            cat === 'resgate_investimento' ||
+            cat === 'transferencia_entrada'
+          );
+        };
+  transacoes.forEach(function (t) {
+    // A janela usa as duas datas: `quando` (dia real) decide se cabe até ateMs,
+    // e a competência decide se já entrou na foto de hoje — assim nada é contado
+    // duas vezes nem fica de fora na virada do mês.
+    const ts = quando(t);
+    if (ts > ateMs) return;
+    if (!(ts > deMs) || !(mpTimestampTransacao(t) > deMs)) return;
+    if (
+      (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+      t.temLegCaixa
+    )
+      return;
+    const chave =
+      typeof mpChaveInstTransacao === 'function' ? mpChaveInstTransacao(t).key : t.contaId;
+    if (!chave) return;
+    if (mapa[chave] == null) mapa[chave] = 0;
+    const valor = Number(t.valor) || 0;
+    if (ehEntrada(t.categoria)) mapa[chave] += valor;
+    else mapa[chave] -= valor;
+  });
   return mapa;
 }
 
@@ -123,6 +179,9 @@ function contasComSaldo(refMs) {
 //   incluirTodas    → lista TODAS as contas ativas (destino do dinheiro), ainda
 //                     assim mostrando o saldo de cada uma
 //   vazioMsg        → texto quando não há nenhuma conta elegível
+//   refMs           → data de referência do saldo. Numa data futura lista o
+//                     saldo PROJETADO para aquele dia (ver saldoCaixaPorConta),
+//                     que é o que importa quando a operação é agendada.
 function optionsContasComSaldo(opcoes) {
   const o = opcoes || {};
   const fmt = function (v) {
@@ -132,12 +191,12 @@ function optionsContasComSaldo(opcoes) {
   };
   let lista;
   if (o.incluirTodas) {
-    const saldos = saldoCaixaPorConta();
+    const saldos = saldoCaixaPorConta(o.refMs);
     lista = contasAtivas().map(function (c) {
       return { conta: c, saldo: Number(saldos[c.id]) || 0 };
     });
   } else {
-    lista = contasComSaldo();
+    lista = contasComSaldo(o.refMs);
   }
   if (!lista.length) {
     const msg = o.vazioMsg || '— nenhuma conta com saldo disponível —';

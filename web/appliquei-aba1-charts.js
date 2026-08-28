@@ -853,32 +853,6 @@ function consolidarCarteiraNaData(dataLimiteMs) {
   return consolidado;
 }
 
-function agruparCategoriasNaData(dataLimiteMs) {
-  const consolidado = consolidarCarteiraNaData(dataLimiteMs);
-  const grupos = {};
-  for (const ticker in consolidado) {
-    const ativo = consolidado[ticker];
-    if (ativo.qtdTotal <= 0) continue;
-    const ativoMercado = mockAtivosMercado.find((a) => a.ticker === ticker);
-    const cat = inferirCategoria(ticker, ativo, ativoMercado);
-    let chave;
-    if (cat === 'renda_variavel') chave = subcategoriaEfetiva(ticker, ativo, ativoMercado);
-    else chave = cat;
-    if (!grupos[chave]) grupos[chave] = { investido: 0, saldo: 0, ativos: [] };
-    let saldo;
-    if (cat === 'previdencia') {
-      saldo = calcularSaldoPrevidencia(ticker, dataLimiteMs);
-    } else {
-      const precoAtual = ativoMercado ? ativoMercado.preco_atual : ativo.precoMedio;
-      saldo = ativo.qtdTotal * precoAtual;
-    }
-    grupos[chave].investido += ativo.valorTotalInvestido;
-    grupos[chave].saldo += saldo;
-    grupos[chave].ativos.push(ticker);
-  }
-  return grupos;
-}
-
 function renderizarGraficoDistribuicao(carteiraConsolidada) {
   const canvas = document.getElementById('graficoDistribuicaoCarteira');
   const msgVazia = document.getElementById('msgDistribuicaoVazia');
@@ -1009,75 +983,10 @@ function atualizarSnapshotMesAtual(carteiraConsolidada) {
   salvarSnapshotsCarteira(snaps);
 }
 
-function renderizarCardsCategoriaInferior(carteiraConsolidada) {
-  const container = document.getElementById('cardsCategoriaInferior');
-  const wrapper = document.getElementById('quadroCategoriasInferior');
-  const lblMes = document.getElementById('lblMesQuadroCategorias');
-  if (!container || !wrapper) return;
-  const grupos = agruparCarteiraPorCategoria(carteiraConsolidada);
-  const entries = Object.entries(grupos).filter(([, v]) => v.saldo > 0);
-  if (entries.length === 0) {
-    wrapper.style.display = 'none';
-    return;
-  }
-  wrapper.style.display = 'block';
-
-  const hoje = new Date();
-  const nomeMes = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-  if (lblMes) lblMes.innerText = `· variação em ${nomeMes}`;
-
-  // Saldo do mês anterior reconstruído sob demanda a partir de historicoCompras
-  // (não usa snapshots persistidos — esses ficam stale quando o usuário exclui
-  // uma operação, fazendo a variação parecer "venda").
-  const fimMesPassadoMs = new Date(hoje.getFullYear(), hoje.getMonth(), 0, 23, 59, 59).getTime();
-  const gruposAnteriores = agruparCategoriasNaData(fimMesPassadoMs);
-
-  // Ordem fixa para apresentação consistente
-  const ordem = [
-    'acoes',
-    'fiis',
-    'bdrs',
-    'etfs',
-    'cripto',
-    'renda_fixa',
-    'previdencia',
-    'reserva_emergencia',
-  ];
-  entries.sort((a, b) => ordem.indexOf(a[0]) - ordem.indexOf(b[0]));
-
-  const paleta = paletaCarteira();
-  container.innerHTML = entries
-    .map(([k, v]) => {
-      const cor = paleta[k] || getToken('--cor-texto-mutado');
-      const rotulo = ROTULOS_SUB[k] || k;
-      const saldoAnterior = gruposAnteriores[k]?.saldo || 0;
-      let variacaoR$ = 0;
-      let variacaoPerc = 0;
-      let labelVariacao = 'Sem histórico';
-      if (saldoAnterior > 0) {
-        variacaoR$ = v.saldo - saldoAnterior;
-        variacaoPerc = (variacaoR$ / saldoAnterior) * 100;
-        const sinal = variacaoR$ >= 0 ? '+' : '';
-        labelVariacao = `${sinal}${formatarMoeda(variacaoR$)} (${sinal}${variacaoPerc.toFixed(2)}%)`;
-      }
-      const corVariacao = variacaoR$ >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
-      const corLabel = saldoAnterior > 0 ? corVariacao : 'var(--cor-texto-mutado)';
-      return `
-            <div class="card-container" style="padding: 14px 16px; border-left: 3px solid ${cor};">
-                <div style="font-size: 11px; font-weight:600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">${rotulo}</div>
-                <div style="font-size: 18px; font-weight:700; color: var(--cor-texto-principal); font-family: 'DM Mono', monospace;">${formatarMoeda(v.saldo)}</div>
-                <div style="font-size: 12px; font-weight:600; color: ${corLabel}; margin-top: 4px; font-family: 'DM Mono', monospace;">${labelVariacao}</div>
-                <div style="font-size: 10.5px; color: var(--cor-texto-mutado); margin-top: 4px;">${v.ativos.length} ativo${v.ativos.length === 1 ? '' : 's'} · invest. ${formatarMoeda(v.investido)}</div>
-            </div>`;
-    })
-    .join('');
-}
-
 // Mantida como ponto de entrada (chamado por atualizarCarteiraAtivos). Encaminha às novas funções.
 function atualizarBarraAlocacao(carteiraConsolidada) {
   atualizarSnapshotMesAtual(carteiraConsolidada);
   renderizarGraficoDistribuicao(carteiraConsolidada);
-  renderizarCardsCategoriaInferior(carteiraConsolidada);
   renderizarGraficoEvolucao();
 }
 

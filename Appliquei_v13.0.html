@@ -1139,6 +1139,41 @@
         .timeline-line1 .tl-ticker { font-family: 'DM Mono', monospace; font-weight: 700; }
         .timeline-line1 .tl-nome { color: var(--cor-texto-secundario); font-weight: 500; }
         .timeline-line1 .tl-qtd { color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; }
+        /* Selo de origem: marca a operação que NÃO passou pelo caixa. */
+        .timeline-line1 .tl-selo {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+            padding: 2px 7px; border-radius: 99px; white-space: nowrap;
+            background: var(--cor-bg-amber); color: var(--cor-txt-amber); border: 1px solid var(--cor-borda-amber);
+        }
+        .timeline-line1 .tl-selo.externo { background: var(--cor-bg-info, var(--cor-bg-primaria)); color: var(--cor-info, var(--cor-primaria)); border-color: var(--cor-borda); }
+
+        /* --- Seletor de dia da recorrência (calendário compacto) --- */
+        .dia-picker-wrap { position: relative; }
+        .dia-picker-btn {
+            width: 100%; display: flex; align-items: center; gap: 8px;
+            padding: 10px 13px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background: var(--cor-superficie); color: var(--cor-texto-principal);
+            font-size: 13px; font-family: inherit; cursor: pointer; text-align: left;
+            transition: border-color .15s ease;
+        }
+        .dia-picker-btn:hover, .dia-picker-btn:focus-visible { border-color: var(--cor-primaria); outline: none; }
+        .dia-picker-btn i { color: var(--cor-texto-mutado); font-size: 16px; }
+        .dia-picker-pop {
+            position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; min-width: 244px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.16); padding: 12px;
+        }
+        .dia-picker-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--cor-texto-mutado); margin-bottom: 9px; }
+        .dia-picker-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .dia-picker-grade .dia-chip {
+            padding: 6px 0; border: 1px solid transparent; border-radius: 7px;
+            background: var(--cor-fundo); color: var(--cor-texto-principal);
+            font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer;
+            transition: background .12s ease, color .12s ease;
+        }
+        .dia-picker-grade .dia-chip:hover { background: var(--cor-bg-primaria); border-color: var(--cor-primaria); }
+        .dia-picker-grade .dia-chip.ativo { background: var(--cor-primaria); color: #fff; border-color: var(--cor-primaria); font-weight: 700; }
+        .dia-picker-nota { display: block; margin-top: 9px; font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.45; }
         .timeline-line2 {
             font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 3px;
             display: flex; align-items: center; gap: 8px;
@@ -6784,6 +6819,7 @@
             </div>
 
             <input type="hidden" id="tipoOperacao" value="compra">
+            <div id="avisoEdicaoOperacao" style="display:none;font-size:11.5px;line-height:1.5;margin-bottom:14px;padding:9px 11px;border-radius:9px;background:var(--cor-bg-info,var(--cor-bg-primaria));color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);"><i class="ph-fill ph-pencil-simple"></i> Editando uma operação já registrada. A versão anterior só é substituída quando você clicar em <strong>Confirmar</strong> — fechar aqui não altera nada.</div>
 
             <div class="form-group">
                 <label id="lblTickerOp">Buscar Ativo (Ticker ou Nome)</label>
@@ -6825,7 +6861,8 @@
             <div class="grid-2-iguais" style="gap: 15px;">
                 <div class="form-group">
                     <label>Data da Operação</label>
-                    <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
+                    <input type="date" id="compraData" oninput="atualizarProjecaoForm(); popularOrigemRecurso();">
+                    <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:4px;">Pode ser no passado (investimento que você já tinha) ou no futuro (aporte programado).</small>
                 </div>
                 <div class="form-group">
                     <label>Banco / Corretora <span style="color:var(--cor-erro);">*</span></label>
@@ -6865,7 +6902,18 @@
                 <div class="grid-2-iguais prev-rec-grid" style="gap: 15px;">
                     <div class="form-group">
                         <label>Dia do mês</label>
-                        <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
+                        <div id="wrapDiaRecorrencia" class="dia-picker-wrap">
+                            <button type="button" id="btnDiaRecorrencia" class="dia-picker-btn" onclick="alternarCalendarioDia()">
+                                <i class="ph ph-calendar-blank"></i>
+                                <span id="rotuloDiaRecorrencia">Escolher dia</span>
+                            </button>
+                            <input type="hidden" id="prevDiaRecorrencia">
+                            <div id="popoverDiaRecorrencia" class="dia-picker-pop" style="display:none;">
+                                <div class="dia-picker-titulo">Todo mês, no dia</div>
+                                <div id="gradeDiasRecorrencia" class="dia-picker-grade"></div>
+                                <small class="dia-picker-nota">Em meses mais curtos, o lançamento cai no último dia.</small>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Período do compromisso (anos)</label>
@@ -6873,6 +6921,7 @@
                     </div>
                 </div>
                 <small class="prev-rec-grid-hint" style="font-size: 11px; color: var(--cor-texto-mutado); display: block;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
+                <div id="avisoRecorrenciaSemConta" style="display:none;font-size:11.5px;line-height:1.5;padding:9px 11px;border-radius:9px;background:var(--cor-bg-amber);color:var(--cor-txt-amber);border:1px solid var(--cor-borda-amber);">O aporte recorrente fica desligado no cadastro retroativo e no aporte externo: cada parcela futura precisa de uma conta pagadora para ser debitada. Cadastre a recorrência depois, escolhendo a conta.</div>
                 <div class="form-group" id="grupoTaxaMensalPrev" style="margin-top:16px;">
                     <label>Rentabilidade estimada (% ao mês)</label>
                     <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
@@ -6885,11 +6934,11 @@
                 </div>
             </div>
             <div class="form-group" id="grupoOrigemRecurso">
-                <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
+                <label>De onde vem o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— uma conta debita o Saldo em Conta; retroativo e aporte externo, não</small></label>
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
                     <option value="">— selecione a conta —</option>
                 </select>
-                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Registre uma receita ou um saldo inicial em Meu Patrimônio para liberar a conta aqui.</small>
+                <small id="dicaOrigemRecurso" style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Sem saldo em conta, use <em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.</small>
                 <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
             </div>
             <div class="form-group" id="grupoDestinoRecurso" style="display:none;">
@@ -7091,12 +7140,6 @@
                     </div>
                     <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
                 </div>
-            </div>
-
-            <!-- POSIÇÃO POR CATEGORIA (movida acima dos ativos da Carteira) -->
-            <div id="quadroCategoriasInferior" style="display:none; margin-bottom: 20px;">
-                <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin: 0 0 12px;"><i class="ph ph-squares-four"></i> Posição por categoria <span id="lblMesQuadroCategorias" style="font-weight:500; color: var(--cor-texto-mutado); margin-left:4px;"></span></h3>
-                <div id="cardsCategoriaInferior" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"></div>
             </div>
 
             <!-- SUB-ABA: CARTEIRA (Rich Rows) -->

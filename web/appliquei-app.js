@@ -84,8 +84,6 @@ function mudarSubAbaPatrimonio(qual) {
     btns[k].classList.toggle('ativo', k === qual);
   });
   if (filtros) filtros.style.display = qual === 'carteira' ? 'flex' : 'none';
-  const quadroCat = document.getElementById('quadroCategoriasInferior');
-  if (quadroCat && qual !== 'carteira') quadroCat.style.display = 'none';
   btnRefresh.style.display = qual === 'dividendos' ? 'inline-flex' : 'none';
   // Ao mudar para dividendos, limpa o filtro de ativo e recarrega
   if (qual === 'dividendos') {
@@ -93,8 +91,6 @@ function mudarSubAbaPatrimonio(qual) {
     carregarDividendos();
   }
   if (qual === 'operacoes') renderizarOperacoes();
-  // Voltar para carteira precisa re-renderizar a "Posição por categoria",
-  // que foi escondida acima ao trocar de sub-aba.
   if (qual === 'carteira' && typeof atualizarCarteiraAtivos === 'function')
     atualizarCarteiraAtivos();
   atualizarMiniStats(qual);
@@ -170,7 +166,23 @@ function toggleColunasExtras() {
 }
 
 // === DRAWER DE OPERAÇÃO ===
-function abrirDrawerOperacao() {
+// Id da operação em edição. `null` = o drawer está registrando uma operação
+// nova. A edição NÃO apaga nada ao abrir (antes apagava, e fechar o drawer sem
+// confirmar perdia a operação de vez): a troca só acontece no Confirmar.
+var operacaoEmEdicaoId = null;
+function drawerEmModoEdicao() {
+  return operacaoEmEdicaoId != null;
+}
+function encerrarModoEdicaoOperacao() {
+  operacaoEmEdicaoId = null;
+  const titulo = document.getElementById('tituloPainelOp');
+  if (titulo) titulo.innerText = 'Registrar operação';
+  const aviso = document.getElementById('avisoEdicaoOperacao');
+  if (aviso) aviso.style.display = 'none';
+}
+
+function abrirDrawerOperacao(opcoes) {
+  const o = opcoes || {};
   const drawer = document.getElementById('drawerOperacao');
   const overlay = document.getElementById('drawerOverlay');
   if (!drawer || !overlay) return;
@@ -182,13 +194,18 @@ function abrirDrawerOperacao() {
   drawer.classList.add('aberto');
   overlay.classList.add('aberto');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => {
-    document.getElementById('compraTicker')?.focus();
-  }, 240);
+  // Numa edição o foco automático no ticker era o gatilho do blur que
+  // sobrescrevia o preço pago pela cotação do dia. Sem foco, sem blur.
+  if (!o.semFoco) {
+    setTimeout(() => {
+      document.getElementById('compraTicker')?.focus();
+    }, 240);
+  }
 }
 function fecharDrawerOperacao() {
   const drawer = document.getElementById('drawerOperacao');
   const overlay = document.getElementById('drawerOverlay');
+  encerrarModoEdicaoOperacao();
   if (!drawer || !overlay) return;
   drawer.classList.remove('aberto');
   overlay.classList.remove('aberto');
@@ -689,11 +706,20 @@ transacoes = transacoes.map((t) => {
 })();
 salvarTransacoes();
 
+// Preenche a cotação SÓ quando o campo de preço está vazio. Antes sobrescrevia
+// sempre — e como o drawer foca o ticker ao abrir, bastava o usuário clicar em
+// qualquer outro campo durante uma EDIÇÃO para o preço pago (ex.: R$ 20,00 de
+// 2023) virar a cotação de hoje, silenciosamente. Numa compra nova o campo
+// nasce vazio, então o preenchimento automático continua funcionando igual.
 function preencherPrecoAutomatico() {
+  const elPreco = document.getElementById('compraPreco');
+  if (!elPreco) return;
+  const jaPreenchido = (parseBRL(elPreco.value) || 0) > 0;
+  if (jaPreenchido) return;
   const inputTicker = document.getElementById('compraTicker').value.toUpperCase();
   const ativoEncontrado = mockAtivosMercado.find((a) => a.ticker === inputTicker);
   if (ativoEncontrado) {
-    setValorBRLInput(document.getElementById('compraPreco'), ativoEncontrado.preco_atual);
+    setValorBRLInput(elPreco, ativoEncontrado.preco_atual);
     calcularTotalCompra();
   }
 }
@@ -706,11 +732,23 @@ function calcularTotalCompra() {
   document.getElementById('compraTotalOp').innerText = formatarMoeda(qtd * preco);
 }
 
-function alternarTipoOperacao(tipo) {
+function alternarTipoOperacao(tipo, manterEdicao) {
+  // Trocar Compra↔Venda no toggle zera o formulário — logo, abandona a edição
+  // em curso. `manterEdicao` é usado só por editarOperacao, que chama esta
+  // função para preparar o formulário ANTES de preenchê-lo.
+  if (!manterEdicao && typeof encerrarModoEdicaoOperacao === 'function')
+    encerrarModoEdicaoOperacao();
   document.getElementById('tipoOperacao').value = tipo;
   const btnCompra = document.getElementById('btnTabCompra');
   const btnVenda = document.getElementById('btnTabVenda');
-  const painelCard = document.getElementById('painelOperacaoCard');
+  // Nada aqui pode assumir que o elemento existe. `painelOperacaoCard` ficou
+  // para trás quando o formulário virou drawer: o id sumiu do HTML e o
+  // `painelCard.style` que restou lançava TypeError, abortando esta função no
+  // meio. Como editarOperacao a chama ANTES de preencher os campos, a edição
+  // abria o drawer vazio — o "não traz os dados da compra para editar" — e o
+  // toggle Compra/Venda quebrava junto. A referência morta saiu; as guardas
+  // ficam para que o próximo id removido do HTML não derrube o drawer.
+  // test/drawer-operacao-dom.test.js trava os ids que precisam existir.
   const lblPreco = document.getElementById('lblPrecoOp');
   const btnConfirmar = document.getElementById('btnConfirmarOp');
   const iconePainel = document.getElementById('iconePainelOp');
@@ -718,10 +756,12 @@ function alternarTipoOperacao(tipo) {
   const inputTicker = document.getElementById('compraTicker');
   const dicaTicker = document.getElementById('dicaTicker');
 
-  inputTicker.value = '';
-  document.getElementById('compraQtd').value = '';
-  document.getElementById('compraPreco').value = '';
-  document.getElementById('compraTotalOp').innerText = 'R$ 0,00';
+  if (inputTicker) inputTicker.value = '';
+  const elQtd = document.getElementById('compraQtd');
+  if (elQtd) elQtd.value = '';
+  const elPreco = document.getElementById('compraPreco');
+  if (elPreco) elPreco.value = '';
+  if (totalTexto) totalTexto.innerText = 'R$ 0,00';
   const elCorretora = document.getElementById('compraCorretora');
   if (elCorretora) elCorretora.value = '';
   const elVenc = document.getElementById('compraVencimento');
@@ -742,34 +782,42 @@ function alternarTipoOperacao(tipo) {
   }
   ajustarCamposPorCategoria();
 
+  const ehCompra = tipo === 'compra';
+  if (btnCompra) btnCompra.classList.toggle('ativo-compra', ehCompra);
+  if (btnVenda) btnVenda.classList.toggle('ativo-venda', !ehCompra);
   if (tipo === 'compra') {
-    btnCompra.classList.add('ativo-compra');
-    btnVenda.classList.remove('ativo-venda');
-    painelCard.style.background = 'var(--cor-bg-primaria)';
-    painelCard.style.borderColor = '#a7f3d0';
-    lblPreco.innerText = 'Preço Pago (R$)';
-    btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar';
-    btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
-    iconePainel.className = 'ph-fill ph-plus-circle';
-    iconePainel.style.color = 'var(--cor-primaria)';
-    totalTexto.style.color = 'var(--cor-primaria)';
-    inputTicker.setAttribute('list', 'listaAtivosMercado');
-    inputTicker.placeholder = 'Ex: BTLG11 ou Tesouro';
-    dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
+    if (lblPreco) lblPreco.innerText = 'Preço Pago (R$)';
+    if (btnConfirmar) {
+      btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar';
+      btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
+    }
+    if (iconePainel) {
+      iconePainel.className = 'ph-fill ph-plus-circle';
+      iconePainel.style.color = 'var(--cor-primaria)';
+    }
+    if (totalTexto) totalTexto.style.color = 'var(--cor-primaria)';
+    if (inputTicker) {
+      inputTicker.setAttribute('list', 'listaAtivosMercado');
+      inputTicker.placeholder = 'Ex: BTLG11 ou Tesouro';
+    }
+    if (dicaTicker)
+      dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
   } else {
-    btnVenda.classList.add('ativo-venda');
-    btnCompra.classList.remove('ativo-compra');
-    painelCard.style.background = 'var(--cor-bg-erro)';
-    painelCard.style.borderColor = '#fecdd3';
-    lblPreco.innerText = 'Preço de Venda (R$)';
-    btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar';
-    btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
-    iconePainel.className = 'ph-fill ph-minus-circle';
-    iconePainel.style.color = 'var(--cor-erro)';
-    totalTexto.style.color = 'var(--cor-erro)';
-    inputTicker.setAttribute('list', 'listaAtivosCarteira');
-    inputTicker.placeholder = 'Selecione um ativo da sua carteira';
-    dicaTicker.innerText = 'Apenas ativos que você possui estão listados aqui.';
+    if (lblPreco) lblPreco.innerText = 'Preço de Venda (R$)';
+    if (btnConfirmar) {
+      btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar';
+      btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
+    }
+    if (iconePainel) {
+      iconePainel.className = 'ph-fill ph-minus-circle';
+      iconePainel.style.color = 'var(--cor-erro)';
+    }
+    if (totalTexto) totalTexto.style.color = 'var(--cor-erro)';
+    if (inputTicker) {
+      inputTicker.setAttribute('list', 'listaAtivosCarteira');
+      inputTicker.placeholder = 'Selecione um ativo da sua carteira';
+    }
+    if (dicaTicker) dicaTicker.innerText = 'Apenas ativos que você possui estão listados aqui.';
   }
 }
 
@@ -951,6 +999,7 @@ function ajustarCamposPorCategoria() {
     }
     if (ehPrev && inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
     if (inpDuracao && !inpDuracao.value) inpDuracao.value = ehPrev ? '10' : '5';
+    if (typeof sincronizarRotuloDiaRecorrencia === 'function') sincronizarRotuloDiaRecorrencia();
   }
 
   // Renomear "Preço pago" conforme categoria
@@ -977,6 +1026,9 @@ function ajustarCamposPorCategoria() {
     if (ehVenda && typeof popularDestinoRecurso === 'function') popularDestinoRecurso();
   }
   if (typeof atualizarInfoResgate === 'function') atualizarInfoResgate();
+  // A origem escolhida manda em blocos que este ajuste acabou de reexibir
+  // (recorrência, "já guardado"): reaplica o estado dela por cima.
+  if (!ehVenda && typeof ajustarOrigemRecursoCampos === 'function') ajustarOrigemRecursoCampos();
 
   // Ticker: ações/FIIs/etc usam datalist; RF / Reserva / Previdência são texto livre
   if (inputTicker) {
@@ -1108,21 +1160,52 @@ window.onload = function () {
 // conta sem dinheiro deixaria o caixa negativo — dinheiro "perdido"/inventado no
 // sistema. Sem default silencioso: a 1ª opção é vazia, forçando a escolha; o
 // débito cai numa conta de verdade e fica visível no Meu Patrimônio.
+// Origens que NÃO debitam conta nenhuma. Estão sempre disponíveis — inclusive
+// (e principalmente) quando o usuário não tem saldo em conta alguma, que é o
+// caso de quem chega ao app com patrimônio já formado.
+var ORIGEM_RETROATIVA = '__retroativo__';
+var ORIGEM_EXTERNA = '__externo__';
+function origemNaoDebitaConta(v) {
+  return v === ORIGEM_RETROATIVA || v === ORIGEM_EXTERNA;
+}
+
+// Data da operação em ms (meio-dia, fuso-seguro). Sem data preenchida, agora.
+function dataOperacaoRefMs() {
+  const el = document.getElementById('compraData');
+  const v = el ? el.value : '';
+  if (!v) return Date.now();
+  const ts = new Date(v + 'T12:00:00').getTime();
+  return isFinite(ts) ? ts : Date.now();
+}
+function operacaoEhFutura() {
+  return dataOperacaoRefMs() > Date.now();
+}
+
 function popularOrigemRecurso() {
   const sel = document.getElementById('compraOrigemRecurso');
   if (!sel) return;
   const prev = sel.value;
-  const comSaldo = typeof contasComSaldo === 'function' ? contasComSaldo() : [];
-  if (!comSaldo.length) {
-    sel.innerHTML = '<option value="">— nenhuma conta com saldo disponível —</option>';
-    sel.value = '';
-    ajustarOrigemRecursoCampos();
-    return;
-  }
+  const refMs = dataOperacaoRefMs();
+  const futura = refMs > Date.now();
+  const comSaldo = typeof contasComSaldo === 'function' ? contasComSaldo(refMs) : [];
+  // Numa data futura o seletor mostra o saldo PROJETADO para aquele dia — a
+  // conta que hoje está zerada mas recebe o salário antes da operação aparece.
+  const contasHtml = !comSaldo.length
+    ? '<option value="" disabled>— nenhuma conta com saldo ' +
+      (futura ? 'projetado para essa data ' : 'disponível ') +
+      '—</option>'
+    : typeof optionsContasComSaldo === 'function'
+      ? optionsContasComSaldo({ semPlaceholder: true, refMs: refMs })
+      : '';
   sel.innerHTML =
-    typeof optionsContasComSaldo === 'function'
-      ? optionsContasComSaldo({ placeholder: '— selecione a conta —' })
-      : '<option value="">— selecione a conta —</option>';
+    '<option value="">— selecione a conta —</option>' +
+    contasHtml +
+    '<option value="' +
+    ORIGEM_RETROATIVA +
+    '">Investimento já existente — cadastro retroativo</option>' +
+    '<option value="' +
+    ORIGEM_EXTERNA +
+    '">Aporte externo — dinheiro de fora do app</option>';
   // Preserva a seleção anterior se ela ainda existir entre as opções.
   sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
   ajustarOrigemRecursoCampos();
@@ -1146,12 +1229,127 @@ function popularDestinoRecurso() {
 
 // O seletor agora só lista contas cadastradas com saldo, então o input de texto
 // livre (conta digitada) não é mais usado — mantido escondido por segurança.
+// Além das contas, o seletor tem duas origens que NÃO debitam caixa; quando uma
+// delas está escolhida esta função troca a explicação do campo e desliga o
+// compromisso recorrente (sem conta de origem, a parcela futura cairia em
+// "A reconciliar" ao ser paga — ver INV-01).
 function ajustarOrigemRecursoCampos() {
   const inp = document.getElementById('compraOrigemBanco');
-  if (!inp) return;
-  inp.style.display = 'none';
-  inp.value = '';
+  if (inp) {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+  const sel = document.getElementById('compraOrigemRecurso');
+  const valor = sel ? sel.value : '';
+  const semDebito = origemNaoDebitaConta(valor);
+  const dica = document.getElementById('dicaOrigemRecurso');
+  if (dica) {
+    if (valor === ORIGEM_RETROATIVA) {
+      dica.innerHTML =
+        '<strong>Cadastro retroativo:</strong> você já tinha esse investimento antes de usar a ' +
+        'Appliquei. Informe o valor que possui hoje e a data em que começou — ele entra no seu ' +
+        'patrimônio e <strong>não desconta de nenhuma conta</strong>. O banco/corretora acima só ' +
+        'identifica onde o dinheiro está.';
+    } else if (valor === ORIGEM_EXTERNA) {
+      dica.innerHTML =
+        '<strong>Aporte externo:</strong> o dinheiro veio de fora do app (não passou por nenhuma ' +
+        'conta cadastrada). O investimento entra no patrimônio e <strong>não desconta de nenhuma ' +
+        'conta</strong> nem vira despesa no Controle Financeiro.';
+    } else if (operacaoEhFutura()) {
+      dica.innerHTML =
+        'Saldo <strong>projetado para a data da operação</strong> — já considera receitas e ' +
+        'despesas agendadas até lá.';
+    } else {
+      dica.innerHTML =
+        'Só aparecem contas com saldo disponível. Sem saldo em conta, use ' +
+        '<em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.';
+    }
+  }
+  // Recorrência de previdência/reserva precisa de conta pagadora: sem ela, cada
+  // parcela futura nasceria sem contaId. Desliga e explica.
+  const boxRec = document.getElementById('boxPrevRecorrente');
+  const gridRec = document.querySelector('#grupoPrevidencia .prev-rec-grid');
+  const hintRec = document.querySelector('#grupoPrevidencia .prev-rec-grid-hint');
+  const chkRec = document.getElementById('prevRecorrente');
+  if (semDebito && chkRec) chkRec.checked = false;
+  [boxRec, gridRec, hintRec].forEach((el) => {
+    if (el) el.style.display = semDebito ? 'none' : '';
+  });
+  const avisoRec = document.getElementById('avisoRecorrenciaSemConta');
+  if (avisoRec) avisoRec.style.display = semDebito ? 'block' : 'none';
+  // O campo legado "Já tinha um valor guardado?" faz exatamente o que a origem
+  // retroativa faz — mostrar os dois juntos convida a lançar o mesmo dinheiro
+  // duas vezes. Some quando a origem já não debita conta.
+  const grupoSaldoIni = document.getElementById('grupoSaldoInicialPrev');
+  if (grupoSaldoIni) {
+    grupoSaldoIni.style.display = semDebito ? 'none' : '';
+    if (semDebito) {
+      const inpSI = document.getElementById('prevSaldoInicial');
+      if (inpSI) inpSI.value = '';
+    }
+  }
 }
+
+// === CALENDÁRIO DO DIA DE RECORRÊNCIA ========================================
+// O "Dia do mês" do compromisso (previdência/reserva) era um <input type=number>
+// 1–31: no celular abria teclado numérico e aceitava 45 sem reclamar. Vira uma
+// grade de dias clicável, mantendo o input como portador do valor (todo o resto
+// do código continua lendo prevDiaRecorrencia.value).
+function alternarCalendarioDia(forcar) {
+  const pop = document.getElementById('popoverDiaRecorrencia');
+  if (!pop) return;
+  const abrir = forcar != null ? forcar : pop.style.display !== 'block';
+  if (abrir) renderizarCalendarioDia();
+  pop.style.display = abrir ? 'block' : 'none';
+}
+
+function renderizarCalendarioDia() {
+  const grade = document.getElementById('gradeDiasRecorrencia');
+  const inp = document.getElementById('prevDiaRecorrencia');
+  if (!grade) return;
+  const atual = parseInt(inp ? inp.value : '', 10);
+  let html = '';
+  for (let d = 1; d <= 31; d++) {
+    const ativo = d === atual ? ' ativo' : '';
+    html +=
+      '<button type="button" class="dia-chip' +
+      ativo +
+      '" onclick="selecionarDiaRecorrencia(' +
+      d +
+      ')">' +
+      d +
+      '</button>';
+  }
+  grade.innerHTML = html;
+}
+
+function selecionarDiaRecorrencia(dia) {
+  const inp = document.getElementById('prevDiaRecorrencia');
+  if (inp) inp.value = dia;
+  const rotulo = document.getElementById('rotuloDiaRecorrencia');
+  if (rotulo) rotulo.innerText = 'Dia ' + dia;
+  renderizarCalendarioDia();
+  alternarCalendarioDia(false);
+}
+
+// Mantém o rótulo do botão em sincronia quando o valor é definido por código
+// (default da categoria, edição de operação existente).
+function sincronizarRotuloDiaRecorrencia() {
+  const inp = document.getElementById('prevDiaRecorrencia');
+  const rotulo = document.getElementById('rotuloDiaRecorrencia');
+  if (!rotulo) return;
+  const d = parseInt(inp ? inp.value : '', 10);
+  rotulo.innerText = d >= 1 && d <= 31 ? 'Dia ' + d : 'Escolher dia';
+}
+
+// Fecha o popover ao clicar fora dele.
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('popoverDiaRecorrencia');
+  if (!pop || pop.style.display !== 'block') return;
+  const wrap = document.getElementById('wrapDiaRecorrencia');
+  if (wrap && typeof wrap.contains === 'function' && wrap.contains(ev.target)) return;
+  pop.style.display = 'none';
+});
 
 // ============================================================
 

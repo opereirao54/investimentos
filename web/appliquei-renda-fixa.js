@@ -649,6 +649,50 @@ function atualizarProjecaoForm() {
         </div>`;
 }
 
+// Localiza a operação pelo id tolerando string vs número. Depois de uma volta
+// pela nuvem o id pode voltar como string, e o `===` do find falhava calado —
+// era o "Operação não encontrada" ao clicar em editar.
+function acharOperacao(id) {
+  if (typeof historicoCompras === 'undefined') return null;
+  return historicoCompras.find((o) => String(o.id) === String(id)) || null;
+}
+
+// Remove uma operação e TUDO que ela produziu: a perna do ativo, a perna de
+// caixa (tx_origem_) e os lançamentos futuros do compromisso recorrente.
+// A edição usava um filtro que só pegava a perna do ativo — a de caixa ficava
+// órfã (INV-04) e o saldo seguia debitado por uma compra que já não existia.
+function removerOperacaoEPernas(id) {
+  const alvo = String(id);
+  const op = acharOperacao(id);
+  if (
+    op &&
+    (op.categoria === 'previdencia' || op.categoria === 'reserva_emergencia') &&
+    op.recorrente &&
+    !op.gerado &&
+    typeof removerLancamentosFuturosCompromisso === 'function'
+  ) {
+    removerLancamentosFuturosCompromisso(op.id);
+  }
+  historicoCompras = historicoCompras.filter((o) => String(o.id) !== alvo);
+  transacoes = transacoes.filter((t) => {
+    if (String(t.id) === alvo) return false;
+    if (String(t.id) === 'tx_origem_' + alvo) return false;
+    if (t.operacaoId != null && String(t.operacaoId) === alvo) return false;
+    return true;
+  });
+}
+
+// Quanto do saldo da conta está preso na operação que está sendo editada. Esse
+// valor volta ao caixa quando a edição é confirmada, então conta como disponível
+// na validação de saldo.
+function creditoDaEdicaoNaConta(contaId) {
+  const edicaoId = typeof operacaoEmEdicaoId !== 'undefined' ? operacaoEmEdicaoId : null;
+  if (edicaoId == null || !contaId) return 0;
+  const alvo = 'tx_origem_' + String(edicaoId);
+  const perna = transacoes.find((t) => String(t.id) === alvo && t.contaId === contaId);
+  return perna ? Number(perna.valor) || 0 : 0;
+}
+
 function registrarOperacaoAtivo() {
   const ticker = document.getElementById('compraTicker').value.toUpperCase();
   const tipoOp = document.getElementById('tipoOperacao').value;
@@ -765,8 +809,14 @@ function registrarOperacaoAtivo() {
   // contas com caixa > 0, e aqui revalidamos o saldo disponível: comprar acima
   // do que a conta tem deixaria o caixa negativo (dinheiro inventado no
   // sistema). Validado ANTES de qualquer push para não deixar a operação órfã.
+  //
+  // Duas origens fogem dessa regra por definição, e são o ponto do cadastro
+  // retroativo: RETROATIVO (posição que já existia antes do app) e EXTERNO
+  // (dinheiro que nunca passou por conta cadastrada). Nenhuma das duas debita
+  // caixa nem gera transação — só entram no patrimônio.
   let bancoOrigemAporte = '';
   let contaOrigemIdSel; // conta resolvida (sempre uma cadastrada)
+  let origemRecursoSel = 'conta';
   if (tipoOp === 'compra' && temAporte) {
     const elOrigemSel = document.getElementById('compraOrigemRecurso');
     const origem = elOrigemSel ? elOrigemSel.value : '';
@@ -778,35 +828,66 @@ function registrarOperacaoAtivo() {
           elOrigemSel.style.borderColor = '';
         }, 2500);
       }
-      return mostrarToast('Escolha a conta (com saldo) de onde o dinheiro sai.', 'erro');
-    }
-    const c = typeof obterConta === 'function' ? obterConta(origem) : null;
-    if (!c) {
-      return mostrarToast('Conta de origem inválida. Escolha uma conta com saldo.', 'erro');
-    }
-    contaOrigemIdSel = c.id;
-    bancoOrigemAporte = c.nome;
-    // Revalida o saldo disponível na conta escolhida (não deixa ficar negativo).
-    const saldosInst =
-      typeof mpCalcularSaldoPorInstituicao === 'function'
-        ? mpCalcularSaldoPorInstituicao(Date.now())
-        : {};
-    const caixaDisp = saldosInst[c.id] ? saldosInst[c.id].caixa : 0;
-    const custoAporte = qtd * preco;
-    if (custoAporte > caixaDisp + 0.005) {
-      if (elOrigemSel) {
-        elOrigemSel.style.borderColor = 'var(--cor-erro)';
-        elOrigemSel.focus();
-        setTimeout(() => {
-          elOrigemSel.style.borderColor = '';
-        }, 2500);
-      }
       return mostrarToast(
-        `Saldo insuficiente em ${c.nome}: disponível ${formatarMoeda(caixaDisp)}, compra ${formatarMoeda(custoAporte)}.`,
+        'Escolha de onde vem o dinheiro — uma conta com saldo, ou cadastro retroativo / aporte externo.',
         'erro'
       );
     }
+    if (typeof origemNaoDebitaConta === 'function' && origemNaoDebitaConta(origem)) {
+      origemRecursoSel = origem === ORIGEM_RETROATIVA ? 'retroativo' : 'externo';
+    } else {
+      const c = typeof obterConta === 'function' ? obterConta(origem) : null;
+      if (!c) {
+        return mostrarToast('Conta de origem inválida. Escolha uma conta com saldo.', 'erro');
+      }
+      contaOrigemIdSel = c.id;
+      bancoOrigemAporte = c.nome;
+      // Revalida o saldo disponível na conta escolhida (não deixa ficar negativo).
+      // Numa operação AGENDADA a referência é a data dela: o que vale é o saldo
+      // projetado para aquele dia, não o de hoje (saldoCaixaPorConta projeta).
+      const refSaldo = typeof dataOperacaoRefMs === 'function' ? dataOperacaoRefMs() : Date.now();
+      const saldos =
+        typeof saldoCaixaPorConta === 'function'
+          ? saldoCaixaPorConta(refSaldo)
+          : typeof mpCalcularSaldoPorInstituicao === 'function'
+            ? (() => {
+                const m = mpCalcularSaldoPorInstituicao(Date.now());
+                const out = {};
+                Object.keys(m).forEach((k) => (out[k] = m[k].caixa));
+                return out;
+              })()
+            : {};
+      let caixaDisp = Number(saldos[c.id]) || 0;
+      // Editando: o débito da versão ANTIGA ainda está no saldo e só será
+      // desfeito ao confirmar. Sem devolvê-lo aqui, aumentar o valor de uma
+      // compra já registrada seria barrado por um saldo que a própria operação
+      // em edição consumiu.
+      caixaDisp += creditoDaEdicaoNaConta(c.id);
+      const custoAporte = qtd * preco;
+      if (custoAporte > caixaDisp + 0.005) {
+        if (elOrigemSel) {
+          elOrigemSel.style.borderColor = 'var(--cor-erro)';
+          elOrigemSel.focus();
+          setTimeout(() => {
+            elOrigemSel.style.borderColor = '';
+          }, 2500);
+        }
+        const quando =
+          refSaldo > Date.now() ? ` em ${new Date(refSaldo).toLocaleDateString('pt-BR')}` : '';
+        return mostrarToast(
+          `Saldo insuficiente em ${c.nome}${quando}: disponível ${formatarMoeda(caixaDisp)}, compra ${formatarMoeda(custoAporte)}.`,
+          'erro'
+        );
+      }
+    }
   }
+  const semDebitoCaixa = origemRecursoSel !== 'conta';
+
+  // Confirmada a validação, a versão antiga da operação em edição sai de cena —
+  // com AS DUAS pernas e os compromissos que ela gerou. Feito aqui, e não ao
+  // abrir o drawer, para que fechar sem confirmar não perca nada.
+  const edicaoId = typeof operacaoEmEdicaoId !== 'undefined' ? operacaoEmEdicaoId : null;
+  if (edicaoId != null) removerOperacaoEPernas(edicaoId);
 
   const dataOp = dataInput ? new Date(dataInput + 'T12:00:00') : new Date();
   let valorTotal = 0;
@@ -827,6 +908,10 @@ function registrarOperacaoAtivo() {
       subcategoria: subcategoria,
       corretora: corretora || null,
     };
+    // De onde veio o dinheiro. 'conta' é o fluxo normal (debita caixa);
+    // 'retroativo' e 'externo' não tocam em conta nenhuma — ver o bloco de
+    // gravação de transações mais abaixo.
+    if (tipoOp === 'compra') operacao.origemRecurso = origemRecursoSel;
     if (categoria === 'renda_fixa') {
       if (vencimento) operacao.vencimento = vencimento;
       if (rentabilidade) operacao.rentabilidade = rentabilidade;
@@ -877,7 +962,28 @@ function registrarOperacaoAtivo() {
     historicoCompras.push(operacao);
 
     const descQtd = semQtd ? '' : `${formatarQtd(qtd)}x `;
-    if (tipoOp === 'compra') {
+    if (tipoOp === 'compra' && semDebitoCaixa) {
+      // RETROATIVO / EXTERNO: entra só na carteira (historicoCompras). Nenhuma
+      // transação é gravada — nem a perna do ativo, nem a de caixa. É o mesmo
+      // caminho que o "já guardado" (saldoInicial) usa desde sempre, e é o que
+      // garante a regra do produto: operação retroativa não mexe no saldo atual
+      // das contas nem vira despesa no Controle Financeiro.
+      //
+      // Um `investimento_*` avulso aqui não serviria: sem perna de caixa irmã
+      // ele debitaria o bucket "A reconciliar" (INV-01) ou, com temLegCaixa,
+      // acusaria perna faltando (INV-03).
+      if (semQtd) {
+        // RF / Reserva / Previdência valorizam por juros compostos desde a data
+        // da operação. Numa posição retroativa a data é antiga, mas o valor
+        // informado é o de HOJE — capitalizar desde 2019 inflaria o patrimônio.
+        // `saldoInicial` é exatamente a marca que manda render a partir do
+        // cadastro (ver valorAtualRendaFixa); `data_op` fica no passado para o
+        // histórico e para a alíquota regressiva de IR (mpAplicarIR).
+        operacao.saldoInicial = true;
+        operacao.cadastradoEm = new Date().toISOString();
+      }
+      operacao.recorrente = false;
+    } else if (tipoOp === 'compra') {
       let tipoAtivoStr = semQtd ? 'investimento_fixo' : 'investimento_variavel';
       // Fase 3B: o débito de caixa do aporte é a PERNA DE TRANSFERÊNCIA
       // (transferencia_saida com contaId). A tx do ativo fica marcada com
@@ -1029,10 +1135,18 @@ function registrarOperacaoAtivo() {
     elOrigBanco.value = '';
     elOrigBanco.style.display = 'none';
   }
+  const eraEdicao = edicaoId != null;
+  if (typeof encerrarModoEdicaoOperacao === 'function') encerrarModoEdicaoOperacao();
   ajustarCamposPorCategoria();
   let msgBase;
   if (!temAporte && temSaldoInicial) {
     msgBase = `Saldo inicial de ${ticker} registrado no patrimônio (sem lançar no Controle).`;
+  } else if (eraEdicao) {
+    msgBase = `Operação de ${ticker} atualizada.`;
+  } else if (origemRecursoSel === 'retroativo') {
+    msgBase = `${ticker} cadastrado no seu patrimônio (retroativo) — nenhum saldo em conta foi debitado.`;
+  } else if (origemRecursoSel === 'externo') {
+    msgBase = `Aporte externo em ${ticker} registrado — nenhum saldo em conta foi debitado.`;
   } else {
     msgBase =
       tipoOp === 'compra'
@@ -1146,6 +1260,14 @@ function renderizarOperacoes() {
     const corretoraLabel = op.corretora ? `· ${op.corretora}` : '';
     const tipoIcon = tipo === 'venda' ? 'ph-bold ph-trend-down' : 'ph-bold ph-trend-up';
     const tipoWord = tipo === 'venda' ? 'Venda' : 'Compra';
+    // Deixa visível na timeline o que NÃO passou pelo caixa — sem isso a pessoa
+    // procura no extrato um débito que, por definição, não existe.
+    const selo =
+      op.origemRecurso === 'retroativo' || (op.saldoInicial && !op.contaOrigemId)
+        ? '<span class="tl-selo retroativo" title="Posição que já existia antes do app — não debitou conta">Retroativo</span>'
+        : op.origemRecurso === 'externo'
+          ? '<span class="tl-selo externo" title="Dinheiro de fora do app — não debitou conta">Aporte externo</span>'
+          : '';
 
     html += `<div class="timeline-item">
             <div class="timeline-accent ${tipo}"></div>
@@ -1155,6 +1277,7 @@ function renderizarOperacoes() {
                     <span class="tl-tipo">${tipoWord}</span>
                     <span class="tl-ticker">${op.ticker}</span>
                     ${nomeAtivo ? `<span class="tl-nome">${nomeAtivo}</span>` : ''}
+                    ${selo}
                 </div>
                 <div class="timeline-line2">
                     ${qtdLabel ? `<span>${qtdLabel} × ${precoLabel}</span>` : `<span>${precoLabel}</span>`}
@@ -1166,8 +1289,8 @@ function renderizarOperacoes() {
                 <span class="valor-mascarado">${formatarMoeda(total)}</span>
             </div>
             <div class="timeline-actions">
-                <button class="rich-overflow" onclick="editarOperacao(${op.id})" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                <button class="rich-overflow" onclick="excluirOperacao(${op.id})" title="Excluir" style="color:var(--cor-erro);"><i class="ph ph-trash"></i></button>
+                <button class="rich-overflow" onclick="editarOperacao('${op.id}')" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                <button class="rich-overflow" onclick="excluirOperacao('${op.id}')" title="Excluir" style="color:var(--cor-erro);"><i class="ph ph-trash"></i></button>
             </div>
         </div>`;
   });
@@ -1181,19 +1304,27 @@ function toggleRichExpand(ticker) {
   el.classList.toggle('aberto');
 }
 
+// Abre o drawer com os dados da operação para edição. NÃO apaga nada aqui: a
+// versão antiga só é substituída quando o usuário confirma (ver
+// registrarOperacaoAtivo). Antes a operação era removida ao ABRIR — fechar o
+// drawer sem confirmar apagava a compra de vez, e a perna de caixa ficava para
+// trás mantendo o saldo debitado.
 function editarOperacao(id) {
-  const op = historicoCompras.find((o) => o.id === id);
+  const op = acharOperacao(id);
   if (!op) return mostrarToast('Operação não encontrada.', 'erro');
 
-  // Abre o drawer com os campos preenchidos
-  abrirDrawerOperacao();
-  alternarTipoOperacao(op.tipo || 'compra');
+  operacaoEmEdicaoId = op.id;
+  // `semFoco`: o foco automático no ticker dispara o blur que preenchia o preço
+  // com a cotação do dia, apagando o preço realmente pago.
+  abrirDrawerOperacao({ semFoco: true });
+  alternarTipoOperacao(op.tipo || 'compra', true);
+
+  const titulo = document.getElementById('tituloPainelOp');
+  if (titulo) titulo.innerText = 'Editar operação';
+  const aviso = document.getElementById('avisoEdicaoOperacao');
+  if (aviso) aviso.style.display = 'block';
+
   document.getElementById('compraTicker').value = op.ticker || '';
-  setValorQtdInput(document.getElementById('compraQtd'), op.quantidade || '');
-  setValorBRLInput(document.getElementById('compraPreco'), op.preco_op || op.preco_pago || 0);
-  document.getElementById('compraData').value =
-    (op.data_op || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
-  document.getElementById('compraCorretora').value = op.corretora || '';
   const elCat = document.getElementById('compraCategoria');
   if (op.categoria) {
     elCat.value = op.categoria;
@@ -1204,8 +1335,14 @@ function editarOperacao(id) {
     elSub.value = op.subcategoria;
     elSub.dataset.touched = '1';
   }
+  setValorQtdInput(document.getElementById('compraQtd'), op.quantidade || '');
+  setValorBRLInput(document.getElementById('compraPreco'), op.preco_op || op.preco_pago || 0);
+  document.getElementById('compraData').value =
+    (op.data_op || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+  document.getElementById('compraCorretora').value = op.corretora || '';
   document.getElementById('compraVencimento').value = op.vencimento || '';
   document.getElementById('compraRentabilidade').value = op.rentabilidade || '';
+
   // Previdência / Reserva
   const chkRec = document.getElementById('prevRecorrente');
   const inpDiaRec = document.getElementById('prevDiaRecorrencia');
@@ -1217,38 +1354,59 @@ function editarOperacao(id) {
     inpTaxaMensal.value =
       op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
   if (inpDuracao) inpDuracao.value = op.duracaoAnos || '';
-  // Saldo inicial: edita pelo campo próprio (sem virar aporte no Controle).
+  if (typeof sincronizarRotuloDiaRecorrencia === 'function') sincronizarRotuloDiaRecorrencia();
+
+  // Origem do recurso. A conta precisa voltar selecionada: sem isso o Confirmar
+  // batia em "escolha a conta de onde o dinheiro sai" e a edição não salvava.
+  // Repovoa antes de selecionar porque a lista depende da data da operação.
+  if (typeof popularOrigemRecurso === 'function') popularOrigemRecurso();
+  const elOrigem = document.getElementById('compraOrigemRecurso');
+  if (elOrigem) {
+    const origemGravada = op.origemRecurso;
+    if (origemGravada === 'retroativo' || (op.saldoInicial && !op.contaOrigemId))
+      elOrigem.value = ORIGEM_RETROATIVA;
+    else if (origemGravada === 'externo') elOrigem.value = ORIGEM_EXTERNA;
+    else if (op.contaOrigemId) {
+      // A conta da compra original pode ter ficado sem saldo depois dela e sair
+      // da lista — reinsere para que a edição não perca a origem.
+      if (!Array.from(elOrigem.options).some((o) => o.value === op.contaOrigemId)) {
+        const c = typeof obterConta === 'function' ? obterConta(op.contaOrigemId) : null;
+        if (c) {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.text = c.nome;
+          elOrigem.appendChild(opt);
+        }
+      }
+      elOrigem.value = op.contaOrigemId;
+    } else elOrigem.value = '';
+  }
+  // Conta de destino do resgate (só aparece em venda).
+  if (op.tipo === 'venda') {
+    if (typeof popularDestinoRecurso === 'function') popularDestinoRecurso();
+    const txResgate = transacoes.find(
+      (t) => String(t.operacaoId) === String(op.id) && t.categoria === 'resgate_investimento'
+    );
+    const elDest = document.getElementById('compraDestinoRecurso');
+    if (elDest && txResgate && txResgate.contaId) elDest.value = txResgate.contaId;
+  }
+
+  // Saldo inicial legado ("já guardado"): edita pelo campo próprio, exceto
+  // quando a origem retroativa já assumiu o valor no campo principal.
   const inpSaldoIniEdit = document.getElementById('prevSaldoInicial');
-  if (inpSaldoIniEdit) {
-    if (op.saldoInicial) {
-      setValorBRLInput(inpSaldoIniEdit, op.preco_op || op.preco_pago || 0);
-      document.getElementById('compraPreco').value = '';
-    } else {
-      inpSaldoIniEdit.value = '';
-    }
-  }
-  // Antes de recriar, limpa lançamentos futuros do compromisso (serão regerados ao Confirmar)
-  if ((op.categoria === 'previdencia' || op.categoria === 'reserva_emergencia') && op.recorrente) {
-    removerLancamentosFuturosCompromisso(id);
-  }
+  if (inpSaldoIniEdit) inpSaldoIniEdit.value = '';
+
   ajustarCamposPorCategoria();
   calcularTotalCompra();
   atualizarProjecaoForm();
 
-  // Remove a versão antiga; o "Confirmar" cria uma nova entrada
-  historicoCompras = historicoCompras.filter((o) => o.id !== id);
-  transacoes = transacoes.filter((t) => t.id !== id.toString());
-  localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-  salvarTransacoes();
-  atualizarCarteiraAtivos();
-  renderizarOperacoes();
-
-  mostrarToast('Edite os campos e clique em Confirmar.', 'info');
+  mostrarToast('Edite os campos e clique em Confirmar para salvar.', 'info');
 }
 
 function excluirOperacao(id) {
-  const op = historicoCompras.find((o) => o.id === id);
+  const op = acharOperacao(id);
   if (!op) return mostrarToast('Operação não encontrada.', 'erro');
+  id = op.id;
 
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
@@ -1256,18 +1414,19 @@ function excluirOperacao(id) {
   document.getElementById('modalMensagem').innerHTML =
     `Tem certeza que deseja excluir a operação:<br><strong>${(op.tipo || 'compra').toUpperCase()}</strong> de <strong>${op.quantidade}x ${op.ticker}</strong> em ${op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—'}?<br><br><span style="color: var(--cor-erro); font-weight: 600;">Esta ação não pode ser desfeita.</span>`;
   document.getElementById('modalAcoes').innerHTML =
-    `<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="confirmarExclusaoOperacao(${id})"><i class="ph ph-trash"></i> Sim, excluir</button>`;
+    `<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="confirmarExclusaoOperacao('${id}')"><i class="ph ph-trash"></i> Sim, excluir</button>`;
   modal.style.display = 'flex';
 }
 
 function confirmarExclusaoOperacao(id) {
-  const op = historicoCompras.find((o) => o.id === id);
+  const op = acharOperacao(id);
+  if (op) id = op.id;
   // Cascade: ao excluir o template recorrente de previdência, remove os aportes gerados também
   const idsParaRemover = new Set([id]);
   let cascade = 0;
   if (op && op.categoria === 'previdencia' && op.recorrente && !op.gerado) {
     historicoCompras.forEach((o) => {
-      if (o.operacaoOrigem === id) {
+      if (String(o.operacaoOrigem) === String(id)) {
         idsParaRemover.add(o.id);
         cascade++;
       }
@@ -1286,15 +1445,25 @@ function confirmarExclusaoOperacao(id) {
     removerLancamentosFuturosCompromisso(id);
     lancFuturosRemovidos = antes - transacoes.length;
   }
-  historicoCompras = historicoCompras.filter((o) => !idsParaRemover.has(o.id));
+  const chavesRemover = new Set(Array.from(idsParaRemover, (x) => String(x)));
+  historicoCompras = historicoCompras.filter((o) => !chavesRemover.has(String(o.id)));
   transacoes = transacoes.filter((t) => {
-    const tid = t.id;
-    for (const remId of idsParaRemover) {
-      if (tid === remId.toString() || tid === remId) return false;
+    const tid = String(t.id);
+    for (const remId of chavesRemover) {
+      if (tid === remId) return false;
       if (tid === 'tx_origem_' + remId) return false;
+      if (t.operacaoId != null && String(t.operacaoId) === remId) return false;
     }
     return true;
   });
+  if (
+    typeof operacaoEmEdicaoId !== 'undefined' &&
+    operacaoEmEdicaoId != null &&
+    chavesRemover.has(String(operacaoEmEdicaoId)) &&
+    typeof fecharDrawerOperacao === 'function'
+  ) {
+    fecharDrawerOperacao();
+  }
   localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
   salvarTransacoes();
   fecharModal();
