@@ -2735,6 +2735,21 @@
             display: block; min-width: 0;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
+        /* O nome do ativo estava a ser cortado a UM caractere no PC.
+           Medido a 1280px com a barra lateral: a coluna da classe fica com
+           236px e o corpo com 26px, para um ticker que precisa de 37.
+           A causa é a repartição da linha, não a largura da tela — score
+           (30), valor (68) e botão (30) não encolhem, e `min-width: 0` no
+           corpo (que existe para o nome comprido do Tesouro não empurrar a
+           página no telemóvel) fazia dele o único a absorver o aperto todo.
+           Uma grelha de quatro colunas mantém a largura mesmo com duas
+           classes vazias, então isto acontece em qualquer monitor.
+           Agora o corpo tem um mínimo legível e a linha QUEBRA quando não
+           cabe: o valor desce para a segunda linha em vez de espremer o
+           nome. */
+        #carteira .cart-plano-item { flex-wrap: wrap; row-gap: 6px; }
+        #carteira .cart-plano-body { min-width: 96px; }
+        #carteira .cart-plano-right { margin-left: auto; }
 
         /* Diversificação por setor, dentro da coluna da classe no plano */
         #carteira .cart-setores {
