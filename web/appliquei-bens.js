@@ -1892,7 +1892,7 @@ function renderMeusBens() {
         if (det.length) linhas.push(det.join(' · '));
       }
       var descTxt = linhas.length
-        ? '<span class="mp-inst-sub" style="text-align:left;">' + linhas.join(' — ') + '</span>'
+        ? '<span class="mp-bem-sub">' + linhas.join(' · ') + '</span>'
         : '';
       // Bem financiado: o valor de mercado continua sendo o número principal (é
       // ele que os KPIs somam); logo abaixo, em letra menor, o líquido e a
@@ -1902,14 +1902,14 @@ function renderMeusBens() {
       if (fin && fin.ativo && fin.saldoDevedor > 0) {
         var liquido = (b.valorAtual || 0) - fin.saldoDevedor;
         linhaFin =
-          '<div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:2px;font-weight:500;">' +
+          '<span class="mp-bem-fin">' +
           'líquido <strong style="color:' +
-          (liquido >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)') +
+          (liquido >= 0 ? 'var(--cor-txt-primaria)' : 'var(--cor-erro)') +
           ';">' +
           fmt(liquido) +
           '</strong> · devendo <strong style="color:var(--cor-erro);">' +
           fmt(fin.saldoDevedor) +
-          '</strong></div>';
+          '</strong></span>';
       }
       // Conflito nunca revisado: o card avisa e leva direto à análise, senão a
       // pessoa nunca descobre que a taxa gravada não bate com a parcela dela.
@@ -1945,32 +1945,37 @@ function renderMeusBens() {
           b.id +
           '\')" title="Excluir"><i class="ph ph-trash" style="color:var(--cor-erro);"></i></button>';
 
+      // Grade nomeada em vez de dois blocos flex: no celular os quatro botões e
+      // o valor em DM Mono não encolhem, e sobravam 82px de 332 para o nome e o
+      // endereço — que quebravam quase letra a letra. Cada peça agora tem área
+      // própria e o CSS decide o arranjo por largura.
       return (
-        '<div class="mp-inst-item' +
+        '<div class="mp-inst-item mp-bem' +
         (arq ? ' mp-arq' : '') +
-        '" style="' +
-        (arq ? 'opacity:.5;' : '') +
-        '">' +
-        '<div style="min-width:0;display:flex;align-items:center;gap:9px;">' +
+        '"' +
+        (arq ? ' style="opacity:.55;"' : '') +
+        '>' +
         '<i class="ph-fill ' +
         icon +
-        '" style="font-size:20px;color:var(--cor-texto-mutado);flex-shrink:0;"></i>' +
-        '<div style="min-width:0;">' +
+        ' mp-bem-icone"></i>' +
+        '<div class="mp-bem-id">' +
         '<span class="mp-inst-nome">' +
         b.nome +
-        (arq
-          ? ' <span style="font-size:10px;color:var(--cor-texto-mutado);">(arquivado)</span>'
-          : '') +
+        (arq ? ' <span class="mp-bem-arq">(arquivado)</span>' : '') +
         '</span>' +
         descTxt +
-        (fipeBadge ? '<div style="margin-top:3px;">' + fipeBadge + '</div>' : '') +
+        (fipeBadge ? '<span class="mp-bem-selos">' + fipeBadge + '</span>' : '') +
         '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<div class="mp-bem-valor">' +
         '<span class="mp-inst-valor valor-mascarado">' +
         valorTxt +
-        linhaFin +
         '</span>' +
+        '</div>' +
+        // A linha do financiamento é IRMÃ do valor, não filha: só filho direto
+        // da grade recebe grid-area. Aninhada, ela voltava a dividir a coluna do
+        // valor e a levava a 248px de max-content.
+        linhaFin +
+        '<div class="mp-bem-acoes">' +
         acoes +
         '</div>' +
         '</div>'

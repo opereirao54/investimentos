@@ -7364,6 +7364,125 @@
             #patrimonio .inv-hero[data-carregando="1"] .inv-delta-rs { animation: none; }
         }
 
+        /* ==========================================================
+           MEU PATRIMÔNIO — cartão de bem no celular
+           ==========================================================
+           O componente .mp-inst-item nasceu para desktop e nunca foi adaptado:
+           dois blocos flex com justify-content:space-between. No cartão de um
+           imóvel financiado a direita carrega o valor em DM Mono (não quebra)
+           mais QUATRO botões (não encolhem) — 206px dos 332px de um iPhone.
+           Sobravam 82px para "Apartamento" e "42 m² · Apartamento · Jardim Íris,
+           São Paulo", que quebravam quase letra a letra e colavam no valor.
+
+           Aqui cada peça tem uma área nomeada e o arranjo muda por largura:
+           no celular as ações descem para a própria faixa e o texto fica com a
+           largura inteira; a partir de 720px tudo volta para uma linha só.
+        */
+        #meu_patrimonio .mp-bem {
+            display: grid; align-items: center;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            grid-template-areas:
+                "icone identidade valor"
+                "icone fin        fin"
+                "acoes acoes      acoes";
+            gap: 2px 10px; padding: 12px 14px;
+        }
+        /* O ícone vira avatar, como já acontece na lista de instituições logo
+           acima: dá peso à coluna da esquerda e amarra as duas listas da mesma
+           tela na mesma linguagem. */
+        #meu_patrimonio .mp-bem-icone {
+            grid-area: icone; align-self: center; justify-self: center;
+            width: 34px; height: 34px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; color: var(--cor-patrimonio);
+            background: rgba(124, 58, 237, 0.10);
+        }
+        body.dark #meu_patrimonio .mp-bem-icone { background: rgba(167, 139, 250, 0.14); }
+        #meu_patrimonio .mp-bem-id {
+            grid-area: identidade; min-width: 0; display: flex;
+            flex-direction: column; align-items: flex-start; gap: 2px;
+        }
+        #meu_patrimonio .mp-bem .mp-inst-nome {
+            font-size: 13.5px; line-height: 1.25;
+            /* Sem isto o nome participa do cálculo de largura mínima da coluna e
+               a faixa de texto encolhe até caber letra a letra. */
+            overflow-wrap: break-word; word-break: normal;
+        }
+        #meu_patrimonio .mp-bem-arq { font-size: 10px; color: var(--cor-texto-secundario); font-weight: 500; }
+        #meu_patrimonio .mp-bem-sub {
+            display: block; font-size: 11.5px; line-height: 1.4;
+            color: var(--cor-texto-secundario); text-align: left;
+            overflow-wrap: break-word;
+        }
+        #meu_patrimonio .mp-bem-selos { display: block; margin-top: 4px; }
+
+        #meu_patrimonio .mp-bem-valor {
+            grid-area: valor; justify-self: end; text-align: right;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+        }
+        #meu_patrimonio .mp-bem .mp-inst-valor {
+            font-size: 14px; letter-spacing: -0.02em; white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        /* A linha do financiamento era um <div> dentro de um <span> — aninhamento
+           inválido que inflava a altura do bloco de valor para 54px. */
+        /* Faixa própria, alinhada ao texto. Compartilhar a coluna do valor fazia
+           a trilha `auto` reivindicar o max-content da frase inteira (248px de
+           390) ANTES do `1fr` receber a sobra: a coluna do nome ia a ZERO e o
+           endereço descia letra a letra por 467px de altura. */
+        #meu_patrimonio .mp-bem-fin {
+            grid-area: fin; justify-self: start; text-align: left;
+            margin-top: 3px;
+            font-size: 11px; font-weight: 500; line-height: 1.45;
+            color: var(--cor-texto-secundario);
+        }
+        #meu_patrimonio .mp-bem-fin strong { font-family: 'DM Mono', monospace; font-weight: 700; }
+
+        /* No celular as ações ganham faixa própria: quatro botões de 30px
+           disputando a mesma linha do valor é o que espremia o texto. */
+        #meu_patrimonio .mp-bem-acoes {
+            grid-area: acoes; display: flex; justify-content: flex-end; gap: 6px;
+            margin-top: 9px; padding-top: 9px;
+            border-top: 1px dashed var(--cor-borda);
+        }
+        #meu_patrimonio .mp-bem-acoes:empty { display: none; }
+        #meu_patrimonio .mp-bem-acoes .btn-secundario {
+            min-width: 38px; min-height: 34px; padding: 0 10px !important;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 13px !important;
+        }
+
+        /* formatarMoeda usa espaço NÃO-SEPARÁVEL entre "R$" e o número, então
+           "R$ 1.250.000,00" é um token único: não quebra, e o .mp-kpi tem
+           overflow:hidden — o último dígito era CORTADO. Valor cortado não é
+           feio, é errado: "R$ 1.250.000,0" se lê como outro número. Deixa
+           quebrar como último recurso e reduz um passo de tamanho onde a
+           coluna aperta. */
+        #meu_patrimonio .mp-kpi-valor { overflow-wrap: anywhere; line-height: 1.15; }
+        @media (min-width: 1080px) and (max-width: 1500px) {
+            #meu_patrimonio .mp-kpi:not(.mp-kpi-hero) .mp-kpi-valor { font-size: 19px; }
+        }
+
+        /* A lista de instituições (Minhas Contas) sofre do mesmo aperto: o bloco
+           da direita é flex-shrink:0 e o da esquerda ficava sem min-width. */
+        #meu_patrimonio .mp-inst-head-left { min-width: 0; flex: 1; }
+        #meu_patrimonio .mp-inst-meta { min-width: 0; }
+        #meu_patrimonio .mp-inst-nome { overflow-wrap: break-word; }
+        #meu_patrimonio .mp-inst-head-right .mp-inst-valor { white-space: nowrap; }
+
+        @media (min-width: 720px) {
+            #meu_patrimonio .mp-bem {
+                grid-template-columns: 34px minmax(0, 1fr) auto auto;
+                grid-template-areas:
+                    "icone identidade valor acoes"
+                    "icone fin        fin   acoes";
+                gap: 2px 12px; padding: 14px 16px;
+            }
+            #meu_patrimonio .mp-bem-acoes {
+                margin-top: 0; padding-top: 0; border-top: none; align-self: center;
+            }
+        }
+
     </style>
 </head>
 <body class="controle-ativo">
