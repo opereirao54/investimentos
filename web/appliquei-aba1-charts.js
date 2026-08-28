@@ -38,6 +38,23 @@ function setPeriodoEvolucao(meses) {
   });
   renderizarGraficoEvolucao();
   atualizarChipDividendosPeriodo();
+  atualizarResumoBlocoEvolucao();
+}
+
+// Recolhido, o bloco "Evolução" precisa dizer o que está dentro — senão vira uma
+// pílula muda. Mostra o período e o filtro ativos (H1: status sempre visível).
+function atualizarResumoBlocoEvolucao() {
+  const el = document.getElementById('resumoBlocoEvolucao');
+  if (!el) return;
+  const partes = [rotuloPeriodoEvolucao()];
+  const selTipo = document.getElementById('filtroEvolucaoTipo');
+  const selAtivo = document.getElementById('filtroEvolucaoAtivo');
+  if (selAtivo && selAtivo.value) partes.push(selAtivo.value);
+  else if (selTipo && selTipo.value && selTipo.value !== 'todos') {
+    const opt = selTipo.options[selTipo.selectedIndex];
+    if (opt) partes.push(opt.text);
+  }
+  el.innerText = partes.join(' · ');
 }
 
 function rotuloPeriodoEvolucao() {
@@ -211,7 +228,9 @@ function atualizarKPIsResumo(carteiraConsolidada) {
   // =============================================================
 
   const elPat = document.getElementById('resumoPatrimonio');
-  if (elPat) elPat.innerText = formatarMoeda(patrim);
+  // O saldo é o único ponto focal da aba: "R$" e centavos entram rebaixados
+  // para o olho cair na parte inteira. innerText perderia o markup.
+  if (elPat) elPat.innerHTML = moedaComCentavosDiscretos(patrim);
   const elInv = document.getElementById('resumoInvestido');
   if (elInv) elInv.innerText = formatarMoeda(aplicado);
 
@@ -242,7 +261,12 @@ function atualizarKPIsResumo(carteiraConsolidada) {
       const lblIni = dataIni
         .toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' })
         .replace('.', '');
-      elDesde.innerText = `aportes desde ${lblIni} (${rotuloPeriodoEvolucao()})`;
+      // "R$ 0,00" sob "Capital aplicado" lê como bug quando na verdade é
+      // "você não aportou nada nesta janela". O rótulo diz qual dos dois é.
+      elDesde.innerText =
+        aplicado > 0
+          ? `aportes desde ${lblIni} (${rotuloPeriodoEvolucao()})`
+          : `nenhum aporte em ${rotuloPeriodoEvolucao()}`;
     } else {
       const datasFiltradas = historicoCompras
         .filter((o) => o.tipo !== 'venda' && o.data_op)
@@ -990,6 +1014,24 @@ function atualizarBarraAlocacao(carteiraConsolidada) {
   renderizarGraficoEvolucao();
 }
 
+// Formata um valor para o display grande do saldo, com "R$" e os centavos
+// tipograficamente rebaixados (ver .inv-moeda/.inv-cents). Escapa nada porque
+// a entrada é numérica — o texto sai todo de formatarMoeda.
+function moedaComCentavosDiscretos(valor) {
+  const txt = formatarMoeda(valor);
+  const m = txt.match(/^(R\$)\s*(.*?)([.,]\d{2})$/);
+  if (!m) return txt;
+  return (
+    '<span class="inv-moeda">' +
+    m[1] +
+    '</span>' +
+    m[2] +
+    '<span class="inv-cents">' +
+    m[3] +
+    '</span>'
+  );
+}
+
 function atualizarCarteiraAtivos() {
   const tbody = document.getElementById('tabelaCarteiraCorpo');
   const msgVazia = document.getElementById('carteiraVaziaMsg');
@@ -1150,7 +1192,9 @@ function atualizarCarteiraAtivos() {
           if (partes.length) metaExtra = partes.join(' · ');
         }
 
-        richHTML += `<div class="rich-row" onclick="toggleRichExpand('${ticker}')">
+        // A faixa de 3px à esquerda amarra carteira, timeline e dividendos numa
+        // família visual só — e diz a classe do ativo sem gastar um rótulo.
+        richHTML += `<div class="rich-row" style="--cor-acento-linha:${avatarBg};" onclick="toggleRichExpand('${ticker}')">
                 <div class="rich-avatar" style="background:${avatarBg};">${initial}</div>
                 <div class="rich-row-info">
                     <div class="rich-ticker">${ticker}</div>
@@ -1172,7 +1216,7 @@ function atualizarCarteiraAtivos() {
                     <span class="rich-lucro-rs" style="color:${corLucro};">${sinalLucro}${formatarMoeda(lucroR$)}</span>
                     <span class="rich-lucro-pct" style="color:${corLucro};">${sinalLucro}${lucroPerc.toFixed(2)}%</span>
                 </div>
-                <div style="display:flex;align-items:center;justify-content:flex-end;">
+                <div class="rich-acao">
                     <button class="rich-overflow" onclick="event.stopPropagation();mudarSubAbaPatrimonio('operacoes');document.getElementById('filtroOperacoesTicker').value='${ticker}';renderizarOperacoes();" title="Ver operações">
                         <i class="ph ph-arrow-right"></i>
                     </button>

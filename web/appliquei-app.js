@@ -64,6 +64,49 @@ function mudarAba(e, idAba, callback = null) {
   if (typeof closeMobileNav === 'function') closeMobileNav();
 }
 
+// === BLOCOS RECOLHÍVEIS DA ABA "MEUS INVESTIMENTOS" =========================
+// Evolução e Distribuição são leitura de ANÁLISE, não de consulta: no celular
+// nascem fechadas para que a dobra responda "quanto eu tenho?" e a carteira
+// apareça sem rolagem. No desktop há espaço lateral e o CSS as mantém abertas
+// (a media query de 1080px ignora o data-aberto).
+// A escolha do usuário persiste por bloco.
+var INV_BLOCOS_ABERTOS_PADRAO = ['blocoRanking'];
+function alternarBlocoInv(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const aberto = el.getAttribute('data-aberto') === '1';
+  el.setAttribute('data-aberto', aberto ? '0' : '1');
+  const cab = el.querySelector('.inv-bloco-cab');
+  if (cab) cab.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+  try {
+    localStorage.setItem('appliquei_inv_bloco_' + id, aberto ? '0' : '1');
+  } catch (_) {}
+  // Chart.js dimensiona pelo container: um canvas que nasceu em display:none
+  // fica com 0px de altura e o gráfico some ao abrir. Redesenha após o reflow.
+  if (!aberto) {
+    setTimeout(() => {
+      if (id === 'blocoEvolucao' && typeof renderizarGraficoEvolucao === 'function')
+        renderizarGraficoEvolucao();
+      if (id === 'blocoDistribuicao' && typeof atualizarCarteiraAtivos === 'function')
+        atualizarCarteiraAtivos();
+    }, 60);
+  }
+}
+
+function inicializarBlocosInv() {
+  document.querySelectorAll('#patrimonio .inv-bloco').forEach((el) => {
+    let salvo = null;
+    try {
+      salvo = localStorage.getItem('appliquei_inv_bloco_' + el.id);
+    } catch (_) {}
+    const padrao = INV_BLOCOS_ABERTOS_PADRAO.indexOf(el.id) > -1 ? '1' : '0';
+    el.setAttribute('data-aberto', salvo === '0' || salvo === '1' ? salvo : padrao);
+    const cab = el.querySelector('.inv-bloco-cab');
+    if (cab) cab.setAttribute('aria-expanded', el.getAttribute('data-aberto') === '1');
+  });
+}
+document.addEventListener('DOMContentLoaded', inicializarBlocosInv);
+
 // Sub-abas dentro de "Meus Investimentos"
 var filtroOpsTimeline = 'todos';
 function mudarSubAbaPatrimonio(qual) {

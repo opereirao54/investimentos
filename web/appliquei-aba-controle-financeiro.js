@@ -879,7 +879,11 @@ function atualizarDatalistDescricoes() {
   const descricoesUnicas = [
     ...new Set(
       transacoes.map((t) => {
-        let d = t.descricao;
+        // Transação sem descrição existe (importação de backup, dado legado):
+        // `undefined.includes` lançava aqui e derrubava quem chamasse. Como
+        // registrarOperacaoAtivo chama esta função DEPOIS de gravar, o erro
+        // aparecia com a operação já salva e a tela pela metade.
+        let d = t.descricao || '';
         if (d.includes(' (')) d = d.substring(0, d.lastIndexOf(' ('));
         return d;
       })

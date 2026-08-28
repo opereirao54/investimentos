@@ -6597,6 +6597,611 @@
             width: 4px; height: 16px; border-radius: 3px;
             background: linear-gradient(180deg, #10b981, #059669);
         }
+        /* ==========================================================
+           ABA "MEUS INVESTIMENTOS" — sistema visual próprio (inv-*)
+           ==========================================================
+           Direção: sereno, preciso, íntimo.
+           · SERENO   — dinheiro dá ansiedade; a tela não grita. Menos caixa,
+                        menos borda, menos ícone colorido. Só o saldo tem peso.
+           · PRECISO  — números em DM Mono com tabular-nums e tracking negativo;
+                        centavos rebaixados. Sensação de instrumento.
+           · ÍNTIMO   — o patrimônio é DELE: escala generosa no que é dele,
+                        o resto recua.
+
+           Três regras que separam isto de "card branco de template":
+           1. Borda OU sombra, nunca as duas. Profundidade é camada, não moldura.
+           2. Ícone colorido só onde há ação ou estado. Título de seção é texto.
+           3. Densidade variável: o saldo respira, a lista é densa, o filtro é
+              compacto. Padding igual em tudo é o que faz parecer Bootstrap.
+
+           Acessibilidade: --cor-texto-mutado dá 3.29:1 no claro e 2.80:1 no
+           escuro — REPROVA em AA para texto normal. Aqui ele é decorativo
+           apenas; todo rótulo pequeno usa --cor-texto-secundario (8.31:1 /
+           5.58:1). Esta aba não usa mutado para texto legível.
+        */
+        #patrimonio {
+            --inv-r-lg: 18px;   /* blocos grandes — mais "app", menos "caixa" */
+            --inv-r-md: 12px;   /* controles */
+            --inv-r-sm: 8px;
+            --inv-gap: 12px;
+            --inv-recuo: var(--cor-superficie);
+            --inv-hairline: var(--cor-borda);
+            --inv-num: 'DM Mono', ui-monospace, monospace;
+        }
+        #patrimonio .inv-num {
+            font-family: var(--inv-num);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+        /* Rótulo de seção: texto, não título com ícone verde. */
+        #patrimonio .inv-eyebrow {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- HERO: o único ponto focal da tela ---------- */
+        #patrimonio .inv-hero {
+            position: relative; overflow: hidden;
+            border-radius: var(--inv-r-lg);
+            padding: 18px 16px 14px;
+            margin-bottom: 14px;
+            background:
+                radial-gradient(120% 140% at 100% 0%, var(--cor-bg-primaria) 0%, transparent 62%),
+                var(--cor-branco);
+            box-shadow: var(--shadow-card);   /* sombra, SEM borda */
+        }
+        #patrimonio .inv-hero-top {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; margin-bottom: 10px;
+        }
+        #patrimonio .inv-hero-acoes { display: flex; align-items: center; gap: 8px; }
+        /* Selo "preços estimados": o JS alterna entre none e inline-flex. */
+        #patrimonio .inv-flag {
+            align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
+            background: var(--cor-bg-amber); color: var(--cor-txt-amber);
+            border: 1px solid var(--cor-borda-amber);
+        }
+        #patrimonio .inv-btn-add {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            height: 38px; padding: 0 14px; border: none; border-radius: 99px;
+            background: var(--cor-primaria); color: #fff; cursor: pointer;
+            font-family: inherit; font-size: 13px; font-weight: 700;
+            transition: background var(--transicao), transform var(--transicao);
+        }
+        #patrimonio .inv-btn-add:hover { background: var(--cor-primaria-hover); }
+        #patrimonio .inv-btn-add:active { transform: scale(0.97); }
+        #patrimonio .inv-btn-add i { font-size: 15px; }
+
+        /* O saldo. Centavos rebaixados via .inv-cents, injetado pelo render. */
+        #patrimonio .inv-saldo {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: clamp(30px, 9vw, 40px); font-weight: 500;
+            letter-spacing: -0.035em; line-height: 1.05;
+            color: var(--cor-texto-principal);
+            margin: 2px 0 8px; word-break: break-word;
+        }
+        #patrimonio .inv-saldo .inv-cents { font-size: 0.62em; opacity: 0.5; }
+        #patrimonio .inv-saldo .inv-moeda {
+            font-size: 0.44em; opacity: 0.45; font-weight: 600;
+            letter-spacing: 0; margin-right: 4px; vertical-align: 0.28em;
+        }
+
+        /* Variação: texto com seta, não badge com fundo. */
+        #patrimonio .inv-hero-linha {
+            display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+            font-size: 13px;
+        }
+        #patrimonio .inv-delta {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 700; font-size: 14px; color: var(--cor-txt-primaria);
+        }
+        #patrimonio .inv-delta.neg { color: var(--cor-erro); }
+        #patrimonio .inv-delta i { font-size: 13px; }
+        #patrimonio .inv-delta-rs {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-delta-rot { font-size: 12px; color: var(--cor-texto-secundario); }
+        #patrimonio .inv-pipe {
+            width: 1px; height: 11px; background: var(--inv-hairline);
+            display: inline-block; align-self: center;
+        }
+
+        /* Métricas secundárias: densas, em linha, sem virar card. */
+        #patrimonio .inv-metricas {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 14px; padding-top: 12px;
+            border-top: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-metrica-rot {
+            display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--cor-texto-secundario); margin-bottom: 3px;
+        }
+        #patrimonio .inv-metrica-val {
+            display: block; font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 15px; font-weight: 500; letter-spacing: -0.02em;
+            color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-metrica-sub {
+            display: block; font-size: 11px; color: var(--cor-texto-secundario); margin-top: 2px;
+        }
+
+        /* Próximo evento: faixa de 1 linha, não um card do tamanho do donut. */
+        #patrimonio .inv-evento {
+            display: flex; align-items: center; gap: 8px; width: 100%;
+            margin-top: 12px; padding: 10px 12px; border-radius: var(--inv-r-md);
+            background: var(--inv-recuo); border: none; text-align: left;
+            font-family: inherit; color: var(--cor-texto-principal);
+            transition: background var(--transicao);
+        }
+        #patrimonio .inv-evento[role="button"]:hover { background: var(--cor-bg-primaria); }
+        #patrimonio .inv-evento > i:first-child { font-size: 15px; color: var(--cor-primaria); flex-shrink: 0; }
+        #patrimonio .inv-evento-rot {
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-secundario);
+            white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;
+        }
+        #patrimonio .inv-evento-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14px; font-weight: 600; margin-left: auto; white-space: nowrap;
+        }
+        #patrimonio .inv-evento-det {
+            flex-basis: 100%; font-size: 11px; color: var(--cor-texto-secundario);
+            line-height: 1.4; order: 9;
+        }
+        #patrimonio .inv-evento-det:empty { display: none; }
+
+        /* ---------- EVOLUÇÃO: recolhível, gráfico enxuto ---------- */
+        #patrimonio .inv-bloco {
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+            border-radius: var(--inv-r-lg); margin-bottom: 14px; overflow: hidden;
+        }
+        #patrimonio .inv-bloco-cab {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 13px 14px; background: none; border: none; cursor: pointer;
+            font-family: inherit; text-align: left; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-bloco-cab .inv-eyebrow { flex: 1; }
+        #patrimonio .inv-bloco-resumo {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 11.5px; font-weight: 600; color: var(--cor-texto-secundario);
+            padding: 3px 9px; border-radius: 99px; background: var(--inv-recuo);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%;
+        }
+        #patrimonio .inv-bloco-cab .inv-chevron {
+            font-size: 15px; color: var(--cor-texto-secundario);
+            transition: transform var(--transicao);
+        }
+        #patrimonio .inv-bloco[data-aberto="1"] .inv-chevron { transform: rotate(180deg); }
+        #patrimonio .inv-bloco-corpo { display: none; padding: 0 14px 14px; }
+        #patrimonio .inv-bloco[data-aberto="1"] .inv-bloco-corpo { display: block; }
+
+        /* Trilho horizontal de chips — o padrão de filtro no mobile. */
+        #patrimonio .inv-trilho {
+            display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+            -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+            scroll-snap-type: x proximity;
+        }
+        #patrimonio .inv-trilho::-webkit-scrollbar { display: none; }
+        #patrimonio .inv-trilho > * { flex: 0 0 auto; scroll-snap-align: start; }
+
+        /* Chip base — vale para .period-pill, .chip-cat e .ops-chip dentro da aba.
+           As classes originais são preservadas: o JS acende o ativo por elas. */
+        #patrimonio .period-pill,
+        #patrimonio .chip-cat,
+        #patrimonio .ops-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 12px; border-radius: 99px;
+            border: 1px solid transparent; background: var(--inv-recuo);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 600;
+            white-space: nowrap; transition: all var(--transicao);
+        }
+        #patrimonio .period-pill:hover,
+        #patrimonio .chip-cat:hover,
+        #patrimonio .ops-chip:hover { color: var(--cor-texto-principal); }
+        #patrimonio .period-pill.ativo,
+        #patrimonio .chip-cat.ativo,
+        #patrimonio .ops-chip.ativo {
+            background: var(--cor-texto-principal); color: var(--cor-branco);
+            border-color: var(--cor-texto-principal);
+        }
+        #patrimonio .ops-chip.ops-chip-danger.ativo {
+            background: var(--cor-erro); border-color: var(--cor-erro); color: #fff;
+        }
+
+        #patrimonio .inv-select {
+            height: 34px; padding: 0 30px 0 11px; border-radius: var(--inv-r-md);
+            border: 1px solid var(--inv-hairline); background-color: var(--cor-branco);
+            color: var(--cor-texto-principal); font-family: inherit; font-size: 12.5px;
+            font-weight: 600; cursor: pointer; max-width: 100%;
+        }
+        #patrimonio .inv-grafico { position: relative; height: 190px; margin-top: 10px; }
+        #patrimonio .inv-vazio {
+            padding: 26px 14px; text-align: center;
+            color: var(--cor-texto-secundario); font-size: 12.5px; line-height: 1.55;
+        }
+        #patrimonio .inv-vazio i { font-size: 26px; opacity: 0.35; display: block; margin-bottom: 7px; }
+
+        /* ---------- NAVEGAÇÃO: as sub-abas são a espinha da tela ---------- */
+        #patrimonio .inv-nav {
+            position: sticky; top: 0; z-index: 20;
+            background: var(--cor-fundo);
+            padding: 8px 0 10px; margin-bottom: 2px;
+        }
+        #patrimonio .inv-nav-trilho {
+            display: flex; gap: 3px; padding: 3px;
+            background: var(--inv-recuo); border-radius: 99px;
+        }
+        #patrimonio .subtab-pill {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            height: 36px; padding: 0 8px; border: none; border-radius: 99px;
+            background: transparent; color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 700;
+            transition: all var(--transicao); min-width: 0;
+        }
+        #patrimonio .subtab-pill i { font-size: 15px; flex-shrink: 0; }
+        #patrimonio .subtab-pill.ativo {
+            background: var(--cor-branco); color: var(--cor-texto-principal);
+            box-shadow: var(--shadow-suave);
+        }
+        #patrimonio .inv-nav-stat {
+            display: flex; align-items: center; gap: 6px; margin-top: 8px;
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- PAINEL DE CONTEÚDO ---------- */
+        #patrimonio .inv-painel {
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+            border-radius: var(--inv-r-lg); overflow: hidden;
+        }
+        #patrimonio .inv-barra {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 12px; border-bottom: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-busca {
+            display: flex; align-items: center; gap: 6px; flex: 1; min-width: 110px;
+            height: 32px; padding: 0 11px; border-radius: 99px;
+            background: var(--inv-recuo); color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-busca input {
+            flex: 1; min-width: 0; border: none; background: none; outline: none;
+            font-family: inherit; font-size: 12.5px; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-btn-icone {
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            height: 32px; min-width: 32px; padding: 0 10px; border-radius: 99px;
+            border: 1px solid var(--inv-hairline); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            transition: all var(--transicao); flex-shrink: 0;
+        }
+        #patrimonio .inv-btn-icone:hover {
+            color: var(--cor-texto-principal); border-color: var(--cor-borda2);
+        }
+        #patrimonio .inv-btn-icone i { font-size: 14px; }
+        #patrimonio .inv-rolagem { overflow-y: auto; max-height: 62vh; }
+
+        /* ---------- CARTEIRA: linha de ativo redesenhada ----------
+           A grade de 7 colunas do layout antigo virava 3 no celular e escondia
+           preço médio, resultado e alocação. Aqui a linha é um bloco de duas
+           faixas: identidade + saldo em cima, métricas embaixo. Nada some. */
+        #patrimonio .rich-row {
+            display: grid; gap: 1px 10px;
+            grid-template-columns: 36px minmax(0, 1fr) auto;
+            grid-template-areas: "avatar ident saldo" "avatar ident lucro";
+            padding: 11px 12px; cursor: pointer; position: relative;
+            border-bottom: 1px solid var(--inv-hairline);
+            transition: background var(--transicao);
+        }
+        #patrimonio .rich-row::before {
+            content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+            border-radius: 0 3px 3px 0; background: var(--cor-acento-linha, transparent);
+        }
+        #patrimonio .rich-row:last-child { border-bottom: none; }
+        #patrimonio .rich-row:hover { background: var(--cor-bg-primaria); }
+        #patrimonio .rich-avatar {
+            grid-area: avatar; align-self: center;
+            width: 36px; height: 36px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+        }
+        /* .rich-meta é filha de .rich-row-info, não da grade — por isso o bloco
+           de identidade ocupa as duas linhas e leva a meta junto. */
+        #patrimonio .rich-row-info { grid-area: ident; min-width: 0; padding: 0; align-self: center; }
+        #patrimonio .rich-ticker {
+            font-family: var(--inv-num); font-size: 13.5px; font-weight: 600;
+            letter-spacing: -0.01em; color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #patrimonio .rich-nome {
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #patrimonio .rich-meta {
+            display: flex; align-items: center; flex-wrap: wrap;
+            gap: 4px 7px; margin-top: 4px;
+            font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .rich-alloc-bar {
+            width: 46px; height: 3px; border-radius: 99px;
+            background: var(--inv-recuo); overflow: hidden; display: inline-block;
+        }
+        #patrimonio .rich-alloc-fill { display: block; height: 100%; border-radius: 99px; }
+        /* O layout antigo escondia o saldo do ativo abaixo de 600px (regra em
+           "Responsive adjustments for rich rows"): no celular a pessoa via o
+           ticker e o lucro, mas não quanto tinha naquele ativo. Volta aqui. */
+        #patrimonio .rich-saldo {
+            grid-area: saldo; display: block !important; text-align: right; white-space: nowrap;
+            align-self: end;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14px; font-weight: 600; letter-spacing: -0.02em;
+            color: var(--cor-texto-principal);
+        }
+        /* Preço médio e sparkline só a partir do desktop — no celular vivem no
+           painel expandido, que já traz os dois. */
+        #patrimonio .rich-pm, #patrimonio .rich-sparkline { display: none; }
+        #patrimonio .rich-lucro {
+            grid-area: lucro; justify-self: end; align-self: start; text-align: right;
+            display: flex; align-items: baseline; gap: 5px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+        }
+        /* No celular a linha mostra saldo + variação %; o resultado em R$ está a
+           um toque, no painel expandido ("Resultado"). Duas linhas de número à
+           direita empurravam a linha para 102px — com uma, cabe em ~70px e a
+           lista mostra o dobro de ativos por tela. */
+        #patrimonio .rich-lucro-rs { display: none; font-size: 11.5px; font-weight: 600; }
+        #patrimonio .rich-lucro-pct { font-size: 12px; font-weight: 700; }
+        /* A seta "ver operações" é redundante no celular: a linha inteira já
+           abre no toque. Antes o wrapper trazia display:flex inline, que vencia
+           a regra e criava uma terceira faixa de 28px vazia em cada linha. */
+        #patrimonio .rich-acao { display: none; grid-area: acao; align-items: center; justify-content: flex-end; }
+        #patrimonio .rich-overflow {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 8px; border: none;
+            background: transparent; color: var(--cor-texto-secundario); cursor: pointer;
+            transition: all var(--transicao);
+        }
+        #patrimonio .rich-overflow:hover { background: var(--inv-recuo); color: var(--cor-texto-principal); }
+
+        #patrimonio .rich-expand {
+            display: none; padding: 0 12px 13px 58px;
+            border-bottom: 1px solid var(--inv-hairline); background: var(--cor-branco);
+        }
+        #patrimonio .rich-expand.aberto { display: block; }
+        #patrimonio .rich-expand-grid {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 14px; padding: 12px; border-radius: var(--inv-r-md);
+            background: var(--inv-recuo);
+        }
+        #patrimonio .re-label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+            color: var(--cor-texto-secundario); margin-bottom: 2px;
+        }
+        #patrimonio .re-value {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .rich-expand-actions {
+            display: flex; gap: 6px; margin-top: 10px; overflow-x: auto;
+            scrollbar-width: none;
+        }
+        #patrimonio .rich-expand-actions::-webkit-scrollbar { display: none; }
+        #patrimonio .rich-expand-actions .btn-secundario { flex: 0 0 auto; }
+
+        /* Cabeçalho de categoria: no antigo eram 53px com o texto quebrando em
+           duas linhas. Aqui é uma faixa de rótulo, densa. */
+        #patrimonio .rich-category-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 12px; background: var(--inv-recuo);
+            border-bottom: 1px solid var(--inv-hairline);
+            position: sticky; top: 0; z-index: 4;
+        }
+        #patrimonio .rich-category-header > div:first-child { min-width: 0; flex: 1; gap: 7px !important; }
+        #patrimonio .rich-category-header .cat-accent { width: 3px; height: 14px; border-radius: 99px; }
+        #patrimonio .rich-category-header .cat-label {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+            color: var(--cor-texto-secundario); white-space: nowrap;
+        }
+        #patrimonio .rich-category-header > div:first-child > span:last-child {
+            color: var(--cor-texto-secundario) !important; white-space: nowrap;
+        }
+        #patrimonio .rich-category-header .cat-stats {
+            gap: 8px; font-size: 11.5px; font-weight: 600;
+            color: var(--cor-texto-secundario); white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---------- DIVIDENDOS ---------- */
+        #patrimonio .inv-kpis {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+        }
+        #patrimonio .inv-kpi {
+            padding: 12px 13px; border-radius: var(--inv-r-md);
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-kpi.destaque {
+            background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria);
+        }
+        #patrimonio .inv-kpi-rot {
+            display: flex; align-items: center; gap: 5px; margin-bottom: 5px;
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-kpi-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 17px; font-weight: 500; letter-spacing: -0.025em;
+            color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-kpi.destaque .inv-kpi-rot,
+        #patrimonio .inv-kpi.destaque .inv-kpi-val { color: var(--cor-txt-primaria); }
+
+        /* Tabela de dividendos vira cartão no celular. O JS carimba data-col em
+           cada <td>; o rótulo vem daí. Sem isso, 5 colunas em 390px só cabem
+           com scroll horizontal — que ninguém descobre. */
+        @media (max-width: 719px) {
+            #patrimonio .tabela-dashboard thead { display: none; }
+            #patrimonio .tabela-dashboard tbody tr {
+                display: grid; grid-template-columns: 1fr auto; gap: 3px 10px;
+                padding: 11px 12px; border-bottom: 1px solid var(--inv-hairline);
+            }
+            #patrimonio .tabela-dashboard tbody td {
+                display: flex; align-items: baseline; justify-content: space-between;
+                gap: 10px; padding: 0; border: none; text-align: left !important;
+                font-size: 12px;
+            }
+            #patrimonio .tabela-dashboard tbody td[data-col]:not(:first-child)::before {
+                content: attr(data-col); flex-shrink: 0;
+                font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+                text-transform: uppercase; color: var(--cor-texto-secundario);
+            }
+            #patrimonio .tabela-dashboard tbody td:first-child {
+                grid-column: 1 / -1; font-size: 13px; font-weight: 600;
+                padding-bottom: 4px;
+            }
+            #patrimonio .tabela-dashboard tbody td[colspan] { grid-column: 1 / -1; }
+        }
+
+        /* ---------- TIMELINE DE OPERAÇÕES ---------- */
+        /* Mesmo desenho da linha de ativo: identidade à esquerda ocupando as duas
+           faixas, número em cima à direita, ações embaixo. Botão em faixa
+           própria custava 30px por operação. */
+        #patrimonio .timeline-item {
+            display: grid; gap: 1px 10px;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            grid-template-areas: "icone corpo total" "icone corpo acoes";
+            padding: 11px 12px; border-bottom: 1px solid var(--inv-hairline);
+            position: relative;
+        }
+        #patrimonio .timeline-item:last-child { border-bottom: none; }
+        #patrimonio .timeline-accent { display: none; }
+        #patrimonio .timeline-icon {
+            grid-area: icone; align-self: center;
+            width: 34px; height: 34px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        #patrimonio .timeline-icon.compra { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        #patrimonio .timeline-icon.venda { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        #patrimonio .timeline-body { grid-area: corpo; min-width: 0; align-self: center; }
+        #patrimonio .timeline-line1 {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+            font-size: 13px; color: var(--cor-texto-principal);
+        }
+        #patrimonio .timeline-line2 {
+            display: flex; flex-wrap: wrap; gap: 3px 8px;
+            margin-top: 3px; font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .timeline-total {
+            grid-area: total; align-self: end; text-align: right; white-space: nowrap;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13.5px; font-weight: 600; letter-spacing: -0.02em;
+        }
+        #patrimonio .timeline-actions {
+            grid-area: acoes; justify-self: end; align-self: start; display: flex; gap: 2px;
+        }
+        #patrimonio .timeline-date-header {
+            padding: 9px 12px 5px; background: var(--cor-branco);
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+            position: sticky; top: 0; z-index: 2;
+        }
+        #patrimonio .ops-summary {
+            display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 12px;
+            border-bottom: 1px solid var(--inv-hairline);
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- Estado vazio ---------- */
+        #patrimonio .empty-state { padding: 8px 4px; }
+        #patrimonio .empty-state-icon {
+            width: 52px; height: 52px; border-radius: 16px; margin: 0 auto 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cor-bg-primaria) !important;
+        }
+        #patrimonio .empty-state-titulo {
+            font-size: 14.5px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 4px;
+        }
+        #patrimonio .empty-state-sub {
+            font-size: 12.5px; color: var(--cor-texto-secundario); line-height: 1.55;
+        }
+
+        /* ---------- Tablet ---------- */
+        @media (min-width: 720px) {
+            #patrimonio .inv-hero { padding: 22px 22px 18px; border-radius: 22px; }
+            #patrimonio .inv-saldo { font-size: 44px; }
+            #patrimonio .inv-metricas { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+            #patrimonio .inv-grafico { height: 260px; }
+            #patrimonio .inv-kpis { grid-template-columns: repeat(4, 1fr); }
+            #patrimonio .inv-nav-trilho { display: inline-flex; }
+            #patrimonio .subtab-pill { flex: 0 0 auto; padding: 0 18px; }
+            #patrimonio .inv-rolagem { max-height: 560px; }
+            #patrimonio .rich-row {
+                align-items: center;
+                grid-template-columns: 40px minmax(0, 1fr) 92px minmax(0, 116px) 104px 40px;
+                grid-template-areas: "avatar ident pm saldo lucro acao";
+                padding: 12px 16px; gap: 12px;
+            }
+            #patrimonio .rich-saldo { align-self: center; }
+            #patrimonio .rich-lucro { align-self: center; }
+            #patrimonio .rich-pm {
+                display: flex; flex-direction: column; align-items: flex-end;
+                grid-area: pm; text-align: right;
+            }
+            #patrimonio .rich-pm-label {
+                font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+                text-transform: uppercase; color: var(--cor-texto-secundario);
+            }
+            #patrimonio .rich-pm-valor {
+                font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+                font-size: 12.5px; color: var(--cor-texto-principal);
+            }
+            #patrimonio .rich-lucro {
+                grid-area: lucro; flex-direction: column; align-items: flex-end;
+                gap: 1px; margin-top: 0;
+            }
+            #patrimonio .rich-lucro-rs { display: block; }
+            #patrimonio .rich-acao { display: flex; }
+            #patrimonio .rich-expand { padding-left: 68px; }
+            #patrimonio .rich-expand-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            #patrimonio .timeline-item {
+                align-items: center;
+                grid-template-columns: 34px minmax(0, 1fr) 120px 76px;
+                grid-template-areas: "icone corpo total acoes";
+                padding: 12px 16px;
+            }
+            #patrimonio .timeline-total { align-self: center; }
+            #patrimonio .timeline-actions { align-self: center; }
+        }
+
+        /* ---------- Desktop ---------- */
+        @media (min-width: 1080px) {
+            #patrimonio .inv-topo {
+                display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+                gap: 16px; align-items: start;
+            }
+            #patrimonio .inv-hero { margin-bottom: 0; }
+            #patrimonio .inv-bloco { margin-bottom: 0; height: 100%; }
+            #patrimonio .inv-bloco-corpo { display: block; }
+            #patrimonio .inv-bloco-cab { cursor: default; }
+            #patrimonio .inv-bloco-cab .inv-chevron { display: none; }
+            #patrimonio .inv-grafico { height: 232px; }
+            #patrimonio .inv-nav { padding-top: 18px; }
+        }
+
+        /* Sem sombra dupla no escuro: o hero perde o brilho e ganha contorno. */
+        body.dark #patrimonio .inv-hero {
+            box-shadow: none; border: 1px solid var(--cor-borda);
+            background:
+                radial-gradient(120% 140% at 100% 0%, rgba(52,211,153,0.10) 0%, transparent 62%),
+                var(--cor-branco);
+        }
+        body.dark #patrimonio .subtab-pill.ativo { box-shadow: none; border: 1px solid var(--cor-borda2); }
+
+        @media (prefers-reduced-motion: reduce) {
+            #patrimonio * { transition: none !important; }
+        }
+
     </style>
 </head>
 <body class="controle-ativo">
@@ -7020,289 +7625,294 @@
     <main class="main-content">
         
         <section id="patrimonio" class="section">
-            <div class="page-header">
-                <div class="page-header-left">
-                    <h1>Visão geral dos investimentos</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
-                </div>
-                <div class="page-actions">
-                    <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
-                    <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
-                </div>
-            </div>
 
-            <div class="hero-evolucao">
-                <div class="hero-header">
-                    <div>
-                        <h3><i class="ph ph-chart-line-up" style="color: var(--cor-primaria);"></i> Evolução dos investimentos</h3>
-                        <div class="hero-sub">Acompanhe a evolução mensal do seu capital, ganhos e dividendos</div>
+            <!-- ================= TOPO: saldo + evolução =================
+                 O antigo abria com título, subtítulo, badge, botão largo, dois
+                 selects e cinco pílulas — ~400px antes de qualquer número. Aqui
+                 a dobra responde "quanto eu tenho?" e nada mais. Os filtros do
+                 gráfico são exploratórios e recolhem junto com ele. -->
+            <div class="inv-topo">
+
+                <div class="inv-hero">
+                    <div class="inv-hero-top">
+                        <span class="inv-eyebrow">Investimentos hoje</span>
+                        <div class="inv-hero-acoes">
+                            <span id="badgePrecosEstimados" class="inv-flag" style="display:none;" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas."><i class="ph-fill ph-warning"></i> Estimados</span>
+                            <button class="inv-btn-add" onclick="abrirDrawerOperacao()"><i class="ph-bold ph-plus"></i> Registrar</button>
+                        </div>
                     </div>
-                    <div class="hero-toolbar">
-                        <select id="filtroEvolucaoTipo" onchange="renderizarGraficoEvolucao()">
-                            <option value="todos">Todos os tipos</option>
-                            <option value="acoes">Ações</option>
-                            <option value="fiis">FIIs</option>
-                            <option value="bdrs">BDRs</option>
-                            <option value="etfs">ETFs</option>
-                            <option value="cripto">Criptomoedas</option>
-                            <option value="renda_fixa">Renda Fixa</option>
-                            <option value="previdencia">Previdência</option>
-                            <option value="reserva_emergencia">Reserva</option>
-                        </select>
-                        <select id="filtroEvolucaoAtivo" onchange="renderizarGraficoEvolucao()" title="Filtrar por ativo">
-                            <option value="">Todos os ativos</option>
-                        </select>
-                        <div class="period-pills">
+
+                    <div class="inv-saldo valor-mascarado" id="resumoPatrimonio">R$ 0,00</div>
+
+                    <div class="inv-hero-linha">
+                        <span class="inv-delta" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade">0,00%</span></span>
+                        <span class="inv-pipe"></span>
+                        <span class="inv-delta-rs valor-mascarado" id="resumoRendimento">R$ 0,00</span>
+                        <span class="inv-delta-rot" id="tituloRendimento">Ganho capital</span>
+                    </div>
+
+                    <div class="inv-metricas">
+                        <div>
+                            <span class="inv-metrica-rot">Capital aplicado</span>
+                            <span class="inv-metrica-val valor-mascarado" id="resumoInvestido">R$ 0,00</span>
+                            <span class="inv-metrica-sub" id="kpiInvestidoDesde">desde sua 1ª compra</span>
+                        </div>
+                        <div>
+                            <span class="inv-metrica-rot">Dividendos <span id="resumoDividendosPeriodo">(3M)</span></span>
+                            <span class="inv-metrica-val valor-mascarado" id="resumoDividendosAcum">R$ 0,00</span>
+                            <span class="inv-metrica-sub">recebidos no período</span>
+                        </div>
+                    </div>
+
+                    <!-- Próximo evento: uma faixa, não um card do tamanho do donut.
+                         previdencia.js define onclick/role/tabindex aqui quando há
+                         dividendo previsto no mês. -->
+                    <div class="inv-evento" id="cardProximoEvento">
+                        <i class="ph ph-calendar-check"></i>
+                        <span class="inv-evento-rot" id="tituloProximoEvento">Próximo evento</span>
+                        <span class="inv-evento-val valor-mascarado" id="resumoProximoEvento">—</span>
+                        <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria);"></i>
+                        <span class="inv-evento-det" id="resumoProximoEventoDetalhe"></span>
+                    </div>
+                </div>
+
+                <!-- Evolução: recolhida no celular (é análise, não consulta),
+                     sempre aberta no desktop, onde há espaço lateral. -->
+                <div class="inv-bloco" id="blocoEvolucao">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoEvolucao')" aria-controls="corpoEvolucao">
+                        <span class="inv-eyebrow">Evolução</span>
+                        <span class="inv-bloco-resumo" id="resumoBlocoEvolucao">3M</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo" id="corpoEvolucao">
+                        <div class="inv-trilho" role="group" aria-label="Período do gráfico">
                             <button class="period-pill" data-periodo="1" onclick="setPeriodoEvolucao(1)">1M</button>
                             <button class="period-pill ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)">3M</button>
                             <button class="period-pill" data-periodo="6" onclick="setPeriodoEvolucao(6)">6M</button>
                             <button class="period-pill" data-periodo="12" onclick="setPeriodoEvolucao(12)">12M</button>
                             <button class="period-pill" data-periodo="0" onclick="setPeriodoEvolucao(0)">Tudo</button>
                         </div>
-                    </div>
-                </div>
-
-                <div class="hero-kpis">
-                    <div class="hero-kpi">
-                        <div class="kpi-label">Investimentos hoje</div>
-                        <div class="kpi-value-big valor-mascarado" id="resumoPatrimonio">R$ 0,00</div>
-                        <div class="kpi-trend" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade">0,00%</span></div>
-                    </div>
-                    <div class="hero-kpi">
-                        <div class="kpi-label">Capital aplicado</div>
-                        <div class="kpi-value valor-mascarado" id="resumoInvestido">R$ 0,00</div>
-                        <div class="kpi-detail" id="kpiInvestidoDesde">desde sua 1ª compra</div>
-                    </div>
-                    <div class="hero-kpi">
-                        <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
-                        <div class="kpi-value valor-mascarado" id="resumoRendimento">R$ 0,00</div>
-                        <div class="kpi-detail">
-                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos <span id="resumoDividendosPeriodo" style="font-size:10px;opacity:0.7;font-weight:500;">(3M)</span>: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
+                        <div class="inv-trilho" style="margin-top:8px;">
+                            <select id="filtroEvolucaoTipo" class="inv-select" onchange="renderizarGraficoEvolucao(); atualizarResumoBlocoEvolucao();" aria-label="Filtrar por tipo de ativo">
+                                <option value="todos">Todos os tipos</option>
+                                <option value="acoes">Ações</option>
+                                <option value="fiis">FIIs</option>
+                                <option value="bdrs">BDRs</option>
+                                <option value="etfs">ETFs</option>
+                                <option value="cripto">Criptomoedas</option>
+                                <option value="renda_fixa">Renda Fixa</option>
+                                <option value="previdencia">Previdência</option>
+                                <option value="reserva_emergencia">Reserva</option>
+                            </select>
+                            <select id="filtroEvolucaoAtivo" class="inv-select" onchange="renderizarGraficoEvolucao(); atualizarResumoBlocoEvolucao();" aria-label="Filtrar por ativo">
+                                <option value="">Todos os ativos</option>
+                            </select>
+                        </div>
+                        <div class="inv-grafico"><canvas id="graficoEvolucaoCarteira"></canvas></div>
+                        <div id="legendaEvolucao" class="legenda-chart"></div>
+                        <div id="msgEvolucaoVazia" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-bar"></i>
+                            Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style="position: relative; height: 320px;">
-                    <canvas id="graficoEvolucaoCarteira"></canvas>
+            <!-- ================= NAVEGAÇÃO =================
+                 As sub-abas eram o último elemento antes do conteúdo, depois de
+                 dois gráficos. São a espinha da tela: sobem e grudam no topo. -->
+            <div class="inv-nav">
+                <div class="inv-nav-trilho" role="tablist">
+                    <button class="subtab-pill ativo" id="subtabBtnCarteira" role="tab" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                    <button class="subtab-pill" id="subtabBtnOperacoes" role="tab" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
+                    <button class="subtab-pill" id="subtabBtnDividendos" role="tab" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>
-                <div id="legendaEvolucao" class="legenda-chart"></div>
-                <div id="msgEvolucaoVazia" style="display:none; padding:40px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
-                    <i class="ph ph-chart-bar" style="font-size: 32px; opacity:0.4; display:block; margin-bottom:8px;"></i>
-                    Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
+                <div class="inv-nav-stat">
+                    <span id="subtabMiniStat"></span>
+                    <button class="inv-btn-icone" id="btnAtualizarDividendos" style="display:none; margin-left:auto;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
                 </div>
             </div>
 
-            <div id="painelSecundario" style="display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 24px;">
-                <div class="card-container" style="padding: 16px 18px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-                        <h3 style="font-size: 13px; font-weight:700; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice" style="color: var(--cor-primaria);"></i> Distribuição da carteira</h3>
-                    </div>
-                    <div class="donut-wrap" style="height: 240px;">
-                        <canvas id="graficoDistribuicaoCarteira"></canvas>
-                        <div class="donut-center" id="donutCenter" style="display:none;">
-                            <div class="donut-center-label">Maior posição</div>
-                            <div class="donut-center-value" id="distMaiorPos">—</div>
-                            <div class="donut-center-detail" id="distMaiorDetalhe"></div>
-                        </div>
-                    </div>
-                    <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
-                    <div id="msgDistribuicaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
-                        <i class="ph ph-chart-pie-slice" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
-                        Cadastre ativos para ver a distribuição.
-                    </div>
-                </div>
-                <div class="card-container" id="cardProximoEvento" style="padding: 16px 18px; transition: box-shadow 0.15s, border-color 0.15s;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                        <h3 id="tituloProximoEvento" style="font-size: 13px; font-weight:700; margin:0 0 14px; display:flex; align-items:center; gap:6px;"><i class="ph ph-calendar-check" style="color: var(--cor-primaria);"></i> Próximo evento</h3>
-                        <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria); font-size: 16px;"></i>
-                    </div>
-                    <div class="kpi-value" id="resumoProximoEvento" style="font-size: 17px; line-height: 1.3;">—</div>
-                    <div id="resumoProximoEventoDetalhe" style="font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; font-family: 'Figtree', sans-serif;"></div>
-                </div>
-            </div>
-
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-                    <div class="subtab-segmented">
-                        <button class="subtab-pill ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
-                        <button class="subtab-pill" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
-                        <button class="subtab-pill" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
-                    </div>
-                    <span class="subtab-mini-stat" id="subtabMiniStat"></span>
-                </div>
-                <div id="acoesSubAba" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
-                        <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
-                        <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
-                        <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
-                        <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
-                    </div>
-                    <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
-                </div>
-            </div>
-
-            <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
+            <!-- ================= SUB-ABA: CARTEIRA ================= -->
             <div id="subAbaCarteira">
-                <!-- Aviso: Renda Fixa/Reserva sem rentabilidade não rendem (preenchido por JS) -->
-                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:14px;"></div>
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-x: auto; max-height: 640px;" id="richRowsContainer">
-                        <!-- Rich rows rendered by JS -->
-                    </div>
-                    <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                        <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
-                        <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Use o botão "Registrar operação" acima.</p>
+                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:12px;"></div>
+
+                <div class="inv-trilho" id="filtrosCategoria" style="margin-bottom:10px;" role="group" aria-label="Filtrar carteira por categoria">
+                    <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
+                    <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
+                    <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
+                    <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
+                    <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
+                </div>
+
+                <div class="inv-painel">
+                    <div class="inv-rolagem" id="richRowsContainer"></div>
+                    <div id="carteiraVaziaMsg" class="inv-vazio" style="display:none;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="ph ph-wallet" style="font-size:24px; color: var(--cor-primaria);"></i></div>
+                            <div class="empty-state-titulo">Carteira ainda vazia</div>
+                            <div class="empty-state-sub">Toque em <strong>Registrar</strong>, no topo, para lançar sua primeira compra.</div>
+                        </div>
                     </div>
                 </div>
-                <!-- Hidden table for backwards compat with toggle colunas -->
+
+                <!-- Distribuição: recolhida por padrão. É leitura de análise, e no
+                     layout antigo empurrava a carteira para fora da tela. -->
+                <div class="inv-bloco" id="blocoDistribuicao" style="margin-top:14px;">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoDistribuicao')" aria-controls="corpoDistribuicao">
+                        <span class="inv-eyebrow">Distribuição da carteira</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo" id="corpoDistribuicao">
+                        <div class="donut-wrap" style="height:220px;">
+                            <canvas id="graficoDistribuicaoCarteira"></canvas>
+                            <div class="donut-center" id="donutCenter" style="display:none;">
+                                <div class="donut-center-label">Maior posição</div>
+                                <div class="donut-center-value" id="distMaiorPos">—</div>
+                                <div class="donut-center-detail" id="distMaiorDetalhe"></div>
+                            </div>
+                        </div>
+                        <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
+                        <div id="msgDistribuicaoVazia" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-pie-slice"></i>
+                            Cadastre ativos para ver a distribuição.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela legada, escondida: alimentada por atualizarCarteiraAtivos
+                     e lida por toggleColunasExtras. Não é exibida. -->
                 <table class="tabela-dashboard" id="tabelaCarteira" style="display:none;">
                     <thead><tr><th>Ativo</th><th style="text-align:right;">Qtd</th><th class="col-extra" style="text-align:right;">Preço Médio</th><th class="col-extra" style="text-align:right;">Preço Atual</th><th style="text-align:right;">Saldo Atual</th><th class="col-extra" style="text-align:right;">Projeção</th><th style="text-align:right;">Lucro/Prej (%)</th></tr></thead>
                     <tbody id="tabelaCarteiraCorpo"></tbody>
                 </table>
             </div>
 
-            <!-- SUB-ABA: OPERAÇÕES (Timeline) -->
+            <!-- ================= SUB-ABA: OPERAÇÕES ================= -->
             <div id="subAbaOperacoes" style="display:none;">
-                <div class="ops-toolbar" id="opsToolbar">
+                <div class="inv-trilho" id="opsToolbar" style="margin-bottom:10px;" role="group" aria-label="Filtrar operações">
                     <button class="ops-chip ativo" data-ops-filtro="todos" onclick="filtrarOpsTimeline('todos', this)">Tudo</button>
                     <button class="ops-chip" data-ops-filtro="compra" onclick="filtrarOpsTimeline('compra', this)"><i class="ph-bold ph-trend-up"></i> Compras</button>
                     <button class="ops-chip ops-chip-danger" data-ops-filtro="venda" onclick="filtrarOpsTimeline('venda', this)"><i class="ph-bold ph-trend-down"></i> Vendas</button>
-                    <div class="ops-search-wrap">
-                        <i class="ph ph-magnifying-glass"></i>
-                        <input type="text" class="ops-search" id="filtroOperacoesTicker" placeholder="Buscar ticker..." oninput="renderizarOperacoes()">
-                    </div>
-                    <button class="btn-secundario" onclick="exportarOperacoesCSV()" title="Exportar operações como CSV"><i class="ph ph-file-csv"></i> CSV</button>
                 </div>
-                <div class="ops-summary" id="opsSummary" style="display:none;"></div>
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-y: auto; max-height: 540px;" id="timelineContainer">
-                        <!-- Timeline rendered by JS -->
+
+                <div class="inv-painel">
+                    <div class="inv-barra">
+                        <span class="inv-busca">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="filtroOperacoesTicker" placeholder="Buscar ticker..." oninput="renderizarOperacoes()" aria-label="Buscar operação por ticker">
+                        </span>
+                        <button class="inv-btn-icone" onclick="exportarOperacoesCSV()" title="Exportar operações como CSV"><i class="ph ph-file-csv"></i> CSV</button>
                     </div>
-                    <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                    <div class="ops-summary" id="opsSummary" style="display:none;"></div>
+                    <div class="inv-rolagem" id="timelineContainer"></div>
+                    <div id="operacoesVaziaMsg" class="inv-vazio" style="display:none;">
                         <div class="empty-state">
-                            <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                            <div class="empty-state-icon"><i class="ph ph-list-bullets" style="font-size:24px; color: var(--cor-primaria);"></i></div>
                             <div class="empty-state-titulo">Nenhuma operação encontrada</div>
-                            <div class="empty-state-sub">Registre uma operação ou ajuste os filtros.</div>
+                            <div class="empty-state-sub">Registre uma operação ou ajuste os filtros acima.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SUB-ABA: DIVIDENDOS (Enhanced) -->
+            <!-- ================= SUB-ABA: DIVIDENDOS ================= -->
             <div id="subAbaDividendos" style="display:none;">
-                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
+                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display:none;">
                     <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
                     <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
                 </div>
 
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento.</small>
-                    <label style="display:flex; align-items:center; gap:6px; font-size: 13px; color: var(--cor-texto-secundario); cursor:pointer;">
-                        <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;">
-                        Mostrar posições encerradas
-                    </label>
-                </div>
-
-                <!-- KPIs -->
-                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 20px;">
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-coins"></i> Recebido total</h3>
-                        <div class="valor" id="dividendosTotal">R$ 0,00</div>
+                <div class="inv-kpis">
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-coins"></i> Recebido total</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendosTotal">R$ 0,00</div>
                     </div>
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-calendar-blank"></i> Últimos 12 meses</h3>
-                        <div class="valor" id="dividendos12m">R$ 0,00</div>
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-calendar-blank"></i> Últimos 12 meses</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendos12m">R$ 0,00</div>
                     </div>
-                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost</h3>
-                        <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
+                    <div class="inv-kpi destaque">
+                        <div class="inv-kpi-rot"><i class="ph ph-percent"></i> Yield on Cost</div>
+                        <div class="inv-kpi-val" id="dividendosYOC">0,00%</div>
                     </div>
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-trend-up"></i> Média mensal (12m)</h3>
-                        <div class="valor" id="dividendosMedia">R$ 0,00</div>
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-trend-up"></i> Média mensal (12m)</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendosMedia">R$ 0,00</div>
                     </div>
                 </div>
 
-                <!-- Bar chart + Ranking -->
-                <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
-                    <div class="div-chart-card">
-                        <div class="div-chart-title"><i class="ph ph-chart-bar"></i> Recebimentos por mês</div>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="graficoDividendosMensal"></canvas>
-                        </div>
-                        <div id="msgDivChartVazio" style="display:none; padding:30px; text-align:center; color: var(--cor-texto-mutado); font-size:12px;">
-                            <i class="ph ph-chart-bar" style="font-size:24px; opacity:0.4; display:block; margin-bottom:6px;"></i>
+                <div class="inv-bloco">
+                    <div class="inv-bloco-cab" style="cursor:default;">
+                        <span class="inv-eyebrow">Recebimentos por mês</span>
+                    </div>
+                    <div class="inv-bloco-corpo" style="display:block;">
+                        <div style="position:relative; height:190px;"><canvas id="graficoDividendosMensal"></canvas></div>
+                        <div id="msgDivChartVazio" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-bar"></i>
                             Registre ativos pagadores de proventos para ver o gráfico.
                         </div>
                     </div>
-                    <div class="div-chart-card">
-                        <div class="div-chart-title"><i class="ph ph-trophy"></i> Top pagadores (12m)</div>
+                </div>
+
+                <div class="inv-bloco" id="blocoRanking">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoRanking')" aria-controls="divRanking">
+                        <span class="inv-eyebrow">Top pagadores (12m)</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo">
                         <div class="div-ranking" id="divRanking">
-                            <div style="padding:20px; text-align:center; color:var(--cor-texto-mutado); font-size:12px;">Sem dados</div>
+                            <div class="inv-vazio">Sem dados</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tables: Por ativo + Pagamentos recentes -->
-                <div class="grid-2">
-                    <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
-                        <div style="overflow-x: auto; max-height: 460px;">
-                            <table class="tabela-dashboard">
-                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                    <tr>
-                                        <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd atual</th>
-                                        <th style="text-align: right;">Recebido total</th>
-                                        <th style="text-align: right;">Recebido 12m</th>
-                                        <th style="text-align: right;">YOC</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabelaDividendosCorpo"></tbody>
-                            </table>
-                            <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
-                                    <div class="empty-state-titulo">Sem dividendos no período</div>
-                                    <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
-                                </div>
+                <div class="inv-painel" style="margin-bottom:14px;">
+                    <div class="inv-barra" style="justify-content:space-between;">
+                        <span class="inv-eyebrow">Por ativo</span>
+                        <label class="inv-btn-icone" style="cursor:pointer;" title="Incluir ativos que você já não possui">
+                            <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;margin:0;">
+                            Encerradas
+                        </label>
+                    </div>
+                    <div class="inv-rolagem">
+                        <table class="tabela-dashboard">
+                            <thead><tr><th>Ativo</th><th style="text-align:right;">Qtd atual</th><th style="text-align:right;">Recebido total</th><th style="text-align:right;">Recebido 12m</th><th style="text-align:right;">YOC</th></tr></thead>
+                            <tbody id="tabelaDividendosCorpo"></tbody>
+                        </table>
+                        <div id="dividendosVaziaMsg" class="inv-vazio" style="display:none;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="ph ph-coins" style="font-size:24px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">Sem dividendos no período</div>
+                                <div class="empty-state-sub">Registre ativos pagadores de proventos (ações, FIIs, ETFs) para acompanhar o histórico.</div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</span>
-                            <span style="font-size:11px; color:var(--cor-texto-mutado); font-weight:400;">· agregados por mês</span>
-                            <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:600;">
-                                <i class="ph ph-funnel" style="font-size:11px;"></i>
-                                <span id="filtroPagamentosLabel"></span>
-                                <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:13px; line-height:1;" title="Limpar filtro">×</button>
-                            </span>
-                        </h3>
-                        <div style="overflow-x: auto; max-height: 460px;">
-                            <table class="tabela-dashboard">
-                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                    <tr>
-                                        <th>Mês</th>
-                                        <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd</th>
-                                        <th style="text-align: right;">R$ / cota</th>
-                                        <th style="text-align: right;">Total recebido</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabelaPagamentosCorpo"></tbody>
-                            </table>
-                            <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                                <p style="font-size: 13px;">Nenhum pagamento encontrado no histórico.</p>
-                            </div>
-                        </div>
+                <div class="inv-painel">
+                    <div class="inv-barra" style="flex-wrap:wrap; gap:6px;">
+                        <span class="inv-eyebrow">Pagamentos recentes</span>
+                        <span style="font-size:11px; color:var(--cor-texto-secundario);">· agregados por mês</span>
+                        <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:700; margin-left:auto;">
+                            <i class="ph ph-funnel" style="font-size:11px;"></i>
+                            <span id="filtroPagamentosLabel"></span>
+                            <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:14px; line-height:1;" title="Limpar filtro">×</button>
+                        </span>
                     </div>
+                    <div class="inv-rolagem">
+                        <table class="tabela-dashboard">
+                            <thead><tr><th>Mês</th><th>Ativo</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">R$ / cota</th><th style="text-align:right;">Total recebido</th></tr></thead>
+                            <tbody id="tabelaPagamentosCorpo"></tbody>
+                        </table>
+                        <div id="pagamentosVaziaMsg" class="inv-vazio" style="display:none;">Nenhum pagamento encontrado no histórico.</div>
+                    </div>
+                    <div style="padding:10px 12px; border-top:1px solid var(--cor-borda); font-size:11px; color:var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento.</div>
                 </div>
             </div>
 
         </section>
+
 
         <section id="controle" class="section ativa">
             <div class="page-header">
