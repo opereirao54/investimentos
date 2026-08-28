@@ -6227,6 +6227,31 @@
             font-family: 'DM Mono', monospace;
             display: none; /* já mostramos valor; pct fica no tooltip */
         }
+        /* Detalhe por categoria dentro de cada bloco de gasto (Mercado,
+           Academia…). Recuado até a coluna do rótulo do bloco. */
+        #relatorio_mensal .rm-donut-leg-sub {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-left: 18px;
+            padding: 2px 0 2px 9px;
+            border-left: 2px solid var(--cor-borda);
+            font-size: 10.5px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-donut-leg-sub-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #relatorio_mensal .rm-donut-leg-sub-valor {
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        /* Respiro depois do último detalhe, para o bloco seguinte não parecer
+           mais um item da lista de categorias. */
+        #relatorio_mensal .rm-donut-leg-sub + .rm-donut-leg-item { margin-top: 5px; }
         /* Total no centro do donut */
         #relatorio_mensal .rm-donut-canvas {
             position: relative;
@@ -8640,7 +8665,7 @@
                         <div class="rm-chart-header">
                             <div>
                                 <h3 class="rm-chart-title"><i class="ph-fill ph-chart-donut"></i> Para onde foi o dinheiro</h3>
-                                <p class="rm-chart-sub">Composição das saídas do mês</p>
+                                <p class="rm-chart-sub">Composição das saídas do mês, detalhada por categoria</p>
                             </div>
                         </div>
                         <div class="rm-donut-wrap">
@@ -9194,7 +9219,7 @@
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
-    <script src="/web/appliquei-relatorio-mensal.js?v=regua-score-bens"></script>
+    <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>

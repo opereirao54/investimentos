@@ -25,6 +25,10 @@ var RM_NOMES_MESES_LONG = [
   'Novembro',
   'Dezembro',
 ];
+// Mesma chave que calcularDespesasPorCategoria usa para o que não foi
+// categorizado — os dois lados precisam concordar.
+var RM_SEM_CATEGORIA = '__sem_categoria__';
+
 var RM_NOMES_MESES_SHORT = [
   'Jan',
   'Fev',
@@ -60,6 +64,52 @@ function rmMesEhFuturo(yyyymm) {
   const hoje = new Date();
   const cur = rmMesAnoToYyyymm(hoje.getMonth(), hoje.getFullYear());
   return yyyymm > cur;
+}
+
+// Detalhe por categoria de despesa dentro de cada bloco de gasto do mês.
+//
+// O usuário cria as categorias ("Academia", "Mercado") no Controle Financeiro
+// e até aqui elas só apareciam no gráfico de composição daquela aba: o
+// relatório mostrava "Cartão de crédito R$ 1.900" sem dizer no quê. Este mapa
+// quebra cada bloco nas categorias que o compõem.
+//
+// Só as três classificações contábeis que carregam categoria têm detalhe
+// (despesa fixa, variável e cartão) — sonho e aporte não são categorizados.
+// Retorna { <categoria contábil>: [{ v, label, valor }] }, do maior pro menor.
+function rmDetalhePorCategoria(mes, ano) {
+  const porBloco = {};
+  try {
+    if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return porBloco;
+    const usaCategoria =
+      typeof categoriaDespesaUsada === 'function'
+        ? categoriaDespesaUsada
+        : (c) => c === 'despesa_fixa' || c === 'despesa_variavel' || c === 'cartao_credito';
+    const rotular = typeof rotuloCategoriaDespesa === 'function' ? rotuloCategoriaDespesa : null;
+    const somas = {};
+    transacoes.forEach((t) => {
+      if (t.mes !== mes || t.ano !== ano || !usaCategoria(t.categoria)) return;
+      const chave = t.categoriaDespesa || RM_SEM_CATEGORIA;
+      somas[t.categoria] = somas[t.categoria] || {};
+      somas[t.categoria][chave] = (somas[t.categoria][chave] || 0) + (t.valor || 0);
+    });
+    Object.keys(somas).forEach((bloco) => {
+      const mapa = somas[bloco];
+      const lista = Object.keys(mapa)
+        .map((v) => ({
+          v,
+          // O rótulo vem de rotuloCategoriaDespesa porque ele também resolve
+          // categoria oculta ou renomeada — sem ele o relatório mostraria o slug.
+          label: v === RM_SEM_CATEGORIA ? 'Sem categoria' : (rotular && rotular(v)) || v,
+          valor: mapa[v],
+        }))
+        .sort((a, b) => b.valor - a.valor);
+      // Um bloco inteiro sem categoria não vira detalhe: a linha só repetiria
+      // o total do bloco com outro nome.
+      if (lista.length === 1 && lista[0].v === RM_SEM_CATEGORIA) return;
+      porBloco[bloco] = lista;
+    });
+  } catch (_) {}
+  return porBloco;
 }
 
 // Bens (carro, casa, moto…) até o fim do mês do relatório.
@@ -1170,9 +1220,24 @@ function rmRenderDonut(rep) {
       typeof calcularResumoMes === 'function'
         ? calcularResumoMes(rep.mes, rep.ano)
         : { despFixa: 0, despVar: 0, cartao: 0, sonho: 0, invFixo: 0, invVar: 0 };
-    slices.push({ lbl: 'Despesas fixas', val: r.despFixa || 0, cor: '#ef4444' });
-    slices.push({ lbl: 'Despesas variáveis', val: r.despVar || 0, cor: '#f97316' });
-    slices.push({ lbl: 'Cartão de crédito', val: r.cartao || 0, cor: '#f59e0b' });
+    slices.push({
+      lbl: 'Despesas fixas',
+      val: r.despFixa || 0,
+      cor: '#ef4444',
+      bloco: 'despesa_fixa',
+    });
+    slices.push({
+      lbl: 'Despesas variáveis',
+      val: r.despVar || 0,
+      cor: '#f97316',
+      bloco: 'despesa_variavel',
+    });
+    slices.push({
+      lbl: 'Cartão de crédito',
+      val: r.cartao || 0,
+      cor: '#f59e0b',
+      bloco: 'cartao_credito',
+    });
     slices.push({ lbl: 'Sonhos', val: r.sonho || 0, cor: '#ec4899' });
     slices.push({ lbl: 'Investimentos', val: (r.invFixo || 0) + (r.invVar || 0), cor: '#7c3aed' });
   } catch (_) {}
@@ -1245,6 +1310,23 @@ function rmRenderDonut(rep) {
     });
   }
   if (legenda) {
+    // Mesmo detalhe que vai no PDF: cada bloco de gasto abre nas categorias
+    // que o usuário cadastrou (Mercado, Academia…).
+    const detalhe = rmDetalhePorCategoria(rep.mes, rep.ano);
+    const subHtml = (bloco) =>
+      ((bloco && detalhe[bloco]) || [])
+        .map(
+          (c) =>
+            '<div class="rm-donut-leg-sub">' +
+            '<span class="rm-donut-leg-sub-label">' +
+            c.label +
+            '</span>' +
+            '<span class="rm-donut-leg-sub-valor valor-mascarado">' +
+            formatarMoeda(c.valor) +
+            '</span>' +
+            '</div>'
+        )
+        .join('');
     legenda.innerHTML = filtrados
       .map(
         (s) =>
@@ -1261,7 +1343,8 @@ function rmRenderDonut(rep) {
           '<span class="rm-donut-leg-pct">' +
           ((s.val / totalSaidas) * 100).toFixed(0) +
           '%</span>' +
-          '</div>'
+          '</div>' +
+          subHtml(s.bloco)
       )
       .join('');
   }
@@ -1343,14 +1426,31 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
   const kpi = (label, val, cor) =>
     `<div class="rm-print-kpi"><div class="k-lbl">${label}</div><div class="k-val" style="color:${cor || '#0f172a'}">${val}</div></div>`;
 
+  // `bloco` liga a barra à classificação contábil, que é a chave do detalhe
+  // por categoria. Sonhos e aportes não têm bloco porque não são categorizados.
+  const detalhe = rmDetalhePorCategoria(rep.mes, rep.ano);
   const distItens = [
-    { l: 'Despesas fixas', v: r.despFixa || 0, c: '#ef4444' },
-    { l: 'Despesas variáveis', v: r.despVar || 0, c: '#f97316' },
-    { l: 'Cartão de crédito', v: r.cartao || 0, c: '#f59e0b' },
+    { l: 'Despesas fixas', v: r.despFixa || 0, c: '#ef4444', bloco: 'despesa_fixa' },
+    { l: 'Despesas variáveis', v: r.despVar || 0, c: '#f97316', bloco: 'despesa_variavel' },
+    { l: 'Cartão de crédito', v: r.cartao || 0, c: '#f59e0b', bloco: 'cartao_credito' },
     { l: 'Sonhos', v: r.sonho || 0, c: '#ec4899' },
     { l: 'Investimentos (aportes)', v: (r.invFixo || 0) + (r.invVar || 0), c: '#7c3aed' },
   ].filter((x) => x.v > 0);
   const maxDist = Math.max(1, ...distItens.map((x) => x.v));
+  const catsHtml = (bloco) => {
+    const lista = (bloco && detalhe[bloco]) || [];
+    if (!lista.length) return '';
+    return (
+      '<div class="rm-print-cats">' +
+      lista
+        .map(
+          (c) =>
+            `<div class="rm-print-cat"><span>${c.label}</span><span class="mono">${f(c.valor)}</span></div>`
+        )
+        .join('') +
+      '</div>'
+    );
+  };
   const distHtml =
     distItens
       .map(
@@ -1358,6 +1458,7 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
         <div class="rm-print-bar-row">
           <div class="rm-print-bar-head"><span>${x.l}</span><span class="mono">${f(x.v)}</span></div>
           <div class="rm-print-bar-track"><div class="rm-print-bar-fill" style="width:${((x.v / maxDist) * 100).toFixed(1)}%;background:${x.c}"></div></div>
+          ${catsHtml(x.bloco)}
         </div>`
       )
       .join('') || '<div class="rm-print-muted">Sem saídas registradas neste mês.</div>';
@@ -1397,6 +1498,8 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
       .rm-print .rm-print-bar-head { display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:#334155; }
       .rm-print .rm-print-bar-track { height:10px;background:#f1f5f9;border-radius:6px;overflow:hidden; }
       .rm-print .rm-print-bar-fill { height:100%;border-radius:6px; }
+      .rm-print .rm-print-cats { margin:6px 0 8px 2px;padding-left:10px;border-left:2px solid #e8edf3; }
+      .rm-print .rm-print-cat { display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#64748b;padding:1.5px 0; }
       .rm-print table { width:100%;border-collapse:collapse;font-size:12px; }
       .rm-print td { padding:7px 4px;border-bottom:1px solid #eef2f6;color:#334155; }
       .rm-print .rm-print-muted { color:#94a3b8;font-size:12px; }
