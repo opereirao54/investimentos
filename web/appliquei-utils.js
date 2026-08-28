@@ -227,6 +227,13 @@ function importarDados(event) {
   event.target.value = '';
 }
 
+// Restauração de backup. É o ÚNICO ponto legítimo que grava
+// futurorico_transacoes sem passar por salvarTransacoes(): aqui a fonte é o
+// arquivo do usuário (`dados.transacoes`), não o array global `transacoes` —
+// que ainda tem o conteúdo antigo neste instante. Chamar a função canônica
+// gravaria os dados velhos por cima da importação. A página recarrega logo
+// depois, e é o boot que repovoa o global a partir do que ficou gravado.
+// Ver .claude/integracoes/mapa.json → RISCO-01 e test/transacoes-escrita-canonica.test.js.
 function confirmarImportacao(dadosStr) {
   try {
     const dados = JSON.parse(dadosStr);

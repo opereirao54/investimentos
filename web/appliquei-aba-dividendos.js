@@ -510,13 +510,7 @@ function lancarDividendosNoCaixa() {
     criados++;
   });
   if (criados > 0) {
-    try {
-      localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-    } catch (_) {}
-    try {
-      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
-        AppliqueiCloudSync.forceFlush();
-    } catch (_) {}
+    salvarTransacoes({ flush: true });
     if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
   }
   return criados;

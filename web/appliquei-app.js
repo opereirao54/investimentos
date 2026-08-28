@@ -551,6 +551,45 @@ function restaurarCartaoConfig(id) {
 // --- ABA 1: MEUS INVESTIMENTOS ---
 var historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
 var transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
+
+// === Escrita canônica de transações =========================================
+// Antes disto havia 29 `localStorage.setItem('futurorico_transacoes', ...)`
+// espalhados por 9 arquivos, sem nenhum ponto por onde todos passassem — o
+// oposto de `contas`, que centraliza tudo em salvarContas(). Sem choke point
+// não há onde validar o registro antes de gravar, e cada produtor novo repetia
+// (ou esquecia) o ritual.
+//
+// A sincronização com a nuvem NÃO depende desta função: o interceptador
+// instalado no protótipo de Storage (appliquei-utils.js) marca a chave como
+// suja em qualquer setItem e agenda o push. Por isso o default aqui é só
+// gravar — é o que 25 dos 29 sítios já faziam na prática.
+//
+// `flush: true` cancela o debounce e empurra na hora. Reservado aos poucos
+// pontos que já faziam isso de propósito (fusão de contas, lançamento de
+// dividendos): usá-lo em toda escrita transformaria cada lançamento numa ida
+// imediata ao Firestore.
+//
+// É aqui que entra validação de invariante no ponto de escrita, quando for a
+// hora. Ver .claude/integracoes/mapa.json → RISCO-01.
+function salvarTransacoes(opcoes) {
+  try {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  } catch (e) {
+    if (window.console) console.error('[transacoes] localStorage', e);
+    if (typeof mostrarToast === 'function') {
+      mostrarToast('Falha ao salvar localmente. Espaço de armazenamento esgotado?', 'erro');
+    }
+    return false;
+  }
+  if (opcoes && opcoes.flush) {
+    try {
+      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+        AppliqueiCloudSync.forceFlush();
+      }
+    } catch (e) {}
+  }
+  return true;
+}
 // Backfill: compromissos mensais de sonho criados antes da feature de "conta a vencer"
 // não tinham dataVencimento. Preenche com dia 5 (default) para que apareçam no painel.
 (function backfillVencimentoSonhoCompromisso() {
@@ -570,7 +609,7 @@ var transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || []
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
 
 // --- CARTÕES DE CRÉDITO ---
@@ -628,7 +667,7 @@ transacoes = transacoes.map((t) => {
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
 
 // Migração: despesa variável avulsa (não-recorrente) é compra à vista — já saiu
@@ -646,9 +685,9 @@ transacoes = transacoes.map((t) => {
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
-localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+salvarTransacoes();
 
 function preencherPrecoAutomatico() {
   const inputTicker = document.getElementById('compraTicker').value.toUpperCase();

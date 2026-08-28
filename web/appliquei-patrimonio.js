@@ -1200,8 +1200,11 @@ function mpLimparTxOrigemOrfas() {
     return idsCompras.has(opId);
   });
   if (transacoes.length < antes) {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-    if (typeof salvarNaNuvem === 'function') salvarNaNuvem();
+    // salvarNaNuvem() era chamada aqui e NÃO EXISTE em lugar nenhum do bundle —
+    // o guard `typeof === 'function'` a transformava num no-op silencioso. A
+    // sincronização vem do interceptador de setItem; não se acrescenta flush
+    // porque esta limpeza roda a cada render do Meu Patrimônio.
+    salvarTransacoes();
   }
 }
 

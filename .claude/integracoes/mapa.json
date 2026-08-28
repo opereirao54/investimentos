@@ -10,8 +10,8 @@
       "chaveArmazenamento": "futurorico_transacoes",
       "globalWindow": "transacoes",
       "declaradaEm": "web/appliquei-app.js:553",
-      "topologia": "escrita-espalhada-leitura-central",
-      "notaTopologia": "29 pontos de setItem em 9 arquivos, contra 3 pontos de getItem (utils.js, app.js). Não existe salvarTransacoes() canônica — ao contrário de contas, que tem salvarContas(). Qualquer produtor pode gravar um registro incompleto e quem lê não tem como saber.",
+      "topologia": "escrita-central-leitura-central",
+      "notaTopologia": "Saneada no RISCO-01. Toda escrita passa por salvarTransacoes() (appliquei-app.js), no molde de salvarContas(). Duas exceções documentadas e travadas por test/transacoes-escrita-canonica.test.js: a implementação da própria função, e a restauração de backup em utils.js, cuja fonte é o arquivo do usuário e não o array global. É em salvarTransacoes() que entra validação de invariante no ponto de escrita, quando for a hora.",
       "produtores": [
         "web/appliquei-aba-controle-financeiro.js",
         "web/appliquei-sonhos.js",
@@ -89,6 +89,17 @@
         "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito", "sonho"],
         "classificadoPor": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "mpTransacaoComputaCaixa"],
         "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo."
+      },
+      "escritaCanonica": {
+        "funcao": "salvarTransacoes(opcoes)",
+        "declaradaEm": "web/appliquei-app.js",
+        "default": "só grava — o interceptador de setItem (utils.js) já marca a chave suja e agenda o push",
+        "flush": "salvarTransacoes({ flush: true }) cancela o debounce e empurra na hora; reservado aos pontos que já faziam isso de propósito (fusão/transferência de contas, lançamento de dividendos, baixa e reversão de pagamento)",
+        "retorno": "false quando a gravação falha — o chamador ABORTA. Antes o try/catch de cada sítio fazia esse aborto; ao centralizar, quem não checar o retorno segue como se tivesse dado certo",
+        "excecoes": [
+          "web/appliquei-app.js (a própria implementação)",
+          "web/appliquei-utils.js confirmarImportacao (restauração de backup)"
+        ]
       }
     },
     "conta": {
@@ -672,7 +683,9 @@
       "titulo": "transacao não tem função de escrita canônica",
       "descricao": "contas tem salvarContas(); transacoes não tem equivalente. São 29 setItem manuais em 9 arquivos. A sincronização está salva pelo interceptador de protótipo (INV-09), mas não há ponto único onde validar o registro antes de gravar — que é exatamente o que tornaria INV-01, INV-05 e INV-08 impossíveis de violar em vez de apenas testadas.",
       "recomendacao": "Introduzir salvarTransacoes() no molde de salvarContas(), com validação do registro na entrada. Migração incremental, um produtor por vez.",
-      "decisao": "pendente-do-usuario"
+      "decisao": "resolvido",
+      "resolucao": "Criada salvarTransacoes() em appliquei-app.js e migrados os 29 sítios. O que a migração revelou, e que era invisível espalhado: patrimonio.js chamava salvarNaNuvem(), função que NÃO EXISTE no bundle — o guard `typeof === \"function\"` a tornava um no-op silencioso; contas.js e dividendos.js faziam o forceFlush à mão, duplicado; e os outros 25 não davam flush nenhum. O flush NÃO foi uniformizado: forceFlushNow cancela o debounce e vai ao Firestore na hora, então espalhá-lo multiplicaria as escritas. Cada sítio preservou o comportamento que tinha, via a opção `flush`. Trava em test/transacoes-escrita-canonica.test.js.",
+      "pendente": "A validação no ponto de escrita ainda NÃO foi ligada. O validador (scripts/lib/invariantes.js) é CommonJS de Node e não carrega no browser; ligá-lo exigiria portar as checagens para o bundle. O ganho desta etapa é ter o lugar onde isso passa a caber — antes não havia nenhum."
     },
     {
       "id": "RISCO-02",

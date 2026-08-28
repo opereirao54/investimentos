@@ -172,8 +172,7 @@ function removerLancamentosFuturosCompromisso(operacaoId) {
     const futuroOuCorrente = t.ano > a0 || (t.ano === a0 && t.mes >= m0);
     return !futuroOuCorrente;
   });
-  if (transacoes.length !== antes)
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (transacoes.length !== antes) salvarTransacoes();
 }
 // ============================================================
 
@@ -253,7 +252,7 @@ function processarAportesRecorrentesPrevidencia() {
     historicoCompras.push(...novosAportes);
     transacoes.push(...novasTransacoes);
     localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
     if (typeof mostrarToast === 'function') {
       mostrarToast(
         `${novosAportes.length} aporte${novosAportes.length === 1 ? '' : 's'} de previdência lançado${novosAportes.length === 1 ? '' : 's'} retroativamente.`,

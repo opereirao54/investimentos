@@ -181,7 +181,7 @@ function reatribuirCategoriaDespesa(de, para) {
     else delete t.categoriaDespesa;
     n++;
   });
-  if (n) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (n) salvarTransacoes();
   return n;
 }
 
@@ -854,16 +854,7 @@ function normalizarDespesasProgramadas() {
       mudou = true;
     }
   });
-  if (mudou) {
-    try {
-      localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
-        AppliqueiCloudSync.forceFlush();
-      }
-    } catch (e) {
-      console.error('[normalizarDespesasProgramadas] localStorage', e);
-    }
-  }
+  if (mudou) salvarTransacoes({ flush: true });
   return mudou;
 }
 
@@ -1110,13 +1101,9 @@ function executarEdicao(modo) {
   }
 
   cancelarEdicaoControle();
-  try {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-  } catch (e) {
-    console.error('[executarEdicao] localStorage', e);
-    mostrarToast('Falha ao salvar localmente. Espaço de armazenamento esgotado?', 'erro');
-    return;
-  }
+  // Aborta quando a gravação falha — salvarTransacoes já logou e avisou o
+  // usuário; aqui só não se pode seguir como se tivesse dado certo.
+  if (!salvarTransacoes()) return;
   try {
     if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
       AppliqueiCloudSync.forceFlush();
@@ -1252,13 +1239,7 @@ function executarInsercao() {
     });
   }
 
-  try {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-  } catch (e) {
-    console.error('[executarInsercao] localStorage', e);
-    mostrarToast('Falha ao salvar localmente. Espaço de armazenamento esgotado?', 'erro');
-    return;
-  }
+  if (!salvarTransacoes()) return;
   // Força sync imediato em vez de esperar o debounce de 2s — cobre
   // o caso do usuário lançar uma despesa e fechar o tab antes do
   // flush automático (que era o sintoma do "falso salvamento").
@@ -1569,7 +1550,7 @@ function executarDelecao(modo) {
   } else {
     transacoes = transacoes.filter((t) => t.id != itemParaDeletar.id);
   }
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   mostrarToast('Lançamento excluído.', 'aviso');
   fecharModal();
   atualizarTelaControle();
@@ -1647,7 +1628,7 @@ function confirmarBaixarGrupoCartao(key) {
       ? { ...t, pago: true, pagoEm: new Date().toISOString(), contaId: contaPag || t.contaId }
       : t
   );
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   mostrarToast('Fatura baixada como paga.', 'sucesso');
   fecharModal();
   atualizarTelaControle();
@@ -1693,7 +1674,7 @@ function confirmarPagamento(id) {
     }
     return t;
   });
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
 
   // Se for compromisso mensal de sonho, registrar como aporte e atualizar valorAtual
   let toastMsg = 'Pagamento confirmado!';
@@ -1745,14 +1726,7 @@ function reverterPagamento(id) {
   }
   t.pago = false;
   delete t.pagoEm; // deixa de ser pagamento explícito
-  try {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
-      AppliqueiCloudSync.forceFlush();
-    }
-  } catch (e) {
-    console.error('[reverterPagamento] localStorage', e);
-  }
+  salvarTransacoes({ flush: true });
   mostrarToast('Pagamento desfeito — voltou para "a pagar".', 'sucesso');
   atualizarTelaControle();
 }

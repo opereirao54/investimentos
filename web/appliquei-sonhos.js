@@ -118,7 +118,7 @@ function gerarLancamentosMensaisSonho(sonho, valorMensal, mesesGerar) {
     });
     criados++;
   }
-  if (criados > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (criados > 0) salvarTransacoes();
   return criados;
 }
 
@@ -133,8 +133,7 @@ function removerLancamentosFuturosSonho(sonhoId) {
     if (futuro && !t.pago) return false; // remove apenas mês corrente em diante e não pagos
     return true;
   });
-  if (transacoes.length !== antes)
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (transacoes.length !== antes) salvarTransacoes();
 }
 
 function pedirConfirmacaoPlanoSonho(sonho) {
@@ -893,7 +892,7 @@ function confirmarPularMes(id) {
         t.ano === a0
       )
   );
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   // Persiste o "mês pulado" — o render desconta esse contador de mesesEntre(agora, fim),
   // garantindo que a parcela continue maior nos próximos renders.
   s.mesesPulados = (s.mesesPulados || 0) + 1;
@@ -925,7 +924,7 @@ function confirmarPularMes(id) {
       pago: false,
     });
   }
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   salvarSonhos();
   fecharModal();
   renderizarSonhos();
@@ -1822,7 +1821,7 @@ function confirmarExcluirSonhoCompleto(id) {
   const txsAntes = transacoes.length;
   transacoes = transacoes.filter((t) => t.sonhoId !== id);
   const removidas = txsAntes - transacoes.length;
-  if (removidas > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (removidas > 0) salvarTransacoes();
   sonhos = sonhos.filter((s) => s.id !== id);
   salvarSonhos();
   fecharModal();
@@ -1982,7 +1981,7 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
     const txr = transacoes.find((t) => t.id === aporte.txResgateId);
     if (txr) txr.valor = novoValor;
   }
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
 
   // Recalcula plano (se vinculado)
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
@@ -2042,7 +2041,7 @@ function confirmarExcluirAporteSonho(sonhoId, aporteId) {
   if (aporte.txResgateId) idsParaRemover.push(aporte.txResgateId);
   if (idsParaRemover.length > 0) {
     transacoes = transacoes.filter((t) => !idsParaRemover.includes(t.id));
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
   }
 
   // Reverte a venda gerada pela migração: devolve as cotas ao investimento.
@@ -2283,7 +2282,7 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
         }
       }
     }
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
     if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
   }
 

@@ -121,7 +121,7 @@ Adicione cenário novo se mudar lógica de:
 
 - [ ] `npm run lint` — 0 erros
 - [ ] `npm test` — verde
-- [ ] `npm run test:integracoes` — 93/93
+- [ ] `npm run test:integracoes` — 102/102
 - [ ] `npm run test:flows` — 108/108
 - [ ] `npm run build` — verde
 - [ ] CI passa (todas as steps verdes)

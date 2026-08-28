@@ -995,7 +995,7 @@ function registrarOperacaoAtivo() {
   }
 
   localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   document.getElementById('compraTicker').value = '';
   document.getElementById('compraQtd').value = '';
   document.getElementById('compraPreco').value = '';
@@ -1239,7 +1239,7 @@ function editarOperacao(id) {
   historicoCompras = historicoCompras.filter((o) => o.id !== id);
   transacoes = transacoes.filter((t) => t.id !== id.toString());
   localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   atualizarCarteiraAtivos();
   renderizarOperacoes();
 
@@ -1296,7 +1296,7 @@ function confirmarExclusaoOperacao(id) {
     return true;
   });
   localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   fecharModal();
   atualizarCarteiraAtivos();
   renderizarOperacoes();

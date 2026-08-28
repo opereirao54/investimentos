@@ -126,7 +126,9 @@ function contasComSaldo(refMs) {
 function optionsContasComSaldo(opcoes) {
   const o = opcoes || {};
   const fmt = function (v) {
-    return typeof formatarMoeda === 'function' ? formatarMoeda(v) : 'R$ ' + (Number(v) || 0).toFixed(2);
+    return typeof formatarMoeda === 'function'
+      ? formatarMoeda(v)
+      : 'R$ ' + (Number(v) || 0).toFixed(2);
   };
   let lista;
   if (o.incluirTodas) {
@@ -146,8 +148,14 @@ function optionsContasComSaldo(opcoes) {
     .map(function (x) {
       const marca = String(x.conta.id) === sel ? ' selected' : '';
       return (
-        '<option value="' + x.conta.id + '"' + marca + '>' +
-        x.conta.nome + ' — ' + fmt(x.saldo) +
+        '<option value="' +
+        x.conta.id +
+        '"' +
+        marca +
+        '>' +
+        x.conta.nome +
+        ' — ' +
+        fmt(x.saldo) +
         '</option>'
       );
     })
@@ -622,8 +630,14 @@ function abrirTransferenciaModal() {
     '<i class="ph ph-arrows-left-right" style="color:var(--cor-info);"></i> Transferir entre contas';
   document.getElementById('modalMensagem').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
-    campo('De', '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>') +
-    campo('Para', '<select id="transfDestino" style="' + estiloCtrl + '">' + optsDestino + '</select>') +
+    campo(
+      'De',
+      '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>'
+    ) +
+    campo(
+      'Para',
+      '<select id="transfDestino" style="' + estiloCtrl + '">' + optsDestino + '</select>'
+    ) +
     campo(
       'Valor (R$)',
       '<input type="text" inputmode="decimal" id="transfValor" placeholder="0,00" oninput="aplicarMascaraBRL(this)" style="' +
@@ -686,13 +700,7 @@ function criarTransferencia(origemId, destinoId, valor, dataStr) {
     banco: dNome,
   });
   transacoes.push(saida, entrada);
-  try {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-  } catch (_) {}
-  try {
-    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
-      AppliqueiCloudSync.forceFlush();
-  } catch (_) {}
+  salvarTransacoes({ flush: true });
   return { saida: saida, entrada: entrada };
 }
 

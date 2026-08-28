@@ -33,6 +33,16 @@ function loadContas({ compras = [], transacoes = [], storage = {} } = {}) {
     historicoCompras: compras,
     transacoes: transacoes,
     AppliqueiCloudSync: undefined,
+    // Dependência de appliquei-app.js, injetada como o sandbox já injeta
+    // `transacoes` e `historicoCompras`: contas.js sempre carrega DEPOIS de
+    // app.js no HTML (ver o cabeçalho do próprio módulo), e desde a criação da
+    // porta única de escrita (RISCO-01) ele chama salvarTransacoes() em vez de
+    // gravar direto. Este teste isola contas.js de propósito, então o stub
+    // reproduz só o que importa aqui: persistir o array global.
+    salvarTransacoes() {
+      sandbox.localStorage.setItem('futurorico_transacoes', JSON.stringify(sandbox.transacoes));
+      return true;
+    },
   };
   sandbox.window = sandbox;
   sandbox.globalThis = sandbox;
