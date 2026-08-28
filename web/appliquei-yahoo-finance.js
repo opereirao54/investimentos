@@ -268,6 +268,10 @@ async function atualizarCotacoesPossuidas(forcar) {
   if (!u) return; // endpoint exige login; sem sessão, mantém Yahoo/semente.
 
   _complementoCotacoesEmAndamento = true;
+  // Skeleton no hero de "Meus investimentos" enquanto a cotação não chega. Sem
+  // isso a aba abre com o valor de semente e SALTA para o real — o pisca é o
+  // que mais faz a tela parecer improvisada.
+  if (typeof invSetCarregando === 'function') invSetCarregando(true);
   try {
     const token = await u.getIdToken();
     const url = '/api/market?op=quote&tickers=' + encodeURIComponent(possuidos.join(','));
@@ -306,6 +310,7 @@ async function atualizarCotacoesPossuidas(forcar) {
     console.warn('[cotações] complemento via servidor falhou:', err && err.message);
   } finally {
     _complementoCotacoesEmAndamento = false;
+    if (typeof invSetCarregando === 'function') invSetCarregando(false);
   }
 }
 

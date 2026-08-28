@@ -230,18 +230,32 @@ function atualizarKPIsResumo(carteiraConsolidada) {
   const elPat = document.getElementById('resumoPatrimonio');
   // O saldo é o único ponto focal da aba: "R$" e centavos entram rebaixados
   // para o olho cair na parte inteira. innerText perderia o markup.
-  if (elPat) elPat.innerHTML = moedaComCentavosDiscretos(patrim);
+  if (elPat) invAnimarValor(elPat, patrim, moedaComCentavosDiscretos);
   const elInv = document.getElementById('resumoInvestido');
-  if (elInv) elInv.innerText = formatarMoeda(aplicado);
+  // O número muda de NATUREZA conforme o modo, e o rótulo tem de acompanhar:
+  //   · "Tudo"   → ESTOQUE: custo de aquisição das posições. "Capital aplicado".
+  //   · período  → FLUXO: compras − vendas na janela. Chamar isso de "capital
+  //     aplicado" é o que fazia R$ 0,00 (não aportei nada em 3M) e valores
+  //     NEGATIVOS (vendi mais do que comprei) lerem como bug. Rótulo de estoque
+  //     com número de fluxo era a única coisa errada — a conta sempre esteve certa.
+  const elRotInv = document.getElementById('rotuloAplicado');
+  if (elInv) invAnimarValor(elInv, dataIni ? Math.abs(aplicado) : aplicado, formatarMoeda);
+  if (elRotInv) {
+    elRotInv.innerText = !dataIni
+      ? 'Capital aplicado'
+      : aplicado < 0
+        ? 'Resgates líquidos'
+        : 'Aportes no período';
+  }
 
   const cardRend = document.getElementById('resumoRendimento');
   const cardRent = document.getElementById('resumoRentabilidade');
   const titRend = document.getElementById('tituloRendimento');
   if (cardRend) {
-    cardRend.innerText = `${ganhoR$ >= 0 ? '+' : ''}${formatarMoeda(ganhoR$)}`;
-    cardRend.style.color = ganhoR$ < 0 ? 'var(--cor-erro)' : 'var(--cor-primaria)';
+    invAnimarValor(cardRend, ganhoR$, (v) => `${v >= 0 ? '+' : ''}${formatarMoeda(v)}`);
+    cardRend.style.color = ganhoR$ < 0 ? 'var(--cor-erro)' : 'var(--cor-txt-primaria)';
   }
-  if (cardRent) cardRent.innerText = `${ganhoR$ >= 0 ? '+' : ''}${lucroPerc.toFixed(2)}%`;
+  if (cardRent) invAnimarValor(cardRent, lucroPerc, (v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`);
   if (titRend) {
     titRend.style.color = '';
     titRend.innerText = dataIni ? `Ganho capital (${rotuloPeriodoEvolucao()})` : 'Ganho capital';
@@ -254,6 +268,12 @@ function atualizarKPIsResumo(carteiraConsolidada) {
     iconTend.className = ganhoR$ >= 0 ? 'ph-bold ph-arrow-up' : 'ph-bold ph-arrow-down';
   }
 
+  // Curva e barra de alocação vivem do mesmo estado dos KPIs: redesenham junto
+  // para que filtro, período e número nunca fiquem contando histórias
+  // diferentes na mesma tela.
+  renderizarSparkHero(filtroTipo, filtroAtivo);
+  renderizarAlocacaoHero(carteiraConsolidada);
+
   // Detalhe "desde X" — quando há período, mostra a janela; senão, 1ª compra do filtro
   const elDesde = document.getElementById('kpiInvestidoDesde');
   if (elDesde) {
@@ -265,8 +285,10 @@ function atualizarKPIsResumo(carteiraConsolidada) {
       // "você não aportou nada nesta janela". O rótulo diz qual dos dois é.
       elDesde.innerText =
         aplicado > 0
-          ? `aportes desde ${lblIni} (${rotuloPeriodoEvolucao()})`
-          : `nenhum aporte em ${rotuloPeriodoEvolucao()}`;
+          ? `desde ${lblIni} · ${rotuloPeriodoEvolucao()}`
+          : aplicado < 0
+            ? `vendas superaram compras em ${rotuloPeriodoEvolucao()}`
+            : `nenhum aporte em ${rotuloPeriodoEvolucao()}`;
     } else {
       const datasFiltradas = historicoCompras
         .filter((o) => o.tipo !== 'venda' && o.data_op)
@@ -1012,6 +1034,197 @@ function atualizarBarraAlocacao(carteiraConsolidada) {
   atualizarSnapshotMesAtual(carteiraConsolidada);
   renderizarGraficoDistribuicao(carteiraConsolidada);
   renderizarGraficoEvolucao();
+}
+
+// ============================================================
+// === CAMADA PREMIUM DO HERO — curva, alocação e contagem   ===
+// ============================================================
+// Três coisas que o card de saldo ganha, e o problema que cada uma resolve:
+//   · sparkline  → o número sozinho não diz se subiu; a forma diz, sem toque;
+//   · alocação   → saber a composição exigia abrir o donut (220px + 1 toque);
+//   · contagem   → a tela abria em R$ 0,00 e pulava para o valor; agora conta.
+// Nada usa biblioteca: SVG montado à mão e requestAnimationFrame. Tudo respeita
+// prefers-reduced-motion — com movimento reduzido o estado final aparece direto.
+
+var INV_SEM_MOVIMENTO =
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// --- Contagem animada -------------------------------------------------------
+// Guarda o último valor por elemento para animar DE onde estava, não do zero:
+// re-render por troca de filtro não deve fazer o número despencar e subir.
+var invUltimoValor = {};
+function invAnimarValor(el, destino, formatar) {
+  if (!el) return;
+  const chave = el.id || '';
+  const de = chave in invUltimoValor ? invUltimoValor[chave] : 0;
+  if (chave) invUltimoValor[chave] = destino;
+  if (INV_SEM_MOVIMENTO || !isFinite(de) || Math.abs(destino - de) < 0.01) {
+    el.innerHTML = formatar(destino);
+    return;
+  }
+  if (el.__invRaf) cancelAnimationFrame(el.__invRaf);
+  const inicio = performance.now();
+  const dur = 620;
+  const passo = (agora) => {
+    const t = Math.min(1, (agora - inicio) / dur);
+    // easeOutExpo: quase todo o percurso no começo — parece rápido sem cortar.
+    const e = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+    el.innerHTML = formatar(de + (destino - de) * e);
+    if (t < 1) el.__invRaf = requestAnimationFrame(passo);
+    else el.__invRaf = null;
+  };
+  el.__invRaf = requestAnimationFrame(passo);
+}
+
+// --- Skeleton ---------------------------------------------------------------
+// Ligado enquanto as cotações não chegaram. Sem isto o hero abre com R$ 0,00 e
+// salta para o valor real — o "pisca" é o que mais faz a tela parecer barata.
+function invSetCarregando(ligado) {
+  const hero = document.querySelector('#patrimonio .inv-hero');
+  if (!hero) return;
+  if (ligado) hero.setAttribute('data-carregando', '1');
+  else hero.removeAttribute('data-carregando');
+}
+
+// --- Sparkline --------------------------------------------------------------
+// Consome a MESMA série do gráfico de evolução (calcularSerieEvolucao), então
+// curva e gráfico nunca discordam. Desenha só o valor de mercado.
+function renderizarSparkHero(filtroTipo, filtroAtivo) {
+  const alvo = document.getElementById('sparkHero');
+  if (!alvo || typeof calcularSerieEvolucao !== 'function') return;
+
+  let serie;
+  try {
+    serie = calcularSerieEvolucao(filtroTipo, filtroAtivo);
+  } catch (_) {
+    alvo.innerHTML = '';
+    return;
+  }
+  const pontos = (serie && serie.mercado ? serie.mercado : []).map((v) => Number(v) || 0);
+  // Uma linha reta entre dois pontos iguais não informa nada; abaixo de 2 meses
+  // o espaço vira convite para registrar a primeira operação.
+  if (pontos.length < 2) {
+    alvo.innerHTML =
+      '<div class="inv-spark-vazia">A curva do seu patrimônio aparece aqui a partir do segundo mês.</div>';
+    return;
+  }
+
+  const L = 300;
+  const A = 60;
+  // O último ponto recua 5 unidades: com a curva sangrando até a borda do card,
+  // o marcador final ficava metade para fora e lia como defeito.
+  const fim = L - 5;
+  // Respiro em cima e embaixo: sem ele o mês de menor valor cola na borda e a
+  // curva parece cortada, não desenhada.
+  const pad = 11;
+  const min = Math.min.apply(null, pontos);
+  const max = Math.max.apply(null, pontos);
+  const amp = max - min || Math.abs(max) || 1;
+  const x = (i) => (i / (pontos.length - 1)) * fim;
+  const y = (v) => A - pad - ((v - min) / amp) * (A - pad * 2);
+
+  // Suaviza com bézier cúbica de tangente amortecida. Com 3 ou 4 meses uma
+  // polilinha vira régua e parece um gráfico quebrado; a curva mostra a MESMA
+  // série, só sem os cantos. O fator 0.22 (contra o 1/3 canônico) segura o
+  // overshoot: numa série financeira uma barriga inventada abaixo do mínimo
+  // desenharia uma queda que não existiu.
+  const px = pontos.map((_, i) => x(i));
+  const py = pontos.map((v) => y(v));
+  let d = `M ${px[0].toFixed(2)} ${py[0].toFixed(2)}`;
+  for (let i = 0; i < pontos.length - 1; i++) {
+    const dx = (px[i + 1] - px[i]) * 0.22;
+    const mAnt =
+      i > 0 ? (py[i + 1] - py[i - 1]) / (px[i + 1] - px[i - 1]) : (py[1] - py[0]) / (px[1] - px[0]);
+    const mProx =
+      i + 2 < pontos.length
+        ? (py[i + 2] - py[i]) / (px[i + 2] - px[i])
+        : (py[i + 1] - py[i]) / (px[i + 1] - px[i]);
+    const c1x = px[i] + dx;
+    const c1y = py[i] + mAnt * dx;
+    const c2x = px[i + 1] - dx;
+    const c2y = py[i + 1] - mProx * dx;
+    d +=
+      ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)},` +
+      ` ${px[i + 1].toFixed(2)} ${py[i + 1].toFixed(2)}`;
+  }
+  const area = d + ` L ${fim} ${A} L 0 ${A} Z`;
+  const fx = x(pontos.length - 1);
+  const fy = y(pontos[pontos.length - 1]);
+  // Comprimento aproximado do traço, para o dash da animação de desenho.
+  // Comprimento aproximado (polilinha × folga) para o dash da animação de
+  // desenho. Subestimar deixaria o fim do traço já visível ao iniciar.
+  let comp = 0;
+  for (let i = 1; i < pontos.length; i++) {
+    comp += Math.hypot(px[i] - px[i - 1], py[i] - py[i - 1]);
+  }
+  comp = Math.ceil(comp * 1.25);
+  const uid = 'sk' + Date.now().toString(36);
+
+  alvo.innerHTML =
+    `<svg class="inv-spark" viewBox="0 0 ${L} ${A}" preserveAspectRatio="none" aria-hidden="true" focusable="false">` +
+    `<defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1">` +
+    `<stop offset="0%" stop-color="var(--cor-primaria)" stop-opacity="0.30"/>` +
+    `<stop offset="70%" stop-color="var(--cor-primaria)" stop-opacity="0.06"/>` +
+    `<stop offset="100%" stop-color="var(--cor-primaria)" stop-opacity="0"/>` +
+    `</linearGradient></defs>` +
+    `<path d="${area}" fill="url(#${uid})"/>` +
+    `<path class="inv-spark-linha" d="${d}" style="--traco:${comp.toFixed(0)}"/>` +
+    `</svg>` +
+    // O marcador final é HTML, não <circle>. Dentro do SVG ele herdaria o
+    // preserveAspectRatio="none" — que a CURVA precisa para esticar — e viraria
+    // um risco vertical, porque a contra-escala teria de mudar a cada largura de
+    // tela. Em porcentagem do wrapper ele fica redondo em qualquer viewport.
+    `<span class="inv-spark-ponto" style="left:${((fx / L) * 100).toFixed(2)}%;top:${((fy / A) * 100).toFixed(2)}%"></span>`;
+}
+
+// --- Barra de alocação ------------------------------------------------------
+// Mesma fonte do donut (agruparCarteiraPorCategoria + paletaCarteira), então as
+// cores da barra, do donut e do avatar de cada ativo são a mesma linguagem.
+function renderizarAlocacaoHero(carteiraConsolidada) {
+  const barra = document.getElementById('barraAlocacao');
+  const leg = document.getElementById('legendaAlocacao');
+  if (!barra || typeof agruparCarteiraPorCategoria !== 'function') return;
+
+  const grupos = agruparCarteiraPorCategoria(carteiraConsolidada || obterResumoCarteira());
+  const itens = Object.entries(grupos)
+    .filter(([, v]) => v.saldo > 0)
+    .sort((a, b) => b[1].saldo - a[1].saldo);
+  const total = itens.reduce((s, [, v]) => s + v.saldo, 0);
+  if (!itens.length || total <= 0) {
+    barra.innerHTML = '';
+    if (leg) leg.innerHTML = '';
+    return;
+  }
+
+  const paleta = typeof paletaCarteira === 'function' ? paletaCarteira() : {};
+  const rotulo = (k) => (typeof ROTULOS_SUB !== 'undefined' && ROTULOS_SUB[k]) || k;
+  barra.innerHTML = itens
+    .map(([k, v], i) => {
+      const perc = (v.saldo / total) * 100;
+      const cor = paleta[k] || 'var(--cor-texto-mutado)';
+      return (
+        `<span class="inv-aloc-seg" style="width:${perc.toFixed(2)}%;background:${cor};` +
+        `animation-delay:${i * 60}ms" title="${rotulo(k)} — ${perc.toFixed(1)}%"></span>`
+      );
+    })
+    .join('');
+  // Legenda só das três maiores: quatro linhas de legenda ocupam mais que o
+  // próprio gráfico. O resto vira "+N".
+  if (leg) {
+    const topo = itens.slice(0, 3);
+    let html = topo
+      .map(([k, v]) => {
+        const perc = (v.saldo / total) * 100;
+        return (
+          `<span><i style="background:${paleta[k] || 'var(--cor-texto-mutado)'}"></i>` +
+          `${rotulo(k)} <b>${perc.toFixed(0)}%</b></span>`
+        );
+      })
+      .join('');
+    if (itens.length > topo.length)
+      html += `<span style="opacity:.75">+${itens.length - topo.length}</span>`;
+    leg.innerHTML = html;
+  }
 }
 
 // Formata um valor para o display grande do saldo, com "R$" e os centavos

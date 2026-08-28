@@ -7202,6 +7202,168 @@
             #patrimonio * { transition: none !important; }
         }
 
+        /* ==========================================================
+           CAMADA PREMIUM — hero vivo
+           ==========================================================
+           O que separa "bem organizado" de "produto caro" aqui não é enfeite:
+           é o card de saldo deixar de ser tipografia estática e passar a ter
+           CONTEXTO (a curva), ESTADO (skeleton enquanto a cotação não chega) e
+           RESPOSTA (o número contando ao entrar). Cada um resolve algo real —
+           nenhum é decoração.
+
+           Tudo obedece prefers-reduced-motion e usa só transform/opacity, que
+           o compositor resolve sem relayout — a curva é SVG, sem lib.
+        */
+
+        /* Luz vinda do topo: um filete claro na borda superior, como vidro.
+           É o que dá volume ao card sem sombra pesada. */
+        #patrimonio .inv-hero {
+            background:
+                radial-gradient(130% 120% at 88% -10%, var(--cor-bg-primaria) 0%, transparent 58%),
+                var(--cor-branco);
+        }
+        #patrimonio .inv-hero::after {
+            content: ''; position: absolute; inset: 0 0 auto 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 45%, transparent);
+            pointer-events: none;
+        }
+        body.dark #patrimonio .inv-hero::after {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10) 45%, transparent);
+        }
+
+        /* Delta como pílula tonal — ancora o número num campo de cor em vez de
+           deixá-lo solto sobre o gradiente. */
+        #patrimonio .inv-delta {
+            padding: 3px 9px 3px 7px; border-radius: 99px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+        }
+        #patrimonio .inv-delta.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+
+        /* ---------- Barra de alocação ----------
+           Uma linha diz o que o donut diz, sem custar 220px de altura nem um
+           toque para abrir. Serve de legenda e de âncora de cor para a lista. */
+        #patrimonio .inv-alocacao {
+            display: flex; gap: 2px; height: 6px; margin-top: 14px;
+            border-radius: 99px; overflow: hidden; background: var(--inv-recuo);
+        }
+        #patrimonio .inv-alocacao:empty { display: none; }
+        #patrimonio .inv-aloc-seg {
+            height: 100%; min-width: 3px;
+            transform-origin: left center;
+            animation: invAloc 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes invAloc { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        #patrimonio .inv-aloc-legenda {
+            display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px;
+            font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-aloc-legenda span {
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        #patrimonio .inv-aloc-legenda i {
+            width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0;
+        }
+        #patrimonio .inv-aloc-legenda b {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 600; color: var(--cor-texto-principal);
+        }
+
+        /* ---------- Sparkline: o chão do card ----------
+           Sangra até as bordas de propósito. A curva não é um gráfico para ler
+           valor — é a forma dos últimos meses, lida em 200ms sem interação.
+           O gráfico de verdade continua no bloco Evolução. */
+        /* A sangria vive no WRAPPER: dar largura negativa ao <svg> deixava 32px
+           de folga à direita, porque o elemento gráfico não estica igual a um
+           bloco. O wrapper estoura o padding do card e o svg preenche 100% dele. */
+        #patrimonio .inv-spark-wrap {
+            position: relative; margin: 14px -16px 0; width: calc(100% + 32px);
+        }
+        #patrimonio .inv-spark {
+            display: block; width: 100%; height: 54px; overflow: visible;
+        }
+        #patrimonio .inv-spark-linha {
+            fill: none; stroke: var(--cor-primaria); stroke-width: 1.75;
+            stroke-linecap: round; stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+            stroke-dasharray: var(--traco, 0); stroke-dashoffset: var(--traco, 0);
+            animation: invTracar 900ms cubic-bezier(0.4, 0, 0.2, 1) 120ms forwards;
+        }
+        @keyframes invTracar { to { stroke-dashoffset: 0; } }
+        #patrimonio .inv-spark-ponto {
+            position: absolute; width: 9px; height: 9px; border-radius: 50%;
+            margin: -4.5px 0 0 -4.5px; background: var(--cor-primaria);
+            box-shadow: 0 0 0 2.5px var(--cor-branco), 0 0 0 5px rgba(5,150,105,0.16);
+            opacity: 0; animation: invSurgir 300ms ease 820ms forwards;
+        }
+        body.dark #patrimonio .inv-spark-ponto {
+            box-shadow: 0 0 0 2.5px var(--cor-branco), 0 0 0 7px rgba(52,211,153,0.14);
+        }
+        @keyframes invSurgir { to { opacity: 1; } }
+        #patrimonio .inv-spark-vazia {
+            padding: 14px 0 16px; text-align: center;
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- Skeleton ----------
+           As cotações vêm de API. Sem isto, a tela abre com R$ 0,00 e pula para
+           o valor real — o "pisca" é o que mais faz parecer barato. */
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-metrica-val,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta-rs {
+            color: transparent !important; position: relative;
+            border-radius: 7px; overflow: hidden;
+            background:
+                linear-gradient(90deg, var(--inv-recuo) 25%, var(--cor-borda) 37%, var(--inv-recuo) 63%)
+                0 0 / 400% 100%;
+            animation: invShimmer 1.35s ease-in-out infinite;
+        }
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo .inv-moeda,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo .inv-cents { opacity: 0; }
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta i { opacity: 0; }
+        @keyframes invShimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+        /* Entrada: o card sobe uma vez, discreto. Sem stagger circense. */
+        #patrimonio.ativa .inv-hero {
+            animation: invEntrada 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes invEntrada {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        /* Foco visível em tudo que é operável — a regra global do app não cobre
+           os controles novos desta aba. */
+        #patrimonio button:focus-visible,
+        #patrimonio select:focus-visible,
+        #patrimonio input:focus-visible,
+        #patrimonio [role="button"]:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px; border-radius: var(--inv-r-sm);
+        }
+
+        /* Valores ocultos: a curva também carrega informação de patrimônio. */
+        body.valores-ocultos #patrimonio .inv-spark,
+        body.valores-ocultos #patrimonio .inv-alocacao { filter: blur(7px); }
+
+        @media (min-width: 720px) {
+            #patrimonio .inv-spark-wrap { margin: 16px -22px 0; width: calc(100% + 44px); }
+            #patrimonio .inv-spark { height: 68px; }
+        }
+
+        /* Movimento reduzido: tudo aparece no estado final, nada anima.
+           A informação é a mesma; só o percurso some. */
+        @media (prefers-reduced-motion: reduce) {
+            #patrimonio .inv-spark-linha { animation: none; stroke-dashoffset: 0; }
+            #patrimonio .inv-spark-ponto { animation: none; opacity: 1; }
+            #patrimonio .inv-aloc-seg { animation: none; }
+            #patrimonio.ativa .inv-hero { animation: none; }
+            #patrimonio .inv-hero[data-carregando="1"] .inv-saldo,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-metrica-val,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-delta,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-delta-rs { animation: none; }
+        }
+
     </style>
 </head>
 <body class="controle-ativo">
@@ -7651,9 +7813,14 @@
                         <span class="inv-delta-rot" id="tituloRendimento">Ganho capital</span>
                     </div>
 
+                    <!-- A curva vem logo abaixo do número que ela explica, e sangra
+                         até as bordas. Não serve para ler valor — serve para ler
+                         forma. O gráfico com eixos continua no bloco Evolução. -->
+                    <div id="sparkHero" class="inv-spark-wrap"></div>
+
                     <div class="inv-metricas">
                         <div>
-                            <span class="inv-metrica-rot">Capital aplicado</span>
+                            <span class="inv-metrica-rot" id="rotuloAplicado">Capital aplicado</span>
                             <span class="inv-metrica-val valor-mascarado" id="resumoInvestido">R$ 0,00</span>
                             <span class="inv-metrica-sub" id="kpiInvestidoDesde">desde sua 1ª compra</span>
                         </div>
@@ -7663,6 +7830,12 @@
                             <span class="inv-metrica-sub">recebidos no período</span>
                         </div>
                     </div>
+
+                    <!-- Alocação por classe: uma linha diz o que o donut diz, sem
+                         custar 220px nem um toque. Também é a legenda de cor da
+                         lista de ativos logo abaixo. -->
+                    <div class="inv-alocacao" id="barraAlocacao" role="img" aria-label="Distribuição da carteira por classe"></div>
+                    <div class="inv-aloc-legenda" id="legendaAlocacao"></div>
 
                     <!-- Próximo evento: uma faixa, não um card do tamanho do donut.
                          previdencia.js define onclick/role/tabindex aqui quando há
