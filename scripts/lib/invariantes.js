@@ -78,6 +78,7 @@ function validarEstado(estado, opcoes) {
   const transacoes = (estado && estado.transacoes) || [];
   const contas = (estado && estado.contas) || [];
   const operacoes = (estado && estado.historicoCompras) || [];
+  const sonhos = (estado && estado.sonhos) || [];
   const apenas = opcoes && opcoes.apenas ? new Set(opcoes.apenas) : null;
   const violacoes = [];
 
@@ -286,6 +287,136 @@ function validarEstado(estado, opcoes) {
         );
       }
     }
+  }
+
+  // ======================= Onda 2 — as origens ==========================
+
+  const idsSonhos = new Set(sonhos.map((s) => s.id));
+  const txPorId = new Map(transacoes.map((t) => [t.id, t]));
+
+  // INV-10 — compromisso PENDENTE não sobrevive ao sonho.
+  // Transação PAGA com sonhoId inexistente é histórico intencional (o usuário
+  // escolheu "manter histórico" ao excluir), não órfã. O campo `pago` é o que
+  // distingue as duas coisas — ver entidades.sonho.regrasDeExclusao no mapa.
+  if (sonhos.length || transacoes.some((t) => t.sonhoId)) {
+    for (const t of transacoes) {
+      if (!t.sonhoId || idsSonhos.has(t.sonhoId)) continue;
+      if (t.pago) continue;
+      acusar(
+        'INV-10',
+        `Compromisso pendente órfão — ${rotulo(t)} aponta para o sonho ${t.sonhoId}, ` +
+          `que já não existe. Ele continua inflando o "a pagar" do Controle. ` +
+          `removerLancamentosFuturosSonho deveria tê-lo removido.`,
+        t
+      );
+    }
+  }
+
+  // INV-11 — aporte extra e transação são um par de ligação dupla.
+  for (const s of sonhos) {
+    for (const ap of s.aportes || []) {
+      if (!ap.txId) continue;
+      const tx = txPorId.get(ap.txId);
+      if (!tx) {
+        acusar(
+          'INV-11',
+          `Aporte do sonho "${s.nome || s.id}" aponta para a transação ${ap.txId}, que ` +
+            `não existe. O valor conta no valorAtual do sonho mas não existe no ` +
+            `Controle: o sonho mostra dinheiro guardado que nunca saiu de conta nenhuma.`,
+          ap
+        );
+      } else if (tx.sonhoId !== s.id) {
+        acusar(
+          'INV-11',
+          `Ligação dupla quebrada: o aporte do sonho "${s.nome || s.id}" aponta para ` +
+            `${ap.txId}, mas essa transação tem sonhoId="${tx.sonhoId}".`,
+          ap
+        );
+      }
+    }
+  }
+
+  // INV-12 — migração gera duas pernas que se anulam no orçamento.
+  const migracoes = transacoes.filter(
+    (t) => t.aporteExtra && t.categoria === 'sonho' && /migra/i.test(t.obs || '')
+  );
+  for (const mig of migracoes) {
+    const resgate = transacoes.find(
+      (t) =>
+        t !== mig &&
+        t.categoria === 'resgate_investimento' &&
+        t.sonhoId === mig.sonhoId &&
+        Math.abs(Number(t.valor) - Number(mig.valor)) <= 0.005
+    );
+    if (!resgate) {
+      acusar(
+        'INV-12',
+        `Aporte por migração sem a perna de resgate — ${rotulo(mig)}. O dinheiro só ` +
+          `mudou de lugar (investimento → sonho), mas sem o resgate compensatório o mês ` +
+          `contabiliza um gasto novo e o orçamento fica no vermelho sem motivo.`,
+        mig
+      );
+    }
+  }
+
+  // INV-13 — recalcular o plano não duplica compromissos.
+  const compromissos = new Map();
+  for (const t of transacoes) {
+    if (t.categoria !== 'sonho' || t.aporteExtra || !t.sonhoId) continue;
+    if (t.mes == null || t.ano == null) continue;
+    const k = `${t.sonhoId}|${t.ano}-${t.mes}`;
+    if (!compromissos.has(k)) compromissos.set(k, []);
+    compromissos.get(k).push(t);
+  }
+  for (const [k, itens] of compromissos) {
+    if (itens.length > 1) {
+      const [sonhoId, comp] = k.split('|');
+      acusar(
+        'INV-13',
+        `${itens.length} compromissos do sonho ${sonhoId} na mesma competência ${comp}. ` +
+          `O "a pagar" do mês está dobrado. O recálculo do plano tem de reaproveitar a ` +
+          `série (groupIdControle) em vez de criar outra.`,
+        itens[1]
+      );
+    }
+  }
+
+  // INV-14 — valorAtual do sonho é a soma dos aportes.
+  for (const s of sonhos) {
+    if (s.valorAtual == null || !Array.isArray(s.aportes)) continue;
+    const soma = s.aportes.reduce((acc, a) => acc + (Number(a.valor) || 0), 0);
+    if (Math.abs(Number(s.valorAtual) - soma) > 0.005) {
+      acusar(
+        'INV-14',
+        `valorAtual do sonho "${s.nome || s.id}" é ${s.valorAtual}, mas os aportes somam ` +
+          `${soma}. A barra de progresso mostra um número que o histórico não sustenta.`,
+        s
+      );
+    }
+  }
+
+  // INV-15 — dividendo é idempotente por (ticker, ano, mês).
+  const divs = new Map();
+  for (const t of transacoes) {
+    if (t.categoria !== 'dividendo') continue;
+    if (!t.divKey) {
+      acusar(
+        'INV-15',
+        `Dividendo sem divKey — ${rotulo(t)}. Sem a chave de idempotência, rodar ` +
+          `lancarDividendosNoCaixa de novo duplica este lançamento.`,
+        t
+      );
+      continue;
+    }
+    if (divs.has(t.divKey)) {
+      acusar(
+        'INV-15',
+        `divKey duplicada "${t.divKey}" — o mesmo dividendo foi lançado duas vezes e o ` +
+          `caixa da corretora está inflado.`,
+        t
+      );
+    }
+    divs.set(t.divKey, t);
   }
 
   // INV-07 — saldo de abertura entra uma única vez.

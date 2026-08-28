@@ -1,7 +1,7 @@
 {
   "$schema": "./mapa.schema.md",
   "versao": 1,
-  "onda": 1,
+  "onda": 2,
   "atualizadoEm": "2026-08-28",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
   "entidades": {
@@ -70,6 +70,11 @@
           "campo": "groupId",
           "apontaPara": "transacao.groupId (série recorrente)",
           "obrigatorio": "condicional"
+        },
+        {
+          "campo": "divKey",
+          "formato": "{ticker}_{ano}_{mes}",
+          "nota": "chave de idempotência do lançamento de dividendo; lancarDividendosNoCaixa não duplica quando roda de novo"
         }
       ],
       "camposDeCompetencia": {
@@ -217,6 +222,51 @@
         ],
         "nota": "Categoria da OPERAÇÃO (historicoCompras), distinta de transacao.categoria. As \"semQuantidade\" viram investimento_fixo na transação; renda_variavel vira investimento_variavel. Ver renda-fixa.js:881."
       }
+    },
+    "sonho": {
+      "titulo": "Sonho (meta financeira com compromisso mensal no Controle)",
+      "chaveArmazenamento": "futurorico_sonhos",
+      "globalWindow": "sonhos",
+      "topologia": "escrita-central-leitura-espalhada",
+      "produtores": [
+        "web/appliquei-sonhos.js"
+      ],
+      "consumidores": [
+        "web/appliquei-sonhos.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-jornada.js",
+        "web/appliquei-relatorio-mensal.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "referenciadoPor": [
+            "transacao.sonhoId",
+            "transacao.groupId = sonho_grp_{id}"
+          ]
+        },
+        {
+          "campo": "contaOrigemId",
+          "apontaPara": "conta.id",
+          "obrigatorio": "nao",
+          "nota": "NÃO é validado no cadastro — ver RISCO-02. Vira transacao.contaId dos compromissos."
+        },
+        {
+          "campo": "groupIdControle",
+          "apontaPara": "transacao.groupId",
+          "nota": "estável por sonho; recalcular o plano reaproveita o mesmo grupo"
+        },
+        {
+          "campo": "aportes[].txId",
+          "apontaPara": "transacao.id",
+          "nota": "LIGAÇÃO DUPLA: o aporte guarda o id da transação e a transação guarda o sonhoId. Excluir um lado tem de excluir o outro."
+        }
+      ],
+      "regrasDeExclusao": {
+        "duasOpcoesDeliberadas": "excluirSonho oferece DUAS saídas, e as duas são corretas. Não trate a segunda como bug.",
+        "excluirTudo": "confirmarExcluirSonhoCompleto — remove o sonho e TODA transação com aquele sonhoId, paga ou não.",
+        "manterHistorico": "confirmarExcluirSonho — remove o sonho e só os compromissos FUTUROS e NÃO PAGOS (removerLancamentosFuturosSonho). As transações pagas ficam no Controle com sonhoId apontando para um sonho que já não existe: isso é HISTÓRICO INTENCIONAL, não órfão."
+      }
     }
   },
   "prefixosDeId": {
@@ -279,7 +329,7 @@
       ],
       "sintoma": "\"Gastei e o saldo do banco não mudou\" · aparece um bucket \"A reconciliar\" no Meu Patrimônio · saldo da instituição inflado.",
       "prova": "test/integracao-inv01-gasto-desconta-conta.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-02",
@@ -302,7 +352,7 @@
       "sintoma": "Despesa cai no bucket \"Sem banco\" e o saldo da instituição fica inflado.",
       "historico": "Regressão real já corrigida: antes só receita/resgate eram obrigatórios (ver comentário em aba-controle-financeiro.js:75).",
       "prova": "test/integracao-inv02-banco-obrigatorio.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-03",
@@ -328,7 +378,7 @@
       "sintoma": "Sem a flag: o saldo cai DUAS vezes na mesma compra. Sem a perna de caixa: a compra não desconta de conta nenhuma.",
       "fragilidade": "temLegCaixa tem UM produtor (renda-fixa.js:906) e UM consumidor (patrimonio.js:288), sem contrato declarado. Qualquer produtor novo de investimento_* que crie perna de caixa sem setar a flag causa duplo-débito silencioso. Agrava: como o padrão B grava investimento_fixo SEM a flag legitimamente, não dá para exigir temLegCaixa em todo aporte — a checagem tem de ser relacional (existe perna de caixa irmã?), nunca por presença da flag isolada.",
       "prova": "test/integracao-inv03-duas-pernas-aporte.test.js",
-      "status": "pendente",
+      "status": "coberta",
       "padroes": {
         "A-duas-pernas": {
           "quando": "Compra avulsa via registrarOperacaoAtivo (renda-fixa.js).",
@@ -368,7 +418,7 @@
       "sintoma": "Débito fantasma: o saldo continua descontado de uma compra que já não existe.",
       "historico": "Já quebrou. Existe rotina de limpeza em patrimonio.js:1188 removendo tx_origem_* órfãs — a limpeza é o remendo; este teste é a trava.",
       "prova": "test/integracao-inv04-perna-orfa.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-05",
@@ -389,7 +439,7 @@
       ],
       "sintoma": "Categoria nova entra como despesa de consumo por omissão: infla o indicador de Despesa, ou some do relatório.",
       "prova": "test/integracao-inv05-vocabulario-categorias.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-06",
@@ -412,7 +462,7 @@
       ],
       "sintoma": "Resgatei e o dinheiro não apareceu em banco nenhum · saldo creditado bruto, ignorando o IR retido.",
       "prova": "test/integracao-inv06-resgate-credita-destino.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-07",
@@ -435,7 +485,7 @@
       ],
       "sintoma": "Patrimônio total sobe sozinho depois de arquivar ou fundir uma conta.",
       "prova": "test/integracao-inv07-saldo-abertura-unico.test.js",
-      "status": "pendente"
+      "status": "coberta"
     },
     {
       "id": "INV-08",
@@ -460,7 +510,7 @@
       "sintoma": "\"Editei a data e não corrigiu\" — o lançamento fica no mês errado.",
       "historico": "Bug real já corrigido; coberto parcialmente por test/edicao-lancamento.test.js.",
       "prova": "test/integracao-inv08-competencia-canonica.test.js",
-      "status": "pendente",
+      "status": "coberta",
       "fragilidade": "A regra NÃO é \"mes/ano batem com dataVencimento\" — essa leitura ingênua quebra o fluxo normal de despesa fixa. Inserção usa visaoMes/visaoAno; edição usa competenciaDaData; cartão sobrescreve com o mês da fatura. Três caminhos, três origens de competência."
     },
     {
@@ -486,6 +536,137 @@
       "historico": "Bug real de plataforma: o interceptador era instalado por atribuição direta e no Safari/iOS não sombreava o método do protótipo. Ver comentário em utils.js:555 e a skill diagnostico-de-persistencia.",
       "prova": "test/storage-interceptor.test.js",
       "status": "coberta-parcialmente"
+    },
+    {
+      "id": "INV-10",
+      "titulo": "Compromisso pendente não sobrevive ao sonho",
+      "regra": "Transação com categoria \"sonho\" cujo sonhoId não existe mais E com pago:false é órfã: infla o \"a pagar\" de um sonho que já não existe. Transação PAGA com sonhoId inexistente NÃO é violação — é o histórico que o usuário escolheu manter (ver entidades.sonho.regrasDeExclusao).",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "sonhoId",
+        "confirmarExcluirSonho",
+        "confirmarExcluirSonhoCompleto",
+        "removerLancamentosFuturosSonho"
+      ],
+      "sintoma": "\"Apaguei o sonho e as parcelas continuam aparecendo no Controle.\"",
+      "fragilidade": "A regra ingênua \"todo sonhoId aponta para um sonho\" está ERRADA e reprovaria o fluxo de manter histórico. O que distingue órfão de histórico é o campo pago.",
+      "prova": "test/integracao-inv10-sonho-compromisso-orfao.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-11",
+      "titulo": "Aporte extra e transação são um par de ligação dupla",
+      "regra": "Todo sonho.aportes[].txId aponta para uma transação existente, e essa transação tem sonhoId de volta para o sonho. Aporte com txId quebrado conta no valorAtual do sonho mas não existe no Controle: o sonho mostra dinheiro guardado que nunca saiu de conta nenhuma.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "txId",
+        "aporteExtra",
+        "aportes",
+        "registrarAporteExtra"
+      ],
+      "sintoma": "O sonho mostra mais guardado do que o Controle registra · excluir o aporte não some com o lançamento.",
+      "prova": "test/integracao-inv11-aporte-ligacao-dupla.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-12",
+      "titulo": "Migração para sonho gera duas pernas que se anulam no orçamento",
+      "regra": "Aporte extra com origem \"migracao\" grava DUAS transações pagas de mesmo valor: a do aporte (categoria sonho) e a do resgate (categoria resgate_investimento). Sem a segunda, o mês parece ter um gasto novo quando o dinheiro só mudou de lugar.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "aporteExtra",
+        "resgate_investimento",
+        "migracao",
+        "origemAtivo"
+      ],
+      "sintoma": "\"Migrei um investimento para o sonho e o mês ficou no vermelho.\"",
+      "prova": "test/integracao-inv12-migracao-duas-pernas.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-13",
+      "titulo": "Recalcular o plano do sonho não duplica compromissos",
+      "regra": "Os compromissos mensais de um sonho são únicos por (sonhoId, mes, ano) entre os não-aporteExtra. groupIdControle é estável por sonho para que o recálculo reaproveite a série em vez de criar outra.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "groupIdControle",
+        "sonho_grp_",
+        "gerarCompromissosSonho",
+        "recalcularPlanoSonho",
+        "mesesPulados"
+      ],
+      "sintoma": "A mesma parcela do sonho aparece duas vezes no mesmo mês; o \"a pagar\" dobra.",
+      "prova": "test/integracao-inv13-plano-sem-duplicata.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-14",
+      "titulo": "valorAtual do sonho é a soma dos aportes",
+      "regra": "sonho.valorAtual = valorInicial + soma dos aportes extras. Nunca um número solto: se divergir, a barra de progresso mente.",
+      "gravidade": "media",
+      "entidades": [
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "valorAtual",
+        "valorInicial",
+        "aportes",
+        "somaAportesExtras"
+      ],
+      "sintoma": "A barra de progresso do sonho não bate com o histórico de aportes.",
+      "prova": "test/integracao-inv14-valor-atual-sonho.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-15",
+      "titulo": "Dividendo é idempotente por (ticker, ano, mês)",
+      "regra": "Todo lançamento de dividendo carrega divKey = {ticker}_{ano}_{mes} e o id div_{divKey}. Rodar lancarDividendosNoCaixa de novo não pode duplicar. divKey duplicado em transacoes = dividendo contado duas vezes no caixa.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-dividendos.js"
+      ],
+      "simbolos": [
+        "divKey",
+        "lancarDividendosNoCaixa",
+        "corretoraDoTicker"
+      ],
+      "sintoma": "O mesmo dividendo aparece duas vezes; o caixa da corretora infla.",
+      "prova": "test/integracao-inv15-dividendo-idempotente.test.js",
+      "status": "coberta"
     }
   ],
   "riscosConhecidos": [
@@ -499,8 +680,8 @@
     {
       "id": "RISCO-02",
       "titulo": "Categoria 'sonho' não exige conta de origem",
-      "descricao": "controleBancoObrigatorio não cobre a categoria sonho, e sonhos.js grava contaId: sonho.contaOrigemId || undefined. Um sonho sem conta de origem gera compromissos que, quando pagos, debitam 'a-reconciliar' — violando INV-01 pela porta dos fundos.",
-      "recomendacao": "Confirmar na Onda 2 se contaOrigemId deve ser obrigatório no cadastro do sonho.",
+      "descricao": "CONFIRMADO na Onda 2: salvarSonho valida apenas nome e valorTotal. contaOrigemId é lido como `|| null` e vira `contaId: s.contaOrigemId || undefined` nos compromissos (sonhos.js:111, 920, 2192). Um sonho cadastrado sem conta de origem gera compromissos que, ao serem marcados como pagos, debitam \"A reconciliar\" — violando INV-01 pela porta dos fundos, sem passar pela trava de controleBancoObrigatorio (que não cobre a categoria \"sonho\").",
+      "recomendacao": "Duas saídas possíveis: (a) exigir contaOrigemId no cadastro do sonho, como controleBancoObrigatorio faz para despesa; ou (b) incluir \"sonho\" em controleBancoObrigatorio e pedir a conta no momento de pagar a parcela. A (a) é mais cedo e mais simples.",
       "decisao": "pendente-do-usuario"
     },
     {

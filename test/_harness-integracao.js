@@ -234,6 +234,7 @@ function carregarApp(fields, ordem) {
   win.contas = [];
   win.transacoes = [];
   win.historicoCompras = [];
+  win.sonhos = [];
   return win;
 }
 
@@ -243,6 +244,7 @@ function estadoDe(win) {
     transacoes: win.transacoes || [],
     contas: win.contas || [],
     historicoCompras: win.historicoCompras || [],
+    sonhos: win.sonhos || [],
   };
 }
 
