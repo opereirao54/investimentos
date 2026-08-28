@@ -54,7 +54,47 @@ function argValor(args, nome, padrao) {
   return achado ? achado.split('=')[1] : padrao;
 }
 
-async function baixar(url) {
+const RETRY_TENTATIVAS = 3;
+// Espera ANTES da tentativa de índice i. A primeira não espera.
+//
+// Configurável por env para o teste não pagar 8 s de espera real a cada
+// execução do CI. Em produção nunca é definida — vale a lista abaixo.
+const RETRY_ESPERA_MS = process.env.INGEST_RETRY_ESPERA_MS
+  ? process.env.INGEST_RETRY_ESPERA_MS.split(',').map(Number)
+  : [0, 2000, 6000];
+
+function esperar(ms) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Vale a pena repetir este erro?
+ *
+ * 4xx é RESPOSTA: o servidor respondeu que aquele arquivo não existe. Repetir
+ * multiplica por três o tempo de cada sondagem — e este job sonda nomes de
+ * arquivo de propósito (ver listarDiretorio), então 404 é rotina, não falha.
+ *
+ * Falha de rede, timeout e 5xx não são resposta nenhuma. Essas repetem.
+ */
+function erroTransitorio(e) {
+  const msg = String((e && e.message) || e);
+  const http = msg.match(/^http_(\d{3})$/);
+  if (http) return Number(http[1]) >= 500;
+  return true;
+}
+
+/**
+ * Quantos documentos trazem FUNDAMENTO, e não apenas preço.
+ *
+ * É a régua que separa uma execução boa de uma em que as fontes estiveram
+ * fora do ar: as duas gravam documentos, as duas terminam sem exceção, e sem
+ * esta conta as duas ficam verdes no painel.
+ */
+function contarComFundamento(documentos) {
+  return (documentos || []).filter((d) => d && (d.dados || d.yahoo)).length;
+}
+
+async function baixarUmaVez(url) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -64,6 +104,32 @@ async function baixar(url) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Baixa com repetição, porque a CVM cai por minutos e volta.
+ *
+ * Medido: 27/08, o portal estava no ar às 14:44, fora às 15:22 e de volta às
+ * 15:38. A execução das 15:22 pegou a janela fechada, perdeu FCA, cadastro,
+ * DFP e o informe de FII de uma vez, e gravou 32 documentos só com preço.
+ * Três tentativas espaçadas cobrem uma janela dessas sem custar nada quando
+ * a rede está boa — a primeira tentativa não espera.
+ */
+async function baixar(url) {
+  let ultimo;
+  for (let i = 0; i < RETRY_TENTATIVAS; i++) {
+    if (i > 0) {
+      log(`      ↻ tentativa ${i + 1}/${RETRY_TENTATIVAS} (${ultimo.message}) em ${url}`);
+      await esperar(RETRY_ESPERA_MS[i]);
+    }
+    try {
+      return await baixarUmaVez(url);
+    } catch (e) {
+      ultimo = e;
+      if (!erroTransitorio(e)) throw e;
+    }
+  }
+  throw ultimo;
 }
 
 /** Baixa um CSV solto da CVM (latin-1). */
@@ -1491,7 +1557,15 @@ async function main() {
   // da CVM. `op=rendafixa` passa a ler o que ficou gravado.
   const titulosRf = await ingerirTesouro();
 
-  log(`\n=== ${documentos.length} documentos prontos ===`);
+  // Colheita: quantos documentos trazem FUNDAMENTO (CVM ou Yahoo), e não só
+  // preço. É esta a conta que distingue uma execução boa de uma execução em
+  // que a CVM esteve fora do ar — e as duas são indistinguíveis no painel do
+  // GitHub sem ela.
+  const comFundamento = contarComFundamento(documentos);
+  log(
+    `\n=== ${documentos.length} documentos prontos ` +
+      `(${comFundamento} com fundamento, ${documentos.length - comFundamento} só com preço) ===`
+  );
   if (!gravar) {
     log('DRY-RUN: nada foi gravado. Confira os casamentos acima e rode com --gravar.\n');
     return;
@@ -1537,6 +1611,24 @@ async function main() {
     await batch.commit();
   }
   log(`Gravados ${gravados} documentos em ${COLECAO}.`);
+
+  // Gravou o preço — que é dado real — mas nenhum fundamento chegou. Sem esta
+  // guarda a execução sai VERDE, idêntica a uma execução boa, e o dado apenas
+  // para de envelhecer sem ninguém reparar. Foi o que aconteceu em 27/08
+  // 15:22: FCA, cadastro, DFP e informe de FII todos com `fetch failed`,
+  // Yahoo com 429, 32 documentos só com preço, e o check verde.
+  //
+  // A gravação fica: o ramo `mercado` entra com merge e não apaga o que já
+  // estava lá. O que muda é o job passar a gritar.
+  if (documentos.length && !comFundamento) {
+    log(
+      '\n::error::Nenhum fundamento foi colhido: a CVM e o Yahoo não devolveram ' +
+        'indicador nenhum. Só o preço foi gravado — os dados de fundamento no ' +
+        'Firestore continuam com a idade da última execução boa. Rode de novo ' +
+        'quando as fontes voltarem.'
+    );
+    process.exitCode = 1;
+  }
 
   // As taxas do Tesouro num documento único, na coleção que `op=rendafixa`
   // já lê. Documento só, e não um por título: a resposta da API é a lista
@@ -1604,4 +1696,9 @@ module.exports = {
   exercicioDaEmpresaIndexado,
   baixarCotacoes,
   semUndefined,
+  // Blindagem da execução automática: o retry que cobre a CVM instável e a
+  // régua que impede uma colheita vazia de passar por verde.
+  baixar,
+  erroTransitorio,
+  contarComFundamento,
 };
