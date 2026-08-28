@@ -113,8 +113,8 @@ test('marketQuoteQuery / marketHistoryQuery / marketWarmupQuery', () => {
 test('syncPushBody exige idToken, keys, keyRevs', () => {
   const r = S.syncPushBody.safeParse({
     idToken: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IngifQ.payload.sig',
-    keys: { 'futurorico_transacoes': '[]' },
-    keyRevs: { 'futurorico_transacoes': 1234567890 },
+    keys: { futurorico_transacoes: '[]' },
+    keyRevs: { futurorico_transacoes: 1234567890 },
   });
   assert.equal(r.success, true);
 

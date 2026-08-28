@@ -24,7 +24,6 @@ const {
   fundCobertura,
   mapBrapiFundamental,
   mapTesouroTitulo,
-  parseTesouroResposta,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,
   CHAVES_ACAO,
@@ -326,36 +325,49 @@ test('título sem nome ou sem taxa é descartado em vez de virar NaN', () => {
   );
 });
 
-test('parse do Tesouro aceita os dois formatos e ignora item quebrado', () => {
-  const resposta = {
-    response: {
-      TrsrBdTradgList: [
-        {
-          TrsrBd: {
-            nm: 'Tesouro Selic 2029',
-            anulInvstmtRate: 0.15,
-            mtrtyDt: '2029-03-01',
-            untrInvstmtVal: 15000,
-          },
-        },
-        { TrsrBd: { nm: 'Tesouro IPCA+ 2035', anulInvstmtRate: 7.2 } },
-        { TrsrBd: { nm: 'Sem taxa' } },
-        { TrsrBd: { anulInvstmtRate: 9 } },
-        null,
-      ],
-    },
+test('o título do CSV do Tesouro entra no mapeamento sem tabela de tradução', () => {
+  // A fonte mudou de um JSON com a oferta do dia para o CSV histórico do
+  // Tesouro Transparente — o endpoint antigo devolve `HTTP 410 · gone`.
+  //
+  // O que NÃO mudou é a forma que `mapTesouroTitulo` consome, e é isso que
+  // este teste fixa: o job grava `{ nome, ticker, taxa, vencimento,
+  // dataBase, precoUnitario }` e a conversão continua a valer. Se alguém
+  // renomear um desses campos no job, a renda fixa volta a ficar sem
+  // indicadores e nada mais quebraria para avisar.
+  const doJob = {
+    ticker: 'TESOURO_IPCA_2035',
+    nome: 'Tesouro IPCA+ 2035',
+    taxa: 7.2,
+    taxaVenda: 7.25,
+    vencimento: '2035-05-15',
+    dataBase: '2026-08-21',
+    precoUnitario: 2101.5,
+    investimentoMinimo: null,
   };
-  const r = parseTesouroResposta(resposta);
-  assert.equal(r.length, 2, 'os dois títulos válidos passam, os quebrados caem');
-  assert.equal(r[0].ticker, 'TESOURO_SELIC_2029');
-  assert.equal(r[1].ticker, 'TESOURO_IPCA_2035');
-  assert.equal(r[0].precoUnitario, 15000);
+  const t = mapTesouroTitulo(doJob, PREMISSAS_ANUAIS);
+  assert.equal(t.tipo, 'ipca');
+  assert.equal(t.taxaRealAnual, 7.2, 'IPCA+ publica a taxa REAL');
+  assert.equal(t.classe, 'rf');
+  assert.equal(t.precoUnitario, 2101.5);
 });
 
-test('parse do Tesouro tolera resposta com formato inesperado', () => {
-  assert.deepEqual(parseTesouroResposta(null), []);
-  assert.deepEqual(parseTesouroResposta({}), []);
-  assert.deepEqual(parseTesouroResposta({ response: {} }), []);
+test('a procedência da taxa é o PREGÃO, não o vencimento do título', () => {
+  // Antes `dataReferencia` recebia o vencimento: a tela dizia "lido em 2035"
+  // num título que vence em 2035 — um campo de procedência a mostrar algo
+  // que não é procedência. Quem confere a validade do dado via uma data no
+  // futuro e concluía que estava fresquíssimo.
+  const t = mapTesouroTitulo(
+    {
+      ticker: 'T',
+      nome: 'Tesouro Prefixado 2027',
+      taxa: 13.5,
+      vencimento: '2027-01-01',
+      dataBase: '2026-08-21',
+    },
+    PREMISSAS_ANUAIS
+  );
+  assert.equal(t.dataReferencia, '2026-08-21');
+  assert.notEqual(t.dataReferencia, '2027-01-01');
 });
 
 test('as premissas de taxa são as mesmas da simulação histórica', () => {
@@ -596,6 +608,75 @@ const RAMO_CVM = {
   fonteRotulo: 'DFP 2025 · CVM',
   dataReferencia: '2025-12-31',
 };
+
+// ── Valuation derivada da contagem de ações ──
+//
+// O v8/chart do Yahoo devolve preço mas NÃO valor de mercado, e é a única
+// via de cotação que funciona sem cadastro em fonte nenhuma. Sem estas
+// contas, VALUATION fica vazio para a bolsa inteira e o motor ranqueia sem
+// olhar para preço — que é o oposto do que a lente "Valor" promete.
+
+// Cotação sem valor de mercado, como o v8/chart entrega.
+const RAMO_MERCADO_SEM_MCAP = { ...RAMO_MERCADO, marketCap: null, dy: null, dyMedio5a: null };
+// CVM com contagem de ações e dividendo por ação, como o job passa a gravar.
+const RAMO_CVM_COM_ACOES = {
+  ...RAMO_CVM,
+  ebitda: 50e9,
+  dividaLiquida: -20e9,
+  acoesEquivalentes: 5.7e9,
+  dividendoPorAcao: 2.4,
+};
+
+test('sem valor de mercado da fonte, ele sai de preço × ações', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: RAMO_CVM_COM_ACOES,
+  });
+  assert.equal(c.marketCap, 28.5 * 5.7e9);
+  assert.equal(c.marketCapDerivado, true);
+  assert.ok(Math.abs(c.pl - (28.5 * 5.7e9) / 35e9) < 1e-9, 'P/L sai da contagem de ações');
+  assert.ok(Math.abs(c.pvp - (28.5 * 5.7e9) / 200e9) < 1e-9);
+  assert.ok(Math.abs(c.evEbitda - (28.5 * 5.7e9 - 20e9) / 50e9) < 1e-9, 'caixa líquido reduz o EV');
+  assert.ok(Math.abs(c.dy - (2.4 / 28.5) * 100) < 1e-9);
+});
+
+test('valor de mercado da própria fonte tem precedência sobre a conta', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO, cvm: RAMO_CVM_COM_ACOES });
+  assert.equal(c.marketCap, 160e9, 'quem tem o número não precisa derivá-lo');
+  assert.equal(c.marketCapDerivado, undefined);
+});
+
+test('contagem de ações com escala errada é barrada pelo P/VP', () => {
+  // Ações mil vezes menores do que são: o P/L sairia mil vezes menor e a
+  // empresa lideraria a lente "Valor" com um número inventado. O patrimônio
+  // não passou pela contagem, e por isso denuncia o erro.
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: { ...RAMO_CVM_COM_ACOES, acoesEquivalentes: 5.7e6 },
+  });
+  assert.equal(c.marketCap, null, 'melhor sem P/L do que com P/L errado');
+  assert.equal(c.pl, undefined);
+  assert.equal(c.pvp, undefined);
+  assert.equal(c.marketCapDescartado.motivo, 'pvp_implausivel');
+});
+
+test('sem contagem de ações, valuation fica vazia — não zerada', () => {
+  const c = comporFundamentos({ mercado: RAMO_MERCADO_SEM_MCAP, cvm: RAMO_CVM });
+  assert.equal(c.marketCap, null);
+  assert.equal(c.pl, undefined);
+  assert.equal(c.dy, null, 'sem dividendo por ação não se inventa DY');
+  assert.equal(c.roe, 20.4, 'o resto do documento continua de pé');
+});
+
+test('prejuízo não vira P/L, nem com a contagem de ações em mãos', () => {
+  const c = comporFundamentos({
+    mercado: RAMO_MERCADO_SEM_MCAP,
+    cvm: { ...RAMO_CVM_COM_ACOES, lucroLiquido: -3e9 },
+  });
+  assert.equal(c.marketCap, 28.5 * 5.7e9, 'o valor de mercado continua válido');
+  assert.equal(c.pl, undefined);
+  assert.ok(c.pvp > 0, 'P/VP não depende do lucro');
+});
 
 test('o null da cotação NÃO apaga o indicador da CVM', () => {
   const c = comporFundamentos({
@@ -1489,4 +1570,248 @@ test('a degradação sem token carimba Yahoo, ponta a ponta', async () => {
     globalThis.fetch = original;
     if (tokenAntes !== undefined) process.env.BRAPI_TOKEN = tokenAntes;
   }
+});
+
+// ════════════════════════════════════════════
+// Setor: a camada de reserva curada
+// ════════════════════════════════════════════
+//
+// Sintoma que trouxe esta camada: TODA ação aparecia como "setor não
+// informado" na Carteira Recomendada. Não era bug de render — o campo nunca
+// existiu. Os dois únicos produtores de `setor` em api/market.js dependem do
+// perfil da BRAPI (`modules=`, plano pago) ou do quoteSummary do Yahoo (429 da
+// function e do runner), e todo caminho degradado grava `setor: null`. O job
+// da CVM nunca gravou setor nenhum.
+//
+// O efeito não era cosmético: `setor` é o campo que a política de
+// diversificação setorial usa para decidir quanto vai para cada setor. Sem
+// ele a política não se aplica, cai para score puro, e a carteira inteira
+// pode sair de um setor só — que é exatamente o que ela existe para evitar.
+
+const { setorCurado } = market.__test || {};
+const MAPA = require('../scripts/lib/mapa-cvm.json');
+const SETORES_B3 = require('../scripts/lib/setores-b3.json');
+const Motor = require('../web/appliquei-motor-carteira.js');
+
+test('a reserva curada preenche o setor que nenhuma fonte trouxe', () => {
+  const c = comporFundamentos({ mercado: { ...RAMO_MERCADO, setor: null } }, 'BBAS3');
+  assert.equal(c.setor, 'Bancos');
+  assert.equal(c.setorFonte, 'curado', 'a procedência do dado curado tem de ficar gravada');
+});
+
+test('setor vindo de fonte real vence a reserva', () => {
+  // A regra que já vale entre os ramos, na direção contrária: a reserva
+  // preenche lacuna, nunca sobrescreve medição.
+  const c = comporFundamentos(
+    { mercado: { ...RAMO_MERCADO, setor: 'Financial Services' } },
+    'BBAS3'
+  );
+  assert.equal(c.setor, 'Financial Services');
+  assert.equal(c.setorFonte, undefined, 'dado de fonte real não se carimba como curado');
+});
+
+test('ticker fora do mapa continua sem setor, em vez de receber um inventado', () => {
+  const c = comporFundamentos({ mercado: { ...RAMO_MERCADO, setor: null } }, 'XPTO9');
+  assert.equal(c.setor, null);
+  assert.equal(c.setorFonte, undefined);
+});
+
+test('o ticker é comparado sem depender de caixa', () => {
+  assert.equal(setorCurado('bbas3'), 'Bancos');
+  assert.equal(setorCurado('BBAS3'), 'Bancos');
+  assert.equal(setorCurado(null), null);
+});
+
+test('todo ticker do mapa de setores cai num bloco declarado da política', () => {
+  // Um rótulo que caia em 'outros' tira o ativo do bloco certo em silêncio —
+  // ele vira "Outros setores" e o setor de verdade dele fica sem candidato.
+  // Foi assim que a carteira saiu 100% em bancos: os únicos com setor eram os
+  // poucos já curados, e quatro dos cinco blocos ficaram vazios.
+  const buckets = Motor.SETORES_ALVO.acao;
+  const fora = [];
+  for (const [ticker, setor] of Object.entries(SETORES_B3.acoes)) {
+    const canon = Motor.normalizarSetor(setor);
+    const bloco = Motor.bucketSetor({ classe: 'acao', setorCanon: canon }, buckets);
+    if (canon === 'outros' || !bloco || bloco === 'outros') fora.push(`${ticker} "${setor}"`);
+  }
+  assert.deepEqual(fora, [], `rótulos não reconhecidos: ${fora.join(', ')}`);
+});
+
+test('os blocos declarados têm candidatos de sobra no mapa de setores', () => {
+  // Bloco sem nenhum ticker curado nunca recebe aporte enquanto a fonte de
+  // mercado não devolver setor — e a diversificação fica incompleta sem que
+  // nada na tela denuncie a causa. Exigimos mais de um por bloco: com um só,
+  // basta ele não entrar no ranking do mês para o bloco sumir.
+  const buckets = Motor.SETORES_ALVO.acao;
+  const conta = {};
+  for (const setor of Object.values(SETORES_B3.acoes)) {
+    const bloco = Motor.bucketSetor(
+      { classe: 'acao', setorCanon: Motor.normalizarSetor(setor) },
+      buckets
+    );
+    if (bloco) conta[bloco] = (conta[bloco] || 0) + 1;
+  }
+  for (const b of buckets) {
+    if ((b.setores || b.segmentos || []).includes('*')) continue;
+    assert.ok(
+      (conta[b.chave] || 0) >= 3,
+      `bloco "${b.nome}" tem só ${conta[b.chave] || 0} candidatos curados`
+    );
+  }
+});
+
+test('o mapa de setores cobre os nomes mais líquidos da bolsa', () => {
+  // Não é exaustividade — é cobrir o que o ranking de facto devolve. Doze dos
+  // quinze candidatos do ciclo medido em produção ficaram sem setor porque a
+  // lista tinha 24 tickers.
+  const esperados = [
+    'PETR4',
+    'VALE3',
+    'ITUB4',
+    'BBAS3',
+    'BBDC4',
+    'ABEV3',
+    'WEGE3',
+    'B3SA3',
+    'ELET3',
+    'RENT3',
+    'SUZB3',
+    'JBSS3',
+    'RADL3',
+    'EQTL3',
+    'PRIO3',
+    'GGBR4',
+    'CSNA3',
+    'LREN3',
+    'RAIL3',
+    'EMBR3',
+  ];
+  const faltando = esperados.filter((t) => !SETORES_B3.acoes[t]);
+  assert.deepEqual(faltando, [], `sem setor curado: ${faltando.join(', ')}`);
+  assert.ok(
+    Object.keys(SETORES_B3.acoes).length >= 120,
+    'a lista precisa cobrir o universo que o ranking devolve, não uma amostra'
+  );
+});
+
+test('setor não vive em dois arquivos', () => {
+  // Duas fontes para o mesmo facto divergem no primeiro ajuste. mapa-cvm.json
+  // responde "que ativos existem e como casá-los na CVM"; setores-b3.json
+  // responde "a que setor um ticker pertence".
+  for (const [ticker, info] of Object.entries(MAPA.acoes)) {
+    assert.equal(info.setor, undefined, `${ticker} ainda tem setor em mapa-cvm.json`);
+  }
+});
+
+test('o segmento curado preenche o FII que a ingestão ainda não alcançou', () => {
+  // Sem ele, todo FII sem informe cai em 'imoveis' pelo nome, os quatro
+  // segmentos viram um só, e a diversificação de FII deixa de existir.
+  const c = comporFundamentos({ mercado: { preco: 100, fonte: 'brapi' } }, 'BTLG11');
+  assert.equal(c.segmentoFii, 'logistica');
+  assert.equal(c.segmentoFonte, 'curado');
+});
+
+test('o informe da CVM vence a lista curada no que ele de facto decide', () => {
+  // A CVM separa papel de tijolo pela fatia da carteira em imóvel. Um fundo
+  // que ELA diz ser de papel não vira de tijolo por causa da nossa lista — foi
+  // o mesmo princípio que já impediu "Renda Logística" de virar logística.
+  const c = comporFundamentos(
+    { mercado: { preco: 100, fonte: 'brapi' }, cvm: { tipoFii: 'papel' } },
+    'BTLG11'
+  );
+  assert.equal(c.segmentoFii, undefined, 'a lista não sobrepõe o balanço');
+  assert.equal(c.tipoFii, 'papel');
+});
+
+test('os quatro segmentos de FII têm candidatos de sobra na lista curada', () => {
+  const buckets = Motor.SETORES_ALVO.fii;
+  const conta = {};
+  for (const seg of Object.values(SETORES_B3.fiis)) {
+    const bloco = Motor.bucketSetor({ classe: 'fii', segmentoFii: seg }, buckets);
+    if (bloco) conta[bloco] = (conta[bloco] || 0) + 1;
+  }
+  for (const b of buckets) {
+    if ((b.segmentos || []).includes('*')) continue;
+    assert.ok(
+      (conta[b.chave] || 0) >= 5,
+      `segmento "${b.nome}" tem só ${conta[b.chave] || 0} fundos curados`
+    );
+  }
+});
+
+test('todo segmento curado é um dos quatro que a política conhece', () => {
+  const validos = ['papel', 'logistica', 'shoppings', 'imoveis'];
+  for (const [ticker, seg] of Object.entries(SETORES_B3.fiis)) {
+    assert.ok(validos.includes(seg), `${ticker}: segmento "${seg}" não existe na política`);
+  }
+});
+
+test('a classe gravada pela CVM sobrevive à composição das fontes', () => {
+  // `classe` estava na lista de METADADOS e era descartada na junção. Metadado
+  // descreve a CAMADA (de onde veio, de quando); classe é propriedade do
+  // ATIVO, e só a camada da CVM a sabe com certeza. Descartá-la entregava a
+  // decisão à heurística do sufixo — que punha toda unit terminada em 11 na
+  // classe dos fundos imobiliários.
+  const c = comporFundamentos(
+    { mercado: { preco: 30, fonte: 'brapi' }, cvm: { classe: 'acao', roe: 15 } },
+    'SANB11'
+  );
+  assert.equal(c.classe, 'acao', 'a classe da CVM tem de chegar ao motor');
+
+  const fii = comporFundamentos(
+    { mercado: { preco: 100, fonte: 'brapi' }, cvm: { classe: 'fii', tipoFii: 'tijolo' } },
+    'HGLG11'
+  );
+  assert.equal(fii.classe, 'fii');
+});
+
+test('ticker da lista curada de FIIs é classificado como FII sem depender do nome', () => {
+  // Um fundo cujo nome não diz "FII" ficava dependente do sufixo — que também
+  // é o sufixo das units.
+  const c = comporFundamentos({ mercado: { preco: 10, fonte: 'brapi' } }, 'MXRF11');
+  assert.equal(c.classe, 'fii');
+
+  // E não inventa classe para quem não está em lista nenhuma.
+  const outro = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'ZZZZ11');
+  assert.equal(outro.classe, undefined);
+});
+
+test('unit não é FII: o sufixo 11 não pode mandar o banco para a aba de fundos', () => {
+  // O nome que chega do Yahoo é o da companhia, não o do pregão: "Banco
+  // Santander (Brasil) S.A." não tem "UNT" em lugar nenhum, então a pista de
+  // unit não existe no cliente. Quem sabe a verdade é a lista curada — e ela
+  // já sabia, com SANB11 em `acoes`. Faltava perguntar.
+  const sanb = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, 'SANB11');
+  assert.equal(sanb.classe, 'acao');
+  assert.equal(Motor.inferirClasse('SANB11', 'Banco Santander (Brasil) S.A.', sanb.classe), 'acao');
+
+  // As outras units com sufixo 11, pelo mesmo caminho.
+  for (const t of [
+    'BPAC11',
+    'TAEE11',
+    'ENGI11',
+    'ALUP11',
+    'SAPR11',
+    'KLBN11',
+    'IGTI11',
+    'CPLE11',
+  ]) {
+    const c = comporFundamentos({ mercado: { preco: 30, fonte: 'brapi' } }, t);
+    assert.equal(c.classe, 'acao', `${t} deveria ser ação`);
+  }
+
+  // E o conserto não pode custar os FIIs: eles continuam FII.
+  for (const t of ['MXRF11', 'BTLG11', 'HGLG11', 'KNRI11', 'XPML11', 'KNCR11']) {
+    const c = comporFundamentos({ mercado: { preco: 100, fonte: 'brapi' } }, t);
+    assert.equal(c.classe, 'fii', `${t} deveria ser FII`);
+  }
+});
+
+test('o informe da CVM vence a lista curada quando os dois falam', () => {
+  // A lista é reserva. Se a ingestão resolveu a classe, é ela que vale.
+  const c = comporFundamentos(
+    { mercado: { preco: 30, fonte: 'brapi' }, cvm: { classe: 'acao' } },
+    'SANB11'
+  );
+  assert.equal(c.classe, 'acao');
 });

@@ -16,10 +16,7 @@ const ROOT = path.resolve(__dirname, '..');
 
 // Carrega só a função pura num sandbox mínimo (ela não toca DOM nem globals).
 function loadCalc() {
-  const code = fs.readFileSync(
-    path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'),
-    'utf8'
-  );
+  const code = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
   const ctx = {
     window: {},
     document: { getElementById: () => null, querySelector: () => null, querySelectorAll: () => [] },

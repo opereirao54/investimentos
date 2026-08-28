@@ -252,31 +252,30 @@ function filtrarFaq() {
   renderizarFaq();
 }
 
+// Três abas, não duas: o if/else binário virava um encadeado a cada aba nova
+// e a terceira ficaria sem o estilo de "inativa" que só o ramo `else` aplicava.
+// A tabela abaixo é a lista completa — acrescentar uma aba é acrescentar
+// uma linha.
+var DS_TABS = [
+  { chave: 'faq', botao: 'tabFaq', conteudo: 'dsConteudoFaq' },
+  { chave: 'sugestao', botao: 'tabSugestao', conteudo: 'dsConteudoSugestao' },
+  { chave: 'regulamento', botao: 'tabRegulamento', conteudo: 'dsConteudoRegulamento' },
+];
+
 function trocarTabDuvidas(qual) {
-  const tabFaq = document.getElementById('tabFaq');
-  const tabSug = document.getElementById('tabSugestao');
-  const conteudoFaq = document.getElementById('dsConteudoFaq');
-  const conteudoSug = document.getElementById('dsConteudoSugestao');
-  if (qual === 'faq') {
-    tabFaq.classList.add('ativo');
-    tabSug.classList.remove('ativo');
-    tabFaq.style.background = 'var(--cor-branco)';
-    tabFaq.style.color = 'var(--cor-texto-principal)';
-    tabSug.style.background = 'transparent';
-    tabSug.style.color = 'var(--cor-texto-mutado)';
-    conteudoFaq.style.display = '';
-    conteudoSug.style.display = 'none';
-  } else {
-    tabSug.classList.add('ativo');
-    tabFaq.classList.remove('ativo');
-    tabSug.style.background = 'var(--cor-branco)';
-    tabSug.style.color = 'var(--cor-texto-principal)';
-    tabFaq.style.background = 'transparent';
-    tabFaq.style.color = 'var(--cor-texto-mutado)';
-    conteudoSug.style.display = '';
-    conteudoFaq.style.display = 'none';
-    renderizarHistoricoSugestoes();
-  }
+  DS_TABS.forEach(function (tab) {
+    const botao = document.getElementById(tab.botao);
+    const conteudo = document.getElementById(tab.conteudo);
+    const ativa = tab.chave === qual;
+    if (botao) {
+      botao.classList.toggle('ativo', ativa);
+      botao.style.background = ativa ? 'var(--cor-branco)' : 'transparent';
+      botao.style.color = ativa ? 'var(--cor-texto-principal)' : 'var(--cor-texto-mutado)';
+      botao.style.boxShadow = ativa ? 'var(--shadow-suave)' : '';
+    }
+    if (conteudo) conteudo.style.display = ativa ? '' : 'none';
+  });
+  if (qual === 'sugestao') renderizarHistoricoSugestoes();
 }
 
 function selecionarTipoSugestao(tipo) {

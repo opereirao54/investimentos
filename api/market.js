@@ -1,6 +1,11 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
 const { requireUser } = require('./_lib/auth');
 const { handler } = require('./_lib/handler');
+// Ticker -> setor, curado. Arquivo separado do mapa acima de propósito:
+// mapa-cvm.json responde "que ativos existem e como casá-los na CVM", este
+// responde "a que setor um ticker pertence". Duas fontes para o mesmo facto
+// divergem no primeiro ajuste.
+const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -1081,14 +1086,13 @@ async function handleIndicadores(req, res) {
 const FUNDAMENTALS_COLLECTION = 'marketFundamentals';
 const RF_COLLECTION = 'marketRendaFixa';
 const FUNDAMENTALS_TTL_MS = 24 * 60 * 60 * 1000;
-const RF_TTL_MS = 12 * 60 * 60 * 1000;
 const BRAPI_MODULES = 'summaryProfile,defaultKeyStatistics,financialData,incomeStatementHistory';
 
-// Endpoint público que alimenta o site do Tesouro Direto. É a única fonte
-// oficial e leve de taxas correntes — o CSV do Tesouro Transparente traz a
-// série histórica inteira (dezenas de MB), inviável numa serverless.
-const TESOURO_URL =
-  'https://www.tesourodireto.com.br/json/br/com/b3/tesourodireto/service/api/treasurybondsinfo.json';
+// O endpoint do site do Tesouro Direto morreu — `HTTP 410 · gone`, medido no
+// runner. As taxas passaram a vir do CSV do Tesouro Transparente, baixado
+// pelo job de ingestão (14,4 MB não cabem nesta function), e esta op lê o que
+// ele gravou. Sem endpoint ao vivo não há TTL a respeitar: a validade passou
+// a ser a cadência do job.
 
 // Ano de lançamento das criptos suportadas. A CoinGecko só devolve
 // genesis_date no endpoint por moeda (1 request cada) — para 10 símbolos
@@ -1967,7 +1971,41 @@ async function fetchCoingeckoFundamentals(simbolos) {
  * proventos. P/L e P/VP não existem em nenhuma das duas sozinha: nascem
  * aqui, do lucro e do patrimônio da CVM cruzados com o valor de mercado.
  */
-function comporFundamentos(doc) {
+/**
+ * Setor curado de um ticker, do mapa revisado por humano.
+ *
+ * É RESERVA, e existe porque nenhuma fonte de mercado no-lo entrega de graça:
+ * o perfil da BRAPI vem de `modules=`, que exige plano pago, e o do Yahoo vem
+ * do quoteSummary, que responde 429 tanto da function como do runner. Sem esta
+ * camada, `setor` é null em TODA ação — e não é um detalhe cosmético: é o
+ * campo que a política de diversificação setorial usa para decidir quanto vai
+ * para cada setor. Sem ele a política não se aplica e a seleção cai para score
+ * puro, com a carteira inteira podendo sair de um setor só.
+ */
+function setorCurado(ticker) {
+  if (!ticker) return null;
+  const t = String(ticker).toUpperCase();
+  return (SETORES_B3.acoes && SETORES_B3.acoes[t]) || null;
+}
+
+/**
+ * Segmento curado de um FII: papel, logística, shoppings ou imóveis.
+ *
+ * RESERVA, e por baixo do informe: a CVM separa papel de tijolo pela fatia da
+ * carteira em imóvel, e essa evidência vence esta lista. O que ela acrescenta
+ * é a quebra do tijolo entre logística, shopping e o resto — que não existe em
+ * campo nenhum do informe — e o segmento dos fundos que a ingestão ainda não
+ * alcançou.
+ *
+ * Sem ela, todo FII sem informe cai em 'imoveis' pelo nome, os quatro
+ * segmentos viram um só, e a diversificação de FII deixa de existir.
+ */
+function segmentoCurado(ticker) {
+  if (!ticker) return null;
+  return (SETORES_B3.fiis && SETORES_B3.fiis[String(ticker).toUpperCase()]) || null;
+}
+
+function comporFundamentos(doc, ticker) {
   if (!doc || typeof doc !== 'object') return null;
   // Documentos gravados antes da separação em ramos são planos.
   const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
@@ -1981,14 +2019,13 @@ function comporFundamentos(doc) {
   // Empilha em ordem de autoridade: cotação por baixo, Yahoo por cima,
   // CVM em último. Cada camada só escreve onde tem valor — é isso que
   // impede o null de uma fonte de apagar o dado de outra.
-  const METADADOS = [
-    'fonte',
-    'fonteRotulo',
-    'dataReferencia',
-    'classe',
-    'cobertura',
-    'fetchedAtMs',
-  ];
+  // Metadado é o que descreve a CAMADA — de onde veio, de quando, quão
+  // completa. `classe` não é isso: é uma propriedade do ATIVO, e a camada da
+  // CVM é a única que a sabe com certeza (o job grava 'fii' no informe de
+  // fundo e 'acao' na DFP de companhia). Mantê-la aqui deitava fora a
+  // classificação autoritativa e entregava a decisão à heurística do sufixo,
+  // que classificava toda unit terminada em 11 como fundo imobiliário.
+  const METADADOS = ['fonte', 'fonteRotulo', 'dataReferencia', 'cobertura', 'fetchedAtMs'];
   function aplicar(camada) {
     if (!camada) return;
     for (const [chave, valor] of Object.entries(camada)) {
@@ -1999,6 +2036,48 @@ function comporFundamentos(doc) {
   }
   aplicar(yahoo);
   aplicar(cvm);
+
+  // Reserva, e só reserva: preenche o setor quando NENHUMA fonte o trouxe.
+  // Setor que a BRAPI ou o Yahoo tenham devolvido vence este — a mesma regra
+  // que impede o null de uma camada de apagar o dado de outra, na direção
+  // contrária. `setorFonte` fica gravado porque atribuir a uma fonte um dado
+  // que veio de outra é o que este arquivo já proíbe em cima da cotação.
+  if (!out.setor) {
+    const curado = setorCurado(ticker || out.ticker || doc.ticker);
+    if (curado) {
+      out.setor = curado;
+      out.setorFonte = 'curado';
+    }
+  }
+
+  // Ticker que está na lista curada de FIIs É um FII. É a pista mais barata
+  // que temos para o fundo que a ingestão ainda não alcançou — sem ela, um
+  // fundo cujo nome não diz 'FII' fica dependente do sufixo, que também é o
+  // sufixo das units.
+  if (!out.classe && SETORES_B3.fiis && SETORES_B3.fiis[String(ticker || '').toUpperCase()]) {
+    out.classe = 'fii';
+  }
+
+  // A mesma pergunta do outro lado, que faltava: ticker na lista curada de
+  // AÇÕES É uma ação. Sem esta metade a unit chegava ao cliente SEM classe, e
+  // o desempate caía no nome — mas o nome que o Yahoo devolve é o da
+  // companhia ("Banco Santander (Brasil) S.A."), não o do pregão da B3
+  // ("SANB11 UNT"). A pista de unit nunca aparecia, o sufixo 11 decidia
+  // sozinho, e o banco entrava na aba dos fundos imobiliários. Vale para
+  // SANB11, BPAC11, TAEE11, ENGI11, ALUP11, SAPR11, KLBN11, IGTI11, CPLE11.
+  if (!out.classe && SETORES_B3.acoes && SETORES_B3.acoes[String(ticker || '').toUpperCase()]) {
+    out.classe = 'acao';
+  }
+
+  // Mesma regra do lado dos FIIs: preenche a lacuna, nunca sobrescreve o
+  // informe. `tipoFii` vem do balanço e continua a decidir papel × tijolo.
+  if (!out.segmentoFii) {
+    const seg = segmentoCurado(ticker || out.ticker || doc.ticker);
+    if (seg && !(out.tipoFii === 'papel' && seg !== 'papel')) {
+      out.segmentoFii = seg;
+      out.segmentoFonte = 'curado';
+    }
+  }
 
   if (!cvm && !yahoo) {
     out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
@@ -2013,14 +2092,64 @@ function comporFundamentos(doc) {
     return out;
   }
 
-  const marketCap = fundNum(mercado.marketCap);
+  const preco = fundNum(mercado.preco);
+  const acoes = fundNum(cvm.acoesEquivalentes);
+  // Valor de mercado: o do provedor quando existe; senão preço × ações, com
+  // as ações vindo do lucro por ação da DRE. É o que mantém VALUATION vivo
+  // sem fonte paga — o v8/chart do Yahoo devolve preço mas não valor de
+  // mercado, e sem esta conta o pilar ficava vazio para a bolsa inteira.
   const lucro = fundNum(cvm.lucroLiquido);
   const patrimonio = fundNum(cvm.patrimonioLiquido);
+  let marketCap = fundNum(mercado.marketCap);
+  if (marketCap === null && preco !== null && acoes !== null && acoes > 0) {
+    const candidato = preco * acoes;
+    // Verificação cruzada antes de acreditar na conta: o P/VP usa o
+    // patrimônio, que NÃO passou pela contagem de ações, e por isso denuncia
+    // um erro de escala nela. Se a contagem errasse por mil, o P/VP erraria
+    // por mil junto e cairia fora desta faixa — que nenhuma companhia real
+    // ocupa. Preferimos ficar sem P/L a publicar um P/L errado.
+    const pvpImplicito = patrimonio && patrimonio > 0 ? candidato / patrimonio : null;
+    if (pvpImplicito === null || (pvpImplicito >= 0.01 && pvpImplicito <= 100)) {
+      marketCap = candidato;
+      out.marketCap = marketCap;
+      out.marketCapDerivado = true;
+    } else {
+      out.marketCapDescartado = { motivo: 'pvp_implausivel', pvp: pvpImplicito };
+    }
+  }
+  // FII: o P/VP sai direto do informe, sem passar por valor de mercado.
+  // A CVM publica o VALOR PATRIMONIAL DA COTA; preço ÷ VPC são dois números
+  // publicados, e nenhuma contagem de cotas entra na conta para errar de
+  // escala — o defeito que já apareceu na contagem de ações.
+  const vpc = fundNum(cvm.valorPatrimonialCota);
+  if (vpc !== null && vpc > 0 && preco !== null && preco > 0) {
+    out.pvp = preco / vpc;
+    out.pvpDireto = true;
+  }
+  const cotas = fundNum(cvm.numeroCotas);
+  if (marketCap === null && vpc !== null && cotas !== null && cotas > 0 && preco !== null) {
+    marketCap = preco * cotas;
+    out.marketCap = marketCap;
+    out.marketCapDerivado = true;
+  }
+
+  const ebitda = fundNum(cvm.ebitda);
+  const dividaLiquida = fundNum(cvm.dividaLiquida);
+  const dpa = fundNum(cvm.dividendoPorAcao);
   // Lucro negativo não produz P/L: o motor trata "sem P/L" e "P/L negativo"
   // de formas diferentes, e inventar o segundo aqui seria mentir sobre a
   // origem. O alerta de prejuízo sai do lucro absoluto, que segue no doc.
   if (marketCap && lucro && lucro > 0) out.pl = marketCap / lucro;
-  if (marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
+  if (!out.pvpDireto && marketCap && patrimonio && patrimonio > 0) out.pvp = marketCap / patrimonio;
+  // EV = valor de mercado + dívida líquida. Caixa líquido (dívida negativa)
+  // reduz o EV, que é o comportamento certo.
+  if (marketCap && ebitda && ebitda > 0 && dividaLiquida !== null) {
+    out.evEbitda = (marketCap + dividaLiquida) / ebitda;
+  }
+  // DY do exercício fechado: dividendo por ação sobre o preço de hoje. Não é
+  // o DY dos últimos 12 meses corridos, e o rótulo da fonte diz de que
+  // exercício ele veio.
+  if (dpa !== null && preco !== null && preco > 0) out.dy = (dpa / preco) * 100;
 
   out.fonte = 'cvm';
   out.fonteRotulo = cvm.fonteRotulo ? `${cvm.fonteRotulo} + cotação` : 'CVM + cotação';
@@ -2158,7 +2287,7 @@ async function handleFundamentals(req, res) {
   const indisponiveis = [];
   let comCvm = 0;
   for (const t of requested) {
-    const composto = comporFundamentos(documentos[t]);
+    const composto = comporFundamentos(documentos[t], t);
     if (!composto) {
       // Ticker que nenhuma fonte respondeu. Devolver só o nome numa lista
       // separada deixava o cliente com um card em branco, sem procedência e
@@ -2275,131 +2404,63 @@ function mapTesouroTitulo(bruto, premissas) {
     liquidezDias: 1, // Recompra diária garantida pelo Tesouro (D+1).
     isentoIR: 0, // Tributado pela tabela regressiva.
     fonte: 'tesouro_direto',
-    fonteRotulo: 'Taxa de hoje · Tesouro Direto',
-    dataReferencia: bruto.vencimento || null,
+    fonteRotulo: 'Tesouro Direto · Tesouro Transparente',
+    // O PREGÃO de onde a taxa veio, não o vencimento. Antes isto carregava
+    // `vencimento`, e a tela mostrava "lido em 2035" num título de 2035 —
+    // um campo de procedência a dizer uma coisa que não é procedência.
+    dataReferencia: bruto.dataBase || null,
   };
 }
 
 /**
- * Extrai a lista de títulos da resposta do Tesouro.
+ * `op=rendafixa` — lê o que o job de ingestão gravou e converte na régua do
+ * motor.
  *
- * Os nomes de campo daquele endpoint são abreviados e já mudaram de forma
- * antes (`TrsrBdTradgList` / `TrsrBd`), então cada campo é procurado em mais
- * de um caminho e um título malformado é descartado sozinho, sem derrubar
- * os outros.
+ * ANTES esta op buscava o Tesouro Direto ao vivo. O endpoint foi desativado
+ * (`HTTP 410 · gone`, medido no runner) e o substituto é a série histórica
+ * inteira em CSV: 14,4 MB, que não cabem nos 15 s e 256 MB desta function.
+ * A busca mudou para `scripts/ingest-cvm.js`, que já baixa arquivos maiores.
+ *
+ * A CONVERSÃO fica aqui, e não no job, de propósito: `taxaRealAnual` e
+ * `premioSobreCdi` dependem das premissas de IPCA e CDI do Banco Central, que
+ * mudam por conta própria. Convertendo na leitura, uma revisão da Focus
+ * corrige o número na hora — se o job convertesse, a taxa real ficaria presa
+ * à expectativa da semana em que ele rodou.
  */
-function parseTesouroResposta(json) {
-  const lista =
-    (json && json.response && json.response.TrsrBdTradgList) ||
-    (json && json.TrsrBdTradgList) ||
-    (Array.isArray(json) ? json : []) ||
-    [];
-  const out = [];
-  for (const item of lista) {
-    const bd = (item && (item.TrsrBd || item.trsrBd)) || item || {};
-    const nome = bd.nm || bd.name || bd.nome || null;
-    const taxa = bd.anulInvstmtRate != null ? bd.anulInvstmtRate : bd.annualInvestmentRate;
-    if (!nome || fundNum(taxa) === null) continue;
-    out.push({
-      ticker: String(nome)
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, ''),
-      nome,
-      taxa,
-      vencimento: bd.mtrtyDt || bd.maturityDate || null,
-      precoUnitario: bd.untrInvstmtVal != null ? bd.untrInvstmtVal : bd.unitaryInvestmentValue,
-      investimentoMinimo: bd.minInvstmtAmt != null ? bd.minInvstmtAmt : bd.minimumInvestmentAmount,
-    });
-  }
-  return out;
-}
-
-async function fetchTesouroDireto(premissas) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  let res;
-  try {
-    res = await fetch(TESOURO_URL, {
-      headers: { Accept: 'application/json' },
-      signal: ctrl.signal,
-    });
-  } finally {
-    clearTimeout(timer);
-  }
-  if (!res.ok) throw new Error(`tesouro_${res.status}`);
-  const json = await res.json();
-  const brutos = parseTesouroResposta(json);
-  if (!brutos.length) throw new Error('tesouro_formato_inesperado');
-  return brutos.map((b) => mapTesouroTitulo(b, premissas || PREMISSAS_ANUAIS)).filter(Boolean);
-}
-
 async function handleRendaFixa(req, res) {
   const user = await requireUser(req, res);
   if (!user) return;
 
-  const agora = Date.now();
   const database = db();
-  const ref = database.collection(RF_COLLECTION).doc('tesouroDireto');
-  const snap = await ref.get().catch(() => null);
+  const snap = await database
+    .collection(RF_COLLECTION)
+    .doc('tesouroDireto')
+    .get()
+    .catch(() => null);
   const cache = snap && snap.exists ? snap.data() : null;
+  const brutos = (cache && cache.titulos) || [];
 
-  if (cache && typeof cache.fetchedAtMs === 'number' && agora - cache.fetchedAtMs < RF_TTL_MS) {
-    return res.json({
-      success: true,
-      cached: true,
-      fetchedAt: cache.fetchedAtMs,
-      premissas: cache.premissas || PREMISSAS_ANUAIS,
-      origemPremissas: cache.origemPremissas || null,
-      premissasDegradadas: !!cache.premissasDegradadas,
-      titulos: cache.titulos || [],
+  if (!brutos.length) {
+    // Erro nomeado em vez de lista vazia: sem isto, "o job nunca rodou" e "o
+    // Tesouro não tem títulos hoje" chegam à tela como a mesma coisa — e a
+    // classe some sem ninguém saber por quê.
+    return res.status(503).json({
+      error: 'rendafixa_sem_ingestao',
+      detail:
+        'A coleção marketRendaFixa está vazia. As taxas passaram a vir do job ' +
+        'de ingestão (workflow "Ingestão CVM"); rode-o com dry_run desmarcado.',
+      titulos: [],
     });
   }
 
   const { premissas, origem, degradado } = await resolverPremissas(database);
-
-  let titulos;
-  try {
-    titulos = await fetchTesouroDireto(premissas);
-  } catch (e) {
-    console.warn('[market/rendafixa] tesouro_failed', e.message);
-    // Cache vencido ainda vale mais do que classe vazia na tela: taxa de
-    // ontem erra na terceira casa, ausência de taxa zera o score da classe.
-    if (cache && cache.titulos) {
-      return res.json({
-        success: true,
-        cached: true,
-        stale: true,
-        fetchedAt: cache.fetchedAtMs,
-        premissas: cache.premissas || PREMISSAS_ANUAIS,
-        origemPremissas: cache.origemPremissas || null,
-        premissasDegradadas: true,
-        titulos: cache.titulos,
-        erro: e.message,
-      });
-    }
-    return res.status(502).json({ error: 'tesouro_indisponivel', detail: e.message });
-  }
-
-  await ref
-    .set(
-      {
-        titulos,
-        premissas,
-        origemPremissas: origem,
-        premissasDegradadas: degradado,
-        fetchedAtMs: agora,
-        dateYmd: todayYmdBRT(agora),
-        updatedAt: timestamp().now(),
-      },
-      { merge: true }
-    )
-    .catch((e) => console.warn('[market/rendafixa] cache_write_failed', e.message));
+  const titulos = brutos.map((b) => mapTesouroTitulo(b, premissas)).filter(Boolean);
 
   return res.json({
     success: true,
-    cached: false,
-    fetchedAt: agora,
+    cached: true,
+    fetchedAt: cache.fetchedAtMs || null,
+    fonteRotulo: cache.fonteRotulo || 'Tesouro Transparente',
     premissas,
     origemPremissas: origem,
     premissasDegradadas: degradado,
@@ -2484,9 +2545,9 @@ async function calcularRankings(database, lentes, topN) {
   let universo = 0;
 
   docs.forEach((doc) => {
-    const composto = comporFundamentos(doc.data());
-    if (!composto) return;
     const ticker = doc.id;
+    const composto = comporFundamentos(doc.data(), ticker);
+    if (!composto) return;
     const dados = { ...composto, ticker, nome: composto.nome || ticker };
     const classe = Motor.inferirClasse(ticker, dados.nome, dados.classe);
     universo++;
@@ -2518,6 +2579,12 @@ async function calcularRankings(database, lentes, topN) {
         cobertura: pontuado.cobertura,
         confianca: pontuado.confianca,
         setor: pontuado.setor || null,
+        // Papel ou tijolo sai do balanço publicado, não do nome do fundo — e
+        // é o cliente que aplica a política de setores, então tem de viajar
+        // com o item. Sem isto, um fundo de recebíveis chamado 'Renda
+        // Logística' entraria no balde de logística na tela.
+        tipoFii: pontuado.tipoFii || null,
+        segmentoFii: pontuado.segmentoFii || null,
         fonteRotulo: pontuado.fonteRotulo || null,
         dataReferencia: pontuado.dataReferencia || null,
       });
@@ -2716,7 +2783,7 @@ async function handleDiagnostico(req, res) {
   }
 
   // ── 3. Composição e score ──
-  const composto = comporFundamentos(doc);
+  const composto = comporFundamentos(doc, ticker);
   const classe = Motor.inferirClasse(
     ticker,
     (composto && composto.nome) || ticker,
@@ -2890,8 +2957,9 @@ module.exports.__test = {
   mapYahooFundamental,
   fetchYahooFundamentals,
   comporFundamentos,
+  setorCurado,
+  segmentoCurado,
   mapTesouroTitulo,
-  parseTesouroResposta,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,
   CHAVES_ACAO,

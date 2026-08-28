@@ -23,6 +23,7 @@ on:
       - 'scripts/ingest-cvm.js'
       - 'scripts/lib/cvm-parser.js'
       - 'scripts/lib/zip.js'
+      - 'scripts/lib/tesouro.js'
       - 'scripts/lib/mapa-cvm.json'
       - '.github/workflows/ingest-cvm.yml'
   schedule:
@@ -78,7 +79,12 @@ jobs:
       - name: Validar layout e casamentos (dry-run)
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            node scripts/ingest-cvm.js --dry-run --anos=1 --limite=20
+            # --anos=3, não 1: os indicadores de SÉRIE do FII (crescimento
+            # do dividendo, DY médio) precisam de duas janelas de 12 meses.
+            # Com um ano só, o dry-run do PR não validava esses campos — ele
+            # imprimia travessão e passava, o que é indistinguível de uma
+            # derivação quebrada. O `--limite` mantém o custo baixo.
+            node scripts/ingest-cvm.js --dry-run --anos=3 --limite=20
           else
             node scripts/ingest-cvm.js --dry-run \
               --anos=${{ github.event.inputs.anos || '5' }} \
