@@ -105,7 +105,8 @@
             --cor-superficie: #edf0ed;
             --cor-texto-principal: #101e13;
             --cor-texto-secundario: #3b5440;
-            --cor-texto-mutado: #7a9480;
+            /* Mesmo defeito no claro: #7a9480 dava 2,87–3,29:1. #546e5b → 4,87:1. */
+            --cor-texto-mutado: #546e5b;
             --cor-borda: #dfe7e0;
             --cor-borda2: #c4d2c7;
 
@@ -140,7 +141,10 @@
         body.dark {
             --cor-fundo: #0e1611; --cor-branco: #141f16; --cor-superficie: #1a2b1d;
             --cor-texto-principal: #e4f0e7; --cor-texto-secundario: #739e7a;
-            --cor-texto-mutado: #466b4d; --cor-borda: #213029; --cor-borda2: #2c4435;
+            /* #466b4d dava 2,47–3,04:1 contra as superfícies do tema — reprovava AA
+               (4,5) em todo rótulo pequeno, e era 75% das falhas de contraste do
+               app escuro. #6f9a78 leva o pior caso a 4,65:1. */
+            --cor-texto-mutado: #6f9a78; --cor-borda: #213029; --cor-borda2: #2c4435;
             --cor-primaria: #34d399; --cor-primaria-hover: #6ee7b7;
             --cor-info: #60a5fa; --cor-patrimonio: #a78bfa; --cor-erro: #f87171; --cor-cartao: #fbbf24;
             --cor-bg-primaria: #052e1a; --cor-bg-info: #0c1a3a; --cor-bg-erro: #2d0a0a;
@@ -7482,6 +7486,26 @@
                 margin-top: 0; padding-top: 0; border-top: none; align-self: center;
             }
         }
+
+        /* ==========================================================
+           MODO ESCURO — texto sobre o acento claro
+           ==========================================================
+           No claro --cor-primaria é #059669 (verde escuro) e texto branco
+           funciona. No escuro o token clareia para #34d399 e o branco fica em
+           1,92:1 — abaixo de qualquer limiar. Atingia as ações PRIMÁRIAS do
+           app: Novo lançamento, Registrar, Exportar PDF, Confirmar.
+           Quando o acento clareia, o texto escurece: #052e1a dá 7,74:1 no
+           extremo escuro do gradiente e 9,76:1 no claro. */
+        body.dark .btn-acao,
+        body.dark .dia-picker-grade .dia-chip.ativo,
+        /* A regra original do botão de registrar é ancorada em #patrimonio: um
+           seletor de id ganha de body.dark, então a correção precisa do mesmo id
+           para vencer a cascata. */
+        body.dark #patrimonio .inv-btn-add {
+            color: #052e1a;
+        }
+        body.dark .btn-acao i,
+        body.dark #patrimonio .inv-btn-add i { color: inherit; }
 
     </style>
 </head>
