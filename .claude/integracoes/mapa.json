@@ -674,7 +674,7 @@
       "fragilidade": "A categoria \"sonho\" NÃO está em controleBancoObrigatorio — a trava do Controle não a cobre. A obrigatoriedade tem de viver no cadastro do sonho; se sair de lá, não há rede nenhuma embaixo.",
       "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle.",
       "prova": "test/integracao-inv22-sonho-conta-origem.test.js",
-      "status": "pendente"
+      "status": "coberta"
     }
   ],
   "riscosConhecidos": [
