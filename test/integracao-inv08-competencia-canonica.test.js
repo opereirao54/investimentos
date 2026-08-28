@@ -5,20 +5,20 @@
 // Toda a filtragem de tela do Controle usa t.mes/t.ano. `data` e
 // `dataVencimento` são derivados.
 //
-// ATENÇÃO À REGRA REAL — a leitura ingênua ("mes/ano têm de bater com
-// dataVencimento") está ERRADA e quebra o fluxo normal de despesa fixa.
-// São TRÊS caminhos com TRÊS origens de competência:
+// A REGRA: havendo dataVencimento, a competência é a DELE, em qualquer
+// categoria. Sem vencimento informado, fica o mês em visão no momento do
+// lançamento — não há de onde derivar.
 //
-//   executarInsercao        → visaoMes/visaoAno (o mês que o usuário está vendo)
-//   salvarEdicaoTransacao   → competenciaDaData(dataVencimento)
-//   cartao_credito          → sobrescreve com o mês da FATURA
+// O porquê está na tela: o painel de Vencimentos filtra por mes/ano e desenha
+// só o DIA do dataVencimento. Competência fora do mês do vencimento põe o card
+// no mês errado exibindo um dia pelado, que se lê como daquele mês.
 //
-// Registrar em agosto um aluguel que vence em 10/set é legítimo: competência
-// agosto, vencimento setembro. O que NÃO é legítimo é o cartão cair fora da
-// fatura, ou uma parcela sair de passo com as irmãs da mesma série.
-//
-// (A divergência entre inserção e edição está registrada como RISCO-03 no mapa
-// — é decisão de produto pendente, não bug declarado.)
+// Isto era o RISCO-03, agora resolvido: executarInsercao derivava a competência
+// de visaoMes/visaoAno mesmo havendo vencimento, então um aluguel registrado em
+// agosto com vencimento em 10/set nascia na competência de agosto — e numa
+// despesa fixa recorrente cada parcela ficava um mês atrás do próprio
+// vencimento, para sempre. A edição já derivava do vencimento, de modo que
+// abrir e salvar sem mudar nada movia o lançamento de mês.
 //
 // Ver .claude/integracoes/mapa.json → INV-08.
 
@@ -36,8 +36,9 @@ test('INV-08: transação sem mes/ano é acusada', () => {
   assert.match(v[0].mensagem, /sem competência/);
 });
 
-test('INV-08: despesa com vencimento em outro mês é LEGÍTIMA (não é violação)', () => {
-  // Registrei em agosto (competência 7) o aluguel que vence em 10 de setembro.
+test('INV-08: despesa com competência atrás do vencimento é acusada', () => {
+  // O bug do RISCO-03, reproduzido: competência agosto, vencimento 10/set.
+  // No painel de agosto isto aparecia como um "10" pelado.
   const v = validarEstado(
     {
       contas: [],
@@ -55,7 +56,21 @@ test('INV-08: despesa com vencimento em outro mês é LEGÍTIMA (não é violaç
     },
     { apenas: ['INV-08'] }
   );
-  assert.equal(v.length, 0, 'competência ≠ vencimento é o fluxo normal de despesa fixa');
+  assert.equal(v.length, 1);
+  assert.match(v[0].mensagem, /fora do mês do vencimento/);
+});
+
+test('INV-08: lançamento SEM vencimento não é acusado (não há de onde derivar)', () => {
+  const v = validarEstado(
+    {
+      contas: [],
+      transacoes: [
+        { id: 'x', categoria: 'despesa_variavel', valor: 50, banco: 'Nubank', mes: 7, ano: 2026 },
+      ],
+    },
+    { apenas: ['INV-08'] }
+  );
+  assert.equal(v.length, 0);
 });
 
 test('INV-08: cartão fora da fatura é acusado', () => {
@@ -77,19 +92,21 @@ test('INV-08: cartão fora da fatura é acusado', () => {
     { apenas: ['INV-08'] }
   );
   assert.equal(v.length, 1);
-  assert.match(v[0].mensagem, /fora da fatura/);
+  assert.match(v[0].mensagem, /fora do mês do vencimento/);
 });
 
-test('INV-08: parcela fora de passo na série é acusada', () => {
+test('INV-08: série em passo passa; parcela deslocada é acusada', () => {
+  // Com a regra (b) valendo para toda parcela, a série fica em passo por
+  // construção — não é preciso checar o deslocamento parcela a parcela.
   const serie = [0, 1, 2].map((i) => ({
     id: 'p' + i,
     groupId: 'g1',
     categoria: 'despesa_fixa',
     valor: 100,
     banco: 'Nubank',
-    mes: 7 + i,
+    mes: 8 + i,
     ano: 2026,
-    dataVencimento: `2026-${String(8 + i + 1).padStart(2, '0')}-10`,
+    dataVencimento: `2026-${String(9 + i).padStart(2, '0')}-10`,
   }));
   assert.equal(validarEstado({ contas: [], transacoes: serie }, { apenas: ['INV-08'] }).length, 0);
 
@@ -97,10 +114,10 @@ test('INV-08: parcela fora de passo na série é acusada', () => {
   serie[2].mes = 7;
   const v = validarEstado({ contas: [], transacoes: serie }, { apenas: ['INV-08'] });
   assert.equal(v.length, 1);
-  assert.match(v[0].mensagem, /fora de passo/);
+  assert.match(v[0].mensagem, /fora do mês do vencimento/);
 });
 
-test('INV-08: a inserção real grava competência e vencimento coerentes entre si', () => {
+test('INV-08: a inserção real deriva a competência do vencimento', () => {
   const proximoMes = new Date();
   proximoMes.setDate(1);
   proximoMes.setMonth(proximoMes.getMonth() + 1);
@@ -127,12 +144,17 @@ test('INV-08: a inserção real grava competência e vencimento coerentes entre 
   assert.equal(s.transacoes.length, 1);
   const t = s.transacoes[0];
   assert.equal(t.dataVencimento, venc, 'o vencimento é o que o usuário digitou');
-  assert.equal(typeof t.mes, 'number', 'a competência existe');
-  assert.equal(typeof t.ano, 'number');
-  // A competência é a do mês em VISÃO (documenta o comportamento atual — ver RISCO-03).
-  assert.equal(t.mes, s.visaoMes, 'competência = mês em visão, não o do vencimento');
-  assert.equal(t.ano, s.visaoAno);
-  // E o registro nasce válido perante todas as invariantes da Onda 1.
+  assert.equal(
+    t.mes,
+    proximoMes.getMonth(),
+    'a competência segue o vencimento, não o mês em visão'
+  );
+  assert.equal(t.ano, proximoMes.getFullYear());
+  assert.notEqual(
+    t.mes,
+    s.visaoMes,
+    'o cenário tem de exercitar mesmo a diferença: o mês em visão não é o do vencimento'
+  );
   assert.equal(validarEstado(estadoDe(s)).length, 0);
 });
 

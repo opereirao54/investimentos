@@ -431,7 +431,7 @@
     {
       "id": "INV-08",
       "titulo": "mes/ano é a competência canônica",
-      "regra": "(a) Toda transação tem mes/ano — é a competência canônica que toda a filtragem de tela usa. (b) SÓ cartao_credito amarra competência ao dataVencimento (a compra entra na fatura daquele mês); nas demais categorias a competência é o mês em VISÃO no momento do lançamento, e diferir do vencimento é legítimo. (c) Ao EDITAR, mudar a data move a competência via competenciaDaData. (d) Numa série (mesmo groupId) o deslocamento entre competência e vencimento é constante — parcela fora de passo cai no mês errado.",
+      "regra": "(a) Toda transação tem mes/ano — a competência canônica que toda a filtragem de tela usa. (b) HAVENDO dataVencimento, a competência é a DELE, em qualquer categoria: o painel de Vencimentos filtra por mes/ano e desenha só o DIA, então competência fora do mês do vencimento põe o card no mês errado mostrando um dia que se lê como daquele mês. (c) Sem vencimento informado não há de onde derivar — fica o mês em visão no momento do lançamento. Como (b) vale para toda parcela, uma série recorrente fica automaticamente em passo: não é preciso checar o deslocamento parcela a parcela.",
       "gravidade": "alta",
       "entidades": ["transacao"],
       "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-patrimonio.js"],
@@ -444,10 +444,10 @@
         "calcularResumoMes"
       ],
       "sintoma": "\"Editei a data e não corrigiu\" — o lançamento fica no mês errado.",
-      "historico": "Bug real já corrigido; coberto parcialmente por test/edicao-lancamento.test.js.",
+      "historico": "Dois bugs reais. O primeiro: a edição gravava dataVencimento sem mexer em mes/ano — \"editei a data e não corrigiu\" (test/edicao-lancamento.test.js). O segundo, encontrado ao montar este mapa: a inserção derivava a competência de visaoMes/visaoAno mesmo havendo vencimento, deixando cada parcela de despesa fixa um mês atrás do próprio vencimento. Corrigido — ver RISCO-03.",
       "prova": "test/integracao-inv08-competencia-canonica.test.js",
       "status": "coberta",
-      "fragilidade": "A regra NÃO é \"mes/ano batem com dataVencimento\" — essa leitura ingênua quebra o fluxo normal de despesa fixa. Inserção usa visaoMes/visaoAno; edição usa competenciaDaData; cartão sobrescreve com o mês da fatura. Três caminhos, três origens de competência."
+      "fragilidade": "São TRÊS caminhos que gravam competência — executarInsercao, salvarEdicaoTransacao e o recálculo de séries — e eles já divergiram uma vez (RISCO-03). Qualquer caminho novo que grave transação com vencimento tem de derivar a competência dele, nunca do mês em visão."
     },
     {
       "id": "INV-09",
@@ -665,7 +665,8 @@
       "titulo": "Inserção e edição derivam a competência de fontes diferentes",
       "descricao": "executarInsercao grava mes/ano a partir de visaoMes/visaoAno (o mês em que o usuário estava olhando). salvarEdicaoTransacao grava a partir de competenciaDaData(dataVencimento). Consequência: um lançamento criado em agosto com vencimento em setembro nasce na competência de agosto; se o usuário abrir e salvar a edição sem mudar nada, ele MUDA para setembro. Mesmo registro, competência diferente conforme o caminho.",
       "recomendacao": "Decidir qual é a regra certa para despesa com vencimento futuro e alinhar os dois caminhos. Hoje o teste INV-08 documenta o comportamento atual sem endossá-lo.",
-      "decisao": "pendente-do-usuario"
+      "decisao": "resolvido",
+      "resolucao": "Resolvido pela evidência, não por escolha: o painel de Vencimentos filtra por mes/ano e cada card mostra só o DIA do dataVencimento. Com a competência atrasada, um aluguel registrado em agosto com vencimento em 10/set aparecia no painel de AGOSTO exibindo um \"10\" pelado — e numa despesa fixa recorrente isso se repetia em todas as parcelas, para sempre. executarInsercao passa a derivar a competência de dataVencFinal via competenciaDaData quando há vencimento (o que o branch de cartão já fazia isolado, agora generalizado), caindo para visaoMes/visaoAno só quando não há data. Inserção e edição passam a concordar. Dados antigos NÃO foram migrados: continuam com o deslocamento e o validador os acusa, com a mensagem dizendo que pode ser resíduo de antes da correção."
     }
   ],
   "cadeiasDeEfeito": [

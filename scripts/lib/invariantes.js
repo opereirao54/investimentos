@@ -186,51 +186,22 @@ function validarEstado(estado, opcoes) {
           `usa mes/ano; sem eles o lançamento não aparece em mês nenhum.`,
         t
       );
-    } else if (
-      cat === 'cartao_credito' &&
-      t.dataVencimento &&
-      /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)
-    ) {
-      // Só o cartão amarra competência ao vencimento: a compra entra na FATURA
-      // daquele mês. Nas demais categorias a competência é o mês em visão no
-      // momento do lançamento, que legitimamente difere do vencimento
-      // (ex.: registrei em agosto o aluguel que vence em 10/set).
+    } else if (t.dataVencimento && /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)) {
+      // Havendo vencimento, a competência é a DELE, em qualquer categoria. O
+      // painel de Vencimentos filtra por mes/ano e desenha só o DIA do
+      // dataVencimento: competência fora do mês do vencimento faz o card
+      // aparecer no mês errado mostrando um dia que se lê como sendo daquele
+      // mês. (Regra antes restrita a cartão; generalizada junto com a correção
+      // de executarInsercao — ver RISCO-03 no mapa.)
       const [aVenc, mVenc] = t.dataVencimento.split('-');
       if (Number(aVenc) !== Number(t.ano) || Number(mVenc) - 1 !== Number(t.mes)) {
         acusar(
           'INV-08',
-          `Cartão com competência fora da fatura — ${rotulo(t)}: mes/ano dizem ` +
-            `${Number(t.mes) + 1}/${t.ano}, o vencimento da fatura diz ${mVenc}/${aVenc}. ` +
-            `A compra vai aparecer numa fatura que não é a dela.`,
-          t
-        );
-      }
-    }
-  }
-
-  // INV-08 (série) — numa série recorrente o deslocamento entre competência e
-  // vencimento é constante. Se uma parcela destoa, ela caiu no mês errado.
-  const series = new Map();
-  for (const t of transacoes) {
-    if (!t.groupId || !t.dataVencimento || t.mes == null || t.ano == null) continue;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)) continue;
-    if (!series.has(t.groupId)) series.set(t.groupId, []);
-    series.get(t.groupId).push(t);
-  }
-  for (const [groupId, itens] of series) {
-    if (itens.length < 2) continue;
-    const desloc = (t) => {
-      const [aV, mV] = t.dataVencimento.split('-').map(Number);
-      return aV * 12 + (mV - 1) - (Number(t.ano) * 12 + Number(t.mes));
-    };
-    const base = desloc(itens[0]);
-    for (const t of itens.slice(1)) {
-      if (desloc(t) !== base) {
-        acusar(
-          'INV-08',
-          `Parcela fora de passo na série ${groupId} — ${rotulo(t)}. As demais parcelas ` +
-            `têm deslocamento ${base} mês(es) entre competência e vencimento; esta tem ` +
-            `${desloc(t)}. Ela vai aparecer num mês diferente das irmãs.`,
+          `Competência fora do mês do vencimento — ${rotulo(t)}: mes/ano dizem ` +
+            `${Number(t.mes) + 1}/${t.ano}, o vencimento diz ${mVenc}/${aVenc}. ` +
+            `O lançamento aparece no painel do mês errado, mostrando só o dia. ` +
+            `(Num dado antigo isto pode ser resíduo de antes da correção do ` +
+            `RISCO-03, quando a inserção usava o mês em visão.)`,
           t
         );
       }

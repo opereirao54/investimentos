@@ -1210,14 +1210,23 @@ function executarInsercao() {
       dataVencFinal = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, '0')}-${String(dVenc.getDate()).padStart(2, '0')}`;
     }
 
-    // Cartão de crédito: a competência (mes/ano) é a da fatura (dataVencimento),
-    // não a do mês em visão. Assim a compra entra na próxima fatura, não no mês actual.
-    if (categoria === 'cartao_credito' && dataVencFinal) {
-      const [fAno, fMes] = dataVencFinal.split('-').map(Number);
-      if (!isNaN(fAno) && !isNaN(fMes)) {
-        a = fAno;
-        m = fMes - 1;
-      }
+    // Havendo vencimento, a competência (mes/ano) é a DELE — não a do mês em
+    // visão. Isto valia só para cartão (a compra entra na fatura certa) e agora
+    // vale para todas as categorias, porque o painel de Vencimentos filtra por
+    // mes/ano e desenha só o DIA do dataVencimento: com a competência atrasada,
+    // um aluguel registrado em agosto com vencimento em 10/set aparecia no
+    // painel de AGOSTO exibindo um "10" pelado, que se lê como 10 de agosto. Em
+    // despesa fixa recorrente o desencontro se repetia em todas as parcelas.
+    //
+    // Também alinha a inserção com salvarEdicaoTransacao, que já derivava a
+    // competência de competenciaDaData(dataVencimento): antes, abrir e salvar a
+    // edição sem mudar nada movia o lançamento de mês.
+    //
+    // Sem vencimento informado não há de onde derivar — fica o mês em visão.
+    const compVenc = competenciaDaData(dataVencFinal);
+    if (compVenc) {
+      a = compVenc.ano;
+      m = compVenc.mes;
     }
 
     // Vencimento futuro → compromisso programado (pendente); senão, paga à vista.
