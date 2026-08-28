@@ -79,6 +79,8 @@ function validarEstado(estado, opcoes) {
   const contas = (estado && estado.contas) || [];
   const operacoes = (estado && estado.historicoCompras) || [];
   const sonhos = (estado && estado.sonhos) || [];
+  const cartoes = (estado && estado.cartoes) || [];
+  const bens = (estado && estado.bens) || [];
   const apenas = opcoes && opcoes.apenas ? new Set(opcoes.apenas) : null;
   const violacoes = [];
 
@@ -417,6 +419,145 @@ function validarEstado(estado, opcoes) {
       );
     }
     divs.set(t.divKey, t);
+  }
+
+  // ====================== Onda 3 — a periferia ==========================
+
+  // INV-16 — pagar compromisso de sonho registra o aporte exatamente uma vez.
+  for (const s of sonhos) {
+    const porTx = new Map();
+    for (const ap of s.aportes || []) {
+      if (!ap.txId) continue;
+      if (porTx.has(ap.txId)) {
+        acusar(
+          'INV-16',
+          `Dois aportes do sonho "${s.nome || s.id}" apontam para a mesma transação ` +
+            `${ap.txId}. O pagamento foi contado em dobro: o sonho subiu o dobro do que ` +
+            `saiu da conta.`,
+          ap
+        );
+      }
+      porTx.set(ap.txId, ap);
+      const tx = txPorId.get(ap.txId);
+      if (tx && Math.abs(Number(ap.valor) - Number(tx.valor)) > 0.005) {
+        acusar(
+          'INV-16',
+          `Aporte de ${ap.valor} para a transação ${ap.txId}, que vale ${tx.valor}. O ` +
+            `aporte tem de espelhar o valor EFETIVAMENTE pago — o usuário pode editar o ` +
+            `valor no ato do pagamento.`,
+          ap
+        );
+      }
+    }
+  }
+
+  // INV-17 / INV-20 — cartão: id válido e conta pagadora resolvível.
+  if (cartoes.length || transacoes.some((t) => t.cartaoId)) {
+    const idsCartoes = new Set(cartoes.map((c) => c.id));
+    for (const c of cartoes) {
+      if (!c.contaPagadoraId) {
+        acusar(
+          'INV-17',
+          `Cartão "${c.nome || c.id}" sem contaPagadoraId. Quando a fatura for paga, o ` +
+            `débito cai em "A reconciliar" e o saldo do banco não se move.`,
+          c
+        );
+      } else if (!contas.find((x) => x.id === c.contaPagadoraId)) {
+        acusar(
+          'INV-17',
+          `Cartão "${c.nome || c.id}" aponta para a conta pagadora ${c.contaPagadoraId}, ` +
+            `que não existe.`,
+          c
+        );
+      }
+    }
+    for (const t of transacoes) {
+      if (t.categoria !== 'cartao_credito') continue;
+      if (!t.cartaoId) {
+        acusar('INV-20', `Lançamento de cartão sem cartaoId — ${rotulo(t)}.`, t);
+      } else if (!idsCartoes.has(t.cartaoId)) {
+        acusar(
+          'INV-20',
+          `Lançamento aponta para o cartão ${t.cartaoId}, que não existe — ${rotulo(t)}. ` +
+            `obterCartao NÃO dá erro nesse caso: cai silenciosamente em cartoes[0], e a ` +
+            `fatura passa a ser lida com o vencimento e a conta pagadora de outro cartão.`,
+          t
+        );
+      }
+      if (t.pago && t.cartaoId && idsCartoes.has(t.cartaoId)) {
+        const card = cartoes.find((c) => c.id === t.cartaoId);
+        if (card && card.contaPagadoraId && t.contaId !== card.contaPagadoraId) {
+          acusar(
+            'INV-17',
+            `Fatura paga sem debitar a conta pagadora do cartão — ${rotulo(t)}: contaId ` +
+              `${t.contaId || '(vazio)'}, mas o cartão "${card.nome || card.id}" é pago ` +
+              `pela conta ${card.contaPagadoraId}.`,
+            t
+          );
+        }
+      }
+    }
+  }
+
+  // INV-18 — pagamento com efeito colateral não pode voltar a pendente.
+  // Uma transação de sonho/compromisso já paga que gerou aporte e depois foi
+  // revertida deixa o aporte de pé: o mesmo dinheiro contado duas vezes.
+  for (const s of sonhos) {
+    for (const ap of s.aportes || []) {
+      if (!ap.txId) continue;
+      const tx = txPorId.get(ap.txId);
+      if (tx && tx.pago === false) {
+        acusar(
+          'INV-18',
+          `A transação ${ap.txId} voltou a "a pagar", mas o aporte que ela gerou continua ` +
+            `no sonho "${s.nome || s.id}". O mesmo dinheiro está contado duas vezes: ` +
+            `guardado no sonho e ainda pendente no Controle.`,
+          ap
+        );
+      }
+    }
+  }
+  for (const op of operacoes) {
+    if (!op.geradoDoCompromissoTx) continue;
+    const tx = txPorId.get(op.geradoDoCompromissoTx);
+    if (tx && tx.pago === false) {
+      acusar(
+        'INV-18',
+        `A parcela ${op.geradoDoCompromissoTx} voltou a "a pagar", mas a posição que ela ` +
+          `gerou continua no patrimônio.`,
+        op
+      );
+    }
+  }
+
+  // INV-21 — aporte de compromisso é idempotente e não rende no futuro.
+  const porCompromisso = new Map();
+  for (const op of operacoes) {
+    if (!op.geradoDoCompromissoTx) continue;
+    if (porCompromisso.has(op.geradoDoCompromissoTx)) {
+      acusar(
+        'INV-21',
+        `Duas posições geradas pela mesma parcela ${op.geradoDoCompromissoTx}. O aporte ` +
+          `foi materializado em dobro no patrimônio.`,
+        op
+      );
+    }
+    porCompromisso.set(op.geradoDoCompromissoTx, op);
+    if (op.data_op && new Date(op.data_op).getTime() > Date.now() + 86400000) {
+      acusar(
+        'INV-21',
+        `Posição ${op.id} com data_op no futuro (${op.data_op}). O rendimento passaria a ` +
+          `ser calculado a partir de uma data que ainda não chegou.`,
+        op
+      );
+    }
+  }
+
+  // INV-19 — bem arquivado não entra no patrimônio.
+  for (const b of bens) {
+    if (b.valorAtual != null && Number(b.valorAtual) < 0) {
+      acusar('INV-19', `Bem "${b.nome || b.id}" com valorAtual negativo.`, b);
+    }
   }
 
   // INV-07 — saldo de abertura entra uma única vez.

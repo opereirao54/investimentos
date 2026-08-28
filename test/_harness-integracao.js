@@ -68,6 +68,21 @@ function makeFieldNode(id, fields) {
     querySelector: () => makeFieldNode('_', fields),
     querySelectorAll: () => [],
     closest: () => null,
+    // Renders reais sobem na árvore (ex.: patrimonio.js:1112 faz
+    // `canvas.parentElement.style.height = ...`). Getters preguiçosos: criam o
+    // pai só quando pedido, sem recursão infinita na construção do nó.
+    get parentElement() {
+      return makeFieldNode(id + '__pai', fields);
+    },
+    get parentNode() {
+      return makeFieldNode(id + '__pai', fields);
+    },
+    get firstChild() {
+      return null;
+    },
+    get children() {
+      return [];
+    },
     // Canvas: os renders do Controle/Patrimônio chamam getContext para o Chart.js.
     // Sem isto o teste morre no render, depois de a gravação já ter dado certo —
     // falha de harness disfarçada de falha de produto.
@@ -148,7 +163,23 @@ function carregarApp(fields, ordem) {
       {
         register() {},
         unregister() {},
-        defaults: { font: {}, plugins: {}, scales: {}, elements: {} },
+        // aplicarTemaChartJs (aba1-charts.js:396+) escreve fundo nesta árvore —
+        // `Chart.defaults.plugins.tooltip.backgroundColor`, `...legend.labels`,
+        // `...scales.x.grid`. Um stub raso quebra com "Cannot set properties of
+        // undefined" DEPOIS do fim do teste (o render é assíncrono), o que
+        // aparece como falha do arquivo inteiro sem apontar o assert. Os ramos
+        // abaixo existem só para receber essas atribuições.
+        defaults: {
+          font: {},
+          scales: { x: { grid: {}, ticks: {} }, y: { grid: {}, ticks: {} } },
+          elements: { bar: {}, line: {}, point: {}, arc: {} },
+          plugins: {
+            tooltip: { titleFont: {}, bodyFont: {} },
+            legend: { labels: {} },
+            title: {},
+            datalabels: {},
+          },
+        },
       }
     ),
     ChartDataLabels: {},
@@ -235,6 +266,8 @@ function carregarApp(fields, ordem) {
   win.transacoes = [];
   win.historicoCompras = [];
   win.sonhos = [];
+  win.cartoes = [];
+  win.bens = [];
   return win;
 }
 
@@ -245,6 +278,8 @@ function estadoDe(win) {
     contas: win.contas || [],
     historicoCompras: win.historicoCompras || [],
     sonhos: win.sonhos || [],
+    cartoes: win.cartoes || [],
+    bens: win.bens || [],
   };
 }
 

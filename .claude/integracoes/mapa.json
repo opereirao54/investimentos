@@ -1,7 +1,7 @@
 {
   "$schema": "./mapa.schema.md",
   "versao": 1,
-  "onda": 2,
+  "onda": 3,
   "atualizadoEm": "2026-08-28",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
   "entidades": {
@@ -267,6 +267,54 @@
         "excluirTudo": "confirmarExcluirSonhoCompleto — remove o sonho e TODA transação com aquele sonhoId, paga ou não.",
         "manterHistorico": "confirmarExcluirSonho — remove o sonho e só os compromissos FUTUROS e NÃO PAGOS (removerLancamentosFuturosSonho). As transações pagas ficam no Controle com sonhoId apontando para um sonho que já não existe: isso é HISTÓRICO INTENCIONAL, não órfão."
       }
+    },
+    "cartao": {
+      "titulo": "Cartão de crédito",
+      "chaveArmazenamento": "futurorico_cartoes",
+      "globalWindow": "cartoes",
+      "declaradaEm": "web/appliquei-app.js:577",
+      "produtores": [
+        "web/appliquei-app.js"
+      ],
+      "consumidores": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-patrimonio.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "formato": "card_{timestamp}",
+          "referenciadoPor": [
+            "transacao.cartaoId"
+          ]
+        },
+        {
+          "campo": "contaPagadoraId",
+          "apontaPara": "conta.id",
+          "obrigatorio": "sim",
+          "nota": "validado no cadastro (app.js:469). É dela que sai o dinheiro quando a fatura é paga — sem ela a baixa cairia em \"A reconciliar\".",
+          "reapontadoNaFusao": "web/appliquei-contas.js:292"
+        }
+      ],
+      "fragilidade": "obterCartao(id) faz `cartoes.find(...) || cartoes[0]` — fallback SILENCIOSO para o primeiro cartão. Um cartaoId apontando para cartão apagado não dá erro: a transação passa a ser lida como se fosse de outro cartão."
+    },
+    "bem": {
+      "titulo": "Bem (imóvel / veículo)",
+      "chaveArmazenamento": "appliquei_bens",
+      "globalWindow": "bens",
+      "produtores": [
+        "web/appliquei-bens.js"
+      ],
+      "consumidores": [
+        "web/appliquei-patrimonio.js"
+      ],
+      "nota": "NÃO produz transação. Entra no patrimônio só pela soma de valorAtual dos bens ativos.",
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "formato": "bem_{timestamp}_{rand}"
+        }
+      ]
     }
   },
   "prefixosDeId": {
@@ -303,6 +351,20 @@
       "entidade": "transacao",
       "significado": "dividendo gerado a partir de divKey (ticker+competência); idempotente",
       "geradoEm": "web/appliquei-aba-dividendos.js:496"
+    },
+    "card_": {
+      "entidade": "cartao",
+      "geradoEm": "web/appliquei-app.js:494"
+    },
+    "aporte_pago_": {
+      "entidade": "sonho.aportes[]",
+      "significado": "aporte criado ao PAGAR o compromisso mensal do sonho no Controle",
+      "geradoEm": "web/appliquei-aba-controle-financeiro.js:1762"
+    },
+    "aporte_compromisso_": {
+      "entidade": "operacao",
+      "significado": "posição criada ao PAGAR a parcela de previdência/reserva",
+      "geradoEm": "web/appliquei-previdencia.js:138"
     }
   },
   "invariantes": [
@@ -667,6 +729,151 @@
       "sintoma": "O mesmo dividendo aparece duas vezes; o caixa da corretora infla.",
       "prova": "test/integracao-inv15-dividendo-idempotente.test.js",
       "status": "coberta"
+    },
+    {
+      "id": "INV-16",
+      "titulo": "Pagar compromisso de sonho registra o aporte exatamente uma vez",
+      "regra": "registrarAportePorPagamentoSonho é idempotente por txId: se já existe aporte com aquele txId, não cria outro. O valor do aporte é o valor EFETIVAMENTE pago (que pode ter sido editado no ato do pagamento), não o valor planejado.",
+      "gravidade": "critica",
+      "entidades": [
+        "transacao",
+        "sonho"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-sonhos.js"
+      ],
+      "simbolos": [
+        "registrarAportePorPagamentoSonho",
+        "confirmarPagamento",
+        "aporte_pago_",
+        "planoVinculado"
+      ],
+      "sintoma": "Paguei uma parcela e o sonho subiu o dobro · o valor pago editado não bateu com o aporte registrado.",
+      "cadeia": "CADEIA-01",
+      "prova": "test/integracao-inv16-pagamento-sonho-idempotente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-17",
+      "titulo": "Baixa de cartão debita a conta pagadora do cartão",
+      "regra": "Ao pagar uma transação cartao_credito, o contaId da transação passa a ser cartao.contaPagadoraId. E contaPagadoraId é obrigatória no cadastro do cartão — sem ela a fatura paga cairia em \"A reconciliar\".",
+      "gravidade": "critica",
+      "entidades": [
+        "transacao",
+        "cartao",
+        "conta"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-app.js"
+      ],
+      "simbolos": [
+        "contaPagadoraId",
+        "obterCartao",
+        "confirmarPagamento",
+        "cartao_credito"
+      ],
+      "sintoma": "\"Paguei a fatura e o saldo do banco não mudou.\"",
+      "cadeia": "CADEIA-03",
+      "prova": "test/integracao-inv17-fatura-debita-pagadora.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-18",
+      "titulo": "Pagamento com efeito colateral não é reversível pelo Controle",
+      "regra": "controlePodeReverterPagamento recusa transações com sonhoId ou compromissoId. Reverter um pagamento que já gerou aporte no sonho (ou posição no patrimônio) deixaria o aporte de pé com a transação pendente: o mesmo dinheiro contado duas vezes.",
+      "gravidade": "critica",
+      "entidades": [
+        "transacao",
+        "sonho",
+        "operacao"
+      ],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "controlePodeReverterPagamento",
+        "reverterPagamento",
+        "sonhoId",
+        "compromissoId"
+      ],
+      "sintoma": "Desfiz um pagamento e o sonho continuou com o dinheiro guardado.",
+      "cadeia": "CADEIA-01",
+      "prova": "test/integracao-inv18-reversao-com-efeito.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-19",
+      "titulo": "Patrimônio total = saldo + investido + bens",
+      "regra": "patrimonioTotal = mpCalcularSaldoTotal + valor dos investimentos + soma de valorAtual dos bens ATIVOS. Bem arquivado sai da conta; nenhuma parcela pode ser contada duas vezes nem ficar de fora.",
+      "gravidade": "alta",
+      "entidades": [
+        "bem",
+        "conta",
+        "operacao"
+      ],
+      "arquivos": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-bens.js"
+      ],
+      "simbolos": [
+        "bensAtivos",
+        "totalBensAtual",
+        "mpCalcularSaldoTotal",
+        "patrimonioTotal",
+        "arquivado"
+      ],
+      "sintoma": "O KPI de patrimônio não bate com a soma das partes mostradas logo abaixo dele.",
+      "prova": "test/integracao-inv19-patrimonio-composicao.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-20",
+      "titulo": "cartaoId aponta para um cartão que existe",
+      "regra": "Toda transação cartao_credito tem cartaoId presente em cartoes. obterCartao faz fallback SILENCIOSO para cartoes[0] quando não acha — então um id quebrado não dá erro: a fatura passa a ser lida como se fosse de outro cartão, com outro vencimento e outra conta pagadora.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "cartao"
+      ],
+      "arquivos": [
+        "web/appliquei-app.js",
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "obterCartao",
+        "cartaoId",
+        "cartoesAtivos"
+      ],
+      "sintoma": "Lançamento aparece na fatura do cartão errado, ou com vencimento que não é o dele.",
+      "cadeia": "CADEIA-03",
+      "prova": "test/integracao-inv20-cartao-existente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-21",
+      "titulo": "Aporte de compromisso é idempotente por geradoDoCompromissoTx",
+      "regra": "registrarAportePorPagamentoCompromisso só cria a posição se nenhuma operação em historicoCompras já tiver geradoDoCompromissoTx igual ao id da transação. O aporte usa a competência da parcela como data, limitada a hoje — posição não pode render no futuro.",
+      "gravidade": "alta",
+      "entidades": [
+        "transacao",
+        "operacao"
+      ],
+      "arquivos": [
+        "web/appliquei-previdencia.js",
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "registrarAportePorPagamentoCompromisso",
+        "geradoDoCompromissoTx",
+        "compromissoId",
+        "compromissoCategoria"
+      ],
+      "sintoma": "A mesma parcela de previdência virou duas posições no patrimônio · rendimento contado a partir de uma data futura.",
+      "cadeia": "CADEIA-02",
+      "prova": "test/integracao-inv21-compromisso-idempotente.test.js",
+      "status": "coberta"
     }
   ],
   "riscosConhecidos": [
@@ -690,6 +897,55 @@
       "descricao": "executarInsercao grava mes/ano a partir de visaoMes/visaoAno (o mês em que o usuário estava olhando). salvarEdicaoTransacao grava a partir de competenciaDaData(dataVencimento). Consequência: um lançamento criado em agosto com vencimento em setembro nasce na competência de agosto; se o usuário abrir e salvar a edição sem mudar nada, ele MUDA para setembro. Mesmo registro, competência diferente conforme o caminho.",
       "recomendacao": "Decidir qual é a regra certa para despesa com vencimento futuro e alinhar os dois caminhos. Hoje o teste INV-08 documenta o comportamento atual sem endossá-lo.",
       "decisao": "pendente-do-usuario"
+    }
+  ],
+  "cadeiasDeEfeito": [
+    {
+      "id": "CADEIA-01",
+      "titulo": "Pagar a parcela do sonho no Controle",
+      "passos": [
+        "confirmarPagamento marca pago:true e grava pagoEm",
+        "registrarAportePorPagamentoSonho cria sonho.aportes[] com txId e soma valorAtual",
+        "se planoVinculado e ainda falta: removerLancamentosFuturosSonho + gerarLancamentosMensaisSonho recalculam a parcela",
+        "o caixa da conta de origem debita (INV-01)"
+      ],
+      "invariantesEnvolvidas": [
+        "INV-01",
+        "INV-11",
+        "INV-13",
+        "INV-14",
+        "INV-16",
+        "INV-18"
+      ],
+      "nota": "Três saltos entre três módulos a partir de um clique. É a cadeia mais longa do app: mexer em qualquer elo mexe nos outros dois."
+    },
+    {
+      "id": "CADEIA-02",
+      "titulo": "Pagar a parcela de previdência/reserva no Controle",
+      "passos": [
+        "confirmarPagamento marca pago:true",
+        "registrarAportePorPagamentoCompromisso cria operacao em historicoCompras com geradoDoCompromissoTx",
+        "a posição passa a valer em Patrimônio/Investimentos"
+      ],
+      "invariantesEnvolvidas": [
+        "INV-01",
+        "INV-18",
+        "INV-21"
+      ]
+    },
+    {
+      "id": "CADEIA-03",
+      "titulo": "Pagar a fatura do cartão",
+      "passos": [
+        "confirmarPagamento marca pago:true",
+        "copia cartao.contaPagadoraId para transacao.contaId",
+        "o caixa da conta pagadora debita"
+      ],
+      "invariantesEnvolvidas": [
+        "INV-01",
+        "INV-17",
+        "INV-20"
+      ]
     }
   ]
 }
