@@ -7588,7 +7588,7 @@
             <div class="page-header" style="margin-bottom:16px;">
                 <div class="page-header-left">
                     <h1>Carteira sugerida</h1>
-                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação personalizada, com educação financeira e simulação histórica real.</p>
+                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação, explicada e simulada com dados reais.</p>
                 </div>
             </div>
 
@@ -7598,7 +7598,7 @@
                 <!-- Profile Questionnaire (shown until profile is set) -->
                 <div class="cart-q-card" id="cartQuestionnaire" style="display:none;">
                     <h2><i class="ph ph-user-circle-gear"></i> Descubra seu perfil de investidor</h2>
-                    <p class="lead">Responda 2 perguntas rápidas + informe seu aporte mensal. A carteira é montada automaticamente.</p>
+                    <p class="lead">Duas perguntas e o seu aporte mensal. A carteira sai montada.</p>
 
                     <div class="cart-q-section">
                         <div class="cart-q-section-title" data-step="1">Tolerância a perdas</div>
@@ -7728,7 +7728,7 @@
                 <!-- Diversification callout -->
                 <div class="cart-callout" id="cartCallout" style="display:none;">
                     <i class="ph-fill ph-lightbulb"></i>
-                    <div><strong>📌 Dica:</strong> Misturar esses investimentos ajuda a reduzir riscos e melhorar seus resultados no longo prazo.</div>
+                    <div><strong>📌 Dica:</strong> Misturar classes reduz o risco da carteira no longo prazo.</div>
                 </div>
 
                 <!-- Recommendation engine: scores + plano de aporte -->
@@ -7759,36 +7759,16 @@
 
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
-                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco conforme a lente escolhida.
-                        O ranking é por classe — troque de aba para comparar dentro dela, ou busque um ativo pelo nome.
-                        Toque num ativo para ver a justificativa, as lacunas de dado e a procedência.</span>
+                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco pela lente ativa.
+                        Toque num ativo para ver a justificativa e a procedência do dado.</span>
                     </div>
                     <div class="cart-motor-ranking" id="cartMotorRanking"></div>
 
                     <div class="cart-sim-disclaimer">
-                        Os scores são calculados por critérios objetivos a partir de indicadores públicos de mercado e
-                        não constituem recomendação de investimento. Indicador indisponível não vira nota zero: o score
-                        é puxado para a média e a confiança do ativo cai.
+                        Scores calculados por critérios objetivos sobre indicadores públicos de mercado.
+                        Não constituem recomendação de investimento.
                     </div>
 
-                    <!-- Critérios: quais métricas produziram os scores acima.
-                         Renderizado a partir do MOTOR_CRITERIOS, não escrito à
-                         mão: uma lista estática divergiria do motor no primeiro
-                         ajuste de peso e passaria a descrever algo que o
-                         produto não faz. -->
-                    <div class="cart-criterios" id="cartCriterios"></div>
-
-                    <div class="cart-risco">
-                        <div class="cart-risco-titulo">
-                            <i class="ph-fill ph-warning"></i> Aviso de risco
-                        </div>
-                        <!-- Resumo à vista, documento integral atrás do botão.
-                             O texto vem de appliquei-disclaimer.js, o mesmo que
-                             alimenta a aba Regulamento — duas cópias do mesmo
-                             parágrafo divergiriam na primeira revisão jurídica,
-                             e a desatualizada seria a que o usuário leu. -->
-                        <div class="cart-risco-corpo" id="cartRiscoWrap"></div>
-                    </div>
                 </div>
 
                 <!-- Historical Simulation -->
@@ -7820,6 +7800,29 @@
                     <div class="cart-sim-disclaimer" id="cartSimDisclaimer">
                         Rentabilidade passada não garante rentabilidade futura. Tesouro/CDI são curvas indicativas baseadas em yield anual.
                     </div>
+                </div>
+
+                <!-- Critérios: quais métricas produziram os scores acima.
+                     Renderizado a partir do MOTOR_CRITERIOS, não escrito à
+                     mão: uma lista estática divergiria do motor no primeiro
+                     ajuste de peso e passaria a descrever algo que o
+                     produto não faz. -->
+                <div class="cart-criterios" id="cartCriterios"></div>
+
+                <!-- FORA do cartMotorWrap de propósito: aquele contentor é
+                     escondido quando o motor não carrega, e o aviso de risco
+                     ia junto. Conformidade não pode depender de um <script>
+                     externo ter chegado. -->
+                <div class="cart-risco">
+                    <div class="cart-risco-titulo">
+                        <i class="ph-fill ph-warning"></i> Aviso de risco
+                    </div>
+                    <!-- Resumo à vista, documento integral atrás do botão.
+                         O texto vem de appliquei-disclaimer.js, o mesmo que
+                         alimenta a aba Regulamento — duas cópias do mesmo
+                         parágrafo divergiriam na primeira revisão jurídica,
+                         e a desatualizada seria a que o usuário leu. -->
+                    <div class="cart-risco-corpo" id="cartRiscoWrap"></div>
                 </div>
             </div>
 

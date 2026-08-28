@@ -80,3 +80,35 @@ test('a tela não chama a carteira de "recomendada" nem expõe o consultor', () 
   assert.ok(!/<h1>Carteira recomendada<\/h1>/.test(html), 'o título antigo continua algures');
   assert.ok(!/menu-btn-label">Carteira recomendada</.test(html), 'o menu continua no nome antigo');
 });
+
+test('a simulação vem ANTES dos critérios e do aviso', () => {
+  // Ordem pedida: primeiro o que a carteira teria feito, depois como ela foi
+  // calculada, e o texto legal por último. Sem asserção, um refactor de
+  // layout devolve os blocos à ordem antiga sem quebrar nada visível.
+  const sec = secaoCarteira();
+  const pos = (marca) => {
+    const i = sec.indexOf(marca);
+    assert.ok(i > 0, `bloco não encontrado: ${marca}`);
+    return i;
+  };
+  const sim = pos('id="cartSimCard"');
+  const criterios = pos('id="cartCriterios"');
+  const risco = pos('class="cart-risco"');
+  assert.ok(sim < criterios, 'a simulação tem de vir antes dos critérios');
+  assert.ok(criterios < risco, 'os critérios têm de vir antes do aviso de risco');
+});
+
+test('o aviso de risco sobrevive ao motor não carregar', () => {
+  // cartMotorWrap é escondido inteiro quando `motorRanquear` não existe
+  // (ver cartRenderizarMotor). Enquanto o aviso vivia lá dentro, uma falha
+  // a carregar um <script> levava junto o texto de conformidade.
+  const sec = secaoCarteira();
+  const abreWrap = sec.indexOf('id="cartMotorWrap"');
+  const fechaWrap = sec.indexOf('id="cartSimCard"');
+  const risco = sec.indexOf('id="cartRiscoWrap"');
+  assert.ok(abreWrap > 0 && fechaWrap > abreWrap);
+  assert.ok(
+    risco > fechaWrap,
+    'o aviso voltou para dentro do cartMotorWrap — some quando o motor falha'
+  );
+});

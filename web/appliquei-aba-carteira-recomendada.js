@@ -3197,9 +3197,8 @@ function cartRenderizarCustom() {
     'aria-label="Fechar"><i class="ph ph-x"></i></button>' +
     '</div>' +
     '<div class="cart-custom-aviso"><i class="ph ph-info"></i> ' +
-    'A partir daqui a decisão é sua: o motor passa a executar a SUA carteira, e continua ' +
-    'a pontuar os ativos e a distribuir o aporte — só deixa de escolher a divisão. ' +
-    'Deixar um passo como está mantém a recomendação naquele passo.</div>' +
+    'A partir daqui a decisão é sua: o motor continua a pontuar e a distribuir o aporte, ' +
+    'só deixa de escolher a divisão. Passo não mexido mantém a recomendação.</div>' +
     // Passo 1
     '<section class="cart-custom-passo">' +
     '<div class="cart-custom-passo-head"><span class="cart-custom-n">1</span>' +
@@ -3471,13 +3470,13 @@ function cartRenderizarCriterios() {
     '<div class="cart-motor-sub"><i class="ph ph-list-magnifying-glass"></i> ' +
     'Critérios de análise e pontuação' +
     '<span class="cart-motor-sub-nota">Cada indicador recebe nota de 0 a 10 por faixas fixas; ' +
-    'o pilar é a média ponderada dos seus indicadores, e o score é a média dos pilares pela lente ativa.</span>' +
+    'o pilar é a média ponderada dos seus indicadores.</span>' +
     '</div>' +
     '<div class="cart-criterios-intro">' +
-    'Indicador sem dado não vira nota zero — ele sai da conta e reduz a cobertura do ativo. ' +
+    'Indicador sem dado não vira nota zero: sai da conta e reduz a cobertura. ' +
     'Abaixo de ' +
     Math.round(MOTOR_COBERTURA_MINIMA * 100) +
-    '% de cobertura o ativo deixa de ser pontuado, em vez de receber uma nota sem lastro.' +
+    '% o ativo deixa de ser pontuado, em vez de receber nota sem lastro.' +
     '</div>' +
     grupos +
     '<div class="cart-criterios-lente">' +
