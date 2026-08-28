@@ -107,8 +107,12 @@ var CART_ATIVOS_DEFAULT = {
 // ── Estrutura do dbCarteira v2 ──
 var cartDefaultV2 = {
   versao: 2,
-  mesAno: 'Mai/2026',
-  descricao: 'Alocação focada em geradores de caixa com diversificação tática.',
+  // null, não uma data: sem carteira publicada não há referência a dar, e
+  // uma data fixa no código envelhece calada — dizia "Mai/2026" a quem abria
+  // a aba em Agosto. `descricao` idem: descrevia a lista de reserva, não o
+  // plano que o motor monta.
+  mesAno: null,
+  descricao: null,
   alocacoes: JSON.parse(JSON.stringify(CART_ALLOC_DEFAULT)),
   ativos: JSON.parse(JSON.stringify(CART_ATIVOS_DEFAULT)),
 };
@@ -144,6 +148,11 @@ function cartCarregarDB() {
 
 var dbCarteira = cartCarregarDB();
 
+// Texto do subtítulo tal como vem no HTML, capturado na primeira renderização.
+// Guardado em vez de repetido aqui: duas cópias divergiriam na primeira
+// reescrita, e a errada seria a que aparece quando não há carteira publicada.
+var cartSubtituloPadrao = null;
+
 // ── Estado da sessão ──
 var cartEstado = {
   perfil: null, // 'Conservador' | 'Moderado' | 'Arrojado'
@@ -162,6 +171,9 @@ var cartEstado = {
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
   simRange: '3y',
+  // Carteira montada à mão pelo utilizador. Fica DESLIGADA por omissão: a
+  // recomendação é o que a tela apresenta primeiro, sempre.
+  custom: null,
 };
 
 // ── Estado do motor de recomendação ──
@@ -211,6 +223,7 @@ function carregarCarteiraCliente() {
     cartEstado.prazoAnos = saved.prazoAnos != null ? saved.prazoAnos : 10;
     cartEstado.patrimonio = saved.patrimonio != null ? saved.patrimonio : null;
     cartEstado.lente = saved.lente || null;
+    cartEstado.custom = saved.custom || cartCustomVazio();
     cartRenderizarTela();
   } else {
     cartMostrarQuestionario();
@@ -237,8 +250,8 @@ function cartFetchCentral() {
         if (!c.alocacoes && !c.ativos) return;
         dbCarteira = {
           versao: 2,
-          mesAno: c.mesAno || dbCarteira.mesAno,
-          descricao: c.descricao || dbCarteira.descricao,
+          mesAno: c.mesAno || null,
+          descricao: c.descricao || null,
           alocacoes: c.alocacoes || dbCarteira.alocacoes,
           ativos: c.ativos || dbCarteira.ativos,
         };
@@ -264,6 +277,7 @@ function cartSalvarEstado() {
       prazoAnos: cartEstado.prazoAnos,
       patrimonio: cartEstado.patrimonio,
       lente: cartEstado.lente,
+      custom: cartEstado.custom || null,
     })
   );
 }
@@ -387,9 +401,20 @@ function cartRenderizarTela() {
   document.getElementById('cartPerfilHeader').style.display = 'flex';
   document.getElementById('cartQuestionnaire').style.display = 'none';
 
-  // Descricao
-  document.getElementById('carteiraDescricao').textContent =
-    `Referência: ${dbCarteira.mesAno} · ${dbCarteira.descricao}`;
+  // Subtítulo: só o que existe. Cada pedaço é opcional porque cada um vem do
+  // consultor, e nenhum é inventado quando ele não publicou nada.
+  //
+  // O `else` importa: um cache antigo do modelo pode ter a data inventada
+  // gravada de uma versão anterior. Sem repor o texto da página, esse valor
+  // continuaria na tela depois de a busca nova voltar sem referência.
+  const elDesc = document.getElementById('carteiraDescricao');
+  if (elDesc) {
+    if (cartSubtituloPadrao === null) cartSubtituloPadrao = elDesc.textContent;
+    const partesDesc = [];
+    if (dbCarteira.mesAno) partesDesc.push(`Referência: ${dbCarteira.mesAno}`);
+    if (dbCarteira.descricao) partesDesc.push(dbCarteira.descricao);
+    elDesc.textContent = partesDesc.length ? partesDesc.join(' · ') : cartSubtituloPadrao;
+  }
 
   // Hero + callout
   document.getElementById('cartHero').style.display = 'grid';
@@ -824,6 +849,21 @@ function cartRenderizarSimChart(blended, cdi, ibov, range) {
   });
 }
 
+/**
+ * Resultado da simulação, com hierarquia.
+ *
+ * Antes eram OITO caixas do mesmo tamanho, o que é o mesmo que não ter
+ * destaque nenhum: a pergunta do título ("como teria performado?") tem UMA
+ * resposta — quanto o dinheiro teria virado — e ela competia em pé de
+ * igualdade com o drawdown máximo. No telemóvel as oito viravam uma coluna
+ * de oito caixas idênticas, e a resposta ficava na terceira.
+ *
+ * Três níveis agora:
+ *   1. o número: patrimônio final, e quanto disso é ganho;
+ *   2. os três que o sustentam: aportado, rentabilidade da carteira, ganho %;
+ *   3. os de risco e comparação, numa faixa mais leve — importam, mas não
+ *      são a resposta.
+ */
 function cartRenderizarSimKpis(blended, cdi) {
   const el = document.getElementById('cartSimKpis');
   if (!el || !blended || blended.length < 2) return;
@@ -843,6 +883,7 @@ function cartRenderizarSimKpis(blended, cdi) {
   blended.forEach((pt) => {
     if (pt.p > 0) vlrFinal += aporteMensal * (end / pt.p);
   });
+  const ganho = vlrFinal - totalAportado;
   const retornoSobreAporte = totalAportado > 0 ? (vlrFinal / totalAportado - 1) * 100 : 0;
 
   let maiorDrawdown = 0,
@@ -864,46 +905,93 @@ function cartRenderizarSimKpis(blended, cdi) {
   }
   const alphaCDI = rentCDI !== null ? retorno - rentCDI : null;
 
-  el.innerHTML = `
-        <div class="cart-sim-kpi">
-            <div class="lbl">Rentabilidade no período</div>
-            <div class="val ${retorno >= 0 ? 'pos' : 'neg'}">${retorno >= 0 ? '+' : ''}${retorno}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Total aportado (${blended.length}× ${formatarMoeda(aporteMensal)})</div>
-            <div class="val">${formatarMoeda(totalAportado)}</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Patrimônio final estimado</div>
-            <div class="val">${formatarMoeda(vlrFinal)}</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Ganho sobre o aportado</div>
-            <div class="val ${retornoSobreAporte >= 0 ? 'pos' : 'neg'}">${retornoSobreAporte >= 0 ? '+' : ''}${retornoSobreAporte.toFixed(1)}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Retorno médio mensal</div>
-            <div class="val ${rentMensal >= 0 ? 'pos' : 'neg'}">${rentMensal >= 0 ? '+' : ''}${rentMensal}%/mês</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Drawdown máximo</div>
-            <div class="val neg">-${maiorDrawdown.toFixed(1)}%</div>
-        </div>
-        <div class="cart-sim-kpi">
-            <div class="lbl">Queda esperada (ano ruim)</div>
-            <div class="val neg">-${CART_QUEDA_ANO_RUIM[cartEstado.perfil] || 10}%</div>
-        </div>
-        ${
-          alphaCDI !== null
-            ? `<div class="cart-sim-kpi">
-            <div class="lbl">Alpha vs CDI</div>
-            <div class="val ${alphaCDI >= 0 ? 'pos' : 'neg'}">${alphaCDI >= 0 ? '+' : ''}${alphaCDI.toFixed(1)}%</div>
-        </div>`
-            : ''
-        }`;
-}
+  const sinal = (v) => (v >= 0 ? '+' : '');
+  const classe = (v) => (v >= 0 ? 'pos' : 'neg');
+  const anos = months / 12;
+  const periodo =
+    anos >= 1 ? Math.round(anos) + (Math.round(anos) === 1 ? ' ano' : ' anos') : months + ' meses';
 
-// Legacy shim — necessário para calls que ainda referenciam calcularCarteiraRecomendada
+  // A frase existe para quem não lê número: ela diz a mesma coisa que o hero,
+  // em português, e é o que faz a secção informar em vez de exibir.
+  const frase =
+    'Aportando ' +
+    formatarMoeda(aporteMensal) +
+    ' por mês durante ' +
+    periodo +
+    ', você teria colocado ' +
+    formatarMoeda(totalAportado) +
+    ' do próprio bolso.';
+
+  const secundarios = [
+    {
+      lbl: 'Retorno médio',
+      val: sinal(rentMensal) + rentMensal + '%',
+      sub: 'ao mês',
+      cls: classe(rentMensal),
+      dica: 'Rentabilidade média mensal composta da carteira no período.',
+    },
+    {
+      lbl: 'Maior queda',
+      val: '-' + maiorDrawdown.toFixed(1) + '%',
+      sub: 'do topo ao fundo',
+      cls: 'neg',
+      dica: 'A pior queda entre um pico e o fundo seguinte dentro do período.',
+    },
+    {
+      lbl: 'Ano ruim',
+      val: '-' + (CART_QUEDA_ANO_RUIM[cartEstado.perfil] || 10) + '%',
+      sub: 'esperado no perfil',
+      cls: 'neg',
+      dica: 'Queda que o perfil ' + (cartEstado.perfil || '') + ' deve tolerar sem vender.',
+    },
+  ];
+
+  el.innerHTML = `
+        <div class="cart-sim-hero">
+            <div class="cart-sim-hero-main">
+                <div class="cart-sim-hero-lbl">Patrimônio final estimado</div>
+                <div class="cart-sim-hero-val">${formatarMoeda(vlrFinal)}</div>
+                <div class="cart-sim-hero-frase">${frase}</div>
+            </div>
+            <div class="cart-sim-hero-delta ${classe(ganho)}">
+                <span class="cart-sim-hero-delta-lbl">Ganho sobre o aportado</span>
+                <span class="cart-sim-hero-delta-val">${sinal(ganho)}${formatarMoeda(ganho)}</span>
+                <span class="cart-sim-hero-delta-pct">${sinal(retornoSobreAporte)}${retornoSobreAporte.toFixed(1)}%</span>
+            </div>
+        </div>
+        <div class="cart-sim-principais">
+            <div class="cart-sim-kpi">
+                <div class="lbl">Total aportado</div>
+                <div class="val">${formatarMoeda(totalAportado)}</div>
+                <div class="sub">${blended.length} aportes de ${formatarMoeda(aporteMensal)}</div>
+            </div>
+            <div class="cart-sim-kpi">
+                <div class="lbl">Rentabilidade da carteira</div>
+                <div class="val ${classe(retorno)}">${sinal(retorno)}${retorno}%</div>
+                <div class="sub">variação da cota no período</div>
+            </div>
+            ${
+              rentCDI === null
+                ? ''
+                : `<div class="cart-sim-kpi">
+                <div class="lbl">CDI no mesmo período</div>
+                <div class="val">${sinal(rentCDI)}${rentCDI}%</div>
+                <div class="sub">sua carteira: ${sinal(alphaCDI)}${alphaCDI.toFixed(1)}pp ${alphaCDI >= 0 ? 'acima' : 'abaixo'}</div>
+            </div>`
+            }
+        </div>
+        <div class="cart-sim-secundarios">
+            ${secundarios
+              .map(
+                (k) => `<div class="cart-sim-mini" title="${cartEsc(k.dica)}">
+                <span class="cart-sim-mini-lbl">${k.lbl}</span>
+                <span class="cart-sim-mini-val ${k.cls}">${k.val}</span>
+                <span class="cart-sim-mini-sub">${k.sub}</span>
+            </div>`
+              )
+              .join('')}
+        </div>`;
+}
 function calcularCarteiraRecomendada() {
   /* no-op — lógica migrada para cartRenderizarTela() */
 }
@@ -960,7 +1048,156 @@ function inferirClasse(ticker, nome) {
 // ou "preservar capital em 1 ano" dava exatamente a mesma tela.
 
 /** Alocação-alvo por classe, já ajustada por objetivo e prazo. */
+// ════════════════════════════════════════════════════════════
+// MODO PERSONALIZADO
+// ════════════════════════════════════════════════════════════
+//
+// A recomendação é o que a tela apresenta primeiro, sempre, e é o que um
+// utilizador que não entende de investimento recebe sem ter de decidir nada.
+// Esta secção existe para o outro caso: quem já tem estratégia própria e quer
+// a mesma máquina a executar a carteira DELE.
+//
+// A ordem não é detalhe de layout, é o produto: abrir com um formulário em
+// branco transferiria para o utilizador uma decisão que ele veio aqui buscar.
+// Por isso o personalizado é opt-in explícito, mora DEPOIS do plano, e volta
+// atrás num clique.
+//
+// Três níveis, do mais grosso ao mais fino, porque é a ordem em que a decisão
+// se toma e a ordem em que ela importa para o resultado:
+//   1. quanto vai para cada CLASSE  (o que mais move risco e retorno);
+//   2. quanto vai para cada SETOR dentro da classe;
+//   3. QUAIS ativos podem ser escolhidos.
+// Nenhum nível é obrigatório: mexer só no primeiro deixa os outros dois na
+// recomendação.
+
+var cartCustomVazio = function () {
+  return { ativo: false, alloc: null, setores: null, ativos: null };
+};
+
+/** O custom em uso, sempre um objeto — nunca null, para a tela não ramificar. */
+function cartCustom() {
+  if (!cartEstado.custom) cartEstado.custom = cartCustomVazio();
+  return cartEstado.custom;
+}
+
+/** Está personalizando de facto? Ligado sem nenhuma escolha continua sendo a recomendação. */
+function cartCustomAtivo() {
+  var c = cartCustom();
+  return !!(c.ativo && (c.alloc || c.setores || c.ativos));
+}
+
+/**
+ * Reescala um conjunto de pesos para somar 100.
+ *
+ * Existe para o painel não obrigar o utilizador a fechar a conta na unha. Ele
+ * mexe nos números que lhe interessam, a tela mostra o total ao vivo, e a
+ * aplicação normaliza — DECLARANDO que normalizou. Bloquear em "tem de dar
+ * exatamente 100" transforma um ajuste de dez segundos numa aritmética
+ * chata, e recusar em silêncio seria pior.
+ */
+function cartNormalizar100(pesos) {
+  var chaves = Object.keys(pesos || {});
+  var soma = 0;
+  chaves.forEach(function (k) {
+    var v = Number(pesos[k]);
+    if (isFinite(v) && v > 0) soma += v;
+  });
+  var out = {};
+  if (soma <= 0) return null;
+  var acumulado = 0;
+  chaves.forEach(function (k, i) {
+    var v = Number(pesos[k]);
+    v = isFinite(v) && v > 0 ? v : 0;
+    if (i === chaves.length - 1) {
+      // O resto vai para o último: arredondar cada um por si deixaria o total
+      // em 99 ou 101, e a tela mostraria uma alocação que não fecha.
+      out[k] = Math.max(0, motorArred(100 - acumulado, 1));
+    } else {
+      out[k] = motorArred((v / soma) * 100, 1);
+      acumulado += out[k];
+    }
+  });
+  return out;
+}
+
+/**
+ * Política de setores da classe, na régua do motor.
+ *
+ * Devolve `undefined` quando o utilizador não mexeu — e `undefined` é o que
+ * faz motorPlanoClasse cair na política padrão. Um objeto vazio significaria
+ * "sem política nenhuma", que é outra coisa.
+ *
+ * Setor com peso zero SAI da lista em vez de ficar com alvo 0: é isso que o
+ * utilizador quis dizer ao zerá-lo, e um balde de alvo zero continuaria a
+ * ganhar vaga na repartição por maior média.
+ */
+function cartSetoresCustom(classe) {
+  if (!cartCustomAtivo()) return undefined;
+  var pesos = cartCustom().setores && cartCustom().setores[classe];
+  if (!pesos) return undefined;
+  var base = (typeof MOTOR_SETORES_ALVO !== 'undefined' && MOTOR_SETORES_ALVO[classe]) || null;
+  if (!base) return undefined;
+  var lista = base
+    .map(function (b) {
+      var v = Number(pesos[b.chave]);
+      return Object.assign({}, b, { alvo: isFinite(v) && v > 0 ? v : 0 });
+    })
+    .filter(function (b) {
+      return b.alvo > 0;
+    });
+  // Zerar tudo não pode significar "classe sem política": significaria classe
+  // sem seleção nenhuma. Aí a recomendação volta a valer.
+  return lista.length ? lista : undefined;
+}
+
+/** Ativos que o utilizador liberou nesta classe, ou null quando não escolheu. */
+function cartAtivosCustom(classe) {
+  if (!cartCustomAtivo()) return null;
+  var escolha = cartCustom().ativos && cartCustom().ativos[classe];
+  if (!escolha || !escolha.length) return null;
+  return escolha;
+}
+
+/**
+ * Ranking filtrado pelos ativos escolhidos, para o PLANO.
+ *
+ * A lista da tela continua completa de propósito: esconder o que ficou de
+ * fora tiraria do utilizador a única forma de rever a própria escolha. O que
+ * muda é só quem pode receber aporte.
+ */
+function cartRankingParaPlano(ranking) {
+  if (!cartCustomAtivo()) return ranking;
+  var algum = false;
+  MOTOR_CLASSES.forEach(function (c) {
+    if (cartAtivosCustom(c)) algum = true;
+  });
+  if (!algum) return ranking;
+  return (ranking || []).filter(function (a) {
+    var permitidos = cartAtivosCustom(a.classe);
+    if (!permitidos) return true; // classe sem escolha: universo inteiro
+    return permitidos.indexOf(a.ticker) !== -1;
+  });
+}
+
+/** Overrides por classe para motorPlanoAporte. */
+function cartPorClasseCustom() {
+  var out = {};
+  var tem = false;
+  MOTOR_CLASSES.forEach(function (c) {
+    var setores = cartSetoresCustom(c);
+    if (setores !== undefined) {
+      out[c] = { setores: setores };
+      tem = true;
+    }
+  });
+  return tem ? out : undefined;
+}
+
 function cartAlocacaoAlvo() {
+  // Distribuição escolhida à mão vence perfil, objetivo e prazo. É o ponto do
+  // modo personalizado: quem já sabe o que quer não devia ter o próprio
+  // número reescrito por um questionário.
+  if (cartCustomAtivo() && cartCustom().alloc) return cartCustom().alloc;
   var p = cartEstado.perfil || 'Moderado';
   var base =
     (dbCarteira.alocacoes && dbCarteira.alocacoes[p]) ||
@@ -1133,7 +1370,19 @@ function cartUniversoAutomatico(ranking, titulosRf) {
   function preencher(classe, doRanking) {
     if (doRanking.length) {
       doRanking.forEach(function (item) {
-        out.push({ ticker: item.ticker, nome: item.nome || item.ticker, classe: classe });
+        out.push({
+          ticker: item.ticker,
+          nome: item.nome || item.ticker,
+          classe: classe,
+          // O SETOR VEM DAQUI. O ranking do servidor é a única passagem que o
+          // traz de graça — a segunda busca do cliente é de cotação e, quando
+          // a fonte degrada, devolve setor nulo. Descartá-lo aqui, como se
+          // fazia, deixava a política de diversificação sem o campo que ela
+          // decide, e a seleção caía para score puro sem ninguém perceber.
+          setor: item.setor || null,
+          tipoFii: item.tipoFii || null,
+          segmentoFii: item.segmentoFii || null,
+        });
       });
       return;
     }
@@ -1286,6 +1535,8 @@ function cartMontarUniverso(base, fundamentos, titulosRf) {
       var t = cartCasarTesouro(a, titulosRf || []);
       if (t) Object.assign(dados, t, { ticker: a.ticker, nome: a.nome, classe: 'rf' });
     } else {
+      dados.setor = a.setor || null;
+      dados.tipoFii = a.tipoFii || null;
       var f = fundamentos[a.ticker];
       if (f) {
         Object.assign(dados, f, {
@@ -1294,6 +1545,13 @@ function cartMontarUniverso(base, fundamentos, titulosRf) {
           // escreveu e o que o utilizador reconhece na tela.
           nome: a.nome,
           classe: a.classe,
+          // Nulo de uma fonte não apaga o dado de outra — a mesma regra que
+          // comporFundamentos aplica no servidor. A cotação simples devolve
+          // `setor: null`, e o Object.assign cru apagava com ele o setor que
+          // o ranking tinha trazido, levando a classe inteira para fora da
+          // política de diversificação.
+          setor: f.setor || a.setor || null,
+          tipoFii: f.tipoFii || a.tipoFii || null,
         });
       }
     }
@@ -1417,12 +1675,19 @@ function cartRecalcularMotor() {
   cartMotor.plano = motorPlanoAporte({
     aporteMensal: cartEstado.capital,
     alocacaoAlvo: cartAlocacaoAlvo(),
-    ranking: cartMotor.ranking,
+    // A LISTA continua completa; só o PLANO respeita a escolha de ativos.
+    // Filtrar os dois esconderia do utilizador o que ele deixou de fora.
+    ranking: cartRankingParaPlano(cartMotor.ranking),
     patrimonioAtual: patr.valores,
+    porClasse: cartPorClasseCustom(),
   });
+  // Depois do motor, nunca dentro: a carteira calculada é a mesma, e a troca
+  // é uma decisão do utilizador sobre o resultado dela.
+  cartAplicarTrocas(cartMotor.plano, cartMotor.ranking);
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
   cartRenderizarMotorRanking(cartMotor.ranking);
+  cartRenderizarCustom();
   // Junto com o ranking porque descreve os pesos da lente ATIVA: trocar de
   // lente sem redesenhar isto deixaria a explicação a descrever o cálculo
   // anterior.
@@ -1683,6 +1948,109 @@ function cartRenderizarIndicadores() {
   );
 }
 
+/**
+ * Faixa de diversificação setorial da classe.
+ *
+ * É a metade visível da política: sem ela, uma seleção diversificada e uma
+ * seleção por score puro desenham a mesma lista de ativos, e não há como
+ * saber pela tela qual das duas rodou. A faixa diz o alvo de cada setor, o
+ * que ele levou de facto, e nomeia o setor que ficou de fora — que é a
+ * informação mais acionável das três, porque explica por que o dinheiro dele
+ * foi parar noutro lugar.
+ */
+function cartRenderizarSetoresClasse(c) {
+  if (!c || c.selecao !== 'setor' || !(c.setores || []).length) return '';
+  var chips = c.setores
+    .map(function (s) {
+      // Quais ativos caíram neste bloco. É o que liga a faixa à lista abaixo:
+      // sem os tickers, ler 'Consumo/Commodities 20%' e ver 'Vale · Mineração
+      // e Siderurgia' na linha seguinte não fecha — e a Vale está mesmo no
+      // bloco de commodities.
+      var dentro = (c.itens || [])
+        .filter(function (it) {
+          return it.setorChave === s.chave;
+        })
+        .map(function (it) {
+          return it.ticker;
+        });
+      // Alvo e aplicado divergem quando o teto por ativo morde. Dizer só o
+      // aplicado faria a política parecer ignorada; dizer só o alvo esconderia
+      // que ela cedeu.
+      var cedeu = s.alvoPct != null && Math.abs(s.alvoPct - s.peso) > 0.01;
+      return (
+        '<span class="cart-setor-chip' +
+        (cedeu ? ' cedeu' : '') +
+        '" title="' +
+        cartEsc(
+          s.nome +
+            ' — ' +
+            (cedeu
+              ? 'alvo ' +
+                Math.round(s.alvoPct * 100) +
+                '% da classe, aplicado ' +
+                Math.round(s.peso * 100) +
+                '% (teto de concentração por ativo, com ' +
+                s.nomes +
+                (s.nomes === 1 ? ' nome' : ' nomes') +
+                ' no setor)'
+              : Math.round(s.peso * 100) + '% da classe') +
+            (dentro.length ? ': ' + dentro.join(', ') : '') +
+            ' · ' +
+            s.candidatos +
+            (s.candidatos === 1 ? ' candidato pontuado' : ' candidatos pontuados') +
+            ' no setor'
+        ) +
+        '">' +
+        '<span class="cart-setor-nome">' +
+        cartEsc(s.nome) +
+        '</span>' +
+        '<span class="cart-setor-pct">' +
+        Math.round(s.peso * 100) +
+        '%</span></span>'
+      );
+    })
+    .join('');
+
+  var vazios = (c.setoresVazios || []).filter(function (v) {
+    return !v.candidatos;
+  });
+  var nota = vazios.length
+    ? '<div class="cart-setores-nota"><i class="ph ph-info"></i> ' +
+      vazios
+        .map(function (v) {
+          return cartEsc(v.nome);
+        })
+        .join(', ') +
+      (vazios.length === 1 ? ' ficou' : ' ficaram') +
+      ' sem candidato pontuado neste ciclo — o alvo foi redistribuído entre os setores acima.' +
+      '</div>'
+    : '';
+
+  // Ativo sem setor NÃO entra na política — não há bloco onde o colocar. Ele
+  // continua no ranking, com nota, e nunca recebe aporte. Sem esta linha isso
+  // acontece em silêncio: o utilizador vê o ativo bem pontuado na lista, não o
+  // vê no plano, e não há nada na tela que ligue as duas coisas.
+  var semSetor = c.semSetor
+    ? '<div class="cart-setores-nota"><i class="ph ph-warning"></i> ' +
+      c.semSetor +
+      (c.semSetor === 1
+        ? ' ativo pontuado ficou fora do plano por não ter setor'
+        : ' ativos pontuados ficaram fora do plano por não terem setor') +
+      ' — a política aloca por setor, e sem ele não há bloco onde os pôr.</div>'
+    : '';
+
+  return (
+    '<div class="cart-setores">' +
+    '<div class="cart-setores-titulo"><i class="ph ph-squares-four"></i> Diversificação por setor</div>' +
+    '<div class="cart-setores-lista">' +
+    chips +
+    '</div>' +
+    nota +
+    semSetor +
+    '</div>'
+  );
+}
+
 function cartRenderizarMotorPlano(plano) {
   var el = document.getElementById('cartMotorPlano');
   if (!el || !plano) return;
@@ -1713,15 +2081,33 @@ function cartRenderizarMotorPlano(plano) {
                     ';">' +
                     it.score +
                     '</span>';
+              var rot = cartRotuloAtivo(it);
+              // Nome longo do Tesouro entrava aqui inteiro, em monoespaçada e
+              // sem corte — era ele que esticava a coluna e empurrava a
+              // página para o lado no telemóvel.
+              // Mesma régua da lista: o que aparece é o setor A QUE O ATIVO
+              // PERTENCE. O bloco da política (`it.setorNome`) fica no title e
+              // na faixa acima — ele explica a alocação, não identifica o ativo.
+              var linhaIt = cartLinhaSetor(it);
+              var segunda = linhaIt.texto;
+              var tituloIt =
+                segunda +
+                (it.setorNome && it.setorNome !== linhaIt.rotulo
+                  ? ' — bloco ' + it.setorNome + ' da política'
+                  : '');
               return (
-                '<li class="cart-plano-item">' +
+                '<li class="cart-plano-item' +
+                (it.trocadoDe ? ' trocado' : '') +
+                '">' +
                 chip +
                 '<span class="cart-plano-body">' +
                 '<span class="cart-plano-ticker">' +
-                it.ticker +
+                cartEsc(rot.codigo) +
                 '</span>' +
-                '<span class="cart-plano-nome">' +
-                (it.nome || '') +
+                '<span class="cart-plano-nome" title="' +
+                cartEsc(tituloIt) +
+                '">' +
+                cartEsc(segunda) +
                 '</span>' +
                 '</span>' +
                 '<span class="cart-plano-right">' +
@@ -1730,6 +2116,18 @@ function cartRenderizarMotorPlano(plano) {
                 '</span>' +
                 qtd +
                 '</span>' +
+                '<button type="button" class="cart-plano-trocar" ' +
+                'onclick="cartAbrirTroca(\'' +
+                cartEsc(it.ticker) +
+                "','" +
+                it.classe +
+                '\')" title="' +
+                (it.trocadoDe
+                  ? 'Trocado por você no lugar de ' + cartEsc(it.trocadoDe)
+                  : 'Trocar este ativo') +
+                '" aria-label="Trocar ' +
+                cartEsc(it.ticker) +
+                '"><i class="ph ph-arrows-left-right"></i></button>' +
                 '</li>'
               );
             })
@@ -1755,6 +2153,7 @@ function cartRenderizarMotorPlano(plano) {
       formatarMoeda(c.alvo) +
       '</span>' +
       '</div></div>' +
+      cartRenderizarSetoresClasse(c) +
       '<ul class="cart-classe-list">' +
       linhas +
       '</ul>' +
@@ -1799,6 +2198,394 @@ function cartRenderizarMotorPlano(plano) {
     avisos;
 }
 
+// ════════════════════════════════════════════════════════════
+// LISTA DE ATIVOS — nome curto, separação por classe e busca
+// ════════════════════════════════════════════════════════════
+//
+// O problema que esta secção resolve não é de estilo, é de leitura. A lista
+// era um bloco único de quarenta e tal cards abertos: no telemóvel dava mais
+// de dez mil pixels de rolagem, e o utilizador tinha de percorrer FIIs e
+// cripto para chegar às ações. Ver tudo continua a ser possível — deixou é de
+// ser obrigatório para ver qualquer coisa.
+//
+// Três decisões, nesta ordem de importância:
+//   1. Um nível de cada vez (classe ativa), porque comparar ativos só faz
+//      sentido dentro da classe — não se escolhe entre um FII e um título do
+//      Tesouro pela mesma régua, e o motor nem os pontua pela mesma tabela.
+//   2. Card fechado por omissão, com o cabeçalho e os cinco pilares à vista.
+//      O que fica escondido é o texto (justificativa, lacunas, procedência),
+//      que é o que faz o card ter 300px — e é também o que só se lê depois de
+//      o ativo interessar.
+//   3. Página de 8 com "ver mais" em vez de rolagem infinita: o utilizador
+//      sabe quanto falta e o fim da lista existe.
+
+/** Quantos ativos a classe mostra antes do "ver mais". */
+var CART_RANK_PAGINA = 8;
+
+// Estado da lista. Vive fora do render porque sobrevive a ele: trocar de
+// lente redesenha os cards e não pode perder a classe aberta nem a busca.
+var cartRank = { classe: null, busca: '', limite: {} };
+
+/**
+ * "?" clicável, com a explicação atrás dele.
+ *
+ * Clique, não hover: no telemóvel hover não existe, e era lá que a
+ * explicação mais fazia falta. O balão abre em fluxo (flex-basis 100% dentro
+ * do .cart-motor-sub, que já é flex-wrap), empurrando o que vem abaixo —
+ * flutuar ancorado a um título é como se corta texto na borda a 320px.
+ *
+ * `texto` entra como HTML: as chamadas são todas literais nossas.
+ */
+function cartAjuda(id, texto) {
+  return (
+    '<button type="button" class="cart-ajuda-btn" id="' +
+    id +
+    'Btn" aria-expanded="false" aria-controls="' +
+    id +
+    '" aria-label="Como isto funciona" onclick="cartAlternarAjuda(\'' +
+    id +
+    '\')">?</button>' +
+    '<span class="cart-ajuda-balao" id="' +
+    id +
+    '" hidden>' +
+    texto +
+    '</span>'
+  );
+}
+
+/** Abre e fecha um balão de ajuda, mantendo o aria e o estado do botão. */
+function cartAlternarAjuda(id) {
+  var balao = document.getElementById(id);
+  var btn = document.getElementById(id + 'Btn');
+  if (!balao || !btn) return;
+  var aberto = !balao.hidden;
+  balao.hidden = aberto;
+  btn.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+  btn.classList.toggle('aberto', !aberto);
+}
+
+function cartEsc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// Tipo do título do Tesouro -> etiqueta curta. O nome publicado é a frase
+// inteira ("Tesouro IPCA+ com Juros Semestrais 2055"); o que identifica o
+// papel são três coisas: indexador, ano e se paga cupom.
+var CART_RF_TIPOS = [
+  { re: /renda\s*\+/i, curto: 'Renda+' },
+  { re: /educa\s*\+/i, curto: 'Educa+' },
+  { re: /ipca/i, curto: 'IPCA+' },
+  { re: /selic/i, curto: 'Selic' },
+  { re: /prefixado/i, curto: 'Prefixado' },
+  { re: /igpm|igp-m/i, curto: 'IGP-M' },
+];
+
+/**
+ * Rótulo de um ativo: o código curto que identifica, e o nome completo.
+ *
+ * Existe por causa da renda fixa. O "ticker" de um título do Tesouro é o nome
+ * inteiro maiúsculo com underscores — TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055,
+ * 44 caracteres em fonte monoespaçada dentro de um card de 310px. Não havia
+ * corte nenhum aplicado a ele: o card esticava, a grelha empurrava a página e
+ * o telemóvel ganhava rolagem horizontal — que era o sintoma relatado.
+ *
+ * O nome completo NÃO desaparece: fica na segunda linha, cortada com
+ * reticências, e no `title` do elemento. Encurtar o código e esconder o resto
+ * seria trocar um defeito por outro.
+ */
+function cartRotuloAtivo(a) {
+  var ticker = String((a && a.ticker) || '');
+  var nome = String((a && a.nome) || ticker || '');
+  if (!a || a.classe !== 'rf') {
+    return { codigo: ticker || nome, nome: nome, cupom: false };
+  }
+  var base = nome || ticker.replace(/_/g, ' ');
+  var curto = '';
+  for (var i = 0; i < CART_RF_TIPOS.length; i++) {
+    if (CART_RF_TIPOS[i].re.test(base)) {
+      curto = CART_RF_TIPOS[i].curto;
+      break;
+    }
+  }
+  var ano = (base.match(/(20\d\d)/) || [])[1] || '';
+  var cupom = /juros\s*semestrais|renda\s*\+|educa\s*\+/i.test(base);
+  // Sem indexador reconhecido o código curto seria uma invenção: fica o nome
+  // como está, e quem corta é o CSS.
+  if (!curto) return { codigo: nome || ticker, nome: nome, cupom: cupom };
+  return { codigo: (curto + (ano ? ' ' + ano : '')).trim(), nome: nome, cupom: cupom };
+}
+
+/**
+ * Identidade setorial de um ativo, nas duas réguas que a tela usa.
+ *
+ * `nome` é o SETOR A QUE O ATIVO PERTENCE — 'Mineração e Siderurgia' para a
+ * Vale, 'Logística' para o BTLG11. É o que identifica o ativo, e é o que a
+ * lista mostra ao lado do nome.
+ *
+ * `bucket` é o BLOCO DA POLÍTICA que vai decidir quanto ele recebe. Nos FIIs
+ * os dois coincidem, porque a política é feita sobre os segmentos do fundo.
+ * Nas ações NÃO coincidem, e era daí que vinha o rótulo errado: a Vale
+ * aparecia como 'Consumo/Commodities' — que é onde ela entra na alocação, não
+ * o que ela é. O bloco continua visível, mas na faixa de diversificação do
+ * plano, que é onde ele explica alguma coisa.
+ *
+ * Setor ausente devolve `nome: null`, e quem desenha diz que não foi
+ * informado. Preencher com o nome da classe faria 'Ações' parecer um setor.
+ */
+function cartSetorDoAtivo(a) {
+  if (!a) return null;
+  var buckets =
+    typeof MOTOR_SETORES_ALVO !== 'undefined' ? MOTOR_SETORES_ALVO[a.classe] || null : null;
+  var bucket = null;
+  if (buckets && typeof motorBucketSetor === 'function') {
+    var chaveBucket = motorBucketSetor(a, buckets);
+    for (var i = 0; chaveBucket && i < buckets.length; i++) {
+      if (buckets[i].chave === chaveBucket) bucket = buckets[i].nome;
+    }
+  }
+
+  if (a.classe === 'fii') {
+    var seg =
+      a.segmentoFii || (typeof motorSegmentoFii === 'function' ? motorSegmentoFii(a) : null);
+    return { chave: seg, nome: (seg && MOTOR_FII_SEGMENTO_NOMES[seg]) || bucket, bucket: bucket };
+  }
+
+  var canon = a.setorCanon || motorNormalizarSetor(a.setor);
+  if (!canon) return { chave: null, nome: null, bucket: bucket };
+  // 'outros' é setor que EXISTE e não está no mapa. Aí o rótulo do provedor
+  // informa mais do que um genérico nosso — 'Aeroespacial' vale mais que
+  // 'Outros setores'.
+  var nome = canon === 'outros' ? a.setor : MOTOR_SETOR_NOMES[canon] || a.setor;
+  return { chave: canon, nome: nome || null, bucket: bucket };
+}
+
+/**
+ * Segunda linha do ativo: nome da empresa e o setor a que ela pertence.
+ *
+ * Renda fixa e cripto não têm setor — e nem faz sentido terem: um título do
+ * Tesouro não pertence a um ramo da economia. Nessas duas a linha fica com o
+ * nome da classe, que é a informação disponível.
+ */
+function cartLinhaSetor(a) {
+  var setor = cartSetorDoAtivo(a);
+  var rotulo;
+  if (setor && setor.nome) rotulo = setor.nome;
+  else if (a.classe === 'acao' || a.classe === 'fii') rotulo = 'setor não informado';
+  else rotulo = CART_NOMES[a.classe];
+  return {
+    texto: [a.nome || '', rotulo]
+      .filter(function (v) {
+        return v;
+      })
+      .join(' · '),
+    setor: setor,
+    rotulo: rotulo,
+  };
+}
+
+/** Um card do ranking. `posicao` é a colocação DENTRO da classe. */
+function cartCardAtivo(a, posicao) {
+  var rotulo = cartRotuloAtivo(a);
+  var linha = cartLinhaSetor(a);
+  var setor = linha.setor;
+
+  var barras = MOTOR_PILARES.map(function (chave) {
+    var p = a.pilares[chave];
+    var nota = p && p.nota;
+    var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+
+    // Pilar calculado sobre menos de metade dos seus indicadores desenha
+    // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
+    // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
+    // lê-se como veredito — o mesmo erro que já corrigimos no score
+    // global, repetido dentro do pilar.
+    var comDado = p
+      ? p.metricas.filter(function (m) {
+          return m.nota !== null;
+        }).length
+      : 0;
+    var total = p ? p.metricas.length : 0;
+    var parcial = nota != null && total > 0 && comDado / total < 0.5;
+
+    var titulo =
+      p.nome +
+      ': ' +
+      cartFmtNota(nota) +
+      '/10' +
+      (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
+
+    return (
+      '<div class="cart-pilar" title="' +
+      titulo +
+      '">' +
+      '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
+      (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
+      '" style="height:' +
+      altura +
+      '%;background:' +
+      (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
+      ';"></div></div>' +
+      '<div class="cart-pilar-nota' +
+      (parcial ? ' parcial' : '') +
+      '">' +
+      cartFmtNota(nota) +
+      (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
+      '</div>' +
+      '<div class="cart-pilar-nome">' +
+      '<span class="cart-pilar-longo">' +
+      p.nome +
+      '</span><span class="cart-pilar-curto">' +
+      (MOTOR_PILAR_NOMES_CURTOS[chave] || p.nome) +
+      '</span></div>' +
+      '</div>'
+    );
+  }).join('');
+
+  var alertas = (a.alertas || []).length
+    ? '<ul class="cart-score-alertas">' +
+      a.alertas
+        .map(function (t) {
+          return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
+        })
+        .join('') +
+      '</ul>'
+    : '';
+
+  // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
+  // cinzento continuaria a ser lido como nota. O card passa a mostrar o
+  // que falta, que é a única informação verdadeira que temos do ativo.
+  var selo =
+    a.score === null
+      ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
+        '<i class="ph ph-minus-circle"></i></span>'
+      : '<span class="cart-score-badge" style="background:' +
+        cartCorScore(a.score) +
+        ';">' +
+        a.score +
+        '<small>/100</small></span>';
+
+  // Fonte que não respondeu tem conserto diferente de fonte que
+  // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
+  // manda o utilizador (e quem for depurar) na direção errada.
+  var indisponivel = a.indisponivel
+    ? '<div class="cart-score-faltando">' +
+      '<div class="cart-score-faltando-titulo">' +
+      '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
+      '</div>' +
+      '<div class="cart-score-faltando-linha">' +
+      (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
+      '</div></div>'
+    : '';
+
+  // Mostra o que faltou MESMO quando o ativo pontua. Antes só aparecia
+  // com score nulo, e o resultado era a pergunta que ninguém conseguia
+  // responder pela tela: "por que este FII não tem Crescimento e aquele
+  // tem?". O ativo pontuado é justamente o caso em que a lacuna passa
+  // despercebida — o número parece completo.
+  //
+  // O título muda conforme o papel da lacuna: com score nulo ela é o
+  // motivo de não haver nota; com score, é a ressalva de leitura.
+  var faltando =
+    !a.indisponivel && (a.faltando || []).length
+      ? '<div class="cart-score-faltando' +
+        (a.score === null ? '' : ' informativo') +
+        '">' +
+        '<div class="cart-score-faltando-titulo">' +
+        (a.score === null
+          ? '<i class="ph ph-database"></i> Faltam indicadores para pontuar'
+          : '<i class="ph ph-info"></i> Indicadores sem dado (não derrubam a nota, reduzem a cobertura)') +
+        '</div>' +
+        a.faltando
+          .map(function (f) {
+            return (
+              '<div class="cart-score-faltando-linha"><strong>' +
+              f.pilar +
+              ':</strong> ' +
+              f.metricas.join(', ') +
+              '</div>'
+            );
+          })
+          .join('') +
+        '</div>'
+      : '';
+
+  // Chave de busca: código, nome e setor já sem acento nem pontuação, para o
+  // filtro comparar substring sem repetir a normalização a cada tecla.
+  // Busca pelas TRÊS formas de nomear o setor: o rótulo da tela, o bloco da
+  // política e o texto cru do provedor. Quem digita 'consumo' procura o bloco;
+  // quem digita 'mineração' procura o setor; quem digita 'basic materials'
+  // está a repetir o que viu noutro lugar. Os três têm de achar a Vale.
+  var chaveBusca = cartNormalizarNome(
+    [
+      a.ticker,
+      rotulo.codigo,
+      a.nome,
+      linha.rotulo,
+      setor && setor.bucket ? setor.bucket : '',
+      a.setor || '',
+    ].join(' ')
+  );
+
+  var linhaNome = linha.texto;
+  // O bloco da política fica no title: na lista ele não identifica o ativo, e
+  // no plano ele já tem faixa própria.
+  var tituloNome =
+    linhaNome +
+    (setor && setor.bucket && setor.bucket !== linha.rotulo
+      ? ' — no plano entra no bloco ' + setor.bucket
+      : '');
+
+  return (
+    '<article class="cart-score-card' +
+    (a.score === null ? ' sem-dado' : '') +
+    '" data-classe="' +
+    a.classe +
+    '" data-busca="' +
+    cartEsc(chaveBusca) +
+    '">' +
+    '<button type="button" class="cart-score-head" aria-expanded="false" ' +
+    'onclick="cartAlternarCard(this)">' +
+    '<span class="cart-score-pos">' +
+    (posicao == null ? '—' : '#' + posicao) +
+    '</span>' +
+    '<span class="cart-score-id">' +
+    '<span class="cart-score-ticker">' +
+    cartEsc(rotulo.codigo) +
+    (rotulo.cupom ? '<span class="cart-score-tag">juros semestrais</span>' : '') +
+    '</span>' +
+    '<span class="cart-score-nome" title="' +
+    cartEsc(tituloNome) +
+    '">' +
+    cartEsc(linhaNome) +
+    '</span>' +
+    '</span>' +
+    selo +
+    '<i class="ph ph-caret-down cart-score-caret" aria-hidden="true"></i>' +
+    '</button>' +
+    '<div class="cart-pilares">' +
+    barras +
+    '</div>' +
+    '<div class="cart-score-detalhe">' +
+    '<div class="cart-score-just">' +
+    motorJustificativa(a) +
+    ' <span class="cart-score-conf conf-' +
+    a.confianca +
+    '">' +
+    (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
+    '</span></div>' +
+    indisponivel +
+    faltando +
+    cartProcedencia(a) +
+    alertas +
+    '</div>' +
+    '</article>'
+  );
+}
+
 function cartRenderizarMotorRanking(ranking) {
   var el = document.getElementById('cartMotorRanking');
   if (!el) return;
@@ -1808,163 +2595,835 @@ function cartRenderizarMotorRanking(ranking) {
     return;
   }
 
-  el.innerHTML = ranking
-    .map(function (a) {
-      var barras = MOTOR_PILARES.map(function (chave) {
-        var p = a.pilares[chave];
-        var nota = p && p.nota;
-        var altura = nota != null ? Math.max(4, (nota / 10) * 100) : 0;
+  var porClasse = {};
+  MOTOR_CLASSES.forEach(function (c) {
+    porClasse[c] = [];
+  });
+  ranking.forEach(function (a) {
+    (porClasse[a.classe] || (porClasse[a.classe] = [])).push(a);
+  });
 
-        // Pilar calculado sobre menos de metade dos seus indicadores desenha
-        // uma barra cheia igual à de um pilar completo. Um 10,0 de Qualidade
-        // apoiado só na liquidez diária, com ROE, ROIC e margem ausentes,
-        // lê-se como veredito — o mesmo erro que já corrigimos no score
-        // global, repetido dentro do pilar.
-        var comDado = p
-          ? p.metricas.filter(function (m) {
-              return m.nota !== null;
-            }).length
-          : 0;
-        var total = p ? p.metricas.length : 0;
-        var parcial = nota != null && total > 0 && comDado / total < 0.5;
+  var comAtivos = Object.keys(porClasse).filter(function (c) {
+    return porClasse[c].length;
+  });
+  // Classe gravada que deixou de existir no universo não pode deixar a tela
+  // vazia com a lista cheia por baixo.
+  if (comAtivos.indexOf(cartRank.classe) === -1) cartRank.classe = comAtivos[0] || null;
 
-        var titulo =
-          p.nome +
-          ': ' +
-          cartFmtNota(nota) +
-          '/10' +
-          (total ? ' · ' + comDado + ' de ' + total + ' indicadores' : '');
-
-        return (
-          '<div class="cart-pilar" title="' +
-          titulo +
-          '">' +
-          '<div class="cart-pilar-trilho"><div class="cart-pilar-barra' +
-          (nota == null ? ' vazio' : parcial ? ' parcial' : '') +
-          '" style="height:' +
-          altura +
-          '%;background:' +
-          (nota == null ? 'var(--cor-borda2)' : cartCorScore(nota * 10)) +
-          ';"></div></div>' +
-          '<div class="cart-pilar-nota' +
-          (parcial ? ' parcial' : '') +
-          '">' +
-          cartFmtNota(nota) +
-          (parcial ? '<span class="cart-pilar-fracao">' + comDado + '/' + total + '</span>' : '') +
-          '</div>' +
-          '<div class="cart-pilar-nome">' +
-          p.nome +
-          '</div>' +
-          '</div>'
-        );
-      }).join('');
-
-      var alertas = (a.alertas || []).length
-        ? '<ul class="cart-score-alertas">' +
-          a.alertas
-            .map(function (t) {
-              return '<li><i class="ph ph-warning"></i> ' + t + '</li>';
-            })
-            .join('') +
-          '</ul>'
-        : '';
-
-      // Sem lastro o selo NÃO é um número: é a ausência dele. Pintar "25" de
-      // cinzento continuaria a ser lido como nota. O card passa a mostrar o
-      // que falta, que é a única informação verdadeira que temos do ativo.
-      var selo =
-        a.score === null
-          ? '<span class="cart-score-badge sem-dado" title="Indicadores insuficientes">' +
-            '<i class="ph ph-minus-circle"></i></span>'
-          : '<span class="cart-score-badge" style="background:' +
-            cartCorScore(a.score) +
-            ';">' +
-            a.score +
-            '<small>/100</small></span>';
-
-      // Fonte que não respondeu tem conserto diferente de fonte que
-      // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
-      // manda o utilizador (e quem for depurar) na direção errada.
-      var indisponivel = a.indisponivel
-        ? '<div class="cart-score-faltando">' +
-          '<div class="cart-score-faltando-titulo">' +
-          '<i class="ph ph-plugs"></i> Nenhuma fonte de mercado respondeu' +
-          '</div>' +
-          '<div class="cart-score-faltando-linha">' +
-          (a.motivoIndisponivel || 'Sem detalhe da fonte.') +
-          '</div></div>'
-        : '';
-
-      // Mostra o que faltou MESMO quando o ativo pontua. Antes só aparecia
-      // com score nulo, e o resultado era a pergunta que ninguém conseguia
-      // responder pela tela: "por que este FII não tem Crescimento e aquele
-      // tem?". O ativo pontuado é justamente o caso em que a lacuna passa
-      // despercebida — o número parece completo.
-      //
-      // O título muda conforme o papel da lacuna: com score nulo ela é o
-      // motivo de não haver nota; com score, é a ressalva de leitura.
-      var faltando =
-        !a.indisponivel && (a.faltando || []).length
-          ? '<div class="cart-score-faltando' +
-            (a.score === null ? '' : ' informativo') +
-            '">' +
-            '<div class="cart-score-faltando-titulo">' +
-            (a.score === null
-              ? '<i class="ph ph-database"></i> Faltam indicadores para pontuar'
-              : '<i class="ph ph-info"></i> Indicadores sem dado (não derrubam a nota, reduzem a cobertura)') +
-            '</div>' +
-            a.faltando
-              .map(function (f) {
-                return (
-                  '<div class="cart-score-faltando-linha"><strong>' +
-                  f.pilar +
-                  ':</strong> ' +
-                  f.metricas.join(', ') +
-                  '</div>'
-                );
-              })
-              .join('') +
-            '</div>'
-          : '';
-
+  var tabs = comAtivos
+    .map(function (classe) {
+      var pontuados = porClasse[classe].filter(function (a) {
+        return a.score !== null;
+      }).length;
       return (
-        '<div class="cart-score-card' +
-        (a.score === null ? ' sem-dado' : '') +
+        '<button type="button" role="tab" class="cart-rank-tab cart-rank-tab-' +
+        classe +
+        (classe === cartRank.classe ? ' active' : '') +
+        '" data-classe="' +
+        classe +
+        '" aria-selected="' +
+        (classe === cartRank.classe ? 'true' : 'false') +
+        '" title="' +
+        pontuados +
+        ' de ' +
+        porClasse[classe].length +
+        ' pontuados" onclick="cartTrocarClasseRanking(\'' +
+        classe +
+        '\')">' +
+        '<i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i><span>' +
+        (CART_NOMES[classe] || classe) +
+        '</span>' +
+        '<span class="cart-rank-tab-n">' +
+        porClasse[classe].length +
+        '</span></button>'
+      );
+    })
+    .join('');
+
+  var grupos = comAtivos
+    .map(function (classe) {
+      var lista = porClasse[classe];
+      var pos = 0;
+      var cards = lista
+        .map(function (a) {
+          // Ativo sem score não ocupa colocação: entra na lista, fora do
+          // ranking. Numerá-lo diria que ele perdeu para os de cima, quando
+          // na verdade ele nem foi medido.
+          return cartCardAtivo(a, a.score === null ? null : ++pos);
+        })
+        .join('');
+      return (
+        '<section class="cart-rank-grupo" data-classe="' +
+        classe +
         '">' +
-        '<div class="cart-score-head">' +
-        '<span class="cart-score-pos">' +
-        (a.score === null ? '—' : '#' + a.posicao) +
-        '</span>' +
-        '<span class="cart-score-id">' +
-        '<span class="cart-score-ticker">' +
-        a.ticker +
-        '</span>' +
-        '<span class="cart-score-nome">' +
-        (a.nome || '') +
-        ' · ' +
-        CART_NOMES[a.classe] +
-        '</span>' +
-        '</span>' +
-        selo +
+        '<div class="cart-rank-grupo-head"><i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i> ' +
+        (CART_NOMES[classe] || classe) +
         '</div>' +
-        '<div class="cart-pilares">' +
-        barras +
+        '<div class="cart-rank-cards">' +
+        cards +
         '</div>' +
-        '<div class="cart-score-just">' +
-        motorJustificativa(a) +
-        ' <span class="cart-score-conf conf-' +
-        a.confianca +
+        '<button type="button" class="cart-rank-mais" data-classe="' +
+        classe +
+        '" onclick="cartVerMaisRanking(\'' +
+        classe +
+        '\')" hidden></button>' +
+        '</section>'
+      );
+    })
+    .join('');
+
+  el.innerHTML =
+    '<div class="cart-rank-toolbar">' +
+    '<div class="cart-rank-busca">' +
+    '<i class="ph ph-magnifying-glass"></i>' +
+    '<input type="search" id="cartRankBusca" class="cart-rank-input" autocomplete="off" ' +
+    'placeholder="Buscar por código, nome ou setor" aria-label="Buscar ativo" value="' +
+    cartEsc(cartRank.busca) +
+    '" oninput="cartFiltrarRanking()">' +
+    '<button type="button" class="cart-rank-limpar" id="cartRankLimpar" ' +
+    'aria-label="Limpar busca" onclick="cartLimparBuscaRanking()"' +
+    (cartRank.busca ? '' : ' hidden') +
+    '><i class="ph ph-x"></i></button>' +
+    '</div>' +
+    '<div class="cart-rank-tabs" role="tablist">' +
+    tabs +
+    '</div>' +
+    '</div>' +
+    '<div class="cart-rank-status" id="cartRankStatus"></div>' +
+    grupos;
+
+  cartAplicarFiltroRanking();
+}
+
+/**
+ * Aplica classe ativa, busca e paginação sobre os cards JÁ desenhados.
+ *
+ * Filtra por atributo em vez de redesenhar: redesenhar a cada tecla tira o
+ * foco do campo de busca no telemóvel — o teclado fecha e a pessoa perde o
+ * que estava a escrever. Todos os cards ficam no DOM; o que muda é quem está
+ * visível.
+ */
+function cartAplicarFiltroRanking() {
+  var wrap = document.getElementById('cartMotorRanking');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  var termo = cartNormalizarNome(cartRank.busca);
+  var buscando = termo.length > 0;
+  // A busca atravessa as classes: quem procura 'BBAS' não devia ter de
+  // adivinhar em que aba o ativo está. Com o resultado espalhado por várias
+  // classes, o cabeçalho de cada grupo passa a ser necessário — daí a classe
+  // no contentor, que é quem o liga no CSS.
+  if (wrap.classList && wrap.classList.toggle) wrap.classList.toggle('buscando', buscando);
+  var grupos = wrap.querySelectorAll('.cart-rank-grupo');
+  var achados = 0;
+  var totalClasses = 0;
+
+  // Classe ativa que não existe entre os grupos deixaria a lista inteira
+  // escondida com os cards todos no DOM — o pior estado possível, porque
+  // parece "sem ativos" e não é. Cai para o primeiro grupo.
+  var classes = Array.prototype.map.call(grupos, function (g) {
+    return g.getAttribute('data-classe');
+  });
+  if (classes.length && classes.indexOf(cartRank.classe) === -1) cartRank.classe = classes[0];
+
+  Array.prototype.forEach.call(grupos, function (grupo) {
+    var classe = grupo.getAttribute('data-classe');
+    var cards = grupo.querySelectorAll('.cart-score-card');
+    var casaram = [];
+    Array.prototype.forEach.call(cards, function (card) {
+      var chave = card.getAttribute('data-busca') || '';
+      if (!buscando || chave.indexOf(termo) !== -1) casaram.push(card);
+      else card.hidden = true;
+    });
+
+    // Durante a busca não há paginação: quem procurou um ativo pelo nome quer
+    // vê-lo, não descobrir que ele estava atrás de um "ver mais".
+    var limite = buscando ? casaram.length : cartRank.limite[classe] || CART_RANK_PAGINA;
+    casaram.forEach(function (card, i) {
+      card.hidden = i >= limite;
+    });
+
+    var visivel = buscando ? casaram.length > 0 : classe === cartRank.classe;
+    grupo.hidden = !visivel;
+    if (visivel) totalClasses++;
+    achados += casaram.length;
+
+    var mais = grupo.querySelector('.cart-rank-mais');
+    if (mais) {
+      var restam = casaram.length - limite;
+      mais.hidden = buscando || restam <= 0;
+      if (!mais.hidden)
+        mais.innerHTML =
+          '<i class="ph ph-caret-down"></i> Ver mais ' +
+          Math.min(restam, CART_RANK_PAGINA) +
+          ' de ' +
+          restam;
+    }
+  });
+
+  var limpar = document.getElementById('cartRankLimpar');
+  if (limpar) limpar.hidden = !buscando;
+
+  var status = document.getElementById('cartRankStatus');
+  if (!status) return;
+  if (buscando) {
+    status.innerHTML = achados
+      ? '<i class="ph ph-magnifying-glass"></i> ' +
+        achados +
+        (achados === 1 ? ' ativo encontrado' : ' ativos encontrados') +
+        ' em ' +
+        totalClasses +
+        (totalClasses === 1 ? ' classe' : ' classes') +
+        ' · <button type="button" class="cart-rank-link" onclick="cartLimparBuscaRanking()">limpar busca</button>'
+      : '<i class="ph ph-magnifying-glass"></i> Nenhum ativo com <strong>' +
+        cartEsc(cartRank.busca) +
+        '</strong> no código, no nome ou no setor. ' +
+        '<button type="button" class="cart-rank-link" onclick="cartLimparBuscaRanking()">limpar busca</button>';
+  } else {
+    status.innerHTML = '';
+  }
+}
+
+function cartTrocarClasseRanking(classe) {
+  cartRank.classe = classe;
+  var wrap = document.getElementById('cartMotorRanking');
+  if (wrap && typeof wrap.querySelectorAll === 'function') {
+    Array.prototype.forEach.call(wrap.querySelectorAll('.cart-rank-tab'), function (b) {
+      var ativa = b.getAttribute('data-classe') === classe;
+      b.classList.toggle('active', ativa);
+      b.setAttribute('aria-selected', ativa ? 'true' : 'false');
+    });
+  }
+  cartAplicarFiltroRanking();
+}
+
+function cartVerMaisRanking(classe) {
+  cartRank.limite[classe] = (cartRank.limite[classe] || CART_RANK_PAGINA) + CART_RANK_PAGINA;
+  cartAplicarFiltroRanking();
+}
+
+function cartFiltrarRanking() {
+  var input = document.getElementById('cartRankBusca');
+  cartRank.busca = input && input.value != null ? String(input.value) : '';
+  cartAplicarFiltroRanking();
+}
+
+function cartLimparBuscaRanking() {
+  cartRank.busca = '';
+  var input = document.getElementById('cartRankBusca');
+  if (input) {
+    input.value = '';
+    if (typeof input.focus === 'function') input.focus();
+  }
+  cartAplicarFiltroRanking();
+}
+
+/** Abre/fecha o detalhe de um card. */
+function cartAlternarCard(botao) {
+  if (!botao || typeof botao.closest !== 'function') return;
+  var card = botao.closest('.cart-score-card');
+  if (!card) return;
+  var aberto = card.classList.toggle('aberto');
+  botao.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+}
+
+// ── Trocar um ativo do plano ──
+//
+// A troca é do LUGAR, não da carteira: o motor decidiu que aquele slot vale
+// R$ 320, e pôr outro ticker ali não reordena nada. É o que a torna previsível
+// — trocar um banco por outro não pode mudar quanto vai para energia.
+//
+// Vive fora do motor porque é uma decisão do utilizador sobre o resultado, não
+// uma regra de cálculo: o motor continua a produzir a MESMA carteira, e a
+// troca é aplicada por cima, declarada na tela e desfazível.
+
+/** Índice ticker -> ativo pontuado, para a troca achar o substituto. */
+function cartIndicePorTicker(ranking) {
+  var idx = {};
+  (ranking || []).forEach(function (a) {
+    if (a && a.ticker) idx[a.ticker] = a;
+  });
+  return idx;
+}
+
+/** Aplica as trocas gravadas sobre o plano já calculado. */
+function cartAplicarTrocas(plano, ranking) {
+  var trocas = cartCustom().trocas;
+  if (!plano || !trocas || !Object.keys(trocas).length) return plano;
+  var idx = cartIndicePorTicker(ranking);
+  var total = 0;
+
+  MOTOR_CLASSES.forEach(function (classe) {
+    var c = plano.classes[classe];
+    if (!c || !c.itens || !c.itens.length) return;
+    var jaNaClasse = {};
+    c.itens.forEach(function (it) {
+      jaNaClasse[it.ticker] = true;
+    });
+
+    c.itens.forEach(function (it) {
+      var para = trocas[it.ticker];
+      var novo = para && idx[para];
+      // Troca inválida é ignorada em silêncio de propósito: o substituto pode
+      // ter saído do universo entre uma sessão e outra, e nesse caso o certo é
+      // voltar ao ativo do motor — não deixar o plano sem aquele lugar.
+      if (!novo || novo.classe !== classe || jaNaClasse[para]) return;
+      var deOriginal = it.ticker;
+      it.trocadoDe = deOriginal;
+      it.ticker = novo.ticker;
+      it.nome = novo.nome;
+      it.score = novo.score;
+      it.confianca = novo.confianca;
+      it.alertas = novo.alertas || [];
+      it.preco = typeof novo.preco === 'number' ? novo.preco : null;
+      it.setor = novo.setor || null;
+      it.setorCanon = novo.setorCanon || null;
+      it.segmentoFii = novo.segmentoFii || null;
+      it.justificativa = motorJustificativa(novo);
+      motorRecalcularItemTrocado(it, classe);
+      jaNaClasse[novo.ticker] = true;
+      delete jaNaClasse[deOriginal];
+    });
+
+    var investido = 0;
+    c.itens.forEach(function (it) {
+      investido += it.valorInvestido;
+    });
+    c.investido = motorArred(investido, 2);
+    c.sobra = motorArred(c.alvo - investido, 2);
+    total += c.investido;
+  });
+
+  plano.totalInvestido = motorArred(total, 2);
+  plano.sobra = motorArred(plano.aporte - plano.totalInvestido - (plano.retido || 0), 2);
+  plano.itens = [];
+  MOTOR_CLASSES.forEach(function (classe) {
+    var c = plano.classes[classe];
+    if (!c || !c.itens) return;
+    c.itens.forEach(function (it) {
+      it.pctAporte = plano.aporte > 0 ? motorArred((it.valorInvestido / plano.aporte) * 100, 1) : 0;
+      plano.itens.push(it);
+    });
+  });
+  return plano;
+}
+
+/** Candidatos para substituir um ativo: mesma classe, fora do plano. */
+function cartCandidatosTroca(classe, atual) {
+  var noPlano = {};
+  var c = cartMotor.plano && cartMotor.plano.classes && cartMotor.plano.classes[classe];
+  (c && c.itens ? c.itens : []).forEach(function (it) {
+    if (it.ticker !== atual) noPlano[it.ticker] = true;
+  });
+  return (cartMotor.ranking || [])
+    .filter(function (a) {
+      // Ativo sem setor aparece aqui como qualquer outro: quem escolhe à mão
+      // não devia ser barrado por uma lacuna da nossa fonte de dados.
+      return a.classe === classe && a.ticker !== atual && !noPlano[a.ticker];
+    })
+    .sort(function (x, y) {
+      var sx = x.score == null ? -1 : x.score;
+      var sy = y.score == null ? -1 : y.score;
+      if (sy !== sx) return sy - sx;
+      return String(x.ticker).localeCompare(String(y.ticker));
+    });
+}
+
+var cartTrocaAberta = null;
+
+function cartAbrirTroca(ticker, classe) {
+  cartTrocaAberta = { ticker: ticker, classe: classe, busca: '' };
+  cartRenderizarTroca();
+}
+
+function cartFecharTroca() {
+  cartTrocaAberta = null;
+  cartRenderizarTroca();
+}
+
+function cartFiltrarTroca() {
+  var input = document.getElementById('cartTrocaBusca');
+  if (cartTrocaAberta) cartTrocaAberta.busca = (input && input.value) || '';
+  cartRenderizarTroca(true);
+}
+
+/** Confirma a troca e recalcula. */
+function cartConfirmarTroca(de, para) {
+  var c = cartCustom();
+  if (!c.trocas) c.trocas = {};
+  if (para) c.trocas[de] = para;
+  else delete c.trocas[de];
+  if (!Object.keys(c.trocas).length) c.trocas = null;
+  // Trocar é personalizar: sem isto a troca seria apagada no próximo render,
+  // que lê o estado a partir de cartCustomAtivo().
+  c.ativo = true;
+  cartSalvarEstado();
+  cartFecharTroca();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+}
+
+/** Desfaz a troca de um lugar, voltando ao ativo que o motor escolheu. */
+function cartDesfazerTroca(ticker) {
+  var c = cartCustom();
+  if (!c.trocas) return;
+  // A chave é o ativo ORIGINAL; na tela vê-se o substituto.
+  Object.keys(c.trocas).forEach(function (de) {
+    if (de === ticker || c.trocas[de] === ticker) delete c.trocas[de];
+  });
+  if (!Object.keys(c.trocas).length) c.trocas = null;
+  cartSalvarEstado();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+}
+
+/** Folha de escolha do substituto. */
+function cartRenderizarTroca(soLista) {
+  var el = document.getElementById('cartTrocaWrap');
+  if (!el) return;
+  if (!cartTrocaAberta) {
+    el.innerHTML = '';
+    return;
+  }
+  var alvo = cartTrocaAberta;
+  var candidatos = cartCandidatosTroca(alvo.classe, alvo.ticker);
+  var termo = cartNormalizarNome(alvo.busca || '');
+  if (termo) {
+    candidatos = candidatos.filter(function (a) {
+      var linha = cartLinhaSetor(a);
+      return cartNormalizarNome(a.ticker + ' ' + a.nome + ' ' + linha.rotulo).indexOf(termo) !== -1;
+    });
+  }
+
+  var linhas = candidatos.length
+    ? candidatos
+        .map(function (a) {
+          var rot = cartRotuloAtivo(a);
+          var linha = cartLinhaSetor(a);
+          return (
+            '<button type="button" class="cart-troca-op" onclick="cartConfirmarTroca(\'' +
+            cartEsc(alvo.ticker) +
+            "','" +
+            cartEsc(a.ticker) +
+            '\')">' +
+            '<span class="cart-troca-op-score" style="background:' +
+            (a.score == null ? 'var(--cor-borda2)' : cartCorScore(a.score)) +
+            ';">' +
+            (a.score == null ? '—' : a.score) +
+            '</span>' +
+            '<span class="cart-troca-op-id">' +
+            '<span class="cart-troca-op-cod">' +
+            cartEsc(rot.codigo) +
+            '</span>' +
+            '<span class="cart-troca-op-nome">' +
+            cartEsc(linha.texto) +
+            '</span></span>' +
+            '<i class="ph ph-arrow-right"></i></button>'
+          );
+        })
+        .join('')
+    : '<div class="cart-troca-vazio">Nenhum candidato' +
+      (termo ? ' com esse termo' : ' disponível nesta classe') +
+      '.</div>';
+
+  if (soLista) {
+    var lista = document.getElementById('cartTrocaLista');
+    if (lista) {
+      lista.innerHTML = linhas;
+      return;
+    }
+  }
+
+  var trocado = cartCustom().trocas && cartCustom().trocas[alvo.ticker];
+  el.innerHTML =
+    '<div class="cart-troca-fundo" onclick="cartFecharTroca()"></div>' +
+    '<div class="cart-troca-folha" role="dialog" aria-label="Trocar ativo">' +
+    '<div class="cart-troca-head">' +
+    '<span>Trocar <strong>' +
+    cartEsc(alvo.ticker) +
+    '</strong></span>' +
+    '<button type="button" class="cart-troca-fechar" onclick="cartFecharTroca()" ' +
+    'aria-label="Fechar"><i class="ph ph-x"></i></button></div>' +
+    '<div class="cart-troca-nota">O lugar mantém o valor que o motor destinou a ele. ' +
+    'A divisão por classe e por setor não muda.</div>' +
+    '<div class="cart-rank-busca cart-troca-busca">' +
+    '<i class="ph ph-magnifying-glass"></i>' +
+    '<input type="search" id="cartTrocaBusca" class="cart-rank-input" autocomplete="off" ' +
+    'placeholder="Buscar por código, nome ou setor" aria-label="Buscar substituto" ' +
+    'value="' +
+    cartEsc(alvo.busca || '') +
+    '" oninput="cartFiltrarTroca()"></div>' +
+    '<div class="cart-troca-lista" id="cartTrocaLista">' +
+    linhas +
+    '</div>' +
+    (trocado
+      ? '<button type="button" class="cart-troca-desfazer" onclick="cartDesfazerTroca(\'' +
+        cartEsc(alvo.ticker) +
+        '\')"><i class="ph ph-arrow-counter-clockwise"></i> Voltar ao ativo do motor</button>'
+      : '') +
+    '</div>';
+}
+
+// ── Painel de personalização ──
+
+/** Uma linha de peso: nome, controle e percentagem. */
+function cartCustomLinha(grupo, chave, nome, valor, icone) {
+  return (
+    '<label class="cart-custom-linha">' +
+    '<span class="cart-custom-linha-nome">' +
+    (icone ? '<i class="ph ' + icone + '"></i>' : '') +
+    cartEsc(nome) +
+    '</span>' +
+    '<input type="range" min="0" max="100" step="1" value="' +
+    Math.round(valor) +
+    '" class="cart-custom-range" data-grupo="' +
+    grupo +
+    '" data-chave="' +
+    chave +
+    '" oninput="cartCustomMudou(this)" aria-label="' +
+    cartEsc(nome) +
+    '">' +
+    '<output class="cart-custom-linha-pct">' +
+    Math.round(valor) +
+    '%</output>' +
+    '</label>'
+  );
+}
+
+/** Lista de ativos de uma classe, com marcação. */
+function cartCustomAtivosClasse(classe, ranking) {
+  var lista = (ranking || []).filter(function (a) {
+    return a.classe === classe;
+  });
+  if (!lista.length) return '';
+  var escolha = cartCustom().ativos && cartCustom().ativos[classe];
+  var itens = lista
+    .map(function (a) {
+      // Sem escolha gravada, tudo entra — é o estado "a recomendação decide".
+      var marcado = !escolha || !escolha.length || escolha.indexOf(a.ticker) !== -1;
+      var rot = cartRotuloAtivo(a);
+      return (
+        '<label class="cart-custom-ativo' +
+        (marcado ? '' : ' fora') +
         '">' +
-        (a.confianca === 'insuficiente' ? 'dados insuficientes' : 'confiança ' + a.confianca) +
-        '</span></div>' +
-        indisponivel +
-        faltando +
-        cartProcedencia(a) +
-        alertas +
+        '<input type="checkbox" data-grupo="ativo" data-classe="' +
+        classe +
+        '" value="' +
+        cartEsc(a.ticker) +
+        '"' +
+        (marcado ? ' checked' : '') +
+        ' onchange="cartCustomMudouAtivo(this)">' +
+        '<span class="cart-custom-ativo-cod">' +
+        cartEsc(rot.codigo) +
+        '</span>' +
+        '<span class="cart-custom-ativo-score">' +
+        (a.score == null ? '—' : a.score) +
+        '</span>' +
+        '</label>'
+      );
+    })
+    .join('');
+
+  return (
+    '<div class="cart-custom-ativos-grupo" data-classe="' +
+    classe +
+    '">' +
+    '<div class="cart-custom-ativos-head">' +
+    '<span><i class="ph ' +
+    CART_ICONS[classe] +
+    '"></i> ' +
+    (CART_NOMES[classe] || classe) +
+    '</span>' +
+    '<span class="cart-custom-conta" data-classe="' +
+    classe +
+    '"></span>' +
+    '<button type="button" class="cart-custom-todos" onclick="cartCustomTodos(\'' +
+    classe +
+    '\')">todos</button>' +
+    '<button type="button" class="cart-custom-todos" onclick="cartCustomNenhum(\'' +
+    classe +
+    '\')">nenhum</button>' +
+    '</div>' +
+    '<div class="cart-custom-ativos-lista">' +
+    itens +
+    '</div></div>'
+  );
+}
+
+/**
+ * Desenha o painel inteiro a partir do estado atual.
+ *
+ * Os valores de partida são SEMPRE os da recomendação quando o utilizador
+ * ainda não mexeu. Abrir com tudo em zero obrigaria a montar do nada; abrir
+ * com a nossa proposta transforma o painel num ajuste em cima de algo que já
+ * faz sentido — que é a diferença entre uma ferramenta e um formulário.
+ */
+function cartRenderizarCustom() {
+  var el = document.getElementById('cartCustomWrap');
+  if (!el) return;
+  var ranking = cartMotor.ranking || [];
+  var c = cartCustom();
+  var alocRecomendada = (function () {
+    var antes = c.ativo;
+    c.ativo = false;
+    var a = cartAlocacaoAlvo();
+    c.ativo = antes;
+    return a;
+  })();
+  var aloc = c.alloc || alocRecomendada;
+
+  var linhasClasse = MOTOR_CLASSES.map(function (classe) {
+    return cartCustomLinha(
+      'classe',
+      classe,
+      CART_NOMES[classe] || classe,
+      Number(aloc[classe]) || 0,
+      CART_ICONS[classe]
+    );
+  }).join('');
+
+  var blocosSetor = ['acao', 'fii']
+    .map(function (classe) {
+      var buckets = (typeof MOTOR_SETORES_ALVO !== 'undefined' && MOTOR_SETORES_ALVO[classe]) || [];
+      if (!buckets.length) return '';
+      var somaBase = buckets.reduce(function (s, b) {
+        return s + b.alvo;
+      }, 0);
+      var pesos = (c.setores && c.setores[classe]) || null;
+      var linhas = buckets
+        .map(function (b) {
+          // Sem escolha, o valor de partida é o alvo da política já
+          // normalizado para a classe — o mesmo número que a faixa do plano
+          // mostra, para o painel e o resultado não discordarem.
+          var v = pesos ? Number(pesos[b.chave]) || 0 : (b.alvo / somaBase) * 100;
+          return cartCustomLinha('setor:' + classe, b.chave, b.nome, v, null);
+        })
+        .join('');
+      return (
+        '<div class="cart-custom-setor-bloco">' +
+        '<div class="cart-custom-setor-titulo"><i class="ph ' +
+        CART_ICONS[classe] +
+        '"></i> ' +
+        (CART_NOMES[classe] || classe) +
+        '<span class="cart-custom-total" data-grupo="setor:' +
+        classe +
+        '"></span></div>' +
+        linhas +
         '</div>'
       );
     })
     .join('');
+
+  var blocosAtivos = MOTOR_CLASSES.map(function (classe) {
+    return cartCustomAtivosClasse(classe, ranking);
+  }).join('');
+
+  var ligado = cartCustomAtivo();
+
+  el.innerHTML =
+    '<div class="cart-custom-cta' +
+    (ligado ? ' ligado' : '') +
+    '">' +
+    '<i class="ph ' +
+    (ligado ? 'ph-sliders-horizontal' : 'ph-seal-check') +
+    '"></i>' +
+    '<div class="cart-custom-cta-txt"><strong>' +
+    (ligado ? 'Carteira personalizada por você' : 'Esta é a nossa recomendação') +
+    '</strong><span>' +
+    (ligado
+      ? 'A divisão, os setores e os ativos acima seguem o que você definiu. ' +
+        'A recomendação continua a um clique de distância.'
+      : 'Perfil, objetivo e prazo definiram a divisão entre classes; a política de setores ' +
+        'decidiu quanto vai para cada setor; e o score escolheu os ativos dentro de cada um.') +
+    '</span></div>' +
+    '<button type="button" class="cart-custom-abrir" onclick="cartAbrirCustom()">' +
+    '<i class="ph ph-sliders-horizontal"></i> ' +
+    (ligado ? 'Ajustar' : 'Montar do meu jeito') +
+    '</button>' +
+    (ligado
+      ? '<button type="button" class="cart-custom-voltar" onclick="cartRestaurarRecomendacao()">' +
+        '<i class="ph ph-arrow-counter-clockwise"></i> Voltar à recomendação</button>'
+      : '') +
+    '</div>' +
+    '<div class="cart-custom-painel" id="cartCustomPainel" hidden>' +
+    '<div class="cart-custom-head">' +
+    '<span><i class="ph ph-sliders-horizontal"></i> Montar do meu jeito</span>' +
+    '<button type="button" class="cart-custom-fechar" onclick="cartFecharCustom()" ' +
+    'aria-label="Fechar"><i class="ph ph-x"></i></button>' +
+    '</div>' +
+    '<div class="cart-custom-aviso"><i class="ph ph-info"></i> ' +
+    'A partir daqui a decisão é sua: o motor continua a pontuar e a distribuir o aporte, ' +
+    'só deixa de escolher a divisão. Passo não mexido mantém a recomendação.</div>' +
+    // Passo 1
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">1</span>' +
+    'Divisão entre as classes' +
+    '<span class="cart-custom-total" data-grupo="classe"></span></div>' +
+    linhasClasse +
+    '</section>' +
+    // Passo 2
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">2</span>' +
+    'Setores dentro de cada classe' +
+    '<span class="cart-custom-passo-nota">zerar um setor tira-o da carteira</span></div>' +
+    blocosSetor +
+    '</section>' +
+    // Passo 3
+    '<section class="cart-custom-passo">' +
+    '<div class="cart-custom-passo-head"><span class="cart-custom-n">3</span>' +
+    'Ativos que podem entrar' +
+    '<span class="cart-custom-passo-nota">desmarcados continuam na lista, fora do plano</span>' +
+    '</div>' +
+    blocosAtivos +
+    '</section>' +
+    '<div class="cart-custom-rodape">' +
+    '<button type="button" class="cart-custom-restaurar" onclick="cartRestaurarRecomendacao()">' +
+    'Voltar à recomendação</button>' +
+    '<button type="button" class="cart-custom-aplicar" onclick="cartAplicarCustom()">' +
+    '<i class="ph ph-check"></i> Aplicar minha carteira</button>' +
+    '</div></div>';
+
+  cartCustomAtualizarTotais();
+}
+
+/** Soma de um grupo de controles, para o rodapé do passo. */
+function cartCustomAtualizarTotais() {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  var somas = {};
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-range'), function (r) {
+    var g = r.getAttribute('data-grupo');
+    somas[g] = (somas[g] || 0) + (Number(r.value) || 0);
+  });
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-total'), function (t) {
+    var g = t.getAttribute('data-grupo');
+    var soma = Math.round(somas[g] || 0);
+    t.textContent = soma + '%';
+    // 100 é o alvo, mas não é obrigação: o "Aplicar" normaliza. A cor diz que
+    // ainda não fecha, sem impedir de continuar.
+    t.className = 'cart-custom-total' + (soma === 100 ? ' ok' : '');
+    t.title =
+      soma === 100
+        ? 'Fecha em 100%'
+        : 'Soma ' + soma + '% — ao aplicar, os pesos são reescalados para 100%';
+  });
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-conta'), function (c) {
+    var classe = c.getAttribute('data-classe');
+    var caixas = wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]');
+    var marcados = 0;
+    Array.prototype.forEach.call(caixas, function (x) {
+      if (x.checked) marcados++;
+    });
+    c.textContent = marcados + ' de ' + caixas.length;
+  });
+}
+
+function cartCustomMudou(input) {
+  if (!input) return;
+  var out = input.parentElement && input.parentElement.querySelector('.cart-custom-linha-pct');
+  if (out) out.textContent = Math.round(Number(input.value) || 0) + '%';
+  cartCustomAtualizarTotais();
+}
+
+function cartCustomMudouAtivo(input) {
+  if (input && input.parentElement && input.parentElement.classList)
+    input.parentElement.classList.toggle('fora', !input.checked);
+  cartCustomAtualizarTotais();
+}
+
+function cartCustomMarcar(classe, valor) {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+  Array.prototype.forEach.call(
+    wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]'),
+    function (x) {
+      x.checked = valor;
+      if (x.parentElement && x.parentElement.classList)
+        x.parentElement.classList.toggle('fora', !valor);
+    }
+  );
+  cartCustomAtualizarTotais();
+}
+function cartCustomTodos(classe) {
+  cartCustomMarcar(classe, true);
+}
+function cartCustomNenhum(classe) {
+  cartCustomMarcar(classe, false);
+}
+
+function cartAbrirCustom() {
+  var p = document.getElementById('cartCustomPainel');
+  if (!p) return;
+  p.hidden = false;
+  if (typeof p.scrollIntoView === 'function')
+    p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function cartFecharCustom() {
+  var p = document.getElementById('cartCustomPainel');
+  if (p) p.hidden = true;
+}
+
+/** Lê o painel, normaliza e recalcula o plano. */
+function cartAplicarCustom() {
+  var wrap = document.getElementById('cartCustomWrap');
+  if (!wrap || typeof wrap.querySelectorAll !== 'function') return;
+
+  var brutos = {};
+  Array.prototype.forEach.call(wrap.querySelectorAll('.cart-custom-range'), function (r) {
+    var g = r.getAttribute('data-grupo');
+    (brutos[g] || (brutos[g] = {}))[r.getAttribute('data-chave')] = Number(r.value) || 0;
+  });
+
+  var c = cartCustom();
+  c.alloc = cartNormalizar100(brutos.classe || {});
+  c.setores = {};
+  ['acao', 'fii'].forEach(function (classe) {
+    var g = brutos['setor:' + classe];
+    var n = g ? cartNormalizar100(g) : null;
+    if (n) c.setores[classe] = n;
+  });
+  if (!Object.keys(c.setores).length) c.setores = null;
+
+  c.ativos = {};
+  MOTOR_CLASSES.forEach(function (classe) {
+    var caixas = wrap.querySelectorAll('.cart-custom-ativo input[data-classe="' + classe + '"]');
+    if (!caixas.length) return;
+    var marcados = [];
+    Array.prototype.forEach.call(caixas, function (x) {
+      if (x.checked) marcados.push(x.value);
+    });
+    // Tudo marcado é o mesmo que não restringir. Gravar a lista inteira
+    // congelaria o universo de hoje e faria o ativo novo de amanhã nascer
+    // excluído, sem ninguém perceber.
+    if (marcados.length && marcados.length < caixas.length) c.ativos[classe] = marcados;
+  });
+  if (!Object.keys(c.ativos).length) c.ativos = null;
+
+  c.ativo = true;
+  cartSalvarEstado();
+  cartFecharCustom();
+  cartRecalcularMotor();
+  // A tela do painel não pode depender de haver dado do motor.
+  // `cartRecalcularMotor` desiste cedo enquanto a busca não aconteceu, e sem
+  // esta linha o utilizador clicava em Aplicar, o painel fechava, e a barra
+  // continuava a dizer "Esta é a nossa recomendação" — que a essa altura já
+  // era mentira, e sem nenhum caminho de volta à vista.
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (typeof mostrarToast === 'function') mostrarToast('Carteira personalizada aplicada.');
+}
+
+/** Desliga o modo personalizado e apaga as escolhas. */
+function cartRestaurarRecomendacao() {
+  cartEstado.custom = cartCustomVazio();
+  cartSalvarEstado();
+  cartFecharCustom();
+  cartRecalcularMotor();
+  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (typeof mostrarToast === 'function') mostrarToast('De volta à carteira recomendada.');
 }
 
 // ════════════════════════════════
@@ -2068,14 +3527,14 @@ function cartRenderizarCriterios() {
   el.innerHTML =
     '<div class="cart-motor-sub"><i class="ph ph-list-magnifying-glass"></i> ' +
     'Critérios de análise e pontuação' +
-    '<span class="cart-motor-sub-nota">Cada indicador recebe nota de 0 a 10 por faixas fixas; ' +
-    'o pilar é a média ponderada dos seus indicadores, e o score é a média dos pilares pela lente ativa.</span>' +
-    '</div>' +
-    '<div class="cart-criterios-intro">' +
-    'Indicador sem dado não vira nota zero — ele sai da conta e reduz a cobertura do ativo. ' +
-    'Abaixo de ' +
-    Math.round(MOTOR_COBERTURA_MINIMA * 100) +
-    '% de cobertura o ativo deixa de ser pontuado, em vez de receber uma nota sem lastro.' +
+    cartAjuda(
+      'cartAjudaCriterios',
+      'Cada indicador recebe nota de 0 a 10 por faixas fixas; o pilar é a média ' +
+        'ponderada dos seus indicadores. Indicador sem dado não vira nota zero: sai ' +
+        'da conta e reduz a cobertura. Abaixo de ' +
+        Math.round(MOTOR_COBERTURA_MINIMA * 100) +
+        '% o ativo deixa de ser pontuado, em vez de receber nota sem lastro.'
+    ) +
     '</div>' +
     grupos +
     '<div class="cart-criterios-lente">' +

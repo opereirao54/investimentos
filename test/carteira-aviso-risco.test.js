@@ -17,6 +17,7 @@ const assert = require('node:assert/strict');
 
 const ROOT = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
+const disclaimer = require('../web/appliquei-disclaimer.js');
 
 /** Só a secção da carteira — o aviso tem de estar NELA, não noutra aba. */
 function secaoCarteira() {
@@ -32,19 +33,31 @@ function secaoCarteira() {
 test('o aviso de risco está na aba, com as quatro afirmações obrigatórias', () => {
   const sec = secaoCarteira();
   assert.ok(sec.includes('Aviso de risco'), 'o título do aviso');
+  assert.ok(sec.includes('id="cartRiscoWrap"'), 'o ponto onde o aviso é montado sumiu da aba');
+
+  // O texto deixou de ser HTML estático e passou a vir de
+  // appliquei-disclaimer.js, partilhado com a aba Regulamento. A exigência
+  // não mudou: as afirmações têm de CHEGAR ao usuário, e chegar SEM CLIQUE.
+  // Um aviso atrás de um botão fechado é um aviso que não foi dado.
+  const bloco = disclaimer.disclaimerHtmlBloco('cartRisco');
+  const visivel = bloco.slice(0, bloco.indexOf('<div class="disc-corpo"'));
+  assert.ok(visivel.length > 0, 'não foi possível separar a parte visível do bloco');
 
   // Cada frase carrega uma afirmação distinta e nenhuma é decorativa:
-  // caráter educacional, projeção que pode não se concretizar, risco de
-  // perda do capital, e passado que não garante futuro.
+  // caráter educacional, projeção meramente ilustrativa, risco de perda do
+  // capital, e passado que não garante futuro.
   const obrigatorias = [
     'caráter informativo e educacional',
-    'não representam garantia de rentabilidade',
-    'podendo não se concretizar',
+    'não representam garantia de resultados',
+    'meramente ilustrativas',
     'inclusive do capital investido',
-    'Rentabilidade passada não é garantia de rentabilidade futura',
+    'Rentabilidade passada não garante rentabilidade futura',
   ];
   for (const frase of obrigatorias) {
-    assert.ok(sec.includes(frase), `frase obrigatória ausente do aviso: "${frase}"`);
+    assert.ok(
+      visivel.includes(frase),
+      `frase obrigatória fora da parte visível do aviso: "${frase}"`
+    );
   }
 });
 
@@ -66,4 +79,36 @@ test('a tela não chama a carteira de "recomendada" nem expõe o consultor', () 
   assert.ok(sec.includes('<h1>Carteira sugerida</h1>'));
   assert.ok(!/<h1>Carteira recomendada<\/h1>/.test(html), 'o título antigo continua algures');
   assert.ok(!/menu-btn-label">Carteira recomendada</.test(html), 'o menu continua no nome antigo');
+});
+
+test('a simulação vem ANTES dos critérios e do aviso', () => {
+  // Ordem pedida: primeiro o que a carteira teria feito, depois como ela foi
+  // calculada, e o texto legal por último. Sem asserção, um refactor de
+  // layout devolve os blocos à ordem antiga sem quebrar nada visível.
+  const sec = secaoCarteira();
+  const pos = (marca) => {
+    const i = sec.indexOf(marca);
+    assert.ok(i > 0, `bloco não encontrado: ${marca}`);
+    return i;
+  };
+  const sim = pos('id="cartSimCard"');
+  const criterios = pos('id="cartCriterios"');
+  const risco = pos('class="cart-risco"');
+  assert.ok(sim < criterios, 'a simulação tem de vir antes dos critérios');
+  assert.ok(criterios < risco, 'os critérios têm de vir antes do aviso de risco');
+});
+
+test('o aviso de risco sobrevive ao motor não carregar', () => {
+  // cartMotorWrap é escondido inteiro quando `motorRanquear` não existe
+  // (ver cartRenderizarMotor). Enquanto o aviso vivia lá dentro, uma falha
+  // a carregar um <script> levava junto o texto de conformidade.
+  const sec = secaoCarteira();
+  const abreWrap = sec.indexOf('id="cartMotorWrap"');
+  const fechaWrap = sec.indexOf('id="cartSimCard"');
+  const risco = sec.indexOf('id="cartRiscoWrap"');
+  assert.ok(abreWrap > 0 && fechaWrap > abreWrap);
+  assert.ok(
+    risco > fechaWrap,
+    'o aviso voltou para dentro do cartMotorWrap — some quando o motor falha'
+  );
 });

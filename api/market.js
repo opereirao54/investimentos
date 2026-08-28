@@ -1,6 +1,11 @@
 const { db, timestamp } = require('./_lib/firebase-admin');
 const { requireUser } = require('./_lib/auth');
 const { handler } = require('./_lib/handler');
+// Ticker -> setor, curado. Arquivo separado do mapa acima de propósito:
+// mapa-cvm.json responde "que ativos existem e como casá-los na CVM", este
+// responde "a que setor um ticker pertence". Duas fontes para o mesmo facto
+// divergem no primeiro ajuste.
+const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 
 // Endpoint único de mercado — consolidado num arquivo só para respeitar o
 // limite de 12 functions do Vercel Hobby. Sub-roteamento via ?op=:
@@ -1966,7 +1971,41 @@ async function fetchCoingeckoFundamentals(simbolos) {
  * proventos. P/L e P/VP não existem em nenhuma das duas sozinha: nascem
  * aqui, do lucro e do patrimônio da CVM cruzados com o valor de mercado.
  */
-function comporFundamentos(doc) {
+/**
+ * Setor curado de um ticker, do mapa revisado por humano.
+ *
+ * É RESERVA, e existe porque nenhuma fonte de mercado no-lo entrega de graça:
+ * o perfil da BRAPI vem de `modules=`, que exige plano pago, e o do Yahoo vem
+ * do quoteSummary, que responde 429 tanto da function como do runner. Sem esta
+ * camada, `setor` é null em TODA ação — e não é um detalhe cosmético: é o
+ * campo que a política de diversificação setorial usa para decidir quanto vai
+ * para cada setor. Sem ele a política não se aplica e a seleção cai para score
+ * puro, com a carteira inteira podendo sair de um setor só.
+ */
+function setorCurado(ticker) {
+  if (!ticker) return null;
+  const t = String(ticker).toUpperCase();
+  return (SETORES_B3.acoes && SETORES_B3.acoes[t]) || null;
+}
+
+/**
+ * Segmento curado de um FII: papel, logística, shoppings ou imóveis.
+ *
+ * RESERVA, e por baixo do informe: a CVM separa papel de tijolo pela fatia da
+ * carteira em imóvel, e essa evidência vence esta lista. O que ela acrescenta
+ * é a quebra do tijolo entre logística, shopping e o resto — que não existe em
+ * campo nenhum do informe — e o segmento dos fundos que a ingestão ainda não
+ * alcançou.
+ *
+ * Sem ela, todo FII sem informe cai em 'imoveis' pelo nome, os quatro
+ * segmentos viram um só, e a diversificação de FII deixa de existir.
+ */
+function segmentoCurado(ticker) {
+  if (!ticker) return null;
+  return (SETORES_B3.fiis && SETORES_B3.fiis[String(ticker).toUpperCase()]) || null;
+}
+
+function comporFundamentos(doc, ticker) {
   if (!doc || typeof doc !== 'object') return null;
   // Documentos gravados antes da separação em ramos são planos.
   const mercado = doc.mercado && typeof doc.mercado === 'object' ? doc.mercado : doc;
@@ -1980,14 +2019,13 @@ function comporFundamentos(doc) {
   // Empilha em ordem de autoridade: cotação por baixo, Yahoo por cima,
   // CVM em último. Cada camada só escreve onde tem valor — é isso que
   // impede o null de uma fonte de apagar o dado de outra.
-  const METADADOS = [
-    'fonte',
-    'fonteRotulo',
-    'dataReferencia',
-    'classe',
-    'cobertura',
-    'fetchedAtMs',
-  ];
+  // Metadado é o que descreve a CAMADA — de onde veio, de quando, quão
+  // completa. `classe` não é isso: é uma propriedade do ATIVO, e a camada da
+  // CVM é a única que a sabe com certeza (o job grava 'fii' no informe de
+  // fundo e 'acao' na DFP de companhia). Mantê-la aqui deitava fora a
+  // classificação autoritativa e entregava a decisão à heurística do sufixo,
+  // que classificava toda unit terminada em 11 como fundo imobiliário.
+  const METADADOS = ['fonte', 'fonteRotulo', 'dataReferencia', 'cobertura', 'fetchedAtMs'];
   function aplicar(camada) {
     if (!camada) return;
     for (const [chave, valor] of Object.entries(camada)) {
@@ -1998,6 +2036,48 @@ function comporFundamentos(doc) {
   }
   aplicar(yahoo);
   aplicar(cvm);
+
+  // Reserva, e só reserva: preenche o setor quando NENHUMA fonte o trouxe.
+  // Setor que a BRAPI ou o Yahoo tenham devolvido vence este — a mesma regra
+  // que impede o null de uma camada de apagar o dado de outra, na direção
+  // contrária. `setorFonte` fica gravado porque atribuir a uma fonte um dado
+  // que veio de outra é o que este arquivo já proíbe em cima da cotação.
+  if (!out.setor) {
+    const curado = setorCurado(ticker || out.ticker || doc.ticker);
+    if (curado) {
+      out.setor = curado;
+      out.setorFonte = 'curado';
+    }
+  }
+
+  // Ticker que está na lista curada de FIIs É um FII. É a pista mais barata
+  // que temos para o fundo que a ingestão ainda não alcançou — sem ela, um
+  // fundo cujo nome não diz 'FII' fica dependente do sufixo, que também é o
+  // sufixo das units.
+  if (!out.classe && SETORES_B3.fiis && SETORES_B3.fiis[String(ticker || '').toUpperCase()]) {
+    out.classe = 'fii';
+  }
+
+  // A mesma pergunta do outro lado, que faltava: ticker na lista curada de
+  // AÇÕES É uma ação. Sem esta metade a unit chegava ao cliente SEM classe, e
+  // o desempate caía no nome — mas o nome que o Yahoo devolve é o da
+  // companhia ("Banco Santander (Brasil) S.A."), não o do pregão da B3
+  // ("SANB11 UNT"). A pista de unit nunca aparecia, o sufixo 11 decidia
+  // sozinho, e o banco entrava na aba dos fundos imobiliários. Vale para
+  // SANB11, BPAC11, TAEE11, ENGI11, ALUP11, SAPR11, KLBN11, IGTI11, CPLE11.
+  if (!out.classe && SETORES_B3.acoes && SETORES_B3.acoes[String(ticker || '').toUpperCase()]) {
+    out.classe = 'acao';
+  }
+
+  // Mesma regra do lado dos FIIs: preenche a lacuna, nunca sobrescreve o
+  // informe. `tipoFii` vem do balanço e continua a decidir papel × tijolo.
+  if (!out.segmentoFii) {
+    const seg = segmentoCurado(ticker || out.ticker || doc.ticker);
+    if (seg && !(out.tipoFii === 'papel' && seg !== 'papel')) {
+      out.segmentoFii = seg;
+      out.segmentoFonte = 'curado';
+    }
+  }
 
   if (!cvm && !yahoo) {
     out.fetchedAtMs = doc.mercadoFetchedAtMs || doc.fetchedAtMs || null;
@@ -2207,7 +2287,7 @@ async function handleFundamentals(req, res) {
   const indisponiveis = [];
   let comCvm = 0;
   for (const t of requested) {
-    const composto = comporFundamentos(documentos[t]);
+    const composto = comporFundamentos(documentos[t], t);
     if (!composto) {
       // Ticker que nenhuma fonte respondeu. Devolver só o nome numa lista
       // separada deixava o cliente com um card em branco, sem procedência e
@@ -2465,9 +2545,9 @@ async function calcularRankings(database, lentes, topN) {
   let universo = 0;
 
   docs.forEach((doc) => {
-    const composto = comporFundamentos(doc.data());
-    if (!composto) return;
     const ticker = doc.id;
+    const composto = comporFundamentos(doc.data(), ticker);
+    if (!composto) return;
     const dados = { ...composto, ticker, nome: composto.nome || ticker };
     const classe = Motor.inferirClasse(ticker, dados.nome, dados.classe);
     universo++;
@@ -2499,6 +2579,12 @@ async function calcularRankings(database, lentes, topN) {
         cobertura: pontuado.cobertura,
         confianca: pontuado.confianca,
         setor: pontuado.setor || null,
+        // Papel ou tijolo sai do balanço publicado, não do nome do fundo — e
+        // é o cliente que aplica a política de setores, então tem de viajar
+        // com o item. Sem isto, um fundo de recebíveis chamado 'Renda
+        // Logística' entraria no balde de logística na tela.
+        tipoFii: pontuado.tipoFii || null,
+        segmentoFii: pontuado.segmentoFii || null,
         fonteRotulo: pontuado.fonteRotulo || null,
         dataReferencia: pontuado.dataReferencia || null,
       });
@@ -2697,7 +2783,7 @@ async function handleDiagnostico(req, res) {
   }
 
   // ── 3. Composição e score ──
-  const composto = comporFundamentos(doc);
+  const composto = comporFundamentos(doc, ticker);
   const classe = Motor.inferirClasse(
     ticker,
     (composto && composto.nome) || ticker,
@@ -2871,6 +2957,8 @@ module.exports.__test = {
   mapYahooFundamental,
   fetchYahooFundamentals,
   comporFundamentos,
+  setorCurado,
+  segmentoCurado,
   mapTesouroTitulo,
   rfClassificarTipo,
   PREMISSAS_ANUAIS,

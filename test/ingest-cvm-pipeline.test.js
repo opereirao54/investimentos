@@ -222,12 +222,20 @@ function informeGeral(competencia, opcoes) {
     // tornar ambíguo um ticker que os outros testes usam: casar com o errado
     // publicaria os indicadores de um fundo sob o ticker de outro, e é esse
     // o caso que precisa de garantia própria.
-    ...(op.fiiAmbiguo
+    // 'irresoluvel' testa a garantia que fica de pé quando nem o nome
+    // desempata: dois nomes que não batem com a denominação curada em
+    // mapa-cvm.json ("XP MALLS"), ainda partilhando a raiz do ISIN.
+    ...(op.fiiAmbiguo === 'irresoluvel'
       ? [
-          `33.333.333/0001-33;${data};XP MALLS FII;BRXPMLCTF001;3000000000;25000000;300000`,
-          `44.444.444/0001-44;${data};PENINSULA FII RL;BRXPMLCTF999;90000000;900000;900`,
+          `55.555.555/0001-55;${data};FUNDO ALFA;BRXPMLCTF001;3000000000;25000000;300000`,
+          `66.666.666/0001-66;${data};FUNDO BETA;BRXPMLCTF999;90000000;900000;900`,
         ]
-      : []),
+      : op.fiiAmbiguo
+        ? [
+            `33.333.333/0001-33;${data};XP MALLS FII;BRXPMLCTF001;3000000000;25000000;300000`,
+            `44.444.444/0001-44;${data};PENINSULA FII RL;BRXPMLCTF999;90000000;900000;900`,
+          ]
+        : []),
   ].join('\n');
 }
 
@@ -343,6 +351,22 @@ function montarFetch(opcoes) {
         const ano = u.match(/inf_mensal_fii_(\d{4})\.zip/);
         if (!ano) return naoAchado;
         return responder(informeZip(ano[1], { fiiAmbiguo: op.fiiAmbiguo }));
+      }
+      // Cadastro de companhias abertas — de onde sai o SETOR DE ATIVIDADE.
+      // Sem ele, `setor` fica nulo em toda ação e a política de
+      // diversificação setorial não tem o campo que a decide.
+      if (u.includes('/CIA_ABERTA/CAD/DADOS/cad_cia_aberta.csv')) {
+        if (!op.cadastro) return naoAchado;
+        const cab = op.cadastroSemSetor
+          ? 'CNPJ_CIA;DENOM_CIA;CD_CVM;SIT'
+          : 'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT';
+        const linhas = op.cadastroSemSetor
+          ? [`${CNPJ_A};COMPANHIA A SA;001023;ATIVO`, `${CNPJ_B};COMPANHIA B SA;004170;ATIVO`]
+          : [
+              `${CNPJ_A};COMPANHIA A SA;001023;Bancos;ATIVO`,
+              `${CNPJ_B};COMPANHIA B SA;004170;Energia Elétrica;ATIVO`,
+            ];
+        return responder(Buffer.from([cab, ...linhas].join('\n'), 'latin1'));
       }
       // Índice de diretório da CVM, como o portal serve: HTML com links.
       if (op.indice && u.endsWith('/')) {
@@ -778,12 +802,12 @@ test('undefined vira null antes da gravação, em vez de derrubar o lote', () =>
   assert.ok(!Object.values(limpo).includes(undefined));
 });
 
-test('ticker ambíguo não recebe os indicadores do fundo errado', async () => {
+test('ticker ambíguo resolve pelo nome do mapa — nunca com os indicadores do fundo errado', async () => {
   // O XPML11 partilha a raiz de ISIN com o Peninsula FII, e os dois declaram
-  // negociação em bolsa: o desempate atual não os separa. A garantia que
-  // importa comercialmente não é acertar o desempate — é NUNCA publicar os
-  // indicadores de um fundo sob o ticker de outro.
-  const { texto, documentos } = await rodar(['--dry-run', '--anos=1'], {
+  // negociação em bolsa: o desempate por bolsa não os separa sozinho. A
+  // denominação já curada em mapa-cvm.json ("XP MALLS") é o critério
+  // seguinte, e só um dos dois candidatos a contém.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
     anoFca: ANO_BASE,
     anosDfp: [ANO_BASE],
     informeFii: true,
@@ -792,20 +816,43 @@ test('ticker ambíguo não recebe os indicadores do fundo errado', async () => {
       'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
     },
   });
-  const xpml = (documentos || []).find((d) => d.ticker === 'XPML11');
-  assert.equal(xpml, undefined, `XPML11 não podia ter documento:\n${texto}`);
+  assert.match(
+    texto,
+    /XPML11\s+XP MALLS FII \(desempatado por nome\)/,
+    `o log não mostra o desempate por nome:\n${texto}`
+  );
+  // 3 bi é o patrimônio do XP Malls no fixture; 90 mi (0.09bi) é o do
+  // Peninsula. Sair com o valor errado aqui seria o pior resultado
+  // possível: o indicador de um fundo publicado sob o ticker de outro.
+  assert.match(
+    texto,
+    /XPML11\s+\d{4}-\d{2}-\d{2} · PL 3\.00bi/,
+    `XPML11 saiu com o patrimônio do fundo errado:\n${texto}`
+  );
+  assert.ok(!texto.includes('PL 0.09bi'), `patrimônio do Peninsula vazou para o log:\n${texto}`);
+});
+
+test('sem o nome resolvendo, o ticker ambíguo continua sem indicador nenhum', async () => {
+  // Garantia que fica de pé quando NEM o nome desempata: dois candidatos que
+  // não batem com "XP MALLS" continuam sem critério, e o pipeline recusa
+  // publicar sob qualquer um dos dois — nunca escolhe pelo mais parecido.
+  const { texto } = await rodar(['--dry-run', '--anos=1'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE],
+    informeFii: true,
+    fiiAmbiguo: 'irresoluvel',
+    indice: {
+      'https://dados.cvm.gov.br/dados/FII/DOC/INF_MENSAL/DADOS/': ['inf_mensal_fii_2026.zip'],
+    },
+  });
   // E o log tem de descrever a DECISÃO, não o candidato que venceu a
   // ordenação interna: "? XPML11 PENINSULA FII RL" lê-se como "casou com o
   // Peninsula", quando o que aconteceu foi "recusou casar".
   assert.match(texto, /XPML11\s+— não casado/, `o log não diz que recusou:\n${texto}`);
-  assert.ok(
-    !/XPML11\s+PENINSULA/.test(texto),
-    `o log ainda sugere que o XPML11 casou com o Peninsula:\n${texto}`
-  );
   // Os dois candidatos continuam impressos: sem eles ninguém sabe se falta
   // critério de desempate ou se a raiz está partilhada por engano.
-  assert.match(texto, /candidato 33333333000133/, `candidatos ausentes:\n${texto}`);
-  assert.match(texto, /candidato 44444444000144/, `candidatos ausentes:\n${texto}`);
+  assert.match(texto, /candidato 55555555000155/, `candidatos ausentes:\n${texto}`);
+  assert.match(texto, /candidato 66666666000166/, `candidatos ausentes:\n${texto}`);
 });
 
 test('LTV do FII junta o ativo de um membro com as obrigações de outro', async () => {
@@ -832,4 +879,53 @@ test('LTV do FII junta o ativo de um membro com as obrigações de outro', async
     /HGLG11\s+2026-07-01[\s\S]{0,300}?LTV 0%/,
     `LTV do fundo sem dívida:\n${texto}`
   );
+});
+
+// ════════════════════════════════════════════
+// Setor de atividade no documento gravado
+// ════════════════════════════════════════════
+//
+// O sintoma que trouxe isto: TODA ação aparecia como "setor não informado" na
+// Carteira Recomendada, e a política de diversificação setorial — que decide
+// quanto vai para cada setor — ficava sem o campo que ela usa, caindo para
+// score puro sem que nada denunciasse a causa.
+
+test('o setor sai do cadastro da CVM e chega ao documento da ação', async () => {
+  const { texto } = await rodar(['--dry-run', '--anos=3'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE, ANO_BASE - 1, ANO_BASE - 2],
+    cadastro: true,
+  });
+
+  assert.match(texto, /setor de atividade: coluna SETOR_ATIV/, `coluna não resolveu:\n${texto}`);
+  assert.match(
+    texto,
+    /setor em \d+\/\d+ \(\d+ do cadastro da CVM/,
+    `a cobertura do setor tem de ir para o log:\n${texto}`
+  );
+  assert.ok(
+    !/setor em 0\//.test(texto),
+    `zero setores significa a política inteira desligada:\n${texto}`
+  );
+});
+
+test('cadastro sem a coluna de setor imprime o cabeçalho real, em vez de calar', () => {
+  // O defeito que este projeto já catalogou: o mapa procurava
+  // QT_ACAO_ORDIN_TESOURARIA e o arquivo trazia TESOURO. Zero é o que uma
+  // companhia sem o dado também devolve, e por isso a ausência tem de ser
+  // NOMEADA — com as colunas que o arquivo de facto tem, senão a próxima
+  // investigação começa às cegas.
+  return rodar(['--dry-run', '--anos=3'], {
+    anoFca: ANO_BASE,
+    anosDfp: [ANO_BASE, ANO_BASE - 1, ANO_BASE - 2],
+    cadastro: true,
+    cadastroSemSetor: true,
+  }).then(({ texto }) => {
+    assert.match(texto, /coluna de setor não encontrada no cadastro da CVM/);
+    assert.match(texto, /apelidos tentados: SETOR_ATIV/);
+    assert.match(texto, /colunas reais do arquivo: .*DENOM_CIA/, 'o cabeçalho real tem de sair');
+    // Sem a coluna, o mapa curado ainda cobre os tickers que ele conhece — a
+    // rede que impede a tela de voltar a "setor não informado" em tudo.
+    assert.match(texto, /setor em \d+\/\d+ \(0 do cadastro da CVM, [1-9]\d* do mapa curado\)/);
+  });
 });

@@ -1574,6 +1574,49 @@ test('sem critério de desempate a ambiguidade fica, com os candidatos à vista'
   assert.deepEqual(f.candidatos.map((c) => c.nome).sort(), ['OUTRO', 'UM']);
 });
 
+test('nome curado em mapa-cvm.json desempata quando os dois declaram bolsa', () => {
+  // Achado da execução real: XPML11 partilha a raiz do ISIN com o Peninsula
+  // FII, e os DOIS vêm marcados como negociados em bolsa — o desempate por
+  // bolsa não separa os dois. A denominação que já casa as ações em
+  // casarCadastro é o critério seguinte, passada pelo chamador.
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '33.333.333/0001-33;2026-07-01;XP MALLS FII;BRXPMLCTF001;S',
+    '44.444.444/0001-44;2026-07-01;PENINSULA FII RL;BRXPMLCTF999;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  const f = P.fundoDoTicker(v, 'XPML11', 'XP MALLS');
+  assert.equal(f.ambiguo, false, 'o nome do mapa resolve quando só um candidato contém o termo');
+  assert.equal(
+    f.cnpj,
+    '33333333000133',
+    'o candidato é o que o nome do mapa aponta, nunca o outro'
+  );
+  assert.equal(f.desempate, 'nome');
+  assert.equal(f.candidatos.length, 2, 'os dois candidatos continuam visíveis mesmo resolvido');
+});
+
+test('nome curado não força escolha quando não isola um candidato sozinho', () => {
+  // Sem nomeEsperado, ou com um termo que não isola exatamente um candidato,
+  // a ambiguidade tem de ficar. Resolver por semelhança seria repetir o erro
+  // que este critério existe para evitar (o MXRF11 casado com um fundo de
+  // renda fixa homônimo).
+  const csv = [
+    'CNPJ_Fundo;Data_Referencia;Nome_Fundo;Codigo_ISIN;Mercado_Negociacao_Bolsa',
+    '11.111.111/0001-11;2026-07-01;UM;BRXPMLCTF001;S',
+    '22.222.222/0001-22;2026-07-01;OUTRO;BRXPMLCTF001;S',
+  ].join('\n');
+  const parsed = P.parseCsvCvm(csv);
+  const v = P.vincularFiiPorCodigo(parsed.registros, parsed.colunas);
+  assert.equal(P.fundoDoTicker(v, 'XPML11').ambiguo, true, 'sem nome esperado, continua ambíguo');
+  assert.equal(
+    P.fundoDoTicker(v, 'XPML11', 'TERCEIRO').ambiguo,
+    true,
+    'nome que não bate com nenhum candidato não pode resolver sozinho'
+  );
+});
+
 // ════════════════════════════════════════════
 // Ocupação e imóveis (informe trimestral)
 // ════════════════════════════════════════════
@@ -2175,4 +2218,104 @@ test('as colunas de carteira são de facto encontradas no cabeçalho real da CVM
   assert.equal(r.colunas.totalInvestido, 'Total_Investido');
   assert.equal(P.tipoCarteiraFii(r.porCnpj.get('11728688000147')), 'tijolo');
   assert.equal(P.tipoCarteiraFii(r.porCnpj.get('16706958000132')), 'papel');
+});
+
+// ════════════════════════════════════════════
+// Setor de atividade, do cadastro de companhias
+// ════════════════════════════════════════════
+//
+// Existe porque TODA ação aparecia sem setor na tela: os dois produtores do
+// campo em api/market.js dependem do perfil da BRAPI (`modules=`, plano pago)
+// ou do quoteSummary do Yahoo (429 da function e do runner). O cadastro da
+// CVM é aberto, o job já o baixa, e cobre o universo inteiro.
+
+test('o setor sai do cadastro indexado pelas DUAS identificações', () => {
+  // Junção por chave que o outro lado não tem já devolveu zero em silêncio
+  // neste pipeline. Indexar por CNPJ e por CD_CVM é o que evita repetir isso.
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Bancos;ATIVO',
+      '33.592.510/0001-54;VALE S.A.;004170;Extração Mineral;ATIVO',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  assert.equal(cols.setor, 'SETOR_ATIV', 'a coluna tem de resolver por apelido');
+
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.get('cnpj:' + P.normalizarCnpj('00.000.000/0001-91')), 'Bancos');
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('004170')), 'Extração Mineral');
+  // Zeros à esquerda no CD_CVM separavam a companhia dela mesma quando
+  // comparados como texto — a normalização é o que os junta de novo.
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('1023')), 'Bancos');
+});
+
+test('coluna de setor ausente devolve índice vazio, não setor em branco', () => {
+  // O caso que o log tem de denunciar. Um índice vazio deixa `setor` nulo, e
+  // a tela declara a lacuna; um setor em branco entraria na política como se
+  // fosse dado.
+  const cadastro = P.parseCsvCvm(
+    ['CNPJ_CIA;DENOM_CIA;CD_CVM;SIT', '00.000.000/0001-91;BANCO DO BRASIL SA;001023;ATIVO'].join(
+      '\n'
+    )
+  );
+  const col = P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade);
+  assert.equal(col, null, 'sem coluna de setor, nenhum apelido pode casar');
+  assert.equal(P.setoresDoCadastro(cadastro, { setor: col }).size, 0);
+});
+
+test('linha com setor vazio não entra no índice', () => {
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV',
+      '11.111.111/0001-11;SEM SETOR SA;009999;',
+      '22.222.222/0001-22;COM SETOR SA;008888;Energia Elétrica',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.has('cd:' + P.normalizarCdCvm('009999')), false, 'vazio não é dado');
+  assert.equal(idx.get('cd:' + P.normalizarCdCvm('008888')), 'Energia Elétrica');
+});
+
+test('registo duplicado da mesma companhia não depende da ordem do arquivo', () => {
+  // O cadastro traz mais de uma linha por companhia quando a situação
+  // cadastral muda. Sobrescrever faria o resultado depender da ordem — que
+  // não é critério nenhum.
+  const cadastro = P.parseCsvCvm(
+    [
+      'CNPJ_CIA;DENOM_CIA;CD_CVM;SETOR_ATIV;SIT',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Bancos;ATIVO',
+      '00.000.000/0001-91;BANCO DO BRASIL SA;001023;Outro Setor;CANCELADA',
+    ].join('\n')
+  );
+  const cols = {
+    setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+    cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+    cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+  };
+  const idx = P.setoresDoCadastro(cadastro, cols);
+  assert.equal(idx.get('cnpj:' + P.normalizarCnpj('00.000.000/0001-91')), 'Bancos');
+});
+
+test('os apelidos da coluna cobrem as grafias plausíveis do cadastro', () => {
+  // O nome real da coluna não foi verificado contra o arquivo publicado —
+  // dados.cvm.gov.br está fora de alcance da sandbox. Cobrir as grafias
+  // plausíveis é o que faz a diferença entre resolver e não resolver, e o
+  // job imprime o cabeçalho real quando nenhuma casa.
+  for (const nome of ['SETOR_ATIV', 'SETOR_ATIVID', 'SETOR_ATIVIDADE', 'DS_SETOR_ATIV']) {
+    assert.equal(
+      P.acharColuna(['CNPJ_CIA', nome, 'SIT'], P.COLUNAS.setorAtividade),
+      nome,
+      `a grafia ${nome} tem de casar`
+    );
+  }
 });

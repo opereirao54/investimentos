@@ -34,6 +34,21 @@ const COLUNAS = {
   valorConta: ['VL_CONTA', 'VALOR_CONTA'],
   escalaMoeda: ['ESCALA_MOEDA', 'ESCALA'],
   versao: ['VERSAO'],
+  // Setor de atividade do cadastro de companhias abertas. Vários apelidos
+  // porque o nome REAL da coluna não foi verificado contra o arquivo
+  // publicado — e escrever um de memória é o defeito que este projeto já
+  // catalogou: o mapa procurava QT_ACAO_ORDIN_TESOURARIA e o arquivo traz
+  // TESOURO, o que devolveu zero calado. Nenhum apelido casar é tratado
+  // como o que é — falta de dado, com o cabeçalho real impresso no log —,
+  // nunca como setor vazio.
+  setorAtividade: [
+    'SETOR_ATIV',
+    'SETOR_ATIVID',
+    'SETOR_ATIVIDADE',
+    'DS_SETOR_ATIV',
+    'SETOR',
+    'CD_SETOR_ATIV',
+  ],
 };
 
 // Plano de contas padrão da CVM. `termos` é rede de segurança: se o código
@@ -1385,7 +1400,9 @@ function vincularFiiPorCodigo(registros, colunas) {
     let desempate = null;
     if (candidatos.length > 1) {
       // O ticker designa a classe NEGOCIADA. Quando a fonte diz quais são,
-      // isso resolve sozinho e sem heurística de nome.
+      // isso resolve sozinho. Quando as duas se declaram em bolsa — visto na
+      // execução real do XPML11 —, fundoDoTicker tenta um segundo critério
+      // pelo nome curado em mapa-cvm.json; só este aqui é nativo da CVM.
       const emBolsa = candidatos.filter((c) => c.bolsa === true);
       if (emBolsa.length === 1) {
         escolhidos = emBolsa;
@@ -1401,7 +1418,10 @@ function vincularFiiPorCodigo(registros, colunas) {
       ...vencedor,
       ambiguo: escolhidos.length > 1,
       desempate,
-      candidatos: candidatos.map((c) => ({ cnpj: c.cnpj, nome: c.nome, bolsa: c.bolsa })),
+      // Objetos completos, não só {cnpj, nome, bolsa}: fundoDoTicker precisa
+      // de isin/dataReferencia/via para reconstruir um vencedor se resolver
+      // pelo nome depois daqui.
+      candidatos: candidatos.slice(),
     });
   }
 
@@ -1421,14 +1441,34 @@ function vincularFiiPorCodigo(registros, colunas) {
  * Tenta o ticker inteiro (quando a fonte publica o código de negociação) e
  * depois a raiz de quatro caracteres (quando veio do ISIN). Não inventa
  * ticker a partir de raiz: a raiz procurada é sempre a do ticker pedido.
+ *
+ * `nomeEsperado` (a denominação curada em mapa-cvm.json, a mesma que já casa
+ * as ações em casarCadastro) é o critério de desempate SEGUINTE ao de bolsa.
+ * A execução real mostrou os dois candidatos do XPML11 declarando negociação
+ * em bolsa — o desempate nativo da CVM não os separa. Só resolve quando
+ * exatamente um candidato contém o termo: nenhum batendo ou os dois batendo
+ * deixa a ambiguidade como estava, porque casar pelo candidato mais parecido
+ * é o mesmo erro que já juntou o MXRF11 a um fundo de renda fixa homônimo.
  */
-function fundoDoTicker(vinculo, ticker) {
+function fundoDoTicker(vinculo, ticker, nomeEsperado) {
   if (!vinculo || !vinculo.porCodigo) return null;
   const limpo = String(ticker || '')
     .replace(/[^A-Za-z0-9]/g, '')
     .toUpperCase();
   if (limpo.length < 4) return null;
-  return vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+  const achado = vinculo.porCodigo.get(limpo) || vinculo.porCodigo.get(limpo.slice(0, 4)) || null;
+  if (!achado || !achado.ambiguo || !nomeEsperado) return achado;
+
+  const alvo = normalizarChave(nomeEsperado);
+  if (!alvo) return achado;
+  const porNome = (achado.candidatos || []).filter((c) => normalizarChave(c.nome).includes(alvo));
+  if (porNome.length !== 1) return achado;
+  return {
+    ...porNome[0],
+    ambiguo: false,
+    desempate: 'nome',
+    candidatos: achado.candidatos,
+  };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1719,10 +1759,43 @@ function carteiraFii(inf) {
   };
 }
 
+/**
+ * CD_CVM/CNPJ -> setor de atividade, do cadastro de companhias abertas.
+ *
+ * É a única fonte de setor que não custa dinheiro nem esbarra em limite de
+ * IP: a CVM publica `cad_cia_aberta.csv` aberto, e o job já o baixa. As duas
+ * alternativas — o perfil da BRAPI e o quoteSummary do Yahoo — exigem plano
+ * pago e devolvem 429, respetivamente, e é por isso que TODA ação aparecia
+ * sem setor na tela.
+ *
+ * Indexa pelas DUAS identificações porque nem toda companhia traz as duas, e
+ * porque foi exatamente uma junção por chave ausente que já devolveu zero em
+ * silêncio neste pipeline. Quem procura usa `chavesDaEmpresa`, que monta as
+ * chaves na mesma forma normalizada.
+ *
+ * Primeira linha não vazia vence: o cadastro pode trazer mais de um registo
+ * por companhia (mudança de situação cadastral), e sobrescrever faria o
+ * resultado depender da ordem do arquivo — que não é critério nenhum.
+ */
+function setoresDoCadastro(cadastro, cols) {
+  const porChave = new Map();
+  if (!cadastro || !cols || !cols.setor) return porChave;
+  for (const reg of cadastro.registros || []) {
+    const setor = String(reg[cols.setor] || '').trim();
+    if (!setor) continue;
+    const cnpj = cols.cnpj ? normalizarCnpj(reg[cols.cnpj]) : null;
+    const cd = cols.cdCvm ? normalizarCdCvm(reg[cols.cdCvm]) : null;
+    if (cnpj && !porChave.has('cnpj:' + cnpj)) porChave.set('cnpj:' + cnpj, setor);
+    if (cd && !porChave.has('cd:' + cd)) porChave.set('cd:' + cd, setor);
+  }
+  return porChave;
+}
+
 function tipoCarteiraFii(inf) {
   return carteiraFii(inf).tipo;
 }
 
+module.exports.setoresDoCadastro = setoresDoCadastro;
 module.exports.tipoCarteiraFii = tipoCarteiraFii;
 module.exports.carteiraFii = carteiraFii;
 module.exports.FRACAO_TIJOLO = FRACAO_TIJOLO;

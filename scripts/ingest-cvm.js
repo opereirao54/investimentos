@@ -37,6 +37,8 @@ const { lerZip } = require('./lib/zip');
 const T = require(path.join(__dirname, 'lib', 'tesouro.js'));
 const P = require('./lib/cvm-parser');
 const MAPA = require('./lib/mapa-cvm.json');
+// Ticker -> setor, curado. Reserva para o que o cadastro da CVM não cobrir.
+const SETORES_B3 = require('./lib/setores-b3.json');
 
 const BASE_CIA = 'https://dados.cvm.gov.br/dados/CIA_ABERTA';
 const BASE_FII = 'https://dados.cvm.gov.br/dados/FII';
@@ -582,6 +584,52 @@ async function main() {
     }
   }
 
+  // ── Setor de atividade ──
+  //
+  // Roda SEMPRE, e não só no caminho de reserva acima: sem isto, `setor` é
+  // null em toda ação, e `setor` é o campo que a política de diversificação
+  // setorial usa para decidir quanto vai para cada setor. Sem ele a política
+  // não se aplica, a seleção cai para score puro, e a carteira inteira pode
+  // sair de um setor só — que é exatamente o que ela existe para evitar.
+  //
+  // A CVM é a única fonte de setor que não custa dinheiro nem esbarra em
+  // limite de IP: o perfil da BRAPI vem de `modules=` (plano pago) e o do
+  // Yahoo vem do quoteSummary (429 da function E do runner).
+  let setorPorChave = new Map();
+  if (!cadastro) {
+    // Reaproveita o download do caminho de reserva quando ele já aconteceu:
+    // o arquivo tem alguns MB e baixá-lo duas vezes na mesma execução não
+    // compra nada.
+    try {
+      cadastro = await baixarCsv(`${BASE_CIA}/CAD/DADOS/cad_cia_aberta.csv`);
+    } catch (e) {
+      log(`  ! cadastro da CVM indisponível para o setor (${e.message})`);
+    }
+  }
+  if (cadastro) {
+    const colsSetor = {
+      setor: P.acharColuna(cadastro.colunas, P.COLUNAS.setorAtividade),
+      cnpj: P.acharColuna(cadastro.colunas, P.COLUNAS.cnpj),
+      cdCvm: P.acharColuna(cadastro.colunas, P.COLUNAS.cdCvm),
+    };
+    if (!colsSetor.setor) {
+      // O rastro que a próxima execução precisa. Nenhum apelido casar é
+      // indistinguível de "não há setor no arquivo" para quem lê só o total —
+      // e foi assim que uma coluna de nome quase certo (TESOURARIA contra
+      // TESOURO) devolveu zero calado durante rodadas. Imprimir o cabeçalho
+      // REAL é o que transforma a próxima investigação numa leitura.
+      log('  ! coluna de setor não encontrada no cadastro da CVM.');
+      log(`    apelidos tentados: ${P.COLUNAS.setorAtividade.join(', ')}`);
+      log(`    colunas reais do arquivo: ${cadastro.colunas.join(', ')}`);
+    } else {
+      setorPorChave = P.setoresDoCadastro(cadastro, colsSetor);
+      log(
+        `  · setor de atividade: coluna ${colsSetor.setor} · ` +
+          `${setorPorChave.size} chaves indexadas`
+      );
+    }
+  }
+
   // Último recurso: o mapa sozinho, sem CD_CVM. Não dá para ler demonstração
   // da CVM assim, mas dá para buscar fundamentos no Yahoo — que só precisa do
   // ticker. É o que mantém o produto de pé quando CVM e BRAPI estão ambas
@@ -904,13 +952,30 @@ async function main() {
     void dividendosMotivo;
     void dividendosNaoReconhecidas;
     void linhas399;
+    // Setor: o cadastro da CVM cobre o universo inteiro; o mapa curado
+    // desempata e serve de rede quando a coluna do cadastro não resolver.
+    // A ordem é a de sempre neste pipeline — o dado publicado vence, e a
+    // curadoria entra onde ele não chega.
+    let setorEmpresa = null;
+    for (const chave of chavesDaEmpresa(emp)) {
+      if (setorPorChave.has(chave)) {
+        setorEmpresa = setorPorChave.get(chave);
+        break;
+      }
+    }
     for (const ticker of emp.tickers) {
+      const curado = SETORES_B3.acoes && SETORES_B3.acoes[ticker];
       documentos.push({
         ticker,
         dados: {
           ...ind,
           ...absolutos,
           classe: 'acao',
+          // Ausente fica ausente: setor inventado colocaria o ativo num bloco
+          // da política que ele não é, e uma diversificação errada é pior do
+          // que uma diversificação incompleta — esta a tela sabe declarar.
+          setor: setorEmpresa || curado || null,
+          setorFonte: setorEmpresa ? 'cvm_cadastro' : curado ? 'curado' : null,
           cdCvm: emp.cdCvm,
           cnpj: emp.cnpj,
           fonte: 'cvm',
@@ -934,6 +999,17 @@ async function main() {
     ).length;
     const comLpa = documentos.filter((d) => d.dados && d.dados.acoesEquivalentes).length;
     const comDiv = documentos.filter((d) => d.dados && d.dados.dividendosPagos).length;
+    // Cobertura do setor, ao lado das outras. Zero aqui significa a política
+    // de diversificação inteira desligada na tela — e é um número que tem de
+    // saltar aos olhos no log, não algo a descobrir pelo produto.
+    const comSetor = documentos.filter((d) => d.dados && d.dados.setor).length;
+    const doCadastro = documentos.filter(
+      (d) => d.dados && d.dados.setorFonte === 'cvm_cadastro'
+    ).length;
+    log(
+      `  setor em ${comSetor}/${documentos.length} ` +
+        `(${doCadastro} do cadastro da CVM, ${comSetor - doCadastro} do mapa curado)`
+    );
     log(
       `\n  valuation possível em ${comLpa}/${documentos.length} ` +
         `(${comCap} pela composição do capital, ${comLpa - comCap} pelo LPA) · ` +
@@ -1030,7 +1106,7 @@ async function main() {
       }
 
       const casFii = Object.entries(mapaFiis).map(([ticker, info]) => {
-        const achado = P.fundoDoTicker(vinculo, ticker);
+        const achado = P.fundoDoTicker(vinculo, ticker, info.denominacao);
         if (!achado) {
           return { ticker, status: 'sem_correspondencia', denominacao: info.denominacao };
         }

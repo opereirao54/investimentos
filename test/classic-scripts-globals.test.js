@@ -41,6 +41,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-relatorio-mensal.js', indent: '' },
   { file: 'web/appliquei-applicash.js', indent: '' },
   { file: 'web/appliquei-duvidas.js', indent: '' },
+  { file: 'web/appliquei-disclaimer.js', indent: '' },
   { file: 'web/appliquei-bens.js', indent: '' },
   { file: 'web/appliquei-patrimonio.js', indent: '' },
   { file: 'web/appliquei-jornada.js', indent: '' },
