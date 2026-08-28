@@ -107,8 +107,12 @@ var CART_ATIVOS_DEFAULT = {
 // ── Estrutura do dbCarteira v2 ──
 var cartDefaultV2 = {
   versao: 2,
-  mesAno: 'Mai/2026',
-  descricao: 'Alocação focada em geradores de caixa com diversificação tática.',
+  // null, não uma data: sem carteira publicada não há referência a dar, e
+  // uma data fixa no código envelhece calada — dizia "Mai/2026" a quem abria
+  // a aba em Agosto. `descricao` idem: descrevia a lista de reserva, não o
+  // plano que o motor monta.
+  mesAno: null,
+  descricao: null,
   alocacoes: JSON.parse(JSON.stringify(CART_ALLOC_DEFAULT)),
   ativos: JSON.parse(JSON.stringify(CART_ATIVOS_DEFAULT)),
 };
@@ -143,6 +147,11 @@ function cartCarregarDB() {
 }
 
 var dbCarteira = cartCarregarDB();
+
+// Texto do subtítulo tal como vem no HTML, capturado na primeira renderização.
+// Guardado em vez de repetido aqui: duas cópias divergiriam na primeira
+// reescrita, e a errada seria a que aparece quando não há carteira publicada.
+var cartSubtituloPadrao = null;
 
 // ── Estado da sessão ──
 var cartEstado = {
@@ -241,8 +250,8 @@ function cartFetchCentral() {
         if (!c.alocacoes && !c.ativos) return;
         dbCarteira = {
           versao: 2,
-          mesAno: c.mesAno || dbCarteira.mesAno,
-          descricao: c.descricao || dbCarteira.descricao,
+          mesAno: c.mesAno || null,
+          descricao: c.descricao || null,
           alocacoes: c.alocacoes || dbCarteira.alocacoes,
           ativos: c.ativos || dbCarteira.ativos,
         };
@@ -392,9 +401,20 @@ function cartRenderizarTela() {
   document.getElementById('cartPerfilHeader').style.display = 'flex';
   document.getElementById('cartQuestionnaire').style.display = 'none';
 
-  // Descricao
-  document.getElementById('carteiraDescricao').textContent =
-    `Referência: ${dbCarteira.mesAno} · ${dbCarteira.descricao}`;
+  // Subtítulo: só o que existe. Cada pedaço é opcional porque cada um vem do
+  // consultor, e nenhum é inventado quando ele não publicou nada.
+  //
+  // O `else` importa: um cache antigo do modelo pode ter a data inventada
+  // gravada de uma versão anterior. Sem repor o texto da página, esse valor
+  // continuaria na tela depois de a busca nova voltar sem referência.
+  const elDesc = document.getElementById('carteiraDescricao');
+  if (elDesc) {
+    if (cartSubtituloPadrao === null) cartSubtituloPadrao = elDesc.textContent;
+    const partesDesc = [];
+    if (dbCarteira.mesAno) partesDesc.push(`Referência: ${dbCarteira.mesAno}`);
+    if (dbCarteira.descricao) partesDesc.push(dbCarteira.descricao);
+    elDesc.textContent = partesDesc.length ? partesDesc.join(' · ') : cartSubtituloPadrao;
+  }
 
   // Hero + callout
   document.getElementById('cartHero').style.display = 'grid';
@@ -2206,6 +2226,44 @@ var CART_RANK_PAGINA = 8;
 // lente redesenha os cards e não pode perder a classe aberta nem a busca.
 var cartRank = { classe: null, busca: '', limite: {} };
 
+/**
+ * "?" clicável, com a explicação atrás dele.
+ *
+ * Clique, não hover: no telemóvel hover não existe, e era lá que a
+ * explicação mais fazia falta. O balão abre em fluxo (flex-basis 100% dentro
+ * do .cart-motor-sub, que já é flex-wrap), empurrando o que vem abaixo —
+ * flutuar ancorado a um título é como se corta texto na borda a 320px.
+ *
+ * `texto` entra como HTML: as chamadas são todas literais nossas.
+ */
+function cartAjuda(id, texto) {
+  return (
+    '<button type="button" class="cart-ajuda-btn" id="' +
+    id +
+    'Btn" aria-expanded="false" aria-controls="' +
+    id +
+    '" aria-label="Como isto funciona" onclick="cartAlternarAjuda(\'' +
+    id +
+    '\')">?</button>' +
+    '<span class="cart-ajuda-balao" id="' +
+    id +
+    '" hidden>' +
+    texto +
+    '</span>'
+  );
+}
+
+/** Abre e fecha um balão de ajuda, mantendo o aria e o estado do botão. */
+function cartAlternarAjuda(id) {
+  var balao = document.getElementById(id);
+  var btn = document.getElementById(id + 'Btn');
+  if (!balao || !btn) return;
+  var aberto = !balao.hidden;
+  balao.hidden = aberto;
+  btn.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+  btn.classList.toggle('aberto', !aberto);
+}
+
 function cartEsc(v) {
   return String(v == null ? '' : v)
     .replace(/&/g, '&amp;')
@@ -3469,14 +3527,14 @@ function cartRenderizarCriterios() {
   el.innerHTML =
     '<div class="cart-motor-sub"><i class="ph ph-list-magnifying-glass"></i> ' +
     'Critérios de análise e pontuação' +
-    '<span class="cart-motor-sub-nota">Cada indicador recebe nota de 0 a 10 por faixas fixas; ' +
-    'o pilar é a média ponderada dos seus indicadores.</span>' +
-    '</div>' +
-    '<div class="cart-criterios-intro">' +
-    'Indicador sem dado não vira nota zero: sai da conta e reduz a cobertura. ' +
-    'Abaixo de ' +
-    Math.round(MOTOR_COBERTURA_MINIMA * 100) +
-    '% o ativo deixa de ser pontuado, em vez de receber nota sem lastro.' +
+    cartAjuda(
+      'cartAjudaCriterios',
+      'Cada indicador recebe nota de 0 a 10 por faixas fixas; o pilar é a média ' +
+        'ponderada dos seus indicadores. Indicador sem dado não vira nota zero: sai ' +
+        'da conta e reduz a cobertura. Abaixo de ' +
+        Math.round(MOTOR_COBERTURA_MINIMA * 100) +
+        '% o ativo deixa de ser pontuado, em vez de receber nota sem lastro.'
+    ) +
     '</div>' +
     grupos +
     '<div class="cart-criterios-lente">' +

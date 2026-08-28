@@ -2319,6 +2319,45 @@
             font-size: 11px; font-weight: 500; font-family: inherit;
             color: var(--cor-texto-mutado);
         }
+        /* Explicação atrás de um "?" CLICÁVEL — não hover. O
+           .icon-tooltip-premium que já existe só abre no hover, e no
+           telemóvel hover não existe: a explicação ficava inalcançável
+           justamente onde a tela é mais apertada.
+           O balão abre EM FLUXO, empurrando o conteúdo, em vez de flutuar:
+           um popover ancorado à direita de um título é o caminho mais curto
+           para texto cortado na borda a 320px. */
+        .cart-ajuda-btn {
+            position: relative;
+            flex-shrink: 0; width: 17px; height: 17px; padding: 0;
+            display: inline-flex; align-items: center; justify-content: center;
+            border-radius: 50%; cursor: pointer;
+            background: var(--cor-bg-primaria); color: var(--cor-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            font-family: 'Figtree', sans-serif; font-size: 10.5px; font-weight: 800;
+            line-height: 1; transition: background 0.15s, color 0.15s;
+        }
+        .cart-ajuda-btn:hover, .cart-ajuda-btn.aberto {
+            background: var(--cor-primaria); color: #fff;
+        }
+        /* O "?" é caractere, não ícone de fonte externa: aqui o glifo É o
+           significado do botão, e um CDN lento deixaria um círculo vazio sem
+           afordância nenhuma. */
+        /* Área de toque de 40px por cima dos 17px desenhados: o círculo tem
+           de continuar discreto, mas 17px não se acerta com o polegar. O
+           título ao lado não é clicável, então a sobreposição não rouba nada. */
+        .cart-ajuda-btn::after {
+            content: ''; position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); width: 40px; height: 40px;
+        }
+        /* [hidden] com !important: a regra de base declara display block. */
+        .cart-ajuda-balao[hidden] { display: none !important; }
+        .cart-ajuda-balao {
+            display: block; flex-basis: 100%; margin: 2px 0 0;
+            padding: 9px 12px; border-radius: var(--radius-sm);
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            font-size: 11.5px; font-weight: 500; font-family: 'Figtree', sans-serif;
+            line-height: 1.55; color: var(--cor-texto-secundario);
+        }
 
         /* Resumo do plano */
         .cart-plano-resumo {
@@ -7759,7 +7798,10 @@
 
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
-                        <span class="cart-motor-sub-nota">Cada pilar vale de 0 a 10; o score combina os cinco pela lente ativa.
+                        <button type="button" class="cart-ajuda-btn" id="cartAjudaScoresBtn" aria-expanded="false"
+                                aria-controls="cartAjudaScores" aria-label="Como isto funciona"
+                                onclick="cartAlternarAjuda('cartAjudaScores')">?</button>
+                        <span class="cart-ajuda-balao" id="cartAjudaScores" hidden>Cada pilar vale de 0 a 10 e o score combina os cinco pela lente ativa.
                         Toque num ativo para ver a justificativa e a procedência do dado.</span>
                     </div>
                     <div class="cart-motor-ranking" id="cartMotorRanking"></div>
