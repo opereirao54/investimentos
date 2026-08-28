@@ -57,8 +57,7 @@ function resolverConta(t, contas) {
   if (!key) return null;
   return (
     contas.find(
-      (c) =>
-        normalizarNome(c.nome) === key || (Array.isArray(c.aliases) && c.aliases.includes(key))
+      (c) => normalizarNome(c.nome) === key || (Array.isArray(c.aliases) && c.aliases.includes(key))
     ) || null
   );
 }
@@ -112,7 +111,8 @@ function validarEstado(estado, opcoes) {
 
     // INV-01 — todo gasto pago desconta de uma conta identificável.
     // A perna do ativo (temLegCaixa) está isenta: quem debita é a perna de caixa.
-    const debitaCaixa = t.pago === true && !ehEntradaCaixa(cat) && !(ehAporte(cat) && t.temLegCaixa);
+    const debitaCaixa =
+      t.pago === true && !ehEntradaCaixa(cat) && !(ehAporte(cat) && t.temLegCaixa);
     if (debitaCaixa && !resolverConta(t, contas)) {
       acusar(
         'INV-01',

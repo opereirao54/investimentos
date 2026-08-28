@@ -57,9 +57,7 @@ test('INV-13: o groupId é estável entre passagens', () => {
   s.gerarLancamentosMensaisSonho(sonho, 1500, 6);
   assert.equal(sonho.groupIdControle, grupo1, 'o recálculo reaproveita a série, não cria outra');
 
-  const grupos = new Set(
-    s.transacoes.filter((t) => t.categoria === 'sonho').map((t) => t.groupId)
-  );
+  const grupos = new Set(s.transacoes.filter((t) => t.categoria === 'sonho').map((t) => t.groupId));
   assert.equal(grupos.size, 1, 'todas as parcelas do sonho vivem numa série só');
 });
 

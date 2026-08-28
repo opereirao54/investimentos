@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR/scripts/hook-impacto.sh\"",
+            "timeout": 20,
+            "statusMessage": "Checando contratos de integração…"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/impacto-integracoes.js:*)",
+      "Bash(node --test test/integracao-*)",
+      "Bash(npm test:*)",
+      "Bash(npm run lint:*)"
+    ]
+  }
+}

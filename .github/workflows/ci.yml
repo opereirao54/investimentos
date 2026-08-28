@@ -43,6 +43,14 @@ jobs:
       - name: Unit tests (node --test)
         run: npm test
 
+      # Travas dos contratos de integração entre as telas (mapa em
+      # .claude/integracoes/mapa.json). Já entram no `npm test` acima — este
+      # passo as roda ISOLADAS para que, quando o CI ficar vermelho, dê para
+      # ver de relance se o que quebrou foi uma integração entre módulos ou
+      # outra coisa. Não dependem de nenhum pacote: só builtins do Node.
+      - name: Contratos de integração (invariantes)
+        run: npm run test:integracoes
+
       - name: Billing flow tests
         run: npm run test:flows
 

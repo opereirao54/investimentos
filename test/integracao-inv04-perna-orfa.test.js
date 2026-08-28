@@ -79,9 +79,6 @@ test('INV-04: a rotina de limpeza do Patrimônio remove a perna órfã', () => {
   );
   s.mpLimparTxOrigemOrfas();
 
-  assert.ok(
-    !s.transacoes.some((t) => t.id === 'tx_origem_77'),
-    'a perna órfã tem de ser removida'
-  );
+  assert.ok(!s.transacoes.some((t) => t.id === 'tx_origem_77'), 'a perna órfã tem de ser removida');
   assert.equal(validarEstado(estadoDe(s), { apenas: ['INV-04'] }).length, 0);
 });

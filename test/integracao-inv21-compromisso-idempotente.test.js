@@ -124,9 +124,7 @@ test('INV-21: posição com data_op no futuro é acusada', () => {
     {
       contas: [],
       transacoes: [],
-      historicoCompras: [
-        { id: 'op1', geradoDoCompromissoTx: 'tx_1', data_op: amanha },
-      ],
+      historicoCompras: [{ id: 'op1', geradoDoCompromissoTx: 'tx_1', data_op: amanha }],
     },
     { apenas: ['INV-21'] }
   );

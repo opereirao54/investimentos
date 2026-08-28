@@ -22,10 +22,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { carregarApp, estadoDe, ORDEM_CONTROLE } = require('./_harness-integracao.js');
-const {
-  validarEstado,
-  CATEGORIAS_BANCO_OBRIGATORIO,
-} = require('../scripts/lib/invariantes.js');
+const { validarEstado, CATEGORIAS_BANCO_OBRIGATORIO } = require('../scripts/lib/invariantes.js');
 
 const HOJE = new Date();
 

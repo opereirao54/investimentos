@@ -80,6 +80,32 @@ Mensagem em PT-BR é OK. Corpo do commit deve explicar **o porquê**, não o **o
 - `classic-scripts-load.test.js` — smoke runtime: carrega tudo em vm sandbox
 - `build-bundle-parse.test.js` — roda `vite build` e parseia o chunk
 
+### Contratos de integração (`npm run test:integracoes`)
+
+As telas da Appliquei não conversam por API — conversam por **contratos de
+dados implícitos**: chaves de `localStorage` compartilhadas, globais em
+`window` e ligações que existem só como convenção de campo (`sonhoId`,
+`contaId`, `operacaoId`, `txId`, `divKey`). Por isso quebram **caladas**: nada
+lança erro, o número só fica errado.
+
+`.claude/integracoes/mapa.json` declara esses contratos — quem escreve, quem lê,
+que regra nunca pode ser violada, e o sintoma que o usuário vê quando quebra.
+Cada regra tem uma trava executável em `test/integracao-inv*.test.js`.
+
+**Antes de fechar qualquer alteração em `web/`:**
+
+```bash
+npm run impacto            # quais contratos a sua alteração coloca em risco
+npm run test:integracoes   # roda todas as travas
+```
+
+`npm run impacto` cala a boca quando nada foi tocado. Quando fala, sai com o
+comando exato dos testes a rodar.
+
+Ao mudar como o dinheiro anda entre as telas, atualize o mapa **junto** com o
+código — um contrato que não está no mapa não é validado por ninguém. Ver
+`.claude/integracoes/mapa.schema.md`.
+
 ### Flow tests (`npm run test:flows`)
 
 Cenários de billing e referral usando mocks de Asaas + Firestore.
@@ -94,7 +120,8 @@ Adicione cenário novo se mudar lógica de:
 ## Checklist de PR
 
 - [ ] `npm run lint` — 0 erros
-- [ ] `npm test` — 58/58
+- [ ] `npm test` — verde
+- [ ] `npm run test:integracoes` — 93/93
 - [ ] `npm run test:flows` — 108/108
 - [ ] `npm run build` — verde
 - [ ] CI passa (todas as steps verdes)
@@ -106,6 +133,8 @@ Adicione cenário novo se mudar lógica de:
 - [ ] Variáveis de ambiente novas documentadas em `.env.example` e `README.md`
 - [ ] Se mudou billing: cenário coberto em `scripts/test-*-flow.js`
 - [ ] Se adicionou classic script: registrado em `test/classic-scripts-globals.test.js` + `test/classic-scripts-load.test.js`
+- [ ] Se mexeu em `web/`: `npm run impacto` rodado e as provas que ele listou passam
+- [ ] Se mudou como o dinheiro anda entre telas: contrato atualizado em `.claude/integracoes/mapa.json` + trava em `test/integracao-inv*.test.js`
 
 ## Releases
 

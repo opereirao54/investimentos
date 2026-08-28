@@ -151,7 +151,10 @@ test('INV-18: posição de pé com parcela pendente é acusada', () => {
         },
       ],
       historicoCompras: [
-        { id: 'aporte_compromisso_tx_compromisso_9_1', geradoDoCompromissoTx: 'tx_compromisso_9_1' },
+        {
+          id: 'aporte_compromisso_tx_compromisso_9_1',
+          geradoDoCompromissoTx: 'tx_compromisso_9_1',
+        },
       ],
     },
     { apenas: ['INV-18'] }
