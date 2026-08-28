@@ -25,6 +25,10 @@ var RM_NOMES_MESES_LONG = [
   'Novembro',
   'Dezembro',
 ];
+// Mesma chave que calcularDespesasPorCategoria usa para o que não foi
+// categorizado — os dois lados precisam concordar.
+var RM_SEM_CATEGORIA = '__sem_categoria__';
+
 var RM_NOMES_MESES_SHORT = [
   'Jan',
   'Fev',
@@ -60,6 +64,83 @@ function rmMesEhFuturo(yyyymm) {
   const hoje = new Date();
   const cur = rmMesAnoToYyyymm(hoje.getMonth(), hoje.getFullYear());
   return yyyymm > cur;
+}
+
+// Detalhe por categoria de despesa dentro de cada bloco de gasto do mês.
+//
+// O usuário cria as categorias ("Academia", "Mercado") no Controle Financeiro
+// e até aqui elas só apareciam no gráfico de composição daquela aba: o
+// relatório mostrava "Cartão de crédito R$ 1.900" sem dizer no quê. Este mapa
+// quebra cada bloco nas categorias que o compõem.
+//
+// Só as três classificações contábeis que carregam categoria têm detalhe
+// (despesa fixa, variável e cartão) — sonho e aporte não são categorizados.
+// Retorna { <categoria contábil>: [{ v, label, valor }] }, do maior pro menor.
+function rmDetalhePorCategoria(mes, ano) {
+  const porBloco = {};
+  try {
+    if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return porBloco;
+    const usaCategoria =
+      typeof categoriaDespesaUsada === 'function'
+        ? categoriaDespesaUsada
+        : (c) => c === 'despesa_fixa' || c === 'despesa_variavel' || c === 'cartao_credito';
+    const rotular = typeof rotuloCategoriaDespesa === 'function' ? rotuloCategoriaDespesa : null;
+    const somas = {};
+    transacoes.forEach((t) => {
+      if (t.mes !== mes || t.ano !== ano || !usaCategoria(t.categoria)) return;
+      const chave = t.categoriaDespesa || RM_SEM_CATEGORIA;
+      somas[t.categoria] = somas[t.categoria] || {};
+      somas[t.categoria][chave] = (somas[t.categoria][chave] || 0) + (t.valor || 0);
+    });
+    Object.keys(somas).forEach((bloco) => {
+      const mapa = somas[bloco];
+      const lista = Object.keys(mapa)
+        .map((v) => ({
+          v,
+          // O rótulo vem de rotuloCategoriaDespesa porque ele também resolve
+          // categoria oculta ou renomeada — sem ele o relatório mostraria o slug.
+          label: v === RM_SEM_CATEGORIA ? 'Sem categoria' : (rotular && rotular(v)) || v,
+          valor: mapa[v],
+        }))
+        .sort((a, b) => b.valor - a.valor);
+      // Um bloco inteiro sem categoria não vira detalhe: a linha só repetiria
+      // o total do bloco com outro nome.
+      if (lista.length === 1 && lista[0].v === RM_SEM_CATEGORIA) return;
+      porBloco[bloco] = lista;
+    });
+  } catch (_) {}
+  return porBloco;
+}
+
+// Bens (carro, casa, moto…) até o fim do mês do relatório.
+//
+// Não existe snapshot mensal de bens: o valor é sempre o ATUAL de cada bem
+// (FIPE/avaliação de hoje). O que o mês filtra é a EXISTÊNCIA — só entra o bem
+// que já era do usuário no fim daquele mês (dataCompra, ou o cadastro quando
+// ela não foi informada), para o relatório de março não mostrar o carro
+// comprado em agosto. Valor CHEIO, sem descontar financiamento: é a mesma
+// decisão de produto dos KPIs da aba "Meu patrimônio".
+function rmBensAteFimDoMes(mes, ano) {
+  const vazio = { total: 0, qtd: 0 };
+  try {
+    if (typeof bensAtivos !== 'function') return vazio;
+    const fimMs = new Date(ano, mes + 1, 0, 23, 59, 59).getTime();
+    let total = 0,
+      qtd = 0;
+    bensAtivos().forEach((b) => {
+      const ref = b.dataCompra || b.criadoEm;
+      if (ref) {
+        const iso = String(ref);
+        const ts = new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).getTime();
+        if (isFinite(ts) && ts > fimMs) return;
+      }
+      total += b.valorAtual || 0;
+      qtd += 1;
+    });
+    return { total, qtd };
+  } catch (_) {
+    return vazio;
+  }
 }
 
 // Constrói o objeto bruto do mês a partir das fontes existentes
@@ -159,6 +240,9 @@ function buildMonthlyReport(yyyymm) {
     if (sonhosAtivos > 0) sonhosProgressoMedio = sonhosProgressoMedio / sonhosAtivos;
   } catch (_) {}
 
+  // Bens — patrimônio físico já adquirido até o fim do mês
+  const bensMes = rmBensAteFimDoMes(mes, ano);
+
   // Jornada — módulos concluídos no mês
   const jornadaModulosMes = jornadaModulosConcluidosNoMes(yyyymm);
 
@@ -190,6 +274,8 @@ function buildMonthlyReport(yyyymm) {
     patrimonioMercado,
     patrimonioGanho: patrimonioMercado - patrimonioAplicado,
     dividendos,
+    bens: bensMes.total,
+    bensQtd: bensMes.qtd,
     sonhos: {
       ativos: sonhosAtivos,
       noPrazo: sonhosNoPrazo,
@@ -198,6 +284,8 @@ function buildMonthlyReport(yyyymm) {
     },
     jornadaModulosMes,
     applicash: { indicacoes: applicashIndicacoes, receita: applicashReceita },
+    // `bens` fica FORA do hasData de propósito: bem é estoque, existe em
+    // qualquer mês futuro também — somá-lo aqui apagaria o aviso "mês futuro".
     hasData:
       entradas +
         despesasTotais +
@@ -208,6 +296,133 @@ function buildMonthlyReport(yyyymm) {
         applicashIndicacoes >
       0,
   };
+}
+
+// ====== Régua do score — as três faixas de cor ======
+// Fonte única das faixas do termômetro: o score (média dos 5 critérios, cada
+// um valendo 100/50/0) vira cor, rótulo e recomendação a partir daqui — na
+// aba, no gauge e no PDF. Mudou a régua neste array, mudou nos três lugares.
+var RM_SCORE_PONTOS = 101; // 0..100 inclusive — a largura de cada faixa sai daqui
+var RM_FAIXAS_SCORE = [
+  {
+    status: 'vermelho',
+    min: 0,
+    max: 29,
+    rotulo: 'Crítico',
+    cor: '#ef4444',
+    corImpressao: '#dc2626',
+    corClara: '#fee2e2',
+    corEscura: '#991b1b',
+  },
+  {
+    status: 'amarelo',
+    min: 30,
+    max: 59,
+    rotulo: 'Atenção',
+    cor: '#f59e0b',
+    corImpressao: '#d97706',
+    corClara: '#fef3c7',
+    corEscura: '#92400e',
+  },
+  {
+    status: 'verde',
+    min: 60,
+    max: 100,
+    rotulo: 'Saudável',
+    cor: '#10b981',
+    corImpressao: '#059669',
+    corClara: '#d1fae5',
+    corEscura: '#065f46',
+  },
+];
+
+function rmFaixaDoScore(score) {
+  const s = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  for (let i = 0; i < RM_FAIXAS_SCORE.length; i++) {
+    if (s <= RM_FAIXAS_SCORE[i].max) return RM_FAIXAS_SCORE[i];
+  }
+  return RM_FAIXAS_SCORE[RM_FAIXAS_SCORE.length - 1];
+}
+
+function rmFaixaPorStatus(status) {
+  return RM_FAIXAS_SCORE.filter((f) => f.status === status)[0] || null;
+}
+
+// Barra das três faixas com a atual destacada e um ponteiro no score exato.
+// É uma função só (e com estilo inline) porque a barra aparece em dois lugares
+// que não dividem CSS: a aba e o PDF — que é um documento novo, escrito dentro
+// de um iframe e sem acesso à folha de estilo do app.
+function rmBarraFaixasHtml(score, opts) {
+  opts = opts || {};
+  const impressao = !!opts.impressao;
+  const s = Math.max(0, Math.min(100, Math.round(Number(score) || 0)));
+  const ativa = rmFaixaDoScore(s);
+  const corAtiva = impressao ? ativa.corImpressao : ativa.cor;
+  const corRotulo = impressao ? '#64748b' : 'var(--cor-texto-mutado)';
+  const segmentos = RM_FAIXAS_SCORE.map((faixa) => {
+    const ehAtiva = faixa.status === ativa.status;
+    const largura = ((faixa.max - faixa.min + 1) / RM_SCORE_PONTOS) * 100;
+    const fundo = ehAtiva ? (impressao ? faixa.corImpressao : faixa.cor) : faixa.corClara;
+    return (
+      '<div style="box-sizing:border-box;flex:1 0 ' +
+      largura.toFixed(2) +
+      '%;background:' +
+      fundo +
+      ';color:' +
+      (ehAtiva ? '#ffffff' : faixa.corEscura) +
+      ';padding:5px 6px;text-align:center;line-height:1.25;">' +
+      '<div style="font-family:\'DM Mono\',monospace;font-size:11.5px;font-weight:800;">' +
+      faixa.min +
+      '–' +
+      faixa.max +
+      '</div>' +
+      '<div style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.7px;opacity:' +
+      (ehAtiva ? '1' : '0.75') +
+      ';">' +
+      faixa.rotulo +
+      '</div>' +
+      '</div>'
+    );
+  }).join('');
+  // O ponteiro fica no meio da "casa" do ponto — com 101 casas, 60 cai no
+  // começo do verde, e não em cima da divisa com o amarelo. Ele vai ACIMA do
+  // trilho: atravessando as faixas, a linha cortava o texto de cada uma.
+  const pos = (((s + 0.5) / RM_SCORE_PONTOS) * 100).toFixed(2);
+  return (
+    '<div class="rm-faixas" role="img" aria-label="Score ' +
+    s +
+    ' de 100 — faixa ' +
+    ativa.rotulo +
+    ', de ' +
+    ativa.min +
+    ' a ' +
+    ativa.max +
+    ' pontos">' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:5px;">' +
+    '<span style="font-size:9.5px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:' +
+    corRotulo +
+    ';">Régua do score</span>' +
+    "<span style=\"font-family:'DM Mono',monospace;font-size:11.5px;font-weight:800;color:" +
+    corAtiva +
+    ';">' +
+    s +
+    ' pontos · ' +
+    ativa.rotulo +
+    '</span>' +
+    '</div>' +
+    '<div style="position:relative;height:7px;">' +
+    '<div style="position:absolute;left:' +
+    pos +
+    '%;bottom:0;width:0;height:0;margin-left:-5px;border-left:5px solid transparent;' +
+    'border-right:5px solid transparent;border-top:6px solid ' +
+    corAtiva +
+    ';"></div>' +
+    '</div>' +
+    '<div style="display:flex;border-radius:8px;overflow:hidden;">' +
+    segmentos +
+    '</div>' +
+    '</div>'
+  );
 }
 
 // Termômetro — 5 critérios → score 0-100 + status por critério
@@ -285,10 +500,11 @@ function rmCalcularTermometro(rep) {
     pontosVal += 1;
   });
   const finalScore = pontosVal > 0 ? Math.round(score / pontosVal) : 0;
-  let statusGeral = 'verde';
-  if (finalScore < 40) statusGeral = 'vermelho';
-  else if (finalScore < 70) statusGeral = 'amarelo';
-  return { criterios, score: finalScore, statusGeral };
+  // A faixa (vermelho 0-29, amarelo 30-59, verde 60-100) sai de RM_FAIXAS_SCORE
+  // para que a barra de cores mostrada na aba e no PDF seja a MESMA régua que
+  // define o status — nada de dois limiares vivendo em lugares diferentes.
+  const faixa = rmFaixaDoScore(finalScore);
+  return { criterios, score: finalScore, statusGeral: faixa.status, faixa };
 }
 
 function rmCorStatus(s) {
@@ -410,14 +626,8 @@ function rmAtualizarGauge(score, statusGeral) {
   if (scoreEl) scoreEl.style.color = cores.dot;
   if (statusEl) {
     statusEl.style.color = cores.dot;
-    statusEl.innerText =
-      statusGeral === 'verde'
-        ? 'Saudável'
-        : statusGeral === 'amarelo'
-          ? 'Atenção'
-          : statusGeral === 'vermelho'
-            ? 'Crítico'
-            : 'Aguardando';
+    const faixa = rmFaixaPorStatus(statusGeral);
+    statusEl.innerText = faixa ? faixa.rotulo : 'Aguardando';
   }
 }
 
@@ -445,8 +655,14 @@ function rmRenderTermometro(rep, repB) {
     else
       txt =
         '<strong>Crítico.</strong> Vários pilares fora do alvo. Foque em revisar despesas e retomar aportes.';
-    resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo.';
+    // A faixa e seus limites ficam na régua logo abaixo — repeti-los aqui só
+    // faria a frase dizer "atenção" duas vezes.
+    resumo.innerHTML = txt + ' Score ponderado dos 5 critérios abaixo — ' + t.score + '/100.';
   }
+
+  // Barra das faixas com a atual destacada.
+  const faixasEl = document.getElementById('rmHeroFaixas');
+  if (faixasEl) faixasEl.innerHTML = rmBarraFaixasHtml(t.score);
 
   // Saldo e investimentos nos hero stats. O valor vem do snapshot da
   // CARTEIRA do mês (snap.saldoTotal), não do patrimônio consolidado da aba
@@ -547,6 +763,14 @@ function rmRenderKpis(rep, repB, serie12) {
       valorB: repB ? repB.dividendos : null,
       icone: 'ph-coins',
       spark: serie12.dividendos,
+    },
+    {
+      tipo: 'bens',
+      label: 'Bens (carro, casa, etc.)',
+      valor: rep.bens,
+      valorB: repB ? repB.bens : null,
+      icone: 'ph-car-simple',
+      spark: serie12.bens,
     },
   ];
   grid.innerHTML = items
@@ -711,6 +935,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     arrDesp = [],
     arrInv = [],
     arrDiv = [],
+    arrBens = [],
     arrAplic = [],
     arrMerc = [];
   for (let i = 11; i >= 0; i--) {
@@ -722,6 +947,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     arrDesp.push(r.despesasContas);
     arrInv.push(r.investimentos);
     arrDiv.push(r.dividendos);
+    arrBens.push(r.bens);
     arrAplic.push(r.patrimonioAplicado);
     arrMerc.push(r.patrimonioMercado);
   }
@@ -730,6 +956,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     despesas: arrDesp,
     investimentos: arrInv,
     dividendos: arrDiv,
+    bens: arrBens,
     aplicado: arrAplic,
     mercado: arrMerc,
   };
@@ -993,9 +1220,24 @@ function rmRenderDonut(rep) {
       typeof calcularResumoMes === 'function'
         ? calcularResumoMes(rep.mes, rep.ano)
         : { despFixa: 0, despVar: 0, cartao: 0, sonho: 0, invFixo: 0, invVar: 0 };
-    slices.push({ lbl: 'Despesas fixas', val: r.despFixa || 0, cor: '#ef4444' });
-    slices.push({ lbl: 'Despesas variáveis', val: r.despVar || 0, cor: '#f97316' });
-    slices.push({ lbl: 'Cartão de crédito', val: r.cartao || 0, cor: '#f59e0b' });
+    slices.push({
+      lbl: 'Despesas fixas',
+      val: r.despFixa || 0,
+      cor: '#ef4444',
+      bloco: 'despesa_fixa',
+    });
+    slices.push({
+      lbl: 'Despesas variáveis',
+      val: r.despVar || 0,
+      cor: '#f97316',
+      bloco: 'despesa_variavel',
+    });
+    slices.push({
+      lbl: 'Cartão de crédito',
+      val: r.cartao || 0,
+      cor: '#f59e0b',
+      bloco: 'cartao_credito',
+    });
     slices.push({ lbl: 'Sonhos', val: r.sonho || 0, cor: '#ec4899' });
     slices.push({ lbl: 'Investimentos', val: (r.invFixo || 0) + (r.invVar || 0), cor: '#7c3aed' });
   } catch (_) {}
@@ -1068,6 +1310,23 @@ function rmRenderDonut(rep) {
     });
   }
   if (legenda) {
+    // Mesmo detalhe que vai no PDF: cada bloco de gasto abre nas categorias
+    // que o usuário cadastrou (Mercado, Academia…).
+    const detalhe = rmDetalhePorCategoria(rep.mes, rep.ano);
+    const subHtml = (bloco) =>
+      ((bloco && detalhe[bloco]) || [])
+        .map(
+          (c) =>
+            '<div class="rm-donut-leg-sub">' +
+            '<span class="rm-donut-leg-sub-label">' +
+            c.label +
+            '</span>' +
+            '<span class="rm-donut-leg-sub-valor valor-mascarado">' +
+            formatarMoeda(c.valor) +
+            '</span>' +
+            '</div>'
+        )
+        .join('');
     legenda.innerHTML = filtrados
       .map(
         (s) =>
@@ -1084,7 +1343,8 @@ function rmRenderDonut(rep) {
           '<span class="rm-donut-leg-pct">' +
           ((s.val / totalSaidas) * 100).toFixed(0) +
           '%</span>' +
-          '</div>'
+          '</div>' +
+          subHtml(s.bloco)
       )
       .join('');
   }
@@ -1144,6 +1404,7 @@ function renderRelatorioMensal() {
     despesas: [],
     investimentos: [],
     dividendos: [],
+    bens: [],
   };
   rmRenderKpis(rep, repB, serie12);
   rmRenderSecundarios(rep);
@@ -1159,19 +1420,37 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
   const f = (v) =>
     typeof formatarMoeda === 'function' ? formatarMoeda(v || 0) : 'R$ ' + (v || 0).toFixed(2);
   const corStatus = { verde: '#059669', amarelo: '#d97706', vermelho: '#dc2626', cinza: '#6b7280' };
-  const scoreCor = term ? corStatus[term.statusGeral] || '#059669' : '#059669';
+  const faixa = term ? term.faixa : null;
+  const scoreCor = faixa ? faixa.corImpressao : '#059669';
 
   const kpi = (label, val, cor) =>
     `<div class="rm-print-kpi"><div class="k-lbl">${label}</div><div class="k-val" style="color:${cor || '#0f172a'}">${val}</div></div>`;
 
+  // `bloco` liga a barra à classificação contábil, que é a chave do detalhe
+  // por categoria. Sonhos e aportes não têm bloco porque não são categorizados.
+  const detalhe = rmDetalhePorCategoria(rep.mes, rep.ano);
   const distItens = [
-    { l: 'Despesas fixas', v: r.despFixa || 0, c: '#ef4444' },
-    { l: 'Despesas variáveis', v: r.despVar || 0, c: '#f97316' },
-    { l: 'Cartão de crédito', v: r.cartao || 0, c: '#f59e0b' },
+    { l: 'Despesas fixas', v: r.despFixa || 0, c: '#ef4444', bloco: 'despesa_fixa' },
+    { l: 'Despesas variáveis', v: r.despVar || 0, c: '#f97316', bloco: 'despesa_variavel' },
+    { l: 'Cartão de crédito', v: r.cartao || 0, c: '#f59e0b', bloco: 'cartao_credito' },
     { l: 'Sonhos', v: r.sonho || 0, c: '#ec4899' },
     { l: 'Investimentos (aportes)', v: (r.invFixo || 0) + (r.invVar || 0), c: '#7c3aed' },
   ].filter((x) => x.v > 0);
   const maxDist = Math.max(1, ...distItens.map((x) => x.v));
+  const catsHtml = (bloco) => {
+    const lista = (bloco && detalhe[bloco]) || [];
+    if (!lista.length) return '';
+    return (
+      '<div class="rm-print-cats">' +
+      lista
+        .map(
+          (c) =>
+            `<div class="rm-print-cat"><span>${c.label}</span><span class="mono">${f(c.valor)}</span></div>`
+        )
+        .join('') +
+      '</div>'
+    );
+  };
   const distHtml =
     distItens
       .map(
@@ -1179,6 +1458,7 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
         <div class="rm-print-bar-row">
           <div class="rm-print-bar-head"><span>${x.l}</span><span class="mono">${f(x.v)}</span></div>
           <div class="rm-print-bar-track"><div class="rm-print-bar-fill" style="width:${((x.v / maxDist) * 100).toFixed(1)}%;background:${x.c}"></div></div>
+          ${catsHtml(x.bloco)}
         </div>`
       )
       .join('') || '<div class="rm-print-muted">Sem saídas registradas neste mês.</div>';
@@ -1206,6 +1486,7 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
       .rm-print .rm-print-score { text-align:center;min-width:96px; }
       .rm-print .rm-print-score .s { font-size:30px;font-weight:800;line-height:1; }
       .rm-print .rm-print-score .l { font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b;margin-top:3px; }
+      .rm-print .rm-print-faixas { margin:-4px 0 16px;page-break-inside:avoid; }
       .rm-print .rm-print-card { border:1px solid #e2e8f0;border-radius:12px;padding:14px 16px;margin-bottom:16px;page-break-inside:avoid;background:#fff; }
       .rm-print .rm-print-card h2 { font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:#475569;margin:0 0 12px; }
       .rm-print .rm-print-kpis { display:grid;grid-template-columns:repeat(3,1fr);gap:10px; }
@@ -1217,6 +1498,8 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
       .rm-print .rm-print-bar-head { display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;color:#334155; }
       .rm-print .rm-print-bar-track { height:10px;background:#f1f5f9;border-radius:6px;overflow:hidden; }
       .rm-print .rm-print-bar-fill { height:100%;border-radius:6px; }
+      .rm-print .rm-print-cats { margin:6px 0 8px 2px;padding-left:10px;border-left:2px solid #e8edf3; }
+      .rm-print .rm-print-cat { display:flex;justify-content:space-between;gap:10px;font-size:11px;color:#64748b;padding:1.5px 0; }
       .rm-print table { width:100%;border-collapse:collapse;font-size:12px; }
       .rm-print td { padding:7px 4px;border-bottom:1px solid #eef2f6;color:#334155; }
       .rm-print .rm-print-muted { color:#94a3b8;font-size:12px; }
@@ -1230,9 +1513,11 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
       </div>
       <div class="rm-print-score">
         <div class="s" style="color:${scoreCor}">${term ? Math.round(term.score) : '—'}</div>
-        <div class="l">${term ? term.statusGeral : 'Termômetro'}</div>
+        <div class="l">${faixa ? faixa.rotulo : 'Termômetro'}</div>
       </div>
     </div>
+
+    ${term ? `<div class="rm-print-faixas">${rmBarraFaixasHtml(term.score, { impressao: true })}</div>` : ''}
 
     <div class="rm-print-card">
       <h2>Resumo do mês</h2>
@@ -1243,6 +1528,7 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
         ${kpi('Saldo do mês', f(rep.saldoFinal), rep.saldoFinal >= 0 ? '#059669' : '#dc2626')}
         ${kpi('Dividendos', f(rep.dividendos), '#0ea5e9')}
         ${kpi('Investimentos (mercado)', f(rep.patrimonioMercado), '#0f172a')}
+        ${kpi('Bens (carro, casa, etc.)', f(rep.bens), '#b45309')}
       </div>
     </div>
 

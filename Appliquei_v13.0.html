@@ -3877,6 +3877,13 @@
             font-size: 11.5px; color: var(--cor-texto-mutado); display: flex;
             align-items: center; gap: 10px; flex-wrap: wrap;
         }
+        /* "Conquista em X" — o horizonte até bater a meta. Destacado porque é
+           a pergunta que o bloco de mini-cards removido tentava responder. */
+        .sonho-conquista-chip {
+            font-weight: 700; color: #6d28d9;
+            background: rgba(124,58,237,0.10);
+            padding: 2px 8px; border-radius: 99px;
+        }
         .sonho-collapsed-progress {
             display: flex; align-items: center; gap: 8px; min-width: 140px;
         }
@@ -4230,76 +4237,6 @@
             animation: shimmer 2.5s infinite;
         }
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-
-        /* Mini-cards "Tempo para conquistar" */
-        .tempo-conquistar-section {
-            margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--cor-borda);
-        }
-        .tempo-conquistar-title {
-            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
-            color: var(--cor-texto-mutado); margin-bottom: 12px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .tempo-conquistar-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-        }
-        .tempo-card {
-            display: flex; flex-direction: column; gap: 10px;
-            padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px;
-            background: var(--cor-branco); cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-        }
-        .tempo-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--cor-borda-primaria); }
-        .tempo-card-head { display: flex; align-items: center; gap: 10px; }
-        .tempo-card-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px; flex-shrink: 0;
-        }
-        .tempo-card-icon.cat-viagem { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; }
-        .tempo-card-icon.cat-veiculo { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; }
-        .tempo-card-icon.cat-imovel { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-        .tempo-card-icon.cat-educacao { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; }
-        .tempo-card-icon.cat-casamento { background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff; }
-        .tempo-card-icon.cat-reserva { background: linear-gradient(135deg, #059669, #14b8a6); color: #fff; }
-        .tempo-card-icon.cat-tech { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
-        .tempo-card-icon.cat-saude { background: linear-gradient(135deg, #ef4444, #f97316); color: #fff; }
-        .tempo-card-icon.cat-outro { background: linear-gradient(135deg, var(--cor-primaria), #7c3aed); color: #fff; }
-        .tempo-card-info { flex: 1; min-width: 0; }
-        .tempo-card-nome {
-            font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal);
-            line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .tempo-card-status {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
-            padding: 2px 8px; border-radius: 99px; margin-top: 4px;
-        }
-        .tempo-card-status.st-ativo { background: rgba(16,185,129,0.12); color: #047857; }
-        .tempo-card-status.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; }
-        .tempo-card-status.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; }
-        .tempo-card-status.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; }
-        .tempo-card-prazo {
-            font-family: 'DM Mono', monospace; font-weight: 700;
-            font-size: 14px; color: #8b5cf6; flex-shrink: 0; text-align: right;
-            min-width: 90px;
-        }
-        .tempo-card-prazo.urg-alta { color: #ef4444; }
-        .tempo-card-prazo.urg-media { color: #f59e0b; }
-        .tempo-card-prazo.urg-baixa { color: #10b981; }
-        .tempo-card-prazo.urg-conquistado { color: #047857; }
-        .tempo-card-prazo-lbl { font-size: 9.5px; color: var(--cor-texto-mutado); font-weight: 600; text-transform: uppercase; }
-        .tempo-card-bar {
-            height: 6px; background: var(--cor-superficie); border-radius: 99px;
-            overflow: hidden; border: 1px solid var(--cor-borda);
-        }
-        .tempo-card-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .tempo-card-meta {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 11px; color: var(--cor-texto-mutado);
-        }
-        .tempo-card-meta strong { color: var(--cor-texto-principal); font-family: 'DM Mono', monospace; font-weight: 700; }
 
         /* Badge de status no header colapsado */
         .sonho-status-badge {
@@ -5913,6 +5850,13 @@
             margin: 0 0 18px;
             max-width: 540px;
         }
+        /* Régua do score — o conteúdo vem de rmBarraFaixasHtml() com estilo
+           inline (a mesma barra é reaproveitada no PDF, que não tem este CSS). */
+        #relatorio_mensal .rm-hero-faixas {
+            max-width: 540px;
+            margin: 0 0 18px;
+        }
+        #relatorio_mensal .rm-hero-faixas:empty { display: none; }
         #relatorio_mensal .rm-hero-stats {
             display: flex; gap: 12px; flex-wrap: wrap;
         }
@@ -6220,6 +6164,31 @@
             font-family: 'DM Mono', monospace;
             display: none; /* já mostramos valor; pct fica no tooltip */
         }
+        /* Detalhe por categoria dentro de cada bloco de gasto (Mercado,
+           Academia…). Recuado até a coluna do rótulo do bloco. */
+        #relatorio_mensal .rm-donut-leg-sub {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-left: 18px;
+            padding: 2px 0 2px 9px;
+            border-left: 2px solid var(--cor-borda);
+            font-size: 10.5px;
+            color: var(--cor-texto-mutado);
+        }
+        #relatorio_mensal .rm-donut-leg-sub-label {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #relatorio_mensal .rm-donut-leg-sub-valor {
+            font-family: 'DM Mono', monospace;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        /* Respiro depois do último detalhe, para o bloco seguinte não parecer
+           mais um item da lista de categorias. */
+        #relatorio_mensal .rm-donut-leg-sub + .rm-donut-leg-item { margin-top: 5px; }
         /* Total no centro do donut */
         #relatorio_mensal .rm-donut-canvas {
             position: relative;
@@ -6358,6 +6327,7 @@
         #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
         #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
         #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: #b45309; --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -8591,6 +8561,8 @@
                         <span class="rm-hero-mes" id="rmHeroMesLabel">—</span>
                         <h2 class="rm-hero-titulo"><i class="ph-fill ph-thermometer-hot"></i> Termômetro financeiro</h2>
                         <p id="rmTermometroResumo" class="rm-hero-resumo">Selecione um mês para ver o termômetro.</p>
+                        <!-- Régua do score: as 3 faixas de cor com a atual destacada (montada em JS) -->
+                        <div class="rm-hero-faixas" id="rmHeroFaixas"></div>
                         <div class="rm-hero-stats">
                             <div class="rm-hero-stat">
                                 <span class="rm-hero-stat-label">Saldo final</span>
@@ -8630,7 +8602,7 @@
                         <div class="rm-chart-header">
                             <div>
                                 <h3 class="rm-chart-title"><i class="ph-fill ph-chart-donut"></i> Para onde foi o dinheiro</h3>
-                                <p class="rm-chart-sub">Composição das saídas do mês</p>
+                                <p class="rm-chart-sub">Composição das saídas do mês, detalhada por categoria</p>
                             </div>
                         </div>
                         <div class="rm-donut-wrap">
@@ -9184,13 +9156,13 @@
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
-    <script src="/web/appliquei-relatorio-mensal.js?v=rotulo-investimentos"></script>
+    <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>
     <script src="/web/appliquei-bens.js?v=bens-v1"></script>
     <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
-    <script src="/web/appliquei-sonhos.js?v=fase2"></script>
+    <script src="/web/appliquei-sonhos.js?v=conquista-no-card"></script>
 </body>
 </html>
