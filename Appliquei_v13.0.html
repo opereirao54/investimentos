@@ -3877,6 +3877,13 @@
             font-size: 11.5px; color: var(--cor-texto-mutado); display: flex;
             align-items: center; gap: 10px; flex-wrap: wrap;
         }
+        /* "Conquista em X" — o horizonte até bater a meta. Destacado porque é
+           a pergunta que o bloco de mini-cards removido tentava responder. */
+        .sonho-conquista-chip {
+            font-weight: 700; color: #6d28d9;
+            background: rgba(124,58,237,0.10);
+            padding: 2px 8px; border-radius: 99px;
+        }
         .sonho-collapsed-progress {
             display: flex; align-items: center; gap: 8px; min-width: 140px;
         }
@@ -4230,76 +4237,6 @@
             animation: shimmer 2.5s infinite;
         }
         @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-
-        /* Mini-cards "Tempo para conquistar" */
-        .tempo-conquistar-section {
-            margin-top: 16px; padding-top: 16px; border-top: 1px dashed var(--cor-borda);
-        }
-        .tempo-conquistar-title {
-            font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
-            color: var(--cor-texto-mutado); margin-bottom: 12px;
-            display: flex; align-items: center; gap: 6px;
-        }
-        .tempo-conquistar-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 12px;
-        }
-        .tempo-card {
-            display: flex; flex-direction: column; gap: 10px;
-            padding: 14px; border: 1px solid var(--cor-borda); border-radius: 12px;
-            background: var(--cor-branco); cursor: pointer;
-            transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
-        }
-        .tempo-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); border-color: var(--cor-borda-primaria); }
-        .tempo-card-head { display: flex; align-items: center; gap: 10px; }
-        .tempo-card-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 18px; flex-shrink: 0;
-        }
-        .tempo-card-icon.cat-viagem { background: linear-gradient(135deg, #06b6d4, #3b82f6); color: #fff; }
-        .tempo-card-icon.cat-veiculo { background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; }
-        .tempo-card-icon.cat-imovel { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-        .tempo-card-icon.cat-educacao { background: linear-gradient(135deg, #8b5cf6, #6366f1); color: #fff; }
-        .tempo-card-icon.cat-casamento { background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff; }
-        .tempo-card-icon.cat-reserva { background: linear-gradient(135deg, #059669, #14b8a6); color: #fff; }
-        .tempo-card-icon.cat-tech { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
-        .tempo-card-icon.cat-saude { background: linear-gradient(135deg, #ef4444, #f97316); color: #fff; }
-        .tempo-card-icon.cat-outro { background: linear-gradient(135deg, var(--cor-primaria), #7c3aed); color: #fff; }
-        .tempo-card-info { flex: 1; min-width: 0; }
-        .tempo-card-nome {
-            font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal);
-            line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .tempo-card-status {
-            display: inline-flex; align-items: center; gap: 4px;
-            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
-            padding: 2px 8px; border-radius: 99px; margin-top: 4px;
-        }
-        .tempo-card-status.st-ativo { background: rgba(16,185,129,0.12); color: #047857; }
-        .tempo-card-status.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; }
-        .tempo-card-status.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; }
-        .tempo-card-status.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; }
-        .tempo-card-prazo {
-            font-family: 'DM Mono', monospace; font-weight: 700;
-            font-size: 14px; color: #8b5cf6; flex-shrink: 0; text-align: right;
-            min-width: 90px;
-        }
-        .tempo-card-prazo.urg-alta { color: #ef4444; }
-        .tempo-card-prazo.urg-media { color: #f59e0b; }
-        .tempo-card-prazo.urg-baixa { color: #10b981; }
-        .tempo-card-prazo.urg-conquistado { color: #047857; }
-        .tempo-card-prazo-lbl { font-size: 9.5px; color: var(--cor-texto-mutado); font-weight: 600; text-transform: uppercase; }
-        .tempo-card-bar {
-            height: 6px; background: var(--cor-superficie); border-radius: 99px;
-            overflow: hidden; border: 1px solid var(--cor-borda);
-        }
-        .tempo-card-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .tempo-card-meta {
-            display: flex; justify-content: space-between; align-items: center;
-            font-size: 11px; color: var(--cor-texto-mutado);
-        }
-        .tempo-card-meta strong { color: var(--cor-texto-principal); font-family: 'DM Mono', monospace; font-weight: 700; }
 
         /* Badge de status no header colapsado */
         .sonho-status-badge {
@@ -9226,6 +9163,6 @@
     <script src="/web/appliquei-bens.js?v=bens-v1"></script>
     <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
     <script src="/web/appliquei-jornada.js?v=onda3b"></script>
-    <script src="/web/appliquei-sonhos.js?v=fase2"></script>
+    <script src="/web/appliquei-sonhos.js?v=conquista-no-card"></script>
 </body>
 </html>
