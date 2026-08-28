@@ -69,27 +69,27 @@ function trechoAlterado(arquivo) {
  * Cruza arquivos alterados com o mapa.
  * @returns {{invariantes: Array, entidades: Set<string>, cadeias: Array}}
  */
-function analisar(arquivos, opcoes) {
-  opcoes = opcoes || {};
+function analisar(arquivos) {
   const emRisco = [];
 
   for (const inv of MAPA.invariantes) {
     const tocados = (inv.arquivos || []).filter((a) => arquivos.includes(a));
     if (!tocados.length) continue;
 
-    // Filtro fino: se conseguimos ler o diff, só reporta quando um símbolo
-    // crítico aparece nele. Sem diff legível (ex.: arquivo novo, ou chamada com
-    // caminhos explícitos), reporta pelo arquivo — errar para o lado do aviso.
+    // Filtro fino: só reporta quando um símbolo crítico aparece no diff DAQUELE
+    // arquivo. Vale também quando os caminhos vêm explícitos (é o caso do hook,
+    // que passa só o arquivo recém-editado): os explícitos dizem QUAIS arquivos
+    // olhar, e o filtro continua decidindo SE há o que dizer. Sem diff legível
+    // — arquivo novo, ou `git` indisponível — reporta pelo arquivo, errando
+    // para o lado do aviso.
     let simbolos = [];
     let temDiff = false;
-    if (!opcoes.semFiltroFino) {
-      for (const a of tocados) {
-        const d = trechoAlterado(a);
-        if (!d.trim()) continue;
-        temDiff = true;
-        for (const sim of inv.simbolos || []) {
-          if (d.includes(sim) && !simbolos.includes(sim)) simbolos.push(sim);
-        }
+    for (const a of tocados) {
+      const d = trechoAlterado(a);
+      if (!d.trim()) continue;
+      temDiff = true;
+      for (const sim of inv.simbolos || []) {
+        if (d.includes(sim) && !simbolos.includes(sim)) simbolos.push(sim);
       }
     }
     if (temDiff && !simbolos.length) continue;
@@ -137,7 +137,7 @@ function main() {
   const explicitos = args.filter((a) => !a.startsWith('--'));
 
   const arquivos = explicitos.length ? explicitos : arquivosDoDiff();
-  const { emRisco, cadeias } = analisar(arquivos, { semFiltroFino: explicitos.length > 0 });
+  const { emRisco, cadeias } = analisar(arquivos);
   const provas = provasDe(emRisco);
 
   if (json) {

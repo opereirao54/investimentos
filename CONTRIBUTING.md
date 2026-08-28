@@ -31,6 +31,7 @@ npm run dev        # http://localhost:5173/landing.html
 ### Mensagens de commit
 
 Formato livre, mas com prefixo de tipo no estilo conventional commits:
+
 - `feat:` nova feature
 - `fix:` correção de bug
 - `refactor:` mudança estrutural sem alterar comportamento
@@ -49,16 +50,16 @@ Mensagem em PT-BR é OK. Corpo do commit deve explicar **o porquê**, não o **o
 
 ### Onde mexer
 
-| Mudança | Arquivo(s) |
-| --- | --- |
-| Lógica de assinatura/billing | `api/billing/*.js` + `web/appliquei-billing.js` |
-| ABA Meus Investimentos | `web/appliquei-app.js` (core) + `web/appliquei-aba1-charts.js` (visualizações) |
-| Controle Financeiro | `web/appliquei-aba-controle-financeiro.js` |
-| Sonhos / Dream Planner | `web/appliquei-sonhos.js` |
-| Cotações / Yahoo | `web/appliquei-yahoo-finance.js` + `api/market.js` (cache server-side) |
-| Validação de input API | `api/_lib/schemas.js` (Zod) |
-| Auth/middleware comum API | `api/_lib/handler.js` |
-| Painel admin | `admin.html` + `web/appliquei-admin.js` + `api/admin/*` |
+| Mudança                      | Arquivo(s)                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------ |
+| Lógica de assinatura/billing | `api/billing/*.js` + `web/appliquei-billing.js`                                |
+| ABA Meus Investimentos       | `web/appliquei-app.js` (core) + `web/appliquei-aba1-charts.js` (visualizações) |
+| Controle Financeiro          | `web/appliquei-aba-controle-financeiro.js`                                     |
+| Sonhos / Dream Planner       | `web/appliquei-sonhos.js`                                                      |
+| Cotações / Yahoo             | `web/appliquei-yahoo-finance.js` + `api/market.js` (cache server-side)         |
+| Validação de input API       | `api/_lib/schemas.js` (Zod)                                                    |
+| Auth/middleware comum API    | `api/_lib/handler.js`                                                          |
+| Painel admin                 | `admin.html` + `web/appliquei-admin.js` + `api/admin/*`                        |
 
 ### Regras estritas
 
@@ -72,6 +73,7 @@ Mensagem em PT-BR é OK. Corpo do commit deve explicar **o porquê**, não o **o
 ### Unit tests (`npm test`)
 
 `node --test` em `test/*.test.js`. Cobertura atual:
+
 - `access.test.js` — matriz pagou/não pagou
 - `cpf-cnpj.test.js` — validação DV
 - `handler.test.js` — wrapper de API (cors, auth, Zod, exception)
@@ -123,6 +125,22 @@ npm run cacar              # caça intensiva: 300 sequências × 25 passos
 npm run cacar 1000 40      # mais fundo, ao investigar
 ```
 
+### Quando cada motor roda
+
+| Momento                            | O que roda                                 | Bloqueia?   |
+| ---------------------------------- | ------------------------------------------ | ----------- |
+| Edição em `web/*.js` (Claude Code) | Impacto + as provas dos contratos tocados  | Não — avisa |
+| `git commit` com `web/` no stage   | Integração + simulação (~6s)               | **Sim**     |
+| `git push`, qualquer branch        | Lint, todos os testes, build, E2E          | **Sim**     |
+| Segundas, 04:10 UTC                | Caça profunda: 2000 sequências × 40 passos | Abre issue  |
+
+O hook não bloqueia de propósito: no meio de um refactor os testes falham
+legitimamente entre uma edição e a seguinte, e bloquear ali ensinaria a ignorar
+o aviso. O portão duro é o pre-commit.
+
+Escape consciente do pre-commit: `git commit --no-verify`. O CI roda em toda
+branch de qualquer forma, então nada escapa até o merge.
+
 **Ao criar um botão ou ação nova**, some-a ao catálogo `ACOES` em
 `test/_sequencias.js` — senão as sequências nunca a exercitam — e escreva os
 casos de entrada em `test/simulacao-*.test.js`. Ver
@@ -131,10 +149,12 @@ casos de entrada em `test/simulacao-*.test.js`. Ver
 ### Flow tests (`npm run test:flows`)
 
 Cenários de billing e referral usando mocks de Asaas + Firestore.
+
 - `scripts/test-subscription-flow.js` — 67 checks ("pagou usa, não pagou não usa")
 - `scripts/test-referral-flow.js` — 41 checks (cupom Applicash)
 
 Adicione cenário novo se mudar lógica de:
+
 - `api/_lib/access.js` (computeAccess)
 - `api/_lib/billing-sync.js`
 - `api/billing/webhook.js` (especialmente eventos de pagamento)

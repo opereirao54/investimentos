@@ -1,10 +1,20 @@
 name: CI
 
 on:
+  # `push:` sem filtro = TODA branch. Antes era `branches: [main]`, e o efeito
+  # colateral era grave: trabalho numa branch de feature nunca via CI — as
+  # travas só rodavam quando o PR abrisse. Quem empurra commit espera saber se
+  # quebrou algo antes de pedir revisão, não depois.
   push:
-    branches: [main]
   pull_request:
     branches: [main]
+
+# Branch de PR dispararia duas vezes (push + pull_request). O grupo por ref faz
+# a segunda cancelar a primeira, e cada push novo cancela a run anterior da
+# mesma branch — feedback mais rápido e sem queimar minutos com runs superadas.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Silencia o aviso "Node.js 20 actions are deprecated". As actions oficiais
 # (checkout/setup-node) ainda usam Node 20 internamente em sua implementação;
