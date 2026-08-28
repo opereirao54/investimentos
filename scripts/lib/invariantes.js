@@ -285,6 +285,39 @@ function validarEstado(estado, opcoes) {
     }
   }
 
+  // INV-22 — sonho tem conta de origem, e o compromisso a carrega.
+  for (const s of sonhos) {
+    const conta = s.contaOrigemId ? contas.find((c) => c.id === s.contaOrigemId) : null;
+    if (!s.contaOrigemId) {
+      acusar(
+        'INV-22',
+        `Sonho "${s.nome || s.id}" sem conta de origem. Os compromissos dele nascem com ` +
+          `contaId indefinido e, ao serem pagos, caem em "A reconciliar" — o valor sai do ` +
+          `total do patrimônio sem sair de nenhuma instituição. (Num dado antigo isto pode ` +
+          `ser resíduo de antes da correção do RISCO-02, quando o cadastro não exigia a conta.)`,
+        s
+      );
+    } else if (!conta) {
+      acusar(
+        'INV-22',
+        `Sonho "${s.nome || s.id}" aponta para a conta ${s.contaOrigemId}, que não existe.`,
+        s
+      );
+    }
+    if (!conta) continue;
+    for (const t of transacoes) {
+      if (t.categoria !== 'sonho' || t.sonhoId !== s.id || t.aporteExtra) continue;
+      if (t.contaId !== s.contaOrigemId) {
+        acusar(
+          'INV-22',
+          `Compromisso do sonho "${s.nome || s.id}" com contaId ${t.contaId || '(vazio)'}, ` +
+            `mas o sonho debita a conta ${s.contaOrigemId} — ${rotulo(t)}.`,
+          t
+        );
+      }
+    }
+  }
+
   // INV-11 — aporte extra e transação são um par de ligação dupla.
   for (const s of sonhos) {
     for (const ap of s.aportes || []) {

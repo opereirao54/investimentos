@@ -1084,11 +1084,33 @@ function avaliarFolgaParaSonho(mensal) {
   return { semDados: false, sobra, jaComprometido, depois, pct, nivel, cor, titulo, saude };
 }
 
+// Conta de origem é OBRIGATÓRIA — mesmo molde de controleBancoObrigatorio
+// (despesa no Controle) e de contaPagadoraId (cartão). É dela que sai o dinheiro
+// quando a parcela do sonho é paga: sem ela, o compromisso nasce com contaId
+// undefined e a baixa cai em "A reconciliar", furando a regra de que todo gasto
+// desconta de uma conta (INV-01) por fora da trava do Controle, que não cobre a
+// categoria 'sonho'. Ver RISCO-02 em .claude/integracoes/mapa.json.
+// Devolve true quando pode seguir; senão avisa e devolve false.
+function sonhoContaOrigemValida(contaOrigemId) {
+  if (contaOrigemId) return true;
+  if (typeof contasAtivas === 'function' && !contasAtivas().length) {
+    mostrarToast(
+      'Cadastre uma conta em "Meu patrimônio" e escolha de onde sai o dinheiro.',
+      'erro'
+    );
+  } else {
+    mostrarToast('Escolha a conta de onde sai o dinheiro do sonho.', 'erro');
+  }
+  return false;
+}
+
 function irParaPreviaSonho() {
   const nome = (document.getElementById('sonhoNome').value || '').trim();
   const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
   if (!nome) return mostrarToast('Dê um nome ao seu sonho!', 'erro');
   if (valorTotal <= 0) return mostrarToast('Informe o valor total da meta.', 'erro');
+  const contaPrevia = (document.getElementById('sonhoContaOrigem') || {}).value || null;
+  if (!sonhoContaOrigemValida(contaPrevia)) return;
 
   document.getElementById('sonhoPasso1').style.display = 'none';
   document.getElementById('sonhoAcoesPasso1').style.display = 'none';
@@ -1545,6 +1567,7 @@ function salvarSonho() {
     mostrarToast('Informe o valor total da meta.', 'erro');
     return;
   }
+  if (!sonhoContaOrigemValida(contaOrigemId)) return;
 
   const agora = new Date();
   // dataInicio: dia 1 do mês escolhido, default = mês corrente. Não pode ser anterior ao mês corrente.

@@ -165,7 +165,12 @@ function preencher(
   set('sonhoDescricao', '');
   set('sonhoCategoria', 'viagem');
   set('sonhoEsforco', 'medio');
-  set('sonhoContaOrigem', '');
+  // Conta de origem passou a ser obrigatória no cadastro (INV-22 / RISCO-02):
+  // sem ela o compromisso nasceria com contaId indefinido e a parcela paga
+  // cairia em "A reconciliar". Estes testes são sobre o PLANO (mensal, prazo,
+  // data de fim), então a conta é só o que destrava a gravação.
+  const conta = env.win.criarConta({ nome: 'Nubank', tipo: 'banco', saldoInicial: 100000 });
+  set('sonhoContaOrigem', conta.id);
   env.elementos.sonhoVincularPlano = Object.assign(makeDeadNode(), { checked: false });
 }
 
