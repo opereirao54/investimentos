@@ -658,7 +658,7 @@
     {
       "id": "INV-22",
       "titulo": "Sonho tem conta de origem, e o compromisso a carrega",
-      "regra": "Todo sonho tem contaOrigemId apontando para uma conta existente, e todo compromisso gerado por ele (categoria \"sonho\", não-aporteExtra) nasce com esse contaId. É o que faz a parcela, ao ser paga, debitar uma instituição de verdade em vez de \"A reconciliar\". A obrigatoriedade é validada em DOIS pontos: irParaPreviaSonho (para o usuário não descobrir no fim) e salvarSonho (a trava que garante a invariante).",
+      "regra": "Todo sonho tem contaOrigemId apontando para uma conta existente, e todo compromisso PENDENTE gerado por ele (categoria \"sonho\", não-aporteExtra, pago:false) carrega esse contaId. Trocar a conta do sonho tem de recarimbar os pendentes — nos DOIS caminhos de edição, o direto e o que passa pelo modal de confirmação. Parcela PAGA fica como está: ela debitou a conta que debitou na época, e reescrevê-la moveria dinheiro entre bancos retroativamente. A obrigatoriedade é validada em irParaPreviaSonho e salvarSonho.",
       "gravidade": "critica",
       "entidades": ["sonho", "transacao", "conta"],
       "arquivos": ["web/appliquei-sonhos.js"],
@@ -671,8 +671,8 @@
         "popularSelectSonhoContaOrigem"
       ],
       "sintoma": "\"Paguei a parcela do sonho e o saldo do banco não mudou\" · o valor aparece em \"A reconciliar\" no Meu Patrimônio.",
-      "fragilidade": "A categoria \"sonho\" NÃO está em controleBancoObrigatorio — a trava do Controle não a cobre. A obrigatoriedade tem de viver no cadastro do sonho; se sair de lá, não há rede nenhuma embaixo.",
-      "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle.",
+      "fragilidade": "Três armadilhas. (1) A categoria \"sonho\" NÃO está em controleBancoObrigatorio — não há rede embaixo. (2) Existem DOIS caminhos de edição de sonho, e só a ordem das ações decide qual roda: o direto e o aplicarEdicaoSonhoComModo (modal, quando já há aportes extras e o valor guardado mudou). Guardar só um deixa o outro aberto. (3) A regra ingênua \"todo compromisso carrega a conta do sonho\" acusa histórico pago legítimo — o campo `pago` é o que separa compromisso de história.",
+      "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle. As duas últimas armadilhas foram achadas pelas SEQUÊNCIAS aleatórias (test/simulacao-sequencias.test.js): editar direto funcionava e editar via modal não, e a própria invariante estava acusando parcela paga.",
       "prova": "test/integracao-inv22-sonho-conta-origem.test.js",
       "status": "coberta"
     }

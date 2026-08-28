@@ -51,6 +51,13 @@ jobs:
       - name: Contratos de integração (invariantes)
         run: npm run test:integracoes
 
+      # Simulação das ações de UI: cada botão exercitado com entradas válidas,
+      # degeneradas e adversariais, mais sequências aleatórias de semente fixa,
+      # validando TODAS as invariantes entre cada passo. Determinístico de
+      # propósito — um teste que falha às vezes não serve como trava.
+      - name: Simulação de ações (botões e sequências)
+        run: npm run test:simulacao
+
       - name: Billing flow tests
         run: npm run test:flows
 

@@ -307,6 +307,12 @@ function validarEstado(estado, opcoes) {
     if (!conta) continue;
     for (const t of transacoes) {
       if (t.categoria !== 'sonho' || t.sonhoId !== s.id || t.aporteExtra) continue;
+      // Parcela PAGA é história: ela debitou a conta que debitou na época.
+      // Trocar a conta do sonho depois disso não pode — e não deve — reescrever
+      // o passado; recarimbá-la moveria dinheiro entre bancos retroativamente.
+      // A regra vale só para o que ainda vai debitar. (Mesma lógica de INV-10:
+      // o campo `pago` é o que separa história de compromisso.)
+      if (t.pago) continue;
       if (t.contaId !== s.contaOrigemId) {
         acusar(
           'INV-22',

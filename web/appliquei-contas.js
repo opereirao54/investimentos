@@ -669,14 +669,34 @@ function abrirTransferenciaModal() {
 
 // Lógica pura (testável): cria o par de transações balanceado. Retorna
 // {saida, entrada} ou null se inválido. NÃO toca DOM.
+// Choke point da transferência: confirmarTransferencia e qualquer outro
+// chamador passam por aqui, então as guardas vivem neste ponto.
+//
+// Duas saíram da simulação dos botões (test/simulacao-patrimonio.test.js):
+//
+//  · conta INEXISTENTE passava. `obterConta(id) || {}` engolia o caso e as duas
+//    pernas nasciam apontando para o nada — o valor saía do total do patrimônio
+//    sem sair de instituição alguma (INV-01). O select da UI só oferece contas
+//    reais, mas uma conta apagada entre abrir o modal e confirmar chega aqui.
+//  · valor ACIMA DO SALDO passava, deixando a conta de origem negativa. É a
+//    mesma saída de dinheiro que registrarOperacaoAtivo bloqueia na compra de
+//    ativo (renda-fixa.js:796) e que o aporte de sonho passou a bloquear.
 function criarTransferencia(origemId, destinoId, valor, dataStr) {
   if (!origemId || !destinoId || origemId === destinoId) return null;
   if (!(Number(valor) > 0)) return null;
   if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return null;
+  const cOrigem = obterConta(origemId);
+  const cDestino = obterConta(destinoId);
+  if (!cOrigem || !cDestino) return null;
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const saldos = mpCalcularSaldoPorInstituicao(Date.now()) || {};
+    const caixa = saldos[origemId] ? saldos[origemId].caixa : 0;
+    if (Number(valor) > caixa + 0.005) return null;
+  }
   const d = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
   const transferenciaId = 'transf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  const oNome = (obterConta(origemId) || {}).nome || '';
-  const dNome = (obterConta(destinoId) || {}).nome || '';
+  const oNome = cOrigem.nome || '';
+  const dNome = cDestino.nome || '';
   const base = {
     transferenciaId: transferenciaId,
     valor: Number(valor),
@@ -716,6 +736,16 @@ function confirmarTransferencia() {
     return mostrarToast('Escolha as contas de origem e destino.', 'erro');
   if (origemId === destinoId) return mostrarToast('Origem e destino devem ser diferentes.', 'erro');
   if (!(valor > 0)) return mostrarToast('Informe um valor válido.', 'erro');
+  // criarTransferencia recusa por saldo devolvendo null; a mensagem genérica
+  // não diria ao usuário o que fazer, então o caso provável é explicado aqui.
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const saldos = mpCalcularSaldoPorInstituicao(Date.now()) || {};
+    const caixa = saldos[origemId] ? saldos[origemId].caixa : 0;
+    if (valor > caixa + 0.005) {
+      const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
+      return mostrarToast(`Saldo insuficiente: a conta de origem tem ${fmt(caixa)}.`, 'erro');
+    }
+  }
   const r = criarTransferencia(origemId, destinoId, valor, dataStr);
   if (!r) return mostrarToast('Não foi possível registrar a transferência.', 'erro');
   if (typeof fecharModal === 'function') fecharModal();

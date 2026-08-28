@@ -1195,9 +1195,17 @@ function mpLimparTxOrigemOrfas() {
   });
   var antes = transacoes.length;
   transacoes = transacoes.filter(function (t) {
-    if (typeof t.id !== 'string' || t.id.indexOf('tx_origem_') !== 0) return true;
-    var opId = t.id.replace('tx_origem_', '');
-    return idsCompras.has(opId);
+    // Perna de caixa órfã.
+    if (typeof t.id === 'string' && t.id.indexOf('tx_origem_') === 0) {
+      return idsCompras.has(t.id.replace('tx_origem_', ''));
+    }
+    // Perna do ATIVO órfã. A exclusão de operação já remove as duas pernas
+    // (renda-fixa.js:confirmarExclusaoOperacao); esta rede só existe para dado
+    // que chegou torto por outro caminho. Limpar só a perna de caixa deixava a
+    // do ativo de pé com temLegCaixa — que manda o patrimônio ignorá-la no
+    // caixa — e a compra ficava sem debitar nada (INV-03).
+    if (t.operacaoId != null && !idsCompras.has(String(t.operacaoId))) return false;
+    return true;
   });
   if (transacoes.length < antes) {
     // salvarNaNuvem() era chamada aqui e NÃO EXISTE em lugar nenhum do bundle —

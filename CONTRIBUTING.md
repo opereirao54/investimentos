@@ -106,6 +106,28 @@ Ao mudar como o dinheiro anda entre as telas, atualize o mapa **junto** com o
 código — um contrato que não está no mapa não é validado por ninguém. Ver
 `.claude/integracoes/mapa.schema.md`.
 
+### Simulação de ações (`npm run test:simulacao`)
+
+Os contratos acima validam ESTADO. A simulação valida AÇÃO: pega um botão,
+exercita todas as classes de entrada (válida, zero, negativa, `NaN`, vazia, id
+inexistente, data inválida, acima do saldo, duplo clique) e valida o sistema
+INTEIRO depois de cada uma — não só a tela que foi tocada.
+
+Mais as **sequências**: ações encadeadas em ordens aleatórias com semente fixa,
+com as invariantes verificadas entre cada passo. É o que acha bug de interação,
+o que só existe quando A acontece depois de B.
+
+```bash
+npm run test:simulacao     # a suíte que roda no CI
+npm run cacar              # caça intensiva: 300 sequências × 25 passos
+npm run cacar 1000 40      # mais fundo, ao investigar
+```
+
+**Ao criar um botão ou ação nova**, some-a ao catálogo `ACOES` em
+`test/_sequencias.js` — senão as sequências nunca a exercitam — e escreva os
+casos de entrada em `test/simulacao-*.test.js`. Ver
+`.claude/skills/simular-acao/SKILL.md`.
+
 ### Flow tests (`npm run test:flows`)
 
 Cenários de billing e referral usando mocks de Asaas + Firestore.
@@ -122,6 +144,7 @@ Adicione cenário novo se mudar lógica de:
 - [ ] `npm run lint` — 0 erros
 - [ ] `npm test` — verde
 - [ ] `npm run test:integracoes` — 102/102
+- [ ] `npm run test:simulacao` — 69/69
 - [ ] `npm run test:flows` — 108/108
 - [ ] `npm run build` — verde
 - [ ] CI passa (todas as steps verdes)
@@ -134,6 +157,7 @@ Adicione cenário novo se mudar lógica de:
 - [ ] Se mudou billing: cenário coberto em `scripts/test-*-flow.js`
 - [ ] Se adicionou classic script: registrado em `test/classic-scripts-globals.test.js` + `test/classic-scripts-load.test.js`
 - [ ] Se mexeu em `web/`: `npm run impacto` rodado e as provas que ele listou passam
+- [ ] Se criou ou alterou botão/ação: `npm run test:simulacao` verde e a ação está no catálogo `ACOES` de `test/_sequencias.js`
 - [ ] Se mudou como o dinheiro anda entre telas: contrato atualizado em `.claude/integracoes/mapa.json` + trava em `test/integracao-inv*.test.js`
 
 ## Releases
