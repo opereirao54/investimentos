@@ -17,6 +17,7 @@ const assert = require('node:assert/strict');
 
 const ROOT = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
+const disclaimer = require('../web/appliquei-disclaimer.js');
 
 /** Só a secção da carteira — o aviso tem de estar NELA, não noutra aba. */
 function secaoCarteira() {
@@ -32,19 +33,31 @@ function secaoCarteira() {
 test('o aviso de risco está na aba, com as quatro afirmações obrigatórias', () => {
   const sec = secaoCarteira();
   assert.ok(sec.includes('Aviso de risco'), 'o título do aviso');
+  assert.ok(sec.includes('id="cartRiscoWrap"'), 'o ponto onde o aviso é montado sumiu da aba');
+
+  // O texto deixou de ser HTML estático e passou a vir de
+  // appliquei-disclaimer.js, partilhado com a aba Regulamento. A exigência
+  // não mudou: as afirmações têm de CHEGAR ao usuário, e chegar SEM CLIQUE.
+  // Um aviso atrás de um botão fechado é um aviso que não foi dado.
+  const bloco = disclaimer.disclaimerHtmlBloco('cartRisco');
+  const visivel = bloco.slice(0, bloco.indexOf('<div class="disc-corpo"'));
+  assert.ok(visivel.length > 0, 'não foi possível separar a parte visível do bloco');
 
   // Cada frase carrega uma afirmação distinta e nenhuma é decorativa:
-  // caráter educacional, projeção que pode não se concretizar, risco de
-  // perda do capital, e passado que não garante futuro.
+  // caráter educacional, projeção meramente ilustrativa, risco de perda do
+  // capital, e passado que não garante futuro.
   const obrigatorias = [
     'caráter informativo e educacional',
-    'não representam garantia de rentabilidade',
-    'podendo não se concretizar',
+    'não representam garantia de resultados',
+    'meramente ilustrativas',
     'inclusive do capital investido',
-    'Rentabilidade passada não é garantia de rentabilidade futura',
+    'Rentabilidade passada não garante rentabilidade futura',
   ];
   for (const frase of obrigatorias) {
-    assert.ok(sec.includes(frase), `frase obrigatória ausente do aviso: "${frase}"`);
+    assert.ok(
+      visivel.includes(frase),
+      `frase obrigatória fora da parte visível do aviso: "${frase}"`
+    );
   }
 });
 
