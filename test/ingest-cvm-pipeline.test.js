@@ -431,7 +431,7 @@ test('o pipeline atravessa inteiro e produz documentos — não zero', async () 
   assert.match(texto, /2 tickers em 2 companhias/);
   assert.match(texto, /BBAS3 WEGE3/);
   assert.ok(!texto.includes('WEGE12'), 'debênture não é ação e não entra no universo');
-  assert.match(texto, /=== 2 documentos prontos ===/);
+  assert.match(texto, /=== 2 documentos prontos \(/);
 });
 
 test('o universo sai do FCA pelo CNPJ, sem cair para o mapa manual', async () => {
@@ -568,7 +568,7 @@ test('exercício indisponível é ignorado sem derrubar os outros', async () => 
     anosDfp: [ANO_BASE - 1],
   });
   assert.match(texto, /ano ignorado|http_404/);
-  assert.match(texto, /=== 2 documentos prontos ===/);
+  assert.match(texto, /=== 2 documentos prontos \(/);
 });
 
 // ── Descoberta de arquivo pelo índice do diretório ──
