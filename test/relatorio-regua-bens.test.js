@@ -32,6 +32,7 @@ const LOAD_ORDER = [
   'web/appliquei-aba-controle-financeiro.js',
   'web/appliquei-relatorio-mensal.js',
   'web/appliquei-bens.js',
+  'web/appliquei-jornada-conteudo.js',
   'web/appliquei-jornada.js',
 ];
 

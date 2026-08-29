@@ -101,6 +101,7 @@ module.exports = [
       'web/appliquei-duvidas.js',
       'web/appliquei-disclaimer.js',
       'web/appliquei-patrimonio.js',
+      'web/appliquei-jornada-conteudo.js',
       'web/appliquei-jornada.js',
       'web/appliquei-sonhos.js',
       'web/appliquei-aba1-charts.js',
