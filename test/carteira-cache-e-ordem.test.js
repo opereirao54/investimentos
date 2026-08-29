@@ -85,7 +85,7 @@ test('depois de falhar, a próxima entrada na aba tenta de novo sozinha', () => 
   const fn = corpo(CART, 'cartRenderizarMotor');
   assert.match(
     fn,
-    /if \(cartMotor\.falhouEm && !forcar && Date\.now\(\) - cartMotor\.falhouEm < \d+\)/,
+    /if \(cartMotor\.falhouEm && !forcar && Date\.now\(\) - cartMotor\.falhouEm < CART_RETENTATIVA_MS\)/,
     'o respiro curto evita martelar a API, mas a retentativa tem de ser automática'
   );
 });
@@ -109,6 +109,69 @@ test('"Atualizar dados" limpa os dois carimbos', () => {
   const fn = corpo(CART, 'cartAtualizarMotor');
   assert.match(fn, /cartMotor\.buscadoEm = null/);
   assert.match(fn, /cartMotor\.falhouEm = null/, 'senão o respiro barraria o clique explícito');
+});
+
+// ---------------------------------------------------------------------------
+// Os gatilhos automáticos
+// ---------------------------------------------------------------------------
+
+test('o cache de sucesso tem validade', () => {
+  // Sem prazo, quem deixa a aba aberta o dia todo decide aporte olhando o
+  // indicador da manhã — e a única saída era clicar no botão.
+  assert.match(CART, /var CART_CACHE_MS = \d+ \* 60 \* 1000;/);
+  assert.match(
+    corpo(CART, 'cartRenderizarMotor'),
+    /Date\.now\(\) - cartMotor\.buscadoEm < CART_CACHE_MS/,
+    'o atalho do cache tem de comparar a idade, não só a existência'
+  );
+});
+
+test('a autenticação concluída dispara a busca', () => {
+  // A busca começa pedindo o token do Firebase e morre em "Sessão expirada" se
+  // ele não existir. Quem abre a aba antes de a autenticação resolver caía
+  // exatamente nisso — e nada re-disparava depois do login.
+  const fn = corpo(CART, 'cartLigarGatilhoAuth');
+  assert.ok(fn, 'o gatilho de autenticação precisa existir');
+  assert.match(fn, /fb\.auth\.onAuthStateChanged/);
+  assert.match(
+    fn,
+    /if \(user\) cartTalvezRebuscar\(/,
+    'só o login dispara — logout não tem o que buscar'
+  );
+  assert.match(fn, /setTimeout\(cartLigarGatilhoAuth, \d+\)/, 'o Firebase pode não estar pronto');
+  assert.match(fn, /cartAuthTentativas > \d+/, 'com teto: se não vier, para de tentar');
+});
+
+test('rede de volta e aba em foco também disparam', () => {
+  const fn = corpo(CART, 'cartLigarGatilhos');
+  assert.match(fn, /addEventListener\('online'/, 'a falha pode ter sido só o túnel do metrô');
+  assert.match(fn, /addEventListener\('visibilitychange'/);
+  assert.match(fn, /if \(!document\.hidden\)/, 'só ao VOLTAR para a aba');
+  assert.match(fn, /if \(cartGatilhosLigados\) return;/, 'ligar duas vezes duplicaria as buscas');
+});
+
+test('a rebusca automática respeita a aba fechada e o dado fresco', () => {
+  const fn = corpo(CART, 'cartTalvezRebuscar');
+  assert.match(
+    fn,
+    /wrap\.offsetParent === null/,
+    'fora da aba não há o que atualizar — e testar só o display do wrap não ' +
+      'basta, quem esconde é a <section> em volta'
+  );
+  assert.match(fn, /if \(cartMotor\.carregando\) return;/, 'não empilhar buscas');
+  assert.match(
+    fn,
+    /if \(!velho && !falhou\) return;/,
+    'alt-tab com dado de 2 minutos não pode gastar cota da API'
+  );
+});
+
+test('o botão diz de quando é o dado', () => {
+  // Um botão "Atualizar dados" parado na tela sugere que há trabalho pendente.
+  // "atualizado há 2 min" responde a pergunta e dispensa o clique.
+  assert.match(CART, /function cartHaQuantoTempo\(ms\)/);
+  assert.match(CART, /'atualizado ' \+ cartHaQuantoTempo\(cartMotor\.buscadoEm\)/);
+  assert.match(CART, /cartMotor\.carregando\s*\?\s*'buscando…'/);
 });
 
 // ---------------------------------------------------------------------------

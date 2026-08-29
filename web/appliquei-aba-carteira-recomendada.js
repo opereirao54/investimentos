@@ -1744,16 +1744,21 @@ async function cartRenderizarMotor(forcar) {
     return;
   }
   wrap.style.display = 'block';
+  cartLigarGatilhos();
   cartRenderizarMotorLentes();
 
-  // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
-  // Só um SUCESSO conta como cache — ver o catch lá embaixo.
-  if (cartMotor.buscadoEm && !forcar) return cartRecalcularMotor();
+  // Já há fundamentos FRESCOS em memória: refaz as contas sem gastar cota da
+  // API. Só um SUCESSO conta como cache — ver o catch lá embaixo — e ele tem
+  // validade: sem isso, quem deixa a aba aberta o dia todo fica com os
+  // indicadores da manhã, e a única saída era clicar em "Atualizar dados".
+  if (cartMotor.buscadoEm && !forcar && Date.now() - cartMotor.buscadoEm < CART_CACHE_MS) {
+    return cartRecalcularMotor();
+  }
   if (cartMotor.carregando) return;
   // A última tentativa falhou: mostramos o que dava (carteira modelo, sem
   // score) e vamos tentar de novo agora. Um respiro curto evita martelar a API
   // quando a aba é aberta e fechada em sequência.
-  if (cartMotor.falhouEm && !forcar && Date.now() - cartMotor.falhouEm < 15000) {
+  if (cartMotor.falhouEm && !forcar && Date.now() - cartMotor.falhouEm < CART_RETENTATIVA_MS) {
     return cartRecalcularMotor();
   }
 
@@ -1813,6 +1818,85 @@ function cartAtualizarMotor() {
   cartMotor.buscadoEm = null;
   cartMotor.falhouEm = null;
   cartRenderizarMotor(true);
+}
+
+// ════════════════════════════════
+// QUANDO BUSCAR OS DADOS
+// ════════════════════════════════
+// O botão "Atualizar dados" era, na prática, o único gatilho confiável: a aba
+// buscava uma vez e, se aquela vez falhasse (ou envelhecesse), ficava parada.
+// Pedir ao usuário que clique é transferir para ele um trabalho que a tela
+// sabe fazer sozinha — ele não tem como saber que o dado está velho.
+//
+// Os gatilhos abaixo cobrem os casos reais em que o dado muda ou fica
+// alcançável. O botão continua, mas como "forçar agora", não como o caminho.
+
+// Indicador de mercado não muda de minuto em minuto; meia hora é frouxo o
+// bastante para não gastar cota e curto o bastante para ninguém decidir aporte
+// olhando número de ontem.
+var CART_CACHE_MS = 30 * 60 * 1000;
+// Depois de uma falha, o respiro antes de tentar de novo. Curto: falha de rede
+// costuma passar em segundos, e a aba precisa reagir sem parecer travada.
+var CART_RETENTATIVA_MS = 15 * 1000;
+
+var cartGatilhosLigados = false;
+var cartAuthTentativas = 0;
+
+/** Rebusca se — e só se — a aba estiver aberta e o dado justificar. */
+function cartTalvezRebuscar(motivo) {
+  var wrap = document.getElementById('cartMotorWrap');
+  // Fora da aba não há nada para atualizar; a próxima entrada resolve. Testar
+  // só o display DELE não basta: quem esconde a aba é a <section> em volta, e o
+  // wrap continua "block" dentro dela. offsetParent é null sempre que o
+  // elemento não está sendo desenhado, por qualquer ancestral.
+  if (!wrap || wrap.style.display === 'none' || wrap.offsetParent === null) return;
+  if (cartMotor.carregando) return;
+  var velho = !cartMotor.buscadoEm || Date.now() - cartMotor.buscadoEm >= CART_CACHE_MS;
+  var falhou = !!cartMotor.falhouEm;
+  if (!velho && !falhou) return;
+  console.info('[carteira/motor] rebuscando —', motivo);
+  cartMotor.falhouEm = null;
+  cartRenderizarMotor(true);
+}
+
+/**
+ * A busca começa pedindo o token do Firebase e morre em "Sessão expirada" se
+ * ele não existir. Quem abre a aba antes de a autenticação resolver — o caso
+ * comum de quem entra direto no link da carteira — cai exatamente nisso, e
+ * nada re-disparava depois que o login terminava. Este é o gatilho que
+ * faltava.
+ */
+function cartLigarGatilhoAuth() {
+  cartAuthTentativas++;
+  // ~15s de espera pelo Firebase; passou disso, ele não vem.
+  if (cartAuthTentativas > 60) return;
+  var fb = window.AppliqueiFirebase;
+  if (!fb || !fb.ready || !fb.auth) {
+    setTimeout(cartLigarGatilhoAuth, 250);
+    return;
+  }
+  fb.auth.onAuthStateChanged(function (user) {
+    if (user) cartTalvezRebuscar('autenticação concluída');
+  });
+}
+
+function cartLigarGatilhos() {
+  if (cartGatilhosLigados) return;
+  cartGatilhosLigados = true;
+
+  cartLigarGatilhoAuth();
+
+  // Rede voltou: a falha anterior pode ter sido só o metrô entrando no túnel.
+  window.addEventListener('online', function () {
+    cartTalvezRebuscar('rede voltou');
+  });
+
+  // Voltar para a aba do navegador depois de horas é o momento natural de
+  // conferir se o dado ainda vale. O guard de validade evita rebuscar a cada
+  // alt-tab.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) cartTalvezRebuscar('aba voltou ao primeiro plano');
+  });
 }
 
 function cartRenderizarMotorStatus() {
@@ -1943,14 +2027,37 @@ function cartRenderizarMotorStatus() {
       'o dado não chegar. Os cards no fim da lista dizem o que falta em cada um.</span></div>';
   }
 
+  // O botão deixou de ser o caminho para trazer a carteira (a aba busca
+  // sozinha) e virou "forçar agora". Para não parecer que há trabalho pendente,
+  // ele diz de quando é o dado: quem vê "atualizado há 2 min" não clica.
+  var quando = cartMotor.carregando
+    ? 'buscando…'
+    : cartMotor.buscadoEm
+      ? 'atualizado ' + cartHaQuantoTempo(cartMotor.buscadoEm)
+      : 'sem dados de mercado';
   el.innerHTML =
     '<div class="cart-motor-status-linha">' +
     partes.join('') +
-    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
-    '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
+    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()" ' +
+    'title="Buscar os indicadores de mercado agora">' +
+    '<i class="ph ph-arrows-clockwise"></i> <span class="cart-atualizar-rotulo">' +
+    quando +
+    '</span></button></div>' +
     cartRenderizarIndicadores() +
     alertaPendencia +
     alerta;
+}
+
+/** "agora mesmo" / "há 12 min" / "há 3 h" — em português e sem biblioteca. */
+function cartHaQuantoTempo(ms) {
+  var seg = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (seg < 60) return 'agora mesmo';
+  var min = Math.round(seg / 60);
+  if (min < 60) return 'há ' + min + ' min';
+  var h = Math.round(min / 60);
+  if (h < 24) return 'há ' + h + (h === 1 ? ' hora' : ' horas');
+  var d = Math.round(h / 24);
+  return 'há ' + d + (d === 1 ? ' dia' : ' dias');
 }
 
 /**

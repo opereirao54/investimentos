@@ -3676,8 +3676,10 @@
             #carteira .cart-perfil-badge i { font-size: 15px; }
             #carteira .cart-capital-chip { padding: 6px 11px; font-size: 12.5px; }
             #carteira .cart-btn-mini { padding: 6px 10px; font-size: 11.5px; }
-            /* Só o ícone: "Editar perfil ou capital" sozinho ocupava uma linha. */
-            #carteira .cart-btn-mini span.cart-btn-mini-rotulo { display: none; }
+            /* Só o ícone: "Editar perfil ou capital" sozinho ocupava uma linha.
+               Vale para ESTE botão — o de atualizar tem rótulo próprio, que
+               diz de quando é o dado e precisa continuar visível. */
+            #carteira .cart-perfil-header .cart-btn-mini span.cart-btn-mini-rotulo { display: none; }
         }
 
         /* Painel educativo recolhido — o material de apoio no fim da página. */
