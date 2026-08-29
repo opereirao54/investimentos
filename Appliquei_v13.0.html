@@ -169,6 +169,13 @@
             --rm-gauge-trilho: #eef2f7; --rm-gauge-cubo: #ffffff;
             --rm-gauge-aro: #cbd5e1;    --rm-gauge-agulha: #0f172a;
 
+            /* Rodapé reservado para o "+" flutuante. O botão é `fixed` no canto
+               inferior direito: sem esta reserva, o ÚLTIMO alvo de cada página
+               fica preso embaixo dele — foi assim que o "Excluir" de um ativo
+               virou inclicável. Vale 26px de afastamento + 58px de botão + 16
+               de respiro; o celular tem o seu próprio valor mais abaixo. */
+            --fab-reserva: 100px;
+
             --radius: 14px;
             --radius-sm: 9px;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05);
@@ -402,7 +409,7 @@
         @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.5;} }
 
         /* === ÁREA PRINCIPAL === */
-        .main-content { flex: 1; padding: 30px 40px; overflow-y: auto; position: relative; }
+        .main-content { flex: 1; padding: 30px 40px calc(30px + var(--fab-reserva)); overflow-y: auto; position: relative; }
         .section { display: none; animation: fadeIn 0.28s ease; max-width: 1200px; margin: 0 auto; }
         .section.ativa { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -2090,7 +2097,7 @@
             .sidebar.collapsed .sidebar-auth-mini .sa-btn::after { content: none !important; }
             /* Botão de recolher da sidebar não faz sentido em mobile */
             .sidebar .sidebar-toggle { display: none; }
-            .main-content { padding: 64px 16px 24px; width: 100%; }
+            .main-content { padding: 64px 16px calc(24px + var(--fab-reserva)); width: 100%; }
             .grid-4, .grid-3, .grid-2, .grid-2-iguais, .grid-cards { grid-template-columns: 1fr; gap: 12px; }
             #painelEvolucaoCarteira { grid-template-columns: 1fr !important; }
         }
@@ -2118,7 +2125,7 @@
             }
         }
         @media (max-width: 480px) {
-            .main-content { padding: 60px 12px 20px; }
+            .main-content { padding: 60px 12px calc(20px + var(--fab-reserva)); }
             h1, .page-header-left h1 { font-size: 16px !important; }
             .tabela-dashboard { font-size: 11.5px; }
             .tabela-dashboard th, .tabela-dashboard td { padding: 7px 8px; }
@@ -5593,7 +5600,7 @@
            Mobile pequeno (<= 480px) — iPhone SE, Android compact
            ============================================================ */
         @media (max-width: 480px) {
-            .main-content { padding: 60px 12px 24px !important; }
+            .main-content { padding: 60px 12px calc(24px + var(--fab-reserva)) !important; }
             .page-header-left h1 { font-size: 17px !important; }
             .hero-evolucao { padding: 14px 12px 12px; }
             .hero-header h3 { font-size: 13.5px; }
@@ -5680,7 +5687,7 @@
            Micro mobile (<= 360px) — Galaxy Fold fechado, telas antigas
            ============================================================ */
         @media (max-width: 360px) {
-            .main-content { padding: 58px 10px 20px !important; }
+            .main-content { padding: 58px 10px calc(20px + var(--fab-reserva)) !important; }
             .page-header-left h1 { font-size: 16px !important; }
             .kpi-value-big { font-size: 20px; }
             .card-destaque .valor { font-size: 17px; }
@@ -5727,7 +5734,18 @@
             cursor: pointer;
             align-items: center;
             justify-content: center;
-            transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s ease;
+            transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s ease, opacity 0.18s ease;
+        }
+        /* Enquanto a lista corre, o "+" sai da frente.
+           A reserva do rodapé resolve o alvo PRESO embaixo dele; esta regra
+           resolve o resto: é rolando que a pessoa procura a linha para editar
+           ou excluir, e é exatamente aí que um círculo opaco no canto atrapalha.
+           Sumindo durante a rolagem, qualquer alvo coberto fica a um toque de
+           distância — basta o menor movimento na lista. */
+        body.fab-rolando #fabNovoLancamento {
+            opacity: 0;
+            transform: translateY(14px) scale(0.9);
+            pointer-events: none;
         }
         #fabNovoLancamento:hover { box-shadow: 0 12px 30px rgba(5,150,105,0.5), 0 2px 6px rgba(0,0,0,0.18); }
         #fabNovoLancamento:active { transform: scale(0.92); }
@@ -5978,6 +5996,8 @@
             .painel-mobile-close:active { transform: scale(0.95); }
 
             /* No celular o botão fica um pouco menor e mais colado à borda. */
+            /* 20 de afastamento + 54 de botão + 14 de respiro. */
+            :root { --fab-reserva: 88px; }
             #fabNovoLancamento { width: 54px; height: 54px; bottom: 20px; right: 16px; }
             #fabMenu { bottom: 84px; right: 16px; }
 

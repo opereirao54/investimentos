@@ -315,7 +315,43 @@ function alternarMenuCadastro() {
   document.body.classList.contains('fab-aberto') ? fecharMenuCadastro() : abrirMenuCadastro();
 }
 
+var _fabRolagemTimer = null;
+
+/**
+ * Tira o "+" da frente enquanto a lista corre.
+ *
+ * Ele é `fixed` no canto inferior direito, e é justamente ali que ficam as
+ * ações de linha (editar, excluir) das listas de ativo, conta e sonho — o
+ * clique ia para o botão flutuante em vez do alvo. O CSS reserva o rodapé,
+ * o que liberta o ÚLTIMO item de cada página; esta função cuida do resto:
+ * sumindo durante a rolagem, qualquer alvo coberto fica a um toque de
+ * distância, porque o menor movimento na lista já apaga o botão.
+ *
+ * Quem rola é `.main-content` (o body tem overflow:hidden), então o ouvinte
+ * vai nele. Com o menu aberto não há o que esconder: o backdrop já cobre a
+ * página, e sumir com o botão no meio da escolha só assustaria.
+ */
+function _ligarEsconderFabNaRolagem() {
+  const alvo = document.querySelector('.main-content');
+  if (!alvo || alvo.dataset.fabRolagem) return;
+  alvo.dataset.fabRolagem = '1';
+  alvo.addEventListener(
+    'scroll',
+    () => {
+      if (document.body.classList.contains('fab-aberto')) return;
+      document.body.classList.add('fab-rolando');
+      clearTimeout(_fabRolagemTimer);
+      _fabRolagemTimer = setTimeout(() => {
+        document.body.classList.remove('fab-rolando');
+      }, 420);
+    },
+    { passive: true }
+  );
+}
+
 function abrirMenuCadastro() {
+  clearTimeout(_fabRolagemTimer);
+  document.body.classList.remove('fab-rolando');
   const menu = document.getElementById('fabMenu');
   const fundo = document.getElementById('fabBackdrop');
   const btn = document.getElementById('fabNovoLancamento');
@@ -1570,5 +1606,8 @@ document.addEventListener('click', (ev) => {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     renderizarJornada();
+  } catch (_) {}
+  try {
+    _ligarEsconderFabNaRolagem();
   } catch (_) {}
 });
