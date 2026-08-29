@@ -1303,6 +1303,26 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
   return res;
 }
 
+// Aporte líquido acumulado (aportes − resgates) de TUDO que é anterior ao mês
+// dado. Serve de ponto de partida da linha "Investimento acumulado" da DRE:
+// a tabela mostra uma janela de meses, e um acumulado que começasse do zero na
+// borda esquerda esconderia todo o histórico anterior.
+//
+// A comparação é por competência (ano, mês) — a mesma chave canônica que o
+// resto do Controle usa (INV-08). Estritamente ANTERIOR: o próprio mês entra
+// pela soma da tabela.
+function aporteLiquidoAcumuladoAte(mesAlvo, anoAlvo) {
+  if (typeof transacoes === 'undefined') return 0;
+  let total = 0;
+  for (const t of transacoes) {
+    if (t.ano > anoAlvo || (t.ano === anoAlvo && t.mes >= mesAlvo)) continue;
+    if (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel')
+      total += t.valor || 0;
+    else if (t.categoria === 'resgate_investimento') total -= t.valor || 0;
+  }
+  return total;
+}
+
 // === Composição do mês: agrupamento do gráfico de barras ===
 // 'contabil' = barras por classificação contábil (Receita, Cartão, Fixa...).
 // 'despesa'  = despesas (fixa + variável + cartão) quebradas por categoria
@@ -1876,14 +1896,8 @@ function atualizarTelaControle() {
   document.getElementById('lblMesExtrato').innerText = `(${nomeMeses[visaoMes]} ${visaoAno})`;
   atualizarBannerSaldoMesAnterior(visaoMes, visaoAno);
 
-  const divRec = document.getElementById('extratoReceitas');
-  divRec.innerHTML = '';
-  const divDesp = document.getElementById('extratoDespesas');
-  divDesp.innerHTML = '';
-  const divCartao = document.getElementById('extratoCartao');
-  divCartao.innerHTML = '';
-  const divInv = document.getElementById('extratoInvestimentos');
-  divInv.innerHTML = '';
+  const listaExtrato = document.getElementById('extratoUnificado');
+  let htmlExtrato = '';
 
   const theadDRE = document.getElementById('cabecalhoDRE');
   const tbodyDRE = document.getElementById('corpoTabelaDRE');
@@ -2025,8 +2039,21 @@ function atualizarTelaControle() {
     sonho: '⭐ Sonho',
   };
 
-  transacoes.forEach((t) => {
-    if (t.mes === visaoMes && t.ano === visaoAno) {
+  // Do maior para o menor. O extrato saía na ordem de cadastro, que não diz
+  // nada: quem abre o mês quer ver primeiro o que pesou. O desempate pela data
+  // mantém a lista estável entre renders quando dois lançamentos empatam.
+  const doMes = transacoes
+    .filter((t) => t.mes === visaoMes && t.ano === visaoAno)
+    .slice()
+    .sort(
+      (a, b) => (b.valor || 0) - (a.valor || 0) || String(a.data).localeCompare(String(b.data))
+    );
+
+  // Categorias presentes no mês, para os chips do sub-filtro.
+  const catsDoMes = new Map();
+
+  doMes.forEach((t) => {
+    {
       // Fase 3B: as pernas de transferência (origem do aporte) são plumbing de
       // caixa — aparecem no Meu Patrimônio (por instituição), não no extrato/DRE
       // mensal. Sem isto, o aporte apareceria 2x (ativo + perna) e dobraria o KPI.
@@ -2063,8 +2090,35 @@ function atualizarTelaControle() {
       const catDespExtrato = t.categoriaDespesa
         ? ` <span style="font-size:10.5px;background:var(--cor-superficie);border:1px solid var(--cor-borda);border-radius:6px;padding:1px 6px;color:var(--cor-texto-secundario);">${rotuloCategoriaDespesa(t.categoriaDespesa)}</span>`
         : '';
+      // A categoria do sub-filtro: para despesa é a categoria de gasto que o
+      // usuário escolheu; para o resto (receita, dividendo, aporte) o próprio
+      // tipo já é a melhor etiqueta que existe.
+      const catFiltro = t.categoriaDespesa || 'tipo:' + t.categoria;
+      const catRotulo = t.categoriaDespesa
+        ? rotuloCategoriaDespesa(t.categoriaDespesa)
+        : nomesCat[t.categoria] || 'Outros';
+      const acc = catsDoMes.get(catFiltro) || { rotulo: catRotulo, total: 0, qtd: 0 };
+      acc.total += t.valor || 0;
+      acc.qtd++;
+      catsDoMes.set(catFiltro, acc);
+
+      // O tipo classifica o item para as abas do topo (Entradas / Saídas /
+      // Cartão / Investimentos), que antes escondiam a caixa inteira.
+      const tipoFiltro =
+        t.categoria === 'receita' ||
+        t.categoria === 'dividendo' ||
+        t.categoria === 'resgate_investimento'
+          ? 'receita'
+          : t.categoria === 'despesa_fixa' ||
+              t.categoria === 'despesa_variavel' ||
+              t.categoria === 'sonho'
+            ? 'despesa'
+            : t.categoria === 'cartao_credito'
+              ? 'cartao'
+              : 'investimento';
+
       let itemHtml = `
-            <div class="extrato-item">
+            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}">
                 <div>
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
                     <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${catDespExtrato}${vencimentoHtml}</span>
@@ -2080,38 +2134,17 @@ function atualizarTelaControle() {
                 </div>
             </div>`;
 
-      if (
-        t.categoria === 'receita' ||
-        t.categoria === 'dividendo' ||
-        t.categoria === 'resgate_investimento'
-      ) {
-        totRec += t.valor;
-        divRec.innerHTML += itemHtml;
-      } else if (
-        t.categoria === 'despesa_fixa' ||
-        t.categoria === 'despesa_variavel' ||
-        t.categoria === 'sonho'
-      ) {
-        totDesp += t.valor;
-        divDesp.innerHTML += itemHtml;
-      } else if (t.categoria === 'cartao_credito') {
-        totCartao += t.valor;
-        divCartao.innerHTML += itemHtml;
-      } else {
-        totInv += t.valor;
-        divInv.innerHTML += itemHtml;
-      }
+      if (tipoFiltro === 'receita') totRec += t.valor;
+      else if (tipoFiltro === 'despesa') totDesp += t.valor;
+      else if (tipoFiltro === 'cartao') totCartao += t.valor;
+      else totInv += t.valor;
+      htmlExtrato += itemHtml;
     }
   });
 
-  if (divRec.innerHTML === '')
-    divRec.innerHTML = `<div class="kanban-empty"><i class="ph ph-arrow-down-left"></i>Sem entradas este mês</div>`;
-  if (divDesp.innerHTML === '')
-    divDesp.innerHTML = `<div class="kanban-empty"><i class="ph ph-arrow-up-right"></i>Sem despesas este mês</div>`;
-  if (divCartao.innerHTML === '')
-    divCartao.innerHTML = `<div class="kanban-empty"><i class="ph ph-credit-card"></i>Nenhuma fatura lançada</div>`;
-  if (divInv.innerHTML === '')
-    divInv.innerHTML = `<div class="kanban-empty"><i class="ph ph-trend-up"></i>Nenhum aporte registrado</div>`;
+  listaExtrato.innerHTML = htmlExtrato;
+  renderizarChipsCategoriaExtrato(catsDoMes);
+  aplicarFiltrosExtrato();
 
   document.getElementById('totalColReceitas').innerText = formatarMoeda(totRec);
   document.getElementById('totalColDespesas').innerText = formatarMoeda(totDesp);
@@ -2312,6 +2345,11 @@ function atualizarTelaControle() {
   }
   const indiceMesAtual = -offsetMesesDRE;
 
+  // Capital aplicado acumulado que já existia ANTES do primeiro mês da janela.
+  // Sem isto o acumulado começaria do zero na borda esquerda da tabela e mentiria
+  // para quem investe há anos: a DRE mostra 6 meses, não a vida toda.
+  const aporteLiquidoAntesDaJanela = aporteLiquidoAcumuladoAte(inicioMes, inicioAno);
+
   // DRE mensal: o resultado de cada mês é carregado AUTOMATICAMENTE para o mês
   // seguinte (saldo acumulado / running balance). A linha "Saldo do mês anterior"
   // mostra o fechamento herdado; "Resultado do mês" já é o acumulado. Ajustes
@@ -2431,7 +2469,135 @@ function atualizarTelaControle() {
   });
   htmlLinhas += `</tr>`;
 
+  // Investimento acumulado.
+  //
+  // As linhas acima são FLUXO: quanto entrou e saiu naquele mês. Esta é ESTOQUE
+  // — quanto de capital já foi aplicado até o fim daquele mês. Somar as duas
+  // coisas na vertical daria um número sem significado, então ela fica abaixo do
+  // resultado, com peso visual próprio e sem o sinal de menos das linhas de
+  // saída.
+  //
+  // É aporte LÍQUIDO: aportes menos resgates. Resgatar reduz o capital aplicado,
+  // e ignorar isso faria a linha só subir mesmo para quem tirou tudo. Sonhos
+  // ficam de fora — é dinheiro separado para meta, não aplicado em ativo.
+  //
+  // Note que é CUSTO DE AQUISIÇÃO, não valor de mercado: rendimento não passa
+  // pelo Controle Financeiro. Quanto a carteira vale hoje é a aba Meus
+  // investimentos que responde.
+  let acumInv = aporteLiquidoAntesDaJanela;
+  const acumPorMes = dreDados.map((d) => {
+    acumInv += (d.invFixo || 0) + (d.invVar || 0) - (d.resgate || 0);
+    return acumInv;
+  });
+  htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido (custo de aquisição) — quanto a carteira vale hoje está em Meus investimentos.">Investimento acumulado</td>`;
+  acumPorMes.forEach((v, i) => {
+    const delta = v - (i === 0 ? aporteLiquidoAntesDaJanela : acumPorMes[i - 1]);
+    const seta =
+      Math.abs(delta) < 0.005
+        ? ''
+        : ` <span class="dre-acum-delta${delta < 0 ? ' neg' : ''}">${delta > 0 ? '+' : '−'}${formatarMoeda(Math.abs(delta)).replace('R$', '').trim()}</span>`;
+    htmlLinhas += `<td style="text-align: right; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : ''}">${formatarMoeda(v)}${seta}</td>`;
+  });
+  htmlLinhas += `</tr>`;
+
   tbodyDRE.innerHTML = htmlLinhas;
 
   atualizarTermometro60();
+}
+
+// ============================================================
+// --- Sub-filtro do extrato por categoria ---
+// ============================================================
+// As abas de cima separam por TIPO (entrada / saída / cartão / investimento).
+// Isso responde "o quê", não "no quê" — e "no quê" é a pergunta de quem abre o
+// extrato. Os chips saem das categorias que existem NO MÊS, ordenados pelo
+// total, então a própria linha já é o ranking de para onde o dinheiro foi.
+//
+// Os dois filtros se somam: escolher "Saídas" + "Alimentação" mostra a
+// interseção. Trocar de mês mantém a categoria escolhida se ela ainda existir;
+// se não existir, volta para "Todas" em vez de mostrar uma lista vazia.
+var extratoCategoriaAtiva = '';
+var extratoTipoAtivo = 'todos';
+
+function renderizarChipsCategoriaExtrato(mapa) {
+  const wrap = document.getElementById('extratoCategorias');
+  if (!wrap) return;
+  const cats = Array.from(mapa.entries()).sort((a, b) => b[1].total - a[1].total);
+
+  // Um chip só não é filtro — é rótulo. Nesse caso a linha não aparece.
+  if (cats.length < 2) {
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    extratoCategoriaAtiva = '';
+    aplicarFiltrosExtrato();
+    return;
+  }
+  if (extratoCategoriaAtiva && !mapa.has(extratoCategoriaAtiva)) extratoCategoriaAtiva = '';
+
+  const total = cats.reduce((s, [, c]) => s + c.total, 0);
+  let html =
+    '<button type="button" class="ext-cat' +
+    (extratoCategoriaAtiva ? '' : ' on') +
+    '" data-ext-chip="" onclick="filtrarExtratoPorCategoria(\'\')">Todas' +
+    '<span class="ext-cat-val">' +
+    formatarMoeda(total) +
+    '</span></button>';
+  for (const [slug, c] of cats) {
+    html +=
+      '<button type="button" class="ext-cat' +
+      (extratoCategoriaAtiva === slug ? ' on' : '') +
+      '" data-ext-chip="' +
+      slug.replace(/"/g, '&quot;') +
+      '" onclick="filtrarExtratoPorCategoria(\'' +
+      slug.replace(/\\/g, '\\\\').replace(/'/g, "\\'") +
+      '\')">' +
+      c.rotulo +
+      '<span class="ext-cat-val">' +
+      formatarMoeda(c.total) +
+      '</span></button>';
+  }
+  wrap.innerHTML = html;
+  wrap.style.display = 'flex';
+  aplicarFiltrosExtrato();
+}
+
+function filtrarExtratoPorCategoria(slug) {
+  extratoCategoriaAtiva = slug === extratoCategoriaAtiva ? '' : slug;
+  document.querySelectorAll('#extratoCategorias .ext-cat').forEach((b) => {
+    b.classList.toggle('on', (b.dataset.extChip || '') === extratoCategoriaAtiva);
+  });
+  aplicarFiltrosExtrato();
+}
+
+// Tipo (abas do topo) e categoria (chips) se somam: "Saídas" + "Alimentação"
+// mostra a interseção. Esconder por item — e não re-renderizar — preserva os
+// botões de pagar/editar já ligados e a posição do scroll.
+function aplicarFiltrosExtrato() {
+  const lista = document.getElementById('extratoUnificado');
+  if (!lista) return;
+  let visiveis = 0;
+  lista.querySelectorAll('.extrato-item').forEach((el) => {
+    const bate =
+      (!extratoTipoAtivo ||
+        extratoTipoAtivo === 'todos' ||
+        el.dataset.extTipo === extratoTipoAtivo) &&
+      (!extratoCategoriaAtiva || el.dataset.extCat === extratoCategoriaAtiva);
+    el.style.display = bate ? '' : 'none';
+    if (bate) visiveis++;
+  });
+
+  // Vazio por FILTRO e vazio por MÊS SEM LANÇAMENTO são situações diferentes:
+  // na primeira, o caminho de volta é limpar o filtro, e a mensagem tem de
+  // dizer isso.
+  const vazio = document.getElementById('extratoVazio');
+  if (!vazio) return;
+  if (visiveis > 0) {
+    vazio.style.display = 'none';
+    return;
+  }
+  const temAlgum = lista.querySelectorAll('.extrato-item').length > 0;
+  vazio.style.display = 'flex';
+  vazio.innerHTML = temAlgum
+    ? '<i class="ph ph-funnel"></i>Nenhum lançamento com este filtro'
+    : '<i class="ph ph-tray"></i>Nenhum lançamento neste mês';
 }

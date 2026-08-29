@@ -33,6 +33,10 @@ function makeDom() {
         style: {},
         dataset: {},
         classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+        // Sem estes, qualquer aria-* no render quebra aqui e passa no browser.
+        setAttribute() {},
+        getAttribute: () => null,
+        removeAttribute() {},
       });
     }
     return els.get(id);

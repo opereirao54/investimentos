@@ -838,6 +838,25 @@
         .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
         .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
+        /* Investimento acumulado: ESTOQUE embaixo das linhas de FLUXO. A borda
+           dupla no topo marca a virada — dali para baixo não se soma na
+           vertical. */
+        .linha-acumulada td {
+            background-color: var(--cor-bg-info);
+            border-top: 2px solid var(--cor-borda-info);
+            font-weight: 700;
+            color: var(--tinta-azul) !important;
+            font-family: 'DM Mono', monospace;
+        }
+        .linha-acumulada td.coluna-fixa {
+            font-family: 'Figtree', sans-serif;
+            font-weight: 700;
+        }
+        .dre-acum-delta {
+            display: block; font-size: 10px; font-weight: 600;
+            color: var(--tinta-verde); margin-top: 1px;
+        }
+        .dre-acum-delta.neg { color: var(--tinta-vermelho); }
         
         /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
         .tabela-simulador {
@@ -923,6 +942,29 @@
         .extrato-item .desc { font-weight: 600; color: var(--cor-texto-principal); margin-bottom: 3px; display: block; }
         .extrato-item .cat { font-size: 11px; color: var(--cor-texto-mutado); font-weight: 400; }
         .extrato-item .valor { font-weight: 700; font-family: 'DM Mono', monospace; }
+        .ext-cat-wrap {
+            display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px;
+            scrollbar-width: none; -ms-overflow-style: none; flex-shrink: 0;
+        }
+        .ext-cat-wrap::-webkit-scrollbar { display: none; }
+        .ext-cat {
+            display: inline-flex; align-items: baseline; gap: 6px; flex: 0 0 auto;
+            padding: 5px 11px; border-radius: 99px; cursor: pointer;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            color: var(--cor-texto-secundario); font-family: inherit;
+            font-size: 11.5px; font-weight: 600; white-space: nowrap;
+            transition: all var(--transicao);
+        }
+        .ext-cat:hover { border-color: var(--cor-borda2); color: var(--cor-texto-principal); }
+        .ext-cat .ext-cat-val {
+            font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700;
+            color: var(--cor-texto-mutado);
+        }
+        .ext-cat.on {
+            background: var(--cor-texto-principal); border-color: var(--cor-texto-principal);
+            color: var(--cor-branco);
+        }
+        .ext-cat.on .ext-cat-val { color: var(--cor-branco); opacity: .8; }
 
         .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.2px; }
         .badge-mock { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border: 1px solid var(--cor-borda-amber); border-radius: 7px; font-size: 11px; font-weight: 700; cursor: help; }
@@ -2351,7 +2393,16 @@
         .cart-motor-controles {
             display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
         }
-        .cart-motor-lentes { display: flex; gap: 6px; flex-wrap: wrap; }
+        /* Quatro lentes com nome comprido ("Valor & Margem de Segurança")
+           quebravam em quatro linhas no celular — 200px de altura empurrando a
+           carteira para baixo. Trilho de uma linha que rola no dedo. */
+        .cart-motor-lentes {
+            display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+            scrollbar-width: none; -ms-overflow-style: none; max-width: 100%;
+        }
+        .cart-motor-lentes::-webkit-scrollbar { display: none; }
+        .cart-motor-lentes > * { flex: 0 0 auto; }
+        @media (min-width: 921px) { .cart-motor-lentes { flex-wrap: wrap; overflow-x: visible; } }
         .cart-motor-lente-btn {
             padding: 7px 13px; border-radius: 999px; cursor: pointer;
             border: 1px solid var(--cor-borda); background: var(--cor-branco);
@@ -2457,7 +2508,21 @@
             display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
             margin-bottom: 16px;
         }
-        @media (max-width: 620px) { .cart-plano-resumo { grid-template-columns: 1fr; } }
+        /* Empilhados um por linha, os três números do plano gastavam 3 cartões
+           de altura inteira logo no começo da carteira. Lado a lado eles cabem
+           — são números curtos. */
+        @media (max-width: 620px) {
+            /* Duas colunas, não três: "R$ 10.000,00" em monoespaçada não cabe
+               num terço de 390px — ficava cortado no meio do número. Os dois
+               que importam (quanto entra e quanto foi distribuído) ficam lado a
+               lado; o terceiro, que só interessa quando sobra ou retém, ocupa a
+               linha inteira embaixo. */
+            .cart-plano-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .cart-plano-resumo > div { padding: 10px 12px; }
+            .cart-plano-resumo > div:nth-child(3) { grid-column: 1 / -1; }
+            .cart-plano-resumo .lbl { font-size: 9.5px; letter-spacing: .3px; }
+            .cart-plano-resumo .val { font-size: 15px; letter-spacing: -0.5px; }
+        }
         .cart-plano-resumo > div {
             background: var(--cor-branco); border: 1px solid var(--cor-borda);
             border-radius: var(--radius); padding: 13px 16px;
@@ -3557,26 +3622,99 @@
             font-size: 12.5px;
             border-radius: 10px;
         }
+        /* A descrição do perfil é reforço, não informação nova: o usuário
+           acabou de responder o questionário. Aberta, comia meia tela de
+           celular acima da carteira. Vira um resumo de duas linhas que abre
+           ao toque. */
         #carteira .cart-perfil-msg {
-            font-size: 14px;
+            font-size: 13.5px;
             color: var(--cor-texto-secundario);
-            line-height: 1.6;
-            margin-top: 14px;
-            padding: 14px 16px;
+            line-height: 1.55;
+            margin-top: 12px;
+            padding: 12px 14px;
             border-top: none;
             background: var(--cor-bg-info);
             border-radius: 12px;
             border-left: 3px solid var(--cor-info);
+            width: 100%;
+            cursor: pointer;
+        }
+        /* No monitor o parágrafo cabe em duas linhas e não precisa recolher —
+           o rótulo ali seria só ruído. O corte vale para as telas em que ele
+           de fato estoura. E o corte acontece NO TEXTO, num filho próprio:
+           recolher o container inteiro punha o rótulo por cima da última
+           linha cortada. */
+        #carteira .cart-perfil-msg-mais { display: none; }
+        @media (max-width: 920px) {
+            #carteira .cart-perfil-msg-txt {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            #carteira .cart-perfil-msg.aberta .cart-perfil-msg-txt { display: block; }
+            #carteira .cart-perfil-msg-mais {
+                display: block; margin-top: 7px;
+                font-size: 11px; font-weight: 700; letter-spacing: .3px;
+                text-transform: uppercase; color: var(--tinta-azul);
+            }
+            #carteira .cart-perfil-msg-mais::before { content: 'toque para ler'; }
+            #carteira .cart-perfil-msg.aberta .cart-perfil-msg-mais::before { content: 'recolher'; }
         }
 
-        /* Hero (educational + donut) — premium */
+        /* Cabeçalho de perfil no celular: os três chips empilhavam um por linha
+           e o cartão sozinho comia 380px antes da carteira. Aqui eles ficam na
+           mesma faixa, com o "Editar" recuado ao canto. */
+        @media (max-width: 620px) {
+            #carteira .cart-perfil-header {
+                padding: 14px 16px;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            #carteira .cart-perfil-info { gap: 8px; flex: 1; min-width: 0; }
+            #carteira .cart-perfil-badge { padding: 7px 13px; font-size: 13px; }
+            #carteira .cart-perfil-badge i { font-size: 15px; }
+            #carteira .cart-capital-chip { padding: 6px 11px; font-size: 12.5px; }
+            #carteira .cart-btn-mini { padding: 6px 10px; font-size: 11.5px; }
+            /* Só o ícone: "Editar perfil ou capital" sozinho ocupava uma linha. */
+            #carteira .cart-btn-mini span.cart-btn-mini-rotulo { display: none; }
+        }
+
+        /* Painel educativo recolhido — o material de apoio no fim da página. */
+        #carteira .cart-edu-details {
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--cart-radius, 16px);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        #carteira .cart-edu-details > summary {
+            display: flex; align-items: center; gap: 10px;
+            padding: 16px 18px; cursor: pointer;
+            font-size: 14px; font-weight: 700;
+            font-family: 'Figtree', sans-serif;
+            color: var(--cor-texto-principal);
+            list-style: none;
+        }
+        #carteira .cart-edu-details > summary::-webkit-details-marker { display: none; }
+        #carteira .cart-edu-details > summary > i:first-child {
+            font-size: 16px; color: var(--tinta-verde);
+        }
+        #carteira .cart-edu-details > summary > span { flex: 1; }
+        #carteira .cart-edu-seta {
+            font-size: 14px; color: var(--cor-texto-mutado);
+            transition: transform var(--transicao);
+        }
+        #carteira .cart-edu-details[open] .cart-edu-seta { transform: rotate(180deg); }
+        #carteira .cart-edu-details > #cartEduList { padding: 0 18px 16px; }
+
+        /* Hero — só a distribuição por classe mora aqui desde que o painel
+           educativo virou um bloco recolhido no fim da página. */
         #carteira .cart-hero {
-            grid-template-columns: 1fr 1.15fr;
+            grid-template-columns: 1fr;
             gap: 16px;
             margin-bottom: 16px;
-        }
-        @media (max-width: 980px) {
-            #carteira .cart-hero { grid-template-columns: 1fr; }
         }
         #carteira .cart-edu-panel,
         #carteira .cart-donut-card {
@@ -7568,6 +7706,23 @@
     </style>
 </head>
 <body class="controle-ativo">
+    <script>
+        /* Preferências de exibição — ANTES da primeira pintura.
+           O tema e o olho moram em app.js, que é o último <script> da página:
+           aplicar a classe lá significa pintar a tela inteira no claro (ou com
+           os valores à mostra) e só depois corrigir. O usuário vê o flash.
+           Este bloco é inline e roda com o <body> recém-aberto, antes de
+           qualquer conteúdo — a tela já nasce do jeito que ele escolheu.
+           app.js depois só sincroniza os ícones dos botões. */
+        (function () {
+            try {
+                if (localStorage.getItem('appliquei_tema') === 'escuro')
+                    document.body.classList.add('dark');
+                if (localStorage.getItem('appliquei_valores_ocultos') === '1')
+                    document.body.classList.add('valores-ocultos');
+            } catch (e) {}
+        })();
+    </script>
 
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
@@ -8442,12 +8597,21 @@
                             <div id="totalColInv" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-info);">R$ 0,00</div>
                         </div>
                     </div>
-                    <div id="extratoUnificado" style="display:flex;flex-direction:column;overflow-y:auto;max-height:340px;flex:1;">
-                        <div id="extratoReceitas" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoDespesas" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoCartao" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoInvestimentos" style="display:flex;flex-direction:column;gap:0;"></div>
-                    </div>
+                    <!-- Sub-filtro por categoria: as abas acima separam por TIPO
+                         (entrada/saída/cartão/investimento); aqui separa por
+                         CATEGORIA de gasto, que é como o usuário pensa o mês.
+                         Os chips saem do próprio mês e vêm do maior total para o
+                         menor — a linha já é o ranking de para onde foi o dinheiro. -->
+                    <div id="extratoCategorias" class="ext-cat-wrap" style="display:none;"></div>
+                    <!-- Lista ÚNICA. Eram quatro caixas empilhadas (entradas,
+                         saídas, cartão, aportes) e os filtros do topo mostravam
+                         ou escondiam a caixa inteira. Com isso a ordem visível
+                         era "todas as entradas, depois todas as saídas…" — e o
+                         maior gasto do mês podia ficar abaixo de uma receita de
+                         R$ 20. Numa lista só, a ordem decrescente vale para o
+                         mês inteiro; os filtros passaram a esconder por item. -->
+                    <div id="extratoUnificado" style="display:flex;flex-direction:column;overflow-y:auto;max-height:340px;flex:1;"></div>
+                    <div id="extratoVazio" class="kanban-empty" style="display:none;"></div>
                 </div>
 
                 <div class="card-container" id="painelNovoLancamento" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -8746,62 +8910,34 @@
                             <span id="cartCapitalLabel">R$ 0,00</span>
                         </span>
                     </div>
-                    <button class="cart-btn-mini" onclick="cartEditarPerfil()">
-                        <i class="ph ph-pencil-simple"></i> Editar perfil ou capital
+                    <button class="cart-btn-mini" onclick="cartEditarPerfil()" title="Editar perfil ou capital" aria-label="Editar perfil ou capital">
+                        <i class="ph ph-pencil-simple"></i> <span class="cart-btn-mini-rotulo">Editar perfil ou capital</span>
                     </button>
                     <div class="cart-perfil-msg" id="cartPerfilMsg"></div>
-                </div>
-
-                <!-- Hero: Educational Panel + Donut Chart -->
-                <div class="cart-hero" id="cartHero" style="display:none;">
-                    <div class="cart-edu-panel">
-                        <div class="cart-edu-panel-title">
-                            <i class="ph ph-graduation-cap"></i> Entenda cada classe
-                        </div>
-                        <div id="cartEduList"></div>
-                    </div>
-
-                    <div class="cart-donut-card">
-                        <div class="cart-donut-title">
-                            <i class="ph ph-chart-pie-slice"></i> Distribuição
-                        </div>
-                        <div class="cart-donut-wrap">
-                            <canvas id="cartDonutChart"></canvas>
-                            <div class="cart-donut-center">
-                                <div class="label">Aporte mensal</div>
-                                <div class="value" id="cartDonutCenterValue">R$ 0</div>
-                            </div>
-                        </div>
-                        <div class="cart-donut-legend" id="cartDonutLegend"></div>
-                    </div>
-                </div>
-
-                <!-- Diversification callout -->
-                <div class="cart-callout" id="cartCallout" style="display:none;">
-                    <i class="ph-fill ph-lightbulb"></i>
-                    <div><strong>📌 Dica:</strong> Misturar classes reduz o risco da carteira no longo prazo.</div>
                 </div>
 
                 <!-- Recommendation engine: scores + plano de aporte -->
                 <div id="cartMotorWrap" style="display:none;">
                     <div class="cart-selecao-header">
-                        <h3><i class="ph ph-cpu"></i> Score Appliquei</h3>
+                        <h3><i class="ph ph-target"></i> Sua carteira sugerida</h3>
                         <div class="cart-motor-controles">
                             <div class="cart-motor-lentes" id="cartMotorLentes"></div>
                         </div>
                     </div>
-                    <div class="cart-motor-status" id="cartMotorStatus"></div>
 
-                    <div class="cart-motor-sub">
-                        <i class="ph ph-target"></i> Sugestões do mês
-                    </div>
                     <div id="cartMotorPlano"></div>
+
+                    <!-- Cobertura de dados e lente ativa: é a PROCEDÊNCIA da
+                         recomendação, não a recomendação. Antes vinha acima do
+                         plano e empurrava para baixo justamente o que a pessoa
+                         abriu a aba para ver. -->
+                    <div class="cart-motor-status" id="cartMotorStatus"></div>
 
                     <!-- Personalização: vem DEPOIS do plano de propósito.
                          Quem não entende de investimento recebe a recomendação
                          pronta; quem já tem estratégia própria encontra aqui a
                          porta para executá-la com o mesmo motor. Abrir a aba
-                         com um formulário em branco devolveria ao utilizador a
+                         com um formulário em branco devolveria ao usuário a
                          decisão que ele veio buscar. -->
                     <div id="cartCustomWrap"></div>
 
@@ -8824,6 +8960,45 @@
                     </div>
 
                 </div>
+
+                <!-- #cartHero: agora é só o container do bloco de distribuição.
+                     O painel educativo saiu daqui para o fim da página. -->
+                <div class="cart-hero" id="cartHero" style="display:none;">
+                <!-- Distribuição por classe -->
+                <div class="cart-donut-card" id="cartDonutCard" style="display:none;">
+                    <div class="cart-donut-title">
+                        <i class="ph ph-chart-pie-slice"></i> Distribuição por classe
+                    </div>
+                    <div class="cart-donut-wrap">
+                        <canvas id="cartDonutChart"></canvas>
+                        <div class="cart-donut-center">
+                            <div class="label">Aporte mensal</div>
+                            <div class="value" id="cartDonutCenterValue">R$ 0</div>
+                        </div>
+                    </div>
+                    <div class="cart-donut-legend" id="cartDonutLegend"></div>
+                </div>
+
+                </div>
+
+                <!-- Diversification callout -->
+                <div class="cart-callout" id="cartCallout" style="display:none;">
+                    <i class="ph-fill ph-lightbulb"></i>
+                    <div><strong>📌 Dica:</strong> Misturar classes reduz o risco da carteira no longo prazo.</div>
+                </div>
+
+                <!-- Educação: o texto de cada classe.
+                     Fica em <details> fechado porque é material de apoio, não a
+                     resposta que o usuário veio buscar. Aberto por padrão, ele
+                     empurrava a carteira para 2.046px no celular. -->
+                <details class="cart-edu-details" id="cartEduDetails" style="display:none;">
+                    <summary>
+                        <i class="ph ph-graduation-cap"></i>
+                        <span>Entenda cada classe</span>
+                        <i class="ph ph-caret-down cart-edu-seta"></i>
+                    </summary>
+                    <div id="cartEduList"></div>
+                </details>
 
                 <!-- Historical Simulation -->
                 <div class="cart-sim-card" id="cartSimCard" style="display:none;">

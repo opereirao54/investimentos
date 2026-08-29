@@ -282,10 +282,29 @@ function fecharPainelLancamentoMobile() {
   fecharPainelLancamento();
 }
 
-function toggleDarkMode() {
-  document.body.classList.toggle('dark');
+// O tema já foi aplicado pelo bloco inline no topo do <body> — aqui só
+// sincronizamos o ícone do botão, que só existe depois do HTML.
+function sincronizarIconeTema() {
   const icon = document.getElementById('iconTheme');
   if (icon) icon.className = document.body.classList.contains('dark') ? 'ph ph-moon' : 'ph ph-sun';
+  const btn = document.querySelector('.btn-theme');
+  if (btn) {
+    const escuro = document.body.classList.contains('dark');
+    btn.title = escuro ? 'Voltar ao tema claro' : 'Usar o tema escuro';
+    btn.setAttribute('aria-pressed', escuro ? 'true' : 'false');
+  }
+}
+
+function toggleDarkMode() {
+  const escuro = !document.body.classList.contains('dark');
+  document.body.classList.toggle('dark', escuro);
+  // A escolha do tema é preferência do usuário e tem de sobreviver ao reload.
+  // Antes disto nada era gravado: quem preferia o escuro reabria o app no
+  // claro toda vez.
+  try {
+    localStorage.setItem('appliquei_tema', escuro ? 'escuro' : 'claro');
+  } catch (e) {}
+  sincronizarIconeTema();
   // Re-aplica tokens nos gráficos e força re-render
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
   try {
@@ -299,14 +318,83 @@ function toggleDarkMode() {
   } catch (_) {}
 }
 
+// ============================================================
+// --- Olho: esconder valores ---
+// ============================================================
+// O CSS cobre por lista de ids (65 regras). Lista à mão envelhece: cada tela
+// nova nasce vazando. Medido, sobravam 21 valores à mostra com o olho fechado
+// — o saldo do mês anterior no Controle, o caixa por instituição no Meu
+// Patrimônio, os KPIs de Sonhos, a legenda da pizza do Simulador.
+//
+// O varredor fecha a lacuna pela ponta certa: em vez de enumerar ONDE há
+// dinheiro, ele procura o que PARECE dinheiro. Marca com .valor-mascarado o
+// menor elemento cujo texto próprio casa com o padrão de moeda — só a classe,
+// sem mexer na árvore, então re-render não quebra nada e desmarcar é de graça.
+var RE_MOEDA = /R\$\s?-?[\d.]{1,3}(\.\d{3})*,\d{2}|-\s?R\$\s?[\d.]+,\d{2}/;
+var _observadorValores = null;
+
+function _marcarValoresVisiveis(raiz) {
+  var alvo = raiz && raiz.querySelectorAll ? raiz : document.body;
+  var nos = alvo.querySelectorAll('*');
+  for (var i = 0; i < nos.length; i++) {
+    var el = nos[i];
+    if (el.classList.contains('valor-mascarado')) continue;
+    // Só o texto PRÓPRIO: senão o primeiro ancestral com dinheiro dentro
+    // levaria a página inteira junto.
+    var proprio = '';
+    for (var j = 0; j < el.childNodes.length; j++) {
+      if (el.childNodes[j].nodeType === 3) proprio += el.childNodes[j].nodeValue;
+    }
+    if (RE_MOEDA.test(proprio)) el.classList.add('valor-mascarado');
+  }
+}
+
+function _ligarVarredorValores() {
+  _marcarValoresVisiveis(document.body);
+  if (_observadorValores || typeof MutationObserver !== 'function') return;
+  // As telas se redesenham o tempo todo (trocar de mês, de aba, pagar uma
+  // conta). Sem observar, o valor novo nasce à mostra.
+  _observadorValores = new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') {
+        if (m.target.parentElement) _marcarValoresVisiveis(m.target.parentElement.parentElement);
+        continue;
+      }
+      for (var j = 0; j < m.addedNodes.length; j++) {
+        var n = m.addedNodes[j];
+        if (n.nodeType === 1) _marcarValoresVisiveis(n.parentElement || n);
+        else if (n.nodeType === 3 && n.parentElement) _marcarValoresVisiveis(n.parentElement);
+      }
+    }
+  });
+  _observadorValores.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+}
+
+function _desligarVarredorValores() {
+  if (_observadorValores) {
+    _observadorValores.disconnect();
+    _observadorValores = null;
+  }
+}
+
 function aplicarEstadoValoresOcultos(oculto) {
   document.body.classList.toggle('valores-ocultos', oculto);
   document.querySelectorAll('.btn-eye').forEach((btn) => {
     btn.classList.toggle('ativo', oculto);
     btn.title = oculto ? 'Mostrar valores' : 'Ocultar valores';
+    btn.setAttribute('aria-pressed', oculto ? 'true' : 'false');
     const icone = btn.querySelector('i');
     if (icone) icone.className = oculto ? 'ph ph-eye-slash' : 'ph ph-eye';
   });
+  // A marcação só custa enquanto o olho está fechado. Aberto, a classe fica
+  // na árvore mas não pinta nada — e o observador sai do caminho.
+  if (oculto) _ligarVarredorValores();
+  else _desligarVarredorValores();
 }
 function toggleValoresOcultos() {
   const oculto = !document.body.classList.contains('valores-ocultos');
@@ -315,12 +403,11 @@ function toggleValoresOcultos() {
     localStorage.setItem('appliquei_valores_ocultos', oculto ? '1' : '0');
   } catch (e) {}
 }
-(function inicializarValoresOcultos() {
-  let salvo = '0';
-  try {
-    salvo = localStorage.getItem('appliquei_valores_ocultos') || '0';
-  } catch (e) {}
-  if (salvo === '1') aplicarEstadoValoresOcultos(true);
+// A classe já veio do bloco inline do <body>; aqui repomos ícone, título e o
+// estado "ativo" dos botões, e ligamos o varredor.
+(function inicializarPreferenciasDeExibicao() {
+  sincronizarIconeTema();
+  aplicarEstadoValoresOcultos(document.body.classList.contains('valores-ocultos'));
 })();
 
 // === CHIPS DE TIPO DE LANÇAMENTO ===
@@ -355,22 +442,15 @@ function selecionarChipTipo(tipo) {
   }
 }
 
+// O extrato virou uma lista só, ordenada por valor. As abas do topo escondiam
+// uma das quatro caixas empilhadas; agora escondem por item, e se combinam com
+// os chips de categoria (a função que aplica os dois mora em
+// appliquei-aba-controle-financeiro.js, junto do render).
 function filtrarExtrato(e, tipo) {
   document.querySelectorAll('.ext-tab').forEach((t) => t.classList.remove('on'));
-  e.currentTarget.classList.add('on');
-  const ids = ['extratoReceitas', 'extratoDespesas', 'extratoCartao', 'extratoInvestimentos'];
-  const map = {
-    todos: ids,
-    receita: ['extratoReceitas'],
-    despesa: ['extratoDespesas'],
-    cartao: ['extratoCartao'],
-    investimento: ['extratoInvestimentos'],
-  };
-  const show = map[tipo] || ids;
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = show.includes(id) ? 'flex' : 'none';
-  });
+  if (e && e.currentTarget) e.currentTarget.classList.add('on');
+  if (typeof extratoTipoAtivo !== 'undefined') extratoTipoAtivo = tipo || 'todos';
+  if (typeof aplicarFiltrosExtrato === 'function') aplicarFiltrosExtrato();
 }
 
 function formatarMoeda(valor) {
