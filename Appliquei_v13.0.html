@@ -859,6 +859,74 @@
         .dre-acum-delta.neg { color: var(--tinta-vermelho); }
 
         /* ============================================================ */
+        /* JORNADA FINANCEIRA — cartões da trilha                       */
+        /* ============================================================ */
+        /* Três estados, e o desenho tem de dizer qual é sem ler: concluído
+           (verde, discreto — já foi), agora (o único com destaque, é para onde
+           a pessoa vai) e bloqueado (apagado, sem convite ao clique). Antes
+           eram oito cartões iguais, todos clicáveis, todos pedindo atenção. */
+        .jor-card {
+            display: flex; flex-direction: column;
+            border-top: 4px solid var(--cor-borda2);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .jor-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-media); }
+        .jor-card.feito { border-top-color: var(--cor-primaria); }
+        .jor-card.agora {
+            border-top-color: var(--cor-primaria);
+            box-shadow: var(--shadow-media), 0 0 0 2px var(--cor-borda-primaria);
+        }
+        /* Bloqueado não é um botão: sem mão, sem hover, sem elevação. O cartão
+           continua legível — a pessoa vê o que vem pela frente, só não entra. */
+        .jor-card.trancado {
+            cursor: default; opacity: 0.62;
+            border-top-color: var(--cor-borda);
+            background: var(--cor-superficie);
+        }
+        .jor-card.trancado:hover { transform: none; box-shadow: none; }
+        .jor-card.trancado .btn-secundario { cursor: default; }
+
+        .jor-card-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .jor-card-topo h3 { font-size: 15px; font-weight: 700; margin: 0; line-height: 1.3; }
+        .jor-card-icone { font-size: 28px; color: var(--cor-texto-secundario); flex-shrink: 0; }
+        .jor-card.feito .jor-card-icone,
+        .jor-card.agora .jor-card-icone { color: var(--tinta-verde); }
+        .jor-card.trancado .jor-card-icone { color: var(--cor-texto-mutado); }
+        .jor-card-desc {
+            font-size: 13px; margin-bottom: 12px; flex: 1; line-height: 1.5;
+            color: var(--cor-texto-secundario);
+        }
+        .jor-data { font-size: 11px; color: var(--cor-texto-mutado); margin-bottom: 8px; }
+        .jor-data strong { color: var(--cor-texto-secundario); }
+
+        .jor-selo {
+            display: inline-flex; align-items: center; gap: 5px; width: fit-content;
+            margin-bottom: 10px; padding: 3px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 700;
+        }
+        /* O verde-marca com texto branco dá 3,77:1 — reprova AA. O tom de hover
+           (mais escuro) leva a 5,48:1 sem mudar a leitura do selo. No tema
+           escuro o fundo é claro e a tinta é que fica escura (regra abaixo). */
+        .jor-selo.ok { background: var(--cor-primaria-hover); color: #fff; }
+        body.dark .jor-selo.ok { background: var(--cor-primaria); }
+        .jor-selo.agora {
+            background: var(--cor-bg-primaria); color: var(--tinta-verde);
+            border: 1px solid var(--cor-borda-primaria);
+        }
+        .jor-selo.trancado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px solid var(--cor-borda);
+        }
+        /* Liberado mas não é o próximo da trilha — o caso de quem concluiu
+           fora de ordem antes de a trilha virar sequencial. */
+        .jor-selo.livre {
+            background: var(--cor-bg-info); color: var(--tinta-azul);
+            border: 1px solid var(--cor-borda-info);
+        }
+        body.dark .jor-selo.ok { color: #052e1a; }
+
+        /* ============================================================ */
         /* JORNADA FINANCEIRA — leitor de módulo                        */
         /* ============================================================ */
         /* Uma tipografia de leitura de verdade dentro do app: medida de

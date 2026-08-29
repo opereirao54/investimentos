@@ -237,10 +237,73 @@ function jornadaMaterialHtml(id) {
   return (mat.blocos || []).map(jornadaBlocoHtml).join('');
 }
 
+// ============================================================
+// === Trilha sequencial: um módulo por vez                   ===
+// ============================================================
+// A trilha é ordenada de propósito — o módulo 5 fala de indexador de renda
+// fixa supondo que a reserva do módulo 3 já existe, e o 8 calcula o
+// patrimônio-alvo em cima do aporte que o módulo 2 dimensionou. Com tudo
+// aberto, o caminho natural era pular para o assunto que soa mais
+// interessante e ler fora de ordem o material que foi escrito em ordem.
+//
+// A regra tem três braços, e o terceiro importa: quem já concluiu um módulo
+// nunca perde o acesso a ele. A trilha era livre até agora, então existe gente
+// com o módulo 5 concluído e o 4 não — re-trancar seria apagar progresso que a
+// pessoa já fez.
+
+/** Índice do módulo na trilha, ou -1. */
+function jornadaIndiceModulo(id) {
+  for (var i = 0; i < JORNADA_MODULOS.length; i++) {
+    if (JORNADA_MODULOS[i].id === id) return i;
+  }
+  return -1;
+}
+
+function jornadaConcluido(id, prog) {
+  var p = (prog || carregarJornadaProgresso())[id];
+  return !!(p && p.concluidoEm);
+}
+
+/**
+ * O módulo está liberado?
+ *   · o primeiro, sempre;
+ *   · o já concluído, sempre (não se tranca o que já foi feito);
+ *   · os demais, só com o anterior concluído.
+ */
+function jornadaModuloLiberado(id, prog) {
+  var i = jornadaIndiceModulo(id);
+  if (i <= 0) return true;
+  var p = prog || carregarJornadaProgresso();
+  if (jornadaConcluido(id, p)) return true;
+  return jornadaConcluido(JORNADA_MODULOS[i - 1].id, p);
+}
+
+/** O módulo que a pessoa deve fazer agora — o primeiro não concluído. */
+function jornadaProximoModulo(prog) {
+  var p = prog || carregarJornadaProgresso();
+  for (var i = 0; i < JORNADA_MODULOS.length; i++) {
+    if (!jornadaConcluido(JORNADA_MODULOS[i].id, p)) return JORNADA_MODULOS[i];
+  }
+  return null;
+}
+
 var jornadaModuloAberto = null;
 function abrirModalJornada(id) {
   const mod = JORNADA_MODULOS.find((m) => m.id === id);
   if (!mod) return;
+  // A trava também vale aqui, não só no card: o cadeado na tela é a
+  // sinalização, esta linha é a regra.
+  if (!jornadaModuloLiberado(id)) {
+    const i = jornadaIndiceModulo(id);
+    const anterior = JORNADA_MODULOS[i - 1];
+    if (typeof mostrarToast === 'function') {
+      mostrarToast(
+        'Conclua "' + (anterior ? anterior.titulo : 'o módulo anterior') + '" para abrir este.',
+        'aviso'
+      );
+    }
+    return;
+  }
   jornadaModuloAberto = id;
   const mat = typeof JORNADA_CONTEUDO !== 'undefined' ? JORNADA_CONTEUDO[id] : null;
   const modal = document.getElementById('modalJornadaModulo');
@@ -324,44 +387,70 @@ function renderizarJornada() {
   const pct = total ? Math.round((concluidos / total) * 100) : 0;
 
   // Cards
-  grid.innerHTML = JORNADA_MODULOS.map((m) => {
-    const ok = !!(prog[m.id] && prog[m.id].concluidoEm);
-    const corBorda = ok ? 'var(--cor-primaria)' : 'var(--cor-texto-mutado)';
+  const proximo = jornadaProximoModulo(prog);
+  grid.innerHTML = JORNADA_MODULOS.map((m, idx) => {
+    const ok = jornadaConcluido(m.id, prog);
+    const liberado = jornadaModuloLiberado(m.id, prog);
+    const anterior = idx > 0 ? JORNADA_MODULOS[idx - 1] : null;
+    // "Seu próximo passo" é UM cartão só — o primeiro não concluído. Quem
+    // concluiu fora de ordem no tempo em que a trilha era livre pode ter mais
+    // de um módulo liberado; esses aparecem como "Disponível", sem disputar o
+    // destaque com o passo que a trilha indica.
+    const agora = !!(proximo && proximo.id === m.id);
+
     const badge = ok
-      ? '<span class="badge" style="background:var(--cor-primaria);color:var(--cor-branco);width:fit-content;margin-bottom:10px;"><i class="ph-fill ph-check-circle"></i> Concluído</span>'
-      : '<span class="badge" style="background:var(--cor-bg-info);color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);width:fit-content;margin-bottom:10px;"><i class="ph ph-circle"></i> Não iniciado</span>';
+      ? '<span class="jor-selo ok"><i class="ph-fill ph-check-circle"></i> Concluído</span>'
+      : !liberado
+        ? '<span class="jor-selo trancado"><i class="ph-fill ph-lock-simple"></i> Bloqueado</span>'
+        : agora
+          ? '<span class="jor-selo agora"><i class="ph-fill ph-play-circle"></i> Seu próximo passo</span>'
+          : '<span class="jor-selo livre"><i class="ph ph-lock-simple-open"></i> Disponível</span>';
+
     const dataLbl = ok
-      ? '<div style="font-size:11px;color:var(--cor-texto-mutado);margin-bottom:8px;">Concluído em ' +
+      ? '<div class="jor-data">Concluído em ' +
         new Date(prog[m.id].concluidoEm).toLocaleDateString('pt-BR') +
         '</div>'
-      : '';
-    const corIcone = ok ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)';
+      : !liberado && anterior
+        ? '<div class="jor-data">Abre ao concluir <strong>' + anterior.titulo + '</strong></div>'
+        : '';
+
+    const classes =
+      'card-container jor-card' +
+      (ok ? ' feito' : '') +
+      (liberado ? '' : ' trancado') +
+      (agora ? ' agora' : '');
+    // Cartão trancado não vira botão: sem cursor de mão, sem hover, sem
+    // onclick. Só o botão dentro dele responde, e responde explicando.
+    const acaoCard = liberado ? ' onclick="abrirModalJornada(\'' + m.id + '\')"' : '';
+
     return (
-      '<div class="card-container" style="display:flex;flex-direction:column;border-top:4px solid ' +
-      corBorda +
-      ";cursor:pointer;transition:transform 0.15s ease,box-shadow 0.15s ease;\" onmouseover=\"this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 14px rgba(0,0,0,0.06)';\" onmouseout=\"this.style.transform='';this.style.boxShadow='';\" onclick=\"abrirModalJornada('" +
-      m.id +
-      '\')">' +
+      '<div class="' +
+      classes +
+      '"' +
+      acaoCard +
+      '>' +
       badge +
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;"><i class="ph-duotone ' +
-      m.icone +
-      '" style="font-size:28px;color:' +
-      corIcone +
-      ';"></i><h3 style="font-size:15px;font-weight:700;margin:0;line-height:1.3;">' +
+      '<div class="jor-card-topo"><i class="ph-duotone ' +
+      (liberado ? m.icone : 'ph-lock-simple') +
+      ' jor-card-icone"></i><h3>' +
       m.titulo +
       '</h3></div>' +
-      '<p style="font-size:13px;margin-bottom:12px;color:var(--cor-texto-secundario);flex:1;line-height:1.5;">' +
+      '<p class="jor-card-desc">' +
       m.descricao +
       '</p>' +
       dataLbl +
       '<button class="' +
-      (ok ? 'btn-secundario' : 'btn-acao') +
-      '" style="width:100%;" onclick="event.stopPropagation();abrirModalJornada(\'' +
+      (ok || !liberado ? 'btn-secundario' : 'btn-acao') +
+      '" style="width:100%;"' +
+      (liberado ? '' : ' aria-disabled="true"') +
+      ' onclick="event.stopPropagation();abrirModalJornada(\'' +
       m.id +
       '\')">' +
       (ok
-        ? '<i class="ph ph-eye"></i> Ver detalhes'
-        : '<i class="ph-bold ph-arrow-right"></i> Iniciar módulo') +
+        ? '<i class="ph ph-eye"></i> Rever material'
+        : !liberado
+          ? '<i class="ph-fill ph-lock-simple"></i> Conclua o anterior'
+          : '<i class="ph-bold ph-arrow-right"></i> Estudar módulo') +
       '</button></div>'
     );
   }).join('');
@@ -377,19 +466,25 @@ function renderizarJornada() {
   if (resumo) resumo.innerText = concluidos + ' de ' + total + ' módulos';
   if (chip) chip.style.display = '';
   if (msg) {
-    if (concluidos === 0)
-      msg.innerHTML =
-        'Comece pelo primeiro módulo e vá no seu ritmo. A meta sugerida é concluir <strong>1 módulo por mês</strong> — vira critério verde no Relatório mensal.';
-    else if (concluidos === total)
+    // A trilha é sequencial: a mensagem aponta UM módulo, o mesmo que o cartão
+    // marca como "seu próximo passo".
+    if (concluidos === total)
       msg.innerHTML =
         '🎉 <strong>Trilha completa.</strong> Releia os módulos sempre que precisar revisar um conceito.';
+    else if (concluidos === 0)
+      msg.innerHTML =
+        'Os módulos abrem um por vez, na ordem — cada um se apoia no anterior. Comece por <strong>' +
+        (proximo ? proximo.titulo : 'o primeiro') +
+        '</strong>. A meta sugerida é <strong>1 módulo por mês</strong>, que vira critério verde no Relatório mensal.';
     else
       msg.innerHTML =
         '<strong>' +
         concluidos +
-        ' módulo(s) concluído(s).</strong> Faltam ' +
-        (total - concluidos) +
-        ' para completar a trilha. Lembre-se: o critério "verde" no termômetro mensal é <strong>≥ 1 módulo no mês</strong>.';
+        ' de ' +
+        total +
+        ' concluídos.</strong> O próximo é <strong>' +
+        (proximo ? proximo.titulo : '—') +
+        '</strong>. O critério "verde" no termômetro mensal é <strong>≥ 1 módulo no mês</strong>.';
   }
 
   // Módulos concluídos no mês corrente
