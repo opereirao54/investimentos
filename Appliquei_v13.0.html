@@ -858,6 +858,56 @@
         }
         .dre-acum-delta.neg { color: var(--tinta-vermelho); }
 
+        /* Campo de rentabilidade com unidade — a conversão ao vivo é o que
+           impede o erro de unidade de virar patrimônio de mentira. */
+        /* `#drawerOperacao .form-group select { width: 100% }` é id + 2 classes.
+           O seletor de unidade precisa ser estreito ao lado do campo, então a
+           regra dele carrega o mesmo id e uma classe a mais — sem !important,
+           que só empurraria o problema para a próxima regra. */
+        #drawerOperacao .form-group .taxa-linha,
+        .form-group .taxa-linha { display: flex; gap: 8px; align-items: stretch; }
+        #drawerOperacao .form-group .taxa-linha .input-pct-wrap,
+        .form-group .taxa-linha .input-pct-wrap {
+            position: relative; display: block; flex: 1 1 auto; min-width: 0;
+        }
+        #drawerOperacao .form-group .taxa-linha .input-pct-wrap > input[type="text"],
+        .form-group .taxa-linha .input-pct-wrap > input[type="text"] {
+            width: 100%; padding-right: 30px;
+        }
+        .form-group .taxa-linha .input-pct-wrap::after {
+            content: '%';
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-mutado);
+            pointer-events: none; font-family: 'Figtree', sans-serif;
+        }
+        #drawerOperacao .form-group .taxa-linha .taxa-unidade,
+        .form-group .taxa-linha .taxa-unidade {
+            flex: 0 0 auto; width: auto; min-width: 108px;
+            padding: 10px 11px;
+            border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background-color: var(--cor-branco); color: var(--cor-texto-principal);
+            font-family: 'Figtree', sans-serif; font-size: 13px; cursor: pointer;
+        }
+        .taxa-equivalente {
+            display: none; margin-top: 6px; padding: 7px 10px; border-radius: 9px;
+            font-size: 12px; line-height: 1.45;
+            background: var(--cor-bg-info); color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda-info);
+        }
+        .taxa-equivalente.mostrar { display: block; }
+        .taxa-equivalente strong { color: var(--tinta-azul); }
+        /* Taxa que só pode ser erro de unidade. */
+        .taxa-equivalente.absurda {
+            background: var(--cor-bg-erro); border-color: var(--cor-borda-erro);
+            color: var(--cor-txt-erro);
+        }
+        .taxa-equivalente.absurda strong { color: var(--cor-txt-erro); }
+        .taxa-equivalente.alta {
+            background: var(--cor-bg-amber); border-color: var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        .taxa-equivalente.alta strong { color: var(--cor-txt-amber); }
+
         /* ============================================================ */
         /* JORNADA FINANCEIRA — cartões da trilha                       */
         /* ============================================================ */
@@ -8423,10 +8473,26 @@
                 </div>
                 <small class="prev-rec-grid-hint" style="font-size: 11px; color: var(--cor-texto-mutado); display: block;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
                 <div id="avisoRecorrenciaSemConta" style="display:none;font-size:11.5px;line-height:1.5;padding:9px 11px;border-radius:9px;background:var(--cor-bg-amber);color:var(--cor-txt-amber);border:1px solid var(--cor-borda-amber);">O aporte recorrente fica desligado no cadastro retroativo: ele registra um saldo que você <strong>já tinha</strong>, e não há parcela futura a agendar. Para programar novos aportes desta posição, cadastre-os depois escolhendo a origem.</div>
+                <!-- Rentabilidade da previdência.
+                     O campo pedia "% ao mês" e ninguém fala assim: rendimento
+                     se conversa em % ao ano. Quem digitava 8 pensando "8% ao
+                     ano" gravava 8% AO MÊS — 151% ao ano — e via R$ 10 mil
+                     virarem R$ 1 milhão em cinco anos, sem nada na tela que
+                     explicasse de onde vinha. Agora a unidade é escolhida, a
+                     equivalência aparece ao vivo, e taxa impossível é barrada. -->
                 <div class="form-group" id="grupoTaxaMensalPrev" style="margin-top:16px;">
-                    <label>Rentabilidade estimada (% ao mês)</label>
-                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
-                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                    <label>Rentabilidade estimada</label>
+                    <div class="taxa-linha">
+                        <!-- Campo de PORCENTAGEM: o wrapper de moeda punha um
+                             "R$" na frente de uma taxa. -->
+                        <span class="input-pct-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80" oninput="atualizarEquivalenciaTaxaPrev()"></span>
+                        <select id="prevTaxaUnidade" class="taxa-unidade" onchange="atualizarEquivalenciaTaxaPrev()" aria-label="Unidade da rentabilidade">
+                            <option value="mes" selected>% ao mês</option>
+                            <option value="ano">% ao ano</option>
+                        </select>
+                    </div>
+                    <div id="prevTaxaEquivalente" class="taxa-equivalente"></div>
+                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Sem preencher, usamos 0,80% ao mês (≈ 10% ao ano) — varia conforme o plano. Aplicada como juros compostos.</small>
                 </div>
                 <div class="form-group" id="grupoSaldoInicialPrev">
                     <label>Já tinha um valor guardado? <small style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--cor-texto-mutado);">— saldo inicial</small></label>

@@ -157,6 +157,88 @@ function calcularProjecaoRF(valorInicial, dataInicio, dataVencimento, rentabilid
   };
 }
 
+// ============================================================
+// === Rentabilidade da previdência: unidade e sanidade       ===
+// ============================================================
+// O campo pedia "% ao mês", e ninguém conversa rendimento assim — fala-se em
+// % ao ano. Quem digitava 8 pensando "8% ao ano" gravava 8% AO MÊS, que é
+// 151,8% ao ano: R$ 10.000 viravam R$ 1.012.570 em cinco anos. A matemática
+// estava certa o tempo todo; o que estava errado era a unidade que entrou.
+//
+// Estas três funções são a correção: a unidade é escolhida, a conversão
+// aparece antes de gravar, e taxa impossível não passa.
+
+/** Acima disto, ao mês, só pode ser número anual digitado no campo errado. */
+var TAXA_MENSAL_ABSURDA = 0.03; // 3% a.m. ≈ 42,6% a.a.
+/** Acima disto, é possível mas raro — vale um aviso, não um bloqueio. */
+var TAXA_MENSAL_ALTA = 0.015; // 1,5% a.m. ≈ 19,6% a.a.
+
+/** Taxa mensal ↔ anual, ambas efetivas (juros compostos). */
+function taxaMensalParaAnual(tm) {
+  return Math.pow(1 + tm, 12) - 1;
+}
+function taxaAnualParaMensal(ta) {
+  return Math.pow(1 + ta, 1 / 12) - 1;
+}
+
+/**
+ * Lê o campo de rentabilidade da previdência respeitando a unidade escolhida.
+ * Devolve sempre a taxa MENSAL em fração — que é como o dado é gravado desde
+ * sempre, então nada precisa ser migrado.
+ */
+function lerTaxaMensalPrevidencia() {
+  const inp = document.getElementById('prevTaxaMensal');
+  if (!inp) return null;
+  const num = typeof parseBRL === 'function' ? parseBRL(inp.value) : parseFloat(inp.value);
+  if (!(num > 0)) return null;
+  const sel = document.getElementById('prevTaxaUnidade');
+  const unidade = sel ? sel.value : 'mes';
+  return unidade === 'ano' ? taxaAnualParaMensal(num / 100) : num / 100;
+}
+
+/**
+ * Mostra a taxa na OUTRA unidade enquanto a pessoa digita.
+ *
+ * É a peça que resolve o problema: "8" com "% ao mês" selecionado passa a
+ * dizer, na hora, que aquilo é 151,8% ao ano. Ninguém confirma isso achando
+ * que é a rentabilidade de uma previdência.
+ */
+function atualizarEquivalenciaTaxaPrev() {
+  const el = document.getElementById('prevTaxaEquivalente');
+  if (!el) return;
+  const tm = lerTaxaMensalPrevidencia();
+  if (tm == null) {
+    el.className = 'taxa-equivalente';
+    el.innerHTML = '';
+    return;
+  }
+  const ta = taxaMensalParaAnual(tm);
+  const fmt = (v) => (v * 100).toFixed(2).replace('.', ',');
+  let classe = 'taxa-equivalente mostrar';
+  let extra = '';
+  if (tm > TAXA_MENSAL_ABSURDA) {
+    classe += ' absurda';
+    // O número digitado continua o mesmo — o que muda é a unidade. Sugerir
+    // um valor convertido aqui confundiria: quem digitou 8 queria 8% ao ano,
+    // não 0,64% de coisa nenhuma.
+    extra =
+      ' — isso é muito acima de qualquer previdência. Se você quis dizer <strong>' +
+      fmt(tm) +
+      '% ao ano</strong>, troque a unidade ao lado.';
+  } else if (tm > TAXA_MENSAL_ALTA) {
+    classe += ' alta';
+    extra = ' — possível, mas bem acima da média do mercado. Confirme com o seu plano.';
+  }
+  el.className = classe;
+  el.innerHTML =
+    '<strong>' +
+    fmt(tm) +
+    '% ao mês</strong> equivale a <strong>' +
+    fmt(ta) +
+    '% ao ano</strong>' +
+    extra;
+}
+
 // Taxa MENSAL efetiva (juros compostos) de uma operação de Renda Fixa / Reserva /
 // Previdência. Precedência: o TEXTO de rentabilidade ("110% CDI", "IPCA+6%",
 // "12% a.a.") — indexado a CDI/Selic/IPCA ao vivo do BCB — vence a `taxaMensal`
@@ -725,6 +807,30 @@ function registrarOperacaoAtivo() {
 
   if (!ticker) return mostrarToast('Preencha o Ticker/Nome corretamente.', 'erro');
   if (!temAporte && !temSaldoInicial) return mostrarToast('Preencha o Valor corretamente.', 'erro');
+  // Taxa de previdência acima de 3% AO MÊS (42,6% ao ano) não existe — é
+  // sempre um número anual digitado no campo mensal. Barrar aqui é o que
+  // impede um dígito de virar patrimônio de mentira que só cresce com o
+  // tempo, sem nada na tela denunciando a origem.
+  if (categoria === 'previdencia') {
+    const tmCheck =
+      typeof lerTaxaMensalPrevidencia === 'function' ? lerTaxaMensalPrevidencia() : null;
+    if (tmCheck != null && tmCheck > TAXA_MENSAL_ABSURDA) {
+      const anual = (taxaMensalParaAnual(tmCheck) * 100).toFixed(0);
+      const inpT = document.getElementById('prevTaxaMensal');
+      if (inpT) {
+        inpT.style.borderColor = 'var(--cor-erro)';
+        inpT.focus();
+        setTimeout(() => {
+          inpT.style.borderColor = '';
+        }, 3000);
+      }
+      return mostrarToast(
+        `Rentabilidade de ${anual}% ao ano é impossível para uma previdência. ` +
+          `Confira a unidade ao lado do campo — o padrão é % ao mês.`,
+        'erro'
+      );
+    }
+  }
   if (temAporte && !semQtd && (isNaN(qtd) || qtd <= 0))
     return mostrarToast('Preencha a Quantidade corretamente.', 'erro');
   if (!corretora) {
@@ -955,8 +1061,8 @@ function registrarOperacaoAtivo() {
       operacao.duracaoAnos =
         duracaoInp >= 1 && duracaoInp <= 40 ? duracaoInp : categoria === 'previdencia' ? 10 : 5;
       if (categoria === 'previdencia') {
-        const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
-        operacao.taxaMensal = taxaInp > 0 ? taxaInp / 100 : 0.008;
+        const tm = lerTaxaMensalPrevidencia();
+        operacao.taxaMensal = tm != null ? tm : 0.008;
       }
     }
     historicoCompras.push(operacao);
@@ -1101,8 +1207,8 @@ function registrarOperacaoAtivo() {
       recorrente: false,
     };
     if (categoria === 'previdencia') {
-      const taxaInp = parseBRL(document.getElementById('prevTaxaMensal').value);
-      opSaldo.taxaMensal = taxaInp > 0 ? taxaInp / 100 : 0.008;
+      const tmSaldo = lerTaxaMensalPrevidencia();
+      opSaldo.taxaMensal = tmSaldo != null ? tmSaldo : 0.008;
       // Indexador opcional também no saldo inicial (precede a taxa fixa no cálculo).
       if (rentabilidade) opSaldo.rentabilidade = rentabilidade;
     } else if (rentabilidade) {
@@ -1134,6 +1240,12 @@ function registrarOperacaoAtivo() {
   if (inpDiaPrev) inpDiaPrev.value = '';
   const inpTaxaPrev = document.getElementById('prevTaxaMensal');
   if (inpTaxaPrev) inpTaxaPrev.value = '';
+  // A unidade também volta ao padrão: deixá-la em "% ao ano" faria o próximo
+  // cadastro herdar uma escolha invisível, e o prefill de 0,80 — que é mensal —
+  // viraria 0,80% AO ANO sem ninguém pedir.
+  const selUnPrev = document.getElementById('prevTaxaUnidade');
+  if (selUnPrev) selUnPrev.value = 'mes';
+  if (typeof atualizarEquivalenciaTaxaPrev === 'function') atualizarEquivalenciaTaxaPrev();
   const inpDurPrev = document.getElementById('prevDuracaoAnos');
   if (inpDurPrev) inpDurPrev.value = '';
   const chkRecPrev = document.getElementById('prevRecorrente');
@@ -1362,9 +1474,16 @@ function editarOperacao(id) {
   const inpDuracao = document.getElementById('prevDuracaoAnos');
   if (chkRec) chkRec.checked = op.recorrente !== false;
   if (inpDiaRec) inpDiaRec.value = op.diaRecorrencia || '';
-  if (inpTaxaMensal)
+  if (inpTaxaMensal) {
+    // O dado é gravado em taxa MENSAL; a edição repõe o campo nessa unidade e
+    // deixa a equivalência anual à vista — é assim que quem cadastrou 8% ao
+    // mês por engano descobre, ao reabrir, que a posição rende 151% ao ano.
     inpTaxaMensal.value =
       op.taxaMensal != null ? (op.taxaMensal * 100).toFixed(2).replace('.', ',') : '';
+    const selUn = document.getElementById('prevTaxaUnidade');
+    if (selUn) selUn.value = 'mes';
+    if (typeof atualizarEquivalenciaTaxaPrev === 'function') atualizarEquivalenciaTaxaPrev();
+  }
   if (inpDuracao) inpDuracao.value = op.duracaoAnos || '';
   if (typeof sincronizarRotuloDiaRecorrencia === 'function') sincronizarRotuloDiaRecorrencia();
 

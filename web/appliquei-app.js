@@ -1197,6 +1197,10 @@ function ajustarCamposPorCategoria() {
       inpDia.value = d ? new Date(d + 'T12:00:00').getDate() : new Date().getDate();
     }
     if (ehPrev && inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+    // O prefill não passa por `oninput`: sem esta chamada a equivalência
+    // anual só apareceria depois do primeiro toque no campo.
+    if (ehPrev && typeof atualizarEquivalenciaTaxaPrev === 'function')
+      atualizarEquivalenciaTaxaPrev();
     if (inpDuracao && !inpDuracao.value) inpDuracao.value = ehPrev ? '10' : '5';
     if (typeof sincronizarRotuloDiaRecorrencia === 'function') sincronizarRotuloDiaRecorrencia();
   }
