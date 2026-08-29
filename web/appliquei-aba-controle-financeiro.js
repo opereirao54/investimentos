@@ -1496,8 +1496,8 @@ function atualizarBannerSaldoMesAnterior(mesAtual, anoAtual) {
   }
   const cor = saldo >= 0 ? '#10b981' : '#ef4444';
   txt.innerHTML = manual
-    ? `<i class="ph-bold ph-pencil-simple" style="color:#7c3aed;margin-right:4px;"></i> Saldo do mês anterior <strong>ajustado manualmente</strong> para <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>.`
-    : `<i class="ph-fill ph-arrow-fat-line-right" style="color:#7c3aed;margin-right:4px;"></i> O fechamento de <strong>${nomeMeses[mesAnt]}/${anoAnt}</strong> (<strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>) é carregado automaticamente para <strong>${nomeMeses[mesAtual]}/${anoAtual}</strong>.`;
+    ? `<i class="ph-bold ph-pencil-simple" style="color:var(--tinta-roxo);margin-right:4px;"></i> Saldo do mês anterior <strong>ajustado manualmente</strong> para <strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>.`
+    : `<i class="ph-fill ph-arrow-fat-line-right" style="color:var(--tinta-roxo);margin-right:4px;"></i> O fechamento de <strong>${nomeMeses[mesAnt]}/${anoAnt}</strong> (<strong style="color:${cor};font-family:'DM Mono',monospace;">${formatarMoeda(saldo)}</strong>) é carregado automaticamente para <strong>${nomeMeses[mesAtual]}/${anoAtual}</strong>.`;
   acoes.innerHTML =
     `<button class="btn-secundario" style="font-size:11.5px;padding:6px 12px;" onclick="editarSaldoMesAnterior(${mesAtual},${anoAtual})"><i class="ph ph-pencil-simple"></i> Ajustar</button>` +
     (manual
@@ -2356,37 +2356,37 @@ function atualizarTelaControle() {
   let htmlLinhas = '';
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Receita Total</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.receita)}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.receita)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Resgates (Venda de Ativos)</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: var(--cor-primaria); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${formatarMoeda(d.resgate)}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-verde); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${formatarMoeda(d.resgate)}</td>`;
   });
   htmlLinhas += `</tr>`;
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Fixa)</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.invFixo > 0 ? '-' + formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invFixo > 0 ? '-' + formatarMoeda(d.invFixo) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Investimento (Renda Variável)</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: var(--cor-info); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Sonhos (separado p/ metas)</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: #7c3aed; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.sonho > 0 ? '-' + formatarMoeda(d.sonho) : 'R$ 0,00'}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-roxo); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.sonho > 0 ? '-' + formatarMoeda(d.sonho) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Despesas Consumidas</td>`;
   dreDados.forEach((d, i) => {
-    htmlLinhas += `<td style="text-align: right; color: var(--cor-erro); font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${d.despesas > 0 ? '-' + formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`;
+    htmlLinhas += `<td style="text-align: right; color: var(--tinta-vermelho); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.despesas > 0 ? '-' + formatarMoeda(d.despesas) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
 
@@ -2395,15 +2395,15 @@ function atualizarTelaControle() {
   // mês em foco permite um ajuste manual pontual.
   const algumCarregado = dreDados.some((d) => Math.abs(d.saldoCarregado || 0) > 0.005);
   if (algumCarregado) {
-    htmlLinhas += `<tr style="background:rgba(124,58,237,0.05);"><td class="coluna-fixa" style="font-weight: 600; background: rgba(124,58,237,0.07); color:#7c3aed;" title="Resultado do mês anterior, carregado automaticamente">↳ Saldo do mês anterior</td>`;
+    htmlLinhas += `<tr style="background:rgba(124,58,237,0.05);"><td class="coluna-fixa" style="font-weight: 600; background: rgba(124,58,237,0.07); color:var(--tinta-roxo);" title="Resultado do mês anterior, carregado automaticamente">↳ Saldo do mês anterior</td>`;
     dreDados.forEach((d, i) => {
       const v = d.saldoCarregado || 0;
-      const cor = v >= 0 ? '#7c3aed' : 'var(--cor-erro)';
+      const cor = v >= 0 ? 'var(--tinta-roxo)' : 'var(--tinta-vermelho)';
       const lapis =
         i === indiceMesAtual
-          ? ` <i class="ph ph-pencil-simple" title="Ajustar saldo trazido" style="cursor:pointer;color:#7c3aed;font-size:12px;" onclick="editarSaldoMesAnterior(${d.mes},${d.ano})"></i>`
+          ? ` <i class="ph ph-pencil-simple" title="Ajustar saldo trazido" style="cursor:pointer;color:var(--tinta-roxo);font-size:12px;" onclick="editarSaldoMesAnterior(${d.mes},${d.ano})"></i>`
           : '';
-      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: #eff6ff;' : ''}">${Math.abs(v) > 0.005 ? formatarMoeda(v) : '—'}${lapis}</td>`;
+      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${Math.abs(v) > 0.005 ? formatarMoeda(v) : '—'}${lapis}</td>`;
     });
     htmlLinhas += `</tr>`;
   }
@@ -2427,7 +2427,7 @@ function atualizarTelaControle() {
       classeMeta = 'dre-meta-ok';
       fontW = '700';
     }
-    htmlLinhas += `<td class="${classeMeta}" style="text-align: right; font-weight: ${fontW}; ${i === indiceMesAtual ? 'background-color: #d1fae5;' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
+    htmlLinhas += `<td class="${classeMeta}" style="text-align: right; font-weight: ${fontW}; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : 'background-color: var(--cor-bg-primaria);'}">${formatarMoeda(d.saldoAcumulado)}${alertaBadget}</td>`;
   });
   htmlLinhas += `</tr>`;
 

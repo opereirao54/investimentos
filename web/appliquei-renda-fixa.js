@@ -492,14 +492,14 @@ function renderAvisoRentabilidadeRF() {
   const n = pend.length;
   box.style.display = 'block';
   box.innerHTML = `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fffbeb;border:1px solid #fde68a;border-radius:10px;">
-      <i class="ph-fill ph-warning-circle" style="font-size:22px;color:#d97706;flex-shrink:0;"></i>
+    <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);border-radius:10px;">
+      <i class="ph-fill ph-warning-circle" style="font-size:22px;color:var(--tinta-ambar);flex-shrink:0;"></i>
       <div style="min-width:0;flex:1;">
-        <div style="font-weight:600;font-size:13px;color:#92400e;">${n} investimento${n === 1 ? '' : 's'} de renda fixa sem rentabilidade</div>
-        <div style="font-size:12px;color:#b45309;">Sem a taxa ${n === 1 ? 'ele não rende' : 'eles não rendem'} — fica${n === 1 ? '' : 'm'} no valor aportado. Informe para valorizar desde a data do aporte.</div>
+        <div style="font-weight:600;font-size:13px;color:var(--cor-txt-amber);">${n} investimento${n === 1 ? '' : 's'} de renda fixa sem rentabilidade</div>
+        <div style="font-size:12px;color:var(--cor-txt-amber);">Sem a taxa ${n === 1 ? 'ele não rende' : 'eles não rendem'} — fica${n === 1 ? '' : 'm'} no valor aportado. Informe para valorizar desde a data do aporte.</div>
       </div>
       <button onclick="abrirModalCompletarRentabilidade()" class="btn-acao" style="background:#d97706;flex-shrink:0;padding:8px 14px;font-size:12.5px;white-space:nowrap;"><i class="ph ph-pencil-simple"></i> Completar</button>
-      <button onclick="dispensarAvisoRentabilidadeRF()" aria-label="Dispensar" title="Dispensar por agora" style="background:none;border:none;cursor:pointer;color:#b45309;font-size:16px;flex-shrink:0;"><i class="ph ph-x"></i></button>
+      <button onclick="dispensarAvisoRentabilidadeRF()" aria-label="Dispensar" title="Dispensar por agora" style="background:none;border:none;cursor:pointer;color:var(--cor-txt-amber);font-size:16px;flex-shrink:0;"><i class="ph ph-x"></i></button>
     </div>`;
 }
 

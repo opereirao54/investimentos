@@ -130,6 +130,45 @@
             --cor-borda-amber: #fde68a;
             --cor-txt-amber: #92400e;
 
+            /* ===== Tintas de acento =====
+               Um número colorido ("R$ 5.390,00" em vermelho, o aporte em roxo)
+               precisa de DOIS tons: um escuro para o tema claro, um claro para o
+               escuro. O app tinha só o primeiro, cravado como hex em dezenas de
+               `style="color:#7c3aed"` — no tema escuro isso vira roxo-escuro
+               sobre verde-quase-preto, 2,4:1, ilegível.
+
+               Aqui fica o par. A regra: SATURADO (--rm-verde, #10b981…) só
+               preenche — barra, ponto, arco, fatia de gráfico. TINTA escreve.
+               Nenhum texto colorido deve nascer de um hex literal. */
+            --tinta-verde: #047857;
+            --tinta-vermelho: #b91c1c;
+            --tinta-roxo: #6d28d9;
+            --tinta-azul: #0369a1;
+            --tinta-ambar: #9a4a07;
+            --tinta-ciano: #0e7490;
+
+            /* Coluna do mês corrente na DRE. Eram #eff6ff e #d1fae5 cravados no
+               JS: no tema escuro a tabela ganhava duas colunas brancas com
+               número verde-menta por cima (1,7:1). */
+            --dre-destaque: #eff6ff;
+            --dre-destaque-forte: #d1fae5;
+
+            /* Régua do score do Relatório mensal: a faixa INATIVA é um pastel
+               com texto escuro, e pastel não sobrevive à troca de tema. O par
+               tem de morar no :root — dentro de #relatorio_mensal ele venceria
+               o body.dark, que é um ancestral mais distante (propriedade
+               custom herda: quem declara mais perto manda). Fica aqui também
+               porque quem desenha a régua escreve estilo inline e só consegue
+               referenciar a variável. */
+            --rm-faixa-vermelho-bg: #fee2e2; --rm-faixa-vermelho-tinta: #991b1b;
+            --rm-faixa-amarelo-bg: #fef3c7;  --rm-faixa-amarelo-tinta: #92400e;
+            --rm-faixa-verde-bg: #d1fae5;    --rm-faixa-verde-tinta: #065f46;
+            /* Termômetro: o arco de trilho e o cubo do ponteiro eram #eef2f7 e
+               #fff cravados no SVG. No tema escuro sobrava um semicírculo
+               branco atravessando o cartão. */
+            --rm-gauge-trilho: #eef2f7; --rm-gauge-cubo: #ffffff;
+            --rm-gauge-aro: #cbd5e1;    --rm-gauge-agulha: #0f172a;
+
             --radius: 14px;
             --radius-sm: 9px;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05);
@@ -151,6 +190,16 @@
             --cor-borda-primaria: #065f3a; --cor-borda-info: #1e3a5f; --cor-borda-erro: #7f1d1d;
             --cor-txt-primaria: #6ee7b7; --cor-txt-info: #93c5fd; --cor-txt-erro: #fca5a5;
             --cor-bg-amber: #2d1a00; --cor-borda-amber: #854f0b; --cor-txt-amber: #fcd34d;
+            /* O outro lado do par: mesma tinta, luminosidade invertida. Pior
+               caso medido é sobre --cor-superficie (#1a2b1d): 7,9:1 a 10,4:1. */
+            --tinta-verde: #6ee7b7; --tinta-vermelho: #fca5a5; --tinta-roxo: #c4b5fd;
+            --tinta-azul: #7dd3fc; --tinta-ambar: #fcd34d; --tinta-ciano: #67e8f9;
+            --rm-faixa-vermelho-bg: #2d0a0a; --rm-faixa-vermelho-tinta: #fca5a5;
+            --rm-faixa-amarelo-bg: #2d1a00;  --rm-faixa-amarelo-tinta: #fcd34d;
+            --rm-faixa-verde-bg: #052e1a;    --rm-faixa-verde-tinta: #6ee7b7;
+            --rm-gauge-trilho: #213029; --rm-gauge-cubo: #1a2b1d;
+            --rm-gauge-aro: #2c4435;    --rm-gauge-agulha: #e4f0e7;
+            --dre-destaque: #10233f; --dre-destaque-forte: #0b3a26;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.15), 0 6px 20px rgba(0,0,0,0.2);
         }
 
@@ -784,10 +833,10 @@
         #tabelaSimuladorCorpo tr:nth-child(even) td,
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
         #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
-        .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
+        .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--tinta-verde) !important; }
         /* Meta DRE (4.1): cor por classe vence o verde-default da linha. */
-        .linha-liquida td.dre-meta-danger { color: var(--cor-erro) !important; }
-        .linha-liquida td.dre-meta-ok { color: var(--cor-primaria) !important; }
+        .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
+        .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
         
         /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
@@ -855,7 +904,7 @@
         .tag-etf { color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria); }
         .tag-bdr { color: var(--cor-txt-info); background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); }
         .tag-rf { color: var(--cor-texto-mutado); background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
-        .tag-cripto { color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; }
+        .tag-cripto { color: var(--cor-txt-amber); background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); }
         body.tema-escuro .tag-cripto { color: #fcd34d; background: #422006; border-color: #854f0b; }
 
         /* === EXTRATO === */
@@ -1001,7 +1050,9 @@
             width: 40px; height: 40px; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             font-size: 15px; font-weight: 800; font-family: 'DM Mono', monospace;
-            color: white; flex-shrink: 0;
+            /* Padrão. Quem conhece a cor do bloco manda a tinta inline
+               (tintaSobre) — branco sobre #f59e0b é 2,15:1. */
+            color: #fff; flex-shrink: 0;
         }
         .rich-row-info { padding: 0 14px; min-width: 0; }
         .rich-ticker {
@@ -1883,7 +1934,10 @@
         .cart-q-opt:hover { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .cart-q-opt.selected { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); box-shadow: 0 0 0 3px rgba(5,150,105,0.10); }
         .cart-q-opt .icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
-        .cart-q-opt .body { flex: 1; }
+        /* .title e .sub são <span>: em display inline eles fluem na MESMA linha
+           ("Não aceito perdasQuero previsibilidade total") e o margin-bottom do
+           título é simplesmente ignorado. A coluna aqui é o que separa os dois. */
+        .cart-q-opt .body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .cart-q-opt .title { font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 2px; }
         .cart-q-opt .sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.4; }
 
@@ -2038,10 +2092,10 @@
             font-size: 13px; font-weight: 700; color: var(--cor-texto-principal);
         }
         .cart-classe-col-name i { font-size: 16px; }
-        .cart-classe-rf .cart-classe-col-name i     { color: #059669; }
-        .cart-classe-acao .cart-classe-col-name i   { color: #7c3aed; }
-        .cart-classe-fii .cart-classe-col-name i    { color: #d97706; }
-        .cart-classe-cripto .cart-classe-col-name i { color: #f59e0b; }
+        .cart-classe-rf .cart-classe-col-name i     { color: var(--tinta-verde); }
+        .cart-classe-acao .cart-classe-col-name i   { color: var(--tinta-roxo); }
+        .cart-classe-fii .cart-classe-col-name i    { color: var(--tinta-ambar); }
+        .cart-classe-cripto .cart-classe-col-name i { color: var(--tinta-ambar); }
         .cart-classe-col-meta {
             display: flex; justify-content: space-between; align-items: baseline;
             margin-top: 6px;
@@ -2347,7 +2401,7 @@
             margin-left: auto; font-size: 10px; color: var(--cor-texto-mutado);
             display: inline-flex; align-items: center; gap: 4px;
         }
-        .cart-indicadores-fonte i { font-size: 12px; color: #059669; }
+        .cart-indicadores-fonte i { font-size: 12px; color: var(--tinta-verde); }
         .cart-motor-sub {
             display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
             font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
@@ -2533,8 +2587,8 @@
             display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 999px;
             font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
         }
-        .cart-score-conf.conf-alta  { background: rgba(5,150,105,0.12); color: #047857; }
-        .cart-score-conf.conf-media { background: rgba(217,119,6,0.12); color: #b45309; }
+        .cart-score-conf.conf-alta  { background: rgba(5,150,105,0.12); color: var(--tinta-verde); }
+        .cart-score-conf.conf-media { background: rgba(217,119,6,0.12); color: var(--tinta-ambar); }
         .cart-score-conf.conf-baixa { background: rgba(107,114,128,0.14); color: #4b5563; }
         .cart-score-alertas {
             list-style: none; padding: 0; margin: 0;
@@ -2544,7 +2598,7 @@
             font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.45;
             display: flex; align-items: flex-start; gap: 5px;
         }
-        .cart-score-alertas i { color: #d97706; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+        .cart-score-alertas i { color: var(--tinta-ambar); font-size: 12px; flex-shrink: 0; margin-top: 1px; }
 
         /* Ativo sem lastro: a ausência de score é a informação, não um score baixo */
         .cart-score-card.sem-dado { border-style: dashed; background: var(--cor-superficie); }
@@ -2590,9 +2644,9 @@
             font-size: 10px; color: var(--cor-texto-mutado);
             display: flex; align-items: center; gap: 5px; line-height: 1.4;
         }
-        .cart-score-fonte i { font-size: 12px; color: #059669; flex-shrink: 0; }
-        .cart-score-fonte.vencido { color: #b45309; }
-        .cart-score-fonte.vencido i { color: #d97706; }
+        .cart-score-fonte i { font-size: 12px; color: var(--tinta-verde); flex-shrink: 0; }
+        .cart-score-fonte.vencido { color: var(--tinta-ambar); }
+        .cart-score-fonte.vencido i { color: var(--tinta-ambar); }
 
 
         /* ═══════════════════════════════════════════════════════════
@@ -4298,9 +4352,9 @@
             font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
             padding: 3px 8px; border-radius: 99px; margin-left: 8px;
         }
-        .sonho-status-badge.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; border: 1px solid rgba(124,58,237,0.3); }
-        .sonho-status-badge.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; border: 1px solid rgba(16,185,129,0.4); }
-        .sonho-status-badge.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; border: 1px solid rgba(239,68,68,0.3); }
+        .sonho-status-badge.st-agendado { background: rgba(124,58,237,0.12); color: var(--tinta-roxo); border: 1px solid rgba(124,58,237,0.3); }
+        .sonho-status-badge.st-conquistado { background: rgba(16,185,129,0.18); color: var(--tinta-verde); border: 1px solid rgba(16,185,129,0.4); }
+        .sonho-status-badge.st-vencido { background: rgba(239,68,68,0.12); color: var(--tinta-vermelho); border: 1px solid rgba(239,68,68,0.3); }
         .sonho-agendado-banner {
             display: flex; align-items: center; gap: 10px;
             padding: 10px 14px; margin: 0 20px 12px;
@@ -4308,7 +4362,7 @@
             background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(124,58,237,0.04));
             font-size: 12.5px; color: #6d28d9; font-weight: 600;
         }
-        .sonho-agendado-banner i { font-size: 18px; color: #7c3aed; }
+        .sonho-agendado-banner i { font-size: 18px; color: var(--tinta-roxo); }
 
         /* Timeline de aportes */
         .aportes-timeline {
@@ -4322,7 +4376,7 @@
             font-size: 11px; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.5px; color: var(--cor-texto-mutado);
         }
-        .aportes-timeline-head i { color: #7c3aed; }
+        .aportes-timeline-head i { color: var(--tinta-roxo); }
         .aportes-timeline-list { padding: 8px 14px; max-height: 280px; overflow-y: auto; }
         .aporte-item {
             display: flex; align-items: center; gap: 12px; padding: 10px 0;
@@ -4352,10 +4406,10 @@
             font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
             padding: 2px 7px; border-radius: 99px;
         }
-        .aporte-tipo-tag.t-inicial { background: rgba(124,58,237,0.12); color: #6d28d9; }
-        .aporte-tipo-tag.t-esporadico { background: rgba(16,185,129,0.12); color: #047857; }
-        .aporte-tipo-tag.t-migracao { background: rgba(14,165,233,0.12); color: #0369a1; }
-        .aporte-tipo-tag.t-mensal { background: rgba(245,158,11,0.12); color: #b45309; }
+        .aporte-tipo-tag.t-inicial { background: rgba(124,58,237,0.12); color: var(--tinta-roxo); }
+        .aporte-tipo-tag.t-esporadico { background: rgba(16,185,129,0.12); color: var(--tinta-verde); }
+        .aporte-tipo-tag.t-migracao { background: rgba(14,165,233,0.12); color: var(--tinta-azul); }
+        .aporte-tipo-tag.t-mensal { background: rgba(245,158,11,0.12); color: var(--tinta-ambar); }
         .aporte-tipo-tag.t-aporte { background: var(--cor-superficie); color: var(--cor-texto-mutado); }
         .aporte-meta {
             font-size: 11px; color: var(--cor-texto-mutado); margin-top: 2px;
@@ -4705,7 +4759,7 @@
         .apc-hero-eyebrow {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-            color: var(--cor-primaria);
+            color: var(--tinta-verde);
             padding: 4px 10px; border-radius: 999px;
             background: var(--cor-bg-primaria);
             border: 1px solid var(--cor-borda-primaria);
@@ -5530,9 +5584,9 @@
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
         .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); transition: color .2s; }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
-        .mp-kpi-delta.pos { color: var(--cor-primaria); }
-        .mp-kpi-delta.neg { color: var(--cor-erro); }
-        .mp-kpi-delta.neu { color: var(--cor-texto-mutado); }
+        .mp-kpi-delta.pos { color: var(--tinta-verde); }
+        .mp-kpi-delta.neg { color: var(--tinta-vermelho); }
+        .mp-kpi-delta.neu { color: var(--cor-texto-secundario); }
         .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
         .mp-kpi-sub i { font-size:12px; opacity:.8; }
         .mp-composition-bar {
@@ -5961,7 +6015,7 @@
             #relatorio_mensal .rm-hero-gauge { max-width: 260px; }
         }
         #relatorio_mensal .rm-criterio {
-            background: #fff;
+            background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: 14px;
             padding: 14px 14px 12px;
@@ -5975,10 +6029,14 @@
             content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
             background: var(--rm-crit-cor, var(--cor-texto-mutado));
         }
-        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
-        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-bg: rgba(245,158,11,0.08); }
-        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
-        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;           --rm-crit-bg: rgba(148,163,184,0.06); }
+        /* Duas variáveis por status: --rm-crit-cor pinta o traço lateral e o
+           ícone (é um bloco de cor, saturado é o certo); --rm-crit-tinta
+           escreve o selo "OK/FORA" sobre o fundo translúcido. Usar a saturada
+           nos dois dava 4,25:1 no selo vermelho do tema escuro. */
+        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-tinta: var(--tinta-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-tinta: var(--tinta-ambar);    --rm-crit-bg: rgba(245,158,11,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-tinta: var(--tinta-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
+        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;            --rm-crit-tinta: var(--cor-texto-secundario); --rm-crit-bg: rgba(148,163,184,0.06); }
         #relatorio_mensal .rm-criterio-top {
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 8px;
@@ -5999,7 +6057,7 @@
             padding: 3px 8px;
             border-radius: 99px;
             background: var(--rm-crit-bg);
-            color: var(--rm-crit-cor);
+            color: var(--rm-crit-tinta, var(--rm-crit-cor));
         }
         #relatorio_mensal .rm-criterio-label {
             font-size: 11px;
@@ -6151,9 +6209,9 @@
             font-family: 'DM Mono', monospace;
         }
         #relatorio_mensal .rm-chart-pill.neg {
-            background: #fef2f2;
-            color: #991b1b;
-            border-color: #fecaca;
+            background: var(--cor-bg-erro);
+            color: var(--cor-txt-erro);
+            border-color: var(--cor-borda-erro);
         }
 
         /* Dual grid (donut + patrimônio) */
@@ -6372,16 +6430,16 @@
             padding: 4px 9px;
             border-radius: 99px;
         }
-        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: #047857; }
-        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: #b45309; }
-        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: #b91c1c; }
+        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: var(--tinta-verde); }
+        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: var(--tinta-ambar); }
+        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: var(--tinta-vermelho); }
 
         /* Sparkline backgrounds nos KPIs */
-        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: #047857; --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: #b45309; --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: var(--tinta-verde); --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: var(--tinta-vermelho); --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: var(--tinta-roxo); --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: var(--tinta-azul); --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: var(--tinta-ambar); --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -7563,7 +7621,7 @@
             </div>
             <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
                 <div style="text-align:center;padding:8px 0 4px;">
-                    <i class="ph ph-envelope-simple" style="font-size:34px;color:#059669;"></i>
+                    <i class="ph ph-envelope-simple" style="font-size:34px;color:var(--tinta-verde);"></i>
                 </div>
                 <h3 style="text-align:center;font-size:16px;font-weight:600;margin:6px 0 8px;color:var(--cor-texto-primario,#0b1410);">Verifique seu e-mail</h3>
                 <p id="authVerifyMsg" style="font-size:13px;color:var(--cor-texto-secundario,#4a5b53);line-height:1.55;text-align:center;margin-bottom:14px;">Enviamos um link de verificação para <strong id="authVerifyEmail"></strong>. Abra a caixa de entrada e clique no link para liberar o acesso.</p>
@@ -7697,7 +7755,7 @@
             <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
                 <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Recomeçar do zero</label>
                 <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
-                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-erro);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
+                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
             </div>
 
             <div style="display:flex;gap:10px;">
@@ -8254,7 +8312,7 @@
                     <div class="kpi-hero-head">
                         <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
                         <div>
-                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:#8b5cf6;font-weight:700;margin-left:4px;"></span></div>
+                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
                             <div class="kpi-hero-sub">receita − despesas − cartão − investimentos</div>
                         </div>
                     </div>
@@ -8265,21 +8323,21 @@
                 <div class="kpis-controle-grid">
                     <div class="kpi-mini kpi-receita">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(16,185,129,0.12);color:#10b981;"><i class="ph-fill ph-arrow-down-left"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(16,185,129,0.12);color:var(--tinta-verde);"><i class="ph-fill ph-arrow-down-left"></i></span>
                             <span class="kpi-mini-lbl">Receita do mês</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiReceitaMes" style="color:var(--cor-primaria);">R$ 0,00</div>
                     </div>
                     <div class="kpi-mini kpi-despesa">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(239,68,68,0.12);color:#ef4444;"><i class="ph-fill ph-arrow-up-right"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(239,68,68,0.12);color:var(--tinta-vermelho);"><i class="ph-fill ph-arrow-up-right"></i></span>
                             <span class="kpi-mini-lbl">Total de despesas</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiDespesasMes" style="color:var(--cor-erro);">R$ 0,00</div>
                     </div>
                     <div class="kpi-mini kpi-cartao">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><i class="ph-fill ph-credit-card"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(245,158,11,0.12);color:var(--tinta-ambar);"><i class="ph-fill ph-credit-card"></i></span>
                             <span class="kpi-mini-lbl">Cartão de crédito</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiCartaoMes" style="color:var(--cor-cartao);">R$ 0,00</div>
@@ -8287,10 +8345,10 @@
                     </div>
                     <div class="kpi-mini kpi-invest">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:#7c3aed;"><i class="ph-fill ph-trend-up"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:var(--tinta-roxo);"><i class="ph-fill ph-trend-up"></i></span>
                             <span class="kpi-mini-lbl">Investimentos</span>
                         </div>
-                        <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:#10b981;">R$ 0,00</div>
+                        <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:var(--tinta-verde);">R$ 0,00</div>
                         <div class="kpi-mini-sub">aportes do mês</div>
                     </div>
                 </div>
@@ -8310,7 +8368,7 @@
             </div>
 
             <div id="bannerSaldoMesAnterior" style="display:none;margin-bottom:14px;padding:12px 14px;border:1.5px solid #c4b5fd;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(124,58,237,0.04));align-items:center;gap:12px;flex-wrap:wrap;">
-                <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:#7c3aed;flex-shrink:0;"></i>
+                <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:var(--tinta-roxo);flex-shrink:0;"></i>
                 <div style="flex:1;min-width:200px;font-size:13px;color:var(--cor-texto-principal);">
                     <span id="txtBannerSaldoMesAnt"></span>
                 </div>
@@ -8565,7 +8623,7 @@
                     </div>
                     <p id="jornadaModalDescricao" style="font-size:13.5px;color:var(--cor-texto-secundario);line-height:1.6;margin-bottom:18px;"></p>
                     <div id="jornadaModalObjetivos" style="background:var(--cor-bg-info);border:1px solid var(--cor-borda);border-radius:10px;padding:14px 16px;margin-bottom:18px;"></div>
-                    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12.5px;color:#92400e;line-height:1.5;">
+                    <div style="background:var(--cor-bg-amber);border:1px solid var(--cor-borda-amber);border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12.5px;color:var(--cor-txt-amber);line-height:1.5;">
                         <i class="ph-fill ph-lightbulb" style="vertical-align:middle;margin-right:4px;"></i>
                         <strong>Conteúdo em desenvolvimento.</strong> Em breve teremos vídeo, leituras e exercícios para este módulo. Por enquanto, leia o resumo, execute o objetivo e marque como concluído.
                     </div>
@@ -9526,14 +9584,14 @@
                                 </filter>
                             </defs>
                             <!-- Trilho de fundo -->
-                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#eef2f7" stroke-width="16" stroke-linecap="round"/>
+                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="var(--rm-gauge-trilho)" stroke-width="16" stroke-linecap="round"/>
                             <!-- Preenchimento progresso -->
                             <path id="rmGaugePath" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#rmGaugeGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.8s cubic-bezier(.22,1,.36,1);"/>
                             <!-- Ponteiro -->
                             <g id="rmGaugePointer" transform="rotate(-90 110 110)" style="transition:transform 0.8s cubic-bezier(.22,1,.36,1);">
-                                <circle cx="110" cy="110" r="9" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
-                                <line x1="110" y1="110" x2="110" y2="35" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
-                                <circle cx="110" cy="110" r="4" fill="#0f172a"/>
+                                <circle cx="110" cy="110" r="9" fill="var(--rm-gauge-cubo)" stroke="var(--rm-gauge-aro)" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
+                                <line x1="110" y1="110" x2="110" y2="35" stroke="var(--rm-gauge-agulha)" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="110" cy="110" r="4" fill="var(--rm-gauge-agulha)"/>
                             </g>
                         </svg>
                         <div class="rm-hero-score-block">

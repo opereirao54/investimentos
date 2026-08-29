@@ -148,7 +148,7 @@ function pedirConfirmacaoPlanoSonho(sonho) {
         Para conquistar <strong>${sonho.nome}</strong> em ${sonho.prazoMeses} meses, você precisa separar
         <strong style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">${fmt}/mês</strong>.<br><br>
         Quer que a Appliquei crie automaticamente esse compromisso fixo no seu Controle Financeiro
-        (categoria <strong style="color:#7c3aed;">⭐ Sonho</strong>)? Você poderá pagar/quitar mês a mês como qualquer outra conta.
+        (categoria <strong style="color:var(--tinta-roxo);">⭐ Sonho</strong>)? Você poderá pagar/quitar mês a mês como qualquer outra conta.
     `;
   document.getElementById('modalAcoes').innerHTML = `
         <button class="btn-acao" style="background:var(--cor-primaria);" onclick="confirmarPlanoSonho('${sonho.id}')"><i class="ph-bold ph-check-circle"></i> Sim, criar compromisso</button>
@@ -357,11 +357,11 @@ function renderPainelSaudeSonhos() {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Receita média</div>
-                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#10b981;margin-top:2px;">${fmt(saude.receitaMedia)}</div>
+                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-verde);margin-top:2px;">${fmt(saude.receitaMedia)}</div>
             </div>
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Despesa média</div>
-                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#ef4444;margin-top:2px;">${fmt(saude.despesaMedia)}</div>
+                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-vermelho);margin-top:2px;">${fmt(saude.despesaMedia)}</div>
             </div>
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Sobra média</div>
@@ -748,7 +748,7 @@ function renderizarSonhos() {
                       conquistado
                         ? ''
                         : s.planoVinculado
-                          ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
+                          ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tinta-roxo);background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
                           : `<button onclick="event.stopPropagation();pedirConfirmacaoPlanoSonho(sonhos.find(x=>x.id==='${s.id}'))" class="btn-acao" style="background:#7c3aed;font-size:12px;padding:8px 14px;margin-right:auto;"><i class="ph-bold ph-link-simple"></i> Vincular ao Controle</button>`
                     }
                     ${conquistado || !s.planoVinculado || status === 'agendado' ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Redistribui a falta nos meses restantes."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
@@ -810,16 +810,16 @@ function renderResumoSonhos() {
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #10b981;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-piggy-bank"></i> Já guardado</div>
-                <div class="sonhos-kpi-val" style="color:#10b981;">${formatarMoeda(totalGuardado)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-verde);">${formatarMoeda(totalGuardado)}</div>
                 <div class="sonhos-kpi-sub">${pctGeral.toFixed(0)}% do total</div>
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #ef4444;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-flag"></i> Falta alcançar</div>
-                <div class="sonhos-kpi-val" style="color:#ef4444;">${formatarMoeda(totalFalta)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-vermelho);">${formatarMoeda(totalFalta)}</div>
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #7c3aed;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-calendar-blank"></i> Aporte/mês total</div>
-                <div class="sonhos-kpi-val" style="color:#7c3aed;">${formatarMoeda(totalMensal)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-roxo);">${formatarMoeda(totalMensal)}</div>
                 <div class="sonhos-kpi-sub">somando todos os planos</div>
             </div>
         </div>
@@ -856,7 +856,7 @@ function pularMesSonho(id) {
   const novaParcelaPrevia = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
-    `<i class="ph-fill ph-skip-forward" style="color:#f59e0b;"></i> Não vai conseguir separar este mês?`;
+    `<i class="ph-fill ph-skip-forward" style="color:var(--tinta-ambar);"></i> Não vai conseguir separar este mês?`;
   document.getElementById('modalMensagem').innerHTML = `
         Sem problema — vamos recalcular o plano do sonho <strong>${s.nome}</strong>.<br><br>
         O lançamento deste mês será removido e o valor que faltava será <strong>redistribuído nos meses restantes</strong> (o prazo final continua o mesmo).<br><br>
@@ -1825,7 +1825,7 @@ function excluirSonho(id) {
             <p style="margin:0;">Confira o resumo do sonho antes de decidir:</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);font-size:12.5px;">
                 <div><span style="color:var(--cor-texto-mutado);">Meta:</span> <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(s.valorTotal)}</strong></div>
-                <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:#10b981;">${formatarMoeda(s.valorAtual)}</strong></div>
+                <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:var(--tinta-verde);">${formatarMoeda(s.valorAtual)}</strong></div>
                 <div><span style="color:var(--cor-texto-mutado);">Progresso:</span> <strong>${pct.toFixed(0)}%</strong></div>
                 <div><span style="color:var(--cor-texto-mutado);">Aportes:</span> <strong>${aportesCount}</strong></div>
             </div>
@@ -2224,9 +2224,9 @@ function abrirEscolhaAtivoMigracao(sonhoId, valor, dataStr) {
 
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
-    `<i class="ph ph-arrows-left-right" style="color:#0ea5e9;"></i> De qual investimento veio?`;
+    `<i class="ph ph-arrows-left-right" style="color:var(--tinta-azul);"></i> De qual investimento veio?`;
   document.getElementById('modalMensagem').innerHTML = `
-        <p style="margin-bottom:10px;">Indique de onde saiu o dinheiro de <strong style="font-family:'DM Mono',monospace;color:#0ea5e9;">${formatarMoeda(valor)}</strong>:</p>
+        <p style="margin-bottom:10px;">Indique de onde saiu o dinheiro de <strong style="font-family:'DM Mono',monospace;color:var(--tinta-azul);">${formatarMoeda(valor)}</strong>:</p>
         ${
           tickers.length > 0
             ? `

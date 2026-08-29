@@ -689,14 +689,14 @@ function mpRenderKPIs(consolidado, janela) {
     const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
     const seta = deltaSaldo > 0.05 ? '↑' : deltaSaldo < -0.05 ? '↓' : '·';
     elSaldo.className = 'mp-kpi-delta ' + cls;
-    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs mês passado</span>`;
+    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">vs mês passado</span>`;
   }
   const elInv = document.getElementById('mp-kpi-investido-delta');
   if (elInv) {
     const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
     const seta = rentab > 0.05 ? '↑' : rentab < -0.05 ? '↓' : '·';
     elInv.className = 'mp-kpi-delta ' + cls;
-    elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">rentab. total</span>`;
+    elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">rentab. total</span>`;
   }
   const elImov = document.getElementById('mp-kpi-imoveis-qtd');
   if (elImov) {

@@ -1408,7 +1408,7 @@ function atualizarCarteiraAtivos() {
         // A faixa de 3px à esquerda amarra carteira, timeline e dividendos numa
         // família visual só — e diz a classe do ativo sem gastar um rótulo.
         richHTML += `<div class="rich-row" style="--cor-acento-linha:${avatarBg};" onclick="toggleRichExpand('${ticker}')">
-                <div class="rich-avatar" style="background:${avatarBg};">${initial}</div>
+                <div class="rich-avatar" style="background:${avatarBg};color:${tintaSobre(avatarBg)};">${initial}</div>
                 <div class="rich-row-info">
                     <div class="rich-ticker">${ticker}</div>
                     <div class="rich-nome">${nomeAtivo}</div>

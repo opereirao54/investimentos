@@ -217,11 +217,39 @@ test('barra mostra as três faixas e destaca só a atual', () => {
   ['0–29', '30–59', '60–100', 'Crítico', 'Atenção', 'Saudável'].forEach((txt) => {
     assert.ok(html.includes(txt), `barra não mostra "${txt}"`);
   });
-  // Fundo saturado (destaque) só na faixa da vez; as outras ficam claras.
+  // Fundo saturado (destaque) só na faixa da vez.
   assert.ok(html.includes('background:#10b981'), 'faixa verde não está destacada');
   assert.ok(!html.includes('background:#ef4444'), 'faixa vermelha não devia estar destacada');
-  assert.ok(html.includes('background:#fee2e2'), 'faixa vermelha devia estar em tom claro');
   assert.ok(html.includes('60 pontos · Saudável'));
+});
+
+test('na tela a faixa apagada sai de variável — pastel fixo vira ilha no modo escuro', () => {
+  // O tom apagado era #fee2e2 / #fef3c7 / #d1fae5 cravado no JS. Como a régua
+  // escreve estilo inline, ela não alcança nenhuma regra de body.dark: no tema
+  // escuro sobravam dois retângulos pastel no meio do cartão. A variável é o
+  // único jeito de o inline seguir o tema.
+  const s = carregar();
+  const html = s.rmBarraFaixasHtml(60);
+  for (const cor of ['#fee2e2', '#fef3c7', '#d1fae5', '#991b1b', '#92400e', '#065f46']) {
+    assert.ok(!html.includes(cor), `tom fixo ${cor} voltou para a barra da tela`);
+  }
+  assert.match(html, /background:var\(--rm-faixa-vermelho-bg\)/);
+  assert.match(html, /color:var\(--rm-faixa-vermelho-tinta\)/);
+});
+
+test('a faixa em destaque escolhe a tinta pela cor do bloco, não branco fixo', () => {
+  // Branco sobre o âmbar #f59e0b dá 2,15:1 — reprova AA nos DOIS temas, porque
+  // quem manda é a cor do bloco, não a do tema. tintaSobre decide.
+  const s = carregar();
+  const amarelo = s.rmBarraFaixasHtml(45); // faixa 30–59, fundo #f59e0b
+  assert.ok(amarelo.includes('background:#f59e0b'), 'faixa amarela devia estar destacada');
+  assert.ok(
+    !amarelo.includes('color:#ffffff'),
+    'a faixa âmbar não pode escrever em branco (2,15:1)'
+  );
+  assert.equal(s.tintaSobre('#f59e0b'), '#0b0f0c');
+  // O roxo é escuro o bastante: ali o branco é a escolha certa.
+  assert.equal(s.tintaSobre('#7c3aed'), '#ffffff');
 });
 
 test('barra: o ponteiro anda com o score e fica dentro da faixa', () => {
