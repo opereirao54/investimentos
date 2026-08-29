@@ -972,17 +972,29 @@ function registrarOperacaoAtivo() {
       // Um `investimento_*` avulso aqui não serviria: sem perna de caixa irmã
       // ele debitaria o bucket "A reconciliar" (INV-01) ou, com temLegCaixa,
       // acusaria perna faltando (INV-03).
-      if (semQtd) {
-        // RF / Reserva / Previdência valorizam por juros compostos desde a data
-        // da operação. Numa posição retroativa a data é antiga, mas o valor
-        // informado é o de HOJE — capitalizar desde 2019 inflaria o patrimônio.
-        // `saldoInicial` é exatamente a marca que manda render a partir do
-        // cadastro (ver valorAtualRendaFixa); `data_op` fica no passado para o
-        // histórico e para a alíquota regressiva de IR (mpAplicarIR).
+      // Só o RETROATIVO ganha a marca de saldo inicial. A diferença entre as
+      // duas origens está no que o valor informado SIGNIFICA:
+      //
+      //   · retroativo — o número é o saldo de HOJE de uma posição antiga.
+      //     Capitalizar desde 2019 inflaria o patrimônio, então `saldoInicial`
+      //     manda render a partir do cadastro (ver valorAtualRendaFixa);
+      //     `data_op` fica no passado para o histórico e para a alíquota
+      //     regressiva de IR (mpAplicarIR).
+      //
+      //   · externo — o número é o valor APORTADO na data da operação, igual a
+      //     qualquer outra compra. Rende desde data_op. Marcá-lo como saldo
+      //     inicial fazia um aporte externo de seis meses atrás valer hoje
+      //     exatamente o que valia no dia.
+      const ehRetroativoOp = origemRecursoSel === 'retroativo';
+      if (semQtd && ehRetroativoOp) {
         operacao.saldoInicial = true;
         operacao.cadastradoEm = new Date().toISOString();
       }
-      operacao.recorrente = false;
+      // Recorrência: o retroativo não tem o que agendar (é saldo passado). O
+      // aporte externo tem — as parcelas nascem sem conta e marcadas com
+      // origemExterna, que é o que as isenta de debitar caixa (INV-01/INV-03).
+      if (ehRetroativoOp) operacao.recorrente = false;
+      else operacao.origemExterna = true;
     } else if (tipoOp === 'compra') {
       let tipoAtivoStr = semQtd ? 'investimento_fixo' : 'investimento_variavel';
       // Fase 3B: o débito de caixa do aporte é a PERNA DE TRANSFERÊNCIA
@@ -1157,7 +1169,7 @@ function registrarOperacaoAtivo() {
   }
   const msgExtra =
     lancamentosFuturos > 0
-      ? ` ${lancamentosFuturos} lançamento${lancamentosFuturos === 1 ? '' : 's'} mensal${lancamentosFuturos === 1 ? '' : 'is'} criado${lancamentosFuturos === 1 ? '' : 's'} no Controle.`
+      ? ` ${lancamentosFuturos} lançamento${lancamentosFuturos === 1 ? '' : 's'} ${lancamentosFuturos === 1 ? 'mensal' : 'mensais'} criado${lancamentosFuturos === 1 ? '' : 's'} no Controle.`
       : '';
   const msgSaldo =
     temAporte && temSaldoInicial

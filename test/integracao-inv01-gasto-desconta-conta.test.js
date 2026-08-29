@@ -135,3 +135,68 @@ test('INV-01: entrada de caixa sem conta não dispara INV-01 (é INV-02 que cobr
   });
   assertSemViolacoes(assert, estadoDe(s), { apenas: ['INV-01'] });
 });
+
+// A regra original supunha que toda saída sai de ALGUMA instituição. Isso é
+// verdade para gasto e para aporte feito de dentro do app — não para o aporte
+// externo, terceiro caso já reconhecido em INV-03 como padrão C-sem-perna:
+// dinheiro que nunca passou por conta cadastrada. Sem a isenção, o validador
+// acusaria o comportamento CORRETO e empurraria para uma "correção" que
+// inventaria uma conta que não existe.
+test('INV-01: parcela de aporte EXTERNO paga não é violação — nunca esteve em conta', () => {
+  const s = carregarApp();
+  s.transacoes.push({
+    id: 'tx_compromisso_ext_1',
+    compromissoId: 'op_ext',
+    compromissoCategoria: 'previdencia',
+    categoria: 'investimento_fixo',
+    descricao: 'Previdência: BRASILPREV',
+    valor: 500,
+    origemExterna: true,
+    mes: new Date().getMonth(),
+    ano: new Date().getFullYear(),
+    data: ONTEM,
+    pago: true,
+  });
+  assertSemViolacoes(assert, estadoDe(s), { apenas: ['INV-01'] });
+});
+
+test('INV-01: a isenção é só para quem tem a marca — sem ela, continua acusando', () => {
+  // Prova que a trava não foi relaxada: a mesma parcela SEM origemExterna
+  // continua sendo violação. Sem este teste, a isenção poderia estar aberta
+  // demais e ninguém veria.
+  const s = carregarApp();
+  s.transacoes.push({
+    id: 'tx_compromisso_semmarca_1',
+    compromissoId: 'op_x',
+    compromissoCategoria: 'previdencia',
+    categoria: 'investimento_fixo',
+    descricao: 'Previdência: SEM MARCA',
+    valor: 500,
+    mes: new Date().getMonth(),
+    ano: new Date().getFullYear(),
+    data: ONTEM,
+    pago: true,
+  });
+  const v = validarEstado(estadoDe(s), { apenas: ['INV-01'] });
+  assert.equal(v.length, 1, 'aporte pago sem conta e sem marca continua caindo em "A reconciliar"');
+});
+
+test('INV-01: a marca não isenta uma DESPESA — ela vale para aporte, não para gasto', () => {
+  // origemExterna descreve dinheiro que nunca passou por conta cadastrada num
+  // APORTE. Uma despesa paga saiu de algum lugar, sempre: aceitar a marca ali
+  // abriria um buraco por onde qualquer gasto escaparia da trava.
+  const s = carregarApp();
+  s.transacoes.push({
+    id: 'desp_ext',
+    categoria: 'despesa_fixa',
+    descricao: 'Aluguel',
+    valor: 2000,
+    origemExterna: true,
+    mes: new Date().getMonth(),
+    ano: new Date().getFullYear(),
+    data: ONTEM,
+    pago: true,
+  });
+  const v = validarEstado(estadoDe(s), { apenas: ['INV-01'] });
+  assert.equal(v.length, 1, 'despesa paga não pode escapar da trava por causa da marca');
+});

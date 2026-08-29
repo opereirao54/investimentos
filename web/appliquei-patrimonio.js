@@ -288,6 +288,15 @@ function mpTransacaoComputaCaixa(t, refMs) {
     t.temLegCaixa
   )
     return false;
+  // Aporte externo: dinheiro que nunca passou por conta cadastrada. Não há
+  // caixa a debitar — nem duplo, nem simples. É o padrão C-sem-perna (INV-03)
+  // aplicado à parcela recorrente. Só para APORTE: uma despesa com a marca
+  // saiu de algum lugar e tem de continuar debitando (mesma regra do INV-01).
+  if (
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    t.origemExterna
+  )
+    return false;
   if (mpEhEntradaCaixa(t.categoria)) return true;
   return !!t.pago;
 }

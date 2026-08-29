@@ -267,3 +267,153 @@ test('as origens que não debitam aparecem no seletor mesmo sem nenhuma conta co
   assert.match(html, /__externo__/, 'aporte externo sempre disponível');
   assert.match(html, /nenhuma conta com saldo/, 'e o aviso de que não há conta com saldo');
 });
+
+// ---------------------------------------------------------------------------
+// Retroativo e externo NÃO são a mesma coisa
+// ---------------------------------------------------------------------------
+// Os dois deixaram de debitar caixa juntos, e por isso passaram a ser tratados
+// como um só — o que deixou o aporte externo inviável de cadastrar: sumia o
+// campo "já tinha guardado?" e a recorrência era desligada à força.
+//
+//   · retroativo = SALDO PASSADO. O número informado é o de hoje de uma posição
+//     antiga; não há parcela futura a agendar.
+//   · externo = APORTE DE HOJE com dinheiro que não passou por conta cadastrada.
+//     Comporta-se como qualquer origem — recorrência inclusive. Só não debita.
+
+test('externo: o valor rende desde a data da operação, não desde o cadastro', () => {
+  // saldoInicial manda render a partir do CADASTRO. Faz sentido no retroativo
+  // (o número é o saldo de hoje); no externo faria um aporte de seis meses
+  // atrás valer hoje exatamente o que valia no dia.
+  const f = campos({
+    compraTicker: 'CDB EXTERNO',
+    compraCategoria: 'renda_fixa',
+    compraCorretora: 'XP',
+    compraQtd: '',
+    compraPreco: '10.000,00',
+    compraRentabilidade: '12% a.a.',
+    compraData: '2025-01-15',
+    compraOrigemRecurso: '__externo__',
+  });
+  const s = app(f);
+  s.registrarOperacaoAtivo();
+  const op = s.historicoCompras[0];
+  assert.equal(op.origemRecurso, 'externo');
+  assert.ok(!op.saldoInicial, 'aporte externo não é saldo inicial');
+  assert.equal(op.origemExterna, true, 'a marca que isenta o caixa tem de estar na operação');
+});
+
+test('retroativo: continua marcado como saldo inicial', () => {
+  const f = campos({
+    compraTicker: 'CDB ANTIGO',
+    compraCategoria: 'renda_fixa',
+    compraCorretora: 'XP',
+    compraQtd: '',
+    compraPreco: '10.000,00',
+    compraRentabilidade: '12% a.a.',
+    compraData: '2020-01-15',
+    compraOrigemRecurso: '__retroativo__',
+  });
+  const s = app(f);
+  s.registrarOperacaoAtivo();
+  const op = s.historicoCompras[0];
+  assert.equal(op.saldoInicial, true);
+  assert.ok(!op.origemExterna, 'retroativo não gera parcela nenhuma — não precisa da marca');
+});
+
+test('externo: aporte recorrente é permitido e gera as parcelas', () => {
+  const f = campos({
+    compraTicker: 'BRASILPREV VGBL',
+    compraCategoria: 'previdencia',
+    compraCorretora: 'Brasilprev',
+    compraQtd: '',
+    compraPreco: '500,00',
+    compraOrigemRecurso: '__externo__',
+    prevRecorrente: true,
+    prevDiaRecorrencia: '10',
+    prevDuracaoAnos: '3',
+    prevTaxaMensal: '0,80',
+  });
+  const s = app(f);
+  s.registrarOperacaoAtivo();
+
+  assert.equal(s.__ultimoToast.tipo, 'sucesso', s.__ultimoToast.msg);
+  assert.equal(s.historicoCompras[0].recorrente, true, 'a recorrência não pode ser desligada');
+  const parcelas = s.transacoes.filter((t) => t.compromissoId);
+  assert.ok(parcelas.length > 30, `esperava ~35 parcelas, veio ${parcelas.length}`);
+  assert.deepEqual(semViolacoes(s), []);
+});
+
+test('externo recorrente: a parcela PAGA não debita caixa nem vira "A reconciliar"', () => {
+  // É aqui que INV-01 morderia: transação paga sem conta cai no bucket
+  // "A reconciliar" — o sintoma de dinheiro que saiu do patrimônio sem sair de
+  // instituição nenhuma. Não é o caso: este dinheiro nunca esteve numa conta.
+  const f = campos({
+    compraTicker: 'RESERVA EXTERNA',
+    compraCategoria: 'reserva_emergencia',
+    compraCorretora: 'Nubank',
+    compraQtd: '',
+    compraPreco: '300,00',
+    compraRentabilidade: '100% CDI',
+    compraOrigemRecurso: '__externo__',
+    prevRecorrente: true,
+    prevDiaRecorrencia: '5',
+    prevDuracaoAnos: '2',
+  });
+  const s = app(f);
+  s.registrarOperacaoAtivo();
+
+  const parcela = s.transacoes.find((t) => t.compromissoId);
+  assert.ok(parcela, 'a parcela precisa existir');
+  assert.equal(parcela.origemExterna, true, 'a marca tem de ser propagada para a parcela');
+  assert.equal(parcela.contaId, undefined, 'não há conta — é o ponto do aporte externo');
+
+  const saldoAntes = s.mpCalcularSaldoTotal(Date.now());
+  parcela.pago = true;
+  assert.deepEqual(semViolacoes(s), [], 'parcela externa paga não pode violar INV-01');
+  assert.equal(
+    s.mpCalcularSaldoTotal(Date.now()),
+    saldoAntes,
+    'e não pode debitar caixa: o dinheiro nunca passou por conta cadastrada'
+  );
+});
+
+test('retroativo: a recorrência continua desligada', () => {
+  const f = campos({
+    compraTicker: 'PREV ANTIGA',
+    compraCategoria: 'previdencia',
+    compraCorretora: 'Itaú',
+    compraQtd: '',
+    compraPreco: '20.000,00',
+    compraOrigemRecurso: '__retroativo__',
+    prevRecorrente: true,
+    prevDuracaoAnos: '5',
+  });
+  const s = app(f);
+  s.registrarOperacaoAtivo();
+  assert.equal(s.historicoCompras[0].recorrente, false);
+  assert.equal(s.transacoes.filter((t) => t.compromissoId).length, 0);
+  assert.deepEqual(semViolacoes(s), []);
+});
+
+// ---------------------------------------------------------------------------
+// O formulário
+// ---------------------------------------------------------------------------
+
+test('o formulário só restringe o RETROATIVO — o externo fica completo', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const APP = fs.readFileSync(path.join(__dirname, '..', 'web/appliquei-app.js'), 'utf8');
+  const ini = APP.indexOf('function ajustarOrigemRecursoCampos');
+  const fim = APP.indexOf('function', ini + 40);
+  const corpo = APP.slice(ini, fim);
+  assert.match(
+    corpo,
+    /const ehRetroativo = valor === ORIGEM_RETROATIVA;/,
+    'a decisão tem de olhar a origem específica, não "não debita conta"'
+  );
+  assert.ok(
+    !/semDebito \? 'none' : ''/.test(corpo),
+    'esconder campo por "não debita conta" junta retroativo e externo — foi o bug'
+  );
+  assert.match(corpo, /ehRetroativo \? 'none' : ''/);
+});

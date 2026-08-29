@@ -109,6 +109,12 @@ function gerarLancamentosFuturosCompromisso(operacao, valorMensal) {
       // definida). Recorrentes usam contaId direto no investimento_* (sem
       // perna separada) — o mesmo efeito de caixa, sem ciclo de pago duplo.
       contaId: operacao.contaOrigemId || undefined,
+      // Aporte externo: o dinheiro nunca passou por conta cadastrada, então a
+      // parcela não debita caixa nem quando marcada como paga. Sem esta marca
+      // ela cairia no bucket "A reconciliar" (INV-01) — que é o sintoma de
+      // dinheiro que saiu do patrimônio sem sair de nenhuma instituição, e não
+      // é o que acontece aqui: ele nunca esteve numa instituição.
+      origemExterna: operacao.origemExterna ? true : undefined,
       // Metadados do aporte: ao marcar a parcela como PAGA no Controle, ela
       // vira posição em Patrimônio/Investimentos (registrarAportePorPagamentoCompromisso).
       aporteTicker: operacao.ticker || null,

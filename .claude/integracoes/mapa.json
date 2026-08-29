@@ -327,7 +327,7 @@
     {
       "id": "INV-01",
       "titulo": "Todo gasto pago desconta de uma conta identificável",
-      "regra": "Toda transação com pago:true cuja categoria não seja de entrada tem de resolver para uma conta real via resolverContaDeTransacao (contaId válido OU banco que casa por nome/alias). Se resolver para 'a-reconciliar', o dinheiro saiu do total do patrimônio mas não saiu de nenhuma instituição.",
+      "regra": "Toda transação com pago:true cuja categoria não seja de entrada tem de resolver para uma conta real via resolverContaDeTransacao (contaId válido OU banco que casa por nome/alias). Se resolver para 'a-reconciliar', o dinheiro saiu do total do patrimônio mas não saiu de nenhuma instituição. DUAS ISENÇÕES, ambas restritas a categorias de APORTE: a perna do ativo com temLegCaixa (quem debita é a perna de caixa irmã) e o aporte com origemExterna:true (dinheiro que nunca passou por conta cadastrada — padrão C-sem-perna de INV-03, aplicado à compra de origem 'externo' e às parcelas recorrentes que ela gera). A isenção NÃO vale para despesa: um gasto pago saiu de algum lugar, sempre.",
       "gravidade": "critica",
       "entidades": ["transacao", "conta"],
       "arquivos": [
@@ -344,7 +344,8 @@
       ],
       "sintoma": "\"Gastei e o saldo do banco não mudou\" · aparece um bucket \"A reconciliar\" no Meu Patrimônio · saldo da instituição inflado.",
       "prova": "test/integracao-inv01-gasto-desconta-conta.test.js",
-      "status": "coberta"
+      "status": "coberta",
+      "fragilidade": "A isenção por origemExterna é uma marca booleana num campo livre: qualquer produtor que a escreva numa transação que NÃO seja aporte abre um buraco por onde o gasto escapa da trava. Por isso a checagem é `ehAporte(cat) && t.origemExterna`, nunca a flag isolada — e há um teste que prova que despesa com a marca continua sendo acusada."
     },
     {
       "id": "INV-02",
@@ -395,11 +396,11 @@
           "idPrefixo": "tx_compromisso_{operacaoId}_{i}"
         },
         "C-sem-perna": {
-          "quando": "Compra com origemRecurso 'retroativo' (posição que já existia antes do app) ou 'externo' (dinheiro que nunca passou por conta cadastrada). Também o \"já guardado\" legado (operacao.saldoInicial).",
-          "forma": "NENHUMA transação. A operação existe só em historicoCompras: entra na carteira e no patrimônio, e não toca o caixa nem o Controle Financeiro. É a única forma correta aqui — um investimento_* avulso debitaria o bucket \"A reconciliar\" (INV-01), e com temLegCaixa acusaria perna de caixa faltando (INV-03).",
+          "quando": "Compra com origemRecurso 'retroativo' (posição que já existia antes do app) ou 'externo' (dinheiro que nunca passou por conta cadastrada). Também o \"já guardado\" legado (operacao.saldoInicial), e as PARCELAS recorrentes geradas por um aporte externo.",
+          "forma": "NENHUMA transação para a compra em si: a operação existe só em historicoCompras — entra na carteira e no patrimônio, e não toca o caixa nem o Controle Financeiro. Um investimento_* avulso debitaria o bucket \"A reconciliar\" (INV-01), e com temLegCaixa acusaria perna de caixa faltando (INV-03). EXCEÇÃO: o aporte externo RECORRENTE gera parcelas no Controle (são o lembrete de aportar), e elas carregam origemExterna:true — a marca que as isenta de debitar caixa em mpTransacaoComputaCaixa e de exigir conta em INV-01.",
           "produtores": ["web/appliquei-renda-fixa.js"],
-          "regraDoProduto": "Operação retroativa não pode impactar o saldo atual das contas. Aporte novo feito dentro do app segue o padrão A: conta de origem → saída de dinheiro → investimento.",
-          "prova": "test/investimento-retroativo.test.js"
+          "regraDoProduto": "Operação retroativa não pode impactar o saldo atual das contas. Aporte externo tampouco — mas ele é um aporte de HOJE e se comporta como qualquer origem no resto (recorrência, saldo inicial, rendimento desde a data da operação). Só o retroativo é saldo passado, e por isso é o único marcado com saldoInicial e sem recorrência. Aporte novo por conta segue o padrão A: conta de origem → saída de dinheiro → investimento.",
+          "prova": "test/investimento-retroativo.test.js · test/integracao-inv01-gasto-desconta-conta.test.js"
         }
       }
     },

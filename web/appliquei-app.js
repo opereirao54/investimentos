@@ -236,6 +236,9 @@ function abrirDrawerOperacao(opcoes) {
   if (typeof popularOrigemRecurso === 'function') popularOrigemRecurso();
   drawer.classList.add('aberto');
   overlay.classList.add('aberto');
+  // Esconde o botão global: um "+" por cima do formulário que ele mesmo abriu
+  // não tem o que fazer.
+  document.body.classList.add('drawer-operacao-aberto');
   document.body.style.overflow = 'hidden';
   // Numa edição o foco automático no ticker era o gatilho do blur que
   // sobrescrevia o preço pago pela cotação do dia. Sem foco, sem blur.
@@ -252,6 +255,7 @@ function fecharDrawerOperacao() {
   if (!drawer || !overlay) return;
   drawer.classList.remove('aberto');
   overlay.classList.remove('aberto');
+  document.body.classList.remove('drawer-operacao-aberto');
   document.body.style.overflow = '';
 }
 
@@ -294,6 +298,78 @@ function sincronizarIconeTema() {
     btn.setAttribute('aria-pressed', escuro ? 'true' : 'false');
   }
 }
+
+// ============================================================
+// --- Botão global de cadastro ---
+// ============================================================
+// O "+" era um FAB de celular, preso à aba Controle: para lançar uma despesa
+// estando em Meus sonhos, a pessoa tinha de navegar até o Controle primeiro —
+// e no PC o botão simplesmente não existia. Agora ele acompanha todas as abas
+// nos dois tamanhos, e pergunta ONDE cadastrar em vez de assumir: as duas
+// coisas que se lança no dia a dia são um movimento do mês e um aporte.
+//
+// Os botões dentro das páginas continuam: quem já está no Controle abre o
+// painel com UM clique, contra dois pelo menu. O global é o atalho de quem
+// está em outro lugar.
+function alternarMenuCadastro() {
+  document.body.classList.contains('fab-aberto') ? fecharMenuCadastro() : abrirMenuCadastro();
+}
+
+function abrirMenuCadastro() {
+  const menu = document.getElementById('fabMenu');
+  const fundo = document.getElementById('fabBackdrop');
+  const btn = document.getElementById('fabNovoLancamento');
+  if (!menu) return;
+  menu.hidden = false;
+  if (fundo) fundo.hidden = false;
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('fab-aberto');
+  const primeiro = menu.querySelector('.fab-opcao');
+  if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
+}
+
+function fecharMenuCadastro() {
+  const menu = document.getElementById('fabMenu');
+  const fundo = document.getElementById('fabBackdrop');
+  const btn = document.getElementById('fabNovoLancamento');
+  if (menu) menu.hidden = true;
+  if (fundo) fundo.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('fab-aberto');
+}
+
+/**
+ * Leva à aba certa e abre o formulário de lá.
+ *
+ * A troca de aba tem de vir primeiro: o painel do Controle é uma coluna da
+ * própria seção, e abri-lo com outra aba na tela deixaria o formulário
+ * invisível. O respiro entre as duas coisas dá tempo de a seção pintar.
+ */
+function cadastrarEm(destino) {
+  fecharMenuCadastro();
+  const aba = destino === 'investimento' ? 'patrimonio' : 'controle';
+  const jaEstaNaAba =
+    document.querySelector('.section.ativa') && document.querySelector('.section.ativa').id === aba;
+  if (!jaEstaNaAba) {
+    const btn = Array.from(document.querySelectorAll('.menu-btn')).find((b) =>
+      (b.getAttribute('onclick') || '').includes("'" + aba + "'")
+    );
+    if (btn) btn.click();
+  }
+  const abrir = () => {
+    if (destino === 'investimento') {
+      if (typeof abrirDrawerOperacao === 'function') abrirDrawerOperacao();
+    } else if (typeof abrirPainelLancamento === 'function') {
+      abrirPainelLancamento();
+    }
+  };
+  jaEstaNaAba ? abrir() : setTimeout(abrir, 180);
+}
+
+// Esc fecha o menu — mesma tecla que fecha todo o resto do app.
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape' && document.body.classList.contains('fab-aberto')) fecharMenuCadastro();
+});
 
 function toggleDarkMode() {
   const escuro = !document.body.classList.contains('dark');
@@ -1376,8 +1452,8 @@ function ajustarOrigemRecursoCampos() {
     } else if (valor === ORIGEM_EXTERNA) {
       dica.innerHTML =
         '<strong>Aporte externo:</strong> o dinheiro veio de fora do app (não passou por nenhuma ' +
-        'conta cadastrada). O investimento entra no patrimônio e <strong>não desconta de nenhuma ' +
-        'conta</strong> nem vira despesa no Controle Financeiro.';
+        'conta cadastrada). Funciona como qualquer outra origem — inclusive com aporte ' +
+        'recorrente — só que <strong>não desconta de nenhuma conta</strong>.';
     } else if (operacaoEhFutura()) {
       dica.innerHTML =
         'Saldo <strong>projetado para a data da operação</strong> — já considera receitas e ' +
@@ -1388,25 +1464,35 @@ function ajustarOrigemRecursoCampos() {
         '<em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.';
     }
   }
-  // Recorrência de previdência/reserva precisa de conta pagadora: sem ela, cada
-  // parcela futura nasceria sem contaId. Desliga e explica.
+  // RETROATIVO e EXTERNO não debitam conta, mas NÃO são a mesma coisa — e
+  // tratá-los juntos aqui deixava o aporte externo inviável de cadastrar:
+  //
+  //   · retroativo = "eu já tinha isso antes de usar o app". É um SALDO
+  //     PASSADO. Recorrência não cabe (não se agenda o que já aconteceu) e o
+  //     campo "já tinha guardado?" é exatamente a mesma coisa que a origem
+  //     retroativa faz — mostrar os dois juntos convida a lançar o mesmo
+  //     dinheiro duas vezes.
+  //
+  //   · externo = "estou aportando HOJE, com dinheiro que não passou por
+  //     conta cadastrada". É um aporte de verdade, no presente. Tem de se
+  //     comportar como qualquer outra origem: recorrência disponível, saldo
+  //     inicial disponível. A ÚNICA diferença é não debitar caixa — nem hoje,
+  //     nem nas parcelas futuras (que nascem marcadas com origemExterna).
+  const ehRetroativo = valor === ORIGEM_RETROATIVA;
   const boxRec = document.getElementById('boxPrevRecorrente');
   const gridRec = document.querySelector('#grupoPrevidencia .prev-rec-grid');
   const hintRec = document.querySelector('#grupoPrevidencia .prev-rec-grid-hint');
   const chkRec = document.getElementById('prevRecorrente');
-  if (semDebito && chkRec) chkRec.checked = false;
+  if (ehRetroativo && chkRec) chkRec.checked = false;
   [boxRec, gridRec, hintRec].forEach((el) => {
-    if (el) el.style.display = semDebito ? 'none' : '';
+    if (el) el.style.display = ehRetroativo ? 'none' : '';
   });
   const avisoRec = document.getElementById('avisoRecorrenciaSemConta');
-  if (avisoRec) avisoRec.style.display = semDebito ? 'block' : 'none';
-  // O campo legado "Já tinha um valor guardado?" faz exatamente o que a origem
-  // retroativa faz — mostrar os dois juntos convida a lançar o mesmo dinheiro
-  // duas vezes. Some quando a origem já não debita conta.
+  if (avisoRec) avisoRec.style.display = ehRetroativo ? 'block' : 'none';
   const grupoSaldoIni = document.getElementById('grupoSaldoInicialPrev');
   if (grupoSaldoIni) {
-    grupoSaldoIni.style.display = semDebito ? 'none' : '';
-    if (semDebito) {
+    grupoSaldoIni.style.display = ehRetroativo ? 'none' : '';
+    if (ehRetroativo) {
       const inpSI = document.getElementById('prevSaldoInicial');
       if (inpSI) inpSI.value = '';
     }

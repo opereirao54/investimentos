@@ -5580,8 +5580,88 @@
         /* Default (estado fora dos breakpoints): tudo escondido */
         .painel-novo-lancamento-grab { display: none; }
         .painel-mobile-close { display: none; }
-        #fabNovoLancamento { display: none; }
         #painelLancamentoBackdrop { display: none; }
+
+        /* ============================================================ */
+        /* BOTÃO GLOBAL DE CADASTRO                                     */
+        /* ============================================================ */
+        /* Era um FAB só do celular e só da aba Controle: para lançar uma
+           despesa estando em Meus sonhos, a pessoa precisava navegar até o
+           Controle primeiro, e no PC o botão não existia. Agora ele acompanha
+           todas as abas nos dois tamanhos de tela, e pergunta ONDE cadastrar —
+           as duas coisas que se lança no dia a dia são um movimento do mês e
+           um aporte.
+
+           Some quando o painel/drawer que ele abriria já está aberto: um "+"
+           por cima do formulário que ele mesmo abriu não tem o que fazer. */
+        #fabNovoLancamento {
+            display: flex;
+            position: fixed;
+            bottom: 26px; right: 26px;
+            width: 58px; height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover));
+            color: #fff;
+            border: none;
+            box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 9993;
+            font-size: 25px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s ease;
+        }
+        #fabNovoLancamento:hover { box-shadow: 0 12px 30px rgba(5,150,105,0.5), 0 2px 6px rgba(0,0,0,0.18); }
+        #fabNovoLancamento:active { transform: scale(0.92); }
+        #fabNovoLancamento i { transition: transform 0.2s cubic-bezier(.34,1.56,.64,1); }
+        /* Aberto, o "+" vira "×" girando — mesma affordance de fechar. */
+        body.fab-aberto #fabNovoLancamento i { transform: rotate(135deg); }
+        body.painel-lancamento-aberto #fabNovoLancamento,
+        body.drawer-operacao-aberto #fabNovoLancamento { display: none; }
+
+        #fabMenu {
+            position: fixed;
+            bottom: 96px; right: 26px;
+            z-index: 9994;
+            display: flex; flex-direction: column; gap: 8px;
+            width: min(272px, calc(100vw - 32px));
+        }
+        #fabMenu[hidden] { display: none; }
+        .fab-opcao {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 15px; border-radius: 14px; cursor: pointer; text-align: left;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            box-shadow: var(--shadow-hover);
+            font-family: inherit; color: var(--cor-texto-principal);
+            animation: fabSobe 0.18s cubic-bezier(.34,1.4,.64,1) backwards;
+        }
+        .fab-opcao:nth-child(2) { animation-delay: 0.04s; }
+        .fab-opcao:hover { border-color: var(--cor-borda-primaria); transform: translateX(-2px); }
+        /* O menu foca o primeiro item ao abrir (teclado). O anel padrão do
+           navegador é uma barra preta grossa; este diz a mesma coisa sem
+           gritar em cima do cartão. */
+        .fab-opcao:focus { outline: none; }
+        .fab-opcao:focus-visible,
+        #fabMenu:not([hidden]) .fab-opcao:focus {
+            border-color: var(--cor-primaria);
+            box-shadow: var(--shadow-hover), 0 0 0 3px rgba(5,150,105,0.22);
+        }
+        @keyframes fabSobe { from { opacity: 0; transform: translateY(10px); } }
+        .fab-opcao-icone {
+            width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .fab-opcao-icone.lanc { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+        .fab-opcao-icone.inv { background: var(--cor-bg-info); color: var(--tinta-azul); }
+        .fab-opcao-txt { display: grid; gap: 2px; min-width: 0; }
+        .fab-opcao-titulo { font-size: 13.5px; font-weight: 700; }
+        .fab-opcao-sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.35; }
+        #fabBackdrop {
+            position: fixed; inset: 0; z-index: 9992;
+            background: rgba(15,23,42,0.28); backdrop-filter: blur(2px);
+        }
+        #fabBackdrop[hidden] { display: none; }
 
         /* ============================================================
            Painel "Novo lançamento" como DRAWER no desktop (>=769px)
@@ -5779,27 +5859,9 @@
             }
             .painel-mobile-close:active { transform: scale(0.95); }
 
-            /* FAB visível apenas quando a aba Controle está ativa e o drawer está fechado */
-            #fabNovoLancamento {
-                display: none;
-                position: fixed;
-                bottom: 22px; right: 18px;
-                width: 56px; height: 56px;
-                border-radius: 50%;
-                background: var(--cor-primaria);
-                color: #fff;
-                border: none;
-                box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
-                z-index: 9993;
-                font-size: 24px;
-                cursor: pointer;
-                align-items: center;
-                justify-content: center;
-                transition: transform 0.18s ease, box-shadow 0.18s ease;
-            }
-            #fabNovoLancamento:active { transform: scale(0.92); }
-            body.controle-ativo #fabNovoLancamento { display: flex; }
-            body.painel-lancamento-aberto #fabNovoLancamento { display: none; }
+            /* No celular o botão fica um pouco menor e mais colado à borda. */
+            #fabNovoLancamento { width: 54px; height: 54px; bottom: 20px; right: 16px; }
+            #fabMenu { bottom: 84px; right: 16px; }
 
             /* Backdrop do drawer */
             #painelLancamentoBackdrop {
@@ -8153,8 +8215,28 @@
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
 
-    <!-- FAB (mobile) + backdrop (desktop+mobile) para "Novo lançamento" do Controle Financeiro -->
-    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamento()" aria-label="Novo lançamento">
+    <!-- Botão global de cadastro: acompanha todas as abas, no PC e no celular.
+         Pergunta ONDE cadastrar em vez de assumir — as duas coisas que se
+         lança no dia a dia são um movimento do mês e um aporte. -->
+    <div id="fabBackdrop" hidden onclick="fecharMenuCadastro()" aria-hidden="true"></div>
+    <div id="fabMenu" hidden role="menu" aria-labelledby="fabNovoLancamento">
+        <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('lancamento')">
+            <span class="fab-opcao-icone lanc"><i class="ph-fill ph-receipt"></i></span>
+            <span class="fab-opcao-txt">
+                <span class="fab-opcao-titulo">Lançamento</span>
+                <span class="fab-opcao-sub">Receita, despesa ou fatura no Controle financeiro</span>
+            </span>
+        </button>
+        <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('investimento')">
+            <span class="fab-opcao-icone inv"><i class="ph-fill ph-trend-up"></i></span>
+            <span class="fab-opcao-txt">
+                <span class="fab-opcao-titulo">Investimento</span>
+                <span class="fab-opcao-sub">Compra, aporte ou venda em Meus investimentos</span>
+            </span>
+        </button>
+    </div>
+    <button type="button" id="fabNovoLancamento" onclick="alternarMenuCadastro()"
+            aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu">
         <i class="ph-bold ph-plus"></i>
     </button>
     <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
@@ -8272,7 +8354,7 @@
                     </div>
                 </div>
                 <small class="prev-rec-grid-hint" style="font-size: 11px; color: var(--cor-texto-mutado); display: block;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
-                <div id="avisoRecorrenciaSemConta" style="display:none;font-size:11.5px;line-height:1.5;padding:9px 11px;border-radius:9px;background:var(--cor-bg-amber);color:var(--cor-txt-amber);border:1px solid var(--cor-borda-amber);">O aporte recorrente fica desligado no cadastro retroativo e no aporte externo: cada parcela futura precisa de uma conta pagadora para ser debitada. Cadastre a recorrência depois, escolhendo a conta.</div>
+                <div id="avisoRecorrenciaSemConta" style="display:none;font-size:11.5px;line-height:1.5;padding:9px 11px;border-radius:9px;background:var(--cor-bg-amber);color:var(--cor-txt-amber);border:1px solid var(--cor-borda-amber);">O aporte recorrente fica desligado no cadastro retroativo: ele registra um saldo que você <strong>já tinha</strong>, e não há parcela futura a agendar. Para programar novos aportes desta posição, cadastre-os depois escolhendo a origem.</div>
                 <div class="form-group" id="grupoTaxaMensalPrev" style="margin-top:16px;">
                     <label>Rentabilidade estimada (% ao mês)</label>
                     <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>

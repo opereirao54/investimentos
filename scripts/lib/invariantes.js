@@ -111,8 +111,23 @@ function validarEstado(estado, opcoes) {
 
     // INV-01 — todo gasto pago desconta de uma conta identificável.
     // A perna do ativo (temLegCaixa) está isenta: quem debita é a perna de caixa.
+    // `origemExterna` marca dinheiro que nunca passou por conta cadastrada
+    // (aporte externo e suas parcelas recorrentes). A regra original supunha
+    // que toda saída sai de alguma instituição — o que é verdade para gasto e
+    // para aporte feito de dentro do app, mas não para este terceiro caso, já
+    // reconhecido em INV-03 como padrão C-sem-perna. Sem a isenção, o
+    // validador acusaria o comportamento CORRETO.
+    //
+    // A isenção vale SÓ PARA APORTE. Uma despesa paga saiu de algum lugar,
+    // sempre; aceitar a marca ali abriria um buraco por onde qualquer gasto
+    // escaparia da trava — é o que o teste "a marca não isenta uma DESPESA"
+    // impede.
+    const aporteExterno = ehAporte(cat) && !!t.origemExterna;
     const debitaCaixa =
-      t.pago === true && !ehEntradaCaixa(cat) && !(ehAporte(cat) && t.temLegCaixa);
+      t.pago === true &&
+      !ehEntradaCaixa(cat) &&
+      !aporteExterno &&
+      !(ehAporte(cat) && t.temLegCaixa);
     if (debitaCaixa && !resolverConta(t, contas)) {
       acusar(
         'INV-01',
