@@ -92,46 +92,24 @@ jobs:
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
         run: node scripts/conferir-regras-firestore.js
 
+      # Publica falando DIRETO com a API de Rules — sem o firebase-tools.
+      #
+      # A primeira execução deste workflow, no merge que o trouxe, morreu no
+      # passo preliminar da CLI ("ensuring required API firestore.googleapis.com
+      # is enabled"), que consulta a Service Usage API: 403, a service account
+      # do Admin SDK não tem nem `serviceusage.services.get`. Não era o publish
+      # das regras que estava sendo negado.
+      #
+      # O script toca só firebaserules.googleapis.com. Some a classe inteira de
+      # erro, some a necessidade de um segundo papel IAM só para uma verificação
+      # inútil (o projeto usa Firestore em produção há meses), e o passo cai de
+      # ~2min — instalar 90MB de CLI — para segundos.
       - name: Publicar as regras
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.apenas_conferir != 'true')
         env:
-          SA_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
-          PROJETO: ${{ secrets.FIREBASE_PROJECT_ID }}
-        run: |
-          set -euo pipefail
-          # O firebase-tools autentica por GOOGLE_APPLICATION_CREDENTIALS, que é
-          # um CAMINHO para o JSON — daí decodificar o secret para um arquivo.
-          # Fica em RUNNER_TEMP, que o runner descarta ao fim do job.
-          printf '%s' "$SA_B64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/sa.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
-          PROJ="${PROJETO:-$(node -p "require('$RUNNER_TEMP/sa.json').project_id")}"
-          echo "Publicando as regras em $PROJ"
-          # Só as REGRAS. Índices ficam de fora de propósito: o deploy de índices
-          # remove os que não estão no arquivo, e um índice removido em produção
-          # derruba as consultas que dependiam dele.
-          #
-          # Major fixo: subir de major sem querer é como um deploy de ferramenta
-          # entrar de carona num deploy de regra. Trocar o 15 por um major novo
-          # é seguro e deliberado.
-          set +e
-          npx --yes firebase-tools@15 deploy \
-            --only firestore:rules \
-            --project "$PROJ" \
-            --non-interactive
-          CODIGO=$?
-          set -e
-          if [ $CODIGO -ne 0 ]; then
-            echo "::error::O deploy das regras falhou (código $CODIGO)."
-            echo ""
-            echo "A causa mais comum é permissão: a service account do secret foi criada"
-            echo "para o Admin SDK e nem sempre nasce podendo PUBLICAR regras."
-            echo "Conceda o papel 'Firebase Rules Admin' (roles/firebaserules.admin) a"
-            echo "$(node -p "require('$RUNNER_TEMP/sa.json').client_email") em:"
-            echo "  https://console.cloud.google.com/iam-admin/iam?project=$PROJ"
-            echo ""
-            echo "Enquanto isso, dá para publicar à mão: firebase deploy --only firestore:rules"
-            exit $CODIGO
-          fi
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: node scripts/publicar-regras-firestore.js
 
       # ESTADO DEPOIS. Publicar sem conferir seria repetir o erro que trouxe
       # a gente até aqui: acreditar que subiu. Este passo prova que subiu — e

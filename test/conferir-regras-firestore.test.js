@@ -191,17 +191,12 @@ test('o workflow publica em main, sob demanda, e confere semanalmente', () => {
   assert.match(wf, /branches: \[main\]/);
   assert.match(wf, /workflow_dispatch:/);
   assert.match(wf, /cron: '20 6 \* \* 1'/, 'a conferência semanal é o que pega deriva');
-  // A invocação real do firebase-tools — o resto do arquivo cita o comando em
-  // texto (mensagem de erro, corpo da issue) e não deve entrar na conferência.
-  const invocacao = wf.slice(wf.indexOf('npx --yes firebase-tools'));
-  const onlys = [...invocacao.matchAll(/--only ([^\s\\]+)/g)].map((m) => m[1]);
-  assert.equal(
-    onlys[0],
-    'firestore:rules',
-    'índices NÃO podem entrar no deploy: remover um índice derruba as consultas em produção'
-  );
+  // Índices continuam fora do escopo: publicar índices remove os que não estão
+  // no arquivo, e um índice removido em produção derruba as consultas que
+  // dependiam dele. A publicação só sobe firestore.rules — ver
+  // test/publicar-regras-firestore.test.js, que trava as chamadas de fato.
   assert.ok(!/firestore:indexes/.test(wf), 'nem citado, para ninguém copiar por engano');
-  assert.match(invocacao, /firebase-tools@\d+/, 'major fixo — deploy de ferramenta não é surpresa');
+  assert.match(wf, /node scripts\/publicar-regras-firestore\.js/);
 });
 
 test('o workflow confere DEPOIS de publicar, e essa conferência derruba o job', () => {
