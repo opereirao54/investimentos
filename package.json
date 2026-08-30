@@ -28,7 +28,7 @@
     "prepare": "husky || true",
     "ingest:cvm": "node scripts/ingest-cvm.js --dry-run",
     "regras:conferir": "node scripts/conferir-regras-firestore.js",
-    "regras:publicar": "firebase deploy --only firestore:rules"
+    "regras:publicar": "node scripts/publicar-regras-firestore.js"
   },
   "dependencies": {
     "@sentry/browser": "^10.70.0",
