@@ -169,6 +169,13 @@ function registrarAportePorPagamentoCompromisso(tx) {
     corretora: tx.aporteCorretora || null,
     gerado: true,
   };
+  // Parcela de aporte externo: a posição criada herda a origem, senão a
+  // timeline de operações mostraria como se o dinheiro tivesse saído de uma
+  // conta — e uma edição posterior recolocaria o débito no caixa.
+  if (tx.origemExterna) {
+    aporte.origemRecurso = 'externo';
+    aporte.origemExterna = true;
+  }
   if (tx.aporteRentabilidade) aporte.rentabilidade = tx.aporteRentabilidade;
   if (tx.aporteTaxaMensal != null) aporte.taxaMensal = tx.aporteTaxaMensal;
   historicoCompras.push(aporte);
@@ -244,6 +251,12 @@ function processarAportesRecorrentesPrevidencia() {
         corretora: template.corretora || null,
         contaOrigemId: template.contaOrigemId || null,
         contaOrigemNome: template.contaOrigemNome || null,
+        // Aporte externo: o template diz que o dinheiro vem de fora do app. Os
+        // aportes que este gerador cria retroativamente herdam a origem — sem
+        // isso a recorrência voltava a debitar caixa (e, sem conta de origem,
+        // caía em "A reconciliar") a cada carregamento do app.
+        origemRecurso: template.origemRecurso || undefined,
+        origemExterna: template.origemExterna ? true : undefined,
         recorrente: true,
         diaRecorrencia: diaRec,
         taxaMensal: taxa,
@@ -260,6 +273,9 @@ function processarAportesRecorrentesPrevidencia() {
         valor: valorAporte,
         categoria: 'investimento_fixo',
         contaId: template.contaOrigemId || undefined,
+        // Mesma marca da parcela do compromisso: aporte externo não debita
+        // caixa nem quando nasce pago (ver mpTransacaoComputaCaixa e INV-01).
+        origemExterna: template.origemExterna ? true : undefined,
         mes: cursor.getMonth(),
         ano: cursor.getFullYear(),
         data: cursor.toISOString(),

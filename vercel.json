@@ -3,6 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    {
+      "source": "/api/auth/resend-verification",
+      "destination": "/api/user?op=resend-verification"
+    },
     { "source": "/", "destination": "/landing.html" },
     { "source": "/app", "destination": "/Appliquei_v13.0.html" },
     { "source": "/app/(.*)", "destination": "/Appliquei_v13.0.html" }

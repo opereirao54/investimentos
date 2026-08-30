@@ -110,6 +110,8 @@ function saldoCaixaPorConta(refMs) {
 // Espelha as regras de caixa do Patrimônio (mpTransacaoComputaCaixa) menos a
 // exigência de `pago`, que é justamente o que ainda não aconteceu:
 //   · perna do ativo com temLegCaixa não conta (quem debita é a perna de caixa);
+//   · aporte externo não conta (o dinheiro nunca passou por conta cadastrada —
+//     a parcela agendada não pode derrubar o saldo projetado de ninguém);
 //   · entrada soma, qualquer outra categoria subtrai.
 function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
   if (typeof transacoes === 'undefined') return mapa;
@@ -130,6 +132,15 @@ function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
             cat === 'transferencia_entrada'
           );
         };
+  const ehExterno =
+    typeof ehAporteExterno === 'function'
+      ? ehAporteExterno
+      : function (t) {
+          return (
+            (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+            !!t.origemExterna
+          );
+        };
   transacoes.forEach(function (t) {
     // A janela usa as duas datas: `quando` (dia real) decide se cabe até ateMs,
     // e a competência decide se já entrou na foto de hoje — assim nada é contado
@@ -142,6 +153,7 @@ function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
       t.temLegCaixa
     )
       return;
+    if (ehExterno(t)) return;
     const chave =
       typeof mpChaveInstTransacao === 'function' ? mpChaveInstTransacao(t).key : t.contaId;
     if (!chave) return;

@@ -54,6 +54,10 @@ function mudarAba(e, idAba, callback = null) {
   if (idAba === 'meus_sonhos') renderizarSonhos();
   if (idAba === 'applicash') atualizarTelaApplicash();
   if (idAba === 'duvidas_sugestoes') {
+    // inicializarFormSugestao é idempotente e roda aqui também: no window.onload
+    // ela é a ÚLTIMA da fila, e um erro anterior deixava o formulário de
+    // sugestão sem listener nenhum (contador travado, campo "Outro" invisível).
+    inicializarFormSugestao();
     renderizarFaq();
     renderizarHistoricoSugestoes();
   }

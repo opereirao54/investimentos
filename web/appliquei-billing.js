@@ -736,11 +736,12 @@ async function resendVerification() {
     // template padrão. continueUrl aponta para /app (e não para "/",
     // que agora é a landing) — após verificar, usuário volta ao app.
     await u.sendEmailVerification({ url: location.origin + '/app' });
-    // Caminho secundário (best-effort): bate no /api/auth/resend-verification
-    // pra rate-limit/log do lado do servidor. Ignora falha — o e-mail
-    // primário já foi.
+    // Caminho secundário (best-effort): bate no servidor pra rate-limit/log.
+    // Ignora falha — o e-mail primário já foi. A rota mudou para
+    // /api/user?op=resend-verification (teto de 12 functions no Vercel Hobby);
+    // o caminho antigo segue vivo por rewrite em vercel.json.
     try {
-      await authedFetch('/../auth/resend-verification', { method: 'POST' });
+      await authedFetch('/../user?op=resend-verification', { method: 'POST' });
     } catch (_) {}
     // Aviso ao usuário sobre spam (sender padrão noreply@*.firebaseapp.com
     // ainda cai como suspeito em vários provedores).

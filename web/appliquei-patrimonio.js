@@ -272,6 +272,17 @@ function mpDataMovimento(t) {
   return Date.now();
 }
 
+// Aporte externo (ver appliquei-utils.js). Fallback local para o caso de o
+// módulo ser avaliado sozinho num sandbox de teste, sem utils carregado.
+function mpEhAporteExterno(t) {
+  if (typeof ehAporteExterno === 'function') return ehAporteExterno(t);
+  return (
+    !!t &&
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    !!t.origemExterna
+  );
+}
+
 // Decide se uma transação já compõe o caixa/saldo em conta até `refMs`.
 // Entradas (receita/salário, resgates, transferências de entrada) NÃO têm
 // botão "pago" no Controle — são lançadas já recebidas, logo contam pela data.
@@ -292,11 +303,9 @@ function mpTransacaoComputaCaixa(t, refMs) {
   // caixa a debitar — nem duplo, nem simples. É o padrão C-sem-perna (INV-03)
   // aplicado à parcela recorrente. Só para APORTE: uma despesa com a marca
   // saiu de algum lugar e tem de continuar debitando (mesma regra do INV-01).
-  if (
-    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
-    t.origemExterna
-  )
-    return false;
+  // O predicado é o de appliquei-utils.js — mesma regra usada pelo Controle
+  // Financeiro e pelo saldo projetado das contas.
+  if (mpEhAporteExterno(t)) return false;
   if (mpEhEntradaCaixa(t.categoria)) return true;
   return !!t.pago;
 }

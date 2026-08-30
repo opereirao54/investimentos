@@ -26,12 +26,7 @@ const referralCode = z
   .regex(/^APP-[A-Z0-9]{6}$/, 'cupom inválido');
 
 // Pequeno helper: campo string opcional com trim/max.
-const shortText = (max) =>
-  z
-    .string()
-    .trim()
-    .max(max, `máximo ${max} caracteres`)
-    .optional();
+const shortText = (max) => z.string().trim().max(max, `máximo ${max} caracteres`).optional();
 
 // E-mail padrão (RFC-lite via Zod). Lowercase para normalizar.
 const email = z.string().trim().toLowerCase().email('e-mail inválido');
@@ -74,10 +69,22 @@ const billingSubscribeBody = z
     creditCard: z
       .object({
         holderName: z.string().trim().min(2).max(120),
-        number: z.string().trim().regex(/^\d{13,19}$/, 'número de cartão inválido'),
-        expiryMonth: z.string().trim().regex(/^(0[1-9]|1[0-2])$/, 'mês inválido (01-12)'),
-        expiryYear: z.string().trim().regex(/^\d{4}$/, 'ano inválido (YYYY)'),
-        ccv: z.string().trim().regex(/^\d{3,4}$/, 'CCV inválido'),
+        number: z
+          .string()
+          .trim()
+          .regex(/^\d{13,19}$/, 'número de cartão inválido'),
+        expiryMonth: z
+          .string()
+          .trim()
+          .regex(/^(0[1-9]|1[0-2])$/, 'mês inválido (01-12)'),
+        expiryYear: z
+          .string()
+          .trim()
+          .regex(/^\d{4}$/, 'ano inválido (YYYY)'),
+        ccv: z
+          .string()
+          .trim()
+          .regex(/^\d{3,4}$/, 'CCV inválido'),
       })
       .optional(),
   })
@@ -109,10 +116,22 @@ const billingCardBody = z
   .object({
     creditCard: z.object({
       holderName: z.string().trim().min(2).max(120),
-      number: z.string().trim().regex(/[\d\s]+/, 'número de cartão inválido'),
-      expiryMonth: z.string().trim().regex(/^(0[1-9]|1[0-2])$/),
-      expiryYear: z.string().trim().regex(/^\d{4}$/),
-      ccv: z.string().trim().regex(/^\d{3,4}$/),
+      number: z
+        .string()
+        .trim()
+        .regex(/[\d\s]+/, 'número de cartão inválido'),
+      expiryMonth: z
+        .string()
+        .trim()
+        .regex(/^(0[1-9]|1[0-2])$/),
+      expiryYear: z
+        .string()
+        .trim()
+        .regex(/^\d{4}$/),
+      ccv: z
+        .string()
+        .trim()
+        .regex(/^\d{3,4}$/),
     }),
     creditCardHolderInfo: z
       .object({
@@ -150,6 +169,28 @@ const syncPushBody = z
   })
   .strict();
 
+// Feedback (Dúvidas & Sugestões). Espelha as travas que existiam na regra do
+// Firestore — o endpoint tomou o lugar da escrita direta pelo cliente, então a
+// validação tem de continuar existindo em algum lugar, e é aqui.
+const feedbackCreateBody = z
+  .object({
+    aba: z.string().trim().min(1, 'escolha a aba').max(40),
+    outroTema: z.string().trim().max(80).optional().default(''),
+    tipo: z.enum(['melhoria', 'novo', 'bug']).default('melhoria'),
+    texto: z
+      .string()
+      .trim()
+      .min(10, 'descreva com pelo menos 10 caracteres')
+      .max(1000, 'máximo 1000 caracteres'),
+  })
+  .strict();
+
+const feedbackListQuery = z
+  .object({
+    limit: z.coerce.number().int().positive().max(200).optional(),
+  })
+  .partial();
+
 module.exports = {
   z,
   // building blocks
@@ -168,4 +209,6 @@ module.exports = {
   marketHistoryQuery,
   marketWarmupQuery,
   syncPushBody,
+  feedbackCreateBody,
+  feedbackListQuery,
 };

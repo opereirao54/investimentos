@@ -1277,6 +1277,25 @@ function executarInsercao() {
   fecharPainelLancamento();
 }
 
+// Aporte externo (ver appliquei-utils.js). Fallback local para o caso de o
+// módulo ser avaliado sozinho num sandbox de teste, sem utils carregado.
+function cfEhAporteExterno(t) {
+  if (typeof ehAporteExterno === 'function') return ehAporteExterno(t);
+  return (
+    !!t &&
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    !!t.origemExterna
+  );
+}
+
+// Resumo do mês por classificação contábil.
+//
+// `invFixo`/`invVar` são APORTES QUE SAÍRAM DO CAIXA — é o que a sobra do mês,
+// a DRE e o relatório subtraem. O aporte externo ("dinheiro de fora do app")
+// tem bucket próprio, `invExterno`: ele é investimento de verdade e soma no
+// capital aplicado, mas nunca saiu de conta nenhuma, então descontá-lo aqui
+// inventaria uma despesa que não existe. Foi o que acontecia com o aporte
+// externo e com as parcelas da recorrência que ele agenda.
 function calcularResumoMes(mesAlvo, anoAlvo) {
   let res = {
     receita: 0,
@@ -1286,6 +1305,7 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
     cartao: 0,
     invFixo: 0,
     invVar: 0,
+    invExterno: 0,
     sonho: 0,
   };
   transacoes.forEach((t) => {
@@ -1295,6 +1315,7 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
       else if (t.categoria === 'despesa_fixa') res.despFixa += t.valor;
       else if (t.categoria === 'despesa_variavel') res.despVar += t.valor;
       else if (t.categoria === 'cartao_credito') res.cartao += t.valor;
+      else if (cfEhAporteExterno(t)) res.invExterno += t.valor;
       else if (t.categoria === 'investimento_fixo') res.invFixo += t.valor;
       else if (t.categoria === 'investimento_variavel') res.invVar += t.valor;
       else if (t.categoria === 'sonho') res.sonho += t.valor;
@@ -1304,7 +1325,9 @@ function calcularResumoMes(mesAlvo, anoAlvo) {
 }
 
 // Aporte líquido acumulado (aportes − resgates) de TUDO que é anterior ao mês
-// dado. Serve de ponto de partida da linha "Investimento acumulado" da DRE:
+// dado — inclusive o aporte externo, que é capital aplicado ainda que não
+// tenha saído do caixa. Serve de ponto de partida da linha
+// "Investimento acumulado" da DRE:
 // a tabela mostra uma janela de meses, e um acumulado que começasse do zero na
 // borda esquerda esconderia todo o histórico anterior.
 //
@@ -2376,6 +2399,7 @@ function atualizarTelaControle() {
       resgate: r.resgate,
       invFixo: r.invFixo,
       invVar: r.invVar,
+      invExterno: r.invExterno || 0,
       sonho: r.sonho,
       despesas: despesas,
       saldoAcumulado: resultadoMes,
@@ -2415,6 +2439,19 @@ function atualizarTelaControle() {
     htmlLinhas += `<td style="text-align: right; color: var(--tinta-azul); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${d.invVar > 0 ? '-' + formatarMoeda(d.invVar) : 'R$ 0,00'}</td>`;
   });
   htmlLinhas += `</tr>`;
+
+  // Aporte externo: entra no capital aplicado, mas NÃO saiu do caixa — por isso
+  // vem sem o sinal de menos das linhas acima e não entra no "Resultado do mês".
+  // Só aparece quando existe: para quem nunca usou a origem, é ruído.
+  const algumExterno = dreDados.some((d) => (d.invExterno || 0) > 0.005);
+  if (algumExterno) {
+    htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);" title="Aporte feito com dinheiro de fora do app: soma no capital aplicado, mas não sai de nenhuma conta — por isso não desconta do resultado do mês.">Aporte externo (fora do caixa)</td>`;
+    dreDados.forEach((d, i) => {
+      const v = d.invExterno || 0;
+      htmlLinhas += `<td style="text-align: right; color: var(--cor-texto-mutado); font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque);' : ''}">${v > 0.005 ? formatarMoeda(v) : 'R$ 0,00'}</td>`;
+    });
+    htmlLinhas += `</tr>`;
+  }
 
   htmlLinhas += `<tr><td class="coluna-fixa" style="font-weight: 600; background: var(--cor-branco);">Sonhos (separado p/ metas)</td>`;
   dreDados.forEach((d, i) => {
@@ -2481,12 +2518,16 @@ function atualizarTelaControle() {
   // e ignorar isso faria a linha só subir mesmo para quem tirou tudo. Sonhos
   // ficam de fora — é dinheiro separado para meta, não aplicado em ativo.
   //
+  // O aporte externo entra aqui (é capital aplicado como qualquer outro), mas
+  // não nas linhas de fluxo acima nem no resultado do mês: ele nunca passou
+  // pelo caixa. É por isso que ele tem linha própria, sem sinal de menos.
+  //
   // Note que é CUSTO DE AQUISIÇÃO, não valor de mercado: rendimento não passa
   // pelo Controle Financeiro. Quanto a carteira vale hoje é a aba Meus
   // investimentos que responde.
   let acumInv = aporteLiquidoAntesDaJanela;
   const acumPorMes = dreDados.map((d) => {
-    acumInv += (d.invFixo || 0) + (d.invVar || 0) - (d.resgate || 0);
+    acumInv += (d.invFixo || 0) + (d.invVar || 0) + (d.invExterno || 0) - (d.resgate || 0);
     return acumInv;
   });
   htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido (custo de aquisição) — quanto a carteira vale hoje está em Meus investimentos.">Investimento acumulado</td>`;

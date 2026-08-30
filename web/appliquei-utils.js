@@ -110,6 +110,24 @@ function appliqueiMesAnoDe(value) {
   return { mes: d.getMonth(), ano: d.getFullYear(), valido: true };
 }
 
+// --- Aporte externo: dinheiro que nunca passou por conta cadastrada ---------
+// Quem escolhe "Aporte externo — dinheiro de fora do app" ao registrar um
+// investimento está dizendo que aquele valor NÃO saiu de nenhuma instituição
+// cadastrada aqui. Ele entra no patrimônio (é investimento de verdade), mas não
+// pode aparecer como saída de caixa em lugar nenhum: nem no saldo das contas,
+// nem na sobra do mês, nem na DRE — hoje ou nas parcelas recorrentes que ele
+// agenda, que nascem com a mesma marca (ver appliquei-previdencia.js).
+//
+// A marca vale SÓ PARA APORTE. Uma despesa paga saiu de algum lugar, sempre;
+// aceitar `origemExterna` numa despesa abriria um buraco por onde qualquer
+// gasto escaparia da trava de caixa (INV-01).
+function ehCategoriaAporte(cat) {
+  return cat === 'investimento_fixo' || cat === 'investimento_variavel';
+}
+function ehAporteExterno(t) {
+  return !!t && ehCategoriaAporte(t.categoria) && !!t.origemExterna;
+}
+
 // --- BRL helpers (máscara em inputs monetários) ---
 // Retorna sempre Number finito (nunca string/NaN/Infinity). Strings vazias
 // ou sem dígitos viram 0. Entradas com múltiplas vírgulas (ex.: "1,234,56")
