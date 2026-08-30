@@ -113,8 +113,8 @@
   .bars .b { flex: 1; background: linear-gradient(180deg, #34d399, #059669); border-radius: 4px 4px 0 0; opacity: .92; }
 
   /* Sections */
-  section.block { padding: 80px 0; }
-  .section-head { text-align: center; max-width: 720px; margin: 0 auto 48px; }
+  section.block { padding: 62px 0; }
+  .section-head { text-align: center; max-width: 720px; margin: 0 auto 36px; }
   .section-head .eyebrow { display: inline-block; color: var(--emerald); font-weight: 700; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; margin-bottom: 12px; }
   .section-head p { font-size: 16px; margin-top: 12px; }
 
@@ -139,20 +139,20 @@
   /* ============================================================
      Diferenciais — os dois blocos grandes
      ============================================================ */
-  .dif { padding: 84px 0; border-top: 1px solid var(--line); }
+  .dif { padding: 58px 0; border-top: 1px solid var(--line); }
   .dif.alt { background: var(--bg); }
-  .dif-grid { display: grid; grid-template-columns: .92fr 1.08fr; gap: 54px; align-items: start; }
+  .dif-grid { display: grid; grid-template-columns: .92fr 1.08fr; gap: 46px; align-items: start; }
   .dif.inverso .dif-grid { grid-template-columns: 1.08fr .92fr; }
   .dif.inverso .dif-texto { order: 2; }
   @media (max-width: 900px) {
-    .dif { padding: 60px 0; }
+    .dif { padding: 44px 0; }
     .dif-grid, .dif.inverso .dif-grid { grid-template-columns: 1fr; gap: 30px; }
     .dif.inverso .dif-texto { order: 0; }
   }
   .dif-selo { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: #ecfdf5; color: var(--emerald-dark); font-size: 11.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-  .dif h2 { margin-top: 14px; }
+  .dif h2 { margin-top: 12px; }
   .dif-texto > p { font-size: 16px; margin-top: 14px; }
-  .dif-lista { list-style: none; padding: 0; margin: 22px 0 0; display: grid; gap: 13px; }
+  .dif-lista { list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 11px; }
   .dif-lista li { display: flex; gap: 11px; align-items: flex-start; font-size: 14.5px; color: var(--ink-2); }
   .dif-lista li i { color: var(--emerald); font-size: 18px; flex-shrink: 0; margin-top: 1px; }
   .dif-lista li strong { color: var(--ink); font-weight: 600; }
@@ -165,16 +165,19 @@
      arquivo que alimenta a aba Carteira sugerida e o Regulamento dentro do
      app. Duas cópias do mesmo parágrafo divergiriam na primeira revisão
      jurídica, e a desatualizada seria justamente a que o visitante leu. */
-  .aviso { margin-top: 26px; border: 1px solid #e2d9c3; background: #fffdf7; border-radius: var(--radius); padding: 18px 20px; }
-  .aviso-titulo { display: flex; align-items: center; gap: 8px; font-family: 'Figtree', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: .04em; text-transform: uppercase; color: #92400e; }
-  .aviso-titulo i { font-size: 16px; }
-  .aviso p { font-size: 13px; line-height: 1.6; margin-top: 10px; color: #6b5a3e; }
-  .aviso .disc-abertura { display: none; }
-  .aviso .disc-resumo { font-size: 13px; line-height: 1.6; margin-top: 10px; color: #6b5a3e; }
-  .aviso .disc-toggle { margin-top: 12px; display: inline-flex; align-items: center; gap: 7px; background: transparent; border: 1px solid #e2d9c3; color: #92400e; font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; cursor: pointer; }
+  .aviso { margin-top: 22px; border: 1px solid #e2d9c3; background: #fffdf7; border-radius: var(--radius); padding: 15px 17px; }
+  .aviso p { font-size: 12.5px; line-height: 1.6; color: #6b5a3e; }
+  .aviso p strong { color: #7c4a10; }
+  .aviso p > i { color: #b45309; font-size: 15px; vertical-align: -2px; }
+  /* Do documento compartilhado, só o botão fica à vista: a abertura e o resumo
+     são a versão longa do parágrafo escrito acima, e repetir os dois seguidos
+     dobrava a altura do bloco sem acrescentar informação. Ambos continuam a um
+     clique, dentro do documento completo. */
+  .aviso .disc-abertura, .aviso .disc-resumo { display: none; }
+  .aviso .disc-toggle { margin-top: 10px; display: inline-flex; align-items: center; gap: 7px; background: transparent; border: 1px solid #e2d9c3; color: #92400e; font-family: inherit; font-size: 12.5px; font-weight: 600; padding: 7px 13px; border-radius: 999px; cursor: pointer; }
   .aviso .disc-toggle:hover { background: #fdf6e7; }
   .aviso .disc-toggle.aberto i { transform: rotate(180deg); }
-  .aviso .disc-corpo { margin-top: 16px; border-top: 1px solid #e9e1cf; padding-top: 14px; max-height: 380px; overflow-y: auto; }
+  .aviso .disc-corpo { margin-top: 14px; border-top: 1px solid #e9e1cf; padding-top: 14px; max-height: 380px; overflow-y: auto; }
   .aviso .disc-atualizado { font-size: 11.5px; color: #8a7a5f; }
   .aviso .disc-secao { margin-bottom: 16px; }
   .aviso .disc-secao-titulo { display: flex; align-items: baseline; gap: 8px; font-family: 'Figtree', sans-serif; font-size: 13px; font-weight: 700; color: #5a4a2f; margin: 0 0 6px; }
@@ -184,8 +187,8 @@
   .aviso .disc-lista li { margin-bottom: 3px; }
 
   /* Aviso de rodapé — versão compacta, fora do bloco da carteira. */
-  .legal { background: #f4f6f5; border-top: 1px solid var(--line); padding: 34px 0; }
-  .legal p { font-size: 12.5px; line-height: 1.65; max-width: 900px; margin: 0 auto; text-align: center; }
+  .legal { background: #f4f6f5; border-top: 1px solid var(--line); padding: 26px 0; }
+  .legal p { font-size: 12px; line-height: 1.6; max-width: 940px; margin: 0 auto; text-align: center; }
   .legal p + p { margin-top: 10px; }
   .legal a { color: var(--emerald-dark); text-decoration: underline; }
 
@@ -194,18 +197,41 @@
      ============================================================ */
   .telas-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
   @media (max-width: 980px) { .telas-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 640px) { .telas-grid { grid-template-columns: 1fr; } }
   .tela { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease; }
   .tela:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); border-color: #c9e3d8; }
   /* A faixa recorta o topo do print: é a parte que identifica a tela, e a
      altura fixa mantém a grade alinhada mesmo com capturas de proporções
      diferentes. */
-  .tela-shot { position: relative; height: 172px; overflow: hidden; background: var(--bg); border-bottom: 1px solid var(--line); }
+  .tela-shot { position: relative; height: 116px; overflow: hidden; background: var(--bg); border-bottom: 1px solid var(--line); }
   .tela-shot img { display: block; width: 100%; height: auto; }
-  .tela-corpo { padding: 18px 20px 20px; }
+  .tela-corpo { padding: 13px 16px 15px; }
   .tela-corpo h3 { font-family: 'Figtree', sans-serif; font-weight: 600; font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
   .tela-corpo h3 i { color: var(--emerald-dark); font-size: 18px; }
-  .tela-corpo p { font-size: 13.5px; }
+  .tela-corpo p { font-size: 13px; }
+  /* O resto do produto em uma linha: três itens que não precisam de print
+     próprio para se entender, e que não valem mais 300px de página. */
+  .telas-extra { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 26px; margin-top: 22px; font-size: 13.5px; }
+  .telas-extra span { display: inline-flex; align-items: center; gap: 7px; }
+  .telas-extra i { color: var(--emerald-dark); font-size: 16px; }
+  /* No celular o cartão deita: a tira vira miniatura à esquerda e o texto vem
+     ao lado. Empilhados, os seis cartões somavam 1.800px de rolagem — mais do
+     que a página inteira tinha antes desta seção existir. Deitados, cabem em
+     um terço disso e a tela continua reconhecível. */
+  @media (max-width: 640px) {
+    .telas-grid { grid-template-columns: 1fr; gap: 12px; }
+    .tela { flex-direction: row; align-items: stretch; }
+    /* A imagem é posicionada, não esticada: com `height:100%` dentro de um
+       container de altura automática, ela caía na altura natural (900px) e o
+       cartão ficava mais alto do que era empilhado. Assim quem manda na altura
+       da linha é a coluna de texto, e a tira mostra o canto superior esquerdo
+       da tela num zoom legível. */
+    .tela-shot { height: auto; width: 118px; flex: 0 0 118px; border-bottom: none; border-right: 1px solid var(--line); }
+    .tela-shot img { position: absolute; top: 0; left: 0; width: 300px; max-width: none; height: auto; }
+    .tela-corpo { padding: 12px 14px; }
+    .tela-corpo h3 { font-size: 14px; }
+    .tela-corpo p { font-size: 12.5px; }
+  }
+
 
   /* ============================================================
      Celular
@@ -340,35 +366,25 @@
      Esta é a seção com risco jurídico do site. No Brasil, recomendar valor
      mobiliário de forma individualizada é atividade regulada (consultoria,
      Resolução CVM 19; análise, Resolução CVM 20). Por isso a linguagem aqui
-     é deliberada:
+     é deliberada: "sugestão", nunca "recomendação personalizada"; nada de
+     promessa nem de rentabilidade esperada em destaque; e o aviso de risco
+     fica NA seção, não escondido no rodapé, com o texto vindo do mesmo
+     arquivo que o app usa (web/appliquei-disclaimer.js).
 
-       - "sugestão" e "estudo", nunca "recomendação personalizada";
-       - o que a ferramenta faz é MOSTRAR o critério e a conta, e quem decide
-         é a pessoa — dito com todas as letras;
-       - nada de promessa, projeção apresentada como certeza ou número de
-         rentabilidade esperada em destaque;
-       - o aviso de risco fica NA SEÇÃO, não escondido no rodapé, e o texto
-         vem do mesmo arquivo que o app usa (web/appliquei-disclaimer.js).
-
-     Qualquer reescrita desta seção deve passar por revisão jurídica antes
-     de ir ao ar. -->
+     Qualquer reescrita desta seção deve passar por revisão jurídica. -->
 <section id="carteira" class="dif">
   <div class="container dif-grid">
     <div class="dif-texto">
       <span class="dif-selo"><i class="ph-fill ph-chart-pie-slice"></i> Diferencial 1</span>
-      <h2>Uma carteira sugerida que mostra a conta, não só o resultado</h2>
-      <p>Você responde duas perguntas e informa quanto pretende aportar. A partir daí o Appliquei divide o valor entre renda fixa, ações, FIIs e cripto de acordo com o perfil que você declarou — e explica cada escolha.</p>
+      <h2>A carteira sugerida mostra a conta, não só o resultado</h2>
       <ul class="dif-lista">
-        <li><i class="ph-fill ph-list-numbers"></i><span><strong>Cada ativo com nota e critério à vista.</strong> Valuation, dividendos, crescimento, endividamento e qualidade — cinco pilares, com o número de cada um.</span></li>
-        <li><i class="ph-fill ph-file-magnifying-glass"></i><span><strong>Procedência em cada indicador.</strong> De qual demonstração veio, de que exercício e quando foi lido. Número sem origem é opinião.</span></li>
-        <li><i class="ph-fill ph-scales"></i><span><strong>Distribuição por setor.</strong> A política limita concentração antes de o score escolher os ativos dentro de cada setor.</span></li>
-        <li><i class="ph-fill ph-arrows-clockwise"></i><span><strong>Considera o que você já tem.</strong> O aporte do mês vai para onde a sua carteira está mais atrás do alvo, não para uma lista fixa.</span></li>
-        <li><i class="ph-fill ph-hand-pointing"></i><span><strong>Você pode montar do seu jeito.</strong> Trocar ativo, desmarcar classe, mudar a lente de análise — a decisão final é sempre sua.</span></li>
+        <li><i class="ph-fill ph-list-numbers"></i><span><strong>Cada ativo com nota e critério à vista</strong> — cinco pilares, e a origem de cada indicador: de qual demonstração veio e de que exercício.</span></li>
+        <li><i class="ph-fill ph-arrows-clockwise"></i><span><strong>O aporte vai para onde você está atrás do alvo,</strong> respeitando o limite de concentração por setor.</span></li>
+        <li><i class="ph-fill ph-hand-pointing"></i><span><strong>E você monta do seu jeito:</strong> trocar ativo, desmarcar classe, mudar a lente de análise.</span></li>
       </ul>
 
       <div class="aviso">
-        <div class="aviso-titulo"><i class="ph-fill ph-warning-circle"></i> Aviso importante</div>
-        <p><strong>O Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento.</strong> O que a plataforma entrega é material informativo e educacional de apoio à sua decisão: uma sugestão de alocação calculada a partir de critérios públicos e do perfil que você mesmo declara. A decisão de investir, manter ou resgatar é exclusivamente sua.</p>
+        <p><i class="ph-fill ph-warning-circle"></i> <strong>O Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento.</strong> É material informativo e educacional de apoio à sua decisão — investir é decisão exclusivamente sua.</p>
         <div id="lpRiscoWrap"></div>
       </div>
     </div>
@@ -378,18 +394,11 @@
         <img src="prints/carteira-sugerida.webp" width="1600" height="1000" alt="Tela Carteira sugerida do Appliquei: perfil moderado, aporte do mês distribuído entre renda fixa, ações, FIIs e cripto, com os ativos escolhidos e a diversificação por setor." loading="lazy" decoding="async">
       </div>
       <div class="shot-legenda"><i class="ph-fill ph-camera"></i> Tela real do Appliquei. Dados de demonstração.</div>
-
-      <div class="dif-extra shot">
-        <img src="prints/carteira-score.webp" width="1100" height="688" alt="Cards de pontuação de ações no Appliquei, cada um com nota geral e as barras dos cinco pilares: valuation, dividendos, crescimento, endividamento e qualidade." loading="lazy" decoding="async">
-      </div>
-      <div class="shot-legenda"><i class="ph-fill ph-info"></i> A nota de cada ativo, aberta pilar a pilar.</div>
     </div>
   </div>
 </section>
 
-<!-- ============================================================
-     DIFERENCIAL 2 — Meus investimentos
-     ============================================================ -->
+<!-- DIFERENCIAL 2 — Meus investimentos -->
 <section id="investimentos" class="dif alt inverso">
   <div class="container dif-grid">
     <div>
@@ -397,23 +406,15 @@
         <img src="prints/investimentos-lista.webp" width="1200" height="900" alt="Lista de posições do Appliquei com preço médio, valor atual e resultado de cada ativo, e o gráfico de distribuição da carteira por classe." loading="lazy" decoding="async">
       </div>
       <div class="shot-legenda"><i class="ph-fill ph-camera"></i> Tela real do Appliquei. Dados de demonstração.</div>
-
-      <div class="dif-extra shot">
-        <img src="prints/carteira-simulacao.webp" width="1100" height="859" alt="Simulação de desempenho da carteira no Appliquei comparada ao CDI e ao Ibovespa, com patrimônio final estimado e total aportado." loading="lazy" decoding="async">
-      </div>
-      <div class="shot-legenda"><i class="ph-fill ph-info"></i> Simulação comparada ao CDI e ao Ibovespa. Rentabilidade passada não garante rentabilidade futura.</div>
     </div>
 
     <div class="dif-texto">
       <span class="dif-selo"><i class="ph-fill ph-wallet"></i> Diferencial 2</span>
-      <h2>Todos os seus investimentos numa conta só — inclusive os que não cabem no app da corretora</h2>
-      <p>Ações, FIIs, renda fixa, previdência, reserva de emergência e cripto na mesma tela, somados no mesmo total. Cadastre o que já existia antes de você chegar aqui e o histórico começa completo.</p>
+      <h2>Todos os investimentos numa conta só — inclusive os que a corretora não mostra</h2>
       <ul class="dif-lista">
-        <li><i class="ph-fill ph-stack"></i><span><strong>Seis classes, várias corretoras.</strong> Sem trocar de aplicativo para saber quanto você tem.</span></li>
-        <li><i class="ph-fill ph-clock-counter-clockwise"></i><span><strong>Posição retroativa.</strong> O que você já tinha entra sem bagunçar o saldo do mês — e sem inventar um lançamento que nunca existiu.</span></li>
-        <li><i class="ph-fill ph-calculator"></i><span><strong>Renda fixa com juros compostos de verdade.</strong> Prefixado, %CDI e IPCA+ com a taxa que você informou, capitalizada dia a dia.</span></li>
-        <li><i class="ph-fill ph-coins"></i><span><strong>Proventos e preço médio.</strong> Resultado por ativo, aportes do período e dividendos recebidos, sem planilha paralela.</span></li>
-        <li><i class="ph-fill ph-link"></i><span><strong>Ligado ao resto.</strong> O aporte sai do Controle Financeiro, entra no patrimônio e reaparece na carteira sugerida — uma vez só.</span></li>
+        <li><i class="ph-fill ph-stack"></i><span><strong>Seis classes, várias corretoras:</strong> ações, FIIs, renda fixa, previdência, reserva e cripto no mesmo total.</span></li>
+        <li><i class="ph-fill ph-clock-counter-clockwise"></i><span><strong>Posição retroativa.</strong> O que você já tinha entra sem bagunçar o saldo do mês, e o histórico começa completo.</span></li>
+        <li><i class="ph-fill ph-calculator"></i><span><strong>Renda fixa com juros compostos de verdade:</strong> prefixado, %CDI e IPCA+ capitalizados dia a dia, com preço médio e proventos por ativo.</span></li>
       </ul>
     </div>
   </div>
@@ -424,7 +425,7 @@
     <div class="section-head">
       <span class="eyebrow">E tudo mais</span>
       <h2>Tudo o que vem junto, no mesmo plano</h2>
-      <p>Os dois destaques acima não vêm sozinhos. Tudo abaixo já está incluído desde o primeiro dia — e cada imagem é uma captura do sistema em funcionamento.</p>
+      <p>Cada imagem abaixo é uma captura do sistema em funcionamento.</p>
     </div>
 
     <div class="telas-grid">
@@ -432,78 +433,51 @@
         <div class="tela-shot"><img src="prints/controle-financeiro.webp" width="1200" height="900" alt="Tela Controle financeiro do Appliquei com saldo livre do mês, receitas, despesas e a régua da regra dos 60%." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-receipt"></i> Controle financeiro</h3>
-          <p>Receitas, despesas, cartões e categorias do mês, com o fechamento do mês anterior carregado automaticamente.</p>
+          <p>Receitas, despesas, cartões e categorias, com o fechamento do mês anterior carregado sozinho.</p>
         </div>
       </article>
-
       <article class="tela">
         <div class="tela-shot"><img src="prints/meu-patrimonio.webp" width="1200" height="900" alt="Tela Meu patrimônio do Appliquei somando saldo em conta, total investido, imóveis e veículos, com o detalhe por banco e corretora." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-bank"></i> Meu patrimônio</h3>
-          <p>Contas, investimentos, imóveis e veículos num total só — e o mapa de onde o dinheiro está guardado.</p>
+          <p>Contas, investimentos, imóveis e veículos num total só.</p>
         </div>
       </article>
-
       <article class="tela">
         <div class="tela-shot"><img src="prints/relatorio-mensal.webp" width="1200" height="900" alt="Relatório mensal do Appliquei com termômetro financeiro, régua de score e os cinco critérios avaliados no mês." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-file-text"></i> Relatório mensal</h3>
-          <p>Um termômetro com cinco critérios objetivos, comparativo com os meses anteriores e exportação em PDF.</p>
+          <p>Um termômetro com cinco critérios objetivos, e exportação em PDF.</p>
         </div>
       </article>
-
       <article class="tela">
-        <div class="tela-shot"><img src="prints/meus-sonhos.webp" width="1200" height="900" alt="Tela Meus sonhos do Appliquei com análise da saúde financeira, meta total, quanto já foi guardado e o aporte mensal de cada objetivo." loading="lazy" decoding="async"></div>
+        <div class="tela-shot"><img src="prints/meus-sonhos.webp" width="1200" height="900" alt="Tela Meus sonhos do Appliquei com meta total, quanto já foi guardado e o aporte mensal de cada objetivo." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-star"></i> Meus sonhos</h3>
-          <p>Metas com prazo e aporte mensal calculados a partir da sua sobra real — para trocar o "um dia" por uma data.</p>
+          <p>Metas com prazo e aporte calculados a partir da sua sobra real.</p>
         </div>
       </article>
-
       <article class="tela">
         <div class="tela-shot"><img src="prints/simulador.webp" width="1200" height="900" alt="Simulador de independência financeira do Appliquei, com os cenários de patrimônio necessário para viver de renda." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-calculator"></i> Simule sua liberdade</h3>
-          <p>Quanto você precisa juntar para viver de renda, testando aporte, prazo e retorno em cenários lado a lado.</p>
+          <p>Quanto juntar para viver de renda, em cenários lado a lado.</p>
         </div>
       </article>
-
       <article class="tela">
         <div class="tela-shot"><img src="prints/jornada.webp" width="1200" height="900" alt="Jornada Financeira do Appliquei: trilha de oito módulos que abrem um por vez, com quatro concluídos e o próximo em destaque." loading="lazy" decoding="async"></div>
         <div class="tela-corpo">
           <h3><i class="ph-fill ph-graduation-cap"></i> Jornada Financeira</h3>
-          <p>Oito módulos com material de estudo, liberados na ordem: cada um supõe que o anterior já foi feito.</p>
+          <p>Oito módulos com material de estudo, liberados na ordem.</p>
         </div>
       </article>
     </div>
 
-    <div class="feat-grid" style="margin-top:20px;">
-      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-newspaper"></i></div><h3>Info Mercado</h3><p>Indicadores e notícias do mercado brasileiro no mesmo lugar em que você acompanha a sua carteira.</p></div>
-      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-currency-dollar"></i></div><h3>Applicash</h3><p>Convide amigos, acumule crédito e use o saldo para custear a sua própria assinatura.</p></div>
-      <div class="feat"><div class="feat-icon"><i class="ph-fill ph-cloud-check"></i></div><h3>Sincronizado</h3><p>Cadastrou no celular, aparece no computador. A conta é a mesma e os dados acompanham.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================================================
-     No celular
-     ============================================================ -->
-<section class="movel">
-  <div class="container movel-grid">
-    <div>
-      <span class="dif-selo"><i class="ph-fill ph-device-mobile"></i> No bolso</span>
-      <h2 style="margin-top:14px;">A mesma coisa no celular — não uma versão reduzida</h2>
-      <p style="margin-top:14px;font-size:16px;">Todas as abas funcionam na tela pequena, incluindo a carteira sugerida e o lançamento de despesas. Dá para adicionar à tela de início e usar como aplicativo.</p>
-      <ul class="dif-lista" style="margin-top:22px;">
-        <li><i class="ph-fill ph-check-circle"></i><span><strong>Lançamento em qualquer aba.</strong> O botão de cadastro acompanha você pelo app inteiro.</span></li>
-        <li><i class="ph-fill ph-check-circle"></i><span><strong>Tema claro e escuro,</strong> gravados conforme a sua última escolha.</span></li>
-        <li><i class="ph-fill ph-check-circle"></i><span><strong>Modo privado.</strong> Um toque esconde todos os valores da tela.</span></li>
-      </ul>
-    </div>
-    <div class="movel-telas">
-      <img src="prints/celular-carteira.webp" width="430" height="931" alt="Appliquei no celular mostrando a carteira sugerida com o aporte do mês distribuído por classe." loading="lazy" decoding="async">
-      <img src="prints/celular-investimentos.webp" width="430" height="931" alt="Appliquei no celular mostrando a tela de investimentos com o patrimônio consolidado e as posições." loading="lazy" decoding="async">
-    </div>
+    <p class="telas-extra">
+      <span><i class="ph-fill ph-device-mobile"></i> Tudo funciona no celular, e dá para instalar na tela de início</span>
+      <span><i class="ph-fill ph-newspaper"></i> Info Mercado com indicadores e notícias</span>
+      <span><i class="ph-fill ph-currency-dollar"></i> Applicash: crédito por indicação, para custear a assinatura</span>
+    </p>
   </div>
 </section>
 
@@ -582,7 +556,6 @@
       <details class="faq"><summary>Quando o Pro + IA fica disponível?</summary><p>Está em construção. Quem está no Pro recebe aviso e pode migrar no clique quando lançarmos, sem perder histórico.</p></details>
       <details class="faq"><summary>Meus dados ficam seguros?</summary><p>Autenticação Firebase, armazenamento Firestore e cobrança Asaas — todos brasileiros/Google com criptografia em trânsito e em repouso.</p></details>
       <details class="faq"><summary>A carteira sugerida é uma recomendação de investimento?</summary><p>Não. O Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada. A carteira sugerida é material informativo e educacional: uma alocação calculada a partir de critérios públicos e do perfil que você declara, com o cálculo aberto para você conferir. A decisão de investir, manter ou resgatar é sua. Investimentos envolvem risco, inclusive de perda do capital, e rentabilidade passada não garante rentabilidade futura.</p></details>
-      <details class="faq"><summary>As telas mostradas neste site são reais?</summary><p>Sim. Todas as imagens desta página são capturas do Appliquei em funcionamento, com uma conta de demonstração. Os valores, ativos e datas são fictícios; o que você vê na tela é a interface que você vai usar.</p></details>
     </div>
   </div>
 </section>
@@ -601,9 +574,7 @@
      dentro do app, em Dúvidas & Sugestões > Regulamento. -->
 <section class="legal">
   <div class="container">
-    <p><strong>Appliquei é uma ferramenta de organização e educação financeira.</strong> Não somos instituição financeira, corretora, distribuidora, consultoria de valores mobiliários ou analista de valores mobiliários, e não realizamos recomendação individualizada de investimentos, intermediação, custódia ou gestão de recursos de terceiros.</p>
-    <p>As sugestões de alocação, simulações, projeções e classificações de perfil têm caráter informativo e educacional e não constituem promessa ou garantia de rentabilidade. Investimentos envolvem riscos e podem resultar em perdas, inclusive do capital investido. Rentabilidade passada não garante rentabilidade futura. Avalie seu perfil, objetivos e tolerância ao risco antes de investir — a decisão é sempre sua.</p>
-    <p><a href="#carteira">Ler o aviso de risco completo</a></p>
+    <p><strong>Appliquei é uma ferramenta de organização e educação financeira.</strong> Não somos instituição financeira, corretora, distribuidora, consultoria de valores mobiliários ou analista de valores mobiliários, e não realizamos recomendação individualizada de investimentos, intermediação, custódia ou gestão de recursos de terceiros. As sugestões de alocação, simulações e classificações de perfil têm caráter informativo e educacional e não constituem promessa ou garantia de rentabilidade. Investimentos envolvem riscos e podem resultar em perdas, inclusive do capital investido. Rentabilidade passada não garante rentabilidade futura. <a href="#carteira">Ler o aviso de risco completo</a></p>
   </div>
 </section>
 

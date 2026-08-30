@@ -74,6 +74,19 @@ test('as imagens da página são prints do sistema, e existem no repositório', 
   }
 });
 
+test('todo print no repositório é usado pela página', () => {
+  // Print que ninguém referencia é peso morto que ninguém percebe: entra no
+  // deploy, é servido, e some da cabeça de quem o gerou. A varredura vale nos
+  // dois sentidos — o teste acima cobra que todo src exista, este cobra que
+  // todo arquivo seja usado.
+  const usados = new Set(
+    [...VISIVEL.matchAll(/(?:src|srcset)="prints\/([^"]+)"/g)].map((m) => m[1])
+  );
+  for (const arq of fs.readdirSync(path.join(ROOT, 'prints'))) {
+    assert.ok(usados.has(arq), `print sem uso na landing: prints/${arq}`);
+  }
+});
+
 test('o mockup desenhado à mão saiu do hero', () => {
   // Havia um "preview" em divs, com barras de CSS no lugar do gráfico e
   // números inventados. Print de tela real foi o que se pediu.
