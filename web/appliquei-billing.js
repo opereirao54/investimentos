@@ -287,7 +287,7 @@ function ensureGate() {
     '  <div class="bg-inner">',
     '    <div class="bg-eyebrow"><i class="ph-fill ph-sparkle"></i> Appliquei Pro</div>',
     '    <h2 id="billingTitle" class="bg-h1">Acesso completo ao Appliquei</h2>',
-    '    <p id="billingSub" class="bg-sub">Carteira recomendada, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
+    '    <p id="billingSub" class="bg-sub">Carteira sugerida, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
     '    <div class="bg-section">',
     '      <div class="bg-section-title">Plano</div>',
     '      <div class="bg-tiers">',

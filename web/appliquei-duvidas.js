@@ -104,14 +104,14 @@ var FAQ_DADOS = [
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
-    p: 'Como funciona a Carteira recomendada?',
-    r: 'Você responde 2 perguntas rápidas (tolerância a perdas e objetivo) e informa um capital de simulação. Com isso definimos seu perfil (Conservador, Moderado ou Arrojado) e mostramos a alocação ideal entre renda fixa, ações, FIIs e cripto, com explicação de cada classe e seleção de ativos. A carteira modelo é definida e revisada pela nossa equipe de consultoria.',
+    p: 'Como funciona a Carteira sugerida?',
+    r: 'Você responde 2 perguntas rápidas (tolerância a perdas e objetivo) e informa quanto pretende aportar. Com isso a ferramenta define um perfil (Conservador, Moderado ou Arrojado) e sugere uma divisão entre renda fixa, ações, FIIs e cripto, explicando cada classe e mostrando o critério que pontuou cada ativo. É material informativo e educacional de apoio à sua decisão: o Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento. A decisão é sempre sua.',
   },
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
-    p: 'A Carteira recomendada simula a rentabilidade?',
-    r: 'Sim. Há um gráfico que mostra como aquela alocação teria performado em janelas de 1 a 5 anos (com dados históricos reais) e projeções de 10 a 50 anos por juros compostos sobre o retorno esperado de cada classe, sempre comparando com CDI e Ibovespa. Rentabilidade passada não garante resultados futuros.',
+    p: 'A Carteira sugerida simula a rentabilidade?',
+    r: 'Sim. Há um gráfico que mostra como aquela alocação teria performado em janelas de 1 a 5 anos (com dados históricos reais) e projeções de 10 a 50 anos por juros compostos sobre uma premissa de retorno de cada classe, sempre comparando com CDI e Ibovespa. São cenários ilustrativos, não previsão: rentabilidade passada não garante rentabilidade futura e nenhum resultado é garantido.',
   },
   {
     cat: 'ferramentas',
@@ -405,7 +405,7 @@ function enviarSugestao() {
 var SUG_LABELS_ABA = {
   patrimonio: 'Patrimônio',
   controle: 'Controle financeiro',
-  carteira: 'Carteira recomendada',
+  carteira: 'Carteira sugerida',
   relatorio_mensal: 'Relatório mensal',
   simulador: 'Simulador',
   meus_sonhos: 'Meus sonhos',
