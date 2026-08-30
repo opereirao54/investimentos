@@ -118,7 +118,7 @@ function gerarLancamentosMensaisSonho(sonho, valorMensal, mesesGerar) {
     });
     criados++;
   }
-  if (criados > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (criados > 0) salvarTransacoes();
   return criados;
 }
 
@@ -133,8 +133,7 @@ function removerLancamentosFuturosSonho(sonhoId) {
     if (futuro && !t.pago) return false; // remove apenas mês corrente em diante e não pagos
     return true;
   });
-  if (transacoes.length !== antes)
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (transacoes.length !== antes) salvarTransacoes();
 }
 
 function pedirConfirmacaoPlanoSonho(sonho) {
@@ -149,7 +148,7 @@ function pedirConfirmacaoPlanoSonho(sonho) {
         Para conquistar <strong>${sonho.nome}</strong> em ${sonho.prazoMeses} meses, você precisa separar
         <strong style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">${fmt}/mês</strong>.<br><br>
         Quer que a Appliquei crie automaticamente esse compromisso fixo no seu Controle Financeiro
-        (categoria <strong style="color:#7c3aed;">⭐ Sonho</strong>)? Você poderá pagar/quitar mês a mês como qualquer outra conta.
+        (categoria <strong style="color:var(--tinta-roxo);">⭐ Sonho</strong>)? Você poderá pagar/quitar mês a mês como qualquer outra conta.
     `;
   document.getElementById('modalAcoes').innerHTML = `
         <button class="btn-acao" style="background:var(--cor-primaria);" onclick="confirmarPlanoSonho('${sonho.id}')"><i class="ph-bold ph-check-circle"></i> Sim, criar compromisso</button>
@@ -358,11 +357,11 @@ function renderPainelSaudeSonhos() {
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px;">
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Receita média</div>
-                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#10b981;margin-top:2px;">${fmt(saude.receitaMedia)}</div>
+                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-verde);margin-top:2px;">${fmt(saude.receitaMedia)}</div>
             </div>
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Despesa média</div>
-                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:#ef4444;margin-top:2px;">${fmt(saude.despesaMedia)}</div>
+                <div style="font-size:15px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-vermelho);margin-top:2px;">${fmt(saude.despesaMedia)}</div>
             </div>
             <div style="padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);">
                 <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--cor-texto-mutado);">Sobra média</div>
@@ -749,7 +748,7 @@ function renderizarSonhos() {
                       conquistado
                         ? ''
                         : s.planoVinculado
-                          ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#7c3aed;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
+                          ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tinta-roxo);background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
                           : `<button onclick="event.stopPropagation();pedirConfirmacaoPlanoSonho(sonhos.find(x=>x.id==='${s.id}'))" class="btn-acao" style="background:#7c3aed;font-size:12px;padding:8px 14px;margin-right:auto;"><i class="ph-bold ph-link-simple"></i> Vincular ao Controle</button>`
                     }
                     ${conquistado || !s.planoVinculado || status === 'agendado' ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Redistribui a falta nos meses restantes."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
@@ -811,16 +810,16 @@ function renderResumoSonhos() {
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #10b981;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-piggy-bank"></i> Já guardado</div>
-                <div class="sonhos-kpi-val" style="color:#10b981;">${formatarMoeda(totalGuardado)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-verde);">${formatarMoeda(totalGuardado)}</div>
                 <div class="sonhos-kpi-sub">${pctGeral.toFixed(0)}% do total</div>
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #ef4444;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-flag"></i> Falta alcançar</div>
-                <div class="sonhos-kpi-val" style="color:#ef4444;">${formatarMoeda(totalFalta)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-vermelho);">${formatarMoeda(totalFalta)}</div>
             </div>
             <div class="sonhos-kpi" style="--kpi-accent: #7c3aed;">
                 <div class="sonhos-kpi-lbl"><i class="ph-fill ph-calendar-blank"></i> Aporte/mês total</div>
-                <div class="sonhos-kpi-val" style="color:#7c3aed;">${formatarMoeda(totalMensal)}</div>
+                <div class="sonhos-kpi-val" style="color:var(--tinta-roxo);">${formatarMoeda(totalMensal)}</div>
                 <div class="sonhos-kpi-sub">somando todos os planos</div>
             </div>
         </div>
@@ -857,7 +856,7 @@ function pularMesSonho(id) {
   const novaParcelaPrevia = calcSonhoMensal(s.valorTotal, s.valorAtual, mesesParaDistribuir);
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
-    `<i class="ph-fill ph-skip-forward" style="color:#f59e0b;"></i> Não vai conseguir separar este mês?`;
+    `<i class="ph-fill ph-skip-forward" style="color:var(--tinta-ambar);"></i> Não vai conseguir separar este mês?`;
   document.getElementById('modalMensagem').innerHTML = `
         Sem problema — vamos recalcular o plano do sonho <strong>${s.nome}</strong>.<br><br>
         O lançamento deste mês será removido e o valor que faltava será <strong>redistribuído nos meses restantes</strong> (o prazo final continua o mesmo).<br><br>
@@ -893,7 +892,7 @@ function confirmarPularMes(id) {
         t.ano === a0
       )
   );
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   // Persiste o "mês pulado" — o render desconta esse contador de mesesEntre(agora, fim),
   // garantindo que a parcela continue maior nos próximos renders.
   s.mesesPulados = (s.mesesPulados || 0) + 1;
@@ -925,7 +924,7 @@ function confirmarPularMes(id) {
       pago: false,
     });
   }
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
   salvarSonhos();
   fecharModal();
   renderizarSonhos();
@@ -1084,11 +1083,44 @@ function avaliarFolgaParaSonho(mensal) {
   return { semDados: false, sobra, jaComprometido, depois, pct, nivel, cor, titulo, saude };
 }
 
+// Conta de origem é OBRIGATÓRIA — mesmo molde de controleBancoObrigatorio
+// (despesa no Controle) e de contaPagadoraId (cartão). É dela que sai o dinheiro
+// quando a parcela do sonho é paga: sem ela, o compromisso nasce com contaId
+// undefined e a baixa cai em "A reconciliar", furando a regra de que todo gasto
+// desconta de uma conta (INV-01) por fora da trava do Controle, que não cobre a
+// categoria 'sonho'. Ver RISCO-02 em .claude/integracoes/mapa.json.
+// Devolve true quando pode seguir; senão avisa e devolve false.
+function sonhoContaOrigemValida(contaOrigemId) {
+  if (contaOrigemId) {
+    // Não basta vir preenchido: o id tem de resolver para uma conta que
+    // existe. Um id órfão (conta apagada entre abrir o modal e salvar, ou
+    // valor forjado no select) gravava um sonho apontando para o nada, e as
+    // parcelas dele debitariam "A reconciliar" — o mesmo buraco que a
+    // obrigatoriedade tinha fechado pela frente.
+    if (typeof obterConta === 'function' && !obterConta(contaOrigemId)) {
+      mostrarToast('A conta escolhida não existe mais. Selecione outra.', 'erro');
+      return false;
+    }
+    return true;
+  }
+  if (typeof contasAtivas === 'function' && !contasAtivas().length) {
+    mostrarToast(
+      'Cadastre uma conta em "Meu patrimônio" e escolha de onde sai o dinheiro.',
+      'erro'
+    );
+  } else {
+    mostrarToast('Escolha a conta de onde sai o dinheiro do sonho.', 'erro');
+  }
+  return false;
+}
+
 function irParaPreviaSonho() {
   const nome = (document.getElementById('sonhoNome').value || '').trim();
   const valorTotal = parseBRL(document.getElementById('sonhoValorTotal').value);
   if (!nome) return mostrarToast('Dê um nome ao seu sonho!', 'erro');
   if (valorTotal <= 0) return mostrarToast('Informe o valor total da meta.', 'erro');
+  const contaPrevia = (document.getElementById('sonhoContaOrigem') || {}).value || null;
+  if (!sonhoContaOrigemValida(contaPrevia)) return;
 
   document.getElementById('sonhoPasso1').style.display = 'none';
   document.getElementById('sonhoAcoesPasso1').style.display = 'none';
@@ -1452,6 +1484,21 @@ function aplicarEdicaoSonhoComModo(modo) {
   sonho.dataFim = p.dataFimIso;
   sonho.mesesRestantes = p.mesesAteFim;
   sonho.mesesPulados = 0;
+  // Recarimba os compromissos pendentes quando a conta muda — o mesmo que
+  // salvarSonho faz no caminho direto. Este é o SEGUNDO caminho de edição (o
+  // que passa pelo modal de confirmação, quando já existem aportes extras e o
+  // valor guardado mudou) e ele não tinha a guarda: trocar a conta por aqui
+  // deixava as parcelas debitando o banco antigo. Achado pelas sequências
+  // aleatórias — editar direto funcionava, editar via modal não, e só a ordem
+  // das ações decide qual dos dois roda (INV-22).
+  if (p.contaOrigemId && sonho.contaOrigemId !== p.contaOrigemId) {
+    transacoes.forEach((t) => {
+      if (t.categoria === 'sonho' && t.sonhoId === sonho.id && !t.pago) {
+        t.contaId = p.contaOrigemId;
+      }
+    });
+    salvarTransacoes();
+  }
   sonho.contaOrigemId = p.contaOrigemId;
 
   const aportesNaoIniciais = (sonho.aportes || []).filter((a) => a.tipo !== 'inicial');
@@ -1545,6 +1592,14 @@ function salvarSonho() {
     mostrarToast('Informe o valor total da meta.', 'erro');
     return;
   }
+  if (!sonhoContaOrigemValida(contaOrigemId)) return;
+  // "Valor já guardado" negativo virava valorAtual negativo: o card mostrava
+  // -100 guardado e a barra de progresso quebrava. Achado pela simulação dos
+  // botões — o campo aceita sinal e ninguém checava (INV-14).
+  if (!Number.isFinite(valorInicial) || valorInicial < 0) {
+    mostrarToast('O valor já guardado não pode ser negativo.', 'erro');
+    return;
+  }
 
   const agora = new Date();
   // dataInicio: dia 1 do mês escolhido, default = mês corrente. Não pode ser anterior ao mês corrente.
@@ -1599,6 +1654,20 @@ function salvarSonho() {
           .filter((a) => a.tipo === 'inicial')
           .reduce((s, a) => s + (a.valor || 0), 0),
       };
+      // Trocar a conta de origem tem de RECARIMBAR os compromissos já criados.
+      // Sem isto o sonho passava a apontar para a conta nova enquanto as
+      // parcelas pendentes seguiam com o contaId antigo — e cada uma, ao ser
+      // paga, debitava o banco errado. A simulação encadeada pegou isto
+      // (INV-22); nenhum teste de uma ação só pegaria, porque o sonho sozinho
+      // fica coerente.
+      if (contaOrigemId && sonhos[idx].contaOrigemId !== contaOrigemId) {
+        transacoes.forEach((t) => {
+          if (t.categoria === 'sonho' && t.sonhoId === sonhos[idx].id && !t.pago) {
+            t.contaId = contaOrigemId;
+          }
+        });
+        salvarTransacoes();
+      }
       sonhos[idx].nome = nome;
       sonhos[idx].descricao = descricao;
       sonhos[idx].valorTotal = valorTotal;
@@ -1756,7 +1825,7 @@ function excluirSonho(id) {
             <p style="margin:0;">Confira o resumo do sonho antes de decidir:</p>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border:1px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);font-size:12.5px;">
                 <div><span style="color:var(--cor-texto-mutado);">Meta:</span> <strong style="font-family:'DM Mono',monospace;">${formatarMoeda(s.valorTotal)}</strong></div>
-                <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:#10b981;">${formatarMoeda(s.valorAtual)}</strong></div>
+                <div><span style="color:var(--cor-texto-mutado);">Guardado:</span> <strong style="font-family:'DM Mono',monospace;color:var(--tinta-verde);">${formatarMoeda(s.valorAtual)}</strong></div>
                 <div><span style="color:var(--cor-texto-mutado);">Progresso:</span> <strong>${pct.toFixed(0)}%</strong></div>
                 <div><span style="color:var(--cor-texto-mutado);">Aportes:</span> <strong>${aportesCount}</strong></div>
             </div>
@@ -1784,7 +1853,17 @@ function excluirSonho(id) {
 }
 
 function confirmarExcluirSonho(id) {
-  removerLancamentosFuturosSonho(id);
+  // "Manter histórico" preserva o que foi PAGO — é o registro de que aquele
+  // dinheiro saiu de verdade. Mas nenhum compromisso PENDENTE pode sobreviver
+  // ao sonho: ele seguiria inflando o "a pagar" do Controle para sempre.
+  //
+  // removerLancamentosFuturosSonho não serve sozinha aqui: ela remove só os
+  // meses ESTRITAMENTE futuros (`t.mes > m0`), deixando a parcela do mês
+  // corrente de pé. Aqui a regra é outra e mais simples — pendente do sonho
+  // apagado não existe, em mês nenhum. Ver INV-10.
+  const antes = transacoes.length;
+  transacoes = transacoes.filter((t) => !(t.sonhoId === id && !t.pago));
+  if (transacoes.length !== antes) salvarTransacoes();
   sonhos = sonhos.filter((s) => s.id !== id);
   salvarSonhos();
   fecharModal();
@@ -1799,7 +1878,7 @@ function confirmarExcluirSonhoCompleto(id) {
   const txsAntes = transacoes.length;
   transacoes = transacoes.filter((t) => t.sonhoId !== id);
   const removidas = txsAntes - transacoes.length;
-  if (removidas > 0) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (removidas > 0) salvarTransacoes();
   sonhos = sonhos.filter((s) => s.id !== id);
   salvarSonhos();
   fecharModal();
@@ -1928,13 +2007,38 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
 
   const novoValor = parseBRL(document.getElementById('editAporteValor').value);
   const novaData = document.getElementById('editAporteData').value;
-  if (novoValor <= 0) {
+  if (!Number.isFinite(novoValor) || novoValor <= 0) {
     mostrarToast('Informe um valor maior que zero.', 'erro');
+    return;
+  }
+  if (novaData && !isFinite(new Date(novaData + 'T12:00:00').getTime())) {
+    mostrarToast('Data do aporte inválida.', 'erro');
     return;
   }
 
   const valorAntigo = aporte.valor;
   const delta = novoValor - valorAntigo;
+
+  // AUMENTAR o aporte tira mais dinheiro do caixa e precisa da mesma guarda de
+  // saldo que finalizarAporteSonho e registrarOperacaoAtivo aplicam — a
+  // simulação dos botões pegou esta porta aberta depois que a outra foi
+  // fechada. Diminuir devolve dinheiro e nunca é bloqueado. Migração não
+  // consome caixa (INV-12), então fica de fora.
+  if (delta > 0 && aporte.origem !== 'migracao') {
+    const saldos =
+      typeof mpCalcularSaldoPorInstituicao === 'function'
+        ? mpCalcularSaldoPorInstituicao(Date.now())
+        : {};
+    const caixa = saldos[s.contaOrigemId] ? saldos[s.contaOrigemId].caixa : null;
+    if (caixa != null && delta > caixa + 0.005) {
+      const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
+      mostrarToast(
+        `Saldo insuficiente: aumentar o aporte exige ${fmt(delta)} e a conta tem ${fmt(caixa)}.`,
+        'erro'
+      );
+      return;
+    }
+  }
   aporte.valor = novoValor;
   if (novaData) aporte.data = novaData;
   s.valorAtual = Math.max(0, s.valorAtual + delta);
@@ -1959,7 +2063,7 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
     const txr = transacoes.find((t) => t.id === aporte.txResgateId);
     if (txr) txr.valor = novoValor;
   }
-  localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  salvarTransacoes();
 
   // Recalcula plano (se vinculado)
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
@@ -2019,7 +2123,7 @@ function confirmarExcluirAporteSonho(sonhoId, aporteId) {
   if (aporte.txResgateId) idsParaRemover.push(aporte.txResgateId);
   if (idsParaRemover.length > 0) {
     transacoes = transacoes.filter((t) => !idsParaRemover.includes(t.id));
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
   }
 
   // Reverte a venda gerada pela migração: devolve as cotas ao investimento.
@@ -2120,9 +2224,9 @@ function abrirEscolhaAtivoMigracao(sonhoId, valor, dataStr) {
 
   const modal = document.getElementById('modalConfirmacao');
   document.getElementById('modalTitulo').innerHTML =
-    `<i class="ph ph-arrows-left-right" style="color:#0ea5e9;"></i> De qual investimento veio?`;
+    `<i class="ph ph-arrows-left-right" style="color:var(--tinta-azul);"></i> De qual investimento veio?`;
   document.getElementById('modalMensagem').innerHTML = `
-        <p style="margin-bottom:10px;">Indique de onde saiu o dinheiro de <strong style="font-family:'DM Mono',monospace;color:#0ea5e9;">${formatarMoeda(valor)}</strong>:</p>
+        <p style="margin-bottom:10px;">Indique de onde saiu o dinheiro de <strong style="font-family:'DM Mono',monospace;color:var(--tinta-azul);">${formatarMoeda(valor)}</strong>:</p>
         ${
           tickers.length > 0
             ? `
@@ -2155,11 +2259,43 @@ function confirmarOrigemMigracao(sonhoId, valor, dataStr) {
   finalizarAporteSonho(sonhoId, valor, dataStr, 'migracao', { origemAtivo, origemDesc });
 }
 
+// FUNIL de todos os caminhos de aporte: registrarAporteSonho (modal),
+// confirmarOrigemMigracao (migração de investimento) e os onclick do modal de
+// origem passam todos por aqui. Por isso as guardas vivem NESTE ponto e não em
+// cada chamador — validar só no formulário deixava os outros caminhos abertos.
+//
+// As três guardas saíram da simulação exaustiva dos botões (ver
+// test/simulacao-sonhos.test.js): valor não-finito ou <= 0 gravava um aporte
+// lixo; data inválida estourava "Invalid time value" no toISOString e travava a
+// tela; e o aporte acima do saldo deixava o caixa NEGATIVO — dinheiro inventado,
+// exatamente o que registrarOperacaoAtivo bloqueia na compra de ativo desde
+// sempre (renda-fixa.js:796). Não havia razão para a mesma saída de dinheiro ser
+// barrada num lugar e livre no outro.
 function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
   const s = sonhos.find((x) => x.id === sonhoId);
   if (!s) {
     fecharModal();
     return;
+  }
+  valor = Number(valor);
+  if (!Number.isFinite(valor) || valor <= 0) {
+    return mostrarToast('Informe um valor de aporte maior que zero.', 'erro');
+  }
+  // Migração NÃO consome caixa: o dinheiro vem de um investimento e as duas
+  // pernas (aporte + resgate compensatório) se anulam no orçamento — ver INV-12.
+  if (origem !== 'migracao' && origem !== 'sem_lancar') {
+    const saldos =
+      typeof mpCalcularSaldoPorInstituicao === 'function'
+        ? mpCalcularSaldoPorInstituicao(Date.now())
+        : {};
+    const caixa = saldos[s.contaOrigemId] ? saldos[s.contaOrigemId].caixa : null;
+    if (caixa != null && valor > caixa + 0.005) {
+      const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
+      return mostrarToast(
+        `Saldo insuficiente: a conta do sonho tem ${fmt(caixa)} disponível.`,
+        'erro'
+      );
+    }
   }
   const origemAtivo = detalhes?.origemAtivo || null;
   const origemDesc = detalhes?.origemDesc || null;
@@ -2176,7 +2312,10 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
   });
 
   if (origem !== 'sem_lancar') {
-    const d = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+    // Data inválida cai para hoje em vez de estourar: `new Date('abacaxi')` é
+    // Invalid Date e o toISOString logo abaixo lançaria, travando a tela.
+    let d = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
+    if (!isFinite(d.getTime())) d = new Date();
     const obs =
       origem === 'migracao'
         ? `Aporte extra (migração${origemAtivo ? ' de ' + origemAtivo : ''}) — ${s.nome}`
@@ -2260,7 +2399,7 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
         }
       }
     }
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
     if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
   }
 

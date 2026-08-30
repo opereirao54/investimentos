@@ -1,0 +1,761 @@
+{
+  "$schema": "./mapa.schema.md",
+  "versao": 1,
+  "onda": 3,
+  "atualizadoEm": "2026-08-28",
+  "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
+  "entidades": {
+    "transacao": {
+      "titulo": "Transação (lançamento do Controle Financeiro)",
+      "chaveArmazenamento": "futurorico_transacoes",
+      "globalWindow": "transacoes",
+      "declaradaEm": "web/appliquei-app.js:553",
+      "topologia": "escrita-central-leitura-central",
+      "notaTopologia": "Saneada no RISCO-01. Toda escrita passa por salvarTransacoes() (appliquei-app.js), no molde de salvarContas(). Duas exceções documentadas e travadas por test/transacoes-escrita-canonica.test.js: a implementação da própria função, e a restauração de backup em utils.js, cuja fonte é o arquivo do usuário e não o array global. É em salvarTransacoes() que entra validação de invariante no ponto de escrita, quando for a hora.",
+      "produtores": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-sonhos.js",
+        "web/appliquei-app.js",
+        "web/appliquei-renda-fixa.js",
+        "web/appliquei-previdencia.js",
+        "web/appliquei-aba-dividendos.js",
+        "web/appliquei-contas.js",
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-utils.js"
+      ],
+      "consumidores": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-relatorio-mensal.js",
+        "web/appliquei-aba1-charts.js",
+        "web/appliquei-sonhos.js",
+        "web/appliquei-jornada.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "contaId",
+          "apontaPara": "conta.id",
+          "resolvidoPor": "resolverContaDeTransacao",
+          "obrigatorio": "condicional",
+          "quando": "categorias em controleBancoObrigatorio"
+        },
+        {
+          "campo": "banco",
+          "apontaPara": "conta.nome | conta.aliases",
+          "resolvidoPor": "obterContaPorNomeOuAlias",
+          "obrigatorio": "condicional",
+          "nota": "fallback textual legado do contaId"
+        },
+        {
+          "campo": "operacaoId",
+          "apontaPara": "operacao.id",
+          "obrigatorio": "condicional",
+          "quando": "categorias investimento_* e transferencia_saida de aporte"
+        },
+        {
+          "campo": "sonhoId",
+          "apontaPara": "sonho.id",
+          "obrigatorio": "condicional",
+          "quando": "categoria sonho",
+          "onda": 2
+        },
+        {
+          "campo": "cartaoId",
+          "apontaPara": "cartao.id",
+          "obrigatorio": "condicional",
+          "quando": "categoria cartao_credito",
+          "onda": 3
+        },
+        {
+          "campo": "groupId",
+          "apontaPara": "transacao.groupId (série recorrente)",
+          "obrigatorio": "condicional"
+        },
+        {
+          "campo": "divKey",
+          "formato": "{ticker}_{ano}_{mes}",
+          "nota": "chave de idempotência do lançamento de dividendo; lancarDividendosNoCaixa não duplica quando roda de novo"
+        }
+      ],
+      "camposDeCompetencia": {
+        "canonico": ["mes", "ano"],
+        "derivados": ["data", "dataVencimento"],
+        "nota": "mes/ano é a competência canônica usada por calcularResumoMes e por toda a filtragem de tela. data/dataVencimento NÃO substituem — ver mpTimestampTransacao."
+      },
+      "vocabularioCategorias": {
+        "entradaCaixa": ["receita", "dividendo", "resgate_investimento", "transferencia_entrada"],
+        "aporte": ["investimento_fixo", "investimento_variavel"],
+        "transferenciaSaida": ["transferencia_saida"],
+        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito", "sonho"],
+        "classificadoPor": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "mpTransacaoComputaCaixa"],
+        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo."
+      },
+      "escritaCanonica": {
+        "funcao": "salvarTransacoes(opcoes)",
+        "declaradaEm": "web/appliquei-app.js",
+        "default": "só grava — o interceptador de setItem (utils.js) já marca a chave suja e agenda o push",
+        "flush": "salvarTransacoes({ flush: true }) cancela o debounce e empurra na hora; reservado aos pontos que já faziam isso de propósito (fusão/transferência de contas, lançamento de dividendos, baixa e reversão de pagamento)",
+        "retorno": "false quando a gravação falha — o chamador ABORTA. Antes o try/catch de cada sítio fazia esse aborto; ao centralizar, quem não checar o retorno segue como se tivesse dado certo",
+        "excecoes": [
+          "web/appliquei-app.js (a própria implementação)",
+          "web/appliquei-utils.js confirmarImportacao (restauração de backup)"
+        ]
+      }
+    },
+    "conta": {
+      "titulo": "Conta / Instituição financeira (cadastro-mestre)",
+      "chaveArmazenamento": "appliquei_contas",
+      "globalWindow": "contas",
+      "declaradaEm": "web/appliquei-contas.js:24",
+      "topologia": "escrita-central-leitura-espalhada",
+      "notaTopologia": "Topologia SAUDÁVEL, oposta à de transacao: todo CRUD passa por criarConta/editarConta/salvarContas, e salvarContas() dispara AppliqueiCloudSync.forceFlush(). É o modelo a seguir.",
+      "produtores": ["web/appliquei-contas.js"],
+      "produtoresIndiretos": [
+        {
+          "arquivo": "web/appliquei-aba-controle-financeiro.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [1043, 1167]
+        },
+        {
+          "arquivo": "web/appliquei-aba-dividendos.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [492]
+        },
+        {
+          "arquivo": "web/appliquei-renda-fixa.js",
+          "via": "obterOuCriarContaPorNome",
+          "linhas": [889, 930]
+        }
+      ],
+      "consumidores": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-renda-fixa.js",
+        "web/appliquei-aba-dividendos.js",
+        "web/appliquei-sonhos.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "formato": "conta_{timestamp}_{rand}",
+          "referenciadoPor": ["transacao.contaId", "operacao.contaId", "sonho.contaOrigemId"]
+        },
+        {
+          "campo": "aliases",
+          "nota": "nomes absorvidos numa fusão de contas; obterContaPorNomeOuAlias casa por aqui. Perder um alias órfã todos os registros legados que citavam aquele nome."
+        }
+      ]
+    },
+    "operacao": {
+      "titulo": "Operação de investimento (compra/venda de ativo)",
+      "chaveArmazenamento": "futurorico_compras",
+      "globalWindow": "historicoCompras",
+      "produtores": ["web/appliquei-renda-fixa.js", "web/appliquei-previdencia.js"],
+      "consumidores": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba1-charts.js",
+        "web/appliquei-sonhos.js",
+        "web/appliquei-aba-dividendos.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "referenciadoPor": [
+            "transacao.operacaoId",
+            "transacao.id (perna do ativo)",
+            "transacao.id = tx_origem_{id} (perna de caixa)"
+          ]
+        },
+        {
+          "campo": "contaOrigemId",
+          "apontaPara": "conta.id",
+          "nota": "propagado para as recorrências. Ausente quando origemRecurso é retroativo/externo — não há conta debitada."
+        },
+        {
+          "campo": "corretora",
+          "apontaPara": "conta.nome | conta.aliases",
+          "resolvidoPor": "resolverContaDeOperacao",
+          "nota": "IDENTIFICA a instituição onde o ativo está. Não implica que exista caixa nela: numa operação retroativa o dinheiro saiu da conta anos atrás."
+        },
+        {
+          "campo": "origemRecurso",
+          "valores": ["conta", "retroativo", "externo"],
+          "obrigatorio": "condicional",
+          "quando": "compras (tipo 'compra') gravadas por registrarOperacaoAtivo",
+          "nota": "Decide se a operação gera pernas de caixa. 'conta' segue o padrão A de INV-03 (duas pernas, contaOrigemId preenchido); 'retroativo' e 'externo' seguem o padrão C (nenhuma transação). Operação antiga não tem o campo — ausência equivale a 'conta', exceto quando saldoInicial é true (o \"já guardado\" legado, que sempre foi padrão C)."
+        },
+        {
+          "campo": "saldoInicial",
+          "nota": "Marca de VALORAÇÃO, não de origem: o valor gravado é o de HOJE, então a posição rende a partir de cadastradoEm e não de data_op (que num cadastro retroativo é antiga). Lida por valorAtualRendaFixa e calcularSaldoPrevidencia. Sem ela, R$ 10.000 informados com data de 2019 apareceriam capitalizados por 7 anos."
+        }
+      ],
+      "vocabularioCategorias": {
+        "valores": ["renda_variavel", "renda_fixa", "reserva_emergencia", "previdencia"],
+        "semQuantidade": ["renda_fixa", "reserva_emergencia", "previdencia"],
+        "nota": "Categoria da OPERAÇÃO (historicoCompras), distinta de transacao.categoria. As \"semQuantidade\" viram investimento_fixo na transação; renda_variavel vira investimento_variavel. Ver renda-fixa.js:881."
+      }
+    },
+    "sonho": {
+      "titulo": "Sonho (meta financeira com compromisso mensal no Controle)",
+      "chaveArmazenamento": "futurorico_sonhos",
+      "globalWindow": "sonhos",
+      "topologia": "escrita-central-leitura-espalhada",
+      "produtores": ["web/appliquei-sonhos.js"],
+      "consumidores": [
+        "web/appliquei-sonhos.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-jornada.js",
+        "web/appliquei-relatorio-mensal.js"
+      ],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "referenciadoPor": ["transacao.sonhoId", "transacao.groupId = sonho_grp_{id}"]
+        },
+        {
+          "campo": "contaOrigemId",
+          "apontaPara": "conta.id",
+          "obrigatorio": "nao",
+          "nota": "NÃO é validado no cadastro — ver RISCO-02. Vira transacao.contaId dos compromissos."
+        },
+        {
+          "campo": "groupIdControle",
+          "apontaPara": "transacao.groupId",
+          "nota": "estável por sonho; recalcular o plano reaproveita o mesmo grupo"
+        },
+        {
+          "campo": "aportes[].txId",
+          "apontaPara": "transacao.id",
+          "nota": "LIGAÇÃO DUPLA: o aporte guarda o id da transação e a transação guarda o sonhoId. Excluir um lado tem de excluir o outro."
+        }
+      ],
+      "regrasDeExclusao": {
+        "duasOpcoesDeliberadas": "excluirSonho oferece DUAS saídas, e as duas são corretas. Não trate a segunda como bug.",
+        "excluirTudo": "confirmarExcluirSonhoCompleto — remove o sonho e TODA transação com aquele sonhoId, paga ou não.",
+        "manterHistorico": "confirmarExcluirSonho — remove o sonho e só os compromissos FUTUROS e NÃO PAGOS (removerLancamentosFuturosSonho). As transações pagas ficam no Controle com sonhoId apontando para um sonho que já não existe: isso é HISTÓRICO INTENCIONAL, não órfão."
+      }
+    },
+    "cartao": {
+      "titulo": "Cartão de crédito",
+      "chaveArmazenamento": "futurorico_cartoes",
+      "globalWindow": "cartoes",
+      "declaradaEm": "web/appliquei-app.js:577",
+      "produtores": ["web/appliquei-app.js"],
+      "consumidores": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-patrimonio.js"],
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "formato": "card_{timestamp}",
+          "referenciadoPor": ["transacao.cartaoId"]
+        },
+        {
+          "campo": "contaPagadoraId",
+          "apontaPara": "conta.id",
+          "obrigatorio": "sim",
+          "nota": "validado no cadastro (app.js:469). É dela que sai o dinheiro quando a fatura é paga — sem ela a baixa cairia em \"A reconciliar\".",
+          "reapontadoNaFusao": "web/appliquei-contas.js:292"
+        }
+      ],
+      "fragilidade": "obterCartao(id) faz `cartoes.find(...) || cartoes[0]` — fallback SILENCIOSO para o primeiro cartão. Um cartaoId apontando para cartão apagado não dá erro: a transação passa a ser lida como se fosse de outro cartão."
+    },
+    "bem": {
+      "titulo": "Bem (imóvel / veículo)",
+      "chaveArmazenamento": "appliquei_bens",
+      "globalWindow": "bens",
+      "produtores": ["web/appliquei-bens.js"],
+      "consumidores": ["web/appliquei-patrimonio.js"],
+      "nota": "NÃO produz transação. Entra no patrimônio só pela soma de valorAtual dos bens ativos.",
+      "camposDeLigacao": [
+        {
+          "campo": "id",
+          "formato": "bem_{timestamp}_{rand}"
+        }
+      ]
+    }
+  },
+  "prefixosDeId": {
+    "conta_": {
+      "entidade": "conta",
+      "geradoEm": "web/appliquei-contas.js:criarConta"
+    },
+    "tx_origem_": {
+      "entidade": "transacao",
+      "significado": "perna de caixa de um aporte; sufixo é o operacao.id",
+      "geradoEm": "web/appliquei-renda-fixa.js:909",
+      "consumidoEm": "web/appliquei-patrimonio.js:1198"
+    },
+    "tx_": {
+      "entidade": "transacao",
+      "geradoEm": "web/appliquei-sonhos.js",
+      "onda": 2
+    },
+    "sonho_grp_": {
+      "entidade": "transacao.groupId",
+      "significado": "série de compromissos mensais de um sonho",
+      "onda": 2
+    },
+    "bem_": {
+      "entidade": "bem",
+      "onda": 3
+    },
+    "tx_compromisso_": {
+      "entidade": "transacao",
+      "significado": "parcela de compromisso recorrente; padrão B de aporte (perna única)",
+      "geradoEm": "web/appliquei-previdencia.js:85"
+    },
+    "div_": {
+      "entidade": "transacao",
+      "significado": "dividendo gerado a partir de divKey (ticker+competência); idempotente",
+      "geradoEm": "web/appliquei-aba-dividendos.js:496"
+    },
+    "card_": {
+      "entidade": "cartao",
+      "geradoEm": "web/appliquei-app.js:494"
+    },
+    "aporte_pago_": {
+      "entidade": "sonho.aportes[]",
+      "significado": "aporte criado ao PAGAR o compromisso mensal do sonho no Controle",
+      "geradoEm": "web/appliquei-aba-controle-financeiro.js:1762"
+    },
+    "aporte_compromisso_": {
+      "entidade": "operacao",
+      "significado": "posição criada ao PAGAR a parcela de previdência/reserva",
+      "geradoEm": "web/appliquei-previdencia.js:138"
+    }
+  },
+  "invariantes": [
+    {
+      "id": "INV-01",
+      "titulo": "Todo gasto pago desconta de uma conta identificável",
+      "regra": "Toda transação com pago:true cuja categoria não seja de entrada tem de resolver para uma conta real via resolverContaDeTransacao (contaId válido OU banco que casa por nome/alias). Se resolver para 'a-reconciliar', o dinheiro saiu do total do patrimônio mas não saiu de nenhuma instituição. DUAS ISENÇÕES, ambas restritas a categorias de APORTE: a perna do ativo com temLegCaixa (quem debita é a perna de caixa irmã) e o aporte com origemExterna:true (dinheiro que nunca passou por conta cadastrada — padrão C-sem-perna de INV-03, aplicado à compra de origem 'externo' e às parcelas recorrentes que ela gera). A isenção NÃO vale para despesa: um gasto pago saiu de algum lugar, sempre.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "conta"],
+      "arquivos": [
+        "web/appliquei-contas.js",
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js"
+      ],
+      "simbolos": [
+        "resolverContaDeTransacao",
+        "mpChaveInstTransacao",
+        "obterContaPorNomeOuAlias",
+        "mpCalcularSaldoPorInstituicao",
+        "contaId"
+      ],
+      "sintoma": "\"Gastei e o saldo do banco não mudou\" · aparece um bucket \"A reconciliar\" no Meu Patrimônio · saldo da instituição inflado.",
+      "prova": "test/integracao-inv01-gasto-desconta-conta.test.js",
+      "status": "coberta",
+      "fragilidade": "A isenção por origemExterna é uma marca booleana num campo livre: qualquer produtor que a escreva numa transação que NÃO seja aporte abre um buraco por onde o gasto escapa da trava. Por isso a checagem é `ehAporte(cat) && t.origemExterna`, nunca a flag isolada — e há um teste que prova que despesa com a marca continua sendo acusada."
+    },
+    {
+      "id": "INV-02",
+      "titulo": "Banco é obrigatório nas categorias que movimentam caixa direto",
+      "regra": "Salvar receita, resgate_investimento, despesa_fixa ou despesa_variavel SEM banco tem de ser bloqueado no formulário. controleBancoObrigatorio e controleCategoriaUsaBanco têm de cobrir exatamente o mesmo conjunto — se divergirem, existe categoria que mostra o campo e não o exige (ou o contrário).",
+      "gravidade": "critica",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": [
+        "controleBancoObrigatorio",
+        "controleCategoriaUsaBanco",
+        "executarInsercao",
+        "salvarEdicaoTransacao"
+      ],
+      "sintoma": "Despesa cai no bucket \"Sem banco\" e o saldo da instituição fica inflado.",
+      "historico": "Regressão real já corrigida: antes só receita/resgate eram obrigatórios (ver comentário em aba-controle-financeiro.js:75).",
+      "prova": "test/integracao-inv02-banco-obrigatorio.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-03",
+      "titulo": "Compra de ativo tem duas pernas e só uma debita o caixa",
+      "regra": "registrarOperacaoAtivo grava DUAS transações: a perna do ativo (categoria investimento_fixo|investimento_variavel, temLegCaixa:true, sem contaId) e a perna de caixa (id tx_origem_{operacaoId}, categoria transferencia_saida, com contaId). Ambas com o mesmo valor. A perna do ativo NÃO pode contar no caixa (mpTransacaoComputaCaixa devolve false por causa do temLegCaixa); a perna de caixa é a única que debita. EXISTEM DOIS PADRÕES LEGÍTIMOS (ver `padroes`): o de duas pernas (compra avulsa) e o de perna única (parcela de compromisso recorrente, que debita direto pelo contaId e por isso NÃO leva temLegCaixa). A violação é misturar os dois: aporte sem temLegCaixa que coexiste com uma transferencia_saida do mesmo operacaoId = duplo débito.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "operacao", "conta"],
+      "arquivos": ["web/appliquei-renda-fixa.js", "web/appliquei-patrimonio.js"],
+      "simbolos": [
+        "temLegCaixa",
+        "registrarOperacaoAtivo",
+        "mpTransacaoComputaCaixa",
+        "tx_origem_",
+        "transferencia_saida"
+      ],
+      "sintoma": "Sem a flag: o saldo cai DUAS vezes na mesma compra. Sem a perna de caixa: a compra não desconta de conta nenhuma.",
+      "fragilidade": "temLegCaixa tem UM produtor (renda-fixa.js:906) e UM consumidor (patrimonio.js:288), sem contrato declarado. Qualquer produtor novo de investimento_* que crie perna de caixa sem setar a flag causa duplo-débito silencioso. Agrava: como o padrão B grava investimento_fixo SEM a flag legitimamente, não dá para exigir temLegCaixa em todo aporte — a checagem tem de ser relacional (existe perna de caixa irmã?), nunca por presença da flag isolada.",
+      "prova": "test/integracao-inv03-duas-pernas-aporte.test.js",
+      "status": "coberta",
+      "padroes": {
+        "A-duas-pernas": {
+          "quando": "Compra avulsa via registrarOperacaoAtivo (renda-fixa.js).",
+          "forma": "perna do ativo com temLegCaixa:true e SEM contaId + perna tx_origem_{opId} transferencia_saida COM contaId. Só a segunda debita.",
+          "produtores": ["web/appliquei-renda-fixa.js"]
+        },
+        "B-perna-unica": {
+          "quando": "Parcela de compromisso recorrente (previdência/reserva), gerada por gerarLancamentosFuturosCompromisso.",
+          "forma": "UMA transação investimento_fixo com contaId direto e SEM temLegCaixa. Ela mesma debita quando marcada como paga — não há perna separada.",
+          "produtores": ["web/appliquei-previdencia.js"],
+          "idPrefixo": "tx_compromisso_{operacaoId}_{i}"
+        },
+        "C-sem-perna": {
+          "quando": "Compra com origemRecurso 'retroativo' (posição que já existia antes do app) ou 'externo' (dinheiro que nunca passou por conta cadastrada). Também o \"já guardado\" legado (operacao.saldoInicial), e as PARCELAS recorrentes geradas por um aporte externo.",
+          "forma": "NENHUMA transação para a compra em si: a operação existe só em historicoCompras — entra na carteira e no patrimônio, e não toca o caixa nem o Controle Financeiro. Um investimento_* avulso debitaria o bucket \"A reconciliar\" (INV-01), e com temLegCaixa acusaria perna de caixa faltando (INV-03). EXCEÇÃO: o aporte externo RECORRENTE gera parcelas no Controle (são o lembrete de aportar), e elas carregam origemExterna:true — a marca que as isenta de debitar caixa em mpTransacaoComputaCaixa e de exigir conta em INV-01.",
+          "produtores": ["web/appliquei-renda-fixa.js"],
+          "regraDoProduto": "Operação retroativa não pode impactar o saldo atual das contas. Aporte externo tampouco — mas ele é um aporte de HOJE e se comporta como qualquer origem no resto (recorrência, saldo inicial, rendimento desde a data da operação). Só o retroativo é saldo passado, e por isso é o único marcado com saldoInicial e sem recorrência. Aporte novo por conta segue o padrão A: conta de origem → saída de dinheiro → investimento.",
+          "prova": "test/investimento-retroativo.test.js · test/integracao-inv01-gasto-desconta-conta.test.js"
+        }
+      }
+    },
+    {
+      "id": "INV-04",
+      "titulo": "Nenhuma perna de caixa órfã",
+      "regra": "Toda transação com id tx_origem_{X} tem de ter a operação X em historicoCompras. Apagar uma operação tem de apagar as duas pernas.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "operacao"],
+      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-renda-fixa.js"],
+      "simbolos": ["tx_origem_", "operacaoId", "historicoCompras"],
+      "sintoma": "Débito fantasma: o saldo continua descontado de uma compra que já não existe.",
+      "historico": "Já quebrou. Existe rotina de limpeza em patrimonio.js:1188 removendo tx_origem_* órfãs — a limpeza é o remendo; este teste é a trava.",
+      "prova": "test/integracao-inv04-perna-orfa.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-05",
+      "titulo": "Vocabulário de categorias é fechado e classificado",
+      "regra": "Toda string gravada em transacao.categoria por qualquer produtor tem de constar no vocabularioCategorias deste mapa, e estar classificada em exatamente um grupo (entradaCaixa | aporte | transferenciaSaida | despesaConsumo).",
+      "gravidade": "alta",
+      "entidades": ["transacao"],
+      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "categoria"],
+      "sintoma": "Categoria nova entra como despesa de consumo por omissão: infla o indicador de Despesa, ou some do relatório.",
+      "prova": "test/integracao-inv05-vocabulario-categorias.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-06",
+      "titulo": "Resgate credita a conta de destino",
+      "regra": "Toda transação resgate_investimento tem contaId que resolve para conta existente. O valor creditado é o LÍQUIDO (valor), com o bruto preservado em valorBruto e o imposto em irRetido quando houver retenção na fonte.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-renda-fixa.js", "web/appliquei-patrimonio.js"],
+      "simbolos": ["resgate_investimento", "valorBruto", "irRetido", "contaDestinoId"],
+      "sintoma": "Resgatei e o dinheiro não apareceu em banco nenhum · saldo creditado bruto, ignorando o IR retido.",
+      "prova": "test/integracao-inv06-resgate-credita-destino.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-07",
+      "titulo": "Saldo de abertura entra uma única vez",
+      "regra": "mpCalcularSaldoPorInstituicao soma saldoInicial apenas de contasAtivas(). Conta arquivada ou absorvida numa fusão não pode reintroduzir saldo, e a fusão tem de transferir os aliases para a conta de destino.",
+      "gravidade": "alta",
+      "entidades": ["conta"],
+      "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js"],
+      "simbolos": [
+        "contasAtivas",
+        "mpSaldoInicialConta",
+        "fundirContas",
+        "arquivarConta",
+        "aliases"
+      ],
+      "sintoma": "Patrimônio total sobe sozinho depois de arquivar ou fundir uma conta.",
+      "prova": "test/integracao-inv07-saldo-abertura-unico.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-08",
+      "titulo": "mes/ano é a competência canônica",
+      "regra": "(a) Toda transação tem mes/ano — a competência canônica que toda a filtragem de tela usa. (b) HAVENDO dataVencimento, a competência é a DELE, em qualquer categoria: o painel de Vencimentos filtra por mes/ano e desenha só o DIA, então competência fora do mês do vencimento põe o card no mês errado mostrando um dia que se lê como daquele mês. (c) Sem vencimento informado não há de onde derivar — fica o mês em visão no momento do lançamento. Como (b) vale para toda parcela, uma série recorrente fica automaticamente em passo: não é preciso checar o deslocamento parcela a parcela.",
+      "gravidade": "alta",
+      "entidades": ["transacao"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-patrimonio.js"],
+      "simbolos": [
+        "mes",
+        "ano",
+        "dataVencimento",
+        "competenciaDaData",
+        "mpTimestampTransacao",
+        "calcularResumoMes"
+      ],
+      "sintoma": "\"Editei a data e não corrigiu\" — o lançamento fica no mês errado.",
+      "historico": "Dois bugs reais. O primeiro: a edição gravava dataVencimento sem mexer em mes/ano — \"editei a data e não corrigiu\" (test/edicao-lancamento.test.js). O segundo, encontrado ao montar este mapa: a inserção derivava a competência de visaoMes/visaoAno mesmo havendo vencimento, deixando cada parcela de despesa fixa um mês atrás do próprio vencimento. Corrigido — ver RISCO-03.",
+      "prova": "test/integracao-inv08-competencia-canonica.test.js",
+      "status": "coberta",
+      "fragilidade": "São TRÊS caminhos que gravam competência — executarInsercao, salvarEdicaoTransacao e o recálculo de séries — e eles já divergiram uma vez (RISCO-03). Qualquer caminho novo que grave transação com vencimento tem de derivar a competência dele, nunca do mês em visão."
+    },
+    {
+      "id": "INV-09",
+      "titulo": "Toda chave compartilhada usa prefixo sincronizável",
+      "regra": "Todo dado que precisa atravessar dispositivos vive numa chave com prefixo futurorico_ ou appliquei_. O interceptador de setItem instalado no protótipo de Storage só marca essas como sujas; uma chave fora do prefixo grava local e NUNCA sobe.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "conta", "operacao"],
+      "arquivos": ["web/appliquei-utils.js", "web/appliquei-cloud-sync.js"],
+      "simbolos": ["_ehChaveApp", "_interceptarSetItem", "_storageProto"],
+      "sintoma": "\"Cadastrei no celular e não aparece no PC\".",
+      "historico": "Bug real de plataforma: o interceptador era instalado por atribuição direta e no Safari/iOS não sombreava o método do protótipo. Ver comentário em utils.js:555 e a skill diagnostico-de-persistencia.",
+      "prova": "test/storage-interceptor.test.js",
+      "status": "coberta-parcialmente"
+    },
+    {
+      "id": "INV-10",
+      "titulo": "Compromisso pendente não sobrevive ao sonho",
+      "regra": "Transação com categoria \"sonho\" cujo sonhoId não existe mais E com pago:false é órfã: infla o \"a pagar\" de um sonho que já não existe. Transação PAGA com sonhoId inexistente NÃO é violação — é o histórico que o usuário escolheu manter (ver entidades.sonho.regrasDeExclusao).",
+      "gravidade": "alta",
+      "entidades": ["transacao", "sonho"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": [
+        "sonhoId",
+        "confirmarExcluirSonho",
+        "confirmarExcluirSonhoCompleto",
+        "removerLancamentosFuturosSonho"
+      ],
+      "sintoma": "\"Apaguei o sonho e as parcelas continuam aparecendo no Controle.\"",
+      "fragilidade": "A regra ingênua \"todo sonhoId aponta para um sonho\" está ERRADA e reprovaria o fluxo de manter histórico. O que distingue órfão de histórico é o campo pago.",
+      "prova": "test/integracao-inv10-sonho-compromisso-orfao.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-11",
+      "titulo": "Aporte extra e transação são um par de ligação dupla",
+      "regra": "Todo sonho.aportes[].txId aponta para uma transação existente, e essa transação tem sonhoId de volta para o sonho. Aporte com txId quebrado conta no valorAtual do sonho mas não existe no Controle: o sonho mostra dinheiro guardado que nunca saiu de conta nenhuma.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "sonho"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": ["txId", "aporteExtra", "aportes", "registrarAporteExtra"],
+      "sintoma": "O sonho mostra mais guardado do que o Controle registra · excluir o aporte não some com o lançamento.",
+      "prova": "test/integracao-inv11-aporte-ligacao-dupla.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-12",
+      "titulo": "Migração para sonho gera duas pernas que se anulam no orçamento",
+      "regra": "Aporte extra com origem \"migracao\" grava DUAS transações pagas de mesmo valor: a do aporte (categoria sonho) e a do resgate (categoria resgate_investimento). Sem a segunda, o mês parece ter um gasto novo quando o dinheiro só mudou de lugar.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "sonho"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": ["aporteExtra", "resgate_investimento", "migracao", "origemAtivo"],
+      "sintoma": "\"Migrei um investimento para o sonho e o mês ficou no vermelho.\"",
+      "prova": "test/integracao-inv12-migracao-duas-pernas.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-13",
+      "titulo": "Recalcular o plano do sonho não duplica compromissos",
+      "regra": "Os compromissos mensais de um sonho são únicos por (sonhoId, mes, ano) entre os não-aporteExtra. groupIdControle é estável por sonho para que o recálculo reaproveite a série em vez de criar outra.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "sonho"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": [
+        "groupIdControle",
+        "sonho_grp_",
+        "gerarCompromissosSonho",
+        "recalcularPlanoSonho",
+        "mesesPulados"
+      ],
+      "sintoma": "A mesma parcela do sonho aparece duas vezes no mesmo mês; o \"a pagar\" dobra.",
+      "prova": "test/integracao-inv13-plano-sem-duplicata.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-14",
+      "titulo": "valorAtual do sonho é a soma dos aportes",
+      "regra": "sonho.valorAtual = valorInicial + soma dos aportes extras. Nunca um número solto: se divergir, a barra de progresso mente.",
+      "gravidade": "media",
+      "entidades": ["sonho"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": ["valorAtual", "valorInicial", "aportes", "somaAportesExtras"],
+      "sintoma": "A barra de progresso do sonho não bate com o histórico de aportes.",
+      "prova": "test/integracao-inv14-valor-atual-sonho.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-15",
+      "titulo": "Dividendo é idempotente por (ticker, ano, mês)",
+      "regra": "Todo lançamento de dividendo carrega divKey = {ticker}_{ano}_{mes} e o id div_{divKey}. Rodar lancarDividendosNoCaixa de novo não pode duplicar. divKey duplicado em transacoes = dividendo contado duas vezes no caixa.",
+      "gravidade": "alta",
+      "entidades": ["transacao"],
+      "arquivos": ["web/appliquei-aba-dividendos.js"],
+      "simbolos": ["divKey", "lancarDividendosNoCaixa", "corretoraDoTicker"],
+      "sintoma": "O mesmo dividendo aparece duas vezes; o caixa da corretora infla.",
+      "prova": "test/integracao-inv15-dividendo-idempotente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-16",
+      "titulo": "Pagar compromisso de sonho registra o aporte exatamente uma vez",
+      "regra": "registrarAportePorPagamentoSonho é idempotente por txId: se já existe aporte com aquele txId, não cria outro. O valor do aporte é o valor EFETIVAMENTE pago (que pode ter sido editado no ato do pagamento), não o valor planejado.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "sonho"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-sonhos.js"],
+      "simbolos": [
+        "registrarAportePorPagamentoSonho",
+        "confirmarPagamento",
+        "aporte_pago_",
+        "planoVinculado"
+      ],
+      "sintoma": "Paguei uma parcela e o sonho subiu o dobro · o valor pago editado não bateu com o aporte registrado.",
+      "cadeia": "CADEIA-01",
+      "prova": "test/integracao-inv16-pagamento-sonho-idempotente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-17",
+      "titulo": "Baixa de cartão debita a conta pagadora do cartão",
+      "regra": "Ao pagar uma transação cartao_credito, o contaId da transação passa a ser cartao.contaPagadoraId. E contaPagadoraId é obrigatória no cadastro do cartão — sem ela a fatura paga cairia em \"A reconciliar\".",
+      "gravidade": "critica",
+      "entidades": ["transacao", "cartao", "conta"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-app.js"],
+      "simbolos": ["contaPagadoraId", "obterCartao", "confirmarPagamento", "cartao_credito"],
+      "sintoma": "\"Paguei a fatura e o saldo do banco não mudou.\"",
+      "cadeia": "CADEIA-03",
+      "prova": "test/integracao-inv17-fatura-debita-pagadora.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-18",
+      "titulo": "Pagamento com efeito colateral não é reversível pelo Controle",
+      "regra": "controlePodeReverterPagamento recusa transações com sonhoId ou compromissoId. Reverter um pagamento que já gerou aporte no sonho (ou posição no patrimônio) deixaria o aporte de pé com a transação pendente: o mesmo dinheiro contado duas vezes.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "sonho", "operacao"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": [
+        "controlePodeReverterPagamento",
+        "reverterPagamento",
+        "sonhoId",
+        "compromissoId"
+      ],
+      "sintoma": "Desfiz um pagamento e o sonho continuou com o dinheiro guardado.",
+      "cadeia": "CADEIA-01",
+      "prova": "test/integracao-inv18-reversao-com-efeito.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-19",
+      "titulo": "Patrimônio total = saldo + investido + bens",
+      "regra": "patrimonioTotal = mpCalcularSaldoTotal + valor dos investimentos + soma de valorAtual dos bens ATIVOS. Bem arquivado sai da conta; nenhuma parcela pode ser contada duas vezes nem ficar de fora.",
+      "gravidade": "alta",
+      "entidades": ["bem", "conta", "operacao"],
+      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-bens.js"],
+      "simbolos": [
+        "bensAtivos",
+        "totalBensAtual",
+        "mpCalcularSaldoTotal",
+        "patrimonioTotal",
+        "arquivado"
+      ],
+      "sintoma": "O KPI de patrimônio não bate com a soma das partes mostradas logo abaixo dele.",
+      "prova": "test/integracao-inv19-patrimonio-composicao.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-20",
+      "titulo": "cartaoId aponta para um cartão que existe",
+      "regra": "Toda transação cartao_credito tem cartaoId presente em cartoes. obterCartao faz fallback SILENCIOSO para cartoes[0] quando não acha — então um id quebrado não dá erro: a fatura passa a ser lida como se fosse de outro cartão, com outro vencimento e outra conta pagadora.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "cartao"],
+      "arquivos": ["web/appliquei-app.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": ["obterCartao", "cartaoId", "cartoesAtivos"],
+      "sintoma": "Lançamento aparece na fatura do cartão errado, ou com vencimento que não é o dele.",
+      "cadeia": "CADEIA-03",
+      "prova": "test/integracao-inv20-cartao-existente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-21",
+      "titulo": "Aporte de compromisso é idempotente por geradoDoCompromissoTx",
+      "regra": "registrarAportePorPagamentoCompromisso só cria a posição se nenhuma operação em historicoCompras já tiver geradoDoCompromissoTx igual ao id da transação. O aporte usa a competência da parcela como data, limitada a hoje — posição não pode render no futuro.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "operacao"],
+      "arquivos": ["web/appliquei-previdencia.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": [
+        "registrarAportePorPagamentoCompromisso",
+        "geradoDoCompromissoTx",
+        "compromissoId",
+        "compromissoCategoria"
+      ],
+      "sintoma": "A mesma parcela de previdência virou duas posições no patrimônio · rendimento contado a partir de uma data futura.",
+      "cadeia": "CADEIA-02",
+      "prova": "test/integracao-inv21-compromisso-idempotente.test.js",
+      "status": "coberta"
+    },
+    {
+      "id": "INV-22",
+      "titulo": "Sonho tem conta de origem, e o compromisso a carrega",
+      "regra": "Todo sonho tem contaOrigemId apontando para uma conta existente, e todo compromisso PENDENTE gerado por ele (categoria \"sonho\", não-aporteExtra, pago:false) carrega esse contaId. Trocar a conta do sonho tem de recarimbar os pendentes — nos DOIS caminhos de edição, o direto e o que passa pelo modal de confirmação. Parcela PAGA fica como está: ela debitou a conta que debitou na época, e reescrevê-la moveria dinheiro entre bancos retroativamente. A obrigatoriedade é validada em irParaPreviaSonho e salvarSonho.",
+      "gravidade": "critica",
+      "entidades": ["sonho", "transacao", "conta"],
+      "arquivos": ["web/appliquei-sonhos.js"],
+      "simbolos": [
+        "contaOrigemId",
+        "sonhoContaOrigemValida",
+        "salvarSonho",
+        "irParaPreviaSonho",
+        "gerarLancamentosMensaisSonho",
+        "popularSelectSonhoContaOrigem"
+      ],
+      "sintoma": "\"Paguei a parcela do sonho e o saldo do banco não mudou\" · o valor aparece em \"A reconciliar\" no Meu Patrimônio.",
+      "fragilidade": "Três armadilhas. (1) A categoria \"sonho\" NÃO está em controleBancoObrigatorio — não há rede embaixo. (2) Existem DOIS caminhos de edição de sonho, e só a ordem das ações decide qual roda: o direto e o aplicarEdicaoSonhoComModo (modal, quando já há aportes extras e o valor guardado mudou). Guardar só um deixa o outro aberto. (3) A regra ingênua \"todo compromisso carrega a conta do sonho\" acusa histórico pago legítimo — o campo `pago` é o que separa compromisso de história.",
+      "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle. As duas últimas armadilhas foram achadas pelas SEQUÊNCIAS aleatórias (test/simulacao-sequencias.test.js): editar direto funcionava e editar via modal não, e a própria invariante estava acusando parcela paga.",
+      "prova": "test/integracao-inv22-sonho-conta-origem.test.js",
+      "status": "coberta"
+    }
+  ],
+  "riscosConhecidos": [
+    {
+      "id": "RISCO-01",
+      "titulo": "transacao não tem função de escrita canônica",
+      "descricao": "contas tem salvarContas(); transacoes não tem equivalente. São 29 setItem manuais em 9 arquivos. A sincronização está salva pelo interceptador de protótipo (INV-09), mas não há ponto único onde validar o registro antes de gravar — que é exatamente o que tornaria INV-01, INV-05 e INV-08 impossíveis de violar em vez de apenas testadas.",
+      "recomendacao": "Introduzir salvarTransacoes() no molde de salvarContas(), com validação do registro na entrada. Migração incremental, um produtor por vez.",
+      "decisao": "resolvido",
+      "resolucao": "Criada salvarTransacoes() em appliquei-app.js e migrados os 29 sítios. O que a migração revelou, e que era invisível espalhado: patrimonio.js chamava salvarNaNuvem(), função que NÃO EXISTE no bundle — o guard `typeof === \"function\"` a tornava um no-op silencioso; contas.js e dividendos.js faziam o forceFlush à mão, duplicado; e os outros 25 não davam flush nenhum. O flush NÃO foi uniformizado: forceFlushNow cancela o debounce e vai ao Firestore na hora, então espalhá-lo multiplicaria as escritas. Cada sítio preservou o comportamento que tinha, via a opção `flush`. Trava em test/transacoes-escrita-canonica.test.js.",
+      "pendente": "A validação no ponto de escrita ainda NÃO foi ligada. O validador (scripts/lib/invariantes.js) é CommonJS de Node e não carrega no browser; ligá-lo exigiria portar as checagens para o bundle. O ganho desta etapa é ter o lugar onde isso passa a caber — antes não havia nenhum."
+    },
+    {
+      "id": "RISCO-02",
+      "titulo": "Categoria 'sonho' não exige conta de origem",
+      "descricao": "CONFIRMADO na Onda 2: salvarSonho valida apenas nome e valorTotal. contaOrigemId é lido como `|| null` e vira `contaId: s.contaOrigemId || undefined` nos compromissos (sonhos.js:111, 920, 2192). Um sonho cadastrado sem conta de origem gera compromissos que, ao serem marcados como pagos, debitam \"A reconciliar\" — violando INV-01 pela porta dos fundos, sem passar pela trava de controleBancoObrigatorio (que não cobre a categoria \"sonho\").",
+      "recomendacao": "Duas saídas possíveis: (a) exigir contaOrigemId no cadastro do sonho, como controleBancoObrigatorio faz para despesa; ou (b) incluir \"sonho\" em controleBancoObrigatorio e pedir a conta no momento de pagar a parcela. A (a) é mais cedo e mais simples.",
+      "decisao": "resolvido",
+      "resolucao": "Escolhida a saída (a): exigir a conta no cadastro do sonho, que é mais cedo e mais simples que pedir na hora de pagar, e repete o padrão que o produto já usa em dois lugares — controleBancoObrigatorio (despesa) e contaPagadoraId (cartão). Validado em dois pontos, com sonhoContaOrigemValida: na prévia (passo 1→2) e na gravação. A mensagem distingue os dois casos como o cadastro de cartão já fazia: sem nenhuma conta cadastrada, manda cadastrar em Meu Patrimônio; com contas disponíveis, pede para escolher. Virou INV-22. Sonhos antigos sem conta NÃO foram migrados — o validador os acusa."
+    },
+    {
+      "id": "RISCO-03",
+      "titulo": "Inserção e edição derivam a competência de fontes diferentes",
+      "descricao": "executarInsercao grava mes/ano a partir de visaoMes/visaoAno (o mês em que o usuário estava olhando). salvarEdicaoTransacao grava a partir de competenciaDaData(dataVencimento). Consequência: um lançamento criado em agosto com vencimento em setembro nasce na competência de agosto; se o usuário abrir e salvar a edição sem mudar nada, ele MUDA para setembro. Mesmo registro, competência diferente conforme o caminho.",
+      "recomendacao": "Decidir qual é a regra certa para despesa com vencimento futuro e alinhar os dois caminhos. Hoje o teste INV-08 documenta o comportamento atual sem endossá-lo.",
+      "decisao": "resolvido",
+      "resolucao": "Resolvido pela evidência, não por escolha: o painel de Vencimentos filtra por mes/ano e cada card mostra só o DIA do dataVencimento. Com a competência atrasada, um aluguel registrado em agosto com vencimento em 10/set aparecia no painel de AGOSTO exibindo um \"10\" pelado — e numa despesa fixa recorrente isso se repetia em todas as parcelas, para sempre. executarInsercao passa a derivar a competência de dataVencFinal via competenciaDaData quando há vencimento (o que o branch de cartão já fazia isolado, agora generalizado), caindo para visaoMes/visaoAno só quando não há data. Inserção e edição passam a concordar. Dados antigos NÃO foram migrados: continuam com o deslocamento e o validador os acusa, com a mensagem dizendo que pode ser resíduo de antes da correção."
+    }
+  ],
+  "cadeiasDeEfeito": [
+    {
+      "id": "CADEIA-01",
+      "titulo": "Pagar a parcela do sonho no Controle",
+      "passos": [
+        "confirmarPagamento marca pago:true e grava pagoEm",
+        "registrarAportePorPagamentoSonho cria sonho.aportes[] com txId e soma valorAtual",
+        "se planoVinculado e ainda falta: removerLancamentosFuturosSonho + gerarLancamentosMensaisSonho recalculam a parcela",
+        "o caixa da conta de origem debita (INV-01)"
+      ],
+      "invariantesEnvolvidas": ["INV-01", "INV-11", "INV-13", "INV-14", "INV-16", "INV-18"],
+      "nota": "Três saltos entre três módulos a partir de um clique. É a cadeia mais longa do app: mexer em qualquer elo mexe nos outros dois."
+    },
+    {
+      "id": "CADEIA-02",
+      "titulo": "Pagar a parcela de previdência/reserva no Controle",
+      "passos": [
+        "confirmarPagamento marca pago:true",
+        "registrarAportePorPagamentoCompromisso cria operacao em historicoCompras com geradoDoCompromissoTx",
+        "a posição passa a valer em Patrimônio/Investimentos"
+      ],
+      "invariantesEnvolvidas": ["INV-01", "INV-18", "INV-21"]
+    },
+    {
+      "id": "CADEIA-03",
+      "titulo": "Pagar a fatura do cartão",
+      "passos": [
+        "confirmarPagamento marca pago:true",
+        "copia cartao.contaPagadoraId para transacao.contaId",
+        "o caixa da conta pagadora debita"
+      ],
+      "invariantesEnvolvidas": ["INV-01", "INV-17", "INV-20"]
+    }
+  ]
+}

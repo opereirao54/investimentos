@@ -105,7 +105,8 @@
             --cor-superficie: #edf0ed;
             --cor-texto-principal: #101e13;
             --cor-texto-secundario: #3b5440;
-            --cor-texto-mutado: #7a9480;
+            /* Mesmo defeito no claro: #7a9480 dava 2,87–3,29:1. #546e5b → 4,87:1. */
+            --cor-texto-mutado: #546e5b;
             --cor-borda: #dfe7e0;
             --cor-borda2: #c4d2c7;
 
@@ -129,6 +130,52 @@
             --cor-borda-amber: #fde68a;
             --cor-txt-amber: #92400e;
 
+            /* ===== Tintas de acento =====
+               Um número colorido ("R$ 5.390,00" em vermelho, o aporte em roxo)
+               precisa de DOIS tons: um escuro para o tema claro, um claro para o
+               escuro. O app tinha só o primeiro, cravado como hex em dezenas de
+               `style="color:#7c3aed"` — no tema escuro isso vira roxo-escuro
+               sobre verde-quase-preto, 2,4:1, ilegível.
+
+               Aqui fica o par. A regra: SATURADO (--rm-verde, #10b981…) só
+               preenche — barra, ponto, arco, fatia de gráfico. TINTA escreve.
+               Nenhum texto colorido deve nascer de um hex literal. */
+            --tinta-verde: #047857;
+            --tinta-vermelho: #b91c1c;
+            --tinta-roxo: #6d28d9;
+            --tinta-azul: #0369a1;
+            --tinta-ambar: #9a4a07;
+            --tinta-ciano: #0e7490;
+
+            /* Coluna do mês corrente na DRE. Eram #eff6ff e #d1fae5 cravados no
+               JS: no tema escuro a tabela ganhava duas colunas brancas com
+               número verde-menta por cima (1,7:1). */
+            --dre-destaque: #eff6ff;
+            --dre-destaque-forte: #d1fae5;
+
+            /* Régua do score do Relatório mensal: a faixa INATIVA é um pastel
+               com texto escuro, e pastel não sobrevive à troca de tema. O par
+               tem de morar no :root — dentro de #relatorio_mensal ele venceria
+               o body.dark, que é um ancestral mais distante (propriedade
+               custom herda: quem declara mais perto manda). Fica aqui também
+               porque quem desenha a régua escreve estilo inline e só consegue
+               referenciar a variável. */
+            --rm-faixa-vermelho-bg: #fee2e2; --rm-faixa-vermelho-tinta: #991b1b;
+            --rm-faixa-amarelo-bg: #fef3c7;  --rm-faixa-amarelo-tinta: #92400e;
+            --rm-faixa-verde-bg: #d1fae5;    --rm-faixa-verde-tinta: #065f46;
+            /* Termômetro: o arco de trilho e o cubo do ponteiro eram #eef2f7 e
+               #fff cravados no SVG. No tema escuro sobrava um semicírculo
+               branco atravessando o cartão. */
+            --rm-gauge-trilho: #eef2f7; --rm-gauge-cubo: #ffffff;
+            --rm-gauge-aro: #cbd5e1;    --rm-gauge-agulha: #0f172a;
+
+            /* Rodapé reservado para o "+" flutuante. O botão é `fixed` no canto
+               inferior direito: sem esta reserva, o ÚLTIMO alvo de cada página
+               fica preso embaixo dele — foi assim que o "Excluir" de um ativo
+               virou inclicável. Vale 26px de afastamento + 58px de botão + 16
+               de respiro; o celular tem o seu próprio valor mais abaixo. */
+            --fab-reserva: 100px;
+
             --radius: 14px;
             --radius-sm: 9px;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.05);
@@ -140,13 +187,26 @@
         body.dark {
             --cor-fundo: #0e1611; --cor-branco: #141f16; --cor-superficie: #1a2b1d;
             --cor-texto-principal: #e4f0e7; --cor-texto-secundario: #739e7a;
-            --cor-texto-mutado: #466b4d; --cor-borda: #213029; --cor-borda2: #2c4435;
+            /* #466b4d dava 2,47–3,04:1 contra as superfícies do tema — reprovava AA
+               (4,5) em todo rótulo pequeno, e era 75% das falhas de contraste do
+               app escuro. #6f9a78 leva o pior caso a 4,65:1. */
+            --cor-texto-mutado: #6f9a78; --cor-borda: #213029; --cor-borda2: #2c4435;
             --cor-primaria: #34d399; --cor-primaria-hover: #6ee7b7;
             --cor-info: #60a5fa; --cor-patrimonio: #a78bfa; --cor-erro: #f87171; --cor-cartao: #fbbf24;
             --cor-bg-primaria: #052e1a; --cor-bg-info: #0c1a3a; --cor-bg-erro: #2d0a0a;
             --cor-borda-primaria: #065f3a; --cor-borda-info: #1e3a5f; --cor-borda-erro: #7f1d1d;
             --cor-txt-primaria: #6ee7b7; --cor-txt-info: #93c5fd; --cor-txt-erro: #fca5a5;
             --cor-bg-amber: #2d1a00; --cor-borda-amber: #854f0b; --cor-txt-amber: #fcd34d;
+            /* O outro lado do par: mesma tinta, luminosidade invertida. Pior
+               caso medido é sobre --cor-superficie (#1a2b1d): 7,9:1 a 10,4:1. */
+            --tinta-verde: #6ee7b7; --tinta-vermelho: #fca5a5; --tinta-roxo: #c4b5fd;
+            --tinta-azul: #7dd3fc; --tinta-ambar: #fcd34d; --tinta-ciano: #67e8f9;
+            --rm-faixa-vermelho-bg: #2d0a0a; --rm-faixa-vermelho-tinta: #fca5a5;
+            --rm-faixa-amarelo-bg: #2d1a00;  --rm-faixa-amarelo-tinta: #fcd34d;
+            --rm-faixa-verde-bg: #052e1a;    --rm-faixa-verde-tinta: #6ee7b7;
+            --rm-gauge-trilho: #213029; --rm-gauge-cubo: #1a2b1d;
+            --rm-gauge-aro: #2c4435;    --rm-gauge-agulha: #e4f0e7;
+            --dre-destaque: #10233f; --dre-destaque-forte: #0b3a26;
             --shadow-card: 0 1px 2px rgba(0,0,0,0.15), 0 6px 20px rgba(0,0,0,0.2);
         }
 
@@ -349,7 +409,7 @@
         @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.5;} }
 
         /* === ÁREA PRINCIPAL === */
-        .main-content { flex: 1; padding: 30px 40px; overflow-y: auto; position: relative; }
+        .main-content { flex: 1; padding: 30px 40px calc(30px + var(--fab-reserva)); overflow-y: auto; position: relative; }
         .section { display: none; animation: fadeIn 0.28s ease; max-width: 1200px; margin: 0 auto; }
         .section.ativa { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -780,11 +840,374 @@
         #tabelaSimuladorCorpo tr:nth-child(even) td,
         #tabelaCarteiraCorpo tr:nth-child(even) td { background-color: var(--cor-superficie); }
         #tabelaSimuladorCorpo tr.destaque-juros td { background-color: var(--cor-bg-primaria) !important; font-weight: 700; border-left: 3px solid var(--cor-primaria); }
-        .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--cor-primaria) !important; }
+        .linha-liquida td { background-color: var(--cor-bg-primaria); font-weight: 700; color: var(--tinta-verde) !important; }
         /* Meta DRE (4.1): cor por classe vence o verde-default da linha. */
-        .linha-liquida td.dre-meta-danger { color: var(--cor-erro) !important; }
-        .linha-liquida td.dre-meta-ok { color: var(--cor-primaria) !important; }
+        .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
+        .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
+        /* Investimento acumulado: ESTOQUE embaixo das linhas de FLUXO. A borda
+           dupla no topo marca a virada — dali para baixo não se soma na
+           vertical. */
+        .linha-acumulada td {
+            background-color: var(--cor-bg-info);
+            border-top: 2px solid var(--cor-borda-info);
+            font-weight: 700;
+            color: var(--tinta-azul) !important;
+            font-family: 'DM Mono', monospace;
+        }
+        .linha-acumulada td.coluna-fixa {
+            font-family: 'Figtree', sans-serif;
+            font-weight: 700;
+        }
+        .dre-acum-delta {
+            display: block; font-size: 10px; font-weight: 600;
+            color: var(--tinta-verde); margin-top: 1px;
+        }
+        .dre-acum-delta.neg { color: var(--tinta-vermelho); }
+
+        /* Campo de rentabilidade com unidade — a conversão ao vivo é o que
+           impede o erro de unidade de virar patrimônio de mentira. */
+        /* `#drawerOperacao .form-group select { width: 100% }` é id + 2 classes.
+           O seletor de unidade precisa ser estreito ao lado do campo, então a
+           regra dele carrega o mesmo id e uma classe a mais — sem !important,
+           que só empurraria o problema para a próxima regra. */
+        #drawerOperacao .form-group .taxa-linha,
+        .form-group .taxa-linha { display: flex; gap: 8px; align-items: stretch; }
+        #drawerOperacao .form-group .taxa-linha .input-pct-wrap,
+        .form-group .taxa-linha .input-pct-wrap {
+            position: relative; display: block; flex: 1 1 auto; min-width: 0;
+        }
+        #drawerOperacao .form-group .taxa-linha .input-pct-wrap > input[type="text"],
+        .form-group .taxa-linha .input-pct-wrap > input[type="text"] {
+            width: 100%; padding-right: 30px;
+        }
+        .form-group .taxa-linha .input-pct-wrap::after {
+            content: '%';
+            position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-mutado);
+            pointer-events: none; font-family: 'Figtree', sans-serif;
+        }
+        #drawerOperacao .form-group .taxa-linha .taxa-unidade,
+        .form-group .taxa-linha .taxa-unidade {
+            flex: 0 0 auto; width: auto; min-width: 108px;
+            padding: 10px 11px;
+            border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background-color: var(--cor-branco); color: var(--cor-texto-principal);
+            font-family: 'Figtree', sans-serif; font-size: 13px; cursor: pointer;
+        }
+        .taxa-equivalente {
+            display: none; margin-top: 6px; padding: 7px 10px; border-radius: 9px;
+            font-size: 12px; line-height: 1.45;
+            background: var(--cor-bg-info); color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda-info);
+        }
+        .taxa-equivalente.mostrar { display: block; }
+        .taxa-equivalente strong { color: var(--tinta-azul); }
+        /* Taxa que só pode ser erro de unidade. */
+        .taxa-equivalente.absurda {
+            background: var(--cor-bg-erro); border-color: var(--cor-borda-erro);
+            color: var(--cor-txt-erro);
+        }
+        .taxa-equivalente.absurda strong { color: var(--cor-txt-erro); }
+        .taxa-equivalente.alta {
+            background: var(--cor-bg-amber); border-color: var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        .taxa-equivalente.alta strong { color: var(--cor-txt-amber); }
+
+        /* ============================================================ */
+        /* JORNADA FINANCEIRA — cartões da trilha                       */
+        /* ============================================================ */
+        /* Três estados, e o desenho tem de dizer qual é sem ler: concluído
+           (verde, discreto — já foi), agora (o único com destaque, é para onde
+           a pessoa vai) e bloqueado (apagado, sem convite ao clique). Antes
+           eram oito cartões iguais, todos clicáveis, todos pedindo atenção. */
+        .jor-card {
+            display: flex; flex-direction: column;
+            border-top: 4px solid var(--cor-borda2);
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+        }
+        .jor-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-media); }
+        .jor-card.feito { border-top-color: var(--cor-primaria); }
+        .jor-card.agora {
+            border-top-color: var(--cor-primaria);
+            box-shadow: var(--shadow-media), 0 0 0 2px var(--cor-borda-primaria);
+        }
+        /* Bloqueado não é um botão: sem mão, sem hover, sem elevação. O cartão
+           continua legível — a pessoa vê o que vem pela frente, só não entra. */
+        .jor-card.trancado {
+            cursor: default; opacity: 0.62;
+            border-top-color: var(--cor-borda);
+            background: var(--cor-superficie);
+        }
+        .jor-card.trancado:hover { transform: none; box-shadow: none; }
+        .jor-card.trancado .btn-secundario { cursor: default; }
+
+        .jor-card-topo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .jor-card-topo h3 { font-size: 15px; font-weight: 700; margin: 0; line-height: 1.3; }
+        .jor-card-icone { font-size: 28px; color: var(--cor-texto-secundario); flex-shrink: 0; }
+        .jor-card.feito .jor-card-icone,
+        .jor-card.agora .jor-card-icone { color: var(--tinta-verde); }
+        .jor-card.trancado .jor-card-icone { color: var(--cor-texto-mutado); }
+        .jor-card-desc {
+            font-size: 13px; margin-bottom: 12px; flex: 1; line-height: 1.5;
+            color: var(--cor-texto-secundario);
+        }
+        .jor-data { font-size: 11px; color: var(--cor-texto-mutado); margin-bottom: 8px; }
+        .jor-data strong { color: var(--cor-texto-secundario); }
+
+        .jor-selo {
+            display: inline-flex; align-items: center; gap: 5px; width: fit-content;
+            margin-bottom: 10px; padding: 3px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 700;
+        }
+        /* O verde-marca com texto branco dá 3,77:1 — reprova AA. O tom de hover
+           (mais escuro) leva a 5,48:1 sem mudar a leitura do selo. No tema
+           escuro o fundo é claro e a tinta é que fica escura (regra abaixo). */
+        .jor-selo.ok { background: var(--cor-primaria-hover); color: #fff; }
+        body.dark .jor-selo.ok { background: var(--cor-primaria); }
+        .jor-selo.agora {
+            background: var(--cor-bg-primaria); color: var(--tinta-verde);
+            border: 1px solid var(--cor-borda-primaria);
+        }
+        .jor-selo.trancado {
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px solid var(--cor-borda);
+        }
+        /* Liberado mas não é o próximo da trilha — o caso de quem concluiu
+           fora de ordem antes de a trilha virar sequencial. */
+        .jor-selo.livre {
+            background: var(--cor-bg-info); color: var(--tinta-azul);
+            border: 1px solid var(--cor-borda-info);
+        }
+        body.dark .jor-selo.ok { color: #052e1a; }
+
+        /* ============================================================ */
+        /* JORNADA FINANCEIRA — leitor de módulo                        */
+        /* ============================================================ */
+        /* Uma tipografia de leitura de verdade dentro do app: medida de
+           linha curta, entrelinha larga, e um vocabulário de blocos
+           (ideia, chave, conta, alerta, na-appliquei) que se repete igual
+           nos oito módulos. O conteúdo não escreve estilo — ele escolhe um
+           tipo de bloco, e o estilo mora aqui. */
+
+        .jm-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: rgba(15,23,42,0.55);
+            justify-content: center; align-items: center;
+            backdrop-filter: blur(4px);
+        }
+        .jm-folha {
+            display: flex; flex-direction: column;
+            width: 92%; max-width: 720px; max-height: 90vh; margin: 20px;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-hover);
+            animation: fadeIn 0.2s ease;
+            overflow: hidden;
+        }
+        /* Topo e rodapé ficam presos: com 12 minutos de texto no meio, rolar
+           de volta ao topo para fechar ou concluir é atrito puro. */
+        .jm-topo {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; padding: 18px 22px 14px;
+            border-bottom: 1px solid var(--cor-borda);
+            flex-shrink: 0;
+        }
+        .jm-topo h3 {
+            font-size: 16px; font-weight: 700; margin: 0;
+            font-family: 'Syne', sans-serif; letter-spacing: -0.3px;
+            display: flex; align-items: center; gap: 9px;
+            color: var(--cor-texto-principal); min-width: 0;
+        }
+        .jm-topo h3 i { color: var(--tinta-verde); flex-shrink: 0; }
+        .jm-rolagem { overflow-y: auto; padding: 20px 22px 24px; flex: 1; }
+        .jm-rodape {
+            display: flex; gap: 10px; flex-wrap: wrap;
+            padding: 14px 22px; flex-shrink: 0;
+            border-top: 1px solid var(--cor-borda);
+            background: var(--cor-branco);
+        }
+
+        /* Capa: ícone do módulo, tempo de leitura e a frase que resume tudo. */
+        .jm-capa {
+            display: flex; gap: 14px; align-items: flex-start;
+            padding: 16px 18px; margin-bottom: 16px;
+            border-radius: 14px;
+            background: var(--cor-bg-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+        }
+        .jm-capa-icone {
+            width: 46px; height: 46px; border-radius: 13px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda-primaria);
+        }
+        .jm-capa-icone i { font-size: 24px; color: var(--tinta-verde); }
+        .jm-capa-txt { min-width: 0; }
+        .jm-capa-tempo {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 10.5px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--tinta-verde); margin-bottom: 6px;
+        }
+        .jm-capa-resumo {
+            font-size: 14px; line-height: 1.55; margin: 0;
+            color: var(--cor-texto-principal); font-weight: 600;
+        }
+
+        .jm-objetivos {
+            background: var(--cor-bg-info);
+            border: 1px solid var(--cor-borda-info);
+            border-radius: 12px; padding: 14px 16px; margin-bottom: 22px;
+        }
+
+        /* ---- Tipografia do material ---- */
+        .jm-material { max-width: 62ch; }
+        .jm-material .jm-h {
+            font-family: 'Syne', sans-serif;
+            font-size: 15.5px; font-weight: 700; letter-spacing: -0.2px;
+            color: var(--cor-texto-principal);
+            margin: 26px 0 10px; padding-left: 12px; position: relative;
+        }
+        .jm-material .jm-h::before {
+            content: ''; position: absolute; left: 0; top: 3px; bottom: 3px;
+            width: 3px; border-radius: 3px;
+            background: linear-gradient(180deg, var(--rm-verde, #10b981), var(--cor-primaria));
+        }
+        .jm-material .jm-h:first-child { margin-top: 0; }
+        .jm-material .jm-p {
+            font-size: 14px; line-height: 1.72; margin: 0 0 12px;
+            color: var(--cor-texto-secundario);
+        }
+        .jm-material strong { color: var(--cor-texto-principal); font-weight: 700; }
+        .jm-material .jm-lista,
+        .jm-material .jm-passos {
+            margin: 0 0 14px; padding-left: 20px;
+            font-size: 14px; line-height: 1.68; color: var(--cor-texto-secundario);
+        }
+        .jm-material .jm-lista li,
+        .jm-material .jm-passos li { margin-bottom: 8px; }
+        .jm-material .jm-lista { list-style: none; padding-left: 18px; }
+        .jm-material .jm-lista li { position: relative; }
+        .jm-material .jm-lista li::before {
+            content: ''; position: absolute; left: -14px; top: 9px;
+            width: 5px; height: 5px; border-radius: 50%;
+            background: var(--tinta-verde);
+        }
+        .jm-material .jm-passos li::marker {
+            color: var(--tinta-verde); font-weight: 700;
+        }
+
+        /* A frase que fica do módulo. */
+        .jm-ideia {
+            position: relative; margin: 0 0 22px; padding: 16px 18px 16px 46px;
+            border-radius: 14px;
+            background: var(--cor-superficie);
+            border-left: 3px solid var(--cor-primaria);
+        }
+        .jm-ideia i {
+            position: absolute; left: 16px; top: 16px;
+            font-size: 18px; color: var(--cor-primaria); opacity: .55;
+        }
+        .jm-ideia p {
+            margin: 0; font-family: 'Syne', sans-serif;
+            font-size: 15px; line-height: 1.5; font-weight: 600;
+            letter-spacing: -0.2px; color: var(--cor-texto-principal);
+        }
+
+        /* Definição: termo em destaque, explicação ao lado. */
+        .jm-chave {
+            display: grid; gap: 4px; margin: 0 0 14px;
+            padding: 13px 16px; border-radius: 12px;
+            background: var(--cor-bg-info);
+            border: 1px solid var(--cor-borda-info);
+        }
+        .jm-chave-termo {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.7px; color: var(--tinta-azul);
+        }
+        .jm-chave-texto {
+            font-size: 13.5px; line-height: 1.6; color: var(--cor-texto-secundario);
+        }
+
+        /* Exemplo numérico: rótulo à esquerda, valor monoespaçado à direita. */
+        .jm-conta {
+            margin: 0 0 16px; padding: 14px 16px; border-radius: 12px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+        }
+        .jm-conta-titulo {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.6px; color: var(--cor-texto-mutado); margin-bottom: 10px;
+        }
+        .jm-conta-linha {
+            display: flex; justify-content: space-between; align-items: baseline;
+            gap: 14px; padding: 6px 0;
+            border-bottom: 1px dashed var(--cor-borda);
+            font-size: 13.5px; color: var(--cor-texto-secundario);
+        }
+        .jm-conta-linha:last-child { border-bottom: none; }
+        /* O realce marca a linha de RESULTADO, e quem diz qual é ela é o
+           conteúdo. Colorir a última automaticamente destacava o terceiro
+           cenário de uma comparação como se fosse a resposta. */
+        .jm-conta-linha.destaque .jm-conta-val { color: var(--tinta-verde); font-size: 15px; }
+        .jm-conta-linha.destaque span:first-child { color: var(--cor-texto-principal); font-weight: 600; }
+        .jm-conta-val {
+            font-family: 'DM Mono', monospace; font-weight: 700;
+            color: var(--cor-texto-principal); white-space: nowrap; text-align: right;
+        }
+        .jm-conta-nota {
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--cor-borda);
+            font-size: 12.5px; line-height: 1.55; color: var(--cor-texto-mutado);
+        }
+
+        /* Armadilha comum. */
+        .jm-alerta {
+            display: flex; gap: 11px; margin: 0 0 16px;
+            padding: 13px 16px; border-radius: 12px;
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+        }
+        .jm-alerta > i { font-size: 17px; color: var(--cor-txt-amber); flex-shrink: 0; margin-top: 1px; }
+        .jm-alerta div { display: grid; gap: 3px; min-width: 0; }
+        .jm-alerta strong { font-size: 13px; color: var(--cor-txt-amber); }
+        .jm-alerta span { font-size: 13px; line-height: 1.6; color: var(--cor-txt-amber); }
+
+        /* A ponte com o app — o que este material tem que um livro não tem. */
+        .jm-noapp {
+            display: flex; gap: 11px; margin: 0 0 16px;
+            padding: 13px 16px; border-radius: 12px;
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria);
+        }
+        .jm-noapp > i { font-size: 17px; color: var(--tinta-verde); flex-shrink: 0; margin-top: 1px; }
+        .jm-noapp div { display: grid; gap: 3px; min-width: 0; }
+        .jm-noapp-aba {
+            font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.7px; color: var(--tinta-verde);
+        }
+        .jm-noapp span:last-child {
+            font-size: 13px; line-height: 1.6; color: var(--cor-texto-secundario);
+        }
+
+        .jm-regras {
+            margin: 26px 0 0; padding-top: 14px;
+            border-top: 1px solid var(--cor-borda);
+            font-size: 11.5px; line-height: 1.6; color: var(--cor-texto-mutado);
+        }
+
+        @media (max-width: 620px) {
+            .jm-folha { width: 100%; max-width: none; margin: 0; max-height: 100vh; height: 100%; border-radius: 0; border: none; }
+            .jm-topo { padding: 14px 16px 12px; }
+            .jm-topo h3 { font-size: 15px; }
+            .jm-rolagem { padding: 16px 16px 20px; }
+            .jm-rodape { padding: 12px 16px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
+            .jm-capa { padding: 14px; gap: 11px; }
+            .jm-capa-icone { width: 40px; height: 40px; }
+            .jm-material .jm-h { font-size: 15px; margin-top: 22px; }
+            .jm-conta-linha { flex-direction: column; align-items: flex-start; gap: 2px; }
+            .jm-conta-val { text-align: left; }
+        }
         
         /* === TABELA SIMULADOR — ESTILOS ESPECÍFICOS === */
         .tabela-simulador {
@@ -851,7 +1274,7 @@
         .tag-etf { color: var(--cor-txt-primaria); background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria); }
         .tag-bdr { color: var(--cor-txt-info); background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); }
         .tag-rf { color: var(--cor-texto-mutado); background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
-        .tag-cripto { color: #92400e; background: #fef3c7; border: 1px solid #fcd34d; }
+        .tag-cripto { color: var(--cor-txt-amber); background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); }
         body.tema-escuro .tag-cripto { color: #fcd34d; background: #422006; border-color: #854f0b; }
 
         /* === EXTRATO === */
@@ -870,6 +1293,29 @@
         .extrato-item .desc { font-weight: 600; color: var(--cor-texto-principal); margin-bottom: 3px; display: block; }
         .extrato-item .cat { font-size: 11px; color: var(--cor-texto-mutado); font-weight: 400; }
         .extrato-item .valor { font-weight: 700; font-family: 'DM Mono', monospace; }
+        .ext-cat-wrap {
+            display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 10px;
+            scrollbar-width: none; -ms-overflow-style: none; flex-shrink: 0;
+        }
+        .ext-cat-wrap::-webkit-scrollbar { display: none; }
+        .ext-cat {
+            display: inline-flex; align-items: baseline; gap: 6px; flex: 0 0 auto;
+            padding: 5px 11px; border-radius: 99px; cursor: pointer;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            color: var(--cor-texto-secundario); font-family: inherit;
+            font-size: 11.5px; font-weight: 600; white-space: nowrap;
+            transition: all var(--transicao);
+        }
+        .ext-cat:hover { border-color: var(--cor-borda2); color: var(--cor-texto-principal); }
+        .ext-cat .ext-cat-val {
+            font-family: 'DM Mono', monospace; font-size: 10.5px; font-weight: 700;
+            color: var(--cor-texto-mutado);
+        }
+        .ext-cat.on {
+            background: var(--cor-texto-principal); border-color: var(--cor-texto-principal);
+            color: var(--cor-branco);
+        }
+        .ext-cat.on .ext-cat-val { color: var(--cor-branco); opacity: .8; }
 
         .badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.2px; }
         .badge-mock { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border: 1px solid var(--cor-borda-amber); border-radius: 7px; font-size: 11px; font-weight: 700; cursor: help; }
@@ -997,7 +1443,9 @@
             width: 40px; height: 40px; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
             font-size: 15px; font-weight: 800; font-family: 'DM Mono', monospace;
-            color: white; flex-shrink: 0;
+            /* Padrão. Quem conhece a cor do bloco manda a tinta inline
+               (tintaSobre) — branco sobre #f59e0b é 2,15:1. */
+            color: #fff; flex-shrink: 0;
         }
         .rich-row-info { padding: 0 14px; min-width: 0; }
         .rich-ticker {
@@ -1139,6 +1587,41 @@
         .timeline-line1 .tl-ticker { font-family: 'DM Mono', monospace; font-weight: 700; }
         .timeline-line1 .tl-nome { color: var(--cor-texto-secundario); font-weight: 500; }
         .timeline-line1 .tl-qtd { color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; font-weight: 500; font-size: 12px; }
+        /* Selo de origem: marca a operação que NÃO passou pelo caixa. */
+        .timeline-line1 .tl-selo {
+            font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+            padding: 2px 7px; border-radius: 99px; white-space: nowrap;
+            background: var(--cor-bg-amber); color: var(--cor-txt-amber); border: 1px solid var(--cor-borda-amber);
+        }
+        .timeline-line1 .tl-selo.externo { background: var(--cor-bg-info, var(--cor-bg-primaria)); color: var(--cor-info, var(--cor-primaria)); border-color: var(--cor-borda); }
+
+        /* --- Seletor de dia da recorrência (calendário compacto) --- */
+        .dia-picker-wrap { position: relative; }
+        .dia-picker-btn {
+            width: 100%; display: flex; align-items: center; gap: 8px;
+            padding: 10px 13px; border: 1.5px solid var(--cor-borda); border-radius: 9px;
+            background: var(--cor-superficie); color: var(--cor-texto-principal);
+            font-size: 13px; font-family: inherit; cursor: pointer; text-align: left;
+            transition: border-color .15s ease;
+        }
+        .dia-picker-btn:hover, .dia-picker-btn:focus-visible { border-color: var(--cor-primaria); outline: none; }
+        .dia-picker-btn i { color: var(--cor-texto-mutado); font-size: 16px; }
+        .dia-picker-pop {
+            position: absolute; z-index: 40; top: calc(100% + 6px); left: 0; right: 0; min-width: 244px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(0,0,0,.16); padding: 12px;
+        }
+        .dia-picker-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--cor-texto-mutado); margin-bottom: 9px; }
+        .dia-picker-grade { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+        .dia-picker-grade .dia-chip {
+            padding: 6px 0; border: 1px solid transparent; border-radius: 7px;
+            background: var(--cor-fundo); color: var(--cor-texto-principal);
+            font-size: 12px; font-family: 'DM Mono', monospace; cursor: pointer;
+            transition: background .12s ease, color .12s ease;
+        }
+        .dia-picker-grade .dia-chip:hover { background: var(--cor-bg-primaria); border-color: var(--cor-primaria); }
+        .dia-picker-grade .dia-chip.ativo { background: var(--cor-primaria); color: #fff; border-color: var(--cor-primaria); font-weight: 700; }
+        .dia-picker-nota { display: block; margin-top: 9px; font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.45; }
         .timeline-line2 {
             font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 3px;
             display: flex; align-items: center; gap: 8px;
@@ -1614,7 +2097,7 @@
             .sidebar.collapsed .sidebar-auth-mini .sa-btn::after { content: none !important; }
             /* Botão de recolher da sidebar não faz sentido em mobile */
             .sidebar .sidebar-toggle { display: none; }
-            .main-content { padding: 64px 16px 24px; width: 100%; }
+            .main-content { padding: 64px 16px calc(24px + var(--fab-reserva)); width: 100%; }
             .grid-4, .grid-3, .grid-2, .grid-2-iguais, .grid-cards { grid-template-columns: 1fr; gap: 12px; }
             #painelEvolucaoCarteira { grid-template-columns: 1fr !important; }
         }
@@ -1642,7 +2125,7 @@
             }
         }
         @media (max-width: 480px) {
-            .main-content { padding: 60px 12px 20px; }
+            .main-content { padding: 60px 12px calc(20px + var(--fab-reserva)); }
             h1, .page-header-left h1 { font-size: 16px !important; }
             .tabela-dashboard { font-size: 11.5px; }
             .tabela-dashboard th, .tabela-dashboard td { padding: 7px 8px; }
@@ -1844,7 +2327,10 @@
         .cart-q-opt:hover { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
         .cart-q-opt.selected { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); box-shadow: 0 0 0 3px rgba(5,150,105,0.10); }
         .cart-q-opt .icon { font-size: 22px; line-height: 1; flex-shrink: 0; }
-        .cart-q-opt .body { flex: 1; }
+        /* .title e .sub são <span>: em display inline eles fluem na MESMA linha
+           ("Não aceito perdasQuero previsibilidade total") e o margin-bottom do
+           título é simplesmente ignorado. A coluna aqui é o que separa os dois. */
+        .cart-q-opt .body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
         .cart-q-opt .title { font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 2px; }
         .cart-q-opt .sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.4; }
 
@@ -1999,10 +2485,10 @@
             font-size: 13px; font-weight: 700; color: var(--cor-texto-principal);
         }
         .cart-classe-col-name i { font-size: 16px; }
-        .cart-classe-rf .cart-classe-col-name i     { color: #059669; }
-        .cart-classe-acao .cart-classe-col-name i   { color: #7c3aed; }
-        .cart-classe-fii .cart-classe-col-name i    { color: #d97706; }
-        .cart-classe-cripto .cart-classe-col-name i { color: #f59e0b; }
+        .cart-classe-rf .cart-classe-col-name i     { color: var(--tinta-verde); }
+        .cart-classe-acao .cart-classe-col-name i   { color: var(--tinta-roxo); }
+        .cart-classe-fii .cart-classe-col-name i    { color: var(--tinta-ambar); }
+        .cart-classe-cripto .cart-classe-col-name i { color: var(--tinta-ambar); }
         .cart-classe-col-meta {
             display: flex; justify-content: space-between; align-items: baseline;
             margin-top: 6px;
@@ -2258,7 +2744,16 @@
         .cart-motor-controles {
             display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
         }
-        .cart-motor-lentes { display: flex; gap: 6px; flex-wrap: wrap; }
+        /* Quatro lentes com nome comprido ("Valor & Margem de Segurança")
+           quebravam em quatro linhas no celular — 200px de altura empurrando a
+           carteira para baixo. Trilho de uma linha que rola no dedo. */
+        .cart-motor-lentes {
+            display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;
+            scrollbar-width: none; -ms-overflow-style: none; max-width: 100%;
+        }
+        .cart-motor-lentes::-webkit-scrollbar { display: none; }
+        .cart-motor-lentes > * { flex: 0 0 auto; }
+        @media (min-width: 921px) { .cart-motor-lentes { flex-wrap: wrap; overflow-x: visible; } }
         .cart-motor-lente-btn {
             padding: 7px 13px; border-radius: 999px; cursor: pointer;
             border: 1px solid var(--cor-borda); background: var(--cor-branco);
@@ -2308,7 +2803,7 @@
             margin-left: auto; font-size: 10px; color: var(--cor-texto-mutado);
             display: inline-flex; align-items: center; gap: 4px;
         }
-        .cart-indicadores-fonte i { font-size: 12px; color: #059669; }
+        .cart-indicadores-fonte i { font-size: 12px; color: var(--tinta-verde); }
         .cart-motor-sub {
             display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
             font-size: 14px; font-weight: 700; font-family: 'Syne', sans-serif;
@@ -2364,7 +2859,21 @@
             display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;
             margin-bottom: 16px;
         }
-        @media (max-width: 620px) { .cart-plano-resumo { grid-template-columns: 1fr; } }
+        /* Empilhados um por linha, os três números do plano gastavam 3 cartões
+           de altura inteira logo no começo da carteira. Lado a lado eles cabem
+           — são números curtos. */
+        @media (max-width: 620px) {
+            /* Duas colunas, não três: "R$ 10.000,00" em monoespaçada não cabe
+               num terço de 390px — ficava cortado no meio do número. Os dois
+               que importam (quanto entra e quanto foi distribuído) ficam lado a
+               lado; o terceiro, que só interessa quando sobra ou retém, ocupa a
+               linha inteira embaixo. */
+            .cart-plano-resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .cart-plano-resumo > div { padding: 10px 12px; }
+            .cart-plano-resumo > div:nth-child(3) { grid-column: 1 / -1; }
+            .cart-plano-resumo .lbl { font-size: 9.5px; letter-spacing: .3px; }
+            .cart-plano-resumo .val { font-size: 15px; letter-spacing: -0.5px; }
+        }
         .cart-plano-resumo > div {
             background: var(--cor-branco); border: 1px solid var(--cor-borda);
             border-radius: var(--radius); padding: 13px 16px;
@@ -2494,8 +3003,8 @@
             display: inline-block; margin-left: 4px; padding: 2px 7px; border-radius: 999px;
             font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
         }
-        .cart-score-conf.conf-alta  { background: rgba(5,150,105,0.12); color: #047857; }
-        .cart-score-conf.conf-media { background: rgba(217,119,6,0.12); color: #b45309; }
+        .cart-score-conf.conf-alta  { background: rgba(5,150,105,0.12); color: var(--tinta-verde); }
+        .cart-score-conf.conf-media { background: rgba(217,119,6,0.12); color: var(--tinta-ambar); }
         .cart-score-conf.conf-baixa { background: rgba(107,114,128,0.14); color: #4b5563; }
         .cart-score-alertas {
             list-style: none; padding: 0; margin: 0;
@@ -2505,7 +3014,7 @@
             font-size: 10.5px; color: var(--cor-texto-mutado); line-height: 1.45;
             display: flex; align-items: flex-start; gap: 5px;
         }
-        .cart-score-alertas i { color: #d97706; font-size: 12px; flex-shrink: 0; margin-top: 1px; }
+        .cart-score-alertas i { color: var(--tinta-ambar); font-size: 12px; flex-shrink: 0; margin-top: 1px; }
 
         /* Ativo sem lastro: a ausência de score é a informação, não um score baixo */
         .cart-score-card.sem-dado { border-style: dashed; background: var(--cor-superficie); }
@@ -2551,9 +3060,9 @@
             font-size: 10px; color: var(--cor-texto-mutado);
             display: flex; align-items: center; gap: 5px; line-height: 1.4;
         }
-        .cart-score-fonte i { font-size: 12px; color: #059669; flex-shrink: 0; }
-        .cart-score-fonte.vencido { color: #b45309; }
-        .cart-score-fonte.vencido i { color: #d97706; }
+        .cart-score-fonte i { font-size: 12px; color: var(--tinta-verde); flex-shrink: 0; }
+        .cart-score-fonte.vencido { color: var(--tinta-ambar); }
+        .cart-score-fonte.vencido i { color: var(--tinta-ambar); }
 
 
         /* ═══════════════════════════════════════════════════════════
@@ -3464,26 +3973,101 @@
             font-size: 12.5px;
             border-radius: 10px;
         }
+        /* A descrição do perfil é reforço, não informação nova: o usuário
+           acabou de responder o questionário. Aberta, comia meia tela de
+           celular acima da carteira. Vira um resumo de duas linhas que abre
+           ao toque. */
         #carteira .cart-perfil-msg {
-            font-size: 14px;
+            font-size: 13.5px;
             color: var(--cor-texto-secundario);
-            line-height: 1.6;
-            margin-top: 14px;
-            padding: 14px 16px;
+            line-height: 1.55;
+            margin-top: 12px;
+            padding: 12px 14px;
             border-top: none;
             background: var(--cor-bg-info);
             border-radius: 12px;
             border-left: 3px solid var(--cor-info);
+            width: 100%;
+            cursor: pointer;
+        }
+        /* No monitor o parágrafo cabe em duas linhas e não precisa recolher —
+           o rótulo ali seria só ruído. O corte vale para as telas em que ele
+           de fato estoura. E o corte acontece NO TEXTO, num filho próprio:
+           recolher o container inteiro punha o rótulo por cima da última
+           linha cortada. */
+        #carteira .cart-perfil-msg-mais { display: none; }
+        @media (max-width: 920px) {
+            #carteira .cart-perfil-msg-txt {
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            #carteira .cart-perfil-msg.aberta .cart-perfil-msg-txt { display: block; }
+            #carteira .cart-perfil-msg-mais {
+                display: block; margin-top: 7px;
+                font-size: 11px; font-weight: 700; letter-spacing: .3px;
+                text-transform: uppercase; color: var(--tinta-azul);
+            }
+            #carteira .cart-perfil-msg-mais::before { content: 'toque para ler'; }
+            #carteira .cart-perfil-msg.aberta .cart-perfil-msg-mais::before { content: 'recolher'; }
         }
 
-        /* Hero (educational + donut) — premium */
+        /* Cabeçalho de perfil no celular: os três chips empilhavam um por linha
+           e o cartão sozinho comia 380px antes da carteira. Aqui eles ficam na
+           mesma faixa, com o "Editar" recuado ao canto. */
+        @media (max-width: 620px) {
+            #carteira .cart-perfil-header {
+                padding: 14px 16px;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            #carteira .cart-perfil-info { gap: 8px; flex: 1; min-width: 0; }
+            #carteira .cart-perfil-badge { padding: 7px 13px; font-size: 13px; }
+            #carteira .cart-perfil-badge i { font-size: 15px; }
+            #carteira .cart-capital-chip { padding: 6px 11px; font-size: 12.5px; }
+            #carteira .cart-btn-mini { padding: 6px 10px; font-size: 11.5px; }
+            /* Só o ícone: "Editar perfil ou capital" sozinho ocupava uma linha.
+               Vale para ESTE botão — o de atualizar tem rótulo próprio, que
+               diz de quando é o dado e precisa continuar visível. */
+            #carteira .cart-perfil-header .cart-btn-mini span.cart-btn-mini-rotulo { display: none; }
+        }
+
+        /* Painel educativo recolhido — o material de apoio no fim da página. */
+        #carteira .cart-edu-details {
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--cart-radius, 16px);
+            box-shadow: var(--shadow-card);
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        #carteira .cart-edu-details > summary {
+            display: flex; align-items: center; gap: 10px;
+            padding: 16px 18px; cursor: pointer;
+            font-size: 14px; font-weight: 700;
+            font-family: 'Figtree', sans-serif;
+            color: var(--cor-texto-principal);
+            list-style: none;
+        }
+        #carteira .cart-edu-details > summary::-webkit-details-marker { display: none; }
+        #carteira .cart-edu-details > summary > i:first-child {
+            font-size: 16px; color: var(--tinta-verde);
+        }
+        #carteira .cart-edu-details > summary > span { flex: 1; }
+        #carteira .cart-edu-seta {
+            font-size: 14px; color: var(--cor-texto-mutado);
+            transition: transform var(--transicao);
+        }
+        #carteira .cart-edu-details[open] .cart-edu-seta { transform: rotate(180deg); }
+        #carteira .cart-edu-details > #cartEduList { padding: 0 18px 16px; }
+
+        /* Hero — só a distribuição por classe mora aqui desde que o painel
+           educativo virou um bloco recolhido no fim da página. */
         #carteira .cart-hero {
-            grid-template-columns: 1fr 1.15fr;
+            grid-template-columns: 1fr;
             gap: 16px;
             margin-bottom: 16px;
-        }
-        @media (max-width: 980px) {
-            #carteira .cart-hero { grid-template-columns: 1fr; }
         }
         #carteira .cart-edu-panel,
         #carteira .cart-donut-card {
@@ -4259,9 +4843,9 @@
             font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
             padding: 3px 8px; border-radius: 99px; margin-left: 8px;
         }
-        .sonho-status-badge.st-agendado { background: rgba(124,58,237,0.12); color: #6d28d9; border: 1px solid rgba(124,58,237,0.3); }
-        .sonho-status-badge.st-conquistado { background: rgba(16,185,129,0.18); color: #065f46; border: 1px solid rgba(16,185,129,0.4); }
-        .sonho-status-badge.st-vencido { background: rgba(239,68,68,0.12); color: #b91c1c; border: 1px solid rgba(239,68,68,0.3); }
+        .sonho-status-badge.st-agendado { background: rgba(124,58,237,0.12); color: var(--tinta-roxo); border: 1px solid rgba(124,58,237,0.3); }
+        .sonho-status-badge.st-conquistado { background: rgba(16,185,129,0.18); color: var(--tinta-verde); border: 1px solid rgba(16,185,129,0.4); }
+        .sonho-status-badge.st-vencido { background: rgba(239,68,68,0.12); color: var(--tinta-vermelho); border: 1px solid rgba(239,68,68,0.3); }
         .sonho-agendado-banner {
             display: flex; align-items: center; gap: 10px;
             padding: 10px 14px; margin: 0 20px 12px;
@@ -4269,7 +4853,7 @@
             background: linear-gradient(135deg, rgba(139,92,246,0.06), rgba(124,58,237,0.04));
             font-size: 12.5px; color: #6d28d9; font-weight: 600;
         }
-        .sonho-agendado-banner i { font-size: 18px; color: #7c3aed; }
+        .sonho-agendado-banner i { font-size: 18px; color: var(--tinta-roxo); }
 
         /* Timeline de aportes */
         .aportes-timeline {
@@ -4283,7 +4867,7 @@
             font-size: 11px; font-weight: 700; text-transform: uppercase;
             letter-spacing: 0.5px; color: var(--cor-texto-mutado);
         }
-        .aportes-timeline-head i { color: #7c3aed; }
+        .aportes-timeline-head i { color: var(--tinta-roxo); }
         .aportes-timeline-list { padding: 8px 14px; max-height: 280px; overflow-y: auto; }
         .aporte-item {
             display: flex; align-items: center; gap: 12px; padding: 10px 0;
@@ -4313,10 +4897,10 @@
             font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px;
             padding: 2px 7px; border-radius: 99px;
         }
-        .aporte-tipo-tag.t-inicial { background: rgba(124,58,237,0.12); color: #6d28d9; }
-        .aporte-tipo-tag.t-esporadico { background: rgba(16,185,129,0.12); color: #047857; }
-        .aporte-tipo-tag.t-migracao { background: rgba(14,165,233,0.12); color: #0369a1; }
-        .aporte-tipo-tag.t-mensal { background: rgba(245,158,11,0.12); color: #b45309; }
+        .aporte-tipo-tag.t-inicial { background: rgba(124,58,237,0.12); color: var(--tinta-roxo); }
+        .aporte-tipo-tag.t-esporadico { background: rgba(16,185,129,0.12); color: var(--tinta-verde); }
+        .aporte-tipo-tag.t-migracao { background: rgba(14,165,233,0.12); color: var(--tinta-azul); }
+        .aporte-tipo-tag.t-mensal { background: rgba(245,158,11,0.12); color: var(--tinta-ambar); }
         .aporte-tipo-tag.t-aporte { background: var(--cor-superficie); color: var(--cor-texto-mutado); }
         .aporte-meta {
             font-size: 11px; color: var(--cor-texto-mutado); margin-top: 2px;
@@ -4666,7 +5250,7 @@
         .apc-hero-eyebrow {
             display: inline-flex; align-items: center; gap: 6px;
             font-size: 11px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase;
-            color: var(--cor-primaria);
+            color: var(--tinta-verde);
             padding: 4px 10px; border-radius: 999px;
             background: var(--cor-bg-primaria);
             border: 1px solid var(--cor-borda-primaria);
@@ -5016,7 +5600,7 @@
            Mobile pequeno (<= 480px) — iPhone SE, Android compact
            ============================================================ */
         @media (max-width: 480px) {
-            .main-content { padding: 60px 12px 24px !important; }
+            .main-content { padding: 60px 12px calc(24px + var(--fab-reserva)) !important; }
             .page-header-left h1 { font-size: 17px !important; }
             .hero-evolucao { padding: 14px 12px 12px; }
             .hero-header h3 { font-size: 13.5px; }
@@ -5103,7 +5687,7 @@
            Micro mobile (<= 360px) — Galaxy Fold fechado, telas antigas
            ============================================================ */
         @media (max-width: 360px) {
-            .main-content { padding: 58px 10px 20px !important; }
+            .main-content { padding: 58px 10px calc(20px + var(--fab-reserva)) !important; }
             .page-header-left h1 { font-size: 16px !important; }
             .kpi-value-big { font-size: 20px; }
             .card-destaque .valor { font-size: 17px; }
@@ -5121,8 +5705,99 @@
         /* Default (estado fora dos breakpoints): tudo escondido */
         .painel-novo-lancamento-grab { display: none; }
         .painel-mobile-close { display: none; }
-        #fabNovoLancamento { display: none; }
         #painelLancamentoBackdrop { display: none; }
+
+        /* ============================================================ */
+        /* BOTÃO GLOBAL DE CADASTRO                                     */
+        /* ============================================================ */
+        /* Era um FAB só do celular e só da aba Controle: para lançar uma
+           despesa estando em Meus sonhos, a pessoa precisava navegar até o
+           Controle primeiro, e no PC o botão não existia. Agora ele acompanha
+           todas as abas nos dois tamanhos de tela, e pergunta ONDE cadastrar —
+           as duas coisas que se lança no dia a dia são um movimento do mês e
+           um aporte.
+
+           Some quando o painel/drawer que ele abriria já está aberto: um "+"
+           por cima do formulário que ele mesmo abriu não tem o que fazer. */
+        #fabNovoLancamento {
+            display: flex;
+            position: fixed;
+            bottom: 26px; right: 26px;
+            width: 58px; height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover));
+            color: #fff;
+            border: none;
+            box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
+            z-index: 9993;
+            font-size: 25px;
+            cursor: pointer;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.18s ease, opacity 0.18s ease;
+        }
+        /* Enquanto a lista corre, o "+" sai da frente.
+           A reserva do rodapé resolve o alvo PRESO embaixo dele; esta regra
+           resolve o resto: é rolando que a pessoa procura a linha para editar
+           ou excluir, e é exatamente aí que um círculo opaco no canto atrapalha.
+           Sumindo durante a rolagem, qualquer alvo coberto fica a um toque de
+           distância — basta o menor movimento na lista. */
+        body.fab-rolando #fabNovoLancamento {
+            opacity: 0;
+            transform: translateY(14px) scale(0.9);
+            pointer-events: none;
+        }
+        #fabNovoLancamento:hover { box-shadow: 0 12px 30px rgba(5,150,105,0.5), 0 2px 6px rgba(0,0,0,0.18); }
+        #fabNovoLancamento:active { transform: scale(0.92); }
+        #fabNovoLancamento i { transition: transform 0.2s cubic-bezier(.34,1.56,.64,1); }
+        /* Aberto, o "+" vira "×" girando — mesma affordance de fechar. */
+        body.fab-aberto #fabNovoLancamento i { transform: rotate(135deg); }
+        body.painel-lancamento-aberto #fabNovoLancamento,
+        body.drawer-operacao-aberto #fabNovoLancamento { display: none; }
+
+        #fabMenu {
+            position: fixed;
+            bottom: 96px; right: 26px;
+            z-index: 9994;
+            display: flex; flex-direction: column; gap: 8px;
+            width: min(272px, calc(100vw - 32px));
+        }
+        #fabMenu[hidden] { display: none; }
+        .fab-opcao {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 15px; border-radius: 14px; cursor: pointer; text-align: left;
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            box-shadow: var(--shadow-hover);
+            font-family: inherit; color: var(--cor-texto-principal);
+            animation: fabSobe 0.18s cubic-bezier(.34,1.4,.64,1) backwards;
+        }
+        .fab-opcao:nth-child(2) { animation-delay: 0.04s; }
+        .fab-opcao:hover { border-color: var(--cor-borda-primaria); transform: translateX(-2px); }
+        /* O menu foca o primeiro item ao abrir (teclado). O anel padrão do
+           navegador é uma barra preta grossa; este diz a mesma coisa sem
+           gritar em cima do cartão. */
+        .fab-opcao:focus { outline: none; }
+        .fab-opcao:focus-visible,
+        #fabMenu:not([hidden]) .fab-opcao:focus {
+            border-color: var(--cor-primaria);
+            box-shadow: var(--shadow-hover), 0 0 0 3px rgba(5,150,105,0.22);
+        }
+        @keyframes fabSobe { from { opacity: 0; transform: translateY(10px); } }
+        .fab-opcao-icone {
+            width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .fab-opcao-icone.lanc { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+        .fab-opcao-icone.inv { background: var(--cor-bg-info); color: var(--tinta-azul); }
+        .fab-opcao-txt { display: grid; gap: 2px; min-width: 0; }
+        .fab-opcao-titulo { font-size: 13.5px; font-weight: 700; }
+        .fab-opcao-sub { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.35; }
+        #fabBackdrop {
+            position: fixed; inset: 0; z-index: 9992;
+            background: rgba(15,23,42,0.28); backdrop-filter: blur(2px);
+        }
+        #fabBackdrop[hidden] { display: none; }
 
         /* ============================================================
            Painel "Novo lançamento" como DRAWER no desktop (>=769px)
@@ -5320,27 +5995,11 @@
             }
             .painel-mobile-close:active { transform: scale(0.95); }
 
-            /* FAB visível apenas quando a aba Controle está ativa e o drawer está fechado */
-            #fabNovoLancamento {
-                display: none;
-                position: fixed;
-                bottom: 22px; right: 18px;
-                width: 56px; height: 56px;
-                border-radius: 50%;
-                background: var(--cor-primaria);
-                color: #fff;
-                border: none;
-                box-shadow: 0 8px 24px rgba(5,150,105,0.45), 0 2px 6px rgba(0,0,0,0.15);
-                z-index: 9993;
-                font-size: 24px;
-                cursor: pointer;
-                align-items: center;
-                justify-content: center;
-                transition: transform 0.18s ease, box-shadow 0.18s ease;
-            }
-            #fabNovoLancamento:active { transform: scale(0.92); }
-            body.controle-ativo #fabNovoLancamento { display: flex; }
-            body.painel-lancamento-aberto #fabNovoLancamento { display: none; }
+            /* No celular o botão fica um pouco menor e mais colado à borda. */
+            /* 20 de afastamento + 54 de botão + 14 de respiro. */
+            :root { --fab-reserva: 88px; }
+            #fabNovoLancamento { width: 54px; height: 54px; bottom: 20px; right: 16px; }
+            #fabMenu { bottom: 84px; right: 16px; }
 
             /* Backdrop do drawer */
             #painelLancamentoBackdrop {
@@ -5491,9 +6150,9 @@
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
         .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); transition: color .2s; }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
-        .mp-kpi-delta.pos { color: var(--cor-primaria); }
-        .mp-kpi-delta.neg { color: var(--cor-erro); }
-        .mp-kpi-delta.neu { color: var(--cor-texto-mutado); }
+        .mp-kpi-delta.pos { color: var(--tinta-verde); }
+        .mp-kpi-delta.neg { color: var(--tinta-vermelho); }
+        .mp-kpi-delta.neu { color: var(--cor-texto-secundario); }
         .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
         .mp-kpi-sub i { font-size:12px; opacity:.8; }
         .mp-composition-bar {
@@ -5922,7 +6581,7 @@
             #relatorio_mensal .rm-hero-gauge { max-width: 260px; }
         }
         #relatorio_mensal .rm-criterio {
-            background: #fff;
+            background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: 14px;
             padding: 14px 14px 12px;
@@ -5936,10 +6595,14 @@
             content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
             background: var(--rm-crit-cor, var(--cor-texto-mutado));
         }
-        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
-        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-bg: rgba(245,158,11,0.08); }
-        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
-        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;           --rm-crit-bg: rgba(148,163,184,0.06); }
+        /* Duas variáveis por status: --rm-crit-cor pinta o traço lateral e o
+           ícone (é um bloco de cor, saturado é o certo); --rm-crit-tinta
+           escreve o selo "OK/FORA" sobre o fundo translúcido. Usar a saturada
+           nos dois dava 4,25:1 no selo vermelho do tema escuro. */
+        #relatorio_mensal .rm-criterio[data-status="verde"]    { --rm-crit-cor: var(--rm-verde);    --rm-crit-tinta: var(--tinta-verde);    --rm-crit-bg: rgba(16,185,129,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="amarelo"]  { --rm-crit-cor: var(--rm-amarelo);  --rm-crit-tinta: var(--tinta-ambar);    --rm-crit-bg: rgba(245,158,11,0.08); }
+        #relatorio_mensal .rm-criterio[data-status="vermelho"] { --rm-crit-cor: var(--rm-vermelho); --rm-crit-tinta: var(--tinta-vermelho); --rm-crit-bg: rgba(239,68,68,0.07); }
+        #relatorio_mensal .rm-criterio[data-status="cinza"]    { --rm-crit-cor: #94a3b8;            --rm-crit-tinta: var(--cor-texto-secundario); --rm-crit-bg: rgba(148,163,184,0.06); }
         #relatorio_mensal .rm-criterio-top {
             display: flex; align-items: center; justify-content: space-between;
             margin-bottom: 8px;
@@ -5960,7 +6623,7 @@
             padding: 3px 8px;
             border-radius: 99px;
             background: var(--rm-crit-bg);
-            color: var(--rm-crit-cor);
+            color: var(--rm-crit-tinta, var(--rm-crit-cor));
         }
         #relatorio_mensal .rm-criterio-label {
             font-size: 11px;
@@ -6112,9 +6775,9 @@
             font-family: 'DM Mono', monospace;
         }
         #relatorio_mensal .rm-chart-pill.neg {
-            background: #fef2f2;
-            color: #991b1b;
-            border-color: #fecaca;
+            background: var(--cor-bg-erro);
+            color: var(--cor-txt-erro);
+            border-color: var(--cor-borda-erro);
         }
 
         /* Dual grid (donut + patrimônio) */
@@ -6333,16 +6996,16 @@
             padding: 4px 9px;
             border-radius: 99px;
         }
-        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: #047857; }
-        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: #b45309; }
-        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: #b91c1c; }
+        #relatorio_mensal .rm-sec-tag.ok { background: rgba(16,185,129,0.1); color: var(--tinta-verde); }
+        #relatorio_mensal .rm-sec-tag.warn { background: rgba(245,158,11,0.12); color: var(--tinta-ambar); }
+        #relatorio_mensal .rm-sec-tag.bad { background: rgba(239,68,68,0.10); color: var(--tinta-vermelho); }
 
         /* Sparkline backgrounds nos KPIs */
-        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: #047857; --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: #b91c1c; --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: #6d28d9; --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: #0369a1; --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
-        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: #b45309; --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="entradas"]      { --rm-kpi-cor: var(--tinta-verde); --rm-kpi-bg: rgba(16,185,129,0.10); --rm-kpi-stroke: #10b981; --rm-kpi-fill-from: rgba(16,185,129,0.25); --rm-kpi-fill-to: rgba(16,185,129,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="despesas"]      { --rm-kpi-cor: var(--tinta-vermelho); --rm-kpi-bg: rgba(239,68,68,0.08);  --rm-kpi-stroke: #ef4444; --rm-kpi-fill-from: rgba(239,68,68,0.22);  --rm-kpi-fill-to: rgba(239,68,68,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: var(--tinta-roxo); --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: var(--tinta-azul); --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
+        #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: var(--tinta-ambar); --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -6562,9 +7225,932 @@
             width: 4px; height: 16px; border-radius: 3px;
             background: linear-gradient(180deg, #10b981, #059669);
         }
+        /* ==========================================================
+           ABA "MEUS INVESTIMENTOS" — sistema visual próprio (inv-*)
+           ==========================================================
+           Direção: sereno, preciso, íntimo.
+           · SERENO   — dinheiro dá ansiedade; a tela não grita. Menos caixa,
+                        menos borda, menos ícone colorido. Só o saldo tem peso.
+           · PRECISO  — números em DM Mono com tabular-nums e tracking negativo;
+                        centavos rebaixados. Sensação de instrumento.
+           · ÍNTIMO   — o patrimônio é DELE: escala generosa no que é dele,
+                        o resto recua.
+
+           Três regras que separam isto de "card branco de template":
+           1. Borda OU sombra, nunca as duas. Profundidade é camada, não moldura.
+           2. Ícone colorido só onde há ação ou estado. Título de seção é texto.
+           3. Densidade variável: o saldo respira, a lista é densa, o filtro é
+              compacto. Padding igual em tudo é o que faz parecer Bootstrap.
+
+           Acessibilidade: --cor-texto-mutado dá 3.29:1 no claro e 2.80:1 no
+           escuro — REPROVA em AA para texto normal. Aqui ele é decorativo
+           apenas; todo rótulo pequeno usa --cor-texto-secundario (8.31:1 /
+           5.58:1). Esta aba não usa mutado para texto legível.
+        */
+        #patrimonio {
+            --inv-r-lg: 18px;   /* blocos grandes — mais "app", menos "caixa" */
+            --inv-r-md: 12px;   /* controles */
+            --inv-r-sm: 8px;
+            --inv-gap: 12px;
+            --inv-recuo: var(--cor-superficie);
+            --inv-hairline: var(--cor-borda);
+            --inv-num: 'DM Mono', ui-monospace, monospace;
+        }
+        #patrimonio .inv-num {
+            font-family: var(--inv-num);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: -0.02em;
+        }
+        /* Rótulo de seção: texto, não título com ícone verde. */
+        #patrimonio .inv-eyebrow {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- HERO: o único ponto focal da tela ---------- */
+        #patrimonio .inv-hero {
+            position: relative; overflow: hidden;
+            border-radius: var(--inv-r-lg);
+            padding: 18px 16px 14px;
+            margin-bottom: 14px;
+            background:
+                radial-gradient(120% 140% at 100% 0%, var(--cor-bg-primaria) 0%, transparent 62%),
+                var(--cor-branco);
+            box-shadow: var(--shadow-card);   /* sombra, SEM borda */
+        }
+        #patrimonio .inv-hero-top {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 10px; margin-bottom: 10px;
+        }
+        #patrimonio .inv-hero-acoes { display: flex; align-items: center; gap: 8px; }
+        /* Selo "preços estimados": o JS alterna entre none e inline-flex. */
+        #patrimonio .inv-flag {
+            align-items: center; gap: 5px; padding: 4px 9px; border-radius: 99px;
+            font-size: 11px; font-weight: 700; white-space: nowrap;
+            background: var(--cor-bg-amber); color: var(--cor-txt-amber);
+            border: 1px solid var(--cor-borda-amber);
+        }
+        #patrimonio .inv-btn-add {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            height: 38px; padding: 0 14px; border: none; border-radius: 99px;
+            background: var(--cor-primaria); color: #fff; cursor: pointer;
+            font-family: inherit; font-size: 13px; font-weight: 700;
+            transition: background var(--transicao), transform var(--transicao);
+        }
+        #patrimonio .inv-btn-add:hover { background: var(--cor-primaria-hover); }
+        #patrimonio .inv-btn-add:active { transform: scale(0.97); }
+        #patrimonio .inv-btn-add i { font-size: 15px; }
+
+        /* O saldo. Centavos rebaixados via .inv-cents, injetado pelo render. */
+        #patrimonio .inv-saldo {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: clamp(30px, 9vw, 40px); font-weight: 500;
+            letter-spacing: -0.035em; line-height: 1.05;
+            color: var(--cor-texto-principal);
+            margin: 2px 0 8px; word-break: break-word;
+        }
+        #patrimonio .inv-saldo .inv-cents { font-size: 0.62em; opacity: 0.5; }
+        #patrimonio .inv-saldo .inv-moeda {
+            font-size: 0.44em; opacity: 0.45; font-weight: 600;
+            letter-spacing: 0; margin-right: 4px; vertical-align: 0.28em;
+        }
+
+        /* Variação: texto com seta, não badge com fundo. */
+        #patrimonio .inv-hero-linha {
+            display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px;
+            font-size: 13px;
+        }
+        #patrimonio .inv-delta {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 700; font-size: 14px; color: var(--cor-txt-primaria);
+        }
+        #patrimonio .inv-delta.neg { color: var(--cor-erro); }
+        #patrimonio .inv-delta i { font-size: 13px; }
+        #patrimonio .inv-delta-rs {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-delta-rot { font-size: 12px; color: var(--cor-texto-secundario); }
+        #patrimonio .inv-pipe {
+            width: 1px; height: 11px; background: var(--inv-hairline);
+            display: inline-block; align-self: center;
+        }
+
+        /* Métricas secundárias: densas, em linha, sem virar card. */
+        #patrimonio .inv-metricas {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+            margin-top: 14px; padding-top: 12px;
+            border-top: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-metrica-rot {
+            display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--cor-texto-secundario); margin-bottom: 3px;
+        }
+        #patrimonio .inv-metrica-val {
+            display: block; font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 15px; font-weight: 500; letter-spacing: -0.02em;
+            color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-metrica-sub {
+            display: block; font-size: 11px; color: var(--cor-texto-secundario); margin-top: 2px;
+        }
+
+        /* Próximo evento: faixa de 1 linha, não um card do tamanho do donut. */
+        #patrimonio .inv-evento {
+            display: flex; align-items: center; gap: 8px; width: 100%;
+            margin-top: 12px; padding: 10px 12px; border-radius: var(--inv-r-md);
+            background: var(--inv-recuo); border: none; text-align: left;
+            font-family: inherit; color: var(--cor-texto-principal);
+            transition: background var(--transicao);
+        }
+        #patrimonio .inv-evento[role="button"]:hover { background: var(--cor-bg-primaria); }
+        #patrimonio .inv-evento > i:first-child { font-size: 15px; color: var(--cor-primaria); flex-shrink: 0; }
+        #patrimonio .inv-evento-rot {
+            font-size: 11.5px; font-weight: 700; color: var(--cor-texto-secundario);
+            white-space: nowrap; display: inline-flex; align-items: center; gap: 4px;
+        }
+        #patrimonio .inv-evento-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14px; font-weight: 600; margin-left: auto; white-space: nowrap;
+        }
+        #patrimonio .inv-evento-det {
+            flex-basis: 100%; font-size: 11px; color: var(--cor-texto-secundario);
+            line-height: 1.4; order: 9;
+        }
+        #patrimonio .inv-evento-det:empty { display: none; }
+
+        /* ---------- EVOLUÇÃO: recolhível, gráfico enxuto ---------- */
+        #patrimonio .inv-bloco {
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+            border-radius: var(--inv-r-lg); margin-bottom: 14px; overflow: hidden;
+        }
+        #patrimonio .inv-bloco-cab {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 13px 14px; background: none; border: none; cursor: pointer;
+            font-family: inherit; text-align: left; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-bloco-cab .inv-eyebrow { flex: 1; }
+        #patrimonio .inv-bloco-resumo {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 11.5px; font-weight: 600; color: var(--cor-texto-secundario);
+            padding: 3px 9px; border-radius: 99px; background: var(--inv-recuo);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 55%;
+        }
+        #patrimonio .inv-bloco-cab .inv-chevron {
+            font-size: 15px; color: var(--cor-texto-secundario);
+            transition: transform var(--transicao);
+        }
+        #patrimonio .inv-bloco[data-aberto="1"] .inv-chevron { transform: rotate(180deg); }
+        #patrimonio .inv-bloco-corpo { display: none; padding: 0 14px 14px; }
+        #patrimonio .inv-bloco[data-aberto="1"] .inv-bloco-corpo { display: block; }
+
+        /* Trilho horizontal de chips — o padrão de filtro no mobile. */
+        #patrimonio .inv-trilho {
+            display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+            -webkit-overflow-scrolling: touch; padding-bottom: 2px;
+            scroll-snap-type: x proximity;
+        }
+        #patrimonio .inv-trilho::-webkit-scrollbar { display: none; }
+        #patrimonio .inv-trilho > * { flex: 0 0 auto; scroll-snap-align: start; }
+
+        /* Chip base — vale para .period-pill, .chip-cat e .ops-chip dentro da aba.
+           As classes originais são preservadas: o JS acende o ativo por elas. */
+        #patrimonio .period-pill,
+        #patrimonio .chip-cat,
+        #patrimonio .ops-chip {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 32px; padding: 0 12px; border-radius: 99px;
+            border: 1px solid transparent; background: var(--inv-recuo);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 600;
+            white-space: nowrap; transition: all var(--transicao);
+        }
+        #patrimonio .period-pill:hover,
+        #patrimonio .chip-cat:hover,
+        #patrimonio .ops-chip:hover { color: var(--cor-texto-principal); }
+        #patrimonio .period-pill.ativo,
+        #patrimonio .chip-cat.ativo,
+        #patrimonio .ops-chip.ativo {
+            background: var(--cor-texto-principal); color: var(--cor-branco);
+            border-color: var(--cor-texto-principal);
+        }
+        #patrimonio .ops-chip.ops-chip-danger.ativo {
+            background: var(--cor-erro); border-color: var(--cor-erro); color: #fff;
+        }
+
+        #patrimonio .inv-select {
+            height: 34px; padding: 0 30px 0 11px; border-radius: var(--inv-r-md);
+            border: 1px solid var(--inv-hairline); background-color: var(--cor-branco);
+            color: var(--cor-texto-principal); font-family: inherit; font-size: 12.5px;
+            font-weight: 600; cursor: pointer; max-width: 100%;
+        }
+        #patrimonio .inv-grafico { position: relative; height: 190px; margin-top: 10px; }
+        #patrimonio .inv-vazio {
+            padding: 26px 14px; text-align: center;
+            color: var(--cor-texto-secundario); font-size: 12.5px; line-height: 1.55;
+        }
+        #patrimonio .inv-vazio i { font-size: 26px; opacity: 0.35; display: block; margin-bottom: 7px; }
+
+        /* ---------- NAVEGAÇÃO: as sub-abas são a espinha da tela ---------- */
+        #patrimonio .inv-nav {
+            position: sticky; top: 0; z-index: 20;
+            background: var(--cor-fundo);
+            padding: 8px 0 10px; margin-bottom: 2px;
+        }
+        #patrimonio .inv-nav-trilho {
+            display: flex; gap: 3px; padding: 3px;
+            background: var(--inv-recuo); border-radius: 99px;
+        }
+        #patrimonio .subtab-pill {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            height: 36px; padding: 0 8px; border: none; border-radius: 99px;
+            background: transparent; color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12.5px; font-weight: 700;
+            transition: all var(--transicao); min-width: 0;
+        }
+        #patrimonio .subtab-pill i { font-size: 15px; flex-shrink: 0; }
+        #patrimonio .subtab-pill.ativo {
+            background: var(--cor-branco); color: var(--cor-texto-principal);
+            box-shadow: var(--shadow-suave);
+        }
+        #patrimonio .inv-nav-stat {
+            display: flex; align-items: center; gap: 6px; margin-top: 8px;
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- PAINEL DE CONTEÚDO ---------- */
+        #patrimonio .inv-painel {
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+            border-radius: var(--inv-r-lg); overflow: hidden;
+        }
+        #patrimonio .inv-barra {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 12px; border-bottom: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-busca {
+            display: flex; align-items: center; gap: 6px; flex: 1; min-width: 110px;
+            height: 32px; padding: 0 11px; border-radius: 99px;
+            background: var(--inv-recuo); color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-busca input {
+            flex: 1; min-width: 0; border: none; background: none; outline: none;
+            font-family: inherit; font-size: 12.5px; color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-btn-icone {
+            display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+            height: 32px; min-width: 32px; padding: 0 10px; border-radius: 99px;
+            border: 1px solid var(--inv-hairline); background: var(--cor-branco);
+            color: var(--cor-texto-secundario); cursor: pointer;
+            font-family: inherit; font-size: 12px; font-weight: 600;
+            transition: all var(--transicao); flex-shrink: 0;
+        }
+        #patrimonio .inv-btn-icone:hover {
+            color: var(--cor-texto-principal); border-color: var(--cor-borda2);
+        }
+        #patrimonio .inv-btn-icone i { font-size: 14px; }
+        #patrimonio .inv-rolagem { overflow-y: auto; max-height: 62vh; }
+
+        /* ---------- CARTEIRA: linha de ativo redesenhada ----------
+           A grade de 7 colunas do layout antigo virava 3 no celular e escondia
+           preço médio, resultado e alocação. Aqui a linha é um bloco de duas
+           faixas: identidade + saldo em cima, métricas embaixo. Nada some. */
+        #patrimonio .rich-row {
+            display: grid; gap: 1px 10px;
+            grid-template-columns: 36px minmax(0, 1fr) auto;
+            grid-template-areas: "avatar ident saldo" "avatar ident lucro";
+            padding: 11px 12px; cursor: pointer; position: relative;
+            border-bottom: 1px solid var(--inv-hairline);
+            transition: background var(--transicao);
+        }
+        #patrimonio .rich-row::before {
+            content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px;
+            border-radius: 0 3px 3px 0; background: var(--cor-acento-linha, transparent);
+        }
+        #patrimonio .rich-row:last-child { border-bottom: none; }
+        #patrimonio .rich-row:hover { background: var(--cor-bg-primaria); }
+        #patrimonio .rich-avatar {
+            grid-area: avatar; align-self: center;
+            width: 36px; height: 36px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0;
+        }
+        /* .rich-meta é filha de .rich-row-info, não da grade — por isso o bloco
+           de identidade ocupa as duas linhas e leva a meta junto. */
+        #patrimonio .rich-row-info { grid-area: ident; min-width: 0; padding: 0; align-self: center; }
+        #patrimonio .rich-ticker {
+            font-family: var(--inv-num); font-size: 13.5px; font-weight: 600;
+            letter-spacing: -0.01em; color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #patrimonio .rich-nome {
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #patrimonio .rich-meta {
+            display: flex; align-items: center; flex-wrap: wrap;
+            gap: 4px 7px; margin-top: 4px;
+            font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .rich-alloc-bar {
+            width: 46px; height: 3px; border-radius: 99px;
+            background: var(--inv-recuo); overflow: hidden; display: inline-block;
+        }
+        #patrimonio .rich-alloc-fill { display: block; height: 100%; border-radius: 99px; }
+        /* O layout antigo escondia o saldo do ativo abaixo de 600px (regra em
+           "Responsive adjustments for rich rows"): no celular a pessoa via o
+           ticker e o lucro, mas não quanto tinha naquele ativo. Volta aqui. */
+        #patrimonio .rich-saldo {
+            grid-area: saldo; display: block !important; text-align: right; white-space: nowrap;
+            align-self: end;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14px; font-weight: 600; letter-spacing: -0.02em;
+            color: var(--cor-texto-principal);
+        }
+        /* Preço médio e sparkline só a partir do desktop — no celular vivem no
+           painel expandido, que já traz os dois. */
+        #patrimonio .rich-pm, #patrimonio .rich-sparkline { display: none; }
+        #patrimonio .rich-lucro {
+            grid-area: lucro; justify-self: end; align-self: start; text-align: right;
+            display: flex; align-items: baseline; gap: 5px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+        }
+        /* No celular a linha mostra saldo + variação %; o resultado em R$ está a
+           um toque, no painel expandido ("Resultado"). Duas linhas de número à
+           direita empurravam a linha para 102px — com uma, cabe em ~70px e a
+           lista mostra o dobro de ativos por tela. */
+        #patrimonio .rich-lucro-rs { display: none; font-size: 11.5px; font-weight: 600; }
+        #patrimonio .rich-lucro-pct { font-size: 12px; font-weight: 700; }
+        /* A seta "ver operações" é redundante no celular: a linha inteira já
+           abre no toque. Antes o wrapper trazia display:flex inline, que vencia
+           a regra e criava uma terceira faixa de 28px vazia em cada linha. */
+        #patrimonio .rich-acao { display: none; grid-area: acao; align-items: center; justify-content: flex-end; }
+        #patrimonio .rich-overflow {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 28px; height: 28px; border-radius: 8px; border: none;
+            background: transparent; color: var(--cor-texto-secundario); cursor: pointer;
+            transition: all var(--transicao);
+        }
+        #patrimonio .rich-overflow:hover { background: var(--inv-recuo); color: var(--cor-texto-principal); }
+
+        #patrimonio .rich-expand {
+            display: none; padding: 0 12px 13px 58px;
+            border-bottom: 1px solid var(--inv-hairline); background: var(--cor-branco);
+        }
+        #patrimonio .rich-expand.aberto { display: block; }
+        #patrimonio .rich-expand-grid {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px 14px; padding: 12px; border-radius: var(--inv-r-md);
+            background: var(--inv-recuo);
+        }
+        #patrimonio .re-label {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+            color: var(--cor-texto-secundario); margin-bottom: 2px;
+        }
+        #patrimonio .re-value {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .rich-expand-actions {
+            display: flex; gap: 6px; margin-top: 10px; overflow-x: auto;
+            scrollbar-width: none;
+        }
+        #patrimonio .rich-expand-actions::-webkit-scrollbar { display: none; }
+        #patrimonio .rich-expand-actions .btn-secundario { flex: 0 0 auto; }
+
+        /* Cabeçalho de categoria: no antigo eram 53px com o texto quebrando em
+           duas linhas. Aqui é uma faixa de rótulo, densa. */
+        #patrimonio .rich-category-header {
+            display: flex; align-items: center; gap: 8px;
+            padding: 9px 12px; background: var(--inv-recuo);
+            border-bottom: 1px solid var(--inv-hairline);
+            position: sticky; top: 0; z-index: 4;
+        }
+        #patrimonio .rich-category-header > div:first-child { min-width: 0; flex: 1; gap: 7px !important; }
+        #patrimonio .rich-category-header .cat-accent { width: 3px; height: 14px; border-radius: 99px; }
+        #patrimonio .rich-category-header .cat-label {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+            color: var(--cor-texto-secundario); white-space: nowrap;
+        }
+        #patrimonio .rich-category-header > div:first-child > span:last-child {
+            color: var(--cor-texto-secundario) !important; white-space: nowrap;
+        }
+        #patrimonio .rich-category-header .cat-stats {
+            gap: 8px; font-size: 11.5px; font-weight: 600;
+            color: var(--cor-texto-secundario); white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ---------- DIVIDENDOS ---------- */
+        #patrimonio .inv-kpis {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+        }
+        #patrimonio .inv-kpi {
+            padding: 12px 13px; border-radius: var(--inv-r-md);
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .inv-kpi.destaque {
+            background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria);
+        }
+        #patrimonio .inv-kpi-rot {
+            display: flex; align-items: center; gap: 5px; margin-bottom: 5px;
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-kpi-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 17px; font-weight: 500; letter-spacing: -0.025em;
+            color: var(--cor-texto-principal);
+        }
+        #patrimonio .inv-kpi.destaque .inv-kpi-rot,
+        #patrimonio .inv-kpi.destaque .inv-kpi-val { color: var(--cor-txt-primaria); }
+
+        /* Tabela de dividendos vira cartão no celular. O JS carimba data-col em
+           cada <td>; o rótulo vem daí. Sem isso, 5 colunas em 390px só cabem
+           com scroll horizontal — que ninguém descobre. */
+        @media (max-width: 719px) {
+            #patrimonio .tabela-dashboard thead { display: none; }
+            #patrimonio .tabela-dashboard tbody tr {
+                display: grid; grid-template-columns: 1fr auto; gap: 3px 10px;
+                padding: 11px 12px; border-bottom: 1px solid var(--inv-hairline);
+            }
+            #patrimonio .tabela-dashboard tbody td {
+                display: flex; align-items: baseline; justify-content: space-between;
+                gap: 10px; padding: 0; border: none; text-align: left !important;
+                font-size: 12px;
+            }
+            #patrimonio .tabela-dashboard tbody td[data-col]:not(:first-child)::before {
+                content: attr(data-col); flex-shrink: 0;
+                font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+                text-transform: uppercase; color: var(--cor-texto-secundario);
+            }
+            #patrimonio .tabela-dashboard tbody td:first-child {
+                grid-column: 1 / -1; font-size: 13px; font-weight: 600;
+                padding-bottom: 4px;
+            }
+            #patrimonio .tabela-dashboard tbody td[colspan] { grid-column: 1 / -1; }
+        }
+
+        /* ---------- TIMELINE DE OPERAÇÕES ---------- */
+        /* Mesmo desenho da linha de ativo: identidade à esquerda ocupando as duas
+           faixas, número em cima à direita, ações embaixo. Botão em faixa
+           própria custava 30px por operação. */
+        #patrimonio .timeline-item {
+            display: grid; gap: 1px 10px;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            grid-template-areas: "icone corpo total" "icone corpo acoes";
+            padding: 11px 12px; border-bottom: 1px solid var(--inv-hairline);
+            position: relative;
+        }
+        #patrimonio .timeline-item:last-child { border-bottom: none; }
+        #patrimonio .timeline-accent { display: none; }
+        #patrimonio .timeline-icon {
+            grid-area: icone; align-self: center;
+            width: 34px; height: 34px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center; font-size: 14px;
+        }
+        #patrimonio .timeline-icon.compra { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        #patrimonio .timeline-icon.venda { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        #patrimonio .timeline-body { grid-area: corpo; min-width: 0; align-self: center; }
+        #patrimonio .timeline-line1 {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+            font-size: 13px; color: var(--cor-texto-principal);
+        }
+        #patrimonio .timeline-line2 {
+            display: flex; flex-wrap: wrap; gap: 3px 8px;
+            margin-top: 3px; font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .timeline-total {
+            grid-area: total; align-self: end; text-align: right; white-space: nowrap;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13.5px; font-weight: 600; letter-spacing: -0.02em;
+        }
+        #patrimonio .timeline-actions {
+            grid-area: acoes; justify-self: end; align-self: start; display: flex; gap: 2px;
+        }
+        #patrimonio .timeline-date-header {
+            padding: 9px 12px 5px; background: var(--cor-branco);
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+            position: sticky; top: 0; z-index: 2;
+        }
+        #patrimonio .ops-summary {
+            display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 10px 12px;
+            border-bottom: 1px solid var(--inv-hairline);
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- Estado vazio ---------- */
+        #patrimonio .empty-state { padding: 8px 4px; }
+        #patrimonio .empty-state-icon {
+            width: 52px; height: 52px; border-radius: 16px; margin: 0 auto 12px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--cor-bg-primaria) !important;
+        }
+        #patrimonio .empty-state-titulo {
+            font-size: 14.5px; font-weight: 700; color: var(--cor-texto-principal); margin-bottom: 4px;
+        }
+        #patrimonio .empty-state-sub {
+            font-size: 12.5px; color: var(--cor-texto-secundario); line-height: 1.55;
+        }
+
+        /* ---------- Tablet ---------- */
+        @media (min-width: 720px) {
+            #patrimonio .inv-hero { padding: 22px 22px 18px; border-radius: 22px; }
+            #patrimonio .inv-saldo { font-size: 44px; }
+            #patrimonio .inv-metricas { grid-template-columns: repeat(3, 1fr); gap: 18px; }
+            #patrimonio .inv-grafico { height: 260px; }
+            #patrimonio .inv-kpis { grid-template-columns: repeat(4, 1fr); }
+            #patrimonio .inv-nav-trilho { display: inline-flex; }
+            #patrimonio .subtab-pill { flex: 0 0 auto; padding: 0 18px; }
+            #patrimonio .inv-rolagem { max-height: 560px; }
+            #patrimonio .rich-row {
+                align-items: center;
+                grid-template-columns: 40px minmax(0, 1fr) 92px minmax(0, 116px) 104px 40px;
+                grid-template-areas: "avatar ident pm saldo lucro acao";
+                padding: 12px 16px; gap: 12px;
+            }
+            #patrimonio .rich-saldo { align-self: center; }
+            #patrimonio .rich-lucro { align-self: center; }
+            #patrimonio .rich-pm {
+                display: flex; flex-direction: column; align-items: flex-end;
+                grid-area: pm; text-align: right;
+            }
+            #patrimonio .rich-pm-label {
+                font-size: 9.5px; font-weight: 700; letter-spacing: 0.05em;
+                text-transform: uppercase; color: var(--cor-texto-secundario);
+            }
+            #patrimonio .rich-pm-valor {
+                font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+                font-size: 12.5px; color: var(--cor-texto-principal);
+            }
+            #patrimonio .rich-lucro {
+                grid-area: lucro; flex-direction: column; align-items: flex-end;
+                gap: 1px; margin-top: 0;
+            }
+            #patrimonio .rich-lucro-rs { display: block; }
+            #patrimonio .rich-acao { display: flex; }
+            #patrimonio .rich-expand { padding-left: 68px; }
+            #patrimonio .rich-expand-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            #patrimonio .timeline-item {
+                align-items: center;
+                grid-template-columns: 34px minmax(0, 1fr) 120px 76px;
+                grid-template-areas: "icone corpo total acoes";
+                padding: 12px 16px;
+            }
+            #patrimonio .timeline-total { align-self: center; }
+            #patrimonio .timeline-actions { align-self: center; }
+        }
+
+        /* ---------- Desktop ---------- */
+        @media (min-width: 1080px) {
+            #patrimonio .inv-topo {
+                display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+                gap: 16px; align-items: start;
+            }
+            #patrimonio .inv-hero { margin-bottom: 0; }
+            #patrimonio .inv-bloco { margin-bottom: 0; height: 100%; }
+            #patrimonio .inv-bloco-corpo { display: block; }
+            #patrimonio .inv-bloco-cab { cursor: default; }
+            #patrimonio .inv-bloco-cab .inv-chevron { display: none; }
+            #patrimonio .inv-grafico { height: 232px; }
+            #patrimonio .inv-nav { padding-top: 18px; }
+        }
+
+        /* Sem sombra dupla no escuro: o hero perde o brilho e ganha contorno. */
+        body.dark #patrimonio .inv-hero {
+            box-shadow: none; border: 1px solid var(--cor-borda);
+            background:
+                radial-gradient(120% 140% at 100% 0%, rgba(52,211,153,0.10) 0%, transparent 62%),
+                var(--cor-branco);
+        }
+        body.dark #patrimonio .subtab-pill.ativo { box-shadow: none; border: 1px solid var(--cor-borda2); }
+
+        @media (prefers-reduced-motion: reduce) {
+            #patrimonio * { transition: none !important; }
+        }
+
+        /* ==========================================================
+           CAMADA PREMIUM — hero vivo
+           ==========================================================
+           O que separa "bem organizado" de "produto caro" aqui não é enfeite:
+           é o card de saldo deixar de ser tipografia estática e passar a ter
+           CONTEXTO (a curva), ESTADO (skeleton enquanto a cotação não chega) e
+           RESPOSTA (o número contando ao entrar). Cada um resolve algo real —
+           nenhum é decoração.
+
+           Tudo obedece prefers-reduced-motion e usa só transform/opacity, que
+           o compositor resolve sem relayout — a curva é SVG, sem lib.
+        */
+
+        /* Luz vinda do topo: um filete claro na borda superior, como vidro.
+           É o que dá volume ao card sem sombra pesada. */
+        #patrimonio .inv-hero {
+            background:
+                radial-gradient(130% 120% at 88% -10%, var(--cor-bg-primaria) 0%, transparent 58%),
+                var(--cor-branco);
+        }
+        #patrimonio .inv-hero::after {
+            content: ''; position: absolute; inset: 0 0 auto 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 45%, transparent);
+            pointer-events: none;
+        }
+        body.dark #patrimonio .inv-hero::after {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10) 45%, transparent);
+        }
+
+        /* Delta como pílula tonal — ancora o número num campo de cor em vez de
+           deixá-lo solto sobre o gradiente. */
+        #patrimonio .inv-delta {
+            padding: 3px 9px 3px 7px; border-radius: 99px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+        }
+        #patrimonio .inv-delta.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+
+        /* ---------- Barra de alocação ----------
+           Uma linha diz o que o donut diz, sem custar 220px de altura nem um
+           toque para abrir. Serve de legenda e de âncora de cor para a lista. */
+        #patrimonio .inv-alocacao {
+            display: flex; gap: 2px; height: 6px; margin-top: 14px;
+            border-radius: 99px; overflow: hidden; background: var(--inv-recuo);
+        }
+        #patrimonio .inv-alocacao:empty { display: none; }
+        #patrimonio .inv-aloc-seg {
+            height: 100%; min-width: 3px;
+            transform-origin: left center;
+            animation: invAloc 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes invAloc { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+        #patrimonio .inv-aloc-legenda {
+            display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 8px;
+            font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .inv-aloc-legenda span {
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        #patrimonio .inv-aloc-legenda i {
+            width: 7px; height: 7px; border-radius: 2px; flex-shrink: 0;
+        }
+        #patrimonio .inv-aloc-legenda b {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 600; color: var(--cor-texto-principal);
+        }
+
+        /* ---------- Sparkline: o chão do card ----------
+           Sangra até as bordas de propósito. A curva não é um gráfico para ler
+           valor — é a forma dos últimos meses, lida em 200ms sem interação.
+           O gráfico de verdade continua no bloco Evolução. */
+        /* A sangria vive no WRAPPER: dar largura negativa ao <svg> deixava 32px
+           de folga à direita, porque o elemento gráfico não estica igual a um
+           bloco. O wrapper estoura o padding do card e o svg preenche 100% dele. */
+        #patrimonio .inv-spark-wrap {
+            position: relative; margin: 14px -16px 0; width: calc(100% + 32px);
+        }
+        #patrimonio .inv-spark {
+            display: block; width: 100%; height: 54px; overflow: visible;
+        }
+        #patrimonio .inv-spark-linha {
+            fill: none; stroke: var(--cor-primaria); stroke-width: 1.75;
+            stroke-linecap: round; stroke-linejoin: round;
+            vector-effect: non-scaling-stroke;
+            stroke-dasharray: var(--traco, 0); stroke-dashoffset: var(--traco, 0);
+            animation: invTracar 900ms cubic-bezier(0.4, 0, 0.2, 1) 120ms forwards;
+        }
+        @keyframes invTracar { to { stroke-dashoffset: 0; } }
+        #patrimonio .inv-spark-ponto {
+            position: absolute; width: 9px; height: 9px; border-radius: 50%;
+            margin: -4.5px 0 0 -4.5px; background: var(--cor-primaria);
+            box-shadow: 0 0 0 2.5px var(--cor-branco), 0 0 0 5px rgba(5,150,105,0.16);
+            opacity: 0; animation: invSurgir 300ms ease 820ms forwards;
+        }
+        body.dark #patrimonio .inv-spark-ponto {
+            box-shadow: 0 0 0 2.5px var(--cor-branco), 0 0 0 7px rgba(52,211,153,0.14);
+        }
+        @keyframes invSurgir { to { opacity: 1; } }
+        #patrimonio .inv-spark-vazia {
+            padding: 14px 0 16px; text-align: center;
+            font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- Skeleton ----------
+           As cotações vêm de API. Sem isto, a tela abre com R$ 0,00 e pula para
+           o valor real — o "pisca" é o que mais faz parecer barato. */
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-metrica-val,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta-rs {
+            color: transparent !important; position: relative;
+            border-radius: 7px; overflow: hidden;
+            background:
+                linear-gradient(90deg, var(--inv-recuo) 25%, var(--cor-borda) 37%, var(--inv-recuo) 63%)
+                0 0 / 400% 100%;
+            animation: invShimmer 1.35s ease-in-out infinite;
+        }
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo .inv-moeda,
+        #patrimonio .inv-hero[data-carregando="1"] .inv-saldo .inv-cents { opacity: 0; }
+        #patrimonio .inv-hero[data-carregando="1"] .inv-delta i { opacity: 0; }
+        @keyframes invShimmer { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
+        /* Entrada: o card sobe uma vez, discreto. Sem stagger circense. */
+        #patrimonio.ativa .inv-hero {
+            animation: invEntrada 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+        }
+        @keyframes invEntrada {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+
+        /* Foco visível em tudo que é operável — a regra global do app não cobre
+           os controles novos desta aba. */
+        #patrimonio button:focus-visible,
+        #patrimonio select:focus-visible,
+        #patrimonio input:focus-visible,
+        #patrimonio [role="button"]:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px; border-radius: var(--inv-r-sm);
+        }
+
+        /* Valores ocultos: a curva também carrega informação de patrimônio. */
+        body.valores-ocultos #patrimonio .inv-spark,
+        body.valores-ocultos #patrimonio .inv-alocacao { filter: blur(7px); }
+
+        @media (min-width: 720px) {
+            #patrimonio .inv-spark-wrap { margin: 16px -22px 0; width: calc(100% + 44px); }
+            #patrimonio .inv-spark { height: 68px; }
+        }
+
+        /* Movimento reduzido: tudo aparece no estado final, nada anima.
+           A informação é a mesma; só o percurso some. */
+        @media (prefers-reduced-motion: reduce) {
+            #patrimonio .inv-spark-linha { animation: none; stroke-dashoffset: 0; }
+            #patrimonio .inv-spark-ponto { animation: none; opacity: 1; }
+            #patrimonio .inv-aloc-seg { animation: none; }
+            #patrimonio.ativa .inv-hero { animation: none; }
+            #patrimonio .inv-hero[data-carregando="1"] .inv-saldo,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-metrica-val,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-delta,
+            #patrimonio .inv-hero[data-carregando="1"] .inv-delta-rs { animation: none; }
+        }
+
+        /* ==========================================================
+           MEU PATRIMÔNIO — cartão de bem no celular
+           ==========================================================
+           O componente .mp-inst-item nasceu para desktop e nunca foi adaptado:
+           dois blocos flex com justify-content:space-between. No cartão de um
+           imóvel financiado a direita carrega o valor em DM Mono (não quebra)
+           mais QUATRO botões (não encolhem) — 206px dos 332px de um iPhone.
+           Sobravam 82px para "Apartamento" e "42 m² · Apartamento · Jardim Íris,
+           São Paulo", que quebravam quase letra a letra e colavam no valor.
+
+           Aqui cada peça tem uma área nomeada e o arranjo muda por largura:
+           no celular as ações descem para a própria faixa e o texto fica com a
+           largura inteira; a partir de 720px tudo volta para uma linha só.
+        */
+        #meu_patrimonio .mp-bem {
+            display: grid; align-items: center;
+            grid-template-columns: 34px minmax(0, 1fr) auto;
+            grid-template-areas:
+                "icone identidade valor"
+                "icone fin        fin"
+                "acoes acoes      acoes";
+            gap: 2px 10px; padding: 12px 14px;
+        }
+        /* O ícone vira avatar, como já acontece na lista de instituições logo
+           acima: dá peso à coluna da esquerda e amarra as duas listas da mesma
+           tela na mesma linguagem. */
+        #meu_patrimonio .mp-bem-icone {
+            grid-area: icone; align-self: center; justify-self: center;
+            width: 34px; height: 34px; border-radius: 11px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 17px; color: var(--cor-patrimonio);
+            background: rgba(124, 58, 237, 0.10);
+        }
+        body.dark #meu_patrimonio .mp-bem-icone { background: rgba(167, 139, 250, 0.14); }
+        #meu_patrimonio .mp-bem-id {
+            grid-area: identidade; min-width: 0; display: flex;
+            flex-direction: column; align-items: flex-start; gap: 2px;
+        }
+        #meu_patrimonio .mp-bem .mp-inst-nome {
+            font-size: 13.5px; line-height: 1.25;
+            /* Sem isto o nome participa do cálculo de largura mínima da coluna e
+               a faixa de texto encolhe até caber letra a letra. */
+            overflow-wrap: break-word; word-break: normal;
+        }
+        #meu_patrimonio .mp-bem-arq { font-size: 10px; color: var(--cor-texto-secundario); font-weight: 500; }
+        #meu_patrimonio .mp-bem-sub {
+            display: block; font-size: 11.5px; line-height: 1.4;
+            color: var(--cor-texto-secundario); text-align: left;
+            overflow-wrap: break-word;
+        }
+        #meu_patrimonio .mp-bem-selos { display: block; margin-top: 4px; }
+
+        #meu_patrimonio .mp-bem-valor {
+            grid-area: valor; justify-self: end; text-align: right;
+            display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+        }
+        #meu_patrimonio .mp-bem .mp-inst-valor {
+            font-size: 14px; letter-spacing: -0.02em; white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+        /* A linha do financiamento era um <div> dentro de um <span> — aninhamento
+           inválido que inflava a altura do bloco de valor para 54px. */
+        /* Faixa própria, alinhada ao texto. Compartilhar a coluna do valor fazia
+           a trilha `auto` reivindicar o max-content da frase inteira (248px de
+           390) ANTES do `1fr` receber a sobra: a coluna do nome ia a ZERO e o
+           endereço descia letra a letra por 467px de altura. */
+        #meu_patrimonio .mp-bem-fin {
+            grid-area: fin; justify-self: start; text-align: left;
+            margin-top: 3px;
+            font-size: 11px; font-weight: 500; line-height: 1.45;
+            color: var(--cor-texto-secundario);
+        }
+        #meu_patrimonio .mp-bem-fin strong { font-family: 'DM Mono', monospace; font-weight: 700; }
+
+        /* No celular as ações ganham faixa própria: quatro botões de 30px
+           disputando a mesma linha do valor é o que espremia o texto. */
+        #meu_patrimonio .mp-bem-acoes {
+            grid-area: acoes; display: flex; justify-content: flex-end; gap: 6px;
+            margin-top: 9px; padding-top: 9px;
+            border-top: 1px dashed var(--cor-borda);
+        }
+        #meu_patrimonio .mp-bem-acoes:empty { display: none; }
+        #meu_patrimonio .mp-bem-acoes .btn-secundario {
+            min-width: 38px; min-height: 34px; padding: 0 10px !important;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 13px !important;
+        }
+
+        /* formatarMoeda usa espaço NÃO-SEPARÁVEL entre "R$" e o número, então
+           "R$ 1.250.000,00" é um token único: não quebra, e o .mp-kpi tem
+           overflow:hidden — o último dígito era CORTADO. Valor cortado não é
+           feio, é errado: "R$ 1.250.000,0" se lê como outro número. Deixa
+           quebrar como último recurso e reduz um passo de tamanho onde a
+           coluna aperta. */
+        #meu_patrimonio .mp-kpi-valor { overflow-wrap: anywhere; line-height: 1.15; }
+        @media (min-width: 1080px) and (max-width: 1500px) {
+            #meu_patrimonio .mp-kpi:not(.mp-kpi-hero) .mp-kpi-valor { font-size: 19px; }
+        }
+
+        /* A lista de instituições (Minhas Contas) sofre do mesmo aperto: o bloco
+           da direita é flex-shrink:0 e o da esquerda ficava sem min-width. */
+        #meu_patrimonio .mp-inst-head-left { min-width: 0; flex: 1; }
+        #meu_patrimonio .mp-inst-meta { min-width: 0; }
+        #meu_patrimonio .mp-inst-nome { overflow-wrap: break-word; }
+        #meu_patrimonio .mp-inst-head-right .mp-inst-valor { white-space: nowrap; }
+
+        @media (min-width: 720px) {
+            #meu_patrimonio .mp-bem {
+                grid-template-columns: 34px minmax(0, 1fr) auto auto;
+                grid-template-areas:
+                    "icone identidade valor acoes"
+                    "icone fin        fin   acoes";
+                gap: 2px 12px; padding: 14px 16px;
+            }
+            #meu_patrimonio .mp-bem-acoes {
+                margin-top: 0; padding-top: 0; border-top: none; align-self: center;
+            }
+        }
+
+        /* ==========================================================
+           MODO ESCURO — texto sobre o acento claro
+           ==========================================================
+           No claro --cor-primaria é #059669 (verde escuro) e texto branco
+           funciona. No escuro o token clareia para #34d399 e o branco fica em
+           1,92:1 — abaixo de qualquer limiar. Atingia as ações PRIMÁRIAS do
+           app: Novo lançamento, Registrar, Exportar PDF, Confirmar.
+           Quando o acento clareia, o texto escurece: #052e1a dá 7,74:1 no
+           extremo escuro do gradiente e 9,76:1 no claro. */
+        body.dark .btn-acao,
+        body.dark .dia-picker-grade .dia-chip.ativo,
+        /* A regra original do botão de registrar é ancorada em #patrimonio: um
+           seletor de id ganha de body.dark, então a correção precisa do mesmo id
+           para vencer a cascata. */
+        body.dark #patrimonio .inv-btn-add {
+            color: #052e1a;
+        }
+        body.dark .btn-acao i,
+        body.dark #patrimonio .inv-btn-add i { color: inherit; }
+
     </style>
 </head>
 <body class="controle-ativo">
+    <script>
+        /* Preferências de exibição — ANTES da primeira pintura.
+           O tema e o olho moram em app.js, que é o último <script> da página:
+           aplicar a classe lá significa pintar a tela inteira no claro (ou com
+           os valores à mostra) e só depois corrigir. O usuário vê o flash.
+           Este bloco é inline e roda com o <body> recém-aberto, antes de
+           qualquer conteúdo — a tela já nasce do jeito que ele escolheu.
+           app.js depois só sincroniza os ícones dos botões. */
+        (function () {
+            try {
+                if (localStorage.getItem('appliquei_tema') === 'escuro')
+                    document.body.classList.add('dark');
+                if (localStorage.getItem('appliquei_valores_ocultos') === '1')
+                    document.body.classList.add('valores-ocultos');
+            } catch (e) {}
+        })();
+    </script>
 
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
         <div class="auth-gate-inner">
@@ -6618,7 +8204,7 @@
             </div>
             <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
                 <div style="text-align:center;padding:8px 0 4px;">
-                    <i class="ph ph-envelope-simple" style="font-size:34px;color:#059669;"></i>
+                    <i class="ph ph-envelope-simple" style="font-size:34px;color:var(--tinta-verde);"></i>
                 </div>
                 <h3 style="text-align:center;font-size:16px;font-weight:600;margin:6px 0 8px;color:var(--cor-texto-primario,#0b1410);">Verifique seu e-mail</h3>
                 <p id="authVerifyMsg" style="font-size:13px;color:var(--cor-texto-secundario,#4a5b53);line-height:1.55;text-align:center;margin-bottom:14px;">Enviamos um link de verificação para <strong id="authVerifyEmail"></strong>. Abra a caixa de entrada e clique no link para liberar o acesso.</p>
@@ -6752,7 +8338,7 @@
             <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
                 <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Recomeçar do zero</label>
                 <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
-                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-erro);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
+                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
             </div>
 
             <div style="display:flex;gap:10px;">
@@ -6767,8 +8353,28 @@
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="fecharDrawerOperacao()"></div>
 
-    <!-- FAB (mobile) + backdrop (desktop+mobile) para "Novo lançamento" do Controle Financeiro -->
-    <button type="button" id="fabNovoLancamento" onclick="abrirPainelLancamento()" aria-label="Novo lançamento">
+    <!-- Botão global de cadastro: acompanha todas as abas, no PC e no celular.
+         Pergunta ONDE cadastrar em vez de assumir — as duas coisas que se
+         lança no dia a dia são um movimento do mês e um aporte. -->
+    <div id="fabBackdrop" hidden onclick="fecharMenuCadastro()" aria-hidden="true"></div>
+    <div id="fabMenu" hidden role="menu" aria-labelledby="fabNovoLancamento">
+        <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('lancamento')">
+            <span class="fab-opcao-icone lanc"><i class="ph-fill ph-receipt"></i></span>
+            <span class="fab-opcao-txt">
+                <span class="fab-opcao-titulo">Lançamento</span>
+                <span class="fab-opcao-sub">Receita, despesa ou fatura no Controle financeiro</span>
+            </span>
+        </button>
+        <button type="button" class="fab-opcao" role="menuitem" onclick="cadastrarEm('investimento')">
+            <span class="fab-opcao-icone inv"><i class="ph-fill ph-trend-up"></i></span>
+            <span class="fab-opcao-txt">
+                <span class="fab-opcao-titulo">Investimento</span>
+                <span class="fab-opcao-sub">Compra, aporte ou venda em Meus investimentos</span>
+            </span>
+        </button>
+    </div>
+    <button type="button" id="fabNovoLancamento" onclick="alternarMenuCadastro()"
+            aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu">
         <i class="ph-bold ph-plus"></i>
     </button>
     <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
@@ -6784,6 +8390,7 @@
             </div>
 
             <input type="hidden" id="tipoOperacao" value="compra">
+            <div id="avisoEdicaoOperacao" style="display:none;font-size:11.5px;line-height:1.5;margin-bottom:14px;padding:9px 11px;border-radius:9px;background:var(--cor-bg-info,var(--cor-bg-primaria));color:var(--cor-texto-secundario);border:1px solid var(--cor-borda);"><i class="ph-fill ph-pencil-simple"></i> Editando uma operação já registrada. A versão anterior só é substituída quando você clicar em <strong>Confirmar</strong> — fechar aqui não altera nada.</div>
 
             <div class="form-group">
                 <label id="lblTickerOp">Buscar Ativo (Ticker ou Nome)</label>
@@ -6825,7 +8432,8 @@
             <div class="grid-2-iguais" style="gap: 15px;">
                 <div class="form-group">
                     <label>Data da Operação</label>
-                    <input type="date" id="compraData" oninput="atualizarProjecaoForm()">
+                    <input type="date" id="compraData" oninput="atualizarProjecaoForm(); popularOrigemRecurso();">
+                    <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:4px;">Pode ser no passado (investimento que você já tinha) ou no futuro (aporte programado).</small>
                 </div>
                 <div class="form-group">
                     <label>Banco / Corretora <span style="color:var(--cor-erro);">*</span></label>
@@ -6865,7 +8473,18 @@
                 <div class="grid-2-iguais prev-rec-grid" style="gap: 15px;">
                     <div class="form-group">
                         <label>Dia do mês</label>
-                        <input type="number" id="prevDiaRecorrencia" min="1" max="31" placeholder="Ex: 5">
+                        <div id="wrapDiaRecorrencia" class="dia-picker-wrap">
+                            <button type="button" id="btnDiaRecorrencia" class="dia-picker-btn" onclick="alternarCalendarioDia()">
+                                <i class="ph ph-calendar-blank"></i>
+                                <span id="rotuloDiaRecorrencia">Escolher dia</span>
+                            </button>
+                            <input type="hidden" id="prevDiaRecorrencia">
+                            <div id="popoverDiaRecorrencia" class="dia-picker-pop" style="display:none;">
+                                <div class="dia-picker-titulo">Todo mês, no dia</div>
+                                <div id="gradeDiasRecorrencia" class="dia-picker-grade"></div>
+                                <small class="dia-picker-nota">Em meses mais curtos, o lançamento cai no último dia.</small>
+                            </div>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label>Período do compromisso (anos)</label>
@@ -6873,10 +8492,27 @@
                     </div>
                 </div>
                 <small class="prev-rec-grid-hint" style="font-size: 11px; color: var(--cor-texto-mutado); display: block;">Por quantos anos esse aporte será lançado no Controle Financeiro.</small>
+                <div id="avisoRecorrenciaSemConta" style="display:none;font-size:11.5px;line-height:1.5;padding:9px 11px;border-radius:9px;background:var(--cor-bg-amber);color:var(--cor-txt-amber);border:1px solid var(--cor-borda-amber);">O aporte recorrente fica desligado no cadastro retroativo: ele registra um saldo que você <strong>já tinha</strong>, e não há parcela futura a agendar. Para programar novos aportes desta posição, cadastre-os depois escolhendo a origem.</div>
+                <!-- Rentabilidade da previdência.
+                     O campo pedia "% ao mês" e ninguém fala assim: rendimento
+                     se conversa em % ao ano. Quem digitava 8 pensando "8% ao
+                     ano" gravava 8% AO MÊS — 151% ao ano — e via R$ 10 mil
+                     virarem R$ 1 milhão em cinco anos, sem nada na tela que
+                     explicasse de onde vinha. Agora a unidade é escolhida, a
+                     equivalência aparece ao vivo, e taxa impossível é barrada. -->
                 <div class="form-group" id="grupoTaxaMensalPrev" style="margin-top:16px;">
-                    <label>Rentabilidade estimada (% ao mês)</label>
-                    <span class="input-brl-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80"></span>
-                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Default 0,80% — varia conforme o plano. Aplicada como juros compostos mensais.</small>
+                    <label>Rentabilidade estimada</label>
+                    <div class="taxa-linha">
+                        <!-- Campo de PORCENTAGEM: o wrapper de moeda punha um
+                             "R$" na frente de uma taxa. -->
+                        <span class="input-pct-wrap"><input type="text" inputmode="decimal" id="prevTaxaMensal" placeholder="0,80" oninput="atualizarEquivalenciaTaxaPrev()"></span>
+                        <select id="prevTaxaUnidade" class="taxa-unidade" onchange="atualizarEquivalenciaTaxaPrev()" aria-label="Unidade da rentabilidade">
+                            <option value="mes" selected>% ao mês</option>
+                            <option value="ano">% ao ano</option>
+                        </select>
+                    </div>
+                    <div id="prevTaxaEquivalente" class="taxa-equivalente"></div>
+                    <small style="font-size: 11px; color: var(--cor-texto-mutado); display: block; margin-top: 3px;">Sem preencher, usamos 0,80% ao mês (≈ 10% ao ano) — varia conforme o plano. Aplicada como juros compostos.</small>
                 </div>
                 <div class="form-group" id="grupoSaldoInicialPrev">
                     <label>Já tinha um valor guardado? <small style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--cor-texto-mutado);">— saldo inicial</small></label>
@@ -6885,11 +8521,11 @@
                 </div>
             </div>
             <div class="form-group" id="grupoOrigemRecurso">
-                <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
+                <label>De onde vem o dinheiro <span style="color:var(--cor-erro);">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— uma conta debita o Saldo em Conta; retroativo e aporte externo, não</small></label>
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
                     <option value="">— selecione a conta —</option>
                 </select>
-                <small style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Registre uma receita ou um saldo inicial em Meu Patrimônio para liberar a conta aqui.</small>
+                <small id="dicaOrigemRecurso" style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Sem saldo em conta, use <em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.</small>
                 <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
             </div>
             <div class="form-group" id="grupoDestinoRecurso" style="display:none;">
@@ -6971,295 +8607,305 @@
     <main class="main-content">
         
         <section id="patrimonio" class="section">
-            <div class="page-header">
-                <div class="page-header-left">
-                    <h1>Visão geral dos investimentos</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Acompanhe a evolução do seu capital, cotações em tempo real e rentabilidade.</p>
-                </div>
-                <div class="page-actions">
-                    <span id="badgePrecosEstimados" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas." style="display:none; align-items:center; gap:5px; padding:5px 10px; border-radius:99px; font-size:11.5px; font-weight:600; background: var(--cor-bg-amber); color: var(--cor-txt-amber); border:1px solid var(--cor-borda-amber);"><i class="ph-fill ph-warning"></i> Preços estimados</span>
-                    <button class="btn-acao" onclick="abrirDrawerOperacao()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Registrar operação</button>
-                </div>
-            </div>
 
-            <div class="hero-evolucao">
-                <div class="hero-header">
-                    <div>
-                        <h3><i class="ph ph-chart-line-up" style="color: var(--cor-primaria);"></i> Evolução dos investimentos</h3>
-                        <div class="hero-sub">Acompanhe a evolução mensal do seu capital, ganhos e dividendos</div>
+            <!-- ================= TOPO: saldo + evolução =================
+                 O antigo abria com título, subtítulo, badge, botão largo, dois
+                 selects e cinco pílulas — ~400px antes de qualquer número. Aqui
+                 a dobra responde "quanto eu tenho?" e nada mais. Os filtros do
+                 gráfico são exploratórios e recolhem junto com ele. -->
+            <div class="inv-topo">
+
+                <div class="inv-hero">
+                    <div class="inv-hero-top">
+                        <span class="inv-eyebrow">Investimentos hoje</span>
+                        <div class="inv-hero-acoes">
+                            <span id="badgePrecosEstimados" class="inv-flag" style="display:none;" title="Não foi possível buscar cotações do Yahoo Finance. Preços exibidos são estimativas."><i class="ph-fill ph-warning"></i> Estimados</span>
+                            <button class="inv-btn-add" onclick="abrirDrawerOperacao()"><i class="ph-bold ph-plus"></i> Registrar</button>
+                        </div>
                     </div>
-                    <div class="hero-toolbar">
-                        <select id="filtroEvolucaoTipo" onchange="renderizarGraficoEvolucao()">
-                            <option value="todos">Todos os tipos</option>
-                            <option value="acoes">Ações</option>
-                            <option value="fiis">FIIs</option>
-                            <option value="bdrs">BDRs</option>
-                            <option value="etfs">ETFs</option>
-                            <option value="cripto">Criptomoedas</option>
-                            <option value="renda_fixa">Renda Fixa</option>
-                            <option value="previdencia">Previdência</option>
-                            <option value="reserva_emergencia">Reserva</option>
-                        </select>
-                        <select id="filtroEvolucaoAtivo" onchange="renderizarGraficoEvolucao()" title="Filtrar por ativo">
-                            <option value="">Todos os ativos</option>
-                        </select>
-                        <div class="period-pills">
+
+                    <div class="inv-saldo valor-mascarado" id="resumoPatrimonio">R$ 0,00</div>
+
+                    <div class="inv-hero-linha">
+                        <span class="inv-delta" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade">0,00%</span></span>
+                        <span class="inv-pipe"></span>
+                        <span class="inv-delta-rs valor-mascarado" id="resumoRendimento">R$ 0,00</span>
+                        <span class="inv-delta-rot" id="tituloRendimento">Ganho capital</span>
+                    </div>
+
+                    <!-- A curva vem logo abaixo do número que ela explica, e sangra
+                         até as bordas. Não serve para ler valor — serve para ler
+                         forma. O gráfico com eixos continua no bloco Evolução. -->
+                    <div id="sparkHero" class="inv-spark-wrap"></div>
+
+                    <div class="inv-metricas">
+                        <div>
+                            <span class="inv-metrica-rot" id="rotuloAplicado">Capital aplicado</span>
+                            <span class="inv-metrica-val valor-mascarado" id="resumoInvestido">R$ 0,00</span>
+                            <span class="inv-metrica-sub" id="kpiInvestidoDesde">desde sua 1ª compra</span>
+                        </div>
+                        <div>
+                            <span class="inv-metrica-rot">Dividendos <span id="resumoDividendosPeriodo">(3M)</span></span>
+                            <span class="inv-metrica-val valor-mascarado" id="resumoDividendosAcum">R$ 0,00</span>
+                            <span class="inv-metrica-sub">recebidos no período</span>
+                        </div>
+                    </div>
+
+                    <!-- Alocação por classe: uma linha diz o que o donut diz, sem
+                         custar 220px nem um toque. Também é a legenda de cor da
+                         lista de ativos logo abaixo. -->
+                    <div class="inv-alocacao" id="barraAlocacao" role="img" aria-label="Distribuição da carteira por classe"></div>
+                    <div class="inv-aloc-legenda" id="legendaAlocacao"></div>
+
+                    <!-- Próximo evento: uma faixa, não um card do tamanho do donut.
+                         previdencia.js define onclick/role/tabindex aqui quando há
+                         dividendo previsto no mês. -->
+                    <div class="inv-evento" id="cardProximoEvento">
+                        <i class="ph ph-calendar-check"></i>
+                        <span class="inv-evento-rot" id="tituloProximoEvento">Próximo evento</span>
+                        <span class="inv-evento-val valor-mascarado" id="resumoProximoEvento">—</span>
+                        <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria);"></i>
+                        <span class="inv-evento-det" id="resumoProximoEventoDetalhe"></span>
+                    </div>
+                </div>
+
+                <!-- Evolução: recolhida no celular (é análise, não consulta),
+                     sempre aberta no desktop, onde há espaço lateral. -->
+                <div class="inv-bloco" id="blocoEvolucao">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoEvolucao')" aria-controls="corpoEvolucao">
+                        <span class="inv-eyebrow">Evolução</span>
+                        <span class="inv-bloco-resumo" id="resumoBlocoEvolucao">3M</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo" id="corpoEvolucao">
+                        <div class="inv-trilho" role="group" aria-label="Período do gráfico">
                             <button class="period-pill" data-periodo="1" onclick="setPeriodoEvolucao(1)">1M</button>
                             <button class="period-pill ativo" data-periodo="3" onclick="setPeriodoEvolucao(3)">3M</button>
                             <button class="period-pill" data-periodo="6" onclick="setPeriodoEvolucao(6)">6M</button>
                             <button class="period-pill" data-periodo="12" onclick="setPeriodoEvolucao(12)">12M</button>
                             <button class="period-pill" data-periodo="0" onclick="setPeriodoEvolucao(0)">Tudo</button>
                         </div>
-                    </div>
-                </div>
-
-                <div class="hero-kpis">
-                    <div class="hero-kpi">
-                        <div class="kpi-label">Investimentos hoje</div>
-                        <div class="kpi-value-big valor-mascarado" id="resumoPatrimonio">R$ 0,00</div>
-                        <div class="kpi-trend" id="resumoRentabilidadeBadge"><i class="ph-bold ph-arrow-up" id="iconResumoRent"></i> <span id="resumoRentabilidade">0,00%</span></div>
-                    </div>
-                    <div class="hero-kpi">
-                        <div class="kpi-label">Capital aplicado</div>
-                        <div class="kpi-value valor-mascarado" id="resumoInvestido">R$ 0,00</div>
-                        <div class="kpi-detail" id="kpiInvestidoDesde">desde sua 1ª compra</div>
-                    </div>
-                    <div class="hero-kpi">
-                        <div class="kpi-label" id="tituloRendimento">Ganho capital</div>
-                        <div class="kpi-value valor-mascarado" id="resumoRendimento">R$ 0,00</div>
-                        <div class="kpi-detail">
-                            <span class="chip-mini"><i class="ph ph-coins"></i> Dividendos <span id="resumoDividendosPeriodo" style="font-size:10px;opacity:0.7;font-weight:500;">(3M)</span>: <strong id="resumoDividendosAcum" class="valor-mascarado">R$ 0,00</strong></span>
+                        <div class="inv-trilho" style="margin-top:8px;">
+                            <select id="filtroEvolucaoTipo" class="inv-select" onchange="renderizarGraficoEvolucao(); atualizarResumoBlocoEvolucao();" aria-label="Filtrar por tipo de ativo">
+                                <option value="todos">Todos os tipos</option>
+                                <option value="acoes">Ações</option>
+                                <option value="fiis">FIIs</option>
+                                <option value="bdrs">BDRs</option>
+                                <option value="etfs">ETFs</option>
+                                <option value="cripto">Criptomoedas</option>
+                                <option value="renda_fixa">Renda Fixa</option>
+                                <option value="previdencia">Previdência</option>
+                                <option value="reserva_emergencia">Reserva</option>
+                            </select>
+                            <select id="filtroEvolucaoAtivo" class="inv-select" onchange="renderizarGraficoEvolucao(); atualizarResumoBlocoEvolucao();" aria-label="Filtrar por ativo">
+                                <option value="">Todos os ativos</option>
+                            </select>
+                        </div>
+                        <div class="inv-grafico"><canvas id="graficoEvolucaoCarteira"></canvas></div>
+                        <div id="legendaEvolucao" class="legenda-chart"></div>
+                        <div id="msgEvolucaoVazia" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-bar"></i>
+                            Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style="position: relative; height: 320px;">
-                    <canvas id="graficoEvolucaoCarteira"></canvas>
+            <!-- ================= NAVEGAÇÃO =================
+                 As sub-abas eram o último elemento antes do conteúdo, depois de
+                 dois gráficos. São a espinha da tela: sobem e grudam no topo. -->
+            <div class="inv-nav">
+                <div class="inv-nav-trilho" role="tablist">
+                    <button class="subtab-pill ativo" id="subtabBtnCarteira" role="tab" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
+                    <button class="subtab-pill" id="subtabBtnOperacoes" role="tab" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
+                    <button class="subtab-pill" id="subtabBtnDividendos" role="tab" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
                 </div>
-                <div id="legendaEvolucao" class="legenda-chart"></div>
-                <div id="msgEvolucaoVazia" style="display:none; padding:40px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
-                    <i class="ph ph-chart-bar" style="font-size: 32px; opacity:0.4; display:block; margin-bottom:8px;"></i>
-                    Sem histórico ainda. Conforme você registrar operações, a evolução mensal aparece aqui.
+                <div class="inv-nav-stat">
+                    <span id="subtabMiniStat"></span>
+                    <button class="inv-btn-icone" id="btnAtualizarDividendos" style="display:none; margin-left:auto;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
                 </div>
             </div>
 
-            <div id="painelSecundario" style="display:grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; margin-bottom: 24px;">
-                <div class="card-container" style="padding: 16px 18px;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-                        <h3 style="font-size: 13px; font-weight:700; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin:0;"><i class="ph ph-chart-pie-slice" style="color: var(--cor-primaria);"></i> Distribuição da carteira</h3>
-                    </div>
-                    <div class="donut-wrap" style="height: 240px;">
-                        <canvas id="graficoDistribuicaoCarteira"></canvas>
-                        <div class="donut-center" id="donutCenter" style="display:none;">
-                            <div class="donut-center-label">Maior posição</div>
-                            <div class="donut-center-value" id="distMaiorPos">—</div>
-                            <div class="donut-center-detail" id="distMaiorDetalhe"></div>
-                        </div>
-                    </div>
-                    <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
-                    <div id="msgDistribuicaoVazia" style="display:none; padding:30px 10px; text-align:center; color: var(--cor-texto-secundario); font-size:13px;">
-                        <i class="ph ph-chart-pie-slice" style="font-size: 26px; opacity:0.4; display:block; margin-bottom:6px;"></i>
-                        Cadastre ativos para ver a distribuição.
-                    </div>
-                </div>
-                <div class="card-container" id="cardProximoEvento" style="padding: 16px 18px; transition: box-shadow 0.15s, border-color 0.15s;">
-                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
-                        <h3 id="tituloProximoEvento" style="font-size: 13px; font-weight:700; margin:0 0 14px; display:flex; align-items:center; gap:6px;"><i class="ph ph-calendar-check" style="color: var(--cor-primaria);"></i> Próximo evento</h3>
-                        <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria); font-size: 16px;"></i>
-                    </div>
-                    <div class="kpi-value" id="resumoProximoEvento" style="font-size: 17px; line-height: 1.3;">—</div>
-                    <div id="resumoProximoEventoDetalhe" style="font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; font-family: 'Figtree', sans-serif;"></div>
-                </div>
-            </div>
-
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-                <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-                    <div class="subtab-segmented">
-                        <button class="subtab-pill ativo" id="subtabBtnCarteira" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
-                        <button class="subtab-pill" id="subtabBtnOperacoes" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
-                        <button class="subtab-pill" id="subtabBtnDividendos" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
-                    </div>
-                    <span class="subtab-mini-stat" id="subtabMiniStat"></span>
-                </div>
-                <div id="acoesSubAba" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                    <div id="filtrosCategoria" style="display:flex; gap:6px; flex-wrap:wrap;">
-                        <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
-                        <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
-                        <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
-                        <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
-                        <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
-                    </div>
-                    <button class="btn-secundario" id="btnAtualizarDividendos" style="display:none;" onclick="carregarDividendos(true)"><i class="ph ph-arrows-clockwise"></i> Atualizar</button>
-                </div>
-            </div>
-
-            <!-- POSIÇÃO POR CATEGORIA (movida acima dos ativos da Carteira) -->
-            <div id="quadroCategoriasInferior" style="display:none; margin-bottom: 20px;">
-                <h3 style="font-size: 13px; font-weight:600; color: var(--cor-texto-principal); display:flex; align-items:center; gap:6px; margin: 0 0 12px;"><i class="ph ph-squares-four"></i> Posição por categoria <span id="lblMesQuadroCategorias" style="font-weight:500; color: var(--cor-texto-mutado); margin-left:4px;"></span></h3>
-                <div id="cardsCategoriaInferior" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;"></div>
-            </div>
-
-            <!-- SUB-ABA: CARTEIRA (Rich Rows) -->
+            <!-- ================= SUB-ABA: CARTEIRA ================= -->
             <div id="subAbaCarteira">
-                <!-- Aviso: Renda Fixa/Reserva sem rentabilidade não rendem (preenchido por JS) -->
-                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:14px;"></div>
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-x: auto; max-height: 640px;" id="richRowsContainer">
-                        <!-- Rich rows rendered by JS -->
-                    </div>
-                    <div id="carteiraVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                        <i class="ph ph-empty" style="font-size: 40px; margin-bottom: 10px; opacity: 0.5;"></i>
-                        <p>Sua carteira está vazia.</p><p style="font-size: 13px;">Use o botão "Registrar operação" acima.</p>
+                <div id="avisoRentabilidadeRF" style="display:none; margin-bottom:12px;"></div>
+
+                <div class="inv-trilho" id="filtrosCategoria" style="margin-bottom:10px;" role="group" aria-label="Filtrar carteira por categoria">
+                    <button class="chip-cat ativo" data-cat="" onclick="filtrarCarteiraPorCategoria('')">Tudo</button>
+                    <button class="chip-cat" data-cat="renda_variavel" onclick="filtrarCarteiraPorCategoria('renda_variavel')">Renda Variável</button>
+                    <button class="chip-cat" data-cat="renda_fixa" onclick="filtrarCarteiraPorCategoria('renda_fixa')">Renda Fixa</button>
+                    <button class="chip-cat" data-cat="previdencia" onclick="filtrarCarteiraPorCategoria('previdencia')">Previdência</button>
+                    <button class="chip-cat" data-cat="reserva_emergencia" onclick="filtrarCarteiraPorCategoria('reserva_emergencia')">Reserva</button>
+                </div>
+
+                <div class="inv-painel">
+                    <div class="inv-rolagem" id="richRowsContainer"></div>
+                    <div id="carteiraVaziaMsg" class="inv-vazio" style="display:none;">
+                        <div class="empty-state">
+                            <div class="empty-state-icon"><i class="ph ph-wallet" style="font-size:24px; color: var(--cor-primaria);"></i></div>
+                            <div class="empty-state-titulo">Carteira ainda vazia</div>
+                            <div class="empty-state-sub">Toque em <strong>Registrar</strong>, no topo, para lançar sua primeira compra.</div>
+                        </div>
                     </div>
                 </div>
-                <!-- Hidden table for backwards compat with toggle colunas -->
+
+                <!-- Distribuição: recolhida por padrão. É leitura de análise, e no
+                     layout antigo empurrava a carteira para fora da tela. -->
+                <div class="inv-bloco" id="blocoDistribuicao" style="margin-top:14px;">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoDistribuicao')" aria-controls="corpoDistribuicao">
+                        <span class="inv-eyebrow">Distribuição da carteira</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo" id="corpoDistribuicao">
+                        <div class="donut-wrap" style="height:220px;">
+                            <canvas id="graficoDistribuicaoCarteira"></canvas>
+                            <div class="donut-center" id="donutCenter" style="display:none;">
+                                <div class="donut-center-label">Maior posição</div>
+                                <div class="donut-center-value" id="distMaiorPos">—</div>
+                                <div class="donut-center-detail" id="distMaiorDetalhe"></div>
+                            </div>
+                        </div>
+                        <div id="legendaDistribuicao" class="legenda-chart" style="justify-content:center;"></div>
+                        <div id="msgDistribuicaoVazia" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-pie-slice"></i>
+                            Cadastre ativos para ver a distribuição.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela legada, escondida: alimentada por atualizarCarteiraAtivos
+                     e lida por toggleColunasExtras. Não é exibida. -->
                 <table class="tabela-dashboard" id="tabelaCarteira" style="display:none;">
                     <thead><tr><th>Ativo</th><th style="text-align:right;">Qtd</th><th class="col-extra" style="text-align:right;">Preço Médio</th><th class="col-extra" style="text-align:right;">Preço Atual</th><th style="text-align:right;">Saldo Atual</th><th class="col-extra" style="text-align:right;">Projeção</th><th style="text-align:right;">Lucro/Prej (%)</th></tr></thead>
                     <tbody id="tabelaCarteiraCorpo"></tbody>
                 </table>
             </div>
 
-            <!-- SUB-ABA: OPERAÇÕES (Timeline) -->
+            <!-- ================= SUB-ABA: OPERAÇÕES ================= -->
             <div id="subAbaOperacoes" style="display:none;">
-                <div class="ops-toolbar" id="opsToolbar">
+                <div class="inv-trilho" id="opsToolbar" style="margin-bottom:10px;" role="group" aria-label="Filtrar operações">
                     <button class="ops-chip ativo" data-ops-filtro="todos" onclick="filtrarOpsTimeline('todos', this)">Tudo</button>
                     <button class="ops-chip" data-ops-filtro="compra" onclick="filtrarOpsTimeline('compra', this)"><i class="ph-bold ph-trend-up"></i> Compras</button>
                     <button class="ops-chip ops-chip-danger" data-ops-filtro="venda" onclick="filtrarOpsTimeline('venda', this)"><i class="ph-bold ph-trend-down"></i> Vendas</button>
-                    <div class="ops-search-wrap">
-                        <i class="ph ph-magnifying-glass"></i>
-                        <input type="text" class="ops-search" id="filtroOperacoesTicker" placeholder="Buscar ticker..." oninput="renderizarOperacoes()">
-                    </div>
-                    <button class="btn-secundario" onclick="exportarOperacoesCSV()" title="Exportar operações como CSV"><i class="ph ph-file-csv"></i> CSV</button>
                 </div>
-                <div class="ops-summary" id="opsSummary" style="display:none;"></div>
-                <div class="card-container" style="padding: 0; overflow: hidden;">
-                    <div style="overflow-y: auto; max-height: 540px;" id="timelineContainer">
-                        <!-- Timeline rendered by JS -->
+
+                <div class="inv-painel">
+                    <div class="inv-barra">
+                        <span class="inv-busca">
+                            <i class="ph ph-magnifying-glass"></i>
+                            <input type="text" id="filtroOperacoesTicker" placeholder="Buscar ticker..." oninput="renderizarOperacoes()" aria-label="Buscar operação por ticker">
+                        </span>
+                        <button class="inv-btn-icone" onclick="exportarOperacoesCSV()" title="Exportar operações como CSV"><i class="ph ph-file-csv"></i> CSV</button>
                     </div>
-                    <div id="operacoesVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
+                    <div class="ops-summary" id="opsSummary" style="display:none;"></div>
+                    <div class="inv-rolagem" id="timelineContainer"></div>
+                    <div id="operacoesVaziaMsg" class="inv-vazio" style="display:none;">
                         <div class="empty-state">
-                            <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-list-bullets" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
+                            <div class="empty-state-icon"><i class="ph ph-list-bullets" style="font-size:24px; color: var(--cor-primaria);"></i></div>
                             <div class="empty-state-titulo">Nenhuma operação encontrada</div>
-                            <div class="empty-state-sub">Registre uma operação ou ajuste os filtros.</div>
+                            <div class="empty-state-sub">Registre uma operação ou ajuste os filtros acima.</div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- SUB-ABA: DIVIDENDOS (Enhanced) -->
+            <!-- ================= SUB-ABA: DIVIDENDOS ================= -->
             <div id="subAbaDividendos" style="display:none;">
-                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display: none;">
+                <div class="banner-aviso-mock" role="alert" id="bannerDividendosAviso" style="display:none;">
                     <i class="ph-fill ph-warning" style="font-size:16px;flex-shrink:0;margin-top:1px"></i>
                     <div><strong>Dados parciais.</strong> Algumas APIs de dividendos podem ter falhado. Os valores exibidos referem-se aos ativos que retornaram com sucesso.</div>
                 </div>
 
-                <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
-                    <small style="color: var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento.</small>
-                    <label style="display:flex; align-items:center; gap:6px; font-size: 13px; color: var(--cor-texto-secundario); cursor:pointer;">
-                        <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;">
-                        Mostrar posições encerradas
-                    </label>
-                </div>
-
-                <!-- KPIs -->
-                <div class="grid-4" style="grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 20px;">
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-coins"></i> Recebido total</h3>
-                        <div class="valor" id="dividendosTotal">R$ 0,00</div>
+                <div class="inv-kpis">
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-coins"></i> Recebido total</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendosTotal">R$ 0,00</div>
                     </div>
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-calendar-blank"></i> Últimos 12 meses</h3>
-                        <div class="valor" id="dividendos12m">R$ 0,00</div>
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-calendar-blank"></i> Últimos 12 meses</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendos12m">R$ 0,00</div>
                     </div>
-                    <div class="card-destaque" style="border-color: var(--cor-borda-primaria);">
-                        <h3 style="color: var(--cor-txt-primaria);"><i class="ph ph-percent"></i> Yield on Cost</h3>
-                        <div class="valor" id="dividendosYOC" style="color: var(--cor-primaria);">0,00%</div>
+                    <div class="inv-kpi destaque">
+                        <div class="inv-kpi-rot"><i class="ph ph-percent"></i> Yield on Cost</div>
+                        <div class="inv-kpi-val" id="dividendosYOC">0,00%</div>
                     </div>
-                    <div class="card-destaque">
-                        <h3><i class="ph ph-trend-up"></i> Média mensal (12m)</h3>
-                        <div class="valor" id="dividendosMedia">R$ 0,00</div>
+                    <div class="inv-kpi">
+                        <div class="inv-kpi-rot"><i class="ph ph-trend-up"></i> Média mensal (12m)</div>
+                        <div class="inv-kpi-val valor-mascarado" id="dividendosMedia">R$ 0,00</div>
                     </div>
                 </div>
 
-                <!-- Bar chart + Ranking -->
-                <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px;">
-                    <div class="div-chart-card">
-                        <div class="div-chart-title"><i class="ph ph-chart-bar"></i> Recebimentos por mês</div>
-                        <div style="position: relative; height: 200px;">
-                            <canvas id="graficoDividendosMensal"></canvas>
-                        </div>
-                        <div id="msgDivChartVazio" style="display:none; padding:30px; text-align:center; color: var(--cor-texto-mutado); font-size:12px;">
-                            <i class="ph ph-chart-bar" style="font-size:24px; opacity:0.4; display:block; margin-bottom:6px;"></i>
+                <div class="inv-bloco">
+                    <div class="inv-bloco-cab" style="cursor:default;">
+                        <span class="inv-eyebrow">Recebimentos por mês</span>
+                    </div>
+                    <div class="inv-bloco-corpo" style="display:block;">
+                        <div style="position:relative; height:190px;"><canvas id="graficoDividendosMensal"></canvas></div>
+                        <div id="msgDivChartVazio" class="inv-vazio" style="display:none;">
+                            <i class="ph ph-chart-bar"></i>
                             Registre ativos pagadores de proventos para ver o gráfico.
                         </div>
                     </div>
-                    <div class="div-chart-card">
-                        <div class="div-chart-title"><i class="ph ph-trophy"></i> Top pagadores (12m)</div>
+                </div>
+
+                <div class="inv-bloco" id="blocoRanking">
+                    <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoRanking')" aria-controls="divRanking">
+                        <span class="inv-eyebrow">Top pagadores (12m)</span>
+                        <i class="ph ph-caret-down inv-chevron"></i>
+                    </button>
+                    <div class="inv-bloco-corpo">
                         <div class="div-ranking" id="divRanking">
-                            <div style="padding:20px; text-align:center; color:var(--cor-texto-mutado); font-size:12px;">Sem dados</div>
+                            <div class="inv-vazio">Sem dados</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Tables: Por ativo + Pagamentos recentes -->
-                <div class="grid-2">
-                    <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px;"><i class="ph ph-list-checks"></i> Por ativo</h3>
-                        <div style="overflow-x: auto; max-height: 460px;">
-                            <table class="tabela-dashboard">
-                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                    <tr>
-                                        <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd atual</th>
-                                        <th style="text-align: right;">Recebido total</th>
-                                        <th style="text-align: right;">Recebido 12m</th>
-                                        <th style="text-align: right;">YOC</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabelaDividendosCorpo"></tbody>
-                            </table>
-                            <div id="dividendosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                                <div class="empty-state">
-                                    <div class="empty-state-icon" style="background: #ecfdf5;"><i class="ph ph-coins" style="font-size: 26px; color: var(--cor-primaria);"></i></div>
-                                    <div class="empty-state-titulo">Sem dividendos no período</div>
-                                    <div class="empty-state-sub">Registre ativos pagadores de proventos<br>(ações, FIIs, ETFs) para acompanhar o histórico.</div>
-                                </div>
+                <div class="inv-painel" style="margin-bottom:14px;">
+                    <div class="inv-barra" style="justify-content:space-between;">
+                        <span class="inv-eyebrow">Por ativo</span>
+                        <label class="inv-btn-icone" style="cursor:pointer;" title="Incluir ativos que você já não possui">
+                            <input type="checkbox" id="chkIncluirEncerradas" onchange="carregarDividendos()" style="cursor:pointer;margin:0;">
+                            Encerradas
+                        </label>
+                    </div>
+                    <div class="inv-rolagem">
+                        <table class="tabela-dashboard">
+                            <thead><tr><th>Ativo</th><th style="text-align:right;">Qtd atual</th><th style="text-align:right;">Recebido total</th><th style="text-align:right;">Recebido 12m</th><th style="text-align:right;">YOC</th></tr></thead>
+                            <tbody id="tabelaDividendosCorpo"></tbody>
+                        </table>
+                        <div id="dividendosVaziaMsg" class="inv-vazio" style="display:none;">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="ph ph-coins" style="font-size:24px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">Sem dividendos no período</div>
+                                <div class="empty-state-sub">Registre ativos pagadores de proventos (ações, FIIs, ETFs) para acompanhar o histórico.</div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <div class="card-container" style="padding: 0; overflow: hidden;">
-                        <h3 style="padding: 18px 20px 0; font-size: 16px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                            <span><i class="ph ph-clock-counter-clockwise"></i> Pagamentos recentes</span>
-                            <span style="font-size:11px; color:var(--cor-texto-mutado); font-weight:400;">· agregados por mês</span>
-                            <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:2px 8px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:600;">
-                                <i class="ph ph-funnel" style="font-size:11px;"></i>
-                                <span id="filtroPagamentosLabel"></span>
-                                <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:13px; line-height:1;" title="Limpar filtro">×</button>
-                            </span>
-                        </h3>
-                        <div style="overflow-x: auto; max-height: 460px;">
-                            <table class="tabela-dashboard">
-                                <thead style="position: sticky; top: 0; background-color: #f8fafc; z-index: 5;">
-                                    <tr>
-                                        <th>Mês</th>
-                                        <th>Ativo</th>
-                                        <th style="text-align: right;">Qtd</th>
-                                        <th style="text-align: right;">R$ / cota</th>
-                                        <th style="text-align: right;">Total recebido</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabelaPagamentosCorpo"></tbody>
-                            </table>
-                            <div id="pagamentosVaziaMsg" style="padding: 40px; text-align: center; color: var(--cor-texto-secundario); display: none;">
-                                <p style="font-size: 13px;">Nenhum pagamento encontrado no histórico.</p>
-                            </div>
-                        </div>
+                <div class="inv-painel">
+                    <div class="inv-barra" style="flex-wrap:wrap; gap:6px;">
+                        <span class="inv-eyebrow">Pagamentos recentes</span>
+                        <span style="font-size:11px; color:var(--cor-texto-secundario);">· agregados por mês</span>
+                        <span id="chipFiltroPagamentos" style="display:none; align-items:center; gap:4px; padding:3px 9px; border-radius:99px; background:var(--cor-bg-primaria); color:var(--cor-txt-primaria); border:1px solid var(--cor-borda-primaria); font-size:11px; font-weight:700; margin-left:auto;">
+                            <i class="ph ph-funnel" style="font-size:11px;"></i>
+                            <span id="filtroPagamentosLabel"></span>
+                            <button onclick="alternarFiltroPagamentosTicker('')" style="border:none; background:transparent; color:inherit; cursor:pointer; padding:0 0 0 2px; font-size:14px; line-height:1;" title="Limpar filtro">×</button>
+                        </span>
                     </div>
+                    <div class="inv-rolagem">
+                        <table class="tabela-dashboard">
+                            <thead><tr><th>Mês</th><th>Ativo</th><th style="text-align:right;">Qtd</th><th style="text-align:right;">R$ / cota</th><th style="text-align:right;">Total recebido</th></tr></thead>
+                            <tbody id="tabelaPagamentosCorpo"></tbody>
+                        </table>
+                        <div id="pagamentosVaziaMsg" class="inv-vazio" style="display:none;">Nenhum pagamento encontrado no histórico.</div>
+                    </div>
+                    <div style="padding:10px 12px; border-top:1px solid var(--cor-borda); font-size:11px; color:var(--cor-texto-secundario);">Os valores consideram a quantidade que você tinha em cada data de pagamento.</div>
                 </div>
             </div>
 
         </section>
+
 
         <section id="controle" class="section ativa">
             <div class="page-header">
@@ -7285,7 +8931,7 @@
                     <div class="kpi-hero-head">
                         <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
                         <div>
-                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:#8b5cf6;font-weight:700;margin-left:4px;"></span></div>
+                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
                             <div class="kpi-hero-sub">receita − despesas − cartão − investimentos</div>
                         </div>
                     </div>
@@ -7296,21 +8942,21 @@
                 <div class="kpis-controle-grid">
                     <div class="kpi-mini kpi-receita">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(16,185,129,0.12);color:#10b981;"><i class="ph-fill ph-arrow-down-left"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(16,185,129,0.12);color:var(--tinta-verde);"><i class="ph-fill ph-arrow-down-left"></i></span>
                             <span class="kpi-mini-lbl">Receita do mês</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiReceitaMes" style="color:var(--cor-primaria);">R$ 0,00</div>
                     </div>
                     <div class="kpi-mini kpi-despesa">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(239,68,68,0.12);color:#ef4444;"><i class="ph-fill ph-arrow-up-right"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(239,68,68,0.12);color:var(--tinta-vermelho);"><i class="ph-fill ph-arrow-up-right"></i></span>
                             <span class="kpi-mini-lbl">Total de despesas</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiDespesasMes" style="color:var(--cor-erro);">R$ 0,00</div>
                     </div>
                     <div class="kpi-mini kpi-cartao">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(245,158,11,0.12);color:#f59e0b;"><i class="ph-fill ph-credit-card"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(245,158,11,0.12);color:var(--tinta-ambar);"><i class="ph-fill ph-credit-card"></i></span>
                             <span class="kpi-mini-lbl">Cartão de crédito</span>
                         </div>
                         <div class="kpi-mini-valor" id="kpiCartaoMes" style="color:var(--cor-cartao);">R$ 0,00</div>
@@ -7318,10 +8964,10 @@
                     </div>
                     <div class="kpi-mini kpi-invest">
                         <div class="kpi-mini-head">
-                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:#7c3aed;"><i class="ph-fill ph-trend-up"></i></span>
+                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:var(--tinta-roxo);"><i class="ph-fill ph-trend-up"></i></span>
                             <span class="kpi-mini-lbl">Investimentos</span>
                         </div>
-                        <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:#10b981;">R$ 0,00</div>
+                        <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:var(--tinta-verde);">R$ 0,00</div>
                         <div class="kpi-mini-sub">aportes do mês</div>
                     </div>
                 </div>
@@ -7341,7 +8987,7 @@
             </div>
 
             <div id="bannerSaldoMesAnterior" style="display:none;margin-bottom:14px;padding:12px 14px;border:1.5px solid #c4b5fd;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(124,58,237,0.04));align-items:center;gap:12px;flex-wrap:wrap;">
-                <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:#7c3aed;flex-shrink:0;"></i>
+                <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:var(--tinta-roxo);flex-shrink:0;"></i>
                 <div style="flex:1;min-width:200px;font-size:13px;color:var(--cor-texto-principal);">
                     <span id="txtBannerSaldoMesAnt"></span>
                 </div>
@@ -7415,12 +9061,21 @@
                             <div id="totalColInv" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-info);">R$ 0,00</div>
                         </div>
                     </div>
-                    <div id="extratoUnificado" style="display:flex;flex-direction:column;overflow-y:auto;max-height:340px;flex:1;">
-                        <div id="extratoReceitas" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoDespesas" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoCartao" style="display:flex;flex-direction:column;gap:0;"></div>
-                        <div id="extratoInvestimentos" style="display:flex;flex-direction:column;gap:0;"></div>
-                    </div>
+                    <!-- Sub-filtro por categoria: as abas acima separam por TIPO
+                         (entrada/saída/cartão/investimento); aqui separa por
+                         CATEGORIA de gasto, que é como o usuário pensa o mês.
+                         Os chips saem do próprio mês e vêm do maior total para o
+                         menor — a linha já é o ranking de para onde foi o dinheiro. -->
+                    <div id="extratoCategorias" class="ext-cat-wrap" style="display:none;"></div>
+                    <!-- Lista ÚNICA. Eram quatro caixas empilhadas (entradas,
+                         saídas, cartão, aportes) e os filtros do topo mostravam
+                         ou escondiam a caixa inteira. Com isso a ordem visível
+                         era "todas as entradas, depois todas as saídas…" — e o
+                         maior gasto do mês podia ficar abaixo de uma receita de
+                         R$ 20. Numa lista só, a ordem decrescente vale para o
+                         mês inteiro; os filtros passaram a esconder por item. -->
+                    <div id="extratoUnificado" style="display:flex;flex-direction:column;overflow-y:auto;max-height:340px;flex:1;"></div>
+                    <div id="extratoVazio" class="kanban-empty" style="display:none;"></div>
                 </div>
 
                 <div class="card-container" id="painelNovoLancamento" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -7588,19 +9243,36 @@
             <div class="grid-cards" id="jornadaModulosGrid"></div>
 
             <!-- MODAL DE DETALHE DO MÓDULO -->
-            <div id="modalJornadaModulo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:9999;justify-content:center;align-items:center;backdrop-filter:blur(4px);" onclick="if(event.target===this)fecharModalJornada()">
-                <div style="max-width:540px;width:92%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;">
-                        <h3 id="jornadaModalTitulo" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:9px;color:var(--cor-texto-principal);"><i class="ph-fill ph-graduation-cap" style="color:var(--cor-primaria);"></i> <span></span></h3>
+            <!-- Leitor do módulo.
+                 Era um modal de 540px que terminava em "conteúdo em
+                 desenvolvimento". Agora é uma tela de leitura: cabeçalho fixo,
+                 material rolando no meio e as ações presas no rodapé — quem lê
+                 12 minutos de texto não pode precisar rolar de volta ao topo
+                 para marcar como concluído. -->
+            <div id="modalJornadaModulo" class="jm-overlay" style="display:none;" onclick="if(event.target===this)fecharModalJornada()">
+                <div class="jm-folha" role="dialog" aria-modal="true" aria-labelledby="jornadaModalTitulo">
+                    <div class="jm-topo">
+                        <h3 id="jornadaModalTitulo"><i class="ph-fill ph-graduation-cap"></i> <span></span></h3>
                         <button class="drawer-fechar" onclick="fecharModalJornada()" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px;"></i></button>
                     </div>
-                    <p id="jornadaModalDescricao" style="font-size:13.5px;color:var(--cor-texto-secundario);line-height:1.6;margin-bottom:18px;"></p>
-                    <div id="jornadaModalObjetivos" style="background:var(--cor-bg-info);border:1px solid var(--cor-borda);border-radius:10px;padding:14px 16px;margin-bottom:18px;"></div>
-                    <div style="background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px 14px;margin-bottom:20px;font-size:12.5px;color:#92400e;line-height:1.5;">
-                        <i class="ph-fill ph-lightbulb" style="vertical-align:middle;margin-right:4px;"></i>
-                        <strong>Conteúdo em desenvolvimento.</strong> Em breve teremos vídeo, leituras e exercícios para este módulo. Por enquanto, leia o resumo, execute o objetivo e marque como concluído.
+
+                    <div class="jm-rolagem" id="jornadaModalRolagem">
+                        <div class="jm-capa" id="jornadaModalCapa"></div>
+
+                        <div id="jornadaModalObjetivos" class="jm-objetivos"></div>
+
+                        <!-- O material de estudo, montado a partir de
+                             appliquei-jornada-conteudo.js -->
+                        <article class="jm-material" id="jornadaModalMaterial"></article>
+
+                        <p class="jm-regras" id="jornadaModalAvisoRegras"></p>
+
+                        <!-- Mantido para os motores que leem a descrição curta
+                             do módulo; a capa já mostra o resumo do material. -->
+                        <p id="jornadaModalDescricao" hidden></p>
                     </div>
-                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+
+                    <div class="jm-rodape">
                         <button id="jornadaModalBtnConcluir" class="btn-acao" style="flex:1;min-width:160px;"><i class="ph-bold ph-check-circle"></i> <span>Marcar como concluído</span></button>
                         <button class="btn-secundario" onclick="fecharModalJornada()" style="flex:0 0 auto;">Fechar</button>
                     </div>
@@ -7719,62 +9391,34 @@
                             <span id="cartCapitalLabel">R$ 0,00</span>
                         </span>
                     </div>
-                    <button class="cart-btn-mini" onclick="cartEditarPerfil()">
-                        <i class="ph ph-pencil-simple"></i> Editar perfil ou capital
+                    <button class="cart-btn-mini" onclick="cartEditarPerfil()" title="Editar perfil ou capital" aria-label="Editar perfil ou capital">
+                        <i class="ph ph-pencil-simple"></i> <span class="cart-btn-mini-rotulo">Editar perfil ou capital</span>
                     </button>
                     <div class="cart-perfil-msg" id="cartPerfilMsg"></div>
-                </div>
-
-                <!-- Hero: Educational Panel + Donut Chart -->
-                <div class="cart-hero" id="cartHero" style="display:none;">
-                    <div class="cart-edu-panel">
-                        <div class="cart-edu-panel-title">
-                            <i class="ph ph-graduation-cap"></i> Entenda cada classe
-                        </div>
-                        <div id="cartEduList"></div>
-                    </div>
-
-                    <div class="cart-donut-card">
-                        <div class="cart-donut-title">
-                            <i class="ph ph-chart-pie-slice"></i> Distribuição
-                        </div>
-                        <div class="cart-donut-wrap">
-                            <canvas id="cartDonutChart"></canvas>
-                            <div class="cart-donut-center">
-                                <div class="label">Aporte mensal</div>
-                                <div class="value" id="cartDonutCenterValue">R$ 0</div>
-                            </div>
-                        </div>
-                        <div class="cart-donut-legend" id="cartDonutLegend"></div>
-                    </div>
-                </div>
-
-                <!-- Diversification callout -->
-                <div class="cart-callout" id="cartCallout" style="display:none;">
-                    <i class="ph-fill ph-lightbulb"></i>
-                    <div><strong>📌 Dica:</strong> Misturar classes reduz o risco da carteira no longo prazo.</div>
                 </div>
 
                 <!-- Recommendation engine: scores + plano de aporte -->
                 <div id="cartMotorWrap" style="display:none;">
                     <div class="cart-selecao-header">
-                        <h3><i class="ph ph-cpu"></i> Score Appliquei</h3>
+                        <h3><i class="ph ph-target"></i> Sua carteira sugerida</h3>
                         <div class="cart-motor-controles">
                             <div class="cart-motor-lentes" id="cartMotorLentes"></div>
                         </div>
                     </div>
-                    <div class="cart-motor-status" id="cartMotorStatus"></div>
 
-                    <div class="cart-motor-sub">
-                        <i class="ph ph-target"></i> Sugestões do mês
-                    </div>
                     <div id="cartMotorPlano"></div>
+
+                    <!-- Cobertura de dados e lente ativa: é a PROCEDÊNCIA da
+                         recomendação, não a recomendação. Antes vinha acima do
+                         plano e empurrava para baixo justamente o que a pessoa
+                         abriu a aba para ver. -->
+                    <div class="cart-motor-status" id="cartMotorStatus"></div>
 
                     <!-- Personalização: vem DEPOIS do plano de propósito.
                          Quem não entende de investimento recebe a recomendação
                          pronta; quem já tem estratégia própria encontra aqui a
                          porta para executá-la com o mesmo motor. Abrir a aba
-                         com um formulário em branco devolveria ao utilizador a
+                         com um formulário em branco devolveria ao usuário a
                          decisão que ele veio buscar. -->
                     <div id="cartCustomWrap"></div>
 
@@ -7797,6 +9441,45 @@
                     </div>
 
                 </div>
+
+                <!-- #cartHero: agora é só o container do bloco de distribuição.
+                     O painel educativo saiu daqui para o fim da página. -->
+                <div class="cart-hero" id="cartHero" style="display:none;">
+                <!-- Distribuição por classe -->
+                <div class="cart-donut-card" id="cartDonutCard" style="display:none;">
+                    <div class="cart-donut-title">
+                        <i class="ph ph-chart-pie-slice"></i> Distribuição por classe
+                    </div>
+                    <div class="cart-donut-wrap">
+                        <canvas id="cartDonutChart"></canvas>
+                        <div class="cart-donut-center">
+                            <div class="label">Aporte mensal</div>
+                            <div class="value" id="cartDonutCenterValue">R$ 0</div>
+                        </div>
+                    </div>
+                    <div class="cart-donut-legend" id="cartDonutLegend"></div>
+                </div>
+
+                </div>
+
+                <!-- Diversification callout -->
+                <div class="cart-callout" id="cartCallout" style="display:none;">
+                    <i class="ph-fill ph-lightbulb"></i>
+                    <div><strong>📌 Dica:</strong> Misturar classes reduz o risco da carteira no longo prazo.</div>
+                </div>
+
+                <!-- Educação: o texto de cada classe.
+                     Fica em <details> fechado porque é material de apoio, não a
+                     resposta que o usuário veio buscar. Aberto por padrão, ele
+                     empurrava a carteira para 2.046px no celular. -->
+                <details class="cart-edu-details" id="cartEduDetails" style="display:none;">
+                    <summary>
+                        <i class="ph ph-graduation-cap"></i>
+                        <span>Entenda cada classe</span>
+                        <i class="ph ph-caret-down cart-edu-seta"></i>
+                    </summary>
+                    <div id="cartEduList"></div>
+                </details>
 
                 <!-- Historical Simulation -->
                 <div class="cart-sim-card" id="cartSimCard" style="display:none;">
@@ -8557,14 +10240,14 @@
                                 </filter>
                             </defs>
                             <!-- Trilho de fundo -->
-                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="#eef2f7" stroke-width="16" stroke-linecap="round"/>
+                            <path d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="var(--rm-gauge-trilho)" stroke-width="16" stroke-linecap="round"/>
                             <!-- Preenchimento progresso -->
                             <path id="rmGaugePath" d="M 20 110 A 90 90 0 0 1 200 110" fill="none" stroke="url(#rmGaugeGrad)" stroke-width="16" stroke-linecap="round" stroke-dasharray="283" stroke-dashoffset="283" style="transition:stroke-dashoffset 0.8s cubic-bezier(.22,1,.36,1);"/>
                             <!-- Ponteiro -->
                             <g id="rmGaugePointer" transform="rotate(-90 110 110)" style="transition:transform 0.8s cubic-bezier(.22,1,.36,1);">
-                                <circle cx="110" cy="110" r="9" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
-                                <line x1="110" y1="110" x2="110" y2="35" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
-                                <circle cx="110" cy="110" r="4" fill="#0f172a"/>
+                                <circle cx="110" cy="110" r="9" fill="var(--rm-gauge-cubo)" stroke="var(--rm-gauge-aro)" stroke-width="1.5" filter="url(#rmGaugeShadow)"/>
+                                <line x1="110" y1="110" x2="110" y2="35" stroke="var(--rm-gauge-agulha)" stroke-width="3" stroke-linecap="round"/>
+                                <circle cx="110" cy="110" r="4" fill="var(--rm-gauge-agulha)"/>
                             </g>
                         </svg>
                         <div class="rm-hero-score-block">
@@ -8769,7 +10452,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label>Conta de onde sai o dinheiro <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
+                        <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro)">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
                         <select id="sonhoContaOrigem" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;"></select>
                     </div>
 
@@ -9177,7 +10860,9 @@
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>
     <script src="/web/appliquei-bens.js?v=bens-v1"></script>
     <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
-    <script src="/web/appliquei-jornada.js?v=onda3b"></script>
+    <!-- O material vem ANTES do renderizador: jornada.js lê JORNADA_CONTEUDO. -->
+    <script src="/web/appliquei-jornada-conteudo.js?v=material-1"></script>
+    <script src="/web/appliquei-jornada.js?v=material-1"></script>
     <script src="/web/appliquei-sonhos.js?v=conquista-no-card"></script>
 </body>
 </html>

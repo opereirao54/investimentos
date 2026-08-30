@@ -92,11 +92,11 @@ function renderizarTabelaPagamentos() {
           ? ` <span style="font-size:10px;color:var(--cor-texto-mutado);font-weight:400;">(${l.eventos})</span>`
           : '';
       return `<tr>
-            <td style="font-family:'DM Mono', monospace;">${labelMes}${sufixo}</td>
-            <td style="font-weight: 600;">${l.ticker}</td>
-            <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdMes)}</td>
-            <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.somaValorCota)}</td>
-            <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.total)}</td>
+            <td data-col="Mês" style="font-weight: 600;">${l.ticker} <span style="font-weight:400;color:var(--cor-texto-secundario);">· ${labelMes}${sufixo}</span></td>
+            <td data-col="Ativo" style="display:none;">${l.ticker}</td>
+            <td data-col="Qtd" style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdMes)}</td>
+            <td data-col="R$ / cota" style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.somaValorCota)}</td>
+            <td data-col="Recebido" style="text-align: right; font-weight: 600; color: var(--cor-txt-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.total)}</td>
         </tr>`;
     })
     .join('');
@@ -347,11 +347,11 @@ async function carregarDividendos(forcar = false) {
         const selecionado = filtroPagamentosTicker === l.ticker;
         const bg = selecionado ? 'var(--cor-bg-primaria)' : '';
         return `<tr data-ticker="${l.ticker}" onclick="alternarFiltroPagamentosTicker('${l.ticker}')" style="cursor:pointer; background:${bg};" title="Clique para filtrar pagamentos por ${l.ticker}">
-                <td style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
-                <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
-                <td style="text-align: right; font-weight: 600; color: var(--cor-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
-                <td style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
-                <td style="text-align: right; font-family:'DM Mono', monospace;">${yocAtivo.toFixed(2)}%</td>
+                <td data-col="Ativo" style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
+                <td data-col="Qtd atual" style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
+                <td data-col="Recebido total" style="text-align: right; font-weight: 600; color: var(--cor-txt-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
+                <td data-col="Recebido 12m" style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
+                <td data-col="YOC" style="text-align: right; font-family:'DM Mono', monospace;">${yocAtivo.toFixed(2)}%</td>
             </tr>`;
       })
       .join('');
@@ -510,13 +510,7 @@ function lancarDividendosNoCaixa() {
     criados++;
   });
   if (criados > 0) {
-    try {
-      localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-    } catch (_) {}
-    try {
-      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
-        AppliqueiCloudSync.forceFlush();
-    } catch (_) {}
+    salvarTransacoes({ flush: true });
     if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
   }
   return criados;

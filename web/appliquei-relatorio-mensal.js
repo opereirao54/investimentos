@@ -311,8 +311,10 @@ var RM_FAIXAS_SCORE = [
     rotulo: 'Crítico',
     cor: '#ef4444',
     corImpressao: '#dc2626',
-    corClara: '#fee2e2',
-    corEscura: '#991b1b',
+    corClara: 'var(--rm-faixa-vermelho-bg)',
+    corEscura: 'var(--rm-faixa-vermelho-tinta)',
+    corClaraImpressao: '#fee2e2',
+    corEscuraImpressao: '#991b1b',
   },
   {
     status: 'amarelo',
@@ -321,8 +323,10 @@ var RM_FAIXAS_SCORE = [
     rotulo: 'Atenção',
     cor: '#f59e0b',
     corImpressao: '#d97706',
-    corClara: '#fef3c7',
-    corEscura: '#92400e',
+    corClara: 'var(--rm-faixa-amarelo-bg)',
+    corEscura: 'var(--rm-faixa-amarelo-tinta)',
+    corClaraImpressao: '#fef3c7',
+    corEscuraImpressao: '#92400e',
   },
   {
     status: 'verde',
@@ -331,8 +335,10 @@ var RM_FAIXAS_SCORE = [
     rotulo: 'Saudável',
     cor: '#10b981',
     corImpressao: '#059669',
-    corClara: '#d1fae5',
-    corEscura: '#065f46',
+    corClara: 'var(--rm-faixa-verde-bg)',
+    corEscura: 'var(--rm-faixa-verde-tinta)',
+    corClaraImpressao: '#d1fae5',
+    corEscuraImpressao: '#065f46',
   },
 ];
 
@@ -362,14 +368,30 @@ function rmBarraFaixasHtml(score, opts) {
   const segmentos = RM_FAIXAS_SCORE.map((faixa) => {
     const ehAtiva = faixa.status === ativa.status;
     const largura = ((faixa.max - faixa.min + 1) / RM_SCORE_PONTOS) * 100;
-    const fundo = ehAtiva ? (impressao ? faixa.corImpressao : faixa.cor) : faixa.corClara;
+    // A faixa ativa é um bloco da cor cheia; a inativa, o pastel. No PDF as
+    // duas são hex fixos (documento em iframe, sem a folha do app); na tela
+    // saem de variáveis, porque o pastel precisa virar tom escuro no tema
+    // escuro. O texto da ativa NÃO é branco fixo: sobre o amarelo (#f59e0b)
+    // branco dá 2,15:1 — ilegível nos dois temas. tintaSobre escolhe.
+    const fundo = ehAtiva
+      ? impressao
+        ? faixa.corImpressao
+        : faixa.cor
+      : impressao
+        ? faixa.corClaraImpressao
+        : faixa.corClara;
+    const tinta = ehAtiva
+      ? tintaSobre(impressao ? faixa.corImpressao : faixa.cor)
+      : impressao
+        ? faixa.corEscuraImpressao
+        : faixa.corEscura;
     return (
       '<div style="box-sizing:border-box;flex:1 0 ' +
       largura.toFixed(2) +
       '%;background:' +
       fundo +
       ';color:' +
-      (ehAtiva ? '#ffffff' : faixa.corEscura) +
+      tinta +
       ';padding:5px 6px;text-align:center;line-height:1.25;">' +
       '<div style="font-family:\'DM Mono\',monospace;font-size:11.5px;font-weight:800;">' +
       faixa.min +
@@ -812,10 +834,10 @@ function rmRenderSecundarios(rep) {
         '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' +
         rep.sonhos.ativos +
         '</div><div class="rm-sec-kpi-label">Ativos</div></div>' +
-        '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-verde);">' +
+        '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--tinta-verde);">' +
         rep.sonhos.noPrazo +
         '</div><div class="rm-sec-kpi-label">No prazo</div></div>' +
-        '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' +
+        '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--tinta-roxo);">' +
         rep.sonhos.progressoMedio.toFixed(0) +
         '%</div><div class="rm-sec-kpi-label">Progresso</div></div>' +
         '</div>' +
@@ -869,7 +891,7 @@ function rmRenderSecundarios(rep) {
     '</div></div>' +
     '<div class="rm-sec-body">' +
     '<div class="rm-sec-kpi-row">' +
-    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-roxo);">' +
+    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--tinta-roxo);">' +
     rep.jornadaModulosMes +
     '</div><div class="rm-sec-kpi-label">No mês</div></div>' +
     '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num">' +
@@ -902,10 +924,10 @@ function rmRenderSecundarios(rep) {
     '</div></div>' +
     '<div class="rm-sec-body">' +
     '<div class="rm-sec-kpi-row">' +
-    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--rm-azul);">' +
+    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num" style="color:var(--tinta-azul);">' +
     rep.applicash.indicacoes +
     '</div><div class="rm-sec-kpi-label">Ativas</div></div>' +
-    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num valor-mascarado" style="font-size:18px;color:var(--rm-azul);">' +
+    '<div class="rm-sec-kpi"><div class="rm-sec-kpi-num valor-mascarado" style="font-size:18px;color:var(--tinta-azul);">' +
     formatarMoeda(rep.applicash.receita) +
     '</div><div class="rm-sec-kpi-label">Cashback</div></div>' +
     '</div>' +

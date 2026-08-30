@@ -37,6 +37,12 @@ function carregar() {
     style: {},
     classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
     dataset: {},
+    // Um nó falso sem setAttribute mente sobre o que um elemento é: código de
+    // acessibilidade (aria-pressed, aria-expanded) explode aqui e passa no
+    // navegador.
+    setAttribute() {},
+    getAttribute: () => null,
+    removeAttribute() {},
     options: [],
     appendChild() {},
     addEventListener() {},

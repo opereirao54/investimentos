@@ -1179,7 +1179,7 @@ async function adminPost(payload) {
 var FB_ABA_LABELS = {
   patrimonio: 'Patrimônio',
   controle: 'Controle financeiro',
-  carteira: 'Carteira recomendada',
+  carteira: 'Carteira sugerida',
   relatorio_mensal: 'Relatório mensal',
   simulador: 'Simulador',
   meus_sonhos: 'Meus sonhos',

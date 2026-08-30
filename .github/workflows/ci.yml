@@ -1,10 +1,20 @@
 name: CI
 
 on:
+  # `push:` sem filtro = TODA branch. Antes era `branches: [main]`, e o efeito
+  # colateral era grave: trabalho numa branch de feature nunca via CI — as
+  # travas só rodavam quando o PR abrisse. Quem empurra commit espera saber se
+  # quebrou algo antes de pedir revisão, não depois.
   push:
-    branches: [main]
   pull_request:
     branches: [main]
+
+# Branch de PR dispararia duas vezes (push + pull_request). O grupo por ref faz
+# a segunda cancelar a primeira, e cada push novo cancela a run anterior da
+# mesma branch — feedback mais rápido e sem queimar minutos com runs superadas.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 # Silencia o aviso "Node.js 20 actions are deprecated". As actions oficiais
 # (checkout/setup-node) ainda usam Node 20 internamente em sua implementação;
@@ -42,6 +52,21 @@ jobs:
 
       - name: Unit tests (node --test)
         run: npm test
+
+      # Travas dos contratos de integração entre as telas (mapa em
+      # .claude/integracoes/mapa.json). Já entram no `npm test` acima — este
+      # passo as roda ISOLADAS para que, quando o CI ficar vermelho, dê para
+      # ver de relance se o que quebrou foi uma integração entre módulos ou
+      # outra coisa. Não dependem de nenhum pacote: só builtins do Node.
+      - name: Contratos de integração (invariantes)
+        run: npm run test:integracoes
+
+      # Simulação das ações de UI: cada botão exercitado com entradas válidas,
+      # degeneradas e adversariais, mais sequências aleatórias de semente fixa,
+      # validando TODAS as invariantes entre cada passo. Determinístico de
+      # propósito — um teste que falha às vezes não serve como trava.
+      - name: Simulação de ações (botões e sequências)
+        run: npm run test:simulacao
 
       - name: Billing flow tests
         run: npm run test:flows

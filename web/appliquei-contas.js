@@ -82,10 +82,17 @@ function contasAtivas() {
 // Retorna um mapa { contaId: saldoEmCaixa }. Sem o módulo de patrimônio (ex.:
 // testes), cai para o saldo inicial cadastrado.
 function saldoCaixaPorConta(refMs) {
-  const ref = refMs != null ? refMs : Date.now();
+  const agora = Date.now();
+  const ref = refMs != null ? refMs : agora;
+  // Numa data FUTURA o saldo relevante é o PROJETADO: parte da foto de hoje e
+  // aplica o que já está agendado até lá. mpCalcularSaldoPorInstituicao sozinha
+  // não serve para isso — ela só desconta saída com `pago:true`, e lançamento
+  // futuro nasce `pago:false`; passar um ref futuro devolveria um saldo
+  // otimista (contaria a receita de amanhã e ignoraria a fatura de amanhã).
+  const base = ref > agora ? agora : ref;
   const mapa = {};
   if (typeof mpCalcularSaldoPorInstituicao === 'function') {
-    const porInst = mpCalcularSaldoPorInstituicao(ref) || {};
+    const porInst = mpCalcularSaldoPorInstituicao(base) || {};
     Object.keys(porInst).forEach(function (k) {
       mapa[k] = Number(porInst[k] && porInst[k].caixa) || 0;
     });
@@ -94,6 +101,55 @@ function saldoCaixaPorConta(refMs) {
       mapa[c.id] = Number(c.saldoInicial) || 0;
     });
   }
+  if (ref > agora) aplicarAgendadoNoSaldo(mapa, agora, ref);
+  return mapa;
+}
+
+// Soma ao mapa de saldos tudo o que está AGENDADO na janela (agora, refMs],
+// pago ou não — é a diferença entre "quanto tenho" e "quanto terei naquele dia".
+// Espelha as regras de caixa do Patrimônio (mpTransacaoComputaCaixa) menos a
+// exigência de `pago`, que é justamente o que ainda não aconteceu:
+//   · perna do ativo com temLegCaixa não conta (quem debita é a perna de caixa);
+//   · entrada soma, qualquer outra categoria subtrai.
+function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
+  if (typeof transacoes === 'undefined') return mapa;
+  if (typeof mpTimestampTransacao !== 'function') return mapa;
+  // Aqui a granularidade é o DIA, não o mês: a pergunta é "quanto vou ter no dia
+  // 15?", e mpTimestampTransacao devolve sempre o 1º dia da competência — o
+  // aluguel do dia 20 apareceria descontado já no dia 15. mpDataMovimento é a
+  // data real do lançamento (vencimento primeiro), que é a que responde isso.
+  const quando = typeof mpDataMovimento === 'function' ? mpDataMovimento : mpTimestampTransacao;
+  const ehEntrada =
+    typeof mpEhEntradaCaixa === 'function'
+      ? mpEhEntradaCaixa
+      : function (cat) {
+          return (
+            cat === 'receita' ||
+            cat === 'dividendo' ||
+            cat === 'resgate_investimento' ||
+            cat === 'transferencia_entrada'
+          );
+        };
+  transacoes.forEach(function (t) {
+    // A janela usa as duas datas: `quando` (dia real) decide se cabe até ateMs,
+    // e a competência decide se já entrou na foto de hoje — assim nada é contado
+    // duas vezes nem fica de fora na virada do mês.
+    const ts = quando(t);
+    if (ts > ateMs) return;
+    if (!(ts > deMs) || !(mpTimestampTransacao(t) > deMs)) return;
+    if (
+      (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+      t.temLegCaixa
+    )
+      return;
+    const chave =
+      typeof mpChaveInstTransacao === 'function' ? mpChaveInstTransacao(t).key : t.contaId;
+    if (!chave) return;
+    if (mapa[chave] == null) mapa[chave] = 0;
+    const valor = Number(t.valor) || 0;
+    if (ehEntrada(t.categoria)) mapa[chave] += valor;
+    else mapa[chave] -= valor;
+  });
   return mapa;
 }
 
@@ -123,19 +179,24 @@ function contasComSaldo(refMs) {
 //   incluirTodas    → lista TODAS as contas ativas (destino do dinheiro), ainda
 //                     assim mostrando o saldo de cada uma
 //   vazioMsg        → texto quando não há nenhuma conta elegível
+//   refMs           → data de referência do saldo. Numa data futura lista o
+//                     saldo PROJETADO para aquele dia (ver saldoCaixaPorConta),
+//                     que é o que importa quando a operação é agendada.
 function optionsContasComSaldo(opcoes) {
   const o = opcoes || {};
   const fmt = function (v) {
-    return typeof formatarMoeda === 'function' ? formatarMoeda(v) : 'R$ ' + (Number(v) || 0).toFixed(2);
+    return typeof formatarMoeda === 'function'
+      ? formatarMoeda(v)
+      : 'R$ ' + (Number(v) || 0).toFixed(2);
   };
   let lista;
   if (o.incluirTodas) {
-    const saldos = saldoCaixaPorConta();
+    const saldos = saldoCaixaPorConta(o.refMs);
     lista = contasAtivas().map(function (c) {
       return { conta: c, saldo: Number(saldos[c.id]) || 0 };
     });
   } else {
-    lista = contasComSaldo();
+    lista = contasComSaldo(o.refMs);
   }
   if (!lista.length) {
     const msg = o.vazioMsg || '— nenhuma conta com saldo disponível —';
@@ -146,8 +207,14 @@ function optionsContasComSaldo(opcoes) {
     .map(function (x) {
       const marca = String(x.conta.id) === sel ? ' selected' : '';
       return (
-        '<option value="' + x.conta.id + '"' + marca + '>' +
-        x.conta.nome + ' — ' + fmt(x.saldo) +
+        '<option value="' +
+        x.conta.id +
+        '"' +
+        marca +
+        '>' +
+        x.conta.nome +
+        ' — ' +
+        fmt(x.saldo) +
         '</option>'
       );
     })
@@ -622,8 +689,14 @@ function abrirTransferenciaModal() {
     '<i class="ph ph-arrows-left-right" style="color:var(--cor-info);"></i> Transferir entre contas';
   document.getElementById('modalMensagem').innerHTML =
     '<div style="display:flex;flex-direction:column;gap:10px;text-align:left;">' +
-    campo('De', '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>') +
-    campo('Para', '<select id="transfDestino" style="' + estiloCtrl + '">' + optsDestino + '</select>') +
+    campo(
+      'De',
+      '<select id="transfOrigem" style="' + estiloCtrl + '">' + optsOrigem + '</select>'
+    ) +
+    campo(
+      'Para',
+      '<select id="transfDestino" style="' + estiloCtrl + '">' + optsDestino + '</select>'
+    ) +
     campo(
       'Valor (R$)',
       '<input type="text" inputmode="decimal" id="transfValor" placeholder="0,00" oninput="aplicarMascaraBRL(this)" style="' +
@@ -655,14 +728,34 @@ function abrirTransferenciaModal() {
 
 // Lógica pura (testável): cria o par de transações balanceado. Retorna
 // {saida, entrada} ou null se inválido. NÃO toca DOM.
+// Choke point da transferência: confirmarTransferencia e qualquer outro
+// chamador passam por aqui, então as guardas vivem neste ponto.
+//
+// Duas saíram da simulação dos botões (test/simulacao-patrimonio.test.js):
+//
+//  · conta INEXISTENTE passava. `obterConta(id) || {}` engolia o caso e as duas
+//    pernas nasciam apontando para o nada — o valor saía do total do patrimônio
+//    sem sair de instituição alguma (INV-01). O select da UI só oferece contas
+//    reais, mas uma conta apagada entre abrir o modal e confirmar chega aqui.
+//  · valor ACIMA DO SALDO passava, deixando a conta de origem negativa. É a
+//    mesma saída de dinheiro que registrarOperacaoAtivo bloqueia na compra de
+//    ativo (renda-fixa.js:796) e que o aporte de sonho passou a bloquear.
 function criarTransferencia(origemId, destinoId, valor, dataStr) {
   if (!origemId || !destinoId || origemId === destinoId) return null;
   if (!(Number(valor) > 0)) return null;
   if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return null;
+  const cOrigem = obterConta(origemId);
+  const cDestino = obterConta(destinoId);
+  if (!cOrigem || !cDestino) return null;
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const saldos = mpCalcularSaldoPorInstituicao(Date.now()) || {};
+    const caixa = saldos[origemId] ? saldos[origemId].caixa : 0;
+    if (Number(valor) > caixa + 0.005) return null;
+  }
   const d = dataStr ? new Date(dataStr + 'T12:00:00') : new Date();
   const transferenciaId = 'transf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-  const oNome = (obterConta(origemId) || {}).nome || '';
-  const dNome = (obterConta(destinoId) || {}).nome || '';
+  const oNome = cOrigem.nome || '';
+  const dNome = cDestino.nome || '';
   const base = {
     transferenciaId: transferenciaId,
     valor: Number(valor),
@@ -686,13 +779,7 @@ function criarTransferencia(origemId, destinoId, valor, dataStr) {
     banco: dNome,
   });
   transacoes.push(saida, entrada);
-  try {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-  } catch (_) {}
-  try {
-    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
-      AppliqueiCloudSync.forceFlush();
-  } catch (_) {}
+  salvarTransacoes({ flush: true });
   return { saida: saida, entrada: entrada };
 }
 
@@ -708,6 +795,16 @@ function confirmarTransferencia() {
     return mostrarToast('Escolha as contas de origem e destino.', 'erro');
   if (origemId === destinoId) return mostrarToast('Origem e destino devem ser diferentes.', 'erro');
   if (!(valor > 0)) return mostrarToast('Informe um valor válido.', 'erro');
+  // criarTransferencia recusa por saldo devolvendo null; a mensagem genérica
+  // não diria ao usuário o que fazer, então o caso provável é explicado aqui.
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const saldos = mpCalcularSaldoPorInstituicao(Date.now()) || {};
+    const caixa = saldos[origemId] ? saldos[origemId].caixa : 0;
+    if (valor > caixa + 0.005) {
+      const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
+      return mostrarToast(`Saldo insuficiente: a conta de origem tem ${fmt(caixa)}.`, 'erro');
+    }
+  }
   const r = criarTransferencia(origemId, destinoId, valor, dataStr);
   if (!r) return mostrarToast('Não foi possível registrar a transferência.', 'erro');
   if (typeof fecharModal === 'function') fecharModal();

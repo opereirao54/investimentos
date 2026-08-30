@@ -11,11 +11,79 @@
 
 // --- BASE DE DADOS DOS ATIVOS ---
 var mockAtivosMercado = [
-    { ticker: 'PETR4', nome: 'Petrobras PN', tipo: 'Ação', preco_atual: 38.50 }, { ticker: 'PETR3', nome: 'Petrobras ON', tipo: 'Ação', preco_atual: 39.10 }, { ticker: 'VALE3', nome: 'Vale ON', tipo: 'Ação', preco_atual: 62.10 }, { ticker: 'ITUB4', nome: 'Itaú Unibanco PN', tipo: 'Ação', preco_atual: 33.40 }, { ticker: 'BBDC4', nome: 'Bradesco PN', tipo: 'Ação', preco_atual: 14.20 }, { ticker: 'BBAS3', nome: 'Banco do Brasil ON', tipo: 'Ação', preco_atual: 55.80 }, { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'Ação', preco_atual: 38.90 }, { ticker: 'EGIE3', nome: 'Engie Brasil ON', tipo: 'Ação', preco_atual: 41.20 }, { ticker: 'TAEE11', nome: 'Taesa Unit', tipo: 'Ação', preco_atual: 35.60 }, { ticker: 'ABEV3', nome: 'Ambev ON', tipo: 'Ação', preco_atual: 12.50 }, { ticker: 'B3SA3', nome: 'B3 ON', tipo: 'Ação', preco_atual: 11.80 }, { ticker: 'JBSS3', nome: 'JBS ON', tipo: 'Ação', preco_atual: 22.40 }, { ticker: 'SUZB3', nome: 'Suzano ON', tipo: 'Ação', preco_atual: 52.30 }, { ticker: 'RENT3', nome: 'Localiza ON', tipo: 'Ação', preco_atual: 51.20 }, { ticker: 'RADL3', nome: 'RaiaDrogasil ON', tipo: 'Ação', preco_atual: 26.70 },
-    { ticker: 'MXRF11', nome: 'Maxi Renda', tipo: 'FII', preco_atual: 10.35 }, { ticker: 'BTLG11', nome: 'BTLG Logística', tipo: 'FII', preco_atual: 104.20 }, { ticker: 'HGLG11', nome: 'CSHG Logística', tipo: 'FII', preco_atual: 162.80 }, { ticker: 'KNRI11', nome: 'Kinea Renda', tipo: 'FII', preco_atual: 158.90 }, { ticker: 'CPTS11', nome: 'Capitania Securities', tipo: 'FII', preco_atual: 8.50 }, { ticker: 'VGHF11', nome: 'Valora Hedge', tipo: 'FII', preco_atual: 9.20 }, { ticker: 'XPLG11', nome: 'XP Log', tipo: 'FII', preco_atual: 108.50 }, { ticker: 'VISC11', nome: 'Vinci Fundo', tipo: 'FII', preco_atual: 11.80 }, { ticker: 'IRDM11', nome: 'Iridium', tipo: 'FII', preco_atual: 78.40 }, { ticker: 'ALZR11', nome: 'Alianza Trust', tipo: 'FII', preco_atual: 114.60 },
-    { ticker: 'BOVA11', nome: 'iShares Ibovespa', tipo: 'ETF', preco_atual: 125.40 }, { ticker: 'IVVB11', nome: 'iShares S&P 500', tipo: 'ETF', preco_atual: 295.10 }, { ticker: 'SMAL11', nome: 'iShares Small Cap', tipo: 'ETF', preco_atual: 105.20 }, { ticker: 'HASH11', nome: 'Hashdex Crypto', tipo: 'ETF', preco_atual: 45.30 }, { ticker: 'AAPL34', nome: 'Apple', tipo: 'BDR', preco_atual: 42.10 }, { ticker: 'MSFT34', nome: 'Microsoft', tipo: 'BDR', preco_atual: 58.20 }, { ticker: 'AMZO34', nome: 'Amazon', tipo: 'BDR', preco_atual: 33.50 },
-    { ticker: 'TESOURO_IPCA_2035', nome: 'Tesouro IPCA+ 2035', tipo: 'Renda Fixa', preco_atual: 2150.00 }, { ticker: 'TESOURO_IPCA_2045', nome: 'Tesouro IPCA+ 2045', tipo: 'Renda Fixa', preco_atual: 1250.00 }, { ticker: 'TESOURO_SELIC_2027', nome: 'Tesouro Selic 2027', tipo: 'Renda Fixa', preco_atual: 14850.00 }, { ticker: 'TESOURO_SELIC_2029', nome: 'Tesouro Selic 2029', tipo: 'Renda Fixa', preco_atual: 14720.00 }, { ticker: 'TESOURO_PREFIXADO_2027', nome: 'Tesouro Prefixado 2027', tipo: 'Renda Fixa', preco_atual: 780.00 }, { ticker: 'TESOURO_PREFIXADO_2031', nome: 'Tesouro Prefixado 2031', tipo: 'Renda Fixa', preco_atual: 490.00 },
-    { ticker: 'BTC', nome: 'Bitcoin', tipo: 'Cripto', preco_atual: 540000.00 }, { ticker: 'ETH', nome: 'Ethereum', tipo: 'Cripto', preco_atual: 18500.00 }, { ticker: 'SOL', nome: 'Solana', tipo: 'Cripto', preco_atual: 950.00 }, { ticker: 'ADA', nome: 'Cardano', tipo: 'Cripto', preco_atual: 3.20 }, { ticker: 'BNB', nome: 'BNB', tipo: 'Cripto', preco_atual: 3450.00 }
+  { ticker: 'PETR4', nome: 'Petrobras PN', tipo: 'Ação', preco_atual: 38.5 },
+  { ticker: 'PETR3', nome: 'Petrobras ON', tipo: 'Ação', preco_atual: 39.1 },
+  { ticker: 'VALE3', nome: 'Vale ON', tipo: 'Ação', preco_atual: 62.1 },
+  { ticker: 'ITUB4', nome: 'Itaú Unibanco PN', tipo: 'Ação', preco_atual: 33.4 },
+  { ticker: 'BBDC4', nome: 'Bradesco PN', tipo: 'Ação', preco_atual: 14.2 },
+  { ticker: 'BBAS3', nome: 'Banco do Brasil ON', tipo: 'Ação', preco_atual: 55.8 },
+  { ticker: 'WEGE3', nome: 'WEG ON', tipo: 'Ação', preco_atual: 38.9 },
+  { ticker: 'EGIE3', nome: 'Engie Brasil ON', tipo: 'Ação', preco_atual: 41.2 },
+  { ticker: 'TAEE11', nome: 'Taesa Unit', tipo: 'Ação', preco_atual: 35.6 },
+  { ticker: 'ABEV3', nome: 'Ambev ON', tipo: 'Ação', preco_atual: 12.5 },
+  { ticker: 'B3SA3', nome: 'B3 ON', tipo: 'Ação', preco_atual: 11.8 },
+  { ticker: 'JBSS3', nome: 'JBS ON', tipo: 'Ação', preco_atual: 22.4 },
+  { ticker: 'SUZB3', nome: 'Suzano ON', tipo: 'Ação', preco_atual: 52.3 },
+  { ticker: 'RENT3', nome: 'Localiza ON', tipo: 'Ação', preco_atual: 51.2 },
+  { ticker: 'RADL3', nome: 'RaiaDrogasil ON', tipo: 'Ação', preco_atual: 26.7 },
+  { ticker: 'MXRF11', nome: 'Maxi Renda', tipo: 'FII', preco_atual: 10.35 },
+  { ticker: 'BTLG11', nome: 'BTLG Logística', tipo: 'FII', preco_atual: 104.2 },
+  { ticker: 'HGLG11', nome: 'CSHG Logística', tipo: 'FII', preco_atual: 162.8 },
+  { ticker: 'KNRI11', nome: 'Kinea Renda', tipo: 'FII', preco_atual: 158.9 },
+  { ticker: 'CPTS11', nome: 'Capitania Securities', tipo: 'FII', preco_atual: 8.5 },
+  { ticker: 'VGHF11', nome: 'Valora Hedge', tipo: 'FII', preco_atual: 9.2 },
+  { ticker: 'XPLG11', nome: 'XP Log', tipo: 'FII', preco_atual: 108.5 },
+  { ticker: 'VISC11', nome: 'Vinci Fundo', tipo: 'FII', preco_atual: 11.8 },
+  { ticker: 'IRDM11', nome: 'Iridium', tipo: 'FII', preco_atual: 78.4 },
+  { ticker: 'ALZR11', nome: 'Alianza Trust', tipo: 'FII', preco_atual: 114.6 },
+  { ticker: 'BOVA11', nome: 'iShares Ibovespa', tipo: 'ETF', preco_atual: 125.4 },
+  { ticker: 'IVVB11', nome: 'iShares S&P 500', tipo: 'ETF', preco_atual: 295.1 },
+  { ticker: 'SMAL11', nome: 'iShares Small Cap', tipo: 'ETF', preco_atual: 105.2 },
+  { ticker: 'HASH11', nome: 'Hashdex Crypto', tipo: 'ETF', preco_atual: 45.3 },
+  { ticker: 'AAPL34', nome: 'Apple', tipo: 'BDR', preco_atual: 42.1 },
+  { ticker: 'MSFT34', nome: 'Microsoft', tipo: 'BDR', preco_atual: 58.2 },
+  { ticker: 'AMZO34', nome: 'Amazon', tipo: 'BDR', preco_atual: 33.5 },
+  {
+    ticker: 'TESOURO_IPCA_2035',
+    nome: 'Tesouro IPCA+ 2035',
+    tipo: 'Renda Fixa',
+    preco_atual: 2150.0,
+  },
+  {
+    ticker: 'TESOURO_IPCA_2045',
+    nome: 'Tesouro IPCA+ 2045',
+    tipo: 'Renda Fixa',
+    preco_atual: 1250.0,
+  },
+  {
+    ticker: 'TESOURO_SELIC_2027',
+    nome: 'Tesouro Selic 2027',
+    tipo: 'Renda Fixa',
+    preco_atual: 14850.0,
+  },
+  {
+    ticker: 'TESOURO_SELIC_2029',
+    nome: 'Tesouro Selic 2029',
+    tipo: 'Renda Fixa',
+    preco_atual: 14720.0,
+  },
+  {
+    ticker: 'TESOURO_PREFIXADO_2027',
+    nome: 'Tesouro Prefixado 2027',
+    tipo: 'Renda Fixa',
+    preco_atual: 780.0,
+  },
+  {
+    ticker: 'TESOURO_PREFIXADO_2031',
+    nome: 'Tesouro Prefixado 2031',
+    tipo: 'Renda Fixa',
+    preco_atual: 490.0,
+  },
+  { ticker: 'BTC', nome: 'Bitcoin', tipo: 'Cripto', preco_atual: 540000.0 },
+  { ticker: 'ETH', nome: 'Ethereum', tipo: 'Cripto', preco_atual: 18500.0 },
+  { ticker: 'SOL', nome: 'Solana', tipo: 'Cripto', preco_atual: 950.0 },
+  { ticker: 'ADA', nome: 'Cardano', tipo: 'Cripto', preco_atual: 3.2 },
+  { ticker: 'BNB', nome: 'BNB', tipo: 'Cripto', preco_atual: 3450.0 },
 ];
 
 // ============================================================
@@ -24,137 +92,138 @@ var mockAtivosMercado = [
 
 // Utilitário para timeout no fetch
 async function fetchTimeout(url, ms) {
-    const controller = new AbortController();
-    const promise = fetch(url, { signal: controller.signal });
-    const timeout = setTimeout(() => controller.abort(), ms);
-    return promise.finally(() => clearTimeout(timeout));
+  const controller = new AbortController();
+  const promise = fetch(url, { signal: controller.signal });
+  const timeout = setTimeout(() => controller.abort(), ms);
+  return promise.finally(() => clearTimeout(timeout));
 }
 
 // Lista de proxies CORS gratuitos em ordem de preferência.
 // Todos retornam o JSON do Yahoo diretamente (sem wrapper).
 var PROXIES_CORS = [
-    (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-    (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
+  (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ];
 
 // Tenta buscar a URL alvo passando por cada proxy em sequência.
 // Retorna o JSON parsed assim que um proxy funcionar, ou null se todos falharem.
 async function fetchComFallback(urlAlvo, timeoutMs = 10000) {
-    for (const construirProxy of PROXIES_CORS) {
-        try {
-            const urlProxy = construirProxy(urlAlvo);
-            const res = await fetchTimeout(urlProxy, timeoutMs);
-            if (!res.ok) {
-                console.warn(`Proxy retornou status ${res.status} para ${urlAlvo}. Tentando próximo...`);
-                continue;
-            }
-            const json = await res.json();
-            return json; // sucesso — retorna direto sem wrapper
-        } catch (err) {
-            console.warn(`Proxy falhou (${err.message}). Tentando próximo...`);
-            continue;
-        }
+  for (const construirProxy of PROXIES_CORS) {
+    try {
+      const urlProxy = construirProxy(urlAlvo);
+      const res = await fetchTimeout(urlProxy, timeoutMs);
+      if (!res.ok) {
+        console.warn(`Proxy retornou status ${res.status} para ${urlAlvo}. Tentando próximo...`);
+        continue;
+      }
+      const json = await res.json();
+      return json; // sucesso — retorna direto sem wrapper
+    } catch (err) {
+      console.warn(`Proxy falhou (${err.message}). Tentando próximo...`);
+      continue;
     }
-    return null; // todos os proxies falharam
+  }
+  return null; // todos os proxies falharam
 }
 
 // ── Busca de ativos via Yahoo Finance (v8) com fallback de proxies ──
 async function buscarLoteYahoo(tickers) {
-    const promessas = tickers.map(async (ticker) => {
-        try {
-            // Rota v8 do Yahoo (usada para gráficos, muito menos restrita)
-            const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?interval=2m&range=1d`;
+  const promessas = tickers.map(async (ticker) => {
+    try {
+      // Rota v8 do Yahoo (usada para gráficos, muito menos restrita)
+      const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}.SA?interval=2m&range=1d`;
 
-            const json = await fetchComFallback(urlYahoo);
-            if (!json) return null;
+      const json = await fetchComFallback(urlYahoo);
+      if (!json) return null;
 
-            const meta = json?.chart?.result?.[0]?.meta;
+      const meta = json?.chart?.result?.[0]?.meta;
 
-            if (meta && meta.regularMarketPrice) {
-                return {
-                    symbol: ticker,
-                    regularMarketPrice: meta.regularMarketPrice
-                };
-            }
-            return null;
-        } catch (err) {
-            console.warn(`Aviso: Não foi possível buscar o ativo ${ticker}.`, err);
-            return null;
-        }
-    });
+      if (meta && meta.regularMarketPrice) {
+        return {
+          symbol: ticker,
+          regularMarketPrice: meta.regularMarketPrice,
+        };
+      }
+      return null;
+    } catch (err) {
+      console.warn(`Aviso: Não foi possível buscar o ativo ${ticker}.`, err);
+      return null;
+    }
+  });
 
-    // Dispara todos os pedidos ao mesmo tempo e espera os resultados
-    const resultados = await Promise.all(promessas);
+  // Dispara todos os pedidos ao mesmo tempo e espera os resultados
+  const resultados = await Promise.all(promessas);
 
-    // Remove os que falharam (null) e devolve só os que tiveram sucesso
-    return resultados.filter(r => r !== null);
+  // Remove os que falharam (null) e devolve só os que tiveram sucesso
+  return resultados.filter((r) => r !== null);
 }
 
 // ── Atualização na inicialização ──
 async function buscarCotacoesReais() {
-    try {
-        // Pegamos todos os ativos do teu mock (Ações, FIIs, ETFs, BDRs), exceto Renda Fixa
-        const tickersYahoo = mockAtivosMercado
-            .filter(a => a.tipo !== 'Renda Fixa')
-            .map(a => a.ticker);
+  try {
+    // Pegamos todos os ativos do teu mock (Ações, FIIs, ETFs, BDRs), exceto Renda Fixa
+    const tickersYahoo = mockAtivosMercado
+      .filter((a) => a.tipo !== 'Renda Fixa')
+      .map((a) => a.ticker);
 
-        // Dá um feedback visual na tabela que está a carregar
-        const badgeRealTime = document.getElementById('badgeRealTime');
-        if(badgeRealTime) {
-            badgeRealTime.style.background = '#e0f2fe';
-            badgeRealTime.style.color = '#0369a1';
-            badgeRealTime.style.borderColor = '#bae6fd';
-            badgeRealTime.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Consultando Yahoo...';
-            badgeRealTime.style.display = 'inline-flex';
-        }
-
-        // Busca as cotações
-        const resultados = await buscarLoteYahoo(tickersYahoo);
-        
-        if (resultados.length > 0) {
-            // Atualiza a base de dados local com os preços fresquinhos
-            resultados.forEach(dado => {
-                let ativo = mockAtivosMercado.find(a => a.ticker === dado.symbol);
-                if(ativo && dado.regularMarketPrice) {
-                    ativo.preco_atual = dado.regularMarketPrice;
-                }
-            });
-
-            // Recarrega o menu de seleção e a tabela
-            inicializarDatalistAtivos();
-            if (document.getElementById('patrimonio').classList.contains('ativa')) {
-                atualizarCarteiraAtivos();
-            }
-
-            // Mensagem de sucesso
-            if(badgeRealTime) {
-                badgeRealTime.style.background = '#dcfce7'; 
-                badgeRealTime.style.color = '#166534';
-                badgeRealTime.style.borderColor = '#bbf7d0';
-                badgeRealTime.innerHTML = '<i class="ph-fill ph-check-circle"></i> Yahoo atualizado';
-                setTimeout(() => { badgeRealTime.style.display = 'none'; }, 4000);
-            }
-        } else {
-            throw new Error("Nenhum dado retornou da API.");
-        }
-
-    } catch(erroGeral) {
-        console.error("Erro ao atualizar cotações:", erroGeral);
-        document.getElementById('badgePrecosEstimados').style.display = 'inline-flex';
-        const badgeRealTime = document.getElementById('badgeRealTime');
-        if(badgeRealTime) {
-            badgeRealTime.style.background = '#fef3c7'; 
-            badgeRealTime.style.color = '#92400e';
-            badgeRealTime.style.borderColor = '#fde68a';
-            badgeRealTime.innerHTML = '<i class="ph-fill ph-warning"></i> Preços estimados';
-        }
+    // Dá um feedback visual na tabela que está a carregar
+    const badgeRealTime = document.getElementById('badgeRealTime');
+    if (badgeRealTime) {
+      badgeRealTime.style.background = '#e0f2fe';
+      badgeRealTime.style.color = '#0369a1';
+      badgeRealTime.style.borderColor = '#bae6fd';
+      badgeRealTime.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Consultando Yahoo...';
+      badgeRealTime.style.display = 'inline-flex';
     }
 
-    // Complemento confiável (BRAPI via /api/market) para os ativos do usuário:
-    // corrige tickers que o Yahoo não traz (ex.: o ETF de cripto HASH11) e
-    // ajusta o selo "Preços estimados" de forma honesta (por ativo possuído).
-    atualizarCotacoesPossuidas();
+    // Busca as cotações
+    const resultados = await buscarLoteYahoo(tickersYahoo);
+
+    if (resultados.length > 0) {
+      // Atualiza a base de dados local com os preços fresquinhos
+      resultados.forEach((dado) => {
+        let ativo = mockAtivosMercado.find((a) => a.ticker === dado.symbol);
+        if (ativo && dado.regularMarketPrice) {
+          ativo.preco_atual = dado.regularMarketPrice;
+        }
+      });
+
+      // Recarrega o menu de seleção e a tabela
+      inicializarDatalistAtivos();
+      if (document.getElementById('patrimonio').classList.contains('ativa')) {
+        atualizarCarteiraAtivos();
+      }
+
+      // Mensagem de sucesso
+      if (badgeRealTime) {
+        badgeRealTime.style.background = '#dcfce7';
+        badgeRealTime.style.color = '#166534';
+        badgeRealTime.style.borderColor = '#bbf7d0';
+        badgeRealTime.innerHTML = '<i class="ph-fill ph-check-circle"></i> Yahoo atualizado';
+        setTimeout(() => {
+          badgeRealTime.style.display = 'none';
+        }, 4000);
+      }
+    } else {
+      throw new Error('Nenhum dado retornou da API.');
+    }
+  } catch (erroGeral) {
+    console.error('Erro ao atualizar cotações:', erroGeral);
+    document.getElementById('badgePrecosEstimados').style.display = 'inline-flex';
+    const badgeRealTime = document.getElementById('badgeRealTime');
+    if (badgeRealTime) {
+      badgeRealTime.style.background = '#fef3c7';
+      badgeRealTime.style.color = '#92400e';
+      badgeRealTime.style.borderColor = '#fde68a';
+      badgeRealTime.innerHTML = '<i class="ph-fill ph-warning"></i> Preços estimados';
+    }
+  }
+
+  // Complemento confiável (BRAPI via /api/market) para os ativos do usuário:
+  // corrige tickers que o Yahoo não traz (ex.: o ETF de cripto HASH11) e
+  // ajusta o selo "Preços estimados" de forma honesta (por ativo possuído).
+  atualizarCotacoesPossuidas();
 }
 
 // ── Cotações confiáveis dos ativos do usuário (fallback BRAPI/servidor) ──
@@ -165,82 +234,93 @@ async function buscarCotacoesReais() {
 
 // Tickers B3 com cotação (ação/FII/ETF/BDR) que o usuário possui e existem na base.
 function tickersRVPossuidos() {
-    if (typeof historicoCompras === 'undefined' || !Array.isArray(historicoCompras)) return [];
-    const possuidos = new Set();
-    historicoCompras.forEach(op => {
-        const t = op && op.ticker ? String(op.ticker).toUpperCase() : '';
-        if (/^[A-Z]{4}\d{1,2}$/.test(t) && mockAtivosMercado.some(a => a.ticker === t)) {
-            possuidos.add(t);
-        }
-    });
-    return Array.from(possuidos);
+  if (typeof historicoCompras === 'undefined' || !Array.isArray(historicoCompras)) return [];
+  const possuidos = new Set();
+  historicoCompras.forEach((op) => {
+    const t = op && op.ticker ? String(op.ticker).toUpperCase() : '';
+    if (/^[A-Z]{4}\d{1,2}$/.test(t) && mockAtivosMercado.some((a) => a.ticker === t)) {
+      possuidos.add(t);
+    }
+  });
+  return Array.from(possuidos);
 }
 
 // Mostra/esconde o selo "Preços estimados" conforme os ativos do usuário que
 // ficaram SEM cotação fresca (nem Yahoo, nem servidor).
 function atualizarBadgeEstimados(semPreco) {
-    const badge = document.getElementById('badgePrecosEstimados');
-    if (!badge) return;
-    badge.style.display = (semPreco && semPreco.length) ? 'inline-flex' : 'none';
+  const badge = document.getElementById('badgePrecosEstimados');
+  if (!badge) return;
+  badge.style.display = semPreco && semPreco.length ? 'inline-flex' : 'none';
 }
 
 var _ultimoComplementoCotacoes = 0;
 var _complementoCotacoesEmAndamento = false;
 async function atualizarCotacoesPossuidas(forcar) {
-    const possuidos = tickersRVPossuidos();
-    if (!possuidos.length) return;
-    // Throttle: evita repetir a chamada a cada troca de aba (servidor cacheia diário).
-    const agora = Date.now();
-    if (!forcar && (_complementoCotacoesEmAndamento || agora - _ultimoComplementoCotacoes < 60000)) {
-        return;
-    }
-    const fb = window.AppliqueiFirebase;
-    const u = fb && fb.auth && fb.auth.currentUser;
-    if (!u) return; // endpoint exige login; sem sessão, mantém Yahoo/semente.
+  const possuidos = tickersRVPossuidos();
+  if (!possuidos.length) return;
+  // Throttle: evita repetir a chamada a cada troca de aba (servidor cacheia diário).
+  const agora = Date.now();
+  if (!forcar && (_complementoCotacoesEmAndamento || agora - _ultimoComplementoCotacoes < 60000)) {
+    return;
+  }
+  const fb = window.AppliqueiFirebase;
+  const u = fb && fb.auth && fb.auth.currentUser;
+  if (!u) return; // endpoint exige login; sem sessão, mantém Yahoo/semente.
 
-    _complementoCotacoesEmAndamento = true;
-    try {
-        const token = await u.getIdToken();
-        const url = '/api/market?op=quote&tickers=' + encodeURIComponent(possuidos.join(','));
-        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
-        const data = await res.json().catch(() => ({}));
-        if (res.ok && data && data.quotes) {
-            const semPreco = [];
-            let atualizou = false;
-            possuidos.forEach(t => {
-                const q = data.quotes[t];
-                if (q && typeof q.price === 'number') {
-                    const ativo = mockAtivosMercado.find(a => a.ticker === t);
-                    if (ativo && ativo.preco_atual !== q.price) {
-                        ativo.preco_atual = q.price;
-                        atualizou = true;
-                    }
-                } else {
-                    semPreco.push(t);
-                }
-            });
-            _ultimoComplementoCotacoes = Date.now();
-            if (atualizou) {
-                if (typeof inicializarDatalistAtivos === 'function') inicializarDatalistAtivos();
-                const secPat = document.getElementById('patrimonio');
-                if (secPat && secPat.classList.contains('ativa') && typeof atualizarCarteiraAtivos === 'function') {
-                    atualizarCarteiraAtivos();
-                }
-            }
-            atualizarBadgeEstimados(semPreco);
+  _complementoCotacoesEmAndamento = true;
+  // Skeleton no hero de "Meus investimentos" enquanto a cotação não chega. Sem
+  // isso a aba abre com o valor de semente e SALTA para o real — o pisca é o
+  // que mais faz a tela parecer improvisada.
+  if (typeof invSetCarregando === 'function') invSetCarregando(true);
+  try {
+    const token = await u.getIdToken();
+    const url = '/api/market?op=quote&tickers=' + encodeURIComponent(possuidos.join(','));
+    const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data && data.quotes) {
+      const semPreco = [];
+      let atualizou = false;
+      possuidos.forEach((t) => {
+        const q = data.quotes[t];
+        if (q && typeof q.price === 'number') {
+          const ativo = mockAtivosMercado.find((a) => a.ticker === t);
+          if (ativo && ativo.preco_atual !== q.price) {
+            ativo.preco_atual = q.price;
+            atualizou = true;
+          }
+        } else {
+          semPreco.push(t);
         }
-    } catch (err) {
-        console.warn('[cotações] complemento via servidor falhou:', err && err.message);
-    } finally {
-        _complementoCotacoesEmAndamento = false;
+      });
+      _ultimoComplementoCotacoes = Date.now();
+      if (atualizou) {
+        if (typeof inicializarDatalistAtivos === 'function') inicializarDatalistAtivos();
+        const secPat = document.getElementById('patrimonio');
+        if (
+          secPat &&
+          secPat.classList.contains('ativa') &&
+          typeof atualizarCarteiraAtivos === 'function'
+        ) {
+          atualizarCarteiraAtivos();
+        }
+      }
+      atualizarBadgeEstimados(semPreco);
     }
+  } catch (err) {
+    console.warn('[cotações] complemento via servidor falhou:', err && err.message);
+  } finally {
+    _complementoCotacoesEmAndamento = false;
+    if (typeof invSetCarregando === 'function') invSetCarregando(false);
+  }
 }
-
 
 function inicializarDatalistAtivos() {
-    const datalist = document.getElementById('listaAtivosMercado'); datalist.innerHTML = "";
-    mockAtivosMercado.forEach(ativo => {
-        const option = document.createElement('option'); option.value = ativo.ticker; option.text = `${ativo.nome} (${ativo.tipo}) - ${formatarMoeda(ativo.preco_atual)}`; datalist.appendChild(option);
-    });
+  const datalist = document.getElementById('listaAtivosMercado');
+  datalist.innerHTML = '';
+  mockAtivosMercado.forEach((ativo) => {
+    const option = document.createElement('option');
+    option.value = ativo.ticker;
+    option.text = `${ativo.nome} (${ativo.tipo}) - ${formatarMoeda(ativo.preco_atual)}`;
+    datalist.appendChild(option);
+  });
 }
-

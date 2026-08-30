@@ -18,10 +18,26 @@ function calcularSaldoPrevidencia(ticker, ts) {
   const aportes = historicoCompras.filter(
     (op) => op.ticker === ticker && op.categoria === 'previdencia' && op.data_op
   );
+  const agora = Date.now();
   let saldo = 0;
   aportes.forEach((op) => {
     const dataAporte = new Date(op.data_op).getTime();
     if (dataAporte > refTs) return;
+    // Posição JÁ EXISTENTE (saldo inicial / cadastro retroativo): o valor
+    // informado é o de HOJE, não o do dia em que a pessoa começou a investir.
+    // Capitalizar desde `data_op` — que num cadastro retroativo é uma data
+    // antiga — inventaria rendimento: R$ 10.000 aportados em 2019 virariam
+    // R$ 20 mil na tela. Rende a partir do CADASTRO na ferramenta, exatamente
+    // como valorAtualRendaFixa faz para RF/Reserva (renda-fixa.js).
+    let inicioRendimento = dataAporte;
+    if (op.saldoInicial) {
+      const cad = op.cadastradoEm
+        ? new Date(op.cadastradoEm).getTime()
+        : typeof op.id === 'number' && op.id > 1e12
+          ? op.id
+          : dataAporte;
+      if (isFinite(cad)) inicioRendimento = Math.min(cad, agora, refTs);
+    }
     // Precedência: texto de rentabilidade indexado (ex.: "100% CDI") sobre a
     // taxaMensal fixa do plano; default 0,8%/mês quando nada foi informado.
     const taxa =
@@ -30,7 +46,7 @@ function calcularSaldoPrevidencia(ticker, ts) {
         : op.taxaMensal != null
           ? op.taxaMensal
           : 0.008;
-    const meses = Math.max(0, (refTs - dataAporte) / (30.4375 * 24 * 60 * 60 * 1000));
+    const meses = Math.max(0, (refTs - inicioRendimento) / (30.4375 * 24 * 60 * 60 * 1000));
     const valor = op.preco_op || op.preco_pago || 0;
     const fator = Math.pow(1 + taxa, meses);
     if ((op.tipo || 'compra') === 'venda') saldo -= valor * fator;
@@ -93,6 +109,12 @@ function gerarLancamentosFuturosCompromisso(operacao, valorMensal) {
       // definida). Recorrentes usam contaId direto no investimento_* (sem
       // perna separada) — o mesmo efeito de caixa, sem ciclo de pago duplo.
       contaId: operacao.contaOrigemId || undefined,
+      // Aporte externo: o dinheiro nunca passou por conta cadastrada, então a
+      // parcela não debita caixa nem quando marcada como paga. Sem esta marca
+      // ela cairia no bucket "A reconciliar" (INV-01) — que é o sintoma de
+      // dinheiro que saiu do patrimônio sem sair de nenhuma instituição, e não
+      // é o que acontece aqui: ele nunca esteve numa instituição.
+      origemExterna: operacao.origemExterna ? true : undefined,
       // Metadados do aporte: ao marcar a parcela como PAGA no Controle, ela
       // vira posição em Patrimônio/Investimentos (registrarAportePorPagamentoCompromisso).
       aporteTicker: operacao.ticker || null,
@@ -172,8 +194,7 @@ function removerLancamentosFuturosCompromisso(operacaoId) {
     const futuroOuCorrente = t.ano > a0 || (t.ano === a0 && t.mes >= m0);
     return !futuroOuCorrente;
   });
-  if (transacoes.length !== antes)
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (transacoes.length !== antes) salvarTransacoes();
 }
 // ============================================================
 
@@ -253,7 +274,7 @@ function processarAportesRecorrentesPrevidencia() {
     historicoCompras.push(...novosAportes);
     transacoes.push(...novasTransacoes);
     localStorage.setItem('futurorico_compras', JSON.stringify(historicoCompras));
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+    salvarTransacoes();
     if (typeof mostrarToast === 'function') {
       mostrarToast(
         `${novosAportes.length} aporte${novosAportes.length === 1 ? '' : 's'} de previdência lançado${novosAportes.length === 1 ? '' : 's'} retroativamente.`,

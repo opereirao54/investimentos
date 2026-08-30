@@ -44,6 +44,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-disclaimer.js', indent: '' },
   { file: 'web/appliquei-bens.js', indent: '' },
   { file: 'web/appliquei-patrimonio.js', indent: '' },
+  { file: 'web/appliquei-jornada-conteudo.js', indent: '' },
   { file: 'web/appliquei-jornada.js', indent: '' },
   { file: 'web/appliquei-sonhos.js', indent: '' },
   { file: 'web/appliquei-admin.js', indent: '' },

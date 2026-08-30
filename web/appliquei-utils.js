@@ -227,6 +227,13 @@ function importarDados(event) {
   event.target.value = '';
 }
 
+// Restauração de backup. É o ÚNICO ponto legítimo que grava
+// futurorico_transacoes sem passar por salvarTransacoes(): aqui a fonte é o
+// arquivo do usuário (`dados.transacoes`), não o array global `transacoes` —
+// que ainda tem o conteúdo antigo neste instante. Chamar a função canônica
+// gravaria os dados velhos por cima da importação. A página recarrega logo
+// depois, e é o boot que repovoa o global a partir do que ficou gravado.
+// Ver .claude/integracoes/mapa.json → RISCO-01 e test/transacoes-escrita-canonica.test.js.
 function confirmarImportacao(dadosStr) {
   try {
     const dados = JSON.parse(dadosStr);
@@ -644,4 +651,74 @@ function _interceptarRemoveItem(key) {
       AppliqueiCloudSync.onLocalDelete(key);
     } catch (_) {}
   }
+}
+
+// ============================================================
+// --- Tinta legível sobre uma cor de fundo ---
+// ============================================================
+// Avatares, selos e a régua do score pintam um bloco com a cor da categoria e
+// escrevem por cima. O app escrevia SEMPRE em branco — o que é certo sobre
+// roxo (#7c3aed, 5,7:1) e errado sobre âmbar (#f59e0b, 2,15:1) ou verde-menta
+// (#10b981, 2,54:1). E não é um defeito só do tema escuro: o âmbar reprova
+// igual no claro, porque quem manda é a cor do BLOCO, não a do tema.
+//
+// A decisão é a luminância relativa do fundo (WCAG 2.x). O ponto de virada
+// fica em ~0,18: abaixo dele o branco ganha, acima dele a tinta escura ganha.
+// Medido em todas as cores de marca do app, o pior caso do lado escolhido é
+// 4,56:1 — passa AA para texto normal.
+var TINTA_CLARA = '#ffffff';
+var TINTA_ESCURA = '#0b0f0c';
+
+function _canalLinear(c) {
+  c /= 255;
+  return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+// Aceita #rgb, #rrggbb e rgb()/rgba(). Devolve null se não reconhecer.
+function corParaRGB(cor) {
+  var s = String(cor || '').trim();
+  var m = s.match(/^#([0-9a-f]{3})$/i);
+  if (m) {
+    return [
+      parseInt(m[1][0] + m[1][0], 16),
+      parseInt(m[1][1] + m[1][1], 16),
+      parseInt(m[1][2] + m[1][2], 16),
+    ];
+  }
+  m = s.match(/^#([0-9a-f]{6})$/i);
+  if (m) {
+    var n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+  m = s.match(/^rgba?\(([^)]+)\)$/i);
+  if (m) {
+    var p = m[1].split(',').map(function (x) {
+      return parseFloat(x);
+    });
+    if (
+      p.length >= 3 &&
+      p.every(function (x) {
+        return !isNaN(x);
+      })
+    ) {
+      return [p[0], p[1], p[2]];
+    }
+  }
+  return null;
+}
+
+function luminanciaRelativa(cor) {
+  var rgb = corParaRGB(cor);
+  if (!rgb) return null;
+  return (
+    0.2126 * _canalLinear(rgb[0]) + 0.7152 * _canalLinear(rgb[1]) + 0.0722 * _canalLinear(rgb[2])
+  );
+}
+
+// Cor de texto legível sobre `fundo`. Cor desconhecida (gradiente, var(),
+// currentColor) cai no branco — o comportamento antigo, sem piorar nada.
+function tintaSobre(fundo) {
+  var l = luminanciaRelativa(fundo);
+  if (l == null) return TINTA_CLARA;
+  return l > 0.19 ? TINTA_ESCURA : TINTA_CLARA;
 }

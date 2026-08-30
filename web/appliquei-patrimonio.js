@@ -288,6 +288,15 @@ function mpTransacaoComputaCaixa(t, refMs) {
     t.temLegCaixa
   )
     return false;
+  // Aporte externo: dinheiro que nunca passou por conta cadastrada. Não há
+  // caixa a debitar — nem duplo, nem simples. É o padrão C-sem-perna (INV-03)
+  // aplicado à parcela recorrente. Só para APORTE: uma despesa com a marca
+  // saiu de algum lugar e tem de continuar debitando (mesma regra do INV-01).
+  if (
+    (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+    t.origemExterna
+  )
+    return false;
   if (mpEhEntradaCaixa(t.categoria)) return true;
   return !!t.pago;
 }
@@ -689,14 +698,14 @@ function mpRenderKPIs(consolidado, janela) {
     const cls = deltaSaldo > 0.05 ? 'pos' : deltaSaldo < -0.05 ? 'neg' : 'neu';
     const seta = deltaSaldo > 0.05 ? '↑' : deltaSaldo < -0.05 ? '↓' : '·';
     elSaldo.className = 'mp-kpi-delta ' + cls;
-    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">vs mês passado</span>`;
+    elSaldo.innerHTML = `${seta} ${mpFmtPct(deltaSaldo)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">vs mês passado</span>`;
   }
   const elInv = document.getElementById('mp-kpi-investido-delta');
   if (elInv) {
     const cls = rentab > 0.05 ? 'pos' : rentab < -0.05 ? 'neg' : 'neu';
     const seta = rentab > 0.05 ? '↑' : rentab < -0.05 ? '↓' : '·';
     elInv.className = 'mp-kpi-delta ' + cls;
-    elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-mutado);font-weight:500;margin-left:3px">rentab. total</span>`;
+    elInv.innerHTML = `${seta} ${mpFmtPct(rentab)} <span style="color:var(--cor-texto-secundario);font-weight:500;margin-left:3px">rentab. total</span>`;
   }
   const elImov = document.getElementById('mp-kpi-imoveis-qtd');
   if (elImov) {
@@ -1195,13 +1204,24 @@ function mpLimparTxOrigemOrfas() {
   });
   var antes = transacoes.length;
   transacoes = transacoes.filter(function (t) {
-    if (typeof t.id !== 'string' || t.id.indexOf('tx_origem_') !== 0) return true;
-    var opId = t.id.replace('tx_origem_', '');
-    return idsCompras.has(opId);
+    // Perna de caixa órfã.
+    if (typeof t.id === 'string' && t.id.indexOf('tx_origem_') === 0) {
+      return idsCompras.has(t.id.replace('tx_origem_', ''));
+    }
+    // Perna do ATIVO órfã. A exclusão de operação já remove as duas pernas
+    // (renda-fixa.js:confirmarExclusaoOperacao); esta rede só existe para dado
+    // que chegou torto por outro caminho. Limpar só a perna de caixa deixava a
+    // do ativo de pé com temLegCaixa — que manda o patrimônio ignorá-la no
+    // caixa — e a compra ficava sem debitar nada (INV-03).
+    if (t.operacaoId != null && !idsCompras.has(String(t.operacaoId))) return false;
+    return true;
   });
   if (transacoes.length < antes) {
-    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
-    if (typeof salvarNaNuvem === 'function') salvarNaNuvem();
+    // salvarNaNuvem() era chamada aqui e NÃO EXISTE em lugar nenhum do bundle —
+    // o guard `typeof === 'function'` a transformava num no-op silencioso. A
+    // sincronização vem do interceptador de setItem; não se acrescenta flush
+    // porque esta limpeza roda a cada render do Meu Patrimônio.
+    salvarTransacoes();
   }
 }
 

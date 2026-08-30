@@ -1,0 +1,103 @@
+name: Caça de interações
+
+# A suíte do CI roda 40 sequências de 12 passos — rápidas o bastante para não
+# atrasar o feedback de um push. Este workflow vai muito mais fundo, de
+# madrugada, quando ninguém está esperando: 2000 sementes de 40 passos, ~80 mil
+# ações encadeadas e validadas.
+#
+# É o único motor que pode achar interação NOVA sem ninguém ter escrito um caso
+# para ela. Quando achar, abre uma issue com a semente exata para reproduzir.
+
+on:
+  schedule:
+    # Segundas, 04:10 UTC (01:10 em Brasília). Minuto arbitrário de propósito:
+    # cron no minuto 0 concorre com o pico de agendamentos do GitHub e atrasa.
+    - cron: '10 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      sementes:
+        description: 'Quantas sequências rodar'
+        required: false
+        default: '2000'
+      passos:
+        description: 'Ações por sequência'
+        required: false
+        default: '40'
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  cacar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Sem `npm ci` de propósito: o simulador e as invariantes usam só builtins
+      # do Node. Nada a instalar significa nada a quebrar por dependência.
+
+      - name: Caçar
+        id: caca
+        run: |
+          set +e
+          node scripts/cacar-interacoes.js \
+            "${{ github.event.inputs.sementes || '2000' }}" \
+            "${{ github.event.inputs.passos || '40' }}" 2>&1 | tee saida.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir issue se achou interação nova
+        if: steps.caca.outputs.status != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const saida = fs.readFileSync('saida.txt', 'utf8');
+            // A saída inteira pode passar do limite do corpo da issue; o começo
+            // já traz a semente e a sequência, que é o que reproduz.
+            const corpo = saida.length > 55000 ? saida.slice(0, 55000) + '\n\n… (truncado)' : saida;
+            const titulo = `Caça de interações achou defeito — ${new Date().toISOString().slice(0, 10)}`;
+
+            // Não empilha issue nova a cada semana sobre a mesma falha.
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'caca-de-interacoes',
+            });
+            if (abertas.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: abertas.data[0].number,
+                body: `Nova execução também falhou (${new Date().toISOString()}).\n\n<details><summary>Saída</summary>\n\n\`\`\`\n${corpo}\n\`\`\`\n\n</details>`,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              labels: ['caca-de-interacoes'],
+              body:
+                'A caça semanal encontrou uma sequência de ações que viola uma invariante.\n\n' +
+                'A saída abaixo traz a **semente** e a **sequência exata** para reproduzir:\n\n' +
+                '```bash\nnpm run cacar --de <semente> --ate <semente>\n```\n\n' +
+                'Depois de corrigir, some a semente à lista fixa de `test/simulacao-sequencias.test.js` ' +
+                'para o caso virar trava permanente. Ver `.claude/skills/simular-acao/SKILL.md`.\n\n' +
+                '```\n' + corpo + '\n```',
+            });
+
+      - name: Falhar o job quando houver defeito
+        if: steps.caca.outputs.status != '0'
+        run: exit 1

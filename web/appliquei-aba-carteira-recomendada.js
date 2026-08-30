@@ -187,7 +187,18 @@ var cartMotor = {
   ranking: [],
   plano: null,
   erro: null,
+  // Três estados diferentes que antes moravam num campo só (`buscadoEm`) e por
+  // isso se atropelavam:
+  //   buscadoEm — última busca BEM-SUCEDIDA. É o cache: com ele preenchido, a
+  //               aba não vai à rede de novo.
+  //   falhouEm  — última tentativa que falhou. NÃO vale como cache: a próxima
+  //               entrada tenta outra vez sozinha.
+  //   temDados  — há material em memória (mesmo degradado) para ranquear e
+  //               montar o plano. Sucesso e falha preenchem os dois; é isto que
+  //               os recálculos locais (trocar de lente, personalizar) checam.
   buscadoEm: null,
+  falhouEm: null,
+  temDados: false,
   origemRf: null,
   indicadores: null,
   premissasDegradadas: false,
@@ -291,6 +302,10 @@ function cartMostrarQuestionario() {
   document.getElementById('cartHero').style.display = 'none';
   document.getElementById('cartCallout').style.display = 'none';
   document.getElementById('cartSimCard').style.display = 'none';
+  const eduOff = document.getElementById('cartEduDetails');
+  if (eduOff) eduOff.style.display = 'none';
+  const donutOff = document.getElementById('cartDonutCard');
+  if (donutOff) donutOff.style.display = 'none';
   const motorWrap = document.getElementById('cartMotorWrap');
   if (motorWrap) motorWrap.style.display = 'none';
 
@@ -395,7 +410,26 @@ function cartRenderizarTela() {
   const badge = document.getElementById('cartPerfilBadge');
   badge.className = `cart-perfil-badge cart-perfil-${p}`;
   badge.innerHTML = `<span class="emoji">${msg.emoji}</span> Perfil ${p}`;
-  document.getElementById('cartPerfilMsg').innerHTML = msg.texto;
+  // O texto vai num filho próprio, e o rótulo "toque para ler" é irmão dele.
+  // Recolher o container inteiro (clamp ou max-height) fazia o rótulo cair em
+  // cima do texto cortado — o corte precisa acontecer no texto, só nele.
+  const elMsg = document.getElementById('cartPerfilMsg');
+  elMsg.innerHTML =
+    '<span class="cart-perfil-msg-txt">' +
+    msg.texto +
+    '</span><span class="cart-perfil-msg-mais" aria-hidden="true"></span>';
+  elMsg.classList.remove('aberta');
+  elMsg.setAttribute('role', 'button');
+  elMsg.setAttribute('tabindex', '0');
+  elMsg.onclick = function () {
+    this.classList.toggle('aberta');
+  };
+  elMsg.onkeydown = function (ev) {
+    if (ev.key === 'Enter' || ev.key === ' ') {
+      ev.preventDefault();
+      this.classList.toggle('aberta');
+    }
+  };
   document.getElementById('cartCapitalLabel').textContent =
     formatarMoeda(cartEstado.capital) + '/mês';
   document.getElementById('cartPerfilHeader').style.display = 'flex';
@@ -420,6 +454,10 @@ function cartRenderizarTela() {
   document.getElementById('cartHero').style.display = 'grid';
   document.getElementById('cartCallout').style.display = 'flex';
   document.getElementById('cartSimCard').style.display = 'block';
+  const eduBox = document.getElementById('cartEduDetails');
+  if (eduBox) eduBox.style.display = 'block';
+  const donutBox = document.getElementById('cartDonutCard');
+  if (donutBox) donutBox.style.display = 'flex';
 
   cartRenderizarEdu();
   cartRenderizarDonut();
@@ -440,15 +478,15 @@ function cartRenderizarEdu() {
     if (pct === 0 && classe === 'cripto') return;
     const edu = CART_EDU[classe];
     const cor = CART_CORES[classe];
-    const vlr = formatarMoeda((cartEstado.capital * pct) / 100);
+    // Sem valor nem percentagem aqui: a mesma distribuição já aparece no donut
+    // e na legenda dele. Repetida em três lugares, ela ocupava meia tela de
+    // celular e ainda obrigava o leitor a conferir se os números batiam.
     const div = document.createElement('div');
     div.className = 'cart-edu-item' + (idx === 0 ? ' expanded' : '');
     div.innerHTML = `
             <div class="cart-edu-item-head" onclick="this.parentElement.classList.toggle('expanded')">
                 <div class="cart-edu-item-dot" style="background:${cor};"></div>
                 <span class="cart-edu-item-name">${edu.titulo}</span>
-                <span class="cart-edu-item-meta">${vlr}</span>
-                <span class="cart-edu-item-pct">${pct}%</span>
             </div>
             <div class="cart-edu-item-body">${edu.corpo}</div>`;
     list.appendChild(div);
@@ -1664,7 +1702,7 @@ function cartTrocarLente(id) {
 
 /** Recalcula ranking e plano com os fundamentos já em memória (sem rede). */
 function cartRecalcularMotor() {
-  if (!cartMotor.buscadoEm) return;
+  if (!cartMotor.temDados) return;
   // O universo é o que a busca montou. Remontá-lo aqui a partir da carteira
   // modelo desfaria a descoberta automática a cada troca de lente.
   var base = cartMotor.base || cartUniversoBase();
@@ -1706,11 +1744,23 @@ async function cartRenderizarMotor(forcar) {
     return;
   }
   wrap.style.display = 'block';
+  cartLigarGatilhos();
   cartRenderizarMotorLentes();
 
-  // Já há fundamentos em memória: refaz as contas sem gastar cota da API.
-  if (cartMotor.buscadoEm && !forcar) return cartRecalcularMotor();
+  // Já há fundamentos FRESCOS em memória: refaz as contas sem gastar cota da
+  // API. Só um SUCESSO conta como cache — ver o catch lá embaixo — e ele tem
+  // validade: sem isso, quem deixa a aba aberta o dia todo fica com os
+  // indicadores da manhã, e a única saída era clicar em "Atualizar dados".
+  if (cartMotor.buscadoEm && !forcar && Date.now() - cartMotor.buscadoEm < CART_CACHE_MS) {
+    return cartRecalcularMotor();
+  }
   if (cartMotor.carregando) return;
+  // A última tentativa falhou: mostramos o que dava (carteira modelo, sem
+  // score) e vamos tentar de novo agora. Um respiro curto evita martelar a API
+  // quando a aba é aberta e fechada em sequência.
+  if (cartMotor.falhouEm && !forcar && Date.now() - cartMotor.falhouEm < CART_RETENTATIVA_MS) {
+    return cartRecalcularMotor();
+  }
 
   var seq = ++cartMotorSeq;
   cartMotor.carregando = true;
@@ -1732,6 +1782,8 @@ async function cartRenderizarMotor(forcar) {
     cartMotor.fallback = dados.fallback || [];
     cartMotor.pendencias = dados.pendencias || [];
     cartMotor.buscadoEm = Date.now();
+    cartMotor.falhouEm = null;
+    cartMotor.temDados = true;
     cartMotor.carregando = false;
     cartRecalcularMotor();
   } catch (e) {
@@ -1742,7 +1794,17 @@ async function cartRenderizarMotor(forcar) {
     // Sem dado de mercado o motor ainda ordena e distribui — só que com
     // score neutro. Mostrar a carteira com aviso é melhor do que uma aba
     // vazia, desde que fique explícito que a nota não vale nada aqui.
-    cartMotor.buscadoEm = Date.now();
+    //
+    // O que NÃO se faz aqui é carimbar `buscadoEm`. Ele é o cache de sucesso:
+    // com ele preenchido, toda reentrada na aba cai no atalho lá em cima
+    // (`if (cartMotor.buscadoEm && !forcar) return cartRecalcularMotor()`) e
+    // reusa este estado degradado — sem score, sem distribuir o aporte — pelo
+    // resto da sessão. Era exatamente por isso que só clicar em "Atualizar
+    // dados" trazia a carteira: uma falha de rede envenenava o cache e o botão
+    // era o único jeito de furá-lo. Marcamos a falha em campo próprio e a
+    // próxima entrada tenta de novo sozinha.
+    cartMotor.falhouEm = Date.now();
+    cartMotor.temDados = true;
     cartMotor.fundamentos = {};
     cartMotor.titulosRf = [];
     // Sem rede não há universo descoberto; a carteira modelo é o que resta
@@ -1754,7 +1816,87 @@ async function cartRenderizarMotor(forcar) {
 
 function cartAtualizarMotor() {
   cartMotor.buscadoEm = null;
+  cartMotor.falhouEm = null;
   cartRenderizarMotor(true);
+}
+
+// ════════════════════════════════
+// QUANDO BUSCAR OS DADOS
+// ════════════════════════════════
+// O botão "Atualizar dados" era, na prática, o único gatilho confiável: a aba
+// buscava uma vez e, se aquela vez falhasse (ou envelhecesse), ficava parada.
+// Pedir ao usuário que clique é transferir para ele um trabalho que a tela
+// sabe fazer sozinha — ele não tem como saber que o dado está velho.
+//
+// Os gatilhos abaixo cobrem os casos reais em que o dado muda ou fica
+// alcançável. O botão continua, mas como "forçar agora", não como o caminho.
+
+// Indicador de mercado não muda de minuto em minuto; meia hora é frouxo o
+// bastante para não gastar cota e curto o bastante para ninguém decidir aporte
+// olhando número de ontem.
+var CART_CACHE_MS = 30 * 60 * 1000;
+// Depois de uma falha, o respiro antes de tentar de novo. Curto: falha de rede
+// costuma passar em segundos, e a aba precisa reagir sem parecer travada.
+var CART_RETENTATIVA_MS = 15 * 1000;
+
+var cartGatilhosLigados = false;
+var cartAuthTentativas = 0;
+
+/** Rebusca se — e só se — a aba estiver aberta e o dado justificar. */
+function cartTalvezRebuscar(motivo) {
+  var wrap = document.getElementById('cartMotorWrap');
+  // Fora da aba não há nada para atualizar; a próxima entrada resolve. Testar
+  // só o display DELE não basta: quem esconde a aba é a <section> em volta, e o
+  // wrap continua "block" dentro dela. offsetParent é null sempre que o
+  // elemento não está sendo desenhado, por qualquer ancestral.
+  if (!wrap || wrap.style.display === 'none' || wrap.offsetParent === null) return;
+  if (cartMotor.carregando) return;
+  var velho = !cartMotor.buscadoEm || Date.now() - cartMotor.buscadoEm >= CART_CACHE_MS;
+  var falhou = !!cartMotor.falhouEm;
+  if (!velho && !falhou) return;
+  console.info('[carteira/motor] rebuscando —', motivo);
+  cartMotor.falhouEm = null;
+  cartRenderizarMotor(true);
+}
+
+/**
+ * A busca começa pedindo o token do Firebase e morre em "Sessão expirada" se
+ * ele não existir. Quem abre a aba antes de a autenticação resolver — o caso
+ * comum de quem entra direto no link da carteira — cai exatamente nisso, e
+ * nada re-disparava depois que o login terminava. Este é o gatilho que
+ * faltava.
+ */
+function cartLigarGatilhoAuth() {
+  cartAuthTentativas++;
+  // ~15s de espera pelo Firebase; passou disso, ele não vem.
+  if (cartAuthTentativas > 60) return;
+  var fb = window.AppliqueiFirebase;
+  if (!fb || !fb.ready || !fb.auth) {
+    setTimeout(cartLigarGatilhoAuth, 250);
+    return;
+  }
+  fb.auth.onAuthStateChanged(function (user) {
+    if (user) cartTalvezRebuscar('autenticação concluída');
+  });
+}
+
+function cartLigarGatilhos() {
+  if (cartGatilhosLigados) return;
+  cartGatilhosLigados = true;
+
+  cartLigarGatilhoAuth();
+
+  // Rede voltou: a falha anterior pode ter sido só o metrô entrando no túnel.
+  window.addEventListener('online', function () {
+    cartTalvezRebuscar('rede voltou');
+  });
+
+  // Voltar para a aba do navegador depois de horas é o momento natural de
+  // conferir se o dado ainda vale. O guard de validade evita rebuscar a cada
+  // alt-tab.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) cartTalvezRebuscar('aba voltou ao primeiro plano');
+  });
 }
 
 function cartRenderizarMotorStatus() {
@@ -1885,14 +2027,37 @@ function cartRenderizarMotorStatus() {
       'o dado não chegar. Os cards no fim da lista dizem o que falta em cada um.</span></div>';
   }
 
+  // O botão deixou de ser o caminho para trazer a carteira (a aba busca
+  // sozinha) e virou "forçar agora". Para não parecer que há trabalho pendente,
+  // ele diz de quando é o dado: quem vê "atualizado há 2 min" não clica.
+  var quando = cartMotor.carregando
+    ? 'buscando…'
+    : cartMotor.buscadoEm
+      ? 'atualizado ' + cartHaQuantoTempo(cartMotor.buscadoEm)
+      : 'sem dados de mercado';
   el.innerHTML =
     '<div class="cart-motor-status-linha">' +
     partes.join('') +
-    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()">' +
-    '<i class="ph ph-arrows-clockwise"></i> Atualizar dados</button></div>' +
+    '<button type="button" class="cart-btn-mini" onclick="cartAtualizarMotor()" ' +
+    'title="Buscar os indicadores de mercado agora">' +
+    '<i class="ph ph-arrows-clockwise"></i> <span class="cart-atualizar-rotulo">' +
+    quando +
+    '</span></button></div>' +
     cartRenderizarIndicadores() +
     alertaPendencia +
     alerta;
+}
+
+/** "agora mesmo" / "há 12 min" / "há 3 h" — em português e sem biblioteca. */
+function cartHaQuantoTempo(ms) {
+  var seg = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (seg < 60) return 'agora mesmo';
+  var min = Math.round(seg / 60);
+  if (min < 60) return 'há ' + min + ' min';
+  var h = Math.round(min / 60);
+  if (h < 24) return 'há ' + h + (h === 1 ? ' hora' : ' horas');
+  var d = Math.round(h / 24);
+  return 'há ' + d + (d === 1 ? ' dia' : ' dias');
 }
 
 /**
@@ -2963,7 +3128,7 @@ function cartConfirmarTroca(de, para) {
   cartSalvarEstado();
   cartFecharTroca();
   cartRecalcularMotor();
-  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (!cartMotor.temDados) cartRenderizarCustom();
 }
 
 /** Desfaz a troca de um lugar, voltando ao ativo que o motor escolheu. */
@@ -2977,7 +3142,7 @@ function cartDesfazerTroca(ticker) {
   if (!Object.keys(c.trocas).length) c.trocas = null;
   cartSalvarEstado();
   cartRecalcularMotor();
-  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (!cartMotor.temDados) cartRenderizarCustom();
 }
 
 /** Folha de escolha do substituto. */
@@ -3412,7 +3577,7 @@ function cartAplicarCustom() {
   // esta linha o utilizador clicava em Aplicar, o painel fechava, e a barra
   // continuava a dizer "Esta é a nossa recomendação" — que a essa altura já
   // era mentira, e sem nenhum caminho de volta à vista.
-  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (!cartMotor.temDados) cartRenderizarCustom();
   if (typeof mostrarToast === 'function') mostrarToast('Carteira personalizada aplicada.');
 }
 
@@ -3422,7 +3587,7 @@ function cartRestaurarRecomendacao() {
   cartSalvarEstado();
   cartFecharCustom();
   cartRecalcularMotor();
-  if (!cartMotor.buscadoEm) cartRenderizarCustom();
+  if (!cartMotor.temDados) cartRenderizarCustom();
   if (typeof mostrarToast === 'function') mostrarToast('De volta à carteira recomendada.');
 }
 

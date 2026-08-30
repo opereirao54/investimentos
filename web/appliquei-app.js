@@ -64,6 +64,49 @@ function mudarAba(e, idAba, callback = null) {
   if (typeof closeMobileNav === 'function') closeMobileNav();
 }
 
+// === BLOCOS RECOLHÍVEIS DA ABA "MEUS INVESTIMENTOS" =========================
+// Evolução e Distribuição são leitura de ANÁLISE, não de consulta: no celular
+// nascem fechadas para que a dobra responda "quanto eu tenho?" e a carteira
+// apareça sem rolagem. No desktop há espaço lateral e o CSS as mantém abertas
+// (a media query de 1080px ignora o data-aberto).
+// A escolha do usuário persiste por bloco.
+var INV_BLOCOS_ABERTOS_PADRAO = ['blocoRanking'];
+function alternarBlocoInv(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const aberto = el.getAttribute('data-aberto') === '1';
+  el.setAttribute('data-aberto', aberto ? '0' : '1');
+  const cab = el.querySelector('.inv-bloco-cab');
+  if (cab) cab.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+  try {
+    localStorage.setItem('appliquei_inv_bloco_' + id, aberto ? '0' : '1');
+  } catch (_) {}
+  // Chart.js dimensiona pelo container: um canvas que nasceu em display:none
+  // fica com 0px de altura e o gráfico some ao abrir. Redesenha após o reflow.
+  if (!aberto) {
+    setTimeout(() => {
+      if (id === 'blocoEvolucao' && typeof renderizarGraficoEvolucao === 'function')
+        renderizarGraficoEvolucao();
+      if (id === 'blocoDistribuicao' && typeof atualizarCarteiraAtivos === 'function')
+        atualizarCarteiraAtivos();
+    }, 60);
+  }
+}
+
+function inicializarBlocosInv() {
+  document.querySelectorAll('#patrimonio .inv-bloco').forEach((el) => {
+    let salvo = null;
+    try {
+      salvo = localStorage.getItem('appliquei_inv_bloco_' + el.id);
+    } catch (_) {}
+    const padrao = INV_BLOCOS_ABERTOS_PADRAO.indexOf(el.id) > -1 ? '1' : '0';
+    el.setAttribute('data-aberto', salvo === '0' || salvo === '1' ? salvo : padrao);
+    const cab = el.querySelector('.inv-bloco-cab');
+    if (cab) cab.setAttribute('aria-expanded', el.getAttribute('data-aberto') === '1');
+  });
+}
+document.addEventListener('DOMContentLoaded', inicializarBlocosInv);
+
 // Sub-abas dentro de "Meus Investimentos"
 var filtroOpsTimeline = 'todos';
 function mudarSubAbaPatrimonio(qual) {
@@ -84,8 +127,6 @@ function mudarSubAbaPatrimonio(qual) {
     btns[k].classList.toggle('ativo', k === qual);
   });
   if (filtros) filtros.style.display = qual === 'carteira' ? 'flex' : 'none';
-  const quadroCat = document.getElementById('quadroCategoriasInferior');
-  if (quadroCat && qual !== 'carteira') quadroCat.style.display = 'none';
   btnRefresh.style.display = qual === 'dividendos' ? 'inline-flex' : 'none';
   // Ao mudar para dividendos, limpa o filtro de ativo e recarrega
   if (qual === 'dividendos') {
@@ -93,8 +134,6 @@ function mudarSubAbaPatrimonio(qual) {
     carregarDividendos();
   }
   if (qual === 'operacoes') renderizarOperacoes();
-  // Voltar para carteira precisa re-renderizar a "Posição por categoria",
-  // que foi escondida acima ao trocar de sub-aba.
   if (qual === 'carteira' && typeof atualizarCarteiraAtivos === 'function')
     atualizarCarteiraAtivos();
   atualizarMiniStats(qual);
@@ -170,7 +209,23 @@ function toggleColunasExtras() {
 }
 
 // === DRAWER DE OPERAÇÃO ===
-function abrirDrawerOperacao() {
+// Id da operação em edição. `null` = o drawer está registrando uma operação
+// nova. A edição NÃO apaga nada ao abrir (antes apagava, e fechar o drawer sem
+// confirmar perdia a operação de vez): a troca só acontece no Confirmar.
+var operacaoEmEdicaoId = null;
+function drawerEmModoEdicao() {
+  return operacaoEmEdicaoId != null;
+}
+function encerrarModoEdicaoOperacao() {
+  operacaoEmEdicaoId = null;
+  const titulo = document.getElementById('tituloPainelOp');
+  if (titulo) titulo.innerText = 'Registrar operação';
+  const aviso = document.getElementById('avisoEdicaoOperacao');
+  if (aviso) aviso.style.display = 'none';
+}
+
+function abrirDrawerOperacao(opcoes) {
+  const o = opcoes || {};
   const drawer = document.getElementById('drawerOperacao');
   const overlay = document.getElementById('drawerOverlay');
   if (!drawer || !overlay) return;
@@ -181,17 +236,26 @@ function abrirDrawerOperacao() {
   if (typeof popularOrigemRecurso === 'function') popularOrigemRecurso();
   drawer.classList.add('aberto');
   overlay.classList.add('aberto');
+  // Esconde o botão global: um "+" por cima do formulário que ele mesmo abriu
+  // não tem o que fazer.
+  document.body.classList.add('drawer-operacao-aberto');
   document.body.style.overflow = 'hidden';
-  setTimeout(() => {
-    document.getElementById('compraTicker')?.focus();
-  }, 240);
+  // Numa edição o foco automático no ticker era o gatilho do blur que
+  // sobrescrevia o preço pago pela cotação do dia. Sem foco, sem blur.
+  if (!o.semFoco) {
+    setTimeout(() => {
+      document.getElementById('compraTicker')?.focus();
+    }, 240);
+  }
 }
 function fecharDrawerOperacao() {
   const drawer = document.getElementById('drawerOperacao');
   const overlay = document.getElementById('drawerOverlay');
+  encerrarModoEdicaoOperacao();
   if (!drawer || !overlay) return;
   drawer.classList.remove('aberto');
   overlay.classList.remove('aberto');
+  document.body.classList.remove('drawer-operacao-aberto');
   document.body.style.overflow = '';
 }
 
@@ -222,10 +286,137 @@ function fecharPainelLancamentoMobile() {
   fecharPainelLancamento();
 }
 
-function toggleDarkMode() {
-  document.body.classList.toggle('dark');
+// O tema já foi aplicado pelo bloco inline no topo do <body> — aqui só
+// sincronizamos o ícone do botão, que só existe depois do HTML.
+function sincronizarIconeTema() {
   const icon = document.getElementById('iconTheme');
   if (icon) icon.className = document.body.classList.contains('dark') ? 'ph ph-moon' : 'ph ph-sun';
+  const btn = document.querySelector('.btn-theme');
+  if (btn) {
+    const escuro = document.body.classList.contains('dark');
+    btn.title = escuro ? 'Voltar ao tema claro' : 'Usar o tema escuro';
+    btn.setAttribute('aria-pressed', escuro ? 'true' : 'false');
+  }
+}
+
+// ============================================================
+// --- Botão global de cadastro ---
+// ============================================================
+// O "+" era um FAB de celular, preso à aba Controle: para lançar uma despesa
+// estando em Meus sonhos, a pessoa tinha de navegar até o Controle primeiro —
+// e no PC o botão simplesmente não existia. Agora ele acompanha todas as abas
+// nos dois tamanhos, e pergunta ONDE cadastrar em vez de assumir: as duas
+// coisas que se lança no dia a dia são um movimento do mês e um aporte.
+//
+// Os botões dentro das páginas continuam: quem já está no Controle abre o
+// painel com UM clique, contra dois pelo menu. O global é o atalho de quem
+// está em outro lugar.
+function alternarMenuCadastro() {
+  document.body.classList.contains('fab-aberto') ? fecharMenuCadastro() : abrirMenuCadastro();
+}
+
+var _fabRolagemTimer = null;
+
+/**
+ * Tira o "+" da frente enquanto a lista corre.
+ *
+ * Ele é `fixed` no canto inferior direito, e é justamente ali que ficam as
+ * ações de linha (editar, excluir) das listas de ativo, conta e sonho — o
+ * clique ia para o botão flutuante em vez do alvo. O CSS reserva o rodapé,
+ * o que liberta o ÚLTIMO item de cada página; esta função cuida do resto:
+ * sumindo durante a rolagem, qualquer alvo coberto fica a um toque de
+ * distância, porque o menor movimento na lista já apaga o botão.
+ *
+ * Quem rola é `.main-content` (o body tem overflow:hidden), então o ouvinte
+ * vai nele. Com o menu aberto não há o que esconder: o backdrop já cobre a
+ * página, e sumir com o botão no meio da escolha só assustaria.
+ */
+function _ligarEsconderFabNaRolagem() {
+  const alvo = document.querySelector('.main-content');
+  if (!alvo || alvo.dataset.fabRolagem) return;
+  alvo.dataset.fabRolagem = '1';
+  alvo.addEventListener(
+    'scroll',
+    () => {
+      if (document.body.classList.contains('fab-aberto')) return;
+      document.body.classList.add('fab-rolando');
+      clearTimeout(_fabRolagemTimer);
+      _fabRolagemTimer = setTimeout(() => {
+        document.body.classList.remove('fab-rolando');
+      }, 420);
+    },
+    { passive: true }
+  );
+}
+
+function abrirMenuCadastro() {
+  clearTimeout(_fabRolagemTimer);
+  document.body.classList.remove('fab-rolando');
+  const menu = document.getElementById('fabMenu');
+  const fundo = document.getElementById('fabBackdrop');
+  const btn = document.getElementById('fabNovoLancamento');
+  if (!menu) return;
+  menu.hidden = false;
+  if (fundo) fundo.hidden = false;
+  if (btn) btn.setAttribute('aria-expanded', 'true');
+  document.body.classList.add('fab-aberto');
+  const primeiro = menu.querySelector('.fab-opcao');
+  if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
+}
+
+function fecharMenuCadastro() {
+  const menu = document.getElementById('fabMenu');
+  const fundo = document.getElementById('fabBackdrop');
+  const btn = document.getElementById('fabNovoLancamento');
+  if (menu) menu.hidden = true;
+  if (fundo) fundo.hidden = true;
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+  document.body.classList.remove('fab-aberto');
+}
+
+/**
+ * Leva à aba certa e abre o formulário de lá.
+ *
+ * A troca de aba tem de vir primeiro: o painel do Controle é uma coluna da
+ * própria seção, e abri-lo com outra aba na tela deixaria o formulário
+ * invisível. O respiro entre as duas coisas dá tempo de a seção pintar.
+ */
+function cadastrarEm(destino) {
+  fecharMenuCadastro();
+  const aba = destino === 'investimento' ? 'patrimonio' : 'controle';
+  const jaEstaNaAba =
+    document.querySelector('.section.ativa') && document.querySelector('.section.ativa').id === aba;
+  if (!jaEstaNaAba) {
+    const btn = Array.from(document.querySelectorAll('.menu-btn')).find((b) =>
+      (b.getAttribute('onclick') || '').includes("'" + aba + "'")
+    );
+    if (btn) btn.click();
+  }
+  const abrir = () => {
+    if (destino === 'investimento') {
+      if (typeof abrirDrawerOperacao === 'function') abrirDrawerOperacao();
+    } else if (typeof abrirPainelLancamento === 'function') {
+      abrirPainelLancamento();
+    }
+  };
+  jaEstaNaAba ? abrir() : setTimeout(abrir, 180);
+}
+
+// Esc fecha o menu — mesma tecla que fecha todo o resto do app.
+document.addEventListener('keydown', function (ev) {
+  if (ev.key === 'Escape' && document.body.classList.contains('fab-aberto')) fecharMenuCadastro();
+});
+
+function toggleDarkMode() {
+  const escuro = !document.body.classList.contains('dark');
+  document.body.classList.toggle('dark', escuro);
+  // A escolha do tema é preferência do usuário e tem de sobreviver ao reload.
+  // Antes disto nada era gravado: quem preferia o escuro reabria o app no
+  // claro toda vez.
+  try {
+    localStorage.setItem('appliquei_tema', escuro ? 'escuro' : 'claro');
+  } catch (e) {}
+  sincronizarIconeTema();
   // Re-aplica tokens nos gráficos e força re-render
   if (typeof aplicarTemaChartJs === 'function') aplicarTemaChartJs();
   try {
@@ -239,14 +430,83 @@ function toggleDarkMode() {
   } catch (_) {}
 }
 
+// ============================================================
+// --- Olho: esconder valores ---
+// ============================================================
+// O CSS cobre por lista de ids (65 regras). Lista à mão envelhece: cada tela
+// nova nasce vazando. Medido, sobravam 21 valores à mostra com o olho fechado
+// — o saldo do mês anterior no Controle, o caixa por instituição no Meu
+// Patrimônio, os KPIs de Sonhos, a legenda da pizza do Simulador.
+//
+// O varredor fecha a lacuna pela ponta certa: em vez de enumerar ONDE há
+// dinheiro, ele procura o que PARECE dinheiro. Marca com .valor-mascarado o
+// menor elemento cujo texto próprio casa com o padrão de moeda — só a classe,
+// sem mexer na árvore, então re-render não quebra nada e desmarcar é de graça.
+var RE_MOEDA = /R\$\s?-?[\d.]{1,3}(\.\d{3})*,\d{2}|-\s?R\$\s?[\d.]+,\d{2}/;
+var _observadorValores = null;
+
+function _marcarValoresVisiveis(raiz) {
+  var alvo = raiz && raiz.querySelectorAll ? raiz : document.body;
+  var nos = alvo.querySelectorAll('*');
+  for (var i = 0; i < nos.length; i++) {
+    var el = nos[i];
+    if (el.classList.contains('valor-mascarado')) continue;
+    // Só o texto PRÓPRIO: senão o primeiro ancestral com dinheiro dentro
+    // levaria a página inteira junto.
+    var proprio = '';
+    for (var j = 0; j < el.childNodes.length; j++) {
+      if (el.childNodes[j].nodeType === 3) proprio += el.childNodes[j].nodeValue;
+    }
+    if (RE_MOEDA.test(proprio)) el.classList.add('valor-mascarado');
+  }
+}
+
+function _ligarVarredorValores() {
+  _marcarValoresVisiveis(document.body);
+  if (_observadorValores || typeof MutationObserver !== 'function') return;
+  // As telas se redesenham o tempo todo (trocar de mês, de aba, pagar uma
+  // conta). Sem observar, o valor novo nasce à mostra.
+  _observadorValores = new MutationObserver(function (muts) {
+    for (var i = 0; i < muts.length; i++) {
+      var m = muts[i];
+      if (m.type === 'characterData') {
+        if (m.target.parentElement) _marcarValoresVisiveis(m.target.parentElement.parentElement);
+        continue;
+      }
+      for (var j = 0; j < m.addedNodes.length; j++) {
+        var n = m.addedNodes[j];
+        if (n.nodeType === 1) _marcarValoresVisiveis(n.parentElement || n);
+        else if (n.nodeType === 3 && n.parentElement) _marcarValoresVisiveis(n.parentElement);
+      }
+    }
+  });
+  _observadorValores.observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
+}
+
+function _desligarVarredorValores() {
+  if (_observadorValores) {
+    _observadorValores.disconnect();
+    _observadorValores = null;
+  }
+}
+
 function aplicarEstadoValoresOcultos(oculto) {
   document.body.classList.toggle('valores-ocultos', oculto);
   document.querySelectorAll('.btn-eye').forEach((btn) => {
     btn.classList.toggle('ativo', oculto);
     btn.title = oculto ? 'Mostrar valores' : 'Ocultar valores';
+    btn.setAttribute('aria-pressed', oculto ? 'true' : 'false');
     const icone = btn.querySelector('i');
     if (icone) icone.className = oculto ? 'ph ph-eye-slash' : 'ph ph-eye';
   });
+  // A marcação só custa enquanto o olho está fechado. Aberto, a classe fica
+  // na árvore mas não pinta nada — e o observador sai do caminho.
+  if (oculto) _ligarVarredorValores();
+  else _desligarVarredorValores();
 }
 function toggleValoresOcultos() {
   const oculto = !document.body.classList.contains('valores-ocultos');
@@ -255,12 +515,11 @@ function toggleValoresOcultos() {
     localStorage.setItem('appliquei_valores_ocultos', oculto ? '1' : '0');
   } catch (e) {}
 }
-(function inicializarValoresOcultos() {
-  let salvo = '0';
-  try {
-    salvo = localStorage.getItem('appliquei_valores_ocultos') || '0';
-  } catch (e) {}
-  if (salvo === '1') aplicarEstadoValoresOcultos(true);
+// A classe já veio do bloco inline do <body>; aqui repomos ícone, título e o
+// estado "ativo" dos botões, e ligamos o varredor.
+(function inicializarPreferenciasDeExibicao() {
+  sincronizarIconeTema();
+  aplicarEstadoValoresOcultos(document.body.classList.contains('valores-ocultos'));
 })();
 
 // === CHIPS DE TIPO DE LANÇAMENTO ===
@@ -295,22 +554,15 @@ function selecionarChipTipo(tipo) {
   }
 }
 
+// O extrato virou uma lista só, ordenada por valor. As abas do topo escondiam
+// uma das quatro caixas empilhadas; agora escondem por item, e se combinam com
+// os chips de categoria (a função que aplica os dois mora em
+// appliquei-aba-controle-financeiro.js, junto do render).
 function filtrarExtrato(e, tipo) {
   document.querySelectorAll('.ext-tab').forEach((t) => t.classList.remove('on'));
-  e.currentTarget.classList.add('on');
-  const ids = ['extratoReceitas', 'extratoDespesas', 'extratoCartao', 'extratoInvestimentos'];
-  const map = {
-    todos: ids,
-    receita: ['extratoReceitas'],
-    despesa: ['extratoDespesas'],
-    cartao: ['extratoCartao'],
-    investimento: ['extratoInvestimentos'],
-  };
-  const show = map[tipo] || ids;
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.style.display = show.includes(id) ? 'flex' : 'none';
-  });
+  if (e && e.currentTarget) e.currentTarget.classList.add('on');
+  if (typeof extratoTipoAtivo !== 'undefined') extratoTipoAtivo = tipo || 'todos';
+  if (typeof aplicarFiltrosExtrato === 'function') aplicarFiltrosExtrato();
 }
 
 function formatarMoeda(valor) {
@@ -551,6 +803,45 @@ function restaurarCartaoConfig(id) {
 // --- ABA 1: MEUS INVESTIMENTOS ---
 var historicoCompras = JSON.parse(localStorage.getItem('futurorico_compras')) || [];
 var transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || [];
+
+// === Escrita canônica de transações =========================================
+// Antes disto havia 29 `localStorage.setItem('futurorico_transacoes', ...)`
+// espalhados por 9 arquivos, sem nenhum ponto por onde todos passassem — o
+// oposto de `contas`, que centraliza tudo em salvarContas(). Sem choke point
+// não há onde validar o registro antes de gravar, e cada produtor novo repetia
+// (ou esquecia) o ritual.
+//
+// A sincronização com a nuvem NÃO depende desta função: o interceptador
+// instalado no protótipo de Storage (appliquei-utils.js) marca a chave como
+// suja em qualquer setItem e agenda o push. Por isso o default aqui é só
+// gravar — é o que 25 dos 29 sítios já faziam na prática.
+//
+// `flush: true` cancela o debounce e empurra na hora. Reservado aos poucos
+// pontos que já faziam isso de propósito (fusão de contas, lançamento de
+// dividendos): usá-lo em toda escrita transformaria cada lançamento numa ida
+// imediata ao Firestore.
+//
+// É aqui que entra validação de invariante no ponto de escrita, quando for a
+// hora. Ver .claude/integracoes/mapa.json → RISCO-01.
+function salvarTransacoes(opcoes) {
+  try {
+    localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  } catch (e) {
+    if (window.console) console.error('[transacoes] localStorage', e);
+    if (typeof mostrarToast === 'function') {
+      mostrarToast('Falha ao salvar localmente. Espaço de armazenamento esgotado?', 'erro');
+    }
+    return false;
+  }
+  if (opcoes && opcoes.flush) {
+    try {
+      if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function') {
+        AppliqueiCloudSync.forceFlush();
+      }
+    } catch (e) {}
+  }
+  return true;
+}
 // Backfill: compromissos mensais de sonho criados antes da feature de "conta a vencer"
 // não tinham dataVencimento. Preenche com dia 5 (default) para que apareçam no painel.
 (function backfillVencimentoSonhoCompromisso() {
@@ -570,7 +861,7 @@ var transacoes = JSON.parse(localStorage.getItem('futurorico_transacoes')) || []
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
 
 // --- CARTÕES DE CRÉDITO ---
@@ -628,7 +919,7 @@ transacoes = transacoes.map((t) => {
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
 
 // Migração: despesa variável avulsa (não-recorrente) é compra à vista — já saiu
@@ -646,15 +937,24 @@ transacoes = transacoes.map((t) => {
       mudou = true;
     }
   });
-  if (mudou) localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+  if (mudou) salvarTransacoes();
 })();
-localStorage.setItem('futurorico_transacoes', JSON.stringify(transacoes));
+salvarTransacoes();
 
+// Preenche a cotação SÓ quando o campo de preço está vazio. Antes sobrescrevia
+// sempre — e como o drawer foca o ticker ao abrir, bastava o usuário clicar em
+// qualquer outro campo durante uma EDIÇÃO para o preço pago (ex.: R$ 20,00 de
+// 2023) virar a cotação de hoje, silenciosamente. Numa compra nova o campo
+// nasce vazio, então o preenchimento automático continua funcionando igual.
 function preencherPrecoAutomatico() {
+  const elPreco = document.getElementById('compraPreco');
+  if (!elPreco) return;
+  const jaPreenchido = (parseBRL(elPreco.value) || 0) > 0;
+  if (jaPreenchido) return;
   const inputTicker = document.getElementById('compraTicker').value.toUpperCase();
   const ativoEncontrado = mockAtivosMercado.find((a) => a.ticker === inputTicker);
   if (ativoEncontrado) {
-    setValorBRLInput(document.getElementById('compraPreco'), ativoEncontrado.preco_atual);
+    setValorBRLInput(elPreco, ativoEncontrado.preco_atual);
     calcularTotalCompra();
   }
 }
@@ -667,11 +967,23 @@ function calcularTotalCompra() {
   document.getElementById('compraTotalOp').innerText = formatarMoeda(qtd * preco);
 }
 
-function alternarTipoOperacao(tipo) {
+function alternarTipoOperacao(tipo, manterEdicao) {
+  // Trocar Compra↔Venda no toggle zera o formulário — logo, abandona a edição
+  // em curso. `manterEdicao` é usado só por editarOperacao, que chama esta
+  // função para preparar o formulário ANTES de preenchê-lo.
+  if (!manterEdicao && typeof encerrarModoEdicaoOperacao === 'function')
+    encerrarModoEdicaoOperacao();
   document.getElementById('tipoOperacao').value = tipo;
   const btnCompra = document.getElementById('btnTabCompra');
   const btnVenda = document.getElementById('btnTabVenda');
-  const painelCard = document.getElementById('painelOperacaoCard');
+  // Nada aqui pode assumir que o elemento existe. `painelOperacaoCard` ficou
+  // para trás quando o formulário virou drawer: o id sumiu do HTML e o
+  // `painelCard.style` que restou lançava TypeError, abortando esta função no
+  // meio. Como editarOperacao a chama ANTES de preencher os campos, a edição
+  // abria o drawer vazio — o "não traz os dados da compra para editar" — e o
+  // toggle Compra/Venda quebrava junto. A referência morta saiu; as guardas
+  // ficam para que o próximo id removido do HTML não derrube o drawer.
+  // test/drawer-operacao-dom.test.js trava os ids que precisam existir.
   const lblPreco = document.getElementById('lblPrecoOp');
   const btnConfirmar = document.getElementById('btnConfirmarOp');
   const iconePainel = document.getElementById('iconePainelOp');
@@ -679,10 +991,12 @@ function alternarTipoOperacao(tipo) {
   const inputTicker = document.getElementById('compraTicker');
   const dicaTicker = document.getElementById('dicaTicker');
 
-  inputTicker.value = '';
-  document.getElementById('compraQtd').value = '';
-  document.getElementById('compraPreco').value = '';
-  document.getElementById('compraTotalOp').innerText = 'R$ 0,00';
+  if (inputTicker) inputTicker.value = '';
+  const elQtd = document.getElementById('compraQtd');
+  if (elQtd) elQtd.value = '';
+  const elPreco = document.getElementById('compraPreco');
+  if (elPreco) elPreco.value = '';
+  if (totalTexto) totalTexto.innerText = 'R$ 0,00';
   const elCorretora = document.getElementById('compraCorretora');
   if (elCorretora) elCorretora.value = '';
   const elVenc = document.getElementById('compraVencimento');
@@ -703,34 +1017,42 @@ function alternarTipoOperacao(tipo) {
   }
   ajustarCamposPorCategoria();
 
+  const ehCompra = tipo === 'compra';
+  if (btnCompra) btnCompra.classList.toggle('ativo-compra', ehCompra);
+  if (btnVenda) btnVenda.classList.toggle('ativo-venda', !ehCompra);
   if (tipo === 'compra') {
-    btnCompra.classList.add('ativo-compra');
-    btnVenda.classList.remove('ativo-venda');
-    painelCard.style.background = 'var(--cor-bg-primaria)';
-    painelCard.style.borderColor = '#a7f3d0';
-    lblPreco.innerText = 'Preço Pago (R$)';
-    btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar';
-    btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
-    iconePainel.className = 'ph-fill ph-plus-circle';
-    iconePainel.style.color = 'var(--cor-primaria)';
-    totalTexto.style.color = 'var(--cor-primaria)';
-    inputTicker.setAttribute('list', 'listaAtivosMercado');
-    inputTicker.placeholder = 'Ex: BTLG11 ou Tesouro';
-    dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
+    if (lblPreco) lblPreco.innerText = 'Preço Pago (R$)';
+    if (btnConfirmar) {
+      btnConfirmar.innerHTML = '<i class="ph-bold ph-check"></i> Confirmar';
+      btnConfirmar.style.backgroundColor = 'var(--cor-primaria)';
+    }
+    if (iconePainel) {
+      iconePainel.className = 'ph-fill ph-plus-circle';
+      iconePainel.style.color = 'var(--cor-primaria)';
+    }
+    if (totalTexto) totalTexto.style.color = 'var(--cor-primaria)';
+    if (inputTicker) {
+      inputTicker.setAttribute('list', 'listaAtivosMercado');
+      inputTicker.placeholder = 'Ex: BTLG11 ou Tesouro';
+    }
+    if (dicaTicker)
+      dicaTicker.innerText = 'Digite o ativo e preencheremos a cotação (você pode editar).';
   } else {
-    btnVenda.classList.add('ativo-venda');
-    btnCompra.classList.remove('ativo-compra');
-    painelCard.style.background = 'var(--cor-bg-erro)';
-    painelCard.style.borderColor = '#fecdd3';
-    lblPreco.innerText = 'Preço de Venda (R$)';
-    btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar';
-    btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
-    iconePainel.className = 'ph-fill ph-minus-circle';
-    iconePainel.style.color = 'var(--cor-erro)';
-    totalTexto.style.color = 'var(--cor-erro)';
-    inputTicker.setAttribute('list', 'listaAtivosCarteira');
-    inputTicker.placeholder = 'Selecione um ativo da sua carteira';
-    dicaTicker.innerText = 'Apenas ativos que você possui estão listados aqui.';
+    if (lblPreco) lblPreco.innerText = 'Preço de Venda (R$)';
+    if (btnConfirmar) {
+      btnConfirmar.innerHTML = '<i class="ph-bold ph-trend-down"></i> Confirmar';
+      btnConfirmar.style.backgroundColor = 'var(--cor-erro)';
+    }
+    if (iconePainel) {
+      iconePainel.className = 'ph-fill ph-minus-circle';
+      iconePainel.style.color = 'var(--cor-erro)';
+    }
+    if (totalTexto) totalTexto.style.color = 'var(--cor-erro)';
+    if (inputTicker) {
+      inputTicker.setAttribute('list', 'listaAtivosCarteira');
+      inputTicker.placeholder = 'Selecione um ativo da sua carteira';
+    }
+    if (dicaTicker) dicaTicker.innerText = 'Apenas ativos que você possui estão listados aqui.';
   }
 }
 
@@ -911,7 +1233,12 @@ function ajustarCamposPorCategoria() {
       inpDia.value = d ? new Date(d + 'T12:00:00').getDate() : new Date().getDate();
     }
     if (ehPrev && inpTaxa && !inpTaxa.value) inpTaxa.value = '0,80';
+    // O prefill não passa por `oninput`: sem esta chamada a equivalência
+    // anual só apareceria depois do primeiro toque no campo.
+    if (ehPrev && typeof atualizarEquivalenciaTaxaPrev === 'function')
+      atualizarEquivalenciaTaxaPrev();
     if (inpDuracao && !inpDuracao.value) inpDuracao.value = ehPrev ? '10' : '5';
+    if (typeof sincronizarRotuloDiaRecorrencia === 'function') sincronizarRotuloDiaRecorrencia();
   }
 
   // Renomear "Preço pago" conforme categoria
@@ -938,6 +1265,9 @@ function ajustarCamposPorCategoria() {
     if (ehVenda && typeof popularDestinoRecurso === 'function') popularDestinoRecurso();
   }
   if (typeof atualizarInfoResgate === 'function') atualizarInfoResgate();
+  // A origem escolhida manda em blocos que este ajuste acabou de reexibir
+  // (recorrência, "já guardado"): reaplica o estado dela por cima.
+  if (!ehVenda && typeof ajustarOrigemRecursoCampos === 'function') ajustarOrigemRecursoCampos();
 
   // Ticker: ações/FIIs/etc usam datalist; RF / Reserva / Previdência são texto livre
   if (inputTicker) {
@@ -1069,21 +1399,52 @@ window.onload = function () {
 // conta sem dinheiro deixaria o caixa negativo — dinheiro "perdido"/inventado no
 // sistema. Sem default silencioso: a 1ª opção é vazia, forçando a escolha; o
 // débito cai numa conta de verdade e fica visível no Meu Patrimônio.
+// Origens que NÃO debitam conta nenhuma. Estão sempre disponíveis — inclusive
+// (e principalmente) quando o usuário não tem saldo em conta alguma, que é o
+// caso de quem chega ao app com patrimônio já formado.
+var ORIGEM_RETROATIVA = '__retroativo__';
+var ORIGEM_EXTERNA = '__externo__';
+function origemNaoDebitaConta(v) {
+  return v === ORIGEM_RETROATIVA || v === ORIGEM_EXTERNA;
+}
+
+// Data da operação em ms (meio-dia, fuso-seguro). Sem data preenchida, agora.
+function dataOperacaoRefMs() {
+  const el = document.getElementById('compraData');
+  const v = el ? el.value : '';
+  if (!v) return Date.now();
+  const ts = new Date(v + 'T12:00:00').getTime();
+  return isFinite(ts) ? ts : Date.now();
+}
+function operacaoEhFutura() {
+  return dataOperacaoRefMs() > Date.now();
+}
+
 function popularOrigemRecurso() {
   const sel = document.getElementById('compraOrigemRecurso');
   if (!sel) return;
   const prev = sel.value;
-  const comSaldo = typeof contasComSaldo === 'function' ? contasComSaldo() : [];
-  if (!comSaldo.length) {
-    sel.innerHTML = '<option value="">— nenhuma conta com saldo disponível —</option>';
-    sel.value = '';
-    ajustarOrigemRecursoCampos();
-    return;
-  }
+  const refMs = dataOperacaoRefMs();
+  const futura = refMs > Date.now();
+  const comSaldo = typeof contasComSaldo === 'function' ? contasComSaldo(refMs) : [];
+  // Numa data futura o seletor mostra o saldo PROJETADO para aquele dia — a
+  // conta que hoje está zerada mas recebe o salário antes da operação aparece.
+  const contasHtml = !comSaldo.length
+    ? '<option value="" disabled>— nenhuma conta com saldo ' +
+      (futura ? 'projetado para essa data ' : 'disponível ') +
+      '—</option>'
+    : typeof optionsContasComSaldo === 'function'
+      ? optionsContasComSaldo({ semPlaceholder: true, refMs: refMs })
+      : '';
   sel.innerHTML =
-    typeof optionsContasComSaldo === 'function'
-      ? optionsContasComSaldo({ placeholder: '— selecione a conta —' })
-      : '<option value="">— selecione a conta —</option>';
+    '<option value="">— selecione a conta —</option>' +
+    contasHtml +
+    '<option value="' +
+    ORIGEM_RETROATIVA +
+    '">Investimento já existente — cadastro retroativo</option>' +
+    '<option value="' +
+    ORIGEM_EXTERNA +
+    '">Aporte externo — dinheiro de fora do app</option>';
   // Preserva a seleção anterior se ela ainda existir entre as opções.
   sel.value = prev && Array.from(sel.options).some((o) => o.value === prev) ? prev : '';
   ajustarOrigemRecursoCampos();
@@ -1107,12 +1468,137 @@ function popularDestinoRecurso() {
 
 // O seletor agora só lista contas cadastradas com saldo, então o input de texto
 // livre (conta digitada) não é mais usado — mantido escondido por segurança.
+// Além das contas, o seletor tem duas origens que NÃO debitam caixa; quando uma
+// delas está escolhida esta função troca a explicação do campo e desliga o
+// compromisso recorrente (sem conta de origem, a parcela futura cairia em
+// "A reconciliar" ao ser paga — ver INV-01).
 function ajustarOrigemRecursoCampos() {
   const inp = document.getElementById('compraOrigemBanco');
-  if (!inp) return;
-  inp.style.display = 'none';
-  inp.value = '';
+  if (inp) {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+  const sel = document.getElementById('compraOrigemRecurso');
+  const valor = sel ? sel.value : '';
+  const semDebito = origemNaoDebitaConta(valor);
+  const dica = document.getElementById('dicaOrigemRecurso');
+  if (dica) {
+    if (valor === ORIGEM_RETROATIVA) {
+      dica.innerHTML =
+        '<strong>Cadastro retroativo:</strong> você já tinha esse investimento antes de usar a ' +
+        'Appliquei. Informe o valor que possui hoje e a data em que começou — ele entra no seu ' +
+        'patrimônio e <strong>não desconta de nenhuma conta</strong>. O banco/corretora acima só ' +
+        'identifica onde o dinheiro está.';
+    } else if (valor === ORIGEM_EXTERNA) {
+      dica.innerHTML =
+        '<strong>Aporte externo:</strong> o dinheiro veio de fora do app (não passou por nenhuma ' +
+        'conta cadastrada). Funciona como qualquer outra origem — inclusive com aporte ' +
+        'recorrente — só que <strong>não desconta de nenhuma conta</strong>.';
+    } else if (operacaoEhFutura()) {
+      dica.innerHTML =
+        'Saldo <strong>projetado para a data da operação</strong> — já considera receitas e ' +
+        'despesas agendadas até lá.';
+    } else {
+      dica.innerHTML =
+        'Só aparecem contas com saldo disponível. Sem saldo em conta, use ' +
+        '<em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.';
+    }
+  }
+  // RETROATIVO e EXTERNO não debitam conta, mas NÃO são a mesma coisa — e
+  // tratá-los juntos aqui deixava o aporte externo inviável de cadastrar:
+  //
+  //   · retroativo = "eu já tinha isso antes de usar o app". É um SALDO
+  //     PASSADO. Recorrência não cabe (não se agenda o que já aconteceu) e o
+  //     campo "já tinha guardado?" é exatamente a mesma coisa que a origem
+  //     retroativa faz — mostrar os dois juntos convida a lançar o mesmo
+  //     dinheiro duas vezes.
+  //
+  //   · externo = "estou aportando HOJE, com dinheiro que não passou por
+  //     conta cadastrada". É um aporte de verdade, no presente. Tem de se
+  //     comportar como qualquer outra origem: recorrência disponível, saldo
+  //     inicial disponível. A ÚNICA diferença é não debitar caixa — nem hoje,
+  //     nem nas parcelas futuras (que nascem marcadas com origemExterna).
+  const ehRetroativo = valor === ORIGEM_RETROATIVA;
+  const boxRec = document.getElementById('boxPrevRecorrente');
+  const gridRec = document.querySelector('#grupoPrevidencia .prev-rec-grid');
+  const hintRec = document.querySelector('#grupoPrevidencia .prev-rec-grid-hint');
+  const chkRec = document.getElementById('prevRecorrente');
+  if (ehRetroativo && chkRec) chkRec.checked = false;
+  [boxRec, gridRec, hintRec].forEach((el) => {
+    if (el) el.style.display = ehRetroativo ? 'none' : '';
+  });
+  const avisoRec = document.getElementById('avisoRecorrenciaSemConta');
+  if (avisoRec) avisoRec.style.display = ehRetroativo ? 'block' : 'none';
+  const grupoSaldoIni = document.getElementById('grupoSaldoInicialPrev');
+  if (grupoSaldoIni) {
+    grupoSaldoIni.style.display = ehRetroativo ? 'none' : '';
+    if (ehRetroativo) {
+      const inpSI = document.getElementById('prevSaldoInicial');
+      if (inpSI) inpSI.value = '';
+    }
+  }
 }
+
+// === CALENDÁRIO DO DIA DE RECORRÊNCIA ========================================
+// O "Dia do mês" do compromisso (previdência/reserva) era um <input type=number>
+// 1–31: no celular abria teclado numérico e aceitava 45 sem reclamar. Vira uma
+// grade de dias clicável, mantendo o input como portador do valor (todo o resto
+// do código continua lendo prevDiaRecorrencia.value).
+function alternarCalendarioDia(forcar) {
+  const pop = document.getElementById('popoverDiaRecorrencia');
+  if (!pop) return;
+  const abrir = forcar != null ? forcar : pop.style.display !== 'block';
+  if (abrir) renderizarCalendarioDia();
+  pop.style.display = abrir ? 'block' : 'none';
+}
+
+function renderizarCalendarioDia() {
+  const grade = document.getElementById('gradeDiasRecorrencia');
+  const inp = document.getElementById('prevDiaRecorrencia');
+  if (!grade) return;
+  const atual = parseInt(inp ? inp.value : '', 10);
+  let html = '';
+  for (let d = 1; d <= 31; d++) {
+    const ativo = d === atual ? ' ativo' : '';
+    html +=
+      '<button type="button" class="dia-chip' +
+      ativo +
+      '" onclick="selecionarDiaRecorrencia(' +
+      d +
+      ')">' +
+      d +
+      '</button>';
+  }
+  grade.innerHTML = html;
+}
+
+function selecionarDiaRecorrencia(dia) {
+  const inp = document.getElementById('prevDiaRecorrencia');
+  if (inp) inp.value = dia;
+  const rotulo = document.getElementById('rotuloDiaRecorrencia');
+  if (rotulo) rotulo.innerText = 'Dia ' + dia;
+  renderizarCalendarioDia();
+  alternarCalendarioDia(false);
+}
+
+// Mantém o rótulo do botão em sincronia quando o valor é definido por código
+// (default da categoria, edição de operação existente).
+function sincronizarRotuloDiaRecorrencia() {
+  const inp = document.getElementById('prevDiaRecorrencia');
+  const rotulo = document.getElementById('rotuloDiaRecorrencia');
+  if (!rotulo) return;
+  const d = parseInt(inp ? inp.value : '', 10);
+  rotulo.innerText = d >= 1 && d <= 31 ? 'Dia ' + d : 'Escolher dia';
+}
+
+// Fecha o popover ao clicar fora dele.
+document.addEventListener('click', (ev) => {
+  const pop = document.getElementById('popoverDiaRecorrencia');
+  if (!pop || pop.style.display !== 'block') return;
+  const wrap = document.getElementById('wrapDiaRecorrencia');
+  if (wrap && typeof wrap.contains === 'function' && wrap.contains(ev.target)) return;
+  pop.style.display = 'none';
+});
 
 // ============================================================
 
@@ -1120,5 +1606,8 @@ function ajustarOrigemRecursoCampos() {
 document.addEventListener('DOMContentLoaded', () => {
   try {
     renderizarJornada();
+  } catch (_) {}
+  try {
+    _ligarEsconderFabNaRolagem();
   } catch (_) {}
 });

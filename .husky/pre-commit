@@ -1,1 +1,27 @@
 npx lint-staged
+
+# Travas de integração e simulação antes de o commit entrar no histórico.
+#
+# Só rodam quando há arquivo de web/ no stage: commit em api/, docs ou config
+# não paga o pedágio. São ~6s no total e NÃO dependem de node_modules (só
+# builtins do Node), então funcionam mesmo com as dependências pela metade.
+#
+# Escape consciente: `git commit --no-verify`. Use quando souber por que está
+# pulando — commit de WIP numa branch pessoal, por exemplo. O CI roda de
+# qualquer forma em toda branch, então nada escapa até o merge.
+if git diff --cached --name-only --diff-filter=ACM | grep -qE '^web/.*\.js$'; then
+  echo "→ Rodando travas de integração e simulação (web/ no stage)…"
+  if ! npm run test:integracoes --silent; then
+    echo ""
+    echo "✗ Contrato de integração quebrado. O mapa está em .claude/integracoes/mapa.json —"
+    echo "  a mensagem acima cita o INV-NN e explica o que o usuário veria."
+    exit 1
+  fi
+  if ! npm run test:simulacao --silent; then
+    echo ""
+    echo "✗ Simulação de ação falhou. Veja .claude/skills/simular-acao/SKILL.md;"
+    echo "  para caçar interação encadeada, rode: npm run cacar"
+    exit 1
+  fi
+  echo "✓ Travas verdes."
+fi

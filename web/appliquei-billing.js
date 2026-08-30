@@ -287,7 +287,7 @@ function ensureGate() {
     '  <div class="bg-inner">',
     '    <div class="bg-eyebrow"><i class="ph-fill ph-sparkle"></i> Appliquei Pro</div>',
     '    <h2 id="billingTitle" class="bg-h1">Acesso completo ao Appliquei</h2>',
-    '    <p id="billingSub" class="bg-sub">Carteira recomendada, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
+    '    <p id="billingSub" class="bg-sub">Carteira sugerida, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
     '    <div class="bg-section">',
     '      <div class="bg-section-title">Plano</div>',
     '      <div class="bg-tiers">',
@@ -1214,23 +1214,37 @@ function ensureMyAccountStyles() {
   var s = document.createElement('style');
   s.id = 'appliqueiMyAccountStyles';
   s.textContent = [
+    // Tokens locais do modal. Antes eram ~100 hex de tema claro cravados: no modo
+    // escuro do app o painel de assinatura abria como um cartão BRANCO em tela
+    // cheia — o único módulo que ignorava a preferência do usuário, e logo o que
+    // cobra dele. As cores SEMÂNTICAS (verde do plano, vermelho do bloqueio,
+    // âmbar da pendência) continuam fixas: comunicam estado e vivem sobre fundo
+    // próprio. O que virou token foi a estrutura: superfície, linha e texto.
+    '#myAccountModal{--ma-superficie:#ffffff;--ma-fundo:#fafbfc;--ma-recuo:#f8fafc;' +
+      '--ma-linha:#f1f5f9;--ma-borda:#e5e7eb;--ma-borda2:#cbd5e1;' +
+      '--ma-tx:#0f172a;--ma-corpo:#334155;--ma-mudo:#5b6b7c;}',
+    // #5b6b7c no lugar de #64748b: o original dava 4,3:1 sobre o fundo do corpo
+    // e reprovava AA nos rótulos de 10–12px.
+    'body.dark #myAccountModal{--ma-superficie:#141f16;--ma-fundo:#0e1611;--ma-recuo:#1a2b1d;' +
+      '--ma-linha:#213029;--ma-borda:#213029;--ma-borda2:#2c4435;' +
+      '--ma-tx:#e4f0e7;--ma-corpo:#c3d8c8;--ma-mudo:#8fae97;}',
     // Backdrop em vidro: blur + tint escuro com gradiente sutil radial
     // (mesmo idiom da tela de pagamento) — sensação de overlay premium.
     '#myAccountModal{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);background:radial-gradient(1200px 600px at 50% -10%, rgba(26,58,42,.45) 0%, transparent 60%), rgba(15,23,42,.62);}',
     // Shell: cantos amplos, sombra ampla com tint colorida, divisão clara entre head/body/foot.
-    '#myAccountModal .ma-shell{width:100%;max-width:760px;background:#fff;border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.04);color:#0f172a;font-family:Figtree,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 48px);-webkit-font-smoothing:antialiased;}',
-    '#myAccountModal .ma-head{display:flex;align-items:center;justify-content:space-between;padding:20px 26px;border-bottom:1px solid #f1f5f9;background:#fff;}',
-    '#myAccountModal .ma-head h2{font-family:Syne,sans-serif;font-size:1.3rem;margin:0;letter-spacing:-.02em;font-weight:700;color:#0f172a;}',
-    '#myAccountModal .ma-head .ma-close{border:none;background:transparent;cursor:pointer;width:34px;height:34px;line-height:1;color:#64748b;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;transition:background .15s ease,color .15s ease;}',
-    '#myAccountModal .ma-head .ma-close:hover{background:#f1f5f9;color:#0f172a;}',
-    '#myAccountModal .ma-body{overflow-y:auto;padding:22px 26px 26px;background:#fafbfc;}',
+    '#myAccountModal .ma-shell{width:100%;max-width:760px;background:var(--ma-superficie);border-radius:22px;box-shadow:0 30px 80px -20px rgba(0,0,0,.45),0 0 0 1px rgba(255,255,255,.04);color:var(--ma-tx);font-family:Figtree,system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 48px);-webkit-font-smoothing:antialiased;}',
+    '#myAccountModal .ma-head{display:flex;align-items:center;justify-content:space-between;padding:20px 26px;border-bottom:1px solid var(--ma-linha);background:var(--ma-superficie);}',
+    '#myAccountModal .ma-head h2{font-family:Syne,sans-serif;font-size:1.3rem;margin:0;letter-spacing:-.02em;font-weight:700;color:var(--ma-tx);}',
+    '#myAccountModal .ma-head .ma-close{border:none;background:transparent;cursor:pointer;width:34px;height:34px;line-height:1;color:var(--ma-mudo);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;font-size:22px;transition:background .15s ease,color .15s ease;}',
+    '#myAccountModal .ma-head .ma-close:hover{background:var(--ma-linha);color:var(--ma-tx);}',
+    '#myAccountModal .ma-body{overflow-y:auto;padding:22px 26px 26px;background:var(--ma-fundo);}',
     // Hero: gradients refinados com sombras tonais; cantos 16px; tipografia maior.
     '#myAccountModal .ma-hero{position:relative;padding:20px 22px;border-radius:16px;background:linear-gradient(135deg,#047857 0%,#059669 50%,#10b981 100%);color:#fff;box-shadow:0 12px 32px -8px rgba(5,150,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;overflow:hidden;}',
     '#myAccountModal .ma-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(600px 200px at 100% 0%, rgba(255,255,255,.12), transparent 60%);pointer-events:none;}',
     '#myAccountModal .ma-hero.is-trial{background:linear-gradient(135deg,#0369a1 0%,#0891b2 50%,#06b6d4 100%);box-shadow:0 12px 32px -8px rgba(8,145,178,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero.is-blocked{background:linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#ef4444 100%);box-shadow:0 12px 32px -8px rgba(220,38,38,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero.is-pending{background:linear-gradient(135deg,#a16207 0%,#ca8a04 50%,#eab308 100%);box-shadow:0 12px 32px -8px rgba(202,138,4,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
-    '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,#334155 0%,#475569 50%,#64748b 100%);box-shadow:0 12px 32px -8px rgba(71,85,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+    '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,var(--ma-corpo) 0%,var(--ma-corpo) 50%,var(--ma-mudo) 100%);box-shadow:0 12px 32px -8px rgba(71,85,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero.is-oneshot{background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 50%,#8b5cf6 100%);box-shadow:0 12px 32px -8px rgba(124,58,237,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero > *{position:relative;z-index:1;}',
     '#myAccountModal .ma-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);border-radius:999px;backdrop-filter:blur(4px);}',
@@ -1242,60 +1256,144 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-hero.is-trial .ma-hero-cta{color:#0369a1;}',
     '#myAccountModal .ma-hero.is-blocked .ma-hero-cta{color:#b91c1c;}',
     '#myAccountModal .ma-hero.is-pending .ma-hero-cta{color:#a16207;}',
-    '#myAccountModal .ma-hero.is-inactive .ma-hero-cta{color:#334155;}',
+    '#myAccountModal .ma-hero.is-inactive .ma-hero-cta{color:var(--ma-corpo);}',
     '#myAccountModal .ma-hero.is-oneshot .ma-hero-cta{color:#5b21b6;}',
     '#myAccountModal .ma-hero-bar{margin-top:16px;background:rgba(255,255,255,.2);border-radius:999px;height:8px;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.1);}',
     '#myAccountModal .ma-hero-bar > span{display:block;height:100%;background:#fff;border-radius:999px;transition:width .6s ease;box-shadow:0 1px 2px rgba(0,0,0,.08);}',
     '#myAccountModal .ma-hero-meta{display:flex;justify-content:space-between;font-size:11.5px;color:rgba(255,255,255,.9);margin-top:7px;letter-spacing:.02em;font-weight:500;}',
     // Section spacing maior; título com letter-spacing maior — visual mais arejado.
     '#myAccountModal .ma-section{margin-top:24px;}',
-    '#myAccountModal .ma-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;margin:0 0 10px;display:flex;align-items:center;gap:7px;}',
+    '#myAccountModal .ma-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ma-mudo);margin:0 0 10px;display:flex;align-items:center;gap:7px;}',
     '#myAccountModal .ma-section-title i{color:#059669;font-size:13px;}',
     '#myAccountModal .ma-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}',
     '#myAccountModal .ma-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;}',
     // Cards: padding maior, border slate-200, hover lift sutil. Valores grandes em Syne.
-    '#myAccountModal .ma-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px 16px;transition:border-color .15s ease,box-shadow .15s ease;}',
-    '#myAccountModal .ma-card:hover{border-color:#cbd5e1;box-shadow:0 2px 6px rgba(15,23,42,.04);}',
-    '#myAccountModal .ma-card-label{font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;}',
-    '#myAccountModal .ma-card-value{font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:#0f172a;margin-top:4px;line-height:1.2;letter-spacing:-.02em;}',
-    '#myAccountModal .ma-card-foot{font-size:11.5px;color:#64748b;margin-top:5px;line-height:1.4;}',
+    '#myAccountModal .ma-card{background:var(--ma-superficie);border:1px solid var(--ma-borda);border-radius:14px;padding:14px 16px;transition:border-color .15s ease,box-shadow .15s ease;}',
+    '#myAccountModal .ma-card:hover{border-color:var(--ma-borda2);box-shadow:0 2px 6px rgba(15,23,42,.04);}',
+    '#myAccountModal .ma-card-label{font-size:10.5px;font-weight:700;color:var(--ma-mudo);text-transform:uppercase;letter-spacing:.08em;}',
+    '#myAccountModal .ma-card-value{font-family:Syne,sans-serif;font-size:20px;font-weight:700;color:var(--ma-tx);margin-top:4px;line-height:1.2;letter-spacing:-.02em;}',
+    '#myAccountModal .ma-card-foot{font-size:11.5px;color:var(--ma-mudo);margin-top:5px;line-height:1.4;}',
     '#myAccountModal .ma-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;letter-spacing:.01em;}',
     '#myAccountModal .ma-badge.ok{background:#ecfdf5;color:#065f46;}',
     '#myAccountModal .ma-badge.warn{background:#fef3c7;color:#92400e;}',
     '#myAccountModal .ma-badge.bad{background:#fee2e2;color:#991b1b;}',
-    '#myAccountModal .ma-badge.muted{background:#f1f5f9;color:#475569;}',
+    '#myAccountModal .ma-badge.muted{background:var(--ma-linha);color:var(--ma-corpo);}',
+    'body.dark #myAccountModal .ma-badge.ok{background:#052e1a;color:#6ee7b7;}',
+    'body.dark #myAccountModal .ma-badge.warn{background:#2d1a00;color:#fcd34d;}',
+    'body.dark #myAccountModal .ma-badge.bad{background:#2d0a0a;color:#fca5a5;}',
     // Rows: padding maior, ícone com leve sombra interna, hover state.
-    '#myAccountModal .ma-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;transition:border-color .15s ease;}',
-    '#myAccountModal .ma-row:hover{border-color:#cbd5e1;}',
+    '#myAccountModal .ma-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--ma-superficie);border:1px solid var(--ma-borda);border-radius:12px;transition:border-color .15s ease;}',
+    '#myAccountModal .ma-row:hover{border-color:var(--ma-borda2);}',
     '#myAccountModal .ma-row + .ma-row{margin-top:8px;}',
     '#myAccountModal .ma-row-main{display:flex;align-items:center;gap:11px;min-width:0;flex:1;}',
     '#myAccountModal .ma-row-icon{flex:0 0 36px;height:36px;border-radius:10px;background:#ecfdf5;color:#065f46;display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:inset 0 0 0 1px rgba(5,150,105,.1);}',
-    '#myAccountModal .ma-row-text{font-size:13.5px;color:#0f172a;min-width:0;font-weight:600;line-height:1.35;}',
-    '#myAccountModal .ma-row-text small{display:block;font-size:12px;color:#64748b;margin-top:2px;font-weight:500;}',
+    // Ícones de linha: os fundos pastel são de tema claro. No escuro viravam
+    // quadradinhos brancos. Os dois inline (cupom, documento) vêm do render e
+    // ganham override por atributo.
+    'body.dark #myAccountModal .ma-row-icon{background:#052e1a;color:#6ee7b7;box-shadow:inset 0 0 0 1px rgba(110,231,183,.16);}',
+    'body.dark #myAccountModal .ma-row-icon[style*="fef3c7"]{background:#2d1a00 !important;color:#fcd34d !important;}',
+    'body.dark #myAccountModal .ma-row-icon[style*="f1f5f9"]{background:#1a2b1d !important;color:#c3d8c8 !important;box-shadow:inset 0 0 0 1px rgba(195,216,200,.14) !important;}',
+    '#myAccountModal .ma-row-text{font-size:13.5px;color:var(--ma-tx);min-width:0;font-weight:600;line-height:1.35;}',
+    '#myAccountModal .ma-row-text small{display:block;font-size:12px;color:var(--ma-mudo);margin-top:2px;font-weight:500;}',
     '#myAccountModal .ma-row-action{flex:0 0 auto;}',
     // Buttons: ghost padrão; primary com gradient verde (alinhado com .bg-cta).
-    '#myAccountModal .ma-btn{border:1.5px solid #e2e8f0;background:#fff;cursor:pointer;padding:8px 14px;border-radius:10px;font-size:12.5px;color:#334155;font-weight:600;font-family:inherit;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center;gap:5px;letter-spacing:.01em;}',
-    '#myAccountModal .ma-btn:hover{background:#f8fafc;border-color:#cbd5e1;color:#0f172a;}',
+    '#myAccountModal .ma-btn{border:1.5px solid var(--ma-borda);background:var(--ma-superficie);cursor:pointer;padding:8px 14px;border-radius:10px;font-size:12.5px;color:var(--ma-corpo);font-weight:600;font-family:inherit;transition:all .15s ease;display:inline-flex;align-items:center;justify-content:center;gap:5px;letter-spacing:.01em;}',
+    '#myAccountModal .ma-btn:hover{background:var(--ma-recuo);border-color:var(--ma-borda2);color:var(--ma-tx);}',
     '#myAccountModal .ma-btn:active{transform:translateY(1px);}',
     '#myAccountModal .ma-btn-primary{border:none;background:linear-gradient(180deg,#10b981 0%,#059669 100%);color:#fff;box-shadow:0 2px 8px -1px rgba(5,150,105,.35),inset 0 1px 0 rgba(255,255,255,.18);padding:9px 16px;}',
     '#myAccountModal .ma-btn-primary:hover{background:linear-gradient(180deg,#10b981 0%,#047857 100%);color:#fff;border:none;box-shadow:0 4px 12px -2px rgba(5,150,105,.45),inset 0 1px 0 rgba(255,255,255,.18);}',
-    '#myAccountModal .ma-btn-danger{border:none;background:#fff;color:#991b1b;text-decoration:none;padding:8px 14px;border-radius:10px;font-weight:600;font-size:12.5px;}',
+    '#myAccountModal .ma-btn-danger{border:none;background:var(--ma-superficie);color:#991b1b;text-decoration:none;padding:8px 14px;border-radius:10px;font-weight:600;font-size:12.5px;}',
     '#myAccountModal .ma-btn-danger:hover{background:#fef2f2;color:#7f1d1d;}',
+    // #991b1b é vermelho de tema claro: sobre a superfície escura dava 2,04:1.
+    'body.dark #myAccountModal .ma-btn-danger{color:#fca5a5;}',
+    'body.dark #myAccountModal .ma-btn-danger:hover{background:#2d0a0a;color:#fecaca;}',
     // Table: linha hover, mono digits, vertical padding maior.
+    // ---- Bloco de cobrança: uma decisão, uma ação ----------------------
+    // O tamanho do valor e a largura do botão são a hierarquia: o cliente
+    // precisa ver QUANTO e clicar em UM lugar, sem comparar linhas.
+    '#myAccountModal .ma-cobranca{border-radius:16px;padding:18px 18px 16px;border:1px solid var(--ma-borda);background:var(--ma-superficie);}',
+    '#myAccountModal .ma-cobranca.bad{border-color:#fecaca;background:linear-gradient(180deg,#fef2f2 0%,var(--ma-superficie) 62%);}',
+    '#myAccountModal .ma-cobranca.warn{border-color:#fde68a;background:linear-gradient(180deg,#fffbeb 0%,var(--ma-superficie) 62%);}',
+    '#myAccountModal .ma-cobranca.ok{border-color:#a7f3d0;background:linear-gradient(180deg,#ecfdf5 0%,var(--ma-superficie) 62%);}',
+    'body.dark #myAccountModal .ma-cobranca.bad{border-color:#7f1d1d;background:linear-gradient(180deg,#2d0a0a 0%,var(--ma-superficie) 62%);}',
+    'body.dark #myAccountModal .ma-cobranca.warn{border-color:#854f0b;background:linear-gradient(180deg,#2d1a00 0%,var(--ma-superficie) 62%);}',
+    'body.dark #myAccountModal .ma-cobranca.ok{border-color:#065f3a;background:linear-gradient(180deg,#052e1a 0%,var(--ma-superficie) 62%);}',
+    '#myAccountModal .ma-cob-selo{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;}',
+    '#myAccountModal .ma-cob-selo.bad{color:#b91c1c;}',
+    '#myAccountModal .ma-cob-selo.warn{color:#a16207;}',
+    '#myAccountModal .ma-cob-selo.ok{color:#047857;}',
+    'body.dark #myAccountModal .ma-cob-selo.bad{color:#fca5a5;}',
+    'body.dark #myAccountModal .ma-cob-selo.warn{color:#fcd34d;}',
+    'body.dark #myAccountModal .ma-cob-selo.ok{color:#6ee7b7;}',
+    '#myAccountModal .ma-cob-valorao{font-family:"DM Mono",ui-monospace,monospace;font-size:34px;font-weight:500;letter-spacing:-.03em;color:var(--ma-tx);margin:10px 0 2px;font-variant-numeric:tabular-nums;line-height:1.05;}',
+    '#myAccountModal .ma-cob-venc{font-size:13px;color:var(--ma-corpo);margin-bottom:15px;}',
+    '#myAccountModal .ma-cob-total{font-weight:700;color:var(--ma-tx);}',
+    // A ação primária ocupa a largura inteira: não há segunda opção com que comparar.
+    '#myAccountModal .ma-cob-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 18px;border-radius:12px;background:linear-gradient(135deg,#047857,#059669);color:#fff;font-size:15px;font-weight:700;text-decoration:none;border:none;cursor:pointer;font-family:inherit;box-shadow:0 8px 18px -8px rgba(5,150,105,.55);transition:transform .12s ease,box-shadow .15s ease;}',
+    '#myAccountModal .ma-cob-cta:hover{box-shadow:0 10px 22px -8px rgba(5,150,105,.65);}',
+    '#myAccountModal .ma-cob-cta:active{transform:scale(.985);}',
+    '#myAccountModal .ma-cob-cta:focus-visible{outline:2px solid #059669;outline-offset:3px;}',
+    '#myAccountModal .ma-cob-indisp{padding:12px 14px;border-radius:11px;background:var(--ma-recuo);color:var(--ma-corpo);font-size:12.5px;line-height:1.5;}',
+    '#myAccountModal .ma-cob-nota{margin:11px 0 0;font-size:12.5px;line-height:1.55;color:var(--ma-mudo);}',
+    '#myAccountModal .ma-cob-nota strong{color:var(--ma-corpo);}',
+    // Faturas seguintes: informam, não competem. Sem botão, de propósito.
+    '#myAccountModal .ma-cob-depois{margin-top:14px;border:1px solid var(--ma-borda);border-radius:13px;overflow:hidden;background:var(--ma-superficie);}',
+    '#myAccountModal .ma-cob-depois-tit{padding:10px 14px;background:var(--ma-recuo);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ma-mudo);}',
+    '#myAccountModal .ma-cob-linha{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--ma-linha);font-size:13px;color:var(--ma-corpo);}',
+    '#myAccountModal .ma-cob-depois .ma-cob-linha:first-of-type{border-top:none;}',
+    '#myAccountModal .ma-cob-data{font-variant-numeric:tabular-nums;}',
+    '#myAccountModal .ma-cob-valor{margin-left:auto;font-family:"DM Mono",ui-monospace,monospace;font-weight:600;color:var(--ma-tx);font-variant-numeric:tabular-nums;}',
+    '#myAccountModal .ma-cob-linha .ma-badge{flex-shrink:0;}',
+    // Previsões recolhidas: não são dívida e não devem parecer uma.
+    '#myAccountModal .ma-cob-previstas{margin-top:12px;border:1px solid var(--ma-borda);border-radius:13px;background:var(--ma-superficie);overflow:hidden;}',
+    '#myAccountModal .ma-cob-previstas summary{padding:12px 14px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ma-mudo);list-style:none;display:flex;align-items:center;gap:7px;}',
+    '#myAccountModal .ma-cob-previstas summary::-webkit-details-marker{display:none;}',
+    '#myAccountModal .ma-cob-previstas summary::after{content:"\\25BE";margin-left:auto;font-size:11px;transition:transform .18s ease;}',
+    '#myAccountModal .ma-cob-previstas[open] summary::after{transform:rotate(180deg);}',
+    '#myAccountModal .ma-cob-previstas summary:focus-visible{outline:2px solid #059669;outline-offset:-2px;}',
+    '#myAccountModal .ma-cob-previstas-corpo{padding:0 14px 12px;}',
+    '#myAccountModal .ma-cob-previstas-corpo .ma-cob-linha{padding-left:0;padding-right:0;}',
+    '@media (max-width:520px){#myAccountModal .ma-cob-valorao{font-size:30px;}#myAccountModal .ma-cobranca{padding:16px 15px 14px;}}',
+    '@media (prefers-reduced-motion:reduce){#myAccountModal .ma-cob-cta,#myAccountModal .ma-cob-previstas summary::after{transition:none;}}',
+    // ---- Grade de planos ------------------------------------------------
+    '#myAccountModal .ma-planos{display:grid;grid-template-columns:1fr 1fr;gap:12px;}',
+    '@media (max-width:460px){#myAccountModal .ma-planos{grid-template-columns:1fr;}}',
+    '#myAccountModal .ma-plano{position:relative;border:1px solid var(--ma-borda);background:var(--ma-superficie);border-radius:14px;padding:16px;}',
+    '#myAccountModal .ma-plano.atual{border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);box-shadow:0 0 0 4px rgba(5,150,105,.06);}',
+    'body.dark #myAccountModal .ma-plano.atual{border-color:#065f3a;background:linear-gradient(180deg,#052e1a 0%,var(--ma-superficie) 100%);box-shadow:0 0 0 4px rgba(52,211,153,.08);}',
+    '#myAccountModal .ma-plano.breve{background:var(--ma-recuo);}',
+    '#myAccountModal .ma-plano-selo{position:absolute;top:-9px;right:14px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;}',
+    'body.dark #myAccountModal .ma-plano-selo{background:#34d399;color:#052e1a;}',
+    '#myAccountModal .ma-plano-eyebrow{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.08em;}',
+    'body.dark #myAccountModal .ma-plano-eyebrow{color:#6ee7b7;}',
+    '#myAccountModal .ma-plano-eyebrow.em-obra{color:#92400e;}',
+    'body.dark #myAccountModal .ma-plano-eyebrow.em-obra{color:#fcd34d;}',
+    '#myAccountModal .ma-plano-titulo{font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:var(--ma-tx);}',
+    '#myAccountModal .ma-plano.breve .ma-plano-titulo{color:var(--ma-corpo);}',
+    '#myAccountModal .ma-plano-desc{font-size:12.5px;color:var(--ma-corpo);margin:6px 0 12px;line-height:1.5;}',
+    '#myAccountModal .ma-plano.breve .ma-plano-desc{color:var(--ma-mudo);}',
+    '#myAccountModal .ma-plano-preco{display:flex;align-items:baseline;gap:4px;}',
+    '#myAccountModal .ma-plano-valor{font-family:Syne,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.02em;color:var(--ma-tx);}',
+    '#myAccountModal .ma-plano-ciclo{font-size:12px;font-weight:500;color:var(--ma-mudo);}',
+    // No card atual o fundo é o gradiente verde, mais claro que a superfície:
+    // o tom "mudo" caía para 3,57:1 ali.
+    '#myAccountModal .ma-plano.atual .ma-plano-ciclo{color:var(--ma-corpo);}',
+    // #64748b inline no card de valor base: 3,57:1 sobre a superfície escura.
+    '#myAccountModal .ma-card-sufixo{font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:var(--ma-mudo);letter-spacing:0;}',
     '#myAccountModal .ma-table{width:100%;font-size:12.5px;border-collapse:collapse;}',
-    '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:8px 10px;border-bottom:1px solid #e5e7eb;}',
-    '#myAccountModal .ma-table td{padding:11px 10px;border-bottom:1px solid #f1f5f9;vertical-align:middle;color:#334155;font-size:13px;}',
+    '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:var(--ma-mudo);text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:8px 10px;border-bottom:1px solid var(--ma-borda);}',
+    '#myAccountModal .ma-table td{padding:11px 10px;border-bottom:1px solid var(--ma-linha);vertical-align:middle;color:var(--ma-corpo);font-size:13px;}',
     '#myAccountModal .ma-table tr:last-child td{border-bottom:none;}',
-    '#myAccountModal .ma-table tr:hover td{background:#f8fafc;}',
-    '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:#0f172a;}',
-    '#myAccountModal .ma-empty{padding:18px;text-align:center;color:#64748b;font-size:13px;background:#fff;border:1.5px dashed #e2e8f0;border-radius:12px;line-height:1.5;}',
+    '#myAccountModal .ma-table tr:hover td{background:var(--ma-recuo);}',
+    '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ma-tx);}',
+    '#myAccountModal .ma-empty{padding:18px;text-align:center;color:var(--ma-mudo);font-size:13px;background:var(--ma-superficie);border:1.5px dashed var(--ma-borda);border-radius:12px;line-height:1.5;}',
     // Collapsible: visual mais limpo, chevron animado.
-    '#myAccountModal .ma-collapsible{border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;transition:border-color .15s ease;}',
-    '#myAccountModal .ma-collapsible:hover{border-color:#cbd5e1;}',
-    '#myAccountModal .ma-collapsible > summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:13px;font-weight:600;color:#0f172a;display:flex;align-items:center;justify-content:space-between;}',
+    '#myAccountModal .ma-collapsible{border:1px solid var(--ma-borda);border-radius:14px;overflow:hidden;background:var(--ma-superficie);transition:border-color .15s ease;}',
+    '#myAccountModal .ma-collapsible:hover{border-color:var(--ma-borda2);}',
+    '#myAccountModal .ma-collapsible > summary{cursor:pointer;list-style:none;padding:14px 16px;font-size:13px;font-weight:600;color:var(--ma-tx);display:flex;align-items:center;justify-content:space-between;}',
     '#myAccountModal .ma-collapsible > summary::-webkit-details-marker{display:none;}',
     '#myAccountModal .ma-collapsible > summary::after{content:"\\25BE";color:#94a3b8;transition:transform .2s ease;font-size:14px;}',
-    '#myAccountModal .ma-collapsible[open] > summary{border-bottom:1px solid #f1f5f9;}',
+    '#myAccountModal .ma-collapsible[open] > summary{border-bottom:1px solid var(--ma-linha);}',
     '#myAccountModal .ma-collapsible[open] > summary::after{transform:rotate(180deg);color:#059669;}',
     '#myAccountModal .ma-collapsible > div{padding:14px 16px;}',
     // Alerts: borda mais marcada, ícone, fundo suave.
@@ -1303,8 +1401,8 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-alert.bad{background:#fef2f2;border-color:#fecaca;color:#991b1b;}',
     '#myAccountModal .ma-alert i{flex-shrink:0;font-size:17px;margin-top:1px;}',
     // Foot mais limpo (sem fundo cinza, alinhado com o ma-body).
-    '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 26px;border-top:1px solid #f1f5f9;background:#fff;}',
-    '#myAccountModal .ma-foot-link{font-size:12px;color:#64748b;display:inline-flex;align-items:center;gap:6px;}',
+    '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 26px;border-top:1px solid var(--ma-linha);background:var(--ma-superficie);}',
+    '#myAccountModal .ma-foot-link{font-size:12px;color:var(--ma-mudo);display:inline-flex;align-items:center;gap:6px;}',
     '#myAccountModal .ma-foot-link i{color:#059669;}',
     '@media (max-width:560px){',
     '  #myAccountModal{padding:12px 8px;}',
@@ -1824,12 +1922,11 @@ function renderPlanInfoBlock(me) {
   } else {
     foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
   }
-  var payLink =
-    isOpenInvoice && nextCharge.invoiceUrl
-      ? '<a href="' +
-        nextCharge.invoiceUrl +
-        '" target="_blank" rel="noopener" class="ma-btn" style="margin-top:8px;text-decoration:none;display:inline-block;">Pagar agora</a>'
-      : '';
+  // Este card INFORMA o valor e o vencimento; não carrega botão. Antes havia um
+  // "Pagar agora" aqui, outro no hero e um por linha da tabela — quatro caminhos
+  // para a mesma ação, e nenhuma pista de qual era o certo. A ação passou a
+  // existir num lugar só: o bloco de cobrança, logo no topo.
+  var payLink = '';
 
   var isOneShot = me.paymentMode === 'one_shot';
   var rows = '';
@@ -1864,7 +1961,7 @@ function renderPlanInfoBlock(me) {
     rows +=
       '<div class="ma-card"><div class="ma-card-label">Valor base</div><div class="ma-card-value">' +
       fmtBRL(baseCents) +
-      '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> /mês</span></div>' +
+      '<span class="ma-card-sufixo"> /mês</span></div>' +
       (pct > 0
         ? '<div class="ma-card-foot"><span class="ma-badge ok">' +
           pct +
@@ -1898,21 +1995,23 @@ function renderPlanInfoBlock(me) {
 function renderPlansBlock(me) {
   // Mostra Pro (atual) vs Pro+IA (em construção) também dentro do app.
   // Faz par com a landing — usuário descobre o roadmap sem sair do app.
+  // Era tudo estilo inline com hex de tema claro: no modo escuro os dois cards
+  // ficavam brancos no meio do painel. Agora usa classe e token.
   return (
     '<div class="ma-section">' +
     '<div class="ma-section-title"><i class="ph ph-stack"></i> Planos disponíveis</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-    '<div style="position:relative;border:1.5px solid #059669;background:linear-gradient(180deg,#f0fdf4 0%,#ecfdf5 100%);border-radius:14px;padding:16px;box-shadow:0 0 0 4px rgba(5,150,105,.06);">' +
-    '<span style="position:absolute;top:-9px;right:14px;background:#059669;color:#fff;font-size:9.5px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.06em;text-transform:uppercase;">Atual</span>' +
-    '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:.08em;"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
-    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#0f172a;">Acesso completo</div>' +
-    '<p style="font-size:12.5px;color:#334155;margin:6px 0 12px;line-height:1.5;">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
-    '<div style="display:flex;align-items:baseline;gap:4px;"><span style="font-family:Syne,sans-serif;font-weight:700;font-size:26px;letter-spacing:-.02em;color:#0f172a;">R$ 15</span><span style="font-size:12px;font-weight:500;color:#64748b;">/mês</span></div>' +
+    '<div class="ma-planos">' +
+    '<div class="ma-plano atual">' +
+    '<span class="ma-plano-selo">Atual</span>' +
+    '<div class="ma-plano-eyebrow"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
+    '<div class="ma-plano-titulo">Acesso completo</div>' +
+    '<p class="ma-plano-desc">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
+    '<div class="ma-plano-preco"><span class="ma-plano-valor">R$ 15</span><span class="ma-plano-ciclo">/mês</span></div>' +
     '</div>' +
-    '<div style="border:1px solid #e2e8f0;background:#f8fafc;border-radius:14px;padding:16px;opacity:.95;">' +
-    '<div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#92400e;text-transform:uppercase;letter-spacing:.08em;"><i class="ph ph-wrench"></i> Em construção</div>' +
-    '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:20px;margin-top:6px;letter-spacing:-.02em;color:#475569;">Pro + IA</div>' +
-    '<p style="font-size:12.5px;color:#64748b;margin:6px 0 12px;line-height:1.5;">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
+    '<div class="ma-plano breve">' +
+    '<div class="ma-plano-eyebrow em-obra"><i class="ph ph-wrench"></i> Em construção</div>' +
+    '<div class="ma-plano-titulo">Pro + IA</div>' +
+    '<p class="ma-plano-desc">Diagnóstico, sugestões e chat com IA — em breve.</p>' +
     '<button type="button" class="ma-btn" disabled style="cursor:not-allowed;opacity:.6;width:100%;">Avise-me no lançamento</button>' +
     '</div>' +
     '</div>' +
@@ -1965,7 +2064,7 @@ function renderApplicashBlock(me) {
   var statCards =
     '<div class="ma-card"><div class="ma-card-label">Indicados ativos</div><div class="ma-card-value">' +
     active +
-    '<span style="font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:#64748b;letter-spacing:0;"> / ' +
+    '<span class="ma-card-sufixo"> / ' +
     total +
     '</span></div><div class="ma-card-foot">Pagantes neste momento</div></div>' +
     '<div class="ma-card"><div class="ma-card-label">Saldo a abater</div><div class="ma-card-value" style="color:#059669;">' +
@@ -2017,53 +2116,176 @@ function renderApplicashBlock(me) {
   );
 }
 
+// Bloco de cobranças. ANTES: uma tabela plana com TODAS as faturas, cada uma com
+// um botão "Pagar" idêntico. Com uma atrasada e uma pendente o cliente via dois
+// botões iguais e não tinha como saber qual clicar — e a régua de cobrança do
+// Asaas processa em ordem: pagar a de agosto com a de julho em aberto não tira
+// ninguém do atraso.
+//
+// AGORA: uma decisão por vez. A fatura mais antiga em aberto ganha o bloco
+// inteiro e o único botão; as outras viram lista sem ação, para informar sem
+// competir; as previstas ficam recolhidas, porque não há nada a fazer com elas.
 function renderUpcomingBlock(me) {
   var hasSub = !!me.subscriptionId;
   var isInactive = me.subscriptionStatus === 'INACTIVE';
   if (!hasSub || isInactive) return '';
-  var charges = me.upcomingCharges || [];
+  var charges = (me.upcomingCharges || []).slice();
   if (!charges.length) return '';
-  var rows = charges
-    .map(function (u) {
-      var isForecast = u.source === 'forecast';
-      var statusTxt = isForecast ? 'Previsto' : paymentStatusLabel(u.status);
-      var badgeCls = 'muted';
-      if (u.status === 'PENDING') badgeCls = 'warn';
-      else if (u.status === 'OVERDUE') badgeCls = 'bad';
-      var action = u.invoiceUrl
-        ? '<a href="' +
-          u.invoiceUrl +
-          '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">Pagar</a>'
-        : '<span style="color:#9ca3af;">—</span>';
-      return (
-        '<tr>' +
-        '<td>' +
-        fmtDate(u.date) +
-        '</td>' +
-        '<td class="num">' +
-        fmtBRL(u.amountCents) +
-        '</td>' +
-        '<td><span class="ma-badge ' +
-        badgeCls +
-        '">' +
-        statusTxt +
-        '</span></td>' +
-        '<td class="num">' +
-        action +
-        '</td>' +
-        '</tr>'
-      );
-    })
-    .join('');
+
+  var ts = function (u) {
+    var t = new Date(u && u.date).getTime();
+    return isFinite(t) ? t : Infinity;
+  };
+  charges.sort(function (a, b) {
+    return ts(a) - ts(b);
+  });
+
+  // "Em aberto" = existe fatura emitida esperando pagamento. Previsão (forecast)
+  // é projeção do plano: ainda não foi emitida, não tem como pagar.
+  var abertas = charges.filter(function (u) {
+    return u.source !== 'forecast' && (u.status === 'OVERDUE' || u.status === 'PENDING');
+  });
+  var previstas = charges.filter(function (u) {
+    return abertas.indexOf(u) === -1;
+  });
+
+  // ---- Tudo em dia: o estado que merece a menor caixa da tela ----
+  if (!abertas.length) {
+    var prox = previstas[0];
+    return (
+      '<div class="ma-section">' +
+      '<div class="ma-cobranca ok">' +
+      '<div class="ma-cob-selo ok"><i class="ph-fill ph-check-circle"></i> Tudo em dia</div>' +
+      '<p class="ma-cob-nota">' +
+      (prox
+        ? 'Nenhuma fatura em aberto. A próxima é em <strong>' +
+          escapeHtml(fmtDate(prox.date)) +
+          '</strong>, de ' +
+          escapeHtml(fmtBRL(prox.amountCents)) +
+          '.'
+        : 'Nenhuma fatura em aberto.') +
+      '</p>' +
+      '</div>' +
+      renderPrevistas(previstas.slice(prox ? 1 : 0)) +
+      '</div>'
+    );
+  }
+
+  // ---- Há fatura em aberto: uma decisão, uma ação ----
+  var alvo = abertas[0];
+  var atrasada = alvo.status === 'OVERDUE';
+  var restantes = abertas.slice(1);
+  var totalCents = abertas.reduce(function (acc, u) {
+    return acc + (Number(u.amountCents) || 0);
+  }, 0);
+
+  var selo = atrasada
+    ? '<div class="ma-cob-selo bad"><i class="ph-fill ph-warning-circle"></i> Fatura atrasada</div>'
+    : '<div class="ma-cob-selo warn"><i class="ph-fill ph-clock"></i> Aguardando pagamento</div>';
+
+  var botao = alvo.invoiceUrl
+    ? '<a class="ma-cob-cta" href="' +
+      escapeHtml(alvo.invoiceUrl) +
+      '" target="_blank" rel="noopener">' +
+      '<i class="ph-fill ph-arrow-square-out"></i> Pagar ' +
+      escapeHtml(fmtBRL(alvo.amountCents)) +
+      '</a>'
+    : '<div class="ma-cob-indisp">O link desta fatura ainda não foi gerado. Toque em ' +
+      '<strong>Atualizar</strong>, no rodapé, em alguns instantes.</div>';
+
+  // Só explica a ordem quando existe mais de uma em aberto — com uma só, a
+  // frase seria ruído.
+  var ordem = restantes.length
+    ? '<p class="ma-cob-nota">Esta é a mais antiga em aberto. Pagando ela, as seguintes entram na fila normalmente.</p>'
+    : '';
+
+  var listaRestantes = restantes.length
+    ? '<div class="ma-cob-depois">' +
+      '<div class="ma-cob-depois-tit">Depois desta · ' +
+      restantes.length +
+      (restantes.length === 1 ? ' fatura' : ' faturas') +
+      '</div>' +
+      restantes
+        .map(function (u) {
+          return (
+            '<div class="ma-cob-linha">' +
+            '<span class="ma-cob-data">' +
+            escapeHtml(fmtDate(u.date)) +
+            '</span>' +
+            '<span class="ma-cob-valor">' +
+            escapeHtml(fmtBRL(u.amountCents)) +
+            '</span>' +
+            '<span class="ma-badge ' +
+            (u.status === 'OVERDUE' ? 'bad' : 'warn') +
+            '">' +
+            escapeHtml(paymentStatusLabel(u.status)) +
+            '</span>' +
+            '</div>'
+          );
+        })
+        .join('') +
+      '</div>'
+    : '';
+
   return (
     '<div class="ma-section">' +
-    '<div class="ma-section-title"><i class="ph ph-calendar-check"></i> Próximas cobranças</div>' +
-    '<div style="border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;background:#fff;">' +
-    '<table class="ma-table"><thead><tr><th>Data</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' +
-    rows +
-    '</tbody></table>' +
+    '<div class="ma-cobranca' +
+    (atrasada ? ' bad' : ' warn') +
+    '">' +
+    selo +
+    '<div class="ma-cob-valorao">' +
+    escapeHtml(fmtBRL(alvo.amountCents)) +
     '</div>' +
+    '<div class="ma-cob-venc">' +
+    (atrasada ? 'Venceu em ' : 'Vence em ') +
+    escapeHtml(fmtDate(alvo.date)) +
+    (abertas.length > 1
+      ? ' · <span class="ma-cob-total">' +
+        escapeHtml(fmtBRL(totalCents)) +
+        ' em ' +
+        abertas.length +
+        ' faturas</span>'
+      : '') +
+    '</div>' +
+    botao +
+    ordem +
+    '</div>' +
+    listaRestantes +
+    renderPrevistas(previstas) +
     '</div>'
+  );
+}
+
+// Previsões do plano: não são faturas, não têm o que pagar. Ficam recolhidas
+// para não parecerem dívida — era parte da confusão de "um monte de fatura
+// aberta" quando na verdade só uma ou duas estavam.
+function renderPrevistas(lista) {
+  if (!lista || !lista.length) return '';
+  return (
+    '<details class="ma-cob-previstas">' +
+    '<summary>Programadas · ' +
+    lista.length +
+    (lista.length === 1 ? ' cobrança futura' : ' cobranças futuras') +
+    '</summary>' +
+    '<div class="ma-cob-previstas-corpo">' +
+    '<p class="ma-cob-nota" style="margin:0 0 8px;">Ainda não foram emitidas — não há nada a pagar agora.</p>' +
+    lista
+      .map(function (u) {
+        return (
+          '<div class="ma-cob-linha">' +
+          '<span class="ma-cob-data">' +
+          escapeHtml(fmtDate(u.date)) +
+          '</span>' +
+          '<span class="ma-cob-valor">' +
+          escapeHtml(fmtBRL(u.amountCents)) +
+          '</span>' +
+          '<span class="ma-badge muted">Prevista</span>' +
+          '</div>'
+        );
+      })
+      .join('') +
+    '</div>' +
+    '</details>'
   );
 }
 
@@ -2324,15 +2546,20 @@ function renderMyAccount(me) {
       '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
     return;
   }
+  // Ordem por urgência. Antes a fatura a pagar era o SÉTIMO bloco — abaixo do
+  // detalhe do plano, da grade de planos e do cashback. Quem abre esta tela com
+  // uma fatura aberta vem resolver isso, não comparar plano: cobrança e forma de
+  // pagamento sobem para logo depois do aviso; o resto continua abaixo, na
+  // ordem de quem já está em dia.
   var html =
     renderHeroBlock(me) +
     renderRenewBanner(me) +
     renderAlertsBlock(me) +
+    renderUpcomingBlock(me) +
+    renderPaymentMethodBlock(me) +
     renderPlanInfoBlock(me) +
     renderPlansBlock(me) +
     renderApplicashBlock(me) +
-    renderUpcomingBlock(me) +
-    renderPaymentMethodBlock(me) +
     renderCustomerBlock(me) +
     renderHistoryBlock(me) +
     renderActionsBlock(me);
