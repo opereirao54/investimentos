@@ -4973,11 +4973,27 @@
         .faq-item .faq-titulo-wrap { display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
         .faq-item .faq-titulo-texto { flex: 1; min-width: 0; }
 
-        .sug-tipo-btn { transition: all 0.15s; }
+        /* O visual do botão vive TODO aqui, não no atributo style de cada um.
+           Antes o "✨ Melhoria" nascia com o estilo SELECIONADO cravado inline;
+           remover a classe .ativo dele não desfazia nada (inline vence classe),
+           então ele ficava verde para sempre e escolher "🐛 Bug" deixava dois
+           botões acesos ao mesmo tempo. Com o estilo na classe, o estado é o
+           que a classe diz — e só um botão de cada vez a tem. */
+        .sug-tipo-btn {
+            flex: 1; min-width: 130px; padding: 11px 10px;
+            border: 1.5px solid var(--cor-borda); border-radius: 10px;
+            background: var(--cor-superficie); cursor: pointer; text-align: center;
+            font-family: 'Figtree', sans-serif; font-weight: 700; font-size: 12.5px;
+            color: var(--cor-texto-principal);
+            transition: all 0.15s;
+        }
+        .sug-tipo-btn:hover { border-color: var(--cor-borda-primaria, var(--cor-primaria)); }
+        .sug-tipo-btn:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; }
         .sug-tipo-btn.ativo {
-            border-color: var(--cor-primaria) !important;
-            background: var(--cor-bg-primaria) !important;
-            color: var(--cor-txt-primaria) !important;
+            border-color: var(--cor-primaria);
+            background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria);
+            box-shadow: 0 0 0 1px var(--cor-primaria) inset;
         }
         .sug-historico-item {
             border: 1px solid var(--cor-borda); background: var(--cor-superficie);
@@ -10713,7 +10729,7 @@
                         <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
                             <option value="">Todas as categorias</option>
                             <option value="conta">Conta & assinatura</option>
-                            <option value="patrimonio">Patrimônio & ativos</option>
+                            <option value="patrimonio">Patrimônio & investimentos</option>
                             <option value="controle">Controle financeiro</option>
                             <option value="ferramentas">Ferramentas & simulações</option>
                             <option value="applicash">Applicash $</option>
@@ -10747,8 +10763,9 @@
                         <label>Aba relacionada</label>
                         <select id="sugAba">
                             <option value="">Selecione…</option>
-                            <option value="patrimonio">Visão geral do patrimônio</option>
+                            <option value="meu_patrimonio">Meu patrimônio (contas, bens, saldo)</option>
                             <option value="controle">Controle financeiro</option>
+                            <option value="patrimonio">Meus investimentos</option>
                             <option value="carteira">Carteira sugerida</option>
                             <option value="relatorio_mensal">Relatório mensal</option>
                             <option value="simulador">Simule sua liberdade</option>
@@ -10756,6 +10773,7 @@
                             <option value="aulas">Jornada Financeira</option>
                             <option value="noticias">Info Mercado</option>
                             <option value="applicash">Applicash $</option>
+                            <option value="conta">Conta, assinatura e pagamento</option>
                             <option value="duvidas_sugestoes">Dúvidas & Sugestões</option>
                             <option value="outro">🌟 Outro / algo que ainda não existe</option>
                         </select>
@@ -10768,14 +10786,14 @@
 
                     <div class="form-group">
                         <label>Tipo</label>
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="sugTipoContainer">
-                            <button type="button" class="sug-tipo-btn ativo" data-tipo="melhoria" onclick="selecionarTipoSugestao('melhoria')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-primaria);border-radius:10px;background:var(--cor-bg-primaria);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-txt-primaria);">
+                        <div style="display:flex;gap:8px;flex-wrap:wrap;" id="sugTipoContainer" role="group" aria-label="Tipo da sugestão">
+                            <button type="button" class="sug-tipo-btn ativo" data-tipo="melhoria" aria-pressed="true" onclick="selecionarTipoSugestao('melhoria')">
                                 ✨ Melhoria
                             </button>
-                            <button type="button" class="sug-tipo-btn" data-tipo="novo" onclick="selecionarTipoSugestao('novo')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-texto-principal);">
+                            <button type="button" class="sug-tipo-btn" data-tipo="novo" aria-pressed="false" onclick="selecionarTipoSugestao('novo')">
                                 🚀 Novo recurso
                             </button>
-                            <button type="button" class="sug-tipo-btn" data-tipo="bug" onclick="selecionarTipoSugestao('bug')" style="flex:1;min-width:130px;padding:11px 10px;border:1.5px solid var(--cor-borda);border-radius:10px;background:var(--cor-superficie);cursor:pointer;text-align:center;font-family:'Figtree',sans-serif;font-weight:700;font-size:12.5px;color:var(--cor-texto-principal);">
+                            <button type="button" class="sug-tipo-btn" data-tipo="bug" aria-pressed="false" onclick="selecionarTipoSugestao('bug')">
                                 🐛 Reportar bug
                             </button>
                         </div>
@@ -10792,8 +10810,12 @@
 
                     <div style="display:flex;gap:10px;margin-top:6px;">
                         <button class="btn-secundario" style="flex:0 0 auto;" onclick="trocarTabDuvidas('faq')"><i class="ph ph-arrow-left"></i> Voltar</button>
-                        <button class="btn-acao" style="flex:1;" onclick="enviarSugestao()"><i class="ph-bold ph-paper-plane-tilt"></i> Enviar sugestão</button>
+                        <button class="btn-acao" id="sugBtnEnviar" style="flex:1;" onclick="enviarSugestao()"><i class="ph-bold ph-paper-plane-tilt"></i> Enviar sugestão</button>
                     </div>
+                    <!-- O toast some em 3,5s e nasce no topo da página: num
+                         formulário longo, no celular, quem está olhando o botão
+                         nunca vê por que o envio falhou. Esta linha fica. -->
+                    <div id="sugStatus" role="status" aria-live="polite" style="display:none;margin-top:10px;font-size:12.5px;line-height:1.5;padding:9px 12px;border-radius:9px;"></div>
                 </div>
 
                 <!-- Histórico -->

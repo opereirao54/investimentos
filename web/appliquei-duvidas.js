@@ -9,8 +9,19 @@
 // ============================================================
 // === DÚVIDAS & SUGESTÕES                                    ===
 // ============================================================
+// O FAQ acompanha o app — e o app mudou. As respostas abaixo foram revistas
+// contra as telas de hoje: "Meu patrimônio" (contas, bens, instituições) não
+// existia quando o texto foi escrito, "Visão geral do patrimônio" virou "Meus
+// investimentos" com sub-abas, o cadastro retroativo e o aporte externo
+// entraram, a Jornada virou sequencial com material de estudo. Ao mexer numa
+// tela, revise a resposta correspondente aqui: um FAQ desatualizado gera mais
+// suporte do que FAQ nenhum.
+//
+// `cat` tem de existir no <select id="faqCategoriaFiltro"> do HTML, senão o
+// item some do filtro. Categorias: conta, patrimonio, controle, ferramentas,
+// applicash, dados.
 var FAQ_DADOS = [
-  // Conta & assinatura
+  // === Conta & assinatura ===================================================
   {
     cat: 'conta',
     catLbl: 'Conta',
@@ -21,91 +32,171 @@ var FAQ_DADOS = [
     cat: 'conta',
     catLbl: 'Conta',
     p: 'Como funciona o período de teste (trial)?',
-    r: 'Ao se cadastrar você ganha um período de teste gratuito com acesso completo. Ao final, basta assinar para continuar usando. Você acompanha quantos dias restam no próprio app e recebe avisos quando o trial estiver perto de expirar.',
+    r: 'Ao criar a conta você ganha <strong>7 dias gratuitos</strong> com acesso completo, sem cadastrar cartão. Um aviso no topo mostra quantos dias faltam. Terminado o prazo, é só assinar para continuar — seus dados continuam guardados.',
   },
   {
     cat: 'conta',
     catLbl: 'Conta',
     p: 'Quanto custa e quais as formas de pagamento?',
-    r: 'O plano mensal é de <strong>R$ 15,00</strong>. Aceitamos cartão de crédito, Pix e boleto. Com um cupom de indicação você ganha <strong>10% de desconto</strong> em qualquer forma de pagamento.',
+    r: 'O plano mensal é de <strong>R$ 15,00</strong>. Você escolhe entre <strong>cartão de crédito</strong> (renovação automática) ou <strong>Pix / boleto</strong>. Com um cupom de indicação, o preço cai <strong>10%</strong> em qualquer forma de pagamento.',
   },
   {
     cat: 'conta',
     catLbl: 'Conta',
     p: 'Como cancelar minha assinatura?',
-    r: 'Você pode cancelar a qualquer momento nas configurações de assinatura. O cancelamento não tem multa e seu acesso permanece ativo até o fim do período já pago.',
+    r: 'A qualquer momento, na tela de assinatura. Não há multa e o acesso continua até o fim do período que você já pagou — não perdemos nem apagamos nada nesse meio-tempo.',
+  },
+  {
+    cat: 'conta',
+    catLbl: 'Conta',
+    p: 'Onde vejo minhas cobranças e trocas de cartão?',
+    r: 'Na tela de assinatura, em <strong>Meus pagamentos</strong>: cada cobrança aparece com data, valor, forma de pagamento e situação. Boletos em aberto trazem o link para pagar, e quem usa cartão pode trocá-lo por ali.',
   },
   {
     cat: 'conta',
     catLbl: 'Conta',
     p: 'Não recebi o e-mail de verificação. E agora?',
-    r: 'Confira a caixa de spam/promoções. Se ainda assim não chegar, use a opção de <strong>reenviar verificação</strong> na tela de login. Sem o e-mail confirmado, seus dados ficam salvos só neste dispositivo e não sincronizam na nuvem.',
+    r: 'Confira a caixa de spam/promoções — o remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>. Se não chegar, use <strong>reenviar verificação</strong> na tela de login. Sem o e-mail confirmado, seus dados ficam só neste navegador e a nuvem não é liberada.',
   },
 
-  // Patrimônio & ativos
+  // === Meu patrimônio (contas, bens, consolidado) ===========================
   {
     cat: 'patrimonio',
-    catLbl: 'Patrimônio',
-    p: 'Como registro uma compra ou venda de ativo?',
-    r: 'Na aba <strong>Visão geral do patrimônio</strong>, use <strong>Registrar operação</strong>. Informe o ativo, quantidade, preço, data e corretora. A operação entra automaticamente na sua carteira, no preço médio e no histórico.',
+    catLbl: 'Meu patrimônio',
+    p: 'Qual a diferença entre "Meu patrimônio" e "Meus investimentos"?',
+    r: '<strong>Meu patrimônio</strong> é a foto completa: saldo em conta + investimentos + imóveis e veículos, e o mapa de <em>onde está o seu dinheiro</em> em cada banco e corretora. <strong>Meus investimentos</strong> é a carteira em si — cada ativo, preço médio, rentabilidade, operações e dividendos.',
   },
   {
     cat: 'patrimonio',
-    catLbl: 'Patrimônio',
+    catLbl: 'Meu patrimônio',
+    p: 'Preciso cadastrar minhas contas e bancos?',
+    r: 'Sim, e é rápido: em <strong>Meu patrimônio → Minhas Contas</strong> você cadastra cada banco e corretora com o saldo que tem hoje. É esse cadastro que faz o dinheiro andar certo pelo app — cada gasto, aporte ou recebimento sai (ou entra) numa conta de verdade, e não num saldo genérico.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Meu patrimônio',
+    p: 'O que é o "saldo inicial" de uma conta?',
+    r: 'É quanto você tinha naquela conta no dia em que começou a usar a Appliquei. Ele é o ponto de partida do saldo — não lance ali a sua receita do mês (salário e afins vão em <strong>Controle financeiro → Receita</strong>), senão o dinheiro entra duas vezes.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Meu patrimônio',
+    p: 'Posso cadastrar imóveis, veículos e financiamentos?',
+    r: 'Pode. Em <strong>Meus Bens</strong> você cadastra imóveis, veículos e outros bens. Veículo pode buscar o valor direto na <strong>tabela FIPE</strong>. Se o bem for financiado, informe saldo devedor, parcela e sistema (Price ou SAC): o app calcula os juros que faltam, confere se a parcela bate com a taxa informada e mostra o patrimônio já líquido da dívida.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Meu patrimônio',
+    p: 'O que muda entre "Bruto" e "Líquido (pós-IR)"?',
+    r: '<strong>Bruto</strong> é quanto vale hoje. <strong>Líquido (pós-IR)</strong> desconta uma estimativa do imposto que você pagaria ao resgatar tudo agora: renda fixa pela tabela regressiva (22,5% → 15%), ações 15%, FIIs 20%. É uma estimativa por preço médio, para você não confundir patrimônio com dinheiro no bolso.',
+  },
+
+  // === Meus investimentos ===================================================
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
+    p: 'Como registro uma compra, um aporte ou um resgate?',
+    r: 'Em <strong>Meus investimentos</strong>, use <strong>Registrar operação</strong> (ou o botão <strong>+</strong> flutuante). Informe o ativo, o valor (ou quantidade e preço), a data, a corretora e <em>de onde vem o dinheiro</em>. A operação entra na carteira, no preço médio e no histórico, e o Controle financeiro registra a saída de caixa correspondente.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
+    p: 'Já tinha investimentos antes de usar a Appliquei. Como cadastro?',
+    r: 'No campo <em>de onde vem o dinheiro</em>, escolha <strong>Investimento já existente — cadastro retroativo</strong>. Informe quanto você tem <strong>hoje</strong> naquela posição e a data em que começou: ele entra no seu patrimônio e <strong>não desconta de nenhuma conta</strong>, porque esse dinheiro saiu do seu bolso há muito tempo. A rentabilidade passa a correr a partir do cadastro, para não inventar rendimento retroativo.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
+    p: 'O que é o "Aporte externo — dinheiro de fora do app"?',
+    r: 'É o aporte que você faz <strong>hoje</strong> com dinheiro que nunca passou por uma conta cadastrada aqui (um extra, um dinheiro que estava fora). Ele soma no seu patrimônio e no capital aplicado como qualquer outro aporte, mas <strong>não é descontado do caixa</strong> — nem no ato, nem nas parcelas da recorrência que ele agenda. No Controle financeiro ele aparece em linha própria, <em>Aporte externo (fora do caixa)</em>, sem sinal de menos.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
     p: 'Quais tipos de investimento são suportados?',
-    r: 'Ações, FIIs, ETFs, BDRs, criptoativos, renda fixa (Tesouro, CDB, LCI/LCA) e previdência. A renda fixa tem projeção com CDI/Selic/IPCA atualizados pelo Banco Central, e a previdência calcula o saldo com aportes recorrentes.',
+    r: '<strong>Renda variável</strong> (ações, FIIs, BDRs, ETFs e criptomoedas), <strong>renda fixa</strong> (Tesouro, CDB, LCI/LCA), <strong>previdência</strong> e <strong>reserva de emergência</strong>. Renda fixa e reserva projetam o valor com CDI, Selic e IPCA atualizados pelo Banco Central; previdência aceita taxa fixa mensal/anual ou um indexador.',
   },
   {
     cat: 'patrimonio',
-    catLbl: 'Patrimônio',
+    catLbl: 'Investimentos',
+    p: 'Como funciona o aporte mensal recorrente?',
+    r: 'Ao cadastrar previdência ou reserva de emergência, marque <strong>aporte recorrente</strong>, escolha o dia do mês e por quantos anos. O app cria os lançamentos mensais no Controle financeiro — assim o compromisso aparece no seu orçamento antes de virar surpresa. Ao marcar cada parcela como paga, ela vira posição na carteira.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
+    p: 'E quando eu resgato? O imposto entra na conta?',
+    r: 'Sim. No resgate de renda fixa, reserva e previdência o IR é retido na fonte: o app credita o <strong>valor líquido</strong> na conta de destino que você escolher e mostra quanto foi de imposto. Em renda variável o crédito é o valor bruto — o imposto ali é apurado por você via DARF.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Investimentos',
     p: 'De onde vêm as cotações dos ativos?',
-    r: 'As cotações vêm do Yahoo Finance em tempo quase real, com cache no servidor. Quando a fonte fica indisponível usamos a última cotação salva e mostramos um aviso de <em>preços estimados</em>.',
+    r: 'De fontes públicas de mercado (Yahoo Finance e BRAPI), com cache no nosso servidor. Quando a fonte fica indisponível usamos a última cotação salva e avisamos na tela que os preços estão <em>estimados</em>.',
   },
   {
     cat: 'patrimonio',
-    catLbl: 'Patrimônio',
+    catLbl: 'Investimentos',
     p: 'Onde acompanho meus dividendos?',
-    r: 'A aba de <strong>Dividendos</strong> consolida os proventos dos seus ativos, mostrando o histórico recebido e a projeção de renda passiva mensal com base na sua carteira atual.',
+    r: 'Na sub-aba <strong>Dividendos</strong>, dentro de Meus investimentos: total recebido, últimos 12 meses, média mensal e o <em>yield on cost</em> — quanto os proventos rendem sobre o que você de fato pagou pelos ativos.',
   },
   {
     cat: 'patrimonio',
-    catLbl: 'Patrimônio',
-    p: 'Meus dados ficam salvos? Como funciona o backup?',
-    r: 'Quando você está conectado com e-mail verificado, seus dados são salvos automaticamente na nuvem e ficam disponíveis em qualquer dispositivo — sem precisar exportar nada manualmente. Sem login, ficam guardados apenas neste navegador.',
+    catLbl: 'Investimentos',
+    p: 'Cadastrei uma operação errada. Dá para editar ou apagar?',
+    r: 'Dá. Na sub-aba <strong>Operações</strong>, cada lançamento tem editar e excluir. O app desfaz junto tudo o que aquela operação gerou — o débito na conta, o lançamento no Controle e as parcelas recorrentes — para não sobrar meia operação no meio do caminho.',
   },
 
-  // Controle financeiro
+  // === Controle financeiro ==================================================
   {
     cat: 'controle',
     catLbl: 'Controle',
     p: 'Para que serve a aba Controle financeiro?',
-    r: 'É onde você lança receitas, despesas e cartões e acompanha o fluxo de caixa do mês. Ela calcula automaticamente quanto sobra para investir e ajuda a manter o orçamento sob controle.',
+    r: 'É o fluxo de caixa do mês: receitas, despesas fixas e variáveis, cartões, aportes e sonhos. Ela responde "quanto entrou, quanto saiu e quanto sobrou" — e é dela que sai o quanto você tem disponível para investir.',
+  },
+  {
+    cat: 'controle',
+    catLbl: 'Controle',
+    p: 'Por que preciso dizer de qual conta saiu o gasto?',
+    r: 'Porque é o que mantém os números honestos. Todo lançamento pago sai de uma instituição de verdade, então o saldo de cada banco no <strong>Meu patrimônio</strong> reflete o que você lançou aqui. Sem isso o dinheiro sumiria do total sem sair de lugar nenhum.',
   },
   {
     cat: 'controle',
     catLbl: 'Controle',
     p: 'Posso cadastrar mais de um cartão de crédito?',
-    r: 'Sim. Cadastre quantos cartões quiser, com dia de fechamento e vencimento de cada um. As faturas são agrupadas por cartão e por mês.',
+    r: 'Sim, quantos quiser, cada um com dia de fechamento, vencimento e limite. As compras vão para a fatura do mês certo (inclusive parceladas), e o app avisa quando a fatura passa do limite dos cartões ativos.',
+  },
+  {
+    cat: 'controle',
+    catLbl: 'Controle',
+    p: 'O que é a tabela "Demonstrativo contábil" (DRE)?',
+    r: 'É o histórico mês a mês: receitas, resgates, investimentos, sonhos e despesas, com o <strong>Resultado do mês</strong> já somando o saldo que veio do mês anterior. A última linha, <em>Investimento acumulado</em>, é estoque e não fluxo: quanto de capital você já aplicou (aportes menos resgates) até o fim de cada mês.',
   },
   {
     cat: 'controle',
     catLbl: 'Controle',
     p: 'Como funcionam as metas e categorias de gasto?',
-    r: 'Você define um valor-meta por categoria (ex.: mercado, transporte). A barra de progresso mostra o quanto já foi gasto no mês e as cores avisam quando você se aproxima ou ultrapassa o limite.',
+    r: 'Você define um valor-meta por categoria (mercado, transporte, lazer…). A barra mostra quanto já foi gasto no mês e a cor avisa quando você se aproxima ou passa do limite. O extrato também filtra por categoria, da maior despesa para a menor.',
   },
   {
     cat: 'controle',
     catLbl: 'Controle',
     p: 'O que é o Relatório mensal?',
-    r: 'É um resumo do seu mês: evolução do patrimônio, entradas e saídas, desempenho por classe de ativo e principais movimentações — tudo numa visão única para você revisar e planejar o próximo mês.',
+    r: 'O fechamento do mês numa página: entradas e saídas, para onde o dinheiro foi, evolução do patrimônio, desempenho por classe de ativo, dividendos recebidos e as maiores movimentações. Serve para revisar o mês que passou e planejar o próximo.',
   },
 
-  // Ferramentas
+  // === Ferramentas ==========================================================
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'Como funciona a Carteira sugerida?',
     r: 'Você responde 2 perguntas rápidas (tolerância a perdas e objetivo) e informa quanto pretende aportar. Com isso a ferramenta define um perfil (Conservador, Moderado ou Arrojado) e sugere uma divisão entre renda fixa, ações, FIIs e cripto, explicando cada classe e mostrando o critério que pontuou cada ativo. É material informativo e educacional de apoio à sua decisão: o Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento. A decisão é sempre sua.',
+  },
+  {
+    cat: 'ferramentas',
+    catLbl: 'Ferramentas',
+    p: 'De onde vêm os dados que pontuam cada ativo da carteira?',
+    r: 'De fontes públicas de mercado e de dados de fundamentos, atualizados pelo nosso servidor. Cada ativo sugerido mostra a <strong>procedência</strong> dos números e a data da coleta; quando falta dado para pontuar com segurança, o app diz <em>dados insuficientes</em> em vez de chutar.',
   },
   {
     cat: 'ferramentas',
@@ -117,28 +208,28 @@ var FAQ_DADOS = [
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'Como uso o "Simule sua liberdade"?',
-    r: 'O simulador tem dois modos: <strong>Projetar meu futuro</strong> (você informa capital inicial, aporte mensal, taxa e prazo e vê onde chega) e <strong>Planejar minha meta</strong> (você define o objetivo e ele calcula o caminho). Ele também compara o resultado com o que você teria apenas no INSS.',
+    r: 'O simulador tem dois modos: <strong>Projetar meu futuro</strong> (você informa capital inicial, aporte mensal, taxa e prazo e vê onde chega) e <strong>Planejar minha meta</strong> (você define o objetivo e ele calcula o caminho). Ele também compara o resultado com o que você teria contando apenas com o INSS.',
   },
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'O que tem na Jornada Financeira?',
-    r: 'Conteúdos curtos e práticos organizados em trilhas, do iniciante ao avançado, para você evoluir seu conhecimento e aplicar direto na plataforma.',
+    r: 'Oito módulos, do mindset à aposentadoria, cada um com material de estudo, exemplos numéricos e o que fazer dentro do app. A trilha é <strong>sequencial</strong>: o módulo seguinte abre quando você conclui o anterior — a ordem é parte do método, não enfeite.',
   },
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'Para que serve a aba Meus sonhos?',
-    r: 'É onde você cria objetivos financeiros (viagem, imóvel, reserva) com valor-alvo e prazo. A plataforma mostra o quanto falta, o aporte mensal necessário e o progresso de cada sonho.',
+    r: 'Para transformar objetivo em plano: você cria o sonho (viagem, imóvel, reserva) com valor-alvo e prazo, e o app calcula o aporte mensal necessário, lança as parcelas no Controle financeiro e acompanha o progresso. Um <strong>aporte extra</strong> a qualquer momento encurta o caminho e recalcula as parcelas que faltam.',
   },
   {
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'O que é a aba Info Mercado?',
-    r: 'Um resumo de indicadores e informações de mercado úteis para acompanhar o cenário e contextualizar suas decisões de investimento.',
+    r: 'Um resumo do noticiário e dos indicadores do dia, filtrável por tema (economia, política, mercado, bancos, investimentos, empresas, cripto, Brasil), para contextualizar o cenário sem sair do app.',
   },
 
-  // Applicash
+  // === Applicash $ ==========================================================
   {
     cat: 'applicash',
     catLbl: 'Applicash $',
@@ -164,7 +255,7 @@ var FAQ_DADOS = [
     r: 'Não há limite — quanto mais pessoas usarem seu cupom, maior a sua receita. Há ainda marcos com recompensas extras conforme você acumula indicações.',
   },
 
-  // Dados & segurança
+  // === Dados & segurança ====================================================
   {
     cat: 'dados',
     catLbl: 'Dados',
@@ -175,33 +266,45 @@ var FAQ_DADOS = [
     cat: 'dados',
     catLbl: 'Dados',
     p: 'Uso em mais de um dispositivo — meus dados sincronizam?',
-    r: 'Sim. Com o e-mail verificado e assinatura/trial ativos, seus dados sincronizam automaticamente entre celular e computador. Ao abrir o app em outro aparelho, ele busca a versão mais recente da nuvem.',
+    r: 'Sim. Com o e-mail verificado e assinatura ou trial ativos, seus dados sincronizam automaticamente entre celular e computador. Ao abrir o app em outro aparelho, ele busca a versão mais recente da nuvem.',
+  },
+  {
+    cat: 'dados',
+    catLbl: 'Dados',
+    p: 'Como funciona o backup? Posso exportar e excluir meus dados?',
+    r: 'Você exporta tudo em JSON pelo botão <strong>Backup</strong> a qualquer momento e pode importar esse arquivo de volta. Também é possível <strong>recomeçar do zero</strong>, que apaga seus lançamentos e mantém a conta. Para excluir a conta e os dados de vez, peça pela aba <strong>Enviar sugestão</strong> — a equipe cuida disso.',
   },
   {
     cat: 'dados',
     catLbl: 'Dados',
     p: 'Como funciona o modo "Ocultar valores"?',
-    r: 'Toque no ícone de olho na barra superior para mascarar valores e percentuais sensíveis na tela — útil em locais públicos. A preferência fica lembrada no seu dispositivo.',
+    r: 'Toque no ícone de olho na barra superior para mascarar valores e percentuais sensíveis na tela — útil em locais públicos. A preferência fica lembrada no seu dispositivo e é aplicada antes de a tela pintar, então os números não aparecem nem por um instante.',
   },
   {
     cat: 'dados',
     catLbl: 'Dados',
-    p: 'Posso exportar e excluir meus dados?',
-    r: 'Sim. Você pode exportar tudo em JSON pelo botão <strong>Backup</strong> a qualquer momento e solicitar a exclusão da conta, que remove seus dados da plataforma.',
+    p: 'Tem modo escuro?',
+    r: 'Tem. O botão de sol/lua na barra superior alterna o tema, e a escolha fica gravada — ao reabrir o app ele já vem como você deixou.',
   },
 
-  // Dúvidas & Sugestões (sobre a própria aba)
+  // === Dúvidas & Sugestões (sobre a própria aba) ============================
   {
     cat: 'conta',
     catLbl: 'Suporte',
     p: 'Como envio uma sugestão ou reporto um bug?',
-    r: 'Nesta mesma página, abra a aba <strong>Enviar sugestão</strong>, escolha a área relacionada, o tipo (melhoria, novo recurso ou bug) e descreva. Sua mensagem vai direto para a nossa equipe.',
+    r: 'Nesta mesma página, abra <strong>Enviar sugestão</strong>, escolha a área relacionada, o tipo (melhoria, novo recurso ou bug) e descreva com pelo menos 10 caracteres. É preciso estar conectado com o e-mail confirmado — a mensagem vai direto para a nossa equipe.',
   },
   {
     cat: 'conta',
     catLbl: 'Suporte',
     p: 'Recebo resposta das minhas sugestões?',
     r: 'Sim! Acompanhe o estado de cada sugestão (em análise, respondida ou resolvida) em <strong>Enviar sugestão → Suas sugestões enviadas</strong>. Quando a equipe responder, a resposta aparece ali mesmo, abaixo da sua mensagem.',
+  },
+  {
+    cat: 'conta',
+    catLbl: 'Suporte',
+    p: 'Cliquei em enviar e não aconteceu nada. O que faço?',
+    r: 'Logo abaixo do botão aparece sempre uma linha dizendo o que houve — campo faltando, e-mail ainda não confirmado ou falha de conexão. Se ela indicar problema de e-mail, confirme o endereço pelo link que enviamos; se falar de conexão, verifique a rede e tente de novo. A sugestão só é registrada quando a mensagem de sucesso aparece.',
   },
 ];
 
@@ -276,13 +379,25 @@ function trocarTabDuvidas(qual) {
     if (conteudo) conteudo.style.display = ativa ? '' : 'none';
   });
   if (qual === 'sugestao') renderizarHistoricoSugestoes();
+  else if (typeof sugStatus === 'function') sugStatus('');
 }
 
+var SUG_TIPOS = ['melhoria', 'novo', 'bug'];
+
+// O estado do seletor de tipo é a classe `ativo` — e só ela. O visual dos
+// botões mora no CSS (.sug-tipo-btn / .sug-tipo-btn.ativo). Enquanto o
+// "Melhoria" carregava o estilo selecionado no atributo style, tirar a classe
+// não desfazia nada: ele ficava aceso para sempre e escolher outro tipo
+// mostrava dois selecionados ao mesmo tempo.
 function selecionarTipoSugestao(tipo) {
-  document.getElementById('sugTipo').value = tipo;
-  document.querySelectorAll('.sug-tipo-btn').forEach((b) => b.classList.remove('ativo'));
-  const btn = document.querySelector(`.sug-tipo-btn[data-tipo="${tipo}"]`);
-  if (btn) btn.classList.add('ativo');
+  const escolhido = SUG_TIPOS.indexOf(tipo) === -1 ? 'melhoria' : tipo;
+  const hidden = document.getElementById('sugTipo');
+  if (hidden) hidden.value = escolhido;
+  document.querySelectorAll('.sug-tipo-btn').forEach((b) => {
+    const ativo = b.dataset.tipo === escolhido;
+    b.classList.toggle('ativo', ativo);
+    b.setAttribute('aria-pressed', ativo ? 'true' : 'false');
+  });
 }
 
 // Cache local (chave NÃO-sincronizada) das sugestões enviadas + respostas
@@ -308,64 +423,175 @@ function sugFirebaseUser() {
   return fb && fb.db && u ? { fb: fb, user: u } : null;
 }
 
+// Feedback que NÃO depende do toast: ele nasce no topo da página e some em
+// 3,5s, e o botão "Enviar" fica no fim de um formulário longo. No celular, quem
+// olha para o botão simplesmente não vê o aviso — o envio parecia não fazer
+// nada. Esta linha fica na tela, ao lado do botão, até a próxima ação.
+function sugStatus(msg, tipo) {
+  const el = document.getElementById('sugStatus');
+  if (!el) return;
+  if (!msg) {
+    el.style.display = 'none';
+    el.innerHTML = '';
+    return;
+  }
+  const cores = {
+    erro: ['var(--cor-bg-erro,#fef2f2)', 'var(--cor-txt-erro,#b91c1c)'],
+    sucesso: ['var(--cor-bg-primaria,#ecfdf5)', 'var(--cor-txt-primaria,#065f46)'],
+    info: ['var(--cor-bg-info,#eff6ff)', 'var(--cor-txt-info,#1d4ed8)'],
+  };
+  const par = cores[tipo] || cores.info;
+  el.style.background = par[0];
+  el.style.color = par[1];
+  el.innerHTML = msg;
+  el.style.display = 'block';
+}
+
+// Toast + linha fixa juntos: o toast dá o retorno imediato, a linha permanece.
+function sugAvisar(msg, tipo) {
+  if (typeof mostrarToast === 'function') mostrarToast(msg, tipo);
+  sugStatus(msg, tipo);
+}
+
+function sugFocar(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  try {
+    el.focus({ preventScroll: false });
+    if (typeof el.scrollIntoView === 'function')
+      el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  } catch (_) {
+    try {
+      el.focus();
+    } catch (_e) {}
+  }
+}
+
+// Carimbo de servidor com plano B. `firebase.firestore.FieldValue` é o único
+// ponto do módulo que dependia do global `firebase` cru: se o compat do
+// Firestore não tiver carregado (bloqueador, rede corporativa), a chamada
+// lançava ReferenceError ANTES do .catch da promessa — o clique não produzia
+// erro nenhum na tela. Sem o carimbo do servidor, a data do cliente serve.
+function sugCarimboAgora() {
+  try {
+    if (
+      typeof firebase !== 'undefined' &&
+      firebase.firestore &&
+      firebase.firestore.FieldValue &&
+      typeof firebase.firestore.FieldValue.serverTimestamp === 'function'
+    ) {
+      return firebase.firestore.FieldValue.serverTimestamp();
+    }
+  } catch (_) {}
+  return new Date();
+}
+
+// Uma escrita no Firestore com persistência offline ligada só resolve quando o
+// servidor confirma. Sem teto de tempo, uma conexão ruim deixava o botão
+// desabilitado e a tela muda para sempre — o sintoma exato de "cliquei e não
+// aconteceu nada". 25s e devolvemos o controle com uma explicação.
+var SUG_TIMEOUT_MS = 25000;
+function sugComTeto(promessa) {
+  return new Promise(function (resolve, reject) {
+    let terminou = false;
+    const t = setTimeout(function () {
+      if (terminou) return;
+      terminou = true;
+      const erro = new Error('timeout');
+      erro.code = 'app/timeout';
+      reject(erro);
+    }, SUG_TIMEOUT_MS);
+    promessa.then(
+      function (v) {
+        if (terminou) return;
+        terminou = true;
+        clearTimeout(t);
+        resolve(v);
+      },
+      function (e) {
+        if (terminou) return;
+        terminou = true;
+        clearTimeout(t);
+        reject(e);
+      }
+    );
+  });
+}
+
 function enviarSugestao() {
   const aba = document.getElementById('sugAba').value;
   const outroTema = document.getElementById('sugOutroTema').value.trim();
-  const tipo = document.getElementById('sugTipo').value;
+  const tipo = document.getElementById('sugTipo').value || 'melhoria';
   const texto = document.getElementById('sugTexto').value.trim();
 
-  if (!aba) return mostrarToast('Selecione a aba relacionada à sua sugestão.', 'erro');
-  if (aba === 'outro' && !outroTema)
-    return mostrarToast('Diga sobre o que é a sua sugestão.', 'erro');
-  if (texto.length < 10)
-    return mostrarToast('Descreva sua sugestão com pelo menos 10 caracteres.', 'erro');
-  if (texto.length > 1000)
-    return mostrarToast('Sua sugestão é muito longa (máximo de 1000 caracteres).', 'erro');
-
-  const ctx = sugFirebaseUser();
-  if (!ctx) {
-    return mostrarToast(
-      'Você precisa estar conectado para enviar uma sugestão. Faça login e tente novamente.',
+  // Validação: além do aviso, leva o cursor até o campo que falta. Um toast
+  // sozinho não diz ONDE está o problema num formulário com quatro campos.
+  if (!aba) {
+    sugFocar('sugAba');
+    return sugAvisar('Selecione a aba relacionada à sua sugestão.', 'erro');
+  }
+  if (aba === 'outro' && !outroTema) {
+    sugFocar('sugOutroTema');
+    return sugAvisar('Diga sobre o que é a sua sugestão.', 'erro');
+  }
+  if (texto.length < 10) {
+    sugFocar('sugTexto');
+    return sugAvisar(
+      `Descreva sua sugestão com pelo menos 10 caracteres (você escreveu ${texto.length}).`,
       'erro'
     );
   }
-  const btn = document.querySelector('#dsConteudoSugestao .btn-acao');
-  if (btn) {
-    btn.disabled = true;
+  if (texto.length > 1000) {
+    sugFocar('sugTexto');
+    return sugAvisar('Sua sugestão é muito longa (máximo de 1000 caracteres).', 'erro');
   }
+
+  const ctx = sugFirebaseUser();
+  if (!ctx) {
+    return sugAvisar(
+      'Não conseguimos falar com o servidor agora. Confirme que você está conectado à sua ' +
+        'conta e recarregue a página antes de tentar de novo.',
+      'erro'
+    );
+  }
+  const btn = document.getElementById('sugBtnEnviar');
+  if (btn) btn.disabled = true;
+  sugStatus('Enviando sua sugestão…', 'info');
 
   // Atualiza usuário + token ANTES de gravar. Depois de confirmar o e-mail, o
   // token em cache ainda pode trazer email_verified=false (só muda ao renovar)
   // e a regra do Firestore rejeita a escrita com permission-denied — mesmo com
   // a conta já verificada. reload() sincroniza o estado; getIdToken(true) força
   // um token novo com o claim atualizado.
-  ctx.user
-    .reload()
-    .then(function () {
-      return ctx.user.getIdToken(true);
-    })
-    .then(function () {
-      if (ctx.user.emailVerified === false) {
-        try {
-          if (typeof ctx.user.sendEmailVerification === 'function')
-            ctx.user.sendEmailVerification();
-        } catch (e) {}
-        const erro = new Error('email-nao-verificado');
-        erro.code = 'app/email-not-verified';
-        throw erro;
-      }
-      return ctx.fb.db.collection('feedback').add({
-        uid: ctx.user.uid,
-        email: ctx.user.email || '',
-        aba: aba,
-        outroTema: aba === 'outro' ? outroTema : '',
-        tipo: tipo,
-        texto: texto,
-        status: 'aberto',
-        reply: null,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      });
-    })
+  sugComTeto(
+    ctx.user
+      .reload()
+      .then(function () {
+        return ctx.user.getIdToken(true);
+      })
+      .then(function () {
+        if (ctx.user.emailVerified === false) {
+          try {
+            if (typeof ctx.user.sendEmailVerification === 'function')
+              ctx.user.sendEmailVerification();
+          } catch (e) {}
+          const erro = new Error('email-nao-verificado');
+          erro.code = 'app/email-not-verified';
+          throw erro;
+        }
+        return ctx.fb.db.collection('feedback').add({
+          uid: ctx.user.uid,
+          email: ctx.user.email || '',
+          aba: aba,
+          outroTema: aba === 'outro' ? outroTema : '',
+          tipo: tipo,
+          texto: texto,
+          status: 'aberto',
+          reply: null,
+          createdAt: sugCarimboAgora(),
+        });
+      })
+  )
     .then(function () {
       // Limpar form
       document.getElementById('sugAba').value = '';
@@ -374,25 +600,32 @@ function enviarSugestao() {
       document.getElementById('sugTexto').value = '';
       document.getElementById('sugContador').innerText = '0';
       selecionarTipoSugestao('melhoria');
-      mostrarToast('Sugestão enviada! O time vai responder por aqui 💚', 'sucesso');
+      sugAvisar('Sugestão enviada! O time vai responder por aqui 💚', 'sucesso');
       renderizarHistoricoSugestoes();
     })
     .catch(function (err) {
       console.warn('[duvidas] enviarSugestao', err && err.code, err);
       const code = err && err.code ? String(err.code) : '';
       if (code === 'app/email-not-verified') {
-        mostrarToast(
+        sugAvisar(
           'Confirme seu e-mail para enviar sugestões. Reenviamos o link — confira sua caixa de entrada (e o spam).',
           'erro'
         );
+      } else if (code === 'app/timeout' || code.indexOf('unavailable') !== -1) {
+        sugAvisar(
+          'O servidor não respondeu a tempo. Sua sugestão <strong>não</strong> foi enviada — ' +
+            'verifique a conexão e tente de novo.',
+          'erro'
+        );
       } else if (code.indexOf('permission-denied') !== -1) {
-        mostrarToast(
+        sugAvisar(
           'Não foi possível enviar. Se você acabou de verificar o e-mail, saia e entre de novo na conta.',
           'erro'
         );
       } else {
-        mostrarToast(
-          'Não foi possível enviar agora. Verifique sua conexão e tente novamente.',
+        sugAvisar(
+          'Não foi possível enviar agora. Verifique sua conexão e tente novamente.' +
+            (code ? ` <span style="opacity:.75">(${escSug(code)})</span>` : ''),
           'erro'
         );
       }
@@ -403,15 +636,17 @@ function enviarSugestao() {
 }
 
 var SUG_LABELS_ABA = {
-  patrimonio: 'Patrimônio',
+  meu_patrimonio: 'Meu patrimônio',
   controle: 'Controle financeiro',
+  patrimonio: 'Meus investimentos',
   carteira: 'Carteira sugerida',
   relatorio_mensal: 'Relatório mensal',
-  simulador: 'Simulador',
+  simulador: 'Simule sua liberdade',
   meus_sonhos: 'Meus sonhos',
-  aulas: 'Jornada',
+  aulas: 'Jornada Financeira',
   noticias: 'Info Mercado',
   applicash: 'Applicash $',
+  conta: 'Conta e assinatura',
   duvidas_sugestoes: 'Dúvidas & Sugestões',
   outro: 'Outro',
 };
@@ -509,17 +744,32 @@ function desenharHistoricoSugestoes(sugestoes) {
     .join('');
 }
 
+// Idempotente de propósito. Antes ela era chamada UMA vez, no fim do
+// window.onload de app.js — depois de dezenas de outras inicializações. Se
+// qualquer uma delas estourasse (um script externo que não carregou, por
+// exemplo), o onload morria antes daqui e o formulário ficava sem os seus
+// listeners: o contador travado em 0 e o campo "sobre o que é" nunca aparecia.
+// Agora `mudarAba` também chama, e a flag impede listener duplicado.
+var sugFormPronto = false;
 function inicializarFormSugestao() {
+  if (sugFormPronto) return;
+  sugFormPronto = true;
   const sel = document.getElementById('sugAba');
   const wrap = document.getElementById('sugOutroWrapper');
   if (sel)
     sel.addEventListener('change', () => {
       if (wrap) wrap.style.display = sel.value === 'outro' ? '' : 'none';
+      sugStatus('');
     });
   const ta = document.getElementById('sugTexto');
   const cont = document.getElementById('sugContador');
   if (ta && cont)
     ta.addEventListener('input', () => {
       cont.innerText = ta.value.length;
+      sugStatus('');
     });
+  // O hidden nasce com 'melhoria'; sincroniza classe e aria-pressed a partir
+  // dele para o botão aceso ser sempre o mesmo que será enviado.
+  const hidden = document.getElementById('sugTipo');
+  selecionarTipoSugestao(hidden ? hidden.value : 'melhoria');
 }
