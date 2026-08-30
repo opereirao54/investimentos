@@ -602,8 +602,18 @@ function renderMinhasContas() {
   });
   const ordem = ativas.concat(arquivadas);
   if (!ordem.length) {
+    // O texto antigo ("crie uma para registrar de onde o dinheiro entra e
+    // sai") lia-se como pré-requisito e foi metade da confusão do primeiro
+    // uso: quem chegava aqui achava que precisava cadastrar a conta ANTES de
+    // conseguir lançar. Não precisa — o lançamento cria a conta pelo nome
+    // digitado (executarInsercao → obterOuCriarContaPorNome). Cadastrar aqui
+    // serve para dizer quanto já havia na conta.
     wrap.innerHTML =
-      '<div class="mp-empty" style="padding:14px;"><i class="ph ph-bank"></i>Nenhuma conta cadastrada ainda. Crie uma para registrar de onde o dinheiro entra e sai.</div>';
+      '<div class="mp-empty" style="padding:14px;flex-direction:column;gap:6px;text-align:center;">' +
+      '<i class="ph ph-bank"></i>' +
+      '<span>Nenhuma conta cadastrada ainda.</span>' +
+      '<span style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;">Você <strong>não precisa</strong> criar uma conta aqui para lançar receita ou despesa — basta digitar o nome do banco no lançamento. Cadastre aqui quando quiser informar o <strong>saldo que já tem hoje</strong>.</span>' +
+      '</div>';
     return;
   }
   const fmt = function (v) {

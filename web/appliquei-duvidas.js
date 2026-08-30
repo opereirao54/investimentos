@@ -69,8 +69,20 @@ var FAQ_DADOS = [
   {
     cat: 'patrimonio',
     catLbl: 'Meu patrimônio',
+    p: 'Acabei de entrar (ou apaguei tudo). Por onde começo?',
+    r: 'Pelo <strong>guia de primeiros passos</strong>, que aparece sozinho com o app vazio e pode ser pulado a qualquer momento — ele fica guardado em <strong>&#9881; Configurações</strong> para voltar quando você quiser. A ordem sugerida é: <strong>1)</strong> cadastrar suas contas com o saldo de hoje, <strong>2)</strong> lançar sua receita e <strong>3)</strong> lançar uma despesa. Registrar os investimentos que você já tem é opcional e vem depois.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Meu patrimônio',
+    p: 'Preciso cadastrar uma conta antes de lançar uma despesa ou uma receita?',
+    r: '<strong>Não.</strong> No lançamento, o campo do banco é livre: digite <em>Nubank</em>, <em>Itaú</em> ou o nome que usar, e a Appliquei <strong>cria a conta na hora</strong>. O cadastro em <strong>Meu patrimônio → Minhas Contas</strong> serve para outra coisa — informar o <strong>saldo que você já tinha</strong> naquela conta. Sem esse saldo de partida, a primeira despesa paga deixa o caixa daquela instituição negativo, porque o app só conhece a saída e não a reserva que existia antes.',
+  },
+  {
+    cat: 'patrimonio',
+    catLbl: 'Meu patrimônio',
     p: 'Preciso cadastrar minhas contas e bancos?',
-    r: 'Sim, e é rápido: em <strong>Meu patrimônio → Minhas Contas</strong> você cadastra cada banco e corretora com o saldo que tem hoje. É esse cadastro que faz o dinheiro andar certo pelo app — cada gasto, aporte ou recebimento sai (ou entra) numa conta de verdade, e não num saldo genérico.',
+    r: 'Não é obrigatório para lançar — mas é muito recomendado. Em <strong>Meu patrimônio → Minhas Contas</strong> você cadastra cada banco e corretora com o saldo que tem hoje, e é esse ponto de partida que faz o dinheiro andar certo pelo app: cada gasto, aporte ou recebimento sai (ou entra) numa conta de verdade, com saldo real, e não num saldo genérico.',
   },
   {
     cat: 'patrimonio',

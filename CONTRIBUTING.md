@@ -60,6 +60,7 @@ Mensagem em PT-BR é OK. Corpo do commit deve explicar **o porquê**, não o **o
 | Validação de input API       | `api/_lib/schemas.js` (Zod)                                                    |
 | Auth/middleware comum API    | `api/_lib/handler.js`                                                          |
 | Painel admin                 | `admin.html` + `web/appliquei-admin.js` + `api/admin/*`                        |
+| Guia de primeiros passos     | `web/appliquei-primeiros-passos.js` (+ CSS `.pp-*` e `#ppBoasVindas` no HTML)  |
 
 ### Regras estritas
 

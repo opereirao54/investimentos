@@ -1064,6 +1064,16 @@ window.AppliqueiCloudSync = {
       window.AppliqueiFirebase && AppliqueiFirebase.auth && AppliqueiFirebase.auth.currentUser;
     if (u) pullAndApply(u.uid, cb || function () {});
   },
+  // O primeiro pull já respondeu (com dados, vazio, cache ou erro)?
+  //
+  // Quem decide alguma coisa a partir de "o localStorage está vazio" precisa
+  // saber disto: entre o boot e a resposta do Firestore, o aparelho novo de um
+  // usuário ANTIGO é indistinguível de um usuário novo — e o pull termina com
+  // um reload, então quem se apressar mostra algo que some sozinho a seguir.
+  // É o que o guia de primeiros passos espera antes de aparecer.
+  pullInicialConcluido: function () {
+    return initialPullDone === true;
+  },
   // Limpa todas as chaves sincronizáveis do localStorage. Chamado pelo
   // gate de billing quando o backend reporta access.status === 'blocked'
   // para que remover o modal via DevTools não dê acesso ao cache local.
