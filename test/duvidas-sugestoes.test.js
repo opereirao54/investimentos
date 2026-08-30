@@ -104,17 +104,64 @@ test('o envio tem teto de tempo — escrita pendente não trava o botão para se
   assert.match(DUVIDAS, /code === 'app\/timeout'/, 'e o timeout tem mensagem própria');
 });
 
-test('o carimbo de data não depende do global firebase estar de pé', () => {
-  // firebase.firestore.FieldValue era a única chamada ao global cru: se o
-  // compat do Firestore não carregasse, ela lançava ReferenceError ANTES do
-  // .catch — o clique não produzia erro nenhum na tela.
-  const ini = DUVIDAS.indexOf('function sugCarimboAgora(');
-  const corpo = DUVIDAS.slice(
-    ini,
-    DUVIDAS.indexOf('\n}', DUVIDAS.indexOf('return new Date()', ini))
+test('o cliente não fala mais com o Firestore — envio e leitura vão pelo servidor', () => {
+  // CAUSA RAIZ do "nunca consegui enviar nada por lá": a coleção `feedback`
+  // era escrita e lida direto pelo SDK do cliente, e isso depende de a
+  // Security Rule `match /feedback/{id}` estar PUBLICADA no projeto. A regra e
+  // o formulário entraram no mesmo commit e não há CI que publique
+  // firestore.rules — sem o deploy manual vale a negação implícita e todo
+  // envio volta `permission-denied`, com o e-mail verificado e tudo.
+  assert.ok(
+    !/collection\('feedback'\)/.test(DUVIDAS),
+    'nenhuma escrita/leitura direta da coleção pode sobrar no cliente'
   );
-  assert.match(corpo, /typeof firebase !== 'undefined'/);
-  assert.match(corpo, /return new Date\(\)/, 'sem servidor, a data do cliente serve');
+  assert.ok(
+    !/\bfirebase\.firestore\b/.test(DUVIDAS),
+    'nem o global cru do Firestore — o servidor carimba o createdAt'
+  );
+  assert.match(DUVIDAS, /sugApiFetch\('\/api\/user\?op=feedback', \{\s*method: 'POST'/);
+  assert.match(
+    DUVIDAS,
+    /sugApiFetch\('\/api\/user\?op=feedback'\)/,
+    'o histórico também vem do servidor'
+  );
+});
+
+test('a chamada ao endpoint leva um token novo, não o do cache', () => {
+  // Depois de confirmar o e-mail, o token em cache ainda traz
+  // email_verified=false e o servidor recusaria com 403.
+  const ini = DUVIDAS.indexOf('function sugApiFetch(');
+  const corpo = DUVIDAS.slice(ini, DUVIDAS.indexOf('\nfunction ', ini + 10));
+  assert.match(corpo, /\.reload\(\)/);
+  assert.match(corpo, /getIdToken\(true\)/);
+  assert.match(corpo, /Authorization: 'Bearer ' \+ token/);
+});
+
+test('cada erro do endpoint tem mensagem própria — nada de "não foi possível" genérico', () => {
+  ['api/email_not_verified', 'api/rate_limited', 'api/invalid_body', 'api/invalid_token'].forEach(
+    (c) => assert.ok(DUVIDAS.indexOf(`'${c}'`) !== -1, `falta tratar ${c}`)
+  );
+});
+
+test('falha ao buscar o histórico não apaga o que já está na tela', () => {
+  const ini = DUVIDAS.indexOf('function renderizarHistoricoSugestoes(');
+  const corpo = DUVIDAS.slice(ini, DUVIDAS.indexOf('\nfunction desenharHistoricoSugestoes'));
+  assert.match(corpo, /desenharHistoricoSugestoes\(carregarSugestoes\(\)\)/, 'pinta o cache antes');
+  const catchIdx = corpo.indexOf('.catch(');
+  assert.ok(catchIdx !== -1);
+  assert.ok(
+    !/desenharHistoricoSugestoes/.test(corpo.slice(catchIdx)),
+    'o catch não pode redesenhar com lista vazia'
+  );
+});
+
+test('a sessão é aferida pelo usuário autenticado, não pelo Firestore', () => {
+  // Exigir `fb.db` fazia o app dizer "você não está conectado" só porque o
+  // compat do Firestore não carregou — um erro sobre a coisa errada.
+  const ini = DUVIDAS.indexOf('function sugFirebaseUser(');
+  const corpo = DUVIDAS.slice(ini, DUVIDAS.indexOf('\n}', ini));
+  assert.ok(!/fb\.db/.test(corpo));
+  assert.match(corpo, /return u \? \{ fb: fb, user: u \} : null;/);
 });
 
 test('o botão é reabilitado em qualquer desfecho', () => {

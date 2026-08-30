@@ -417,10 +417,14 @@ function salvarSugestoes(arr) {
   } catch (e) {}
 }
 
+// Só a sessão importa: o envio e a leitura vão por /api/feedback, então o
+// Firestore do cliente não faz parte do caminho. Exigir `fb.db` aqui faria o
+// app dizer "você não está conectado" só porque o compat do Firestore não
+// carregou — um erro sobre a coisa errada.
 function sugFirebaseUser() {
   var fb = window.AppliqueiFirebase;
   var u = fb && fb.auth && fb.auth.currentUser;
-  return fb && fb.db && u ? { fb: fb, user: u } : null;
+  return u ? { fb: fb, user: u } : null;
 }
 
 // Feedback que NÃO depende do toast: ele nasce no topo da página e some em
@@ -467,29 +471,9 @@ function sugFocar(id) {
   }
 }
 
-// Carimbo de servidor com plano B. `firebase.firestore.FieldValue` é o único
-// ponto do módulo que dependia do global `firebase` cru: se o compat do
-// Firestore não tiver carregado (bloqueador, rede corporativa), a chamada
-// lançava ReferenceError ANTES do .catch da promessa — o clique não produzia
-// erro nenhum na tela. Sem o carimbo do servidor, a data do cliente serve.
-function sugCarimboAgora() {
-  try {
-    if (
-      typeof firebase !== 'undefined' &&
-      firebase.firestore &&
-      firebase.firestore.FieldValue &&
-      typeof firebase.firestore.FieldValue.serverTimestamp === 'function'
-    ) {
-      return firebase.firestore.FieldValue.serverTimestamp();
-    }
-  } catch (_) {}
-  return new Date();
-}
-
-// Uma escrita no Firestore com persistência offline ligada só resolve quando o
-// servidor confirma. Sem teto de tempo, uma conexão ruim deixava o botão
-// desabilitado e a tela muda para sempre — o sintoma exato de "cliquei e não
-// aconteceu nada". 25s e devolvemos o controle com uma explicação.
+// Sem teto de tempo, uma conexão ruim deixa o botão desabilitado e a tela muda
+// para sempre — o sintoma exato de "cliquei e não aconteceu nada". 25s e
+// devolvemos o controle com uma explicação.
 var SUG_TIMEOUT_MS = 25000;
 function sugComTeto(promessa) {
   return new Promise(function (resolve, reject) {
@@ -516,6 +500,50 @@ function sugComTeto(promessa) {
       }
     );
   });
+}
+
+// Chamada autenticada a /api/user?op=feedback. O envio (e a leitura) da sugestão
+// deixou de passar pelo SDK do cliente: a coleção `feedback` depende de uma
+// Security Rule publicada à mão no projeto, e enquanto ela não estiver lá o
+// Firestore devolve `permission-denied` em TODA tentativa — com o e-mail
+// verificado e tudo. O servidor usa o Admin SDK, que não passa por rules.
+function sugApiFetch(caminho, opcoes) {
+  const ctx = sugFirebaseUser();
+  if (!ctx) return Promise.reject(Object.assign(new Error('sem sessão'), { code: 'app/no-auth' }));
+  // Token novo a cada chamada: depois de confirmar o e-mail, o que está em
+  // cache ainda pode trazer email_verified=false e o servidor recusa com 403.
+  return ctx.user
+    .reload()
+    .then(function () {
+      return ctx.user.getIdToken(true);
+    })
+    .then(function (token) {
+      const o = opcoes || {};
+      return fetch(caminho, {
+        method: o.method || 'GET',
+        headers: Object.assign(
+          { Authorization: 'Bearer ' + token },
+          o.body ? { 'Content-Type': 'application/json' } : {}
+        ),
+        body: o.body ? JSON.stringify(o.body) : undefined,
+        credentials: 'same-origin',
+      });
+    })
+    .then(function (r) {
+      return r
+        .json()
+        .catch(function () {
+          return {};
+        })
+        .then(function (j) {
+          if (r.ok) return j;
+          const erro = new Error(j.error || 'http_' + r.status);
+          erro.code = 'api/' + (j.error || r.status);
+          erro.status = r.status;
+          erro.issues = j.issues || null;
+          throw erro;
+        });
+    });
 }
 
 function enviarSugestao() {
@@ -564,33 +592,26 @@ function enviarSugestao() {
   // a conta já verificada. reload() sincroniza o estado; getIdToken(true) força
   // um token novo com o claim atualizado.
   sugComTeto(
-    ctx.user
-      .reload()
-      .then(function () {
-        return ctx.user.getIdToken(true);
-      })
-      .then(function () {
-        if (ctx.user.emailVerified === false) {
-          try {
-            if (typeof ctx.user.sendEmailVerification === 'function')
-              ctx.user.sendEmailVerification();
-          } catch (e) {}
-          const erro = new Error('email-nao-verificado');
-          erro.code = 'app/email-not-verified';
-          throw erro;
-        }
-        return ctx.fb.db.collection('feedback').add({
-          uid: ctx.user.uid,
-          email: ctx.user.email || '',
+    ctx.user.reload().then(function () {
+      if (ctx.user.emailVerified === false) {
+        try {
+          if (typeof ctx.user.sendEmailVerification === 'function')
+            ctx.user.sendEmailVerification();
+        } catch (e) {}
+        const erro = new Error('email-nao-verificado');
+        erro.code = 'app/email-not-verified';
+        throw erro;
+      }
+      return sugApiFetch('/api/user?op=feedback', {
+        method: 'POST',
+        body: {
           aba: aba,
           outroTema: aba === 'outro' ? outroTema : '',
           tipo: tipo,
           texto: texto,
-          status: 'aberto',
-          reply: null,
-          createdAt: sugCarimboAgora(),
-        });
-      })
+        },
+      });
+    })
   )
     .then(function () {
       // Limpar form
@@ -615,6 +636,30 @@ function enviarSugestao() {
         sugAvisar(
           'O servidor não respondeu a tempo. Sua sugestão <strong>não</strong> foi enviada — ' +
             'verifique a conexão e tente de novo.',
+          'erro'
+        );
+      } else if (code === 'api/email_not_verified') {
+        sugAvisar(
+          'Confirme seu e-mail para enviar sugestões — o link foi enviado para a sua caixa de entrada.',
+          'erro'
+        );
+      } else if (code === 'api/rate_limited') {
+        sugAvisar(
+          'Você enviou muitas sugestões seguidas. Tente de novo daqui a pouco — as anteriores já chegaram.',
+          'erro'
+        );
+      } else if (code === 'api/invalid_body') {
+        // O servidor valida os mesmos limites do formulário. Mostra o que ele
+        // apontou em vez de um "não foi possível" genérico.
+        const det = (err.issues || []).map((i) => escSug(i.msg)).join(' · ');
+        sugAvisar('Revise o formulário' + (det ? ': ' + det : '.'), 'erro');
+      } else if (
+        code === 'api/missing_token' ||
+        code === 'api/invalid_token' ||
+        code === 'app/no-auth'
+      ) {
+        sugAvisar(
+          'Sua sessão expirou. Saia e entre de novo na conta para enviar a sugestão.',
           'erro'
         );
       } else if (code.indexOf('permission-denied') !== -1) {
@@ -661,44 +706,38 @@ function escSug(s) {
   return String(s == null ? '' : s).replace(/</g, '&lt;');
 }
 
+// Histórico das sugestões do usuário. Pinta o cache local na hora e busca o
+// estado fresco em /api/feedback — mesmo motivo do envio: a leitura direta da
+// coleção `feedback` pelo SDK depende da Security Rule estar publicada, e sem
+// ela o `.get()` falha calado e a lista fica em "0 total" para sempre.
 function renderizarHistoricoSugestoes() {
   const lista = document.getElementById('sugHistoricoLista');
   if (!lista) return;
-  // Pinta o cache imediatamente; busca o estado fresco do Firestore depois.
   desenharHistoricoSugestoes(carregarSugestoes());
+  if (!sugFirebaseUser()) return;
 
-  const ctx = sugFirebaseUser();
-  if (!ctx) return;
-  ctx.fb.db
-    .collection('feedback')
-    .where('uid', '==', ctx.user.uid)
-    .get()
-    .then(function (snap) {
-      const items = [];
-      snap.forEach(function (d) {
-        const x = d.data() || {};
-        const ms =
-          x.createdAt && typeof x.createdAt.toMillis === 'function' ? x.createdAt.toMillis() : 0;
-        items.push({
-          id: d.id,
+  sugApiFetch('/api/user?op=feedback')
+    .then(function (resp) {
+      const items = (resp && resp.items ? resp.items : []).map(function (x) {
+        return {
+          id: x.id,
           aba: x.aba,
           outroTema: x.outroTema,
           tipo: x.tipo,
           texto: x.texto,
           status: x.status || 'aberto',
           reply: x.reply || null,
-          data: ms ? new Date(ms).toISOString() : new Date().toISOString(),
-          _ms: ms,
-        });
-      });
-      items.sort(function (a, b) {
-        return b._ms - a._ms;
+          data: x.createdAtMs ? new Date(x.createdAtMs).toISOString() : new Date().toISOString(),
+          _ms: x.createdAtMs || 0,
+        };
       });
       salvarSugestoes(items);
       desenharHistoricoSugestoes(items);
     })
     .catch(function (err) {
-      console.warn('[duvidas] historico', err);
+      // Falha de rede não pode apagar o que já está na tela: o cache local
+      // continua valendo. Só registra para diagnóstico.
+      console.warn('[duvidas] historico', err && err.code, err);
     });
 }
 

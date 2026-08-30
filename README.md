@@ -75,7 +75,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   │   ├── access.js
 │   │   └── cpf-cnpj.js           # validação DV módulo 11
 │   ├── admin/{action,stats}.js   # Painel admin (token estático)
-│   ├── auth/resend-verification.js
+│   ├── user.js                  # ?op=feedback | ?op=resend-verification
 │   ├── billing/{init,subscribe,cancel,me,card,customer,webhook}.js
 │   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|ranking|diagnostico|indicadores|rendafixa|warmup
 │   └── sync/push.js              # Beacon endpoint para mobile freeze
