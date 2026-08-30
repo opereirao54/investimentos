@@ -2,12 +2,12 @@ const admin = require('firebase-admin');
 
 let app = null;
 
-function init() {
-  if (app) return app;
-  if (admin.apps.length) {
-    app = admin.app();
-    return app;
-  }
+// Lê a service account das variáveis de ambiente e devolve o JSON já
+// normalizado. Extraído de init() para que scripts fora do Admin SDK (o
+// publicador de regras do Firestore, por exemplo) usem exatamente a mesma
+// leitura — as quebras de linha escapadas da private_key são um campo minado
+// e não vale a pena ter duas versões dessa lógica no repositório.
+function lerServiceAccount() {
   const raw =
     process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 ||
     process.env.FIREBASE_SERVICE_ACCOUNT ||
@@ -50,6 +50,16 @@ function init() {
   ) {
     json.private_key = json.private_key.replace(/\\n/g, '\n');
   }
+  return json;
+}
+
+function init() {
+  if (app) return app;
+  if (admin.apps.length) {
+    app = admin.app();
+    return app;
+  }
+  const json = lerServiceAccount();
   app = admin.initializeApp({
     credential: admin.credential.cert(json),
     projectId: process.env.FIREBASE_PROJECT_ID || json.project_id,
@@ -75,4 +85,4 @@ function timestamp() {
   return admin.firestore.Timestamp;
 }
 
-module.exports = { init, db, auth, fieldValue, timestamp };
+module.exports = { init, db, auth, fieldValue, timestamp, lerServiceAccount };

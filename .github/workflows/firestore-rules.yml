@@ -1,0 +1,194 @@
+name: Regras do Firestore
+
+# Publica `firestore.rules` no projeto Firebase e confere se o que está no ar
+# é o que está no repositório.
+#
+# POR QUE ESTE WORKFLOW EXISTE
+#
+# Nada ligava o arquivo versionado à produção. O deploy das regras era manual
+# (`firebase deploy --only firestore:rules`) e nenhum passo de CI o fazia, então
+# as duas pontas divergiram em silêncio: a regra `match /feedback/{id}` entrou
+# no repositório junto com a tela de Dúvidas & Sugestões e nunca foi publicada.
+# Com ela ausente vale a negação implícita — todo envio de sugestão voltava
+# `permission-denied`, com o e-mail verificado e tudo, e ninguém tinha como
+# saber, porque nada comparava as duas pontas.
+#
+# Três gatilhos, três papéis:
+#   push em main   → publica quando o arquivo muda (o motivo original)
+#   manual         → publica sob demanda, sem precisar de um commit
+#   semanal        → só CONFERE, e abre issue se derivou. Pega também a edição
+#                    feita à mão no Console, que o repositório jamais saberia.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'firestore.rules'
+      - 'firebase.json'
+      - '.github/workflows/firestore-rules.yml'
+  workflow_dispatch:
+    inputs:
+      apenas_conferir:
+        description: 'Só comparar com o publicado, sem publicar'
+        type: boolean
+        default: false
+  schedule:
+    # Segundas, 06:20 UTC (03:20 em Brasília). Minuto quebrado de propósito:
+    # cron no minuto 0 concorre com o pico de agendamentos do GitHub e atrasa.
+    - cron: '20 6 * * 1'
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+# Duas publicações em paralelo comporiam a última a vencer sem ninguém olhar.
+# Uma de cada vez, e a nova espera a anterior terminar (não cancela: cancelar
+# um deploy pela metade é pior que esperar).
+concurrency:
+  group: firestore-rules
+  cancel-in-progress: false
+
+jobs:
+  regras:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # O secret já existe no repositório — é o mesmo que a ingestão da CVM usa.
+      # Falhar aqui, cedo e nomeando o que falta, é melhor que um erro de
+      # autenticação opaco lá na frente.
+      - name: Conferir o secret
+        env:
+          SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+        run: |
+          if [ -z "$SA" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_BASE64 não está configurado nos secrets do repositório."
+            echo "Configure em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      # ESTADO ANTES. Numa publicação, é este passo que mostra no log o que
+      # havia no ar — a prova documental de quando (e se) as regras divergiram.
+      # Nunca derruba o job: aqui divergir é o esperado, é o que vamos corrigir.
+      - name: Como está hoje em produção
+        id: antes
+        continue-on-error: true
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: node scripts/conferir-regras-firestore.js
+
+      - name: Publicar as regras
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.apenas_conferir != 'true')
+        env:
+          SA_B64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          PROJETO: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          # O firebase-tools autentica por GOOGLE_APPLICATION_CREDENTIALS, que é
+          # um CAMINHO para o JSON — daí decodificar o secret para um arquivo.
+          # Fica em RUNNER_TEMP, que o runner descarta ao fim do job.
+          printf '%s' "$SA_B64" | tr -d '[:space:]' | base64 -d > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          PROJ="${PROJETO:-$(node -p "require('$RUNNER_TEMP/sa.json').project_id")}"
+          echo "Publicando as regras em $PROJ"
+          # Só as REGRAS. Índices ficam de fora de propósito: o deploy de índices
+          # remove os que não estão no arquivo, e um índice removido em produção
+          # derruba as consultas que dependiam dele.
+          #
+          # Major fixo: subir de major sem querer é como um deploy de ferramenta
+          # entrar de carona num deploy de regra. Trocar o 15 por um major novo
+          # é seguro e deliberado.
+          set +e
+          npx --yes firebase-tools@15 deploy \
+            --only firestore:rules \
+            --project "$PROJ" \
+            --non-interactive
+          CODIGO=$?
+          set -e
+          if [ $CODIGO -ne 0 ]; then
+            echo "::error::O deploy das regras falhou (código $CODIGO)."
+            echo ""
+            echo "A causa mais comum é permissão: a service account do secret foi criada"
+            echo "para o Admin SDK e nem sempre nasce podendo PUBLICAR regras."
+            echo "Conceda o papel 'Firebase Rules Admin' (roles/firebaserules.admin) a"
+            echo "$(node -p "require('$RUNNER_TEMP/sa.json').client_email") em:"
+            echo "  https://console.cloud.google.com/iam-admin/iam?project=$PROJ"
+            echo ""
+            echo "Enquanto isso, dá para publicar à mão: firebase deploy --only firestore:rules"
+            exit $CODIGO
+          fi
+
+      # ESTADO DEPOIS. Publicar sem conferir seria repetir o erro que trouxe
+      # a gente até aqui: acreditar que subiu. Este passo prova que subiu — e
+      # derruba o job se o publicado não bater com o repositório.
+      - name: Provar que o publicado bate com o repositório
+        id: depois
+        env:
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: node scripts/conferir-regras-firestore.js 2>&1 | tee conferencia.txt
+
+      # Só no agendamento: um job vermelho de madrugada não avisa ninguém.
+      # Uma issue avisa. Mesma disciplina de cacar-interacoes.yml — comenta na
+      # issue aberta em vez de empilhar uma nova a cada semana.
+      - name: Abrir issue se as regras derivaram
+        if: failure() && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let saida = '';
+            try {
+              saida = fs.readFileSync('conferencia.txt', 'utf8');
+            } catch (_) {
+              saida = '(a conferência não chegou a gerar saída)';
+            }
+            const corpo =
+              'A conferência semanal encontrou diferença entre o `firestore.rules` do ' +
+              'repositório e as regras publicadas no Firebase.\n\n' +
+              'Isso já quebrou a tela de Dúvidas & Sugestões uma vez: a regra estava no ' +
+              'repositório e não em produção, e todo envio voltava `permission-denied`.\n\n' +
+              '**Para resolver:** rode o workflow *Regras do Firestore* manualmente ' +
+              '(aba Actions → Run workflow), ou localmente:\n\n' +
+              '```bash\nfirebase deploy --only firestore:rules\n```\n\n' +
+              'Se a diferença veio de uma edição feita à mão no Console, traga-a para o ' +
+              'repositório antes de publicar — senão o próximo deploy a apaga.\n\n' +
+              '```\n' + saida.slice(0, 50000) + '\n```';
+
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'regras-firestore',
+            });
+            if (abertas.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: abertas.data[0].number,
+                body: `Ainda divergente na conferência de ${new Date().toISOString().slice(0, 10)}.\n\n${corpo}`,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `Regras do Firestore divergem da produção — ${new Date().toISOString().slice(0, 10)}`,
+              labels: ['regras-firestore'],
+              body: corpo,
+            });

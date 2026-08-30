@@ -75,7 +75,7 @@ npx vercel dev    # serve dist/ + api/ em :3000
 │   │   ├── access.js
 │   │   └── cpf-cnpj.js           # validação DV módulo 11
 │   ├── admin/{action,stats}.js   # Painel admin (token estático)
-│   ├── user.js                  # ?op=feedback | ?op=resend-verification
+│   ├── user.js                   # ?op=feedback | ?op=resend-verification
 │   ├── billing/{init,subscribe,cancel,me,card,customer,webhook}.js
 │   ├── market.js                 # Dispatcher: ?op=quote|history|news|fundamentals|ranking|diagnostico|indicadores|rendafixa|warmup
 │   └── sync/push.js              # Beacon endpoint para mobile freeze
@@ -153,6 +153,7 @@ Para Sentry browser, edite no HTML:
 - **Quando o motor não pontua**, use `?op=diagnostico&ticker=X`: ele diz, por camada, o que cada fonte respondeu e qual elo partiu. O protocolo de leitura é a skill `.claude/skills/diagnostico-motor-carteira/`, que dispara sozinha nesse tipo de relato. Regra da casa: **fonte que falha degrada para a versão simples dela e nunca deixa o ticker sem registo** — card sem linha de procedência significa que o endpoint não devolveu nada.
 - **O universo de candidatos vem do dado, não de lista escrita à mão**: o FCA da CVM declara o vínculo ticker ↔ `CD_CVM`, e `?op=ranking` pontua a bolsa inteira e devolve a lista curta por classe. A carteira do consultor virou um modo opcional ao lado de "Todo o mercado". Filtros de porte e liquidez são contados e mostrados na tela — universo que encolhe em silêncio não se depura.
 - **Fundamentos vêm da CVM**, não de API comercial: `scripts/ingest-cvm.js` roda semanalmente no GitHub Actions (`.github/workflows/ingest-cvm.yml`), calcula os indicadores das DFP e do Informe Mensal de FII e grava no ramo `cvm` de `marketFundamentals`. A cotação grava no ramo `mercado`, e `api/market.js` compõe os dois na leitura — ramos separados porque a resposta da BRAPI traz `null` em quase todo campo fundamentalista e um merge plano apagaria o trabalho da ingestão.
+- **As regras do Firestore são publicadas pelo CI**, não à mão: `.github/workflows/firestore-rules.yml` faz o deploy de `firestore.rules` a cada push em `main` que toque o arquivo, e confere semanalmente se o publicado ainda bate com o repositório (`npm run regras:conferir`). Existe porque as duas pontas já divergiram em silêncio: a regra `match /feedback/{id}` entrou no repositório com a tela de Dúvidas & Sugestões e nunca foi publicada — todo envio voltava `permission-denied` e nada no projeto comparava as duas coisas. A conferência semanal também pega edição feita à mão no Console. Índices ficam FORA do deploy de propósito: remover um índice derruba as consultas que dependiam dele.
 - **Selic, CDI e IPCA** vêm do SGS e do Focus do Banco Central (`?op=indicadores`), com validação de faixa por série: código de série errado devolve número válido de outra coisa, então cada candidata é conferida antes de ser aceita.
 
 ## Documentação
