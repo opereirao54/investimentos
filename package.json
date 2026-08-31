@@ -31,8 +31,8 @@
     "regras:publicar": "node scripts/publicar-regras-firestore.js"
   },
   "dependencies": {
-    "@sentry/browser": "^10.70.0",
-    "@sentry/node": "^10.70.0",
+    "@sentry/browser": "^10.71.0",
+    "@sentry/node": "^10.71.0",
     "firebase-admin": "^12.7.0",
     "zod": "^4.4.3"
   },
