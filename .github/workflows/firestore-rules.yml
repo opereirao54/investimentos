@@ -126,7 +126,7 @@ jobs:
       # issue aberta em vez de empilhar uma nova a cada semana.
       - name: Abrir issue se as regras derivaram
         if: failure() && github.event_name == 'schedule'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
