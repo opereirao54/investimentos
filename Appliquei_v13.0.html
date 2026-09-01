@@ -460,6 +460,7 @@
         body.valores-ocultos #controle #totalColDespesas,
         body.valores-ocultos #controle #totalColCartao,
         body.valores-ocultos #controle #totalColInv,
+        body.valores-ocultos #controle #totalColSonhos,
         body.valores-ocultos #controle .extrato-item .valor,
         body.valores-ocultos #controle #corpoTabelaDRE td:not(.coluna-fixa),
         body.valores-ocultos #controle canvas { filter: blur(6px); user-select: none; }
@@ -686,9 +687,13 @@
         .kpis-controle-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: 1fr 1fr;
+            grid-template-rows: 1fr 1fr auto;
             gap: 12px;
         }
+        /* Cinco cards em duas colunas: o quinto deita e ocupa a linha toda.
+           Sem isto sobraria uma célula vazia, que se lê como defeito. */
+        .kpi-mini.kpi-sonho { grid-column: 1 / -1; }
+        .kpi-mini.kpi-sonho .kpi-mini-sub { font-size: 10.5px; }
         @media (max-width: 600px) {
             .kpis-controle-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
         }
@@ -2030,6 +2035,7 @@
         .ext-tab:hover { background: var(--cor-superficie); }
         .ext-tab.on { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
         .ext-tab.ext-tab-inv.on { background: var(--cor-bg-info); color: var(--cor-txt-info); border-color: var(--cor-borda-info); }
+        .ext-tab.ext-tab-sonho.on { background: rgba(124,58,237,0.10); color: var(--tinta-roxo); border-color: rgba(124,58,237,0.30); }
 
         /* === RECORRENTE TOGGLE === */
         .recorrente-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 13px; background: var(--cor-bg-info); border: 1.5px solid var(--cor-borda-info); border-radius: 9px; margin-bottom: 14px; cursor: pointer; }
@@ -7022,6 +7028,10 @@
         #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: var(--tinta-roxo); --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
         #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: var(--tinta-azul); --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
         #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: var(--tinta-ambar); --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
+        /* Sonhos usa o ciano para não se confundir com o roxo dos aportes:
+           são dois destinos diferentes de dinheiro guardado, e o card existe
+           justamente para a pessoa parar de confundi-los com despesa. */
+        #relatorio_mensal .rm-kpi[data-tipo="sonhos"]        { --rm-kpi-cor: var(--tinta-ciano); --rm-kpi-bg: rgba(6,182,212,0.10); --rm-kpi-stroke: #06b6d4; --rm-kpi-fill-from: rgba(6,182,212,0.22); --rm-kpi-fill-to: rgba(6,182,212,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -9186,7 +9196,7 @@
                         <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
                         <div>
                             <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
-                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos</div>
+                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
                         </div>
                     </div>
                     <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
@@ -9223,6 +9233,20 @@
                         </div>
                         <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:var(--tinta-verde);">R$ 0,00</div>
                         <div class="kpi-mini-sub">aportes do mês</div>
+                    </div>
+                    <!-- Sonhos: 5º destino do dinheiro, e o único que não é
+                         consumo nem aplicação em ativo. Ficava somado às
+                         despesas, o que fazia "Total de despesas" subir no mês
+                         em que a pessoa guardou mais. Ocupa a linha inteira
+                         porque são cinco cards numa grade de duas colunas — a
+                         alternativa era deixar um buraco visível. -->
+                    <div class="kpi-mini kpi-sonho">
+                        <div class="kpi-mini-head">
+                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:var(--tinta-roxo);"><i class="ph-fill ph-star"></i></span>
+                            <span class="kpi-mini-lbl">Sonhos</span>
+                        </div>
+                        <div class="kpi-mini-valor" id="kpiSonhosMes" style="color:var(--tinta-roxo);">R$ 0,00</div>
+                        <div class="kpi-mini-sub">guardado para metas — sai do caixa, mas não é despesa</div>
                     </div>
                 </div>
             </div>
@@ -9295,9 +9319,10 @@
                             <button class="ext-tab" onclick="filtrarExtrato(event,'despesa')">Saídas</button>
                             <button class="ext-tab" onclick="filtrarExtrato(event,'cartao')">Cartão</button>
                             <button class="ext-tab ext-tab-inv" onclick="filtrarExtrato(event,'investimento')">Investimentos</button>
+                            <button class="ext-tab ext-tab-sonho" onclick="filtrarExtrato(event,'sonho')">Sonhos</button>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;flex-shrink:0;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:14px;flex-shrink:0;">
                         <div style="text-align:center;padding:9px 8px;background:var(--cor-bg-primaria);border-radius:8px;border:1px solid var(--cor-borda-primaria);">
                             <div style="font-size:9.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Entradas</div>
                             <div id="totalColReceitas" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-primaria);">R$ 0,00</div>
@@ -9313,6 +9338,10 @@
                         <div style="text-align:center;padding:9px 8px;background:var(--cor-bg-info);border-radius:8px;border:1px solid var(--cor-borda-info);">
                             <div style="font-size:9.5px;color:var(--cor-txt-info);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Invest.</div>
                             <div id="totalColInv" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-info);">R$ 0,00</div>
+                        </div>
+                        <div style="text-align:center;padding:9px 8px;background:rgba(124,58,237,0.08);border-radius:8px;border:1px solid rgba(124,58,237,0.25);">
+                            <div style="font-size:9.5px;color:var(--tinta-roxo);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Sonhos</div>
+                            <div id="totalColSonhos" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-roxo);">R$ 0,00</div>
                         </div>
                     </div>
                     <!-- Sub-filtro por categoria: as abas acima separam por TIPO

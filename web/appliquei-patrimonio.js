@@ -228,6 +228,12 @@ function mpEhDespesaConsumo(categoria) {
   if (mpEhEntradaCaixa(categoria)) return false;
   if (categoria === 'investimento_fixo' || categoria === 'investimento_variavel') return false;
   if (categoria === 'transferencia_saida') return false;
+  // Sonho sai do caixa como uma despesa e não é uma: é dinheiro que a pessoa
+  // guardou para si, com destino declarado. Contá-lo aqui fazia o indicador de
+  // Despesa subir justamente no mês em que ela guardou mais — o mesmo erro que
+  // as duas linhas acima já evitavam para o aporte. Quem debita o caixa é
+  // mpTransacaoComputaCaixa, e lá o sonho continua debitando quando pago.
+  if (categoria === 'sonho') return false;
   return true;
 }
 

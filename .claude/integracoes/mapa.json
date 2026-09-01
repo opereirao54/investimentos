@@ -86,9 +86,10 @@
         "entradaCaixa": ["receita", "dividendo", "resgate_investimento", "transferencia_entrada"],
         "aporte": ["investimento_fixo", "investimento_variavel"],
         "transferenciaSaida": ["transferencia_saida"],
-        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito", "sonho"],
+        "poupancaDirecionada": ["sonho"],
+        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito"],
         "classificadoPor": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "mpTransacaoComputaCaixa"],
-        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo."
+        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo. `sonho` tem grupo PRÓPRIO (poupancaDirecionada) desde que se descobriu que estava em despesaConsumo: sai do caixa como despesa e não é uma — é dinheiro guardado com destino declarado. Contado como consumo, fazia o indicador de Despesa subir no mês em que a pessoa guardou mais, e o critério de despesa do score do Relatório mensal punia quem estava indo bem. Debita o caixa igual (mpTransacaoComputaCaixa, com pago), mas não entra em mpEhDespesaConsumo nem no card de Despesas."
       },
       "escritaCanonica": {
         "funcao": "salvarTransacoes(opcoes)",

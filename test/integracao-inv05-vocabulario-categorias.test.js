@@ -117,7 +117,12 @@ test('INV-05: o vocabulário do mapa bate com mpEhEntradaCaixa do código', () =
       `o mapa classifica "${cat}" como entrada de caixa, mas mpEhEntradaCaixa diz que não`
     );
   }
-  for (const cat of [].concat(v.aporte, v.transferenciaSaida, v.despesaConsumo)) {
+  for (const cat of [].concat(
+    v.aporte,
+    v.transferenciaSaida,
+    v.despesaConsumo,
+    v.poupancaDirecionada
+  )) {
     assert.equal(
       s.mpEhEntradaCaixa(cat),
       false,
@@ -127,10 +132,18 @@ test('INV-05: o vocabulário do mapa bate com mpEhEntradaCaixa do código', () =
   }
 });
 
-test('INV-05: aportes e transferências não contam como despesa de consumo', () => {
+test('INV-05: aporte, transferência e poupança dirigida não contam como despesa de consumo', () => {
   const s = carregarApp();
   const v = MAPA.entidades.transacao.vocabularioCategorias;
-  for (const cat of [].concat(v.aporte, v.transferenciaSaida, v.entradaCaixa)) {
+  // `poupancaDirecionada` (sonho) entra nesta lista pelo mesmo motivo do aporte:
+  // é dinheiro guardado, não consumido. Estava em despesaConsumo e inflava o
+  // indicador de Despesa no mês em que a pessoa guardou mais.
+  for (const cat of [].concat(
+    v.aporte,
+    v.transferenciaSaida,
+    v.entradaCaixa,
+    v.poupancaDirecionada
+  )) {
     assert.equal(
       s.mpEhDespesaConsumo(cat),
       false,

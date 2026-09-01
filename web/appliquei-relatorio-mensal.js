@@ -161,12 +161,20 @@ function buildMonthlyReport(yyyymm) {
         };
 
   const entradas = (r.receita || 0) + (r.resgate || 0);
-  const despesasContas = (r.despFixa || 0) + (r.despVar || 0) + (r.cartao || 0) + (r.sonho || 0);
+  const despesasContas = (r.despFixa || 0) + (r.despVar || 0) + (r.cartao || 0);
   const investimentos = (r.invFixo || 0) + (r.invVar || 0);
-  // `despesasContas` = gastos de consumo (usado nos cards/gráfico de "Despesa").
-  // `despesasTotais` = todo o dinheiro que saiu do caixa (consumo + aportes),
-  // usado apenas no saldo do mês — aportes NÃO devem aparecer como despesa.
-  const despesasTotais = despesasContas + investimentos;
+  const aportesSonhos = r.sonho || 0;
+  // `despesasContas` = gastos de CONSUMO (usado nos cards/gráfico de "Despesa").
+  // `despesasTotais` = todo o dinheiro que saiu do caixa, usado apenas no saldo
+  // do mês — aportes NÃO devem aparecer como despesa.
+  //
+  // O sonho saiu de `despesasContas` e ganhou parcela própria. A regra que já
+  // valia para o aporte vale igual para ele: é dinheiro que a pessoa guardou
+  // para si, não consumo. Somado ali, o mês em que ela guardou mais aparecia
+  // como o mês em que ela gastou mais — e o critério de "despesa sob controle"
+  // do score punia justamente quem estava indo bem. O saldo do mês não muda:
+  // o dinheiro sai do caixa de qualquer forma, e continua subtraído.
+  const despesasTotais = despesasContas + investimentos + aportesSonhos;
   const saldoFinal = entradas - despesasTotais;
 
   // Investimentos do mês (snapshot da CARTEIRA — não inclui contas nem
@@ -267,6 +275,7 @@ function buildMonthlyReport(yyyymm) {
     despesasContas,
     despesasTotais,
     investimentos,
+    aportesSonhos,
     saldoFinal,
     pctDespesas: entradas > 0 ? (despesasContas / entradas) * 100 : 0,
     pctInvestimentos: entradas > 0 ? (investimentos / entradas) * 100 : 0,
@@ -779,6 +788,14 @@ function rmRenderKpis(rep, repB, serie12) {
       spark: serie12.investimentos,
     },
     {
+      tipo: 'sonhos',
+      label: 'Guardado em sonhos',
+      valor: rep.aportesSonhos,
+      valorB: repB ? repB.aportesSonhos : null,
+      icone: 'ph-star',
+      spark: serie12.sonhos,
+    },
+    {
       tipo: 'dividendos',
       label: 'Dividendos do mês',
       valor: rep.dividendos,
@@ -958,6 +975,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     arrInv = [],
     arrDiv = [],
     arrBens = [],
+    arrSonhos = [],
     arrAplic = [],
     arrMerc = [];
   for (let i = 11; i >= 0; i--) {
@@ -970,6 +988,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     arrInv.push(r.investimentos);
     arrDiv.push(r.dividendos);
     arrBens.push(r.bens);
+    arrSonhos.push(r.aportesSonhos);
     arrAplic.push(r.patrimonioAplicado);
     arrMerc.push(r.patrimonioMercado);
   }
@@ -979,6 +998,7 @@ function rmRenderGraficos(yyyymmAtual, rep) {
     investimentos: arrInv,
     dividendos: arrDiv,
     bens: arrBens,
+    sonhos: arrSonhos,
     aplicado: arrAplic,
     mercado: arrMerc,
   };

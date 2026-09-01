@@ -1412,13 +1412,18 @@ function salvarMapaSaldoCarregado(m) {
   localStorage.setItem('futurorico_saldoCarregado', JSON.stringify(m));
 }
 
-// Resultado bruto do mês (receitas - despesas - aportes - sonhos), isolado.
+// Resultado bruto do mês (receitas - despesas - cartão - aportes - sonhos).
+//
+// O sonho tem parcela própria na subtração e não se esconde dentro de
+// `totDesp`. O resultado é o mesmo — o dinheiro sai do caixa de qualquer
+// forma —, mas quem ler esta função não vai concluir que guardar para uma meta
+// é despesa de consumo, que foi como o número acabou parar no relatório.
 function calcularResultadoMes(mes, ano) {
   const r = calcularResumoMes(mes, ano);
   const totRec = r.receita + r.resgate;
-  const totDesp = r.despFixa + r.despVar + r.sonho;
+  const totDesp = r.despFixa + r.despVar;
   const totInv = r.invFixo + r.invVar;
-  return totRec - totDesp - r.cartao - totInv;
+  return totRec - totDesp - r.cartao - totInv - r.sonho;
 }
 
 // Competência (ano*12+mes) do primeiro lançamento — base do acúmulo.
@@ -2046,10 +2051,16 @@ function atualizarTelaControle() {
   if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
   if (bannerAlertaAtraso) bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
 
+  // Sonho tem totalizador PRÓPRIO. Guardar o aporte de uma meta junto das
+  // despesas dizia que poupar é gastar: a pessoa via "Total de despesas" subir
+  // no mês em que se comportou melhor. O dinheiro sai do caixa igual — por isso
+  // continua sendo subtraído do saldo livre, logo abaixo —, mas sai para ela
+  // mesma, e o número que responde "quanto consumi" não pode contar isso.
   let totRec = 0,
     totDesp = 0,
     totCartao = 0,
-    totInv = 0;
+    totInv = 0,
+    totSonho = 0;
   const nomesCat = {
     receita: 'Receita',
     dividendo: 'Dividendo',
@@ -2132,13 +2143,13 @@ function atualizarTelaControle() {
         t.categoria === 'dividendo' ||
         t.categoria === 'resgate_investimento'
           ? 'receita'
-          : t.categoria === 'despesa_fixa' ||
-              t.categoria === 'despesa_variavel' ||
-              t.categoria === 'sonho'
+          : t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel'
             ? 'despesa'
             : t.categoria === 'cartao_credito'
               ? 'cartao'
-              : 'investimento';
+              : t.categoria === 'sonho'
+                ? 'sonho'
+                : 'investimento';
 
       let itemHtml = `
             <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}">
@@ -2160,6 +2171,7 @@ function atualizarTelaControle() {
       if (tipoFiltro === 'receita') totRec += t.valor;
       else if (tipoFiltro === 'despesa') totDesp += t.valor;
       else if (tipoFiltro === 'cartao') totCartao += t.valor;
+      else if (tipoFiltro === 'sonho') totSonho += t.valor;
       else totInv += t.valor;
       htmlExtrato += itemHtml;
     }
@@ -2173,6 +2185,8 @@ function atualizarTelaControle() {
   document.getElementById('totalColDespesas').innerText = formatarMoeda(totDesp);
   document.getElementById('totalColCartao').innerText = formatarMoeda(totCartao);
   document.getElementById('totalColInv').innerText = formatarMoeda(totInv);
+  const colSonho = document.getElementById('totalColSonhos');
+  if (colSonho) colSonho.innerText = formatarMoeda(totSonho);
 
   // KPI cards do topo — investimentos/cartão/despesa têm cards próprios e
   // todos são deduzidos da receita para compor o saldo livre.
@@ -2180,6 +2194,7 @@ function atualizarTelaControle() {
   const kpiDesp = document.getElementById('kpiDespesasMes');
   const kpiCart = document.getElementById('kpiCartaoMes');
   const kpiInv = document.getElementById('kpiInvestimentosMes');
+  const kpiSonho = document.getElementById('kpiSonhosMes');
   const kpiSaldo = document.getElementById('kpiSaldoLivre');
   const lblCarregado = document.getElementById('lblSaldoCarregado');
   const saldoCarregado = obterSaldoCarregadoParaMes(visaoMes, visaoAno);
@@ -2187,8 +2202,12 @@ function atualizarTelaControle() {
   if (kpiDesp) kpiDesp.innerText = formatarMoeda(totDesp);
   if (kpiCart) kpiCart.innerText = formatarMoeda(totCartao);
   if (kpiInv) kpiInv.innerText = formatarMoeda(totInv);
+  if (kpiSonho) kpiSonho.innerText = formatarMoeda(totSonho);
   if (kpiSaldo) {
-    const saldo = totRec - totDesp - totCartao - totInv + saldoCarregado;
+    // `- totSonho` explícito: ele saiu de totDesp e sem esta parcela o saldo
+    // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
+    // já foi reservado para a meta.
+    const saldo = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
     kpiSaldo.innerText = formatarMoeda(saldo);
     kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
   }
