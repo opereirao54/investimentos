@@ -107,16 +107,12 @@ function cenario(extra) {
   return { s, fields, nubank };
 }
 
-test(
-  'o saldo de hoje não muda — a projeção só existe para datas futuras',
-  { todo: 'ver INV-24: receita conta por competência, não por vencimento' },
-  () => {
-    const { s, nubank } = cenario();
-    assert.equal(s.saldoCaixaPorConta()[nubank.id] || 0, 0);
-    assert.equal(s.mpCalcularSaldoTotal(Date.now()), 0);
-    assert.equal(s.contasComSaldo().length, 0, 'hoje não há conta com saldo');
-  }
-);
+test('o saldo de hoje não muda — a projeção só existe para datas futuras', () => {
+  const { s, nubank } = cenario();
+  assert.equal(s.saldoCaixaPorConta()[nubank.id] || 0, 0);
+  assert.equal(s.mpCalcularSaldoTotal(Date.now()), 0);
+  assert.equal(s.contasComSaldo().length, 0, 'hoje não há conta com saldo');
+});
 
 test('projeta receitas agendadas até a data da operação', () => {
   const { s, nubank } = cenario();
@@ -140,25 +136,21 @@ test('a projeção é por DIA, não por mês de competência', () => {
   assert.equal(s.saldoCaixaPorConta(emDias(25).getTime())[nubank.id], 3500);
 });
 
-test(
-  'compra agendada passa contra o saldo projetado e é barrada contra o de hoje',
-  { todo: 'ver INV-24: receita conta por competência, não por vencimento' },
-  () => {
-    const { s, fields, nubank } = cenario();
-    fields.compraOrigemRecurso = nubank.id;
+test('compra agendada passa contra o saldo projetado e é barrada contra o de hoje', () => {
+  const { s, fields, nubank } = cenario();
+  fields.compraOrigemRecurso = nubank.id;
 
-    fields.compraData = iso(new Date());
-    s.registrarOperacaoAtivo();
-    assert.equal(s.__ultimoToast.tipo, 'erro', 'hoje o Nubank está zerado');
-    assert.equal(s.historicoCompras.length, 0);
+  fields.compraData = iso(new Date());
+  s.registrarOperacaoAtivo();
+  assert.equal(s.__ultimoToast.tipo, 'erro', 'hoje o Nubank está zerado');
+  assert.equal(s.historicoCompras.length, 0);
 
-    Object.assign(fields, campos({ compraData: iso(emDias(15)), compraOrigemRecurso: nubank.id }));
-    s.registrarOperacaoAtivo();
-    assert.equal(s.__ultimoToast.tipo, 'sucesso', s.__ultimoToast.msg);
-    assert.equal(s.historicoCompras.length, 1);
-    assert.deepEqual(validarEstado(estadoDe(s)), []);
-  }
-);
+  Object.assign(fields, campos({ compraData: iso(emDias(15)), compraOrigemRecurso: nubank.id }));
+  s.registrarOperacaoAtivo();
+  assert.equal(s.__ultimoToast.tipo, 'sucesso', s.__ultimoToast.msg);
+  assert.equal(s.historicoCompras.length, 1);
+  assert.deepEqual(validarEstado(estadoDe(s)), []);
+});
 
 test('compra agendada acima do saldo projetado é bloqueada, com a data no aviso', () => {
   const { s, fields, nubank } = cenario();

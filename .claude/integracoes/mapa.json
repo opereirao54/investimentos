@@ -718,8 +718,8 @@
     },
     {
       "id": "INV-24",
-      "titulo": "Quando a receita agendada entra no saldo — DECISÃO EM ABERTO",
-      "regra": "PENDENTE DE DECISÃO DO DONO. Hoje mpTransacaoComputaCaixa conta entrada pela COMPETÊNCIA (mpTimestampTransacao = 1º dia do mês), esteja paga ou não: no dia 1º, o salário que cai no dia 10 já está no 'Saldo em conta' do Meu Patrimônio. Não é descuido — a tela do Controle esconde o botão de pagar para categoria 'receita', então `pago` nunca fica true e exigi-lo zeraria o saldo de todos. A alternativa é contar entrada pela DATA REAL (mpDataMovimento), como a projeção já faz; muda o número de quem informa vencimento na receita. Enquanto não houver decisão, as asserções que afirmam a segunda regra estão marcadas `todo` em test/saldo-futuro-compra.test.js e test/integracao-inv23-projecao-nao-otimista.test.js, escritas como estão.",
+      "titulo": "A receita entra no caixa no dia em que cai",
+      "regra": "mpTransacaoComputaCaixa decide \"esta transação já está no caixa em refMs?\". Para ENTRADA (receita, dividendo, resgate_investimento, transferencia_entrada) a data que manda é mpDataMovimento — o vencimento informado, com queda para a competência só quando não há data melhor. NUNCA mpTimestampTransacao direto, que devolve o 1º dia do mês: com ela, no dia 1º o salário do dia 10 já entrava no \"Saldo em conta\". Para SAÍDA quem governa é `pago`, e a competência basta — a baixa acontece no dia real.",
       "gravidade": "alta",
       "entidades": ["transacao", "conta"],
       "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
@@ -730,10 +730,10 @@
         "mpDataMovimento",
         "prepararPagamento"
       ],
-      "sintoma": "O 'Saldo em conta' mostra o salário no dia 1º, antes de ele cair.",
-      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js (marcada todo)",
-      "status": "pendente",
-      "fragilidade": "Mexer aqui muda o número da dobra do Meu Patrimônio de todo mundo. Não altere sem decisão explícita: a assimetria entrada/saída de mpTransacaoComputaCaixa é deliberada e está amarrada à ausência de 'marcar receita como recebida' na UI."
+      "sintoma": "O \"Saldo em conta\" mostra o salário no dia 1º, antes de ele cair · o seletor de conta de uma compra oferece dinheiro que ainda não entrou.",
+      "prova": "test/saldo-futuro-compra.test.js + test/integracao-inv23-projecao-nao-otimista.test.js",
+      "status": "coberta",
+      "fragilidade": "A assimetria entrada/saída é deliberada e está amarrada à UI: a tela do Controle esconde o botão de pagar para categoria \"receita\" (appliquei-aba-controle-financeiro.js), então `pago` nunca fica true numa entrada e exigi-lo zeraria o saldo de todos. Quem mexer aqui tem de olhar a UI antes."
     }
   ],
   "riscosConhecidos": [

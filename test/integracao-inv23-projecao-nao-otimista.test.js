@@ -130,29 +130,25 @@ for (const m of MESES) {
   // DECISÃO DE PRODUTO EM ABERTO — ver INV-24 no mapa.
   // A foto de hoje conta receita pela COMPETÊNCIA (1º do mês), não pela data de vencimento: no dia 1º o salário do dia 10 já está no saldo.
   // A asserção abaixo está certa e fica escrita como está; só não barra o CI enquanto o dono não decidir se muda a regra (mpTransacaoComputaCaixa) ou se a regra é essa mesma.
-  test(
-    `INV-23: o salário agendado entra UMA vez na projeção — todos os dias de ${m.nome}`,
-    { todo: 'decisão de produto em aberto: receita conta por competência ou por vencimento?' },
-    () => {
-      const falhas = [];
-      for (let d = 1; d <= m.dias; d++) {
-        const r = medirNoDia(m.ano, m.mes, d);
-        // Antes do salário cair (+5d) e depois (+15d): a diferença é exatamente
-        // um salário. Duas vezes = duplo-crédito; zero = crédito perdido.
-        if (r.depoisDoSalario - r.antesDoSalario !== 5000) {
-          falhas.push(
-            `dia ${d}: +5d=${r.antesDoSalario}, +15d=${r.depoisDoSalario} ` +
-              `(esperava diferença de 5000, veio ${r.depoisDoSalario - r.antesDoSalario})`
-          );
-        }
+  test(`INV-23: o salário agendado entra UMA vez na projeção — todos os dias de ${m.nome}`, () => {
+    const falhas = [];
+    for (let d = 1; d <= m.dias; d++) {
+      const r = medirNoDia(m.ano, m.mes, d);
+      // Antes do salário cair (+5d) e depois (+15d): a diferença é exatamente
+      // um salário. Duas vezes = duplo-crédito; zero = crédito perdido.
+      if (r.depoisDoSalario - r.antesDoSalario !== 5000) {
+        falhas.push(
+          `dia ${d}: +5d=${r.antesDoSalario}, +15d=${r.depoisDoSalario} ` +
+            `(esperava diferença de 5000, veio ${r.depoisDoSalario - r.antesDoSalario})`
+        );
       }
-      assert.equal(
-        falhas.length,
-        0,
-        'salário contado a mais ou a menos na projeção:\n  ' + falhas.join('\n  ')
-      );
     }
-  );
+    assert.equal(
+      falhas.length,
+      0,
+      'salário contado a mais ou a menos na projeção:\n  ' + falhas.join('\n  ')
+    );
+  });
 
   test(`INV-23: a projeção nunca encolhe ao andar para o futuro sem despesa — ${m.nome}`, () => {
     // Invariante de monotonia: entre hoje e +15d só existe entrada (o salário),

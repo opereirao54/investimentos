@@ -289,8 +289,25 @@ function mpEhAporteExterno(t) {
 // Saídas (despesas, aportes, transferências de saída) só abatem o caixa
 // quando efetivamente pagas. Antes deste ajuste, o salário ficava `pago:false`
 // para sempre e nunca aparecia no Patrimônio.
+//
+// "PELA DATA" É A DATA DO DINHEIRO, NÃO A DA COMPETÊNCIA. É o que esta função
+// dizia e não fazia: usava mpTimestampTransacao para todo mundo, e ela devolve
+// sempre o 1º dia do mês da competência. Com isso, no dia 1º o salário que cai
+// no dia 10 já estava no "Saldo em conta" do Meu Patrimônio — dinheiro que a
+// pessoa ainda não tem, na dobra da tela que existe para responder quanto ela
+// tem. Entrada passa a usar mpDataMovimento, que é o vencimento informado e só
+// cai para a competência quando não há data melhor (recorrente sem vencimento),
+// onde as duas coincidem de qualquer forma.
+//
+// Saída continua pela competência porque quem a governa é `pago`: ela só entra
+// na conta depois de a pessoa dar baixa, e a baixa acontece no dia real.
 function mpTransacaoComputaCaixa(t, refMs) {
-  if (mpTimestampTransacao(t) > refMs) return false;
+  const ehEntrada = mpEhEntradaCaixa(t.categoria);
+  const quando =
+    ehEntrada && typeof mpDataMovimento === 'function'
+      ? mpDataMovimento(t)
+      : mpTimestampTransacao(t);
+  if (quando > refMs) return false;
   // Fase 3B: aporte cujo débito de caixa já é representado por uma perna de
   // transferência (transferencia_saida com contaId) NÃO conta aqui — senão
   // haveria duplo-débito. O `investimento_*` permanece só para a carteira/DRE.
@@ -306,7 +323,7 @@ function mpTransacaoComputaCaixa(t, refMs) {
   // O predicado é o de appliquei-utils.js — mesma regra usada pelo Controle
   // Financeiro e pelo saldo projetado das contas.
   if (mpEhAporteExterno(t)) return false;
-  if (mpEhEntradaCaixa(t.categoria)) return true;
+  if (ehEntrada) return true;
   return !!t.pago;
 }
 
