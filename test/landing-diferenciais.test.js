@@ -1,13 +1,22 @@
 'use strict';
 
-// A landing: os dois diferenciais, os prints reais e a linguagem jurídica.
+// A landing: a história em quatro atos, os prints reais e a linguagem jurídica.
 //
 // Três coisas foram pedidas e as três podem regredir em silêncio numa
 // reescrita de marketing:
 //
-//   1. Carteira sugerida e Meus investimentos com destaque próprio;
+//   1. a carteira sugerida e os investimentos com destaque próprio;
 //   2. prints das telas REAIS do sistema, não mockups desenhados;
-//   3. cuidado jurídico na seção da carteira.
+//   3. cuidado jurídico junto do que fala de investimento.
+//
+// O item 1 mudou de FORMA sem mudar de exigência. As duas seções "Diferencial
+// 1/2" viraram quatro atos de um palco só (onde o dinheiro está → o mês →
+// a carteira → o próximo aporte), porque empilhadas elas liam-se como fila.
+// O que este arquivo trava continua a ser o mesmo: os dois assuntos têm
+// destaque próprio, são alcançáveis por âncora, vêm ANTES da grade de
+// funcionalidades, e o aviso de risco acompanha quem fala de investimento.
+// A carteira sugerida ganhou uma exigência a mais que não tinha: é o ÚLTIMO
+// ato, o clímax — é o diferencial da casa e não pode voltar para o meio.
 //
 // O item 3 é o que dói caro. No Brasil, recomendar valor mobiliário de forma
 // individualizada é atividade regulada — consultoria (Resolução CVM 19) e
@@ -36,30 +45,59 @@ const VISIVEL = LP.replace(/<!--[\s\S]*?-->/g, '');
 // 1. Os dois diferenciais
 // ---------------------------------------------------------------------------
 
-test('cada diferencial tem seção própria, ancorável', () => {
-  assert.match(VISIVEL, /<section id="carteira" class="dif/);
-  assert.match(VISIVEL, /<section id="investimentos" class="dif/);
-  assert.match(VISIVEL, /href="#carteira"/, 'e entrada no menu');
-  assert.match(VISIVEL, /href="#investimentos"/);
+test('a história tem seção própria, ancorável, e cada ato tem id', () => {
+  assert.match(VISIVEL, /<section class="palco" id="historia">/);
+  assert.match(VISIVEL, /href="#historia"/, 'e entrada no menu');
+  for (const n of [1, 2, 3, 4]) {
+    assert.match(VISIVEL, new RegExp(`id="ato-${n}"`), `ato ${n} sem id`);
+  }
+  // A carteira sugerida é o que a casa vende: continua a ter âncora própria e
+  // lugar no menu, como tinha quando era uma seção inteira.
+  assert.match(VISIVEL, /id="proximo-passo"/);
+  assert.match(VISIVEL, /href="#proximo-passo"/, 'carteira sugerida no menu');
 });
 
-test('os diferenciais vêm ANTES da grade de funcionalidades', () => {
-  // Enterrados depois da lista de dez itens, deixam de ser destaque.
-  const iCart = VISIVEL.indexOf('id="carteira"');
-  const iInv = VISIVEL.indexOf('id="investimentos"');
+test('a história vem ANTES da grade de funcionalidades', () => {
+  // Enterrada depois da lista de funcionalidades, deixa de ser destaque.
+  const iHist = VISIVEL.indexOf('id="historia"');
   const iFunc = VISIVEL.indexOf('id="funcionalidades"');
-  assert.ok(iCart > -1 && iInv > -1 && iFunc > -1);
-  assert.ok(iCart < iFunc, 'carteira sugerida vem antes da grade');
-  assert.ok(iInv < iFunc, 'meus investimentos vem antes da grade');
+  assert.ok(iHist > -1 && iFunc > -1);
+  assert.ok(iHist < iFunc, 'a história vem antes da grade');
 });
 
-test('cada um é marcado como diferencial, na ordem pedida', () => {
-  const iUm = VISIVEL.indexOf('Diferencial 1');
-  const iDois = VISIVEL.indexOf('Diferencial 2');
-  assert.ok(iUm > -1 && iDois > iUm, 'os dois selos, na ordem');
-  // 1 é a carteira, 2 é meus investimentos.
-  assert.ok(iUm > VISIVEL.indexOf('id="carteira"'));
-  assert.ok(iUm < VISIVEL.indexOf('id="investimentos"'));
+test('os quatro atos estão na ordem, e a carteira sugerida é o clímax', () => {
+  const pos = [1, 2, 3, 4].map((n) => VISIVEL.indexOf(`id="ato-${n}"`));
+  for (let i = 1; i < pos.length; i++) {
+    assert.ok(pos[i] > pos[i - 1], `ato ${i + 1} fora de ordem`);
+  }
+  // O ato do próximo aporte é o ÚLTIMO — voltá-lo para o meio devolve o
+  // diferencial da casa à posição em que competia com o resto.
+  const iCarteira = VISIVEL.indexOf('id="proximo-passo"');
+  assert.ok(iCarteira > pos[2], 'a carteira sugerida tem de ser o último ato');
+  assert.ok(iCarteira < VISIVEL.indexOf('id="funcionalidades"'));
+});
+
+test('o palco nasce completo no HTML — o script só o promove', () => {
+  // Se o JS não correr (falha de rede, tela estreita, reduced-motion), a
+  // página tem de continuar inteira. Por isso os quatro prints e os quatro
+  // textos moram no HTML, e a classe que liga o palco NÃO é escrita aqui.
+  const palco = VISIVEL.slice(
+    VISIVEL.indexOf('id="historia"'),
+    VISIVEL.indexOf('id="aviso-carteira"')
+  );
+  assert.equal(
+    (palco.match(/<figure class="ato-fig">/g) || []).length,
+    4,
+    'os quatro prints têm de estar no HTML, não injetados por script'
+  );
+  // Procurar a string solta apanharia as próprias regras de CSS
+  // (`.palco--vivo .palco-corpo { … }`), que TÊM de existir. O que não pode
+  // existir é a classe num atributo de elemento — aí o palco nasceria montado
+  // e o fallback morreria com ele.
+  assert.ok(
+    !/class="[^"]*palco--vivo/.test(VISIVEL),
+    'a classe do palco é adicionada por JS: escrevê-la no HTML quebra o fallback'
+  );
 });
 
 // ---------------------------------------------------------------------------
@@ -139,13 +177,20 @@ test('a página nega explicitamente as três atividades reguladas', () => {
   }
 });
 
-test('o aviso de risco fica NA seção da carteira, não só no rodapé', () => {
-  const sec = VISIVEL.slice(
-    VISIVEL.indexOf('id="carteira"'),
-    VISIVEL.indexOf('id="investimentos"')
-  );
-  assert.match(sec, /class="aviso"/, 'o aviso acompanha o que ele qualifica');
-  assert.match(sec, /id="lpRiscoWrap"/, 'com o documento completo à mão');
+test('o aviso de risco encosta no ato da carteira, não fica só no rodapé', () => {
+  // Antes vivia dentro da seção da carteira. Agora é banda própria — mas tem
+  // de continuar colada ao ato que ela qualifica: entre o fim da história e o
+  // início da grade de funcionalidades. Empurrada para depois da grade, ou
+  // para o rodapé, deixa de ser lida por quem acabou de ver a alocação.
+  const iHist = VISIVEL.indexOf('id="historia"');
+  const iAviso = VISIVEL.indexOf('id="aviso-carteira"');
+  const iFunc = VISIVEL.indexOf('id="funcionalidades"');
+  assert.ok(iAviso > iHist, 'o aviso vem depois da história');
+  assert.ok(iAviso < iFunc, 'e ANTES da grade — nada se intromete entre os dois');
+
+  const banda = VISIVEL.slice(iAviso, iFunc);
+  assert.match(banda, /class="aviso"/, 'o aviso acompanha o que ele qualifica');
+  assert.match(banda, /id="lpRiscoWrap"/, 'com o documento completo à mão');
 });
 
 test('o texto do aviso vem do arquivo do app, não de uma cópia', () => {

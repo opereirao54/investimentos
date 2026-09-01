@@ -61,6 +61,7 @@ Mensagem em PT-BR é OK. Corpo do commit deve explicar **o porquê**, não o **o
 | Auth/middleware comum API    | `api/_lib/handler.js`                                                          |
 | Painel admin                 | `admin.html` + `web/appliquei-admin.js` + `api/admin/*`                        |
 | Guia de primeiros passos     | `web/appliquei-primeiros-passos.js` (+ CSS `.pp-*` e `#ppBoasVindas` no HTML)  |
+| Landing page / palco         | `landing.html` (+ `web/appliquei-palco.js`)                                    |
 
 ### Regras estritas
 
