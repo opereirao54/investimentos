@@ -65,16 +65,44 @@ test('a história vem ANTES da grade de funcionalidades', () => {
   assert.ok(iHist < iFunc, 'a história vem antes da grade');
 });
 
-test('os quatro atos estão na ordem, e a carteira sugerida é o clímax', () => {
+test('os quatro atos estão na ordem, e os dois diferenciais abrem a história', () => {
   const pos = [1, 2, 3, 4].map((n) => VISIVEL.indexOf(`id="ato-${n}"`));
   for (let i = 1; i < pos.length; i++) {
     assert.ok(pos[i] > pos[i - 1], `ato ${i + 1} fora de ordem`);
   }
-  // O ato do próximo aporte é o ÚLTIMO — voltá-lo para o meio devolve o
-  // diferencial da casa à posição em que competia com o resto.
+  // A ordem é uma decisão de negócio, não de narrativa: carteira sugerida e
+  // meus investimentos são o que a casa vende, e abrem. O patrimônio inteiro e
+  // o mês vêm depois, como a fundação de onde a resposta sai. Empurrar a
+  // carteira para o meio devolve o diferencial à posição em que ele competia
+  // com o resto — foi de lá que ele saiu.
   const iCarteira = VISIVEL.indexOf('id="proximo-passo"');
-  assert.ok(iCarteira > pos[2], 'a carteira sugerida tem de ser o último ato');
-  assert.ok(iCarteira < VISIVEL.indexOf('id="funcionalidades"'));
+  assert.ok(iCarteira > pos[0] && iCarteira < pos[1], 'a carteira sugerida tem de ser o ATO 1');
+
+  const ato2 = VISIVEL.slice(pos[1], pos[2]);
+  assert.match(
+    ato2,
+    /investimentos, de todas as corretoras/i,
+    'meus investimentos tem de ser o ato 2'
+  );
+
+  assert.ok(
+    pos[3] < VISIVEL.indexOf('id="funcionalidades"'),
+    'a história inteira vem antes da grade'
+  );
+});
+
+test('a ressalva jurídica está DENTRO do ato da carteira, não só na banda', () => {
+  // Com a carteira no primeiro ato, a banda completa ficou três atos abaixo.
+  // A ressalva curta tem de acompanhar a afirmação onde ela é feita, e apontar
+  // para o documento inteiro.
+  const pos = [1, 2].map((n) => VISIVEL.indexOf(`id="ato-${n}"`));
+  const ato1 = VISIVEL.slice(pos[0], pos[1]);
+  assert.match(
+    ato1,
+    /não faz recomendação individualizada/i,
+    'falta a negativa no ato da carteira'
+  );
+  assert.match(ato1, /href="#aviso-carteira"/, 'e o caminho para o aviso completo');
 });
 
 test('o palco nasce completo no HTML — o script só o promove', () => {
