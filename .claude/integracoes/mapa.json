@@ -695,6 +695,45 @@
       "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle. As duas últimas armadilhas foram achadas pelas SEQUÊNCIAS aleatórias (test/simulacao-sequencias.test.js): editar direto funcionava e editar via modal não, e a própria invariante estava acusando parcela paga.",
       "prova": "test/integracao-inv22-sonho-conta-origem.test.js",
       "status": "coberta"
+    },
+    {
+      "id": "INV-23",
+      "titulo": "O saldo projetado nunca é otimista",
+      "regra": "saldoCaixaPorConta(refMs) com refMs futuro = foto de hoje (mpCalcularSaldoPorInstituicao) + o agendado na janela (agora, refMs]. A guarda de duplo-débito de aplicarAgendadoNoSaldo tem de perguntar 'a foto JÁ contou isto?' a mpTransacaoComputaCaixa — nunca usar a competência (mpTimestampTransacao, que devolve o 1º do mês) como substituto. As duas respostas coincidem para ENTRADA, que a foto conta esteja paga ou não, e divergem para SAÍDA, que a foto só conta com pago:true: uma despesa não paga de mês já começado fica de fora da foto E da projeção, e some das duas.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js"],
+      "simbolos": [
+        "aplicarAgendadoNoSaldo",
+        "saldoCaixaPorConta",
+        "mpTransacaoComputaCaixa",
+        "mpDataMovimento",
+        "mpTimestampTransacao",
+        "contasComSaldo"
+      ],
+      "sintoma": "Agendei uma compra e o app disse que eu tinha saldo — mas a fatura/aluguel do mês ainda não tinha saído · a compra passou e a conta ficou negativa.",
+      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js",
+      "status": "coberta",
+      "fragilidade": "O defeito só aparece quando a competência do lançamento JÁ começou, ou seja em função do dia do mês. Um teste que use prazos relativos ('+10 dias') passa nos últimos dez dias do mês e falha nos primeiros vinte — foi assim que este defeito ficou de pé com a suíte verde. Toda prova desta invariante varre os dias do mês com o relógio fingido."
+    },
+    {
+      "id": "INV-24",
+      "titulo": "Quando a receita agendada entra no saldo — DECISÃO EM ABERTO",
+      "regra": "PENDENTE DE DECISÃO DO DONO. Hoje mpTransacaoComputaCaixa conta entrada pela COMPETÊNCIA (mpTimestampTransacao = 1º dia do mês), esteja paga ou não: no dia 1º, o salário que cai no dia 10 já está no 'Saldo em conta' do Meu Patrimônio. Não é descuido — a tela do Controle esconde o botão de pagar para categoria 'receita', então `pago` nunca fica true e exigi-lo zeraria o saldo de todos. A alternativa é contar entrada pela DATA REAL (mpDataMovimento), como a projeção já faz; muda o número de quem informa vencimento na receita. Enquanto não houver decisão, as asserções que afirmam a segunda regra estão marcadas `todo` em test/saldo-futuro-compra.test.js e test/integracao-inv23-projecao-nao-otimista.test.js, escritas como estão.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": [
+        "mpTransacaoComputaCaixa",
+        "mpEhEntradaCaixa",
+        "mpTimestampTransacao",
+        "mpDataMovimento",
+        "prepararPagamento"
+      ],
+      "sintoma": "O 'Saldo em conta' mostra o salário no dia 1º, antes de ele cair.",
+      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js (marcada todo)",
+      "status": "pendente",
+      "fragilidade": "Mexer aqui muda o número da dobra do Meu Patrimônio de todo mundo. Não altere sem decisão explícita: a assimetria entrada/saída de mpTransacaoComputaCaixa é deliberada e está amarrada à ausência de 'marcar receita como recebida' na UI."
     }
   ],
   "riscosConhecidos": [
