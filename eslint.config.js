@@ -105,6 +105,7 @@ module.exports = [
       'web/appliquei-jornada.js',
       'web/appliquei-sonhos.js',
       'web/appliquei-primeiros-passos.js',
+      'web/appliquei-rendimento.js',
       'web/appliquei-aba1-charts.js',
       'web/appliquei-renda-fixa.js',
       'web/appliquei-previdencia.js',

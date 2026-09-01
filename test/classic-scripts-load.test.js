@@ -37,6 +37,7 @@ const LOAD_ORDER = [
   'web/appliquei-aba-carteira-recomendada.js',
   'web/appliquei-aba-info-mercado.js',
   'web/appliquei-aba-dividendos.js',
+  'web/appliquei-rendimento.js',
   'web/appliquei-aba-controle-financeiro.js',
   'web/appliquei-relatorio-mensal.js',
   'web/appliquei-applicash.js',

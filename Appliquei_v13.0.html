@@ -850,6 +850,18 @@
         .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
         .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
+        /* Rendimento acumulado: mesma família visual do investimento acumulado
+           (as duas são ESTOQUE), sem a borda de topo — elas formam um par e uma
+           linha entre elas as separaria. O til marca o mês estimado. */
+        #controle .linha-rendimento td { border-top: none !important; }
+        #controle .linha-rendimento .coluna-fixa { font-weight: 600; }
+        #controle .dre-rend-aprox {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; margin-left: 5px; border-radius: 4px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-mutado); font-size: 10px; font-weight: 700; cursor: help;
+        }
+
         /* Investimento acumulado: ESTOQUE embaixo das linhas de FLUXO. A borda
            dupla no topo marca a virada — dali para baixo não se soma na
            vertical. */
@@ -11147,6 +11159,9 @@
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=motor-carteira-1"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
+    <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
+         controle financeiro, que desenha a linha de rendimento da DRE. -->
+    <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>

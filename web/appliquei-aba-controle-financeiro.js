@@ -1902,6 +1902,14 @@ function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
 }
 
 function atualizarTelaControle() {
+  // O histórico de preços da renda variável alimenta a linha de rendimento da
+  // DRE. Pedir daqui em vez de no boot cobre quem registra o primeiro
+  // investimento com o app já aberto; a função é idempotente e só vai à rede
+  // uma vez por ticker, por sessão.
+  if (typeof rendCarregarHistorico === 'function') {
+    if (typeof rendAoAtualizar === 'function') rendAoAtualizar(atualizarTelaControle);
+    rendCarregarHistorico();
+  }
   // Garante que despesas variáveis com vencimento futuro não fiquem "pagas"
   // (cobre edição de data e qualquer caminho, além do carregamento inicial).
   normalizarDespesasProgramadas();
@@ -2549,7 +2557,7 @@ function atualizarTelaControle() {
     acumInv += (d.invFixo || 0) + (d.invVar || 0) + (d.invExterno || 0) - (d.resgate || 0);
     return acumInv;
   });
-  htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido (custo de aquisição) — quanto a carteira vale hoje está em Meus investimentos.">Investimento acumulado</td>`;
+  htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido — o custo de aquisição. O que ele virou está na linha de baixo.">Investimento acumulado</td>`;
   acumPorMes.forEach((v, i) => {
     const delta = v - (i === 0 ? aporteLiquidoAntesDaJanela : acumPorMes[i - 1]);
     const seta =
@@ -2559,6 +2567,41 @@ function atualizarTelaControle() {
     htmlLinhas += `<td style="text-align: right; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : ''}">${formatarMoeda(v)}${seta}</td>`;
   });
   htmlLinhas += `</tr>`;
+
+  // Rendimento acumulado — a outra metade da pergunta.
+  //
+  // A linha de cima é quanto SAIU do bolso; esta é quanto isso virou. Cada
+  // classe é valorada pela sua regra no fim daquele mês (juros compostos para
+  // renda fixa e previdência, fechamento da época para renda variável), em
+  // web/appliquei-rendimento.js.
+  //
+  // Não é linha de fluxo nem entra em soma nenhuma da tabela: nada aqui saiu
+  // ou entrou na conta corrente. É a valorização do estoque da linha acima, e
+  // por isso vem logo depois dela.
+  //
+  // Quando falta o histórico de preços de alguma ação, a posição daquele mês é
+  // valorada pela cotação de HOJE — e aí o número é uma estimativa, não o
+  // rendimento daquele mês. Nesse caso a célula ganha ~ e o título diz por quê.
+  // Preferir isso a esconder a linha: a pessoa que investe só em renda fixa
+  // tem o número exato, e quem tem ação sabe exatamente o que está olhando.
+  if (typeof rendCarteiraEm === 'function') {
+    const rendPorMes = dreDados.map((d) => {
+      const fimMes = new Date(d.ano, d.mes + 1, 0, 23, 59, 59).getTime();
+      // Nunca projeta além de agora: no mês corrente o rendimento é o de hoje.
+      return rendCarteiraEm(Math.min(fimMes, Date.now()));
+    });
+    const algumEstimado = rendPorMes.some((x) => x.estimado);
+    const tituloRend = algumEstimado
+      ? 'Quanto o seu capital aplicado rendeu até o fim de cada mês: valor de mercado menos o custo de aquisição. As células com ~ são estimativas — falta o histórico de preços de alguma ação, e a posição daquele mês foi valorada pela cotação de hoje.'
+      : 'Quanto o seu capital aplicado rendeu até o fim de cada mês: valor de mercado menos o custo de aquisição.';
+    htmlLinhas += `<tr class="linha-acumulada linha-rendimento"><td class="coluna-fixa" title="${tituloRend}">Rendimento acumulado${algumEstimado ? ' <span class="dre-rend-aprox" title="Alguns meses são estimados pela cotação de hoje.">~</span>' : ''}</td>`;
+    rendPorMes.forEach((x, i) => {
+      const cor = x.rendimento < -0.005 ? 'var(--tinta-vermelho)' : 'var(--tinta-verde)';
+      const sinal = x.rendimento > 0.005 ? '+' : '';
+      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : ''}">${x.estimado ? '~' : ''}${sinal}${formatarMoeda(x.rendimento)}</td>`;
+    });
+    htmlLinhas += `</tr>`;
+  }
 
   tbodyDRE.innerHTML = htmlLinhas;
 
