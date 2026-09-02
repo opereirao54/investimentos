@@ -720,21 +720,27 @@
     {
       "id": "INV-24",
       "titulo": "A receita entra no caixa no dia em que cai",
-      "regra": "mpTransacaoComputaCaixa decide \"esta transação já está no caixa em refMs?\". Para ENTRADA (receita, dividendo, resgate_investimento, transferencia_entrada) a data que manda é mpDataMovimento — o vencimento informado, com queda para a competência só quando não há data melhor. NUNCA mpTimestampTransacao direto, que devolve o 1º dia do mês: com ela, no dia 1º o salário do dia 10 já entrava no \"Saldo em conta\". Para SAÍDA quem governa é `pago`, e a competência basta — a baixa acontece no dia real.",
+      "regra": "mpTransacaoComputaCaixa decide \"esta transação já está no caixa em refMs?\". Para ENTRADA (receita, dividendo, resgate_investimento, transferencia_entrada) a data que manda é mpQuandoEntraNoCaixa — o vencimento informado, com queda para a COMPETÊNCIA quando não há vencimento. Nunca mpTimestampTransacao direto, que devolve o 1º dia do mês: com ela, no dia 1º o salário do dia 10 já entrava no \"Saldo em conta\". E nunca o campo `data`, que é carimbo de escrituração e pode ser POSTERIOR ao dinheiro (criarTransferencia normaliza para meio-dia; num lançamento recorrente é o instante em que as 60 parcelas nasceram) — por isso mpDataMovimento, que cai para ele, não serve aqui. Para SAÍDA quem governa é `pago`, e a competência basta — a baixa acontece no dia real.",
       "gravidade": "alta",
       "entidades": ["transacao", "conta"],
-      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
+      "arquivos": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-contas.js"
+      ],
       "simbolos": [
         "mpTransacaoComputaCaixa",
+        "mpQuandoEntraNoCaixa",
         "mpEhEntradaCaixa",
         "mpTimestampTransacao",
         "mpDataMovimento",
+        "criarTransferencia",
         "prepararPagamento"
       ],
-      "sintoma": "O \"Saldo em conta\" mostra o salário no dia 1º, antes de ele cair · o seletor de conta de uma compra oferece dinheiro que ainda não entrou.",
-      "prova": "test/saldo-futuro-compra.test.js + test/integracao-inv23-projecao-nao-otimista.test.js",
+      "sintoma": "O \"Saldo em conta\" mostra o salário no dia 1º, antes de ele cair · o seletor de conta de uma compra oferece dinheiro que ainda não entrou · uma transferência feita de manhã derruba o patrimônio pelo valor transferido, e o mesmo teste passa se rodar à tarde.",
+      "prova": "test/integracao-inv24-entrada-no-caixa.test.js + test/saldo-futuro-compra.test.js + test/integracao-inv23-projecao-nao-otimista.test.js",
       "status": "coberta",
-      "fragilidade": "A assimetria entrada/saída é deliberada e está amarrada à UI: a tela do Controle esconde o botão de pagar para categoria \"receita\" (appliquei-aba-controle-financeiro.js), então `pago` nunca fica true numa entrada e exigi-lo zeraria o saldo de todos. Quem mexer aqui tem de olhar a UI antes."
+      "fragilidade": "Duas armadilhas, e as duas já morderam. (1) A assimetria entrada/saída é deliberada e está amarrada à UI: a tela do Controle esconde o botão de pagar para categoria \"receita\" (appliquei-aba-controle-financeiro.js), então `pago` nunca fica true numa entrada e exigi-lo zeraria o saldo de todos. Quem mexer aqui tem de olhar a UI antes. (2) Escolher a data da entrada erra em DUAS direções opostas — adiantar (competência) e atrasar (campo `data`) — e o atraso só aparece em METADE DAS HORAS do dia, porque criarTransferencia carimba meio-dia. Uma suíte rodada à tarde fica verde com o defeito de pé; o CI roda de madrugada em UTC e fica vermelha. A varredura por hora em integracao-inv24 existe por isso."
     }
   ],
   "riscosConhecidos": [

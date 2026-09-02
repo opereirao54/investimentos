@@ -289,6 +289,32 @@ function mpEhAporteExterno(t) {
   );
 }
 
+// Quando o dinheiro de uma ENTRADA cai, para efeito de saldo.
+//
+// Só duas datas respondem isso: o vencimento informado pela pessoa e, na falta
+// dele, a competência. O campo `data` NÃO entra, e essa distinção custou uma
+// suíte vermelha para ficar clara — mpDataMovimento cai para ele quando não há
+// vencimento, e ele é carimbo de escrituração, não data do dinheiro:
+//
+//   · criarTransferencia normaliza para MEIO-DIA (`+ 'T12:00:00'`, fuso-seguro).
+//     Uma transferência feita de manhã nascia doze horas no futuro: a perna de
+//     saída entrava no caixa pela competência e a de entrada não entrava por
+//     nada, e o patrimônio encolhia pelo valor transferido numa operação que só
+//     reorganiza dinheiro. O mesmo vale para o resgate que o aporte por migração
+//     de um sonho gera.
+//   · num lançamento recorrente, `data` é o instante em que as 60 parcelas foram
+//     criadas — igual para todas, e sem relação com o mês de cada uma.
+//
+// Sem vencimento, a competência é a melhor informação que existe, e é o
+// comportamento que o app sempre teve.
+function mpQuandoEntraNoCaixa(t) {
+  if (t && t.dataVencimento) {
+    const d = appliqueiParseData(t.dataVencimento);
+    if (d && !isNaN(d.getTime())) return d.getTime();
+  }
+  return mpTimestampTransacao(t);
+}
+
 // Decide se uma transação já compõe o caixa/saldo em conta até `refMs`.
 // Entradas (receita/salário, resgates, transferências de entrada) NÃO têm
 // botão "pago" no Controle — são lançadas já recebidas, logo contam pela data.
@@ -301,18 +327,13 @@ function mpEhAporteExterno(t) {
 // sempre o 1º dia do mês da competência. Com isso, no dia 1º o salário que cai
 // no dia 10 já estava no "Saldo em conta" do Meu Patrimônio — dinheiro que a
 // pessoa ainda não tem, na dobra da tela que existe para responder quanto ela
-// tem. Entrada passa a usar mpDataMovimento, que é o vencimento informado e só
-// cai para a competência quando não há data melhor (recorrente sem vencimento),
-// onde as duas coincidem de qualquer forma.
+// tem. Entrada passa a olhar o VENCIMENTO informado (mpQuandoEntraNoCaixa).
 //
 // Saída continua pela competência porque quem a governa é `pago`: ela só entra
 // na conta depois de a pessoa dar baixa, e a baixa acontece no dia real.
 function mpTransacaoComputaCaixa(t, refMs) {
   const ehEntrada = mpEhEntradaCaixa(t.categoria);
-  const quando =
-    ehEntrada && typeof mpDataMovimento === 'function'
-      ? mpDataMovimento(t)
-      : mpTimestampTransacao(t);
+  const quando = ehEntrada ? mpQuandoEntraNoCaixa(t) : mpTimestampTransacao(t);
   if (quando > refMs) return false;
   // Fase 3B: aporte cujo débito de caixa já é representado por uma perna de
   // transferência (transferencia_saida com contaId) NÃO conta aqui — senão
