@@ -86,9 +86,10 @@
         "entradaCaixa": ["receita", "dividendo", "resgate_investimento", "transferencia_entrada"],
         "aporte": ["investimento_fixo", "investimento_variavel"],
         "transferenciaSaida": ["transferencia_saida"],
-        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito", "sonho"],
+        "poupancaDirecionada": ["sonho"],
+        "despesaConsumo": ["despesa_fixa", "despesa_variavel", "cartao_credito"],
         "classificadoPor": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "mpTransacaoComputaCaixa"],
-        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo."
+        "nota": "Vocabulário FECHADO por consequência, não por declaração: mpEhEntradaCaixa lista as entradas e tudo o que não está lá vira saída. Categoria nova não classificada é silenciosamente tratada como despesa de consumo que só debita quando pago:true. ATENÇÃO: existem DOIS vocabulários de `categoria` no app e eles não se misturam — o de transacao (este) e o de operacao (renda_variavel, renda_fixa, reserva_emergencia, previdencia). Confundi-los é erro fácil: previdencia.js grava operacao.categoria='previdencia' e transacao.categoria='investimento_fixo' no mesmo fluxo. `sonho` tem grupo PRÓPRIO (poupancaDirecionada) desde que se descobriu que estava em despesaConsumo: sai do caixa como despesa e não é uma — é dinheiro guardado com destino declarado. Contado como consumo, fazia o indicador de Despesa subir no mês em que a pessoa guardou mais, e o critério de despesa do score do Relatório mensal punia quem estava indo bem. Debita o caixa igual (mpTransacaoComputaCaixa, com pago), mas não entra em mpEhDespesaConsumo nem no card de Despesas."
       },
       "escritaCanonica": {
         "funcao": "salvarTransacoes(opcoes)",
@@ -695,6 +696,45 @@
       "historico": "Era o RISCO-02. salvarSonho validava só nome e valorTotal; contaOrigemId entrava como `|| null` e virava `contaId: ... || undefined` nos compromissos (sonhos.js:111, 920, 2192). Sonho sem conta gerava parcelas que, ao serem pagas, furavam INV-01 por fora da trava do Controle. As duas últimas armadilhas foram achadas pelas SEQUÊNCIAS aleatórias (test/simulacao-sequencias.test.js): editar direto funcionava e editar via modal não, e a própria invariante estava acusando parcela paga.",
       "prova": "test/integracao-inv22-sonho-conta-origem.test.js",
       "status": "coberta"
+    },
+    {
+      "id": "INV-23",
+      "titulo": "O saldo projetado nunca é otimista",
+      "regra": "saldoCaixaPorConta(refMs) com refMs futuro = foto de hoje (mpCalcularSaldoPorInstituicao) + o agendado na janela (agora, refMs]. A guarda de duplo-débito de aplicarAgendadoNoSaldo tem de perguntar 'a foto JÁ contou isto?' a mpTransacaoComputaCaixa — nunca usar a competência (mpTimestampTransacao, que devolve o 1º do mês) como substituto. As duas respostas coincidem para ENTRADA, que a foto conta esteja paga ou não, e divergem para SAÍDA, que a foto só conta com pago:true: uma despesa não paga de mês já começado fica de fora da foto E da projeção, e some das duas.",
+      "gravidade": "critica",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js"],
+      "simbolos": [
+        "aplicarAgendadoNoSaldo",
+        "saldoCaixaPorConta",
+        "mpTransacaoComputaCaixa",
+        "mpDataMovimento",
+        "mpTimestampTransacao",
+        "contasComSaldo"
+      ],
+      "sintoma": "Agendei uma compra e o app disse que eu tinha saldo — mas a fatura/aluguel do mês ainda não tinha saído · a compra passou e a conta ficou negativa.",
+      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js",
+      "status": "coberta",
+      "fragilidade": "O defeito só aparece quando a competência do lançamento JÁ começou, ou seja em função do dia do mês. Um teste que use prazos relativos ('+10 dias') passa nos últimos dez dias do mês e falha nos primeiros vinte — foi assim que este defeito ficou de pé com a suíte verde. Toda prova desta invariante varre os dias do mês com o relógio fingido."
+    },
+    {
+      "id": "INV-24",
+      "titulo": "A receita entra no caixa no dia em que cai",
+      "regra": "mpTransacaoComputaCaixa decide \"esta transação já está no caixa em refMs?\". Para ENTRADA (receita, dividendo, resgate_investimento, transferencia_entrada) a data que manda é mpDataMovimento — o vencimento informado, com queda para a competência só quando não há data melhor. NUNCA mpTimestampTransacao direto, que devolve o 1º dia do mês: com ela, no dia 1º o salário do dia 10 já entrava no \"Saldo em conta\". Para SAÍDA quem governa é `pago`, e a competência basta — a baixa acontece no dia real.",
+      "gravidade": "alta",
+      "entidades": ["transacao", "conta"],
+      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": [
+        "mpTransacaoComputaCaixa",
+        "mpEhEntradaCaixa",
+        "mpTimestampTransacao",
+        "mpDataMovimento",
+        "prepararPagamento"
+      ],
+      "sintoma": "O \"Saldo em conta\" mostra o salário no dia 1º, antes de ele cair · o seletor de conta de uma compra oferece dinheiro que ainda não entrou.",
+      "prova": "test/saldo-futuro-compra.test.js + test/integracao-inv23-projecao-nao-otimista.test.js",
+      "status": "coberta",
+      "fragilidade": "A assimetria entrada/saída é deliberada e está amarrada à UI: a tela do Controle esconde o botão de pagar para categoria \"receita\" (appliquei-aba-controle-financeiro.js), então `pago` nunca fica true numa entrada e exigi-lo zeraria o saldo de todos. Quem mexer aqui tem de olhar a UI antes."
     }
   ],
   "riscosConhecidos": [

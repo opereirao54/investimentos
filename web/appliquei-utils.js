@@ -436,6 +436,9 @@ function abrirModalRecomecar() {
     '<i class="ph-fill ph-warning" style="vertical-align:-2px;"></i> <strong>Não dá para desfazer.</strong> Se você usa a Appliquei em mais de um aparelho, todos ficam vazios. ' +
     'Sua conta, sua assinatura e o Applicash continuam ativos.' +
     '</span>' +
+    '<span style="display:block;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);color:var(--cor-txt-info);border-radius:9px;padding:10px 12px;font-size:12.5px;line-height:1.55;margin-bottom:14px;">' +
+    '<i class="ph-fill ph-compass" style="vertical-align:-2px;"></i> Ao terminar, o <strong>guia de primeiros passos</strong> reaparece para levar você de volta pelo caminho — conta, receita e despesa.' +
+    '</span>' +
     '<label for="inputConfirmaRecomecar" style="display:block;font-size:12px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:6px;">' +
     'Para confirmar, digite <strong style="font-family:\'DM Mono\',monospace;color:var(--cor-erro);">' +
     RESET_PALAVRA_CONFIRMACAO +
@@ -485,6 +488,15 @@ function executarRecomecarDoZero() {
       apagadas++;
     } catch (_) {}
   });
+
+  // Recado para o guia de primeiros passos, que renasce do outro lado do
+  // reload (a chave dele foi apagada agora mesmo, junto com o resto). Serve
+  // só para trocar o "Bem-vindo" por um "tudo limpo, vamos de novo" — daí
+  // ser sessionStorage: é um bilhete desta aba para ela mesma, que não sobe
+  // para a nuvem nem reaparece no outro aparelho.
+  try {
+    sessionStorage.setItem('appliquei_pp_pos_reset', '1');
+  } catch (_) {}
 
   // Empurra as deleções agora, pelos dois caminhos (ambos idempotentes):
   // o SDK manda FieldValue.delete() por chave; o beacon manda null para
@@ -611,6 +623,20 @@ function _ehChaveApp(key) {
   );
 }
 
+// Aviso genérico de "algo do usuário mudou neste aparelho". Nasceu para o guia
+// de primeiros passos marcar o passo no instante em que o lançamento entra,
+// sem esperar um reload; qualquer módulo pode ouvir. Só avisa — não decide
+// nada, e uma falha aqui nunca pode impedir a gravação nem o sync, por isso
+// vive dentro de try/catch e checa as APIs antes de usá-las (o sandbox dos
+// testes não tem CustomEvent).
+function _avisarMudancaLocal(key) {
+  try {
+    if (typeof CustomEvent !== 'function') return;
+    if (!window || typeof window.dispatchEvent !== 'function') return;
+    window.dispatchEvent(new CustomEvent('appliquei:dados', { detail: { chave: key } }));
+  } catch (_) {}
+}
+
 _storageProto.setItem = function (key, value) {
   if (this !== localStorage) return _setItemNative.call(this, key, value);
   return _interceptarSetItem(key, value);
@@ -630,7 +656,10 @@ function _interceptarSetItem(key, value) {
     if (prev === String(value)) notify = false;
   }
   _setItemOriginal(key, value);
-  if (_ehChaveApp(key)) atualizarUltimoSalvo();
+  if (_ehChaveApp(key)) {
+    atualizarUltimoSalvo();
+    _avisarMudancaLocal(key);
+  }
   if (
     notify &&
     window.AppliqueiCloudSync &&
@@ -659,7 +688,10 @@ function _interceptarRemoveItem(key) {
     } catch (_) {}
   }
   _removeItemOriginal(key);
-  if (_ehChaveApp(key)) atualizarUltimoSalvo();
+  if (_ehChaveApp(key)) {
+    atualizarUltimoSalvo();
+    _avisarMudancaLocal(key);
+  }
   if (
     existed &&
     window.AppliqueiCloudSync &&

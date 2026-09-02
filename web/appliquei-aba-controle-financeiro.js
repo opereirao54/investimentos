@@ -1412,13 +1412,18 @@ function salvarMapaSaldoCarregado(m) {
   localStorage.setItem('futurorico_saldoCarregado', JSON.stringify(m));
 }
 
-// Resultado bruto do mês (receitas - despesas - aportes - sonhos), isolado.
+// Resultado bruto do mês (receitas - despesas - cartão - aportes - sonhos).
+//
+// O sonho tem parcela própria na subtração e não se esconde dentro de
+// `totDesp`. O resultado é o mesmo — o dinheiro sai do caixa de qualquer
+// forma —, mas quem ler esta função não vai concluir que guardar para uma meta
+// é despesa de consumo, que foi como o número acabou parar no relatório.
 function calcularResultadoMes(mes, ano) {
   const r = calcularResumoMes(mes, ano);
   const totRec = r.receita + r.resgate;
-  const totDesp = r.despFixa + r.despVar + r.sonho;
+  const totDesp = r.despFixa + r.despVar;
   const totInv = r.invFixo + r.invVar;
-  return totRec - totDesp - r.cartao - totInv;
+  return totRec - totDesp - r.cartao - totInv - r.sonho;
 }
 
 // Competência (ano*12+mes) do primeiro lançamento — base do acúmulo.
@@ -1897,6 +1902,14 @@ function calcularEstadoAlertaCartao(totCartao, cartoesAtivosLista) {
 }
 
 function atualizarTelaControle() {
+  // O histórico de preços da renda variável alimenta a linha de rendimento da
+  // DRE. Pedir daqui em vez de no boot cobre quem registra o primeiro
+  // investimento com o app já aberto; a função é idempotente e só vai à rede
+  // uma vez por ticker, por sessão.
+  if (typeof rendCarregarHistorico === 'function') {
+    if (typeof rendAoAtualizar === 'function') rendAoAtualizar(atualizarTelaControle);
+    rendCarregarHistorico();
+  }
   // Garante que despesas variáveis com vencimento futuro não fiquem "pagas"
   // (cobre edição de data e qualquer caminho, além do carregamento inicial).
   normalizarDespesasProgramadas();
@@ -2046,10 +2059,16 @@ function atualizarTelaControle() {
   if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
   if (bannerAlertaAtraso) bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
 
+  // Sonho tem totalizador PRÓPRIO. Guardar o aporte de uma meta junto das
+  // despesas dizia que poupar é gastar: a pessoa via "Total de despesas" subir
+  // no mês em que se comportou melhor. O dinheiro sai do caixa igual — por isso
+  // continua sendo subtraído do saldo livre, logo abaixo —, mas sai para ela
+  // mesma, e o número que responde "quanto consumi" não pode contar isso.
   let totRec = 0,
     totDesp = 0,
     totCartao = 0,
-    totInv = 0;
+    totInv = 0,
+    totSonho = 0;
   const nomesCat = {
     receita: 'Receita',
     dividendo: 'Dividendo',
@@ -2132,13 +2151,13 @@ function atualizarTelaControle() {
         t.categoria === 'dividendo' ||
         t.categoria === 'resgate_investimento'
           ? 'receita'
-          : t.categoria === 'despesa_fixa' ||
-              t.categoria === 'despesa_variavel' ||
-              t.categoria === 'sonho'
+          : t.categoria === 'despesa_fixa' || t.categoria === 'despesa_variavel'
             ? 'despesa'
             : t.categoria === 'cartao_credito'
               ? 'cartao'
-              : 'investimento';
+              : t.categoria === 'sonho'
+                ? 'sonho'
+                : 'investimento';
 
       let itemHtml = `
             <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}">
@@ -2160,6 +2179,7 @@ function atualizarTelaControle() {
       if (tipoFiltro === 'receita') totRec += t.valor;
       else if (tipoFiltro === 'despesa') totDesp += t.valor;
       else if (tipoFiltro === 'cartao') totCartao += t.valor;
+      else if (tipoFiltro === 'sonho') totSonho += t.valor;
       else totInv += t.valor;
       htmlExtrato += itemHtml;
     }
@@ -2173,6 +2193,8 @@ function atualizarTelaControle() {
   document.getElementById('totalColDespesas').innerText = formatarMoeda(totDesp);
   document.getElementById('totalColCartao').innerText = formatarMoeda(totCartao);
   document.getElementById('totalColInv').innerText = formatarMoeda(totInv);
+  const colSonho = document.getElementById('totalColSonhos');
+  if (colSonho) colSonho.innerText = formatarMoeda(totSonho);
 
   // KPI cards do topo — investimentos/cartão/despesa têm cards próprios e
   // todos são deduzidos da receita para compor o saldo livre.
@@ -2180,6 +2202,7 @@ function atualizarTelaControle() {
   const kpiDesp = document.getElementById('kpiDespesasMes');
   const kpiCart = document.getElementById('kpiCartaoMes');
   const kpiInv = document.getElementById('kpiInvestimentosMes');
+  const kpiSonho = document.getElementById('kpiSonhosMes');
   const kpiSaldo = document.getElementById('kpiSaldoLivre');
   const lblCarregado = document.getElementById('lblSaldoCarregado');
   const saldoCarregado = obterSaldoCarregadoParaMes(visaoMes, visaoAno);
@@ -2187,8 +2210,12 @@ function atualizarTelaControle() {
   if (kpiDesp) kpiDesp.innerText = formatarMoeda(totDesp);
   if (kpiCart) kpiCart.innerText = formatarMoeda(totCartao);
   if (kpiInv) kpiInv.innerText = formatarMoeda(totInv);
+  if (kpiSonho) kpiSonho.innerText = formatarMoeda(totSonho);
   if (kpiSaldo) {
-    const saldo = totRec - totDesp - totCartao - totInv + saldoCarregado;
+    // `- totSonho` explícito: ele saiu de totDesp e sem esta parcela o saldo
+    // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
+    // já foi reservado para a meta.
+    const saldo = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
     kpiSaldo.innerText = formatarMoeda(saldo);
     kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
   }
@@ -2530,7 +2557,7 @@ function atualizarTelaControle() {
     acumInv += (d.invFixo || 0) + (d.invVar || 0) + (d.invExterno || 0) - (d.resgate || 0);
     return acumInv;
   });
-  htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido (custo de aquisição) — quanto a carteira vale hoje está em Meus investimentos.">Investimento acumulado</td>`;
+  htmlLinhas += `<tr class="linha-acumulada"><td class="coluna-fixa" title="Quanto você já aplicou, somando os aportes e descontando os resgates, até o fim de cada mês. É o valor investido — o custo de aquisição. O que ele virou está na linha de baixo.">Investimento acumulado</td>`;
   acumPorMes.forEach((v, i) => {
     const delta = v - (i === 0 ? aporteLiquidoAntesDaJanela : acumPorMes[i - 1]);
     const seta =
@@ -2540,6 +2567,41 @@ function atualizarTelaControle() {
     htmlLinhas += `<td style="text-align: right; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : ''}">${formatarMoeda(v)}${seta}</td>`;
   });
   htmlLinhas += `</tr>`;
+
+  // Rendimento acumulado — a outra metade da pergunta.
+  //
+  // A linha de cima é quanto SAIU do bolso; esta é quanto isso virou. Cada
+  // classe é valorada pela sua regra no fim daquele mês (juros compostos para
+  // renda fixa e previdência, fechamento da época para renda variável), em
+  // web/appliquei-rendimento.js.
+  //
+  // Não é linha de fluxo nem entra em soma nenhuma da tabela: nada aqui saiu
+  // ou entrou na conta corrente. É a valorização do estoque da linha acima, e
+  // por isso vem logo depois dela.
+  //
+  // Quando falta o histórico de preços de alguma ação, a posição daquele mês é
+  // valorada pela cotação de HOJE — e aí o número é uma estimativa, não o
+  // rendimento daquele mês. Nesse caso a célula ganha ~ e o título diz por quê.
+  // Preferir isso a esconder a linha: a pessoa que investe só em renda fixa
+  // tem o número exato, e quem tem ação sabe exatamente o que está olhando.
+  if (typeof rendCarteiraEm === 'function') {
+    const rendPorMes = dreDados.map((d) => {
+      const fimMes = new Date(d.ano, d.mes + 1, 0, 23, 59, 59).getTime();
+      // Nunca projeta além de agora: no mês corrente o rendimento é o de hoje.
+      return rendCarteiraEm(Math.min(fimMes, Date.now()));
+    });
+    const algumEstimado = rendPorMes.some((x) => x.estimado);
+    const tituloRend = algumEstimado
+      ? 'Quanto o seu capital aplicado rendeu até o fim de cada mês: valor de mercado menos o custo de aquisição. As células com ~ são estimativas — falta o histórico de preços de alguma ação, e a posição daquele mês foi valorada pela cotação de hoje.'
+      : 'Quanto o seu capital aplicado rendeu até o fim de cada mês: valor de mercado menos o custo de aquisição.';
+    htmlLinhas += `<tr class="linha-acumulada linha-rendimento"><td class="coluna-fixa" title="${tituloRend}">Rendimento acumulado${algumEstimado ? ' <span class="dre-rend-aprox" title="Alguns meses são estimados pela cotação de hoje.">~</span>' : ''}</td>`;
+    rendPorMes.forEach((x, i) => {
+      const cor = x.rendimento < -0.005 ? 'var(--tinta-vermelho)' : 'var(--tinta-verde)';
+      const sinal = x.rendimento > 0.005 ? '+' : '';
+      htmlLinhas += `<td style="text-align: right; color: ${cor}; font-weight: 600; ${i === indiceMesAtual ? 'background-color: var(--dre-destaque-forte);' : ''}">${x.estimado ? '~' : ''}${sinal}${formatarMoeda(x.rendimento)}</td>`;
+    });
+    htmlLinhas += `</tr>`;
+  }
 
   tbodyDRE.innerHTML = htmlLinhas;
 
