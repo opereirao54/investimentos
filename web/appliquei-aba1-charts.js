@@ -419,7 +419,14 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
     });
     // Valor de mercado consolidado de TODAS as classes. RF/Reserva e
     // Previdência rendem por juros compostos (mesma função dos KPIs e do Meu
-    // Patrimônio); RV usa a cotação atual (limitação: sem histórico de preços).
+    // Patrimônio); RV usa o fechamento DA ÉPOCA, de appliquei-rendimento.js.
+    //
+    // Aqui havia uma limitação declarada em comentário — "RV usa a cotação
+    // atual (sem histórico de preços)" —, que fazia a barra de março mostrar a
+    // posição de março valorada em setembro: a linha de mercado já nascia com
+    // todo o ganho do período aplicado ao passado. Sem o histórico à mão
+    // (rede fora, sem sessão) o comportamento volta a ser esse, que é o
+    // fallback de rendPrecoEm.
     let valorMercado = 0;
     Object.entries(posicao).forEach(([ticker, p]) => {
       if (p.qtd <= 0) return;
@@ -437,7 +444,9 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
       } else {
         const ativoMercado = mockAtivosMercado.find((a) => a.ticker === ticker);
         const precoAtual = ativoMercado ? ativoMercado.preco_atual : p.pm;
-        valorMercado += p.qtd * precoAtual;
+        const preco =
+          typeof rendPrecoEm === 'function' ? rendPrecoEm(ticker, refMs, precoAtual) : precoAtual;
+        valorMercado += p.qtd * preco;
       }
     });
     investido.push(Math.max(0, invest));
