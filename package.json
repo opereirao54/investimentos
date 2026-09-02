@@ -31,8 +31,8 @@
     "regras:publicar": "node scripts/publicar-regras-firestore.js"
   },
   "dependencies": {
-    "@sentry/browser": "^10.70.0",
-    "@sentry/node": "^10.70.0",
+    "@sentry/browser": "^10.71.0",
+    "@sentry/node": "^10.71.0",
     "firebase-admin": "^12.7.0",
     "zod": "^4.4.3"
   },
@@ -43,7 +43,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^15.5.2",
     "prettier": "^3.9.6",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "vite": "^5.4.21"
   },
   "lint-staged": {

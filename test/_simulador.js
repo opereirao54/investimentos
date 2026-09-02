@@ -49,6 +49,13 @@ const ORDEM_COMPLETA = [
 ];
 
 const HOJE = new Date();
+
+// Data da compra semeada no mundo. Tem de ser SEMPRE passado: obterResumoCarteira
+// ignora aporte com data futura ("programado, ainda não aconteceu"), então uma
+// data fixa no mês — era o dia 2 — apagava a posição nos primeiros dias e fazia
+// a venda ser recusada. Meia-noite de hoje é passado em qualquer dia do mês e
+// mantém a competência do mês corrente.
+const COMPRA_EM = new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate());
 const ymd = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -115,7 +122,7 @@ function criarMundo(opcoes) {
     quantidade: 100,
     preco_op: 30,
     tipo: 'compra',
-    data_op: new Date(HOJE.getFullYear(), HOJE.getMonth(), 2).toISOString(),
+    data_op: COMPRA_EM.toISOString(),
     categoria: 'renda_variavel',
     subcategoria: 'acoes',
     corretora: 'Rico',
@@ -130,7 +137,7 @@ function criarMundo(opcoes) {
       categoria: 'investimento_variavel',
       mes: HOJE.getMonth(),
       ano: HOJE.getFullYear(),
-      data: new Date(HOJE.getFullYear(), HOJE.getMonth(), 2).toISOString(),
+      data: COMPRA_EM.toISOString(),
       pago: true,
       temLegCaixa: true,
     },
@@ -144,7 +151,7 @@ function criarMundo(opcoes) {
       contaId: nubank.id,
       mes: HOJE.getMonth(),
       ano: HOJE.getFullYear(),
-      data: new Date(HOJE.getFullYear(), HOJE.getMonth(), 2).toISOString(),
+      data: COMPRA_EM.toISOString(),
       pago: true,
     }
   );

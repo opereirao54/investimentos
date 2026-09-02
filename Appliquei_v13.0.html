@@ -460,6 +460,7 @@
         body.valores-ocultos #controle #totalColDespesas,
         body.valores-ocultos #controle #totalColCartao,
         body.valores-ocultos #controle #totalColInv,
+        body.valores-ocultos #controle #totalColSonhos,
         body.valores-ocultos #controle .extrato-item .valor,
         body.valores-ocultos #controle #corpoTabelaDRE td:not(.coluna-fixa),
         body.valores-ocultos #controle canvas { filter: blur(6px); user-select: none; }
@@ -686,9 +687,13 @@
         .kpis-controle-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            grid-template-rows: 1fr 1fr;
+            grid-template-rows: 1fr 1fr auto;
             gap: 12px;
         }
+        /* Cinco cards em duas colunas: o quinto deita e ocupa a linha toda.
+           Sem isto sobraria uma célula vazia, que se lê como defeito. */
+        .kpi-mini.kpi-sonho { grid-column: 1 / -1; }
+        .kpi-mini.kpi-sonho .kpi-mini-sub { font-size: 10.5px; }
         @media (max-width: 600px) {
             .kpis-controle-grid { grid-template-columns: 1fr; grid-template-rows: auto; }
         }
@@ -845,6 +850,18 @@
         .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
         .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
+        /* Rendimento acumulado: mesma família visual do investimento acumulado
+           (as duas são ESTOQUE), sem a borda de topo — elas formam um par e uma
+           linha entre elas as separaria. O til marca o mês estimado. */
+        #controle .linha-rendimento td { border-top: none !important; }
+        #controle .linha-rendimento .coluna-fixa { font-weight: 600; }
+        #controle .dre-rend-aprox {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 15px; height: 15px; margin-left: 5px; border-radius: 4px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-mutado); font-size: 10px; font-weight: 700; cursor: help;
+        }
+
         /* Investimento acumulado: ESTOQUE embaixo das linhas de FLUXO. A borda
            dupla no topo marca a virada — dali para baixo não se soma na
            vertical. */
@@ -2030,6 +2047,7 @@
         .ext-tab:hover { background: var(--cor-superficie); }
         .ext-tab.on { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
         .ext-tab.ext-tab-inv.on { background: var(--cor-bg-info); color: var(--cor-txt-info); border-color: var(--cor-borda-info); }
+        .ext-tab.ext-tab-sonho.on { background: rgba(124,58,237,0.10); color: var(--tinta-roxo); border-color: rgba(124,58,237,0.30); }
 
         /* === RECORRENTE TOGGLE === */
         .recorrente-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 13px; background: var(--cor-bg-info); border: 1.5px solid var(--cor-borda-info); border-radius: 9px; margin-bottom: 14px; cursor: pointer; }
@@ -7022,6 +7040,10 @@
         #relatorio_mensal .rm-kpi[data-tipo="investimentos"] { --rm-kpi-cor: var(--tinta-roxo); --rm-kpi-bg: rgba(124,58,237,0.09); --rm-kpi-stroke: #7c3aed; --rm-kpi-fill-from: rgba(124,58,237,0.22); --rm-kpi-fill-to: rgba(124,58,237,0); }
         #relatorio_mensal .rm-kpi[data-tipo="dividendos"]    { --rm-kpi-cor: var(--tinta-azul); --rm-kpi-bg: rgba(14,165,233,0.10); --rm-kpi-stroke: #0ea5e9; --rm-kpi-fill-from: rgba(14,165,233,0.22); --rm-kpi-fill-to: rgba(14,165,233,0); }
         #relatorio_mensal .rm-kpi[data-tipo="bens"]          { --rm-kpi-cor: var(--tinta-ambar); --rm-kpi-bg: rgba(245,158,11,0.12); --rm-kpi-stroke: #f59e0b; --rm-kpi-fill-from: rgba(245,158,11,0.22); --rm-kpi-fill-to: rgba(245,158,11,0); }
+        /* Sonhos usa o ciano para não se confundir com o roxo dos aportes:
+           são dois destinos diferentes de dinheiro guardado, e o card existe
+           justamente para a pessoa parar de confundi-los com despesa. */
+        #relatorio_mensal .rm-kpi[data-tipo="sonhos"]        { --rm-kpi-cor: var(--tinta-ciano); --rm-kpi-bg: rgba(6,182,212,0.10); --rm-kpi-stroke: #06b6d4; --rm-kpi-fill-from: rgba(6,182,212,0.22); --rm-kpi-fill-to: rgba(6,182,212,0); }
 
         body.valores-ocultos #relatorio_mensal .rm-kpi-valor,
         body.valores-ocultos #relatorio_mensal .rm-hero-stat-valor,
@@ -8147,6 +8169,204 @@
         body.dark .btn-acao i,
         body.dark #patrimonio .inv-btn-add i { color: inherit; }
 
+        /* =====================================================================
+           GUIA DE PRIMEIROS PASSOS (web/appliquei-primeiros-passos.js)
+
+           Duas peças: o convite (modal, só com o app vazio) e o cartão de
+           passos, que mora no topo do conteúdo — dentro do fluxo, e não
+           flutuando, para nunca disputar espaço com o "+" do canto nem com os
+           drawers. Herda tudo do tema por variável; não há um hex sequer.
+           ===================================================================== */
+        #ppGuia { max-width: 1200px; margin: 0 auto 22px; }
+        #ppGuia:empty { display: none; }
+
+        .pp-cartao {
+            background: var(--cor-branco);
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            padding: 20px 22px 16px;
+            position: relative;
+            overflow: hidden;
+            animation: fadeIn 0.28s ease;
+        }
+        /* Fio de acento no topo — dá ao cartão a leitura de "isto é o começo"
+           sem precisar de fundo colorido, que brigaria com o tema escuro. */
+        .pp-cartao::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--cor-primaria), var(--cor-info));
+        }
+
+        .pp-cab { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .pp-cab-txt h2 {
+            font-size: 16px; font-weight: 700; font-family: 'Syne', sans-serif;
+            color: var(--cor-texto-principal); margin: 0 0 3px;
+            display: flex; align-items: center; gap: 8px; letter-spacing: -0.3px;
+        }
+        .pp-cab-txt h2 i { color: var(--cor-primaria); font-size: 19px; }
+        .pp-cab-txt p { margin: 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .pp-btn-fechar {
+            flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+            border: 1px solid var(--cor-borda); background: var(--cor-superficie);
+            color: var(--cor-texto-mutado); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: var(--transicao);
+        }
+        .pp-btn-fechar:hover { border-color: var(--cor-borda2); color: var(--cor-texto-principal); }
+
+        .pp-barra { height: 6px; border-radius: 99px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); overflow: hidden; margin-bottom: 16px; }
+        .pp-barra-fill { height: 100%; background: linear-gradient(90deg, var(--cor-primaria), var(--cor-info)); transition: width 0.45s ease; }
+
+        .pp-passos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .pp-passo {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 12px 14px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--radius-sm);
+            background: var(--cor-superficie);
+            transition: var(--transicao);
+        }
+        .pp-passo-feito { opacity: 0.72; border-color: var(--cor-borda-primaria); background: var(--cor-bg-primaria); }
+
+        .pp-num {
+            flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 700;
+            background: var(--cor-branco); border: 1.5px solid var(--cor-borda2);
+            color: var(--cor-texto-secundario); margin-top: 1px;
+        }
+        .pp-num-feito { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+        body.dark .pp-num-feito { color: #052e1a; }
+
+        /* flex-basis 0 e não auto: com `auto` a base é o max-content do texto,
+           e no celular (onde a linha pode quebrar) isso empurrava o corpo para
+           debaixo do número, deixando o passo com o dígito sozinho numa linha. */
+        .pp-passo-corpo { flex: 1 1 0; min-width: 0; }
+        .pp-passo-tit {
+            font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin-bottom: 3px;
+        }
+        .pp-passo-tit i { color: var(--cor-primaria); font-size: 15px; }
+        .pp-passo-feito .pp-passo-tit { text-decoration: line-through; text-decoration-color: var(--cor-borda2); }
+        .pp-passo-txt { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--cor-texto-secundario); }
+
+        .pp-selo {
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+            padding: 2px 7px; border-radius: 5px;
+            background: var(--cor-bg-info); color: var(--cor-txt-info); border: 1px solid var(--cor-borda-info);
+        }
+        .pp-selo-fraco { background: var(--cor-superficie); color: var(--cor-texto-mutado); border-color: var(--cor-borda); }
+
+        .pp-passo-acao { flex: 0 0 auto; display: flex; align-items: center; }
+        .pp-btn-passo {
+            display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+            padding: 8px 14px; border-radius: var(--radius-sm);
+            border: 1px solid var(--cor-primaria);
+            background: var(--cor-primaria); color: #fff;
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 600;
+            cursor: pointer; transition: var(--transicao);
+        }
+        .pp-btn-passo:hover { background: var(--cor-primaria-hover); border-color: var(--cor-primaria-hover); }
+        body.dark .pp-btn-passo { color: #052e1a; }
+        .pp-feito-txt {
+            display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+            font-size: 12px; font-weight: 700; color: var(--cor-txt-primaria);
+        }
+
+        .pp-nota, .pp-final {
+            margin-top: 14px; padding: 11px 13px; border-radius: var(--radius-sm);
+            font-size: 12.5px; line-height: 1.55;
+        }
+        .pp-nota { background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info); color: var(--cor-txt-info); }
+        .pp-nota i { vertical-align: -2px; }
+        .pp-final {
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria); color: var(--cor-txt-primaria);
+            display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+        }
+        .pp-final-txt i { vertical-align: -2px; font-size: 16px; }
+        .pp-btn-primario {
+            display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+            padding: 8px 16px; border-radius: var(--radius-sm); border: none;
+            background: var(--cor-primaria); color: #fff;
+            font-family: 'Figtree', sans-serif; font-size: 12.5px; font-weight: 600; cursor: pointer;
+            transition: var(--transicao);
+        }
+        .pp-btn-primario:hover { background: var(--cor-primaria-hover); }
+        body.dark .pp-btn-primario { color: #052e1a; }
+
+        .pp-rodape-links { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11.5px; color: var(--cor-texto-mutado); }
+        .pp-link { background: none; border: none; padding: 0; cursor: pointer; font-family: 'Figtree', sans-serif; font-size: 11.5px; font-weight: 600; color: var(--cor-texto-secundario); text-decoration: underline; }
+        .pp-link:hover { color: var(--cor-primaria); }
+        .pp-rodape-sep { opacity: 0.5; }
+
+        /* ---------- Convite (modal de boas-vindas) ---------- */
+        /* z-index abaixo do authGate (10050) e do billingGate (10060): se um
+           deles estiver na tela, o convite fica por baixo — e o guia nem tenta
+           abrir enquanto eles estiverem visíveis (ver ppAppLiberado). */
+        #ppBoasVindas {
+            display: none; position: fixed; inset: 0; z-index: 9996;
+            background: rgba(15,23,42,0.55); backdrop-filter: blur(3px);
+            align-items: center; justify-content: center; padding: 20px 16px; overflow-y: auto;
+        }
+        .pp-bv-caixa {
+            width: 100%; max-width: 560px; margin: auto;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius); padding: 26px 26px 22px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+            animation: fadeIn 0.24s ease; max-height: 92vh; overflow-y: auto;
+        }
+        .pp-bv-caixa h2 {
+            font-size: 19px; font-weight: 700; font-family: 'Syne', sans-serif;
+            color: var(--cor-texto-principal); margin: 0 0 6px;
+            display: flex; align-items: center; gap: 9px; letter-spacing: -0.4px;
+        }
+        .pp-bv-caixa h2 i { color: var(--cor-primaria); font-size: 22px; }
+        .pp-bv-sub { font-size: 13px; color: var(--cor-texto-mutado); margin: 0 0 16px; line-height: 1.55; }
+
+        /* O bloco que responde à dúvida. É o motivo de o modal existir, então
+           é o primeiro e o mais destacado. */
+        .pp-bv-resposta {
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria);
+            border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 16px;
+        }
+        .pp-bv-resposta-q { font-size: 12.5px; color: var(--cor-texto-mutado); font-style: italic; margin: 0 0 8px; line-height: 1.5; }
+        .pp-bv-resposta-a { font-size: 13.5px; color: var(--cor-txt-primaria); margin: 0; line-height: 1.6; }
+        .pp-bv-resposta-a strong { font-weight: 700; }
+
+        .pp-bv-mini { list-style: none; margin: 0 0 18px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+        .pp-bv-mini li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; color: var(--cor-texto-secundario); line-height: 1.5; }
+        .pp-bv-mini .pp-bv-mini-num {
+            flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda2);
+            color: var(--cor-texto-secundario);
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 700;
+        }
+        .pp-bv-mini strong { color: var(--cor-texto-principal); }
+
+        .pp-bv-acoes { display: flex; gap: 10px; flex-wrap: wrap; }
+        .pp-bv-acoes button { flex: 1 1 200px; padding: 12px 16px; border-radius: var(--radius-sm); font-family: 'Figtree', sans-serif; font-size: 13.5px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 7px; transition: var(--transicao); }
+        .pp-bv-seguir { border: none; background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover)); color: #fff; box-shadow: 0 4px 14px rgba(5,150,105,0.28); }
+        body.dark .pp-bv-seguir { color: #052e1a; }
+        .pp-bv-seguir:hover { filter: brightness(1.04); }
+        .pp-bv-pular { border: 1px solid var(--cor-borda2); background: var(--cor-superficie); color: var(--cor-texto-secundario); }
+        .pp-bv-pular:hover { border-color: var(--cor-texto-mutado); color: var(--cor-texto-principal); }
+        .pp-bv-nota { margin: 14px 0 0; font-size: 11.5px; color: var(--cor-texto-mutado); text-align: center; line-height: 1.5; }
+
+        @media (max-width: 768px) {
+            #ppGuia { margin-bottom: 18px; }
+            .pp-cartao { padding: 16px 15px 14px; }
+            .pp-passo { flex-wrap: wrap; }
+            .pp-passo-acao { width: 100%; padding-left: 36px; }
+            .pp-btn-passo { width: 100%; justify-content: center; }
+            .pp-final { flex-direction: column; align-items: stretch; }
+            .pp-btn-primario { justify-content: center; }
+            .pp-bv-caixa { padding: 22px 18px 18px; }
+            .pp-bv-caixa h2 { font-size: 17px; }
+            .pp-bv-acoes button { flex: 1 1 100%; }
+        }
+
     </style>
 </head>
 <body class="controle-ativo">
@@ -8232,6 +8452,34 @@
                 </div>
                 <p style="font-size:11.5px;color:var(--cor-texto-mutado,#94a39c);text-align:center;margin-top:14px;line-height:1.5;">Não recebeu? Confira a pasta de spam. O remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>.</p>
             </div>
+        </div>
+    </div>
+
+    <!-- Convite do guia de primeiros passos. Só abre com o app vazio — no
+         primeiro acesso e depois do "Recomeçar do zero". A primeira coisa
+         que ele faz é responder à dúvida que trava todo mundo no dia 1:
+         "preciso criar a conta antes de lançar?". -->
+    <div id="ppBoasVindas" role="dialog" aria-modal="true" aria-labelledby="ppBoasVindasTitulo">
+        <div class="pp-bv-caixa">
+            <h2 id="ppBoasVindasTitulo"><i class="ph-fill ph-hand-waving"></i> Bem-vindo à Appliquei</h2>
+            <p class="pp-bv-sub" id="ppBoasVindasSub">Antes de qualquer coisa, a dúvida que todo mundo tem no primeiro dia:</p>
+
+            <div class="pp-bv-resposta">
+                <p class="pp-bv-resposta-q">&ldquo;Preciso criar uma conta em Meu patrimônio para conseguir cadastrar uma despesa? E para a receita, também preciso?&rdquo;</p>
+                <p class="pp-bv-resposta-a"><strong>Não precisa.</strong> Ao lançar uma receita ou uma despesa você digita o nome do banco e a Appliquei cria a conta sozinha. Cadastrar antes serve para outra coisa: informar o <strong>saldo que você já tem hoje</strong>, para o seu patrimônio não começar negativo.</p>
+            </div>
+
+            <ol class="pp-bv-mini">
+                <li><span class="pp-bv-mini-num">1</span><span><strong>Suas contas</strong> — onde o dinheiro está agora, com o saldo atual.</span></li>
+                <li><span class="pp-bv-mini-num">2</span><span><strong>Sua receita</strong> — salário, pró-labore, aluguel recebido.</span></li>
+                <li><span class="pp-bv-mini-num">3</span><span><strong>Uma despesa</strong> — e o saldo da conta certa já se ajusta.</span></li>
+            </ol>
+
+            <div class="pp-bv-acoes">
+                <button type="button" class="pp-bv-seguir" onclick="ppComecarGuia()"><i class="ph-fill ph-compass"></i> Seguir o guia</button>
+                <button type="button" class="pp-bv-pular" onclick="ppPularGuia()"><i class="ph ph-arrow-right"></i> Pular, quero explorar sozinho</button>
+            </div>
+            <p class="pp-bv-nota">Você pode reabrir o guia quando quiser em <strong>&#9881; Configurações</strong>.</p>
         </div>
     </div>
 
@@ -8349,6 +8597,12 @@
             <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
                 <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
+            </div>
+
+            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:18px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Primeiros passos</label>
+                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">O guia que mostra por onde começar — contas, receita e despesa — e responde se é preciso cadastrar uma conta antes de lançar.</p>
+                <button class="btn-secundario" id="btnReabrirGuia" onclick="ppReabrirGuia()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-txt-primaria);border-color:var(--cor-borda-primaria);background:var(--cor-bg-primaria);"><i class="ph ph-compass"></i> Ver o guia de primeiros passos</button>
             </div>
 
             <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
@@ -8621,7 +8875,13 @@
     </aside>
 
     <main class="main-content">
-        
+
+        <!-- Guia de primeiros passos. Fica FORA das <section> de propósito:
+             acompanha a pessoa em todas as abas sem precisar ser redesenhado
+             a cada troca. Nasce vazio; web/appliquei-primeiros-passos.js
+             decide se preenche. -->
+        <div id="ppGuia" hidden></div>
+
         <section id="patrimonio" class="section">
 
             <!-- ================= TOPO: saldo + evolução =================
@@ -8948,7 +9208,7 @@
                         <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
                         <div>
                             <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
-                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos</div>
+                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
                         </div>
                     </div>
                     <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
@@ -8985,6 +9245,20 @@
                         </div>
                         <div class="kpi-mini-valor" id="kpiInvestimentosMes" style="color:var(--tinta-verde);">R$ 0,00</div>
                         <div class="kpi-mini-sub">aportes do mês</div>
+                    </div>
+                    <!-- Sonhos: 5º destino do dinheiro, e o único que não é
+                         consumo nem aplicação em ativo. Ficava somado às
+                         despesas, o que fazia "Total de despesas" subir no mês
+                         em que a pessoa guardou mais. Ocupa a linha inteira
+                         porque são cinco cards numa grade de duas colunas — a
+                         alternativa era deixar um buraco visível. -->
+                    <div class="kpi-mini kpi-sonho">
+                        <div class="kpi-mini-head">
+                            <span class="kpi-mini-pill" style="background:rgba(124,58,237,0.12);color:var(--tinta-roxo);"><i class="ph-fill ph-star"></i></span>
+                            <span class="kpi-mini-lbl">Sonhos</span>
+                        </div>
+                        <div class="kpi-mini-valor" id="kpiSonhosMes" style="color:var(--tinta-roxo);">R$ 0,00</div>
+                        <div class="kpi-mini-sub">guardado para metas — sai do caixa, mas não é despesa</div>
                     </div>
                 </div>
             </div>
@@ -9057,9 +9331,10 @@
                             <button class="ext-tab" onclick="filtrarExtrato(event,'despesa')">Saídas</button>
                             <button class="ext-tab" onclick="filtrarExtrato(event,'cartao')">Cartão</button>
                             <button class="ext-tab ext-tab-inv" onclick="filtrarExtrato(event,'investimento')">Investimentos</button>
+                            <button class="ext-tab ext-tab-sonho" onclick="filtrarExtrato(event,'sonho')">Sonhos</button>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;flex-shrink:0;">
+                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:14px;flex-shrink:0;">
                         <div style="text-align:center;padding:9px 8px;background:var(--cor-bg-primaria);border-radius:8px;border:1px solid var(--cor-borda-primaria);">
                             <div style="font-size:9.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Entradas</div>
                             <div id="totalColReceitas" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-primaria);">R$ 0,00</div>
@@ -9075,6 +9350,10 @@
                         <div style="text-align:center;padding:9px 8px;background:var(--cor-bg-info);border-radius:8px;border:1px solid var(--cor-borda-info);">
                             <div style="font-size:9.5px;color:var(--cor-txt-info);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Invest.</div>
                             <div id="totalColInv" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--cor-info);">R$ 0,00</div>
+                        </div>
+                        <div style="text-align:center;padding:9px 8px;background:rgba(124,58,237,0.08);border-radius:8px;border:1px solid rgba(124,58,237,0.25);">
+                            <div style="font-size:9.5px;color:var(--tinta-roxo);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Sonhos</div>
+                            <div id="totalColSonhos" style="font-size:13.5px;font-weight:700;font-family:'DM Mono',monospace;color:var(--tinta-roxo);">R$ 0,00</div>
                         </div>
                     </div>
                     <!-- Sub-filtro por categoria: as abas acima separam por TIPO
@@ -9141,6 +9420,11 @@
                         <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
                         <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                         <datalist id="listaBancosTransacao"></datalist>
+                        <!-- O asterisco lê-se como "escolha uma conta que você
+                             já cadastrou" — e foi essa leitura que travou o
+                             primeiro uso. O campo é texto livre: quem escreve
+                             um nome novo ganha a conta na hora. -->
+                        <small style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
                     </div>
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
@@ -10875,6 +11159,9 @@
     <script src="/web/appliquei-aba-carteira-recomendada.js?v=motor-carteira-1"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
+    <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
+         controle financeiro, que desenha a linha de rendimento da DRE. -->
+    <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
@@ -10886,5 +11173,9 @@
     <script src="/web/appliquei-jornada-conteudo.js?v=material-1"></script>
     <script src="/web/appliquei-jornada.js?v=material-1"></script>
     <script src="/web/appliquei-sonhos.js?v=conquista-no-card"></script>
+    <!-- Guia de primeiros passos. POR ÚLTIMO: lê contas, transacoes,
+         historicoCompras, bens e sonhos para saber quais passos já estão
+         feitos — todos declarados nos arquivos acima. -->
+    <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
 </body>
 </html>

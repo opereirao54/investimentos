@@ -15,6 +15,25 @@
 // Granularidade é o DIA: mpTimestampTransacao devolve o 1º do mês da
 // competência (correto para o Controle, grosso demais aqui), então a projeção
 // usa mpDataMovimento — a data real do lançamento.
+//
+// DUAS ASSERÇÕES DESTE ARQUIVO ESTÃO PARADAS (`todo`), e não por serem falsas.
+//
+// Elas dizem que o saldo de HOJE não pode conter a receita agendada — e o
+// produto discorda: mpTransacaoComputaCaixa conta entrada pela COMPETÊNCIA
+// (o 1º dia do mês), esteja paga ou não, então no dia 1º o salário do dia 10 já
+// aparece no saldo. Não é descuido: a tela do Controle não deixa marcar receita
+// como recebida (o botão é escondido para `categoria === 'receita'`), logo
+// `pago` nunca fica true e exigi-lo zeraria o saldo de todo mundo.
+//
+// O caminho para valer o que está escrito aqui é outro: contar entrada pela
+// DATA REAL (mpDataMovimento), como a projeção já faz. Isso muda o número da
+// dobra do Meu Patrimônio de quem informa vencimento na receita, e por isso é
+// decisão do dono, não de quem passou por aqui. Ver INV-24 no mapa.
+//
+// Estas asserções ficaram verdes desde 28/08 por sorte de calendário: com
+// prazos de "+10 e +20 dias", só nos últimos dez dias do mês eles caem no mês
+// seguinte e a competência ainda não começou. A varredura por dia do mês está
+// em test/integracao-inv23-projecao-nao-otimista.test.js.
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

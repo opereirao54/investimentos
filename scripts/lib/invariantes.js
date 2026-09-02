@@ -21,8 +21,17 @@ const MAPA = JSON.parse(
 );
 
 const VOCAB = MAPA.entidades.transacao.vocabularioCategorias;
+// `poupancaDirecionada` (sonho) entra no conjunto conhecido como qualquer
+// outro grupo. Ela existe separada de despesaConsumo porque sai do caixa sem
+// ser consumo — ver a nota do vocabulário no mapa.
 const CATEGORIAS_CONHECIDAS = new Set(
-  [].concat(VOCAB.entradaCaixa, VOCAB.aporte, VOCAB.transferenciaSaida, VOCAB.despesaConsumo)
+  [].concat(
+    VOCAB.entradaCaixa,
+    VOCAB.aporte,
+    VOCAB.transferenciaSaida,
+    VOCAB.despesaConsumo,
+    VOCAB.poupancaDirecionada || []
+  )
 );
 
 // Espelha mpEhEntradaCaixa (patrimonio.js). Se divergir, INV-05 acusa.

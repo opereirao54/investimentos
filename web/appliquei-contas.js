@@ -141,19 +141,42 @@ function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
             !!t.origemExterna
           );
         };
+  // "A foto de hoje já contou isto?" — a pergunta que decide o duplo-débito.
+  //
+  // A versão anterior respondia por aproximação: se a COMPETÊNCIA já tinha
+  // começado, assumia que a foto tinha contado. Isso vale para entrada (a foto
+  // conta entrada esteja paga ou não) e é FALSO para saída (a foto só conta
+  // saída com pago:true). Resultado: a despesa não paga de um mês que já
+  // começou não entrava na foto NEM na projeção — sumia das duas — e o saldo
+  // projetado ficava otimista exatamente como o comentário acima jura que não
+  // pode ficar. No dia 1º, com o aluguel do dia 21 por pagar, a projeção para o
+  // dia 26 mostrava o salário e escondia o aluguel.
+  //
+  // Agora a pergunta é feita a quem sabe respondê-la: a mesma função que monta
+  // a foto. Sem ela em escopo (ordem de carga, testes), cai para a heurística
+  // antiga — que erra menos do que não ter guarda nenhuma.
+  const jaNaFoto =
+    typeof mpTransacaoComputaCaixa === 'function'
+      ? function (t) {
+          return mpTransacaoComputaCaixa(t, deMs);
+        }
+      : function (t) {
+          return !(mpTimestampTransacao(t) > deMs);
+        };
+
   transacoes.forEach(function (t) {
-    // A janela usa as duas datas: `quando` (dia real) decide se cabe até ateMs,
-    // e a competência decide se já entrou na foto de hoje — assim nada é contado
-    // duas vezes nem fica de fora na virada do mês.
+    // `quando` (dia real) decide se cabe até ateMs; se já aconteceu antes de
+    // hoje, quem manda é a foto.
     const ts = quando(t);
     if (ts > ateMs) return;
-    if (!(ts > deMs) || !(mpTimestampTransacao(t) > deMs)) return;
+    if (!(ts > deMs)) return;
     if (
       (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
       t.temLegCaixa
     )
       return;
     if (ehExterno(t)) return;
+    if (jaNaFoto(t)) return;
     const chave =
       typeof mpChaveInstTransacao === 'function' ? mpChaveInstTransacao(t).key : t.contaId;
     if (!chave) return;
@@ -602,8 +625,18 @@ function renderMinhasContas() {
   });
   const ordem = ativas.concat(arquivadas);
   if (!ordem.length) {
+    // O texto antigo ("crie uma para registrar de onde o dinheiro entra e
+    // sai") lia-se como pré-requisito e foi metade da confusão do primeiro
+    // uso: quem chegava aqui achava que precisava cadastrar a conta ANTES de
+    // conseguir lançar. Não precisa — o lançamento cria a conta pelo nome
+    // digitado (executarInsercao → obterOuCriarContaPorNome). Cadastrar aqui
+    // serve para dizer quanto já havia na conta.
     wrap.innerHTML =
-      '<div class="mp-empty" style="padding:14px;"><i class="ph ph-bank"></i>Nenhuma conta cadastrada ainda. Crie uma para registrar de onde o dinheiro entra e sai.</div>';
+      '<div class="mp-empty" style="padding:14px;flex-direction:column;gap:6px;text-align:center;">' +
+      '<i class="ph ph-bank"></i>' +
+      '<span>Nenhuma conta cadastrada ainda.</span>' +
+      '<span style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;">Você <strong>não precisa</strong> criar uma conta aqui para lançar receita ou despesa — basta digitar o nome do banco no lançamento. Cadastre aqui quando quiser informar o <strong>saldo que já tem hoje</strong>.</span>' +
+      '</div>';
     return;
   }
   const fmt = function (v) {
