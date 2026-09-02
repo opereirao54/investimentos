@@ -1235,6 +1235,33 @@
             color: var(--cor-texto-principal);
             background-color: var(--cor-superficie);
             font-family: 'Figtree', sans-serif;
+            /* ALTURA ÚNICA — o que tirava o formulário do esquadro.
+               Com padding, fonte e borda IDÊNTICOS, o browser ainda dá
+               alturas diferentes a estes controles: input[type=text] fecha em
+               38px e input[type=month], input[type=number] e select em 40px,
+               porque a caixa interna deles não é texto simples (o mês tem
+               segmentos, o select tem o seu próprio miolo). Numa grade de
+               duas colunas isso põe dois campos lado a lado desencontrados em
+               2px numa das bordas — visível no cadastro de sonho, onde
+               "Valor total" e "Quando começar?" dividem a linha.
+               O min-height nivela todos pelo maior; o conteúdo de campo de
+               uma linha centra-se sozinho na vertical, então nada desloca. */
+            min-height: 40px;
+        }
+        /* Seta própria no select, como já se fazia nos painéis de lançamento
+           e de operação. A seta NATIVA é desenhada por cima do padding e come
+           a última letra em select estreito — era o "meses" cortado no prazo
+           do sonho. Com appearance:none a seta passa a ser esta imagem, e o
+           padding à direita reserva o espaço dela. */
+        .form-group select {
+            -webkit-appearance: none;
+            appearance: none;
+            padding-right: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+            cursor: pointer;
         }
         .form-group input[type="text"]:focus,
         .form-group input[type="number"]:focus,
@@ -1243,7 +1270,7 @@
         .form-group input[type="month"]:focus {
             outline: none;
             border-color: var(--cor-primaria);
-            background: var(--cor-branco);
+            background-color: var(--cor-branco);
             box-shadow: 0 0 0 3px rgba(5,150,105,.09);
         }
         .input-brl-wrap {
@@ -7551,7 +7578,11 @@
             padding: 11px 13px;
             border: 1.5px solid var(--cor-borda);
             border-radius: 11px;
-            background: var(--cor-superficie);
+            /* background-COLOR, não o atalho `background`: o atalho zera o
+               background-image e apagava a seta do select (esta regra é mais
+               específica que a que a desenha, então vencia mesmo vindo antes
+               no arquivo — o select do painel ficava sem indicador nenhum). */
+            background-color: var(--cor-superficie);
             color: var(--cor-texto-principal);
             font-size: 14px;
             font-family: 'Figtree', sans-serif;
@@ -7578,8 +7609,14 @@
         #painelNovoLancamento input[type=month]:hover::-webkit-calendar-picker-indicator,
         #drawerOperacao input[type=date]:hover::-webkit-calendar-picker-indicator { opacity: .85; }
         /* Seta custom premium nos selects */
+        /* Os seletores com `.form-group` precisam existir aqui: a regra de
+           campo acima é (id + classe) e vence uma (id + elemento), então sem
+           eles o `padding: 11px 13px` dela ganhava e o texto do select corria
+           por baixo da seta. */
         #painelNovoLancamento select,
-        #drawerOperacao select {
+        #painelNovoLancamento .form-group select,
+        #drawerOperacao select,
+        #drawerOperacao .form-group select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 12px center;
@@ -7602,7 +7639,7 @@
             outline: none;
             border-color: var(--cor-primaria);
             box-shadow: 0 0 0 3px rgba(5,150,105,0.16);
-            background: var(--cor-fundo-card);
+            background-color: var(--cor-fundo-card);
         }
         /* O prefixo R$ acende em verde quando o campo está focado */
         #painelNovoLancamento .input-brl-wrap:focus-within::before,
@@ -9828,7 +9865,7 @@
                 <div class="card-container" style="margin-bottom:0; min-width: 0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                         <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin:0;">Composição do mês</h4>
-                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
+                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background-color:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
                             <option value="contabil">Por Categoria</option>
                             <option value="despesa">Por Categoria da Despesa</option>
                         </select>
@@ -9948,7 +9985,7 @@
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
                         <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -9962,7 +9999,7 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
@@ -10393,14 +10430,14 @@
                         <label>Taxa de juros</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                         </div>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Período</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTempo" value="10" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                         </div>
                     </div>
                 </div>
@@ -10417,7 +10454,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Como você contribui</label>
-                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
+                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
                             <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
                         </div>
                     </div>
@@ -10429,7 +10466,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Regra que se aplica a você</label>
-                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
+                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
                                 <option value="mulher">Mulher — 62 anos, 15 de contribuição</option>
                                 <option value="homem">Homem — 65 anos, 20 de contribuição</option>
                             </select>
@@ -10605,7 +10642,7 @@
                 <div class="card-container" style="margin-bottom:16px;">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
                     <div class="form-group" style="margin-bottom:14px;">
-                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
+                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
                             <option value="valor">💰 Quero acumular um valor específico</option>
                             <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
                         </select>
@@ -10621,7 +10658,7 @@
                             <label>Em quanto tempo</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                             </div>
                         </div>
                     </div>
@@ -10653,7 +10690,7 @@
                             <label>Rentabilidade esperada</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
@@ -11231,7 +11268,7 @@
                         </div>
                         <div class="form-group">
                             <label>Quando começar?</label>
-                            <input type="month" id="sonhoMesInicio" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                            <input type="month" id="sonhoMesInicio">
                             <span style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Pode adiar — útil pra esperar 13º, férias, etc.</span>
                         </div>
                     </div>
@@ -11240,8 +11277,8 @@
                         <div class="form-group">
                             <label>Prazo para conquista</label>
                             <div style="display:flex;gap:6px;">
-                                <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
-                                <select id="sonhoPrazoUnidade" style="flex:1;padding:10px 8px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;">
+                                <select id="sonhoPrazoUnidade" style="flex:1;">
                                     <option value="meses" selected>meses</option>
                                     <option value="anos">anos</option>
                                 </select>
@@ -11256,7 +11293,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Categoria</label>
-                            <select id="sonhoCategoria" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                            <select id="sonhoCategoria">
                                 <option value="viagem">✈️ Viagem</option>
                                 <option value="veiculo">🚗 Veículo</option>
                                 <option value="imovel">🏠 Imóvel</option>
@@ -11272,7 +11309,7 @@
 
                     <div class="form-group">
                         <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro)">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
-                        <select id="sonhoContaOrigem" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;"></select>
+                        <select id="sonhoContaOrigem"></select>
                     </div>
 
                     <div class="form-group">
@@ -11529,7 +11566,7 @@
                             <i class="ph ph-magnifying-glass" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--cor-texto-mutado);font-size:16px;"></i>
                             <input type="text" id="faqBuscaInput" placeholder="Buscar uma dúvida (ex.: como cadastrar um ativo)" oninput="filtrarFaq()" style="width:100%;padding:11px 13px 11px 38px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                         </div>
-                        <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
+                        <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
                             <option value="">Todas as categorias</option>
                             <option value="conta">Conta & assinatura</option>
                             <option value="patrimonio">Patrimônio & investimentos</option>
