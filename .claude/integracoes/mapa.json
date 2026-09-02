@@ -2,7 +2,7 @@
   "$schema": "./mapa.schema.md",
   "versao": 1,
   "onda": 3,
-  "atualizadoEm": "2026-08-28",
+  "atualizadoEm": "2026-09-02",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
   "entidades": {
     "transacao": {
@@ -29,7 +29,9 @@
         "web/appliquei-relatorio-mensal.js",
         "web/appliquei-aba1-charts.js",
         "web/appliquei-sonhos.js",
-        "web/appliquei-jornada.js"
+        "web/appliquei-jornada.js",
+        "web/appliquei-insights.js",
+        "web/appliquei-insights-ui.js"
       ],
       "camposDeLigacao": [
         {
@@ -101,6 +103,11 @@
           "web/appliquei-app.js (a própria implementação)",
           "web/appliquei-utils.js confirmarImportacao (restauração de backup)"
         ]
+      },
+      "leitoresSomenteLeitura": {
+        "nota": "O painel de insights (web/appliquei-insights.js + -ui.js) LÊ transações e NUNCA escreve. É decisão de produto — \"sempre sugerir, nunca aplicar\" — e não convenção: categorização errada aplicada em silêncio contamina a DRE e o relatório mensal sem deixar rastro. O card leva o usuário até o formulário; quem grava é ele, por salvarTransacoes(). Travado por test/insights-ui.test.js, que varre os dois arquivos (sem comentários) atrás de salvarTransacoes, futurorico_transacoes, mutação de array e atribuição a `transacoes` — e que foi verificado falhando com uma violação injetada.",
+        "arquivos": ["web/appliquei-insights.js", "web/appliquei-insights-ui.js"],
+        "testes": ["test/insights-motor.test.js", "test/insights-ui.test.js"]
       }
     },
     "conta": {
@@ -272,6 +279,21 @@
           "formato": "bem_{timestamp}_{rand}"
         }
       ]
+    },
+    "insight": {
+      "titulo": "Insight (leitura automática do Controle Financeiro)",
+      "chaveArmazenamento": "appliquei_insights_dispensados",
+      "globalWindow": "AppliqueiInsights / AppliqueiInsightsUI",
+      "declaradaEm": "web/appliquei-insights.js:1",
+      "topologia": "derivada-sem-persistencia",
+      "notaTopologia": "Insight não é dado guardado: é recalculado do zero a cada render de atualizarTelaControle(), sobre o MÊS EM VISÃO. A única coisa persistida é a lista de dispensados. O id de cada insight carrega a competência (anomalia:transporte:2026-09), então dispensar em setembro não cala outubro — dispensa é \"já vi isto\", não \"nunca mais me fale disto\".",
+      "produtores": ["web/appliquei-insights.js"],
+      "consumidores": ["web/appliquei-insights-ui.js", "web/appliquei-aba-controle-financeiro.js"],
+      "dependeDe": {
+        "transacao": "fonte única dos seis detectores",
+        "saldoCaixaPorConta": "web/appliquei-contas.js — o insight de aperto NÃO recalcula projeção; recebe a função canônica de fora. Reimplementar criaria um segundo saldo projetado que diverge do primeiro no dia em que alguém corrigir só um dos dois, e quem descobre a divergência é sempre o usuário. Ver INV-23."
+      },
+      "limiares": "INSIGHTS_LIMIARES em web/appliquei-insights.js — calibragem conservadora de propósito. O erro caro não é calar um insight: é mostrar cinco por mês, treinar o usuário a ignorar o painel e levar junto o alerta que importava."
     }
   },
   "prefixosDeId": {

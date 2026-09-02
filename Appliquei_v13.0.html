@@ -632,6 +632,477 @@
         .card-destaque.accent { background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #047857; }
         .card-destaque.accent::before { background: rgba(255,255,255,0.3); }
 
+
+        /* ═══════════════════════════════════════════════════════════════
+           PAINEL DE INSIGHTS — Camada 1 (inteligência sem LLM)
+           ───────────────────────────────────────────────────────────────
+           Linguagem própria, de propósito. O resto do Controle é medição
+           ("quanto foi"); isto é leitura ("o que isso quer dizer"), e as
+           duas coisas não podem parecer a mesma. A distinção é feita com
+           três recursos e nenhum enfeite solto: uma FAIXA de severidade na
+           borda, um fundo levemente TINGIDO pela mesma severidade, e a
+           PROVA visível (sparkline + linha de base) dentro do card.
+
+           Nada aqui aplica mudança nenhuma: todo card é uma sugestão com
+           saída ("dispensar"). Por isso a severidade é sinal, não alarme —
+           tinge, não grita.
+
+           Reusa as --tinta-* do app, que já passam AA nos dois temas
+           (ver test/tema-escuro-tintas.test.js). Zero cor nova. */
+        :root {
+            --ins-gap: 14px;
+            --ins-pad: 18px;
+            --ins-raio: var(--radius);
+            --ins-faixa: 3px;
+            /* Alfa do tingimento de fundo. Baixo o suficiente para o texto
+               continuar com o contraste do tema, alto o suficiente para o
+               olho separar um card crítico de um informativo de relance. */
+            --ins-tint-alfa: 0.055;
+            --ins-tint-alfa-hover: 0.085;
+            --ins-spark-largura: 84px;
+            --ins-spark-altura: 28px;
+        }
+        body.dark {
+            /* No escuro o mesmo alfa some contra a superfície: sobe. */
+            --ins-tint-alfa: 0.10;
+            --ins-tint-alfa-hover: 0.15;
+        }
+
+        .ins-painel { margin-bottom: 20px; }
+        .ins-painel-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .ins-painel-titulo {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--cor-texto-mutado);
+            font-family: 'Figtree', sans-serif;
+        }
+        .ins-painel-titulo i { font-size: 15px; color: var(--cor-primaria); }
+        .ins-painel-contagem {
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria);
+            font-family: 'DM Mono', monospace;
+        }
+        .ins-painel-nota {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+        }
+
+        .ins-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--ins-gap);
+        }
+
+        /* ── O CARD ────────────────────────────────────────────────────
+           `--ins-cor` é trocada por modificador de severidade; tudo aqui
+           deriva dela, então uma severidade nova custa uma linha. */
+        .ins-card {
+            --ins-cor: var(--cor-texto-mutado);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: var(--ins-pad);
+            padding-left: calc(var(--ins-pad) + var(--ins-faixa));
+            background:
+                linear-gradient(180deg,
+                    color-mix(in srgb, var(--ins-cor) calc(var(--ins-tint-alfa) * 100%), transparent),
+                    transparent 65%),
+                var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--ins-raio);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            transition:
+                box-shadow var(--transicao),
+                transform var(--transicao),
+                border-color var(--transicao);
+        }
+        /* A faixa de severidade. Gradiente que desmaia para baixo: marca a
+           entrada da leitura sem transformar o card num bloco colorido. */
+        .ins-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: var(--ins-faixa);
+            background: linear-gradient(180deg, var(--ins-cor), transparent 85%);
+        }
+        .ins-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--ins-cor) 35%, var(--cor-borda));
+        }
+        .ins-card:focus-within {
+            border-color: var(--ins-cor);
+        }
+
+        .ins-card--critico     { --ins-cor: var(--tinta-vermelho); }
+        .ins-card--atencao     { --ins-cor: var(--tinta-ambar); }
+        .ins-card--informativo { --ins-cor: var(--tinta-azul); }
+        .ins-card--positivo    { --ins-cor: var(--tinta-verde); }
+
+        /* ── Cabeçalho: ícone + rótulo + dispensar ───────────────────── */
+        .ins-card-head { display: flex; align-items: flex-start; gap: 10px; }
+        .ins-card-icone {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            font-size: 18px;
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 13%, transparent);
+        }
+        .ins-card-headtxt { flex: 1; min-width: 0; }
+        /* A severidade também é TEXTO, nunca só cor — daltonismo, impressão
+           e modo de alto contraste precisam ler o mesmo sinal. */
+        .ins-card-sev {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--ins-cor);
+            font-family: 'Figtree', sans-serif;
+        }
+        .ins-card-titulo {
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.3;
+            color: var(--cor-texto-principal);
+            margin-top: 1px;
+            overflow-wrap: anywhere;
+        }
+        .ins-dispensar {
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--cor-texto-mutado);
+            cursor: pointer;
+            font-size: 15px;
+            opacity: 0;
+            transition: opacity var(--transicao), background var(--transicao), color var(--transicao);
+        }
+        .ins-card:hover .ins-dispensar,
+        .ins-dispensar:focus-visible { opacity: 1; }
+        .ins-dispensar:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        /* Toque não tem hover: no touch o botão é sempre visível e o alvo
+           cresce para o mínimo acessível. */
+        @media (hover: none) {
+            .ins-dispensar { opacity: 1; width: 44px; height: 44px; min-width: 44px; }
+        }
+
+        /* ── Corpo: número + sparkline ───────────────────────────────── */
+        .ins-card-corpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+        .ins-card-valor {
+            font-family: 'DM Mono', monospace;
+            font-size: 23px;
+            font-weight: 500;
+            letter-spacing: -0.8px;
+            line-height: 1.05;
+            color: var(--cor-texto-principal);
+        }
+        .ins-card-valor-sub {
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+            margin-top: 3px;
+        }
+        .ins-delta {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 99px;
+            font-family: 'DM Mono', monospace;
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 13%, transparent);
+        }
+        .ins-spark { flex-shrink: 0; display: block; overflow: visible; }
+
+        /* ── A prova ─────────────────────────────────────────────────────
+           O que separa isto de um app que só afirma. A frase é o argumento;
+           a evidência é a conta que o sustenta, sempre disponível e sempre
+           fechada por padrão — quem confia não é obrigado a ler. */
+        .ins-card-frase {
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: var(--cor-texto-secundario);
+        }
+        .ins-card-frase strong { color: var(--cor-texto-principal); font-weight: 650; }
+        .ins-porque { border-top: 1px dashed var(--cor-borda); padding-top: 10px; }
+        .ins-porque > summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-mutado);
+            cursor: pointer;
+            list-style: none;
+            border-radius: 6px;
+            padding: 3px 2px;
+        }
+        .ins-porque > summary::-webkit-details-marker { display: none; }
+        .ins-porque > summary:hover { color: var(--cor-texto-principal); }
+        .ins-porque > summary i { font-size: 13px; transition: transform var(--transicao); }
+        .ins-porque[open] > summary i { transform: rotate(180deg); }
+        .ins-porque-corpo {
+            margin-top: 8px;
+            display: grid;
+            gap: 5px;
+            font-size: 11.5px;
+            color: var(--cor-texto-mutado);
+        }
+        .ins-porque-linha { display: flex; justify-content: space-between; gap: 10px; }
+        .ins-porque-linha b {
+            color: var(--cor-texto-principal);
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Ações ──────────────────────────────────────────────────────
+           Verbo do lado do usuário ("Marcar como fixa"), nunca do app
+           ("Corrigir"): o card sugere, quem aplica é ele. */
+        .ins-card-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ins-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 13px;
+            min-height: 36px;
+            border-radius: 9px;
+            font-size: 12.5px;
+            font-weight: 600;
+            font-family: 'Figtree', sans-serif;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background var(--transicao), border-color var(--transicao), transform var(--transicao);
+        }
+        .ins-btn i { font-size: 15px; }
+        .ins-btn:active { transform: scale(0.97); }
+        .ins-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .ins-btn--primario {
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 12%, transparent);
+            border-color: color-mix(in srgb, var(--ins-cor) 28%, transparent);
+        }
+        .ins-btn--primario:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--ins-cor) 20%, transparent);
+        }
+        .ins-btn--fantasma { color: var(--cor-texto-mutado); background: transparent; }
+        .ins-btn--fantasma:hover:not(:disabled) {
+            background: var(--cor-superficie);
+            color: var(--cor-texto-principal);
+        }
+        /* Foco visível único para tudo que é clicável no painel. */
+        .ins-btn:focus-visible,
+        .ins-dispensar:focus-visible,
+        .ins-porque > summary:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px;
+        }
+        @media (hover: none) {
+            .ins-btn { min-height: 44px; padding: 11px 15px; }
+        }
+
+        /* ── Estado "ainda aprendendo" ───────────────────────────────────
+           Base curta não gera análise: sem 3 meses, mediana é só "o outro
+           mês". A tela diz o que falta em vez de fingir que analisou. */
+        .ins-vazio {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px var(--ins-pad);
+            border: 1px dashed var(--cor-borda2);
+            border-radius: var(--ins-raio);
+            background: var(--cor-branco);
+        }
+        .ins-vazio-icone {
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            font-size: 20px;
+            color: var(--cor-primaria);
+            background: var(--cor-bg-primaria);
+        }
+        .ins-vazio-txt { flex: 1; min-width: 0; }
+        .ins-vazio-titulo { font-size: 13px; font-weight: 650; color: var(--cor-texto-principal); }
+        .ins-vazio-sub { font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .ins-progresso {
+            height: 4px;
+            border-radius: 99px;
+            background: var(--cor-superficie);
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .ins-progresso > i {
+            display: block;
+            height: 100%;
+            border-radius: 99px;
+            background: var(--cor-primaria);
+            transition: width 0.4s ease;
+        }
+
+        /* ── Entrada escalonada ──────────────────────────────────────────
+           Curta e com propósito: os cards chegam depois do resto da tela e
+           a defasagem explica a ordem de leitura (crítico primeiro). */
+        @keyframes insEntrada {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .ins-card { animation: insEntrada 0.24s ease both; }
+        .ins-card:nth-child(2) { animation-delay: 0.04s; }
+        .ins-card:nth-child(3) { animation-delay: 0.08s; }
+        .ins-card:nth-child(4) { animation-delay: 0.12s; }
+        .ins-card:nth-child(n + 5) { animation-delay: 0.16s; }
+        @media (prefers-reduced-motion: reduce) {
+            .ins-card { animation: none; }
+            .ins-card:hover { transform: none; }
+            .ins-btn:active { transform: none; }
+            .ins-progresso > i { transition: none; }
+        }
+
+        /* ── Telas estreitas: carrossel com encaixe ──────────────────────
+           Empilhar 5 cards empurraria os Vencimentos para fora da primeira
+           dobra no celular. A faixa horizontal preserva a ordem da tela e
+           deixa a análise a um deslize. */
+        @media (max-width: 720px) {
+            .ins-grid {
+                display: flex;
+                gap: 12px;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                /* Sangra até a borda da tela e devolve o respiro por dentro,
+                   para o card não parecer cortado no meio do padding. */
+                margin-inline: -16px;
+                padding: 2px 16px 8px;
+            }
+            .ins-grid::-webkit-scrollbar { display: none; }
+            .ins-card {
+                flex: 0 0 86%;
+                max-width: 320px;
+                scroll-snap-align: start;
+            }
+        }
+
+        /* ── Sugestão de categoria no formulário de lançamento ──────────
+           Aparece abaixo da descrição quando o histórico do próprio usuário
+           responde "isso aqui você costuma lançar como o quê".
+
+           NUNCA preenche sozinha. O botão "Usar" é o único caminho, e ele
+           chama exatamente selecionarChipTipo + verificarRegraCartao — as
+           mesmas funções do clique manual, para não existir um segundo jeito
+           de preencher o formulário que escape das regras do primeiro. */
+        .ins-sugestao {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 8px;
+            padding: 9px 11px;
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: 10px;
+            background: var(--cor-bg-primaria);
+            animation: insEntrada 0.2s ease both;
+        }
+        .ins-sugestao-icone { flex-shrink: 0; font-size: 16px; color: var(--cor-primaria); }
+        .ins-sugestao-txt {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--cor-txt-primaria);
+        }
+        .ins-sugestao-txt b { font-weight: 700; }
+        .ins-sugestao-base { display: block; font-size: 10.5px; opacity: 0.75; margin-top: 1px; }
+        .ins-sugestao-usar {
+            flex-shrink: 0;
+            padding: 6px 12px;
+            min-height: 32px;
+            border: 1px solid var(--cor-primaria);
+            border-radius: 8px;
+            background: var(--cor-primaria);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Figtree', sans-serif;
+            cursor: pointer;
+            transition: background var(--transicao), transform var(--transicao);
+        }
+        .ins-sugestao-usar:hover { background: var(--cor-primaria-hover); }
+        .ins-sugestao-usar:active { transform: scale(0.96); }
+        .ins-sugestao-nao {
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--cor-txt-primaria);
+            opacity: 0.6;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .ins-sugestao-nao:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+        .ins-sugestao-usar:focus-visible,
+        .ins-sugestao-nao:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px;
+        }
+        @media (hover: none) {
+            .ins-sugestao-usar { min-height: 44px; padding: 11px 14px; }
+            .ins-sugestao-nao { width: 44px; height: 44px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ins-sugestao { animation: none; }
+            .ins-sugestao-usar:active { transform: none; }
+        }
+
+        /* Realce temporário no extrato, disparado pelo card de insight.
+           Some sozinho em 6s — é um "olhe aqui", não um estado. */
+        .extrato-item.ins-realce {
+            background: color-mix(in srgb, var(--cor-primaria) 10%, transparent);
+            box-shadow: inset 2px 0 0 var(--cor-primaria);
+            border-radius: 8px;
+            transition: background var(--transicao), box-shadow var(--transicao);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .extrato-item.ins-realce { transition: none; }
+        }
+
         /* === KPIs do Controle Financeiro: hero + grid 2x2 === */
         .kpis-controle {
             display: grid;
@@ -8159,6 +8630,7 @@
            Quando o acento clareia, o texto escurece: #052e1a dá 7,74:1 no
            extremo escuro do gradiente e 9,76:1 no claro. */
         body.dark .btn-acao,
+        body.dark .ins-sugestao-usar,
         body.dark .dia-picker-grade .dia-chip.ativo,
         /* A regra original do botão de registrar é ancorada em #patrimonio: um
            seletor de id ganha de body.dark, então a correção precisa do mesmo id
@@ -8167,6 +8639,7 @@
             color: #052e1a;
         }
         body.dark .btn-acao i,
+        body.dark .ins-sugestao-usar i,
         body.dark #patrimonio .inv-btn-add i { color: inherit; }
 
         /* =====================================================================
@@ -9284,6 +9757,8 @@
                 <div id="acoesBannerSaldoMesAnt" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
             </div>
 
+            <div id="painelInsights"></div>
+
             <div id="painelVencimentos" style="display:none;margin-bottom:16px;">
                 <div style="font-size:11.5px;font-weight:600;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Próximos vencimentos</div>
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
@@ -9389,7 +9864,8 @@
 
                     <div class="form-group">
                         <label>Descrição</label>
-                        <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz">
+                        <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
+                        <div id="sugestaoCategoria"></div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;">
                         <div class="form-group">
@@ -11162,7 +11638,9 @@
     <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
+    <script src="/web/appliquei-insights.js?v=insights-1"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
+    <script src="/web/appliquei-insights-ui.js?v=insights-1"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>

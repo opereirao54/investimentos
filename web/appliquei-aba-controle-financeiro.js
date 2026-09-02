@@ -901,6 +901,9 @@ function atualizarDatalistDescricoes() {
 function prepararEdicao(id) {
   const trans = transacoes.find((t) => t.id === id);
   if (!trans) return;
+  // Editando, a classificação já existe: sugerir outra seria discutir com o
+  // usuário sobre uma decisão que ele tomou.
+  if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   document.getElementById('descTransacao').value = trans.descricao;
   setValorBRLInput(document.getElementById('valorTransacao'), trans.valor);
   document.getElementById('categoriaTransacao').value = trans.categoria;
@@ -943,6 +946,7 @@ function prepararEdicao(id) {
 }
 
 function cancelarEdicaoControle() {
+  if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   document.getElementById('editTransacaoId').value = '';
   document.getElementById('descTransacao').value = '';
   document.getElementById('valorTransacao').value = '';
@@ -1253,6 +1257,7 @@ function executarInsercao() {
     }
   } catch (_) {}
   document.getElementById('descTransacao').value = '';
+  if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   document.getElementById('valorTransacao').value = '';
   document.getElementById('transacaoFixa').checked = false;
   document.getElementById('qtdParcelas').value = 1;
@@ -2160,7 +2165,7 @@ function atualizarTelaControle() {
                 : 'investimento';
 
       let itemHtml = `
-            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}">
+            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
                 <div>
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
                     <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${catDespExtrato}${vencimentoHtml}</span>
@@ -2606,6 +2611,12 @@ function atualizarTelaControle() {
   tbodyDRE.innerHTML = htmlLinhas;
 
   atualizarTermometro60();
+
+  // O painel de insights fecha o render do Controle. Fica por ÚLTIMO de
+  // propósito: ele lê o extrato já desenhado para realçar linhas, e roda
+  // sobre o mês em visão — navegar para agosto reanalisa agosto em vez de
+  // mostrar a leitura de setembro num mês que não é o dela.
+  if (typeof insightsUiRenderizar === 'function') insightsUiRenderizar();
 }
 
 // ============================================================
