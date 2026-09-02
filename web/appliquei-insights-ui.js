@@ -321,26 +321,44 @@ function insightsUiApresentar(ins) {
     };
   }
   if (ins.tipo === 'aperto') {
+    var dia = function (ms) {
+      return new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    };
+    var passageiro = ins.recuperaMs != null;
+    // O CARD NÃO FALA DE SALDO — fala de ORDEM.
+    //
+    // O saldo livre da tela é de competência: receita menos saídas do mês
+    // inteiro, independente do dia. Anunciar "seu caixa fica negativo" ao
+    // lado de um saldo livre positivo lê-se como contradição, e foi
+    // exatamente onde o primeiro utilizador travou. A informação que sobra
+    // de pé, e que a tela ainda não dava, é o DESCOMPASSO DE DATAS: neste
+    // mês há contas vencendo antes de o dinheiro entrar.
     return {
-      icone: 'ph-fill ph-warning-circle',
-      titulo: 'Seu caixa fica negativo em ' + insightsUiPlural(ins.emDias, 'dia', 'dias'),
-      valor: v(ins.valor),
-      valorSub: 'projeção para ' + new Date(ins.quandoMs).toLocaleDateString('pt-BR'),
-      delta: 'em ' + ins.emDias + 'd',
-      frase:
-        'Somando o que já está agendado, o saldo furará em ' +
-        '<strong>' +
-        new Date(ins.quandoMs).toLocaleDateString('pt-BR') +
-        '</strong>. ' +
-        // Prometer folga que não existe é pior que não dizer nada: com o furo
-        // a um ou dois dias, "ainda dá tempo de remanejar" é falso.
-        (ins.emDias <= 2
-          ? 'É praticamente agora — veja o que dá para adiar.'
-          : 'Ainda dá tempo de remanejar um vencimento.'),
+      icone: passageiro ? 'ph-fill ph-calendar-x' : 'ph-fill ph-warning-circle',
+      titulo: passageiro
+        ? 'Entre ' + dia(ins.quandoMs) + ' e ' + dia(ins.recuperaMs) + ', sai antes de entrar'
+        : 'A partir de ' + dia(ins.quandoMs) + ', sai mais do que entra',
+      valor: v(Math.abs(ins.valor)),
+      valorSub: 'é o que falta no pior dia',
+      delta: passageiro ? insightsUiPlural(ins.diasNoVermelho, 'dia', 'dias') : 'sem data de volta',
+      frase: passageiro
+        ? 'O mês em si fecha no positivo — isto é ordem, não falta de dinheiro: ' +
+          'algumas contas vencem <strong>antes</strong> de a receita cair. ' +
+          'Adiar um vencimento para depois de ' +
+          dia(ins.recuperaMs) +
+          ' resolve.'
+        : 'Somando o que já está agendado nas suas contas, as saídas passam as ' +
+          'entradas a partir de <strong>' +
+          dia(ins.quandoMs) +
+          '</strong> e não voltam ao azul dentro da janela analisada.',
       prova: [
-        ['Data do furo', new Date(ins.quandoMs).toLocaleDateString('pt-BR')],
-        ['Saldo projetado', v(ins.valor)],
-        ['Fonte', 'saldo projetado das contas'],
+        ['Primeiro dia no vermelho', new Date(ins.quandoMs).toLocaleDateString('pt-BR')],
+        passageiro
+          ? ['Volta ao positivo em', new Date(ins.recuperaMs).toLocaleDateString('pt-BR')]
+          : ['Volta ao positivo', 'não, dentro da janela'],
+        ['Maior falta no período', v(Math.abs(ins.valor))],
+        // Sem esta linha o número parece brigar com o saldo livre do topo.
+        ['Conta feita sobre', 'saldo das contas cadastradas, por data'],
       ],
       acao: { rotulo: 'Ver os vencimentos', icone: 'ph ph-calendar-dots' },
     };
@@ -653,6 +671,83 @@ function insightsUiEstadoLimpo(meta) {
 }
 
 /**
+ * Constrói a função de saldo projetado que o detector de aperto usa — ou
+ * devolve `null` para ele NÃO rodar.
+ *
+ * ═══ O DEFEITO QUE ESTA FUNÇÃO CORRIGE ═══
+ *
+ * A primeira versão somava TODOS os baldes de saldoCaixaPorConta(). Só que
+ * nem todo balde é uma conta: mpCalcularSaldoPorInstituicao cria buckets
+ * sintéticos para o dinheiro que não dá para atribuir —
+ *   · `a-reconciliar`  → lançamento sem conta e sem banco;
+ *   · `nome:<banco>`   → banco digitado que não tem conta cadastrada.
+ * Estes NÃO recebem saldo de abertura (abertura só vem de contasAtivas()),
+ * então eles só acumulam saída e ficam negativos POR CONSTRUÇÃO.
+ *
+ * Medido num cenário de mês positivo sem contas atribuídas: a projeção dava
+ * −2.500 no primeiro dia, e os −2.500 eram integralmente `a-reconciliar`. O
+ * card anunciava um rombo que era, na verdade, cadastro incompleto. Somar um
+ * balde contábil como se fosse dinheiro é inventar um saldo que não é de
+ * ninguém.
+ *
+ * Agora: só contas cadastradas entram na conta. E se houver QUALQUER
+ * movimento fora delas, a resposta certa não é um número menos errado — é
+ * não responder. Com parte das saídas sem dono, nenhuma projeção de caixa é
+ * confiável, e um alerta que erra em dinheiro custa mais do que um alerta que
+ * não aparece.
+ */
+function insightsUiFonteDeSaldo() {
+  if (typeof saldoCaixaPorConta !== 'function' || typeof contasAtivas !== 'function') return null;
+
+  var idsReais = {};
+  var qtdContas = 0;
+  try {
+    contasAtivas().forEach(function (c) {
+      if (c && c.id) {
+        idsReais[c.id] = true;
+        qtdContas++;
+      }
+    });
+  } catch (_) {
+    return null;
+  }
+  if (!qtdContas) return null;
+
+  function separar(ms) {
+    var mapa = saldoCaixaPorConta(ms) || {};
+    var emContas = 0;
+    var foraDeConta = 0;
+    Object.keys(mapa).forEach(function (k) {
+      var v = Number(mapa[k]) || 0;
+      if (idsReais[k]) emContas += v;
+      else foraDeConta += v;
+    });
+    return { emContas: emContas, foraDeConta: foraDeConta };
+  }
+
+  // A validação é feita nas DUAS pontas, antes de devolver a função, e não
+  // dia a dia lá dentro: o detector trata valor não-finito como "dia sem
+  // dado" e simplesmente pula, então recusar por dentro deixaria a análise
+  // seguir com metade da janela — pior que não analisar.
+  //
+  // Duas pontas bastam: a foto de hoje cobre o passado, e a projeção do
+  // último dia acumula TUDO o que está agendado na janela (ver
+  // aplicarAgendadoNoSaldo, que soma o intervalo inteiro). Se nem hoje nem o
+  // fim da janela têm dinheiro fora de conta, nenhum dia do meio tem.
+  var janela =
+    (window.AppliqueiInsights && window.AppliqueiInsights.LIMIARES.diasJanelaAperto) || 45;
+  var agora = Date.now();
+  var pontas = [separar(agora), separar(agora + janela * 86400000)];
+  for (var i = 0; i < pontas.length; i++) {
+    if (Math.abs(pontas[i].foraDeConta) > 0.01) return null;
+  }
+
+  return function (ms) {
+    return separar(ms).emContas;
+  };
+}
+
+/**
  * Ponto de entrada. Chamado por atualizarTelaControle() — o painel acompanha
  * o mês em visão em vez de ficar preso ao mês corrente, senão navegar para
  * agosto mostraria a análise de setembro sem avisar.
@@ -676,15 +771,7 @@ function insightsUiRenderizar() {
   // sobre o futuro quando o mês em visão é o corrente.
   var agoraD = new Date();
   var noMesCorrente = !ref || (ref.ano === agoraD.getFullYear() && ref.mes === agoraD.getMonth());
-  var saldoEm =
-    noMesCorrente && typeof saldoCaixaPorConta === 'function'
-      ? function (ms) {
-          var mapa = saldoCaixaPorConta(ms) || {};
-          return Object.keys(mapa).reduce(function (s, k) {
-            return s + (Number(mapa[k]) || 0);
-          }, 0);
-        }
-      : null;
+  var saldoEm = noMesCorrente ? insightsUiFonteDeSaldo() : null;
 
   var r;
   try {
@@ -752,6 +839,7 @@ if (typeof window !== 'undefined') {
     serie: insightsUiSerie,
     agir: insightsUiAgir,
     realcar: insightsUiRealcar,
+    fonteDeSaldo: insightsUiFonteDeSaldo,
   };
 }
 

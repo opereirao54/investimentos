@@ -211,3 +211,85 @@ test('o card escapa HTML vindo da descrição do usuário', () => {
   assert.ok(!html.includes('<img src=x'), 'descrição do usuário entrou crua no HTML');
   assert.ok(html.includes('&lt;img'), 'o escape não aconteceu');
 });
+
+// ════════════════════════════════════════════════════════════
+// A fonte de saldo do aperto — o defeito que gerou alarme falso
+// ════════════════════════════════════════════════════════════
+
+/** Carrega a UI com saldoCaixaPorConta/contasAtivas controlados pelo teste. */
+function carregarComContas(contas, mapaPorData) {
+  const { UI } = carregarUI();
+  global.contasAtivas = () => contas;
+  global.saldoCaixaPorConta = () => mapaPorData;
+  return UI;
+}
+
+test('o balde "A reconciliar" NÃO entra na conta do caixa', () => {
+  // O defeito relatado: saldoCaixaPorConta devolve buckets sintéticos para o
+  // dinheiro que não dá para atribuir a uma conta — `a-reconciliar` (sem
+  // conta e sem banco) e `nome:<banco>` (banco digitado, conta não
+  // cadastrada). Eles NÃO recebem saldo de abertura, então só acumulam saída
+  // e ficam negativos por construção. A primeira versão somava tudo e
+  // anunciava um rombo que era, na verdade, cadastro incompleto: medido, deu
+  // -2.500 no primeiro dia, os -2.500 inteiros vindos de `a-reconciliar`.
+  const UI = carregarComContas([{ id: 'c1', nome: 'Nubank' }], {
+    c1: 8000,
+    'a-reconciliar': -7043.13,
+  });
+  assert.equal(
+    UI.fonteDeSaldo(),
+    null,
+    'com dinheiro fora de conta cadastrada o app tem de se CALAR — ' +
+      'qualquer número aqui é um saldo que não é de ninguém'
+  );
+});
+
+test('banco digitado sem conta cadastrada também impede a análise', () => {
+  const UI = carregarComContas([{ id: 'c1', nome: 'Nubank' }], {
+    c1: 5000,
+    'nome:itau': -1200,
+  });
+  assert.equal(UI.fonteDeSaldo(), null);
+});
+
+test('com tudo atribuído a contas cadastradas, a fonte funciona', () => {
+  const UI = carregarComContas(
+    [
+      { id: 'c1', nome: 'Nubank' },
+      { id: 'c2', nome: 'Itaú' },
+    ],
+    {
+      c1: 3500,
+      c2: -1000,
+    }
+  );
+  const fonte = UI.fonteDeSaldo();
+  assert.equal(typeof fonte, 'function');
+  assert.equal(fonte(Date.now()), 2500, 'deve somar só as contas reais');
+});
+
+test('sem nenhuma conta cadastrada, não há projeção de caixa', () => {
+  const UI = carregarComContas([], {});
+  assert.equal(UI.fonteDeSaldo(), null);
+});
+
+test('o card de aperto fala de ORDEM, não contradiz o saldo livre', () => {
+  // A tela toda é de competência (saldo livre = mês inteiro). Um card
+  // dizendo "seu caixa fica negativo" ao lado de um saldo livre positivo
+  // lê-se como contradição — foi onde o primeiro utilizador travou.
+  const { UI } = carregarUI();
+  const ap = UI.apresentar({
+    tipo: 'aperto',
+    severidade: 'atencao',
+    valor: -3627,
+    emDias: 1,
+    quandoMs: Date.UTC(2026, 8, 3),
+    recuperaMs: Date.UTC(2026, 8, 10),
+    recuperaEmDias: 8,
+    diasNoVermelho: 7,
+  });
+  assert.ok(!/negativ/i.test(ap.titulo), 'o título voltou a falar de saldo negativo');
+  assert.ok(/fecha no positivo/i.test(ap.frase), 'a frase não reconcilia com o saldo livre');
+  const rotulos = ap.prova.map((p) => p[0]).join(' | ');
+  assert.ok(/Conta feita sobre/.test(rotulos), 'a prova não declara a base do cálculo');
+});

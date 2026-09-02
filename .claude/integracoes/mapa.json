@@ -291,9 +291,10 @@
       "consumidores": ["web/appliquei-insights-ui.js", "web/appliquei-aba-controle-financeiro.js"],
       "dependeDe": {
         "transacao": "fonte única dos seis detectores",
-        "saldoCaixaPorConta": "web/appliquei-contas.js — o insight de aperto NÃO recalcula projeção; recebe a função canônica de fora. Reimplementar criaria um segundo saldo projetado que diverge do primeiro no dia em que alguém corrigir só um dos dois, e quem descobre a divergência é sempre o usuário. Ver INV-23."
+        "saldoCaixaPorConta": "web/appliquei-contas.js — o insight de aperto NÃO recalcula projeção; recebe a função canônica de fora. FILTRADA para contas cadastradas (ver insightsUiFonteDeSaldo): saldoCaixaPorConta devolve também buckets sintéticos para dinheiro não atribuível — `a-reconciliar` e `nome:<banco>` — que não recebem saldo de abertura e ficam negativos por construção. Somá-los inventava um rombo que era cadastro incompleto (medido: -2.500 no 1º dia, integralmente `a-reconciliar`). Havendo QUALQUER movimento fora de conta cadastrada, o detector não roda: com parte das saídas sem dono, nenhuma projeção de caixa é confiável. Travado por test/insights-ui.test.js. Ver INV-23 para a projeção em si."
       },
-      "limiares": "INSIGHTS_LIMIARES em web/appliquei-insights.js — calibragem conservadora de propósito. O erro caro não é calar um insight: é mostrar cinco por mês, treinar o usuário a ignorar o painel e levar junto o alerta que importava."
+      "limiares": "INSIGHTS_LIMIARES em web/appliquei-insights.js — calibragem conservadora de propósito. O erro caro não é calar um insight: é mostrar cinco por mês, treinar o usuário a ignorar o painel e levar junto o alerta que importava.",
+      "notaCompetenciaVsCaixa": "O Controle Financeiro raciocina por COMPETÊNCIA (saldo livre = receita menos saídas do mês inteiro, independente da data de pagamento). O detector de aperto é o único que olha DATA. Por isso ele não fala de saldo: fala de ORDEM (\"entre o dia 3 e o dia 10, sai antes de entrar\") e diz explicitamente que o mês fecha no positivo. Um card anunciando \"caixa negativo\" ao lado de um saldo livre positivo lê-se como contradição — foi o relato do primeiro utilizador, e é a razão do recorte atual."
     }
   },
   "prefixosDeId": {

@@ -290,7 +290,41 @@ test('aponta o PRIMEIRO dia em que o caixa fura', () => {
   const agora = Date.UTC(2026, 8, 2, 12);
   const r = M.aperto({ agora, saldoEm: (ms) => 1000 - Math.floor((ms - agora) / DIA) * 100 });
   assert.equal(r.emDias, 11, 'não é o primeiro furo');
+  // Sem volta ao azul dentro da janela: aí sim é crítico.
   assert.equal(r.severidade, 'critico');
+  assert.equal(r.recuperaMs, null);
+});
+
+test('descompasso de datas que se resolve sozinho não é crítico', () => {
+  // O caso real: contas vencem antes de a receita cair, e o mês fecha bem.
+  // Tratar isto com a mesma gravidade de um rombo é o que gera alarme falso —
+  // e foi o que fez o primeiro utilizador desconfiar do painel inteiro.
+  const agora = Date.UTC(2026, 8, 2, 12);
+  const r = M.aperto({
+    agora,
+    saldoEm: (ms) => {
+      const d = Math.floor((ms - agora) / DIA);
+      return d < 1 ? 500 : d < 8 ? -3627 : 4373;
+    },
+  });
+  assert.equal(r.severidade, 'atencao', 'aperto passageiro tratado como rombo');
+  assert.equal(r.emDias, 1);
+  assert.equal(r.recuperaEmDias, 8);
+  assert.equal(r.diasNoVermelho, 7);
+  assert.equal(r.valor, -3627, 'devolve o pior dia, não o primeiro');
+});
+
+test('o valor devolvido é o PIOR dia do período, não o primeiro', () => {
+  const agora = Date.UTC(2026, 8, 2, 12);
+  const r = M.aperto({
+    agora,
+    saldoEm: (ms) => {
+      const d = Math.floor((ms - agora) / DIA);
+      return d === 1 ? -100 : d === 2 ? -900 : d === 3 ? -400 : 1000;
+    },
+  });
+  assert.equal(r.emDias, 1);
+  assert.equal(r.valor, -900);
 });
 
 test('cala quando o caixa não fura na janela', () => {

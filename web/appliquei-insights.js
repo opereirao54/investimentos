@@ -612,13 +612,23 @@ function insightsDuplicadas(transacoes, ref, opcoes) {
 // ════════════════════════════════════════════════════════════
 
 /**
- * Primeiro dia da janela em que o caixa projetado fica negativo.
+ * A JANELA em que o dinheiro sai antes de entrar.
  *
- * NÃO reimplementa a projeção. Recebe `saldoEm(ms)` de fora — em produção é
- * `saldoCaixaPorConta` (contas.js), que já é a fonte canônica e já carrega a
- * regra de não ser otimista travada por INV-23. Recalcular aqui criaria um
- * segundo saldo projetado que diverge do primeiro no dia em que alguém corrigir
- * só um dos dois; e é sempre o usuário quem descobre a divergência.
+ * NÃO é "seu saldo vai ficar negativo", e a distinção não é de palavra: o
+ * Controle Financeiro inteiro raciocina por COMPETÊNCIA — o saldo livre é
+ * receita menos saídas do mês inteiro, independente do dia em que cada uma
+ * cai. Um card gritando "caixa negativo" ao lado de um saldo livre positivo
+ * lê-se como contradição, e a primeira pessoa a usar isto travou exatamente
+ * aí: "o saldo livre já é o fim do mês, de onde vem esse negativo?".
+ *
+ * A pergunta legítima que sobra não é sobre quanto sobra no mês — é sobre a
+ * ORDEM: as contas do começo do mês vencem antes de o salário cair? Por isso
+ * o insight devolve um intervalo (furo → recuperação), e não um saldo.
+ *
+ * NÃO recalcula projeção: recebe `saldoEm(ms)` de fora, que em produção é
+ * `saldoCaixaPorConta` (contas.js) FILTRADA para contas cadastradas — ver
+ * insightsUiRenderizar. Reimplementar criaria um segundo saldo projetado que
+ * diverge do primeiro no dia em que alguém corrigir só um dos dois.
  */
 function insightsAperto(opcoes) {
   var cfg = Object.assign({}, INSIGHTS_LIMIARES, opcoes || {});
@@ -627,29 +637,37 @@ function insightsAperto(opcoes) {
 
   var agora = cfg.agora != null ? cfg.agora : Date.now();
   var DIA = 86400000;
-  var pior = null;
+  var furo = null;
+  var recupera = null;
+  var pior = 0;
 
   for (var d = 1; d <= cfg.diasJanelaAperto; d++) {
     var ms = agora + d * DIA;
     var saldo = Number(saldoEm(ms));
     if (!isFinite(saldo)) continue;
-    // O PRIMEIRO furo é o que importa para agir: é a data em que ainda dá
-    // para remanejar. Seguir varrendo até o fundo do poço é informação
-    // secundária e atrasaria a varredura sem mudar a decisão.
     if (saldo < 0) {
-      pior = { dia: d, ms: ms, saldo: saldo };
-      break;
+      if (!furo) furo = { dia: d, ms: ms };
+      if (saldo < pior) pior = saldo;
+    } else if (furo && !recupera) {
+      // Primeiro dia de volta ao azul depois do furo: é o que fecha a janela
+      // e transforma o alerta em "aperto de passagem" em vez de rombo.
+      recupera = { dia: d, ms: ms };
     }
   }
 
-  if (!pior) return null;
+  if (!furo) return null;
   return {
-    id: 'aperto:' + new Date(pior.ms).toISOString().slice(0, 10),
+    id: 'aperto:' + new Date(furo.ms).toISOString().slice(0, 10),
     tipo: 'aperto',
-    severidade: 'critico',
-    valor: pior.saldo,
-    emDias: pior.dia,
-    quandoMs: pior.ms,
+    // Recupera dentro da janela = descompasso de datas, não falta de dinheiro.
+    // Tratar os dois como a mesma emergência é o que gera alarme falso.
+    severidade: recupera ? 'atencao' : 'critico',
+    valor: pior,
+    emDias: furo.dia,
+    quandoMs: furo.ms,
+    recuperaMs: recupera ? recupera.ms : null,
+    recuperaEmDias: recupera ? recupera.dia : null,
+    diasNoVermelho: recupera ? recupera.dia - furo.dia : null,
   };
 }
 
