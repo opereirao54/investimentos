@@ -184,4 +184,82 @@ test.describe('nenhuma tela corta de lado', () => {
     );
     await ctx.close();
   });
+  test('campo de data/mês respeita a largura do container', async ({ browser }) => {
+    // No iOS, input[type=date] e [type=month] com aparência NATIVA se medem
+    // pelo conteúdo e ignoram `width:100%`. Em português o mês por extenso é
+    // longo ("setembro de 2026"), então o campo saía do cartão do modal e
+    // sangrava para fora — o "Quando começar?" cortado no cadastro de sonho.
+    //
+    // O Chromium não reproduz esse dimensionamento, então este teste guarda a
+    // PRÉ-CONDIÇÃO em vez do sintoma: `appearance: none` é o que faz o iOS
+    // tratar o campo como caixa comum e respeitar a largura. A prova de que a
+    // relação é essa estava no próprio app — o campo de data do painel de
+    // lançamento já tinha `appearance:none` e nunca teve o problema.
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto('/Appliquei_v13.0.html');
+    await page.waitForTimeout(1200);
+    await revelarTudo(page);
+
+    const nativos = await page.evaluate(() => {
+      const ruins = [];
+      document.querySelectorAll('input[type="date"], input[type="month"]').forEach((el) => {
+        const cs = getComputedStyle(el);
+        const nativo = cs.appearance !== 'none' && cs.webkitAppearance !== 'none';
+        if (nativo) ruins.push({ id: el.id || el.name || el.type, appearance: cs.appearance });
+      });
+      return ruins;
+    });
+
+    expect(
+      nativos,
+      `Campos de data/mês com aparência nativa. No iOS eles se medem pelo ` +
+        `conteúdo e estouram o container: ${JSON.stringify(nativos)}`
+    ).toEqual([]);
+    await ctx.close();
+  });
+
+  test('o modal de sonho cabe na tela do telemóvel', async ({ browser }) => {
+    // Modais não entravam na varredura das abas, e foi por um modal que o
+    // campo de mês escapou.
+    const ctx = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const page = await ctx.newPage();
+    await page.goto('/Appliquei_v13.0.html');
+    await page.waitForTimeout(1200);
+    const fora = await page.evaluate(() => {
+      const g = document.getElementById('authGate');
+      if (g) g.style.display = 'none';
+      document
+        .querySelectorAll('[id*="rimeirosPassos"]')
+        .forEach((e) => (e.style.display = 'none'));
+      document.querySelectorAll('.section').forEach((s) => s.classList.remove('ativa'));
+      document.getElementById('meus_sonhos').classList.add('ativa');
+      window.abrirCadastroSonho();
+
+      const W = document.documentElement.clientWidth;
+      const ruins = [];
+      document.querySelectorAll('#modalSonho *').forEach((el) => {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || !el.getClientRects().length) return;
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 || r.right <= W + 1 || r.left >= W) return;
+        const p = el.parentElement;
+        if (p && p.getBoundingClientRect().right > W + 1) return;
+        ruins.push({ id: el.id || el.tagName.toLowerCase(), excesso: Math.round(r.right - W) });
+      });
+      return ruins.slice(0, 5);
+    });
+    expect(fora, `Conteúdo do modal de sonho passando da borda: ${JSON.stringify(fora)}`).toEqual(
+      []
+    );
+    await ctx.close();
+  });
 });

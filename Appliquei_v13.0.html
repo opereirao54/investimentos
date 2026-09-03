@@ -1248,6 +1248,37 @@
                uma linha centra-se sozinho na vertical, então nada desloca. */
             min-height: 40px;
         }
+        /* CAMPO DE DATA/MÊS PRECISA DE `appearance: none` — senão o iOS o
+           dimensiona pelo CONTEÚDO e ignora o width.
+           No iOS, date/month com aparência nativa não respeitam `width:100%`:
+           eles se medem pelo valor que exibem. Em português o mês por extenso
+           é longo ("setembro de 2026"), então o campo ficava mais largo que o
+           cartão do modal e sangrava para fora — o relato do "Quando começar?"
+           cortado à direita no cadastro de sonho. A fonte de 16px do toque
+           (ver o bloco de zoom do iOS no fim deste <style>) aumentou o
+           conteúdo e piorou o efeito.
+           A prova estava no próprio app: o campo de data do painel de
+           lançamento JÁ tinha `appearance: none` e nunca teve o problema; o
+           do sonho ficou com `auto` e teve. Mesmo telemóvel, mesma tela.
+           `min-width: 0` deixa o campo encolher dentro de grid/flex (o padrão
+           `auto` impede encolher abaixo do conteúdo) e `max-width: 100%` é o
+           teto duro. `text-align: left` porque o iOS centra o valor nesses
+           campos, e só neles — destoava de todos os outros. */
+        input[type="date"],
+        input[type="month"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-width: 0;
+            max-width: 100%;
+        }
+        /* O alinhamento fica só onde o desenho é conhecido: o iOS centra o
+           valor nesses campos, e num formulário isso destoa de todos os
+           outros. O seletor de mês do cabeçalho tem desenho próprio. */
+        .form-group input[type="date"],
+        .form-group input[type="month"] {
+            text-align: left;
+        }
+
         /* Seta própria no select, como já se fazia nos painéis de lançamento
            e de operação. A seta NATIVA é desenhada por cima do padding e come
            a última letra em select estreito — era o "meses" cortado no prazo
