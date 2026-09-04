@@ -7903,8 +7903,17 @@
                 var(--cor-branco);
             box-shadow: var(--shadow-card);   /* sombra, SEM borda */
         }
+        /* `flex-wrap: wrap` porque esta linha tem DOIS estados e só um cabia.
+           Sem o selo "Estimados" são o rótulo (97px) e o botão (106px), que
+           cabem folgados. Com o selo, as ações passam a 206px e a linha pede
+           313px — em 320px de tela o container tem 268px, e o botão
+           "Registrar" ficava cortado pelo `overflow: hidden` do hero (medido:
+           18px para fora). Nem o selo nem o botão encolhem: os dois são
+           `white-space: nowrap`, e é assim que devem ser — "Regis…" não ajuda
+           ninguém. Quebrar para a segunda linha é o que resta, e só acontece
+           quando o selo aparece, que é justamente quando a cotação falhou. */
         #patrimonio .inv-hero-top {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
             gap: 10px; margin-bottom: 10px;
         }
         #patrimonio .inv-hero-acoes { display: flex; align-items: center; gap: 8px; }
