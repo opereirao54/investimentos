@@ -2021,7 +2021,7 @@ function atualizarTelaControle() {
                 <div class="venc-card" style="border-color:${corBorda}">
                     <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
                     <div style="flex:1;min-width:0;">
-                        <div class="venc-name">${conta.descricao}${obsIcone}${badgeAtraso}</div>
+                        <div class="venc-name" title="${String(conta.descricao || '').replace(/"/g, '&quot;')}">${conta.descricao}${obsIcone}${badgeAtraso}</div>
                         <div class="venc-val">${formatarMoeda(conta.valor)}</div>
                     </div>
                     <div class="venc-badge" id="acao-pagar-card-${conta.id}">
@@ -2326,6 +2326,23 @@ function atualizarTelaControle() {
     const contGrafico = document.getElementById('graficoComposicao').parentElement;
     if (contGrafico) contGrafico.style.height = Math.max(180, dadosGrafico.length * 26) + 'px';
 
+    // A folga da direita tem de caber o MAIOR rótulo, e o maior rótulo depende
+    // do dinheiro de quem usa o app: "R$ 13.700,00" pede ~72px, e os 60px fixos
+    // que estavam aqui cortavam o último dígito — o valor aparecia como
+    // "R$ 13.700,0". Com sete dígitos ("R$ 1.234.567,89") faltariam ~50px.
+    // Medir com a métrica do próprio canvas resolve para qualquer valor, em
+    // qualquer fonte. measureText não depende da transformação do contexto,
+    // então basta preservar a fonte anterior.
+    ctx.save();
+    ctx.font = 'bold 10px ' + ((Chart.defaults.font && Chart.defaults.font.family) || 'sans-serif');
+    const larguraMaiorRotulo = dadosGrafico.reduce(
+      (mx, d) => (d.valor === 0 ? mx : Math.max(mx, ctx.measureText(formatarMoeda(d.valor)).width)),
+      0
+    );
+    ctx.restore();
+    // + o offset do datalabel (4) + respiro para a borda do cartão.
+    const folgaRotulos = Math.ceil(larguraMaiorRotulo) + 12;
+
     chartComposicao = new Chart(ctx, {
       type: 'bar',
       data: {
@@ -2339,7 +2356,7 @@ function atualizarTelaControle() {
         ],
       },
       options: {
-        layout: { padding: { right: 60 } },
+        layout: { padding: { right: folgaRotulos } },
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,

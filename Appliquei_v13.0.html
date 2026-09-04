@@ -2512,7 +2512,7 @@
         .banner-aviso-mock { display: flex; align-items: flex-start; gap: 12px; background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 18px; font-size: 13px; color: var(--cor-txt-amber); line-height: 1.5; font-weight: 500; }
 
         /* === VENCIMENTOS === */
-        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 10px; margin-bottom: 16px; }
         .vencimentos-grid > [id^="detalhe-grupo-"] { grid-column: 1 / -1; }
         .venc-card {
             background: var(--cor-branco);
@@ -2527,7 +2527,20 @@
         }
         .venc-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
         .venc-day { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--cor-texto-principal); line-height: 1; min-width: 32px; }
-        .venc-name { font-size: 13px; font-weight: 600; color: var(--cor-texto-principal); }
+        /* A descrição era cortada a meio da palavra e sem reticências:
+           "Supermercado" aparecia como "Supermercad" e nada dizia que faltava
+           letra. A causa era largura, não tratamento de texto — com a coluna
+           mínima em 220px sobravam ~83px para o nome, depois do dia (32), do
+           botão que não encolhe (~78), dos gaps e do padding. Daí os 285px
+           acima: dão ~134px ao nome, onde a maioria dos lançamentos cabe numa
+           linha. Duas linhas cobrem o resto; o que ainda passar disso corta
+           com reticências, e o texto inteiro fica no title. */
+        .venc-name {
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+            display: -webkit-box; -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; line-clamp: 2;
+            overflow: hidden; overflow-wrap: break-word;
+        }
         .venc-val { font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; margin-top: 2px; }
         .venc-badge { margin-left: auto; flex-shrink: 0; }
 
