@@ -516,8 +516,8 @@
   /* Os três ganhos do hero, na voz do PDF: promessa curta, verificável
      logo abaixo. Compactos porque competem com o CTA, não com o título. */
   .hero-checks { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 8px; }
-  .hero-checks li { display: flex; align-items: center; gap: 9px; color: #c8d6cf; font-size: 14.5px; }
-  .hero-checks i { color: #34d399; font-size: 17px; flex-shrink: 0; }
+  .hero-checks li { display: flex; align-items: flex-start; gap: 9px; color: #c8d6cf; font-size: 14.5px; }
+  .hero-checks i { color: #34d399; font-size: 17px; flex-shrink: 0; margin-top: 2px; }
 
   /* Quatro telas restantes (as outras duas viraram atos do palco). */
   @media (min-width: 981px) { .telas-grid--quatro { grid-template-columns: repeat(4, 1fr); } }
@@ -548,6 +548,101 @@
   .palco--vivo .ato-aviso { background: none; border: none; padding: 0; color: var(--muted); }
   .palco--vivo .ato-aviso a { color: var(--emerald-dark); }
 
+  /* ============================================================
+     Hero — a promessa da casa, e o par de telas
+     ============================================================ */
+  /* A frase da missão vem ANTES do título porque é ela que diz para que a
+     Appliquei serve; o título diz do que ela livra a pessoa. O seletor
+     precisa do `.hero` na frente: `.hero p` já pinta e dimensiona todos os
+     parágrafos do bloco, e venceria uma classe sozinha. */
+  .hero .hero-missao { margin-top: 16px; max-width: 540px; color: #a7f3d0; font-size: 16px; font-weight: 600; line-height: 1.45; }
+  .hero h1 { margin-top: 10px; }
+
+  /* Duas telas em vez de uma: os investimentos e o controle do mês. O hero
+     promete "o seu patrimônio, o seu mês e os seus investimentos" — com um
+     print só, o mês ficava apenas no texto.
+     No desktop a segunda encavala o canto inferior da primeira; abaixo de
+     700px desce para baixo dela, porque ali a principal já encolheu para
+     224px e encavalar taparia justamente os números que se quer mostrar. */
+  .hero-arte { position: relative; }
+  .hero-shot-2 { position: absolute; left: -18px; bottom: 16px; width: 46%; z-index: 2; border-radius: 12px; }
+  .hero-shot-2 img { display: block; width: 100%; height: auto; }
+  @media (max-width: 880px) { .hero-shot-2 { left: 0; bottom: 12px; width: 44%; } }
+  /* Encolhida para os 224px da captura de telefone, a tela de desktop vira
+     textura — o mesmo defeito que tirou o mockup do hero. Em vez de a
+     mostrar inteira e ilegível, recorta-se o canto onde estão os números
+     do mês, no zoom em que se leem. */
+  @media (max-width: 700px) {
+    /* `left`/`bottom` vêm da regra dos 880px e, com `position: relative`,
+       voltariam a deslocar o bloco — aqui são zerados de propósito. */
+    .hero-shot-2 { position: relative; left: 0; bottom: 0; width: 100%; margin: 14px 0 0; height: 178px; overflow: hidden; }
+    .hero-shot-2 img { position: absolute; top: 0; left: 0; width: 200%; max-width: none; }
+  }
+
+  /* ============================================================
+     Sistema inteligente — o painel "O que notamos"
+     ============================================================ */
+  .inteligente { border-top: 1px solid var(--line); padding: 54px 0; }
+  .inteligente-grid { display: grid; grid-template-columns: 1fr 1.05fr; gap: 46px; align-items: center; }
+  .inteligente h2 { margin-top: 12px; }
+  .inteligente-texto > p { font-size: 16px; margin-top: 14px; }
+  .inteligente-fig { margin: 0; }
+  .inteligente-fig .shot img { display: block; width: 100%; height: auto; }
+  /* A ressalva do contrato do motor (sugere, nunca aplica) e a distinção
+     para o plano de IA — as duas coisas que o visitante conclui errado se
+     não estiverem escritas. */
+  .inteligente-nota { margin-top: 20px; font-size: 12.5px; line-height: 1.55; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 14px; }
+  .inteligente-nota i { color: var(--emerald-dark); font-size: 15px; vertical-align: -2px; margin-right: 5px; }
+  @media (max-width: 900px) {
+    .inteligente { padding: 42px 0; }
+    .inteligente-grid { grid-template-columns: 1fr; gap: 26px; }
+    /* A tela primeiro, como nos atos do palco: é ela que diz de que parte
+       do app se está a falar. */
+    .inteligente-fig { order: -1; }
+  }
+
+  @media (max-width: 640px) {
+    .inteligente-fig .shot { position: relative; height: 200px; overflow: hidden; }
+    .inteligente-fig .shot img { position: absolute; top: 0; left: 0; width: 200%; max-width: none; }
+  }
+
+  .telas-extra-link { color: inherit; text-decoration: underline; text-decoration-color: #c9e3d8; text-underline-offset: 3px; }
+  .telas-extra-link:hover { color: var(--emerald-dark); }
+
+  /* ============================================================
+     Applicash $ — o programa de indicações
+     ============================================================
+     Banda escura logo depois de Planos: separa o preço do FAQ e responde à
+     objeção do preço enquanto ela ainda está na cabeça de quem leu. */
+  .applicash { background: linear-gradient(150deg, #0b1410 0%, #10241b 55%, #123026 100%); color: #fff; padding: 58px 0; }
+  .applicash h2 { color: #fff; }
+  .applicash .section-head { margin-bottom: 28px; }
+  .applicash .section-head .eyebrow { color: #6ee7b7; }
+  .applicash .section-head p { color: #c8d6cf; }
+
+  .apc-como { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media (max-width: 780px) { .apc-como { grid-template-columns: 1fr; } }
+  .apc-passo { display: flex; gap: 11px; align-items: flex-start; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.13); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .apc-passo i { color: #6ee7b7; font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+  .apc-passo strong { display: block; color: #fff; font-size: 13.5px; font-weight: 600; }
+  .apc-passo span { display: block; color: rgba(255,255,255,.72); font-size: 12px; line-height: 1.45; margin-top: 3px; }
+
+  /* A escada de marcos é a MESMA de APPLICASH_METAS. Quatro colunas no
+     desktop, 2×2 no celular — empilhada, uma escada de quatro degraus
+     deixa de se ler como escada. */
+  .apc-metas { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 14px 0 0; padding: 0; }
+  @media (max-width: 780px) { .apc-metas { grid-template-columns: 1fr 1fr; } }
+  .apc-metas li { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.11); border-radius: var(--radius-sm); padding: 14px 16px; }
+  .apc-metas b { display: block; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 30px; line-height: 1; color: #fff; }
+  .apc-metas span { display: block; color: rgba(255,255,255,.62); font-size: 11.5px; margin-top: 4px; }
+  .apc-metas em { display: block; font-style: normal; color: #6ee7b7; font-weight: 600; font-size: 13.5px; margin-top: 8px; }
+  .apc-metas .apc-zerada { background: rgba(52,211,153,.13); border-color: rgba(52,211,153,.4); }
+  .apc-metas .apc-zerada em { color: #a7f3d0; }
+
+  .apc-pe { text-align: center; margin-top: 26px; }
+  .applicash .apc-btn { background: #fff; color: var(--emerald-dark); }
+  .applicash .apc-btn:hover { background: #ecfdf5; }
+  .apc-pe p { max-width: 660px; margin: 14px auto 0; color: rgba(255,255,255,.62); font-size: 12px; line-height: 1.55; }
 </style>
 </head>
 <body>
@@ -560,7 +655,7 @@
     <nav class="nav-links" aria-label="Principal">
       <a href="#historia">Como funciona</a>
       <a href="#proximo-passo">Carteira sugerida</a>
-      <a href="#funcionalidades">Tudo mais</a>
+      <a href="#funcionalidades">Muito mais</a>
       <a href="#planos">Planos</a>
       <a href="#faq">Dúvidas</a>
       <a href="/app" class="btn btn-ghost">Entrar</a>
@@ -573,11 +668,13 @@
   <div class="container hero-grid">
     <div>
       <span class="hero-eyebrow"><i class="ph-fill ph-sparkle"></i> 7 dias grátis, sem cartão</span>
-      <h1 style="margin-top:18px;">Pare de tentar descobrir sozinho o que fazer com <em>o seu dinheiro</em>.</h1>
-      <p>A Appliquei junta o seu patrimônio, o seu mês e os seus investimentos numa tela só — e mostra qual deve ser o próximo passo, com a conta aberta em vez de um palpite.</p>
+      <p class="hero-missao">O nosso papel é te guiar para uma vida financeira saudável, na palma da mão.</p>
+      <h1>Pare de tentar descobrir sozinho o que fazer com <em>o seu dinheiro</em>.</h1>
+      <p>A Appliquei junta o seu patrimônio, o seu mês e os seus investimentos numa tela só — e auxilia você a seguir o próximo passo, com a conta aberta em vez de um palpite.</p>
       <ul class="hero-checks">
         <li><i class="ph-fill ph-check-circle"></i> Tudo o que você tem, somado num lugar só</li>
-        <li><i class="ph-fill ph-check-circle"></i> O próximo aporte com o cálculo à vista, ativo por ativo</li>
+        <li><i class="ph-fill ph-check-circle"></i> O próximo aporte com o cálculo à vista e a simulação de rentabilidade, ativo por ativo</li>
+        <li><i class="ph-fill ph-check-circle"></i> Controle de despesas na palma da mão</li>
         <li><i class="ph-fill ph-check-circle"></i> Metas, relatório mensal e trilha de estudo no mesmo plano</li>
       </ul>
       <div class="hero-actions">
@@ -591,11 +688,20 @@
       <!-- No celular, a captura de desktop encolhe para uns 350px e vira
            textura: ninguém lê um número ali. A versão de telefone mostra a
            MESMA tela num tamanho em que dá para ler. -->
-      <picture class="shot hero-shot">
-        <source media="(max-width: 700px)" srcset="prints/celular-investimentos.webp" width="430" height="931">
-        <img src="prints/meus-investimentos.webp" width="1600" height="1000" alt="Tela Meus investimentos da Appliquei: patrimônio consolidado, evolução em gráfico e lista de posições por classe de ativo." fetchpriority="high" decoding="async">
-      </picture>
-      <div class="shot-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
+      <div class="hero-arte">
+        <picture class="shot hero-shot">
+          <source media="(max-width: 700px)" srcset="prints/celular-investimentos.webp" width="430" height="931">
+          <img src="prints/meus-investimentos.webp" width="1600" height="1000" alt="Tela Meus investimentos da Appliquei: patrimônio consolidado, evolução em gráfico e lista de posições por classe de ativo." fetchpriority="high" decoding="async">
+        </picture>
+        <!-- A segunda tela é a do Controle financeiro: o hero promete "o seu
+             patrimônio, o seu mês e os seus investimentos", e o mês é
+             metade da promessa. Sozinha, a tela de investimentos deixava
+             essa metade só no texto. -->
+        <div class="shot hero-shot-2">
+          <img src="prints/controle-financeiro.webp" width="1200" height="900" alt="Tela Controle financeiro da Appliquei: saldo livre do mês, receitas e despesas lançadas e a régua da regra dos 60%." decoding="async">
+        </div>
+      </div>
+      <div class="shot-legenda"><i class="ph-fill ph-camera"></i> Telas reais da Appliquei. Dados de demonstração.</div>
     </div>
   </div>
 </section>
@@ -736,9 +842,9 @@
 <section id="funcionalidades" class="block features">
   <div class="container">
     <div class="section-head">
-      <span class="eyebrow">E tudo mais</span>
-      <h2>Tudo o que vem junto, no mesmo plano</h2>
-      <p>Patrimônio, controle do mês, investimentos e carteira sugerida você acabou de ver. Vem tudo isto junto — e cada imagem é uma captura do sistema em funcionamento.</p>
+      <span class="eyebrow">E muito mais</span>
+      <h2>Tudo a que você terá acesso, no mesmo plano</h2>
+      <p>Além de todas as funcionalidades que você acabou de ver — patrimônio, controle do mês, investimentos e carteira sugerida —, você terá acesso a tudo isto. Cada imagem é uma captura do sistema em funcionamento.</p>
     </div>
 
     <div class="telas-grid telas-grid--quatro">
@@ -775,8 +881,43 @@
     <p class="telas-extra">
       <span><i class="ph-fill ph-device-mobile"></i> Tudo funciona no celular, e dá para instalar na tela de início</span>
       <span><i class="ph-fill ph-newspaper"></i> Info Mercado com indicadores e notícias</span>
-      <span><i class="ph-fill ph-currency-dollar"></i> Applicash: crédito por indicação, para custear a assinatura</span>
+      <span><i class="ph-fill ph-currency-dollar"></i> <a href="#applicash" class="telas-extra-link">Applicash: crédito por indicação, para custear a assinatura</a></span>
     </p>
+  </div>
+</section>
+
+<!-- ============================================================
+     SISTEMA INTELIGENTE — o motor de insights do Controle
+     ============================================================
+     Não confundir com o plano "Pro + IA", que continua em construção: isto
+     é estatística determinística sobre os lançamentos do próprio usuário
+     (web/appliquei-insights.js, seis detectores, sem LLM) e já está no
+     plano de hoje. A distinção é escrita na página de propósito — sem ela,
+     o visitante lê "inteligente" e conclui que a IA já saiu.
+
+     A ressalva final não é enfeite: é o contrato do motor, escrito no topo
+     de appliquei-insights.js — ele SUGERE, nunca aplica. Prometer aqui que
+     o sistema "corrige sozinho" descreveria um produto que não existe. -->
+<section id="inteligente" class="inteligente">
+  <div class="container inteligente-grid">
+    <div class="inteligente-texto">
+      <span class="dif-selo"><i class="ph-fill ph-sparkle"></i> Sistema inteligente</span>
+      <h2>O sistema lê os seus lançamentos e aponta o que fugiu do padrão</h2>
+      <p>Você registra o mês normalmente. A Appliquei compara cada lançamento com o seu próprio histórico e avisa quando algo destoa — sempre com o número que sustenta o aviso, e um caminho para conferir.</p>
+      <ul class="dif-lista">
+        <li><i class="ph-fill ph-chart-line-up"></i><span><strong>Gasto fora da curva:</strong> a categoria que subiu bem acima do que costuma custar no seu mês, com quanto ela costuma custar.</span></li>
+        <li><i class="ph-fill ph-calendar-x"></i><span><strong>Caixa apertado:</strong> o dia em que o saldo projetado fura, contando o que já está agendado.</span></li>
+        <li><i class="ph-fill ph-copy"></i><span><strong>Cobrança repetida e reajuste:</strong> a assinatura lançada duas vezes no mesmo mês, e a que mudou de preço e se manteve.</span></li>
+        <li><i class="ph-fill ph-push-pin"></i><span><strong>Despesa fixa não marcada:</strong> o que aparece há meses com valor parecido e ainda entra como avulsa.</span></li>
+      </ul>
+      <p class="inteligente-nota"><i class="ph-fill ph-hand-pointing"></i> Nenhum aviso mexe no seu lançamento: o botão leva você até onde a mudança é feita e quem decide é você. É estatística sobre os seus próprios dados, não IA — por isso já está no plano de hoje.</p>
+    </div>
+    <figure class="inteligente-fig">
+      <div class="shot">
+        <img src="prints/insights-controle.webp" width="1136" height="832" alt="Painel O que notamos dentro do Controle financeiro da Appliquei, com cinco avisos: transporte acima do normal, caixa negativo em 13 dias, cobrança duplicada, assinatura reajustada e uma despesa que parece fixa." loading="lazy" decoding="async">
+      </div>
+      <figcaption class="shot-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</figcaption>
+    </figure>
   </div>
 </section>
 
@@ -798,11 +939,11 @@
       </div>
       <div class="step">
         <h3>Veja tudo somado</h3>
-        <p>Patrimônio, mês e carteira na mesma tela, sincronizados entre o celular e o computador.</p>
+        <p>Patrimônio, mês e carteira na mesma tela, sincronizados em qualquer dispositivo.</p>
       </div>
       <div class="step">
         <h3>Planeje o próximo passo</h3>
-        <p>A carteira sugerida mostra onde o próximo aporte faz mais diferença, com a conta à vista.</p>
+        <p>A carteira sugerida mostra onde realizar o próximo aporte.</p>
       </div>
     </div>
     <p class="seguranca">
@@ -827,6 +968,7 @@
         <div class="plan-tag">Todas as funcionalidades atuais da Appliquei.</div>
         <div class="plan-price"><span class="cur">R$</span><span class="val">15</span><span class="per">/mês</span></div>
         <ul class="plan-list">
+          <li><i class="ph-fill ph-check-circle"></i> Sistema inteligente que lê os seus lançamentos</li>
           <li><i class="ph-fill ph-check-circle"></i> Patrimônio, investimentos e controle financeiro</li>
           <li><i class="ph-fill ph-check-circle"></i> Carteira sugerida e relatório mensal</li>
           <li><i class="ph-fill ph-check-circle"></i> Simulador de liberdade e metas (Sonhos)</li>
@@ -859,6 +1001,62 @@
   </div>
 </section>
 
+<!-- ============================================================
+     APPLICASH $ — o programa de indicações
+     ============================================================
+     Vinha numa linha solta no fim da grade de funcionalidades, onde
+     ninguém o lia. Encosta em Planos de propósito: é a resposta direta à
+     objeção que o preço acabou de levantar.
+
+     OS NÚMEROS NÃO SÃO DE MARKETING. A comissão (10%), o desconto de quem
+     usa o cupom (10%) e os quatro marcos vêm de APPLICASH_CONFIG e
+     APPLICASH_METAS, em web/appliquei-applicash.js — é a MESMA tabela que
+     o app mostra na aba Applicash. Mexer lá sem mexer aqui faz a página
+     prometer um desconto que a tela do assinante desmente.
+
+     E o crédito ABATE na própria mensalidade: no MVP não há saque em PIX
+     (ver a seção Applicash de scripts/build_plan_pdf.py). Escrever
+     "ganhe dinheiro" descreveria um produto que ainda não existe. -->
+<section id="applicash" class="applicash">
+  <div class="container">
+    <div class="section-head">
+      <span class="eyebrow">Applicash $</span>
+      <h2>Indique a Appliquei e deixe a mensalidade se pagar sozinha</h2>
+      <p>Cada pessoa que assina com o seu cupom vira crédito na sua própria mensalidade, todo mês, enquanto a assinatura dela estiver ativa. E quem entra pelo seu cupom começa com 10% de desconto.</p>
+    </div>
+
+    <div class="apc-como">
+      <div class="apc-passo">
+        <i class="ph-fill ph-ticket"></i>
+        <div><strong>O cupom nasce com a sua conta</strong>
+        <span>Um código próprio, pronto para copiar ou compartilhar como link.</span></div>
+      </div>
+      <div class="apc-passo">
+        <i class="ph-fill ph-hand-coins"></i>
+        <div><strong>10% do que o indicado paga volta para você</strong>
+        <span>Todo mês, enquanto a assinatura dele continuar ativa.</span></div>
+      </div>
+      <div class="apc-passo">
+        <i class="ph-fill ph-receipt"></i>
+        <div><strong>O crédito abate na sua cobrança</strong>
+        <span>O abatimento e a próxima cobrança estimada ficam à vista dentro do app.</span></div>
+      </div>
+    </div>
+
+    <ol class="apc-metas">
+      <li><b>1</b><span>indicação ativa</span><em>9% de desconto</em></li>
+      <li><b>5</b><span>indicações ativas</span><em>45% de desconto</em></li>
+      <li><b>10</b><span>indicações ativas</span><em>90% de desconto</em></li>
+      <li class="apc-zerada"><b>12</b><span>indicações ativas</span><em>Mensalidade zerada</em></li>
+    </ol>
+
+    <div class="apc-pe">
+      <a href="/app" class="btn btn-lg apc-btn"><i class="ph-fill ph-share-network"></i> Criar conta e pegar o meu cupom</a>
+      <p>O Applicash é crédito que abate na sua própria mensalidade — não é resgate em dinheiro. Valem as indicações com assinatura ativa; o desconto acompanha quem continua assinando.</p>
+    </div>
+  </div>
+</section>
+
 <section id="faq" class="block">
   <div class="container">
     <div class="section-head">
@@ -871,6 +1069,7 @@
       <details class="faq"><summary>Posso cancelar quando quiser?</summary><p>Sim. O cancelamento é imediato pelo painel "Minha assinatura". Sem multas, sem fidelidade.</p></details>
       <details class="faq"><summary>Quais formas de pagamento?</summary><p>PIX, boleto e cartão de crédito recorrente, todos via Asaas — gateway brasileiro com cobrança em real.</p></details>
       <details class="faq"><summary>Quando o Pro + IA fica disponível?</summary><p>Está em construção. Quem está no Pro recebe aviso e pode migrar no clique quando lançarmos, sem perder histórico.</p></details>
+      <details class="faq"><summary>Como funciona o Applicash?</summary><p>É o programa de indicações. Cada pessoa que assina com o seu cupom devolve 10% do valor pago como crédito na sua própria mensalidade, todo mês, enquanto a assinatura dela estiver ativa — e quem entra pelo seu cupom começa com 10% de desconto. Com 12 indicações ativas, a mensalidade zera. O crédito abate na sua cobrança; não é resgate em dinheiro.</p></details>
       <details class="faq"><summary>Meus dados ficam seguros?</summary><p>Autenticação Firebase, armazenamento Firestore e cobrança Asaas — todos brasileiros/Google com criptografia em trânsito e em repouso.</p></details>
       <details class="faq"><summary>A carteira sugerida é uma recomendação de investimento?</summary><p>Não. A Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada. A carteira sugerida é material informativo e educacional: uma alocação calculada a partir de critérios públicos e do perfil que você declara, com o cálculo aberto para você conferir. A decisão de investir, manter ou resgatar é sua. Investimentos envolvem risco, inclusive de perda do capital, e rentabilidade passada não garante rentabilidade futura.</p></details>
     </div>
@@ -934,6 +1133,7 @@
     <div style="display:flex;gap:16px;">
       <a href="/app">Entrar</a>
       <a href="#planos">Planos</a>
+      <a href="#applicash">Applicash</a>
       <a href="#faq">Dúvidas</a>
     </div>
   </div>
