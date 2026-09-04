@@ -283,14 +283,32 @@ test('posição zerada por venda total não conta valor de mercado', () => {
 
 // ------------------------------------------------------------ integração ---
 
-test('a DRE desenha a linha e marca a estimativa', () => {
+// A DRE tinha uma linha "Rendimento acumulado" e este teste a travava. A linha
+// foi retirada a pedido — o Controle Financeiro raciocina por fluxo de caixa, e
+// valorização de estoque é assunto de Meus investimentos. O que NÃO pode sair é
+// a carga do histórico, e por isso ela ganhou teste próprio abaixo.
+test('a tela do Controle continua disparando a carga do histórico de preços', () => {
   const src = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
-  assert.match(src, /Rendimento acumulado/, 'a linha sumiu da DRE');
-  assert.match(src, /rendCarteiraEm/, 'a DRE deixou de calcular o rendimento');
-  assert.match(src, /dre-rend-aprox/, 'o marcador de estimativa sumiu');
-  // A busca é disparada pelo próprio render: sem isto, quem registra o primeiro
-  // investimento com o app aberto nunca recebe o histórico.
-  assert.match(src, /rendCarregarHistorico/, 'a DRE não pede mais o histórico');
+  // Este é o ÚNICO ponto do app que chama rendCarregarHistorico. Com a linha do
+  // rendimento fora da DRE, nada nesta tela usa o resultado — e é justamente aí
+  // que a chamada parece sobra e alguém a apaga. Quem consome é o gráfico de
+  // evolução de Meus investimentos: sem o histórico, rendPrecoEm cai para a
+  // cotação de HOJE e a barra de março nasce com o ganho de setembro embutido.
+  assert.match(src, /rendCarregarHistorico/, 'a carga do histórico sumiu do Controle');
+
+  const charts = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba1-charts.js'), 'utf8');
+  assert.match(charts, /rendPrecoEm/, 'o gráfico de evolução deixou de usar o histórico');
+});
+
+test('a linha de rendimento não voltou para a DRE', () => {
+  // Retirada a pedido: o Controle é fluxo de caixa, não valorização de estoque.
+  const src = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  // Mira no CÓDIGO, não na prosa: o comentário que explica por que a carga do
+  // histórico continua aqui precisa citar a linha pelo nome, e um teste que
+  // proibisse a frase proibiria a explicação junto.
+  assert.ok(!/linha-rendimento/.test(src), 'a linha voltou para a DRE');
+  assert.ok(!/rendCarteiraEm\s*\(/.test(src), 'a DRE voltou a calcular o rendimento');
+  assert.ok(!/dre-rend-aprox/.test(src), 'o marcador de estimativa voltou');
 });
 
 test('o gráfico de evolução também usa o fechamento da época', () => {
