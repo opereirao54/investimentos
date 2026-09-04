@@ -2579,6 +2579,60 @@
         .venc-card.venc-card-grupo .venc-val { font-size: 16px; font-weight: 700; color: var(--cor-texto-principal); margin-top: 1px; line-height: 1.15; }
         .venc-card.venc-card-grupo .venc-val .venc-meta { font-size: 10px; font-weight: 500; color: var(--cor-texto-mutado); margin-left: 6px; font-family: 'Figtree', sans-serif; }
 
+        /* === SELETOR DE FATURA (lançamento de cartão) === */
+        /* Dois cartões lado a lado, um por fatura. Rádio de verdade por baixo:
+           é escolha exclusiva, e teclado/leitor de tela têm de entender isso —
+           o visual é do <label>, a semântica é do <input type=radio>. */
+        .fatura-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        @media (max-width: 560px) { .fatura-opcoes { grid-template-columns: 1fr; } }
+        .fatura-op { position: relative; display: block; cursor: pointer; }
+        .fatura-op input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .fatura-op-corpo {
+            display: block;
+            border: 1.5px solid var(--cor-borda); border-radius: 10px;
+            padding: 10px 12px; background: var(--cor-superficie);
+            transition: border-color .15s ease, background .15s ease;
+            height: 100%;
+        }
+        .fatura-op input:checked + .fatura-op-corpo {
+            border-color: var(--cor-primaria); background: var(--cor-bg-primaria);
+        }
+        /* O foco tem de aparecer: o input real está escondido, então o anel vai
+           no corpo desenhado. Sem isto, navegar por teclado fica às cegas. */
+        .fatura-op input:focus-visible + .fatura-op-corpo {
+            outline: 2px solid var(--cor-primaria); outline-offset: 2px;
+        }
+        .fatura-op-nome { display: block; font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal); }
+        .fatura-op-estado { font-size: 11px; font-weight: 600; margin-top: 2px; }
+        .fatura-op-paga { font-size: 11px; color: var(--cor-texto-secundario); margin-top: 1px; }
+        /* A linha que realmente decide a escolha: traduz "comprei dia 30" em
+           "é esta". Separada por um filete para não se perder nas outras. */
+        .fatura-op-janela {
+            font-size: 11.5px; color: var(--cor-texto-principal); margin-top: 7px;
+            padding-top: 7px; border-top: 1px dashed var(--cor-borda);
+        }
+        .fatura-op-total {
+            font-size: 11px; color: var(--cor-texto-mutado); margin-top: 3px;
+            font-family: 'DM Mono', monospace;
+        }
+        .fatura-aviso {
+            display: flex; gap: 8px; align-items: flex-start; margin-top: 8px;
+            padding: 9px 11px; border-radius: 9px; font-size: 12px; line-height: 1.45;
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        .fatura-aviso i { flex-shrink: 0; margin-top: 1px; }
+        .fatura-resumo {
+            margin-top: 8px; padding: 8px 11px; border-radius: 9px; font-size: 12px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            color: var(--cor-txt-info); line-height: 1.45;
+        }
+        .fatura-sem-dados {
+            padding: 11px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
+            background: var(--cor-superficie); border: 1px dashed var(--cor-borda);
+            color: var(--cor-texto-secundario);
+        }
+
         /* === TERMÔMETRO 60% === */
         .thermo-card {
             background: var(--cor-branco);
@@ -10033,7 +10087,7 @@
                         <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
                         <div id="sugestaoCategoria"></div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;">
+                    <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
                         <div class="form-group">
                             <label>Categoria</label>
                             <select id="categoriaTransacao" onchange="verificarRegraCartao()">
@@ -10048,14 +10102,20 @@
                                 </optgroup>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <!-- Em cartão este campo SAI e dá lugar ao seletor de
+                             fatura, dentro do bloco do cartão: ali a pergunta é
+                             "em qual fatura entra", não "que dia vence" — e a
+                             resposta depende do cartão e do tipo, que ficam lá.
+                             O input continua existindo e continua sendo o que o
+                             salvamento lê; o seletor é quem o preenche. -->
+                        <div class="form-group" id="grupoVencimentoControle">
                             <label>Vencimento</label>
                             <input type="date" id="dataVencimento">
                         </div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;align-items:end;">
-                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
-                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
+                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span></div>
+                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" oninput="atualizarResumoFatura()"></div>
                     </div>
 
                     <div class="form-group" id="grupoBancoReceita" style="display:none;">
@@ -10104,6 +10164,22 @@
                             <button type="button" id="btnTipoFixo" onclick="selecionarTipoCartao('fixo')" style="flex:1;padding:7px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-secundario);font-family:'Figtree',sans-serif;"><i class="ph ph-repeat"></i> Fixo mensal</button>
                         </div>
                         <input type="hidden" id="tipoCartaoSelecionado" value="parcelado">
+
+                        <!-- SELETOR DE FATURA.
+                             Vem por último no bloco porque depende do cartão
+                             (fechamento/vencimento) e do tipo (parcelado gera N
+                             lançamentos a partir da fatura escolhida).
+                             `faturaEscolhida` guarda a INTENÇÃO ('aberta' /
+                             'fechada' / 'manual'), não a data: trocar de cartão
+                             recalcula as datas e preserva a escolha. -->
+                        <input type="hidden" id="faturaEscolhida" value="aberta">
+                        <div id="grupoSeletorFatura" style="display:none;">
+                            <label id="lblSeletorFatura" style="display:block;margin-bottom:6px;font-weight:600;font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;">Em qual fatura essa compra entra?</label>
+                            <div id="seletorFaturaOpcoes" class="fatura-opcoes"></div>
+                            <div id="seletorFaturaAviso" style="display:none;"></div>
+                            <div id="seletorFaturaResumo" style="display:none;"></div>
+                            <div id="seletorFaturaSemDados" style="display:none;"></div>
+                        </div>
                     </div>
 
                     <div class="form-group" id="grupoObs">

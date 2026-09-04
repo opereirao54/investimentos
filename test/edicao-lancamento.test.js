@@ -183,9 +183,19 @@ function montarFormulario(env, campos) {
     'btnTipoFixo',
     'listaDescricoes',
     'categoriaDespesaNova',
+    // Seletor de fatura: o formulário de cartão passa a escolher a fatura em
+    // vez de exibir uma data derivada.
+    'grupoSeletorFatura',
+    'seletorFaturaOpcoes',
+    'seletorFaturaAviso',
+    'seletorFaturaResumo',
+    'seletorFaturaSemDados',
+    'grupoVencimentoControle',
+    'gridCategoriaVencimento',
   ].forEach((id) => {
     env.elementos[id] = makeDeadNode();
   });
+  env.elementos.faturaEscolhida = makeDeadNode({ value: campos.fatura ?? 'aberta' });
 }
 
 const CARTAO_COM_VENC = { id: 'card_a', nome: 'Cartão A', diaFechamento: 28, diaVencimento: 5 };
@@ -553,8 +563,88 @@ test('trocar para cartão SEM dia de vencimento limpa e destrava o campo', () =>
 
   assert.equal(env.elementos.dataVencimento.value, '', 'não pode herdar a data do cartão anterior');
   assert.equal(env.elementos.dataVencimento.readOnly, false, 'o usuário precisa poder digitar');
-  assert.equal(env.toasts.at(-1).tipo, 'aviso');
-  assert.match(env.toasts.at(-1).msg, /sem dia de vencimento/i);
+
+  // O aviso era um toast, que some em três segundos e não resolve nada. Virou
+  // um bloco fixo no lugar das opções de fatura, que diz QUAL cartão está
+  // incompleto e traz os dois campos para completar ali mesmo — mandar para
+  // Configurações custaria o lançamento que estava sendo digitado.
+  const bloco = env.elementos.seletorFaturaSemDados;
+  assert.equal(bloco.style.display, 'block', 'o bloco tem de aparecer no lugar das faturas');
+  assert.match(bloco.innerHTML, /não tem fechamento e vencimento/i, 'diz o que falta');
+  assert.match(bloco.innerHTML, /Cartão principal/, 'diz de qual cartão está falando');
+  assert.match(bloco.innerHTML, /id="faturaDiaFech"/, 'e traz o campo para resolver ali');
+  assert.match(bloco.innerHTML, /id="faturaDiaVenc"/);
+});
+
+// ---- seletor de fatura: nada se move sem escolha ------------------------
+//
+// O relato que originou o seletor: comprou antes do fechamento, lançou depois,
+// e caiu na fatura errada sem poder corrigir. A correção deu a escolha — e a
+// escolha trouxe um risco novo: mover um lançamento antigo por acidente.
+
+test('editar lançamento de outra fatura: abrir as opções NÃO move nada', () => {
+  // Uma compra de 2020: nunca vai ser uma das duas candidatas, em nenhuma data
+  // em que a suíte rode.
+  const env = carregar({
+    futurorico_cartoes: JSON.stringify([CARTAO_COM_VENC]),
+    futurorico_transacoes: JSON.stringify([
+      {
+        id: 'antigo',
+        descricao: 'Compra antiga',
+        valor: 99,
+        categoria: 'cartao_credito',
+        cartaoId: 'card_a',
+        mes: 2,
+        ano: 2020,
+        dataVencimento: '2020-03-10',
+        pago: true,
+      },
+    ]),
+  });
+  montarFormulario(env, { editId: '', categoria: 'cartao_credito', cartao: 'card_a' });
+
+  env.win.prepararEdicao('antigo');
+  assert.equal(
+    env.elementos.dataVencimento.value,
+    '2020-03-10',
+    'abrir para editar não pode mexer na fatura'
+  );
+
+  // Clicar em "Mover para outra fatura" mostra as opções, mas nenhuma marcada:
+  // quem clicou ainda não escolheu para onde, e sair sem escolher tem de
+  // deixar o lançamento onde estava.
+  env.win.expandirSeletorFatura();
+  assert.equal(
+    env.elementos.dataVencimento.value,
+    '2020-03-10',
+    'expandir o seletor não pode mover o lançamento'
+  );
+  assert.equal(env.elementos.faturaEscolhida.value, 'manter');
+});
+
+test('seletor de fatura: escolher a fechada move o lançamento para ela', () => {
+  const env = carregar({ futurorico_cartoes: JSON.stringify([CARTAO_COM_VENC]) });
+  montarFormulario(env, { categoria: 'cartao_credito', cartao: 'card_a' });
+
+  env.win.selecionarFatura('aberta');
+  const naAberta = env.elementos.dataVencimento.value;
+  env.win.selecionarFatura('fechada');
+  const naFechada = env.elementos.dataVencimento.value;
+
+  assert.match(naAberta, /^\d{4}-\d{2}-05$/, 'dia do vencimento do Cartão A');
+  assert.match(naFechada, /^\d{4}-\d{2}-05$/);
+  assert.ok(naFechada < naAberta, 'a fechada vence antes da aberta');
+  // E é a MESMA data que a função pura devolve — a tela não recalcula por
+  // conta própria.
+  const cand = env.win.cartaoFaturasCandidatas(new Date(), 28, 5);
+  const ymdPuro = (d) =>
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0');
+  assert.equal(naFechada, ymdPuro(cand.fechada.vencimento));
+  assert.equal(naAberta, ymdPuro(cand.aberta.vencimento));
 });
 
 test('trocar para cartão COM vencimento recalcula e volta a travar o campo', () => {

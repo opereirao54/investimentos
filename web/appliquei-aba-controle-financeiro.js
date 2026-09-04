@@ -647,15 +647,23 @@ function verificarRegraCartao() {
     }
   }
 
-  // 4.6 — a data de cartão é derivada do cartão cadastrado, não editável.
+  // 4.6 — em cartão o campo "Vencimento" SAI da tela e dá lugar ao seletor de
+  // fatura, dentro do bloco do cartão. A pergunta ali não é "que dia vence" —
+  // é "em qual fatura isto entra", e a resposta depende do cartão e do tipo.
+  // O input continua no DOM e continua sendo o que o salvamento lê; quem o
+  // preenche passa a ser preencherVencimentoPorCartao.
+  const ehCartao = cat === 'cartao_credito';
+  const grupoVenc = document.getElementById('grupoVencimentoControle');
+  const gridCatVenc = document.getElementById('gridCategoriaVencimento');
+  if (grupoVenc) grupoVenc.style.display = ehCartao ? 'none' : '';
+  // Sem o vencimento, a grade de duas colunas deixaria a Categoria sozinha
+  // ocupando metade da linha, com um buraco do lado.
+  if (gridCatVenc) gridCatVenc.style.gridTemplateColumns = ehCartao ? '1fr' : '';
   const inputVenc = document.getElementById('dataVencimento');
-  if (inputVenc) {
-    const ehCartao = cat === 'cartao_credito';
-    inputVenc.readOnly = ehCartao;
-    inputVenc.style.opacity = ehCartao ? '0.7' : '';
-    inputVenc.title = ehCartao
-      ? 'Definida automaticamente pelo fechamento/vencimento do cartão cadastrado.'
-      : '';
+  if (inputVenc && !ehCartao) {
+    inputVenc.readOnly = false;
+    inputVenc.style.opacity = '';
+    inputVenc.title = '';
   }
 
   if (cat === 'cartao_credito') {
@@ -739,38 +747,487 @@ function competenciaDaData(dataStr) {
   return { mes: m - 1, ano: a };
 }
 
-function preencherVencimentoPorCartao() {
+// Último fechamento que JÁ ocorreu, olhando de `hoje`. Puro/testável.
+//
+// Segue exatamente o mesmo critério de borda de cartaoCalcularVencimento: lá,
+// `hoje.getDate() > dFech` é o que empurra a compra para a fatura seguinte —
+// ou seja, comprar NO dia do fechamento ainda entra na fatura que fecha nesse
+// dia. Aqui a condição espelhada é `<=`: no dia 2, com fechamento no dia 2, o
+// último fechamento concluído é o do mês passado.
+//
+// O dia é limitado ao tamanho do mês porque fechamento 31 existe e fevereiro
+// não tem dia 31 — cartaoCalcularVencimento já faz isso para o vencimento.
+function cartaoUltimoFechamento(hoje, diaFech, diaVenc) {
+  const dVenc = parseInt(diaVenc, 10);
+  let dFech = parseInt(diaFech, 10);
+  if (!dVenc || dVenc < 1 || dVenc > 31) return null;
+  if (!dFech || dFech < 1 || dFech > 31) dFech = dVenc; // mesmo fallback da regra
+  const diaNoMes = (ano, mes) => Math.min(dFech, new Date(ano, mes + 1, 0).getDate());
+  let ano = hoje.getFullYear();
+  let mes = hoje.getMonth();
+  if (hoje.getDate() <= diaNoMes(ano, mes)) {
+    mes -= 1;
+    if (mes < 0) {
+      mes = 11;
+      ano -= 1;
+    }
+  }
+  return new Date(ano, mes, diaNoMes(ano, mes));
+}
+
+/** O fechamento seguinte a um fechamento dado — um mês à frente, com o dia
+ *  limitado ao tamanho do mês de destino (fechamento 31 em fevereiro). */
+function cartaoProximoFechamento(fechamento, diaFech, diaVenc) {
+  const dVenc = parseInt(diaVenc, 10);
+  let dFech = parseInt(diaFech, 10);
+  if (!dVenc || dVenc < 1 || dVenc > 31) return null;
+  if (!dFech || dFech < 1 || dFech > 31) dFech = dVenc;
+  const ano = fechamento.getFullYear();
+  const mes = fechamento.getMonth() + 1;
+  return new Date(ano, mes, Math.min(dFech, new Date(ano, mes + 1, 0).getDate()));
+}
+
+/** Um dia depois de `d`, sem mexer no original. */
+function cartaoDiaSeguinte(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + 1);
+  return x;
+}
+
+// As faturas entre as quais o usuário pode escolher ao lançar uma compra.
+// Puro/testável — a tela só desenha o que sai daqui.
+//
+// POR QUE ISTO EXISTE: a regra decide a fatura pela data, e a data que ela
+// recebe é HOJE. Quem compra antes do fechamento e só lança depois cai na
+// fatura seguinte, e não tinha como corrigir — o campo era readOnly. A regra
+// continua intacta: ela é chamada duas vezes, com duas datas, e as duas
+// respostas viram as duas opções.
+//
+// `aberta` é a fatura que ainda acumula (é o que a regra devolve para hoje).
+// `fechada` é a que acabou de fechar e ainda vai ser paga — o destino de quem
+// comprou antes do fechamento e lançou atrasado.
+function cartaoFaturasCandidatas(hoje, diaFech, diaVenc) {
+  const vencAberta = cartaoCalcularVencimento(hoje, diaFech, diaVenc);
+  if (!vencAberta) return null;
+  const ultimoFech = cartaoUltimoFechamento(hoje, diaFech, diaVenc);
+  if (!ultimoFech) return null;
+  const penultimoFech = cartaoUltimoFechamento(ultimoFech, diaFech, diaVenc);
+  const vencFechada = cartaoCalcularVencimento(ultimoFech, diaFech, diaVenc);
+  return {
+    aberta: {
+      vencimento: vencAberta,
+      fechamento: cartaoProximoFechamento(ultimoFech, diaFech, diaVenc),
+      inicio: cartaoDiaSeguinte(ultimoFech),
+      fim: null, // ainda acumula
+    },
+    fechada: {
+      vencimento: vencFechada,
+      fechamento: ultimoFech,
+      inicio: penultimoFech ? cartaoDiaSeguinte(penultimoFech) : null,
+      fim: ultimoFech,
+    },
+  };
+}
+
+var FATURA_MESES = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
+
+/** Modo do seletor na edição: começa recolhido, mostrando só onde o
+ *  lançamento está. A maioria das edições é para corrigir descrição, e abrir o
+ *  seletor convidaria a mover a fatura sem querer — mover em silêncio já foi
+ *  bug aqui uma vez. */
+var faturaSeletorExpandido = false;
+
+function faturaYmd(d) {
+  return (
+    d.getFullYear() +
+    '-' +
+    String(d.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(d.getDate()).padStart(2, '0')
+  );
+}
+
+function faturaDdMm(d) {
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+/** A fatura é nomeada pelo mês em que se PAGA — é assim que o banco a chama e
+ *  é assim que o usuário pensa nela. */
+function faturaNome(venc) {
+  return 'Fatura de ' + FATURA_MESES[venc.getMonth()];
+}
+
+/** Lançamentos já registrados numa fatura. A chave é a mesma do painel de
+ *  vencimentos (cartão + data de vencimento): fatura não é entidade no modelo,
+ *  é um agrupamento por essa dupla. */
+function faturaLancamentos(cartaoId, ymdVenc) {
+  if (typeof transacoes === 'undefined') return [];
+  return transacoes.filter(
+    (t) =>
+      t.categoria === 'cartao_credito' && t.cartaoId === cartaoId && t.dataVencimento === ymdVenc
+  );
+}
+
+/** Total já lançado na fatura — serve para o usuário bater com o app do banco
+ *  antes de escolher. */
+function faturaTotal(cartaoId, ymdVenc) {
+  return faturaLancamentos(cartaoId, ymdVenc).reduce((soma, t) => soma + (Number(t.valor) || 0), 0);
+}
+
+/** Não existe flag de "fatura paga": o estado é dos lançamentos. Fatura vazia
+ *  não conta como paga — senão toda fatura nova nasceria "paga". */
+function faturaEstaPaga(cartaoId, ymdVenc) {
+  const itens = faturaLancamentos(cartaoId, ymdVenc);
+  return itens.length > 0 && itens.every((t) => t.pago);
+}
+
+/** O cartão selecionado no formulário, ou null. */
+function faturaCartaoDoForm() {
   const sel = document.getElementById('selectCartao');
+  if (!sel || !sel.value || sel.value === '__novo__') return null;
+  return typeof obterCartao === 'function' ? obterCartao(sel.value) : null;
+}
+
+/** As duas candidatas para o cartão selecionado, ou null se faltam os dias. */
+function faturaCandidatasDoForm() {
+  const cartao = faturaCartaoDoForm();
+  if (!cartao) return null;
+  return cartaoFaturasCandidatas(new Date(), cartao.diaFechamento, cartao.diaVencimento);
+}
+
+/** Escolha do usuário. Guarda a INTENÇÃO, não a data: trocar de cartão
+ *  recalcula as datas e mantém "eu quero a fechada". */
+function faturaIntencao() {
+  const el = document.getElementById('faturaEscolhida');
+  return el ? el.value || 'aberta' : 'aberta';
+}
+
+function selecionarFatura(qual) {
+  const el = document.getElementById('faturaEscolhida');
+  if (el) el.value = qual;
+  preencherVencimentoPorCartao();
+}
+
+function expandirSeletorFatura() {
+  faturaSeletorExpandido = true;
+  // 'manter' = nenhuma opção marcada e a data GUARDADA intacta. Abrir as
+  // opções não pode mover nada: quem clicou em "mover" ainda não escolheu para
+  // onde, e sair sem escolher tem de deixar o lançamento onde estava.
+  const el = document.getElementById('faturaEscolhida');
+  if (el) el.value = 'manter';
+  preencherVencimentoPorCartao();
+}
+
+/** Completa fechamento/vencimento do cartão SEM sair do lançamento. Mandar o
+ *  usuário para Configurações aqui custaria o lançamento que ele estava
+ *  digitando. */
+function salvarDiasCartaoInline() {
+  const cartao = faturaCartaoDoForm();
+  if (!cartao) return;
+  const fech = parseInt(document.getElementById('faturaDiaFech').value, 10);
+  const venc = parseInt(document.getElementById('faturaDiaVenc').value, 10);
+  if (!fech || fech < 1 || fech > 31)
+    return mostrarToast('Informe o dia de fechamento (1 a 31).', 'erro');
+  if (!venc || venc < 1 || venc > 31)
+    return mostrarToast('Informe o dia de vencimento (1 a 31).', 'erro');
+  cartao.diaFechamento = fech;
+  cartao.diaVencimento = venc;
+  if (typeof salvarCartoes === 'function') salvarCartoes();
+  mostrarToast('Cartão atualizado. Agora dá para escolher a fatura.', 'sucesso');
+  preencherVencimentoPorCartao();
+}
+
+/** A linha que explica o que vai ser criado: parcelado gera N lançamentos a
+ *  partir da fatura escolhida, e sem isto ninguém adivinha até onde vão. */
+function atualizarResumoFatura() {
+  const box = document.getElementById('seletorFaturaResumo');
+  if (!box) return;
+  const cand = faturaCandidatasDoForm();
+  const alvo = cand ? (faturaIntencao() === 'fechada' ? cand.fechada : cand.aberta) : null;
+  if (!alvo) {
+    box.style.display = 'none';
+    return;
+  }
+  const tipo = (document.getElementById('tipoCartaoSelecionado') || {}).value;
+  const parcelas = parseInt((document.getElementById('qtdParcelas') || {}).value, 10) || 1;
+  const primeiro = FATURA_MESES[alvo.vencimento.getMonth()];
+
+  if (tipo === 'fixo') {
+    box.className = 'fatura-resumo';
+    box.innerHTML =
+      '<i class="ph ph-repeat"></i> Repete todo mês, a partir da fatura de <strong>' +
+      primeiro +
+      '</strong>.';
+    box.style.display = 'block';
+    return;
+  }
+  if (parcelas > 1) {
+    const valor =
+      typeof parseBRL === 'function'
+        ? parseBRL((document.getElementById('valorTransacao') || {}).value)
+        : 0;
+    const ultimo = new Date(
+      alvo.vencimento.getFullYear(),
+      alvo.vencimento.getMonth() + parcelas - 1,
+      1
+    );
+    const porParcela = Number.isFinite(valor) && valor > 0 ? formatarMoeda(valor / parcelas) : null;
+    box.className = 'fatura-resumo';
+    box.innerHTML =
+      '<i class="ph ph-list-numbers"></i> ' +
+      parcelas +
+      (porParcela ? ' parcelas de <strong>' + porParcela + '</strong>' : ' parcelas') +
+      ', de <strong>' +
+      primeiro +
+      '</strong> a <strong>' +
+      FATURA_MESES[ultimo.getMonth()] +
+      '</strong>.';
+    box.style.display = 'block';
+    return;
+  }
+  box.style.display = 'none';
+}
+
+/** Desenha o seletor e — o que importa para o resto do app — grava a data
+ *  escolhida em #dataVencimento, que continua sendo o único campo que o
+ *  salvamento lê. O seletor é uma camada de escolha por cima do mesmo valor.
+ *
+ *  Mantém o nome antigo porque é o ponto de entrada que verificarRegraCartao e
+ *  onChangeSelectCartao já chamam. */
+/** O que dizer depois de salvar. Em cartão, o usuário acabou de escolher uma
+ *  fatura — "salvo com sucesso" não conta se a escolha pegou. Nomeia a fatura,
+ *  e no parcelado diz até onde as parcelas vão. */
+function mensagemLancamentoSalvo(categoria, ymdVenc, qtdLancamentos) {
+  if (categoria !== 'cartao_credito' || !ymdVenc) return 'Lançamento salvo com sucesso!';
+  const comp = competenciaDaData(ymdVenc);
+  if (!comp) return 'Lançamento salvo com sucesso!';
+  const primeiro = FATURA_MESES[comp.mes];
+  const [, , dia] = ymdVenc.split('-');
+  if (qtdLancamentos > 1) {
+    const ultimo = new Date(comp.ano, comp.mes + (qtdLancamentos - 1), 1);
+    return (
+      qtdLancamentos +
+      ' parcelas lançadas — de ' +
+      primeiro +
+      ' a ' +
+      FATURA_MESES[ultimo.getMonth()] +
+      '.'
+    );
+  }
+  return (
+    'Lançado na fatura de ' + primeiro + ' — vence em ' + dia + '/' + ymdVenc.split('-')[1] + '.'
+  );
+}
+
+function preencherVencimentoPorCartao() {
   const inputVenc = document.getElementById('dataVencimento');
-  if (!sel || !inputVenc) return;
-  if (!sel.value || sel.value === '__novo__') return;
-  const cartao = obterCartao(sel.value);
-  const data = cartaoCalcularVencimento(new Date(), cartao?.diaFechamento, cartao?.diaVencimento);
-  if (!data) {
-    // Cartão sem dia de vencimento (o "Cartão principal" criado no primeiro
-    // boot é assim). Sair calado deixava no campo a data do cartão ANTERIOR:
-    // a despesa entrava na fatura de outro cartão sem ninguém perceber, e o
-    // campo fica readOnly para cartão, então nem dava para consertar à mão.
-    // Melhor esvaziar, destravar e dizer o que falta.
-    inputVenc.value = '';
+  const grupo = document.getElementById('grupoSeletorFatura');
+  const opcoes = document.getElementById('seletorFaturaOpcoes');
+  const aviso = document.getElementById('seletorFaturaAviso');
+  const semDados = document.getElementById('seletorFaturaSemDados');
+  if (!inputVenc || !grupo || !opcoes) return;
+
+  const cartao = faturaCartaoDoForm();
+  if (!cartao) {
+    grupo.style.display = 'none';
+    return;
+  }
+  grupo.style.display = 'block';
+
+  const cand = cartaoFaturasCandidatas(new Date(), cartao.diaFechamento, cartao.diaVencimento);
+
+  // ---- Estado: cartão sem os dias (o "Cartão principal" do primeiro boot) ---
+  if (!cand) {
+    opcoes.innerHTML = '';
+    aviso.style.display = 'none';
+    document.getElementById('seletorFaturaResumo').style.display = 'none';
+    semDados.className = 'fatura-sem-dados';
+    semDados.innerHTML =
+      '<div><i class="ph ph-warning-circle" style="color:var(--cor-txt-amber);vertical-align:-2px;"></i> ' +
+      '<strong>' +
+      cartao.nome +
+      '</strong> ainda não tem fechamento e vencimento. ' +
+      'Sem eles não dá para saber em qual fatura a compra entra.</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-top:10px;">' +
+      '<div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia do fechamento</label>' +
+      '<input type="number" id="faturaDiaFech" min="1" max="31" placeholder="Ex: 2" value="' +
+      (cartao.diaFechamento || '') +
+      '"></div>' +
+      '<div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia do vencimento</label>' +
+      '<input type="number" id="faturaDiaVenc" min="1" max="31" placeholder="Ex: 10" value="' +
+      (cartao.diaVencimento || '') +
+      '"></div>' +
+      '<button type="button" class="btn-acao" style="background:var(--cor-primaria);padding:9px 14px;font-size:12.5px;" onclick="salvarDiasCartaoInline()"><i class="ph ph-check"></i> Salvar</button>' +
+      '</div>';
+    semDados.style.display = 'block';
+    // Sem faturas calculáveis, a data volta a ser digitável à mão: é o único
+    // caminho que resta para não travar o lançamento.
     inputVenc.readOnly = false;
     inputVenc.style.opacity = '';
     inputVenc.title = '';
-    mostrarToast(
-      `"${cartao?.nome || 'Este cartão'}" está sem dia de vencimento. Informe a data ou complete o cadastro do cartão em Configurações.`,
-      'aviso'
-    );
+    // E some a data que estava lá. Ela é do cartão ANTERIOR, e deixá-la faria
+    // a despesa entrar na fatura de outro cartão sem ninguém perceber.
+    // EXCEÇÃO: editando, a data guardada é do próprio lançamento — apagá-la
+    // moveria de fatura quem só abriu para corrigir a descrição.
+    if (!(document.getElementById('editTransacaoId') || {}).value) inputVenc.value = '';
     return;
   }
-  // Cartão com vencimento: o campo volta a ser derivado (readOnly), caso um
-  // cartão sem data o tenha destravado antes.
+  semDados.style.display = 'none';
+
+  const ymdAberta = faturaYmd(cand.aberta.vencimento);
+  const ymdFechada = faturaYmd(cand.fechada.vencimento);
+  const editando = (document.getElementById('editTransacaoId') || {}).value;
+  const guardada = inputVenc.value;
+
+  // ---- Estado: editando um lançamento que está numa TERCEIRA fatura --------
+  // Ex.: uma compra de março. Nunca mover em silêncio — mostra onde está e
+  // exige um clique para abrir as opções.
+  if (
+    editando &&
+    guardada &&
+    guardada !== ymdAberta &&
+    guardada !== ymdFechada &&
+    !faturaSeletorExpandido
+  ) {
+    const [ga, gm, gd] = guardada.split('-').map(Number);
+    const dv = new Date(ga, gm - 1, gd);
+    opcoes.innerHTML =
+      '<div class="fatura-sem-dados" style="grid-column:1/-1;">' +
+      '<i class="ph ph-credit-card" style="vertical-align:-2px;"></i> Está na <strong>' +
+      faturaNome(dv).toLowerCase() +
+      '</strong> — vence em ' +
+      faturaDdMm(dv) +
+      '.' +
+      ' <button type="button" onclick="expandirSeletorFatura()" style="background:none;border:none;padding:0;margin-left:4px;color:var(--cor-primaria);font-weight:600;font-size:12.5px;cursor:pointer;font-family:inherit;text-decoration:underline;">Mover para outra fatura</button>' +
+      '</div>';
+    aviso.style.display = 'none';
+    atualizarResumoFatura();
+    return;
+  }
+
+  // ---- Estado normal: as duas candidatas ----------------------------------
+  // 'manter' só existe na edição de um lançamento que está numa terceira
+  // fatura: as opções aparecem, mas nenhuma marcada, e a data não se mexe até
+  // o usuário escolher.
+  const bruta = faturaIntencao();
+  const intencao = bruta === 'fechada' ? 'fechada' : bruta === 'manter' ? 'manter' : 'aberta';
+  const tipoFixo = (document.getElementById('tipoCartaoSelecionado') || {}).value === 'fixo';
+
+  const cartaoOpcao = (chave, dados, marcada) => {
+    const ymd = faturaYmd(dados.vencimento);
+    const paga = faturaEstaPaga(cartao.id, ymd);
+    const venceu = ymd < faturaYmd(new Date());
+    const total = faturaTotal(cartao.id, ymd);
+
+    let estado, corEstado;
+    if (chave === 'aberta') {
+      estado = 'Aberta · fecha em ' + faturaDdMm(dados.fechamento);
+      corEstado = 'var(--cor-primaria)';
+    } else {
+      estado = 'Fechada em ' + faturaDdMm(dados.fechamento);
+      corEstado = 'var(--cor-texto-secundario)';
+    }
+    const pagamento = paga
+      ? 'Paga'
+      : (venceu ? 'Venceu em ' : 'Você paga em ') + faturaDdMm(dados.vencimento);
+
+    // A linha decisiva: traduz "comprei dia 30" numa escolha, sem exigir que o
+    // usuário entenda fechamento.
+    let janela;
+    if (tipoFixo) {
+      janela = chave === 'aberta' ? 'Começa a cobrar nesta' : 'Já cobrava nesta';
+    } else if (chave === 'aberta') {
+      janela = 'Compras de ' + faturaDdMm(dados.inicio) + ' em diante';
+    } else {
+      janela = 'Compras feitas até ' + faturaDdMm(dados.fim);
+    }
+
+    return (
+      '<label class="fatura-op">' +
+      '<input type="radio" name="faturaOpcao" value="' +
+      chave +
+      '"' +
+      (marcada ? ' checked' : '') +
+      ' onchange="selecionarFatura(\'' +
+      chave +
+      '\')">' +
+      '<span class="fatura-op-corpo">' +
+      '<span class="fatura-op-nome">' +
+      faturaNome(dados.vencimento) +
+      '</span>' +
+      '<span class="fatura-op-estado" style="color:' +
+      corEstado +
+      ';display:block;">' +
+      estado +
+      '</span>' +
+      '<span class="fatura-op-paga" style="display:block;">' +
+      pagamento +
+      '</span>' +
+      '<span class="fatura-op-janela" style="display:block;">' +
+      janela +
+      '</span>' +
+      '<span class="fatura-op-total" style="display:block;">' +
+      formatarMoeda(total) +
+      (chave === 'aberta' ? ' até agora' : '') +
+      '</span>' +
+      '</span>' +
+      '</label>'
+    );
+  };
+
+  opcoes.innerHTML =
+    cartaoOpcao('aberta', cand.aberta, intencao === 'aberta') +
+    cartaoOpcao('fechada', cand.fechada, intencao === 'fechada');
+
+  const lbl = document.getElementById('lblSeletorFatura');
+  if (lbl) {
+    lbl.innerText =
+      intencao === 'manter'
+        ? 'Escolha para onde mover'
+        : tipoFixo
+          ? 'A partir de qual fatura?'
+          : 'Em qual fatura essa compra entra?';
+  }
+
+  // ---- Aviso de fatura já paga --------------------------------------------
+  // Não bloqueia: se o banco cobrou e o usuário esqueceu de lançar, lançar é o
+  // que faz o app bater com a realidade. Mas ele precisa saber que o mês
+  // anterior vai mudar.
+  if (intencao === 'fechada' && faturaEstaPaga(cartao.id, ymdFechada)) {
+    aviso.className = 'fatura-aviso';
+    aviso.innerHTML =
+      '<i class="ph-fill ph-warning-circle"></i><span>Essa fatura já está paga no app. ' +
+      'Se a compra estava nela e você não tinha lançado, pode seguir — o total de <strong>' +
+      FATURA_MESES[cand.fechada.vencimento.getMonth()] +
+      '</strong> vai subir.</span>';
+    aviso.style.display = 'block';
+  } else {
+    aviso.style.display = 'none';
+  }
+
+  // O valor que o salvamento lê. O seletor é só a camada de escolha.
+  // Em 'manter' a data guardada fica como está — nada se move sem escolha.
+  if (intencao !== 'manter') {
+    inputVenc.value = intencao === 'fechada' ? ymdFechada : ymdAberta;
+  }
   inputVenc.readOnly = true;
   inputVenc.style.opacity = '0.7';
-  inputVenc.title = 'Definida automaticamente pelo fechamento/vencimento do cartão cadastrado.';
-  const yyyy = data.getFullYear();
-  const mm = String(data.getMonth() + 1).padStart(2, '0');
-  const dd = String(data.getDate()).padStart(2, '0');
-  inputVenc.value = `${yyyy}-${mm}-${dd}`;
+  inputVenc.title = 'Definida pela fatura escolhida acima.';
+
+  atualizarResumoFatura();
 }
 
 function cancelarNovoCartaoInline() {
@@ -833,6 +1290,9 @@ function aplicarTipoCartaoUI() {
     divParcelas.style.display = 'block';
     lblValor.innerText = 'Valor Total da Compra (R$)';
   }
+  // O seletor de fatura muda de pergunta entre parcelado e fixo mensal
+  // ("em qual entra" vs. "a partir de qual"), e a linha do resumo também.
+  if (typeof preencherVencimentoPorCartao === 'function') preencherVencimentoPorCartao();
 }
 
 // Compromissos PROGRAMADOS marcados como pagos por engano: uma despesa variável
@@ -935,6 +1395,19 @@ function prepararEdicao(id) {
     // descrição — e salvar gravava a data nova. A data do lançamento manda;
     // trocar de cartão daqui em diante recalcula normalmente pelo onchange.
     document.getElementById('dataVencimento').value = trans.dataVencimento || '';
+    // O seletor nasce recolhido a cada edição: quem abriu para corrigir a
+    // descrição não pode mover a fatura por acidente.
+    faturaSeletorExpandido = false;
+    // A intenção vem da data GUARDADA, não de hoje. Se o lançamento está numa
+    // das duas candidatas, o rádio correspondente nasce marcado; se está numa
+    // terceira fatura, o seletor mostra onde ele está e exige um clique.
+    const candEd = faturaCandidatasDoForm();
+    const elIntencao = document.getElementById('faturaEscolhida');
+    if (candEd && elIntencao) {
+      elIntencao.value =
+        trans.dataVencimento === faturaYmd(candEd.fechada.vencimento) ? 'fechada' : 'aberta';
+    }
+    preencherVencimentoPorCartao();
   }
   document.getElementById('descTransacao').focus();
 
@@ -947,6 +1420,9 @@ function prepararEdicao(id) {
 
 function cancelarEdicaoControle() {
   if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
+  faturaSeletorExpandido = false;
+  const elFat = document.getElementById('faturaEscolhida');
+  if (elFat) elFat.value = 'aberta';
   document.getElementById('editTransacaoId').value = '';
   document.getElementById('descTransacao').value = '';
   document.getElementById('valorTransacao').value = '';
@@ -1260,6 +1736,12 @@ function executarInsercao() {
   if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   document.getElementById('valorTransacao').value = '';
   document.getElementById('transacaoFixa').checked = false;
+  // O próximo lançamento recomeça na fatura aberta — que é o caso comum.
+  // Herdar "fechada" do lançamento anterior mandaria a compra seguinte para o
+  // mês passado sem ninguém pedir.
+  faturaSeletorExpandido = false;
+  const elFatNovo = document.getElementById('faturaEscolhida');
+  if (elFatNovo) elFatNovo.value = 'aberta';
   document.getElementById('qtdParcelas').value = 1;
   document.getElementById('dataVencimento').value = '';
   document.getElementById('categoriaTransacao').value = '';
@@ -1276,7 +1758,7 @@ function executarInsercao() {
   const grupoCatDesp = document.getElementById('grupoCategoriaDespesa');
   if (grupoCatDesp) grupoCatDesp.style.display = 'none';
   selecionarTipoCartao('parcelado');
-  mostrarToast('Lançamento salvo com sucesso!', 'sucesso');
+  mostrarToast(mensagemLancamentoSalvo(categoria, dataVencInput, mesesGerar), 'sucesso');
   atualizarTelaControle();
   atualizarDatalistDescricoes();
   fecharPainelLancamento();
