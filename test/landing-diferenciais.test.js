@@ -71,19 +71,21 @@ test('os quatro atos estão na ordem, e os dois diferenciais abrem a história',
     assert.ok(pos[i] > pos[i - 1], `ato ${i + 1} fora de ordem`);
   }
   // A ordem é uma decisão de negócio, não de narrativa: carteira sugerida e
-  // meus investimentos são o que a casa vende, e abrem. O patrimônio inteiro e
-  // o mês vêm depois, como a fundação de onde a resposta sai. Empurrar a
-  // carteira para o meio devolve o diferencial à posição em que ele competia
-  // com o resto — foi de lá que ele saiu.
+  // meus investimentos são o que a casa vende, e abrem. O mês e o patrimônio
+  // vêm depois, como a fundação de onde a resposta sai. Empurrar a carteira
+  // para o meio devolve o diferencial à posição em que ele competia com o
+  // resto — foi de lá que ele saiu.
+  //
+  // Entre os dois últimos a ordem já mudou uma vez (o mês passou à frente do
+  // patrimônio, para a história subir até o total). O que este teste trava são
+  // só os DOIS primeiros: é neles que está a decisão de negócio.
   const iCarteira = VISIVEL.indexOf('id="proximo-passo"');
   assert.ok(iCarteira > pos[0] && iCarteira < pos[1], 'a carteira sugerida tem de ser o ATO 1');
 
+  // Casa pelo título do ato, não pela frase de venda inteira: a chamada é
+  // reescrita a cada revisão de marketing e o que importa aqui é a POSIÇÃO.
   const ato2 = VISIVEL.slice(pos[1], pos[2]);
-  assert.match(
-    ato2,
-    /investimentos, de todas as corretoras/i,
-    'meus investimentos tem de ser o ato 2'
-  );
+  assert.match(ato2, /<h3>Todos os investimentos/i, 'meus investimentos tem de ser o ato 2');
 
   assert.ok(
     pos[3] < VISIVEL.indexOf('id="funcionalidades"'),

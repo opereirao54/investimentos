@@ -730,24 +730,24 @@
 <section class="palco" id="historia">
   <div class="container palco-intro">
     <span class="eyebrow">A história em uma tela</span>
-    <h2>Comece pela pergunta difícil: <em>onde vai o próximo aporte?</em></h2>
+    <h2>Comece pela pergunta difícil: <em>onde aplicar o meu dinheiro?</em></h2>
     <p>Quatro atos sobre a mesma tela. O primeiro é o que ninguém responde sozinho — e os outros três mostram de onde a Appliquei tira a resposta.</p>
   </div>
 
   <div class="container palco-corpo">
     <ol class="palco-trilho" id="palcoTrilho">
-      <li aria-current="step"><button type="button" data-ir="1" title="Ato 1 — Para onde vai o próximo aporte">1</button></li>
-      <li><button type="button" data-ir="2" title="Ato 2 — Toda a carteira, de todas as corretoras">2</button></li>
-      <li><button type="button" data-ir="3" title="Ato 3 — Todo o resto do que você tem">3</button></li>
-      <li><button type="button" data-ir="4" title="Ato 4 — O mês que sustenta tudo">4</button></li>
+      <li aria-current="step"><button type="button" data-ir="1" title="Ato 1 — Onde aplicar o meu dinheiro">1</button></li>
+      <li><button type="button" data-ir="2" title="Ato 2 — Todos os investimentos unificados">2</button></li>
+      <li><button type="button" data-ir="3" title="Ato 3 — O mês que sustenta tudo">3</button></li>
+      <li><button type="button" data-ir="4" title="Ato 4 — Todo o seu patrimônio">4</button></li>
     </ol>
 
     <div class="palco-atos" id="palcoAtos">
       <article class="ato" id="ato-1">
         <div class="ato-texto" id="proximo-passo">
           <span class="ato-num"><b>1</b> O diferencial</span>
-          <h3>Não veja apenas onde investiu. Entenda onde investir o próximo aporte.</h3>
-          <p>A Appliquei compara a sua carteira com a estratégia do seu perfil, mostra a distância classe a classe e distribui o aporte do mês — com o cálculo aberto, ativo por ativo.</p>
+          <h3>Não veja apenas onde investiu. Analise onde investir o próximo aporte.</h3>
+          <p>A Appliquei sugere uma carteira a partir de dados de mercado e da estratégia do seu perfil, e distribui o aporte mensal entre as classes de investimento e os ativos — com o cálculo aberto, ativo por ativo.</p>
           <ul class="ato-lista">
             <li><i class="ph-fill ph-list-numbers"></i><span><strong>Cinco pilares por ativo,</strong> e a origem de cada indicador: de qual demonstração veio e de que exercício.</span></li>
             <li><i class="ph-fill ph-bank"></i><span><strong>Fundamentos vindos da CVM,</strong> não de API comercial — e o aporte respeita o seu limite por setor.</span></li>
@@ -766,8 +766,8 @@
       <article class="ato" id="ato-2">
         <div class="ato-texto">
           <span class="ato-num"><b>2</b> A sua carteira</span>
-          <h3>Todos os investimentos, de todas as corretoras</h3>
-          <p>Ações, FIIs, ETFs, BDRs, renda fixa, previdência e cripto no mesmo total — inclusive o que a corretora não mostra na tela dela.</p>
+          <h3>Todos os investimentos unificados numa página</h3>
+          <p>Ações, FIIs, ETFs, BDRs, renda fixa, previdência e cripto — com a evolução mês a mês, os dividendos previstos, a rentabilidade de cada ativo e a distribuição da carteira.</p>
           <ul class="ato-lista">
             <li><i class="ph-fill ph-calculator"></i><span><strong>Renda fixa capitalizada dia a dia:</strong> prefixado, %CDI e IPCA+, com Selic e CDI vindos do Banco Central.</span></li>
             <li><i class="ph-fill ph-clock-counter-clockwise"></i><span><strong>Posição retroativa.</strong> O que você já tinha entra sem bagunçar o saldo do mês.</span></li>
@@ -779,27 +779,17 @@
         </figure>
         <div class="ato-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
       </article>
+      <!-- O mês e o patrimônio TROCARAM de lugar: o controle passa a ser o ato
+           3 e o patrimônio fecha a história. A ordem agora é a do dinheiro a
+           subir — onde aplicar, o que já se tem aplicado, o mês que sustenta
+           os aportes, e no fim o total de tudo. Foi por causa desta troca que
+           saiu a frase "o patrimônio do ato anterior": o patrimônio deixou de
+           ser o ato anterior. -->
       <article class="ato" id="ato-3" data-ativo="1">
         <div class="ato-texto">
-          <span class="ato-num"><b>3</b> Todo o resto</span>
-          <h3>O número que ninguém sabe de cabeça</h3>
-          <p>Conta corrente, corretora, o apartamento, o carro. A Appliquei soma tudo e mostra quanto há em cada instituição — o total que a planilha nunca fechava.</p>
-          <ul class="ato-lista">
-            <li><i class="ph-fill ph-buildings"></i><span><strong>Saldo por banco e por corretora</strong>, e não um caixa genérico onde o dinheiro some.</span></li>
-            <li><i class="ph-fill ph-house-line"></i><span><strong>Imóveis e veículos no mesmo total</strong>, já com o financiamento abatido.</span></li>
-            <li><i class="ph-fill ph-percent"></i><span><strong>Bruto ou líquido de IR</strong>, com o imposto estimado a partir do seu preço médio.</span></li>
-          </ul>
-        </div>
-        <figure class="ato-fig">
-          <img src="prints/meu-patrimonio.webp" width="1200" height="900" alt="Tela Meu patrimônio da Appliquei somando saldo em conta, total investido, imóveis e veículos, com o detalhe por banco e corretora." loading="lazy" decoding="async">
-        </figure>
-        <div class="ato-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
-      </article>
-      <article class="ato" id="ato-4">
-        <div class="ato-texto">
-          <span class="ato-num"><b>4</b> O que sustenta</span>
+          <span class="ato-num"><b>3</b> O que sustenta</span>
           <h3>O que entra, o que sai e o que realmente sobra</h3>
-          <p>Receitas, despesas e faturas no lugar certo. Cada despesa paga desconta do saldo do banco de onde o dinheiro saiu — é por isso que o patrimônio do ato anterior fecha com a realidade.</p>
+          <p>Receitas, despesas e faturas no lugar certo. Cada despesa paga desconta do saldo do banco de onde o dinheiro saiu.</p>
           <ul class="ato-lista">
             <li><i class="ph-fill ph-gauge"></i><span><strong>A régua dos 60%</strong> avisa quando o mês aperta, antes de o mês acabar.</span></li>
             <li><i class="ph-fill ph-calendar-check"></i><span><strong>Projeção de caixa de 12 a 48 meses</strong>, já contando o que está agendado.</span></li>
@@ -808,6 +798,27 @@
         </div>
         <figure class="ato-fig">
           <img src="prints/controle-financeiro.webp" width="1200" height="900" alt="Tela Controle financeiro da Appliquei com saldo livre do mês, receitas, despesas e a régua da regra dos 60%." loading="lazy" decoding="async">
+        </figure>
+        <div class="ato-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
+      </article>
+      <article class="ato" id="ato-4">
+        <div class="ato-texto">
+          <span class="ato-num"><b>4</b> O seu patrimônio</span>
+          <h3>O número que ninguém sabe de cabeça</h3>
+          <p>Conta corrente, corretora, o apartamento, o carro. A Appliquei soma tudo e mostra quanto há em cada uma das suas instituições — a planilha não faz isso.</p>
+          <ul class="ato-lista">
+            <li><i class="ph-fill ph-buildings"></i><span><strong>Saldo por banco e por corretora</strong>, e não um caixa genérico onde o dinheiro some.</span></li>
+            <!-- Dizia "já com o financiamento abatido", e era falso: totalDividaBens()
+                 em web/appliquei-bens.js alimenta um indicador de dívida SEPARADO, e os
+                 KPIs de patrimônio seguem com o valor cheio do bem (decisão de produto
+                 escrita no próprio arquivo). O que a tela faz de verdade é o que está
+                 escrito agora: imóvel pelo cadastro, veículo pela FIPE. -->
+            <li><i class="ph-fill ph-house-line"></i><span><strong>Imóveis e veículos no mesmo total</strong>, de acordo com o cadastro e a tabela FIPE atualizada.</span></li>
+            <li><i class="ph-fill ph-percent"></i><span><strong>Bruto ou líquido de IR</strong>, com o imposto estimado a partir do seu preço médio.</span></li>
+          </ul>
+        </div>
+        <figure class="ato-fig">
+          <img src="prints/meu-patrimonio.webp" width="1200" height="900" alt="Tela Meu patrimônio da Appliquei somando saldo em conta, total investido, imóveis e veículos, com o detalhe por banco e corretora." loading="lazy" decoding="async">
         </figure>
         <div class="ato-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
       </article>
