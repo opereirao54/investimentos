@@ -86,6 +86,11 @@
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
         :root {
+            /* Altura de campo de UMA linha. É um token porque no toque a fonte
+               sobe para 16px (ver o bloco `pointer: coarse` no fim deste
+               <style>) e a caixa tem de acompanhar. */
+            --altura-campo: 40px;
+
             /* Sidebar dark tokens (sempre escura) */
             --sb-bg: #0b1410;
             --sb-bg2: #111c17;
@@ -1245,8 +1250,28 @@
                2px numa das bordas — visível no cadastro de sonho, onde
                "Valor total" e "Quando começar?" dividem a linha.
                O min-height nivela todos pelo maior; o conteúdo de campo de
-               uma linha centra-se sozinho na vertical, então nada desloca. */
-            min-height: 40px;
+               uma linha centra-se sozinho na vertical, então nada desloca.
+               É o piso — inclusive para o textarea, que cresce a partir dele. */
+            min-height: var(--altura-campo);
+        }
+        /* E o TETO, para todo campo de uma linha só.
+           `min-height` levanta o que é mais baixo, mas não impede que um
+           controle de caixa interna maior fique mais ALTO — e foi o que
+           aconteceu: numa versão nova do Chromium o input[type=month] passou a
+           fechar 41px enquanto os vizinhos ficaram em 40px, desencontrando de
+           novo a linha da grade que o min-height tinha acabado de endireitar.
+           A lição é que a altura não pode depender do miolo que o browser
+           desenha para cada tipo de controle: esse miolo muda entre versões.
+           Com `box-sizing: border-box` (global, no topo deste <style>),
+           `height` fixa o total e o browser deixa de ter voto — o conteúdo de
+           uma linha centra-se sozinho na vertical.
+           O textarea fica DE FORA de propósito: nele a altura é o conteúdo. */
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group input[type="date"],
+        .form-group input[type="month"] {
+            height: var(--altura-campo);
         }
         /* CAMPO DE DATA/MÊS PRECISA DE `appearance: none` — senão o iOS o
            dimensiona pelo CONTEÚDO e ignora o width.
@@ -2512,7 +2537,10 @@
         .banner-aviso-mock { display: flex; align-items: flex-start; gap: 12px; background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 18px; font-size: 13px; color: var(--cor-txt-amber); line-height: 1.5; font-weight: 500; }
 
         /* === VENCIMENTOS === */
-        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        /* `min(285px, 100%)` e não `285px` seco: num container mais estreito
+           que o mínimo, a faixa continuaria com 285px e sangraria para fora.
+           Medido a 320px o container dá 300px e cabe — mas 280px existe. */
+        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(285px, 100%), 1fr)); gap: 10px; margin-bottom: 16px; }
         .vencimentos-grid > [id^="detalhe-grupo-"] { grid-column: 1 / -1; }
         .venc-card {
             background: var(--cor-branco);
@@ -8963,6 +8991,11 @@
             textarea {
                 font-size: 16px !important;
             }
+            /* A fonte maior pede caixa maior: com 40px fixos, uma fonte de
+               16px dentro de 10px de padding e 1.5px de borda ficaria com
+               17px de área útil e cortaria os descendentes. 44px é também o
+               alvo de toque mínimo recomendado. */
+            :root { --altura-campo: 44px; }
         }
     </style>
 </head>
