@@ -35,16 +35,44 @@ function stubModule(id, exports) {
 }
 
 // --- Firestore de mentira: só o que o endpoint usa -------------------------
-const store = { docs: [], addFalha: null };
+//
+// `anexos` é a segunda coleção: a imagem da sugestão NÃO mora no documento do
+// feedback (a listagem leva todos os documentos de uma vez; meio mega de
+// base64 em cada um tornaria a abertura da tela impagável). As duas gravações
+// saem num batch, e é por isso que o fake precisa saber commitar um lote.
+const store = { docs: [], anexos: {}, addFalha: null };
 let ultimoWhere = null;
+let proximoId = 0;
+
+const COLECOES = ['feedback', 'feedback_anexos'];
+
+function guardar(caminho, id, doc) {
+  if (caminho === 'feedback') store.docs.push({ id, data: doc });
+  else store.anexos[id] = doc;
+}
 
 function fakeCollection(nome) {
-  assert.equal(nome, 'feedback', 'o endpoint só toca a coleção de feedback');
+  assert.ok(COLECOES.includes(nome), `coleção inesperada: ${nome}`);
   return {
+    doc(id) {
+      const real = id || 'doc' + ++proximoId;
+      return {
+        id: real,
+        __colecao: nome,
+        get() {
+          if (nome === 'feedback_anexos') {
+            const d = store.anexos[real];
+            return Promise.resolve({ exists: !!d, data: () => d });
+          }
+          const d = store.docs.find((x) => x.id === real);
+          return Promise.resolve({ exists: !!d, data: () => d && d.data });
+        },
+      };
+    },
     add(doc) {
       if (store.addFalha) return Promise.reject(store.addFalha);
-      const id = 'doc' + (store.docs.length + 1);
-      store.docs.push({ id, data: doc });
+      const id = 'doc' + ++proximoId;
+      guardar(nome, id, doc);
       return Promise.resolve({ id });
     },
     where(campo, op, valor) {
@@ -63,9 +91,25 @@ function fakeCollection(nome) {
   };
 }
 
+function fakeBatch() {
+  const pendentes = [];
+  return {
+    set(ref, doc) {
+      pendentes.push({ ref, doc });
+      return this;
+    },
+    commit() {
+      if (store.addFalha) return Promise.reject(store.addFalha);
+      // Atômico como o de verdade: ou entra tudo, ou não entra nada.
+      pendentes.forEach((p) => guardar(p.ref.__colecao, p.ref.id, p.doc));
+      return Promise.resolve([]);
+    },
+  };
+}
+
 stubModule(ADMIN_PATH, {
   init: () => {},
-  db: () => ({ collection: fakeCollection }),
+  db: () => ({ collection: fakeCollection, batch: fakeBatch }),
   auth: () => ({
     generateEmailVerificationLink: async (email) => 'https://link/' + email,
   }),
@@ -107,6 +151,7 @@ stubModule(SENTRY_PATH, {
 });
 
 const endpoint = require('../api/user.js');
+const { ANEXO_MAX_B64 } = require('../api/_lib/schemas');
 
 function makeReq({ method = 'POST', body, query } = {}) {
   return {
@@ -154,10 +199,25 @@ async function chamar(opts) {
 
 function limpar() {
   store.docs = [];
+  store.anexos = {};
   store.addFalha = null;
+  proximoId = 0;
   rlPermite = true;
   usuario = { uid: 'u1', email: 'a@b.c', email_verified: true };
 }
+
+// PNG de 1x1 transparente — bytes de imagem de verdade, para a conferência de
+// assinatura do endpoint ter o que aprovar.
+const PNG_1X1 =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const anexoValido = { mime: 'image/png', dados: PNG_1X1, largura: 1, altura: 1 };
+
+// WebP produzido pelo MESMO caminho do formulário — canvas.toDataURL('image/webp')
+// no Chromium. Não é um arquivo inventado à mão: é o formato que o cliente
+// realmente manda quando o navegador suporta WebP, e a razão de este byte
+// estar aqui é provar que a conferência de assinatura o aceita.
+const WEBP_2X2 =
+  'UklGRgYCAABXRUJQVlA4WAoAAAAgAAAAAQAAAQAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZWUDggGAAAADABAJ0BKgIAAgABQCYlpAADcAD+/PQAAA==';
 
 const valido = { aba: 'controle', tipo: 'bug', texto: 'Uma sugestão com mais de dez caracteres.' };
 
@@ -327,6 +387,174 @@ test('falha do Firestore vira 500, não um 201 mentiroso', async () => {
   store.addFalha = new Error('firestore fora do ar');
   const r = await chamar({ body: valido });
   assert.equal(r.status, 500);
+});
+
+// ---------------------------------------------------------------------------
+// Anexo de imagem
+//
+// O campo existe porque descrever um defeito de tela em palavras é difícil e
+// um print resolve. O que estes testes travam é a fronteira: onde a imagem é
+// gravada, o que o servidor aceita como imagem e quem consegue lê-la de volta.
+// ---------------------------------------------------------------------------
+
+test('a sugestão sem anexo continua valendo — o campo é opcional de verdade', async () => {
+  limpar();
+  const r = await chamar({ body: valido });
+  assert.equal(r.status, 201);
+  assert.equal(store.docs[0].data.anexo, null);
+  assert.deepEqual(store.anexos, {}, 'nada de documento de anexo vazio');
+});
+
+test('a imagem NÃO vai no documento da sugestão — só o resumo', async () => {
+  // É o que mantém a listagem barata: ela lê a coleção `feedback` inteira.
+  limpar();
+  const r = await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  assert.equal(r.status, 201);
+  const doc = store.docs[0].data;
+  assert.deepEqual(doc.anexo, { mime: 'image/png', bytes: 70, largura: 1, altura: 1 });
+  assert.ok(!JSON.stringify(doc).includes(PNG_1X1.slice(0, 40)), 'os bytes não podem estar aqui');
+  assert.equal(store.anexos[r.body.id].dados, PNG_1X1, 'eles moram na coleção separada');
+});
+
+test('o WebP que o formulário produz de fato é aceito', async () => {
+  // A conferência de assinatura recusa o que não for imagem — este teste é a
+  // contraprova de que ela não recusa o caso normal.
+  limpar();
+  const r = await chamar({
+    body: Object.assign(
+      { anexo: { mime: 'image/webp', dados: WEBP_2X2, largura: 2, altura: 2 } },
+      valido
+    ),
+  });
+  assert.equal(r.status, 201);
+  assert.equal(store.anexos[r.body.id].mime, 'image/webp');
+});
+
+test('o tamanho gravado é MEDIDO pelo servidor, não aceito do corpo', async () => {
+  limpar();
+  await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  const esperado = Buffer.from(PNG_1X1, 'base64').length;
+  assert.equal(store.docs[0].data.anexo.bytes, esperado);
+  assert.equal(store.anexos[store.docs[0].id].bytes, esperado);
+});
+
+test('o anexo carrega o uid do dono — é por ele que a leitura confere', async () => {
+  limpar();
+  const r = await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  assert.equal(store.anexos[r.body.id].uid, 'u1');
+});
+
+test('bytes que não são imagem são recusados, mesmo com mime de imagem', async () => {
+  // O painel admin desenha isto num <img>: aceitar conteúdo arbitrário com
+  // rótulo de imagem seria guardar o desconhecido e devolvê-lo depois.
+  limpar();
+  const lixo = Buffer.from('isto aqui nao e uma imagem, e texto puro').toString('base64');
+  const r = await chamar({
+    body: Object.assign(
+      { anexo: { mime: 'image/png', dados: lixo, largura: 10, altura: 10 } },
+      valido
+    ),
+  });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error, 'invalid_body');
+  assert.equal(store.docs.length, 0, 'e nada é gravado');
+  assert.deepEqual(store.anexos, {});
+});
+
+test('mime que mente sobre o formato é recusado', async () => {
+  // Bytes de PNG de verdade, declarados como JPEG.
+  limpar();
+  const r = await chamar({
+    body: Object.assign(
+      { anexo: { mime: 'image/jpeg', dados: PNG_1X1, largura: 1, altura: 1 } },
+      valido
+    ),
+  });
+  assert.equal(r.status, 400);
+  assert.equal(store.docs.length, 0);
+});
+
+test('formato fora da lista (PDF, SVG) nem chega à conferência de bytes', async () => {
+  limpar();
+  for (const mime of ['application/pdf', 'image/svg+xml', 'text/html']) {
+    const r = await chamar({
+      body: Object.assign({ anexo: { mime, dados: PNG_1X1, largura: 1, altura: 1 } }, valido),
+    });
+    assert.equal(r.status, 400, mime);
+  }
+  assert.equal(store.docs.length, 0);
+});
+
+test('base64 acima do teto é recusado antes de qualquer gravação', async () => {
+  limpar();
+  const gigante = 'A'.repeat(ANEXO_MAX_B64 + 4);
+  const r = await chamar({
+    body: Object.assign(
+      { anexo: { mime: 'image/png', dados: gigante, largura: 10, altura: 10 } },
+      valido
+    ),
+  });
+  assert.equal(r.status, 400);
+  assert.equal(store.docs.length, 0);
+});
+
+test('sugestão e imagem entram JUNTAS — falha do lote não deixa meio caminho', async () => {
+  limpar();
+  store.addFalha = new Error('firestore fora do ar');
+  const r = await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  assert.equal(r.status, 500);
+  assert.equal(store.docs.length, 0, 'sem sugestão anunciando anexo que não existe');
+  assert.deepEqual(store.anexos, {}, 'e sem imagem órfã que nenhuma tela alcança');
+});
+
+test('a listagem devolve o resumo do anexo, nunca os bytes', async () => {
+  limpar();
+  await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  const r = await chamar({ method: 'GET' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.items.length, 1);
+  assert.equal(r.body.items[0].anexo.mime, 'image/png');
+  assert.equal(r.body.items[0].anexo.dados, undefined, 'os bytes não vêm na lista');
+});
+
+test('feedback-anexo devolve a imagem do próprio dono', async () => {
+  limpar();
+  const criado = await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  const r = await chamar({ method: 'GET', query: { op: 'feedback-anexo', id: criado.body.id } });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.mime, 'image/png');
+  assert.equal(r.body.dados, PNG_1X1);
+});
+
+test('a imagem de OUTRO usuário devolve 404, não a imagem', async () => {
+  limpar();
+  const criado = await chamar({ body: Object.assign({ anexo: anexoValido }, valido) });
+  usuario = { uid: 'intruso', email: 'x@y.z', email_verified: true };
+  const r = await chamar({ method: 'GET', query: { op: 'feedback-anexo', id: criado.body.id } });
+  // 404 e não 403: quem chuta ids alheios não fica sabendo quais existem.
+  assert.equal(r.status, 404);
+  assert.equal(r.body.dados, undefined);
+});
+
+test('id malformado é recusado antes de virar caminho de coleção', async () => {
+  limpar();
+  for (const id of ['', '../config/segredo', 'a/b', 'x'.repeat(65)]) {
+    const r = await chamar({ method: 'GET', query: { op: 'feedback-anexo', id } });
+    assert.equal(r.status, 400, JSON.stringify(id));
+  }
+});
+
+test('feedback-anexo só responde a GET', async () => {
+  limpar();
+  const r = await chamar({ method: 'POST', query: { op: 'feedback-anexo', id: 'doc1' } });
+  assert.equal(r.status, 405);
+});
+
+test('feedback-anexo sem sessão devolve 401', async () => {
+  limpar();
+  usuario = null;
+  const r = await chamar({ method: 'GET', query: { op: 'feedback-anexo', id: 'doc1' } });
+  assert.equal(r.status, 401);
 });
 
 // ---------------------------------------------------------------------------

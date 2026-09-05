@@ -370,7 +370,22 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 .fb-reply-box { background:var(--cor-superficie); border-left:3px solid var(--cor-primaria); border-radius:8px; padding:10px 12px; font-size:13px; line-height:1.5; margin-bottom:12px; }
 .fb-reply-input { width:100%; min-height:64px; resize:vertical; padding:10px 12px; border:1.5px solid var(--cor-borda); border-radius:9px; font-family:'Figtree',sans-serif; font-size:13px; background:var(--cor-superficie); color:var(--cor-texto-principal); }
 .fb-tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 9px; border-radius:99px; background:var(--cor-superficie); color:var(--cor-texto-mutado); border:1px solid var(--cor-borda); }
-</style>
+
+    /* Campo de formulário nunca abaixo de 16px no toque.
+       O Safari do iOS amplia a página sozinho ao focar um campo com fonte
+       menor que 16px, e a viewport visível passa a ser menor que a de
+       layout: a tela aparece cortada de um lado. Mesma correção aplicada no
+       app (ver o bloco equivalente em Appliquei_v13.0.html, que explica por
+       que NÃO se resolve com maximum-scale na meta viewport). Aqui eram 18
+       dos 19 campos. */
+    @media (pointer: coarse) {
+      input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+    }
+  </style>
 </head>
 <body>
 

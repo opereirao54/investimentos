@@ -2,7 +2,7 @@
   "$schema": "./mapa.schema.md",
   "versao": 1,
   "onda": 3,
-  "atualizadoEm": "2026-08-28",
+  "atualizadoEm": "2026-09-02",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
   "entidades": {
     "transacao": {
@@ -29,7 +29,9 @@
         "web/appliquei-relatorio-mensal.js",
         "web/appliquei-aba1-charts.js",
         "web/appliquei-sonhos.js",
-        "web/appliquei-jornada.js"
+        "web/appliquei-jornada.js",
+        "web/appliquei-insights.js",
+        "web/appliquei-insights-ui.js"
       ],
       "camposDeLigacao": [
         {
@@ -101,6 +103,11 @@
           "web/appliquei-app.js (a própria implementação)",
           "web/appliquei-utils.js confirmarImportacao (restauração de backup)"
         ]
+      },
+      "leitoresSomenteLeitura": {
+        "nota": "O painel de insights (web/appliquei-insights.js + -ui.js) LÊ transações e NUNCA escreve. É decisão de produto — \"sempre sugerir, nunca aplicar\" — e não convenção: categorização errada aplicada em silêncio contamina a DRE e o relatório mensal sem deixar rastro. O card leva o usuário até o formulário; quem grava é ele, por salvarTransacoes(). Travado por test/insights-ui.test.js, que varre os dois arquivos (sem comentários) atrás de salvarTransacoes, futurorico_transacoes, mutação de array e atribuição a `transacoes` — e que foi verificado falhando com uma violação injetada.",
+        "arquivos": ["web/appliquei-insights.js", "web/appliquei-insights-ui.js"],
+        "testes": ["test/insights-motor.test.js", "test/insights-ui.test.js"]
       }
     },
     "conta": {
@@ -272,6 +279,22 @@
           "formato": "bem_{timestamp}_{rand}"
         }
       ]
+    },
+    "insight": {
+      "titulo": "Insight (leitura automática do Controle Financeiro)",
+      "chaveArmazenamento": "appliquei_insights_dispensados",
+      "globalWindow": "AppliqueiInsights / AppliqueiInsightsUI",
+      "declaradaEm": "web/appliquei-insights.js:1",
+      "topologia": "derivada-sem-persistencia",
+      "notaTopologia": "Insight não é dado guardado: é recalculado do zero a cada render de atualizarTelaControle(), sobre o MÊS EM VISÃO. A única coisa persistida é a lista de dispensados. O id de cada insight carrega a competência (anomalia:transporte:2026-09), então dispensar em setembro não cala outubro — dispensa é \"já vi isto\", não \"nunca mais me fale disto\".",
+      "produtores": ["web/appliquei-insights.js"],
+      "consumidores": ["web/appliquei-insights-ui.js", "web/appliquei-aba-controle-financeiro.js"],
+      "dependeDe": {
+        "transacao": "fonte única dos seis detectores",
+        "saldoCaixaPorConta": "web/appliquei-contas.js — o insight de aperto NÃO recalcula projeção; recebe a função canônica de fora. FILTRADA para contas cadastradas (ver insightsUiFonteDeSaldo): saldoCaixaPorConta devolve também buckets sintéticos para dinheiro não atribuível — `a-reconciliar` e `nome:<banco>` — que não recebem saldo de abertura e ficam negativos por construção. Somá-los inventava um rombo que era cadastro incompleto (medido: -2.500 no 1º dia, integralmente `a-reconciliar`). Havendo QUALQUER movimento fora de conta cadastrada, o detector não roda: com parte das saídas sem dono, nenhuma projeção de caixa é confiável. Travado por test/insights-ui.test.js. Ver INV-23 para a projeção em si."
+      },
+      "limiares": "INSIGHTS_LIMIARES em web/appliquei-insights.js — calibragem conservadora de propósito. O erro caro não é calar um insight: é mostrar cinco por mês, treinar o usuário a ignorar o painel e levar junto o alerta que importava.",
+      "notaCompetenciaVsCaixa": "O Controle Financeiro raciocina por COMPETÊNCIA (saldo livre = receita menos saídas do mês inteiro, independente da data de pagamento). O detector de aperto é o único que olha DATA. Por isso ele não fala de saldo: fala de ORDEM (\"entre o dia 3 e o dia 10, sai antes de entrar\") e diz explicitamente que o mês fecha no positivo. Um card anunciando \"caixa negativo\" ao lado de um saldo livre positivo lê-se como contradição — foi o relato do primeiro utilizador, e é a razão do recorte atual."
     }
   },
   "prefixosDeId": {

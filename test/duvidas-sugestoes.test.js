@@ -187,6 +187,105 @@ test('o formulário se inicializa ao abrir a aba, não só no window.onload', ()
 // A revisão do conteúdo
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Anexo de imagem
+//
+// Descrever um defeito de tela em palavras é difícil; um print resolve. O que
+// estes testes travam não é a existência do botão, é o que ele faz: a imagem
+// que sobe é REDESENHADA aqui, nunca o arquivo original.
+// ---------------------------------------------------------------------------
+
+test('o campo aceita só imagem e o input nativo fica escondido atrás do botão', () => {
+  const inp = HTML.match(/<input[^>]*id="sugAnexoInput"[^>]*>/);
+  assert.ok(inp, 'o input de arquivo existe');
+  assert.match(inp[0], /type="file"/);
+  assert.match(inp[0], /accept="image\/\*"/, 'o seletor do sistema já abre filtrado');
+  assert.match(inp[0], /display:\s*none/, 'o controle nativo não aceita estilo; o botão é a UI');
+  assert.match(inp[0], /onchange="sugAnexoTrocou\(this\)"/);
+  assert.match(HTML, /id="sugAnexoBtn"[^>]*onclick="sugAnexoAbrirSeletor\(\)"/);
+});
+
+test('o que sobe é a imagem REDESENHADA, não o arquivo escolhido', () => {
+  // É o que garante os três efeitos de uma vez: tamanho previsível, EXIF (e
+  // portanto o GPS da foto) descartado, e o corpo do POST cabendo na função.
+  assert.match(DUVIDAS, /canvas/i);
+  assert.match(DUVIDAS, /toDataURL\(/);
+  assert.ok(
+    !/readAsDataURL/.test(DUVIDAS),
+    'ler o arquivo direto mandaria os bytes originais, com EXIF e tudo'
+  );
+});
+
+test('o alvo do cliente fica abaixo do teto do servidor', () => {
+  // Se a compressão errar por pouco, quem recusa é o formulário, com uma
+  // mensagem em português — não um 400 da API.
+  const SCHEMAS = fs.readFileSync(path.join(ROOT, 'api/_lib/schemas.js'), 'utf8');
+  const teto = Number((SCHEMAS.match(/ANEXO_MAX_B64\s*=\s*(\d+)/) || [])[1]);
+  const alvo = Number((DUVIDAS.match(/SUG_ANEXO_ALVO_B64\s*=\s*(\d+)/) || [])[1]);
+  assert.ok(teto > 0 && alvo > 0, 'os dois limites existem');
+  assert.ok(alvo < teto, `o alvo do cliente (${alvo}) tem de caber no teto do servidor (${teto})`);
+});
+
+test('a transparência vira branco antes de virar JPEG, não preto', () => {
+  const desenhar = DUVIDAS.slice(DUVIDAS.indexOf('function sugAnexoDesenhar'));
+  assert.match(desenhar.slice(0, 800), /fillStyle\s*=\s*'#ffffff'/);
+  assert.match(desenhar.slice(0, 800), /fillRect\(/);
+});
+
+test('o suporte a WebP é aferido pelo resultado, não por lista de navegador', () => {
+  // Navegador que não conhece o formato devolve PNG calado; pedir e conferir
+  // o prefixo é a única checagem que não envelhece.
+  assert.match(DUVIDAS, /indexOf\('data:image\/webp'\)\s*!==\s*0/);
+});
+
+test('o corpo enviado leva só os quatro campos que o schema conhece', () => {
+  // feedbackCreateBody é strict(): um campo a mais derruba o envio com 400.
+  const envio = DUVIDAS.slice(
+    DUVIDAS.indexOf("sugApiFetch('/api/user?op=feedback'"),
+    DUVIDAS.indexOf('.then(function () {', DUVIDAS.indexOf("sugApiFetch('/api/user?op=feedback'"))
+  );
+  const anexo = envio.slice(envio.indexOf('anexo:'));
+  ['mime:', 'dados:', 'largura:', 'altura:'].forEach((c) =>
+    assert.ok(anexo.includes(c), `falta ${c}`)
+  );
+  assert.ok(!anexo.includes('nome:'), 'nome é de uso local — o schema recusaria');
+  assert.ok(!anexo.includes('bytes:'), 'bytes é medido pelo servidor');
+});
+
+test('enviar limpa o anexo junto com o resto do formulário', () => {
+  // Sem isto, a sugestão seguinte sairia com o print da anterior.
+  const sucesso = DUVIDAS.slice(
+    DUVIDAS.indexOf("document.getElementById('sugContador').innerText")
+  );
+  assert.match(sucesso.slice(0, 400), /sugAnexoAtual\s*=\s*null/);
+  assert.match(sucesso.slice(0, 400), /sugAnexoPintar\(\)/);
+});
+
+test('o histórico não baixa as imagens — busca sob demanda', () => {
+  // São dezenas de itens com centenas de KB cada; carregar todas para mostrar
+  // duas seria caro à toa, principalmente no celular.
+  assert.match(DUVIDAS, /op=feedback-anexo/);
+  const desenho = DUVIDAS.slice(
+    DUVIDAS.indexOf('function desenharHistoricoSugestoes'),
+    DUVIDAS.indexOf('function sugVerAnexo')
+  );
+  assert.ok(
+    !/op=feedback-anexo/.test(desenho),
+    'o desenho da lista só põe o botão; quem busca é sugVerAnexo'
+  );
+  assert.match(desenho, /sugVerAnexo\(/);
+});
+
+test('o id só vira atributo onclick se tiver o formato de id do Firestore', () => {
+  // escSug() escapa só `<`. Em vez de um segundo escapador, exigimos o
+  // formato — o que não passa não vira botão.
+  const desenho = DUVIDAS.slice(
+    DUVIDAS.indexOf('function desenharHistoricoSugestoes'),
+    DUVIDAS.indexOf('function sugVerAnexo')
+  );
+  assert.match(desenho, /\[A-Za-z0-9_-\]\{1,64\}/);
+});
+
 test('a lista "Aba relacionada" cobre as abas do menu de hoje', () => {
   const bloco = HTML.slice(
     HTML.indexOf('<select id="sugAba">'),
@@ -248,10 +347,14 @@ test('o FAQ fala do que existe hoje: aporte externo, retroativo, contas e bens',
   assert.match(FAQ_TEXTO, /cadastro retroativo/i);
   assert.match(FAQ_TEXTO, /Minhas Contas/);
   assert.match(FAQ_TEXTO, /Meus Bens/);
-  assert.match(FAQ_TEXTO, /Líquido \(pós-IR\)/);
+  assert.match(FAQ_TEXTO, /anexe uma imagem/i, 'o campo existe no formulário; o FAQ o explica');
   assert.ok(
     !/Visão geral do patrimônio/.test(FAQ_TEXTO),
     'a aba mudou de nome para "Meus investimentos" — o FAQ mandava a pessoa a um lugar que não existe'
+  );
+  assert.ok(
+    !/Líquido \(pós-IR\)/.test(FAQ_TEXTO),
+    'o alternador Bruto/Líquido saiu do Meu patrimônio — o FAQ não pode explicar um botão que não existe mais'
   );
 });
 

@@ -86,6 +86,11 @@
     <style>
         /* === DESIGN SYSTEM — APPLIQUEI PREMIUM === */
         :root {
+            /* Altura de campo de UMA linha. É um token porque no toque a fonte
+               sobe para 16px (ver o bloco `pointer: coarse` no fim deste
+               <style>) e a caixa tem de acompanhar. */
+            --altura-campo: 40px;
+
             /* Sidebar dark tokens (sempre escura) */
             --sb-bg: #0b1410;
             --sb-bg2: #111c17;
@@ -632,6 +637,484 @@
         .card-destaque.accent { background: linear-gradient(135deg, #059669 0%, #047857 100%); border-color: #047857; }
         .card-destaque.accent::before { background: rgba(255,255,255,0.3); }
 
+
+        /* ═══════════════════════════════════════════════════════════════
+           PAINEL DE INSIGHTS — Camada 1 (inteligência sem LLM)
+           ───────────────────────────────────────────────────────────────
+           Linguagem própria, de propósito. O resto do Controle é medição
+           ("quanto foi"); isto é leitura ("o que isso quer dizer"), e as
+           duas coisas não podem parecer a mesma. A distinção é feita com
+           três recursos e nenhum enfeite solto: uma FAIXA de severidade na
+           borda, um fundo levemente TINGIDO pela mesma severidade, e a
+           PROVA visível (sparkline + linha de base) dentro do card.
+
+           Nada aqui aplica mudança nenhuma: todo card é uma sugestão com
+           saída ("dispensar"). Por isso a severidade é sinal, não alarme —
+           tinge, não grita.
+
+           Reusa as --tinta-* do app, que já passam AA nos dois temas
+           (ver test/tema-escuro-tintas.test.js). Zero cor nova. */
+        :root {
+            --ins-gap: 14px;
+            --ins-pad: 18px;
+            --ins-raio: var(--radius);
+            --ins-faixa: 3px;
+            /* Alfa do tingimento de fundo. Baixo o suficiente para o texto
+               continuar com o contraste do tema, alto o suficiente para o
+               olho separar um card crítico de um informativo de relance. */
+            --ins-tint-alfa: 0.055;
+            --ins-tint-alfa-hover: 0.085;
+            --ins-spark-largura: 84px;
+            --ins-spark-altura: 28px;
+        }
+        body.dark {
+            /* No escuro o mesmo alfa some contra a superfície: sobe. */
+            --ins-tint-alfa: 0.10;
+            --ins-tint-alfa-hover: 0.15;
+        }
+
+        .ins-painel { margin-bottom: 20px; }
+        .ins-painel-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .ins-painel-titulo {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 11.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--cor-texto-mutado);
+            font-family: 'Figtree', sans-serif;
+        }
+        .ins-painel-titulo i { font-size: 15px; color: var(--cor-primaria); }
+        .ins-painel-contagem {
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 99px;
+            background: var(--cor-bg-primaria);
+            color: var(--cor-txt-primaria);
+            font-family: 'DM Mono', monospace;
+        }
+        .ins-painel-nota {
+            margin-left: auto;
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+        }
+
+        .ins-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: var(--ins-gap);
+        }
+
+        /* ── O CARD ────────────────────────────────────────────────────
+           `--ins-cor` é trocada por modificador de severidade; tudo aqui
+           deriva dela, então uma severidade nova custa uma linha. */
+        .ins-card {
+            --ins-cor: var(--cor-texto-mutado);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: var(--ins-pad);
+            padding-left: calc(var(--ins-pad) + var(--ins-faixa));
+            background:
+                linear-gradient(180deg,
+                    color-mix(in srgb, var(--ins-cor) calc(var(--ins-tint-alfa) * 100%), transparent),
+                    transparent 65%),
+                var(--cor-branco);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--ins-raio);
+            box-shadow: var(--shadow-card);
+            overflow: hidden;
+            transition:
+                box-shadow var(--transicao),
+                transform var(--transicao),
+                border-color var(--transicao);
+        }
+        /* A faixa de severidade. Gradiente que desmaia para baixo: marca a
+           entrada da leitura sem transformar o card num bloco colorido. */
+        .ins-card::before {
+            content: '';
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: var(--ins-faixa);
+            background: linear-gradient(180deg, var(--ins-cor), transparent 85%);
+        }
+        .ins-card:hover {
+            box-shadow: var(--shadow-hover);
+            transform: translateY(-2px);
+            border-color: color-mix(in srgb, var(--ins-cor) 35%, var(--cor-borda));
+        }
+        .ins-card:focus-within {
+            border-color: var(--ins-cor);
+        }
+
+        .ins-card--critico     { --ins-cor: var(--tinta-vermelho); }
+        .ins-card--atencao     { --ins-cor: var(--tinta-ambar); }
+        .ins-card--informativo { --ins-cor: var(--tinta-azul); }
+        .ins-card--positivo    { --ins-cor: var(--tinta-verde); }
+
+        /* ── Cabeçalho: ícone + rótulo + dispensar ───────────────────── */
+        .ins-card-head { display: flex; align-items: flex-start; gap: 10px; }
+        .ins-card-icone {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            font-size: 18px;
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 13%, transparent);
+        }
+        .ins-card-headtxt { flex: 1; min-width: 0; }
+        /* A severidade também é TEXTO, nunca só cor — daltonismo, impressão
+           e modo de alto contraste precisam ler o mesmo sinal. */
+        .ins-card-sev {
+            font-size: 9.5px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--ins-cor);
+            font-family: 'Figtree', sans-serif;
+        }
+        .ins-card-titulo {
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.3;
+            color: var(--cor-texto-principal);
+            margin-top: 1px;
+            overflow-wrap: anywhere;
+        }
+        .ins-dispensar {
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--cor-texto-mutado);
+            cursor: pointer;
+            font-size: 15px;
+            opacity: 0;
+            transition: opacity var(--transicao), background var(--transicao), color var(--transicao);
+        }
+        .ins-card:hover .ins-dispensar,
+        .ins-dispensar:focus-visible { opacity: 1; }
+        .ins-dispensar:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        /* Toque não tem hover: no touch o botão é sempre visível e o alvo
+           cresce para o mínimo acessível. */
+        @media (hover: none) {
+            .ins-dispensar { opacity: 1; width: 44px; height: 44px; min-width: 44px; }
+        }
+
+        /* ── Corpo: número + sparkline ───────────────────────────────── */
+        .ins-card-corpo { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
+        .ins-card-valor {
+            font-family: 'DM Mono', monospace;
+            font-size: 23px;
+            font-weight: 500;
+            letter-spacing: -0.8px;
+            line-height: 1.05;
+            color: var(--cor-texto-principal);
+        }
+        .ins-card-valor-sub {
+            font-size: 11px;
+            color: var(--cor-texto-mutado);
+            margin-top: 3px;
+        }
+        .ins-delta {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 99px;
+            font-family: 'DM Mono', monospace;
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 13%, transparent);
+        }
+        .ins-spark { flex-shrink: 0; display: block; overflow: visible; }
+
+        /* ── A prova ─────────────────────────────────────────────────────
+           O que separa isto de um app que só afirma. A frase é o argumento;
+           a evidência é a conta que o sustenta, sempre disponível e sempre
+           fechada por padrão — quem confia não é obrigado a ler. */
+        .ins-card-frase {
+            font-size: 12.5px;
+            line-height: 1.5;
+            color: var(--cor-texto-secundario);
+        }
+        .ins-card-frase strong { color: var(--cor-texto-principal); font-weight: 650; }
+        .ins-porque { border-top: 1px dashed var(--cor-borda); padding-top: 10px; }
+        .ins-porque > summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--cor-texto-mutado);
+            cursor: pointer;
+            list-style: none;
+            border-radius: 6px;
+            padding: 3px 2px;
+        }
+        .ins-porque > summary::-webkit-details-marker { display: none; }
+        .ins-porque > summary:hover { color: var(--cor-texto-principal); }
+        .ins-porque > summary i { font-size: 13px; transition: transform var(--transicao); }
+        .ins-porque[open] > summary i { transform: rotate(180deg); }
+        .ins-porque-corpo {
+            margin-top: 8px;
+            display: grid;
+            gap: 5px;
+            font-size: 11.5px;
+            color: var(--cor-texto-mutado);
+        }
+        .ins-porque-linha { display: flex; justify-content: space-between; gap: 10px; }
+        .ins-porque-linha b {
+            color: var(--cor-texto-principal);
+            font-weight: 600;
+            font-family: 'DM Mono', monospace;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Ações ──────────────────────────────────────────────────────
+           Verbo do lado do usuário ("Marcar como fixa"), nunca do app
+           ("Corrigir"): o card sugere, quem aplica é ele. */
+        .ins-card-acoes { display: flex; gap: 8px; flex-wrap: wrap; }
+        .ins-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 13px;
+            min-height: 36px;
+            border-radius: 9px;
+            font-size: 12.5px;
+            font-weight: 600;
+            font-family: 'Figtree', sans-serif;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: background var(--transicao), border-color var(--transicao), transform var(--transicao);
+        }
+        .ins-btn i { font-size: 15px; }
+        .ins-btn:active { transform: scale(0.97); }
+        .ins-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .ins-btn--primario {
+            color: var(--ins-cor);
+            background: color-mix(in srgb, var(--ins-cor) 12%, transparent);
+            border-color: color-mix(in srgb, var(--ins-cor) 28%, transparent);
+        }
+        .ins-btn--primario:hover:not(:disabled) {
+            background: color-mix(in srgb, var(--ins-cor) 20%, transparent);
+        }
+        .ins-btn--fantasma { color: var(--cor-texto-mutado); background: transparent; }
+        .ins-btn--fantasma:hover:not(:disabled) {
+            background: var(--cor-superficie);
+            color: var(--cor-texto-principal);
+        }
+        /* Foco visível único para tudo que é clicável no painel. */
+        .ins-btn:focus-visible,
+        .ins-dispensar:focus-visible,
+        .ins-porque > summary:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px;
+        }
+        @media (hover: none) {
+            .ins-btn { min-height: 44px; padding: 11px 15px; }
+        }
+
+        /* ── Estado "ainda aprendendo" ───────────────────────────────────
+           Base curta não gera análise: sem 3 meses, mediana é só "o outro
+           mês". A tela diz o que falta em vez de fingir que analisou. */
+        .ins-vazio {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px var(--ins-pad);
+            border: 1px dashed var(--cor-borda2);
+            border-radius: var(--ins-raio);
+            background: var(--cor-branco);
+        }
+        .ins-vazio-icone {
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            font-size: 20px;
+            color: var(--cor-primaria);
+            background: var(--cor-bg-primaria);
+        }
+        .ins-vazio-txt { flex: 1; min-width: 0; }
+        .ins-vazio-titulo { font-size: 13px; font-weight: 650; color: var(--cor-texto-principal); }
+        .ins-vazio-sub { font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .ins-progresso {
+            height: 4px;
+            border-radius: 99px;
+            background: var(--cor-superficie);
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .ins-progresso > i {
+            display: block;
+            height: 100%;
+            border-radius: 99px;
+            background: var(--cor-primaria);
+            transition: width 0.4s ease;
+        }
+
+        /* ── Entrada escalonada ──────────────────────────────────────────
+           Curta e com propósito: os cards chegam depois do resto da tela e
+           a defasagem explica a ordem de leitura (crítico primeiro). */
+        @keyframes insEntrada {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: none; }
+        }
+        .ins-card { animation: insEntrada 0.24s ease both; }
+        .ins-card:nth-child(2) { animation-delay: 0.04s; }
+        .ins-card:nth-child(3) { animation-delay: 0.08s; }
+        .ins-card:nth-child(4) { animation-delay: 0.12s; }
+        .ins-card:nth-child(n + 5) { animation-delay: 0.16s; }
+        @media (prefers-reduced-motion: reduce) {
+            .ins-card { animation: none; }
+            .ins-card:hover { transform: none; }
+            .ins-btn:active { transform: none; }
+            .ins-progresso > i { transition: none; }
+        }
+
+        /* ── Telas estreitas: carrossel com encaixe ──────────────────────
+           Empilhar 5 cards empurraria os Vencimentos para fora da primeira
+           dobra no celular. A faixa horizontal preserva a ordem da tela e
+           deixa a análise a um deslize. */
+        @media (max-width: 720px) {
+            .ins-grid {
+                display: flex;
+                gap: 12px;
+                overflow-x: auto;
+                scroll-snap-type: x mandatory;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                padding: 2px 0 8px;
+                /* NÃO sangrar até a borda da tela.
+                   A primeira versão usava margin-inline:-16px para os cards
+                   encostarem na borda — o que só fecha se a coluna tiver
+                   exatamente 16px de padding. Ela não tem, e não tem o mesmo
+                   valor em todo breakpoint: medido no browser, o painel
+                   ultrapassava a viewport em 4–6px em 320/360/390/414px.
+                   Efeito cosmético não vale depender da medida de um ancestral
+                   que este bloco não controla. Sem o sangramento o card
+                   seguinte continua espiando na borda, que era a única função
+                   real do recurso. */
+            }
+            .ins-grid::-webkit-scrollbar { display: none; }
+            .ins-card {
+                flex: 0 0 86%;
+                max-width: 320px;
+                scroll-snap-align: start;
+            }
+        }
+
+        /* ── Sugestão de categoria no formulário de lançamento ──────────
+           Aparece abaixo da descrição quando o histórico do próprio usuário
+           responde "isso aqui você costuma lançar como o quê".
+
+           NUNCA preenche sozinha. O botão "Usar" é o único caminho, e ele
+           chama exatamente selecionarChipTipo + verificarRegraCartao — as
+           mesmas funções do clique manual, para não existir um segundo jeito
+           de preencher o formulário que escape das regras do primeiro. */
+        .ins-sugestao {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            margin-top: 8px;
+            padding: 9px 11px;
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: 10px;
+            background: var(--cor-bg-primaria);
+            animation: insEntrada 0.2s ease both;
+        }
+        .ins-sugestao-icone { flex-shrink: 0; font-size: 16px; color: var(--cor-primaria); }
+        .ins-sugestao-txt {
+            flex: 1;
+            min-width: 0;
+            font-size: 12px;
+            line-height: 1.4;
+            color: var(--cor-txt-primaria);
+        }
+        .ins-sugestao-txt b { font-weight: 700; }
+        .ins-sugestao-base { display: block; font-size: 10.5px; opacity: 0.75; margin-top: 1px; }
+        .ins-sugestao-usar {
+            flex-shrink: 0;
+            padding: 6px 12px;
+            min-height: 32px;
+            border: 1px solid var(--cor-primaria);
+            border-radius: 8px;
+            background: var(--cor-primaria);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            font-family: 'Figtree', sans-serif;
+            cursor: pointer;
+            transition: background var(--transicao), transform var(--transicao);
+        }
+        .ins-sugestao-usar:hover { background: var(--cor-primaria-hover); }
+        .ins-sugestao-usar:active { transform: scale(0.96); }
+        .ins-sugestao-nao {
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            width: 28px;
+            height: 28px;
+            border: none;
+            border-radius: 7px;
+            background: transparent;
+            color: var(--cor-txt-primaria);
+            opacity: 0.6;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .ins-sugestao-nao:hover { opacity: 1; background: rgba(0, 0, 0, 0.06); }
+        .ins-sugestao-usar:focus-visible,
+        .ins-sugestao-nao:focus-visible {
+            outline: 2px solid var(--cor-primaria);
+            outline-offset: 2px;
+        }
+        @media (hover: none) {
+            .ins-sugestao-usar { min-height: 44px; padding: 11px 14px; }
+            .ins-sugestao-nao { width: 44px; height: 44px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ins-sugestao { animation: none; }
+            .ins-sugestao-usar:active { transform: none; }
+        }
+
+        /* Realce temporário no extrato, disparado pelo card de insight.
+           Some sozinho em 6s — é um "olhe aqui", não um estado. */
+        .extrato-item.ins-realce {
+            background: color-mix(in srgb, var(--cor-primaria) 10%, transparent);
+            box-shadow: inset 2px 0 0 var(--cor-primaria);
+            border-radius: 8px;
+            transition: background var(--transicao), box-shadow var(--transicao);
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .extrato-item.ins-realce { transition: none; }
+        }
+
         /* === KPIs do Controle Financeiro: hero + grid 2x2 === */
         .kpis-controle {
             display: grid;
@@ -757,6 +1240,84 @@
             color: var(--cor-texto-principal);
             background-color: var(--cor-superficie);
             font-family: 'Figtree', sans-serif;
+            /* ALTURA ÚNICA — o que tirava o formulário do esquadro.
+               Com padding, fonte e borda IDÊNTICOS, o browser ainda dá
+               alturas diferentes a estes controles: input[type=text] fecha em
+               38px e input[type=month], input[type=number] e select em 40px,
+               porque a caixa interna deles não é texto simples (o mês tem
+               segmentos, o select tem o seu próprio miolo). Numa grade de
+               duas colunas isso põe dois campos lado a lado desencontrados em
+               2px numa das bordas — visível no cadastro de sonho, onde
+               "Valor total" e "Quando começar?" dividem a linha.
+               O min-height nivela todos pelo maior; o conteúdo de campo de
+               uma linha centra-se sozinho na vertical, então nada desloca.
+               É o piso — inclusive para o textarea, que cresce a partir dele. */
+            min-height: var(--altura-campo);
+        }
+        /* E o TETO, para todo campo de uma linha só.
+           `min-height` levanta o que é mais baixo, mas não impede que um
+           controle de caixa interna maior fique mais ALTO — e foi o que
+           aconteceu: numa versão nova do Chromium o input[type=month] passou a
+           fechar 41px enquanto os vizinhos ficaram em 40px, desencontrando de
+           novo a linha da grade que o min-height tinha acabado de endireitar.
+           A lição é que a altura não pode depender do miolo que o browser
+           desenha para cada tipo de controle: esse miolo muda entre versões.
+           Com `box-sizing: border-box` (global, no topo deste <style>),
+           `height` fixa o total e o browser deixa de ter voto — o conteúdo de
+           uma linha centra-se sozinho na vertical.
+           O textarea fica DE FORA de propósito: nele a altura é o conteúdo. */
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group input[type="date"],
+        .form-group input[type="month"] {
+            height: var(--altura-campo);
+        }
+        /* CAMPO DE DATA/MÊS PRECISA DE `appearance: none` — senão o iOS o
+           dimensiona pelo CONTEÚDO e ignora o width.
+           No iOS, date/month com aparência nativa não respeitam `width:100%`:
+           eles se medem pelo valor que exibem. Em português o mês por extenso
+           é longo ("setembro de 2026"), então o campo ficava mais largo que o
+           cartão do modal e sangrava para fora — o relato do "Quando começar?"
+           cortado à direita no cadastro de sonho. A fonte de 16px do toque
+           (ver o bloco de zoom do iOS no fim deste <style>) aumentou o
+           conteúdo e piorou o efeito.
+           A prova estava no próprio app: o campo de data do painel de
+           lançamento JÁ tinha `appearance: none` e nunca teve o problema; o
+           do sonho ficou com `auto` e teve. Mesmo telemóvel, mesma tela.
+           `min-width: 0` deixa o campo encolher dentro de grid/flex (o padrão
+           `auto` impede encolher abaixo do conteúdo) e `max-width: 100%` é o
+           teto duro. `text-align: left` porque o iOS centra o valor nesses
+           campos, e só neles — destoava de todos os outros. */
+        input[type="date"],
+        input[type="month"] {
+            -webkit-appearance: none;
+            appearance: none;
+            min-width: 0;
+            max-width: 100%;
+        }
+        /* O alinhamento fica só onde o desenho é conhecido: o iOS centra o
+           valor nesses campos, e num formulário isso destoa de todos os
+           outros. O seletor de mês do cabeçalho tem desenho próprio. */
+        .form-group input[type="date"],
+        .form-group input[type="month"] {
+            text-align: left;
+        }
+
+        /* Seta própria no select, como já se fazia nos painéis de lançamento
+           e de operação. A seta NATIVA é desenhada por cima do padding e come
+           a última letra em select estreito — era o "meses" cortado no prazo
+           do sonho. Com appearance:none a seta passa a ser esta imagem, e o
+           padding à direita reserva o espaço dela. */
+        .form-group select {
+            -webkit-appearance: none;
+            appearance: none;
+            padding-right: 34px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 14px;
+            cursor: pointer;
         }
         .form-group input[type="text"]:focus,
         .form-group input[type="number"]:focus,
@@ -765,7 +1326,7 @@
         .form-group input[type="month"]:focus {
             outline: none;
             border-color: var(--cor-primaria);
-            background: var(--cor-branco);
+            background-color: var(--cor-branco);
             box-shadow: 0 0 0 3px rgba(5,150,105,.09);
         }
         .input-brl-wrap {
@@ -850,17 +1411,6 @@
         .linha-liquida td.dre-meta-danger { color: var(--tinta-vermelho) !important; }
         .linha-liquida td.dre-meta-ok { color: var(--tinta-verde) !important; }
         .linha-liquida td.dre-meta-neutro { color: var(--cor-texto-principal) !important; }
-        /* Rendimento acumulado: mesma família visual do investimento acumulado
-           (as duas são ESTOQUE), sem a borda de topo — elas formam um par e uma
-           linha entre elas as separaria. O til marca o mês estimado. */
-        #controle .linha-rendimento td { border-top: none !important; }
-        #controle .linha-rendimento .coluna-fixa { font-weight: 600; }
-        #controle .dre-rend-aprox {
-            display: inline-flex; align-items: center; justify-content: center;
-            width: 15px; height: 15px; margin-left: 5px; border-radius: 4px;
-            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
-            color: var(--cor-texto-mutado); font-size: 10px; font-weight: 700; cursor: help;
-        }
 
         /* Investimento acumulado: ESTOQUE embaixo das linhas de FLUXO. A borda
            dupla no topo marca a virada — dali para baixo não se soma na
@@ -1976,7 +2526,10 @@
         .banner-aviso-mock { display: flex; align-items: flex-start; gap: 12px; background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber); border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 18px; font-size: 13px; color: var(--cor-txt-amber); line-height: 1.5; font-weight: 500; }
 
         /* === VENCIMENTOS === */
-        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        /* `min(285px, 100%)` e não `285px` seco: num container mais estreito
+           que o mínimo, a faixa continuaria com 285px e sangraria para fora.
+           Medido a 320px o container dá 300px e cabe — mas 280px existe. */
+        .vencimentos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(285px, 100%), 1fr)); gap: 10px; margin-bottom: 16px; }
         .vencimentos-grid > [id^="detalhe-grupo-"] { grid-column: 1 / -1; }
         .venc-card {
             background: var(--cor-branco);
@@ -1991,7 +2544,20 @@
         }
         .venc-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
         .venc-day { font-size: 24px; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--cor-texto-principal); line-height: 1; min-width: 32px; }
-        .venc-name { font-size: 13px; font-weight: 600; color: var(--cor-texto-principal); }
+        /* A descrição era cortada a meio da palavra e sem reticências:
+           "Supermercado" aparecia como "Supermercad" e nada dizia que faltava
+           letra. A causa era largura, não tratamento de texto — com a coluna
+           mínima em 220px sobravam ~83px para o nome, depois do dia (32), do
+           botão que não encolhe (~78), dos gaps e do padding. Daí os 285px
+           acima: dão ~134px ao nome, onde a maioria dos lançamentos cabe numa
+           linha. Duas linhas cobrem o resto; o que ainda passar disso corta
+           com reticências, e o texto inteiro fica no title. */
+        .venc-name {
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+            display: -webkit-box; -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2; line-clamp: 2;
+            overflow: hidden; overflow-wrap: break-word;
+        }
         .venc-val { font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; margin-top: 2px; }
         .venc-badge { margin-left: auto; flex-shrink: 0; }
 
@@ -2001,6 +2567,60 @@
         .venc-card.venc-card-grupo .venc-name { font-size: 11px; font-weight: 600; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: 0.4px; display: flex; align-items: center; gap: 5px; }
         .venc-card.venc-card-grupo .venc-val { font-size: 16px; font-weight: 700; color: var(--cor-texto-principal); margin-top: 1px; line-height: 1.15; }
         .venc-card.venc-card-grupo .venc-val .venc-meta { font-size: 10px; font-weight: 500; color: var(--cor-texto-mutado); margin-left: 6px; font-family: 'Figtree', sans-serif; }
+
+        /* === SELETOR DE FATURA (lançamento de cartão) === */
+        /* Dois cartões lado a lado, um por fatura. Rádio de verdade por baixo:
+           é escolha exclusiva, e teclado/leitor de tela têm de entender isso —
+           o visual é do <label>, a semântica é do <input type=radio>. */
+        .fatura-opcoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        @media (max-width: 560px) { .fatura-opcoes { grid-template-columns: 1fr; } }
+        .fatura-op { position: relative; display: block; cursor: pointer; }
+        .fatura-op input { position: absolute; opacity: 0; width: 0; height: 0; }
+        .fatura-op-corpo {
+            display: block;
+            border: 1.5px solid var(--cor-borda); border-radius: 10px;
+            padding: 10px 12px; background: var(--cor-superficie);
+            transition: border-color .15s ease, background .15s ease;
+            height: 100%;
+        }
+        .fatura-op input:checked + .fatura-op-corpo {
+            border-color: var(--cor-primaria); background: var(--cor-bg-primaria);
+        }
+        /* O foco tem de aparecer: o input real está escondido, então o anel vai
+           no corpo desenhado. Sem isto, navegar por teclado fica às cegas. */
+        .fatura-op input:focus-visible + .fatura-op-corpo {
+            outline: 2px solid var(--cor-primaria); outline-offset: 2px;
+        }
+        .fatura-op-nome { display: block; font-size: 13.5px; font-weight: 700; color: var(--cor-texto-principal); }
+        .fatura-op-estado { font-size: 11px; font-weight: 600; margin-top: 2px; }
+        .fatura-op-paga { font-size: 11px; color: var(--cor-texto-secundario); margin-top: 1px; }
+        /* A linha que realmente decide a escolha: traduz "comprei dia 30" em
+           "é esta". Separada por um filete para não se perder nas outras. */
+        .fatura-op-janela {
+            font-size: 11.5px; color: var(--cor-texto-principal); margin-top: 7px;
+            padding-top: 7px; border-top: 1px dashed var(--cor-borda);
+        }
+        .fatura-op-total {
+            font-size: 11px; color: var(--cor-texto-mutado); margin-top: 3px;
+            font-family: 'DM Mono', monospace;
+        }
+        .fatura-aviso {
+            display: flex; gap: 8px; align-items: flex-start; margin-top: 8px;
+            padding: 9px 11px; border-radius: 9px; font-size: 12px; line-height: 1.45;
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        .fatura-aviso i { flex-shrink: 0; margin-top: 1px; }
+        .fatura-resumo {
+            margin-top: 8px; padding: 8px 11px; border-radius: 9px; font-size: 12px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            color: var(--cor-txt-info); line-height: 1.45;
+        }
+        .fatura-sem-dados {
+            padding: 11px 12px; border-radius: 9px; font-size: 12.5px; line-height: 1.5;
+            background: var(--cor-superficie); border: 1px dashed var(--cor-borda);
+            color: var(--cor-texto-secundario);
+        }
 
         /* === TERMÔMETRO 60% === */
         .thermo-card {
@@ -5013,6 +5633,56 @@
             color: var(--cor-txt-primaria);
             box-shadow: 0 0 0 1px var(--cor-primaria) inset;
         }
+        /* Anexo de imagem da sugestão. O botão imita a caixa de um campo de
+           formulário (tracejado = "solte algo aqui"), para não parecer uma
+           ação que envia. */
+        .sug-anexo-btn {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 13px 12px; border: 1.5px dashed var(--cor-borda); border-radius: 10px;
+            background: var(--cor-superficie); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-weight: 700; font-size: 12.5px;
+            color: var(--cor-texto-secundario); transition: all 0.15s;
+        }
+        .sug-anexo-btn:hover { border-color: var(--cor-primaria); color: var(--cor-texto-principal); }
+        .sug-anexo-btn:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; }
+        .sug-anexo-btn i { font-size: 16px; }
+        .sug-anexo-cartao {
+            display: flex; align-items: center; gap: 11px; margin-top: 10px;
+            padding: 9px 11px; border: 1px solid var(--cor-borda);
+            border-radius: 10px; background: var(--cor-superficie);
+        }
+        .sug-anexo-cartao img {
+            width: 54px; height: 54px; object-fit: cover; border-radius: 7px;
+            border: 1px solid var(--cor-borda); flex: 0 0 auto; display: block;
+        }
+        .sug-anexo-cartao .sac-info { flex: 1; min-width: 0; }
+        .sug-anexo-cartao .sac-nome {
+            font-size: 12.5px; font-weight: 700; color: var(--cor-texto-principal);
+            /* Nome de arquivo é longo e não tem espaços: sem isto o cartão
+               estica e empurra o botão de remover para fora da tela. */
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sug-anexo-cartao .sac-meta { font-size: 11px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .sug-anexo-cartao .sac-remover {
+            flex: 0 0 auto; border: none; background: transparent; cursor: pointer;
+            color: var(--cor-texto-mutado); font-size: 18px; line-height: 1;
+            padding: 6px; border-radius: 7px;
+        }
+        .sug-anexo-cartao .sac-remover:hover { color: var(--cor-erro, #dc2626); background: var(--cor-bg-erro, rgba(220,38,38,.08)); }
+        .sug-anexo-cartao .sac-remover:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 1px; }
+        /* Imagem já enviada, dentro do histórico. */
+        .sh-anexo-abrir {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+            padding: 5px 10px; border: 1px solid var(--cor-borda); border-radius: 8px;
+            background: var(--cor-superficie); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 11.5px; font-weight: 700;
+            color: var(--cor-texto-secundario);
+        }
+        .sh-anexo-abrir:hover { border-color: var(--cor-primaria); color: var(--cor-texto-principal); }
+        .sh-anexo-img {
+            display: block; margin-top: 8px; max-width: 100%; height: auto;
+            border-radius: 8px; border: 1px solid var(--cor-borda);
+        }
         .sug-historico-item {
             border: 1px solid var(--cor-borda); background: var(--cor-superficie);
             border-radius: 10px; padding: 12px 14px;
@@ -6112,23 +6782,12 @@
         /* ============================================================
            === MEU PATRIMÔNIO — visão consolidada                    ===
            ============================================================ */
-        .mp-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
         .mp-select {
             background: var(--cor-fundo-card); border:1px solid var(--cor-borda); color:var(--cor-texto-principal);
             border-radius:8px; padding:8px 12px; font-size:13px; font-weight:500; cursor:pointer;
             font-family: 'Figtree', sans-serif;
         }
         .mp-select:focus { outline:2px solid var(--cor-primaria); outline-offset:1px; }
-        .mp-toggle { display:inline-flex; background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:12px; padding:3px; position:relative; }
-        .mp-toggle-btn {
-            background: transparent; border:none; color: var(--cor-texto-mutado);
-            padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; border-radius:9px;
-            transition: color .2s ease, background .2s ease, box-shadow .2s ease; font-family: 'Figtree', sans-serif;
-            position:relative; z-index:1;
-        }
-        .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
-        .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-
         @keyframes mpFadeSlideIn {
             from { opacity:0; transform:translateY(12px); }
             to   { opacity:1; transform:translateY(0); }
@@ -6373,11 +7032,6 @@
         }
         .mp-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.35; }
 
-        /* Toggle integrado: marca KPIs com "líquido" para deixar claro */
-        .mp-kpis.modo-liquido .mp-kpi-valor::after {
-            content:' L'; font-size:9px; color: var(--cor-primaria); vertical-align:super; margin-left:2px;
-            font-family:'Figtree', sans-serif; font-weight:700;
-        }
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
@@ -7073,7 +7727,11 @@
             padding: 11px 13px;
             border: 1.5px solid var(--cor-borda);
             border-radius: 11px;
-            background: var(--cor-superficie);
+            /* background-COLOR, não o atalho `background`: o atalho zera o
+               background-image e apagava a seta do select (esta regra é mais
+               específica que a que a desenha, então vencia mesmo vindo antes
+               no arquivo — o select do painel ficava sem indicador nenhum). */
+            background-color: var(--cor-superficie);
             color: var(--cor-texto-principal);
             font-size: 14px;
             font-family: 'Figtree', sans-serif;
@@ -7100,8 +7758,14 @@
         #painelNovoLancamento input[type=month]:hover::-webkit-calendar-picker-indicator,
         #drawerOperacao input[type=date]:hover::-webkit-calendar-picker-indicator { opacity: .85; }
         /* Seta custom premium nos selects */
+        /* Os seletores com `.form-group` precisam existir aqui: a regra de
+           campo acima é (id + classe) e vence uma (id + elemento), então sem
+           eles o `padding: 11px 13px` dela ganhava e o texto do select corria
+           por baixo da seta. */
         #painelNovoLancamento select,
-        #drawerOperacao select {
+        #painelNovoLancamento .form-group select,
+        #drawerOperacao select,
+        #drawerOperacao .form-group select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 12px center;
@@ -7124,7 +7788,7 @@
             outline: none;
             border-color: var(--cor-primaria);
             box-shadow: 0 0 0 3px rgba(5,150,105,0.16);
-            background: var(--cor-fundo-card);
+            background-color: var(--cor-fundo-card);
         }
         /* O prefixo R$ acende em verde quando o campo está focado */
         #painelNovoLancamento .input-brl-wrap:focus-within::before,
@@ -7316,8 +7980,17 @@
                 var(--cor-branco);
             box-shadow: var(--shadow-card);   /* sombra, SEM borda */
         }
+        /* `flex-wrap: wrap` porque esta linha tem DOIS estados e só um cabia.
+           Sem o selo "Estimados" são o rótulo (97px) e o botão (106px), que
+           cabem folgados. Com o selo, as ações passam a 206px e a linha pede
+           313px — em 320px de tela o container tem 268px, e o botão
+           "Registrar" ficava cortado pelo `overflow: hidden` do hero (medido:
+           18px para fora). Nem o selo nem o botão encolhem: os dois são
+           `white-space: nowrap`, e é assim que devem ser — "Regis…" não ajuda
+           ninguém. Quebrar para a segunda linha é o que resta, e só acontece
+           quando o selo aparece, que é justamente quando a cotação falhou. */
         #patrimonio .inv-hero-top {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
             gap: 10px; margin-bottom: 10px;
         }
         #patrimonio .inv-hero-acoes { display: flex; align-items: center; gap: 8px; }
@@ -8159,6 +8832,7 @@
            Quando o acento clareia, o texto escurece: #052e1a dá 7,74:1 no
            extremo escuro do gradiente e 9,76:1 no claro. */
         body.dark .btn-acao,
+        body.dark .ins-sugestao-usar,
         body.dark .dia-picker-grade .dia-chip.ativo,
         /* A regra original do botão de registrar é ancorada em #patrimonio: um
            seletor de id ganha de body.dark, então a correção precisa do mesmo id
@@ -8167,6 +8841,7 @@
             color: #052e1a;
         }
         body.dark .btn-acao i,
+        body.dark .ins-sugestao-usar i,
         body.dark #patrimonio .inv-btn-add i { color: inherit; }
 
         /* =====================================================================
@@ -8367,6 +9042,47 @@
             .pp-bv-acoes button { flex: 1 1 100%; }
         }
 
+    
+        /* ═══════════════════════════════════════════════════════════════
+           CAMPO DE FORMULÁRIO NUNCA ABAIXO DE 16px NO TOQUE
+           ───────────────────────────────────────────────────────────────
+           O Safari do iOS AMPLIA a página sozinho quando o utilizador toca
+           num campo cuja fonte é menor que 16px. Como a viewport declarada é
+           `width=device-width, initial-scale=1.0` (sem maximum-scale, e é
+           assim que deve continuar), o zoom é aceite e a viewport VISÍVEL
+           passa a ser menor que a de layout: a tela aparece cortada de um
+           lado — e de qual lado depende de onde estava o campo tocado. É o
+           relato de "às vezes corta um lado ou outro", e o print mostrava
+           exatamente isso: teclado aberto, painel de lançamento cortado à
+           direita, com um resto de fundo à esquerda.
+
+           Medido antes da correção: 81 dos 135 campos do app estavam abaixo
+           de 16px (60 em 14px, 16 em 13px, 3 em 12,5px, e a própria tela de
+           login). Por isso a correção é UMA regra, e não 81 remendos.
+
+           `!important` é necessário: quase toda regra de campo do app é
+           ancorada em id (`#painelNovoLancamento .form-group input`), que
+           vence um seletor de elemento por especificidade.
+
+           NÃO se resolve com `maximum-scale=1` na meta viewport: aquilo
+           desliga o zoom por pinça e reprova o WCAG 1.4.4 — quem precisa
+           ampliar para ler deixa de conseguir. Subir a fonte no toque é a
+           correção certa, e de quebra melhora a ergonomia do formulário.
+
+           `pointer: coarse` limita ao toque; no desktop o desenho original
+           de 14px fica como está. */
+        @media (pointer: coarse) {
+            input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']),
+            select,
+            textarea {
+                font-size: 16px !important;
+            }
+            /* A fonte maior pede caixa maior: com 40px fixos, uma fonte de
+               16px dentro de 10px de padding e 1.5px de borda ficaria com
+               17px de área útil e cortaria os descendentes. 44px é também o
+               alvo de toque mínimo recomendado. */
+            :root { --altura-campo: 44px; }
+        }
     </style>
 </head>
 <body class="controle-ativo">
@@ -9284,6 +10000,8 @@
                 <div id="acoesBannerSaldoMesAnt" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
             </div>
 
+            <div id="painelInsights"></div>
+
             <div id="painelVencimentos" style="display:none;margin-bottom:16px;">
                 <div style="font-size:11.5px;font-weight:600;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Próximos vencimentos</div>
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
@@ -9310,7 +10028,7 @@
                 <div class="card-container" style="margin-bottom:0; min-width: 0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
                         <h4 style="font-size:12px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.4px;margin:0;">Composição do mês</h4>
-                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
+                        <select id="agrupamentoComposicao" onchange="setAgrupamentoComposicao(this.value)" style="font-size:11px;padding:4px 8px;border:1px solid var(--cor-borda);border-radius:8px;background-color:var(--cor-branco);color:var(--cor-texto-principal);cursor:pointer;">
                             <option value="contabil">Por Categoria</option>
                             <option value="despesa">Por Categoria da Despesa</option>
                         </select>
@@ -9389,9 +10107,10 @@
 
                     <div class="form-group">
                         <label>Descrição</label>
-                        <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz">
+                        <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
+                        <div id="sugestaoCategoria"></div>
                     </div>
-                    <div class="grid-2-iguais" style="gap:12px;">
+                    <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
                         <div class="form-group">
                             <label>Categoria</label>
                             <select id="categoriaTransacao" onchange="verificarRegraCartao()">
@@ -9406,14 +10125,20 @@
                                 </optgroup>
                             </select>
                         </div>
-                        <div class="form-group">
+                        <!-- Em cartão este campo SAI e dá lugar ao seletor de
+                             fatura, dentro do bloco do cartão: ali a pergunta é
+                             "em qual fatura entra", não "que dia vence" — e a
+                             resposta depende do cartão e do tipo, que ficam lá.
+                             O input continua existindo e continua sendo o que o
+                             salvamento lê; o seletor é quem o preenche. -->
+                        <div class="form-group" id="grupoVencimentoControle">
                             <label>Vencimento</label>
                             <input type="date" id="dataVencimento">
                         </div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;align-items:end;">
-                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this)"></span></div>
-                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1"></div>
+                        <div class="form-group"><label id="lblValorOpControle">Valor (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="valorTransacao" placeholder="0,00" oninput="aplicarMascaraBRL(this); atualizarResumoFatura()"></span></div>
+                        <div class="form-group" id="grupoParcelas" style="display:none;"><label>Nº Parcelas</label><input type="number" id="qtdParcelas" value="1" min="1" oninput="atualizarResumoFatura()"></div>
                     </div>
 
                     <div class="form-group" id="grupoBancoReceita" style="display:none;">
@@ -9429,7 +10154,7 @@
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
                         <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -9443,7 +10168,7 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
@@ -9462,6 +10187,22 @@
                             <button type="button" id="btnTipoFixo" onclick="selecionarTipoCartao('fixo')" style="flex:1;padding:7px;border:none;background:transparent;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:var(--cor-texto-secundario);font-family:'Figtree',sans-serif;"><i class="ph ph-repeat"></i> Fixo mensal</button>
                         </div>
                         <input type="hidden" id="tipoCartaoSelecionado" value="parcelado">
+
+                        <!-- SELETOR DE FATURA.
+                             Vem por último no bloco porque depende do cartão
+                             (fechamento/vencimento) e do tipo (parcelado gera N
+                             lançamentos a partir da fatura escolhida).
+                             `faturaEscolhida` guarda a INTENÇÃO ('aberta' /
+                             'fechada' / 'manual'), não a data: trocar de cartão
+                             recalcula as datas e preserva a escolha. -->
+                        <input type="hidden" id="faturaEscolhida" value="aberta">
+                        <div id="grupoSeletorFatura" style="display:none;">
+                            <label id="lblSeletorFatura" style="display:block;margin-bottom:6px;font-weight:600;font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;">Em qual fatura essa compra entra?</label>
+                            <div id="seletorFaturaOpcoes" class="fatura-opcoes"></div>
+                            <div id="seletorFaturaAviso" style="display:none;"></div>
+                            <div id="seletorFaturaResumo" style="display:none;"></div>
+                            <div id="seletorFaturaSemDados" style="display:none;"></div>
+                        </div>
                     </div>
 
                     <div class="form-group" id="grupoObs">
@@ -9874,14 +10615,14 @@
                         <label>Taxa de juros</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                         </div>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Período</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTempo" value="10" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                         </div>
                     </div>
                 </div>
@@ -9898,7 +10639,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Como você contribui</label>
-                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
+                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
                             <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
                         </div>
                     </div>
@@ -9910,7 +10651,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Regra que se aplica a você</label>
-                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
+                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
                                 <option value="mulher">Mulher — 62 anos, 15 de contribuição</option>
                                 <option value="homem">Homem — 65 anos, 20 de contribuição</option>
                             </select>
@@ -10086,7 +10827,7 @@
                 <div class="card-container" style="margin-bottom:16px;">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
                     <div class="form-group" style="margin-bottom:14px;">
-                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
+                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
                             <option value="valor">💰 Quero acumular um valor específico</option>
                             <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
                         </select>
@@ -10102,7 +10843,7 @@
                             <label>Em quanto tempo</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                             </div>
                         </div>
                     </div>
@@ -10134,7 +10875,7 @@
                             <label>Rentabilidade esperada</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
@@ -10235,12 +10976,6 @@
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
                     <p class="subtitulo" style="margin-bottom:0">Visão consolidada de tudo o que você tem — saldo, investimentos e bens.</p>
-                </div>
-                <div class="page-actions mp-controls">
-                    <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
-                        <button class="mp-toggle-btn ativo" data-modo="bruto" onclick="mpAlterarModo('bruto')" role="tab" aria-selected="true">Bruto</button>
-                        <button class="mp-toggle-btn" data-modo="liquido" onclick="mpAlterarModo('liquido')" role="tab" aria-selected="false" title="Aplica IR estimado por preço médio (RF tabela regressiva 22,5%→15%; Ações 15%; FII 20%)">Líquido (pós-IR)</button>
-                    </div>
                 </div>
             </div>
 
@@ -10712,7 +11447,7 @@
                         </div>
                         <div class="form-group">
                             <label>Quando começar?</label>
-                            <input type="month" id="sonhoMesInicio" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                            <input type="month" id="sonhoMesInicio">
                             <span style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Pode adiar — útil pra esperar 13º, férias, etc.</span>
                         </div>
                     </div>
@@ -10721,8 +11456,8 @@
                         <div class="form-group">
                             <label>Prazo para conquista</label>
                             <div style="display:flex;gap:6px;">
-                                <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
-                                <select id="sonhoPrazoUnidade" style="flex:1;padding:10px 8px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                                <input type="number" id="sonhoPrazo" min="1" step="1" value="12" placeholder="Ex: 12" style="flex:2;">
+                                <select id="sonhoPrazoUnidade" style="flex:1;">
                                     <option value="meses" selected>meses</option>
                                     <option value="anos">anos</option>
                                 </select>
@@ -10737,7 +11472,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Categoria</label>
-                            <select id="sonhoCategoria" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;">
+                            <select id="sonhoCategoria">
                                 <option value="viagem">✈️ Viagem</option>
                                 <option value="veiculo">🚗 Veículo</option>
                                 <option value="imovel">🏠 Imóvel</option>
@@ -10753,7 +11488,7 @@
 
                     <div class="form-group">
                         <label>Conta de onde sai o dinheiro <span style="color:var(--cor-erro)">*</span> <small style="color:var(--cor-texto-mutado);font-weight:400">— debita o Saldo em Conta no Meu Patrimônio</small></label>
-                        <select id="sonhoContaOrigem" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;color:var(--cor-texto-principal);background-color:var(--cor-superficie);font-family:'Figtree',sans-serif;"></select>
+                        <select id="sonhoContaOrigem"></select>
                     </div>
 
                     <div class="form-group">
@@ -11010,7 +11745,7 @@
                             <i class="ph ph-magnifying-glass" style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--cor-texto-mutado);font-size:16px;"></i>
                             <input type="text" id="faqBuscaInput" placeholder="Buscar uma dúvida (ex.: como cadastrar um ativo)" oninput="filtrarFaq()" style="width:100%;padding:11px 13px 11px 38px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                         </div>
-                        <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
+                        <select id="faqCategoriaFiltro" onchange="filtrarFaq()" style="padding:11px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-weight:600;cursor:pointer;">
                             <option value="">Todas as categorias</option>
                             <option value="conta">Conta & assinatura</option>
                             <option value="patrimonio">Patrimônio & investimentos</option>
@@ -11092,6 +11827,21 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label for="sugAnexoBtn">Imagem <span style="font-weight:500;color:var(--cor-texto-mutado);">(opcional)</span></label>
+                        <!-- O input de arquivo fica escondido porque o controle
+                             nativo é diferente em cada navegador e não aceita
+                             estilo; o botão abaixo é quem o aciona. -->
+                        <input type="file" id="sugAnexoInput" accept="image/*" style="display:none;" onchange="sugAnexoTrocou(this)">
+                        <button type="button" class="sug-anexo-btn" id="sugAnexoBtn" onclick="sugAnexoAbrirSeletor()">
+                            <i class="ph ph-image"></i> <span id="sugAnexoBtnTexto">Anexar uma imagem</span>
+                        </button>
+                        <div id="sugAnexoPreview" style="display:none;"></div>
+                        <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:7px;line-height:1.55;">
+                            Um print da tela costuma explicar em um segundo o que um parágrafo demora a descrever. A imagem é reduzida aqui no seu aparelho antes de subir — e, nessa passagem, os dados de localização da foto ficam para trás.
+                        </div>
+                    </div>
+
                     <div style="display:flex;gap:10px;margin-top:6px;">
                         <button class="btn-secundario" style="flex:0 0 auto;" onclick="trocarTabDuvidas('faq')"><i class="ph ph-arrow-left"></i> Voltar</button>
                         <button class="btn-acao" id="sugBtnEnviar" style="flex:1;" onclick="enviarSugestao()"><i class="ph-bold ph-paper-plane-tilt"></i> Enviar sugestão</button>
@@ -11162,7 +11912,9 @@
     <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
+    <script src="/web/appliquei-insights.js?v=insights-1"></script>
     <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
+    <script src="/web/appliquei-insights-ui.js?v=insights-1"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>

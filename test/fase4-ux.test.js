@@ -259,6 +259,115 @@ test('4.6 sem fechamento cadastrado assume fech = venc', () => {
   assert.equal(ymd(venc), '2026-06-20');
 });
 
+// ---- 4.6b: as duas faturas entre as quais se escolhe --------------------
+//
+// O relato que originou isto: "comprei antes do fechamento (dia 2), não tive
+// tempo de cadastrar, cadastrei hoje — e foi para a fatura errada". A regra
+// está certa: ela decide pela data que recebe, e recebia HOJE. A correção não
+// mexe na regra; oferece as DUAS faturas e deixa escolher.
+
+test('4.6b o caso do relato: fecha dia 2, hoje dia 4 — as duas faturas certas', () => {
+  const s = loadApp();
+  const hoje = new Date(2026, 8, 4); // 04/set/2026
+  const f = s.cartaoFaturasCandidatas(hoje, 2, 10);
+
+  // Comprando HOJE (04/09), a compra entra na que fecha em 02/10 e vence 10/10.
+  assert.equal(ymd(f.aberta.fechamento), '2026-10-02');
+  assert.equal(ymd(f.aberta.vencimento), '2026-10-10');
+  assert.equal(ymd(f.aberta.inicio), '2026-09-03', 'a aberta começa no dia seguinte ao fechamento');
+  assert.equal(f.aberta.fim, null, 'a aberta ainda acumula');
+
+  // A compra do relato (feita até 02/09) pertence à que fechou em 02/09.
+  assert.equal(ymd(f.fechada.fechamento), '2026-09-02');
+  assert.equal(ymd(f.fechada.vencimento), '2026-09-10');
+  assert.equal(ymd(f.fechada.inicio), '2026-08-03');
+  assert.equal(ymd(f.fechada.fim), '2026-09-02');
+});
+
+test('4.6b a fatura ABERTA é exatamente o que a regra devolve para hoje', () => {
+  // A regra não pode ser reimplementada aqui: a opção padrão TEM de ser o que
+  // cartaoCalcularVencimento diria, senão o default muda de comportamento.
+  const s = loadApp();
+  for (const [dia, fech, venc] of [
+    [4, 2, 10],
+    [25, 5, 5],
+    [10, 25, 5],
+    [3, 5, 15],
+    [1, 31, 7],
+  ]) {
+    const hoje = new Date(2026, 4, dia);
+    const f = s.cartaoFaturasCandidatas(hoje, fech, venc);
+    assert.equal(
+      ymd(f.aberta.vencimento),
+      ymd(s.cartaoCalcularVencimento(hoje, fech, venc)),
+      `aberta divergiu da regra em dia=${dia} fech=${fech} venc=${venc}`
+    );
+  }
+});
+
+test('4.6b as duas faturas são vizinhas: a fechada vence antes da aberta', () => {
+  const s = loadApp();
+  for (const [dia, fech, venc] of [
+    [4, 2, 10],
+    [15, 20, 1],
+    [28, 28, 28],
+    [9, 10, 9],
+  ]) {
+    const hoje = new Date(2026, 6, dia);
+    const f = s.cartaoFaturasCandidatas(hoje, fech, venc);
+    assert.ok(
+      f.fechada.vencimento.getTime() < f.aberta.vencimento.getTime(),
+      `fechada não vence antes da aberta em dia=${dia} fech=${fech} venc=${venc}`
+    );
+    assert.ok(
+      f.fechada.fechamento.getTime() < f.aberta.fechamento.getTime(),
+      `fechamentos fora de ordem em dia=${dia} fech=${fech} venc=${venc}`
+    );
+    // As janelas de compra se encostam sem buraco e sem sobreposição.
+    assert.equal(
+      ymd(f.aberta.inicio),
+      ymd(
+        new Date(f.fechada.fim.getFullYear(), f.fechada.fim.getMonth(), f.fechada.fim.getDate() + 1)
+      ),
+      `há buraco entre as janelas em dia=${dia} fech=${fech} venc=${venc}`
+    );
+  }
+});
+
+test('4.6b no DIA do fechamento a compra ainda é da fatura que fecha hoje', () => {
+  // Espelha a borda da regra (`hoje > dFech`, não `>=`): comprar no dia 2 com
+  // fechamento no dia 2 entra na fatura que fecha nesse dia 2.
+  const s = loadApp();
+  const hoje = new Date(2026, 8, 2);
+  const f = s.cartaoFaturasCandidatas(hoje, 2, 10);
+  assert.equal(ymd(f.aberta.fechamento), '2026-09-02', 'a aberta é a que fecha hoje');
+  assert.equal(ymd(f.fechada.fechamento), '2026-08-02', 'a fechada é a do mês passado');
+});
+
+test('4.6b fechamento 31 não escorrega em mês curto', () => {
+  const s = loadApp();
+  // 15/mar: o último fechamento foi 28/fev (fevereiro não tem 31).
+  const f = s.cartaoFaturasCandidatas(new Date(2026, 2, 15), 31, 10);
+  assert.equal(ymd(f.fechada.fechamento), '2026-02-28');
+  assert.equal(ymd(f.aberta.fechamento), '2026-03-31');
+});
+
+test('4.6b cartão sem dia de vencimento não produz faturas', () => {
+  // É o "Cartão principal" criado no primeiro boot. Sem os dias não há o que
+  // oferecer, e a tela precisa saber disso para pedir o cadastro.
+  const s = loadApp();
+  assert.equal(s.cartaoFaturasCandidatas(new Date(2026, 8, 4), 2, null), null);
+  assert.equal(s.cartaoFaturasCandidatas(new Date(2026, 8, 4), null, null), null);
+});
+
+test('4.6b sem fechamento cadastrado, as faturas usam fech = venc (igual à regra)', () => {
+  const s = loadApp();
+  const hoje = new Date(2026, 4, 10);
+  const f = s.cartaoFaturasCandidatas(hoje, null, 20);
+  assert.equal(ymd(f.aberta.vencimento), ymd(s.cartaoCalcularVencimento(hoje, null, 20)));
+  assert.equal(ymd(f.fechada.fechamento), '2026-04-20');
+});
+
 // ---- 4.3 / 4.4: projeção 1–50 anos e prêmio de risco -------------------
 
 test('4.3 cartSeriesSintetica projeta horizontes longos (50 anos = 600 meses)', () => {
