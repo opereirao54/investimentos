@@ -492,8 +492,17 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
 // ============================================================
 // === TEMA DOS GRÁFICOS — alinhado ao design system          ===
 // ============================================================
+// Lê do BODY, não do <html>. O tema claro declara os tokens em `:root`, mas o
+// escuro os sobrescreve em `body.dark` — e getComputedStyle no
+// documentElement nunca enxerga essa sobrescrita. O efeito era silencioso e
+// geral: no tema escuro TODO gráfico do app (evolução, distribuição,
+// dividendos, carteira, relatório, projeção) recebia a grade e o texto do
+// tema CLARO, porque é isso que --cor-borda e --cor-texto-secundario valem no
+// <html>. Ler do body funciona nos dois: custom property herda, então onde o
+// escuro não sobrescreve o valor do :root chega igual.
 function getToken(nome) {
-  return getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  var origem = document.body || document.documentElement;
+  return getComputedStyle(origem).getPropertyValue(nome).trim();
 }
 
 function aplicarTemaChartJs() {

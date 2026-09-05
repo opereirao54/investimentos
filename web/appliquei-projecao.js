@@ -185,9 +185,23 @@ function projOrigemTaxa(c) {
 /**
  * Taxa do cenário. 'conservador' e 'otimista' afastam a base pela faixa da
  * classe; 'base' devolve a própria. O piso só existe do lado conservador.
+ *
+ * A faixa ENCOLHE com a raiz do horizonte, e isso não é maquiagem: ela mede a
+ * incerteza sobre o retorno MÉDIO ANUALIZADO, e a média de N anos dispersa
+ * menos que a de um ano — o desvio cai com 1/√N. Sem isso, os ±25 p.p. da
+ * cripto compunham por trinta anos e devolviam um "otimista" de R$ 115
+ * milhões a partir de R$ 32 mil, que esmagava a linha do cenário provável
+ * contra o eixo e tornava o gráfico ilegível. Um número desses não é
+ * otimismo, é ficção — exatamente o que a faixa existe para não vender.
+ *
+ * Em 1 ano a faixa vale inteira (cripto pode mesmo fazer −10% ou +40%); em
+ * 30 anos ela vale um quinto disso, que é o que a estatística permite dizer
+ * sobre uma média de trinta anos.
  */
-function projTaxaCenario(taxaBase, faixa, cenario) {
+function projTaxaCenario(taxaBase, faixa, cenario, anos) {
   var f = isFinite(faixa) ? faixa : 0;
+  var n = Number(anos);
+  if (isFinite(n) && n > 1) f = f / Math.sqrt(n);
   if (cenario === 'conservador') return Math.max(PROJ_PISO_CONSERVADOR, taxaBase - f);
   if (cenario === 'otimista') return taxaBase + f;
   return taxaBase;
@@ -569,7 +583,9 @@ function projCalcular() {
           rotulo: c.rotulo,
           valor: c.valor,
           taxaAnual:
-            cenario === 'base' ? c.taxaAnual : projTaxaCenario(c.taxaAnual, c.faixa, cenario),
+            cenario === 'base'
+              ? c.taxaAnual
+              : projTaxaCenario(c.taxaAnual, c.faixa, cenario, projEstado.anos),
         };
       }),
     });
@@ -980,8 +996,32 @@ function projRenderGrafico(r) {
 
   var corBase = typeof getToken === 'function' ? getToken('--cor-primaria') : '#059669';
   var corBanda =
-    typeof corComAlpha === 'function' ? corComAlpha(corBase, 0.16) : 'rgba(5,150,105,0.16)';
+    typeof corComAlpha === 'function' ? corComAlpha(corBase, 0.13) : 'rgba(5,150,105,0.13)';
   var corMuda = typeof getToken === 'function' ? getToken('--cor-texto-mutado') : '#546e5b';
+  var corGrade = typeof getToken === 'function' ? getToken('--cor-borda') : '#dfe7e0';
+  var corSuperficie = typeof getToken === 'function' ? getToken('--cor-branco') : '#ffffff';
+
+  // Gradiente sob a linha provável: é o que dá massa à curva. Sem ele a linha
+  // fica solta no branco e o gráfico parece um esboço. Precisa da altura real
+  // do canvas, então nasce aqui e não numa constante.
+  var ctx2d = canvas.getContext('2d');
+  var altura = canvas.clientHeight || 220;
+  var gradiente = ctx2d.createLinearGradient(0, 0, 0, altura);
+  if (typeof corComAlpha === 'function') {
+    gradiente.addColorStop(0, corComAlpha(corBase, 0.26));
+    gradiente.addColorStop(1, corComAlpha(corBase, 0));
+  } else {
+    gradiente.addColorStop(0, 'rgba(5,150,105,0.26)');
+    gradiente.addColorStop(1, 'rgba(5,150,105,0)');
+  }
+
+  // Marcador só no ÚLTIMO ponto. Rótulo em todo ponto é o que estava
+  // acontecendo (o datalabels global imprimia os 360 valores brutos por cima
+  // do desenho) — aqui a curva ganha uma âncora e mais nada.
+  var ultimo = indices.length - 1;
+  var raioPonto = indices.map(function (_, i) {
+    return i === ultimo ? 4.5 : 0;
+  });
 
   var dados = {
     labels: rotulos,
@@ -992,9 +1032,10 @@ function projRenderGrafico(r) {
         borderColor: 'transparent',
         backgroundColor: corBanda,
         pointRadius: 0,
+        pointHoverRadius: 0,
         fill: false,
-        tension: 0.3,
-        order: 3,
+        tension: 0.35,
+        order: 4,
       },
       {
         label: 'Otimista',
@@ -1002,8 +1043,22 @@ function projRenderGrafico(r) {
         borderColor: 'transparent',
         backgroundColor: corBanda,
         pointRadius: 0,
+        pointHoverRadius: 0,
         fill: '-1',
-        tension: 0.3,
+        tension: 0.35,
+        order: 4,
+      },
+      {
+        label: 'Parado, sem render',
+        data: paradoSerie,
+        borderColor: corMuda,
+        borderWidth: 1.5,
+        borderDash: [4, 4],
+        backgroundColor: 'transparent',
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        tension: 0,
         order: 3,
       },
       {
@@ -1011,24 +1066,18 @@ function projRenderGrafico(r) {
         data: serie(r.base),
         borderColor: corBase,
         borderWidth: 2.5,
-        backgroundColor: 'transparent',
-        pointRadius: 0,
-        pointHoverRadius: 4,
-        fill: false,
-        tension: 0.3,
+        borderCapStyle: 'round',
+        backgroundColor: gradiente,
+        fill: 'origin',
+        pointRadius: raioPonto,
+        pointHoverRadius: 5,
+        pointBackgroundColor: corBase,
+        // Anel da cor da superfície em vez de borda escura: separa o ponto da
+        // curva sem somar uma cor nova ao desenho.
+        pointBorderColor: corSuperficie,
+        pointBorderWidth: 2.5,
+        tension: 0.35,
         order: 1,
-      },
-      {
-        label: 'Sem render nada',
-        data: paradoSerie,
-        borderColor: corMuda,
-        borderWidth: 1.5,
-        borderDash: [5, 5],
-        backgroundColor: 'transparent',
-        pointRadius: 0,
-        fill: false,
-        tension: 0,
-        order: 2,
       },
     ],
   };
@@ -1036,27 +1085,34 @@ function projRenderGrafico(r) {
   var opcoes = {
     responsive: true,
     maintainAspectRatio: false,
+    // O gradiente e o marcador final precisam de folga; sem isto a linha
+    // encosta no topo e o ponto sai pela borda direita.
+    layout: { padding: { top: 10, right: 10, bottom: 2, left: 2 } },
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: { display: false },
+      // O plugin de rótulos é registrado GLOBALMENTE em app.js. Sem desligar
+      // aqui, ele carimba o valor de cada um dos ~60 pontos de cada uma das
+      // quatro séries por cima da curva.
+      datalabels: { display: false },
       tooltip: {
-        callbacks: {
-          label: function (ctx) {
-            return ctx.dataset.label + ': ' + formatarMoeda(ctx.parsed.y);
-          },
-        },
+        external: projTooltipHtml,
+        enabled: false,
       },
     },
     scales: {
       x: {
         grid: { display: false },
-        ticks: { maxTicksLimit: 6, maxRotation: 0, autoSkip: true },
+        border: { color: corGrade },
+        ticks: { maxTicksLimit: 6, maxRotation: 0, autoSkip: true, padding: 6 },
       },
       y: {
         border: { display: false },
-        grid: { color: typeof getToken === 'function' ? getToken('--cor-borda') : '#dfe7e0' },
+        // Hairline recessiva: a grade é referência, não conteúdo.
+        grid: { color: corGrade, lineWidth: 1, drawTicks: false },
         ticks: {
           maxTicksLimit: 5,
+          padding: 8,
           callback: function (v) {
             return projMoedaCompacta(v);
           },
@@ -1070,25 +1126,102 @@ function projRenderGrafico(r) {
     projChart.options = opcoes;
     projChart.update();
   } else {
-    projChart = new Chart(canvas.getContext('2d'), { type: 'line', data: dados, options: opcoes });
+    projChart = new Chart(ctx2d, { type: 'line', data: dados, options: opcoes });
   }
 
   var legenda = document.getElementById('legendaProjecao');
   if (legenda) {
+    // Traço para o que é linha, retângulo para o que é área — a legenda
+    // espelha a marca, senão o leitor procura no gráfico a bolinha que viu
+    // aqui e não acha.
     legenda.innerHTML =
-      '<span class="chip-legenda"><span class="dot" style="background:' +
+      '<span class="chip-legenda"><span class="proj-leg-linha" style="background:' +
       corBase +
       '"></span>Cenário provável</span>' +
-      '<span class="chip-legenda"><span class="dot" style="background:' +
+      '<span class="chip-legenda"><span class="proj-leg-area" style="background:' +
       corBanda +
       '"></span>Faixa pessimista–otimista</span>' +
-      '<span class="chip-legenda"><span class="dot proj-dot-tracejado" style="background:' +
+      '<span class="chip-legenda"><span class="proj-leg-tracejada" style="--proj-leg-cor:' +
       corMuda +
       '"></span>Parado, sem render</span>' +
       (projEstado.emValoresDeHoje
         ? '<span class="chip-legenda proj-chip-real"><i class="ph ph-scales"></i> Poder de compra de hoje</span>'
         : '');
   }
+}
+
+/**
+ * Tooltip do gráfico de projeção.
+ *
+ * O padrão do Chart.js listava as quatro séries com uma caixa de cor — e duas
+ * delas ("Pessimista"/"Otimista") têm borda transparente, então apareciam com
+ * um quadradinho invisível ao lado do número. Aqui a leitura é reordenada
+ * para o que a pessoa quer: o valor provável grande, a faixa como intervalo
+ * numa linha só, e — o dado que justifica a tela — quanto disso é juro, a
+ * diferença para a linha "parado".
+ */
+function projTooltipHtml(context) {
+  var modelo = context.tooltip;
+  var el = document.getElementById('proj-tooltip');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'proj-tooltip';
+    el.className = 'proj-tooltip';
+    document.body.appendChild(el);
+  }
+  if (!modelo || modelo.opacity === 0) {
+    el.style.opacity = 0;
+    return;
+  }
+
+  var pontos = modelo.dataPoints || [];
+  var por = {};
+  pontos.forEach(function (p) {
+    por[p.dataset.label] = p.parsed.y;
+  });
+  var provavel = por['Cenário provável'];
+  var parado = por['Parado, sem render'];
+  var baixo = por['Pessimista'];
+  var alto = por['Otimista'];
+  if (provavel == null) {
+    el.style.opacity = 0;
+    return;
+  }
+  var juros = parado != null ? provavel - parado : null;
+
+  // textContent em tudo o que vem de fora; aqui só entram números que este
+  // arquivo mesmo formatou, mas o hábito é o que evita o dia em que não for.
+  var html =
+    '<div class="proj-tt-data">' +
+    (modelo.title && modelo.title[0] ? modelo.title[0] : '') +
+    '</div>' +
+    '<div class="proj-tt-valor">' +
+    formatarMoeda(provavel) +
+    '</div>' +
+    '<div class="proj-tt-rot">cenário provável</div>';
+  if (baixo != null && alto != null) {
+    html +=
+      '<div class="proj-tt-linha"><span class="proj-tt-faixa"></span>' +
+      '<span>' +
+      projMoedaCompacta(baixo) +
+      ' a ' +
+      projMoedaCompacta(alto) +
+      '</span></div>';
+  }
+  if (juros != null && juros > 0) {
+    html +=
+      '<div class="proj-tt-linha proj-tt-juros"><span class="proj-tt-ponto"></span>' +
+      // "vieram" seria pretérito para um ponto que ainda não aconteceu.
+      '<span>' +
+      formatarMoeda(juros) +
+      ' em juros</span></div>';
+  }
+  el.innerHTML = html;
+
+  var caixa = context.chart.canvas.getBoundingClientRect();
+  el.style.opacity = 1;
+  el.style.left = caixa.left + window.pageXOffset + modelo.caretX + 'px';
+  el.style.top = caixa.top + window.pageYOffset + modelo.caretY + 'px';
 }
 
 function projRenderMarcos(r) {

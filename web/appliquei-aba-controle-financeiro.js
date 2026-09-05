@@ -1948,6 +1948,66 @@ function resultadoAcumuladoAteMes(mes, ano) {
   return acc;
 }
 
+// ============================================================
+// === KPI "Saldo em conta" — o dinheiro que existe de verdade ===
+// ============================================================
+// O card vizinho, "Saldo livre", responde sobre o MÊS: quanto do que entrou
+// ainda não tem destino. Este responde sobre o DINHEIRO: quanto há nas contas.
+// São perguntas diferentes, e por isso dois cards — juntos num só, a pessoa
+// lia o saldo do mês como se fosse o extrato do banco.
+//
+// A referência muda com o mês na tela, senão os dois cards ficariam falando
+// de tempos diferentes sem avisar:
+//   · mês corrente → AGORA (o mesmo número de Meu patrimônio);
+//   · mês passado  → o fim daquele mês;
+//   · mês futuro   → o projetado para o fim dele.
+//
+// Quem faz a conta é saldoCaixaPorConta (contas.js), que já reúne a foto de
+// hoje e o que está agendado — e é a mesma função que decide se uma compra
+// agendada cabe no saldo. Duplicar a regra aqui seria criar um segundo saldo.
+function referenciaSaldoEmConta(mes, ano) {
+  const agora = Date.now();
+  const hoje = new Date();
+  if (mes === hoje.getMonth() && ano === hoje.getFullYear()) return agora;
+  return new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+}
+
+function calcularSaldoEmContaDoMes(mes, ano) {
+  if (typeof saldoCaixaPorConta !== 'function') return null;
+  const saldos = saldoCaixaPorConta(referenciaSaldoEmConta(mes, ano)) || {};
+  return Object.keys(saldos).reduce((s, k) => s + (Number(saldos[k]) || 0), 0);
+}
+
+function atualizarKpiSaldoEmConta(mes, ano) {
+  const el = document.getElementById('kpiSaldoConta');
+  const sub = document.getElementById('kpiSaldoContaSub');
+  if (!el) return;
+
+  const total = calcularSaldoEmContaDoMes(mes, ano);
+  if (total == null) {
+    // Sem o módulo de contas não há saldo a mostrar. Zerar seria pior que
+    // calar: um R$ 0,00 lê como "você não tem dinheiro".
+    el.innerText = '—';
+    el.style.color = 'var(--cor-texto-mutado)';
+    if (sub) sub.innerText = 'indisponível agora';
+    return;
+  }
+
+  el.innerText = formatarMoeda(total);
+  el.style.color = total < 0 ? 'var(--cor-erro)' : 'var(--cor-txt-info)';
+
+  if (!sub) return;
+  const hoje = new Date();
+  const ehCorrente = mes === hoje.getMonth() && ano === hoje.getFullYear();
+  const fimMes = new Date(ano, mes + 1, 0).getTime();
+  const rotuloMes = new Date(ano, mes, 1)
+    .toLocaleDateString('pt-BR', { month: 'long' })
+    .replace('.', '');
+  if (ehCorrente) sub.innerText = 'o que existe hoje, somando as suas contas';
+  else if (fimMes < Date.now()) sub.innerText = `no fim de ${rotuloMes}, somando as suas contas`;
+  else sub.innerText = `projetado para o fim de ${rotuloMes}, com o que está agendado`;
+}
+
 // Saldo de abertura do mês = ajuste manual (se houver) OU fechamento do mês anterior.
 function obterSaldoCarregadoParaMes(mes, ano) {
   const mapa = obterMapaSaldoCarregado();
@@ -2721,6 +2781,7 @@ function atualizarTelaControle() {
       lblCarregado.style.display = 'none';
     }
   }
+  atualizarKpiSaldoEmConta(visaoMes, visaoAno);
 
   // ALERTA CARTÃO — usa só cartões ATIVOS. Cartões arquivados (ex.: o "Cartão
   // principal" de 5.000 criado na migração) não devem inflar o limite e mascarar

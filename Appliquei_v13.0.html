@@ -1126,12 +1126,22 @@
             .kpis-controle { grid-template-columns: 1fr; }
         }
 
+        /* A coluna da esquerda passou a ter DOIS heróis empilhados. Linhas
+           iguais (1fr 1fr) para que nenhum dos dois pareça o principal: são
+           duas respostas de mesmo peso, uma sobre o mês e outra sobre agora. */
+        .kpis-controle-heroes {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 14px;
+            min-width: 0;
+        }
+
         .kpi-hero {
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-left: 3px solid var(--cor-primaria);
             border-radius: var(--radius);
-            padding: 18px 20px;
+            padding: 16px 18px;
             box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
@@ -1140,11 +1150,21 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            min-height: 150px;
+            /* Era 150px quando este card era único e tinha a coluna inteira.
+               Com dois empilhados, o piso passa a ser o conteúdo — a grade
+               é que iguala as alturas. */
+            min-height: 118px;
             transition: box-shadow 0.2s, transform 0.2s;
         }
         .kpi-hero:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-        .kpi-hero-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; text-align: center; }
+        /* Caixa real: azul, a mesma família que Meu patrimônio usa para "onde
+           o dinheiro está". Distingue à distância o número do MÊS (verde, o
+           acento do app) do número de AGORA. */
+        .kpi-hero-caixa { border-left-color: var(--cor-info); cursor: pointer; }
+        .kpi-hero-caixa .kpi-hero-icon { background: var(--cor-bg-info); color: var(--cor-info); }
+        .kpi-hero-caixa .kpi-hero-valor { color: var(--cor-txt-info); }
+        .kpi-hero-caixa:focus-visible { outline: 2px solid var(--cor-info); outline-offset: 2px; }
+        .kpi-hero-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 12px; text-align: center; }
         .kpi-hero-icon {
             width: 36px; height: 36px; border-radius: 10px;
             background: var(--cor-bg-primaria);
@@ -1161,7 +1181,7 @@
             font-weight: 500; line-height: 1.3;
         }
         .kpi-hero-valor {
-            font-size: 28px; font-weight: 700; letter-spacing: -0.7px;
+            font-size: 26px; font-weight: 700; letter-spacing: -0.7px;
             font-family: 'DM Mono', monospace; line-height: 1;
             color: var(--cor-primaria);
             text-align: center;
@@ -9089,9 +9109,63 @@
         }
 
         /* ---------- Curva ---------- */
-        #patrimonio .proj-grafico { position: relative; height: 220px; margin-top: 10px; }
-        #patrimonio .proj-dot-tracejado { opacity: 0.55; }
+        #patrimonio .proj-grafico { position: relative; height: 240px; margin-top: 10px; }
         #patrimonio .proj-chip-real { color: var(--cor-txt-primaria); font-weight: 700; }
+
+        /* A legenda espelha a MARCA: traço para linha, retângulo para área.
+           Com bolinha para tudo, o leitor procura no gráfico o ponto que viu
+           aqui e não acha — a faixa não tem ponto, tem superfície. */
+        #patrimonio .proj-leg-linha {
+            width: 14px; height: 3px; border-radius: 2px; flex-shrink: 0;
+        }
+        #patrimonio .proj-leg-area {
+            width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0;
+        }
+        #patrimonio .proj-leg-tracejada {
+            width: 14px; height: 0; flex-shrink: 0;
+            border-top: 2px dashed var(--proj-leg-cor, var(--cor-texto-mutado));
+        }
+
+        /* Tooltip próprio: o do Chart.js listava as quatro séries com uma
+           caixa de cor, e duas delas têm borda transparente — apareciam com
+           um quadradinho invisível ao lado do número. Aqui o valor lidera e o
+           rótulo segue, que é a hierarquia certa quando a pessoa já sabe o
+           que está olhando e quer o número. */
+        .proj-tooltip {
+            position: absolute; pointer-events: none; z-index: 9000;
+            transform: translate(-50%, calc(-100% - 12px));
+            min-width: 132px; padding: 9px 11px;
+            border-radius: 10px; opacity: 0;
+            background: var(--cor-texto-principal); color: var(--cor-branco);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            transition: opacity 0.12s ease;
+            font-family: 'Figtree', sans-serif;
+        }
+        .proj-tooltip .proj-tt-data {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; opacity: 0.6; margin-bottom: 3px;
+        }
+        .proj-tooltip .proj-tt-valor {
+            font-family: 'DM Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+            font-size: 16px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15;
+        }
+        .proj-tooltip .proj-tt-rot { font-size: 10.5px; opacity: 0.6; margin-bottom: 6px; }
+        .proj-tooltip .proj-tt-linha {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11.5px; margin-top: 3px;
+            font-family: 'DM Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        .proj-tooltip .proj-tt-faixa {
+            width: 11px; height: 8px; border-radius: 2px; flex-shrink: 0;
+            background: rgba(255,255,255,0.28);
+        }
+        .proj-tooltip .proj-tt-ponto {
+            width: 11px; height: 3px; border-radius: 2px; flex-shrink: 0;
+            background: var(--cor-primaria);
+        }
+        .proj-tooltip .proj-tt-juros { opacity: 0.92; }
 
         /* ---------- Marcos ---------- */
         #patrimonio .proj-marcos {
@@ -10523,16 +10597,40 @@
             </div>
 
             <div class="kpis-controle">
-                <!-- Saldo livre em destaque (hero) -->
-                <div class="kpi-hero" id="cardSaldoLivreHero">
-                    <div class="kpi-hero-head">
-                        <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
-                        <div>
-                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
-                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
+                <!-- Dois heróis, e a diferença entre eles é a pergunta que
+                     respondem. "Saldo livre" é do MÊS: quanto deste mês ainda
+                     não tem destino. "Saldo em conta" é de AGORA: quanto
+                     existe de fato no banco, o mesmo número de Meu patrimônio.
+
+                     Estavam fundidos num card só, e a pessoa lia o saldo do
+                     mês como se fosse o dinheiro na conta — dois números que
+                     só coincidem por acaso. Separados, cada um pode dizer a
+                     que tempo pertence. -->
+                <div class="kpis-controle-heroes">
+                    <div class="kpi-hero" id="cardSaldoLivreHero">
+                        <div class="kpi-hero-head">
+                            <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
+                            <div>
+                                <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
+                                <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
+                            </div>
                         </div>
+                        <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
                     </div>
-                    <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
+
+                    <div class="kpi-hero kpi-hero-caixa" id="cardSaldoContaHero" role="button" tabindex="0"
+                         title="Ver o detalhe por banco e corretora em Meu patrimônio"
+                         onclick="ppNavegarPara('meu_patrimonio')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ppNavegarPara('meu_patrimonio');}">
+                        <div class="kpi-hero-head">
+                            <div class="kpi-hero-icon"><i class="ph-fill ph-bank"></i></div>
+                            <div>
+                                <div class="kpi-hero-lbl">Saldo em conta</div>
+                                <div class="kpi-hero-sub" id="kpiSaldoContaSub">o que existe hoje, somando as suas contas</div>
+                            </div>
+                        </div>
+                        <div class="kpi-hero-valor valor-mascarado" id="kpiSaldoConta">R$ 0,00</div>
+                    </div>
                 </div>
 
                 <!-- Grid 2x2 dos demais KPIs -->
