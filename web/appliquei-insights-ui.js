@@ -526,6 +526,9 @@ function insightsUiAgir(id) {
   if (!ins) return;
 
   if (ins.tipo === 'aperto') {
+    // O painel de vencimentos vive recolhido: mandar a pessoa "conferir os
+    // vencimentos" e levá-la a um cabeçalho fechado não entrega nada.
+    if (typeof abrirPainelVencimentos === 'function') abrirPainelVencimentos();
     insightsUiIrPara('painelVencimentos');
     if (typeof mostrarToast === 'function') {
       mostrarToast('Confira os vencimentos até a data do aperto.', 'aviso');

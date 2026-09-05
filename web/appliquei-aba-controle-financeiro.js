@@ -1899,6 +1899,27 @@ function salvarMapaSaldoCarregado(m) {
   localStorage.setItem('futurorico_saldoCarregado', JSON.stringify(m));
 }
 
+// As cinco parcelas do mês, do jeito que os cards e a DRE as somam. Existe
+// como função porque esses mesmos cinco números aparecem em três lugares — o
+// card, a coluna de total da DRE e a série histórica da mini-linha do card —
+// e um agrupamento diferente em qualquer um deles faria a linha terminar num
+// ponto que não é o número impresso logo acima dela.
+//
+// `invExterno` fica de fora dos aportes de propósito: é dinheiro que nunca
+// passou pelo caixa (aporte feito direto na corretora), então não desconta do
+// saldo do mês. Mesma regra de calcularResultadoMes.
+function totaisDoResumo(r) {
+  r = r || {};
+  const n = (v) => Number(v) || 0;
+  return {
+    receita: n(r.receita) + n(r.resgate),
+    despesas: n(r.despFixa) + n(r.despVar),
+    cartao: n(r.cartao),
+    investimentos: n(r.invFixo) + n(r.invVar),
+    sonhos: n(r.sonho),
+  };
+}
+
 // Resultado bruto do mês (receitas - despesas - cartão - aportes - sonhos).
 //
 // O sonho tem parcela própria na subtração e não se esconde dentro de
@@ -1906,11 +1927,82 @@ function salvarMapaSaldoCarregado(m) {
 // forma —, mas quem ler esta função não vai concluir que guardar para uma meta
 // é despesa de consumo, que foi como o número acabou parar no relatório.
 function calcularResultadoMes(mes, ano) {
-  const r = calcularResumoMes(mes, ano);
-  const totRec = r.receita + r.resgate;
-  const totDesp = r.despFixa + r.despVar;
-  const totInv = r.invFixo + r.invVar;
-  return totRec - totDesp - r.cartao - totInv - r.sonho;
+  const t = totaisDoResumo(calcularResumoMes(mes, ano));
+  return t.receita - t.despesas - t.cartao - t.investimentos - t.sonhos;
+}
+
+// ============================================================
+// --- Contexto dos cards: destino do mês, variação e série ---
+// ============================================================
+
+// A ordem é a da barra e a dos cards embaixo dela: os cards fazem as vezes de
+// legenda, então as duas listas têm de contar a mesma história na mesma ordem.
+var CTRL_DESTINOS = [
+  { chave: 'despesas', rotulo: 'Despesas' },
+  { chave: 'cartao', rotulo: 'Cartão' },
+  { chave: 'investimentos', rotulo: 'Investimentos' },
+  { chave: 'sonhos', rotulo: 'Sonhos' },
+];
+
+// Para onde foi o dinheiro do mês.
+//
+// A base é tudo o que ENTROU — receita, resgates e o saldo que veio do mês
+// anterior —, porque é dela que as quatro saídas são descontadas para chegar
+// ao saldo livre. Usar só a receita faria as fatias somarem mais de 100%
+// sempre que a pessoa gastasse o que sobrou do mês passado.
+//
+// Quando as saídas passam da entrada, a régua deixa de ser a entrada e passa a
+// ser o próprio gasto: é a única forma de as fatias caberem na barra. Nesse
+// caso não existe fatia "livre" — existe excedente, e quem chama mostra isso.
+function calcularDestinoDoMes(e) {
+  e = e || {};
+  const n = (v) => Number(v) || 0;
+  const base = n(e.receita) + n(e.resgate) + n(e.carregado);
+  // Parcela negativa (estorno maior que o lançamento) não vira fatia reversa:
+  // uma barra que anda para trás não se lê.
+  const saidas = CTRL_DESTINOS.map((d) => ({
+    chave: d.chave,
+    rotulo: d.rotulo,
+    valor: Math.max(0, n(e[d.chave])),
+  }));
+  const gasto = saidas.reduce((s, x) => s + x.valor, 0);
+  const livre = base - gasto;
+  const estourou = livre < 0;
+  const regua = estourou ? gasto : base;
+  const pct = (v) => (regua > 0 ? (v / regua) * 100 : 0);
+  const fatias = saidas.map((x) => ({ ...x, pct: pct(x.valor) }));
+  if (!estourou) fatias.push({ chave: 'livre', rotulo: 'Livre', valor: livre, pct: pct(livre) });
+  return {
+    base,
+    gasto,
+    livre,
+    estourou,
+    excedente: estourou ? -livre : 0,
+    // Sem entrada e sem saída não há barra a desenhar — e uma barra vazia com
+    // "0%" em tudo se lê como defeito, não como mês sem lançamento.
+    temDados: base > 0 || gasto > 0,
+    fatias,
+  };
+}
+
+// Variação de um mês para o outro, em %. `null` quando não há base de
+// comparação: subir "de R$ 0 para R$ 500" não é +∞%, é o primeiro mês.
+function variacaoMensal(atual, anterior) {
+  const a = Number(anterior) || 0;
+  if (a === 0) return null;
+  return (((Number(atual) || 0) - a) / Math.abs(a)) * 100;
+}
+
+// Os últimos `qtd` meses até (mes,ano) inclusive, já agrupados nas cinco
+// parcelas. Alimenta a mini-linha de cada card.
+function serieTotaisMeses(mes, ano, qtd) {
+  const n = Math.max(1, Number(qtd) || 6);
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(ano, mes - i, 1);
+    out.push(totaisDoResumo(calcularResumoMes(d.getMonth(), d.getFullYear())));
+  }
+  return out;
 }
 
 // Competência (ano*12+mes) do primeiro lançamento — base do acúmulo.
@@ -2006,6 +2098,279 @@ function atualizarKpiSaldoEmConta(mes, ano) {
   if (ehCorrente) sub.innerText = 'o que existe hoje, somando as suas contas';
   else if (fimMes < Date.now()) sub.innerText = `no fim de ${rotuloMes}, somando as suas contas`;
   else sub.innerText = `projetado para o fim de ${rotuloMes}, com o que está agendado`;
+
+  atualizarTendenciaSaldoEmConta(mes, ano);
+}
+
+// A linha dos últimos 6 meses do saldo em conta, dentro do próprio card.
+// O número sozinho diz quanto existe; a linha diz se o caixa está subindo ou
+// escorrendo — que é a pergunta seguinte e a que ninguém respondia.
+function atualizarTendenciaSaldoEmConta(mes, ano) {
+  const linha = document.getElementById('kpiSaldoContaLinha');
+  const delta = document.getElementById('kpiSaldoContaDelta');
+  if (!linha && !delta) return;
+
+  const serie = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(ano, mes - i, 1);
+    const v = calcularSaldoEmContaDoMes(d.getMonth(), d.getFullYear());
+    if (v == null) {
+      if (linha) linha.innerHTML = '';
+      if (delta) delta.innerHTML = '';
+      return;
+    }
+    serie.push(v);
+  }
+
+  if (linha) {
+    // Uma linha reta em zero não é tendência, é a ausência dela.
+    const temMovimento = serie.some((v, i) => i > 0 && v !== serie[0]);
+    if (typeof rmSparklineSvg === 'function' && temMovimento) {
+      linha.style.display = '';
+      linha.innerHTML = rmSparklineSvg(serie, { width: 320, height: 40 });
+    } else {
+      linha.style.display = 'none';
+      linha.innerHTML = '';
+    }
+  }
+
+  if (delta) {
+    const atual = serie[serie.length - 1];
+    const anterior = serie[serie.length - 2];
+    const dif = atual - anterior;
+    const antD = new Date(ano, mes - 1, 1);
+    if (Math.abs(dif) < 0.005) {
+      delta.className = 'kpi-hero-delta igual';
+      delta.innerHTML = 'sem mudança desde ' + ctrlMesCurto(antD.getMonth(), antD.getFullYear());
+    } else {
+      delta.className = 'kpi-hero-delta ' + (dif > 0 ? 'sobe' : 'desce');
+      delta.innerHTML =
+        (dif > 0 ? '↑' : '↓') +
+        ' <strong>' +
+        formatarMoeda(Math.abs(dif)) +
+        '</strong> desde ' +
+        ctrlMesCurto(antD.getMonth(), antD.getFullYear());
+    }
+  }
+}
+
+// ============================================================
+// --- Painel de vencimentos: exibe/esconde ---
+// ============================================================
+
+var VENC_CHAVE_ABERTO = 'appliquei_venc_aberto';
+
+// Recolhido por padrão. Seis contas a vencer ocupavam ~150px acima do extrato
+// e da DRE, todo mês, mesmo depois de a pessoa já as ter visto. O cabeçalho
+// continua dizendo quantas são e quanto somam — é o que se lê à distância.
+function alternarPainelVencimentos() {
+  const el = document.getElementById('painelVencimentos');
+  if (!el) return;
+  const aberto = el.getAttribute('data-aberto') === '1';
+  el.setAttribute('data-aberto', aberto ? '0' : '1');
+  const cab = el.querySelector('.venc-painel-cab');
+  if (cab) cab.setAttribute('aria-expanded', aberto ? 'false' : 'true');
+  try {
+    localStorage.setItem(VENC_CHAVE_ABERTO, aberto ? '0' : '1');
+  } catch (_) {}
+}
+
+// Abre o painel sem alternar. Serve a quem MANDA a pessoa olhar os
+// vencimentos (o insight de aperto de caixa) — recolhido, o "confira os
+// vencimentos" levaria a um cabeçalho fechado e a ação não entregaria nada.
+function abrirPainelVencimentos() {
+  const el = document.getElementById('painelVencimentos');
+  if (!el || el.getAttribute('data-aberto') === '1') return;
+  alternarPainelVencimentos();
+}
+
+// Decide se o painel nasce aberto. Pura para poder ser testada: é a regra que
+// impede o recolhimento de esconder justamente o que não pode ser perdido.
+function vencDeveAbrir(estado) {
+  const e = estado || {};
+  // Conta vencida ou vencendo hoje ganha da preferência: esconder aqui é o
+  // único caso em que o recolhimento custa dinheiro (juros, multa).
+  if (e.temAtraso || e.temHoje) return true;
+  if (e.salvo === '1') return true;
+  if (e.salvo === '0') return false;
+  return false;
+}
+
+function atualizarCabecalhoVencimentos(estado) {
+  const el = document.getElementById('painelVencimentos');
+  if (!el) return;
+  const e = estado || {};
+  let salvo = null;
+  try {
+    salvo = localStorage.getItem(VENC_CHAVE_ABERTO);
+  } catch (_) {}
+  const abrir = vencDeveAbrir({ ...e, salvo });
+  el.setAttribute('data-aberto', abrir ? '1' : '0');
+  const cab = el.querySelector('.venc-painel-cab');
+  if (cab) cab.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+
+  const resumo = document.getElementById('vencResumo');
+  if (!resumo) return;
+  const qtd = Number(e.qtd) || 0;
+  if (qtd === 0) {
+    resumo.innerHTML = '';
+    return;
+  }
+  const urgente = e.temAtraso ? 'vencida(s)' : e.temHoje ? 'vence hoje' : '';
+  resumo.innerHTML =
+    (urgente ? '<span class="venc-painel-urgente">⚠ ' + urgente + '</span> · ' : '') +
+    qtd +
+    ' a pagar · <strong>' +
+    formatarMoeda(e.total) +
+    '</strong>';
+}
+
+// Nome curto do mês, para os rótulos de comparação ("vs. ago").
+function ctrlMesCurto(mes, ano) {
+  return new Date(ano, mes, 1)
+    .toLocaleDateString('pt-BR', { month: 'short' })
+    .replace('.', '')
+    .toLowerCase();
+}
+
+// A barra de destino do mês, dentro do card de saldo livre. O subtítulo do
+// card já dizia "receita − despesas − cartão − investimentos − sonhos"; a
+// barra é essa fórmula desenhada, que é o que a pessoa realmente quer saber
+// ao olhar o saldo — não quanto sobrou, mas para onde foi o resto.
+function atualizarDestinoDoMes(entradas) {
+  const cx = document.getElementById('destinoMes');
+  if (!cx) return;
+  const d = calcularDestinoDoMes(entradas);
+  if (!d.temDados) {
+    cx.innerHTML = '';
+    cx.setAttribute('data-vazio', '1');
+    return;
+  }
+  cx.removeAttribute('data-vazio');
+
+  const segs = d.fatias
+    .filter((f) => f.valor > 0)
+    .map(
+      (f) =>
+        '<span class="kpi-destino-seg" data-destino="' +
+        f.chave +
+        '" style="flex-grow:' +
+        f.pct.toFixed(3) +
+        '" title="' +
+        f.rotulo +
+        ': ' +
+        formatarMoeda(f.valor) +
+        ' (' +
+        ctrlPctBR(f.pct) +
+        ')"></span>'
+    )
+    .join('');
+
+  let rodape;
+  if (d.estourou) {
+    rodape =
+      '<i class="ph-fill ph-warning-circle"></i> Saiu <strong>' +
+      formatarMoeda(d.excedente) +
+      '</strong> a mais do que entrou neste mês';
+  } else {
+    const pctLivre = d.base > 0 ? (d.livre / d.base) * 100 : 0;
+    rodape =
+      'Sobrou <strong>' +
+      ctrlPctBR(pctLivre) +
+      '</strong> de tudo o que entrou (' +
+      formatarMoeda(d.base) +
+      ')';
+  }
+
+  cx.innerHTML =
+    '<div class="kpi-destino-barra"' +
+    (d.estourou ? ' data-estourou="1"' : '') +
+    '>' +
+    segs +
+    '</div>' +
+    '<div class="kpi-destino-rodape">' +
+    rodape +
+    '</div>';
+}
+
+// Percentual em pt-BR. Acima de 10% a casa decimal só polui a leitura de um
+// rótulo curto ("72% da receita" lê melhor que "72,3% da receita").
+function ctrlPctBR(v) {
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  const casas = Math.abs(n) >= 10 ? 0 : 1;
+  return n.toFixed(casas).replace('.', ',') + '%';
+}
+
+// Cada mini-card ganha o contexto que faltava: quanto aquilo pesa na receita
+// do mês, como se compara ao mês anterior e como vem se comportando.
+//
+// Os históricos saem de totaisDoResumo — o MESMO agrupamento do número
+// impresso no card. Refazer a soma aqui faria a mini-linha terminar num ponto
+// diferente do valor logo acima dela, e ninguém repara nisso olhando.
+function atualizarContextoMiniKpis(mes, ano) {
+  const serie = serieTotaisMeses(mes, ano, 6);
+  const atual = serie[serie.length - 1];
+  const anterior = serie.length > 1 ? serie[serie.length - 2] : null;
+  const dAnterior = new Date(ano, mes - 1, 1);
+  const rotuloAnterior = ctrlMesCurto(dAnterior.getMonth(), dAnterior.getFullYear());
+  const receita = atual.receita;
+
+  ['receita', 'despesas', 'cartao', 'investimentos', 'sonhos'].forEach(function (chave) {
+    const card = document.querySelector('.kpi-mini[data-tipo="' + chave + '"]');
+    if (!card) return;
+
+    // Fatia da receita. Não vale para o próprio card de receita (seria sempre
+    // 100%) nem quando não entrou nada — 0% de nada não é informação.
+    const elFatia = card.querySelector('.kpi-mini-fatia');
+    if (elFatia) {
+      // Esvaziar em vez de esconder: o min-height do CSS segura a linha e os
+      // cinco cards continuam alinhados. Com display:none, o card de Receita
+      // (que nunca tem fatia) subiria o resto do conteúdo em ~13px.
+      elFatia.textContent =
+        chave === 'receita' || receita <= 0
+          ? ''
+          : ctrlPctBR((atual[chave] / receita) * 100) + ' da receita';
+    }
+
+    const elDelta = card.querySelector('.kpi-mini-delta');
+    if (elDelta) {
+      const v = anterior ? variacaoMensal(atual[chave], anterior[chave]) : null;
+      if (v === null) {
+        elDelta.textContent = '';
+        elDelta.className = 'kpi-mini-delta';
+        elDelta.style.display = 'none';
+      } else {
+        elDelta.style.display = '';
+        const dir = v > 0.05 ? 'sobe' : v < -0.05 ? 'desce' : 'igual';
+        elDelta.className = 'kpi-mini-delta ' + dir;
+        elDelta.innerHTML =
+          (dir === 'sobe' ? '↑' : dir === 'desce' ? '↓' : '·') +
+          ' ' +
+          ctrlPctBR(Math.abs(v)) +
+          ' <span>vs. ' +
+          rotuloAnterior +
+          '</span>';
+      }
+    }
+
+    // Mini-linha dos 6 meses. rmSparklineSvg é a mesma função do Relatório
+    // mensal — desenhar outra aqui daria dois traçados diferentes para a
+    // mesma série. Ela mora em relatorio-mensal.js, carregado depois deste
+    // arquivo, então a checagem é em tempo de execução.
+    const elLinha = card.querySelector('.kpi-mini-linha');
+    if (elLinha) {
+      const valores = serie.map((s) => s[chave]);
+      const temMovimento = valores.some((v) => v !== 0);
+      if (typeof rmSparklineSvg === 'function' && temMovimento) {
+        elLinha.style.display = '';
+        elLinha.innerHTML = rmSparklineSvg(valores, { width: 200, height: 34 });
+      } else {
+        elLinha.style.display = 'none';
+        elLinha.innerHTML = '';
+      }
+    }
+  });
 }
 
 // Saldo de abertura do mês = ajuste manual (se houver) OU fechamento do mês anterior.
@@ -2584,6 +2949,7 @@ function atualizarTelaControle() {
 
   containerVenc.innerHTML = '';
   let qtdVencimentos = 0,
+    totalVencimentos = 0,
     temVencimentoHoje = false,
     temContaVencida = false;
 
@@ -2664,6 +3030,7 @@ function atualizarTelaControle() {
                     </div>
                 </div>`;
       qtdVencimentos++;
+      totalVencimentos += Number(conta.valor) || 0;
     } else {
       const g = item.grupo;
       const cartaoInfo = obterCartao(g.cartaoId);
@@ -2684,6 +3051,7 @@ function atualizarTelaControle() {
                     </div>
                 </div>`;
       qtdVencimentos++;
+      totalVencimentos += Number(g.total) || 0;
     }
   });
 
@@ -2694,6 +3062,12 @@ function atualizarTelaControle() {
   });
 
   painelVenc.style.display = qtdVencimentos > 0 ? 'block' : 'none';
+  atualizarCabecalhoVencimentos({
+    qtd: qtdVencimentos,
+    total: totalVencimentos,
+    temHoje: temVencimentoHoje,
+    temAtraso: temContaVencida,
+  });
   if (bannerAlertaHoje) bannerAlertaHoje.style.display = temVencimentoHoje ? 'flex' : 'none';
   if (bannerAlertaAtraso) bannerAlertaAtraso.style.display = temContaVencida ? 'flex' : 'none';
 
@@ -2861,12 +3235,24 @@ function atualizarTelaControle() {
     if (saldoCarregado !== 0) {
       const sinal = saldoCarregado > 0 ? '+' : '';
       lblCarregado.style.display = 'inline';
-      lblCarregado.innerText = `(${sinal}${formatarMoeda(saldoCarregado)} do mês anterior)`;
+      lblCarregado.innerText = `${sinal}${formatarMoeda(saldoCarregado)} do mês anterior`;
     } else {
       lblCarregado.style.display = 'none';
     }
   }
   atualizarKpiSaldoEmConta(visaoMes, visaoAno);
+  // Os mesmos totais que os cards acabaram de imprimir viram a barra de
+  // destino. Passar os números daqui, em vez de recalculá-los lá dentro,
+  // garante que a barra e os cards nunca contem histórias diferentes.
+  atualizarDestinoDoMes({
+    receita: totRec,
+    carregado: saldoCarregado,
+    despesas: totDesp,
+    cartao: totCartao,
+    investimentos: totInv,
+    sonhos: totSonho,
+  });
+  atualizarContextoMiniKpis(visaoMes, visaoAno);
 
   // ALERTA CARTÃO — usa só cartões ATIVOS. Cartões arquivados (ex.: o "Cartão
   // principal" de 5.000 criado na migração) não devem inflar o limite e mascarar
