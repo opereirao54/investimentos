@@ -260,7 +260,7 @@ function analisarSaudeFinanceiraSonhos() {
 function gerarPlanoSugerido(saude) {
   if (saude.semDados) {
     return [
-      'Cadastre suas receitas e despesas na aba <strong>Controle de Caixa</strong> para que o app gere um plano sob medida para você.',
+      'Cadastre suas receitas e despesas na aba <strong>Controle financeiro</strong> para que o app gere um plano sob medida para você.',
       'Sem dados de fluxo de caixa, a sugestão padrão é: separar até <strong>20% da renda líquida</strong> para sonhos e <strong>10%</strong> para reserva de emergência.',
     ];
   }
@@ -350,7 +350,7 @@ function renderPainelSaudeSonhos() {
                 </div>
                 <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);margin-bottom:4px;">${saude.titulo}</div>
                 <div style="font-size:12.5px;color:var(--cor-texto-mutado);line-height:1.5;">${saude.diagnostico}</div>
-                <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;">Baseado em ${saude.mesesComDados} ${saude.mesesComDados === 1 ? 'mês' : 'meses'} de dados do Controle de Caixa.</div>
+                <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;">Baseado em ${saude.mesesComDados} ${saude.mesesComDados === 1 ? 'mês' : 'meses'} de dados do Controle financeiro.</div>
             </div>
         </div>
 
