@@ -5633,6 +5633,56 @@
             color: var(--cor-txt-primaria);
             box-shadow: 0 0 0 1px var(--cor-primaria) inset;
         }
+        /* Anexo de imagem da sugestão. O botão imita a caixa de um campo de
+           formulário (tracejado = "solte algo aqui"), para não parecer uma
+           ação que envia. */
+        .sug-anexo-btn {
+            width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 13px 12px; border: 1.5px dashed var(--cor-borda); border-radius: 10px;
+            background: var(--cor-superficie); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-weight: 700; font-size: 12.5px;
+            color: var(--cor-texto-secundario); transition: all 0.15s;
+        }
+        .sug-anexo-btn:hover { border-color: var(--cor-primaria); color: var(--cor-texto-principal); }
+        .sug-anexo-btn:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; }
+        .sug-anexo-btn i { font-size: 16px; }
+        .sug-anexo-cartao {
+            display: flex; align-items: center; gap: 11px; margin-top: 10px;
+            padding: 9px 11px; border: 1px solid var(--cor-borda);
+            border-radius: 10px; background: var(--cor-superficie);
+        }
+        .sug-anexo-cartao img {
+            width: 54px; height: 54px; object-fit: cover; border-radius: 7px;
+            border: 1px solid var(--cor-borda); flex: 0 0 auto; display: block;
+        }
+        .sug-anexo-cartao .sac-info { flex: 1; min-width: 0; }
+        .sug-anexo-cartao .sac-nome {
+            font-size: 12.5px; font-weight: 700; color: var(--cor-texto-principal);
+            /* Nome de arquivo é longo e não tem espaços: sem isto o cartão
+               estica e empurra o botão de remover para fora da tela. */
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .sug-anexo-cartao .sac-meta { font-size: 11px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .sug-anexo-cartao .sac-remover {
+            flex: 0 0 auto; border: none; background: transparent; cursor: pointer;
+            color: var(--cor-texto-mutado); font-size: 18px; line-height: 1;
+            padding: 6px; border-radius: 7px;
+        }
+        .sug-anexo-cartao .sac-remover:hover { color: var(--cor-erro, #dc2626); background: var(--cor-bg-erro, rgba(220,38,38,.08)); }
+        .sug-anexo-cartao .sac-remover:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 1px; }
+        /* Imagem já enviada, dentro do histórico. */
+        .sh-anexo-abrir {
+            display: inline-flex; align-items: center; gap: 6px; margin-top: 8px;
+            padding: 5px 10px; border: 1px solid var(--cor-borda); border-radius: 8px;
+            background: var(--cor-superficie); cursor: pointer;
+            font-family: 'Figtree', sans-serif; font-size: 11.5px; font-weight: 700;
+            color: var(--cor-texto-secundario);
+        }
+        .sh-anexo-abrir:hover { border-color: var(--cor-primaria); color: var(--cor-texto-principal); }
+        .sh-anexo-img {
+            display: block; margin-top: 8px; max-width: 100%; height: auto;
+            border-radius: 8px; border: 1px solid var(--cor-borda);
+        }
         .sug-historico-item {
             border: 1px solid var(--cor-borda); background: var(--cor-superficie);
             border-radius: 10px; padding: 12px 14px;
@@ -11774,6 +11824,21 @@
                         <textarea id="sugTexto" rows="6" placeholder="Descreva sua ideia, o problema que ela resolve e, se quiser, como você imagina que ela funcionaria…" maxlength="1000" style="resize:vertical;min-height:120px;"></textarea>
                         <div style="display:flex;justify-content:flex-end;margin-top:4px;">
                             <span style="font-size:11px;color:var(--cor-texto-mutado);"><span id="sugContador">0</span>/1000</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="sugAnexoBtn">Imagem <span style="font-weight:500;color:var(--cor-texto-mutado);">(opcional)</span></label>
+                        <!-- O input de arquivo fica escondido porque o controle
+                             nativo é diferente em cada navegador e não aceita
+                             estilo; o botão abaixo é quem o aciona. -->
+                        <input type="file" id="sugAnexoInput" accept="image/*" style="display:none;" onchange="sugAnexoTrocou(this)">
+                        <button type="button" class="sug-anexo-btn" id="sugAnexoBtn" onclick="sugAnexoAbrirSeletor()">
+                            <i class="ph ph-image"></i> <span id="sugAnexoBtnTexto">Anexar uma imagem</span>
+                        </button>
+                        <div id="sugAnexoPreview" style="display:none;"></div>
+                        <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:7px;line-height:1.55;">
+                            Um print da tela costuma explicar em um segundo o que um parágrafo demora a descrever. A imagem é reduzida aqui no seu aparelho antes de subir — e, nessa passagem, os dados de localização da foto ficam para trás.
                         </div>
                     </div>
 

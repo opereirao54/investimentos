@@ -298,7 +298,7 @@ var FAQ_DADOS = [
     cat: 'conta',
     catLbl: 'Suporte',
     p: 'Como envio uma sugestão ou reporto um bug?',
-    r: 'Nesta mesma página, abra <strong>Enviar sugestão</strong>, escolha a área relacionada, o tipo (melhoria, novo recurso ou bug) e descreva com pelo menos 10 caracteres. É preciso estar conectado com o e-mail confirmado — a mensagem vai direto para a nossa equipe.',
+    r: 'Nesta mesma página, abra <strong>Enviar sugestão</strong>, escolha a área relacionada, o tipo (melhoria, novo recurso ou bug) e descreva com pelo menos 10 caracteres. Se for um problema de tela, <strong>anexe uma imagem</strong>: o print explica em um segundo o que um parágrafo demora a descrever. A imagem é reduzida no seu aparelho antes de subir, e os dados de localização da foto não vão junto. É preciso estar conectado com o e-mail confirmado — a mensagem vai direto para a nossa equipe.',
   },
   {
     cat: 'conta',
@@ -463,6 +463,195 @@ function sugAvisar(msg, tipo) {
   sugStatus(msg, tipo);
 }
 
+// ─── ANEXO DE IMAGEM ────────────────────────────────────────────────────────
+//
+// O relato que motivou o campo é sempre o mesmo: descrever um defeito de tela
+// em palavras é difícil, e um print resolve. O que sobe NÃO é o arquivo que a
+// pessoa escolheu — é uma imagem redesenhada aqui num canvas. Isso resolve
+// três problemas de uma vez:
+//
+//   · tamanho — foto de celular tem 4 a 12 MB; reduzida para 1600px de lado
+//     maior, um print vira algo entre 60 e 300 KB, e o corpo do POST cabe
+//     folgado no limite da função serverless;
+//   · privacidade — a re-codificação não carrega o EXIF do original, então a
+//     coordenada de GPS que a câmera gravou na foto não viaja junto;
+//   · previsibilidade — o servidor sabe de antemão a ordem de grandeza do que
+//     vai gravar, em vez de depender do que o cliente resolveu mandar.
+//
+// O teto do servidor (700 mil caracteres de base64) é quase o dobro do alvo
+// daqui: se a compressão errar por pouco, quem recusa é este arquivo, com uma
+// mensagem em português, e não um 400 vindo da API.
+var SUG_ANEXO_ALVO_B64 = 480000;
+var SUG_ANEXO_MAX_ARQUIVO = 25 * 1024 * 1024;
+// Pares (lado maior, qualidade) tentados em ordem. O primeiro que couber no
+// alvo vence. Um print de 1600px a 0,82 já costuma ficar em ~200 KB; os
+// degraus seguintes existem para a foto de câmera de 12 megapixels.
+var SUG_ANEXO_DEGRAUS = [
+  [1600, 0.82],
+  [1600, 0.7],
+  [1280, 0.68],
+  [1024, 0.6],
+  [800, 0.5],
+];
+// A imagem escolhida, já comprimida: { mime, dados, largura, altura, bytes, nome }.
+var sugAnexoAtual = null;
+
+function sugAnexoAbrirSeletor() {
+  const inp = document.getElementById('sugAnexoInput');
+  if (inp) inp.click();
+}
+
+function sugFormatarBytes(n) {
+  if (!(n > 0)) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+  return (n / (1024 * 1024)).toFixed(1).replace('.', ',') + ' MB';
+}
+
+// Desenha `img` num canvas de `lado` no maior eixo e devolve o data URL.
+function sugAnexoDesenhar(img, lado, mime, qualidade) {
+  const escala = Math.min(1, lado / Math.max(img.width, img.height));
+  const cv = document.createElement('canvas');
+  cv.width = Math.max(1, Math.round(img.width * escala));
+  cv.height = Math.max(1, Math.round(img.height * escala));
+  const ctx = cv.getContext('2d');
+  // PNG e WebP com transparência ficariam PRETOS ao virar JPEG, que não tem
+  // canal alfa. Branco é o fundo que a pessoa estava vendo quando tirou o print.
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, cv.width, cv.height);
+  ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  return { url: cv.toDataURL(mime, qualidade), largura: cv.width, altura: cv.height };
+}
+
+function sugAnexoComprimir(file) {
+  return new Promise(function (resolve, reject) {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(objectUrl);
+      try {
+        // WebP guarda texto de print muito melhor que JPEG no mesmo tamanho.
+        // Navegador que não conhece o formato NÃO avisa: devolve um PNG e
+        // segue em frente. Por isso o teste é o prefixo do que voltou, e não
+        // uma lista de navegadores.
+        let mime = 'image/webp';
+        if (sugAnexoDesenhar(img, 8, mime, 0.8).url.indexOf('data:image/webp') !== 0) {
+          mime = 'image/jpeg';
+        }
+        for (let i = 0; i < SUG_ANEXO_DEGRAUS.length; i++) {
+          const r = sugAnexoDesenhar(img, SUG_ANEXO_DEGRAUS[i][0], mime, SUG_ANEXO_DEGRAUS[i][1]);
+          const dados = r.url.slice(r.url.indexOf(',') + 1);
+          if (dados.length <= SUG_ANEXO_ALVO_B64 || i === SUG_ANEXO_DEGRAUS.length - 1) {
+            if (dados.length > SUG_ANEXO_ALVO_B64) return reject(new Error('anexo/grande'));
+            return resolve({
+              mime: mime,
+              dados: dados,
+              largura: r.largura,
+              altura: r.altura,
+              // 4 caracteres de base64 = 3 bytes. É o tamanho que o servidor
+              // vai medir de verdade; aqui serve só para mostrar na tela.
+              bytes: Math.round((dados.length * 3) / 4),
+              nome: file.name || 'imagem',
+            });
+          }
+        }
+        reject(new Error('anexo/grande'));
+      } catch (e) {
+        reject(e);
+      }
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('anexo/invalida'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+function sugAnexoTrocou(input) {
+  const file = input && input.files && input.files[0];
+  // Limpa o valor logo: sem isso, escolher o MESMO arquivo depois de remover
+  // não dispara `change` de novo e o botão parece morto.
+  if (input) input.value = '';
+  if (!file) return;
+  if (!/^image\//.test(file.type || '')) {
+    return sugAvisar('O anexo precisa ser uma imagem (print, foto da tela, PNG ou JPG).', 'erro');
+  }
+  if (file.size > SUG_ANEXO_MAX_ARQUIVO) {
+    return sugAvisar(
+      'Essa imagem tem ' +
+        sugFormatarBytes(file.size) +
+        ' — grande demais até para reduzir aqui. Tente um print em vez da foto original.',
+      'erro'
+    );
+  }
+  sugStatus('Preparando a imagem…', 'info');
+  sugAnexoComprimir(file)
+    .then(function (anexo) {
+      sugAnexoAtual = anexo;
+      sugAnexoPintar();
+      sugStatus('');
+    })
+    .catch(function (err) {
+      console.warn('[duvidas] anexo', err && err.message, err);
+      sugAnexoAtual = null;
+      sugAnexoPintar();
+      sugAvisar(
+        'Não conseguimos preparar essa imagem. Tente outra — um print da tela costuma funcionar.',
+        'erro'
+      );
+    });
+}
+
+function sugAnexoRemover() {
+  sugAnexoAtual = null;
+  sugAnexoPintar();
+  sugStatus('');
+  const btn = document.getElementById('sugAnexoBtn');
+  if (btn) btn.focus();
+}
+
+function sugAnexoPintar() {
+  const box = document.getElementById('sugAnexoPreview');
+  const btn = document.getElementById('sugAnexoBtn');
+  const txt = document.getElementById('sugAnexoBtnTexto');
+  if (!box) return;
+  if (!sugAnexoAtual) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    if (btn) btn.style.display = '';
+    if (txt) txt.innerText = 'Anexar uma imagem';
+    return;
+  }
+  // Com uma imagem escolhida o botão some: quem quiser trocar remove esta e
+  // escolhe outra. Um "anexar" ainda visível sugeriria que dá para mandar
+  // duas, e só uma sobe.
+  if (btn) btn.style.display = 'none';
+  const a = sugAnexoAtual;
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div class="sug-anexo-cartao">' +
+    '<img alt="Pré-visualização da imagem anexada" src="data:' +
+    a.mime +
+    ';base64,' +
+    a.dados +
+    '">' +
+    '<div class="sac-info">' +
+    '<div class="sac-nome">' +
+    escSug(a.nome) +
+    '</div>' +
+    '<div class="sac-meta">' +
+    a.largura +
+    '×' +
+    a.altura +
+    ' · ' +
+    sugFormatarBytes(a.bytes) +
+    '</div>' +
+    '</div>' +
+    '<button type="button" class="sac-remover" title="Remover imagem" aria-label="Remover imagem" onclick="sugAnexoRemover()">&times;</button>' +
+    '</div>';
+}
+
 function sugFocar(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -615,6 +804,17 @@ function enviarSugestao() {
           outroTema: aba === 'outro' ? outroTema : '',
           tipo: tipo,
           texto: texto,
+          // Só os quatro campos que o schema conhece — `nome` e `bytes` são
+          // de uso local (aparecem no cartão de pré-visualização) e o corpo é
+          // `strict()`: um campo a mais derrubaria o envio inteiro com 400.
+          anexo: sugAnexoAtual
+            ? {
+                mime: sugAnexoAtual.mime,
+                dados: sugAnexoAtual.dados,
+                largura: sugAnexoAtual.largura,
+                altura: sugAnexoAtual.altura,
+              }
+            : null,
         },
       });
     })
@@ -626,6 +826,8 @@ function enviarSugestao() {
       document.getElementById('sugOutroWrapper').style.display = 'none';
       document.getElementById('sugTexto').value = '';
       document.getElementById('sugContador').innerText = '0';
+      sugAnexoAtual = null;
+      sugAnexoPintar();
       selecionarTipoSugestao('melhoria');
       sugAvisar('Sugestão enviada! O time vai responder por aqui 💚', 'sucesso');
       renderizarHistoricoSugestoes();
@@ -647,6 +849,15 @@ function enviarSugestao() {
       } else if (code === 'api/email_not_verified') {
         sugAvisar(
           'Confirme seu e-mail para enviar sugestões — o link foi enviado para a sua caixa de entrada.',
+          'erro'
+        );
+      } else if (err && err.status === 413) {
+        // O limite de corpo é da plataforma, não do nosso schema: quando ele
+        // estoura, nem chegamos ao handler. Sem esta linha o usuário levaria a
+        // mensagem genérica de conexão e tentaria de novo para sempre.
+        sugAvisar(
+          'A imagem anexada ficou pesada demais para o envio. Remova o anexo ou escolha um print ' +
+            'menor e tente de novo — o texto continua aqui.',
           'erro'
         );
       } else if (code === 'api/rate_limited') {
@@ -733,6 +944,9 @@ function renderizarHistoricoSugestoes() {
           texto: x.texto,
           status: x.status || 'aberto',
           reply: x.reply || null,
+          // Só o RESUMO ({mime, bytes, largura, altura}) — os bytes da imagem
+          // não vêm na listagem e são buscados um a um em sugVerAnexo().
+          anexo: x.anexo || null,
           data: x.createdAtMs ? new Date(x.createdAtMs).toISOString() : new Date().toISOString(),
           _ms: x.createdAtMs || 0,
         };
@@ -770,6 +984,18 @@ function desenharHistoricoSugestoes(sugestoes) {
       const aba = SUG_LABELS_ABA[s.aba] || s.aba;
       const tema = s.outroTema ? ` · ${escSug(s.outroTema)}` : '';
       const st = SUG_LABELS_STATUS[s.status] || SUG_LABELS_STATUS.aberto;
+      // A imagem não vem na listagem — só a marca de que existe. O botão a
+      // busca quando alguém quiser vê-la, e não em toda abertura da aba.
+      //
+      // O id entra num atributo onclick, e escSug() escapa só `<`. Em vez de
+      // inventar um segundo escapador, exigimos o formato que um id de
+      // documento do Firestore tem de fato — o que não passa nele não vira
+      // botão, e nada de estranho chega ao atributo.
+      const idOk = /^[A-Za-z0-9_-]{1,64}$/.test(String(s.id || ''));
+      const anexoHtml =
+        s.anexo && idOk
+          ? `<div id="sh-anexo-${s.id}"><button type="button" class="sh-anexo-abrir" onclick="sugVerAnexo('${s.id}')"><i class="ph ph-image"></i> Ver imagem enviada</button></div>`
+          : '';
       const respostaHtml = s.reply
         ? `<div class="sh-resposta" style="margin-top:8px;padding:10px 12px;background:var(--cor-bg-primaria,rgba(5,150,105,.08));border-left:3px solid var(--cor-primaria);border-radius:8px;">
                     <div style="font-size:11px;font-weight:700;color:var(--cor-primaria);margin-bottom:3px;"><i class="ph-fill ph-chat-teardrop-text"></i> Resposta da equipe</div>
@@ -782,11 +1008,41 @@ function desenharHistoricoSugestoes(sugestoes) {
                 <span class="sh-data">${dataFmt}</span>
             </div>
             <div class="sh-texto">${escSug(s.texto)}</div>
+            ${anexoHtml}
             <div style="margin-top:6px;font-size:11px;font-weight:700;color:${st.cor};">${st.lbl}</div>
             ${respostaHtml}
         </div>`;
     })
     .join('');
+}
+
+// Busca e mostra a imagem de UMA sugestão. Fica fora do desenho da lista de
+// propósito: são até dezenas de itens no histórico e cada imagem tem centenas
+// de KB — carregar todas para mostrar duas seria pagar caro por nada,
+// principalmente no celular.
+function sugVerAnexo(id) {
+  const box = document.getElementById('sh-anexo-' + id);
+  if (!box) return;
+  const btn = box.querySelector('button');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-spinner"></i> Carregando…';
+  }
+  sugApiFetch('/api/user?op=feedback-anexo&id=' + encodeURIComponent(id))
+    .then(function (r) {
+      if (!r || !r.dados) throw new Error('vazio');
+      const img = document.createElement('img');
+      img.className = 'sh-anexo-img';
+      img.alt = 'Imagem que você anexou a esta sugestão';
+      img.src = 'data:' + (r.mime || 'image/jpeg') + ';base64,' + r.dados;
+      box.innerHTML = '';
+      box.appendChild(img);
+    })
+    .catch(function (err) {
+      console.warn('[duvidas] anexo historico', err && err.code, err);
+      box.innerHTML =
+        '<div style="margin-top:8px;font-size:11.5px;color:var(--cor-texto-mutado);">Não foi possível carregar a imagem agora.</div>';
+    });
 }
 
 // Idempotente de propósito. Antes ela era chamada UMA vez, no fim do
@@ -817,4 +1073,7 @@ function inicializarFormSugestao() {
   // dele para o botão aceso ser sempre o mesmo que será enviado.
   const hidden = document.getElementById('sugTipo');
   selecionarTipoSugestao(hidden ? hidden.value : 'melhoria');
+  // Reabrir a aba não pode ressuscitar um anexo de outra sessão de digitação:
+  // pinta a partir do estado, que nasce vazio.
+  sugAnexoPintar();
 }

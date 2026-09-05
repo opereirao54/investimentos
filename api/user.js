@@ -5,6 +5,7 @@
 //
 //   GET  /api/user?op=feedback              lista as sugestões do próprio uid
 //   POST /api/user?op=feedback              cria uma sugestão
+//   GET  /api/user?op=feedback-anexo&id=    devolve a imagem anexada a uma delas
 //   POST /api/user?op=resend-verification   novo link de verificação de e-mail
 //
 // POR QUE O FEEDBACK VIVE AQUI, E NÃO NO CLIENTE
@@ -54,7 +55,14 @@ function paraMs(v) {
   return v && typeof v.toMillis === 'function' ? v.toMillis() : 0;
 }
 
-/** Projeção enviada ao cliente. `uid` e `email` ficam de fora: ele já é dono. */
+/**
+ * Projeção enviada ao cliente. `uid` e `email` ficam de fora: ele já é dono.
+ *
+ * Do anexo sai só o RESUMO (formato, tamanho, dimensões), nunca os bytes: a
+ * listagem é carregada toda vez que a aba abre, e uma imagem de meio mega por
+ * item transformaria isso numa transferência de vários megabytes. Quem quiser
+ * ver a imagem pede uma por uma em `op=feedback-anexo`.
+ */
 function paraItem(doc) {
   const d = doc.data() || {};
   return {
@@ -65,9 +73,31 @@ function paraItem(doc) {
     texto: d.texto || '',
     status: d.status || 'aberto',
     reply: d.reply || null,
+    anexo: d.anexo || null,
     createdAtMs: paraMs(d.createdAt),
     repliedAtMs: paraMs(d.repliedAt),
   };
+}
+
+// Assinatura dos primeiros bytes de cada formato aceito. Conferimos o ARQUIVO,
+// não o que o corpo diz que ele é: o `mime` chega do cliente e é ele que vai
+// virar o `src` de um <img> no painel admin e no histórico. Aceitar bytes
+// arbitrários com rótulo de imagem seria guardar conteúdo desconhecido e
+// devolvê-lo depois como imagem.
+const ASSINATURA_IMAGEM = {
+  'image/jpeg': (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff,
+  'image/png': (b) => b.subarray(0, 8).toString('hex') === '89504e470d0a1a0a',
+  'image/webp': (b) =>
+    b.subarray(0, 4).toString('latin1') === 'RIFF' &&
+    b.subarray(8, 12).toString('latin1') === 'WEBP',
+};
+
+/** Decodifica o base64 já validado pelo schema e confere a assinatura. */
+function anexoBytes(anexo) {
+  const buf = Buffer.from(anexo.dados, 'base64');
+  if (buf.length < 12) return null;
+  const confere = ASSINATURA_IMAGEM[anexo.mime];
+  return confere && confere(buf) ? buf : null;
 }
 
 // O wrapper só oferece 'user' | 'verified' para o arquivo INTEIRO, e
@@ -148,9 +178,90 @@ async function feedbackCriar(res, user, bruto) {
     status: 'aberto',
     reply: null,
     createdAt: fieldValue().serverTimestamp(),
+    anexo: null,
   };
-  const ref = await db().collection('feedback').add(doc);
+
+  // A imagem NÃO mora no documento da sugestão: ela vai para
+  // `feedback_anexos/<id da sugestão>`, e aqui fica só o resumo. Motivo: tanto
+  // a listagem do usuário quanto a do painel admin leem a coleção `feedback`
+  // inteira (o painel, até 300 de uma vez) — com meio mega de base64 por
+  // documento, cada abertura da tela puxaria centenas de megabytes do
+  // Firestore. Separando, a listagem continua leve e a imagem é buscada só
+  // quando alguém pede para ver.
+  //
+  // `bytes` é medido AQUI, sobre o buffer decodificado, e não aceito do corpo:
+  // é um número que aparece na tela e não há razão para o cliente ditá-lo.
+  let bufAnexo = null;
+  if (body.anexo) {
+    bufAnexo = anexoBytes(body.anexo);
+    if (!bufAnexo) {
+      return res.status(400).json({
+        error: 'invalid_body',
+        issues: [
+          { path: 'anexo.dados', msg: 'o arquivo enviado não é uma imagem válida', code: 'custom' },
+        ],
+      });
+    }
+    doc.anexo = {
+      mime: body.anexo.mime,
+      bytes: bufAnexo.length,
+      largura: body.anexo.largura,
+      altura: body.anexo.altura,
+    };
+  }
+
+  // `feedback_anexos` NÃO ganha regra no firestore.rules, e é de propósito: só
+  // o Admin SDK escreve e lê essa coleção, e ele não passa por rules. A
+  // negação implícita do fim do arquivo já a torna inalcançável pelo SDK do
+  // cliente — que é o que queremos. Publicar uma regra a mais exigiria um
+  // `firebase deploy --only firestore:rules` manual, o mesmo passo esquecido
+  // que deixou o formulário de sugestões quebrado por meses (ver o topo deste
+  // arquivo) e que o conferidor de regras existe para detectar.
+  //
+  // As duas gravações vão no mesmo lote, que é atômico. Meio caminho aqui dá
+  // sempre um estado ruim: sugestão anunciando anexo que ninguém consegue
+  // abrir, ou imagem órfã que nenhuma tela alcança e ninguém sabe apagar.
+  const ref = db().collection('feedback').doc();
+  const lote = db().batch();
+  lote.set(ref, doc);
+  if (bufAnexo) {
+    lote.set(db().collection('feedback_anexos').doc(ref.id), {
+      // Repetido de propósito: é por este campo que a leitura confere o dono,
+      // sem precisar buscar o documento da sugestão antes.
+      uid: user.uid,
+      mime: body.anexo.mime,
+      dados: body.anexo.dados,
+      bytes: bufAnexo.length,
+      largura: body.anexo.largura,
+      altura: body.anexo.altura,
+      createdAt: fieldValue().serverTimestamp(),
+    });
+  }
+  await lote.commit();
   return res.status(201).json({ ok: true, id: ref.id });
+}
+
+// Devolve a imagem de UMA sugestão do próprio usuário.
+async function feedbackAnexoLer(req, res, user) {
+  if (!exigeEmailVerificado(res, user)) return;
+  const id = String((req.query && req.query.id) || '').trim();
+  // Id de documento do Firestore. A validação também impede que um `id` com
+  // barras escorregue para outro caminho da coleção.
+  if (!id || id.length > 64 || !/^[A-Za-z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'invalid_id' });
+  }
+  const snap = await db().collection('feedback_anexos').doc(id).get();
+  const d = snap && snap.exists ? snap.data() || {} : null;
+  // Mesmo 404 para "não existe" e para "não é seu": quem chutar ids alheios
+  // não fica sabendo nem quais existem.
+  if (!d || d.uid !== user.uid) return res.status(404).json({ error: 'not_found' });
+  return res.json({
+    mime: d.mime || 'image/jpeg',
+    dados: d.dados || '',
+    bytes: d.bytes || 0,
+    largura: d.largura || 0,
+    altura: d.altura || 0,
+  });
 }
 
 // ─── REENVIO DE VERIFICAÇÃO DE E-MAIL ───────────────────────────────────────
@@ -217,6 +328,11 @@ module.exports = handler({
     if (op === 'feedback') {
       if (req.method === 'GET') return feedbackListar(req, res, user);
       return feedbackCriar(res, user, body);
+    }
+
+    if (op === 'feedback-anexo') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return feedbackAnexoLer(req, res, user);
     }
 
     if (op === 'resend-verification') {

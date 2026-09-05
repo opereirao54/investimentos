@@ -1240,6 +1240,16 @@ function renderFeedback(items) {
                 ${f.status !== 'resolvido' ? `<button class="btn-sec" onclick="resolveFeedback('${f.id}')"><i class="ph ph-check-circle"></i> Marcar resolvida</button>` : ''}
                 <button class="sp-btn" onclick="replyFeedback('${f.id}')"><i class="ph-fill ph-paper-plane-tilt"></i> ${f.reply ? 'Atualizar resposta' : 'Responder'}</button>
             </div>`;
+    // O print vem sob demanda: a listagem traz só o resumo do anexo, então o
+    // botão é o que dispara o download daquela imagem. Sem isso o painel
+    // carregaria centenas de KB por cartão só para abrir a aba.
+    const idOk = /^[A-Za-z0-9_-]{1,64}$/.test(String(f.id || ''));
+    const anexoBox =
+      f.anexo && idOk
+        ? `<div id="fb-anexo-${f.id}" style="margin-top:8px;">
+                <button class="btn-sec" onclick="verAnexoFeedback('${f.id}')"><i class="ph ph-image"></i> Ver imagem (${fmtBytes(f.anexo.bytes)})</button>
+               </div>`
+        : '';
     card.innerHTML = `
             <div class="fb-card-head">
                 <div>
@@ -1250,10 +1260,48 @@ function renderFeedback(items) {
                 <button class="qa-pill" onclick="inlineAction('${(f.email || f.uid).replace(/'/g, "\\'")}','full_xray')" title="Ver utilizador"><i class="ph ph-magnifying-glass"></i></button>
             </div>
             <div class="fb-texto">${escHTML(f.texto)}</div>
+            ${anexoBox}
             ${replyBox}
             ${replyForm}`;
     wrap.appendChild(card);
   });
+}
+
+function fmtBytes(n) {
+  if (!(n > 0)) return '—';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return Math.round(n / 1024) + ' KB';
+  return (n / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+async function verAnexoFeedback(id) {
+  const box = $('fb-anexo-' + id);
+  if (!box) return;
+  const token = sessionStorage.getItem('adminToken');
+  if (!token) return;
+  const btn = box.querySelector('button');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> A carregar...';
+  }
+  try {
+    const res = await fetch(
+      '/api/admin/stats?include=feedback_anexo&id=' + encodeURIComponent(id),
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!res.ok) throw new Error('Falha ao carregar a imagem');
+    const data = await res.json();
+    if (!data || !data.dados) throw new Error('Imagem vazia');
+    const img = document.createElement('img');
+    img.alt = 'Imagem anexada à sugestão';
+    img.style.cssText =
+      'display:block;max-width:100%;height:auto;border-radius:8px;border:1px solid var(--cor-borda);margin-top:4px;';
+    img.src = 'data:' + (data.mime || 'image/jpeg') + ';base64,' + data.dados;
+    box.innerHTML = '';
+    box.appendChild(img);
+  } catch (err) {
+    box.innerHTML = `<div class="fb-meta" style="color:var(--cor-erro)">${escHTML(err.message)}</div>`;
+  }
 }
 
 async function replyFeedback(id) {

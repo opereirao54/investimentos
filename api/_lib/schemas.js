@@ -169,6 +169,35 @@ const syncPushBody = z
   })
   .strict();
 
+// Teto do anexo, em CARACTERES de base64 (~3/4 disso em bytes de imagem).
+//
+// Quem manda a imagem é o navegador, não a pessoa: o formulário redesenha o
+// arquivo escolhido num canvas antes de enviar, mirando 480 mil caracteres.
+// Este número é o teto do SERVIDOR, com folga sobre aquele alvo — e continua
+// muito abaixo do limite de 1 MiB de um documento do Firestore, que é onde o
+// anexo vai parar.
+const ANEXO_MAX_B64 = 700000;
+
+// Imagem anexada à sugestão. `dados` é o base64 puro, sem o prefixo
+// `data:<mime>;base64,` — o prefixo é do navegador e seria só mais um campo
+// para validar. O `mime` declarado aqui NÃO é a última palavra: o endpoint
+// ainda confere a assinatura dos bytes antes de gravar, porque o painel admin
+// desenha o resultado num <img>.
+const feedbackAnexo = z
+  .object({
+    mime: z.enum(['image/webp', 'image/jpeg', 'image/png'], {
+      message: 'formato de imagem não aceito',
+    }),
+    dados: z
+      .string()
+      .min(1, 'imagem vazia')
+      .max(ANEXO_MAX_B64, 'imagem grande demais')
+      .regex(/^[A-Za-z0-9+/]+={0,2}$/, 'imagem inválida'),
+    largura: z.coerce.number().int().positive().max(4000),
+    altura: z.coerce.number().int().positive().max(4000),
+  })
+  .strict();
+
 // Feedback (Dúvidas & Sugestões). Espelha as travas que existiam na regra do
 // Firestore — o endpoint tomou o lugar da escrita direta pelo cliente, então a
 // validação tem de continuar existindo em algum lugar, e é aqui.
@@ -182,6 +211,9 @@ const feedbackCreateBody = z
       .trim()
       .min(10, 'descreva com pelo menos 10 caracteres')
       .max(1000, 'máximo 1000 caracteres'),
+    // Opcional de verdade: sugestão sem print continua valendo, e o cliente
+    // antigo (aba aberta antes do deploy) nem manda o campo.
+    anexo: feedbackAnexo.nullish(),
   })
   .strict();
 
@@ -211,4 +243,6 @@ module.exports = {
   syncPushBody,
   feedbackCreateBody,
   feedbackListQuery,
+  feedbackAnexo,
+  ANEXO_MAX_B64,
 };

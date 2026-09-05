@@ -188,6 +188,10 @@ async function feedbackList(req, res) {
         status,
         reply: data.reply || null,
         repliedBy: data.repliedBy || null,
+        // Só o resumo. Os bytes ficam em `feedback_anexos` e são buscados um a
+        // um por `include=feedback_anexo` — esta listagem traz até 300 itens
+        // de uma vez e não pode carregar meio mega por sugestão.
+        anexo: data.anexo || null,
         createdAtMs:
           data.createdAt && typeof data.createdAt.toMillis === 'function'
             ? data.createdAt.toMillis()
@@ -201,6 +205,25 @@ async function feedbackList(req, res) {
   }
   // openCount conta apenas os itens devolvidos; sem filtro reflete o total.
   return res.json({ items, total: items.length, openCount });
+}
+
+// Imagem anexada a uma sugestão. Uma por chamada, sob demanda: é o painel
+// pedindo para ver o print daquele cartão.
+async function feedbackAnexoGet(req, res) {
+  const id = String((req.query && req.query.id) || '').trim();
+  if (!id || id.length > 64 || !/^[A-Za-z0-9_-]+$/.test(id)) {
+    return res.status(400).json({ error: 'invalid_id' });
+  }
+  const snap = await db().collection('feedback_anexos').doc(id).get();
+  if (!snap || !snap.exists) return res.status(404).json({ error: 'not_found' });
+  const d = snap.data() || {};
+  return res.json({
+    mime: d.mime || 'image/jpeg',
+    dados: d.dados || '',
+    bytes: d.bytes || 0,
+    largura: d.largura || 0,
+    altura: d.altura || 0,
+  });
 }
 
 // ─── CARTEIRA MODELO (Painel do consultor) ─────────────────────
@@ -733,6 +756,7 @@ module.exports = handler({
     if (req.query.format === 'csv') return await exportCsv(req, res);
     if (req.query.include === 'audit') return await auditList(req, res);
     if (req.query.include === 'feedback') return await feedbackList(req, res);
+    if (req.query.include === 'feedback_anexo') return await feedbackAnexoGet(req, res);
     if (req.query.include === 'carteira') return await carteiraGet(req, res);
     return await dashboard(req, res);
   },
