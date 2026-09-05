@@ -21,12 +21,11 @@
 var mpEstado = {
   mes: new Date().getMonth(),
   ano: new Date().getFullYear(),
-  modo: 'bruto',
   cotacoes: {},
   ultimaCotacao: null,
   classesChart: null,
   // Quais instituições estão com o extrato expandido (mapa key→bool). Mantido no
-  // estado para sobreviver a re-renders (troca de modo, atualização de cotação).
+  // estado para sobreviver a re-renders (atualização de cotação, por exemplo).
   extratoAberto: {},
 };
 
@@ -171,43 +170,6 @@ function mpValorAtualAtivo(ticker, c) {
     return c.valorTotalInvestido;
   }
   return c.valorTotalInvestido;
-}
-
-// Aplica IR sobre o LUCRO (não sobre o principal). Estimativa por preço médio.
-function mpAplicarIR(c, valorAtual, valorInvestido) {
-  const lucro = valorAtual - valorInvestido;
-  if (lucro <= 0) return valorAtual; // Não há IR sobre prejuízo
-  if (c.categoria === 'renda_fixa' || c.categoria === 'reserva_emergencia') {
-    // Calcula dias decorridos médios ponderados pelos aportes
-    const aportes = (typeof historicoCompras !== 'undefined' ? historicoCompras : []).filter(
-      (op) =>
-        op.ticker === c.__ticker &&
-        op.categoria === c.categoria &&
-        (op.tipo || 'compra') === 'compra' &&
-        op.data_op
-    );
-    let somaPonderada = 0,
-      somaPesos = 0;
-    const agora = Date.now();
-    aportes.forEach((op) => {
-      const dataAporte = new Date(op.data_op).getTime();
-      if (dataAporte > agora) return;
-      const dias = Math.max(0, (agora - dataAporte) / 86400000);
-      const peso = (op.preco_op || op.preco_pago || 0) * (op.quantidade || 1);
-      somaPonderada += dias * peso;
-      somaPesos += peso;
-    });
-    const diasMedios = somaPesos > 0 ? somaPonderada / somaPesos : 0;
-    const aliquota = mpAliquotaIRRendaFixa(diasMedios);
-    return valorAtual - lucro * aliquota;
-  }
-  if (c.categoria === 'renda_variavel') {
-    const aliq = mpAliquotaIRRendaVariavel(c.subcategoria);
-    return valorAtual - lucro * aliq;
-  }
-  // Previdência usa tabela regressiva também (12 anos→10%); aqui simplificamos com 15%.
-  if (c.categoria === 'previdencia') return valorAtual - lucro * 0.15;
-  return valorAtual;
 }
 
 // Categorias que CREDITAM o caixa (entradas): receita e resgates/vendas de
@@ -523,7 +485,7 @@ function mpAtualizarMetaCotacao(data) {
   meta.innerHTML = `<i class="ph ph-check-circle" style="color:var(--cor-primaria)"></i>Cotações atualizadas ${hh}:${mm}${cache}`;
 }
 
-// Consolida tudo numa única passagem: { porCategoria:{cat:{investido, atual, atualLiq}}, porInstituicao, totalInvestido, totalAtual, totalAtualLiq }
+// Consolida tudo numa única passagem: { porCategoria:{cat:{investido, atual}}, porInstituicao, totalInvestido, totalAtual }
 function mpConsolidar() {
   const resumo = typeof obterResumoCarteira === 'function' ? obterResumoCarteira() : {};
   const acc = {
@@ -537,7 +499,6 @@ function mpConsolidar() {
     porTicker: [],
     totalInvestido: 0,
     totalAtual: 0,
-    totalAtualLiq: 0,
   };
   Object.entries(resumo).forEach(([ticker, c]) => {
     if (!c || !(c.qtdTotal > 0)) return;
@@ -550,12 +511,9 @@ function mpConsolidar() {
       atual < 0.01
     )
       return;
-    const liquido = mpAplicarIR(c, atual, c.valorTotalInvestido);
-    if (!acc.porCategoria[cat])
-      acc.porCategoria[cat] = { investido: 0, atual: 0, atualLiq: 0, ativos: 0 };
+    if (!acc.porCategoria[cat]) acc.porCategoria[cat] = { investido: 0, atual: 0, ativos: 0 };
     acc.porCategoria[cat].investido += c.valorTotalInvestido;
     acc.porCategoria[cat].atual += atual;
-    acc.porCategoria[cat].atualLiq += liquido;
     acc.porCategoria[cat].ativos += 1;
     // Chave de exibição: RV vira a subcategoria efetiva; demais mantêm a categoria.
     let catExib = cat;
@@ -570,14 +528,12 @@ function mpConsolidar() {
           : c.subcategoria || 'acoes';
     }
     if (!acc.porCategoriaExibicao[catExib])
-      acc.porCategoriaExibicao[catExib] = { investido: 0, atual: 0, atualLiq: 0, ativos: 0 };
+      acc.porCategoriaExibicao[catExib] = { investido: 0, atual: 0, ativos: 0 };
     acc.porCategoriaExibicao[catExib].investido += c.valorTotalInvestido;
     acc.porCategoriaExibicao[catExib].atual += atual;
-    acc.porCategoriaExibicao[catExib].atualLiq += liquido;
     acc.porCategoriaExibicao[catExib].ativos += 1;
     acc.totalInvestido += c.valorTotalInvestido;
     acc.totalAtual += atual;
-    acc.totalAtualLiq += liquido;
     const ci = mpChaveInstOperacao(c);
     if (!acc.porInstituicao[ci.key])
       acc.porInstituicao[ci.key] = {
@@ -592,7 +548,7 @@ function mpConsolidar() {
     // Ações/FIIs/…), p/ o detalhe "o que tem em cada banco/corretora".
     acc.porInstituicao[ci.key].classes[catExib] =
       (acc.porInstituicao[ci.key].classes[catExib] || 0) + atual;
-    acc.porTicker.push({ ticker, c, atual, liquido });
+    acc.porTicker.push({ ticker, c, atual });
   });
   return acc;
 }
@@ -600,12 +556,12 @@ function mpConsolidar() {
 // Fonte única de verdade do patrimônio investido. Soma TODAS as categorias
 // (renda fixa + renda variável + previdência + reserva de emergência), para
 // que o card "Total Investimento" nunca reflita apenas uma delas. Construída
-// sobre mpConsolidar() para reaproveitar cotações/projeções e IR.
+// sobre mpConsolidar() para reaproveitar cotações/projeções.
 function calcularPatrimonioTotal() {
   const cons =
     typeof mpConsolidar === 'function'
       ? mpConsolidar()
-      : { porCategoria: {}, totalInvestido: 0, totalAtual: 0, totalAtualLiq: 0 };
+      : { porCategoria: {}, totalInvestido: 0, totalAtual: 0 };
   const cat = cons.porCategoria || {};
   const atualDe = (c) => (cat[c] ? cat[c].atual : 0);
   const investDe = (c) => (cat[c] ? cat[c].investido : 0);
@@ -623,7 +579,6 @@ function calcularPatrimonioTotal() {
     // Custo (aportes) e valor de mercado de TODAS as categorias.
     totalInvestido: cons.totalInvestido || 0,
     totalAtual: cons.totalAtual || 0,
-    totalAtualLiq: cons.totalAtualLiq || 0,
     totalPatrimonio: cons.totalAtual || 0,
     totalBens: typeof totalBensAtual === 'function' ? totalBensAtual() : 0,
     porCategoria: cat,
@@ -634,20 +589,10 @@ function calcularPatrimonioTotal() {
 function mpAlterarPeriodo() {
   renderMeuPatrimonio(true);
 }
-function mpAlterarModo(m) {
-  mpEstado.modo = m;
-  document.querySelectorAll('#meu_patrimonio .mp-toggle-btn').forEach((b) => {
-    b.classList.toggle('ativo', b.dataset.modo === m);
-    b.setAttribute('aria-selected', b.dataset.modo === m ? 'true' : 'false');
-  });
-  document.getElementById('mp-kpis').classList.toggle('modo-liquido', m === 'liquido');
-  renderMeuPatrimonio(true); // skipFetch — não precisa rebuscar cotação
-}
-
 function mpRenderKPIs(consolidado, janela) {
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
-  const valorInvestido = mpEstado.modo === 'liquido' ? patr.totalAtualLiq : patr.totalAtual;
+  const valorInvestido = patr.totalAtual;
   const saldoTotal = mpCalcularSaldoTotal(janela.fimMs);
 
   var totalImoveis = 0;
@@ -1123,14 +1068,13 @@ function mpRenderClasses(consolidado) {
   var canvas = document.getElementById('mp-grafico-classes');
   var wrap = document.getElementById('mp-classes-lista');
   if (!canvas) return;
-  var usarLiq = mpEstado.modo === 'liquido';
   var porCat = consolidado.porCategoriaExibicao || {};
   var itens = Object.keys(porCat)
     .map(function (cat) {
       return {
         cat: cat,
         investido: porCat[cat].investido,
-        atual: usarLiq ? porCat[cat].atualLiq : porCat[cat].atual,
+        atual: porCat[cat].atual,
       };
     })
     .filter(function (it) {

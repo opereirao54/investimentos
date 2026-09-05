@@ -6732,23 +6732,12 @@
         /* ============================================================
            === MEU PATRIMÔNIO — visão consolidada                    ===
            ============================================================ */
-        .mp-controls { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
         .mp-select {
             background: var(--cor-fundo-card); border:1px solid var(--cor-borda); color:var(--cor-texto-principal);
             border-radius:8px; padding:8px 12px; font-size:13px; font-weight:500; cursor:pointer;
             font-family: 'Figtree', sans-serif;
         }
         .mp-select:focus { outline:2px solid var(--cor-primaria); outline-offset:1px; }
-        .mp-toggle { display:inline-flex; background: var(--cor-superficie); border:1px solid var(--cor-borda); border-radius:12px; padding:3px; position:relative; }
-        .mp-toggle-btn {
-            background: transparent; border:none; color: var(--cor-texto-mutado);
-            padding:7px 16px; font-size:12px; font-weight:600; cursor:pointer; border-radius:9px;
-            transition: color .2s ease, background .2s ease, box-shadow .2s ease; font-family: 'Figtree', sans-serif;
-            position:relative; z-index:1;
-        }
-        .mp-toggle-btn:hover { color: var(--cor-texto-principal); }
-        .mp-toggle-btn.ativo { background: var(--cor-fundo-card); color: var(--cor-texto-principal); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-
         @keyframes mpFadeSlideIn {
             from { opacity:0; transform:translateY(12px); }
             to   { opacity:1; transform:translateY(0); }
@@ -6993,11 +6982,6 @@
         }
         .mp-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.35; }
 
-        /* Toggle integrado: marca KPIs com "líquido" para deixar claro */
-        .mp-kpis.modo-liquido .mp-kpi-valor::after {
-            content:' L'; font-size:9px; color: var(--cor-primaria); vertical-align:super; margin-left:2px;
-            font-family:'Figtree', sans-serif; font-weight:700;
-        }
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
@@ -10942,12 +10926,6 @@
                 <div class="page-header-left">
                     <h1>Meu patrimônio</h1>
                     <p class="subtitulo" style="margin-bottom:0">Visão consolidada de tudo o que você tem — saldo, investimentos e bens.</p>
-                </div>
-                <div class="page-actions mp-controls">
-                    <div class="mp-toggle" role="tablist" aria-label="Visão Bruta ou Líquida (pós-IR)">
-                        <button class="mp-toggle-btn ativo" data-modo="bruto" onclick="mpAlterarModo('bruto')" role="tab" aria-selected="true">Bruto</button>
-                        <button class="mp-toggle-btn" data-modo="liquido" onclick="mpAlterarModo('liquido')" role="tab" aria-selected="false" title="Aplica IR estimado por preço médio (RF tabela regressiva 22,5%→15%; Ações 15%; FII 20%)">Líquido (pós-IR)</button>
-                    </div>
                 </div>
             </div>
 

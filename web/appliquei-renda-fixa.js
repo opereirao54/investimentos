@@ -1085,7 +1085,7 @@ function registrarOperacaoAtivo() {
       //     Capitalizar desde 2019 inflaria o patrimônio, então `saldoInicial`
       //     manda render a partir do cadastro (ver valorAtualRendaFixa);
       //     `data_op` fica no passado para o histórico e para a alíquota
-      //     regressiva de IR (mpAplicarIR).
+      //     regressiva de IR do resgate (mpAliquotaIRRendaFixa).
       //
       //   · externo — o número é o valor APORTADO na data da operação, igual a
       //     qualquer outra compra. Rende desde data_op. Marcá-lo como saldo

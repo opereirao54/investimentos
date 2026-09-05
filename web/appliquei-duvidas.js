@@ -96,12 +96,6 @@ var FAQ_DADOS = [
     p: 'Posso cadastrar imóveis, veículos e financiamentos?',
     r: 'Pode. Em <strong>Meus Bens</strong> você cadastra imóveis, veículos e outros bens. Veículo pode buscar o valor direto na <strong>tabela FIPE</strong>. Se o bem for financiado, informe saldo devedor, parcela e sistema (Price ou SAC): o app calcula os juros que faltam, confere se a parcela bate com a taxa informada e mostra o patrimônio já líquido da dívida.',
   },
-  {
-    cat: 'patrimonio',
-    catLbl: 'Meu patrimônio',
-    p: 'O que muda entre "Bruto" e "Líquido (pós-IR)"?',
-    r: '<strong>Bruto</strong> é quanto vale hoje. <strong>Líquido (pós-IR)</strong> desconta uma estimativa do imposto que você pagaria ao resgatar tudo agora: renda fixa pela tabela regressiva (22,5% → 15%), ações 15%, FIIs 20%. É uma estimativa por preço médio, para você não confundir patrimônio com dinheiro no bolso.',
-  },
 
   // === Meus investimentos ===================================================
   {

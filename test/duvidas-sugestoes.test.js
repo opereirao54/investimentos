@@ -248,10 +248,13 @@ test('o FAQ fala do que existe hoje: aporte externo, retroativo, contas e bens',
   assert.match(FAQ_TEXTO, /cadastro retroativo/i);
   assert.match(FAQ_TEXTO, /Minhas Contas/);
   assert.match(FAQ_TEXTO, /Meus Bens/);
-  assert.match(FAQ_TEXTO, /Líquido \(pós-IR\)/);
   assert.ok(
     !/Visão geral do patrimônio/.test(FAQ_TEXTO),
     'a aba mudou de nome para "Meus investimentos" — o FAQ mandava a pessoa a um lugar que não existe'
+  );
+  assert.ok(
+    !/Líquido \(pós-IR\)/.test(FAQ_TEXTO),
+    'o alternador Bruto/Líquido saiu do Meu patrimônio — o FAQ não pode explicar um botão que não existe mais'
   );
 });
 
