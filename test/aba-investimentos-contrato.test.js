@@ -136,6 +136,7 @@ const IDS_POR_MOTOR = {
     'projClasses',
     'projPremissasLista',
     'projPremissasFonte',
+    'projAvisoSemTaxa',
     'projBtnRestaurar',
   ],
   'Projeção — tira no hero da carteira': ['tiraProjecao', 'tiraProjecaoPrazo', 'tiraProjecaoValor'],

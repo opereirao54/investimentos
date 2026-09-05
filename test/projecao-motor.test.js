@@ -68,7 +68,84 @@ test('toda classe da ordem de exibição tem premissa declarada', () => {
     assert.ok(P.PREMISSAS[chave], `classe sem premissa: ${chave}`);
     assert.ok(P.PREMISSAS[chave].rotulo, `classe sem rótulo: ${chave}`);
     assert.ok(P.PREMISSAS[chave].faixa >= 0, `classe sem faixa: ${chave}`);
+    assert.equal(
+      typeof P.PREMISSAS[chave].contratavel,
+      'boolean',
+      `classe sem declarar se a taxa é contratável: ${chave}`
+    );
   }
+});
+
+// ── Procedência da taxa ────────────────────────────────────────────────────
+//
+// O rótulo que a tela mostra ao lado do número é a promessa central da aba:
+// a premissa está à vista. Um rótulo que diz "contratada" sobre uma taxa que
+// este código arbitrou quebra a promessa E cala o convite a preencher a taxa
+// que a Carteira faz — a projeção fica bonita, e a pessoa nunca corrige.
+
+test('só renda fixa, reserva e previdência têm taxa a contratar', () => {
+  const contrataveis = P.ORDEM_CLASSES.filter((k) => P.PREMISSAS[k].contratavel);
+  assert.deepEqual(contrataveis.sort(), ['previdencia', 'renda_fixa', 'reserva_emergencia']);
+});
+
+test('renda variável é sempre premissa — não existe taxa a informar em uma ação', () => {
+  for (const chave of ['acoes', 'fiis', 'etfs', 'bdrs', 'cripto']) {
+    // Mesmo que o acumulador trouxesse peso (não traz), a classe não tem
+    // contrato: chamar isso de "contratada" seria inventar procedência.
+    assert.equal(P.origemTaxa({ chave, pesoComTaxa: 5000, pesoSemTaxa: 0 }), 'premissa');
+  }
+});
+
+test('taxa arbitrada por falta de dado NÃO pode se dizer contratada', () => {
+  // Este é o defeito que o teste tranca: antes, qualquer classe de renda fixa
+  // com alguma compra devolvia "contratada", mesmo sem ninguém ter informado
+  // taxa nenhuma.
+  assert.equal(P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 0, pesoSemTaxa: 10000 }), 'padrao');
+  assert.equal(
+    P.origemTaxa({ chave: 'reserva_emergencia', pesoComTaxa: 0, pesoSemTaxa: 6000 }),
+    'padrao'
+  );
+});
+
+test('classe metade informada, metade estimada é "mista" — não arredonda para nenhum lado', () => {
+  assert.equal(
+    P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 10000, pesoSemTaxa: 10000 }),
+    'mista'
+  );
+  // Uma migalha sem taxa já basta para deixar de ser "contratada": o número
+  // deixou de sair inteiro do que a pessoa informou.
+  assert.equal(P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 99999, pesoSemTaxa: 1 }), 'mista');
+});
+
+test('classe inteiramente informada continua "contratada"', () => {
+  assert.equal(
+    P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 10000, pesoSemTaxa: 0 }),
+    'contratada'
+  );
+  assert.equal(
+    P.origemTaxa({ chave: 'previdencia', pesoComTaxa: 25000, pesoSemTaxa: 0 }),
+    'contratada'
+  );
+});
+
+test('o ajuste manual vence tudo — inclusive a pendência', () => {
+  // Se a pessoa digitou a taxa no painel de Premissas, o número é dela: não
+  // faz sentido continuar acusando falta de dado.
+  assert.equal(
+    P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 0, pesoSemTaxa: 10000, temCustom: true }),
+    'ajustada'
+  );
+  assert.equal(
+    P.origemTaxa({ chave: 'acoes', pesoComTaxa: 0, pesoSemTaxa: 0, temCustom: true }),
+    'ajustada'
+  );
+});
+
+test('classe sem peso nenhum e entrada inválida não inventam procedência', () => {
+  assert.equal(P.origemTaxa({ chave: 'renda_fixa', pesoComTaxa: 0, pesoSemTaxa: 0 }), 'premissa');
+  assert.equal(P.origemTaxa({ chave: 'inexistente', pesoComTaxa: 100 }), 'premissa');
+  assert.equal(P.origemTaxa({}), 'premissa');
+  assert.equal(P.origemTaxa(), 'premissa');
 });
 
 // ── Cenários ───────────────────────────────────────────────────────────────

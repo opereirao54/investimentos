@@ -9155,8 +9155,40 @@
             font-size: 11px; font-weight: 700;
         }
 
+        /* ---------- Faixa "parte disto é estimativa nossa" ----------
+           Âmbar, não vermelho: não é erro, é procedência incompleta. Mesma
+           família da faixa que a Carteira já usa para o mesmo assunto, para
+           a pessoa reconhecer o aviso em vez de ler duas vezes. */
+        #patrimonio .proj-aviso-faixa {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 14px; padding: 11px 13px; border-radius: var(--inv-r-md);
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        #patrimonio .proj-aviso-faixa > i:first-child { font-size: 20px; flex-shrink: 0; }
+        #patrimonio .proj-aviso-texto {
+            flex: 1; min-width: 180px; font-size: 12px; line-height: 1.5;
+        }
+        #patrimonio .proj-aviso-btn {
+            display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+            height: 32px; padding: 0 12px; border-radius: 99px; border: none; cursor: pointer;
+            background: var(--tinta-ambar); color: var(--cor-branco);
+            font-family: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap;
+        }
+        #patrimonio .proj-aviso-btn:hover { filter: brightness(1.08); }
+        #patrimonio .proj-aviso-x {
+            flex-shrink: 0; border: none; background: none; cursor: pointer;
+            color: inherit; font-size: 16px; line-height: 1; padding: 4px;
+        }
+
         /* ---------- Premissas ---------- */
         #patrimonio .proj-premissas { display: grid; gap: 10px; }
+        /* Classe cuja taxa este arquivo arbitrou: o filete âmbar liga a linha
+           à faixa do topo sem precisar repetir a frase inteira. */
+        #patrimonio .proj-premissa-pendente {
+            border-left: 3px solid var(--cor-borda-amber);
+        }
+        #patrimonio .proj-premissa-pendente .proj-premissa-org { color: var(--tinta-ambar); }
         #patrimonio .proj-premissa {
             display: flex; align-items: center; gap: 10px;
             padding: 9px 11px; border-radius: var(--inv-r-md); background: var(--inv-recuo);
@@ -10320,6 +10352,12 @@
 
                 <div id="projCorpo">
 
+                    <!-- Parte da projeção saiu de taxa que a pessoa não
+                         informou. O painel de Premissas nasce recolhido, então
+                         sem esta faixa a única pista ficaria atrás de um toque
+                         que ninguém dá. Chama o mesmo modal da Carteira. -->
+                    <div id="projAvisoSemTaxa" style="display:none;"></div>
+
                     <!-- ---------- HERO DA PROJEÇÃO ---------- -->
                     <div class="proj-hero">
                         <div class="proj-hero-top">
@@ -10451,9 +10489,11 @@
                                 <i class="ph ph-arrow-counter-clockwise"></i> Restaurar padrão
                             </button>
                             <p class="proj-aviso">
-                                Projeção não é promessa. Renda fixa e previdência usam a taxa que você contratou;
-                                renda variável usa prêmio de longo prazo sobre a inflação. Os valores são brutos,
-                                antes de imposto de renda e taxas, e o resultado real depende do mercado.
+                                Projeção não é promessa. Renda fixa, reserva e previdência usam a taxa que você
+                                contratou — e, quando você não informou nenhuma, o CDI no lugar dela, como diz a
+                                linha da classe acima. Renda variável não tem taxa a contratar: usa prêmio de longo
+                                prazo sobre a inflação. Os valores são brutos, antes de imposto de renda e taxas,
+                                e o resultado real depende do mercado.
                             </p>
                         </div>
                     </div>

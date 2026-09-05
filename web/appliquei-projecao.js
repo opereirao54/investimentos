@@ -46,19 +46,57 @@
  * tem faixa larga; cripto tem faixa larga o bastante para o cenário ruim ser
  * de PERDA — que é o que a classe faz de verdade, e esconder isso seria
  * vender otimismo com cara de conta.
+ *
+ * `contratavel` diz se a classe TEM uma taxa que a pessoa possa informar. Em
+ * renda fixa, reserva e previdência ela existe e vence a premissa; em ação,
+ * FII, ETF, BDR e cripto não existe nada a contratar — quem cadastra informa
+ * ticker, quantidade e preço. A distinção decide o rótulo de procedência, e
+ * é declarada aqui em vez de deduzida do indexador: o dia em que uma classe
+ * de renda variável ganhar base 'cdi', a dedução mentiria em silêncio.
  */
 var PROJ_PREMISSAS = {
-  acoes: { rotulo: 'Ações', base: { tipo: 'ipca+', valor: 0.07 }, faixa: 0.06 },
-  fiis: { rotulo: 'Fundos imobiliários', base: { tipo: 'ipca+', valor: 0.06 }, faixa: 0.05 },
-  etfs: { rotulo: 'ETFs', base: { tipo: 'ipca+', valor: 0.065 }, faixa: 0.055 },
-  bdrs: { rotulo: 'BDRs', base: { tipo: 'ipca+', valor: 0.065 }, faixa: 0.06 },
-  cripto: { rotulo: 'Criptomoedas', base: { tipo: 'ipca+', valor: 0.1 }, faixa: 0.25 },
-  renda_fixa: { rotulo: 'Renda fixa', base: { tipo: 'cdi', valor: 1 }, faixa: 0.015 },
-  previdencia: { rotulo: 'Previdência', base: { tipo: 'cdi', valor: 0.95 }, faixa: 0.02 },
+  acoes: { rotulo: 'Ações', base: { tipo: 'ipca+', valor: 0.07 }, faixa: 0.06, contratavel: false },
+  fiis: {
+    rotulo: 'Fundos imobiliários',
+    base: { tipo: 'ipca+', valor: 0.06 },
+    faixa: 0.05,
+    contratavel: false,
+  },
+  etfs: {
+    rotulo: 'ETFs',
+    base: { tipo: 'ipca+', valor: 0.065 },
+    faixa: 0.055,
+    contratavel: false,
+  },
+  bdrs: {
+    rotulo: 'BDRs',
+    base: { tipo: 'ipca+', valor: 0.065 },
+    faixa: 0.06,
+    contratavel: false,
+  },
+  cripto: {
+    rotulo: 'Criptomoedas',
+    base: { tipo: 'ipca+', valor: 0.1 },
+    faixa: 0.25,
+    contratavel: false,
+  },
+  renda_fixa: {
+    rotulo: 'Renda fixa',
+    base: { tipo: 'cdi', valor: 1 },
+    faixa: 0.015,
+    contratavel: true,
+  },
+  previdencia: {
+    rotulo: 'Previdência',
+    base: { tipo: 'cdi', valor: 0.95 },
+    faixa: 0.02,
+    contratavel: true,
+  },
   reserva_emergencia: {
     rotulo: 'Reserva de emergência',
     base: { tipo: 'cdi', valor: 1 },
     faixa: 0.01,
+    contratavel: true,
   },
 };
 
@@ -113,6 +151,35 @@ function projTaxaBaseClasse(chave, taxas) {
   // 11,8% nominal, não 11,5%. Em trinta anos a diferença é visível.
   if (base.tipo === 'ipca+') return (1 + ipca) * (1 + base.valor) - 1;
   return base.valor;
+}
+
+/**
+ * De onde veio a taxa desta classe. É o rótulo que a tela mostra ao lado do
+ * número, e ele precisa ser verdade — a aba inteira se apoia na promessa de
+ * que a premissa está à vista.
+ *
+ * Classes de renda variável não têm taxa a contratar: quem cadastra uma ação
+ * informa ticker, quantidade e preço. Ali a premissa de longo prazo é a única
+ * resposta possível, e dizer isso não é confissão de fraqueza.
+ *
+ * Renda fixa, reserva e previdência têm. Quando a pessoa informou, a projeção
+ * usa a taxa dela; quando não, este arquivo aplica um padrão — e é esse caso
+ * que precisa aparecer, porque antes ele se escondia atrás de "contratada".
+ *
+ * @param {Object} c { chave, pesoComTaxa, pesoSemTaxa, temCustom }
+ * @returns {'ajustada'|'premissa'|'contratada'|'mista'|'padrao'}
+ */
+function projOrigemTaxa(c) {
+  var d = c || {};
+  if (d.temCustom) return 'ajustada';
+  var premissa = PROJ_PREMISSAS[d.chave];
+  if (!premissa || !premissa.contratavel) return 'premissa';
+  var com = Number(d.pesoComTaxa) || 0;
+  var sem = Number(d.pesoSemTaxa) || 0;
+  if (com <= 0 && sem <= 0) return 'premissa';
+  if (sem <= 0) return 'contratada';
+  if (com <= 0) return 'padrao';
+  return 'mista';
 }
 
 /**
@@ -304,15 +371,38 @@ function projSalvarPrefs() {
 // ============================================================
 
 /**
+ * A operação traz uma taxa que a PESSOA informou?
+ *
+ * Espelha a precedência de taxaMensalOperacao — texto de rentabilidade que o
+ * parser entende, depois taxaMensal explícita — para que a contabilidade de
+ * "quanto desta taxa é informado" case exatamente com a matemática que a usa.
+ * `taxaMensal: 0` conta como informada: zero escolhido é uma resposta.
+ */
+function projOperacaoTemTaxa(op) {
+  if (!op) return false;
+  if (op.rentabilidade && typeof parsearRentabilidade === 'function') {
+    var parsed = parsearRentabilidade(op.rentabilidade);
+    if (parsed && isFinite(parsed.taxa)) return true;
+  }
+  return op.taxaMensal != null;
+}
+
+/**
  * Taxa anual contratada de uma posição sem cotação (renda fixa, reserva,
  * previdência), ponderada pelo valor de cada aporte. É a MESMA função que
  * valoriza o saldo de hoje (taxaMensalOperacao), então a projeção continua a
  * curva que a carteira já desenha — em vez de começar de outro lugar.
+ *
+ * Devolve também QUANTO desse peso veio de taxa informada e quanto caiu no
+ * padrão. Sem isso a tela chamava de "taxa contratada dos seus papéis" uma
+ * média que podia ser inteiramente chutada por este arquivo — e o convite a
+ * preencher a taxa, que a Carteira faz, perdia o sentido aqui.
  */
 function projTaxaAnualContratada(ticker, categoria, padraoMensal) {
   var lista = typeof historicoCompras !== 'undefined' ? historicoCompras : [];
   var somaPeso = 0;
   var somaTaxa = 0;
+  var pesoComTaxa = 0;
   lista.forEach(function (op) {
     if (op.ticker !== ticker || op.categoria !== categoria) return;
     if ((op.tipo || 'compra') !== 'compra') return;
@@ -326,9 +416,14 @@ function projTaxaAnualContratada(ticker, categoria, padraoMensal) {
           : padraoMensal;
     somaPeso += peso;
     somaTaxa += tm * peso;
+    if (projOperacaoTemTaxa(op)) pesoComTaxa += peso;
   });
   if (!(somaPeso > 0)) return null;
-  return projMensalParaAnual(somaTaxa / somaPeso);
+  return {
+    taxaAnual: projMensalParaAnual(somaTaxa / somaPeso),
+    pesoComTaxa: pesoComTaxa,
+    pesoSemTaxa: somaPeso - pesoComTaxa,
+  };
 }
 
 /**
@@ -385,11 +480,32 @@ function projMontarClasses() {
     }
     if (!PROJ_PREMISSAS[chave]) chave = 'acoes';
 
-    if (!acumulado[chave]) acumulado[chave] = { valor: 0, somaTaxa: 0, somaPeso: 0 };
-    acumulado[chave].valor += valor;
-    if (taxaContratada != null && isFinite(taxaContratada)) {
-      acumulado[chave].somaTaxa += taxaContratada * valor;
-      acumulado[chave].somaPeso += valor;
+    if (!acumulado[chave])
+      acumulado[chave] = {
+        valor: 0,
+        somaTaxa: 0,
+        somaPeso: 0,
+        pesoComTaxa: 0,
+        pesoSemTaxa: 0,
+        tickersSemTaxa: [],
+      };
+    var acc = acumulado[chave];
+    acc.valor += valor;
+    if (taxaContratada && isFinite(taxaContratada.taxaAnual)) {
+      // A taxa da classe pondera pelo VALOR DE HOJE de cada posição (o que a
+      // projeção vai capitalizar), não pelo custo dos aportes. Já a divisão
+      // informada/estimada vem do peso dos aportes, que é onde a taxa mora.
+      acc.somaTaxa += taxaContratada.taxaAnual * valor;
+      acc.somaPeso += valor;
+      var pesoOps = taxaContratada.pesoComTaxa + taxaContratada.pesoSemTaxa;
+      if (pesoOps > 0) {
+        // Reescala para o valor de hoje: uma posição de R$ 10 mil sem taxa
+        // pesa como R$ 10 mil na conta de procedência, não como o aporte
+        // original de anos atrás.
+        acc.pesoComTaxa += (taxaContratada.pesoComTaxa / pesoOps) * valor;
+        acc.pesoSemTaxa += (taxaContratada.pesoSemTaxa / pesoOps) * valor;
+      }
+      if (taxaContratada.pesoComTaxa <= 0) acc.tickersSemTaxa.push(ticker);
     }
   });
 
@@ -402,16 +518,10 @@ function projMontarClasses() {
     // numa projeção é chute com aparência de cálculo.
     var taxaPremissa = projTaxaBaseClasse(chave, taxas);
     var taxaContrato = dados.somaPeso > 0 ? dados.somaTaxa / dados.somaPeso : null;
-    var origem = 'premissa';
+    var temCustom = projEstado.taxasCustom[chave] != null;
     var taxa = taxaPremissa;
-    if (taxaContrato != null && isFinite(taxaContrato)) {
-      taxa = taxaContrato;
-      origem = 'contratada';
-    }
-    if (projEstado.taxasCustom[chave] != null) {
-      taxa = projEstado.taxasCustom[chave];
-      origem = 'ajustada';
-    }
+    if (taxaContrato != null && isFinite(taxaContrato)) taxa = taxaContrato;
+    if (temCustom) taxa = projEstado.taxasCustom[chave];
     return {
       chave: chave,
       rotulo: PROJ_PREMISSAS[chave].rotulo,
@@ -419,7 +529,17 @@ function projMontarClasses() {
       taxaAnual: taxa,
       taxaAutomatica: taxaContrato != null && isFinite(taxaContrato) ? taxaContrato : taxaPremissa,
       faixa: PROJ_PREMISSAS[chave].faixa,
-      origem: origem,
+      origem: projOrigemTaxa({
+        chave: chave,
+        pesoComTaxa: dados.pesoComTaxa,
+        pesoSemTaxa: dados.pesoSemTaxa,
+        temCustom: temCustom,
+      }),
+      // Quanto do valor de hoje desta classe cresce por uma taxa que este
+      // arquivo arbitrou, e em quais papéis. É o que a tela precisa para
+      // convidar a corrigir em vez de só avisar.
+      valorSemTaxa: dados.pesoSemTaxa,
+      tickersSemTaxa: dados.tickersSemTaxa,
     };
   });
 }
@@ -634,6 +754,7 @@ function renderProjecao() {
   projRenderMarcos(r);
   projRenderClasses(r);
   projRenderPremissas(r);
+  projRenderAvisoSemTaxa(r);
   projAtualizarTiraHero(r);
   if (typeof atualizarMiniStats === 'function' && raiz.style.display !== 'none') {
     atualizarMiniStats('futuro');
@@ -1069,14 +1190,50 @@ function projRenderClasses(r) {
     .join('');
 }
 
+/**
+ * Rótulo de procedência da taxa. Cada texto tem de descrever exatamente o que
+ * aconteceu — em especial 'padrao' e 'mista', que antes se escondiam atrás de
+ * "taxa contratada dos seus papéis" mesmo quando ninguém contratou nada.
+ */
+function projRotuloOrigem(c) {
+  if (c.origem === 'ajustada') return 'ajustada por você';
+  if (c.origem === 'contratada') return 'taxa contratada dos seus papéis';
+  if (c.origem === 'mista') return 'parte contratada, parte estimada por nós';
+  if (c.origem === 'padrao') {
+    // A previdência avisa no próprio formulário que sem taxa usa 0,8% a.m.;
+    // renda fixa e reserva avisam o contrário — que sem taxa o papel fica
+    // parado. Onde a promessa é essa, a projeção não pode fingir que rende
+    // sem dizer de onde tirou a taxa.
+    return c.chave === 'previdencia'
+      ? 'padrão do plano — você não informou a taxa'
+      : 'estimada por nós — você não informou a taxa';
+  }
+  return 'premissa de longo prazo';
+}
+
+/** Classes cuja taxa foi arbitrada, no todo ou em parte, por falta de dado. */
+function projClassesSemTaxa(classes) {
+  return (classes || []).filter(function (c) {
+    return c.origem === 'padrao' || c.origem === 'mista';
+  });
+}
+
 function projRenderPremissas(r) {
   var alvo = document.getElementById('projPremissasLista');
   if (!alvo) return;
   var taxas = typeof taxasMercado !== 'undefined' ? taxasMercado : {};
 
+  var pendentes = projClassesSemTaxa(r.classes);
+  var papeis = pendentes.reduce(function (s, c) {
+    return s + (c.tickersSemTaxa || []).length;
+  }, 0);
+
   var fonte = document.getElementById('projPremissasFonte');
   if (fonte) {
+    // O bloco nasce recolhido: o resumo é o único lugar onde a pendência
+    // aparece sem um toque. Ela vem primeiro, antes das taxas do dia.
     fonte.innerText =
+      (papeis ? '⚠ ' + papeis + ' sem taxa · ' : '') +
       'CDI ' +
       projPercentual(isFinite(taxas.cdi) ? taxas.cdi : 0.105) +
       ' · IPCA ' +
@@ -1087,14 +1244,12 @@ function projRenderPremissas(r) {
 
   alvo.innerHTML = r.classes
     .map(function (c) {
-      var rotuloOrigem =
-        c.origem === 'ajustada'
-          ? 'ajustada por você'
-          : c.origem === 'contratada'
-            ? 'taxa contratada dos seus papéis'
-            : 'premissa de longo prazo';
+      var rotuloOrigem = projRotuloOrigem(c);
+      var pendente = c.origem === 'padrao' || c.origem === 'mista';
       return (
-        '<div class="proj-premissa">' +
+        '<div class="proj-premissa' +
+        (pendente ? ' proj-premissa-pendente' : '') +
+        '">' +
         '<div class="proj-premissa-info">' +
         '<span class="proj-premissa-rot">' +
         c.rotulo +
@@ -1126,6 +1281,82 @@ function projRenderPremissas(r) {
       ? 'inline-flex'
       : 'none';
   }
+}
+
+/**
+ * Faixa de "parte desta projeção é estimativa nossa".
+ *
+ * Existe porque o painel de Premissas nasce recolhido: sem isto, a única
+ * pista de que a taxa foi arbitrada estaria atrás de um toque que ninguém dá.
+ * Chama o MESMO modal que a Carteira usa (abrirModalCompletarRentabilidade) —
+ * corrigir num lugar corrige nos dois, que é o ponto.
+ *
+ * Respeita a mesma dispensa da faixa da Carteira: quem já disse "agora não"
+ * naquela não precisa dizer de novo nesta.
+ */
+function projRenderAvisoSemTaxa(r) {
+  var box = document.getElementById('projAvisoSemTaxa');
+  if (!box) return;
+
+  var pendentes = projClassesSemTaxa(r.classes);
+  var papeis = pendentes.reduce(function (s, c) {
+    return s + (c.tickersSemTaxa || []).length;
+  }, 0);
+  // Só renda fixa e reserva têm o convite a completar; a previdência usa um
+  // padrão que o próprio formulário anuncia, então avisar dela aqui seria
+  // pedir uma correção que não existe.
+  var comConvite = pendentes.some(function (c) {
+    return c.chave !== 'previdencia';
+  });
+
+  var dispensado = false;
+  try {
+    dispensado = sessionStorage.getItem('appliquei_aviso_rent_rf') === '1';
+  } catch (_) {}
+
+  if (!pendentes.length || dispensado) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+
+  var valorEstimado = pendentes.reduce(function (s, c) {
+    return s + (c.valorSemTaxa || 0);
+  }, 0);
+  var fatia = r.base.totalHoje > 0 ? (valorEstimado / r.base.totalHoje) * 100 : 0;
+
+  box.style.display = 'block';
+  box.innerHTML =
+    '<div class="proj-aviso-faixa">' +
+    '<i class="ph-fill ph-warning-circle"></i>' +
+    '<div class="proj-aviso-texto">' +
+    '<strong>Parte desta projeção é estimativa nossa.</strong> ' +
+    (papeis
+      ? papeis + (papeis === 1 ? ' papel está' : ' papéis estão') + ' sem rentabilidade informada'
+      : 'Há posições sem rentabilidade informada') +
+    (fatia >= 1 ? ' — ' + fatia.toFixed(0) + '% do que você tem hoje' : '') +
+    '. Enquanto isso, usamos o CDI no lugar da taxa que você contratou.' +
+    '</div>' +
+    (comConvite
+      ? '<button type="button" class="proj-aviso-btn" onclick="abrirModalCompletarRentabilidade()">' +
+        '<i class="ph ph-pencil-simple"></i> Completar</button>'
+      : '') +
+    '<button type="button" class="proj-aviso-x" onclick="projDispensarAvisoSemTaxa()" ' +
+    'aria-label="Dispensar aviso" title="Dispensar por agora"><i class="ph ph-x"></i></button>' +
+    '</div>';
+}
+
+/** Mesma chave da faixa da Carteira: dispensar num lugar dispensa nos dois. */
+function projDispensarAvisoSemTaxa() {
+  try {
+    sessionStorage.setItem('appliquei_aviso_rent_rf', '1');
+  } catch (_) {}
+  var box = document.getElementById('projAvisoSemTaxa');
+  if (box) {
+    box.style.display = 'none';
+    box.innerHTML = '';
+  }
+  if (typeof renderAvisoRentabilidadeRF === 'function') renderAvisoRentabilidadeRF();
 }
 
 /**
@@ -1187,6 +1418,7 @@ var ProjecaoMotor = {
   mensalParaAnual: projMensalParaAnual,
   taxaBaseClasse: projTaxaBaseClasse,
   taxaCenario: projTaxaCenario,
+  origemTaxa: projOrigemTaxa,
   projetar: projProjetar,
   mesesParaAlvo: projMesesParaAlvo,
   deflacionar: projDeflacionar,
