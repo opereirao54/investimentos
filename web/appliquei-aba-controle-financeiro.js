@@ -1948,6 +1948,66 @@ function resultadoAcumuladoAteMes(mes, ano) {
   return acc;
 }
 
+// ============================================================
+// === KPI "Saldo em conta" — o dinheiro que existe de verdade ===
+// ============================================================
+// O card vizinho, "Saldo livre", responde sobre o MÊS: quanto do que entrou
+// ainda não tem destino. Este responde sobre o DINHEIRO: quanto há nas contas.
+// São perguntas diferentes, e por isso dois cards — juntos num só, a pessoa
+// lia o saldo do mês como se fosse o extrato do banco.
+//
+// A referência muda com o mês na tela, senão os dois cards ficariam falando
+// de tempos diferentes sem avisar:
+//   · mês corrente → AGORA (o mesmo número de Meu patrimônio);
+//   · mês passado  → o fim daquele mês;
+//   · mês futuro   → o projetado para o fim dele.
+//
+// Quem faz a conta é saldoCaixaPorConta (contas.js), que já reúne a foto de
+// hoje e o que está agendado — e é a mesma função que decide se uma compra
+// agendada cabe no saldo. Duplicar a regra aqui seria criar um segundo saldo.
+function referenciaSaldoEmConta(mes, ano) {
+  const agora = Date.now();
+  const hoje = new Date();
+  if (mes === hoje.getMonth() && ano === hoje.getFullYear()) return agora;
+  return new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime();
+}
+
+function calcularSaldoEmContaDoMes(mes, ano) {
+  if (typeof saldoCaixaPorConta !== 'function') return null;
+  const saldos = saldoCaixaPorConta(referenciaSaldoEmConta(mes, ano)) || {};
+  return Object.keys(saldos).reduce((s, k) => s + (Number(saldos[k]) || 0), 0);
+}
+
+function atualizarKpiSaldoEmConta(mes, ano) {
+  const el = document.getElementById('kpiSaldoConta');
+  const sub = document.getElementById('kpiSaldoContaSub');
+  if (!el) return;
+
+  const total = calcularSaldoEmContaDoMes(mes, ano);
+  if (total == null) {
+    // Sem o módulo de contas não há saldo a mostrar. Zerar seria pior que
+    // calar: um R$ 0,00 lê como "você não tem dinheiro".
+    el.innerText = '—';
+    el.style.color = 'var(--cor-texto-mutado)';
+    if (sub) sub.innerText = 'indisponível agora';
+    return;
+  }
+
+  el.innerText = formatarMoeda(total);
+  el.style.color = total < 0 ? 'var(--cor-erro)' : 'var(--cor-txt-info)';
+
+  if (!sub) return;
+  const hoje = new Date();
+  const ehCorrente = mes === hoje.getMonth() && ano === hoje.getFullYear();
+  const fimMes = new Date(ano, mes + 1, 0).getTime();
+  const rotuloMes = new Date(ano, mes, 1)
+    .toLocaleDateString('pt-BR', { month: 'long' })
+    .replace('.', '');
+  if (ehCorrente) sub.innerText = 'o que existe hoje, somando as suas contas';
+  else if (fimMes < Date.now()) sub.innerText = `no fim de ${rotuloMes}, somando as suas contas`;
+  else sub.innerText = `projetado para o fim de ${rotuloMes}, com o que está agendado`;
+}
+
 // Saldo de abertura do mês = ajuste manual (se houver) OU fechamento do mês anterior.
 function obterSaldoCarregadoParaMes(mes, ano) {
   const mapa = obterMapaSaldoCarregado();
@@ -2062,7 +2122,7 @@ function deletarTransacao(idStr) {
             <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('todas')"><i class="ph ph-trash"></i> Excluir este e os futuros</button>
         `;
   } else {
-    msg.innerHTML = `Tem certeza que deseja excluir o lançamento <strong>"${transacao.descricao}"</strong>?`;
+    msg.innerHTML = `Tem certeza de que deseja excluir o lançamento <strong>"${transacao.descricao}"</strong>?`;
     acoes.innerHTML = `
             <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('unica')"><i class="ph ph-trash"></i> Sim, excluir definitivamente</button>
         `;
@@ -2145,7 +2205,7 @@ function baixarGrupoCartao(key) {
   const acoes = document.getElementById('modalAcoes');
 
   titulo.innerHTML = `<i class="ph-bold ph-credit-card" style="color:var(--cor-cartao);"></i> Baixar Cartão`;
-  msg.innerHTML = `Tem certeza que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
+  msg.innerHTML = `Tem certeza de que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
 
   acoes.innerHTML = `
         <button class="btn-acao" style="background-color: var(--cor-primaria);" onclick="confirmarBaixarGrupoCartao('${key}')"><i class="ph-bold ph-check"></i> Sim, baixar fatura</button>
@@ -2364,6 +2424,88 @@ function atualizarTermometro60() {
   }
 }
 
+// ============================================================
+// --- Termômetro do mês no cabeçalho ---
+// ============================================================
+
+// Ângulo da agulha e comprimento do arco preenchido para um score 0-100.
+// Pura e exportada: é a única aritmética do chip, e é a mesma conta que
+// rmAtualizarGauge faz no gauge grande — só com o arco de outro raio.
+// (Semicírculo de raio 19 → π·19 ≈ 59,7; o dasharray do SVG é 60.)
+function termChipGeometria(score, comprimentoArco) {
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  const arco = Number(comprimentoArco) || 60;
+  return { angulo: -90 + (s / 100) * 180, offset: arco - arco * (s / 100) };
+}
+
+// O score vem de rmCalcularTermometro(buildMonthlyReport(...)) — exatamente as
+// funções que o Relatório mensal usa. Recalcular por conta própria aqui faria
+// o chip e o relatório discordarem no dia em que a régua dos 5 critérios
+// mudasse, e o chip é justamente o convite para abrir o relatório.
+function atualizarTermometroControle(mes, ano) {
+  const chip = document.getElementById('termometroControle');
+  if (!chip) return;
+  try {
+    if (typeof buildMonthlyReport !== 'function' || typeof rmCalcularTermometro !== 'function') {
+      chip.style.display = 'none';
+      return;
+    }
+    chip.style.display = '';
+    const yyyymm = ano + '-' + String(mes + 1).padStart(2, '0');
+    const rep = buildMonthlyReport(yyyymm);
+    const elScore = document.getElementById('termChipScore');
+    const elRotulo = document.getElementById('termChipRotulo');
+    const arco = document.getElementById('termChipArco');
+    const ponteiro = document.getElementById('termChipPonteiro');
+
+    // Mês sem nada lançado: o score seria 40 ("Atenção") só porque quatro dos
+    // cinco critérios são neutros — um diagnóstico sobre dado nenhum.
+    if (!rep.hasData) {
+      chip.setAttribute('data-faixa', 'vazio');
+      const g = termChipGeometria(0);
+      if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
+      if (ponteiro) ponteiro.setAttribute('transform', 'rotate(' + g.angulo + ' 24 24)');
+      if (elScore) elScore.textContent = '';
+      if (elRotulo) elRotulo.textContent = 'Sem lançamentos';
+      chip.title = 'Lance receitas e despesas deste mês para ver o termômetro';
+      return;
+    }
+
+    const t = rmCalcularTermometro(rep);
+    const g = termChipGeometria(t.score);
+    chip.setAttribute('data-faixa', t.statusGeral);
+    if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
+    if (ponteiro) ponteiro.setAttribute('transform', 'rotate(' + g.angulo + ' 24 24)');
+    if (elScore) elScore.textContent = t.score;
+    if (elRotulo) elRotulo.textContent = t.faixa ? t.faixa.rotulo : '';
+    chip.title =
+      'Termômetro de ' +
+      (typeof rmFormatarMesLabel === 'function' ? rmFormatarMesLabel(yyyymm) : yyyymm) +
+      ': ' +
+      t.score +
+      '/100. Clique para ver o Relatório mensal completo.';
+  } catch (erro) {
+    console.error('Appliquei - Erro não-crítico ao atualizar o termômetro do mês:', erro);
+  }
+}
+
+// Abre o Relatório mensal já no mês que o Controle está exibindo. Vai pelo
+// botão da barra lateral (e não por mudarAba direto) porque mudarAba usa
+// e.currentTarget para marcar o item ativo do menu — mesmo caminho de
+// ppNavegarPara.
+function abrirRelatorioDoMesVisao() {
+  const seletor = document.getElementById('rmSeletorMes');
+  if (seletor) seletor.value = visaoAno + '-' + String(visaoMes + 1).padStart(2, '0');
+  if (typeof ppNavegarPara === 'function' && ppNavegarPara('relatorio_mensal')) return;
+  const botoes = document.querySelectorAll('.menu-btn');
+  for (let i = 0; i < botoes.length; i++) {
+    if ((botoes[i].getAttribute('onclick') || '').indexOf("'relatorio_mensal'") !== -1) {
+      botoes[i].click();
+      return;
+    }
+  }
+}
+
 // Estado do alerta de cartão (pura/testável). Recebe o total da fatura do mês e
 // a lista de cartões ATIVOS (arquivados não entram, p/ não inflar o limite e
 // mascarar o estouro). Devolve o limite somado, o % usado e, se estourou, quanto
@@ -2424,6 +2566,9 @@ function atualizarTelaControle() {
   ];
   document.getElementById('lblMesExtrato').innerText = `(${nomeMeses[visaoMes]} ${visaoAno})`;
   atualizarBannerSaldoMesAnterior(visaoMes, visaoAno);
+  // O termômetro acompanha o mês em exibição, e não o mês corrente: navegar
+  // para agosto e continuar vendo o score de setembro seria mentira.
+  atualizarTermometroControle(visaoMes, visaoAno);
 
   const listaExtrato = document.getElementById('extratoUnificado');
   let htmlExtrato = '';
@@ -2721,6 +2866,7 @@ function atualizarTelaControle() {
       lblCarregado.style.display = 'none';
     }
   }
+  atualizarKpiSaldoEmConta(visaoMes, visaoAno);
 
   // ALERTA CARTÃO — usa só cartões ATIVOS. Cartões arquivados (ex.: o "Cartão
   // principal" de 5.000 criado na migração) não devem inflar o limite e mascarar

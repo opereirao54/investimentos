@@ -425,6 +425,63 @@
         h1 { font-size: 21px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--cor-texto-principal); margin-bottom: 6px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 9px; }
         .subtitulo { color: var(--cor-texto-mutado); margin-bottom: 24px; font-size: 13px; font-weight: 400; }
         .page-actions { display: flex; align-items: center; gap: 8px; }
+        /* No Controle o cabeçalho ganhou um quinto item (o termômetro). Deixar
+           a fila quebrar e alinhar à direita evita que ela empurre o título
+           para fora nas larguras intermediárias. */
+        /* margin-left:auto mantém a fila colada à direita mesmo quando ela
+           desce para uma linha só dela — sozinha na linha, o space-between do
+           .page-header a jogaria para a esquerda. */
+        #controle .page-actions { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+        /* .btn-acao nasce com width:100% — ele vive dentro de formulários.
+           Numa fila sem quebra isso nunca aparecia, porque o flex encolhia o
+           botão até caber; assim que a fila passou a quebrar, "Novo lançamento"
+           ganhou uma linha só para si e esticou de ponta a ponta. Só no
+           desktop: abaixo de 768px a largura total é intencional. */
+        @media (min-width: 769px) {
+            #controle .page-actions > * { width: auto; flex: 0 0 auto; }
+        }
+
+        /* ===== Termômetro do mês (chip do cabeçalho do Controle) =====
+           Versão de bolso do gauge do Relatório mensal: mesmo arco, mesmo
+           gradiente vermelho→âmbar→verde, mesma agulha — só que em 48×29 em
+           vez de 220×130. A cor de fundo segue a faixa do score, então dá
+           para ler a saúde do mês sem ler o número. */
+        .term-chip {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 5px 10px 5px 7px; border-radius: 11px; cursor: pointer;
+            background: var(--term-chip-bg, var(--cor-superficie));
+            border: 1px solid var(--term-chip-borda, var(--cor-borda));
+            font-family: inherit; text-align: left;
+            transition: var(--transicao);
+        }
+        .term-chip:hover { border-color: var(--term-chip-tinta, var(--cor-borda2)); box-shadow: 0 2px 10px rgba(15,23,42,0.07); }
+        .term-chip:focus-visible { outline: 2px solid var(--term-chip-tinta, var(--cor-primaria)); outline-offset: 2px; }
+        .term-chip-gauge { width: 34px; height: 21px; flex-shrink: 0; display: block; }
+        .term-chip-gauge svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        .term-chip-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .term-chip-label {
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+            color: var(--cor-texto-mutado); line-height: 1.1; white-space: nowrap;
+        }
+        .term-chip-status {
+            display: flex; align-items: baseline; gap: 5px; line-height: 1.15; white-space: nowrap;
+        }
+        .term-chip-status strong {
+            font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 700;
+            color: var(--term-chip-tinta, var(--cor-texto-principal));
+        }
+        .term-chip-status > span {
+            font-size: 11px; font-weight: 600; color: var(--term-chip-tinta, var(--cor-texto-secundario));
+        }
+        .term-chip-seta { font-size: 13px; color: var(--cor-texto-mutado); flex-shrink: 0; }
+        .term-chip:hover .term-chip-seta { color: var(--term-chip-tinta, var(--cor-texto-secundario)); }
+        /* Faixas: as mesmas três de RM_FAIXAS_SCORE. O JS só troca o atributo. */
+        .term-chip[data-faixa="vermelho"] { --term-chip-bg: var(--rm-faixa-vermelho-bg); --term-chip-tinta: var(--rm-faixa-vermelho-tinta); --term-chip-borda: color-mix(in srgb, #ef4444 32%, transparent); }
+        .term-chip[data-faixa="amarelo"]  { --term-chip-bg: var(--rm-faixa-amarelo-bg);  --term-chip-tinta: var(--rm-faixa-amarelo-tinta);  --term-chip-borda: color-mix(in srgb, #f59e0b 34%, transparent); }
+        .term-chip[data-faixa="verde"]    { --term-chip-bg: var(--rm-faixa-verde-bg);    --term-chip-tinta: var(--rm-faixa-verde-tinta);    --term-chip-borda: color-mix(in srgb, #10b981 32%, transparent); }
+        /* Mês sem lançamento nenhum: não há score a mostrar, e inventar um
+           "0 — Crítico" puniria quem acabou de abrir o app. */
+        .term-chip[data-faixa="vazio"] .term-chip-status strong { display: none; }
 
         /* Dark mode toggle */
         .btn-theme { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
@@ -1126,12 +1183,22 @@
             .kpis-controle { grid-template-columns: 1fr; }
         }
 
+        /* A coluna da esquerda passou a ter DOIS heróis empilhados. Linhas
+           iguais (1fr 1fr) para que nenhum dos dois pareça o principal: são
+           duas respostas de mesmo peso, uma sobre o mês e outra sobre agora. */
+        .kpis-controle-heroes {
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 14px;
+            min-width: 0;
+        }
+
         .kpi-hero {
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-left: 3px solid var(--cor-primaria);
             border-radius: var(--radius);
-            padding: 18px 20px;
+            padding: 16px 18px;
             box-shadow: var(--shadow-card);
             position: relative;
             overflow: hidden;
@@ -1140,11 +1207,21 @@
             justify-content: center;
             align-items: center;
             text-align: center;
-            min-height: 150px;
+            /* Era 150px quando este card era único e tinha a coluna inteira.
+               Com dois empilhados, o piso passa a ser o conteúdo — a grade
+               é que iguala as alturas. */
+            min-height: 118px;
             transition: box-shadow 0.2s, transform 0.2s;
         }
         .kpi-hero:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
-        .kpi-hero-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 15px; text-align: center; }
+        /* Caixa real: azul, a mesma família que Meu patrimônio usa para "onde
+           o dinheiro está". Distingue à distância o número do MÊS (verde, o
+           acento do app) do número de AGORA. */
+        .kpi-hero-caixa { border-left-color: var(--cor-info); cursor: pointer; }
+        .kpi-hero-caixa .kpi-hero-icon { background: var(--cor-bg-info); color: var(--cor-info); }
+        .kpi-hero-caixa .kpi-hero-valor { color: var(--cor-txt-info); }
+        .kpi-hero-caixa:focus-visible { outline: 2px solid var(--cor-info); outline-offset: 2px; }
+        .kpi-hero-head { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 12px; text-align: center; }
         .kpi-hero-icon {
             width: 36px; height: 36px; border-radius: 10px;
             background: var(--cor-bg-primaria);
@@ -1161,7 +1238,7 @@
             font-weight: 500; line-height: 1.3;
         }
         .kpi-hero-valor {
-            font-size: 28px; font-weight: 700; letter-spacing: -0.7px;
+            font-size: 26px; font-weight: 700; letter-spacing: -0.7px;
             font-family: 'DM Mono', monospace; line-height: 1;
             color: var(--cor-primaria);
             text-align: center;
@@ -1284,7 +1361,7 @@
            conteúdo e piorou o efeito.
            A prova estava no próprio app: o campo de data do painel de
            lançamento JÁ tinha `appearance: none` e nunca teve o problema; o
-           do sonho ficou com `auto` e teve. Mesmo telemóvel, mesma tela.
+           do sonho ficou com `auto` e teve. Mesmo celular, mesma tela.
            `min-width: 0` deixa o campo encolher dentro de grid/flex (o padrão
            `auto` impede encolher abaixo do conteúdo) e `max-width: 100%` é o
            teto duro. `text-align: left` porque o iOS centra o valor nesses
@@ -3454,7 +3531,7 @@
         }
         /* Explicação atrás de um "?" CLICÁVEL — não hover. O
            .icon-tooltip-premium que já existe só abre no hover, e no
-           telemóvel hover não existe: a explicação ficava inalcançável
+           celular hover não existe: a explicação ficava inalcançável
            justamente onde a tela é mais apertada.
            O balão abre EM FLUXO, empurrando o conteúdo, em vez de flutuar:
            um popover ancorado à direita de um título é o caminho mais curto
@@ -3561,7 +3638,7 @@
 
         /* Cards de score */
         .cart-motor-ranking { display: block; }
-        /* `minmax(310px, 1fr)` era o que punha o telemóvel a rolar para o
+        /* `minmax(310px, 1fr)` era o que punha o celular a rolar para o
            lado: num ecrã de 360px com as margens da página, a coluna mínima
            de 310px não cabia e a grelha transbordava. `min(300px, 100%)`
            deixa a coluna encolher com o ecrã em vez de empurrar a página. */
@@ -3685,7 +3762,7 @@
         .cart-score-faltando-linha strong { color: var(--cor-texto-principal); }
         /* Ativo que PONTUA e mesmo assim tem lacuna: a ressalva é de
            leitura, não o motivo de não haver nota. Peso visual menor para
-           não competir com o bloco que de facto bloqueia o score. */
+           não competir com o bloco que de fato bloqueia o score. */
         .cart-score-faltando.informativo {
             background: transparent; border-style: dashed;
         }
@@ -3710,7 +3787,7 @@
 
            `hidden` precisa de força aqui: os elementos abaixo declaram
            display explícito (flex/grid), que vence a regra do agente do
-           utilizador e deixaria o atributo sem efeito nenhum — o filtro
+           usuário e deixaria o atributo sem efeito nenhum — o filtro
            esconderia e nada sumiria da tela. */
         #carteira .cart-rank-grupo[hidden],
         #carteira .cart-score-card[hidden],
@@ -3799,7 +3876,7 @@
         #carteira .cart-rank-tab-cripto.active { background: var(--cart-cripto); }
 
         /* Durante a busca quem manda é o termo, não a aba. Manter a aba
-           acesa diria que ela está a filtrar — e o resultado pode vir de
+           acesa diria que ela está filtrando — e o resultado pode vir de
            outra classe, como o cabeçalho de cada grupo mostra. */
         #carteira .cart-motor-ranking.buscando .cart-rank-tabs { opacity: 0.45; }
         #carteira .cart-rank-status:empty { display: none; }
@@ -3882,13 +3959,13 @@
             display: block; min-width: 0;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        /* O nome do ativo estava a ser cortado a UM caractere no PC.
+        /* O nome do ativo estava sendo cortado a UM caractere no PC.
            Medido a 1280px com a barra lateral: a coluna da classe fica com
            236px e o corpo com 26px, para um ticker que precisa de 37.
            A causa é a repartição da linha, não a largura da tela — score
            (30), valor (68) e botão (30) não encolhem, e `min-width: 0` no
            corpo (que existe para o nome comprido do Tesouro não empurrar a
-           página no telemóvel) fazia dele o único a absorver o aperto todo.
+           página no celular) fazia dele o único a absorver o aperto todo.
            Uma grelha de quatro colunas mantém a largura mesmo com duas
            classes vazias, então isto acontece em qualquer monitor.
            Agora o corpo tem um mínimo legível e a linha QUEBRA quando não
@@ -3931,7 +4008,7 @@
         #carteira .cart-setores-nota i { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
 
         @media (max-width: 560px) {
-            /* Um card por linha e pilares mais baixos: no telemóvel a coluna
+            /* Um card por linha e pilares mais baixos: no celular a coluna
                dupla dava 150px de largura por card e o nome não cabia. */
             /* `1fr` sozinho é `minmax(auto, 1fr)` e traz de volta o piso de
                min-content na coluna. Aqui a coluna tem de valer exatamente o
@@ -4286,7 +4363,7 @@
         #carteira .cart-sim-mini-val.neg { color: var(--cor-erro); }
         #carteira .cart-sim-mini-sub { font-size: 10px; color: var(--cor-texto-mutado); }
 
-        /* Períodos: sete botões não cabem lado a lado num telemóvel, e quebrar
+        /* Períodos: sete botões não cabem lado a lado num celular, e quebrar
            em duas linhas empurra o gráfico para fora do primeiro ecrã. Vira a
            mesma faixa rolável das abas da lista de ativos. */
         #carteira .cart-sim-ranges {
@@ -4357,7 +4434,7 @@
             #carteira .cart-plano-trocar { opacity: 1; }
         }
         /* Lugar trocado se identifica: sem isto o plano parece o do motor, e
-           a diferença entre o que ELE escolheu e o que o utilizador pôs no
+           a diferença entre o que ELE escolheu e o que o usuário pôs no
            lugar desaparece na primeira recarga da página. */
         #carteira .cart-plano-item.trocado {
             border-color: var(--cart-acao);
@@ -4437,7 +4514,7 @@
         #carteira .cart-troca-desfazer:hover { border-color: var(--cart-rf); color: var(--cart-rf); }
 
         @media (max-width: 560px) {
-            /* Folha por baixo, como as folhas nativas do telemóvel: o polegar
+            /* Folha por baixo, como as folhas nativas do celular: o polegar
                alcança a lista sem esticar até o meio do ecrã. */
             #carteira .cart-troca-folha {
                 left: 0; right: 0; bottom: 0; top: auto; transform: none;
@@ -5239,7 +5316,7 @@
 
 
         /* ===== Modal do sonho: firme no celular ==========================
-           Sintoma: no telemóvel a tela do formulário "andava para os lados".
+           Sintoma: no celular a tela do formulário "andava para os lados".
            Causa: o Safari do iOS dá ZOOM automático ao focar um campo com
            fonte menor que 16px. Depois do zoom o viewport fica mais largo que
            a tela e a página inteira passa a arrastar na horizontal — não é o
@@ -5259,7 +5336,7 @@
                deixavam sobrar numa tela de 375px. */
             #modalSonho > div {
                 padding: 20px;
-                /* vh no telemóvel mede a viewport MAIOR (barra de endereço
+                /* vh no celular mede a viewport MAIOR (barra de endereço
                    escondida): com a barra à vista, ou com o teclado aberto,
                    88vh passa do que dá para ver e o topo do card fica
                    inalcançável, já que o overlay não rola. dvh acompanha a
@@ -6112,6 +6189,24 @@
                 flex: 1 1 100%;
                 justify-content: center;
             }
+            /* O termômetro fica com a linha inteira no celular: dividindo-a
+               com o seletor de mês, sobrava largura de menos para os dois. */
+            #controle .page-actions .term-chip {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+            /* As setinhas de mês são .btn-secundario DENTRO do seletor, então
+               a regra de cima as pegava também: cada uma esticava para meia
+               linha (ou a linha inteira, abaixo de 480px) e sobravam 42px para
+               o <input type="month"> — "setembro 2026" virava "Sep" cortado. */
+            /* Seletor mais específico do que `.page-actions .btn-secundario`
+               de propósito: a mesma regra reaparece no bloco de ≤480px, e sem
+               o peso extra ela voltaria a vencer lá. */
+            .page-actions .seletor-mes { flex: 1 1 100%; justify-content: center; }
+            .page-actions .seletor-mes .btn-secundario {
+                flex: 0 0 auto;
+                padding: 3px 5px !important;
+            }
 
             /* Cards e seções: padding reduzido para ganhar largura útil */
             .card-container { padding: 16px !important; margin-bottom: 14px; }
@@ -6817,9 +6912,36 @@
             background: linear-gradient(135deg, var(--cor-fundo-card) 0%, color-mix(in srgb, var(--cor-info) 6%, var(--cor-fundo-card)) 100%);
             border:1px solid color-mix(in srgb, var(--cor-info) 18%, var(--cor-borda));
             padding:26px 28px;
+            /* Duas colunas: o total à esquerda, a composição à direita. A
+               direita leva mais espaço porque tem 4 linhas de conteúdo. */
+            display:grid; grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+            gap:30px; align-items:center;
         }
-        .mp-kpi-hero .mp-kpi-valor { font-size:32px; letter-spacing:-.5px; }
+        /* clamp em vez de tamanho fixo: com a composição ao lado, a coluna do
+           total é metade do card. Em 34px fixos um patrimônio de 7 dígitos não
+           cabia e a rede de segurança (overflow-wrap:anywhere, mais abaixo)
+           quebrava o número em "R$ 1.496.814" / ",74". Encolher a fonte é
+           menos ruim do que partir o valor ao meio. */
+        .mp-kpi-hero .mp-kpi-valor { font-size:clamp(22px, 2.2vw, 32px); letter-spacing:-.6px; }
         .mp-kpi-hero .mp-kpi-icon { width:52px; height:52px; font-size:26px; border-radius:14px; }
+        .mp-hero-principal { display:flex; gap:16px; align-items:center; min-width:0; }
+        .mp-hero-composicao {
+            min-width:0; padding-left:30px;
+            border-left:1px solid var(--cor-borda);
+        }
+        .mp-hero-composicao-tit {
+            display:block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+            letter-spacing:.7px; color: var(--cor-texto-mutado); margin-bottom:10px;
+        }
+        /* Abaixo de 1180px as duas colunas não cabem lado a lado: a composição
+           desce e a borda vira um filete horizontal. O limite é alto porque a
+           barra lateral some por volta dos 1024px — entre uma coisa e outra o
+           conteúdo fica na casa dos 690px, e aí a coluna do total tem menos de
+           260px para um número que pede 300. */
+        @media (max-width: 1180px) {
+            .mp-kpi-hero { grid-template-columns: 1fr; gap:20px; }
+            .mp-hero-composicao { padding-left:0; padding-top:18px; border-left:none; border-top:1px solid var(--cor-borda); }
+        }
         .mp-kpi::before {
             content:''; position:absolute; top:0; left:0; height:100%; width:4px;
             background: var(--cor-primaria); border-radius:0 4px 4px 0;
@@ -6842,6 +6964,34 @@
         .mp-kpi-body { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
         .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); transition: color .2s; }
+        /* Card de componente: empilhado, para o valor ter a largura toda. */
+        .mp-kpi-componente {
+            flex-direction:column; align-items:stretch; gap:0;
+            padding:16px 18px 15px;
+        }
+        .mp-kpi-componente .mp-kpi-topo { display:flex; align-items:center; gap:9px; margin-bottom:11px; }
+        .mp-kpi-componente .mp-kpi-icon { width:30px; height:30px; border-radius:9px; font-size:16px; }
+        .mp-kpi-componente .mp-kpi-label { line-height:1.25; }
+        .mp-kpi-componente .mp-kpi-valor { display:block; margin-bottom:12px; }
+        .mp-kpi-rodape { display:flex; flex-direction:column; gap:7px; margin-top:auto; }
+        /* Fatia do total: liga o card à barra do hero. Sem ela, saber que
+           "R$ 420.000 são 75% do patrimônio" exigia voltar para a legenda. */
+        .mp-kpi-fatia { display:flex; align-items:center; gap:8px; }
+        .mp-kpi-fatia-trilho {
+            flex:1; height:4px; border-radius:99px; background: var(--cor-superficie); overflow:hidden;
+        }
+        .mp-kpi-fatia-fill {
+            height:100%; width:0; border-radius:99px;
+            transition: width .6s cubic-bezier(.4,0,.2,1);
+        }
+        .mp-kpi-saldo     .mp-kpi-fatia-fill { background: var(--cor-primaria); }
+        .mp-kpi-investido .mp-kpi-fatia-fill { background: var(--cor-patrimonio); }
+        .mp-kpi-imoveis   .mp-kpi-fatia-fill { background: #f59e0b; }
+        .mp-kpi-veiculos  .mp-kpi-fatia-fill { background: #64748b; }
+        .mp-kpi-fatia-pct {
+            font-size:10.5px; font-weight:700; color: var(--cor-texto-mutado);
+            font-variant-numeric:tabular-nums; white-space:nowrap;
+        }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
         .mp-kpi-delta.pos { color: var(--tinta-verde); }
         .mp-kpi-delta.neg { color: var(--tinta-vermelho); }
@@ -6849,7 +6999,7 @@
         .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
         .mp-kpi-sub i { font-size:12px; opacity:.8; }
         .mp-composition-bar {
-            display:flex; height:8px; border-radius:99px; overflow:hidden; margin-top:10px;
+            display:flex; height:10px; border-radius:99px; overflow:hidden;
             background: var(--cor-superficie); gap:2px;
         }
         .mp-composition-seg {
@@ -6857,14 +7007,27 @@
             min-width:3px; cursor:default; position:relative;
         }
         .mp-composition-seg:hover { opacity:.8; filter:brightness(1.1); }
+        /* Legenda em tabela: cada fatia numa linha, com o valor em R$ ao lado
+           da porcentagem. Antes eram só chips "Imóveis 75.0%" — dizia a
+           proporção mas escondia de quanto se estava falando. */
         .mp-composition-legend {
-            display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:8px;
+            display:grid; grid-template-columns: 1fr auto auto; gap:7px 12px; margin-top:12px;
+            align-items:baseline;
         }
         .mp-composition-legend-item {
-            font-size:10px; font-weight:600; color: var(--cor-texto-mutado);
-            display:inline-flex; align-items:center; gap:4px;
+            font-size:11.5px; font-weight:600; color: var(--cor-texto-secundario);
+            display:inline-flex; align-items:center; gap:7px; min-width:0;
         }
-        .mp-composition-legend-item .mp-leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+        .mp-composition-legend-item .mp-leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .mp-leg-valor {
+            font-family:'DM Mono', monospace; font-size:11.5px; font-weight:600;
+            color: var(--cor-texto-principal); text-align:right; white-space:nowrap;
+        }
+        .mp-leg-share {
+            font-size:11px; font-weight:700; color: var(--cor-texto-mutado);
+            text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;
+            min-width:42px;
+        }
 
         .mp-grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:20px; align-items:start; }
         @media (max-width: 960px) { .mp-grid { grid-template-columns: 1fr; } }
@@ -7033,6 +7196,7 @@
         .mp-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.35; }
 
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
+        body.valores-ocultos #meu_patrimonio .mp-leg-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-chip strong,
@@ -8822,6 +8986,480 @@
             }
         }
 
+        /* =====================================================================
+           SUB-ABA FUTURO — projeção de investimentos
+           (web/appliquei-projecao.js)
+
+           A aba de investimentos respondia duas perguntas: "quanto eu tenho"
+           e "quanto rendeu". Faltava a terceira, que é a que faz alguém abrir
+           o app num domingo: "e se eu deixar quieto, quanto isso vira?".
+
+           Três decisões de desenho sustentam a tela inteira:
+
+           1. O NÚMERO VEM ANTES DA CURVA. O hero responde em uma linha; o
+              gráfico só explica o caminho. Toda tela de projeção que começa
+              pelo gráfico obriga a pessoa a ler eixo para descobrir a resposta.
+
+           2. A DECOMPOSIÇÃO É O PRODUTO. A barra "você já tem × você vai
+              guardar × juros sobre juros" é o argumento inteiro dos juros
+              compostos, e nenhum valor solto consegue dizê-lo. É a única peça
+              da tela que existe para convencer, não para informar.
+
+           3. A INCERTEZA APARECE. Banda pessimista–otimista no gráfico, faixa
+              nos dois cenários sob o hero, premissas abertas e editáveis. Um
+              número único de trinta anos com duas casas decimais é mentira
+              com aparência de precisão.
+
+           Zero hex cravado: tudo sai dos tokens, então o tema escuro nasce
+           pronto. Todo movimento respeita prefers-reduced-motion pela regra
+           geral de #patrimonio.
+           ===================================================================== */
+
+        /* ---------- A tira no hero da carteira ----------
+           É o convite. Fica logo abaixo do saldo porque a pergunta nasce ali:
+           a pessoa olha o número de hoje e quer o de amanhã. */
+        #patrimonio .inv-futuro {
+            display: flex; align-items: center; gap: 9px; width: 100%;
+            margin-top: 8px; padding: 11px 12px; border-radius: var(--inv-r-md);
+            border: 1px solid var(--cor-borda-primaria); cursor: pointer;
+            background: linear-gradient(100deg, var(--cor-bg-primaria) 0%, transparent 85%), var(--cor-branco);
+            font-family: inherit; text-align: left; color: var(--cor-texto-principal);
+            transition: transform var(--transicao), box-shadow var(--transicao);
+        }
+        #patrimonio .inv-futuro:hover {
+            transform: translateY(-1px); box-shadow: var(--shadow-media);
+        }
+        #patrimonio .inv-futuro:active { transform: translateY(0) scale(0.995); }
+        #patrimonio .inv-futuro > i:first-child {
+            font-size: 16px; color: var(--cor-primaria); flex-shrink: 0;
+        }
+        #patrimonio .inv-futuro-rot {
+            font-size: 12px; color: var(--cor-texto-secundario); min-width: 0;
+        }
+        #patrimonio .inv-futuro-rot strong { color: var(--cor-texto-principal); }
+        #patrimonio .inv-futuro-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14.5px; font-weight: 600; margin-left: auto;
+            color: var(--cor-txt-primaria); white-space: nowrap;
+        }
+        #patrimonio .inv-futuro-seta {
+            font-size: 13px; color: var(--cor-primaria); flex-shrink: 0;
+            transition: transform var(--transicao);
+        }
+        #patrimonio .inv-futuro:hover .inv-futuro-seta { transform: translateX(2px); }
+
+        /* ---------- Hero da projeção ----------
+           Mesma família do hero do saldo (raio grande, luz vinda do topo), com
+           a aurora deslocada para a esquerda: são cartões irmãos, não cópias. */
+        #patrimonio .proj-hero {
+            position: relative; overflow: hidden;
+            border-radius: var(--inv-r-lg); padding: 18px 16px 16px; margin-bottom: 14px;
+            background:
+                radial-gradient(120% 130% at 8% -10%, var(--cor-bg-primaria) 0%, transparent 60%),
+                var(--cor-branco);
+            box-shadow: var(--shadow-card);
+        }
+        #patrimonio .proj-hero::after {
+            content: ''; position: absolute; inset: 0 0 auto 0; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.9) 45%, transparent);
+            pointer-events: none;
+        }
+        body.dark #patrimonio .proj-hero {
+            box-shadow: none; border: 1px solid var(--cor-borda);
+            background:
+                radial-gradient(120% 130% at 8% -10%, rgba(52,211,153,0.10) 0%, transparent 60%),
+                var(--cor-branco);
+        }
+        body.dark #patrimonio .proj-hero::after {
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10) 45%, transparent);
+        }
+        #patrimonio .proj-hero-top {
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+            gap: 8px; margin-bottom: 8px;
+        }
+        /* Botão-interruptor do valor real. Fica no hero porque muda TODOS os
+           números da aba de uma vez — enterrá-lo nas premissas esconderia a
+           pergunta "isso é dinheiro de hoje ou de 2035?". */
+        #patrimonio .proj-btn-real {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 30px; padding: 0 11px; border-radius: 99px; cursor: pointer;
+            border: 1px solid var(--inv-hairline); background: var(--cor-branco);
+            color: var(--cor-texto-secundario);
+            font-family: inherit; font-size: 11.5px; font-weight: 700;
+            white-space: nowrap; transition: all var(--transicao);
+        }
+        #patrimonio .proj-btn-real:hover { color: var(--cor-texto-principal); border-color: var(--cor-borda2); }
+        #patrimonio .proj-btn-real.ativo {
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            border-color: var(--cor-borda-primaria);
+        }
+        #patrimonio .proj-btn-real i { font-size: 13px; }
+
+        #patrimonio .proj-hero-valor {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: clamp(30px, 9vw, 40px); font-weight: 500;
+            letter-spacing: -0.035em; line-height: 1.05;
+            color: var(--cor-texto-principal); margin: 2px 0 8px; word-break: break-word;
+        }
+        #patrimonio .proj-hero-valor .inv-cents { font-size: 0.62em; opacity: 0.5; }
+        #patrimonio .proj-hero-valor .inv-moeda {
+            font-size: 0.44em; opacity: 0.45; font-weight: 600;
+            letter-spacing: 0; margin-right: 4px; vertical-align: 0.28em;
+        }
+        #patrimonio .proj-hero-linha {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px;
+        }
+        #patrimonio .proj-delta {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 3px 9px 3px 7px; border-radius: 99px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-weight: 700; font-size: 13.5px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+        }
+        #patrimonio .proj-delta.neg { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        #patrimonio .proj-delta i { font-size: 12px; }
+        #patrimonio .proj-hero-mult {
+            font-size: 12px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-hero-sub {
+            display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px;
+            margin-top: 8px; font-size: 11.5px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-hero-sub i { font-size: 13px; }
+
+        /* Os dois extremos do cenário, lado a lado. Sem eles, o número do hero
+           lê como previsão; com eles, lê como faixa — que é o que é. */
+        #patrimonio .proj-faixa {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+            margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .proj-cen { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        #patrimonio .proj-cen-rot {
+            font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-cen-val {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 14px; font-weight: 600;
+        }
+        #patrimonio .proj-cen-baixo .proj-cen-val { color: var(--tinta-ambar); }
+        #patrimonio .proj-cen-alto .proj-cen-val { color: var(--tinta-verde); }
+        #patrimonio .proj-cen-alto { text-align: right; }
+
+        /* ---------- Régua de tempo ----------
+           Arrastar é a interação certa aqui: a pergunta não é "quanto em 10
+           anos", é "como isso cresce conforme o tempo passa". O range dá a
+           varredura; as pílulas dão o atalho. */
+        #patrimonio .proj-regua { margin-top: 14px; }
+        #patrimonio .proj-range {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 22px; background: transparent; cursor: pointer;
+            display: block; margin: 0;
+        }
+        #patrimonio .proj-range:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 4px; border-radius: 8px; }
+        #patrimonio .proj-range::-webkit-slider-runnable-track {
+            height: 6px; border-radius: 99px; background: var(--inv-recuo);
+            border: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .proj-range::-moz-range-track {
+            height: 6px; border-radius: 99px; background: var(--inv-recuo);
+            border: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .proj-range::-moz-range-progress {
+            height: 6px; border-radius: 99px; background: var(--cor-primaria);
+        }
+        /* 22px de alvo: abaixo disso o polegar erra o arrasto no celular. */
+        #patrimonio .proj-range::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 22px; height: 22px; margin-top: -9px; border-radius: 50%;
+            background: var(--cor-branco); border: 3px solid var(--cor-primaria);
+            box-shadow: var(--shadow-media); transition: transform var(--transicao);
+        }
+        #patrimonio .proj-range::-moz-range-thumb {
+            width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--cor-primaria);
+            background: var(--cor-branco); box-shadow: var(--shadow-media);
+        }
+        #patrimonio .proj-range:active::-webkit-slider-thumb { transform: scale(1.12); }
+        #patrimonio .proj-regua-escala {
+            display: flex; justify-content: space-between; margin-top: 2px;
+            font-size: 10.5px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-pills { margin-top: 10px; }
+
+        /* ---------- Aporte simulado ---------- */
+        #patrimonio .proj-aporte { margin-bottom: 14px; }
+        #patrimonio .proj-aporte-corpo { padding: 12px; }
+        #patrimonio .proj-campo {
+            display: flex; align-items: center; gap: 8px; margin-top: 10px;
+            height: var(--altura-campo); padding: 0 12px; border-radius: var(--inv-r-md);
+            background: var(--inv-recuo); border: 1px solid transparent;
+            transition: border-color var(--transicao), background var(--transicao);
+        }
+        #patrimonio .proj-campo:focus-within {
+            background: var(--cor-branco); border-color: var(--cor-borda-primaria);
+        }
+        #patrimonio .proj-campo-prefixo,
+        #patrimonio .proj-campo-sufixo {
+            font-size: 12.5px; font-weight: 700; color: var(--cor-texto-secundario); flex-shrink: 0;
+        }
+        #patrimonio .proj-campo input {
+            flex: 1; min-width: 0; border: none; background: none; outline: none;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 15px; font-weight: 500; color: var(--cor-texto-principal);
+        }
+        #patrimonio .proj-aporte-nota {
+            margin-top: 8px; font-size: 11px; line-height: 1.5;
+            color: var(--cor-texto-secundario);
+        }
+
+        /* ---------- Composição: a peça que convence ----------
+           Uma barra de três fatias e três linhas de legenda. A fatia de juros
+           usa o acento cheio; as duas primeiras são tonais, porque são
+           dinheiro que a pessoa já colocou — o mérito não é delas. */
+        #patrimonio .proj-comp { padding: 14px 12px; }
+        #patrimonio .proj-comp-barra {
+            display: flex; gap: 3px; height: 34px; border-radius: var(--inv-r-md);
+            overflow: hidden; background: var(--inv-recuo);
+        }
+        #patrimonio .proj-comp-fatia { display: block; min-width: 3px; transition: flex var(--transicao); }
+        /* Rampa de três passos que sobrevive à troca de tema: neutro para o que
+           já é seu, azul para o que você ainda vai depositar, acento cheio para
+           o que o dinheiro fez sozinho. Tons de um mesmo verde não serviriam —
+           no escuro --cor-borda-primaria some contra a superfície. */
+        #patrimonio .proj-comp-hoje { background: var(--cor-texto-mutado); }
+        #patrimonio .proj-comp-aportes { background: var(--cor-info); }
+        #patrimonio .proj-comp-juros {
+            background: linear-gradient(100deg, var(--cor-primaria), var(--cor-primaria-hover));
+        }
+        #patrimonio .proj-comp-lista { margin-top: 12px; display: grid; gap: 8px; }
+        #patrimonio .proj-comp-item { display: flex; align-items: center; gap: 8px; }
+        #patrimonio .proj-comp-ponto {
+            width: 9px; height: 9px; border-radius: 3px; flex-shrink: 0;
+        }
+        #patrimonio .proj-comp-rot { font-size: 12.5px; color: var(--cor-texto-principal); }
+        #patrimonio .proj-comp-val {
+            margin-left: auto; font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .proj-comp-perc {
+            min-width: 38px; text-align: right;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 12px; font-weight: 700; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-comp-frase {
+            margin-top: 12px; padding: 10px 12px; border-radius: var(--inv-r-md);
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            font-size: 12.5px; font-weight: 600; line-height: 1.5;
+        }
+
+        /* ---------- Curva ---------- */
+        #patrimonio .proj-grafico { position: relative; height: 240px; margin-top: 10px; }
+        #patrimonio .proj-chip-real { color: var(--cor-txt-primaria); font-weight: 700; }
+
+        /* A legenda espelha a MARCA: traço para linha, retângulo para área.
+           Com bolinha para tudo, o leitor procura no gráfico o ponto que viu
+           aqui e não acha — a faixa não tem ponto, tem superfície. */
+        #patrimonio .proj-leg-linha {
+            width: 14px; height: 3px; border-radius: 2px; flex-shrink: 0;
+        }
+        #patrimonio .proj-leg-area {
+            width: 14px; height: 10px; border-radius: 3px; flex-shrink: 0;
+        }
+        #patrimonio .proj-leg-tracejada {
+            width: 14px; height: 0; flex-shrink: 0;
+            border-top: 2px dashed var(--proj-leg-cor, var(--cor-texto-mutado));
+        }
+
+        /* Tooltip próprio: o do Chart.js listava as quatro séries com uma
+           caixa de cor, e duas delas têm borda transparente — apareciam com
+           um quadradinho invisível ao lado do número. Aqui o valor lidera e o
+           rótulo segue, que é a hierarquia certa quando a pessoa já sabe o
+           que está olhando e quer o número. */
+        .proj-tooltip {
+            position: absolute; pointer-events: none; z-index: 9000;
+            transform: translate(-50%, calc(-100% - 12px));
+            min-width: 132px; padding: 9px 11px;
+            border-radius: 10px; opacity: 0;
+            background: var(--cor-texto-principal); color: var(--cor-branco);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            transition: opacity 0.12s ease;
+            font-family: 'Figtree', sans-serif;
+        }
+        .proj-tooltip .proj-tt-data {
+            font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+            text-transform: uppercase; opacity: 0.6; margin-bottom: 3px;
+        }
+        .proj-tooltip .proj-tt-valor {
+            font-family: 'DM Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+            font-size: 16px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.15;
+        }
+        .proj-tooltip .proj-tt-rot { font-size: 10.5px; opacity: 0.6; margin-bottom: 6px; }
+        .proj-tooltip .proj-tt-linha {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11.5px; margin-top: 3px;
+            font-family: 'DM Mono', ui-monospace, monospace;
+            font-variant-numeric: tabular-nums;
+        }
+        .proj-tooltip .proj-tt-faixa {
+            width: 11px; height: 8px; border-radius: 2px; flex-shrink: 0;
+            background: rgba(255,255,255,0.28);
+        }
+        .proj-tooltip .proj-tt-ponto {
+            width: 11px; height: 3px; border-radius: 2px; flex-shrink: 0;
+            background: var(--cor-primaria);
+        }
+        .proj-tooltip .proj-tt-juros { opacity: 0.92; }
+
+        /* ---------- Marcos ---------- */
+        #patrimonio .proj-marcos {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 1px; background: var(--inv-hairline);
+        }
+        #patrimonio .proj-marco {
+            padding: 14px 12px; background: var(--cor-branco); text-align: center;
+        }
+        #patrimonio .proj-marco-alvo {
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 17px; font-weight: 600; color: var(--cor-txt-primaria);
+            letter-spacing: -0.02em;
+        }
+        #patrimonio .proj-marco-prazo {
+            margin-top: 3px; font-size: 12px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .proj-marco-data {
+            margin-top: 1px; font-size: 11px; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-marco-vazio {
+            grid-column: 1 / -1; padding: 20px 14px; background: var(--cor-branco);
+            font-size: 12.5px; line-height: 1.55; color: var(--cor-texto-secundario);
+            text-align: center;
+        }
+
+        /* ---------- Classe por classe ---------- */
+        #patrimonio .proj-classes { display: grid; gap: 14px; }
+        #patrimonio .proj-classe-cab { display: flex; align-items: center; gap: 7px; }
+        #patrimonio .proj-classe-ponto {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--proj-cor); flex-shrink: 0;
+        }
+        #patrimonio .proj-classe-rot {
+            font-size: 12.5px; font-weight: 700; color: var(--cor-texto-principal);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        #patrimonio .proj-classe-taxa {
+            margin-left: auto; flex-shrink: 0;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 11.5px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-classe-barra {
+            height: 5px; margin-top: 6px; border-radius: 99px;
+            background: var(--inv-recuo); overflow: hidden;
+        }
+        #patrimonio .proj-classe-barra span {
+            display: block; height: 100%; border-radius: 99px; background: var(--proj-cor);
+            transition: width var(--transicao);
+        }
+        #patrimonio .proj-classe-linha {
+            display: flex; align-items: baseline; gap: 7px; margin-top: 6px;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums; font-size: 12.5px;
+        }
+        #patrimonio .proj-classe-de { color: var(--cor-texto-secundario); }
+        #patrimonio .proj-classe-linha i { font-size: 11px; color: var(--cor-texto-secundario); }
+        #patrimonio .proj-classe-para { font-weight: 600; color: var(--cor-texto-principal); }
+        #patrimonio .proj-classe-mult {
+            margin-left: auto; padding: 2px 8px; border-radius: 99px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            font-size: 11px; font-weight: 700;
+        }
+
+        /* ---------- Faixa "parte disto é estimativa nossa" ----------
+           Âmbar, não vermelho: não é erro, é procedência incompleta. Mesma
+           família da faixa que a Carteira já usa para o mesmo assunto, para
+           a pessoa reconhecer o aviso em vez de ler duas vezes. */
+        #patrimonio .proj-aviso-faixa {
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-bottom: 14px; padding: 11px 13px; border-radius: var(--inv-r-md);
+            background: var(--cor-bg-amber); border: 1px solid var(--cor-borda-amber);
+            color: var(--cor-txt-amber);
+        }
+        #patrimonio .proj-aviso-faixa > i:first-child { font-size: 20px; flex-shrink: 0; }
+        #patrimonio .proj-aviso-texto {
+            flex: 1; min-width: 180px; font-size: 12px; line-height: 1.5;
+        }
+        #patrimonio .proj-aviso-btn {
+            display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+            height: 32px; padding: 0 12px; border-radius: 99px; border: none; cursor: pointer;
+            background: var(--tinta-ambar); color: var(--cor-branco);
+            font-family: inherit; font-size: 12.5px; font-weight: 700; white-space: nowrap;
+        }
+        #patrimonio .proj-aviso-btn:hover { filter: brightness(1.08); }
+        #patrimonio .proj-aviso-x {
+            flex-shrink: 0; border: none; background: none; cursor: pointer;
+            color: inherit; font-size: 16px; line-height: 1; padding: 4px;
+        }
+
+        /* ---------- Premissas ---------- */
+        #patrimonio .proj-premissas { display: grid; gap: 10px; }
+        /* Classe cuja taxa este arquivo arbitrou: o filete âmbar liga a linha
+           à faixa do topo sem precisar repetir a frase inteira. */
+        #patrimonio .proj-premissa-pendente {
+            border-left: 3px solid var(--cor-borda-amber);
+        }
+        #patrimonio .proj-premissa-pendente .proj-premissa-org { color: var(--tinta-ambar); }
+        #patrimonio .proj-premissa {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 11px; border-radius: var(--inv-r-md); background: var(--inv-recuo);
+        }
+        #patrimonio .proj-premissa-info { min-width: 0; flex: 1; }
+        #patrimonio .proj-premissa-rot {
+            display: block; font-size: 12.5px; font-weight: 700; color: var(--cor-texto-principal);
+        }
+        #patrimonio .proj-premissa-org {
+            display: block; margin-top: 1px; font-size: 10.5px; line-height: 1.4;
+            color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-premissa-campo {
+            display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+            height: 32px; padding: 0 9px; border-radius: var(--inv-r-sm);
+            background: var(--cor-branco); border: 1px solid var(--inv-hairline);
+        }
+        #patrimonio .proj-premissa-campo:focus-within { border-color: var(--cor-borda-primaria); }
+        #patrimonio .proj-premissa-campo input {
+            width: 52px; border: none; background: none; outline: none; text-align: right;
+            font-family: var(--inv-num); font-variant-numeric: tabular-nums;
+            font-size: 13px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        #patrimonio .proj-premissa-campo span {
+            font-size: 11px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        #patrimonio .proj-aviso {
+            margin-top: 12px; font-size: 11px; line-height: 1.6;
+            color: var(--cor-texto-secundario);
+        }
+
+        @media (min-width: 720px) {
+            #patrimonio .proj-hero { padding: 22px 22px 18px; border-radius: 22px; }
+            #patrimonio .proj-hero-valor { font-size: 44px; }
+            #patrimonio .proj-grafico { height: 300px; }
+            #patrimonio .proj-comp-lista { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+            /* Em três colunas o item deixa de ser uma linha e vira um bloco de
+               duas: rótulo em cima, valor e participação juntos embaixo. Com
+               flex e margin-left:auto o "55%" acabava jogado no fim da coluna,
+               a três centímetros do número que ele qualifica. */
+            #patrimonio .proj-comp-item {
+                display: grid; column-gap: 8px; row-gap: 1px; align-items: baseline;
+                grid-template-columns: 9px auto 1fr;
+                grid-template-areas: "ponto rot rot" ". val perc";
+            }
+            #patrimonio .proj-comp-ponto { grid-area: ponto; align-self: center; }
+            #patrimonio .proj-comp-rot { grid-area: rot; }
+            #patrimonio .proj-comp-val { grid-area: val; margin-left: 0; }
+            #patrimonio .proj-comp-perc { grid-area: perc; min-width: 0; text-align: left; }
+            #patrimonio .proj-aporte-corpo { padding: 14px 16px; }
+            #patrimonio .proj-comp { padding: 16px; }
+        }
+
         /* ==========================================================
            MODO ESCURO — texto sobre o acento claro
            ==========================================================
@@ -9046,7 +9684,7 @@
         /* ═══════════════════════════════════════════════════════════════
            CAMPO DE FORMULÁRIO NUNCA ABAIXO DE 16px NO TOQUE
            ───────────────────────────────────────────────────────────────
-           O Safari do iOS AMPLIA a página sozinho quando o utilizador toca
+           O Safari do iOS AMPLIA a página sozinho quando o usuário toca
            num campo cuja fonte é menor que 16px. Como a viewport declarada é
            `width=device-width, initial-scale=1.0` (sem maximum-scale, e é
            assim que deve continuar), o zoom é aceite e a viewport VISÍVEL
@@ -9109,13 +9747,13 @@
             <div class="auth-gate-head">
                 <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
                 <h2>Bem-vindo</h2>
-                <p id="authGateSub">A carregar…</p>
+                <p id="authGateSub">Carregando…</p>
             </div>
-            <div id="authGateLoading" class="auth-loading">A preparar autenticação…</div>
+            <div id="authGateLoading" class="auth-loading">Preparando a autenticação…</div>
             <div id="authGateNoConfig" class="auth-gate-panel">
                 <p style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.55;margin-bottom:16px;">
-                    O Firebase não arrancou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Consola</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
-                    Confirme <em>Authentication → E-mail/senha</em> no Console Firebase. A config embebida no HTML só falha se os scripts <code>gstatic.com/firebasejs</code> não carregarem.
+                    O Firebase não iniciou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Console</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
+                    Confirme <em>Authentication → E-mail/senha</em> no Console Firebase. A config embutida no HTML só falha se os scripts <code>gstatic.com/firebasejs</code> não carregarem.
                 </p>
             </div>
             <div id="authGateForm" class="auth-gate-panel">
@@ -9659,6 +10297,17 @@
                         <i class="ph ph-arrow-right" id="iconAbrirDividendosMes" style="display:none; color: var(--cor-primaria);"></i>
                         <span class="inv-evento-det" id="resumoProximoEventoDetalhe"></span>
                     </div>
+
+                    <!-- A pergunta que o saldo de hoje não responde: "e se eu
+                         deixar isso quieto?". A tira mostra a resposta em uma
+                         linha e abre a sub-aba Futuro. Nasce escondida: sem
+                         carteira não há projeção. -->
+                    <button type="button" class="inv-futuro" id="tiraProjecao" style="display:none;" onclick="mudarSubAbaPatrimonio('futuro')">
+                        <i class="ph-fill ph-rocket-launch"></i>
+                        <span class="inv-futuro-rot">Sem mexer em nada, em <strong id="tiraProjecaoPrazo">10 anos</strong></span>
+                        <span class="inv-futuro-val valor-mascarado" id="tiraProjecaoValor">—</span>
+                        <i class="ph ph-arrow-right inv-futuro-seta"></i>
+                    </button>
                 </div>
 
                 <!-- Evolução: recolhida no celular (é análise, não consulta),
@@ -9711,6 +10360,7 @@
                     <button class="subtab-pill ativo" id="subtabBtnCarteira" role="tab" onclick="mudarSubAbaPatrimonio('carteira')"><i class="ph ph-wallet"></i> Carteira</button>
                     <button class="subtab-pill" id="subtabBtnOperacoes" role="tab" onclick="mudarSubAbaPatrimonio('operacoes')"><i class="ph ph-list-bullets"></i> Operações</button>
                     <button class="subtab-pill" id="subtabBtnDividendos" role="tab" onclick="mudarSubAbaPatrimonio('dividendos')"><i class="ph ph-coins"></i> Dividendos</button>
+                    <button class="subtab-pill" id="subtabBtnFuturo" role="tab" onclick="mudarSubAbaPatrimonio('futuro')"><i class="ph ph-rocket-launch"></i> Futuro</button>
                 </div>
                 <div class="inv-nav-stat">
                     <span id="subtabMiniStat"></span>
@@ -9896,6 +10546,179 @@
                 </div>
             </div>
 
+            <!-- ================= SUB-ABA: FUTURO =================
+                 A aba respondia "quanto eu tenho" e "quanto rendeu". Aqui ela
+                 responde "quanto isto vira se eu não mexer" — que é a pergunta
+                 que a pessoa faz sozinha olhando o próprio saldo.
+
+                 A ordem é deliberada: primeiro o número (hero), depois DE ONDE
+                 ele vem (composição), só então a curva. Gráfico antes de número
+                 é análise antes de resposta. -->
+            <div id="subAbaFuturo" style="display:none;">
+
+                <div id="projVazio" style="display:none;">
+                    <div class="inv-painel">
+                        <div class="inv-vazio">
+                            <div class="empty-state">
+                                <div class="empty-state-icon"><i class="ph ph-rocket-launch" style="font-size:24px; color: var(--cor-primaria);"></i></div>
+                                <div class="empty-state-titulo">A projeção começa na primeira compra</div>
+                                <div class="empty-state-sub">Registre o que você já tem investido e esta aba mostra quanto isso vira daqui a 1, 10 ou 30 anos.<br>Para simular um valor que você ainda não aplicou, use o <a href="#" onclick="ppNavegarPara('simulador');return false;" style="color:var(--cor-primaria);font-weight:700;">Simulador</a>.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="projCorpo">
+
+                    <!-- Parte da projeção saiu de taxa que a pessoa não
+                         informou. O painel de Premissas nasce recolhido, então
+                         sem esta faixa a única pista ficaria atrás de um toque
+                         que ninguém dá. Chama o mesmo modal da Carteira. -->
+                    <div id="projAvisoSemTaxa" style="display:none;"></div>
+
+                    <!-- ---------- HERO DA PROJEÇÃO ---------- -->
+                    <div class="proj-hero">
+                        <div class="proj-hero-top">
+                            <span class="inv-eyebrow">Seu patrimônio em <span id="projPrazoRotulo">10 anos</span></span>
+                            <button type="button" class="proj-btn-real" id="projBtnValoresHoje" aria-pressed="false" onclick="projAlternarValoresDeHoje()" title="Descontar a inflação e mostrar o valor em poder de compra de hoje">
+                                <i class="ph ph-scales"></i> Valores de hoje
+                            </button>
+                        </div>
+
+                        <div class="proj-hero-valor valor-mascarado" id="projValorFuturo">R$ 0,00</div>
+
+                        <div class="proj-hero-linha">
+                            <span class="proj-delta" id="projDelta">+R$ 0,00</span>
+                            <span class="inv-pipe"></span>
+                            <span class="proj-hero-mult" id="projMultiplo">—</span>
+                        </div>
+
+                        <div class="proj-hero-sub">
+                            <i class="ph ph-calendar-blank"></i>
+                            <span id="projDataRotulo">—</span>
+                            <span class="inv-pipe"></span>
+                            <span id="projModoAporte">sem colocar mais nada</span>
+                        </div>
+
+                        <div class="proj-faixa" id="projFaixaCenarios"></div>
+
+                        <!-- Régua de tempo. O range é o controle principal (o
+                             dedo arrasta e o número acompanha); as pílulas são
+                             o atalho para os prazos que as pessoas realmente
+                             pedem. Os dois escrevem no mesmo estado. -->
+                        <div class="proj-regua">
+                            <input type="range" id="projRangeAnos" class="proj-range" min="1" max="40" step="1" value="10"
+                                   aria-label="Horizonte da projeção, em anos"
+                                   oninput="projSetAnos(this.value, 'range')">
+                            <div class="proj-regua-escala"><span>1 ano</span><span>20</span><span>40 anos</span></div>
+                        </div>
+
+                        <div class="inv-trilho proj-pills" role="group" aria-label="Horizonte da projeção">
+                            <button class="period-pill" data-proj-anos="1" onclick="projSetAnos(1)">1 ano</button>
+                            <button class="period-pill" data-proj-anos="2" onclick="projSetAnos(2)">2 anos</button>
+                            <button class="period-pill" data-proj-anos="5" onclick="projSetAnos(5)">5 anos</button>
+                            <button class="period-pill ativo" data-proj-anos="10" onclick="projSetAnos(10)">10 anos</button>
+                            <button class="period-pill" data-proj-anos="20" onclick="projSetAnos(20)">20 anos</button>
+                            <button class="period-pill" data-proj-anos="30" onclick="projSetAnos(30)">30 anos</button>
+                        </div>
+                    </div>
+
+                    <!-- ---------- E SE EU GUARDAR MAIS? ---------- -->
+                    <div class="inv-painel proj-aporte">
+                        <div class="inv-barra">
+                            <span class="inv-eyebrow">E se eu guardar mais por mês?</span>
+                        </div>
+                        <div class="proj-aporte-corpo">
+                            <div class="inv-trilho" role="group" aria-label="Aporte mensal simulado">
+                                <button class="period-pill ativo" data-proj-aporte="0" onclick="projChipAporte(0)">Nada</button>
+                                <button class="period-pill" data-proj-aporte="100" onclick="projChipAporte(100)">R$ 100</button>
+                                <button class="period-pill" data-proj-aporte="300" onclick="projChipAporte(300)">R$ 300</button>
+                                <button class="period-pill" data-proj-aporte="500" onclick="projChipAporte(500)">R$ 500</button>
+                                <button class="period-pill" data-proj-aporte="1000" onclick="projChipAporte(1000)">R$ 1.000</button>
+                                <button class="period-pill" data-proj-aporte="2000" onclick="projChipAporte(2000)">R$ 2.000</button>
+                            </div>
+                            <label class="proj-campo">
+                                <span class="proj-campo-prefixo">R$</span>
+                                <input type="text" id="projAporteInput" inputmode="decimal" placeholder="0,00"
+                                       aria-label="Aporte mensal simulado, em reais"
+                                       onchange="projAporteDoCampo()">
+                                <span class="proj-campo-sufixo">por mês</span>
+                            </label>
+                            <p class="proj-aporte-nota">O aporte é dividido entre as suas classes na mesma proporção de hoje.</p>
+                        </div>
+                    </div>
+
+                    <!-- ---------- DE ONDE VEM ESSE DINHEIRO ---------- -->
+                    <div class="inv-painel">
+                        <div class="inv-barra">
+                            <span class="inv-eyebrow">De onde vem esse dinheiro</span>
+                        </div>
+                        <div class="proj-comp" id="projComposicao"></div>
+                    </div>
+
+                    <!-- ---------- CURVA ---------- -->
+                    <div class="inv-bloco" id="blocoProjecaoCurva" data-aberto="1">
+                        <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoProjecaoCurva')" aria-controls="corpoProjecaoCurva">
+                            <span class="inv-eyebrow">Caminho até lá</span>
+                            <i class="ph ph-caret-down inv-chevron"></i>
+                        </button>
+                        <div class="inv-bloco-corpo" id="corpoProjecaoCurva">
+                            <div class="proj-grafico"><canvas id="graficoProjecao"></canvas></div>
+                            <div id="legendaProjecao" class="legenda-chart"></div>
+                            <div id="msgProjecaoVazia" class="inv-vazio" style="display:none;">
+                                <i class="ph ph-chart-line-up"></i>
+                                Sem posições para projetar.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ---------- MARCOS ---------- -->
+                    <div class="inv-painel">
+                        <div class="inv-barra">
+                            <span class="inv-eyebrow">Quando você chega lá</span>
+                        </div>
+                        <div class="proj-marcos" id="projMarcos"></div>
+                    </div>
+
+                    <!-- ---------- POR CLASSE ---------- -->
+                    <div class="inv-bloco" id="blocoProjecaoClasses">
+                        <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoProjecaoClasses')" aria-controls="projClasses">
+                            <span class="inv-eyebrow">Classe por classe</span>
+                            <i class="ph ph-caret-down inv-chevron"></i>
+                        </button>
+                        <div class="inv-bloco-corpo">
+                            <div class="proj-classes" id="projClasses"></div>
+                        </div>
+                    </div>
+
+                    <!-- ---------- PREMISSAS ----------
+                         Projeção com premissa escondida é adivinhação com
+                         gráfico. As taxas ficam visíveis, dizem de onde
+                         vieram e podem ser corrigidas. -->
+                    <div class="inv-bloco" id="blocoProjecaoPremissas">
+                        <button type="button" class="inv-bloco-cab" onclick="alternarBlocoInv('blocoProjecaoPremissas')" aria-controls="projPremissasLista">
+                            <span class="inv-eyebrow">Premissas</span>
+                            <span class="inv-bloco-resumo" id="projPremissasFonte">—</span>
+                            <i class="ph ph-caret-down inv-chevron"></i>
+                        </button>
+                        <div class="inv-bloco-corpo">
+                            <div class="proj-premissas" id="projPremissasLista"></div>
+                            <button type="button" class="inv-btn-icone" id="projBtnRestaurar" style="display:none; margin-top:10px;" onclick="projRestaurarPremissas()">
+                                <i class="ph ph-arrow-counter-clockwise"></i> Restaurar padrão
+                            </button>
+                            <p class="proj-aviso">
+                                Projeção não é promessa. Renda fixa, reserva e previdência usam a taxa que você
+                                contratou — e, quando você não informou nenhuma, o CDI no lugar dela, como diz a
+                                linha da classe acima. Renda variável não tem taxa a contratar: usa prêmio de longo
+                                prazo sobre a inflação. Os valores são brutos, antes de imposto de renda e taxas,
+                                e o resultado real depende do mercado.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
         </section>
 
 
@@ -9906,7 +10729,36 @@
                     <p class="subtitulo" style="margin-bottom:0">Visão mensal de receitas, despesas e saúde do caixa.</p>
                 </div>
                 <div class="page-actions">
-                    <div style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
+                    <!-- Termômetro do mês: o mesmo score do Relatório mensal,
+                         em versão de bolso. Fica aqui porque é no Controle que
+                         a pessoa lança as coisas que mexem no score — ver o
+                         efeito só depois, em outra aba, é tarde demais.
+                         Clicar abre o relatório completo do mês em exibição. -->
+                    <button type="button" id="termometroControle" class="term-chip" onclick="abrirRelatorioDoMesVisao()" title="Ver o Relatório mensal completo deste mês">
+                        <span class="term-chip-gauge" aria-hidden="true">
+                            <svg viewBox="0 0 48 29" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="termChipGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#ef4444"/>
+                                        <stop offset="50%" stop-color="#f59e0b"/>
+                                        <stop offset="100%" stop-color="#10b981"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 5 24 A 19 19 0 0 1 43 24" fill="none" stroke="var(--rm-gauge-trilho)" stroke-width="6" stroke-linecap="round"/>
+                                <path id="termChipArco" d="M 5 24 A 19 19 0 0 1 43 24" fill="none" stroke="url(#termChipGrad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="60" stroke-dashoffset="60" style="transition:stroke-dashoffset .7s cubic-bezier(.22,1,.36,1);"/>
+                                <g id="termChipPonteiro" transform="rotate(-90 24 24)" style="transition:transform .7s cubic-bezier(.22,1,.36,1);">
+                                    <line x1="24" y1="24" x2="24" y2="10" stroke="var(--rm-gauge-agulha)" stroke-width="2" stroke-linecap="round"/>
+                                    <circle cx="24" cy="24" r="2.6" fill="var(--rm-gauge-agulha)"/>
+                                </g>
+                            </svg>
+                        </span>
+                        <span class="term-chip-txt">
+                            <span class="term-chip-label">Termômetro</span>
+                            <span class="term-chip-status"><strong id="termChipScore">—</strong><span id="termChipRotulo">—</span></span>
+                        </span>
+                        <i class="ph ph-caret-right term-chip-seta" aria-hidden="true"></i>
+                    </button>
+                    <div class="seletor-mes" style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
                         <input type="month" id="inputMesAnoVisao" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="selecionarMesVisao()">
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
@@ -9918,16 +10770,40 @@
             </div>
 
             <div class="kpis-controle">
-                <!-- Saldo livre em destaque (hero) -->
-                <div class="kpi-hero" id="cardSaldoLivreHero">
-                    <div class="kpi-hero-head">
-                        <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
-                        <div>
-                            <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
-                            <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
+                <!-- Dois heróis, e a diferença entre eles é a pergunta que
+                     respondem. "Saldo livre" é do MÊS: quanto deste mês ainda
+                     não tem destino. "Saldo em conta" é de AGORA: quanto
+                     existe de fato no banco, o mesmo número de Meu patrimônio.
+
+                     Estavam fundidos num card só, e a pessoa lia o saldo do
+                     mês como se fosse o dinheiro na conta — dois números que
+                     só coincidem por acaso. Separados, cada um pode dizer a
+                     que tempo pertence. -->
+                <div class="kpis-controle-heroes">
+                    <div class="kpi-hero" id="cardSaldoLivreHero">
+                        <div class="kpi-hero-head">
+                            <div class="kpi-hero-icon"><i class="ph-fill ph-wallet"></i></div>
+                            <div>
+                                <div class="kpi-hero-lbl">Saldo livre <span id="lblSaldoCarregado" style="display:none;font-size:10px;color:var(--tinta-roxo);font-weight:700;margin-left:4px;"></span></div>
+                                <div class="kpi-hero-sub">receita − despesas − cartão − investimentos − sonhos</div>
+                            </div>
                         </div>
+                        <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
                     </div>
-                    <div class="kpi-hero-valor" id="kpiSaldoLivre">R$ 0,00</div>
+
+                    <div class="kpi-hero kpi-hero-caixa" id="cardSaldoContaHero" role="button" tabindex="0"
+                         title="Ver o detalhe por banco e corretora em Meu patrimônio"
+                         onclick="ppNavegarPara('meu_patrimonio')"
+                         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ppNavegarPara('meu_patrimonio');}">
+                        <div class="kpi-hero-head">
+                            <div class="kpi-hero-icon"><i class="ph-fill ph-bank"></i></div>
+                            <div>
+                                <div class="kpi-hero-lbl">Saldo em conta</div>
+                                <div class="kpi-hero-sub" id="kpiSaldoContaSub">o que existe hoje, somando as suas contas</div>
+                            </div>
+                        </div>
+                        <div class="kpi-hero-valor valor-mascarado" id="kpiSaldoConta">R$ 0,00</div>
+                    </div>
                 </div>
 
                 <!-- Grid 2x2 dos demais KPIs -->
@@ -10469,7 +11345,7 @@
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
                         <button type="button" class="cart-ajuda-btn" id="cartAjudaScoresBtn" aria-expanded="false"
-                                aria-controls="cartAjudaScores" aria-label="Como isto funciona"
+                                aria-controls="cartAjudaScores" aria-label="Como isso funciona"
                                 onclick="cartAlternarAjuda('cartAjudaScores')">?</button>
                         <span class="cart-ajuda-balao" id="cartAjudaScores" hidden>Cada pilar vale de 0 a 10 e o score combina os cinco pela lente ativa.
                         Toque num ativo para ver a justificativa e a procedência do dado.</span>
@@ -10979,49 +11855,86 @@
                 </div>
             </div>
 
-            <!-- KPI hero: patrimônio total -->
+            <!-- KPI hero: patrimônio total.
+                 Duas colunas de propósito: o número grande sozinho deixava
+                 dois terços do card vazios, e a composição — que é a segunda
+                 pergunta de quem olha o total — vivia espremida numa fita de
+                 8px com só a porcentagem. Agora ela ocupa a metade direita e
+                 mostra também o valor em R$ de cada fatia. -->
             <div id="mp-kpis" class="mp-kpis-hero">
                 <div class="mp-kpi mp-kpi-patrimonio mp-kpi-hero">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
-                    <div class="mp-kpi-body">
-                        <span class="mp-kpi-label">Patrimônio total</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
-                        <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                    <div class="mp-hero-principal">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
+                        <div class="mp-kpi-body">
+                            <span class="mp-kpi-label">Patrimônio total</span>
+                            <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
+                            <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                        </div>
+                    </div>
+                    <div class="mp-hero-composicao">
+                        <span class="mp-hero-composicao-tit">Como ele está dividido</span>
                         <div id="mp-composition-bar"></div>
                     </div>
                 </div>
             </div>
-            <!-- Componentes do patrimônio: cada fatia que soma no total -->
+            <!-- Componentes do patrimônio: cada fatia que soma no total.
+                 Empilhados (rótulo em cima, valor no meio, fatia embaixo) em
+                 vez de ícone-ao-lado-do-texto: em 4 colunas o valor não cabia
+                 na largura restante e encostava na borda do card. -->
             <div class="mp-kpis mp-kpis-componentes">
-                <div class="mp-kpi mp-kpi-saldo">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-saldo">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
                         <span class="mp-kpi-label">Saldo em conta</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-saldo-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-saldo-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-saldo-delta">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-investido">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-investido">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
                         <span class="mp-kpi-label">Total investido</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-investido-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-investido-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-imoveis">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-imoveis">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
                         <span class="mp-kpi-label">Imóveis</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-imoveis-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-imoveis-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-imoveis-qtd">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-veiculos">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-veiculos">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
                         <span class="mp-kpi-label">Veículos</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-veiculos-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-veiculos-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-veiculos-qtd">—</span>
                     </div>
                 </div>
@@ -11900,6 +12813,9 @@
     <script src="/web/appliquei-aba1-charts.js?v=onda5-evolucao"></script>
     <script src="/web/appliquei-renda-fixa.js?v=onda3b"></script>
     <script src="/web/appliquei-previdencia.js?v=onda3b"></script>
+    <!-- Projeção (sub-aba Futuro). DEPOIS de renda-fixa e previdencia: lê
+         taxaMensalOperacao, valorAtualRendaFixa e calcularSaldoPrevidencia. -->
+    <script src="/web/appliquei-projecao.js?v=projecao-1"></script>
     <!-- Features extraídas — carregadas DEPOIS de app.js porque usam
          helpers e state global dele. Order ao final é tolerante (todas
          são chamadas via user action ou window.onload). -->

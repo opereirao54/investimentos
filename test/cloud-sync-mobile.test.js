@@ -5,10 +5,10 @@
 // (o ficheiro só usa `var` + globais, sem import/export, por isso roda direto)
 // e reproduz o cenário crítico do mobile:
 //
-//   1. utilizador abre a app (sessão já autenticada);
+//   1. usuário abre a app (sessão já autenticada);
 //   2. o pull inicial .get({source:'server'}) ainda está PENDENTE
 //      (rede lenta / ligação meia-aberta — comum no mobile);
-//   3. o utilizador lança um registo (escreve futurorico_transacoes);
+//   3. o usuário lança um registro (escreve futurorico_transacoes);
 //   4. bloqueia o ecrã → visibilitychange:hidden / pagehide.
 //
 // ANTES da correção, beaconFlushNow/flushPush estavam ambos gateados em
@@ -203,8 +203,8 @@ test('beacon do registro lançado no celular sai ANTES do pull inicial terminar'
   h.resolveIdTokens(); // token aquece (startIdTokenCache)
   await flush();
 
-  // Pull inicial AINDA pendente — initialPullDone=false. Utilizador lança um
-  // registo e bloqueia o ecrã imediatamente.
+  // Pull inicial AINDA pendente — initialPullDone=false. Usuário lança um
+  // registro e bloqueia o ecrã imediatamente.
   h.write('futurorico_transacoes', JSON.stringify([{ id: 1, valor: 100 }]));
   h.hidden();
   await flush();
@@ -351,7 +351,7 @@ test('rev monotónico: write após pull ganha mesmo com relógio atrasado (anti 
   h.resolveIdTokens();
   await flush();
 
-  // O utilizador lança um registo nessa key.
+  // O usuário lança um registro nessa key.
   h.write('futurorico_transacoes', JSON.stringify(['A', 'B']));
   h.hidden();
   await flush();

@@ -117,7 +117,7 @@ var MOTOR_PILAR_NOMES = {
 // Mesmos pilares, rótulo curto. Existe para a barra de cinco colunas do card:
 // num ecrã de 360px cada coluna tem ~55px, e 'Endividamento' mede 75 — era ele
 // que impedia o card de encolher e punha a página a rolar para o lado. O nome
-// completo continua no `title` de cada pilar e na secção de critérios.
+// completo continua no `title` de cada pilar e na seção de critérios.
 var MOTOR_PILAR_NOMES_CURTOS = {
   valuation: 'Valuation',
   dividendos: 'Dividendo',
@@ -878,7 +878,7 @@ var MOTOR_CRITERIOS = {
 //
 // `filtros` NÃO excluem o ativo: viram alerta na tela e marcam `elegivel`
 // como false, e só o plano de aporte decide se respeita isso. Excluir em
-// silêncio esconderia do utilizador que o ativo saiu e por quê.
+// silêncio esconderia do usuário que o ativo saiu e por quê.
 
 var MOTOR_LENTES = {
   equilibrio: {
@@ -2104,7 +2104,7 @@ function motorPesosPorSetor(itens, opcoes) {
       nome: b.nome,
       alvo: b.alvo,
       // O alvo depois de normalizado entre os setores presentes, ao lado do
-      // peso que de facto saiu. Os dois divergem quando o teto por ativo
+      // peso que de fato saiu. Os dois divergem quando o teto por ativo
       // morde — um setor de alvo grande com um único nome elegível — e a
       // tela precisa dos dois números para dizer que cedeu, e por quê.
       alvoPct: somaAlvo > 0 ? motorArred((b.alvo > 0 ? b.alvo : 0) / somaAlvo, 4) : null,
@@ -2412,7 +2412,7 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
 
   // A recomendação sai dos ativos mais bem pontuados — é o produto inteiro.
   // Sem NENHUM ativo pontuado na classe, dividir igual seria fabricar uma
-  // seleção que análise nenhuma sustenta, e o utilizador não teria como
+  // seleção que análise nenhuma sustenta, e o usuário não teria como
   // distinguir isso de uma recomendação de verdade.
   //
   // Então a classe não recomenda. O valor dela fica RETIDO, com o motivo
@@ -2505,7 +2505,7 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
  *
  * O troco da passada gulosa não é refeito: o item trocado fica no lote inteiro
  * que cabe no alvo dele, e a diferença cai na sobra da classe. Refazer a
- * passada mexeria nas quantidades dos OUTROS ativos, que o utilizador não
+ * passada mexeria nas quantidades dos OUTROS ativos, que o usuário não
  * pediu para mexer.
  */
 function motorRecalcularItemTrocado(item, classe) {

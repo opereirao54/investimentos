@@ -440,7 +440,7 @@ test('a lente padrão é derivada do objetivo declarado', () => {
   assert.equal(
     s.run('cartEstado.objetivo="renda"; cartEstado.lente="valor"; cartLenteAtiva()'),
     'valor',
-    'escolha explícita do utilizador vence o padrão'
+    'escolha explícita do usuário vence o padrão'
   );
 });
 
@@ -467,7 +467,7 @@ test('categorias da aba Meu Patrimônio são traduzidas para as classes do motor
   assert.equal(r.valores.cripto, 700);
 });
 
-test('sem carteira registada, o patrimônio informado entra pela proporção-alvo', () => {
+test('sem carteira registrada, o patrimônio informado entra pela proporção-alvo', () => {
   const s = carregar();
   const r = JSON.parse(
     s.run(
@@ -561,7 +561,7 @@ test('Selic, CDI e inflação esperada aparecem com a fonte anexada', () => {
   const html = s.dom.els.get('cartMotorStatus').innerHTML;
   assert.ok(html.includes('15,00%'), 'a Selic corrente tem de aparecer');
   assert.ok(html.includes('14,90%'));
-  assert.ok(html.includes('SGS 432'), 'a série usada tem de ficar disponível ao utilizador');
+  assert.ok(html.includes('SGS 432'), 'a série usada tem de ficar disponível ao usuário');
   assert.ok(html.includes('Banco Central'));
   assert.ok(
     !html.includes('IPCA 12m'),
@@ -723,7 +723,7 @@ test('não há escolha de universo: o dado é o produto, não uma opção', () =
   // Os dois botões — "Todo o mercado" e a lista curada — não eram escolha de
   // gosto: um é o produto (CVM e Tesouro, auditável) e o outro é uma lista
   // escrita à mão. Lado a lado sugeriam valer o mesmo, e convidavam a
-  // desligar exatamente o que se está a vender.
+  // desligar exatamente o que se está vendendo.
   //
   // A carteira modelo continua a existir como RESERVA declarada quando uma
   // classe volta vazia do ranking — degradação com aviso, não alternativa.
@@ -982,7 +982,7 @@ test('a explicação acompanha a lente ativa, não uma lente fixa', () => {
 });
 
 test('a explicação diz o que acontece quando falta indicador', () => {
-  // É a pergunta que o utilizador faz olhando um travessão no card. Sem
+  // É a pergunta que o usuário faz olhando um travessão no card. Sem
   // resposta na tela, "sem dado" parece nota zero.
   const s = carregar();
   s.run('cartRenderizarCriterios();');
@@ -996,7 +996,7 @@ test('a explicação diz o que acontece quando falta indicador', () => {
 // Lista de ativos: nome curto, abas e busca
 // ════════════════════════════════════════════
 //
-// O que estes testes protegem é o que o utilizador relatou: no telemóvel a
+// O que estes testes protegem é o que o usuário relatou: no celular a
 // lista era um bloco único de cards abertos, os nomes do Tesouro
 // transbordavam o card e a página rolava para o lado. As asserções olham para
 // o HTML porque é ele que carrega os atributos de que o filtro depende.
@@ -1056,7 +1056,7 @@ const SEMENTE_TETO = `
 test('o ticker gigante do Tesouro vira código curto, com o nome inteiro ao lado', () => {
   // TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055 tem 38 caracteres em fonte
   // monoespaçada. Era ele que esticava o card e a coluna do plano, e era daí
-  // que vinha a rolagem lateral no telemóvel.
+  // que vinha a rolagem lateral no celular.
   const s = carregar();
   s.run(SEMENTE_LISTA);
   s.run('cartRenderizarMotorRanking(rankingLista);');
@@ -1189,7 +1189,7 @@ test('ação sem setor diz que não foi informado, em vez de repetir a classe', 
 });
 
 test('a busca acha o ativo pelo setor E pelo bloco da política', () => {
-  // São dois nomes para a mesma coisa na cabeça do utilizador: a Vale é
+  // São dois nomes para a mesma coisa na cabeça do usuário: a Vale é
   // 'mineração' e está no bloco 'commodities'. Os dois têm de achar.
   const s = carregar();
   s.run(SEMENTE_MISTA);
@@ -1377,7 +1377,7 @@ test('ativo sem setor entra no plano pelo balde "Outros setores"', () => {
 });
 
 test('zerar "Outros setores" volta a excluir — e a tela diz quantos', () => {
-  // A exclusão passa a ser uma ESCOLHA do utilizador, não uma limitação nossa.
+  // A exclusão passa a ser uma ESCOLHA do usuário, não uma limitação nossa.
   // Continua a ter de ser dita: o ativo aparece pontuado na lista e nunca no
   // plano, e sem esta linha a seleção pareceria arbitrária.
   const s = carregar();
@@ -1394,7 +1394,7 @@ test('zerar "Outros setores" volta a excluir — e a tela diz quantos', () => {
       acaoSemSetor2('XPTO3','Sem Setor A',null,9),
       acaoSemSetor2('ZZZZ3','Sem Setor B',null,8)
     ], { lente:'equilibrio' });
-    // Política do utilizador SEM o curinga.
+    // Política do usuário SEM o curinga.
     cartEstado.custom = { ativo: true, alloc: null, ativos: null,
       setores: { acao: { financeiro: 50, energia: 50, saneamento: 0,
                          tecindustria: 0, consumo: 0, outros: 0 } } };
@@ -1417,7 +1417,7 @@ test('zerar "Outros setores" volta a excluir — e a tela diz quantos', () => {
 // apresenta primeiro, sempre. Quem não entende de investimento recebe uma
 // carteira pronta sem ter de decidir nada; o personalizado é opt-in explícito
 // e volta atrás num clique. Um bug que ligue o custom sozinho, ou que não
-// consiga desligá-lo, quebra o produto para o utilizador que ele mais serve.
+// consiga desligá-lo, quebra o produto para o usuário que ele mais serve.
 
 test('o modo personalizado nasce desligado e não interfere na recomendação', () => {
   const s = carregar();
@@ -1449,7 +1449,7 @@ test('a divisão escolhida à mão vence perfil, objetivo e prazo', () => {
 
 test('setor zerado sai da política em vez de ficar com alvo zero', () => {
   // Alvo zero continuaria a ganhar vaga na repartição por maior média — o
-  // utilizador zerou porque não quer o setor, não porque quer pouco dele.
+  // usuário zerou porque não quer o setor, não porque quer pouco dele.
   const s = carregar();
   s.run(`
     cartEstado.custom = { ativo: true, alloc: null, ativos: null,
@@ -1477,7 +1477,7 @@ test('zerar TODOS os setores devolve a classe à recomendação, não a esvazia'
 });
 
 test('a escolha de ativos filtra o PLANO e deixa a lista inteira', () => {
-  // Esconder o que ficou de fora tiraria do utilizador a única forma de rever
+  // Esconder o que ficou de fora tiraria do usuário a única forma de rever
   // a própria escolha.
   const s = carregar();
   s.run(`
@@ -1495,7 +1495,7 @@ test('a escolha de ativos filtra o PLANO e deixa a lista inteira', () => {
 });
 
 test('os pesos são reescalados para 100 sem perder nem inventar ponto', () => {
-  // O painel não obriga o utilizador a fechar a conta na unha. Arredondar
+  // O painel não obriga o usuário a fechar a conta na unha. Arredondar
   // cada peso por si deixaria o total em 99 ou 101, e a tela mostraria uma
   // alocação que não fecha.
   const s = carregar();
@@ -1516,7 +1516,7 @@ test('os pesos são reescalados para 100 sem perder nem inventar ponto', () => {
 
 test('voltar à recomendação apaga as escolhas, não só o interruptor', () => {
   // Desligar guardando a escolha faria a próxima ativação ressuscitar uma
-  // carteira que o utilizador achava ter descartado.
+  // carteira que o usuário achava ter descartado.
   const s = carregar();
   s.run(`
     cartEstado.perfil = 'Moderado';
@@ -1532,7 +1532,7 @@ test('voltar à recomendação apaga as escolhas, não só o interruptor', () =>
 
   // E a BARRA tem de acompanhar. O painel dependia de cartRecalcularMotor
   // para se redesenhar, e essa função desiste cedo enquanto a busca não
-  // aconteceu: o utilizador aplicava, o painel fechava, e a barra continuava
+  // aconteceu: o usuário aplicava, o painel fechava, e a barra continuava
   // a dizer o contrário do estado — sem caminho de volta à vista.
   const cta = s.dom.els.get('cartCustomWrap').innerHTML;
   assert.ok(cta.includes('Esta é a nossa recomendação'), 'a barra tem de voltar ao texto padrão');
@@ -1540,7 +1540,7 @@ test('voltar à recomendação apaga as escolhas, não só o interruptor', () =>
 });
 
 test('o painel abre com a recomendação carregada, não com tudo em zero', () => {
-  // Abrir em branco devolveria ao utilizador a decisão que ele veio buscar.
+  // Abrir em branco devolveria ao usuário a decisão que ele veio buscar.
   const s = carregar();
   s.run(SEMENTE_LISTA);
   s.run(
@@ -1618,13 +1618,13 @@ test('a simulação responde à pergunta do título antes de tudo', () => {
   assert.ok(html.includes('Patrimônio final estimado'));
   assert.ok(html.includes('cart-sim-principais'), 'os que sustentam a resposta');
   assert.ok(html.includes('cart-sim-secundarios'), 'os de risco, em peso menor');
-  // A frase em português é o que faz a secção informar quem não lê número.
+  // A frase em português é o que faz a seção informar quem não lê número.
   assert.ok(/Aportando .* por mês durante 3 anos/.test(html));
 });
 
 test('o ganho aparece uma vez só, no destaque', () => {
   // Ele estava no hero E numa das caixas principais: o mesmo número duas
-  // vezes gasta a atenção que o resto da secção precisa.
+  // vezes gasta a atenção que o resto da seção precisa.
   const s = carregar();
   s.ctx.cartEstado.capital = 2000;
   s.ctx.serie = serieDeTeste(36, 0.011);

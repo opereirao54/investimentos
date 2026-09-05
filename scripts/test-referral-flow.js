@@ -39,10 +39,10 @@ async function main() {
   const aliceCode = aliceB.referralCode;
   check(
     store.docs.has('referralCodes/' + aliceCode),
-    'cupom registado em referralCodes/' + aliceCode
+    'cupom registrado em referralCodes/' + aliceCode
   );
   check(aliceB.customerId && aliceB.customerId.startsWith('cus_'), 'customer Asaas criado');
-  check(aliceB.signupIp === '127.0.0.1', 'signupIp registado (M6)');
+  check(aliceB.signupIp === '127.0.0.1', 'signupIp registrado (M6)');
 
   // ============ STEP 2 ============
   step(2, 'Alice copia o link de indicação');
@@ -62,7 +62,7 @@ async function main() {
   check(bobB.referredByUserId === 'alice_uid', 'Bob vinculado à Alice');
   check(bobB.referredByCode === aliceCode, 'cupom gravado no billing de Bob');
   check(bobB.recurringDiscountPercent === 10, '10% de desconto recorrente para Bob');
-  check(!!bobB.referralUsedAt, 'referralUsedAt timestamp registado');
+  check(!!bobB.referralUsedAt, 'referralUsedAt timestamp registrado');
 
   // ============ STEP 4 ============
   step(4, 'Charlie tenta criar conta com cupom inexistente');

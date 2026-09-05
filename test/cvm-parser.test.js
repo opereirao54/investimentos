@@ -1366,7 +1366,7 @@ test('a composição do capital guarda as linhas descartadas, com o motivo', () 
 
   assert.equal(cap.porChave.get('cnpj:00000000000191').acoesEmCirculacao, 2000000000);
   const linhas = cap.linhasPorChave.get('cnpj:00000000000191');
-  assert.equal(linhas.length, 3, 'as três linhas têm de ficar registadas');
+  assert.equal(linhas.length, 3, 'as três linhas têm de ficar registradas');
   assert.equal(linhas[1].circulacao, 40000);
   assert.equal(linhas[2].motivo, 'sem_quantidade_ordinaria');
 });
@@ -2194,7 +2194,7 @@ test('sem o agregado, as folhas do bloco imobiliário decidem', () => {
   );
 });
 
-test('as colunas de carteira são de facto encontradas no cabeçalho real da CVM', () => {
+test('as colunas de carteira são de fato encontradas no cabeçalho real da CVM', () => {
   // Este teste existe porque o bug aconteceu: os campos foram acrescentados
   // ao objeto do registro mas NUNCA ao mapa de colunas. Resultado —
   // `acharColuna` devolvia undefined, todo fundo saía sem tipo, e nada
@@ -2286,7 +2286,7 @@ test('linha com setor vazio não entra no índice', () => {
   assert.equal(idx.get('cd:' + P.normalizarCdCvm('008888')), 'Energia Elétrica');
 });
 
-test('registo duplicado da mesma companhia não depende da ordem do arquivo', () => {
+test('registro duplicado da mesma companhia não depende da ordem do arquivo', () => {
   // O cadastro traz mais de uma linha por companhia quando a situação
   // cadastral muda. Sobrescrever faria o resultado depender da ordem — que
   // não é critério nenhum.

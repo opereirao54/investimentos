@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appliquei — Centro de Comando</title>
-    <meta name="description" content="Painel administrativo do Appliquei — métricas, gestão de utilizadores e superpoderes.">
+    <meta name="description" content="Painel administrativo da Appliquei — métricas, gestão de usuários e superpoderes.">
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/appliquei-apple-touch-180.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -403,7 +403,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <i class="ph ph-key"></i>
             <input type="password" id="admin-token" class="login-input" placeholder="ADMIN_API_TOKEN" autocomplete="off">
         </div>
-        <button id="login-btn" class="login-btn"><i class="ph-fill ph-sign-in"></i> Aceder ao Painel</button>
+        <button id="login-btn" class="login-btn"><i class="ph-fill ph-sign-in"></i> Acessar o painel</button>
         <div id="error-msg" class="login-error"><i class="ph-fill ph-warning-circle"></i> Acesso negado. Verifique o token.</div>
     </div>
 </div>
@@ -411,7 +411,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
 <!-- GLOBAL SEARCH -->
 <div id="global-search-overlay">
     <div class="global-search-box">
-        <input type="text" id="gs-input" class="global-search-input" placeholder="Buscar por utilizador, ação ou aba... (ESC para fechar)">
+        <input type="text" id="gs-input" class="global-search-input" placeholder="Buscar por usuário, ação ou aba... (ESC para fechar)">
         <div class="global-search-results" id="gs-results"></div>
     </div>
 </div>
@@ -435,7 +435,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="nav-group">
             <span class="nav-group-label">Painel</span>
             <button class="menu-btn ativo" onclick="mudarAba(event,'dashboard')" data-tab="dashboard"><i class="ph ph-chart-line-up"></i> Dashboard</button>
-            <button class="menu-btn" onclick="mudarAba(event,'users')" data-tab="users"><i class="ph ph-users-three"></i> Utilizadores <span class="badge-count" id="sb-user-count">0</span></button>
+            <button class="menu-btn" onclick="mudarAba(event,'users')" data-tab="users"><i class="ph ph-users-three"></i> Usuários <span class="badge-count" id="sb-user-count">0</span></button>
             <button class="menu-btn" onclick="mudarAba(event,'feedback')" data-tab="feedback"><i class="ph ph-chats-circle"></i> Sugestões <span class="badge-count" id="sb-feedback-count">0</span></button>
         </div>
         <div class="nav-group">
@@ -519,12 +519,12 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="kpi-card amber">
                 <div class="kpi-label"><i class="ph-fill ph-ticket"></i> % com Cupom</div>
                 <div class="kpi-value" id="val-discount-rate"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub"><span id="val-discount-abs">0</span> utilizadores com desconto pendente</div>
+                <div class="kpi-sub"><span id="val-discount-abs">0</span> usuários com desconto pendente</div>
             </div>
             <div class="kpi-card cyan">
                 <div class="kpi-label"><i class="ph-fill ph-share-network"></i> Rede de Indicações</div>
                 <div class="kpi-value" id="val-network"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">Utilizadores que vieram por indicação</div>
+                <div class="kpi-sub">Usuários que vieram por indicação</div>
             </div>
         </div>
 
@@ -594,7 +594,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="kpi-card cyan">
                 <div class="kpi-label"><i class="ph-fill ph-virus"></i> Coef. Viral (K)</div>
                 <div class="kpi-value" id="val-viral"><div class="skeleton skeleton-text">0</div></div>
-                <div class="kpi-sub">% utilizadores referenciados</div>
+                <div class="kpi-sub">% de usuários indicados</div>
             </div>
             <div class="kpi-card red">
                 <div class="kpi-label"><i class="ph-fill ph-prohibit"></i> Suspensos</div>
@@ -610,7 +610,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <div class="card-head-left">
                         <div class="card-icon blue"><i class="ph-fill ph-chart-line"></i></div>
                         <div>
-                            <div class="card-title">Novos Utilizadores (30 dias)</div>
+                            <div class="card-title">Novos usuários (30 dias)</div>
                             <div class="card-sub">Signups Firebase Auth por dia</div>
                         </div>
                     </div>
@@ -638,7 +638,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="section-title"><i class="ph-fill ph-funnel"></i> Funil de Conversão</div>
         <div class="funnel-container">
             <div class="funnel-bar-wrapper">
-                <div class="funnel-segment funnel-seg-1" id="funnel-bar-1" style="width:0%">Registados</div>
+                <div class="funnel-segment funnel-seg-1" id="funnel-bar-1" style="width:0%">Cadastrados</div>
                 <div class="funnel-segment funnel-seg-2" id="funnel-bar-2" style="width:0%">Verificados</div>
                 <div class="funnel-segment funnel-seg-3" id="funnel-bar-3" style="width:0%">Billing</div>
                 <div class="funnel-segment funnel-seg-4" id="funnel-bar-4" style="width:0%">Pagantes</div>
@@ -658,14 +658,14 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <div class="card-head-left"><div class="card-icon emerald"><i class="ph-fill ph-trophy"></i></div><div class="card-title">Top Indicadores</div></div>
                 </div>
                 <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Indicou</th><th style="text-align:right">Ganhos</th></tr></thead>
-                <tbody id="top-referrers"><tr><td colspan="3" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <tbody id="top-referrers"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody></table>
             </div>
             <div class="card">
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon amber"><i class="ph-fill ph-coins"></i></div><div class="card-title">Maior Cashback Pendente</div></div>
                 </div>
                 <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Pendente</th></tr></thead>
-                <tbody id="top-pending"><tr><td colspan="2" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <tbody id="top-pending"><tr><td colspan="2" class="tbl-empty">Carregando...</td></tr></tbody></table>
             </div>
         </div>
 
@@ -674,11 +674,11 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="card">
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon red"><i class="ph-fill ph-warning-circle"></i></div>
-                        <div><div class="card-title">Inadimplentes (Dunning)</div><div class="card-sub">Click para abrir perfil</div></div>
+                        <div><div class="card-title">Inadimplentes (Dunning)</div><div class="card-sub">Clique para abrir o perfil</div></div>
                     </div>
                 </div>
                 <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Valor</th></tr></thead>
-                <tbody id="overdue-list"><tr><td colspan="2" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <tbody id="overdue-list"><tr><td colspan="2" class="tbl-empty">Carregando...</td></tr></tbody></table>
             </div>
             <div class="card">
                 <div class="card-head">
@@ -687,7 +687,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     </div>
                 </div>
                 <table class="tbl"><thead><tr><th>Email</th><th style="text-align:right">Expira</th></tr></thead>
-                <tbody id="expiring-list"><tr><td colspan="2" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <tbody id="expiring-list"><tr><td colspan="2" class="tbl-empty">Carregando...</td></tr></tbody></table>
             </div>
         </div>
 
@@ -729,7 +729,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="card">
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon emerald"><i class="ph-fill ph-list-checks"></i></div>
-                        <div><div class="card-title">Distribuição Subscrições</div><div class="card-sub">subscriptionStatus</div></div>
+                        <div><div class="card-title">Distribuição das assinaturas</div><div class="card-sub">subscriptionStatus</div></div>
                     </div>
                 </div>
                 <div class="card-body"><div class="bar-list" id="subscription-status-list"></div></div>
@@ -750,7 +750,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="card">
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon blue"><i class="ph-fill ph-arrows-clockwise"></i></div>
-                        <div><div class="card-title">Última Varredura</div><div class="card-sub" id="reconcile-last-sub">Sem varreduras registadas</div></div>
+                        <div><div class="card-title">Última Varredura</div><div class="card-sub" id="reconcile-last-sub">Sem varreduras registradas</div></div>
                     </div>
                     <div class="card-actions">
                         <button class="qa-pill" id="reconcile-run-btn" onclick="triggerReconcile()"><i class="ph ph-play"></i> Rodar agora</button>
@@ -769,21 +769,21 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
             <div class="card">
                 <div class="card-head">
                     <div class="card-head-left"><div class="card-icon amber"><i class="ph-fill ph-wrench"></i></div>
-                        <div><div class="card-title">Divergências Auto-Corrigidas</div><div class="card-sub">Contadores Applicash que desgarraram · click p/ perfil</div></div>
+                        <div><div class="card-title">Divergências Auto-Corrigidas</div><div class="card-sub">Contadores Applicash que desgarraram · clique p/ perfil</div></div>
                     </div>
                 </div>
                 <table class="tbl"><thead><tr><th>Email</th><th style="white-space:nowrap">Quando</th><th style="text-align:right">Ajuste pendente</th></tr></thead>
-                <tbody id="reconcile-corrections"><tr><td colspan="3" class="tbl-empty">A carregar...</td></tr></tbody></table>
+                <tbody id="reconcile-corrections"><tr><td colspan="3" class="tbl-empty">Carregando...</td></tr></tbody></table>
             </div>
         </div>
     </section>
 
-    <!-- ═══════ UTILIZADORES ═══════ -->
+    <!-- ═══════ USUÁRIOS ═══════ -->
     <section id="sec-users" class="section">
         <div class="page-header">
             <div>
-                <h1><i class="ph-fill ph-users-three" style="color:var(--cor-info)"></i> Utilizadores</h1>
-                <p class="sub">Lista filtrável e paginável. Click numa linha para abrir perfil completo.</p>
+                <h1><i class="ph-fill ph-users-three" style="color:var(--cor-info)"></i> Usuários</h1>
+                <p class="sub">Lista filtrável e paginável. Clique em uma linha para abrir o perfil completo.</p>
             </div>
             <div class="page-actions">
                 <div class="search-wrap" style="width:280px;">
@@ -815,7 +815,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                         <th>Estado</th>
                         <th style="text-align:right">Ações</th>
                     </tr></thead>
-                    <tbody id="users-table"><tr><td colspan="5" class="tbl-empty">A carregar...</td></tr></tbody>
+                    <tbody id="users-table"><tr><td colspan="5" class="tbl-empty">Carregando...</td></tr></tbody>
                 </table>
             </div>
             <div class="pagination" id="users-pagination">
@@ -830,13 +830,13 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="page-header">
             <div>
                 <h1><i class="ph-fill ph-lightning" style="color:var(--cor-primaria)"></i> Central de Superpoderes</h1>
-                <p class="sub">Ações administrativas avançadas sobre contas de utilizadores.</p>
+                <p class="sub">Ações administrativas avançadas sobre contas de usuários.</p>
             </div>
         </div>
 
         <div class="card" style="border:none;box-shadow:none;background:transparent;overflow:visible;">
             <div class="sp-controls">
-                <input type="text" id="action-email" class="sp-input" placeholder="E-mail ou UID do utilizador alvo">
+                <input type="text" id="action-email" class="sp-input" placeholder="E-mail ou UID do usuário alvo">
                 <select id="action-type" class="sp-select">
                     <option value="full_xray">🔍 Visão Geral Expandida (Raio-X)</option>
                     <option value="view_payments">🧾 Ver Histórico de Pagamentos</option>
@@ -849,8 +849,8 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <option value="force_verify">🛡️ Forçar Verificação E-mail</option>
                     <option value="send_verify_link">📧 Enviar Link Verificação</option>
                     <option value="password_reset_link">🔑 Link de Reset de Senha</option>
-                    <option value="disable_user">⛔ Suspender Utilizador</option>
-                    <option value="enable_user">✅ Reativar Utilizador</option>
+                    <option value="disable_user">⛔ Suspender usuário</option>
+                    <option value="enable_user">✅ Reativar usuário</option>
                     <option value="reset_billing">⚠️ Reset Billing (Danger)</option>
                 </select>
                 <input type="number" step="0.01" id="action-value" class="sp-value-input" placeholder="Valor">
@@ -879,7 +879,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <span class="terminal-lbl">appliquei-admin ~$</span>
                 </div>
                 <div class="terminal-body" id="action-output">Pronto para receber comandos...
-Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
+Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
             </div>
         </div>
     </section>
@@ -889,7 +889,7 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
         <div class="page-header">
             <div>
                 <h1><i class="ph-fill ph-list-dashes" style="color:var(--cor-primaria)"></i> Audit Log</h1>
-                <p class="sub">Registo imutável de ações administrativas — filtrável por ator, ação, alvo.</p>
+                <p class="sub">Registro imutável de ações administrativas — filtrável por ator, ação, alvo.</p>
             </div>
             <div class="page-actions">
                 <button class="btn-sec" onclick="loadAudit()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
@@ -927,17 +927,17 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
                     <thead><tr>
                         <th>Data/Hora</th><th>Ação</th><th>Alvo</th><th>Ator</th><th>Info</th>
                     </tr></thead>
-                    <tbody id="audit-table"><tr><td colspan="5" class="tbl-empty">A carregar...</td></tr></tbody>
+                    <tbody id="audit-table"><tr><td colspan="5" class="tbl-empty">Carregando...</td></tr></tbody>
                 </table>
             </div>
         </div>
     </section>
 
-    <!-- ═══════ SUGESTÕES (Dúvidas & Sugestões dos utilizadores) ═══════ -->
+    <!-- ═══════ SUGESTÕES (Dúvidas & Sugestões dos usuários) ═══════ -->
     <section id="sec-feedback" class="section">
         <div class="page-header">
             <div>
-                <h1><i class="ph-fill ph-chats-circle" style="color:var(--cor-primaria)"></i> Sugestões dos utilizadores</h1>
+                <h1><i class="ph-fill ph-chats-circle" style="color:var(--cor-primaria)"></i> Sugestões dos usuários</h1>
                 <p class="sub">Receba e responda às dúvidas, melhorias e bugs enviados pela aba Dúvidas & Sugestões.</p>
             </div>
             <div class="page-actions">
@@ -955,7 +955,7 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
         </div>
 
         <div id="feedback-list" style="display:flex;flex-direction:column;gap:12px;">
-            <div class="tbl-empty">A carregar...</div>
+            <div class="tbl-empty">Carregando...</div>
         </div>
     </section>
 
@@ -1034,10 +1034,10 @@ Dica: Pode inserir o E-mail ou o UID do utilizador alvo.</div>
 <div id="drawer-backdrop"></div>
 <aside id="user-drawer" aria-hidden="true">
     <div class="drawer-head">
-        <h2 id="drawer-title">Perfil do Utilizador</h2>
+        <h2 id="drawer-title">Perfil do usuário</h2>
         <button class="drawer-close" id="drawer-close" aria-label="Fechar"><i class="ph ph-x" style="font-size:18px"></i></button>
     </div>
-    <div class="drawer-body" id="drawer-body">A carregar...</div>
+    <div class="drawer-body" id="drawer-body">Carregando...</div>
     <div class="drawer-actions" id="drawer-actions"></div>
 </aside>
 

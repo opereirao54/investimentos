@@ -173,7 +173,7 @@ function capitalCsv(ano, opcoes) {
   //
   // O cenário "real" reproduz o arquivo publicado: SEM coluna de escala, com
   // os números da Eletrobras em milhares (2.027.011 ON + 280.088 PN = 2,31 bi
-  // de ações de facto). Lido em unidades dá 2,31 M para um patrimônio de
+  // de ações de fato). Lido em unidades dá 2,31 M para um patrimônio de
   // bilhões — R$ 51 mil por ação. É o defeito que a execução real expôs, e
   // quem tem de desfazê-lo é a conferência contra o patrimônio.
   if (op.semEscala) {
@@ -532,7 +532,7 @@ test('contagem em milhares é reconhecida pelo patrimônio, não recusada', asyn
 
 test('a coluna de tesouraria do arquivo real chama-se TESOURO, e é lida', async () => {
   // O mapa só conhecia `TESOURARIA`, que a CVM não usa. Toda companhia saía
-  // com tesouraria zero — indistinguível de quem de facto não tem nenhuma —
+  // com tesouraria zero — indistinguível de quem de fato não tem nenhuma —
   // e as ações em circulação vinham infladas, com elas o valor de mercado.
   const P = require('../scripts/lib/cvm-parser.js');
   const csv = P.parseCsvCvm(
@@ -913,7 +913,7 @@ test('cadastro sem a coluna de setor imprime o cabeçalho real, em vez de calar'
   // O defeito que este projeto já catalogou: o mapa procurava
   // QT_ACAO_ORDIN_TESOURARIA e o arquivo trazia TESOURO. Zero é o que uma
   // companhia sem o dado também devolve, e por isso a ausência tem de ser
-  // NOMEADA — com as colunas que o arquivo de facto tem, senão a próxima
+  // NOMEADA — com as colunas que o arquivo de fato tem, senão a próxima
   // investigação começa às cegas.
   return rodar(['--dry-run', '--anos=3'], {
     anoFca: ANO_BASE,

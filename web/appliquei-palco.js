@@ -11,7 +11,7 @@
  * O princípio que manda aqui: o HTML nasce COMPLETO na versão empilhada.
  * Nada de texto ou de imagem é criado por este script — ele só MOVE as
  * <figure> que já existem para dentro da moldura e liga o observador. Se
- * falhar, se não houver JS, se a tela for estreita ou se o utilizador pedir
+ * falhar, se não houver JS, se a tela for estreita ou se o usuário pedir
  * menos movimento, a página continua inteira e legível. É por isso que a
  * classe `palco--vivo` é adicionada aqui e não escrita no HTML.
  *
@@ -26,9 +26,9 @@
   'use strict';
 
   // Abaixo disto o palco não vale a pena: a moldura presa e a coluna de texto
-  // não cabem lado a lado, e um sticky de altura cheia no telemóvel é onde
+  // não cabem lado a lado, e um sticky de altura cheia no celular é onde
   // este padrão costuma morrer (barra de endereço a redimensionar o viewport).
-  // O telemóvel recebe os quatro cartões empilhados, que são mais curtos.
+  // O celular recebe os quatro cartões empilhados, que são mais curtos.
   var LARGURA_MINIMA = '(min-width: 980px)';
   var MENOS_MOVIMENTO = '(prefers-reduced-motion: reduce)';
 

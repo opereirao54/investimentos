@@ -537,7 +537,7 @@ async function dashboard(req, res) {
   //   2) email cacheado no próprio doc billing (campos `email` / `customerEmail`
   //      gravados em init.js e customer.js) — sync, free
   //   3) auth().getUser(uid) async — trata listUsers truncado ou
-  //      utilizadores deletados da auth com billing residual
+  //      usuários deletados da auth com billing residual
   async function attachEmails(arr) {
     await Promise.all(
       arr.map(async (row) => {

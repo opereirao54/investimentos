@@ -317,6 +317,16 @@ function atualizarKPIsResumo(carteiraConsolidada) {
   }
 
   atualizarChipDividendosPeriodo();
+
+  // A tira "sem mexer em nada, em 10 anos" vive do mesmo saldo que acabou de
+  // ser pintado — atualiza junto para os dois números nunca discordarem.
+  if (typeof projAtualizarTiraHero === 'function') {
+    try {
+      projAtualizarTiraHero(null);
+    } catch (_) {
+      /* a projeção nunca pode derrubar o hero */
+    }
+  }
 }
 
 // Timestamp da operação para a série de evolução. Prioriza data_op, mas cai
@@ -482,8 +492,17 @@ function calcularSerieEvolucao(filtroTipo, filtroAtivo) {
 // ============================================================
 // === TEMA DOS GRÁFICOS — alinhado ao design system          ===
 // ============================================================
+// Lê do BODY, não do <html>. O tema claro declara os tokens em `:root`, mas o
+// escuro os sobrescreve em `body.dark` — e getComputedStyle no
+// documentElement nunca enxerga essa sobrescrita. O efeito era silencioso e
+// geral: no tema escuro TODO gráfico do app (evolução, distribuição,
+// dividendos, carteira, relatório, projeção) recebia a grade e o texto do
+// tema CLARO, porque é isso que --cor-borda e --cor-texto-secundario valem no
+// <html>. Ler do body funciona nos dois: custom property herda, então onde o
+// escuro não sobrescreve o valor do :root chega igual.
 function getToken(nome) {
-  return getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+  var origem = document.body || document.documentElement;
+  return getComputedStyle(origem).getPropertyValue(nome).trim();
 }
 
 function aplicarTemaChartJs() {
@@ -1468,7 +1487,12 @@ function atualizarCarteiraAtivos() {
   });
 
   if (richContainer) richContainer.innerHTML = richHTML || '';
-  atualizarMiniStats('carteira');
+  // A mini-estatística é do que está NA TELA. Cravar 'carteira' aqui fazia com
+  // que a chegada assíncrona das cotações reescrevesse a linha de quem estava
+  // em Operações, Dividendos ou Futuro.
+  atualizarMiniStats(
+    typeof subAbaPatrimonioAtiva !== 'undefined' ? subAbaPatrimonioAtiva : 'carteira'
+  );
   // Aviso de RF/Reserva sem rentabilidade (que não estão rendendo).
   if (typeof renderAvisoRentabilidadeRF === 'function') renderAvisoRentabilidadeRF();
 

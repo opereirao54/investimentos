@@ -298,7 +298,7 @@ test('aponta o PRIMEIRO dia em que o caixa fura', () => {
 test('descompasso de datas que se resolve sozinho não é crítico', () => {
   // O caso real: contas vencem antes de a receita cair, e o mês fecha bem.
   // Tratar isto com a mesma gravidade de um rombo é o que gera alarme falso —
-  // e foi o que fez o primeiro utilizador desconfiar do painel inteiro.
+  // e foi o que fez o primeiro usuário desconfiar do painel inteiro.
   const agora = Date.UTC(2026, 8, 2, 12);
   const r = M.aperto({
     agora,

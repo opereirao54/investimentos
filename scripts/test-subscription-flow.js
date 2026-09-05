@@ -126,7 +126,7 @@ async function main() {
     body: { referralCode: carlaCode },
   });
   check(c2.status === 200, 'init com cupom ok');
-  check(c2.body.billing.recurringDiscountPercent === 10, '10% off recorrente registado');
+  check(c2.body.billing.recurringDiscountPercent === 10, '10% off recorrente registrado');
   check(c2.body.access.status === 'trial', 'em trial (cupom não dá acesso, só desconto SE pagar)');
 
   step('C3', 'Carlos assina com CPF próprio → fatura recorrente com desconto');

@@ -75,9 +75,11 @@ const IDS_POR_MOTOR = {
     'subAbaCarteira',
     'subAbaOperacoes',
     'subAbaDividendos',
+    'subAbaFuturo',
     'subtabBtnCarteira',
     'subtabBtnOperacoes',
     'subtabBtnDividendos',
+    'subtabBtnFuturo',
     'subtabMiniStat',
     'filtrosCategoria',
     'btnAtualizarDividendos',
@@ -113,6 +115,31 @@ const IDS_POR_MOTOR = {
     'tabelaPagamentosCorpo',
     'pagamentosVaziaMsg',
   ],
+  'Projeção — sub-aba Futuro (projecao.js)': [
+    'projVazio',
+    'projCorpo',
+    'projValorFuturo',
+    'projPrazoRotulo',
+    'projDataRotulo',
+    'projDelta',
+    'projMultiplo',
+    'projModoAporte',
+    'projFaixaCenarios',
+    'projBtnValoresHoje',
+    'projRangeAnos',
+    'projAporteInput',
+    'projComposicao',
+    'graficoProjecao',
+    'legendaProjecao',
+    'msgProjecaoVazia',
+    'projMarcos',
+    'projClasses',
+    'projPremissasLista',
+    'projPremissasFonte',
+    'projAvisoSemTaxa',
+    'projBtnRestaurar',
+  ],
+  'Projeção — tira no hero da carteira': ['tiraProjecao', 'tiraProjecaoPrazo', 'tiraProjecaoValor'],
   Diversos: ['badgePrecosEstimados'],
 };
 
@@ -151,7 +178,20 @@ const ACOES = [
   ['incluir posições encerradas', /carregarDividendos\(\)/],
   ['limpar filtro de pagamentos', /alternarFiltroPagamentosTicker\(''\)/],
   ['re-renderizar evolução ao trocar filtro', /renderizarGraficoEvolucao\(\)/],
+  ['trocar para a sub-aba Futuro', /mudarSubAbaPatrimonio\('futuro'\)/],
+  ['alternar valores de hoje na projeção', /projAlternarValoresDeHoje\(\)/],
+  ['arrastar a régua de anos', /projSetAnos\(this\.value, 'range'\)/],
+  ['digitar o aporte simulado', /projAporteDoCampo\(\)/],
+  ['restaurar as premissas padrão', /projRestaurarPremissas\(\)/],
 ];
+// A régua de tempo e os chips de aporte só existem se houver gatilho para cada
+// valor: um botão sem onclick vira decoração e ninguém percebe.
+for (const anos of [1, 2, 5, 10, 20, 30]) {
+  ACOES.push([`horizonte da projeção: ${anos} ano(s)`, new RegExp(`projSetAnos\\(${anos}\\)`)]);
+}
+for (const aporte of [0, 100, 300, 500, 1000, 2000]) {
+  ACOES.push([`aporte simulado: ${aporte}`, new RegExp(`projChipAporte\\(${aporte}\\)`)]);
+}
 for (const meses of [1, 3, 6, 12, 0]) {
   ACOES.push([
     `período do gráfico: ${meses || 'tudo'}`,
@@ -198,6 +238,26 @@ test('os chips de filtro de operações carregam data-ops-filtro', () => {
       SECAO,
       new RegExp(`data-ops-filtro="${f}"`),
       `chip de operações "${f}" sem atributo`
+    );
+  }
+});
+
+test('as pílulas da projeção carregam os data-attributes que projRenderHero marca', () => {
+  // projRenderHero acende a pílula ativa por [data-proj-anos] e
+  // [data-proj-aporte]. Sem o atributo, o clique funciona mas nada fica
+  // marcado — e a pessoa perde a referência de qual cenário está vendo.
+  for (const anos of [1, 2, 5, 10, 20, 30]) {
+    assert.match(
+      SECAO,
+      new RegExp(`data-proj-anos="${anos}"`),
+      `pílula de ${anos} ano(s) sem atributo`
+    );
+  }
+  for (const aporte of [0, 100, 300, 500, 1000, 2000]) {
+    assert.match(
+      SECAO,
+      new RegExp(`data-proj-aporte="${aporte}"`),
+      `chip de aporte ${aporte} sem atributo`
     );
   }
 });
