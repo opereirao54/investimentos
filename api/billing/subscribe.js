@@ -77,7 +77,7 @@ module.exports = handler({
     // C6: lock transacional contra cliques duplicados em /subscribe (mesma
     // aba a re-submeter, ou app + web em paralelo). Sem isto, dois requests
     // concorrentes do mesmo uid liam ambos subscriptionId == null e ambos
-    // chamavam asaas.createSubscription — o utilizador ficava com duas
+    // chamavam asaas.createSubscription — o usuário ficava com duas
     // assinaturas a faturar mensalmente. TTL maior que o de /init porque
     // este endpoint inclui criação Asaas + listPaymentsBySubscription.
     const SUBSCRIBE_LOCK_TTL_MS = 60 * 1000;
@@ -242,7 +242,7 @@ module.exports = handler({
     if (mode === 'subscription' && billing.subscriptionId) {
       // Se a subscription local está INACTIVE, criar uma nova passa por este
       // endpoint mas com subscriptionId limpo antes. Reativação explícita:
-      // o utilizador clica "Reativar" → frontend faz DELETE local primeiro.
+      // o usuário clica "Reativar" → frontend faz DELETE local primeiro.
       // Defensivamente, se INACTIVE chegar aqui, recriamos.
       if (billing.subscriptionStatus === 'INACTIVE') {
         // limpa para permitir nova criação no fluxo abaixo
@@ -412,7 +412,7 @@ module.exports = handler({
   } catch (e) {
     console.error('[subscribe]', e, e.data);
     // C6: liberta o lock por best-effort para que um retry imediato do
-    // utilizador não seja recusado durante o TTL. Se a criação no Asaas
+    // usuário não seja recusado durante o TTL. Se a criação no Asaas
     // tiver chegado a acontecer, o próximo /subscribe entra no ramo
     // "billing.subscriptionId existe" e devolve os dados sem duplicar.
     try {

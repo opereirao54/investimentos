@@ -147,7 +147,7 @@ $('gs-input').addEventListener('input', (e) => {
   if (!q) return;
   const tabs = [
     { name: 'Dashboard', id: 'dashboard' },
-    { name: 'Utilizadores', id: 'users' },
+    { name: 'Usuários', id: 'users' },
     { name: 'Superpoderes', id: 'superpower' },
     { name: 'Audit Log', id: 'audit' },
   ];
@@ -333,8 +333,7 @@ function renderUsers() {
   const tbody = $('users-table');
   tbody.innerHTML = '';
   if (!slice.length) {
-    tbody.innerHTML =
-      '<tr><td colspan="5" class="tbl-empty">Sem utilizadores neste filtro.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="tbl-empty">Sem usuários neste filtro.</td></tr>';
   } else
     slice.forEach((u) => {
       const email = u.email || u.uid;
@@ -362,8 +361,8 @@ function renderUsers() {
   // Pagination UI
   $('users-page-info').textContent =
     total === 0
-      ? '0 utilizadores'
-      : `${start + 1}–${Math.min(start + USERS_PER_PAGE, total)} de ${total} utilizadores`;
+      ? '0 usuários'
+      : `${start + 1}–${Math.min(start + USERS_PER_PAGE, total)} de ${total} usuários`;
   const controls = $('users-page-controls');
   controls.innerHTML = '';
   const mkBtn = (label, page, disabled, active) => {
@@ -441,7 +440,7 @@ function openDrawer(user) {
             <div class="drawer-field"><span class="drawer-field-label">Último login</span><span class="drawer-field-value">${fmtDateTime(u.lastSignInMs)} <span style="color:var(--cor-texto-mutado);font-size:11px">(${relativeTime(u.lastSignInMs)})</span></span></div>
         </div>
         <div class="drawer-section">
-            <div class="drawer-section-title">Subscrição & Billing</div>
+            <div class="drawer-section-title">Assinatura & Billing</div>
             <div class="drawer-field"><span class="drawer-field-label">Status Asaas</span><span class="drawer-field-value">${escHTML(u.subscriptionStatus || 'NÃO ASSINANTE')}</span></div>
             <div class="drawer-field"><span class="drawer-field-label">Último pagamento</span><span class="drawer-field-value">${escHTML(u.lastPaymentStatus || '—')}</span></div>
             <div class="drawer-field"><span class="drawer-field-label">Trial</span><span class="drawer-field-value">${trialTxt}</span></div>
@@ -488,7 +487,7 @@ async function loadDrawerPayments() {
   if (!drawerUser) return;
   const email = drawerUser.email || drawerUser.uid;
   const target = $('drawer-payments');
-  target.innerHTML = '⏳ A carregar...';
+  target.innerHTML = '⏳ Carregando...';
   const token = sessionStorage.getItem('adminToken');
   try {
     const res = await fetch('/api/admin/action', {
@@ -545,7 +544,7 @@ function renderRanking(tbodyId, rows, valueField, valueFormatter, opts = {}) {
     tr.addEventListener('click', () => {
       const found = allUsers.find((u) => u.uid === row.uid);
       if (found) openDrawer(found);
-      else toast('Utilizador não encontrado em cache. Recarregue.', 'warn');
+      else toast('Usuário não encontrado em cache. Recarregue.', 'warn');
     });
     tbody.appendChild(tr);
   });
@@ -622,7 +621,7 @@ async function loadAudit() {
   if (!token) return;
   const tbody = $('audit-table');
   tbody.innerHTML =
-    '<tr><td colspan="5" class="tbl-empty"><i class="ph ph-spinner ph-spin"></i> A carregar...</td></tr>';
+    '<tr><td colspan="5" class="tbl-empty"><i class="ph ph-spinner ph-spin"></i> Carregando...</td></tr>';
   const params = new URLSearchParams({ include: 'audit' });
   params.set('limit', $('audit-limit').value || '50');
   const action = $('audit-action-filter').value;
@@ -646,7 +645,7 @@ function renderAudit(entries) {
   tbody.innerHTML = '';
   if (!entries || !entries.length) {
     tbody.innerHTML =
-      '<tr><td colspan="5" class="tbl-empty">Sem registos com estes filtros.</td></tr>';
+      '<tr><td colspan="5" class="tbl-empty">Sem registros com estes filtros.</td></tr>';
     return;
   }
   const danger = new Set(['reset_billing', 'disable_user', 'make_pro']);
@@ -673,7 +672,7 @@ async function downloadCsv() {
   if (!token) return;
   const btn = $('sidebar-export-btn');
   const orig = btn.innerHTML;
-  btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> A gerar...';
+  btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Gerando...';
   btn.disabled = true;
   try {
     const res = await fetch('/api/admin/stats?format=csv', {
@@ -881,7 +880,7 @@ function renderReconcile(r) {
 
   $('reconcile-last-sub').textContent = last
     ? `${relativeTime(last.atMs)} · origem ${last.source || 'manual'}`
-    : 'Sem varreduras registadas';
+    : 'Sem varreduras registradas';
   $('reconcile-window-sub').textContent = r.runs
     ? `Últimas ${formatInt(r.runs)} varreduras: ${formatInt(r.windowBillingCorrected)} cobrança · ${formatInt(r.windowCreditCorrected)} crédito · ${formatInt(r.windowErrors)} erros`
     : 'Acumulado das últimas varreduras aparecerá aqui.';
@@ -983,7 +982,7 @@ async function loadStats() {
 
   const refreshBtn = $('btn-refresh');
   if (refreshBtn) {
-    refreshBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> A carregar...';
+    refreshBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Carregando...';
     refreshBtn.disabled = true;
   }
 
@@ -1025,7 +1024,7 @@ async function executeSuperpower() {
   const token = sessionStorage.getItem('adminToken');
   const output = $('action-output');
   if (!email) {
-    output.textContent = '⚠ Erro: insira o e-mail ou UID do utilizador alvo.';
+    output.textContent = '⚠ Erro: insira o e-mail ou UID do usuário alvo.';
     toast('Insira o e-mail/UID alvo.', 'warn');
     return;
   }
@@ -1036,10 +1035,10 @@ async function executeSuperpower() {
       disable_user: 'SUSPENDER conta',
       suspend_trial: 'SUSPENDER trial (expira agora)',
     };
-    if (!confirm(`${labels[action] || 'ação'} para ${email}?\n\nFica registado no audit log.`))
+    if (!confirm(`${labels[action] || 'ação'} para ${email}?\n\nFica registrado no audit log.`))
       return;
   }
-  output.textContent = '⏳ A contactar o backend...\n';
+  output.textContent = '⏳ Falando com o backend...\n';
   try {
     const res = await fetch('/api/admin/action', {
       method: 'POST',
@@ -1084,7 +1083,7 @@ async function executeSuperpower() {
       if (a.creationTime) {
         lines.push(['', '']);
         lines.push([
-          `Auth Registado em: ${new Date(a.creationTime).toLocaleString('pt-PT')}`,
+          `Auth registrado em: ${new Date(a.creationTime).toLocaleString('pt-PT')}`,
           'color:var(--cor-texto-mutado)',
         ]);
         lines.push([
@@ -1124,7 +1123,7 @@ async function executeSuperpower() {
         output.textContent += 'Nenhum pagamento encontrado.';
       }
     } else if ((action === 'password_reset_link' || action === 'send_verify_link') && data.link) {
-      output.textContent += `\n✅ ${data.message}\n\nLink:\n${data.link}\n\nCopia e envia ao utilizador.`;
+      output.textContent += `\n✅ ${data.message}\n\nLink:\n${data.link}\n\nCopie e envie ao usuário.`;
       // Auto-copy to clipboard
       try {
         await navigator.clipboard.writeText(data.link);
@@ -1201,7 +1200,7 @@ async function loadFeedback() {
   if (!token) return;
   const wrap = $('feedback-list');
   wrap.innerHTML =
-    '<div class="tbl-empty"><i class="ph ph-spinner ph-spin"></i> A carregar...</div>';
+    '<div class="tbl-empty"><i class="ph ph-spinner ph-spin"></i> Carregando...</div>';
   const params = new URLSearchParams({ include: 'feedback', limit: '200' });
   const status = $('feedback-status-filter').value;
   if (status) params.set('statusFilter', status);
@@ -1235,7 +1234,7 @@ function renderFeedback(items) {
       ? `<div class="fb-reply-box"><strong style="color:var(--cor-primaria)"><i class="ph-fill ph-chat-teardrop-text"></i> Resposta:</strong><br>${escHTML(f.reply)}</div>`
       : '';
     const replyForm = `
-            <textarea class="fb-reply-input" id="fb-reply-${f.id}" placeholder="${f.reply ? 'Editar resposta…' : 'Escreva a resposta ao utilizador…'}">${f.reply ? escHTML(f.reply) : ''}</textarea>
+            <textarea class="fb-reply-input" id="fb-reply-${f.id}" placeholder="${f.reply ? 'Editar resposta…' : 'Escreva a resposta ao usuário…'}">${f.reply ? escHTML(f.reply) : ''}</textarea>
             <div style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap;">
                 ${f.status !== 'resolvido' ? `<button class="btn-sec" onclick="resolveFeedback('${f.id}')"><i class="ph ph-check-circle"></i> Marcar resolvida</button>` : ''}
                 <button class="sp-btn" onclick="replyFeedback('${f.id}')"><i class="ph-fill ph-paper-plane-tilt"></i> ${f.reply ? 'Atualizar resposta' : 'Responder'}</button>
@@ -1257,7 +1256,7 @@ function renderFeedback(items) {
                     <span class="badge-s ${scls}" style="margin-left:6px">${slbl}</span>
                     <div class="fb-meta" style="margin-top:6px">${escHTML(f.email || f.uid || '—')} · ${fmtDateTime(f.createdAtMs)}</div>
                 </div>
-                <button class="qa-pill" onclick="inlineAction('${(f.email || f.uid).replace(/'/g, "\\'")}','full_xray')" title="Ver utilizador"><i class="ph ph-magnifying-glass"></i></button>
+                <button class="qa-pill" onclick="inlineAction('${(f.email || f.uid).replace(/'/g, "\\'")}','full_xray')" title="Ver usuário"><i class="ph ph-magnifying-glass"></i></button>
             </div>
             <div class="fb-texto">${escHTML(f.texto)}</div>
             ${anexoBox}
@@ -1282,7 +1281,7 @@ async function verAnexoFeedback(id) {
   const btn = box.querySelector('button');
   if (btn) {
     btn.disabled = true;
-    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> A carregar...';
+    btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Carregando...';
   }
   try {
     const res = await fetch(

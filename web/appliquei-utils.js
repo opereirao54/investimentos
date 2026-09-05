@@ -238,7 +238,7 @@ function importarDados(event) {
         `<button class="btn-acao" style="background-color: var(--cor-info);" onclick="confirmarImportacao(${JSON.stringify(JSON.stringify(dados)).replace(/"/g, '&quot;')})"><i class="ph ph-upload-simple"></i> Sim, importar dados</button>`;
       modal.style.display = 'flex';
     } catch (err) {
-      mostrarToast('Arquivo inválido. Selecione um backup exportado pelo Appliquei.', 'erro');
+      mostrarToast('Arquivo inválido. Selecione um backup exportado pela Appliquei.', 'erro');
     }
   };
   reader.readAsText(file);

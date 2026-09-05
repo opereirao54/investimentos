@@ -7,7 +7,7 @@
 // A causa não é a largura da tela — é a repartição da linha. Score (30px),
 // valor (68px) e botão (30px) não encolhem, e `min-width: 0` no corpo (que
 // existe para o ticker de 38 caracteres do Tesouro não empurrar a página no
-// telemóvel) fazia dele o único a absorver o aperto inteiro.
+// celular) fazia dele o único a absorver o aperto inteiro.
 //
 // A grelha do plano é `repeat(4, minmax(0, 1fr))` e mantém as quatro colunas
 // mesmo quando duas classes estão vazias, então o aperto acontece em

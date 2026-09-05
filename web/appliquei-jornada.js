@@ -88,7 +88,7 @@ var JORNADA_MODULOS = [
     icone: 'ph-tree-palm',
     descricao:
       'Previdência privada, regime de tributação, planejamento sucessório e o cálculo da sua liberdade financeira.',
-    objetivos: ['Simular patrimônio-alvo para liberdade', 'Comparar PGBL vs VGBL pro seu caso'],
+    objetivos: ['Simular patrimônio-alvo para liberdade', 'Comparar PGBL e VGBL para o seu caso'],
   },
 ];
 var JORNADA_STORAGE_KEY = 'appliquei_jornada_progresso';

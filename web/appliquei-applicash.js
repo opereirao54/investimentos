@@ -43,7 +43,7 @@ function obterCupomApplicash() {
     if (cupom && /^APP-[A-Z0-9]{6}$/.test(cupom)) return cupom;
     const fb = window.AppliqueiFirebase;
     const logged = fb && fb.ready && fb.auth && fb.auth.currentUser;
-    return logged ? 'A carregar…' : 'Entre na sua conta';
+    return logged ? 'Carregando…' : 'Entre na sua conta';
 }
 function obterAssinaturaApplicash() {
     try {

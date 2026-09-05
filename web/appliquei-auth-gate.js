@@ -592,7 +592,7 @@ function initAppliqueiAuth() {
     if (!$('authGate')) return;
     showGate();
     setAuthPanel('load');
-    setSub('A carregar…');
+    setSub('Carregando…');
     if (!window.AppliqueiFirebase || !AppliqueiFirebase.ready) {
         setAuthPanel('noconf');
         setSub('Firebase não configurado');

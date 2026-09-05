@@ -2062,7 +2062,7 @@ function deletarTransacao(idStr) {
             <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('todas')"><i class="ph ph-trash"></i> Excluir este e os futuros</button>
         `;
   } else {
-    msg.innerHTML = `Tem certeza que deseja excluir o lançamento <strong>"${transacao.descricao}"</strong>?`;
+    msg.innerHTML = `Tem certeza de que deseja excluir o lançamento <strong>"${transacao.descricao}"</strong>?`;
     acoes.innerHTML = `
             <button class="btn-acao" style="background-color: var(--cor-erro);" onclick="executarDelecao('unica')"><i class="ph ph-trash"></i> Sim, excluir definitivamente</button>
         `;
@@ -2145,7 +2145,7 @@ function baixarGrupoCartao(key) {
   const acoes = document.getElementById('modalAcoes');
 
   titulo.innerHTML = `<i class="ph-bold ph-credit-card" style="color:var(--cor-cartao);"></i> Baixar Cartão`;
-  msg.innerHTML = `Tem certeza que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
+  msg.innerHTML = `Tem certeza de que deseja baixar <strong>${qtd} ${qtd === 1 ? 'lançamento' : 'lançamentos'}</strong> do cartão no valor total de <strong>${formatarMoeda(total)}</strong> como pago?`;
 
   acoes.innerHTML = `
         <button class="btn-acao" style="background-color: var(--cor-primaria);" onclick="confirmarBaixarGrupoCartao('${key}')"><i class="ph-bold ph-check"></i> Sim, baixar fatura</button>

@@ -167,7 +167,7 @@ async function buscarCotacoesReais() {
       .filter((a) => a.tipo !== 'Renda Fixa')
       .map((a) => a.ticker);
 
-    // Dá um feedback visual na tabela que está a carregar
+    // Dá um feedback visual na tabela que está carregando
     const badgeRealTime = document.getElementById('badgeRealTime');
     if (badgeRealTime) {
       badgeRealTime.style.background = '#e0f2fe';

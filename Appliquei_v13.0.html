@@ -1284,7 +1284,7 @@
            conteúdo e piorou o efeito.
            A prova estava no próprio app: o campo de data do painel de
            lançamento JÁ tinha `appearance: none` e nunca teve o problema; o
-           do sonho ficou com `auto` e teve. Mesmo telemóvel, mesma tela.
+           do sonho ficou com `auto` e teve. Mesmo celular, mesma tela.
            `min-width: 0` deixa o campo encolher dentro de grid/flex (o padrão
            `auto` impede encolher abaixo do conteúdo) e `max-width: 100%` é o
            teto duro. `text-align: left` porque o iOS centra o valor nesses
@@ -3454,7 +3454,7 @@
         }
         /* Explicação atrás de um "?" CLICÁVEL — não hover. O
            .icon-tooltip-premium que já existe só abre no hover, e no
-           telemóvel hover não existe: a explicação ficava inalcançável
+           celular hover não existe: a explicação ficava inalcançável
            justamente onde a tela é mais apertada.
            O balão abre EM FLUXO, empurrando o conteúdo, em vez de flutuar:
            um popover ancorado à direita de um título é o caminho mais curto
@@ -3561,7 +3561,7 @@
 
         /* Cards de score */
         .cart-motor-ranking { display: block; }
-        /* `minmax(310px, 1fr)` era o que punha o telemóvel a rolar para o
+        /* `minmax(310px, 1fr)` era o que punha o celular a rolar para o
            lado: num ecrã de 360px com as margens da página, a coluna mínima
            de 310px não cabia e a grelha transbordava. `min(300px, 100%)`
            deixa a coluna encolher com o ecrã em vez de empurrar a página. */
@@ -3685,7 +3685,7 @@
         .cart-score-faltando-linha strong { color: var(--cor-texto-principal); }
         /* Ativo que PONTUA e mesmo assim tem lacuna: a ressalva é de
            leitura, não o motivo de não haver nota. Peso visual menor para
-           não competir com o bloco que de facto bloqueia o score. */
+           não competir com o bloco que de fato bloqueia o score. */
         .cart-score-faltando.informativo {
             background: transparent; border-style: dashed;
         }
@@ -3710,7 +3710,7 @@
 
            `hidden` precisa de força aqui: os elementos abaixo declaram
            display explícito (flex/grid), que vence a regra do agente do
-           utilizador e deixaria o atributo sem efeito nenhum — o filtro
+           usuário e deixaria o atributo sem efeito nenhum — o filtro
            esconderia e nada sumiria da tela. */
         #carteira .cart-rank-grupo[hidden],
         #carteira .cart-score-card[hidden],
@@ -3799,7 +3799,7 @@
         #carteira .cart-rank-tab-cripto.active { background: var(--cart-cripto); }
 
         /* Durante a busca quem manda é o termo, não a aba. Manter a aba
-           acesa diria que ela está a filtrar — e o resultado pode vir de
+           acesa diria que ela está filtrando — e o resultado pode vir de
            outra classe, como o cabeçalho de cada grupo mostra. */
         #carteira .cart-motor-ranking.buscando .cart-rank-tabs { opacity: 0.45; }
         #carteira .cart-rank-status:empty { display: none; }
@@ -3882,13 +3882,13 @@
             display: block; min-width: 0;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        /* O nome do ativo estava a ser cortado a UM caractere no PC.
+        /* O nome do ativo estava sendo cortado a UM caractere no PC.
            Medido a 1280px com a barra lateral: a coluna da classe fica com
            236px e o corpo com 26px, para um ticker que precisa de 37.
            A causa é a repartição da linha, não a largura da tela — score
            (30), valor (68) e botão (30) não encolhem, e `min-width: 0` no
            corpo (que existe para o nome comprido do Tesouro não empurrar a
-           página no telemóvel) fazia dele o único a absorver o aperto todo.
+           página no celular) fazia dele o único a absorver o aperto todo.
            Uma grelha de quatro colunas mantém a largura mesmo com duas
            classes vazias, então isto acontece em qualquer monitor.
            Agora o corpo tem um mínimo legível e a linha QUEBRA quando não
@@ -3931,7 +3931,7 @@
         #carteira .cart-setores-nota i { font-size: 12px; flex-shrink: 0; margin-top: 1px; }
 
         @media (max-width: 560px) {
-            /* Um card por linha e pilares mais baixos: no telemóvel a coluna
+            /* Um card por linha e pilares mais baixos: no celular a coluna
                dupla dava 150px de largura por card e o nome não cabia. */
             /* `1fr` sozinho é `minmax(auto, 1fr)` e traz de volta o piso de
                min-content na coluna. Aqui a coluna tem de valer exatamente o
@@ -4286,7 +4286,7 @@
         #carteira .cart-sim-mini-val.neg { color: var(--cor-erro); }
         #carteira .cart-sim-mini-sub { font-size: 10px; color: var(--cor-texto-mutado); }
 
-        /* Períodos: sete botões não cabem lado a lado num telemóvel, e quebrar
+        /* Períodos: sete botões não cabem lado a lado num celular, e quebrar
            em duas linhas empurra o gráfico para fora do primeiro ecrã. Vira a
            mesma faixa rolável das abas da lista de ativos. */
         #carteira .cart-sim-ranges {
@@ -4357,7 +4357,7 @@
             #carteira .cart-plano-trocar { opacity: 1; }
         }
         /* Lugar trocado se identifica: sem isto o plano parece o do motor, e
-           a diferença entre o que ELE escolheu e o que o utilizador pôs no
+           a diferença entre o que ELE escolheu e o que o usuário pôs no
            lugar desaparece na primeira recarga da página. */
         #carteira .cart-plano-item.trocado {
             border-color: var(--cart-acao);
@@ -4437,7 +4437,7 @@
         #carteira .cart-troca-desfazer:hover { border-color: var(--cart-rf); color: var(--cart-rf); }
 
         @media (max-width: 560px) {
-            /* Folha por baixo, como as folhas nativas do telemóvel: o polegar
+            /* Folha por baixo, como as folhas nativas do celular: o polegar
                alcança a lista sem esticar até o meio do ecrã. */
             #carteira .cart-troca-folha {
                 left: 0; right: 0; bottom: 0; top: auto; transform: none;
@@ -5239,7 +5239,7 @@
 
 
         /* ===== Modal do sonho: firme no celular ==========================
-           Sintoma: no telemóvel a tela do formulário "andava para os lados".
+           Sintoma: no celular a tela do formulário "andava para os lados".
            Causa: o Safari do iOS dá ZOOM automático ao focar um campo com
            fonte menor que 16px. Depois do zoom o viewport fica mais largo que
            a tela e a página inteira passa a arrastar na horizontal — não é o
@@ -5259,7 +5259,7 @@
                deixavam sobrar numa tela de 375px. */
             #modalSonho > div {
                 padding: 20px;
-                /* vh no telemóvel mede a viewport MAIOR (barra de endereço
+                /* vh no celular mede a viewport MAIOR (barra de endereço
                    escondida): com a barra à vista, ou com o teclado aberto,
                    88vh passa do que dá para ver e o topo do card fica
                    inalcançável, já que o overlay não rola. dvh acompanha a
@@ -9434,7 +9434,7 @@
         /* ═══════════════════════════════════════════════════════════════
            CAMPO DE FORMULÁRIO NUNCA ABAIXO DE 16px NO TOQUE
            ───────────────────────────────────────────────────────────────
-           O Safari do iOS AMPLIA a página sozinho quando o utilizador toca
+           O Safari do iOS AMPLIA a página sozinho quando o usuário toca
            num campo cuja fonte é menor que 16px. Como a viewport declarada é
            `width=device-width, initial-scale=1.0` (sem maximum-scale, e é
            assim que deve continuar), o zoom é aceite e a viewport VISÍVEL
@@ -9497,13 +9497,13 @@
             <div class="auth-gate-head">
                 <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
                 <h2>Bem-vindo</h2>
-                <p id="authGateSub">A carregar…</p>
+                <p id="authGateSub">Carregando…</p>
             </div>
-            <div id="authGateLoading" class="auth-loading">A preparar autenticação…</div>
+            <div id="authGateLoading" class="auth-loading">Preparando a autenticação…</div>
             <div id="authGateNoConfig" class="auth-gate-panel">
                 <p style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.55;margin-bottom:16px;">
-                    O Firebase não arrancou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Consola</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
-                    Confirme <em>Authentication → E-mail/senha</em> no Console Firebase. A config embebida no HTML só falha se os scripts <code>gstatic.com/firebasejs</code> não carregarem.
+                    O Firebase não iniciou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Console</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
+                    Confirme <em>Authentication → E-mail/senha</em> no Console Firebase. A config embutida no HTML só falha se os scripts <code>gstatic.com/firebasejs</code> não carregarem.
                 </p>
             </div>
             <div id="authGateForm" class="auth-gate-panel">
@@ -11034,7 +11034,7 @@
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
                         <button type="button" class="cart-ajuda-btn" id="cartAjudaScoresBtn" aria-expanded="false"
-                                aria-controls="cartAjudaScores" aria-label="Como isto funciona"
+                                aria-controls="cartAjudaScores" aria-label="Como isso funciona"
                                 onclick="cartAlternarAjuda('cartAjudaScores')">?</button>
                         <span class="cart-ajuda-balao" id="cartAjudaScores" hidden>Cada pilar vale de 0 a 10 e o score combina os cinco pela lente ativa.
                         Toque num ativo para ver a justificativa e a procedência do dado.</span>

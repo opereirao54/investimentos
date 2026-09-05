@@ -159,7 +159,7 @@ module.exports = handler({
       // Self-heal: se billing.referralCode aponta para um doc que não existe
       // mais em referralCodes/ (estado órfão herdado de versões antigas ou
       // edição manual), recria a reserva. Sem isto, ninguém consegue usar
-      // o cupom deste utilizador — `lookupOwner` devolve null e o /init de
+      // o cupom deste usuário — `lookupOwner` devolve null e o /init de
       // quem tenta usar bate referral_code_not_found.
       if (existing.referralCode && codes.isValid(existing.referralCode)) {
         try {
