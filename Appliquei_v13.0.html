@@ -425,6 +425,63 @@
         h1 { font-size: 21px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--cor-texto-principal); margin-bottom: 6px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 9px; }
         .subtitulo { color: var(--cor-texto-mutado); margin-bottom: 24px; font-size: 13px; font-weight: 400; }
         .page-actions { display: flex; align-items: center; gap: 8px; }
+        /* No Controle o cabeçalho ganhou um quinto item (o termômetro). Deixar
+           a fila quebrar e alinhar à direita evita que ela empurre o título
+           para fora nas larguras intermediárias. */
+        /* margin-left:auto mantém a fila colada à direita mesmo quando ela
+           desce para uma linha só dela — sozinha na linha, o space-between do
+           .page-header a jogaria para a esquerda. */
+        #controle .page-actions { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+        /* .btn-acao nasce com width:100% — ele vive dentro de formulários.
+           Numa fila sem quebra isso nunca aparecia, porque o flex encolhia o
+           botão até caber; assim que a fila passou a quebrar, "Novo lançamento"
+           ganhou uma linha só para si e esticou de ponta a ponta. Só no
+           desktop: abaixo de 768px a largura total é intencional. */
+        @media (min-width: 769px) {
+            #controle .page-actions > * { width: auto; flex: 0 0 auto; }
+        }
+
+        /* ===== Termômetro do mês (chip do cabeçalho do Controle) =====
+           Versão de bolso do gauge do Relatório mensal: mesmo arco, mesmo
+           gradiente vermelho→âmbar→verde, mesma agulha — só que em 48×29 em
+           vez de 220×130. A cor de fundo segue a faixa do score, então dá
+           para ler a saúde do mês sem ler o número. */
+        .term-chip {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 5px 10px 5px 7px; border-radius: 11px; cursor: pointer;
+            background: var(--term-chip-bg, var(--cor-superficie));
+            border: 1px solid var(--term-chip-borda, var(--cor-borda));
+            font-family: inherit; text-align: left;
+            transition: var(--transicao);
+        }
+        .term-chip:hover { border-color: var(--term-chip-tinta, var(--cor-borda2)); box-shadow: 0 2px 10px rgba(15,23,42,0.07); }
+        .term-chip:focus-visible { outline: 2px solid var(--term-chip-tinta, var(--cor-primaria)); outline-offset: 2px; }
+        .term-chip-gauge { width: 34px; height: 21px; flex-shrink: 0; display: block; }
+        .term-chip-gauge svg { width: 100%; height: 100%; display: block; overflow: visible; }
+        .term-chip-txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+        .term-chip-label {
+            font-size: 9.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+            color: var(--cor-texto-mutado); line-height: 1.1; white-space: nowrap;
+        }
+        .term-chip-status {
+            display: flex; align-items: baseline; gap: 5px; line-height: 1.15; white-space: nowrap;
+        }
+        .term-chip-status strong {
+            font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 700;
+            color: var(--term-chip-tinta, var(--cor-texto-principal));
+        }
+        .term-chip-status > span {
+            font-size: 11px; font-weight: 600; color: var(--term-chip-tinta, var(--cor-texto-secundario));
+        }
+        .term-chip-seta { font-size: 13px; color: var(--cor-texto-mutado); flex-shrink: 0; }
+        .term-chip:hover .term-chip-seta { color: var(--term-chip-tinta, var(--cor-texto-secundario)); }
+        /* Faixas: as mesmas três de RM_FAIXAS_SCORE. O JS só troca o atributo. */
+        .term-chip[data-faixa="vermelho"] { --term-chip-bg: var(--rm-faixa-vermelho-bg); --term-chip-tinta: var(--rm-faixa-vermelho-tinta); --term-chip-borda: color-mix(in srgb, #ef4444 32%, transparent); }
+        .term-chip[data-faixa="amarelo"]  { --term-chip-bg: var(--rm-faixa-amarelo-bg);  --term-chip-tinta: var(--rm-faixa-amarelo-tinta);  --term-chip-borda: color-mix(in srgb, #f59e0b 34%, transparent); }
+        .term-chip[data-faixa="verde"]    { --term-chip-bg: var(--rm-faixa-verde-bg);    --term-chip-tinta: var(--rm-faixa-verde-tinta);    --term-chip-borda: color-mix(in srgb, #10b981 32%, transparent); }
+        /* Mês sem lançamento nenhum: não há score a mostrar, e inventar um
+           "0 — Crítico" puniria quem acabou de abrir o app. */
+        .term-chip[data-faixa="vazio"] .term-chip-status strong { display: none; }
 
         /* Dark mode toggle */
         .btn-theme { background: var(--cor-superficie); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario); width: 34px; height: 34px; border-radius: 9px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: var(--transicao); flex-shrink: 0; }
@@ -6132,6 +6189,24 @@
                 flex: 1 1 100%;
                 justify-content: center;
             }
+            /* O termômetro fica com a linha inteira no celular: dividindo-a
+               com o seletor de mês, sobrava largura de menos para os dois. */
+            #controle .page-actions .term-chip {
+                flex: 1 1 100%;
+                justify-content: center;
+            }
+            /* As setinhas de mês são .btn-secundario DENTRO do seletor, então
+               a regra de cima as pegava também: cada uma esticava para meia
+               linha (ou a linha inteira, abaixo de 480px) e sobravam 42px para
+               o <input type="month"> — "setembro 2026" virava "Sep" cortado. */
+            /* Seletor mais específico do que `.page-actions .btn-secundario`
+               de propósito: a mesma regra reaparece no bloco de ≤480px, e sem
+               o peso extra ela voltaria a vencer lá. */
+            .page-actions .seletor-mes { flex: 1 1 100%; justify-content: center; }
+            .page-actions .seletor-mes .btn-secundario {
+                flex: 0 0 auto;
+                padding: 3px 5px !important;
+            }
 
             /* Cards e seções: padding reduzido para ganhar largura útil */
             .card-container { padding: 16px !important; margin-bottom: 14px; }
@@ -6837,9 +6912,36 @@
             background: linear-gradient(135deg, var(--cor-fundo-card) 0%, color-mix(in srgb, var(--cor-info) 6%, var(--cor-fundo-card)) 100%);
             border:1px solid color-mix(in srgb, var(--cor-info) 18%, var(--cor-borda));
             padding:26px 28px;
+            /* Duas colunas: o total à esquerda, a composição à direita. A
+               direita leva mais espaço porque tem 4 linhas de conteúdo. */
+            display:grid; grid-template-columns: minmax(0, 0.72fr) minmax(0, 1fr);
+            gap:30px; align-items:center;
         }
-        .mp-kpi-hero .mp-kpi-valor { font-size:32px; letter-spacing:-.5px; }
+        /* clamp em vez de tamanho fixo: com a composição ao lado, a coluna do
+           total é metade do card. Em 34px fixos um patrimônio de 7 dígitos não
+           cabia e a rede de segurança (overflow-wrap:anywhere, mais abaixo)
+           quebrava o número em "R$ 1.496.814" / ",74". Encolher a fonte é
+           menos ruim do que partir o valor ao meio. */
+        .mp-kpi-hero .mp-kpi-valor { font-size:clamp(22px, 2.2vw, 32px); letter-spacing:-.6px; }
         .mp-kpi-hero .mp-kpi-icon { width:52px; height:52px; font-size:26px; border-radius:14px; }
+        .mp-hero-principal { display:flex; gap:16px; align-items:center; min-width:0; }
+        .mp-hero-composicao {
+            min-width:0; padding-left:30px;
+            border-left:1px solid var(--cor-borda);
+        }
+        .mp-hero-composicao-tit {
+            display:block; font-size:10.5px; font-weight:700; text-transform:uppercase;
+            letter-spacing:.7px; color: var(--cor-texto-mutado); margin-bottom:10px;
+        }
+        /* Abaixo de 1180px as duas colunas não cabem lado a lado: a composição
+           desce e a borda vira um filete horizontal. O limite é alto porque a
+           barra lateral some por volta dos 1024px — entre uma coisa e outra o
+           conteúdo fica na casa dos 690px, e aí a coluna do total tem menos de
+           260px para um número que pede 300. */
+        @media (max-width: 1180px) {
+            .mp-kpi-hero { grid-template-columns: 1fr; gap:20px; }
+            .mp-hero-composicao { padding-left:0; padding-top:18px; border-left:none; border-top:1px solid var(--cor-borda); }
+        }
         .mp-kpi::before {
             content:''; position:absolute; top:0; left:0; height:100%; width:4px;
             background: var(--cor-primaria); border-radius:0 4px 4px 0;
@@ -6862,6 +6964,34 @@
         .mp-kpi-body { display:flex; flex-direction:column; gap:3px; min-width:0; flex:1; }
         .mp-kpi-label { font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.6px; color: var(--cor-texto-mutado); }
         .mp-kpi-valor { font-family:'DM Mono', monospace; font-size:22px; font-weight:700; color: var(--cor-texto-principal); transition: color .2s; }
+        /* Card de componente: empilhado, para o valor ter a largura toda. */
+        .mp-kpi-componente {
+            flex-direction:column; align-items:stretch; gap:0;
+            padding:16px 18px 15px;
+        }
+        .mp-kpi-componente .mp-kpi-topo { display:flex; align-items:center; gap:9px; margin-bottom:11px; }
+        .mp-kpi-componente .mp-kpi-icon { width:30px; height:30px; border-radius:9px; font-size:16px; }
+        .mp-kpi-componente .mp-kpi-label { line-height:1.25; }
+        .mp-kpi-componente .mp-kpi-valor { display:block; margin-bottom:12px; }
+        .mp-kpi-rodape { display:flex; flex-direction:column; gap:7px; margin-top:auto; }
+        /* Fatia do total: liga o card à barra do hero. Sem ela, saber que
+           "R$ 420.000 são 75% do patrimônio" exigia voltar para a legenda. */
+        .mp-kpi-fatia { display:flex; align-items:center; gap:8px; }
+        .mp-kpi-fatia-trilho {
+            flex:1; height:4px; border-radius:99px; background: var(--cor-superficie); overflow:hidden;
+        }
+        .mp-kpi-fatia-fill {
+            height:100%; width:0; border-radius:99px;
+            transition: width .6s cubic-bezier(.4,0,.2,1);
+        }
+        .mp-kpi-saldo     .mp-kpi-fatia-fill { background: var(--cor-primaria); }
+        .mp-kpi-investido .mp-kpi-fatia-fill { background: var(--cor-patrimonio); }
+        .mp-kpi-imoveis   .mp-kpi-fatia-fill { background: #f59e0b; }
+        .mp-kpi-veiculos  .mp-kpi-fatia-fill { background: #64748b; }
+        .mp-kpi-fatia-pct {
+            font-size:10.5px; font-weight:700; color: var(--cor-texto-mutado);
+            font-variant-numeric:tabular-nums; white-space:nowrap;
+        }
         .mp-kpi-delta { font-size:11px; font-weight:600; display:flex; align-items:center; gap:3px; }
         .mp-kpi-delta.pos { color: var(--tinta-verde); }
         .mp-kpi-delta.neg { color: var(--tinta-vermelho); }
@@ -6869,7 +6999,7 @@
         .mp-kpi-sub { font-size:10.5px; font-weight:500; color: var(--cor-texto-mutado); display:flex; align-items:center; gap:4px; flex-wrap:wrap; margin-top:2px; line-height:1.4; }
         .mp-kpi-sub i { font-size:12px; opacity:.8; }
         .mp-composition-bar {
-            display:flex; height:8px; border-radius:99px; overflow:hidden; margin-top:10px;
+            display:flex; height:10px; border-radius:99px; overflow:hidden;
             background: var(--cor-superficie); gap:2px;
         }
         .mp-composition-seg {
@@ -6877,14 +7007,27 @@
             min-width:3px; cursor:default; position:relative;
         }
         .mp-composition-seg:hover { opacity:.8; filter:brightness(1.1); }
+        /* Legenda em tabela: cada fatia numa linha, com o valor em R$ ao lado
+           da porcentagem. Antes eram só chips "Imóveis 75.0%" — dizia a
+           proporção mas escondia de quanto se estava falando. */
         .mp-composition-legend {
-            display:flex; flex-wrap:wrap; gap:8px 14px; margin-top:8px;
+            display:grid; grid-template-columns: 1fr auto auto; gap:7px 12px; margin-top:12px;
+            align-items:baseline;
         }
         .mp-composition-legend-item {
-            font-size:10px; font-weight:600; color: var(--cor-texto-mutado);
-            display:inline-flex; align-items:center; gap:4px;
+            font-size:11.5px; font-weight:600; color: var(--cor-texto-secundario);
+            display:inline-flex; align-items:center; gap:7px; min-width:0;
         }
-        .mp-composition-legend-item .mp-leg-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+        .mp-composition-legend-item .mp-leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+        .mp-leg-valor {
+            font-family:'DM Mono', monospace; font-size:11.5px; font-weight:600;
+            color: var(--cor-texto-principal); text-align:right; white-space:nowrap;
+        }
+        .mp-leg-share {
+            font-size:11px; font-weight:700; color: var(--cor-texto-mutado);
+            text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums;
+            min-width:42px;
+        }
 
         .mp-grid { display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-bottom:20px; align-items:start; }
         @media (max-width: 960px) { .mp-grid { grid-template-columns: 1fr; } }
@@ -7053,6 +7196,7 @@
         .mp-empty i { font-size:36px; display:block; margin-bottom:10px; opacity:.35; }
 
         body.valores-ocultos #meu_patrimonio .mp-kpi-valor,
+        body.valores-ocultos #meu_patrimonio .mp-leg-valor,
         body.valores-ocultos #meu_patrimonio .mp-barra-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-valor,
         body.valores-ocultos #meu_patrimonio .mp-inst-chip strong,
@@ -10585,7 +10729,36 @@
                     <p class="subtitulo" style="margin-bottom:0">Visão mensal de receitas, despesas e saúde do caixa.</p>
                 </div>
                 <div class="page-actions">
-                    <div style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
+                    <!-- Termômetro do mês: o mesmo score do Relatório mensal,
+                         em versão de bolso. Fica aqui porque é no Controle que
+                         a pessoa lança as coisas que mexem no score — ver o
+                         efeito só depois, em outra aba, é tarde demais.
+                         Clicar abre o relatório completo do mês em exibição. -->
+                    <button type="button" id="termometroControle" class="term-chip" onclick="abrirRelatorioDoMesVisao()" title="Ver o Relatório mensal completo deste mês">
+                        <span class="term-chip-gauge" aria-hidden="true">
+                            <svg viewBox="0 0 48 29" xmlns="http://www.w3.org/2000/svg">
+                                <defs>
+                                    <linearGradient id="termChipGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stop-color="#ef4444"/>
+                                        <stop offset="50%" stop-color="#f59e0b"/>
+                                        <stop offset="100%" stop-color="#10b981"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M 5 24 A 19 19 0 0 1 43 24" fill="none" stroke="var(--rm-gauge-trilho)" stroke-width="6" stroke-linecap="round"/>
+                                <path id="termChipArco" d="M 5 24 A 19 19 0 0 1 43 24" fill="none" stroke="url(#termChipGrad)" stroke-width="6" stroke-linecap="round" stroke-dasharray="60" stroke-dashoffset="60" style="transition:stroke-dashoffset .7s cubic-bezier(.22,1,.36,1);"/>
+                                <g id="termChipPonteiro" transform="rotate(-90 24 24)" style="transition:transform .7s cubic-bezier(.22,1,.36,1);">
+                                    <line x1="24" y1="24" x2="24" y2="10" stroke="var(--rm-gauge-agulha)" stroke-width="2" stroke-linecap="round"/>
+                                    <circle cx="24" cy="24" r="2.6" fill="var(--rm-gauge-agulha)"/>
+                                </g>
+                            </svg>
+                        </span>
+                        <span class="term-chip-txt">
+                            <span class="term-chip-label">Termômetro</span>
+                            <span class="term-chip-status"><strong id="termChipScore">—</strong><span id="termChipRotulo">—</span></span>
+                        </span>
+                        <i class="ph ph-caret-right term-chip-seta" aria-hidden="true"></i>
+                    </button>
+                    <div class="seletor-mes" style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
                         <input type="month" id="inputMesAnoVisao" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="selecionarMesVisao()">
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
@@ -11682,49 +11855,86 @@
                 </div>
             </div>
 
-            <!-- KPI hero: patrimônio total -->
+            <!-- KPI hero: patrimônio total.
+                 Duas colunas de propósito: o número grande sozinho deixava
+                 dois terços do card vazios, e a composição — que é a segunda
+                 pergunta de quem olha o total — vivia espremida numa fita de
+                 8px com só a porcentagem. Agora ela ocupa a metade direita e
+                 mostra também o valor em R$ de cada fatia. -->
             <div id="mp-kpis" class="mp-kpis-hero">
                 <div class="mp-kpi mp-kpi-patrimonio mp-kpi-hero">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
-                    <div class="mp-kpi-body">
-                        <span class="mp-kpi-label">Patrimônio total</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
-                        <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                    <div class="mp-hero-principal">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-bank"></i></div>
+                        <div class="mp-kpi-body">
+                            <span class="mp-kpi-label">Patrimônio total</span>
+                            <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-patrimonio-valor">R$ 0,00</span>
+                            <span class="mp-kpi-sub" id="mp-kpi-patrimonio-sub">—</span>
+                        </div>
+                    </div>
+                    <div class="mp-hero-composicao">
+                        <span class="mp-hero-composicao-tit">Como ele está dividido</span>
                         <div id="mp-composition-bar"></div>
                     </div>
                 </div>
             </div>
-            <!-- Componentes do patrimônio: cada fatia que soma no total -->
+            <!-- Componentes do patrimônio: cada fatia que soma no total.
+                 Empilhados (rótulo em cima, valor no meio, fatia embaixo) em
+                 vez de ícone-ao-lado-do-texto: em 4 colunas o valor não cabia
+                 na largura restante e encostava na borda do card. -->
             <div class="mp-kpis mp-kpis-componentes">
-                <div class="mp-kpi mp-kpi-saldo">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-saldo">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-wallet"></i></div>
                         <span class="mp-kpi-label">Saldo em conta</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-saldo-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-saldo-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-saldo-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-saldo-delta">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-investido">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-investido">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-trend-up"></i></div>
                         <span class="mp-kpi-label">Total investido</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-investido-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-investido-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-investido-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-investido-delta">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-imoveis">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-imoveis">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-house-line"></i></div>
                         <span class="mp-kpi-label">Imóveis</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-imoveis-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-imoveis-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-imoveis-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-imoveis-qtd">—</span>
                     </div>
                 </div>
-                <div class="mp-kpi mp-kpi-veiculos">
-                    <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
-                    <div class="mp-kpi-body">
+                <div class="mp-kpi mp-kpi-componente mp-kpi-veiculos">
+                    <div class="mp-kpi-topo">
+                        <div class="mp-kpi-icon"><i class="ph-fill ph-car-simple"></i></div>
                         <span class="mp-kpi-label">Veículos</span>
-                        <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                    </div>
+                    <span class="mp-kpi-valor valor-mascarado" id="mp-kpi-veiculos-valor">R$ 0,00</span>
+                    <div class="mp-kpi-rodape">
+                        <div class="mp-kpi-fatia">
+                            <div class="mp-kpi-fatia-trilho"><div class="mp-kpi-fatia-fill" id="mp-kpi-veiculos-fatia-fill"></div></div>
+                            <span class="mp-kpi-fatia-pct" id="mp-kpi-veiculos-fatia">—</span>
+                        </div>
                         <span class="mp-kpi-delta neu" id="mp-kpi-veiculos-qtd">—</span>
                     </div>
                 </div>

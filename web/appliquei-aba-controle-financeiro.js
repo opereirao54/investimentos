@@ -2424,6 +2424,88 @@ function atualizarTermometro60() {
   }
 }
 
+// ============================================================
+// --- Termômetro do mês no cabeçalho ---
+// ============================================================
+
+// Ângulo da agulha e comprimento do arco preenchido para um score 0-100.
+// Pura e exportada: é a única aritmética do chip, e é a mesma conta que
+// rmAtualizarGauge faz no gauge grande — só com o arco de outro raio.
+// (Semicírculo de raio 19 → π·19 ≈ 59,7; o dasharray do SVG é 60.)
+function termChipGeometria(score, comprimentoArco) {
+  const s = Math.max(0, Math.min(100, Number(score) || 0));
+  const arco = Number(comprimentoArco) || 60;
+  return { angulo: -90 + (s / 100) * 180, offset: arco - arco * (s / 100) };
+}
+
+// O score vem de rmCalcularTermometro(buildMonthlyReport(...)) — exatamente as
+// funções que o Relatório mensal usa. Recalcular por conta própria aqui faria
+// o chip e o relatório discordarem no dia em que a régua dos 5 critérios
+// mudasse, e o chip é justamente o convite para abrir o relatório.
+function atualizarTermometroControle(mes, ano) {
+  const chip = document.getElementById('termometroControle');
+  if (!chip) return;
+  try {
+    if (typeof buildMonthlyReport !== 'function' || typeof rmCalcularTermometro !== 'function') {
+      chip.style.display = 'none';
+      return;
+    }
+    chip.style.display = '';
+    const yyyymm = ano + '-' + String(mes + 1).padStart(2, '0');
+    const rep = buildMonthlyReport(yyyymm);
+    const elScore = document.getElementById('termChipScore');
+    const elRotulo = document.getElementById('termChipRotulo');
+    const arco = document.getElementById('termChipArco');
+    const ponteiro = document.getElementById('termChipPonteiro');
+
+    // Mês sem nada lançado: o score seria 40 ("Atenção") só porque quatro dos
+    // cinco critérios são neutros — um diagnóstico sobre dado nenhum.
+    if (!rep.hasData) {
+      chip.setAttribute('data-faixa', 'vazio');
+      const g = termChipGeometria(0);
+      if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
+      if (ponteiro) ponteiro.setAttribute('transform', 'rotate(' + g.angulo + ' 24 24)');
+      if (elScore) elScore.textContent = '';
+      if (elRotulo) elRotulo.textContent = 'Sem lançamentos';
+      chip.title = 'Lance receitas e despesas deste mês para ver o termômetro';
+      return;
+    }
+
+    const t = rmCalcularTermometro(rep);
+    const g = termChipGeometria(t.score);
+    chip.setAttribute('data-faixa', t.statusGeral);
+    if (arco) arco.setAttribute('stroke-dashoffset', String(g.offset));
+    if (ponteiro) ponteiro.setAttribute('transform', 'rotate(' + g.angulo + ' 24 24)');
+    if (elScore) elScore.textContent = t.score;
+    if (elRotulo) elRotulo.textContent = t.faixa ? t.faixa.rotulo : '';
+    chip.title =
+      'Termômetro de ' +
+      (typeof rmFormatarMesLabel === 'function' ? rmFormatarMesLabel(yyyymm) : yyyymm) +
+      ': ' +
+      t.score +
+      '/100. Clique para ver o Relatório mensal completo.';
+  } catch (erro) {
+    console.error('Appliquei - Erro não-crítico ao atualizar o termômetro do mês:', erro);
+  }
+}
+
+// Abre o Relatório mensal já no mês que o Controle está exibindo. Vai pelo
+// botão da barra lateral (e não por mudarAba direto) porque mudarAba usa
+// e.currentTarget para marcar o item ativo do menu — mesmo caminho de
+// ppNavegarPara.
+function abrirRelatorioDoMesVisao() {
+  const seletor = document.getElementById('rmSeletorMes');
+  if (seletor) seletor.value = visaoAno + '-' + String(visaoMes + 1).padStart(2, '0');
+  if (typeof ppNavegarPara === 'function' && ppNavegarPara('relatorio_mensal')) return;
+  const botoes = document.querySelectorAll('.menu-btn');
+  for (let i = 0; i < botoes.length; i++) {
+    if ((botoes[i].getAttribute('onclick') || '').indexOf("'relatorio_mensal'") !== -1) {
+      botoes[i].click();
+      return;
+    }
+  }
+}
+
 // Estado do alerta de cartão (pura/testável). Recebe o total da fatura do mês e
 // a lista de cartões ATIVOS (arquivados não entram, p/ não inflar o limite e
 // mascarar o estouro). Devolve o limite somado, o % usado e, se estourou, quanto
@@ -2484,6 +2566,9 @@ function atualizarTelaControle() {
   ];
   document.getElementById('lblMesExtrato').innerText = `(${nomeMeses[visaoMes]} ${visaoAno})`;
   atualizarBannerSaldoMesAnterior(visaoMes, visaoAno);
+  // O termômetro acompanha o mês em exibição, e não o mês corrente: navegar
+  // para agosto e continuar vendo o score de setembro seria mentira.
+  atualizarTermometroControle(visaoMes, visaoAno);
 
   const listaExtrato = document.getElementById('extratoUnificado');
   let htmlExtrato = '';

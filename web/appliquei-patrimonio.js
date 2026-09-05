@@ -104,7 +104,16 @@ function mpFmtBRL(v) {
 }
 function mpFmtPct(v, casas = 1) {
   if (!isFinite(v)) return '—';
-  return (v >= 0 ? '+' : '') + v.toFixed(casas) + '%';
+  // Vírgula decimal: o app é em pt-BR e o valor ao lado ("R$ 24.000,00") já
+  // usa a convenção brasileira — "+15.9%" ao lado dele destoava.
+  return (v >= 0 ? '+' : '') + v.toFixed(casas).replace('.', ',') + '%';
+}
+// Percentual sem sinal (participação, fatia). Só para TEXTO: largura de barra
+// em CSS continua com ponto, senão o style vira inválido e a barra some.
+function mpPctBR(v, casas = 1) {
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  return n.toFixed(casas).replace('.', ',') + '%';
 }
 
 var MP_LABELS = {
@@ -589,6 +598,30 @@ function calcularPatrimonioTotal() {
 function mpAlterarPeriodo() {
   renderMeuPatrimonio(true);
 }
+// Quanto uma parcela representa do patrimônio, em 0-100. Devolve `null`
+// quando não há total: sem base, "0,0%" sugeriria fatia nula quando o que não
+// existe é o bolo. Presa em 0-100 porque o saldo em conta pode ficar negativo
+// de verdade (conta no vermelho) e o valor de um bem pode vir digitado errado
+// — nem um nem outro deve puxar a barrinha para fora do trilho.
+function mpFatiaDoTotal(valor, total) {
+  const t = Number(total) || 0;
+  if (!(t > 0)) return null;
+  const v = Number(valor) || 0;
+  return Math.max(0, Math.min(100, (v / t) * 100));
+}
+
+// Pinta, dentro do card de um componente, a fatia que ele ocupa do total: a
+// barrinha e o "x% do total".
+function mpPintarFatia(chave, valor, total) {
+  const fill = document.getElementById('mp-kpi-' + chave + '-fatia-fill');
+  const rotulo = document.getElementById('mp-kpi-' + chave + '-fatia');
+  const pct = mpFatiaDoTotal(valor, total);
+  if (fill) fill.style.width = (pct === null ? 0 : pct).toFixed(1) + '%';
+  if (rotulo) {
+    rotulo.textContent = pct === null ? '—' : mpPctBR(pct) + ' do total';
+  }
+}
+
 function mpRenderKPIs(consolidado, janela) {
   const patr =
     typeof calcularPatrimonioTotal === 'function' ? calcularPatrimonioTotal() : consolidado;
@@ -631,30 +664,33 @@ function mpRenderKPIs(consolidado, janela) {
   const subPatr = document.getElementById('mp-kpi-patrimonio-sub');
   if (subPatr) {
     subPatr.className = 'mp-kpi-sub';
-    var partes = [
-      '<i class="ph ph-wallet"></i> saldo',
-      '<i class="ph ph-trend-up"></i> investimentos',
-    ];
-    if (totalImoveis > 0) partes.push('<i class="ph ph-house-line"></i> imóveis');
-    if (totalVeiculos > 0) partes.push('<i class="ph ph-car-simple"></i> veículos');
-    subPatr.innerHTML = partes.join(' + ');
+    // A linha listava "saldo + investimentos + imóveis + veículos" — exatamente
+    // o que a legenda da composição, agora ao lado, já diz com nome, valor e
+    // porcentagem. No lugar dela vai a data da posição: o total usa cotação de
+    // mercado, então "de quando é este número" não era dito em lugar nenhum.
+    const refMs = janela && isFinite(janela.fimMs) ? janela.fimMs : Date.now();
+    subPatr.innerHTML =
+      '<i class="ph ph-clock-counter-clockwise"></i> Posição de ' +
+      new Date(refMs).toLocaleDateString('pt-BR');
   }
 
   var compBar = document.getElementById('mp-composition-bar');
   if (compBar && patrimonioTotal > 0) {
     var segs = [];
     if (saldoTotal > 0)
-      segs.push({ label: 'Saldo', valor: saldoTotal, cor: 'var(--cor-primaria)' });
+      segs.push({ label: 'Saldo em conta', valor: saldoTotal, cor: 'var(--cor-primaria)' });
     if (valorInvestido > 0)
-      segs.push({ label: 'Investido', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
+      segs.push({ label: 'Investimentos', valor: valorInvestido, cor: 'var(--cor-patrimonio)' });
     if (totalImoveis > 0) segs.push({ label: 'Imóveis', valor: totalImoveis, cor: '#f59e0b' });
     if (totalVeiculos > 0) segs.push({ label: 'Veículos', valor: totalVeiculos, cor: '#64748b' });
     var barHtml = '<div class="mp-composition-bar">';
     segs.forEach(function (s) {
-      var pct = ((s.valor / patrimonioTotal) * 100).toFixed(1);
+      var pct = (s.valor / patrimonioTotal) * 100;
       barHtml +=
+        // A largura vai em CSS: ponto decimal, senão o style é inválido e o
+        // segmento some. Só o texto do title é que fica em pt-BR.
         '<div class="mp-composition-seg" style="width:' +
-        pct +
+        pct.toFixed(1) +
         '%;background:' +
         s.cor +
         ';" title="' +
@@ -662,27 +698,39 @@ function mpRenderKPIs(consolidado, janela) {
         ': ' +
         mpFmtBRL(s.valor) +
         ' (' +
-        pct +
-        '%)"></div>';
+        mpPctBR(pct) +
+        ')"></div>';
     });
     barHtml += '</div>';
+    // Legenda em 3 colunas: fatia, quanto é em R$, quanto é do total. A
+    // porcentagem sozinha não responde "de quanto estamos falando".
     barHtml += '<div class="mp-composition-legend">';
     segs.forEach(function (s) {
-      var pct = ((s.valor / patrimonioTotal) * 100).toFixed(1);
+      var pct = (s.valor / patrimonioTotal) * 100;
       barHtml +=
         '<span class="mp-composition-legend-item"><span class="mp-leg-dot" style="background:' +
         s.cor +
         ';"></span>' +
         s.label +
-        ' ' +
-        pct +
-        '%</span>';
+        '</span>' +
+        '<span class="mp-leg-valor">' +
+        mpFmtBRL(s.valor) +
+        '</span>' +
+        '<span class="mp-leg-share">' +
+        mpPctBR(pct) +
+        '</span>';
     });
     barHtml += '</div>';
     compBar.innerHTML = barHtml;
   } else if (compBar) {
     compBar.innerHTML = '';
   }
+
+  // Fatia de cada componente no total, repetida dentro do próprio card.
+  mpPintarFatia('saldo', saldoTotal, patrimonioTotal);
+  mpPintarFatia('investido', valorInvestido, patrimonioTotal);
+  mpPintarFatia('imoveis', totalImoveis, patrimonioTotal);
+  mpPintarFatia('veiculos', totalVeiculos, patrimonioTotal);
 
   const deltaSaldo =
     saldoAnterior !== 0 ? ((saldoTotal - saldoAnterior) / Math.abs(saldoAnterior)) * 100 : 0;
@@ -1015,12 +1063,12 @@ function mpRenderInstituicoes(consolidado) {
                         <div class="mp-inst-meta">
                             <span class="mp-inst-nome">${x.nome} ${tipoBadge}${recon}</span>
                             <span class="mp-inst-sub" style="text-align:left;">${sub}</span>
-                            <span class="mp-inst-share" title="${pct.toFixed(1)}% do patrimônio"><span class="mp-inst-share-fill" style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span>
+                            <span class="mp-inst-share" title="${mpPctBR(pct)} do patrimônio"><span class="mp-inst-share-fill" style="width:${Math.max(2, Math.min(100, pct)).toFixed(1)}%;background:${accent};"></span></span>
                         </div>
                     </div>
                     <div class="mp-inst-head-right">
                         <span class="mp-inst-valor">${mpFmtBRL(x.total)}</span>
-                        <span class="mp-inst-sub">${pct.toFixed(1)}%</span>
+                        <span class="mp-inst-sub">${mpPctBR(pct)}</span>
                     </div>
                 </div>
                 ${detalheHtml}
@@ -1163,7 +1211,7 @@ function mpRenderClasses(consolidado) {
           color: typeof getToken === 'function' ? getToken('--cor-texto-principal') : '#1e293b',
           formatter: function (value) {
             var share = total > 0 ? (value / total) * 100 : 0;
-            return mpFmtBRL(value) + '  ' + share.toFixed(1) + '%';
+            return mpFmtBRL(value) + '  ' + mpPctBR(share);
           },
         },
         tooltip: {
