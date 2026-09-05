@@ -111,6 +111,7 @@ module.exports = [
       'web/appliquei-aba1-charts.js',
       'web/appliquei-renda-fixa.js',
       'web/appliquei-previdencia.js',
+      'web/appliquei-projecao.js',
       'web/appliquei-yahoo-finance.js',
       'web/appliquei-admin.js',
       'web/appliquei-bens.js',

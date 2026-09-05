@@ -317,6 +317,16 @@ function atualizarKPIsResumo(carteiraConsolidada) {
   }
 
   atualizarChipDividendosPeriodo();
+
+  // A tira "sem mexer em nada, em 10 anos" vive do mesmo saldo que acabou de
+  // ser pintado — atualiza junto para os dois números nunca discordarem.
+  if (typeof projAtualizarTiraHero === 'function') {
+    try {
+      projAtualizarTiraHero(null);
+    } catch (_) {
+      /* a projeção nunca pode derrubar o hero */
+    }
+  }
 }
 
 // Timestamp da operação para a série de evolução. Prioriza data_op, mas cai
@@ -1468,7 +1478,12 @@ function atualizarCarteiraAtivos() {
   });
 
   if (richContainer) richContainer.innerHTML = richHTML || '';
-  atualizarMiniStats('carteira');
+  // A mini-estatística é do que está NA TELA. Cravar 'carteira' aqui fazia com
+  // que a chegada assíncrona das cotações reescrevesse a linha de quem estava
+  // em Operações, Dividendos ou Futuro.
+  atualizarMiniStats(
+    typeof subAbaPatrimonioAtiva !== 'undefined' ? subAbaPatrimonioAtiva : 'carteira'
+  );
   // Aviso de RF/Reserva sem rentabilidade (que não estão rendendo).
   if (typeof renderAvisoRentabilidadeRF === 'function') renderAvisoRentabilidadeRF();
 
