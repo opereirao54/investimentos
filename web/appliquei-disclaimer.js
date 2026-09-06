@@ -16,7 +16,7 @@ var DISCLAIMER_ATUALIZADO_EM = '28 de agosto de 2026';
 /** Parágrafo de abertura, antes das seções numeradas. */
 var DISCLAIMER_ABERTURA =
   'As informações, análises, conteúdos educacionais, simulações, projeções, ' +
-  'classificações de perfil e sugestões de alocação disponibilizados pelo ' +
+  'classificações de perfil e sugestões de alocação disponibilizados pela ' +
   'Appliquei têm caráter informativo e educacional e destinam-se exclusivamente ' +
   'a auxiliar o usuário em seu processo de conhecimento e tomada de decisão ' +
   'financeira.';
@@ -40,7 +40,7 @@ var DISCLAIMER_SECOES = [
   {
     titulo: 'Ausência de garantia de rentabilidade',
     paragrafos: [
-      'Nenhuma informação apresentada pelo Appliquei constitui promessa, garantia ou asseguração de rentabilidade futura.',
+      'Nenhuma informação apresentada pela Appliquei constitui promessa, garantia ou asseguração de rentabilidade futura.',
       'Rentabilidade passada não garante rentabilidade futura.',
       'Os resultados efetivamente obtidos pelo usuário poderão ser diferentes das estimativas, projeções ou cenários apresentados na plataforma.',
       'Investimentos estão sujeitos a riscos e podem resultar em perdas, inclusive perda parcial ou total do capital investido.',
@@ -49,7 +49,7 @@ var DISCLAIMER_SECOES = [
   {
     titulo: 'Projeções e simulações',
     paragrafos: [
-      'As projeções, simulações e estimativas apresentadas pelo Appliquei são baseadas em premissas, dados históricos, taxas hipotéticas ou informações disponíveis no momento de sua elaboração.',
+      'As projeções, simulações e estimativas apresentadas pela Appliquei são baseadas em premissas, dados históricos, taxas hipotéticas ou informações disponíveis no momento de sua elaboração.',
       'Essas informações possuem caráter meramente ilustrativo e não representam previsão ou garantia de resultado futuro.',
       'Alterações nas condições econômicas, inflação, juros, preços dos ativos, tributação, liquidez, câmbio, condições de mercado e demais fatores podem produzir resultados significativamente diferentes dos apresentados.',
     ],
@@ -65,7 +65,7 @@ var DISCLAIMER_SECOES = [
   {
     titulo: 'Perfil de investidor',
     paragrafos: [
-      'O Appliquei poderá utilizar informações fornecidas pelo usuário para identificar um perfil de investidor, como Conservador, Moderado ou Arrojado, e apresentar conteúdos ou sugestões compatíveis com esse perfil.',
+      'A Appliquei poderá utilizar informações fornecidas pelo usuário para identificar um perfil de investidor, como Conservador, Moderado ou Arrojado, e apresentar conteúdos ou sugestões compatíveis com esse perfil.',
       'O perfil apresentado é uma ferramenta de apoio à decisão e não elimina os riscos dos investimentos.',
       'O usuário é responsável por fornecer informações verdadeiras, completas e atualizadas.',
       'A classificação de perfil não constitui recomendação individual definitiva e não substitui, quando aplicável, o processo de suitability exigido pela regulamentação.',
@@ -110,7 +110,7 @@ var DISCLAIMER_SECOES = [
     titulo: 'Responsabilidade pela decisão',
     paragrafos: [
       'A decisão de realizar, manter, alterar ou encerrar um investimento é exclusivamente do usuário.',
-      'O Appliquei não garante que qualquer investimento, carteira ou estratégia apresentada seja adequada aos objetivos individuais do usuário ou produza determinado resultado.',
+      'A Appliquei não garante que qualquer investimento, carteira ou estratégia apresentada seja adequada aos objetivos individuais do usuário ou produza determinado resultado.',
       'O usuário deve analisar cuidadosamente as características, custos, riscos, tributação e condições de cada investimento antes de tomar qualquer decisão.',
     ],
   },
@@ -118,12 +118,12 @@ var DISCLAIMER_SECOES = [
     titulo: 'Informações de terceiros',
     paragrafos: [
       'Informações provenientes de fontes externas podem estar sujeitas a alterações, erros, atrasos ou divergências.',
-      'O Appliquei buscará utilizar informações consideradas confiáveis, mas não garante a exatidão, integralidade ou atualização permanente de todas as informações disponibilizadas.',
+      'A Appliquei buscará utilizar informações consideradas confiáveis, mas não garante a exatidão, integralidade ou atualização permanente de todas as informações disponibilizadas.',
     ],
   },
   {
     titulo: 'Não constituição de garantia',
-    paragrafos: ['Nenhuma informação disponibilizada pelo Appliquei deverá ser interpretada como:'],
+    paragrafos: ['Nenhuma informação disponibilizada pela Appliquei deverá ser interpretada como:'],
     lista: [
       'garantia de retorno;',
       'promessa de rentabilidade;',
@@ -146,13 +146,13 @@ var DISCLAIMER_SECOES = [
   {
     titulo: 'Conflitos de interesse',
     paragrafos: [
-      'O usuário deverá ser informado sobre eventuais relações comerciais, remunerações, comissões, incentivos ou outros potenciais conflitos de interesse relacionados aos produtos, serviços ou parceiros apresentados pelo Appliquei, quando aplicável.',
+      'O usuário deverá ser informado sobre eventuais relações comerciais, remunerações, comissões, incentivos ou outros potenciais conflitos de interesse relacionados aos produtos, serviços ou parceiros apresentados pela Appliquei, quando aplicável.',
     ],
   },
   {
     titulo: 'Decisão consciente',
     paragrafos: [
-      'Ao utilizar as funcionalidades de investimentos do Appliquei, o usuário declara estar ciente de que:',
+      'Ao utilizar as funcionalidades de investimentos da Appliquei, o usuário declara estar ciente de que:',
       'Investir envolve riscos. Não existe garantia de rentabilidade. Resultados futuros podem ser diferentes das estimativas apresentadas. O usuário deve tomar suas próprias decisões de investimento de acordo com seus objetivos, situação financeira e tolerância ao risco.',
     ],
   },

@@ -43,7 +43,7 @@ function effectivePriceCents() {
   if (!lastBilling) return 1500;
   // Se a subscription já existe, o valor cobrado já está fixado
   if (lastBilling.subscriptionBaseValueCents) return lastBilling.subscriptionBaseValueCents;
-  // Caso contrário, calcular a partir do desconto registado em /init
+  // Caso contrário, calcular a partir do desconto registrado em /init
   var base = lastBilling.monthlyPriceCents || 1500;
   var pct = lastBilling.recurringDiscountPercent || 0;
   return Math.round((base * (100 - pct)) / 100);
@@ -286,7 +286,7 @@ function ensureGate() {
     '<div class="bg-card" role="dialog" aria-modal="true" aria-labelledby="billingTitle">',
     '  <div class="bg-inner">',
     '    <div class="bg-eyebrow"><i class="ph-fill ph-sparkle"></i> Appliquei Pro</div>',
-    '    <h2 id="billingTitle" class="bg-h1">Acesso completo ao Appliquei</h2>',
+    '    <h2 id="billingTitle" class="bg-h1">Acesso completo à Appliquei</h2>',
     '    <p id="billingSub" class="bg-sub">Carteira sugerida, dashboards, Applicash e tudo mais. Escolha como prefere pagar.</p>',
     '    <div class="bg-section">',
     '      <div class="bg-section-title">Plano</div>',
@@ -294,7 +294,7 @@ function ensureGate() {
     '        <div class="bg-tier bg-tier-current">',
     '          <span class="bg-tier-pill bg-tier-pill-current"><i class="ph-fill ph-check-circle"></i> Plano atual</span>',
     '          <div class="bg-tier-title">Pro</div>',
-    '          <div class="bg-tier-sub">Todas as 10 abas do Appliquei · Applicash · suporte.</div>',
+    '          <div class="bg-tier-sub">Todas as 10 abas da Appliquei · Applicash · suporte.</div>',
     '        </div>',
     '        <div class="bg-tier bg-tier-soon" aria-disabled="true">',
     '          <span class="bg-tier-pill bg-tier-pill-soon"><i class="ph ph-wrench"></i> Em construção</span>',
@@ -634,19 +634,19 @@ function titleForAccess(a) {
 function subForAccess(a) {
   if (a.status === 'pending_payment') {
     return a.reason === 'risk_analysis'
-      ? 'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.'
-      : 'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.';
+      ? 'A Asaas está verificando este pagamento. Aguarde alguns minutos — atualizamos automaticamente.'
+      : 'A sua assinatura está ativa. Estamos aguardando a confirmação do pagamento pela Asaas.';
   }
   if (a.reason === 'overdue')
-    return 'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.';
+    return 'Identificamos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.';
   if (a.reason === 'card_reproved')
-    return 'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.';
+    return 'A Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.';
   if (a.reason === 'chargeback')
-    return 'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.';
+    return 'Há um chargeback em curso para esta assinatura. Fale com o suporte para regularizar.';
   if (a.reason === 'cancelled')
     return 'A sua assinatura foi cancelada. Para voltar a usar a plataforma, crie uma nova assinatura.';
   if (a.reason === 'trial_expired')
-    return 'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.';
+    return 'Os seus 7 dias gratuitos terminaram. Assine para continuar usando.';
   return 'O acesso à plataforma requer uma assinatura ativa.';
 }
 function showErr(msg) {
@@ -685,7 +685,7 @@ function clearTrialBannerOffset() {
   });
 }
 // Banner pró-ativo de verificação de e-mail. Mostra ANTES de
-// EMAIL_VERIFY_ENFORCE estar ligado, dando ao utilizador tempo de
+// EMAIL_VERIFY_ENFORCE estar ligado, dando ao usuário tempo de
 // verificar voluntariamente. Tem prioridade sobre o trial banner
 // (verificação é mais urgente).
 function ensureVerifyBanner(show) {
@@ -726,7 +726,7 @@ async function resendVerification() {
   var btn = $('verifyBannerBtn');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'A enviar…';
+    btn.textContent = 'Enviando…';
   }
   try {
     var fb = window.AppliqueiFirebase;
@@ -786,7 +786,7 @@ async function recheckVerification() {
   var btn = $('verifyBannerCheckBtn');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'A verificar…';
+    btn.textContent = 'Verificando…';
   }
   try {
     var fb = window.AppliqueiFirebase;
@@ -1011,13 +1011,13 @@ function applyAccess(access, billing) {
   }
   if (access.status === 'trial') {
     hideGate();
-    // U2: se o utilizador já assinou (subscriptionId existe e não é
+    // U2: se o usuário já assinou (subscriptionId existe e não é
     // INACTIVE) mas a primeira fatura ainda está PENDING, o backend
     // devolve trial — a cascata "active" do computeAccess exige
     // lastPaymentStatus pago. Mostrar "Assinar agora" aqui é enganoso:
     // a assinatura já está criada, só falta o webhook confirmar.
     // O hero de Minha assinatura já trata este caso ("Pagamento já em
-    // curso · estamos a confirmar"); aqui apenas escondemos o banner.
+    // curso · estamos confirmando"); aqui apenas escondemos o banner.
     var hasPendingSub =
       lastBilling &&
       lastBilling.subscriptionId &&
@@ -1046,28 +1046,28 @@ function applyAccess(access, billing) {
     if (access.reason === 'risk_analysis') {
       showGate(
         'Cartão em análise',
-        'O Asaas está a verificar este pagamento. Aguarde alguns minutos — actualizamos automaticamente.'
+        'A Asaas está verificando este pagamento. Aguarde alguns minutos — atualizamos automaticamente.'
       );
     } else {
       showGate(
         'Aguardando confirmação de pagamento',
-        'A sua assinatura está ativa. Estamos a aguardar a confirmação do pagamento pela Asaas.'
+        'A sua assinatura está ativa. Estamos aguardando a confirmação do pagamento pela Asaas.'
       );
     }
   } else if (access.reason === 'overdue') {
     showGate(
       'Assinatura em atraso',
-      'Identificámos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.'
+      'Identificamos um pagamento em atraso. Troque o método de pagamento ou pague a fatura pendente.'
     );
   } else if (access.reason === 'card_reproved') {
     showGate(
       'Cartão recusado',
-      'O Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.'
+      'A Asaas recusou a cobrança no cartão. Tente outro cartão ou outra forma de pagamento.'
     );
   } else if (access.reason === 'chargeback') {
     showGate(
       'Chargeback em curso',
-      'Há um chargeback em curso para esta assinatura. Contacte o suporte para regularizar.'
+      'Há um chargeback em curso para esta assinatura. Fale com o suporte para regularizar.'
     );
   } else if (access.reason === 'cancelled') {
     showGate(
@@ -1077,7 +1077,7 @@ function applyAccess(access, billing) {
   } else if (access.reason === 'trial_expired') {
     showGate(
       'Avaliação gratuita terminou',
-      'Os seus 7 dias gratuitos terminaram. Assine para continuar a usar.'
+      'Os seus 7 dias gratuitos terminaram. Assine para continuar usando.'
     );
   } else {
     showGate('Assinatura necessária', 'O acesso à plataforma requer uma assinatura ativa.');
@@ -1135,7 +1135,7 @@ async function initBilling() {
         console.warn('[billing] init retry', e2);
         showGate(
           'Não foi possível verificar a sua assinatura',
-          'Tente novamente. Se persistir, contacte o suporte.'
+          'Tente novamente. Se persistir, fale com o suporte.'
         );
         showErr(e2.message || 'Erro de rede.');
         return;
@@ -1154,7 +1154,7 @@ async function initBilling() {
     } else {
       showGate(
         'Não foi possível verificar a sua assinatura',
-        'Tente novamente. Se persistir, contacte o suporte.'
+        'Tente novamente. Se persistir, fale com o suporte.'
       );
     }
     showErr(e.message || 'Erro de rede.');
@@ -1436,7 +1436,7 @@ function ensureMyAccountModal() {
           <h2 id="myAccountTitle">Minha assinatura</h2>\
           <button type="button" id="myAccountClose" class="ma-close" aria-label="Fechar">&times;</button>\
         </div>\
-        <div id="myAccountBody" class="ma-body">A carregar…</div>\
+        <div id="myAccountBody" class="ma-body">Carregando…</div>\
         <div class="ma-foot">\
           <span class="ma-foot-link"><i class="ph-fill ph-shield-check"></i> Cobranças processadas pela Asaas</span>\
           <button type="button" id="myAccountReload" class="ma-btn"><i class="ph ph-arrow-clockwise"></i> Atualizar</button>\
@@ -1451,7 +1451,7 @@ function ensureMyAccountModal() {
     var btn = $('myAccountReload');
     if (btn) {
       btn.disabled = true;
-      btn.textContent = 'A atualizar…';
+      btn.textContent = 'Atualizando…';
     }
     try {
       var me = await fetchMe();
@@ -1476,19 +1476,19 @@ function closeMyAccount() {
 async function openMyAccount() {
   ensureMyAccountModal();
   $('myAccountModal').style.display = 'flex';
-  // Stale-while-revalidate: se já carregámos a tela alguma vez, mostramos
+  // Stale-while-revalidate: se já carregamos a tela alguma vez, mostramos
   // o último snapshot imediatamente e atualizamos em background. Evita o
-  // "A carregar…" branco em ~todos os reopens.
+  // "Carregando…" branco em ~todos os reopens.
   var hadCache = !!lastMe;
   if (hadCache) {
     renderMyAccount(lastMe);
     var reloadBtn = $('myAccountReload');
     if (reloadBtn) {
       reloadBtn.disabled = true;
-      reloadBtn.textContent = 'A atualizar…';
+      reloadBtn.textContent = 'Atualizando…';
     }
   } else {
-    $('myAccountBody').innerHTML = '<div class="ma-empty">A carregar…</div>';
+    $('myAccountBody').innerHTML = '<div class="ma-empty">Carregando…</div>';
   }
   try {
     var me = await fetchMe();
@@ -1610,7 +1610,7 @@ function failureReasonLabel(r) {
   if (!r) return null;
   var map = {
     risk_analysis_reproved: 'Análise de risco reprovou o cartão',
-    chargeback: 'Chargeback registado',
+    chargeback: 'Chargeback registrado',
     card_reproved: 'Cartão recusado',
   };
   return map[r] || r;
@@ -1661,7 +1661,7 @@ function renderHeroBlock(me) {
     // mostrar isso seria mentir — oferecemos reativar.
     var cta;
     if (hasSub && !isInactive) {
-      cta = 'Pagamento já em curso · estamos a confirmar';
+      cta = 'Pagamento já em curso · estamos confirmando';
     } else if (isInactive) {
       cta =
         '<button type="button" class="ma-hero-cta" data-act="reactivate"><i class="ph-fill ph-arrow-clockwise"></i> Assinatura cancelada · reative · ' +
@@ -1798,8 +1798,8 @@ function renderHeroBlock(me) {
         : 'Aguardando confirmação do pagamento';
     var pendSub =
       access.reason === 'risk_analysis'
-        ? 'A Asaas está a validar a operação. Esta análise costuma demorar até alguns minutos — atualizamos sozinhos.'
-        : 'Recebemos a sua assinatura. Estamos à espera da confirmação do pagamento pela Asaas.';
+        ? 'A Asaas está validando a operação. Esta análise costuma demorar até alguns minutos — atualizamos sozinhos.'
+        : 'Recebemos a sua assinatura. Estamos aguardando a confirmação do pagamento pela Asaas.';
     return (
       '<div class="ma-hero is-pending">' +
       '<span class="ma-hero-eyebrow"><i class="ph-fill ph-clock-countdown"></i> Pagamento em processamento</span>' +
@@ -1852,19 +1852,19 @@ function renderHeroBlock(me) {
   if (access.reason === 'overdue') {
     bTitle = 'Pagamento em atraso';
     bSub =
-      'Identificámos uma fatura vencida. Troque o método de pagamento ou liquide a fatura pendente.';
+      'Identificamos uma fatura vencida. Troque o método de pagamento ou liquide a fatura pendente.';
   } else if (access.reason === 'card_reproved') {
     bTitle = 'Cartão recusado';
     bSub = 'A Asaas recusou a cobrança no cartão. Atualize os dados para retomar o acesso.';
   } else if (access.reason === 'chargeback') {
     bTitle = 'Chargeback em curso';
-    bSub = 'Contacte o suporte para regularizar antes de criar uma nova cobrança.';
+    bSub = 'Fale com o suporte para regularizar antes de criar uma nova cobrança.';
   } else if (access.reason === 'refunded') {
     bTitle = 'Pagamento estornado';
     bSub = 'O último pagamento foi estornado. Crie uma nova assinatura para continuar.';
   } else if (access.reason === 'trial_expired') {
     bTitle = 'Avaliação gratuita terminou';
-    bSub = 'Os 7 dias gratuitos terminaram. Assine para continuar a usar a Appliquei.';
+    bSub = 'Os 7 dias gratuitos terminaram. Assine para continuar usando a Appliquei.';
   }
   return (
     '<div class="ma-hero is-blocked">' +
@@ -1893,7 +1893,7 @@ function renderPlanInfoBlock(me) {
   var nextDate = nextCharge ? nextCharge.date : me.nextDueDate;
 
   // Distinguir fatura ATUAL em aberto (PENDING/OVERDUE com cobrança real)
-  // de uma simples previsão (FORECAST). O utilizador confunde "Próxima
+  // de uma simples previsão (FORECAST). O usuário confunde "Próxima
   // fatura: 14/07" com "estou pago até 14/07", mesmo quando a fatura
   // corrente continua em aberto.
   var isOpenInvoice =
@@ -2006,7 +2006,7 @@ function renderPlansBlock(me) {
     '<span class="ma-plano-selo">Atual</span>' +
     '<div class="ma-plano-eyebrow"><i class="ph-fill ph-check-circle"></i> Pro</div>' +
     '<div class="ma-plano-titulo">Acesso completo</div>' +
-    '<p class="ma-plano-desc">Todas as 10 abas do Appliquei, Applicash e suporte por e-mail.</p>' +
+    '<p class="ma-plano-desc">Todas as 10 abas da Appliquei, Applicash e suporte por e-mail.</p>' +
     '<div class="ma-plano-preco"><span class="ma-plano-valor">R$ 15</span><span class="ma-plano-ciclo">/mês</span></div>' +
     '</div>' +
     '<div class="ma-plano breve">' +
@@ -2303,7 +2303,7 @@ function renderRenewBanner(me) {
   if (days <= 0) {
     title = 'Seu acesso terminou';
     sub =
-      'O pagamento de 30 dias venceu em ' + expiresFmt + '. Renove para voltar a usar o Appliquei.';
+      'O pagamento de 30 dias venceu em ' + expiresFmt + '. Renove para voltar a usar a Appliquei.';
     tone = 'bad';
   } else if (days <= 3) {
     title = 'Faltam ' + days + ' ' + pluralDays(days) + ' para expirar';
@@ -2414,7 +2414,7 @@ function renderCustomerBlock(me) {
   }
   var body = lines.length
     ? lines.join('<br>')
-    : '<em style="color:#64748b;font-style:normal;">Sem dados — adicione para emitir faturas correctamente.</em>';
+    : '<em style="color:#64748b;font-style:normal;">Sem dados — adicione para emitir faturas corretamente.</em>';
   return (
     '<div class="ma-section">' +
     '<div class="ma-section-title"><i class="ph ph-user-circle"></i> Dados de cobrança</div>' +
@@ -2435,7 +2435,7 @@ function renderHistoryBlock(me) {
     return (
       '<div class="ma-section">' +
       '<div class="ma-section-title"><i class="ph ph-clock-counter-clockwise"></i> Histórico</div>' +
-      '<div class="ma-empty">Sem cobranças registadas até ao momento.</div>' +
+      '<div class="ma-empty">Sem cobranças registradas até o momento.</div>' +
       '</div>'
     );
   }
@@ -2532,7 +2532,7 @@ function renderActionsBlock(me) {
 function renderMyAccount(me) {
   lastMe = me;
   // Considera "billing inicializado" qualquer um destes: assinatura,
-  // pagamento avulso registado, ou estado conhecido (trial/blocked/active
+  // pagamento avulso registrado, ou estado conhecido (trial/blocked/active
   // via paid_period). Sem isto, usuário one_shot ativo via paid_period
   // ficava na tela de "A inicializar…" mesmo com acesso liberado.
   var initialized =
@@ -2544,7 +2544,7 @@ function renderMyAccount(me) {
       (me.access && (me.access.status === 'trial' || me.access.status === 'blocked')));
   if (!initialized) {
     $('myAccountBody').innerHTML =
-      '<div class="ma-empty">A inicializar a sua conta… Atualize em instantes.</div>';
+      '<div class="ma-empty">Inicializando a sua conta… Atualize em instantes.</div>';
     return;
   }
   // Ordem por urgência. Antes a fatura a pagar era o SÉTIMO bloco — abaixo do
@@ -2609,7 +2609,7 @@ async function reloadAccountStatus(btn) {
   if (btn) {
     btn.disabled = true;
     var prev = btn.innerHTML;
-    btn.innerHTML = 'A verificar…';
+    btn.innerHTML = 'Verificando…';
   }
   try {
     await refresh(false);
@@ -2762,7 +2762,7 @@ async function submitChangeCard() {
   var btn = $('mcSubmit');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'A enviar…';
+    btn.textContent = 'Enviando…';
   }
   try {
     var c = (lastMe && lastMe.customer) || {};
@@ -2812,7 +2812,7 @@ async function submitChangeCard() {
     refresh(false);
   } catch (e) {
     console.warn('[billing] change card', e, e.detail);
-    showSubModalErr('mcErr', e.message || 'Falha ao actualizar cartão.');
+    showSubModalErr('mcErr', e.message || 'Falha ao atualizar o cartão.');
     if (btn) {
       btn.disabled = false;
       btn.textContent = 'Confirmar novo cartão';
@@ -2911,7 +2911,7 @@ function openEditCustomerModal() {
     '"></div>' +
     '</div>' +
     '<div id="ecErr" style="display:none;font-size:12px;color:#7f1d1d;background:#fee2e2;border:1px solid #fecaca;border-radius:8px;padding:8px 10px;margin-bottom:10px;"></div>' +
-    '<button id="ecSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Guardar alterações</button>';
+    '<button id="ecSubmit" type="button" style="width:100%;border:none;cursor:pointer;padding:11px 14px;border-radius:10px;font-size:13.5px;font-weight:600;background:#059669;color:#fff;">Salvar alterações</button>';
   openSubModal('Editar dados de cobrança', html);
   $('ecSubmit').addEventListener('click', submitEditCustomer);
 }
@@ -2939,7 +2939,7 @@ async function submitEditCustomer() {
   var btn = $('ecSubmit');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'A guardar…';
+    btn.textContent = 'Salvando…';
   }
   try {
     await authedFetch('/customer', {
@@ -2963,10 +2963,10 @@ async function submitEditCustomer() {
     renderMyAccount(me);
   } catch (e) {
     console.warn('[billing] edit customer', e, e.detail);
-    showSubModalErr('ecErr', e.message || 'Falha ao guardar dados.');
+    showSubModalErr('ecErr', e.message || 'Falha ao salvar os dados.');
     if (btn) {
       btn.disabled = false;
-      btn.textContent = 'Guardar alterações';
+      btn.textContent = 'Salvar alterações';
     }
   }
 }
@@ -2995,7 +2995,7 @@ async function doCancelSubscription() {
   var btn = $('cancelConfirm');
   if (btn) {
     btn.disabled = true;
-    btn.textContent = 'A cancelar…';
+    btn.textContent = 'Cancelando…';
   }
   try {
     await authedFetch('/cancel', { method: 'POST' });
@@ -3246,11 +3246,11 @@ async function subscribe() {
   var popup = selectedMethod === 'CREDIT_CARD' ? null : window.open('about:blank', '_blank');
   if (popup) {
     var popupMsg =
-      selectedBillingMode === 'one_shot' ? 'A gerar fatura única…' : 'A criar assinatura…';
+      selectedBillingMode === 'one_shot' ? 'Gerando a fatura única…' : 'Criando a assinatura…';
     writePopupMessage(
       popup,
       popupMsg,
-      'A contactar o Asaas. Esta aba abrirá a fatura em instantes.'
+      'Falando com a Asaas. Esta aba abrirá a fatura em instantes.'
     );
   }
   // /subscribe lida com os dois modos via flag `mode`. Foi fundido com
@@ -3265,7 +3265,7 @@ async function subscribe() {
 
     if (r.paymentMethod === 'CREDIT_CARD') {
       showGate(
-        'A processar pagamento',
+        'Processando o pagamento',
         'Cobrança em curso no cartão terminado em ' +
           (r.cardLast4 || '••••') +
           '. Vamos confirmar em instantes.'
@@ -3279,19 +3279,19 @@ async function subscribe() {
         popup.location.href = r.invoiceUrl;
         showGate(
           'Conclua o pagamento',
-          'Abrimos a fatura numa nova aba. Após pagar, prima “Já paguei” para verificar.'
+          'Abrimos a fatura em uma nova aba. Depois de pagar, toque em “Já paguei” para verificar.'
         );
         startActivePolling();
       } else {
         // Popup bloqueado: oferece link explícito em vez de redirect destruir a sessão.
         showGate(
           'Conclua o pagamento',
-          'Abra a fatura no link abaixo. Após pagar, volte aqui e prima "Já paguei — verificar status".'
+          'Abra a fatura no link abaixo. Depois de pagar, volte aqui e toque em "Já paguei — verificar status".'
         );
         var err = $('billingErr');
         if (err) {
           err.innerHTML =
-            'A sua janela bloqueou o popup. <a href="' +
+            'O seu navegador bloqueou o popup. <a href="' +
             r.invoiceUrl +
             '" target="_blank" rel="noopener" style="color:#059669;text-decoration:underline;font-weight:600;">Abrir fatura</a>';
           err.style.background = '#ecfdf5';
@@ -3364,7 +3364,7 @@ function startActivePolling() {
     pollTimer = null;
   }
   // Polling rápido (5s) por 5 minutos. Depois cai para o ritmo normal (30s)
-  // para não desperdiçar requests se o utilizador deixar a aba aberta.
+  // para não desperdiçar requests se o usuário deixar a aba aberta.
   var ticks = 0;
   var FAST_MAX_TICKS = 60; // 60 × 5s = 5min
   pollTimer = setInterval(function () {

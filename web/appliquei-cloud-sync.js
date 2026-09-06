@@ -24,7 +24,7 @@
  */
 var DEBOUNCE_MS = 2000;
 // Beacon eager: curto, para o fetch (página ativa, sem limite de tamanho)
-// partir cedo — antes de o utilizador mandar o tab para segundo plano.
+// partir cedo — antes de o usuário mandar o tab para segundo plano.
 var BEACON_DEBOUNCE_MS = 300;
 // No mobile, .get({source:'server'}) pode ficar pendurado numa ligação
 // meia-aberta (após background / troca de rede) sem resolver nem rejeitar.
@@ -116,7 +116,7 @@ function setLocalRev(k, t) {
 // Rev monotónico (Lamport-style). O LWW por-rev do servidor decide quem ganha
 // comparando revs; se usássemos só Date.now(), um device com o relógio
 // atrasado perderia SEMPRE — o seu write seria descartado em silêncio (curRev
-// >= rev). Causa real de "lancei no celular e não gravou" quando o telemóvel
+// >= rev). Causa real de "lancei no celular e não gravou" quando o celular
 // está alguns segundos atrás do relógio que escreveu por último.
 //
 // Garantia: o novo rev é estritamente maior que (a) o rev que já vimos para
@@ -254,7 +254,7 @@ function flushPush() {
           );
         } else {
           window.mostrarToast(
-            'Não foi possível guardar na nuvem. Verifique a sua ligação à internet.',
+            'Não foi possível salvar na nuvem. Verifique a sua conexão com a internet.',
             'erro'
           );
         }
@@ -352,7 +352,7 @@ function buildBeaconPayload() {
   return { keys: keysOut, keyRevs: revsOut };
 }
 
-// Transmissão de facto do beacon. Separada para podermos chamá-la tanto com o
+// Transmissão de fato do beacon. Separada para podermos chamá-la tanto com o
 // token em cache (síncrono) como após resolver getIdToken() (assíncrono).
 // 1) fetch+keepalive: caminho preferencial — logamos status/erro e sobrevive
 //    ao unload. 2) sendBeacon: fallback se fetch keepalive não existir.
@@ -678,7 +678,7 @@ function applyRemoteSnapshot(snap, opts) {
   }
 
   // Seed dirty para chaves só-locais (presentes no localStorage mas não
-  // no remoto). Cobre a migração v1→v2: utilizadores existentes têm
+  // no remoto). Cobre a migração v1→v2: usuários existentes têm
   // localStorage populado mas KEY_REVS_LS vazio.
   try {
     for (var i = 0; i < localStorage.length; i++) {
@@ -768,7 +768,7 @@ function stopSnapshotListener() {
 }
 
 function reconcileAgainstEmptyRemote() {
-  // Doc não existe (utilizador novo OU nunca sincronizou neste schema).
+  // Doc não existe (usuário novo OU nunca sincronizou neste schema).
   // Tudo o que estiver com localRev > 0 conta como dirty para semear o doc.
   var localRevs = getLocalRevs();
   Object.keys(localRevs).forEach(function (k) {
@@ -858,7 +858,7 @@ function pullAndApply(uid, done) {
     startSnapshotListener(uid);
     if (typeof window.mostrarToast === 'function') {
       window.mostrarToast(
-        'Não foi possível ler dados na nuvem. Verifique a sua ligação à internet.',
+        'Não foi possível ler os dados na nuvem. Verifique a sua conexão com a internet.',
         'erro'
       );
     }

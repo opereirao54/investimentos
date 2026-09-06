@@ -14,7 +14,7 @@
 //
 // PRINCÍPIO CENTRAL — nunca produzir número que não se sustenta. Coluna que
 // não aparece, conta que não existe e resultado implausível viram `null` com
-// motivo registado, jamais zero ou estimativa. Um zero fabricado aqui vira
+// motivo registrado, jamais zero ou estimativa. Um zero fabricado aqui vira
 // nota zero no score, e o cliente lê isso como veredito sobre a empresa.
 
 // ── Layout dos arquivos ──
@@ -822,7 +822,7 @@ const COLUNAS_FII = {
   // taxa de administração a pagar, que não são dívida — um fundo sem
   // dívida nenhuma apareceria alavancado no mês em que declarou
   // rendimento. As obrigações por aquisição de imóveis e por securitização
-  // de recebíveis são o que de facto financia a carteira.
+  // de recebíveis são o que de fato financia a carteira.
   valorAtivo: ['Valor_Ativo', 'Total_Ativo'],
   obrigacoesAquisicaoImoveis: ['Obrigacoes_Aquisicao_Imoveis'],
   obrigacoesSecuritizacao: ['Obrigacoes_Securitizacao_Recebiveis'],
@@ -1584,7 +1584,7 @@ function extrairImoveisFii(registros, colunas) {
       cnpj,
       dataReferencia: data || null,
       numeroImoveis: 0,
-      // As DUAS áreas: a do portfólio inteiro e a que de facto tem taxa
+      // As DUAS áreas: a do portfólio inteiro e a que de fato tem taxa
       // publicada. É a razão entre as duas que decide se o dado presta —
       // ver a nota abaixo sobre por que CONTAGEM de imóvel é a métrica
       // errada para isso.
@@ -1773,7 +1773,7 @@ function carteiraFii(inf) {
  * silêncio neste pipeline. Quem procura usa `chavesDaEmpresa`, que monta as
  * chaves na mesma forma normalizada.
  *
- * Primeira linha não vazia vence: o cadastro pode trazer mais de um registo
+ * Primeira linha não vazia vence: o cadastro pode trazer mais de um registro
  * por companhia (mudança de situação cadastral), e sobrescrever faria o
  * resultado depender da ordem do arquivo — que não é critério nenhum.
  */
@@ -1840,7 +1840,7 @@ const COLUNAS_CAPITAL = {
   // `TESOURO` vem primeiro porque é o nome do arquivo REAL. O mapa só
   // conhecia `TESOURARIA`, que a CVM não usa: as ações em tesouraria eram
   // lidas como zero em toda companhia, sem aviso nenhum, e o log dizia
-  // `tes 0` — indistinguível de uma companhia que de facto não tem nenhuma.
+  // `tes 0` — indistinguível de uma companhia que de fato não tem nenhuma.
   // Contar a tesouraria como zero infla as ações em circulação, e com elas o
   // valor de mercado e o P/L.
   ordinariasTesouraria: [
@@ -1954,7 +1954,7 @@ function extrairComposicaoCapital(registros, colunas) {
  * companhias não seguem a mesma convenção:
  *
  *   BBAS3  2.865.417.020  → unidades
- *   ELET3  2.307.099      → milhares (2,31 bi de ações de facto)
+ *   ELET3  2.307.099      → milhares (2,31 bi de ações de fato)
  *
  * Sem escala declarada, os dois números são igualmente plausíveis lidos
  * isoladamente — e foi assim que a Eletrobras saiu com 2,31 M de ações para

@@ -3,7 +3,7 @@ const { requireUser } = require('./_lib/auth');
 const { handler } = require('./_lib/handler');
 // Ticker -> setor, curado. Arquivo separado do mapa acima de propósito:
 // mapa-cvm.json responde "que ativos existem e como casá-los na CVM", este
-// responde "a que setor um ticker pertence". Duas fontes para o mesmo facto
+// responde "a que setor um ticker pertence". Duas fontes para o mesmo fato
 // divergem no primeiro ajuste.
 const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 
@@ -450,7 +450,7 @@ async function handleWarmup(req, res) {
   }
 
   // Ranking das quatro lentes, numa varredura só. Sem isto, o primeiro
-  // utilizador do dia paga a leitura da coleção inteira mais a pontuação.
+  // usuário do dia paga a leitura da coleção inteira mais a pontuação.
   let ranking = 'ok';
   try {
     const lentes = Object.keys(Motor.LENTES);
@@ -766,7 +766,7 @@ async function handleNews(req, res) {
 //
 // Nada aqui pode DERRUBAR a renda fixa: se o BCB não responder, cai para a
 // constante e marca `degradado`. A tela mostra a procedência dos dois jeitos,
-// então o utilizador sabe se está a ver taxa de hoje ou premissa de reserva.
+// então o usuário sabe se está vendo taxa de hoje ou premissa de reserva.
 
 const INDICADORES_COLLECTION = 'marketIndicadores';
 const INDICADORES_TTL_MS = 6 * 60 * 60 * 1000;
@@ -1335,7 +1335,7 @@ function mapBrapiFundamental(r, agora) {
 
   // Rótulo de procedência. Montado aqui porque é aqui que se sabe DE ONDE
   // cada campo veio — na tela só sobraria adivinhação. Sem os módulos
-  // financeiros o rótulo diz "cotação", não "fundamentos": o utilizador
+  // financeiros o rótulo diz "cotação", não "fundamentos": o usuário
   // precisa distinguir os dois casos.
   const temFundamentos =
     dados.roe !== null || dados.dividaLiquidaEbitda !== null || dados.cagrReceita5a !== null;
@@ -1576,7 +1576,7 @@ async function fetchYahooUm(ticker, auth) {
  *
  * Best-effort de propósito: o que não couber no orçamento fica sem o ramo
  * `yahoo` e é buscado na chamada seguinte. Preferir cobertura parcial a
- * estourar o maxDuration e devolver 504 — nesse caso o utilizador não
+ * estourar o maxDuration e devolver 504 — nesse caso o usuário não
  * receberia nem os que já tinham sido buscados.
  */
 async function fetchYahooFundamentals(tickers, erros, orcamentoMs, maxTickers) {
@@ -1801,7 +1801,7 @@ function diagnosticarErrosDeFonte(erros) {
       chave: null,
       severidade: 'informativo',
       fonte: 'Yahoo Finance',
-      diagnostico: 'Yahoo devolveu 429 — o IP de saída está a ser limitado.',
+      diagnostico: 'Yahoo devolveu 429 — o IP de saída está sendo limitado.',
       acao:
         'Sem ação de configuração. O caminho estável para fundamentos é a ingestão da CVM, ' +
         'que roda no GitHub Actions e não sofre esse limite.',
@@ -1852,7 +1852,7 @@ function mapBrapiCotacao(q) {
  * nenhuma a declarar porque nada tinha chegado.
  *
  * Regra que fica: fonte que falha degrada para a versão mais simples dela e
- * nunca deixa o ticker sem registo.
+ * nunca deixa o ticker sem registro.
  */
 async function fetchBrapiFundamentals(tickers, erros) {
   if (!tickers.length) return {};
@@ -2486,7 +2486,7 @@ async function handleRendaFixa(req, res) {
 //   1. aqui, sobre os indicadores da CVM, para gerar a lista curta;
 //   2. no cliente, que busca cotação dos poucos selecionados e RE-PONTUA com
 //      P/L, P/VP e proventos — indicadores que dependem de preço.
-// A primeira passagem é peneira; a segunda é a nota que o utilizador vê.
+// A primeira passagem é peneira; a segunda é a nota que o usuário vê.
 // Fazer tudo aqui exigiria cotação de centenas de tickers a cada cálculo;
 // fazer tudo lá exigiria baixar o universo inteiro para o browser.
 
@@ -2498,7 +2498,7 @@ const RANKING_TOP_N = 30;
 
 // Piso de porte, medido pelo patrimônio líquido da própria DFP. Não é
 // julgamento sobre empresa pequena: é que abaixo disto a liquidez em bolsa
-// costuma ser insuficiente para o utilizador entrar e sair da posição, e
+// costuma ser insuficiente para o usuário entrar e sair da posição, e
 // recomendar o que não se consegue vender é pior do que não recomendar.
 const PATRIMONIO_MINIMO = 300000000;
 

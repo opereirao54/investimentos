@@ -166,18 +166,18 @@ var cartEstado = {
   // O par de botões saiu porque a diferença entre eles não é escolha de
   // gosto: um é o produto (dados públicos, auditáveis) e o outro é uma
   // lista escrita à mão. Oferecer os dois lado a lado sugeria que valem o
-  // mesmo, e convidava a desligar exatamente o que se está a vender.
+  // mesmo, e convidava a desligar exatamente o que se está vendendo.
   // (antes: modoUniverso 'automatico' | 'consultor')
   patrimonio: null, // null = usar o patrimônio real da aba Meu Patrimônio
   lente: null, // null = derivada do objetivo
   simRange: '3y',
-  // Carteira montada à mão pelo utilizador. Fica DESLIGADA por omissão: a
+  // Carteira montada à mão pelo usuário. Fica DESLIGADA por omissão: a
   // recomendação é o que a tela apresenta primeiro, sempre.
   custom: null,
 };
 
 // ── Estado do motor de recomendação ──
-// Separado de cartEstado porque NÃO é preferência do utilizador: é cache de
+// Separado de cartEstado porque NÃO é preferência do usuário: é cache de
 // dados de mercado, e persistir isto no localStorage guardaria fundamentos
 // vencidos que reapareceriam como se fossem de hoje.
 var cartMotor = {
@@ -268,7 +268,7 @@ function cartFetchCentral() {
         };
         // Cache em chave NÃO-sincronizada (prefixo appliquei_cloud_ é
         // ignorado pelo cloud-sync) — a carteira modelo é global, não deve
-        // entrar no doc de dados de cada utilizador.
+        // entrar no doc de dados de cada usuário.
         try {
           localStorage.setItem('appliquei_cloud_carteira_modelo', JSON.stringify(dbCarteira));
         } catch (e) {}
@@ -360,7 +360,7 @@ function cartConcluirQuestionario() {
     .val;
   const objetivo = document.querySelector('.cart-q-opt[data-q="objetivo"].selected')?.dataset.val;
   if (!tolerancia || !objetivo)
-    return mostrarToast('Responda as 2 perguntas antes de continuar.', 'erro');
+    return mostrarToast('Responda às 2 perguntas antes de continuar.', 'erro');
 
   // Calcular perfil
   let perfil;
@@ -380,7 +380,7 @@ function cartConcluirQuestionario() {
   var patrimonioEl = document.getElementById('cartQPatrimonio');
   var patrimonioDigitado = patrimonioEl ? parseBRL(patrimonioEl.value) : 0;
   // Campo em branco continua null (o motor usa o patrimônio real da aba Meu
-  // Patrimônio); zero digitado é uma resposta legítima de quem está a começar.
+  // Patrimônio); zero digitado é uma resposta legítima de quem está começando.
   cartEstado.patrimonio =
     patrimonioEl && patrimonioEl.value.trim() !== '' ? patrimonioDigitado : null;
   cartEstado.lente = null;
@@ -893,7 +893,7 @@ function cartRenderizarSimChart(blended, cdi, ibov, range) {
  * Antes eram OITO caixas do mesmo tamanho, o que é o mesmo que não ter
  * destaque nenhum: a pergunta do título ("como teria performado?") tem UMA
  * resposta — quanto o dinheiro teria virado — e ela competia em pé de
- * igualdade com o drawdown máximo. No telemóvel as oito viravam uma coluna
+ * igualdade com o drawdown máximo. No celular as oito viravam uma coluna
  * de oito caixas idênticas, e a resposta ficava na terceira.
  *
  * Três níveis agora:
@@ -950,7 +950,7 @@ function cartRenderizarSimKpis(blended, cdi) {
     anos >= 1 ? Math.round(anos) + (Math.round(anos) === 1 ? ' ano' : ' anos') : months + ' meses';
 
   // A frase existe para quem não lê número: ela diz a mesma coisa que o hero,
-  // em português, e é o que faz a secção informar em vez de exibir.
+  // em português, e é o que faz a seção informar em vez de exibir.
   const frase =
     'Aportando ' +
     formatarMoeda(aporteMensal) +
@@ -1077,7 +1077,7 @@ function inferirClasse(ticker, nome) {
 // MOTOR DE RECOMENDAÇÃO
 // ════════════════════════════════════════════════════════════
 //
-// Esta secção liga a tela ao web/appliquei-motor-carteira.js. A divisão de
+// Esta seção liga a tela ao web/appliquei-motor-carteira.js. A divisão de
 // trabalho é: o motor decide, aqui só se busca dado e se desenha resultado.
 //
 // A alocação macro deixou de sair direto de dbCarteira.alocacoes[perfil]:
@@ -1091,12 +1091,12 @@ function inferirClasse(ticker, nome) {
 // ════════════════════════════════════════════════════════════
 //
 // A recomendação é o que a tela apresenta primeiro, sempre, e é o que um
-// utilizador que não entende de investimento recebe sem ter de decidir nada.
-// Esta secção existe para o outro caso: quem já tem estratégia própria e quer
+// usuário que não entende de investimento recebe sem ter de decidir nada.
+// Esta seção existe para o outro caso: quem já tem estratégia própria e quer
 // a mesma máquina a executar a carteira DELE.
 //
 // A ordem não é detalhe de layout, é o produto: abrir com um formulário em
-// branco transferiria para o utilizador uma decisão que ele veio aqui buscar.
+// branco transferiria para o usuário uma decisão que ele veio aqui buscar.
 // Por isso o personalizado é opt-in explícito, mora DEPOIS do plano, e volta
 // atrás num clique.
 //
@@ -1118,7 +1118,7 @@ function cartCustom() {
   return cartEstado.custom;
 }
 
-/** Está personalizando de facto? Ligado sem nenhuma escolha continua sendo a recomendação. */
+/** Está personalizando de fato? Ligado sem nenhuma escolha continua sendo a recomendação. */
 function cartCustomAtivo() {
   var c = cartCustom();
   return !!(c.ativo && (c.alloc || c.setores || c.ativos));
@@ -1127,7 +1127,7 @@ function cartCustomAtivo() {
 /**
  * Reescala um conjunto de pesos para somar 100.
  *
- * Existe para o painel não obrigar o utilizador a fechar a conta na unha. Ele
+ * Existe para o painel não obrigar o usuário a fechar a conta na unha. Ele
  * mexe nos números que lhe interessam, a tela mostra o total ao vivo, e a
  * aplicação normaliza — DECLARANDO que normalizou. Bloquear em "tem de dar
  * exatamente 100" transforma um ajuste de dez segundos numa aritmética
@@ -1161,12 +1161,12 @@ function cartNormalizar100(pesos) {
 /**
  * Política de setores da classe, na régua do motor.
  *
- * Devolve `undefined` quando o utilizador não mexeu — e `undefined` é o que
+ * Devolve `undefined` quando o usuário não mexeu — e `undefined` é o que
  * faz motorPlanoClasse cair na política padrão. Um objeto vazio significaria
  * "sem política nenhuma", que é outra coisa.
  *
  * Setor com peso zero SAI da lista em vez de ficar com alvo 0: é isso que o
- * utilizador quis dizer ao zerá-lo, e um balde de alvo zero continuaria a
+ * usuário quis dizer ao zerá-lo, e um balde de alvo zero continuaria a
  * ganhar vaga na repartição por maior média.
  */
 function cartSetoresCustom(classe) {
@@ -1188,7 +1188,7 @@ function cartSetoresCustom(classe) {
   return lista.length ? lista : undefined;
 }
 
-/** Ativos que o utilizador liberou nesta classe, ou null quando não escolheu. */
+/** Ativos que o usuário liberou nesta classe, ou null quando não escolheu. */
 function cartAtivosCustom(classe) {
   if (!cartCustomAtivo()) return null;
   var escolha = cartCustom().ativos && cartCustom().ativos[classe];
@@ -1200,7 +1200,7 @@ function cartAtivosCustom(classe) {
  * Ranking filtrado pelos ativos escolhidos, para o PLANO.
  *
  * A lista da tela continua completa de propósito: esconder o que ficou de
- * fora tiraria do utilizador a única forma de rever a própria escolha. O que
+ * fora tiraria do usuário a única forma de rever a própria escolha. O que
  * muda é só quem pode receber aporte.
  */
 function cartRankingParaPlano(ranking) {
@@ -1255,7 +1255,7 @@ function cartAlocacaoAlvo() {
   }
 }
 
-/** Lente ativa: escolha explícita do utilizador, senão a derivada do objetivo. */
+/** Lente ativa: escolha explícita do usuário, senão a derivada do objetivo. */
 function cartLenteAtiva() {
   if (cartEstado.lente && MOTOR_LENTES[cartEstado.lente]) return cartEstado.lente;
   return MOTOR_LENTE_POR_OBJETIVO[cartEstado.objetivo] || 'equilibrio';
@@ -1273,7 +1273,7 @@ async function cartTokenFirebase() {
  * Vem da aba Meu Patrimônio quando ela tem dados — é o número real, e é o
  * que faz o motor mandar o aporte para a classe que está atrasada em vez de
  * repetir a proporção-alvo todo mês. O campo do questionário só entra como
- * substituto quando não há carteira registada.
+ * substituto quando não há carteira registrada.
  */
 function cartPatrimonioPorClasse() {
   var out = { rf: 0, acao: 0, fii: 0, cripto: 0 };
@@ -1305,7 +1305,7 @@ function cartPatrimonioPorClasse() {
   }
   if (temDados) return { valores: out, origem: 'carteira' };
 
-  // Sem carteira registada: distribui o valor informado pela alocação-alvo.
+  // Sem carteira registrada: distribui o valor informado pela alocação-alvo.
   // Assim o rebalanceamento não inventa um desvio que não se sabe existir.
   var informado = cartEstado.patrimonio;
   if (!(informado > 0)) return { valores: null, origem: 'nenhum' };
@@ -1359,7 +1359,7 @@ var CART_CRIPTO_UNIVERSO = ['BTC', 'ETH', 'SOL', 'ADA', 'BNB', 'XRP'];
 
 // Quantos candidatos pedir por classe ao ranking. O motor escolhe no máximo
 // 6 ações e 5 FIIs; pedir 15 dá folga para o corte por liquidez e para o
-// utilizador desmarcar alguns sem esvaziar a classe. Pedir a bolsa inteira
+// usuário desmarcar alguns sem esvaziar a classe. Pedir a bolsa inteira
 // gastaria uma chamada de cotação por ativo sem mudar o resultado.
 var CART_CANDIDATOS_POR_CLASSE = 15;
 
@@ -1580,7 +1580,7 @@ function cartMontarUniverso(base, fundamentos, titulosRf) {
         Object.assign(dados, f, {
           ticker: a.ticker,
           // Nome da carteira modelo vence o da BRAPI: é o que o consultor
-          // escreveu e o que o utilizador reconhece na tela.
+          // escreveu e o que o usuário reconhece na tela.
           nome: a.nome,
           classe: a.classe,
           // Nulo de uma fonte não apaga o dado de outra — a mesma regra que
@@ -1639,7 +1639,7 @@ function cartProcedencia(a) {
 }
 
 // A partir de quantos dias um fundamento passa a ser sinalizado como velho.
-// Balanço não muda todo dia, mas o utilizador tem de saber que está a olhar
+// Balanço não muda todo dia, mas o usuário tem de saber que está olhando
 // para um número de meses atrás antes de mandar dinheiro em cima dele.
 var CART_VALIDADE_DIAS = 45;
 
@@ -1714,13 +1714,13 @@ function cartRecalcularMotor() {
     aporteMensal: cartEstado.capital,
     alocacaoAlvo: cartAlocacaoAlvo(),
     // A LISTA continua completa; só o PLANO respeita a escolha de ativos.
-    // Filtrar os dois esconderia do utilizador o que ele deixou de fora.
+    // Filtrar os dois esconderia do usuário o que ele deixou de fora.
     ranking: cartRankingParaPlano(cartMotor.ranking),
     patrimonioAtual: patr.valores,
     porClasse: cartPorClasseCustom(),
   });
   // Depois do motor, nunca dentro: a carteira calculada é a mesma, e a troca
-  // é uma decisão do utilizador sobre o resultado dela.
+  // é uma decisão do usuário sobre o resultado dela.
   cartAplicarTrocas(cartMotor.plano, cartMotor.ranking);
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
@@ -1736,11 +1736,11 @@ async function cartRenderizarMotor(forcar) {
   var wrap = document.getElementById('cartMotorWrap');
   if (!wrap) return;
   // O motor vem de outro <script>. Se ele falhar ao carregar, o resto da
-  // aba (educação, donut, simulação) continua a funcionar sem esta secção —
+  // aba (educação, donut, simulação) continua a funcionar sem esta seção —
   // melhor do que uma exceção a cada abertura da aba.
   if (typeof motorRanquear !== 'function') {
     wrap.style.display = 'none';
-    console.warn('[carteira] motor não carregado — secção de recomendação escondida.');
+    console.warn('[carteira] motor não carregado — seção de recomendação escondida.');
     return;
   }
   wrap.style.display = 'block';
@@ -2006,7 +2006,7 @@ function cartRenderizarMotorStatus() {
     alerta = '';
   } else if ((cartMotor.fallback || []).length) {
     // Estado esperado antes de a ingestão da CVM rodar pela primeira vez.
-    // Precisa ser dito, senão o utilizador acha que aquela é a seleção do
+    // Precisa ser dito, senão o usuário acha que aquela é a seleção do
     // motor quando na verdade é a lista do painel, sem análise por trás.
     var nomes = cartMotor.fallback.map(function (c) {
       return CART_NOMES[c] || c;
@@ -2015,7 +2015,7 @@ function cartRenderizarMotorStatus() {
       '<div class="cart-motor-alerta"><i class="ph ph-info"></i> ' +
       '<span><strong>' +
       nomes.join(' e ') +
-      ':</strong> nenhum ativo passou pelo ranking de mercado, então a classe está a usar a ' +
+      ':</strong> nenhum ativo passou pelo ranking de mercado, então a classe está usando a ' +
       'carteira do consultor como reserva. Isso acontece enquanto a ingestão de dados da CVM ' +
       'não tiver rodado — assim que rodar, os candidatos passam a sair do mercado inteiro.</span></div>';
   } else if (pontuados < ranking.length) {
@@ -2119,7 +2119,7 @@ function cartRenderizarIndicadores() {
  * É a metade visível da política: sem ela, uma seleção diversificada e uma
  * seleção por score puro desenham a mesma lista de ativos, e não há como
  * saber pela tela qual das duas rodou. A faixa diz o alvo de cada setor, o
- * que ele levou de facto, e nomeia o setor que ficou de fora — que é a
+ * que ele levou de fato, e nomeia o setor que ficou de fora — que é a
  * informação mais acionável das três, porque explica por que o dinheiro dele
  * foi parar noutro lugar.
  */
@@ -2193,7 +2193,7 @@ function cartRenderizarSetoresClasse(c) {
 
   // Ativo sem setor NÃO entra na política — não há bloco onde o colocar. Ele
   // continua no ranking, com nota, e nunca recebe aporte. Sem esta linha isso
-  // acontece em silêncio: o utilizador vê o ativo bem pontuado na lista, não o
+  // acontece em silêncio: o usuário vê o ativo bem pontuado na lista, não o
   // vê no plano, e não há nada na tela que ligue as duas coisas.
   var semSetor = c.semSetor
     ? '<div class="cart-setores-nota"><i class="ph ph-warning"></i> ' +
@@ -2201,7 +2201,7 @@ function cartRenderizarSetoresClasse(c) {
       (c.semSetor === 1
         ? ' ativo pontuado ficou fora do plano por não ter setor'
         : ' ativos pontuados ficaram fora do plano por não terem setor') +
-      ' — a política aloca por setor, e sem ele não há bloco onde os pôr.</div>'
+      ' — a política aloca por setor, e sem ele não há onde colocá-los.</div>'
     : '';
 
   return (
@@ -2249,7 +2249,7 @@ function cartRenderizarMotorPlano(plano) {
               var rot = cartRotuloAtivo(it);
               // Nome longo do Tesouro entrava aqui inteiro, em monoespaçada e
               // sem corte — era ele que esticava a coluna e empurrava a
-              // página para o lado no telemóvel.
+              // página para o lado no celular.
               // Mesma régua da lista: o que aparece é o setor A QUE O ATIVO
               // PERTENCE. O bloco da política (`it.setorNome`) fica no title e
               // na faixa acima — ele explica a alocação, não identifica o ativo.
@@ -2367,9 +2367,9 @@ function cartRenderizarMotorPlano(plano) {
 // LISTA DE ATIVOS — nome curto, separação por classe e busca
 // ════════════════════════════════════════════════════════════
 //
-// O problema que esta secção resolve não é de estilo, é de leitura. A lista
-// era um bloco único de quarenta e tal cards abertos: no telemóvel dava mais
-// de dez mil pixels de rolagem, e o utilizador tinha de percorrer FIIs e
+// O problema que esta seção resolve não é de estilo, é de leitura. A lista
+// era um bloco único de quarenta e tal cards abertos: no celular dava mais
+// de dez mil pixels de rolagem, e o usuário tinha de percorrer FIIs e
 // cripto para chegar às ações. Ver tudo continua a ser possível — deixou é de
 // ser obrigatório para ver qualquer coisa.
 //
@@ -2381,7 +2381,7 @@ function cartRenderizarMotorPlano(plano) {
 //      O que fica escondido é o texto (justificativa, lacunas, procedência),
 //      que é o que faz o card ter 300px — e é também o que só se lê depois de
 //      o ativo interessar.
-//   3. Página de 8 com "ver mais" em vez de rolagem infinita: o utilizador
+//   3. Página de 8 com "ver mais" em vez de rolagem infinita: o usuário
 //      sabe quanto falta e o fim da lista existe.
 
 /** Quantos ativos a classe mostra antes do "ver mais". */
@@ -2394,7 +2394,7 @@ var cartRank = { classe: null, busca: '', limite: {} };
 /**
  * "?" clicável, com a explicação atrás dele.
  *
- * Clique, não hover: no telemóvel hover não existe, e era lá que a
+ * Clique, não hover: no celular hover não existe, e era lá que a
  * explicação mais fazia falta. O balão abre em fluxo (flex-basis 100% dentro
  * do .cart-motor-sub, que já é flex-wrap), empurrando o que vem abaixo —
  * flutuar ancorado a um título é como se corta texto na borda a 320px.
@@ -2407,7 +2407,7 @@ function cartAjuda(id, texto) {
     id +
     'Btn" aria-expanded="false" aria-controls="' +
     id +
-    '" aria-label="Como isto funciona" onclick="cartAlternarAjuda(\'' +
+    '" aria-label="Como isso funciona" onclick="cartAlternarAjuda(\'' +
     id +
     '\')">?</button>' +
     '<span class="cart-ajuda-balao" id="' +
@@ -2456,7 +2456,7 @@ var CART_RF_TIPOS = [
  * inteiro maiúsculo com underscores — TESOURO_IPCA_COM_JUROS_SEMESTRAIS_2055,
  * 44 caracteres em fonte monoespaçada dentro de um card de 310px. Não havia
  * corte nenhum aplicado a ele: o card esticava, a grelha empurrava a página e
- * o telemóvel ganhava rolagem horizontal — que era o sintoma relatado.
+ * o celular ganhava rolagem horizontal — que era o sintoma relatado.
  *
  * O nome completo NÃO desaparece: fica na segunda linha, cortada com
  * reticências, e no `title` do elemento. Encurtar o código e esconder o resto
@@ -2635,7 +2635,7 @@ function cartCardAtivo(a, posicao) {
 
   // Fonte que não respondeu tem conserto diferente de fonte que
   // respondeu incompleta. Dizer "faltam indicadores" nos dois casos
-  // manda o utilizador (e quem for depurar) na direção errada.
+  // manda o usuário (e quem for depurar) na direção errada.
   var indisponivel = a.indisponivel
     ? '<div class="cart-score-faltando">' +
       '<div class="cart-score-faltando-titulo">' +
@@ -2683,7 +2683,7 @@ function cartCardAtivo(a, posicao) {
   // Busca pelas TRÊS formas de nomear o setor: o rótulo da tela, o bloco da
   // política e o texto cru do provedor. Quem digita 'consumo' procura o bloco;
   // quem digita 'mineração' procura o setor; quem digita 'basic materials'
-  // está a repetir o que viu noutro lugar. Os três têm de achar a Vale.
+  // está repetindo o que viu em outro lugar. Os três têm de achar a Vale.
   var chaveBusca = cartNormalizarNome(
     [
       a.ticker,
@@ -2868,8 +2868,8 @@ function cartRenderizarMotorRanking(ranking) {
  * Aplica classe ativa, busca e paginação sobre os cards JÁ desenhados.
  *
  * Filtra por atributo em vez de redesenhar: redesenhar a cada tecla tira o
- * foco do campo de busca no telemóvel — o teclado fecha e a pessoa perde o
- * que estava a escrever. Todos os cards ficam no DOM; o que muda é quem está
+ * foco do campo de busca no celular — o teclado fecha e a pessoa perde o
+ * que estava escrevendo. Todos os cards ficam no DOM; o que muda é quem está
  * visível.
  */
 function cartAplicarFiltroRanking() {
@@ -3001,7 +3001,7 @@ function cartAlternarCard(botao) {
 // R$ 320, e pôr outro ticker ali não reordena nada. É o que a torna previsível
 // — trocar um banco por outro não pode mudar quanto vai para energia.
 //
-// Vive fora do motor porque é uma decisão do utilizador sobre o resultado, não
+// Vive fora do motor porque é uma decisão do usuário sobre o resultado, não
 // uma regra de cálculo: o motor continua a produzir a MESMA carteira, e a
 // troca é aplicada por cima, declarada na tela e desfazível.
 
@@ -3321,7 +3321,7 @@ function cartCustomAtivosClasse(classe, ranking) {
 /**
  * Desenha o painel inteiro a partir do estado atual.
  *
- * Os valores de partida são SEMPRE os da recomendação quando o utilizador
+ * Os valores de partida são SEMPRE os da recomendação quando o usuário
  * ainda não mexeu. Abrir com tudo em zero obrigaria a montar do nada; abrir
  * com a nossa proposta transforma o painel num ajuste em cima de algo que já
  * faz sentido — que é a diferença entre uma ferramenta e um formulário.
@@ -3420,7 +3420,7 @@ function cartRenderizarCustom() {
     'aria-label="Fechar"><i class="ph ph-x"></i></button>' +
     '</div>' +
     '<div class="cart-custom-aviso"><i class="ph ph-info"></i> ' +
-    'A partir daqui a decisão é sua: o motor continua a pontuar e a distribuir o aporte, ' +
+    'A partir daqui a decisão é sua: o motor continua pontuando e distribuindo o aporte, ' +
     'só deixa de escolher a divisão. Passo não mexido mantém a recomendação.</div>' +
     // Passo 1
     '<section class="cart-custom-passo">' +
@@ -3433,7 +3433,7 @@ function cartRenderizarCustom() {
     '<section class="cart-custom-passo">' +
     '<div class="cart-custom-passo-head"><span class="cart-custom-n">2</span>' +
     'Setores dentro de cada classe' +
-    '<span class="cart-custom-passo-nota">zerar um setor tira-o da carteira</span></div>' +
+    '<span class="cart-custom-passo-nota">zerar um setor tira o setor da carteira</span></div>' +
     blocosSetor +
     '</section>' +
     // Passo 3
@@ -3574,7 +3574,7 @@ function cartAplicarCustom() {
   cartRecalcularMotor();
   // A tela do painel não pode depender de haver dado do motor.
   // `cartRecalcularMotor` desiste cedo enquanto a busca não aconteceu, e sem
-  // esta linha o utilizador clicava em Aplicar, o painel fechava, e a barra
+  // esta linha o usuário clicava em Aplicar, o painel fechava, e a barra
   // continuava a dizer "Esta é a nossa recomendação" — que a essa altura já
   // era mentira, e sem nenhum caminho de volta à vista.
   if (!cartMotor.temDados) cartRenderizarCustom();
@@ -3598,7 +3598,7 @@ function cartRestaurarRecomendacao() {
 // Lê o MOTOR_CRITERIOS em vez de descrever à mão o que ele faz. Uma lista
 // estática divergiria do motor no primeiro ajuste de peso — e a tela passaria
 // a explicar um cálculo que o produto já não executa, que é pior do que não
-// explicar nada. Se um pilar deixar de existir, esta secção deixa de o
+// explicar nada. Se um pilar deixar de existir, esta seção deixa de o
 // mostrar sozinha.
 
 var CART_CRITERIOS_CLASSES = [

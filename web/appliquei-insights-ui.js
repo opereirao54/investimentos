@@ -330,7 +330,7 @@ function insightsUiApresentar(ins) {
     // O saldo livre da tela é de competência: receita menos saídas do mês
     // inteiro, independente do dia. Anunciar "seu caixa fica negativo" ao
     // lado de um saldo livre positivo lê-se como contradição, e foi
-    // exatamente onde o primeiro utilizador travou. A informação que sobra
+    // exatamente onde o primeiro usuário travou. A informação que sobra
     // de pé, e que a tela ainda não dava, é o DESCOMPASSO DE DATAS: neste
     // mês há contas vencendo antes de o dinheiro entrar.
     return {
@@ -526,6 +526,9 @@ function insightsUiAgir(id) {
   if (!ins) return;
 
   if (ins.tipo === 'aperto') {
+    // O painel de vencimentos vive recolhido: mandar a pessoa "conferir os
+    // vencimentos" e levá-la a um cabeçalho fechado não entrega nada.
+    if (typeof abrirPainelVencimentos === 'function') abrirPainelVencimentos();
     insightsUiIrPara('painelVencimentos');
     if (typeof mostrarToast === 'function') {
       mostrarToast('Confira os vencimentos até a data do aperto.', 'aviso');

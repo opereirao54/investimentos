@@ -2,7 +2,7 @@
 
 // Taxas do Tesouro Direto, a partir do CSV do Tesouro Transparente.
 //
-// A fonte antiga morreu — `HTTP 410 · gone`, registado pela sonda no runner —
+// A fonte antiga morreu — `HTTP 410 · gone`, registrado pela sonda no runner —
 // e o substituto tem uma forma completamente diferente: em vez de um JSON com
 // a oferta de hoje, um CSV de 14,4 MB com a série histórica inteira desde
 // 2002, uma linha por título POR DIA.

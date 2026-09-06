@@ -196,7 +196,7 @@ var FAQ_DADOS = [
     cat: 'ferramentas',
     catLbl: 'Ferramentas',
     p: 'Como funciona a Carteira sugerida?',
-    r: 'Você responde 2 perguntas rápidas (tolerância a perdas e objetivo) e informa quanto pretende aportar. Com isso a ferramenta define um perfil (Conservador, Moderado ou Arrojado) e sugere uma divisão entre renda fixa, ações, FIIs e cripto, explicando cada classe e mostrando o critério que pontuou cada ativo. É material informativo e educacional de apoio à sua decisão: o Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento. A decisão é sempre sua.',
+    r: 'Você responde 2 perguntas rápidas (tolerância a perdas e objetivo) e informa quanto pretende aportar. Com isso a ferramenta define um perfil (Conservador, Moderado ou Arrojado) e sugere uma divisão entre renda fixa, ações, FIIs e cripto, explicando cada classe e mostrando o critério que pontuou cada ativo. É material informativo e educacional de apoio à sua decisão: a Appliquei não é consultoria nem análise de valores mobiliários e não faz recomendação individualizada de investimento. A decisão é sempre sua.',
   },
   {
     cat: 'ferramentas',

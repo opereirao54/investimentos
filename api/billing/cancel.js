@@ -13,7 +13,7 @@ module.exports = handler({
     if (!billing.subscriptionId) return res.status(400).json({ error: 'no_subscription' });
 
     // Sempre tenta cancelar no Asaas: o estado local pode estar dessincronizado
-    // (webhook perdido) e o utilizador continuaria a ser cobrado. Asaas DELETE
+    // (webhook perdido) e o usuário continuaria a ser cobrado. Asaas DELETE
     // de uma subscription já cancelada devolve 404, que tratamos como sucesso.
     try {
       await asaas.cancelSubscription(billing.subscriptionId);

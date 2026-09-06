@@ -323,7 +323,7 @@ test('sem NENHUM ativo pontuado, o peso sai igual em vez de arbitrário', () => 
 test('classe sem ativo pontuado NÃO recomenda: retém o valor e explica', () => {
   // Requisito do produto: a recomendação sai dos ativos mais bem pontuados.
   // Dividir igual entre ativos não pontuados fabricaria uma seleção que
-  // análise nenhuma sustenta, e o utilizador não teria como distinguir isso
+  // análise nenhuma sustenta, e o usuário não teria como distinguir isso
   // de uma recomendação de verdade.
   const ranking = M.ranquear(
     [
@@ -792,7 +792,7 @@ test('aporte pequeno concentra em vez de pulverizar', () => {
     pequeno.itens.length < grande.itens.length,
     `R$300 abriu ${pequeno.itens.length} posições e R$20k abriu ${grande.itens.length}`
   );
-  assert.ok(pequeno.avisos.length > 0, 'o utilizador tem de saber por que só apareceram 2 ativos');
+  assert.ok(pequeno.avisos.length > 0, 'o usuário tem de saber por que só apareceram 2 ativos');
 });
 
 test('ativo sem cotação não some do plano: entra com valor e aviso', () => {

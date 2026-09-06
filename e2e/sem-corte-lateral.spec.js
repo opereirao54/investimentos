@@ -3,13 +3,13 @@
 // Trava contra "a tela corta de um lado".
 //
 // O relato foi: em certos momentos o app aparece cortado à direita ou à
-// esquerda no telemóvel. O print mostrava o painel de lançamento com o
+// esquerda no celular. O print mostrava o painel de lançamento com o
 // teclado aberto e o chip "Cartão" partido ao meio.
 //
 // A investigação achou DUAS causas independentes, e por isso há dois testes:
 //
 //  1. ZOOM AUTOMÁTICO DO iOS — a causa do print. O Safari do iOS amplia a
-//     página sozinho quando o utilizador toca num campo cuja fonte é menor
+//     página sozinho quando o usuário toca num campo cuja fonte é menor
 //     que 16px. Com a página ampliada, a viewport VISÍVEL fica menor que a de
 //     layout e a tela aparece cortada — de que lado, depende de onde estava o
 //     campo tocado. Nenhum browser de desktop reproduz isto, e é por isso que
@@ -150,7 +150,7 @@ test.describe('nenhuma tela corta de lado', () => {
     });
   }
 
-  test('o painel de lançamento cabe na tela do telemóvel', async ({ browser }) => {
+  test('o painel de lançamento cabe na tela do celular', async ({ browser }) => {
     // O painel do print. Ele vive DENTRO de <section id="controle">: sem a
     // seção ativa ele fica display:none e mede zero — foi o que mascarou a
     // primeira medição desta investigação.
@@ -223,7 +223,7 @@ test.describe('nenhuma tela corta de lado', () => {
     await ctx.close();
   });
 
-  test('o modal de sonho cabe na tela do telemóvel', async ({ browser }) => {
+  test('o modal de sonho cabe na tela do celular', async ({ browser }) => {
     // Modais não entravam na varredura das abas, e foi por um modal que o
     // campo de mês escapou.
     const ctx = await browser.newContext({

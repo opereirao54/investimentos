@@ -2,10 +2,10 @@ const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
 const { reconcileAccount } = require('../_lib/reconcile');
 
-// Ações administrativas pontuais sobre um utilizador específico.
+// Ações administrativas pontuais sobre um usuário específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
 //
-// Cada ação executada é registada em `adminAuditLog/{autoId}` para rastreio.
+// Cada ação executada é registrada em `adminAuditLog/{autoId}` para rastreio.
 // Custo: 1 lookup auth + 1-2 ops Firestore + 1 write audit por chamada.
 
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
@@ -52,7 +52,7 @@ module.exports = handler({
     // Identificador opcional do actor para auditoria (não autentica, só rastreia).
     const actor = (req.headers['x-admin-actor'] || '').toString().slice(0, 120) || 'admin';
 
-    // ── Ações de conteúdo (não operam sobre um utilizador específico) ──
+    // ── Ações de conteúdo (não operam sobre um usuário específico) ──
     // Tratadas antes da resolução por e-mail/UID, pois `inputEmail` é
     // irrelevante aqui (Dúvidas & Sugestões e carteira modelo do consultor).
     if (action === 'reply_feedback' || action === 'resolve_feedback') {
@@ -93,7 +93,7 @@ module.exports = handler({
           actor,
           extra: `feedback ${feedbackId} respondido`,
         });
-        return res.json({ success: true, message: 'Resposta enviada ao utilizador.' });
+        return res.json({ success: true, message: 'Resposta enviada ao usuário.' });
       } catch (e) {
         console.error('[admin/action] feedback', e);
         return res.status(500).json({ error: 'action_failed', detail: e.message });
@@ -233,7 +233,7 @@ module.exports = handler({
         });
         return res.json({
           success: true,
-          message: 'Utilizador promovido a PRO (acesso liberado).',
+          message: 'Usuário promovido a PRO (acesso liberado).',
         });
       }
 
@@ -396,7 +396,7 @@ module.exports = handler({
         await writeAudit({ action, email, uid, actor, after: { disabled: true } });
         return res.json({
           success: true,
-          message: 'Conta suspensa (utilizador não consegue autenticar-se).',
+          message: 'Conta suspensa (usuário não consegue entrar).',
         });
       }
 
@@ -409,7 +409,7 @@ module.exports = handler({
       if (action === 'reconcile_user') {
         // Reconcilia UMA conta sob demanda (eixo cobrança×Asaas + invariante de
         // crédito), reusando a mesma rotina do cron. Permite ao admin corrigir
-        // um utilizador específico sem esperar a varredura noturna.
+        // um usuário específico sem esperar a varredura noturna.
         const userRef = db().collection('users').doc(uid);
         const report = await reconcileAccount(userRef);
         const fixed = report.changes.filter((c) => !c.type.endsWith('_error'));

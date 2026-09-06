@@ -74,7 +74,7 @@ function mudarAba(e, idAba, callback = null) {
 // apareça sem rolagem. No desktop há espaço lateral e o CSS as mantém abertas
 // (a media query de 1080px ignora o data-aberto).
 // A escolha do usuário persiste por bloco.
-var INV_BLOCOS_ABERTOS_PADRAO = ['blocoRanking'];
+var INV_BLOCOS_ABERTOS_PADRAO = ['blocoRanking', 'blocoProjecaoCurva'];
 function alternarBlocoInv(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -93,6 +93,7 @@ function alternarBlocoInv(id) {
         renderizarGraficoEvolucao();
       if (id === 'blocoDistribuicao' && typeof atualizarCarteiraAtivos === 'function')
         atualizarCarteiraAtivos();
+      if (id === 'blocoProjecaoCurva' && typeof renderProjecao === 'function') renderProjecao();
     }, 60);
   }
 }
@@ -113,20 +114,30 @@ document.addEventListener('DOMContentLoaded', inicializarBlocosInv);
 
 // Sub-abas dentro de "Meus Investimentos"
 var filtroOpsTimeline = 'todos';
+// Qual sub-aba está aberta. Existe porque atualizarCarteiraAtivos roda de novo
+// quando as cotações e as taxas do BCB chegam (assíncrono, segundos depois de
+// abrir a aba) e reescrevia a mini-estatística com a da Carteira — a pessoa
+// estava em Operações ou em Futuro e via "5 ativos · R$ 31.875,00" aparecer do
+// nada sob as pílulas.
+var subAbaPatrimonioAtiva = 'carteira';
 function mudarSubAbaPatrimonio(qual) {
   const subs = {
     carteira: document.getElementById('subAbaCarteira'),
     operacoes: document.getElementById('subAbaOperacoes'),
     dividendos: document.getElementById('subAbaDividendos'),
+    futuro: document.getElementById('subAbaFuturo'),
   };
   const btns = {
     carteira: document.getElementById('subtabBtnCarteira'),
     operacoes: document.getElementById('subtabBtnOperacoes'),
     dividendos: document.getElementById('subtabBtnDividendos'),
+    futuro: document.getElementById('subtabBtnFuturo'),
   };
   const btnRefresh = document.getElementById('btnAtualizarDividendos');
   const filtros = document.getElementById('filtrosCategoria');
+  subAbaPatrimonioAtiva = subs[qual] ? qual : 'carteira';
   Object.keys(subs).forEach((k) => {
+    if (!subs[k] || !btns[k]) return;
     subs[k].style.display = k === qual ? 'block' : 'none';
     btns[k].classList.toggle('ativo', k === qual);
   });
@@ -140,6 +151,9 @@ function mudarSubAbaPatrimonio(qual) {
   if (qual === 'operacoes') renderizarOperacoes();
   if (qual === 'carteira' && typeof atualizarCarteiraAtivos === 'function')
     atualizarCarteiraAtivos();
+  // A projeção só desenha com a sub-aba visível: Chart.js dimensiona pelo
+  // container, e um canvas que nasce em display:none fica com 0px de altura.
+  if (qual === 'futuro' && typeof renderProjecao === 'function') renderProjecao();
   atualizarMiniStats(qual);
 }
 
@@ -161,6 +175,22 @@ function atualizarMiniStats(aba) {
     let saldoTotal = 0;
     for (const t in carteira) {
       if (carteira[t].qtdTotal <= 0) continue;
+      const cat = carteira[t].categoria;
+      // Renda fixa, reserva e previdência não têm cotação: o saldo vem dos
+      // juros contratados, como na lista de ativos e no hero. Multiplicar
+      // quantidade por preço médio devolvia o CUSTO e fazia esta linha
+      // discordar do saldo grande logo acima dela.
+      if (cat === 'previdencia' && typeof calcularSaldoPrevidencia === 'function') {
+        saldoTotal += calcularSaldoPrevidencia(t);
+        continue;
+      }
+      if (
+        (cat === 'renda_fixa' || cat === 'reserva_emergencia') &&
+        typeof valorAtualRendaFixa === 'function'
+      ) {
+        saldoTotal += valorAtualRendaFixa(t, cat);
+        continue;
+      }
       const am = mockAtivosMercado.find((a) => a.ticker === t);
       const p = am ? am.preco_atual : carteira[t].precoMedio;
       saldoTotal += carteira[t].qtdTotal * p;
@@ -170,6 +200,9 @@ function atualizarMiniStats(aba) {
     el.innerHTML = `<i class="ph ph-list-bullets" style="font-size:13px;"></i> ${totalOps} operaç${totalOps !== 1 ? 'ões' : 'ão'}`;
   } else if (aba === 'dividendos') {
     el.innerHTML = `<i class="ph ph-coins" style="font-size:13px;"></i> Proventos 12m`;
+  } else if (aba === 'futuro') {
+    const anos = typeof projEstado !== 'undefined' ? projEstado.anos : 10;
+    el.innerHTML = `<i class="ph ph-rocket-launch" style="font-size:13px;"></i> Projeção para ${anos} ano${anos !== 1 ? 's' : ''}`;
   }
 }
 
@@ -431,6 +464,7 @@ function toggleDarkMode() {
     ) {
       renderizarGraficoDistribuicao(obterResumoCarteira());
     }
+    if (typeof projRedesenharPorTema === 'function') projRedesenharPorTema();
   } catch (_) {}
 }
 
@@ -1393,6 +1427,10 @@ window.onload = function () {
       if (lbl) lbl.innerText = 'Menos colunas';
     }
   } catch (_) {}
+  // Sub-aba Futuro: lê as preferências gravadas (horizonte, aporte simulado,
+  // premissas) e já deixa a tira do hero com o número certo. Depois de
+  // atualizarCarteiraAtivos, que é quem monta o saldo de partida.
+  if (typeof inicializarProjecao === 'function') inicializarProjecao();
   // Applicash & Dúvidas/Sugestões
   renderizarFaq();
   inicializarFormSugestao();

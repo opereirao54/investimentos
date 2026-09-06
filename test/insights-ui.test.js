@@ -276,7 +276,7 @@ test('sem nenhuma conta cadastrada, não há projeção de caixa', () => {
 test('o card de aperto fala de ORDEM, não contradiz o saldo livre', () => {
   // A tela toda é de competência (saldo livre = mês inteiro). Um card
   // dizendo "seu caixa fica negativo" ao lado de um saldo livre positivo
-  // lê-se como contradição — foi onde o primeiro utilizador travou.
+  // lê-se como contradição — foi onde o primeiro usuário travou.
   const { UI } = carregarUI();
   const ap = UI.apresentar({
     tipo: 'aperto',

@@ -8,7 +8,7 @@ const NON_FINAL_STATUSES = new Set(['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSI
  * Liberta créditos referral que tinham sido aplicados a uma fatura que
  * foi apagada/reembolsada pelo Asaas. Sem isto, o desconto fica preso:
  * o crédito permanece marcado como `appliedAt`/`appliedToPaymentId` mas
- * a fatura onde ele ia abater já não existe — o utilizador perde o saldo.
+ * a fatura onde ele ia abater já não existe — o usuário perde o saldo.
  *
  * Repõe também `stats.pendingDiscountCents` para que a próxima fatura
  * volte a poder consumir esse saldo via `applyPendingCreditsTo`.
@@ -66,9 +66,9 @@ async function releaseAppliedCredits(billingRef, paymentId) {
 }
 
 /**
- * Reconcilia registos locais de pagamentos que ainda estão em estado
+ * Reconcilia registros locais de pagamentos que ainda estão em estado
  * não-final (PENDING/OVERDUE/...). Detecta pagamentos que foram
- * actualizados ou apagados no Asaas sem o webhook correspondente chegar
+ * atualizados ou apagados no Asaas sem o webhook correspondente chegar
  * — caso típico de exclusão manual via painel Asaas, que não dispara
  * PAYMENT_DELETED em alguns cenários. Sem isto, o histórico continua a
  * mostrar "Pendente" para uma fatura que já não existe.
@@ -158,14 +158,14 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
  * Retorna o snapshot/dados atualizados se houve mudança; caso contrário, devolve o original.
  *
  * Aciona quando há subscriptionId e ainda não temos confirmação de pagamento
- * registada (lastPaidAt vazio) — independentemente do status de acesso, para
+ * registrada (lastPaidAt vazio) — independentemente do status de acesso, para
  * cobrir pagamento feito durante o trial.
  */
 async function syncBillingFromAsaas(billingRef, billing) {
   if (!billing || !billing.subscriptionId) return { billing, updated: false };
 
   // Quando já há lastPaidAt, ainda fazemos um re-check leve da própria
-  // subscription (não os pagamentos) para apanhar cancelamento server-side
+  // subscription (não os pagamentos) para pegar cancelamento server-side
   // que perdemos via webhook. Limitado a 1x por hora para não inundar Asaas.
   if (billing.lastPaidAt) {
     const lastSync =

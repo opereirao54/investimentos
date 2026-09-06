@@ -1543,7 +1543,7 @@ function excluirOperacao(id) {
   document.getElementById('modalTitulo').innerHTML =
     `<i class="ph-fill ph-trash" style="color: var(--cor-erro);"></i> Excluir operação`;
   document.getElementById('modalMensagem').innerHTML =
-    `Tem certeza que deseja excluir a operação:<br><strong>${(op.tipo || 'compra').toUpperCase()}</strong> de <strong>${op.quantidade}x ${op.ticker}</strong> em ${op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—'}?<br><br><span style="color: var(--cor-erro); font-weight: 600;">Esta ação não pode ser desfeita.</span>`;
+    `Tem certeza de que deseja excluir a operação:<br><strong>${(op.tipo || 'compra').toUpperCase()}</strong> de <strong>${op.quantidade}x ${op.ticker}</strong> em ${op.data_op ? new Date(op.data_op).toLocaleDateString('pt-BR') : '—'}?<br><br><span style="color: var(--cor-erro); font-weight: 600;">Esta ação não pode ser desfeita.</span>`;
   document.getElementById('modalAcoes').innerHTML =
     `<button class="btn-acao" style="background-color: var(--cor-erro);" onclick="confirmarExclusaoOperacao('${id}')"><i class="ph ph-trash"></i> Sim, excluir</button>`;
   modal.style.display = 'flex';

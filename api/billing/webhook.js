@@ -6,9 +6,9 @@ const { releaseAppliedCredits } = require('../_lib/billing-sync');
 const REFERRAL_PERCENT = 10;
 // Valor mínimo após desconto referral. Asaas rejeita faturas abaixo do
 // piso do gateway (≈ R$ 5,00 para PIX/Boleto; cartão tolera menos). O
-// default era R$ 1,00, o que provocava 400 na actualização da fatura
+// default era R$ 1,00, o que provocava 400 na atualização da fatura
 // para indicadores com muitos créditos acumulados. Pode ser ajustado
-// por env quando se confirma que todos os utilizadores usam cartão.
+// por env quando se confirma que todos os usuários usam cartão.
 const MIN_PAYMENT_CENTS = parseInt(process.env.MIN_PAYMENT_CENTS || '500', 10);
 
 async function findBillingByCustomer(customerId) {
@@ -89,7 +89,7 @@ async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValu
   try {
     await asaas.updatePayment(paymentId, { value: newValueReais });
   } catch (e) {
-    // Compensação: o Asaas rejeitou a actualização do valor (p. ex.,
+    // Compensação: o Asaas rejeitou a atualização do valor (p. ex.,
     // valor abaixo do mínimo do gateway, fatura já paga, rede). Liberta
     // os créditos para um próximo retry — caso contrário ficariam
     // marcados como gastos sem desconto aplicado.
@@ -318,7 +318,7 @@ module.exports = handler({
         return res.json({ ok: true, duplicate: true });
       }
       if (guard.state === 'in_flight') {
-        // Outra instância está a processar o mesmo evento agora. Devolve
+        // Outra instância está processando o mesmo evento agora. Devolve
         // 409 para o Asaas voltar a tentar depois — não tratamos como
         // sucesso porque o trabalho ainda não terminou.
         console.warn('[webhook] event in flight, asking for retry event=%s', event || null);
@@ -487,7 +487,7 @@ module.exports = handler({
         }
       }
 
-      // Devolve créditos que este próprio utilizador tinha aplicado a uma
+      // Devolve créditos que este próprio usuário tinha aplicado a uma
       // fatura que foi apagada/reembolsada. Sem isto, o desconto reservado
       // ficaria preso (appliedAt setado, mas a fatura onde ia abater já
       // não existe) e o saldo pendente nunca voltaria.
@@ -590,7 +590,7 @@ module.exports = handler({
     console.error('[webhook]', e);
     // C2: liberta o lock de idempotência para permitir um retry limpo
     // do Asaas. Sem isto, o evento ficaria preso em 'processing' até
-    // ficar stale (5 min) e o utilizador podia perder o desconto/activação.
+    // ficar stale (5 min) e o usuário podia perder o desconto/ativação.
     if (eventRef) {
       try {
         await eventRef.delete();

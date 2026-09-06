@@ -152,7 +152,7 @@ test('chave fora do app é gravada normalmente', () => {
   const { sandbox, ls } = carregarUtils();
   sandbox.localStorage.setItem('outra_coisa', 'x');
   assert.equal(ls.store.get('outra_coisa'), 'x');
-  // onLocalWrite é notificado para qualquer chave; quem decide o que de facto
+  // onLocalWrite é notificado para qualquer chave; quem decide o que de fato
   // sincroniza é shouldSyncKey() no cloud-sync. Comportamento preservado de
   // propósito: esta correção mudou ONDE o interceptador é instalado, não o que
   // ele notifica.

@@ -19,10 +19,10 @@ const ROOT = path.resolve(__dirname, '..');
 const html = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
 const disclaimer = require('../web/appliquei-disclaimer.js');
 
-/** Só a secção da carteira — o aviso tem de estar NELA, não noutra aba. */
+/** Só a seção da carteira — o aviso tem de estar NELA, não noutra aba. */
 function secaoCarteira() {
   const ini = html.indexOf('<section id="carteira"');
-  assert.ok(ini > 0, 'secção da carteira não encontrada');
+  assert.ok(ini > 0, 'seção da carteira não encontrada');
   const fim = html.indexOf('<section ', ini + 10);
   const bruto = html.slice(ini, fim > 0 ? fim : undefined);
   // Espaço normalizado: a indentação do HTML parte as frases do aviso no meio,

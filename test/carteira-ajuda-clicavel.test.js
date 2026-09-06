@@ -33,7 +33,7 @@ test('a explicação do ranking nasce fechada, atrás do "?"', () => {
 });
 
 test('o "?" é clicável, não hover', () => {
-  // O .icon-tooltip-premium que já existia abre só no :hover, e no telemóvel
+  // O .icon-tooltip-premium que já existia abre só no :hover, e no celular
   // hover não existe: a explicação ficava inalcançável onde mais fazia falta.
   const sec = secaoCarteira();
   assert.ok(sec.includes('onclick="cartAlternarAjuda(\'cartAjudaScores\')"'));

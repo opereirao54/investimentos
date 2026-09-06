@@ -19,7 +19,7 @@
 //
 // GARANTIA CENTRAL: nunca escrever número que não se sustenta. Coluna que
 // não aparece, conta que não existe e resultado fora da faixa plausível
-// viram null com motivo registado. Uma empresa cujos indicadores não
+// viram null com motivo registrado. Uma empresa cujos indicadores não
 // validam é PULADA e reportada, nunca gravada pela metade.
 //
 // USO

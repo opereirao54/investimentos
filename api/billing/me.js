@@ -38,7 +38,7 @@ function addMonthsYmd(ymd, months) {
 }
 
 function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
-  // Não há cobranças se não houver subscrição activa.
+  // Não há cobranças se não houver assinatura ativa.
   if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return [];
 
   const pendingByDate = (payments || [])
@@ -188,7 +188,7 @@ module.exports = handler({
 
       // Asaas projeta 6-12 faturas PENDING futuras logo na criação da
       // assinatura. Sem filtro, o histórico mostra "12 faturas pendentes"
-      // e o utilizador pensa que vai ser cobrado 12 vezes. Mantém apenas
+      // e o usuário pensa que vai ser cobrado 12 vezes. Mantém apenas
       // a PENDING/AWAITING mais próxima por dueDate (a do mês corrente)
       // e oculta as projeções futuras. OVERDUE não entra neste filtro:
       // é uma cobrança real em atraso e deve permanecer visível.

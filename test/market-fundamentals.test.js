@@ -454,7 +454,7 @@ test('série com valor implausível é RECUSADA e cai para a próxima', async ()
     assert.ok(r.fonte.includes('4189'));
     assert.ok(
       erros.some((e) => e.serie === 432 && e.erro.includes('fora_da_faixa')),
-      `o descarte tem de ficar registado: ${JSON.stringify(erros)}`
+      `o descarte tem de ficar registrado: ${JSON.stringify(erros)}`
     );
   } finally {
     restaurar();
@@ -1253,7 +1253,7 @@ test('fundamentos recusados degradam para a cotação, e reportam', async () => 
     assert.equal(r.BBAS3.liquidezDiaria, 2000000 * 28.5);
     assert.ok(
       erros.some((e) => e.degradou),
-      'a degradação tem de ficar registada — silenciar isto foi o que escondeu o bug'
+      'a degradação tem de ficar registrada — silenciar isto foi o que escondeu o bug'
     );
   } finally {
     globalThis.fetch = original;
@@ -1404,7 +1404,7 @@ test('Yahoo desiste após dois 429 seguidos em vez de insistir', async () => {
     assert.ok(pedidosSummary <= 2, `insistiu ${pedidosSummary} vezes num IP limitado`);
     assert.ok(
       erros.some((e) => e.erro === 'yahoo_429_desistiu'),
-      'a desistência tem de ficar registada, para o diagnóstico distinguir de falha pontual'
+      'a desistência tem de ficar registrada, para o diagnóstico distinguir de falha pontual'
     );
   } finally {
     globalThis.fetch = original;
@@ -1661,7 +1661,7 @@ test('os blocos declarados têm candidatos de sobra no mapa de setores', () => {
 });
 
 test('o mapa de setores cobre os nomes mais líquidos da bolsa', () => {
-  // Não é exaustividade — é cobrir o que o ranking de facto devolve. Doze dos
+  // Não é exaustividade — é cobrir o que o ranking de fato devolve. Doze dos
   // quinze candidatos do ciclo medido em produção ficaram sem setor porque a
   // lista tinha 24 tickers.
   const esperados = [
@@ -1695,7 +1695,7 @@ test('o mapa de setores cobre os nomes mais líquidos da bolsa', () => {
 });
 
 test('setor não vive em dois arquivos', () => {
-  // Duas fontes para o mesmo facto divergem no primeiro ajuste. mapa-cvm.json
+  // Duas fontes para o mesmo fato divergem no primeiro ajuste. mapa-cvm.json
   // responde "que ativos existem e como casá-los na CVM"; setores-b3.json
   // responde "a que setor um ticker pertence".
   for (const [ticker, info] of Object.entries(MAPA.acoes)) {
@@ -1711,7 +1711,7 @@ test('o segmento curado preenche o FII que a ingestão ainda não alcançou', ()
   assert.equal(c.segmentoFonte, 'curado');
 });
 
-test('o informe da CVM vence a lista curada no que ele de facto decide', () => {
+test('o informe da CVM vence a lista curada no que ele de fato decide', () => {
   // A CVM separa papel de tijolo pela fatia da carteira em imóvel. Um fundo
   // que ELA diz ser de papel não vira de tijolo por causa da nossa lista — foi
   // o mesmo princípio que já impediu "Renda Logística" de virar logística.

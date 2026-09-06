@@ -260,7 +260,7 @@ function analisarSaudeFinanceiraSonhos() {
 function gerarPlanoSugerido(saude) {
   if (saude.semDados) {
     return [
-      'Cadastre suas receitas e despesas na aba <strong>Controle de Caixa</strong> para que o app gere um plano sob medida para você.',
+      'Cadastre suas receitas e despesas na aba <strong>Controle financeiro</strong> para que o app gere um plano sob medida para você.',
       'Sem dados de fluxo de caixa, a sugestão padrão é: separar até <strong>20% da renda líquida</strong> para sonhos e <strong>10%</strong> para reserva de emergência.',
     ];
   }
@@ -350,7 +350,7 @@ function renderPainelSaudeSonhos() {
                 </div>
                 <div style="font-size:13px;font-weight:600;color:var(--cor-texto-principal);margin-bottom:4px;">${saude.titulo}</div>
                 <div style="font-size:12.5px;color:var(--cor-texto-mutado);line-height:1.5;">${saude.diagnostico}</div>
-                <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;">Baseado em ${saude.mesesComDados} ${saude.mesesComDados === 1 ? 'mês' : 'meses'} de dados do Controle de Caixa.</div>
+                <div style="font-size:11px;color:var(--cor-texto-mutado);margin-top:6px;">Baseado em ${saude.mesesComDados} ${saude.mesesComDados === 1 ? 'mês' : 'meses'} de dados do Controle financeiro.</div>
             </div>
         </div>
 
@@ -751,7 +751,7 @@ function renderizarSonhos() {
                           ? `<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--tinta-roxo);background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.3);padding:6px 10px;border-radius:99px;align-self:center;margin-right:auto;" title="Compromisso lançado no Controle Financeiro"><i class="ph-fill ph-link-simple"></i> Vinculado ao Controle</span>`
                           : `<button onclick="event.stopPropagation();pedirConfirmacaoPlanoSonho(sonhos.find(x=>x.id==='${s.id}'))" class="btn-acao" style="background:#7c3aed;font-size:12px;padding:8px 14px;margin-right:auto;"><i class="ph-bold ph-link-simple"></i> Vincular ao Controle</button>`
                     }
-                    ${conquistado || !s.planoVinculado || status === 'agendado' ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Redistribui a falta nos meses restantes."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
+                    ${conquistado || !s.planoVinculado || status === 'agendado' ? '' : `<button onclick="event.stopPropagation();pularMesSonho('${s.id}')" class="btn-acao" style="background:#f59e0b;font-size:12px;padding:8px 14px;" title="Não consegue separar este mês? Redistribuímos a falta nos meses restantes."><i class="ph-bold ph-skip-forward"></i> Pular este mês</button>`}
                     <button onclick="event.stopPropagation();abrirAporteSonho('${s.id}')" class="btn-acao" style="background:var(--cor-primaria);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-piggy-bank"></i> Registrar aporte</button>
                     <button onclick="event.stopPropagation();editarSonho('${s.id}')" class="btn-acao" style="font-size:12px;padding:8px 14px;"><i class="ph-bold ph-pencil-simple"></i> Editar</button>
                     <button onclick="event.stopPropagation();excluirSonho('${s.id}')" class="btn-acao" style="background:var(--cor-bg-erro);color:var(--cor-txt-erro);font-size:12px;padding:8px 14px;"><i class="ph-bold ph-trash"></i> Excluir</button>
