@@ -319,7 +319,7 @@ function ensureGate() {
     '          <span class="bg-mode-price"><strong>R$ 15</strong><small>/30 dias</small></span>',
     '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Sem compromisso recorrente</span>',
     '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Avisamos antes do fim</span>',
-    '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renove no seu ritmo</span>',
+    '          <span class="bg-mode-feat"><i class="ph-fill ph-check"></i> Renovou antes? Os dias que sobram somam</span>',
     '        </button>',
     '      </div>',
     '      <p id="billingModeHint" class="bg-hint">Renovação automática. Cancele quando quiser.</p>',
@@ -1702,14 +1702,13 @@ function renderHeroBlock(me) {
   // (Fix 3). Caso contrário renderizaríamos "Renovação automática"
   // para alguém que acabou de cancelar.
   if (isInactive && access.status === 'active') {
+    // A data vem do servidor (me.accessExpiresAt): é a MESMA janela que o
+    // gate honra. Recalcular lastPaidAt+30 aqui no cliente dava uma data
+    // diferente sempre que o usuário antecipou um pagamento e o ciclo foi
+    // acumulado — a tela prometia menos dias do que ele tinha comprado.
     var paidUntilTxt = '';
-    if (access.reason === 'paid_period' && me.lastPaidAt) {
-      var paidMs = Date.parse(me.lastPaidAt);
-      if (!isNaN(paidMs)) {
-        var paidUntilMs = paidMs + 30 * 86400 * 1000;
-        paidUntilTxt =
-          ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
-      }
+    if (isPaidWindow(access) && me.accessExpiresAt) {
+      paidUntilTxt = ' Acesso garantido até ' + fmtDate(me.accessExpiresAt) + '.';
     }
     var cancelledTxt = me.cancelledAt
       ? 'Cancelada em ' +
@@ -1754,7 +1753,7 @@ function renderHeroBlock(me) {
         '</div>' +
         '<p class="ma-hero-sub">Pagamento único de ' +
         fmtBRL(baseCents) +
-        ' · sem renovação automática. Avisamos quando estiver próximo do fim.</p>' +
+        ' · sem renovação automática. Avisamos quando estiver próximo do fim — e se renovar antes, os dias restantes somam ao novo ciclo.</p>' +
         '<div class="ma-hero-bar"><span style="width:' +
         dpctOnce.toFixed(1) +
         '%;"></span></div>' +
@@ -1817,14 +1816,13 @@ function renderHeroBlock(me) {
   if (isInactive) {
     // Sub cancelada mas ainda dentro do ciclo pago (30 dias após
     // lastPaidAt). Mostra a data exata até quando o acesso vale.
+    // A data vem do servidor (me.accessExpiresAt): é a MESMA janela que o
+    // gate honra. Recalcular lastPaidAt+30 aqui no cliente dava uma data
+    // diferente sempre que o usuário antecipou um pagamento e o ciclo foi
+    // acumulado — a tela prometia menos dias do que ele tinha comprado.
     var paidUntilTxt = '';
-    if (access.reason === 'paid_period' && me.lastPaidAt) {
-      var paidMs = Date.parse(me.lastPaidAt);
-      if (!isNaN(paidMs)) {
-        var paidUntilMs = paidMs + 30 * 86400 * 1000;
-        paidUntilTxt =
-          ' Acesso garantido até ' + fmtDate(new Date(paidUntilMs).toISOString()) + '.';
-      }
+    if (isPaidWindow(access) && me.accessExpiresAt) {
+      paidUntilTxt = ' Acesso garantido até ' + fmtDate(me.accessExpiresAt) + '.';
     }
     var cancelledTxt = me.cancelledAt
       ? 'Cancelada em ' +
@@ -2310,14 +2308,18 @@ function renderRenewBanner(me) {
     sub =
       'Renove agora para não perder o acesso em ' +
       expiresFmt +
-      '. Você também pode trocar para assinatura mensal.';
+      '. Os ' +
+      days +
+      ' ' +
+      pluralDays(days) +
+      ' que faltam entram no próximo ciclo. Você também pode trocar para assinatura mensal.';
     tone = 'urgent';
   } else {
     title = days + ' dias até o fim do ciclo';
     sub =
       'Seu acesso avulso expira em ' +
       expiresFmt +
-      '. Renove no seu ritmo ou ative a renovação automática.';
+      '. Pode renovar quando quiser: os dias que ainda restam somam ao novo ciclo, você não perde nada por antecipar.';
     tone = 'warn';
   }
   var palette =
@@ -3013,6 +3015,15 @@ async function doCancelSubscription() {
   }
 }
 
+// Motivos de acesso que significam "dentro de um ciclo já pago". Espelha
+// api/_lib/access.js — o paid_period_overdue_next é o caso de quem pagou
+// boleto/PIX no dia do vencimento e ainda está a compensar: já tem o mês,
+// só a fatura SEGUINTE é que venceu.
+function isPaidWindow(access) {
+  if (!access) return false;
+  return access.reason === 'paid_period' || access.reason === 'paid_period_overdue_next';
+}
+
 async function syncApplicashFromServer() {
   try {
     var me = await fetchMe();
@@ -3038,7 +3049,10 @@ async function syncApplicashFromServer() {
         plano: 'Mensal',
         valorPago: (r.baseValueCents || 0) / 100,
         periodicidade: 'mensal',
-        status: r.subscriptionStatus === 'ACTIVE' ? 'ativo' : 'inativo',
+        // r.active vem do servidor e usa computeAccess — inclui o indicado
+        // que pagou avulso (sem subscriptionStatus). Antes, esse indicado
+        // gerava crédito e ainda aparecia como "Inativo" na tela.
+        status: r.active ? 'ativo' : 'inativo',
         dataAdesao: r.referralUsedAt || null,
       };
     });

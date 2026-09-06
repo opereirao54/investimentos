@@ -305,12 +305,47 @@ const mockFirebaseAdmin = {
 };
 
 // ---------- Mock asaas ----------
+
+const PAID_ASAAS_STATUSES = new Set(['CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH']);
+
+// Avança N meses num 'YYYY-MM-DD' — é assim que o Asaas escalona as faturas
+// projetadas de uma assinatura MONTHLY.
+function addMonthsToYmd(ymd, months) {
+  if (!months) return ymd;
+  const m = String(ymd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return ymd;
+  const d = new Date(
+    Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1 + months, parseInt(m[3], 10))
+  );
+  return d.toISOString().slice(0, 10);
+}
 const asaasState = {
   customers: new Map(),
   subscriptions: new Map(),
   payments: new Map(),
   deletedUids: new Set(),
   seq: 1,
+
+  // --- Fidelidade ao Asaas real (opt-in) ---------------------------------
+  // O mock nasceu otimista: uma assinatura gerava UMA fatura e updatePayment
+  // aceitava qualquer coisa. O Asaas de verdade não se comporta assim, e a
+  // diferença esconde defeitos inteiros (crédito Applicash que nunca chega à
+  // fatura, valor alterado depois do cartão já ter capturado). Os knobs abaixo
+  // ligam o comportamento real; ficam desligados por omissão para não mudar o
+  // significado dos testes escritos contra o mock antigo.
+
+  // Quantas faturas FUTURAS o Asaas projeta ao criar a assinatura, além da
+  // primeira. No Asaas real são 6-12 (ver api/billing/me.js, que as filtra do
+  // histórico). Com 0, o mock mantém o comportamento antigo de fatura única.
+  projectFutureInvoices: 0,
+
+  // Cartão captura na hora: o payment nasce CONFIRMED em vez de PENDING.
+  cardCapturesImmediately: false,
+
+  // updatePayment recusa alterar o valor de uma cobrança já paga e recusa
+  // valor abaixo do piso do gateway — como o Asaas faz.
+  strictUpdatePayment: false,
+  minPaymentValue: 5,
 };
 
 const mockAsaas = {
@@ -345,18 +380,50 @@ const mockAsaas = {
         creditCardToken: 'tok_' + asaasState.seq++,
       };
     asaasState.subscriptions.set(id, sub);
-    const pid = 'pay_' + asaasState.seq++;
-    asaasState.payments.set(pid, {
-      id: pid,
-      subscription: id,
+    const paidOnCreate = !!creditCard && asaasState.cardCapturesImmediately;
+    const total = 1 + Math.max(0, asaasState.projectFutureInvoices | 0);
+    for (let i = 0; i < total; i++) {
+      const pid = 'pay_' + asaasState.seq++;
+      asaasState.payments.set(pid, {
+        id: pid,
+        subscription: id,
+        customer: customerId,
+        value,
+        // Só a primeira pode nascer capturada; as projetadas ficam PENDING.
+        status: i === 0 && paidOnCreate ? 'CONFIRMED' : 'PENDING',
+        dueDate: addMonthsToYmd(nextDueDate, i),
+        billingType: sub.billingType,
+        invoiceUrl: 'https://sandbox.asaas/' + pid,
+      });
+    }
+    return sub;
+  },
+  createPayment: async ({
+    customerId,
+    value,
+    billingType,
+    dueDate,
+    description,
+    externalReference,
+    creditCard,
+  }) => {
+    const id = 'pay_' + asaasState.seq++;
+    const pay = {
+      id,
       customer: customerId,
       value,
-      status: 'PENDING',
-      dueDate: nextDueDate,
-      billingType: sub.billingType,
-      invoiceUrl: 'https://sandbox.asaas/' + pid,
-    });
-    return sub;
+      // Sem `subscription`: é exatamente assim que o webhook distingue o
+      // avulso (`const isOneShot = !payment.subscription`).
+      status: creditCard && asaasState.cardCapturesImmediately ? 'CONFIRMED' : 'PENDING',
+      dueDate,
+      description: description || null,
+      externalReference: externalReference || null,
+      billingType: billingType || 'UNDEFINED',
+      invoiceUrl: 'https://sandbox.asaas/' + id,
+    };
+    if (!creditCard) pay.bankSlipUrl = 'https://sandbox.asaas/boleto/' + id;
+    asaasState.payments.set(id, pay);
+    return pay;
   },
   updateSubscription: async () => ({}),
   updateSubscriptionCard: async () => ({}),
@@ -368,6 +435,44 @@ const mockAsaas = {
   getSubscription: async (id) => asaasState.subscriptions.get(id),
   updatePayment: async (id, fields) => {
     const p = asaasState.payments.get(id);
+    if (asaasState.strictUpdatePayment) {
+      if (!p) {
+        const err = new Error('asaas_error_404');
+        err.status = 404;
+        err.data = {
+          errors: [{ code: 'invalid_payment', description: 'Cobrança não encontrada.' }],
+        };
+        throw err;
+      }
+      // Cobrança já liquidada não muda de valor — o dinheiro já saiu do cartão.
+      if (PAID_ASAAS_STATUSES.has(p.status)) {
+        const err = new Error('asaas_error_400');
+        err.status = 400;
+        err.data = {
+          errors: [
+            {
+              code: 'invalid_value',
+              description: 'Não é possível alterar o valor de uma cobrança já recebida.',
+            },
+          ],
+        };
+        throw err;
+      }
+      if (typeof fields.value === 'number' && fields.value < asaasState.minPaymentValue) {
+        const err = new Error('asaas_error_400');
+        err.status = 400;
+        err.data = {
+          errors: [
+            {
+              code: 'invalid_value',
+              description:
+                'O valor mínimo da cobrança é R$ ' + asaasState.minPaymentValue.toFixed(2) + '.',
+            },
+          ],
+        };
+        throw err;
+      }
+    }
     if (p) Object.assign(p, fields);
     return p;
   },

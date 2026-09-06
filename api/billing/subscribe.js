@@ -3,6 +3,13 @@ const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
+const { toMillis, paidUntilMs } = require('../_lib/access');
+const {
+  reservePendingCredits,
+  releaseReservation,
+  rebindReservation,
+  maxDiscountFor,
+} = require('../_lib/credits');
 
 function formatDate(d) {
   const yyyy = d.getUTCFullYear();
@@ -55,64 +62,409 @@ module.exports = handler({
   // inline por enquanto — onda posterior pode tightnen com Zod refinements.
   handle: async ({ req, res, user, body }) => {
     const cpfCnpj = cleanDigits(body.cpfCnpj);
-  const customerName = (body.name || '').trim();
-  const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
-  const rawHolder =
-    body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object'
-      ? body.creditCardHolderInfo
-      : null;
-  const wantsCard = !!rawCard;
-  // mode: 'subscription' (padrão, assinatura mensal Asaas) ou 'one_shot'
-  // (cobrança única de 30 dias, sem subscription). Fundido com /subscribe
-  // para caber no limite de 12 functions do Vercel Hobby.
-  const mode = body.mode === 'one_shot' ? 'one_shot' : 'subscription';
+    const customerName = (body.name || '').trim();
+    const rawCard = body.creditCard && typeof body.creditCard === 'object' ? body.creditCard : null;
+    const rawHolder =
+      body.creditCardHolderInfo && typeof body.creditCardHolderInfo === 'object'
+        ? body.creditCardHolderInfo
+        : null;
+    const wantsCard = !!rawCard;
+    // mode: 'subscription' (padrão, assinatura mensal Asaas) ou 'one_shot'
+    // (cobrança única de 30 dias, sem subscription). Fundido com /subscribe
+    // para caber no limite de 12 functions do Vercel Hobby.
+    const mode = body.mode === 'one_shot' ? 'one_shot' : 'subscription';
 
-  try {
-    const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
-    const snap = await ref.get();
-    if (!snap.exists || !snap.data().customerId) {
-      return res.status(400).json({ error: 'billing_not_initialized' });
-    }
-
-    // C6: lock transacional contra cliques duplicados em /subscribe (mesma
-    // aba a re-submeter, ou app + web em paralelo). Sem isto, dois requests
-    // concorrentes do mesmo uid liam ambos subscriptionId == null e ambos
-    // chamavam asaas.createSubscription — o usuário ficava com duas
-    // assinaturas a faturar mensalmente. TTL maior que o de /init porque
-    // este endpoint inclui criação Asaas + listPaymentsBySubscription.
-    const SUBSCRIBE_LOCK_TTL_MS = 60 * 1000;
-    const claim = await db().runTransaction(async (tx) => {
-      const s = await tx.get(ref);
-      const ex = s.exists ? s.data() : null;
-      const lockedAtMs =
-        ex && ex.subscribeLockAt && typeof ex.subscribeLockAt.toMillis === 'function'
-          ? ex.subscribeLockAt.toMillis()
-          : 0;
-      if (ex && ex.subscribeLock && Date.now() - lockedAtMs < SUBSCRIBE_LOCK_TTL_MS) {
-        return { state: 'locked' };
+    try {
+      const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
+      const snap = await ref.get();
+      if (!snap.exists || !snap.data().customerId) {
+        return res.status(400).json({ error: 'billing_not_initialized' });
       }
-      tx.set(
-        ref,
-        {
-          subscribeLock: true,
-          subscribeLockAt: timestamp().fromMillis(Date.now()),
-        },
-        { merge: true }
-      );
-      return { state: 'acquired' };
-    });
-    if (claim.state === 'locked') {
-      return res.status(409).json({
-        error: 'subscribe_in_progress',
-        detail: 'Inscrição em andamento, tente novamente em instantes.',
-      });
-    }
 
-    let lockReleased = false;
-    const releaseLock = async () => {
-      if (lockReleased) return;
+      // C6: lock transacional contra cliques duplicados em /subscribe (mesma
+      // aba a re-submeter, ou app + web em paralelo). Sem isto, dois requests
+      // concorrentes do mesmo uid liam ambos subscriptionId == null e ambos
+      // chamavam asaas.createSubscription — o usuário ficava com duas
+      // assinaturas a faturar mensalmente. TTL maior que o de /init porque
+      // este endpoint inclui criação Asaas + listPaymentsBySubscription.
+      const SUBSCRIBE_LOCK_TTL_MS = 60 * 1000;
+      const claim = await db().runTransaction(async (tx) => {
+        const s = await tx.get(ref);
+        const ex = s.exists ? s.data() : null;
+        const lockedAtMs =
+          ex && ex.subscribeLockAt && typeof ex.subscribeLockAt.toMillis === 'function'
+            ? ex.subscribeLockAt.toMillis()
+            : 0;
+        if (ex && ex.subscribeLock && Date.now() - lockedAtMs < SUBSCRIBE_LOCK_TTL_MS) {
+          return { state: 'locked' };
+        }
+        tx.set(
+          ref,
+          {
+            subscribeLock: true,
+            subscribeLockAt: timestamp().fromMillis(Date.now()),
+          },
+          { merge: true }
+        );
+        return { state: 'acquired' };
+      });
+      if (claim.state === 'locked') {
+        return res.status(409).json({
+          error: 'subscribe_in_progress',
+          detail: 'Inscrição em andamento, tente novamente em instantes.',
+        });
+      }
+
+      let lockReleased = false;
+      const releaseLock = async () => {
+        if (lockReleased) return;
+        lockReleased = true;
+        try {
+          await ref.set(
+            {
+              subscribeLock: fieldValue().delete(),
+              subscribeLockAt: fieldValue().delete(),
+            },
+            { merge: true }
+          );
+        } catch (e) {
+          console.warn('[subscribe] failed to release lock', e && e.message);
+        }
+      };
+
+      const billing = snap.data();
+
+      if (!billing.cpfCnpj && !cpfCnpj) {
+        await releaseLock();
+        return res.status(400).json({
+          error: 'cpfcnpj_required',
+          detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.',
+        });
+      }
+      if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
+        await releaseLock();
+        return res
+          .status(400)
+          .json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
+      }
+      if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
+        await releaseLock();
+        return res
+          .status(400)
+          .json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
+      }
+
+      if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
+        // C4: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids
+        // (anti multi-conta para fraudar referral).
+        let dupDocs = [];
+        try {
+          const dup = await db()
+            .collectionGroup('billing')
+            .where('cpfCnpj', '==', cpfCnpj)
+            .limit(5)
+            .get();
+          dupDocs = dup.docs;
+        } catch (err) {
+          console.warn('[subscribe] CPF uniqueness check skipped (missing index)', err.message);
+        }
+
+        const conflict = dupDocs.find((d) => {
+          const owner = d.ref.parent && d.ref.parent.parent;
+          return owner && owner.id !== user.uid;
+        });
+        if (conflict) {
+          await releaseLock();
+          return res.status(409).json({ error: 'cpfcnpj_in_use' });
+        }
+
+        // H3/L2: revalida referral com a política unificada. Agora que o CPF
+        // chegou, o guard pode bloquear por CPF, device, IP ou INACTIVE do
+        // indicador. Se o vínculo cair, o desconto e o crédito também.
+        // Persiste o CPF em billing localmente para o guard ler.
+        billing.cpfCnpj = cpfCnpj;
+        if (billing.referredByUserId) {
+          try {
+            const guard = await assertReferralAllowed(db(), {
+              indicatorUid: billing.referredByUserId,
+              user: { uid: user.uid, cpfCnpj },
+              req,
+            });
+            if (!guard.allowed) {
+              await ref.set(
+                {
+                  referredByUserId: fieldValue().delete(),
+                  referredByCode: fieldValue().delete(),
+                  referralUsedAt: fieldValue().delete(),
+                  recurringDiscountPercent: 0,
+                  referralDroppedReason: guard.reason,
+                  updatedAt: fieldValue().serverTimestamp(),
+                },
+                { merge: true }
+              );
+              billing.referredByUserId = null;
+              billing.referredByCode = null;
+              billing.recurringDiscountPercent = 0;
+              console.warn('[subscribe] referral dropped at subscribe', {
+                uid: user.uid,
+                reason: guard.reason,
+              });
+            }
+          } catch (e) {
+            console.warn('[subscribe] referral revalidation failed', e && e.message);
+          }
+        }
+
+        const fields = { cpfCnpj };
+        if (customerName) fields.name = customerName;
+        await asaas.updateCustomer(billing.customerId, fields);
+        await ref.set(
+          {
+            cpfCnpj,
+            customerName: customerName || billing.customerName || null,
+            updatedAt: fieldValue().serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      // Avulso: bloqueia se já há assinatura ativa para evitar pagamento
+      // duplicado. Para mudar de modo, o user cancela a sub primeiro.
+      if (
+        mode === 'one_shot' &&
+        billing.subscriptionId &&
+        billing.subscriptionStatus &&
+        billing.subscriptionStatus !== 'INACTIVE'
+      ) {
+        await releaseLock();
+        return res.status(409).json({
+          error: 'subscription_active',
+          detail:
+            'Já existe uma assinatura recorrente ativa. Cancele-a antes de optar pelo pagamento avulso.',
+        });
+      }
+
+      if (mode === 'subscription' && billing.subscriptionId) {
+        // Se a subscription local está INACTIVE, criar uma nova passa por este
+        // endpoint mas com subscriptionId limpo antes. Reativação explícita:
+        // o usuário clica "Reativar" → frontend faz DELETE local primeiro.
+        // Defensivamente, se INACTIVE chegar aqui, recriamos.
+        if (billing.subscriptionStatus === 'INACTIVE') {
+          // limpa para permitir nova criação no fluxo abaixo
+          await ref.set(
+            {
+              subscriptionId: fieldValue().delete(),
+              subscriptionStatus: fieldValue().delete(),
+              lastPaymentStatus: fieldValue().delete(),
+              lastPaymentId: fieldValue().delete(),
+              lastPaidAt: fieldValue().delete(),
+              cancelledAt: fieldValue().delete(),
+              updatedAt: fieldValue().serverTimestamp(),
+            },
+            { merge: true }
+          );
+          billing.subscriptionId = null;
+        } else {
+          const payments = await asaas
+            .listPaymentsBySubscription(billing.subscriptionId)
+            .catch(() => null);
+          const list = (payments && payments.data) || [];
+          const pending = list.find((p) => p.status === 'PENDING' || p.status === 'OVERDUE');
+          if (pending) {
+            await releaseLock();
+            return res.json({
+              subscriptionId: billing.subscriptionId,
+              invoiceUrl: pending.invoiceUrl,
+              status: pending.status,
+              paymentMethod: billing.paymentMethod || null,
+              cardLast4: billing.cardLast4 || null,
+              cardBrand: billing.cardBrand || null,
+            });
+          }
+          // Sem fatura pendente: pode ser que esteja active e a próxima ainda
+          // não foi gerada, ou esteja em estado problemático. Devolvemos info
+          // suficiente para o front decidir.
+          const lastPaid = list.find(
+            (p) =>
+              p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
+          );
+          await releaseLock();
+          return res.json({
+            subscriptionId: billing.subscriptionId,
+            alreadyActive: !!lastPaid,
+            subscriptionStatus: billing.subscriptionStatus || null,
+            lastPaymentStatus: billing.lastPaymentStatus || null,
+            paymentMethod: billing.paymentMethod || null,
+            cardLast4: billing.cardLast4 || null,
+            cardBrand: billing.cardBrand || null,
+          });
+        }
+      }
+
+      const monthly = (billing.monthlyPriceCents || 1500) / 100;
+      const pct = billing.recurringDiscountPercent || 0;
+      const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
+      // A primeira cobrança nunca cai ANTES do fim da avaliação gratuita nem
+      // antes do fim de um ciclo já pago. Quem assina no dia 3 de um trial de
+      // 7 estava a ser cobrado no dia seguinte — pagava por 4 dias que já
+      // eram dele. Mesma regra do crédito de tempo em access.nextPaidUntilMs:
+      // antecipar SOMA, nunca queima o que já se tinha.
+      const tomorrowMs = Date.now() + 24 * 3600 * 1000;
+      const trialEndMs = toMillis(billing.trialEndsAt);
+      const paidThroughMs = paidUntilMs(billing);
+      const firstDueMs = Math.max(tomorrowMs, trialEndMs || 0, paidThroughMs || 0);
+      const nextDue = formatDate(new Date(firstDueMs));
+
+      const holderInfo = wantsCard
+        ? rawHolder || {
+            name: customerName || billing.customerName || user.email,
+            email: user.email,
+            cpfCnpj: cpfCnpj || billing.cpfCnpj,
+            postalCode: (rawHolder && rawHolder.postalCode) || null,
+            addressNumber: (rawHolder && rawHolder.addressNumber) || null,
+            phone: (rawHolder && rawHolder.phone) || null,
+          }
+        : null;
+
+      // Branch avulso: cria payment único (POST /payments), sem subscription.
+      // O webhook PAYMENT_CONFIRMED detecta !payment.subscription e aplica
+      // paymentMode='one_shot' + limpa trial — acesso vem do paid_period.
+      if (mode === 'one_shot') {
+        // Applicash do INDICADOR na cobrança avulsa: reserva o saldo ANTES de
+        // criar a cobrança. No cartão a captura é imediata — descontar depois,
+        // pelo webhook, chegava tarde (Asaas 400 "cobrança já recebida") e o
+        // usuário pagava cheio com crédito parado na conta. Ver api/_lib/credits.js.
+        const baseCents = Math.round(subscriptionValue * 100);
+        let reservation = { applied: 0, used: [] };
+        try {
+          reservation = await reservePendingCredits(
+            ref,
+            maxDiscountFor(baseCents),
+            'oneshot:' + user.uid + ':' + Date.now()
+          );
+        } catch (e) {
+          console.warn('[subscribe] credit reservation failed', e && e.message);
+        }
+        const chargedCents = baseCents - (reservation.applied || 0);
+
+        const payPayload = {
+          customerId: billing.customerId,
+          value: chargedCents / 100,
+          dueDate: nextDue,
+          externalReference: user.uid,
+          description: 'Appliquei — 1 mês de acesso',
+          billingType: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+        };
+        if (wantsCard) {
+          payPayload.creditCard = rawCard;
+          payPayload.creditCardHolderInfo = holderInfo;
+          payPayload.remoteIp = clientIp(req);
+        }
+        let pay;
+        try {
+          pay = await asaas.createPayment(payPayload);
+        } catch (e) {
+          // A cobrança não nasceu: os créditos reservados voltam ao saldo, senão
+          // ficariam gastos sem nada em troca.
+          await releaseReservation(reservation);
+          throw e;
+        }
+        // Liga a reserva ao id real — é por ele que releaseAppliedCredits
+        // reencontra estes créditos se a cobrança for apagada ou estornada.
+        await rebindReservation(reservation, pay.id);
+
+        const billingUpdate = {
+          paymentMode: 'one_shot',
+          lastOneShotPaymentId: pay.id,
+          paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+          updatedAt: fieldValue().serverTimestamp(),
+          subscribeLock: fieldValue().delete(),
+          subscribeLockAt: fieldValue().delete(),
+        };
+        if (reservation.applied > 0) {
+          billingUpdate.stats = {
+            pendingDiscountCents: fieldValue().increment(-reservation.applied),
+          };
+        }
+        await ref.set(billingUpdate, { merge: true });
+        lockReleased = true;
+        return res.json({
+          mode: 'one_shot',
+          paymentId: pay.id,
+          invoiceUrl: pay.invoiceUrl || null,
+          bankSlipUrl: pay.bankSlipUrl || null,
+          status: pay.status || null,
+          value: pay.value || null,
+          dueDate: pay.dueDate || nextDue,
+          paymentMethod: payPayload.billingType,
+          baseValueCents: baseCents,
+          referralAppliedCents: reservation.applied || 0,
+        });
+      }
+
+      const subPayload = {
+        customerId: billing.customerId,
+        uid: user.uid,
+        nextDueDate: nextDue,
+        value: subscriptionValue,
+      };
+      if (wantsCard) {
+        subPayload.billingType = 'CREDIT_CARD';
+        subPayload.creditCard = rawCard;
+        subPayload.creditCardHolderInfo = holderInfo;
+        subPayload.remoteIp = clientIp(req);
+      }
+      const sub = await asaas.createSubscription(subPayload);
+
+      const billingUpdate = {
+        subscriptionId: sub.id,
+        subscriptionStatus: sub.status || 'ACTIVE',
+        subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
+        paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
+        paymentMode: 'subscription',
+        updatedAt: fieldValue().serverTimestamp(),
+        // C6: liberta o lock atomicamente com o write da subscriptionId.
+        subscribeLock: fieldValue().delete(),
+        subscribeLockAt: fieldValue().delete(),
+      };
+      if (wantsCard) {
+        const meta = cardMetadataFromAsaas(sub, rawCard.number);
+        billingUpdate.cardBrand = meta.cardBrand;
+        billingUpdate.cardLast4 = meta.cardLast4;
+        if (meta.cardToken) billingUpdate.cardToken = meta.cardToken;
+        billingUpdate.cardHolderName = (rawCard.holderName || '').trim() || null;
+      }
+      await ref.set(billingUpdate, { merge: true });
       lockReleased = true;
+
+      let invoiceUrl = null;
+      let firstPaymentStatus = null;
       try {
+        const payments = await asaas.listPaymentsBySubscription(sub.id);
+        const first = payments && payments.data && payments.data[0];
+        if (first) {
+          invoiceUrl = first.invoiceUrl;
+          firstPaymentStatus = first.status;
+        }
+      } catch (_) {}
+
+      return res.json({
+        subscriptionId: sub.id,
+        invoiceUrl,
+        status: sub.status,
+        paymentMethod: billingUpdate.paymentMethod,
+        cardLast4: billingUpdate.cardLast4 || null,
+        cardBrand: billingUpdate.cardBrand || null,
+        firstPaymentStatus,
+      });
+    } catch (e) {
+      console.error('[subscribe]', e, e.data);
+      // C6: liberta o lock por best-effort para que um retry imediato do
+      // usuário não seja recusado durante o TTL. Se a criação no Asaas
+      // tiver chegado a acontecer, o próximo /subscribe entra no ramo
+      // "billing.subscriptionId existe" e devolve os dados sem duplicar.
+      try {
+        const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
         await ref.set(
           {
             subscribeLock: fieldValue().delete(),
@@ -120,319 +472,15 @@ module.exports = handler({
           },
           { merge: true }
         );
-      } catch (e) {
-        console.warn('[subscribe] failed to release lock', e && e.message);
+      } catch (relErr) {
+        console.warn('[subscribe] failed to release lock on error', relErr && relErr.message);
       }
-    };
-
-    const billing = snap.data();
-
-    if (!billing.cpfCnpj && !cpfCnpj) {
-      await releaseLock();
-      return res
-        .status(400)
-        .json({
-          error: 'cpfcnpj_required',
-          detail: 'CPF ou CNPJ é obrigatório para emitir a fatura.',
-        });
-    }
-    if (cpfCnpj && cpfCnpj.length !== 11 && cpfCnpj.length !== 14) {
-      await releaseLock();
-      return res
-        .status(400)
-        .json({ error: 'cpfcnpj_invalid', detail: 'CPF deve ter 11 dígitos ou CNPJ 14.' });
-    }
-    if (cpfCnpj && !isValidCpfCnpj(cpfCnpj)) {
-      await releaseLock();
-      return res
-        .status(400)
-        .json({ error: 'cpfcnpj_invalid', detail: 'Os dígitos verificadores não conferem.' });
-    }
-
-    if (cpfCnpj && cpfCnpj !== billing.cpfCnpj) {
-      // C4: o mesmo CPF/CNPJ não pode estar associado a múltiplos uids
-      // (anti multi-conta para fraudar referral).
-      let dupDocs = [];
-      try {
-        const dup = await db()
-          .collectionGroup('billing')
-          .where('cpfCnpj', '==', cpfCnpj)
-          .limit(5)
-          .get();
-        dupDocs = dup.docs;
-      } catch (err) {
-        console.warn('[subscribe] CPF uniqueness check skipped (missing index)', err.message);
-      }
-
-      const conflict = dupDocs.find((d) => {
-        const owner = d.ref.parent && d.ref.parent.parent;
-        return owner && owner.id !== user.uid;
+      return res.status(500).json({
+        error: 'subscribe_failed',
+        detail: e.message,
+        asaasStatus: e.status || null,
+        asaasErrors: (e.data && e.data.errors) || e.data || null,
       });
-      if (conflict) {
-        await releaseLock();
-        return res.status(409).json({ error: 'cpfcnpj_in_use' });
-      }
-
-      // H3/L2: revalida referral com a política unificada. Agora que o CPF
-      // chegou, o guard pode bloquear por CPF, device, IP ou INACTIVE do
-      // indicador. Se o vínculo cair, o desconto e o crédito também.
-      // Persiste o CPF em billing localmente para o guard ler.
-      billing.cpfCnpj = cpfCnpj;
-      if (billing.referredByUserId) {
-        try {
-          const guard = await assertReferralAllowed(db(), {
-            indicatorUid: billing.referredByUserId,
-            user: { uid: user.uid, cpfCnpj },
-            req,
-          });
-          if (!guard.allowed) {
-            await ref.set(
-              {
-                referredByUserId: fieldValue().delete(),
-                referredByCode: fieldValue().delete(),
-                referralUsedAt: fieldValue().delete(),
-                recurringDiscountPercent: 0,
-                referralDroppedReason: guard.reason,
-                updatedAt: fieldValue().serverTimestamp(),
-              },
-              { merge: true }
-            );
-            billing.referredByUserId = null;
-            billing.referredByCode = null;
-            billing.recurringDiscountPercent = 0;
-            console.warn('[subscribe] referral dropped at subscribe', {
-              uid: user.uid,
-              reason: guard.reason,
-            });
-          }
-        } catch (e) {
-          console.warn('[subscribe] referral revalidation failed', e && e.message);
-        }
-      }
-
-      const fields = { cpfCnpj };
-      if (customerName) fields.name = customerName;
-      await asaas.updateCustomer(billing.customerId, fields);
-      await ref.set(
-        {
-          cpfCnpj,
-          customerName: customerName || billing.customerName || null,
-          updatedAt: fieldValue().serverTimestamp(),
-        },
-        { merge: true }
-      );
-    }
-
-    // Avulso: bloqueia se já há assinatura ativa para evitar pagamento
-    // duplicado. Para mudar de modo, o user cancela a sub primeiro.
-    if (
-      mode === 'one_shot' &&
-      billing.subscriptionId &&
-      billing.subscriptionStatus &&
-      billing.subscriptionStatus !== 'INACTIVE'
-    ) {
-      await releaseLock();
-      return res.status(409).json({
-        error: 'subscription_active',
-        detail:
-          'Já existe uma assinatura recorrente ativa. Cancele-a antes de optar pelo pagamento avulso.',
-      });
-    }
-
-    if (mode === 'subscription' && billing.subscriptionId) {
-      // Se a subscription local está INACTIVE, criar uma nova passa por este
-      // endpoint mas com subscriptionId limpo antes. Reativação explícita:
-      // o usuário clica "Reativar" → frontend faz DELETE local primeiro.
-      // Defensivamente, se INACTIVE chegar aqui, recriamos.
-      if (billing.subscriptionStatus === 'INACTIVE') {
-        // limpa para permitir nova criação no fluxo abaixo
-        await ref.set(
-          {
-            subscriptionId: fieldValue().delete(),
-            subscriptionStatus: fieldValue().delete(),
-            lastPaymentStatus: fieldValue().delete(),
-            lastPaymentId: fieldValue().delete(),
-            lastPaidAt: fieldValue().delete(),
-            cancelledAt: fieldValue().delete(),
-            updatedAt: fieldValue().serverTimestamp(),
-          },
-          { merge: true }
-        );
-        billing.subscriptionId = null;
-      } else {
-        const payments = await asaas
-          .listPaymentsBySubscription(billing.subscriptionId)
-          .catch(() => null);
-        const list = (payments && payments.data) || [];
-        const pending = list.find((p) => p.status === 'PENDING' || p.status === 'OVERDUE');
-        if (pending) {
-          await releaseLock();
-          return res.json({
-            subscriptionId: billing.subscriptionId,
-            invoiceUrl: pending.invoiceUrl,
-            status: pending.status,
-            paymentMethod: billing.paymentMethod || null,
-            cardLast4: billing.cardLast4 || null,
-            cardBrand: billing.cardBrand || null,
-          });
-        }
-        // Sem fatura pendente: pode ser que esteja active e a próxima ainda
-        // não foi gerada, ou esteja em estado problemático. Devolvemos info
-        // suficiente para o front decidir.
-        const lastPaid = list.find(
-          (p) =>
-            p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH'
-        );
-        await releaseLock();
-        return res.json({
-          subscriptionId: billing.subscriptionId,
-          alreadyActive: !!lastPaid,
-          subscriptionStatus: billing.subscriptionStatus || null,
-          lastPaymentStatus: billing.lastPaymentStatus || null,
-          paymentMethod: billing.paymentMethod || null,
-          cardLast4: billing.cardLast4 || null,
-          cardBrand: billing.cardBrand || null,
-        });
-      }
-    }
-
-    const monthly = (billing.monthlyPriceCents || 1500) / 100;
-    const pct = billing.recurringDiscountPercent || 0;
-    const subscriptionValue = Math.round(monthly * (100 - pct)) / 100;
-    const nextDue = formatDate(new Date(Date.now() + 24 * 3600 * 1000));
-
-    const holderInfo = wantsCard
-      ? rawHolder || {
-          name: customerName || billing.customerName || user.email,
-          email: user.email,
-          cpfCnpj: cpfCnpj || billing.cpfCnpj,
-          postalCode: (rawHolder && rawHolder.postalCode) || null,
-          addressNumber: (rawHolder && rawHolder.addressNumber) || null,
-          phone: (rawHolder && rawHolder.phone) || null,
-        }
-      : null;
-
-    // Branch avulso: cria payment único (POST /payments), sem subscription.
-    // O webhook PAYMENT_CONFIRMED detecta !payment.subscription e aplica
-    // paymentMode='one_shot' + limpa trial — acesso vem do paid_period.
-    if (mode === 'one_shot') {
-      const payPayload = {
-        customerId: billing.customerId,
-        value: subscriptionValue,
-        dueDate: nextDue,
-        externalReference: user.uid,
-        description: 'Appliquei — 1 mês de acesso',
-        billingType: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
-      };
-      if (wantsCard) {
-        payPayload.creditCard = rawCard;
-        payPayload.creditCardHolderInfo = holderInfo;
-        payPayload.remoteIp = clientIp(req);
-      }
-      const pay = await asaas.createPayment(payPayload);
-      await ref.set(
-        {
-          paymentMode: 'one_shot',
-          lastOneShotPaymentId: pay.id,
-          paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
-          updatedAt: fieldValue().serverTimestamp(),
-          subscribeLock: fieldValue().delete(),
-          subscribeLockAt: fieldValue().delete(),
-        },
-        { merge: true }
-      );
-      lockReleased = true;
-      return res.json({
-        mode: 'one_shot',
-        paymentId: pay.id,
-        invoiceUrl: pay.invoiceUrl || null,
-        bankSlipUrl: pay.bankSlipUrl || null,
-        status: pay.status || null,
-        value: pay.value || null,
-        dueDate: pay.dueDate || nextDue,
-        paymentMethod: payPayload.billingType,
-      });
-    }
-
-    const subPayload = {
-      customerId: billing.customerId,
-      uid: user.uid,
-      nextDueDate: nextDue,
-      value: subscriptionValue,
-    };
-    if (wantsCard) {
-      subPayload.billingType = 'CREDIT_CARD';
-      subPayload.creditCard = rawCard;
-      subPayload.creditCardHolderInfo = holderInfo;
-      subPayload.remoteIp = clientIp(req);
-    }
-    const sub = await asaas.createSubscription(subPayload);
-
-    const billingUpdate = {
-      subscriptionId: sub.id,
-      subscriptionStatus: sub.status || 'ACTIVE',
-      subscriptionBaseValueCents: Math.round(subscriptionValue * 100),
-      paymentMethod: wantsCard ? 'CREDIT_CARD' : 'UNDEFINED',
-      paymentMode: 'subscription',
-      updatedAt: fieldValue().serverTimestamp(),
-      // C6: liberta o lock atomicamente com o write da subscriptionId.
-      subscribeLock: fieldValue().delete(),
-      subscribeLockAt: fieldValue().delete(),
-    };
-    if (wantsCard) {
-      const meta = cardMetadataFromAsaas(sub, rawCard.number);
-      billingUpdate.cardBrand = meta.cardBrand;
-      billingUpdate.cardLast4 = meta.cardLast4;
-      if (meta.cardToken) billingUpdate.cardToken = meta.cardToken;
-      billingUpdate.cardHolderName = (rawCard.holderName || '').trim() || null;
-    }
-    await ref.set(billingUpdate, { merge: true });
-    lockReleased = true;
-
-    let invoiceUrl = null;
-    let firstPaymentStatus = null;
-    try {
-      const payments = await asaas.listPaymentsBySubscription(sub.id);
-      const first = payments && payments.data && payments.data[0];
-      if (first) {
-        invoiceUrl = first.invoiceUrl;
-        firstPaymentStatus = first.status;
-      }
-    } catch (_) {}
-
-    return res.json({
-      subscriptionId: sub.id,
-      invoiceUrl,
-      status: sub.status,
-      paymentMethod: billingUpdate.paymentMethod,
-      cardLast4: billingUpdate.cardLast4 || null,
-      cardBrand: billingUpdate.cardBrand || null,
-      firstPaymentStatus,
-    });
-  } catch (e) {
-    console.error('[subscribe]', e, e.data);
-    // C6: liberta o lock por best-effort para que um retry imediato do
-    // usuário não seja recusado durante o TTL. Se a criação no Asaas
-    // tiver chegado a acontecer, o próximo /subscribe entra no ramo
-    // "billing.subscriptionId existe" e devolve os dados sem duplicar.
-    try {
-      const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
-      await ref.set(
-        {
-          subscribeLock: fieldValue().delete(),
-          subscribeLockAt: fieldValue().delete(),
-        },
-        { merge: true }
-      );
-    } catch (relErr) {
-      console.warn('[subscribe] failed to release lock on error', relErr && relErr.message);
-    }
-    return res.status(500).json({
-      error: 'subscribe_failed',
-      detail: e.message,
-      asaasStatus: e.status || null,
-      asaasErrors: (e.data && e.data.errors) || e.data || null,
-    });
     }
   },
 });

@@ -1,6 +1,6 @@
 const { db } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
-const { computeAccess, PAID_PERIOD_MS } = require('../_lib/access');
+const { computeAccess, paidUntilMs } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const { computeCreditTotals } = require('../_lib/reconcile');
 
@@ -131,9 +131,18 @@ module.exports = handler({
     if (refRes) {
       referrals = refRes.docs.map((d) => {
         const b = d.data();
+        // "Ativo" = está pagando AGORA, não "tem assinatura recorrente".
+        // Contar só subscriptionStatus==='ACTIVE' escondia todo indicado no
+        // modo avulso: ele paga, gera crédito para o indicador, e ainda
+        // assim aparecia como "Inativo" na tela do Applicash — o indicador
+        // via 0 indicados ativos com dinheiro a entrar. computeAccess é a
+        // mesma regra do gate de acesso, então tela e cobrança concordam.
+        const access = computeAccess(b);
         return {
           uid: b.uid,
           email: maskEmail(b.email),
+          active: access.status === 'active',
+          paymentMode: b.paymentMode || (b.subscriptionId ? 'subscription' : null),
           subscriptionStatus: b.subscriptionStatus || null,
           lastPaymentStatus: b.lastPaymentStatus || null,
           baseValueCents: b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500,
@@ -142,7 +151,7 @@ module.exports = handler({
         };
       });
     }
-    const activeReferrals = referrals.filter((r) => r.subscriptionStatus === 'ACTIVE').length;
+    const activeReferrals = referrals.filter((r) => r.active).length;
     const totalReferrals = referrals.length;
 
     if (credRes) {
@@ -219,10 +228,14 @@ module.exports = handler({
     // o acesso pago expira (lastPaidAt + 30 dias). Front-end mostra o
     // aviso quando faltam ≤ 7 dias e o user é one_shot (sem assinatura
     // recorrente que reativa sozinha).
+    // paidUntilMs é a mesma função que decide o acesso em computeAccess —
+    // a tela não pode prometer uma data diferente da que o gate honra.
+    // Usa `paidUntil` (janela acumulada) e cai em `lastPaidAt + 30d` para as
+    // contas antigas, que ainda não têm o campo.
     let accessExpiresAt = null;
     let accessExpiresInDays = null;
-    if (billing.lastPaidAt && typeof billing.lastPaidAt.toMillis === 'function') {
-      const expiresMs = billing.lastPaidAt.toMillis() + PAID_PERIOD_MS;
+    const expiresMs = paidUntilMs(billing);
+    if (expiresMs) {
       accessExpiresAt = new Date(expiresMs).toISOString();
       accessExpiresInDays = Math.ceil((expiresMs - Date.now()) / 86400000);
     }

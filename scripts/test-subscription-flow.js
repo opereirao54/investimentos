@@ -187,7 +187,11 @@ async function main() {
   // ============================================================
   // CENÁRIO E: ESTADOS PROBLEMÁTICOS (C5)
   // ============================================================
-  step('E1', 'PAYMENT_OVERDUE da Anna → access blocked/overdue');
+  // A fatura que vence é sempre a SEGUINTE — a atual já foi paga. Enquanto a
+  // janela comprada estiver em pé, um OVERDUE não pode cortar o acesso: era
+  // assim que quem pagava boleto/PIX no dia do vencimento (compensa em 1-3
+  // dias úteis) ficava bloqueado tendo pago.
+  step('E1', 'PAYMENT_OVERDUE da Anna, com ciclo pago em pé → segue ativa');
   await call(H.webhook, {
     headers: { 'asaas-access-token': TEST_TOKEN },
     body: {
@@ -197,8 +201,17 @@ async function main() {
     },
   });
   const e1 = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + annaTok } });
-  check(e1.body.access.status === 'blocked', 'blocked');
-  check(e1.body.access.reason === 'overdue', 'overdue');
+  check(e1.body.access.status === 'active', 'active (o mês já pago não é revogado)');
+  check(e1.body.access.reason === 'paid_period_overdue_next', 'paid_period_overdue_next');
+
+  step('E1b', 'Passada a janela comprada, o mesmo OVERDUE bloqueia');
+  const annaBilling = store.docs.get('users/anna_uid/billing/account');
+  const annaPaidUntil = annaBilling.paidUntil;
+  annaBilling.paidUntil = makeTimestamp(Date.now() - 1000);
+  annaBilling.lastPaidAt = makeTimestamp(Date.now() - 40 * 86400 * 1000);
+  const e1b = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + annaTok } });
+  check(e1b.body.access.status === 'blocked', 'blocked');
+  check(e1b.body.access.reason === 'overdue', 'overdue');
 
   step(
     'E2',
@@ -211,6 +224,8 @@ async function main() {
     'ainda blocked (computeAccess prioriza lastPaymentStatus)'
   );
   check(e2.body.access.reason === 'overdue', 'reason permanece overdue');
+  // Repõe a janela para os cenários seguintes não herdarem o estado forçado.
+  if (annaPaidUntil) annaBilling.paidUntil = annaPaidUntil;
 
   step('E3', 'PAYMENT_CHARGEBACK_REQUESTED — access blocked/chargeback');
   const annaForChg = store.docs.get('users/anna_uid/billing/account');
@@ -283,6 +298,9 @@ async function main() {
   step('F5', 'Após 30+ dias de lastPaidAt + trial expirado + INACTIVE → blocked/cancelled');
   const carlosForFullExpire = store.docs.get('users/carlos_uid/billing/account');
   carlosForFullExpire.lastPaidAt = makeTimestamp(Date.now() - 31 * 86400 * 1000);
+  // A janela comprada é `paidUntil`; `lastPaidAt` é só o fallback das contas
+  // antigas. Envelhecer um sem o outro deixaria o acesso vivo pelo campo novo.
+  carlosForFullExpire.paidUntil = makeTimestamp(Date.now() - 1000);
   const f5 = await call(H.me, { method: 'GET', headers: { authorization: 'Bearer ' + carlosTok } });
   check(f5.body.access.status === 'blocked', 'blocked');
   check(f5.body.access.reason === 'cancelled', 'cancelled');
@@ -306,14 +324,23 @@ async function main() {
   check(g2.status === 'active', 'active');
   check(g2.reason === 'paid', 'reason paid');
 
-  step('G3', 'computeAccess: ACTIVE + OVERDUE → blocked/overdue (defesa C5)');
+  step('G3', 'computeAccess: ACTIVE + OVERDUE dentro da janela paga → segue ativo');
   const g3 = H.computeAccess({
     subscriptionStatus: 'ACTIVE',
     lastPaymentStatus: 'OVERDUE',
     lastPaidAt: makeTimestamp(Date.now() - 86400 * 1000),
   });
-  check(g3.status === 'blocked', 'blocked');
-  check(g3.reason === 'overdue', 'overdue');
+  check(g3.status === 'active', 'active (pagou há 1 dia: a vencida é a próxima)');
+  check(g3.reason === 'paid_period_overdue_next', 'paid_period_overdue_next');
+
+  step('G3b', 'computeAccess: ACTIVE + OVERDUE com a janela vencida → blocked/overdue');
+  const g3b = H.computeAccess({
+    subscriptionStatus: 'ACTIVE',
+    lastPaymentStatus: 'OVERDUE',
+    lastPaidAt: makeTimestamp(Date.now() - 45 * 86400 * 1000),
+  });
+  check(g3b.status === 'blocked', 'blocked');
+  check(g3b.reason === 'overdue', 'overdue');
 
   step('G4', 'computeAccess: ACTIVE + REFUNDED → blocked/refunded');
   const g4 = H.computeAccess({
@@ -385,15 +412,34 @@ async function main() {
 
   step(
     'G12',
-    'computeAccess: INACTIVE + lastPaidAt < 30d + OVERDUE recente → blocked/overdue (BAD payment vence paid_period)'
+    'computeAccess: INACTIVE + lastPaidAt < 30d + OVERDUE → ativo até o ciclo pago acabar'
   );
   const g12 = H.computeAccess({
     subscriptionStatus: 'INACTIVE',
     lastPaidAt: makeTimestamp(Date.now() - 5 * 86400 * 1000),
     lastPaymentStatus: 'OVERDUE',
   });
-  check(g12.status === 'blocked', 'blocked');
-  check(g12.reason === 'overdue', 'overdue');
+  check(g12.status === 'active', 'active (pagou há 5 dias)');
+  check(g12.reason === 'paid_period_overdue_next', 'paid_period_overdue_next');
+
+  step('G13', 'computeAccess: estorno bloqueia MESMO dentro da janela paga');
+  const g13 = H.computeAccess({
+    subscriptionStatus: 'ACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 2 * 86400 * 1000),
+    lastPaymentStatus: 'REFUNDED',
+  });
+  check(g13.status === 'blocked', 'blocked (o dinheiro voltou para o usuário)');
+  check(g13.reason === 'refunded', 'refunded');
+
+  step('G14', 'computeAccess: paidUntil no futuro manda, mesmo com lastPaidAt antigo');
+  const g14 = H.computeAccess({
+    subscriptionStatus: 'INACTIVE',
+    lastPaidAt: makeTimestamp(Date.now() - 45 * 86400 * 1000),
+    paidUntil: makeTimestamp(Date.now() + 10 * 86400 * 1000),
+    trialEndsAt: makeTimestamp(Date.now() - 1000),
+  });
+  check(g14.status === 'active', 'active (antecipou pagamentos: a janela acumulou)');
+  check(g14.reason === 'paid_period', 'paid_period');
 
   console.log(
     '\n' +
