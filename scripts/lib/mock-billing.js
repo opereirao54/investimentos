@@ -125,6 +125,15 @@ class DocRef {
     store.docs.set(this.path, next);
   }
   async update(data) {
+    // O Firestore real RECUSA update em documento inexistente (NOT_FOUND);
+    // só `set` cria. Tratar os dois como iguais apagava uma diferença de
+    // segurança: `api/user.js` usa `update` no contador de cliques justamente
+    // para que um endpoint público não consiga criar reservas de cupom.
+    if (!store.docs.has(this.path)) {
+      const err = new Error('NOT_FOUND: no document to update: ' + this.path);
+      err.code = 5;
+      throw err;
+    }
     return this.set(data, { merge: true });
   }
   async delete() {
@@ -240,11 +249,27 @@ class Batch {
     this.ops = [];
   }
   set(ref, data, options) {
-    this.ops.push({ ref, data, options });
+    this.ops.push({ op: 'set', ref, data, options });
+    return this;
+  }
+  // `delete` faltava. O rollback de reserva de crédito (releaseReservation,
+  // em api/_lib/credits.js) apaga as sobras criadas pela partição — sem este
+  // método o caminho de compensação estourava TypeError, e nenhum teste
+  // chegava lá porque só roda quando o Asaas recusa a cobrança.
+  delete(ref) {
+    this.ops.push({ op: 'delete', ref });
+    return this;
+  }
+  update(ref, data) {
+    this.ops.push({ op: 'update', ref, data });
     return this;
   }
   async commit() {
-    for (const o of this.ops) await o.ref.set(o.data, o.options);
+    for (const o of this.ops) {
+      if (o.op === 'delete') await o.ref.delete();
+      else if (o.op === 'update') await o.ref.update(o.data);
+      else await o.ref.set(o.data, o.options);
+    }
   }
 }
 
@@ -507,7 +532,7 @@ function setup(opts = {}) {
 }
 
 // ---------- Fake req/res ----------
-function makeReq({ method = 'POST', body, headers = {} }) {
+function makeReq({ method = 'POST', body, headers = {}, query = {} }) {
   // Auto-injeta user-agent único por uid quando o request não traz um.
   // Sem isto, o deviceFingerprint = hash(ip + ua) seria igual para todos
   // os usuários do harness (mesmo IP 127.0.0.1, sem UA) e a guard de
@@ -520,7 +545,17 @@ function makeReq({ method = 'POST', body, headers = {} }) {
     const m = auth.match(/Bearer\s+(?:fake|unverified):([^:]+):/);
     if (m) h['user-agent'] = 'test-ua/' + m[1];
   }
-  return { method, body, headers: h, socket: { remoteAddress: '127.0.0.1' }, on() {} };
+  // `query` faltava por completo, então nenhuma rota sub-roteada por `?op=`
+  // (api/user.js, api/market.js) era testável: `req.query.op` chegava
+  // undefined e o roteador caía sempre no ramo desconhecido.
+  return {
+    method,
+    body,
+    headers: h,
+    query,
+    socket: { remoteAddress: '127.0.0.1' },
+    on() {},
+  };
 }
 function makeRes() {
   return {

@@ -1,386 +1,541 @@
 /**
  * Appliquei — APPLICASH $ (programa de indicações).
  *
- * Extraído de web/appliquei-app.js (Onda 3). Classic script, carregado
- * DEPOIS de app.js. Inclui IIFE de parse-time (capturarRefDaUrl) que
- * captura ?ref= da URL e guarda em sessionStorage para o billing/auth-gate
- * lerem nos módulos deferred. Order preservado pelo posicionamento.
+ * A tela tem DOIS públicos com necessidades opostas, e é isso que decide o
+ * layout:
  *
- * Deps: AppliqueiFirebase, AppliqueiBilling (window globals dos módulos
- * ES deferred — disponíveis no momento em que as funções daqui são
- * chamadas por user action).
+ *   sem indicações  → só quer entender o programa e mandar o link. Recebe o
+ *                     link, um CTA e o "como funciona". Nada de KPI zerado.
+ *   com indicações  → quer saber quanto está entrando e se abateu na fatura.
+ *                     Recebe o valor da próxima cobrança em destaque, o funil
+ *                     e a lista.
+ *
+ * A composição troca por `data-fase` na <section> (carregando · deslogado ·
+ * vazio · ativo); o CSS mostra/esconde os blocos. Antes existia uma
+ * composição só, com widgets zerados por cima de um empty state improvisado.
+ *
+ * FONTE DE VERDADE: todo número vem do `me` do servidor. A tela não recalcula
+ * cashback por conta própria — quando recalculava (`valorPago × 10%` no
+ * cliente) havia dois saldos na mesma página, com significados diferentes e
+ * linguagem parecida.
+ *
+ * Deps: AppliqueiBilling.syncApplicash() (módulo ES deferred) e os utilitários
+ * globais formatarMoeda/mostrarToast.
  */
 
 // ============================================================
 // === APPLICASH $ — programa de indicações                   ===
 // ============================================================
 var APPLICASH_CONFIG = {
-    cupomKey: 'appliquei_cupom_codigo',
-    indicacoesKey: 'appliquei_applicash_indicacoes',
-    assinaturaKey: 'appliquei_applicash_assinatura',
-    comissaoPct: 0.10,        // 10% do valor pago
-    descontoCupomPct: 0.10    // 10% de desconto p/ o assinante
+  cupomKey: 'appliquei_cupom_codigo',
+  comissaoPct: 0.1, // 10% do valor pago pelo indicado
+  descontoCupomPct: 0.1, // 10% de desconto p/ o indicado
 };
+
+// Marcos do programa. O `descontoPct` é DERIVADO do motor, não prometido:
+// cada indicado ativo gera 10% de R$ 13,50 = R$ 1,35/mês de abatimento, e o
+// piso do gateway (R$ 5,00) impede a fatura chegar a zero. Ver o teto fixado
+// em test/pagamentos-applicash.test.js — a tela não pode prometer mais do que
+// `api/_lib/credits.js` consegue entregar.
+var APPLICASH_PRECO_CENTS = 1500;
+var APPLICASH_PISO_CENTS = 500;
+var APPLICASH_CASHBACK_CENTS = 135;
+
 var APPLICASH_METAS = [
-    { qtd: 1,  desc: 9,   recompensa: 'Cashback ativado · economia garantida todo mês' },
-    { qtd: 5,  desc: 45,  recompensa: 'Quase metade da mensalidade paga por amigos' },
-    { qtd: 10, desc: 90,  recompensa: 'A 1 amigo da sua mensalidade zerar' },
-    { qtd: 12, desc: 100, recompensa: '🏆 Assinatura ZERADA · Appliquei grátis para sempre' },
-    { qtd: 30, desc: 100, recompensa: '🌟 Status Embaixador · brindes + destaque na comunidade' }
+  { qtd: 1, recompensa: 'Cashback ligado — abatimento todo mês' },
+  { qtd: 5, recompensa: 'Quase metade da mensalidade paga por amigos' },
+  { qtd: 8, recompensa: 'A um passo do mínimo da sua fatura' },
+  { qtd: 12, recompensa: '🏆 Fatura no mínimo — e o excedente acumula' },
+  { qtd: 30, recompensa: '🌟 Status Embaixador · brindes + destaque na comunidade' },
 ];
 
-function gerarCupomPadrao() {
-    // Cria um cupom estável a partir de um id local persistente
-    let id = localStorage.getItem('appliquei_user_id');
-    if(!id) {
-        id = Math.random().toString(36).slice(2, 8).toUpperCase();
-        localStorage.setItem('appliquei_user_id', id);
-    }
-    return `APP-${id}`;
+/** Quanto a fatura cai com N indicados ativos, respeitando o piso do gateway. */
+function apcAbatimentoCents(indicados) {
+  var bruto = Math.max(0, indicados) * APPLICASH_CASHBACK_CENTS;
+  var teto = APPLICASH_PRECO_CENTS - APPLICASH_PISO_CENTS;
+  return Math.min(bruto, teto);
 }
-function obterCupomApplicash() {
-    const cupom = localStorage.getItem(APPLICASH_CONFIG.cupomKey);
-    if (cupom && /^APP-[A-Z0-9]{6}$/.test(cupom)) return cupom;
-    const fb = window.AppliqueiFirebase;
-    const logged = fb && fb.ready && fb.auth && fb.auth.currentUser;
-    return logged ? 'Carregando…' : 'Entre na sua conta';
-}
-function obterAssinaturaApplicash() {
-    try {
-        const raw = localStorage.getItem(APPLICASH_CONFIG.assinaturaKey);
-        if(raw) return JSON.parse(raw);
-    } catch(_) {}
-    // Default: plano mensal R$ 15,00
-    return { plano: 'Mensal', valorMensal: 15.00 };
-}
-function carregarIndicacoesApplicash() {
-    try {
-        const raw = localStorage.getItem(APPLICASH_CONFIG.indicacoesKey);
-        if(raw) return JSON.parse(raw);
-    } catch(_) {}
-    // Mock inicial vazio — em produção viria do backend
-    return [];
-}
-function mascararNome(nome) {
-    if(!nome) return '—';
-    const partes = nome.trim().split(/\s+/);
-    return partes.map((p, i) => {
-        if(p.length <= 2) return p;
-        if(i === 0) return p[0].toUpperCase() + '*'.repeat(Math.max(1, p.length - 2)) + p.slice(-1);
-        return p[0].toUpperCase() + '.';
-    }).join(' ');
+function apcFaturaCents(indicados) {
+  return APPLICASH_PRECO_CENTS - apcAbatimentoCents(indicados);
 }
 
-var chartApplicash = null;
-async function atualizarTelaApplicash() {
-    try {
-        if (window.AppliqueiBilling && typeof AppliqueiBilling.syncApplicash === 'function') {
-            await AppliqueiBilling.syncApplicash();
-        }
-    } catch (_) {}
-    const cupom = obterCupomApplicash();
-    const assinatura = obterAssinaturaApplicash();
-    const indicacoes = carregarIndicacoesApplicash();
+// ------------------------------------------------------------
+// Captura do ?ref= + ping de clique
+// ------------------------------------------------------------
 
-    // KPIs
-    const elCupom = document.getElementById('apcCupomCodigo');
-    if(elCupom) elCupom.innerText = cupom;
-
-    // Hero — preenche pill do link
-    const elHeroLink = document.getElementById('apcHeroLinkUrl');
-    const elHeroPill = document.getElementById('apcHeroLinkPill');
-    if (elHeroLink && cupomValido(cupom)) {
-        const link = gerarLinkApplicash(cupom);
-        const displayUrl = link.replace(/^https?:\/\//, '');
-        elHeroLink.innerText = displayUrl;
-        if (elHeroPill) elHeroPill.title = link;
-    } else if (elHeroLink) {
-        elHeroLink.innerText = 'Entre na sua conta para gerar o link';
-        if (elHeroPill) elHeroPill.title = '';
-    }
-
-    // Banner resumo do servidor (desconto pendente / próxima cobrança)
-    try {
-        const resumoRaw = localStorage.getItem('appliquei_applicash_resumo');
-        const resumo = resumoRaw ? JSON.parse(resumoRaw) : null;
-        const banner = document.getElementById('apcResumoServidor');
-        if (banner && resumo) {
-            const pend = (resumo.pendingDiscountCents || 0) / 100;
-            const prox = (resumo.projectedNextBillCents || 0) / 100;
-            if (pend > 0) {
-                document.getElementById('apcResumoTexto').innerText = `Sua próxima mensalidade já tem ${formatarMoeda(pend)} de abatimento.`;
-                document.getElementById('apcResumoDetalhe').innerText = `Próxima cobrança estimada: ${formatarMoeda(prox)} · ${resumo.activeReferrals || 0} indicado(s) ativo(s).`;
-                banner.style.display = '';
-            } else {
-                banner.style.display = 'none';
-            }
-        }
-    } catch(_) {}
-
-    const ativos = indicacoes.filter(i => i.status === 'ativo');
-    const efetivas = ativos.length;
-    document.getElementById('apcIndicacoesEfetivas').innerText = efetivas;
-
-    // Indicações no mês corrente
-    const hoje = new Date();
-    const noMes = indicacoes.filter(i => {
-        if(!i.dataAdesao) return false;
-        const d = new Date(i.dataAdesao);
-        return d.getFullYear() === hoje.getFullYear() && d.getMonth() === hoje.getMonth();
-    }).length;
-    document.getElementById('apcIndicacoesNoMes').innerText = noMes;
-
-    const valorPaga = assinatura.valorMensal || 0;
-    // Recebe = 10% sobre o valor pago por cada indicação ativa (mensal equivalente)
-    const valorRecebe = ativos.reduce((acc, i) => acc + (Number(i.valorPago || 0) * APPLICASH_CONFIG.comissaoPct), 0);
-
-    document.getElementById('apcVocePaga').innerText = formatarMoeda(valorPaga);
-    document.getElementById('apcVoceRecebe').innerText = formatarMoeda(valorRecebe);
-    document.getElementById('apcLegendaPaga').innerText = formatarMoeda(valorPaga);
-    document.getElementById('apcLegendaRecebe').innerText = formatarMoeda(valorRecebe);
-    document.getElementById('apcTotalReceberMes').innerText = formatarMoeda(valorRecebe);
-
-    // Frase condicionada ao cenário
-    const frase = document.getElementById('apcFraseCenario');
-    if(frase) {
-        if(efetivas === 0) {
-            frase.innerHTML = `Você ainda não tem indicações ativas. Compartilhe seu cupom <strong>${cupom}</strong> e comece a receber 10% do valor pago por cada amigo que assinar a Appliquei.`;
-            frase.style.background = 'var(--cor-bg-info)';
-            frase.style.borderColor = 'var(--cor-borda-info)';
-            frase.style.color = 'var(--cor-txt-info)';
-        } else if(valorRecebe < valorPaga) {
-            const falta = valorPaga - valorRecebe;
-            frase.innerHTML = `Faltam <strong>${formatarMoeda(falta)}/mês</strong> para sua assinatura ficar de graça. Continue indicando!`;
-            frase.style.background = 'var(--cor-bg-amber)';
-            frase.style.borderColor = 'var(--cor-borda-amber)';
-            frase.style.color = 'var(--cor-txt-amber)';
-        } else if(Math.abs(valorRecebe - valorPaga) < 0.01) {
-            frase.innerHTML = `🎯 Sua assinatura está paga! Você recebe exatamente o que paga. A próxima indicação vira lucro líquido.`;
-            frase.style.background = 'var(--cor-bg-primaria)';
-            frase.style.borderColor = 'var(--cor-borda-primaria)';
-            frase.style.color = 'var(--cor-txt-primaria)';
-        } else {
-            const lucro = valorRecebe - valorPaga;
-            frase.innerHTML = `🎉 O seu plano está de graça e você ainda lucra <strong>${formatarMoeda(lucro)}/mês</strong>. Continue indicando para multiplicar seus ganhos.`;
-            frase.style.background = 'var(--cor-bg-primaria)';
-            frase.style.borderColor = 'var(--cor-borda-primaria)';
-            frase.style.color = 'var(--cor-txt-primaria)';
-        }
-    }
-
-    // Empty state da pizza: quando 0 indicações efetivas, troca o gráfico por um CTA grande
-    const pizzaContent = document.getElementById('apcPizzaContent');
-    const pizzaEmpty = document.getElementById('apcEmptyCta');
-    if (pizzaContent && pizzaEmpty) {
-        if (efetivas === 0) {
-            pizzaContent.style.display = 'none';
-            pizzaEmpty.style.display = 'block';
-        } else {
-            pizzaContent.style.display = 'flex';
-            pizzaEmpty.style.display = 'none';
-        }
-    }
-
-    // Gráfico pizza
-    const canvas = document.getElementById('chartApplicash');
-    if (efetivas === 0 && chartApplicash) { chartApplicash.destroy(); chartApplicash = null; }
-    if(canvas && efetivas > 0) {
-        if(chartApplicash) chartApplicash.destroy();
-        const ctx = canvas.getContext('2d');
-        const dadosPizza = (valorPaga + valorRecebe) > 0
-            ? [valorRecebe, valorPaga]
-            : [0.5, 0.5];
-        const corBorda = getToken('--cor-branco');
-        const corPaga = getToken('--cor-erro');
-        const corRecebe = getToken('--cor-primaria');
-        chartApplicash = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: ['Você recebe', 'Você paga'],
-                datasets: [{
-                    data: dadosPizza,
-                    backgroundColor: [corRecebe, corPaga],
-                    borderWidth: 3,
-                    borderColor: corBorda,
-                    hoverOffset: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    datalabels: {
-                        color: '#fff',
-                        font: { family: "'Figtree', sans-serif", weight: '700', size: 12 },
-                        formatter: (v) => {
-                            const total = valorPaga + valorRecebe;
-                            if(total <= 0) return '';
-                            return `${(v/total*100).toFixed(0)}%`;
-                        },
-                        display: () => (valorPaga + valorRecebe) > 0
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: (c) => `${c.label}: ${formatarMoeda(c.parsed)}`
-                        }
-                    }
-                }
-            }
-        });
-    }
-
-    // Meta — primeira meta acima do número atual de indicações efetivas
-    const metaAtual = APPLICASH_METAS.find(m => m.qtd > efetivas) || APPLICASH_METAS[APPLICASH_METAS.length - 1];
-    const metaConcluida = efetivas >= metaAtual.qtd;
-    const progresso = Math.min(100, (efetivas / metaAtual.qtd) * 100);
-    const restantes = Math.max(0, metaAtual.qtd - efetivas);
-    document.getElementById('apcMetaTitulo').innerText = `Indique ${metaAtual.qtd} ${metaAtual.qtd === 1 ? 'pessoa' : 'pessoas'}`;
-    document.getElementById('apcMetaRecompensa').innerText = `${metaAtual.desc || 0}% de desconto`;
-    const subT = document.getElementById('apcMetaSubtitulo');
-    if (subT) subT.innerText = metaAtual.recompensa || '';
-    document.getElementById('apcMetaProgressoBar').style.width = progresso + '%';
-    document.getElementById('apcMetaAtual').innerText = efetivas;
-    document.getElementById('apcMetaAlvo').innerText = metaAtual.qtd;
-    document.getElementById('apcMetaRestante').innerText = restantes;
-
-    // Lista de marcos
-    const elLista = document.getElementById('apcMetasLista');
-    if(elLista) {
-        elLista.innerHTML = APPLICASH_METAS.map(m => {
-            const conquistada = efetivas >= m.qtd;
-            const cor = conquistada ? 'var(--cor-primaria)' : 'var(--cor-texto-mutado)';
-            const bg = conquistada ? 'var(--cor-bg-primaria)' : 'var(--cor-superficie)';
-            const borda = conquistada ? 'var(--cor-borda-primaria)' : 'var(--cor-borda)';
-            const icone = conquistada ? 'ph-fill ph-check-circle' : 'ph ph-circle';
-            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:${bg};border:1px solid ${borda};border-radius:9px;font-size:12.5px;">
-                <i class="${icone}" style="color:${cor};font-size:20px;flex-shrink:0;"></i>
-                <div style="flex:1;min-width:0;">
-                    <div style="color:var(--cor-texto-principal);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;font-size:12px;">${m.qtd} INDICA${m.qtd === 1 ? 'ÇÃO' : 'ÇÕES'} — ${m.desc || 0}% DE DESCONTO</div>
-                    <div style="color:var(--cor-texto-secundario);font-size:11.5px;margin-top:2px;">${m.recompensa}</div>
-                </div>
-            </div>`;
-        }).join('');
-    }
-
-    // Tabela de indicações
-    const corpo = document.getElementById('apcTabelaIndicacoesCorpo');
-    const vazia = document.getElementById('apcTabelaVazia');
-    const tabela = document.getElementById('apcTabelaIndicacoes');
-    if(corpo) {
-        if(indicacoes.length === 0) {
-            corpo.innerHTML = '';
-            if(tabela) tabela.style.display = 'none';
-            if(vazia) vazia.style.display = 'block';
-        } else {
-            if(tabela) tabela.style.display = '';
-            if(vazia) vazia.style.display = 'none';
-            corpo.innerHTML = indicacoes.map(i => {
-                const lucro = (Number(i.valorPago || 0) * APPLICASH_CONFIG.comissaoPct);
-                const ativo = i.status === 'ativo';
-                const tagCor = ativo ? 'var(--cor-txt-primaria)' : 'var(--cor-texto-mutado)';
-                const tagBg = ativo ? 'var(--cor-bg-primaria)' : 'var(--cor-superficie)';
-                const tagBorda = ativo ? 'var(--cor-borda-primaria)' : 'var(--cor-borda)';
-                const periodicidade = (i.periodicidade || 'mensal').toLowerCase();
-                const periodLbl = periodicidade.charAt(0).toUpperCase() + periodicidade.slice(1);
-                return `<tr>
-                    <td><strong>${mascararNome(i.nome)}</strong></td>
-                    <td>${i.plano || '—'}</td>
-                    <td style="text-align:right;font-family:'DM Mono',monospace;" class="valor-mascarado">${formatarMoeda(i.valorPago || 0)}</td>
-                    <td>${periodLbl}</td>
-                    <td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:var(--cor-primaria);" class="valor-mascarado">${formatarMoeda(lucro)}</td>
-                    <td style="text-align:center;"><span style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:3px 10px;border-radius:99px;background:${tagBg};color:${tagCor};border:1px solid ${tagBorda};">${ativo ? 'Ativo' : 'Inativo'}</span></td>
-                </tr>`;
-            }).join('');
-        }
-    }
-}
-
-function cupomValido(c) { return /^APP-[A-Z0-9]{6}$/.test(c || ''); }
-
-// Captura ?ref= da URL no carregamento e guarda em sessionStorage
-// para que appliquei-billing.js o envie ao /init no momento do signup.
-// Aceita aliases comuns (?cupom=, ?coupon=). Remove o param da URL depois.
+// Roda em parse-time: guarda o cupom da URL para o /init o enviar no signup e
+// limpa o parâmetro do endereço. O ping de clique alimenta a 1ª etapa do
+// funil que o indicador vê.
+//
+// PRIVACIDADE: o ping manda o CÓDIGO e nada mais. Nenhum dado do visitante
+// sai daqui — o servidor incrementa um contador agregado (ver a op `ref-hit`
+// em api/user.js). A trava de sessão evita que um F5 conte de novo.
 (function capturarRefDaUrl() {
-    try {
-        var p = new URLSearchParams(window.location.search);
-        var raw = p.get('ref') || p.get('cupom') || p.get('coupon') || '';
-        if (!raw) return;
-        var c = String(raw).trim().toUpperCase();
-        if (!/^APP-[A-Z0-9]{6}$/.test(c)) return;
-        sessionStorage.setItem('appliquei_pending_referral', c);
-        p.delete('ref'); p.delete('cupom'); p.delete('coupon');
-        var qs = p.toString();
-        var url = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
-        window.history.replaceState({}, '', url);
-    } catch (_) {}
+  try {
+    var p = new URLSearchParams(window.location.search);
+    var raw = p.get('ref') || p.get('cupom') || p.get('coupon') || '';
+    if (!raw) return;
+    var c = String(raw).trim().toUpperCase();
+    if (!/^APP-[A-Z0-9]{6}$/.test(c)) return;
+    sessionStorage.setItem('appliquei_pending_referral', c);
+
+    var jaContou = 'appliquei_ref_hit_' + c;
+    if (!sessionStorage.getItem(jaContou)) {
+      sessionStorage.setItem(jaContou, '1');
+      var corpo = JSON.stringify({ code: c });
+      // sendBeacon não atrasa a navegação e sobrevive ao unload. O fetch é o
+      // plano B; ambos são best-effort — telemetria nunca pode travar a tela.
+      try {
+        if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/ref-hit', new Blob([corpo], { type: 'application/json' }));
+        } else {
+          fetch('/api/ref-hit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: corpo,
+            keepalive: true,
+          }).catch(function () {});
+        }
+      } catch (_) {}
+    }
+
+    p.delete('ref');
+    p.delete('cupom');
+    p.delete('coupon');
+    var qs = p.toString();
+    var url = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    window.history.replaceState({}, '', url);
+  } catch (_) {}
 })();
 
+// ------------------------------------------------------------
+// Estado da tela
+// ------------------------------------------------------------
+
+var apcEstado = { fase: 'carregando', me: null, erro: false, atualizadoEm: null };
+
+function apcEl(id) {
+  return document.getElementById(id);
+}
+function apcTexto(id, valor) {
+  var el = apcEl(id);
+  if (el) el.textContent = valor;
+}
+function apcMostrar(id, visivel) {
+  var el = apcEl(id);
+  if (el) el.hidden = !visivel;
+}
+
+/** Troca a composição da página. O CSS reage a [data-fase]. */
+function apcSetFase(fase) {
+  apcEstado.fase = fase;
+  var sec = apcEl('applicash');
+  if (sec) sec.setAttribute('data-fase', fase);
+}
+
+/** Desabilita os CTAs enquanto não há cupom — evita clique que só dá erro. */
+function apcHabilitarAcoes(ligado) {
+  ['apcBtnWhatsapp', 'apcBtnCompartilhar', 'apcBtnCopiarLink', 'apcHeroLinkPill'].forEach(
+    function (id) {
+      var b = apcEl(id);
+      if (!b) return;
+      b.disabled = !ligado;
+      b.setAttribute('aria-disabled', ligado ? 'false' : 'true');
+    }
+  );
+}
+
+function cupomValido(c) {
+  return /^APP-[A-Z0-9]{6}$/.test(c || '');
+}
+
+/** Cupom atual, ou null. Nunca devolve texto de estado disfarçado de cupom. */
+function obterCupomApplicash() {
+  if (apcEstado.me && cupomValido(apcEstado.me.referralCode)) return apcEstado.me.referralCode;
+  try {
+    var c = localStorage.getItem(APPLICASH_CONFIG.cupomKey);
+    if (cupomValido(c)) return c;
+  } catch (_) {}
+  return null;
+}
+
 function gerarLinkApplicash(cupom) {
-    var origin = window.location.origin || '';
-    var path = window.location.pathname || '/';
-    return origin + path + (path.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(cupom);
+  var origin = window.location.origin || '';
+  var path = window.location.pathname || '/';
+  return (
+    origin + path + (path.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(cupom)
+  );
+}
+
+// ------------------------------------------------------------
+// Render
+// ------------------------------------------------------------
+
+function apcRenderHero(cupom) {
+  apcTexto('apcCupomCodigo', cupom || '—');
+  var elLink = apcEl('apcHeroLinkUrl');
+  var pill = apcEl('apcHeroLinkPill');
+  if (cupom) {
+    var link = gerarLinkApplicash(cupom);
+    if (elLink) elLink.textContent = link.replace(/^https?:\/\//, '');
+    if (pill) pill.title = 'Copiar ' + link;
+  } else if (elLink) {
+    elLink.textContent = '—';
+    if (pill) pill.title = '';
+  }
+}
+
+/** O payoff: quanto a próxima cobrança vai custar depois do abatimento. */
+function apcRenderFatura(me) {
+  var base = me.subscriptionBaseValueCents || me.monthlyPriceCents || APPLICASH_PRECO_CENTS;
+  var prox = me.projectedNextBillCents != null ? me.projectedNextBillCents : base;
+  var abatido = Math.max(0, base - prox);
+
+  apcTexto('apcFaturaValor', formatarMoeda(prox / 100));
+  apcMostrar('apcFaturaDe', abatido > 0);
+  apcTexto('apcFaturaDeValor', formatarMoeda(base / 100));
+  apcTexto(
+    'apcFaturaAbatido',
+    abatido > 0
+      ? '−' + formatarMoeda(abatido / 100) + ' de Applicash já aplicado'
+      : 'Nenhum abatimento nesta cobrança ainda'
+  );
+
+  // Barra: quanto da mensalidade os amigos já cobrem. Substitui a pizza
+  // "paga vs recebe", que com 1 indicação desenhava um fiapo verde num
+  // círculo vermelho e desmotivava justamente quem tinha acabado de começar.
+  var pct = base > 0 ? Math.min(100, (abatido / base) * 100) : 0;
+  var barra = apcEl('apcFaturaBarra');
+  if (barra) {
+    barra.style.width = pct.toFixed(1) + '%';
+    barra.parentElement.setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
+  apcTexto('apcFaturaPct', Math.round(pct) + '% coberto por indicações');
+}
+
+/** Funil: abriu o link → criou conta → está pagando. */
+function apcRenderFunil(me) {
+  var f = me.funnel || { hits: 0, signups: 0, subscribers: 0, pending: 0 };
+  apcTexto('apcFunilHits', String(f.hits || 0));
+  apcTexto('apcFunilSignups', String(f.signups || 0));
+  apcTexto('apcFunilSubs', String(f.subscribers || 0));
+
+  // A etapa do meio é a acionável: quem se cadastrou e ainda não assinou é
+  // exatamente quem vale um empurrãozinho.
+  var pendentes = f.pending || 0;
+  apcMostrar('apcFunilDica', pendentes > 0);
+  apcTexto(
+    'apcFunilDicaTexto',
+    pendentes === 1
+      ? '1 pessoa criou conta com seu cupom e ainda não assinou. Um lembrete costuma resolver.'
+      : pendentes + ' pessoas criaram conta com seu cupom e ainda não assinaram.'
+  );
+}
+
+function apcRenderMeta(ativos) {
+  var meta = APPLICASH_METAS.find(function (m) {
+    return m.qtd > ativos;
+  });
+  var ultima = !meta;
+  if (!meta) meta = APPLICASH_METAS[APPLICASH_METAS.length - 1];
+
+  var progresso = Math.min(100, (ativos / meta.qtd) * 100);
+  apcTexto(
+    'apcMetaTitulo',
+    ultima
+      ? 'Todos os marcos conquistados'
+      : 'Indique ' + meta.qtd + (meta.qtd === 1 ? ' pessoa' : ' pessoas')
+  );
+  apcTexto('apcMetaRecompensa', formatarMoeda(apcFaturaCents(meta.qtd) / 100) + '/mês');
+  apcTexto('apcMetaSubtitulo', meta.recompensa);
+  var bar = apcEl('apcMetaProgressoBar');
+  if (bar) {
+    bar.style.width = progresso.toFixed(1) + '%';
+    bar.parentElement.setAttribute('aria-valuenow', String(Math.round(progresso)));
+  }
+  apcTexto('apcMetaAtual', String(ativos));
+  apcTexto('apcMetaAlvo', String(meta.qtd));
+  apcTexto('apcMetaRestante', String(Math.max(0, meta.qtd - ativos)));
+
+  var lista = apcEl('apcMetasLista');
+  if (!lista) return;
+  lista.innerHTML = APPLICASH_METAS.map(function (m) {
+    var feita = ativos >= m.qtd;
+    // O ícone (preenchido vs. vazio) carrega o mesmo significado que a cor —
+    // nada essencial pode depender só de cor.
+    return (
+      '<li class="apc-marco' +
+      (feita ? ' is-feito' : '') +
+      '">' +
+      '<i class="' +
+      (feita ? 'ph-fill ph-check-circle' : 'ph ph-circle') +
+      '" aria-hidden="true"></i>' +
+      '<div><strong>' +
+      m.qtd +
+      (m.qtd === 1 ? ' indicação' : ' indicações') +
+      ' — fatura de ' +
+      formatarMoeda(apcFaturaCents(m.qtd) / 100) +
+      '</strong><span>' +
+      m.recompensa +
+      '</span></div>' +
+      (feita ? '<span class="apc-marco-tag">Conquistado</span>' : '') +
+      '</li>'
+    );
+  }).join('');
+}
+
+/**
+ * Lista de indicados. Três colunas: quem, quanto rende, situação.
+ *
+ * "Plano" e "Periodicidade" saíram: eram sempre "Mensal" nas duas, ocupavam
+ * metade da largura e empurravam a tabela para scroll horizontal no celular.
+ */
+function apcRenderLista(me) {
+  var corpo = apcEl('apcTabelaIndicacoesCorpo');
+  var vazia = apcEl('apcTabelaVazia');
+  var tabela = apcEl('apcTabelaIndicacoes');
+  var refs = me.referrals || [];
+  if (!corpo) return;
+
+  if (!refs.length) {
+    corpo.innerHTML = '';
+    if (tabela) tabela.hidden = true;
+    if (vazia) vazia.hidden = false;
+    return;
+  }
+  if (tabela) tabela.hidden = false;
+  if (vazia) vazia.hidden = true;
+
+  corpo.innerHTML = refs
+    .map(function (r) {
+      // O servidor JÁ manda o e-mail mascarado (maskEmail em api/billing/me.js).
+      // Mascarar de novo no cliente produzia "J**************m" em toda linha —
+      // todas idênticas, e a tabela perdia a função de distinguir uma pessoa
+      // da outra.
+      var quem = r.email || 'Indicado';
+      var rende = r.active ? apcCashbackDe(r) : 0;
+      var modo = r.paymentMode === 'one_shot' ? 'Avulso' : 'Mensal';
+      return (
+        '<tr>' +
+        '<td><strong>' +
+        escapeHtmlApc(quem) +
+        '</strong><span class="apc-td-sub">' +
+        modo +
+        (r.referralUsedAt ? ' · desde ' + apcData(r.referralUsedAt) : '') +
+        '</span></td>' +
+        '<td class="apc-td-num valor-mascarado">' +
+        (rende > 0 ? formatarMoeda(rende / 100) : '—') +
+        '</td>' +
+        '<td class="apc-td-status">' +
+        (r.active
+          ? '<span class="apc-pill is-ok"><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Assinando</span>'
+          : '<span class="apc-pill"><i class="ph ph-clock" aria-hidden="true"></i> Não assinou</span>') +
+        '</td>' +
+        '</tr>'
+      );
+    })
+    .join('');
+}
+
+function apcCashbackDe(r) {
+  var base = r.baseValueCents || APPLICASH_PRECO_CENTS;
+  return Math.round(base * APPLICASH_CONFIG.comissaoPct);
+}
+
+function apcData(iso) {
+  try {
+    return new Date(iso).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+  } catch (_) {
+    return '';
+  }
+}
+
+function escapeHtmlApc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+// ------------------------------------------------------------
+// Orquestração
+// ------------------------------------------------------------
+
+/**
+ * Carrega e desenha. Os quatro estados existem de verdade:
+ * carregando (skeleton) · erro (faixa + retry) · vazio · ativo.
+ */
+async function atualizarTelaApplicash() {
+  var logado = false;
+  try {
+    var fb = window.AppliqueiFirebase;
+    logado = !!(fb && fb.ready && fb.auth && fb.auth.currentUser);
+  } catch (_) {}
+
+  if (!logado) {
+    apcSetFase('deslogado');
+    apcHabilitarAcoes(false);
+    apcRenderHero(null);
+    return;
+  }
+
+  // Skeleton: antes o slot do cupom recebia a string "Carregando…" e o
+  // usuário lia isso como se fosse o código dele, em 36px monoespaçado.
+  if (!apcEstado.me) apcSetFase('carregando');
+  apcHabilitarAcoes(false);
+
+  var me = null;
+  try {
+    if (window.AppliqueiBilling && typeof AppliqueiBilling.syncApplicash === 'function') {
+      me = await AppliqueiBilling.syncApplicash();
+    }
+  } catch (_) {
+    me = null;
+  }
+
+  if (!me) {
+    // Falhou. Se há dado de antes, mostra-o AVISANDO que está velho — nunca
+    // em silêncio, que é o que acontecia (o catch engolia e a tela desenhava
+    // cache antigo como se fosse de agora).
+    apcEstado.erro = true;
+    apcMostrar('apcErroFaixa', true);
+    apcTexto(
+      'apcErroTexto',
+      apcEstado.atualizadoEm
+        ? 'Não conseguimos atualizar agora. Mostrando os dados de ' + apcEstado.atualizadoEm + '.'
+        : 'Não conseguimos carregar seu Applicash agora.'
+    );
+    if (!apcEstado.me) {
+      // Fase própria: mandar quem ESTÁ logado para a tela de "entre na sua
+      // conta" repete o erro que esta reconstrução veio corrigir — dizer ao
+      // usuário algo que não corresponde ao estado dele.
+      apcSetFase('erro');
+      apcRenderHero(null);
+    }
+    return;
+  }
+
+  apcEstado.me = me;
+  apcEstado.erro = false;
+  apcEstado.atualizadoEm = new Date().toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  apcMostrar('apcErroFaixa', false);
+
+  var cupom = obterCupomApplicash();
+  apcRenderHero(cupom);
+  apcHabilitarAcoes(!!cupom);
+
+  var ativos = me.activeReferrals || 0;
+  var temIndicados = ativos > 0 || (me.referrals || []).length > 0;
+  if (temIndicados) apcSetFase('ativo');
+  else apcSetFase('vazio');
+
+  apcRenderFatura(me);
+  apcRenderFunil(me);
+  apcRenderMeta(ativos);
+  apcRenderLista(me);
+
+  apcTexto('apcKpiAtivos', String(ativos));
+  apcTexto(
+    'apcKpiAbatimento',
+    formatarMoeda(
+      ((me.subscriptionBaseValueCents || APPLICASH_PRECO_CENTS) -
+        (me.projectedNextBillCents != null
+          ? me.projectedNextBillCents
+          : me.subscriptionBaseValueCents || APPLICASH_PRECO_CENTS)) /
+        100
+    )
+  );
+  apcTexto('apcKpiAcumulado', formatarMoeda((me.totalReferralEarningsCents || 0) / 100));
+}
+
+function recarregarApplicash() {
+  apcEstado.me = null;
+  atualizarTelaApplicash();
+}
+
+// ------------------------------------------------------------
+// Ações de compartilhamento
+// ------------------------------------------------------------
+
+function apcTextoConvite(cupom) {
+  return (
+    'Uso a Appliquei pra organizar meus investimentos e minhas contas. ' +
+    'Com meu cupom ' +
+    cupom +
+    ' você entra com 10% de desconto pra sempre 💚'
+  );
+}
+
+function apcExigirCupom() {
+  var cupom = obterCupomApplicash();
+  if (!cupom) {
+    mostrarToast('Seu cupom ainda está carregando. Tente em instantes.', 'aviso');
+    return null;
+  }
+  return cupom;
+}
+
+/** CTA primário. No Brasil a indicação acontece no WhatsApp. */
+function compartilharWhatsappApplicash() {
+  var cupom = apcExigirCupom();
+  if (!cupom) return;
+  var msg = apcTextoConvite(cupom) + '\n' + gerarLinkApplicash(cupom);
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+function compartilharCupomApplicash() {
+  var cupom = apcExigirCupom();
+  if (!cupom) return;
+  var link = gerarLinkApplicash(cupom);
+  // Sem o link no texto: o navigator.share usa `url` à parte e os apps
+  // acrescentam-no sozinhos — repetir duplicaria.
+  var texto = apcTextoConvite(cupom);
+  if (navigator.share) {
+    navigator.share({ title: 'Appliquei', text: texto, url: link }).catch(function () {});
+    return;
+  }
+  apcCopiar(texto + '\n' + link, 'Convite copiado!');
 }
 
 function copiarLinkApplicash() {
-    var cupom = obterCupomApplicash();
-    if (!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
-    var link = gerarLinkApplicash(cupom);
-    var lbl = document.getElementById('lblLinkBtn');
-    var fallback = function () {
-        var ta = document.createElement('textarea');
-        ta.value = link; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch (_) {}
-        document.body.removeChild(ta);
-    };
-    var onOk = function () {
-        if (lbl) { lbl.innerText = 'Copiado!'; setTimeout(function () { lbl.innerText = 'Copiar link'; }, 1800); }
-        mostrarToast('Link copiado!', 'sucesso');
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(link).then(onOk).catch(function () { fallback(); onOk(); });
-    } else {
-        fallback(); onOk();
-    }
+  var cupom = apcExigirCupom();
+  if (!cupom) return;
+  apcCopiar(gerarLinkApplicash(cupom), 'Link copiado!', 'lblLinkBtn');
 }
 
-function copiarCupomApplicash() {
-    const cupom = obterCupomApplicash();
-    if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
-    const lbl = document.getElementById('lblCupomBtn');
-    const fallback = () => {
-        const ta = document.createElement('textarea');
-        ta.value = cupom; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); } catch(_) {}
-        document.body.removeChild(ta);
-    };
-    const onOk = () => {
-        if(lbl) { lbl.innerText = 'Copiado!'; setTimeout(() => lbl.innerText = 'Copiar cupom', 1800); }
-        mostrarToast(`Cupom ${cupom} copiado!`, 'sucesso');
-    };
-    if(navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(cupom).then(onOk).catch(() => { fallback(); onOk(); });
-    } else {
-        fallback(); onOk();
+function apcCopiar(texto, aviso, rotuloId) {
+  var lbl = rotuloId ? apcEl(rotuloId) : null;
+  var rotuloOriginal = lbl ? lbl.textContent : null;
+  var ok = function () {
+    if (lbl) {
+      lbl.textContent = 'Copiado!';
+      setTimeout(function () {
+        lbl.textContent = rotuloOriginal;
+      }, 1800);
     }
+    mostrarToast(aviso, 'sucesso');
+  };
+  var fallback = function () {
+    var ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+    } catch (_) {}
+    document.body.removeChild(ta);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto).then(ok, function () {
+      fallback();
+      ok();
+    });
+  } else {
+    fallback();
+    ok();
+  }
 }
-function compartilharCupomApplicash() {
-    const cupom = obterCupomApplicash();
-    if(!cupomValido(cupom)) { mostrarToast('Entre na sua conta para gerar o cupom.', 'aviso'); return; }
-    const link = gerarLinkApplicash(cupom);
-    // Texto SEM o link: o navigator.share usa o campo url separadamente, e apps
-    // (WhatsApp, iMessage) acrescentam o link automaticamente — incluí-lo no texto
-    // resultaria em duplicação.
-    const textoCurto = `Use meu cupom ${cupom} na Appliquei e ganhe 10% de desconto! 💚`;
-    if(navigator.share) {
-        navigator.share({ title: 'Appliquei', text: textoCurto, url: link }).catch(() => {});
-    } else {
-        // Fallback (desktop sem Web Share API): copia texto + link, uma vez só.
-        const textoCompleto = `${textoCurto}\n${link}`;
-        if(navigator.clipboard) navigator.clipboard.writeText(textoCompleto).catch(() => {});
-        mostrarToast('Texto + link copiados para compartilhar!', 'sucesso');
-    }
-}
-

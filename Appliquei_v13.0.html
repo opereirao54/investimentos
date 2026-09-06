@@ -6166,6 +6166,61 @@
         }
         .sidebar-auth-mini .sa-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--sb-accent-border); }
 
+        /* === APPLICASH ===========================================
+           A composição troca por [data-fase] na <section>: quem não tem
+           indicação nenhuma não vê KPI zerado nem tabela vazia, vê o link e
+           o "como funciona". Blocos marcam em que fase existem via [data-so].
+
+           Espaçamento na escala 4/8/12/16/24; cor, raio e sombra só por
+           token (os mesmos do tema, então o modo escuro vem de graça). */
+
+        #applicash [data-so] { display: none; }
+        #applicash[data-fase="deslogado"] [data-so~="deslogado"],
+        #applicash[data-fase="erro"]      [data-so~="erro"],
+        #applicash[data-fase="vazio"]     [data-so~="vazio"],
+        #applicash[data-fase="ativo"]     [data-so~="ativo"] { display: block; }
+        #applicash[data-fase="ativo"] .grid-3[data-so],
+        #applicash[data-fase="ativo"] .grid-2-iguais[data-so] { display: grid; }
+        #applicash[data-fase="ativo"] details[data-so] { display: block; }
+
+        /* Carregando: o slot do cupom e o do link viram blocos pulsantes.
+           Antes recebiam a string "Carregando…" e o usuário lia aquilo como
+           se fosse o código dele, em 36px monoespaçado. */
+        #applicash[data-fase="carregando"] .apc-hero-code,
+        #applicash[data-fase="carregando"] .apc-hero-link-pill .pill-url {
+            color: transparent;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--cor-superficie) 25%, var(--cor-borda) 37%, var(--cor-superficie) 63%);
+            background-size: 400% 100%;
+            animation: apcSkeleton 1.4s ease-in-out infinite;
+            min-width: 180px;
+            user-select: none;
+        }
+        @keyframes apcSkeleton { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        @media (prefers-reduced-motion: reduce) {
+            #applicash [class*="apc-"] { animation: none !important; transition: none !important; }
+        }
+
+        .apc-erro {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 12px 16px; margin-bottom: 16px;
+            background: var(--cor-bg-erro);
+            border: 1px solid var(--cor-borda-erro);
+            border-radius: 10px;
+            color: var(--cor-txt-erro);
+            font-size: 13px; line-height: 1.5;
+        }
+        .apc-erro i { font-size: 18px; flex-shrink: 0; }
+        .apc-erro-btn {
+            margin-left: auto; min-height: 36px; padding: 8px 14px;
+            border: 1px solid var(--cor-borda-erro); border-radius: 8px;
+            background: var(--cor-branco); color: var(--cor-txt-erro);
+            font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+            transition: var(--transicao);
+        }
+        .apc-erro-btn:hover { background: var(--cor-bg-erro); }
+        .apc-erro-btn:focus-visible { outline: 2px solid var(--cor-erro); outline-offset: 2px; }
+
         /* === APPLICASH — HERO & EMPTY STATES === */
         .apc-hero {
             position: relative;
@@ -6256,6 +6311,135 @@
             .apc-hero-actions { flex-direction: row; flex-wrap: wrap; }
             .apc-hero-actions .btn-acao,
             .apc-hero-actions .btn-secundario { flex: 1 1 calc(50% - 4px); min-width: 0; }
+        }
+
+        /* CTA primário vs. secundários. Antes eram três botões do mesmo
+           peso — mais a pílula do link, que também copia: quatro caminhos
+           concorrentes para uma decisão só. */
+        .apc-hero-actions .apc-cta { font-size: 14px; padding: 13px 18px; }
+        .apc-hero-actions-sec { display: flex; gap: 8px; }
+        .apc-hero-actions-sec .btn-secundario {
+            flex: 1 1 0; min-width: 0; font-size: 12.5px; padding: 9px 12px;
+        }
+        .apc-hero-actions button:disabled { opacity: .5; cursor: not-allowed; }
+        .apc-hero-actions button:focus-visible,
+        .apc-hero-link-pill:focus-visible {
+            outline: 2px solid var(--cor-primaria); outline-offset: 2px;
+        }
+        .apc-hero-link-pill:disabled { cursor: default; }
+
+        /* Aviso de deslogado */
+        .apc-aviso { display: flex; align-items: center; gap: 16px; }
+        .apc-aviso > i { font-size: 36px; color: var(--cor-primaria); flex-shrink: 0; }
+        .apc-aviso h4 { margin: 0 0 4px; font-size: 15px; color: var(--cor-texto-principal); }
+        .apc-aviso p { margin: 0; font-size: 13px; color: var(--cor-texto-secundario); }
+
+        /* Passos do "como funciona" */
+        .apc-passos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .apc-passos li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 10px; }
+        .apc-passo-n {
+            width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .apc-passos strong { display: block; font-size: 13.5px; color: var(--cor-texto-principal); margin-bottom: 2px; }
+        .apc-passos span { font-size: 12.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
+
+        .apc-nota {
+            display: flex; gap: 8px; align-items: flex-start;
+            margin-top: 14px; padding: 12px 14px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            border-radius: 9px; font-size: 12.5px; line-height: 1.5; color: var(--cor-txt-info);
+        }
+        .apc-nota i { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+        .apc-nota.is-acao { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); color: var(--cor-txt-primaria); }
+
+        /* O PAYOFF — quanto a próxima cobrança vai custar. Era uma tira de
+           13px que nascia display:none; é a recompensa inteira do programa. */
+        .apc-payoff {
+            display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr);
+            gap: 24px; align-items: center;
+            padding: 20px 24px; margin-bottom: 18px;
+            border-radius: 16px;
+            background:
+                radial-gradient(120% 140% at 0% 0%, rgba(16,185,129,0.14) 0%, rgba(16,185,129,0) 55%),
+                linear-gradient(135deg, var(--cor-branco) 0%, var(--cor-superficie) 100%);
+            border: 1px solid var(--cor-borda-primaria);
+            box-shadow: var(--shadow-card);
+        }
+        .apc-payoff-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+        .apc-payoff-valor { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 0 4px; }
+        .apc-payoff-valor strong { font-family: 'DM Mono', monospace; font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--cor-primaria); line-height: 1.1; }
+        .apc-payoff-de { font-size: 13px; color: var(--cor-texto-mutado); }
+        .apc-payoff-de s { font-family: 'DM Mono', monospace; }
+        .apc-payoff-sub { font-size: 12.5px; color: var(--cor-texto-secundario); }
+        .apc-payoff-bar { display: flex; flex-direction: column; gap: 8px; }
+        .apc-payoff-pct { font-size: 12px; color: var(--cor-texto-mutado); }
+
+        /* Barra genérica. Substitui a pizza "paga vs recebe", que com uma
+           indicação desenhava um fiapo verde num círculo vermelho — e pintava
+           a assinatura do próprio usuário como perda. */
+        .apc-bar { background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 999px; height: 14px; overflow: hidden; }
+        .apc-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cor-primaria), #10b981); transition: width .25s ease; }
+
+        /* Funil de convites */
+        .apc-funil { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .apc-funil li { text-align: center; padding: 14px 8px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 10px; }
+        .apc-funil li.is-fim { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-funil i { font-size: 18px; color: var(--cor-texto-mutado); display: block; margin-bottom: 4px; }
+        .apc-funil li.is-fim i { color: var(--cor-primaria); }
+        .apc-funil strong { display: block; font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700; color: var(--cor-texto-principal); line-height: 1.1; }
+        .apc-funil span { font-size: 11.5px; color: var(--cor-texto-secundario); }
+
+        /* Meta */
+        .apc-meta-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+        .apc-meta-rot { font-size: 11px; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+        .apc-meta-titulo { font-size: 18px; font-weight: 700; color: var(--cor-texto-principal); }
+        .apc-meta-premio { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 18px; color: var(--cor-primaria); }
+        .apc-meta-sub { font-size: 12px; color: var(--cor-texto-secundario); margin-bottom: 10px; }
+        .apc-meta-legenda { display: flex; justify-content: space-between; font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; }
+        .apc-meta-legenda strong { color: var(--cor-texto-principal); }
+
+        .apc-marcos { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .apc-marco { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 9px; }
+        /* O ícone preenchido carrega o mesmo significado que a cor — nada
+           essencial pode depender só de cor. */
+        .apc-marco > i { font-size: 20px; flex-shrink: 0; color: var(--cor-texto-mutado); }
+        .apc-marco.is-feito { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-marco.is-feito > i { color: var(--cor-primaria); }
+        .apc-marco strong { display: block; font-size: 12.5px; color: var(--cor-texto-principal); }
+        .apc-marco span { font-size: 11.5px; color: var(--cor-texto-secundario); }
+        .apc-marco-tag { margin-left: auto; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--cor-txt-primaria); flex-shrink: 0; }
+
+        /* Tabela de indicados — 3 colunas. "Plano" e "Periodicidade" eram
+           sempre "Mensal" nas duas e forçavam scroll horizontal no celular. */
+        .apc-tabela .apc-td-sub { display: block; font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .apc-tabela .apc-td-num { text-align: right; font-family: 'DM Mono', monospace; font-weight: 700; color: var(--cor-primaria); white-space: nowrap; }
+        .apc-tabela .apc-td-status { text-align: center; }
+        .apc-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado); border: 1px solid var(--cor-borda);
+        }
+        .apc-pill.is-ok { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-tabela-vazia { text-align: center; padding: 30px 16px; color: var(--cor-texto-mutado); font-size: 13px; }
+        .apc-tabela-vazia i { font-size: 32px; display: block; margin-bottom: 8px; }
+
+        .apc-detalhes summary {
+            cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 8px; min-height: 44px;
+        }
+        .apc-detalhes summary:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        .apc-detalhes[open] summary { margin-bottom: 14px; }
+
+        @media (max-width: 720px) {
+            .apc-payoff { grid-template-columns: 1fr; gap: 16px; }
+            .apc-funil { grid-template-columns: 1fr; }
+            .apc-funil li { display: flex; align-items: center; gap: 10px; text-align: left; }
+            .apc-funil i { margin-bottom: 0; }
+            .apc-funil strong { font-size: 20px; }
         }
 
         /* Empty state CTA — substitui o gráfico quando 0 indicações */
@@ -12672,180 +12856,219 @@
             </div>
         </section>
 
-        <section id="applicash" class="section">
+        <section id="applicash" class="section" data-fase="carregando">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Applicash $</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e ganhe enquanto seus indicados forem assinantes.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e veja sua mensalidade cair.</p>
                 </div>
             </div>
 
-            <!-- HERO: cupom + link + acções -->
-            <div class="apc-hero" id="apcHero">
+            <!-- Falha de carregamento. Antes o erro era engolido e a tela
+                 desenhava o cache antigo como se fosse de agora. -->
+            <div class="apc-erro" id="apcErroFaixa" role="alert" hidden>
+                <i class="ph-fill ph-warning-circle" aria-hidden="true"></i>
+                <span id="apcErroTexto">Não conseguimos carregar seu Applicash agora.</span>
+                <button type="button" class="apc-erro-btn" onclick="recarregarApplicash()">Tentar de novo</button>
+            </div>
+
+            <!-- HERO: o link é o que se compartilha; o código é só o rótulo dele. -->
+            <div class="apc-hero">
                 <div class="apc-hero-left">
-                    <span class="apc-hero-eyebrow"><i class="ph-fill ph-ticket"></i> Seu cupom</span>
+                    <span class="apc-hero-eyebrow"><i class="ph-fill ph-ticket" aria-hidden="true"></i> Seu convite</span>
                     <div class="apc-hero-code" id="apcCupomCodigo">—</div>
-                    <button type="button" class="apc-hero-link-pill" onclick="copiarLinkApplicash()" id="apcHeroLinkPill" title="Copiar link de convite">
-                        <i class="ph ph-link"></i>
+                    <button type="button" class="apc-hero-link-pill" onclick="copiarLinkApplicash()" id="apcHeroLinkPill">
+                        <i class="ph ph-link" aria-hidden="true"></i>
                         <span class="pill-url" id="apcHeroLinkUrl">—</span>
-                        <i class="ph ph-copy" style="opacity:.7;"></i>
+                        <i class="ph ph-copy" aria-hidden="true"></i>
                     </button>
-                    <p class="apc-hero-tagline"><strong>10% de desconto</strong> para quem se cadastra · você recebe <strong>10% da mensalidade</strong> enquanto ele permanecer assinante.</p>
+                    <p class="apc-hero-tagline">Quem entra pelo seu link paga <strong>10% menos</strong> · você abate <strong>10% do que ele pagar</strong> na sua própria fatura, todo mês.</p>
                 </div>
                 <div class="apc-hero-actions">
-                    <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
-                    <button type="button" class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
-                    <button type="button" class="btn-secundario" onclick="copiarLinkApplicash()" id="btnCopiarLink"><i class="ph ph-link"></i> <span id="lblLinkBtn">Copiar link</span></button>
-                </div>
-            </div>
-
-            <div id="apcResumoServidor" style="display:none;margin-bottom:14px;padding:12px 14px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);border-radius:10px;font-size:13px;color:var(--cor-txt-primaria);line-height:1.5;">
-                <strong id="apcResumoTexto"></strong>
-                <span id="apcResumoDetalhe" style="display:block;font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;"></span>
-            </div>
-
-            <!-- KPIs topo (3 cards) -->
-            <div class="grid-3" style="margin-bottom:18px;">
-                <div class="card-destaque accent">
-                    <h3><i class="ph-fill ph-users-three"></i> Indicações efetivas</h3>
-                    <div class="valor"><span id="apcIndicacoesEfetivas">0</span></div>
-                    <span class="kpi-delta"><i class="ph-bold ph-arrow-up"></i> <span id="apcIndicacoesNoMes">0</span> neste mês</span>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-arrow-circle-down"></i> Você paga (mensal)</h3>
-                    <div class="valor valor-mascarado" id="apcVocePaga" style="color:var(--cor-erro);">R$ 0,00</div>
-                    <span class="kpi-delta delta-negativo"><i class="ph ph-credit-card"></i> Sua assinatura</span>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-arrow-circle-up"></i> Você recebe (mensal)</h3>
-                    <div class="valor valor-mascarado" id="apcVoceRecebe" style="color:var(--cor-primaria);">R$ 0,00</div>
-                    <span class="kpi-delta delta-positivo"><i class="ph ph-coins"></i> 10% de cada ativo</span>
-                </div>
-            </div>
-
-            <!-- Linha: Pizza/CTA + Meta -->
-            <div class="grid-2-iguais" style="margin-bottom:18px;">
-                <!-- Pizza paga vs recebe — esconde quando 0 indicações; mostra CTA -->
-                <div class="card-container" id="apcCardPizza">
-                    <div class="div-chart-title"><i class="ph ph-chart-pie-slice"></i> Paga vs. Recebe (mensal)</div>
-                    <div id="apcPizzaContent" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
-                        <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
-                            <canvas id="chartApplicash"></canvas>
-                        </div>
-                        <div style="flex:1;min-width:200px;">
-                            <p id="apcFraseCenario" style="font-size:14px;line-height:1.55;color:var(--cor-texto-principal);background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:14px 16px;border-radius:10px;">
-                                Convide amigos para a Appliquei e comece a receber 10% do valor pago por cada indicação ativa.
-                            </p>
-                            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:120px;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);padding:10px 12px;border-radius:9px;">
-                                    <div style="font-size:10.5px;color:var(--cor-txt-erro);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você paga</div>
-                                    <div class="valor-mascarado" id="apcLegendaPaga" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-erro);">R$ 0,00</div>
-                                </div>
-                                <div style="flex:1;min-width:120px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:10px 12px;border-radius:9px;">
-                                    <div style="font-size:10.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você recebe</div>
-                                    <div class="valor-mascarado" id="apcLegendaRecebe" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-primaria);">R$ 0,00</div>
-                                </div>
-                            </div>
-                        </div>
+                    <button type="button" class="btn-acao apc-cta" id="apcBtnWhatsapp" onclick="compartilharWhatsappApplicash()"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i> Enviar no WhatsApp</button>
+                    <div class="apc-hero-actions-sec">
+                        <button type="button" class="btn-secundario" id="apcBtnCompartilhar" onclick="compartilharCupomApplicash()"><i class="ph ph-share-network" aria-hidden="true"></i> Compartilhar</button>
+                        <button type="button" class="btn-secundario" id="apcBtnCopiarLink" onclick="copiarLinkApplicash()"><i class="ph ph-copy" aria-hidden="true"></i> <span id="lblLinkBtn">Copiar link</span></button>
                     </div>
-                    <div class="apc-empty-cta" id="apcEmptyCta">
-                        <i class="ph-duotone ph-paper-plane-tilt empty-illu"></i>
-                        <h4>Convide o primeiro amigo</h4>
-                        <p>Cada indicação que assina te dá <strong>10% do valor pago</strong> todo mês. Comece a partilhar para começar a receber.</p>
-                        <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar agora</button>
+                </div>
+            </div>
+
+            <!-- Falhou o carregamento e não há nada em cache. -->
+            <div class="card-container apc-aviso" data-so="erro">
+                <i class="ph-duotone ph-cloud-slash" aria-hidden="true"></i>
+                <div>
+                    <h4>Não conseguimos carregar seu Applicash</h4>
+                    <p>Pode ser a conexão. Use "Tentar de novo" acima — seus dados e seu cupom estão a salvo.</p>
+                </div>
+            </div>
+
+            <!-- Deslogado -->
+            <div class="card-container apc-aviso" data-so="deslogado">
+                <i class="ph-duotone ph-user-circle" aria-hidden="true"></i>
+                <div>
+                    <h4>Entre na sua conta para gerar o convite</h4>
+                    <p>Seu cupom nasce junto com a conta e vale para sempre.</p>
+                </div>
+            </div>
+
+            <!-- Como funciona — sobe para o topo de quem ainda não indicou
+                 ninguém. Estava no rodapé, depois de três widgets zerados. -->
+            <div class="card-container" data-so="vazio">
+                <div class="div-chart-title"><i class="ph ph-path" aria-hidden="true"></i> Como funciona</div>
+                <ol class="apc-passos">
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">1</span>
+                        <div><strong>Mande seu link</strong><span>Quem abrir e assinar entra com 10% de desconto permanente.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">2</span>
+                        <div><strong>Ele assina</strong><span>A partir da primeira cobrança paga, o cashback começa a contar.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">3</span>
+                        <div><strong>Sua fatura cai</strong><span>R$ 1,35 abatidos por indicado ativo, todo mês, automaticamente.</span></div>
+                    </li>
+                </ol>
+                <div class="apc-nota">
+                    <i class="ph-fill ph-info" aria-hidden="true"></i>
+                    <span>O crédito <strong>abate na sua mensalidade</strong> — não é saque em dinheiro. Cadastros que cancelam antes da primeira cobrança não geram cashback.</span>
+                </div>
+            </div>
+
+            <!-- ===================== FASE ATIVO ===================== -->
+
+            <!-- O payoff. Era uma tira de 13px que nascia display:none. -->
+            <div class="apc-payoff" data-so="ativo">
+                <div class="apc-payoff-main">
+                    <span class="apc-payoff-label">Sua próxima cobrança</span>
+                    <div class="apc-payoff-valor">
+                        <strong id="apcFaturaValor">R$ 15,00</strong>
+                        <span class="apc-payoff-de" id="apcFaturaDe" hidden>antes <s id="apcFaturaDeValor">R$ 15,00</s></span>
+                    </div>
+                    <span class="apc-payoff-sub" id="apcFaturaAbatido">Nenhum abatimento nesta cobrança ainda</span>
+                </div>
+                <div class="apc-payoff-bar">
+                    <div class="apc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Parte da mensalidade coberta por indicações">
+                        <span id="apcFaturaBarra" style="width:0%"></span>
+                    </div>
+                    <span class="apc-payoff-pct" id="apcFaturaPct">0% coberto por indicações</span>
+                </div>
+            </div>
+
+            <div class="grid-3 apc-kpis" data-so="ativo">
+                <div class="card-destaque accent">
+                    <h3><i class="ph-fill ph-users-three" aria-hidden="true"></i> Indicados assinando</h3>
+                    <div class="valor"><span id="apcKpiAtivos">0</span></div>
+                    <span class="kpi-delta"><i class="ph ph-repeat" aria-hidden="true"></i> geram abatimento todo mês</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-receipt" aria-hidden="true"></i> Abatido nesta fatura</h3>
+                    <div class="valor valor-mascarado" id="apcKpiAbatimento">R$ 0,00</div>
+                    <span class="kpi-delta"><i class="ph ph-arrow-down" aria-hidden="true"></i> desconto já aplicado</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-coins" aria-hidden="true"></i> Acumulado no programa</h3>
+                    <div class="valor valor-mascarado" id="apcKpiAcumulado">R$ 0,00</div>
+                    <span class="kpi-delta"><i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i> desde o início</span>
+                </div>
+            </div>
+
+            <div class="grid-2-iguais" data-so="ativo" style="margin-bottom:18px;">
+                <!-- Funil: fecha o vão entre "compartilhei" e "deu certo". -->
+                <div class="card-container">
+                    <div class="div-chart-title"><i class="ph ph-funnel" aria-hidden="true"></i> Seus convites</div>
+                    <ol class="apc-funil">
+                        <li>
+                            <i class="ph ph-cursor-click" aria-hidden="true"></i>
+                            <strong id="apcFunilHits">0</strong>
+                            <span>abriram o link</span>
+                        </li>
+                        <li>
+                            <i class="ph ph-user-plus" aria-hidden="true"></i>
+                            <strong id="apcFunilSignups">0</strong>
+                            <span>criaram conta</span>
+                        </li>
+                        <li class="is-fim">
+                            <i class="ph-fill ph-check-circle" aria-hidden="true"></i>
+                            <strong id="apcFunilSubs">0</strong>
+                            <span>estão assinando</span>
+                        </li>
+                    </ol>
+                    <div class="apc-nota is-acao" id="apcFunilDica" hidden>
+                        <i class="ph-fill ph-hand-waving" aria-hidden="true"></i>
+                        <span id="apcFunilDicaTexto"></span>
                     </div>
                 </div>
 
                 <!-- Meta -->
                 <div class="card-container">
-                    <div class="div-chart-title"><i class="ph ph-target"></i> Próxima meta</div>
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+                    <div class="div-chart-title"><i class="ph ph-target" aria-hidden="true"></i> Próxima meta</div>
+                    <div class="apc-meta-head">
                         <div>
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Meta</div>
-                            <div id="apcMetaTitulo" style="font-size:18px;font-weight:700;color:var(--cor-texto-principal);">Indique 5 pessoas</div>
+                            <span class="apc-meta-rot">Meta</span>
+                            <div id="apcMetaTitulo" class="apc-meta-titulo">Indique 1 pessoa</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Recompensa</div>
-                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">9% de desconto</div>
+                            <span class="apc-meta-rot">Sua fatura fica</span>
+                            <div class="apc-meta-premio valor-mascarado" id="apcMetaRecompensa">R$ 13,65/mês</div>
                         </div>
                     </div>
-                    <div id="apcMetaSubtitulo" style="font-size:12px;color:var(--cor-texto-secundario);margin-top:-2px;margin-bottom:6px;">Cashback ativado · economia garantida todo mês</div>
-                    <div style="background:var(--cor-superficie);border-radius:99px;height:14px;border:1px solid var(--cor-borda);overflow:hidden;margin:10px 0 8px;">
-                        <div id="apcMetaProgressoBar" style="height:100%;background:linear-gradient(90deg,var(--cor-primaria),#10b981);width:0%;transition:width 0.6s ease;border-radius:99px;"></div>
+                    <div id="apcMetaSubtitulo" class="apc-meta-sub">Cashback ligado — abatimento todo mês</div>
+                    <div class="apc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso até a próxima meta">
+                        <span id="apcMetaProgressoBar" style="width:0%"></span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--cor-texto-mutado);">
-                        <span><strong id="apcMetaAtual" style="color:var(--cor-texto-principal);">0</strong> de <strong id="apcMetaAlvo" style="color:var(--cor-texto-principal);">5</strong> indicações</span>
-                        <span><strong id="apcMetaRestante" style="color:var(--cor-primaria);">5</strong> restantes</span>
+                    <div class="apc-meta-legenda">
+                        <span><strong id="apcMetaAtual">0</strong> de <strong id="apcMetaAlvo">1</strong> indicações</span>
+                        <span><strong id="apcMetaRestante">1</strong> restantes</span>
                     </div>
-
-                    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;" id="apcMetasLista">
-                        <!-- Lista de marcos preenchida via JS -->
-                    </div>
+                    <ul class="apc-marcos" id="apcMetasLista"></ul>
                 </div>
             </div>
 
-            <!-- Tabela Minhas Indicações -->
-            <div class="card-container">
-                <div class="div-chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-                    <span><i class="ph ph-list-checks"></i> Minhas indicações</span>
-                    <span style="font-size:11px;font-weight:600;color:var(--cor-texto-mutado);">Total recebido no mês: <strong class="valor-mascarado" id="apcTotalReceberMes" style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">R$ 0,00</strong></span>
-                </div>
+            <!-- Lista. Três colunas: quem, quanto rende, situação. -->
+            <div class="card-container" data-so="ativo">
+                <div class="div-chart-title"><i class="ph ph-list-checks" aria-hidden="true"></i> Seus indicados</div>
                 <div style="overflow-x:auto;">
-                    <table class="tabela-dashboard" id="apcTabelaIndicacoes">
+                    <table class="tabela-dashboard apc-tabela" id="apcTabelaIndicacoes">
                         <thead>
                             <tr>
-                                <th>Nome</th>
-                                <th>Plano contratado</th>
-                                <th style="text-align:right;">Valor pago</th>
-                                <th>Periodicidade</th>
-                                <th style="text-align:right;">Lucro p/ você</th>
-                                <th style="text-align:center;">Status</th>
+                                <th scope="col">Quem</th>
+                                <th scope="col" style="text-align:right;">Abate por mês</th>
+                                <th scope="col" style="text-align:center;">Situação</th>
                             </tr>
                         </thead>
-                        <tbody id="apcTabelaIndicacoesCorpo">
-                            <!-- preenchido via JS -->
-                        </tbody>
+                        <tbody id="apcTabelaIndicacoesCorpo"></tbody>
                     </table>
                 </div>
-                <div id="apcTabelaVazia" style="display:none;text-align:center;padding:30px 16px;color:var(--cor-texto-mutado);">
-                    <i class="ph ph-users" style="font-size:32px;display:block;margin-bottom:8px;"></i>
-                    Você ainda não tem indicações ativas. Compartilhe seu cupom com amigos e familiares!
+                <div id="apcTabelaVazia" class="apc-tabela-vazia" hidden>
+                    <i class="ph ph-users" aria-hidden="true"></i>
+                    Ninguém entrou pelo seu link ainda.
                 </div>
             </div>
 
-            <!-- Como funciona -->
-            <div class="card-container">
-                <div class="div-chart-title"><i class="ph ph-info"></i> Como funciona o programa</div>
-                <div class="grid-3" style="gap:14px;">
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">1</span>
-                            <strong style="font-size:13.5px;">Compartilhe seu cupom</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Seu cupom dá <strong>10% de desconto</strong> ao interessado, em qualquer forma de pagamento.</p>
-                    </div>
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">2</span>
-                            <strong style="font-size:13.5px;">Indicação efetiva</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">A partir de uma <strong>indicação efetiva</strong> (usuário cadastrado pelo seu cupom e ativo), você passa a receber <strong>10% do valor pago</strong> enquanto ele permanecer na plataforma.</p>
-                    </div>
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">3</span>
-                            <strong style="font-size:13.5px;">Receba todo mês</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Plano mensal de R$ 15,00 (-10%) → você recebe <strong>R$ 1,35/mês</strong> por indicação. Quanto mais indicações, mais você lucra.</p>
-                    </div>
+            <!-- Como funciona, versão recolhida para quem já entendeu. -->
+            <details class="card-container apc-detalhes" data-so="ativo">
+                <summary><i class="ph ph-info" aria-hidden="true"></i> Como funciona o programa</summary>
+                <ol class="apc-passos">
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">1</span>
+                        <div><strong>Mande seu link</strong><span>Quem abrir e assinar entra com 10% de desconto permanente.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">2</span>
+                        <div><strong>Ele assina</strong><span>A partir da primeira cobrança paga, o cashback começa a contar.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">3</span>
+                        <div><strong>Sua fatura cai</strong><span>R$ 1,35 abatidos por indicado ativo, todo mês, automaticamente.</span></div>
+                    </li>
+                </ol>
+                <div class="apc-nota">
+                    <i class="ph-fill ph-info" aria-hidden="true"></i>
+                    <span>O crédito <strong>abate na sua mensalidade</strong> — não é saque em dinheiro. A fatura desce até o mínimo de R$ 5,00 exigido pelo meio de pagamento; o que passar disso fica como saldo para os meses seguintes.</span>
                 </div>
-                <div style="margin-top:14px;padding:12px 14px;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);border-radius:9px;font-size:12px;color:var(--cor-txt-info);line-height:1.5;">
-                    <i class="ph-fill ph-info" style="margin-right:4px;"></i>
-                    <strong>Indicação efetiva:</strong> todos os usuários cadastrados pelo cupom e ativos na plataforma. Você não recebe por cadastros que cancelam antes da primeira cobrança.
-                </div>
-            </div>
+            </details>
         </section>
-
         <section id="duvidas_sugestoes" class="section">
             <div class="page-header">
                 <div class="page-header-left">
