@@ -180,3 +180,41 @@ test('a linguagem não promete dinheiro que não chega', () => {
   }
   assert.match(visivel, /Abatido nesta fatura|abate na sua mensalidade/i);
 });
+
+test('o atributo hidden vence qualquer regra de autor', () => {
+  // REGRESSÃO DE PRODUÇÃO: a faixa de erro nascia com `hidden` no HTML, mas
+  // `.apc-erro { display: flex }` é regra de AUTOR e ganha do
+  // `[hidden] { display: none }` da folha do navegador. Resultado: a faixa
+  // ficava permanentemente visível, anunciando uma falha que não existia, por
+  // cima de uma página que tinha carregado bem.
+  //
+  // Esta base já tinha sido mordida pelo mesmo defeito cinco vezes
+  // (.disc-corpo, .cart-ajuda-balao, três em #carteira, #fabMenu), cada uma
+  // remendada com um `[hidden] { display: none !important }` local. O reset
+  // global fecha a classe inteira — e este teste impede que ele suma.
+  assert.match(
+    HTML,
+    /^\s*\[hidden\] \{ display: none !important; \}/m,
+    'sem o reset global, todo `el.hidden = true` volta a ser ignorado por qualquer classe que declare display'
+  );
+});
+
+test('todo elemento que nasce oculto é de fato ocultável', () => {
+  // Pega o inverso: um elemento marcado `hidden` no HTML cuja visibilidade
+  // o script controla. Se algum dia alguém trocar o reset por regras
+  // pontuais, este teste aponta exatamente quais elementos ficariam órfãos.
+  const nascemOcultos = Array.from(
+    HTML.matchAll(/<[^>]*\sid="([^"]+)"[^>]*\shidden[^>]*>/g),
+    (m) => m[1]
+  );
+  assert.ok(nascemOcultos.includes('apcErroFaixa'), 'a faixa de erro tem de nascer oculta');
+  assert.ok(nascemOcultos.length >= 4, 'esperava vários elementos ocultos por atributo');
+
+  const temResetGlobal = /^\s*\[hidden\] \{ display: none !important; \}/m.test(HTML);
+  for (const id of nascemOcultos) {
+    assert.ok(
+      temResetGlobal,
+      '"' + id + '" nasce hidden e depende do reset global para ficar oculto'
+    );
+  }
+});

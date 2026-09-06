@@ -262,6 +262,16 @@
         body.dark #meus_sonhos .sonhos-overview { background: linear-gradient(135deg, var(--cor-branco) 0%, rgba(124,58,237,0.06) 50%, rgba(16,185,129,0.07) 100%); }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Figtree', sans-serif; }
+
+        /* O atributo `hidden` tem de ganhar de QUALQUER regra de autor.
+           O navegador o implementa como `[hidden] { display: none }` na folha
+           do UA, que perde para qualquer `.minha-classe { display: flex }`
+           nossa — então `el.hidden = true` simplesmente não escondia nada.
+           Esta base já foi mordida por isso cinco vezes (.disc-corpo,
+           .cart-ajuda-balao, três em #carteira, #fabMenu), cada uma remendada
+           no lugar. A regra abaixo fecha a classe inteira do defeito: quem
+           quiser um elemento visível não põe `hidden` nele. */
+        [hidden] { display: none !important; }
         body { display: flex; height: 100vh; background-color: var(--cor-fundo); color: var(--cor-texto-principal); overflow: hidden; transition: background .3s, color .3s; }
 
         /* === SIDEBAR — DARK PREMIUM === */
