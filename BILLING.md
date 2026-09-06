@@ -36,17 +36,44 @@
 5. **Assinatura** — `POST /api/billing/subscribe` cria a `Subscription` no Asaas (`MONTHLY`, `value=15.00`, `billingType=UNDEFINED`) e devolve o `invoiceUrl` da 1ª fatura. O browser abre o link num separador novo.
 6. **Webhook** — o Asaas notifica `POST /api/billing/webhook` em cada evento. O endpoint atualiza `subscriptionStatus` e `lastPaymentStatus` e grava o documento em `payments/{paymentId}`.
 7. **Liberação automática** — o frontend faz polling a cada 30s; assim que o status passa a `active` o gate desaparece.
-8. **Cancelamento/inadimplência** — `SUBSCRIPTION_DELETED`/`PAYMENT_OVERDUE` põem o utilizador em `blocked`, frontend mostra gate.
+8. **Cancelamento/inadimplência** — `SUBSCRIPTION_DELETED`/`PAYMENT_OVERDUE` bloqueiam **depois** de a janela já paga acabar (`paidUntil`); até lá o utilizador mantém o mês que comprou. Estorno e chargeback bloqueiam de imediato.
+
+## Ciclo de acesso: crédito de tempo, nunca reinício
+
+`billing.paidUntil` é a fonte canônica de **até quando o acesso foi comprado**.
+Cada pagamento confirmado o estende por `nextPaidUntilMs()`
+(`api/_lib/access.js`): a base é o **maior** entre agora, a janela já paga e o
+fim do trial — e só então soma 30 dias.
+
+Consequências que o desenho garante:
+
+- **Antecipar não custa dias.** Renovar o avulso no dia 20 de 30 leva a janela
+  para o dia 60, não para o dia 50.
+- **O trial é honrado.** Assinar no dia 3 de 7 agenda a primeira cobrança para
+  o fim do trial (`/subscribe` usa `max(amanhã, trialEndsAt, paidUntil)`), e o
+  saldo de trial entra no ciclo pago.
+- **Um pagamento estende uma vez.** O Asaas emite `CONFIRMED` **e** `RECEIVED`
+  para a mesma cobrança; `paidUntilFromPaymentId` impede a dupla contagem.
+- **Contas antigas continuam válidas.** Sem `paidUntil` gravado, `paidUntilMs()`
+  cai em `lastPaidAt + 30d`. Não remover esse fallback.
 
 ## Estados de acesso (`api/_lib/access.js`)
 
-| status              | quando                                                                |
-| ------------------- | --------------------------------------------------------------------- |
-| `active`            | `subscriptionStatus=ACTIVE` e último pagamento `CONFIRMED`/`RECEIVED` |
-| `trial`             | dentro de `trialEndsAt`                                               |
-| `pending_payment`   | assinatura criada mas pagamento ainda não confirmado                  |
-| `blocked`           | trial expirou OU `SUBSCRIPTION_DELETED`                               |
-| `blocked` (overdue) | `PAYMENT_OVERDUE`                                                     |
+| status                                | quando                                                                |
+| ------------------------------------- | --------------------------------------------------------------------- |
+| `active` (`paid`)                     | `subscriptionStatus=ACTIVE` e último pagamento `CONFIRMED`/`RECEIVED` |
+| `active` (`paid_period`)              | dentro de `paidUntil` — cobre cancelado com mês pago                  |
+| `active` (`paid_period_overdue_next`) | fatura **seguinte** vencida, mas a janela comprada ainda vale         |
+| `trial`                               | dentro de `trialEndsAt`                                               |
+| `pending_payment`                     | assinatura criada mas pagamento ainda não confirmado                  |
+| `blocked` (`trial_expired`)           | trial expirou sem pagamento                                           |
+| `blocked` (`cancelled`)               | `SUBSCRIPTION_DELETED` e a janela paga já acabou                      |
+| `blocked` (`overdue`)                 | `PAYMENT_OVERDUE` **e** a janela paga já acabou                       |
+| `blocked` (`refunded`/`chargeback`)   | dinheiro devolvido — bloqueia **mesmo dentro** da janela paga         |
+
+`OVERDUE` não revoga um mês já pago: a fatura que vence é sempre a seguinte, e
+boleto/PIX levam 1-3 dias úteis a compensar. Estorno e chargeback bloqueiam na
+hora, porque aí o pagamento deixou de existir.
 
 ## Esquema Firestore
 
@@ -57,13 +84,63 @@ users/{uid}/billing/account                 (server-only)
    trialStartsAt, trialEndsAt,
    subscriptionId, subscriptionStatus,
    lastPaymentId, lastPaymentStatus, lastPaidAt,
+   paidUntil, paidUntilFromPaymentId,      (janela comprada + idempotência)
+   paymentMode ('subscription' | 'one_shot'),
+   stats.pendingDiscountCents, stats.totalReferralEarningsCents,
    lastEvent, updatedAt
-users/{uid}/billing/account/payments/{paymentId}
+users/{uid}/billing/account/credits/{creditId}     (Applicash do indicador)
+   fromUid, fromEmail, paymentId, amountCents,
+   appliedAt, appliedToPaymentId, appliedAmountCents,
+   splitFrom, voidedAt, voidedReason, createdAt
+users/{uid}/payments/{paymentId}
    id, status, value, netValue, billingType,
    dueDate, paymentDate, invoiceUrl, event, receivedAt
 ```
 
+### Applicash — as duas pontas
+
+| Ponta         | O que ganha                       | Onde é aplicado                               |
+| ------------- | --------------------------------- | --------------------------------------------- |
+| **Indicado**  | 10% off na mensalidade, sempre    | `/subscribe`, no valor da assinatura/cobrança |
+| **Indicador** | 10% de cada pagamento do indicado | abatido numa fatura dele, por três caminhos   |
+
+Os três caminhos do crédito do indicador (`api/_lib/credits.js`):
+
+1. `pushCreditToOpenInvoice` — assim que o crédito nasce, abate na fatura
+   aberta. É o caminho principal: o Asaas projeta 6-12 faturas no ato da
+   criação da assinatura, então os `PAYMENT_CREATED` do indicador já
+   aconteceram, com saldo zero, antes de existir qualquer crédito.
+2. `applyPendingCreditsTo` no evento `PAYMENT_CREATED` — para quem ainda não
+   tinha fatura aberta.
+3. `reservePendingCredits` em `/subscribe` (avulso) — abate **antes** de criar
+   a cobrança, porque o cartão captura no ato do `POST /payments` e depois o
+   Asaas recusa alterar o valor.
+
+Um crédito consumido em parte é **partido em dois** (a fatia gasta e uma sobra
+pendente): marcar o documento inteiro como gasto tendo abatido metade fazia a
+diferença evaporar do saldo.
+
+**Teto conhecido:** `MIN_PAYMENT_CENTS` (R$ 5,00) é o piso do gateway, então a
+fatura nunca chega a zero. A tela do Applicash promete "12 indicações → 100% ·
+Assinatura ZERADA"; cumprir isso exige decisão de produto (baixar o piso, ou
+pular a cobrança e estender `paidUntil` quando o crédito cobre o mês).
+`test/pagamentos-applicash.test.js` fixa o teto real.
+
 Regras (`firestore.rules`): utilizador **lê** o seu billing mas **não escreve** — só o Admin SDK do backend escreve. App data continua restrita a `users/{uid}/data/main`.
+
+## Testar pagamentos
+
+```bash
+node --test test/pagamentos-*.test.js   # ciclo de cobrança + Applicash
+npm run test:flows                       # cenários ponta a ponta
+npm test                                 # tudo
+```
+
+O simulador (`test/_simulador-pagamentos.js`) roda contra um Asaas **fiel**:
+faturas futuras projetadas, cartão que captura na hora, `updatePayment` que
+recusa alterar cobrança paga. Esses knobs vivem em `asaasState` e ficam
+desligados por omissão no mock — um teste de pagamento com eles desligados
+testa um gateway que não existe. Ver `.claude/skills/pagamentos/SKILL.md`.
 
 ## Variáveis de ambiente
 
