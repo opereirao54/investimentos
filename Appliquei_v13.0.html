@@ -6176,6 +6176,18 @@
         }
         .sidebar-auth-mini .sa-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--sb-accent-border); }
 
+        /* Faixa do modo "editando um sonho" no painel de lançamento. */
+        .edicao-sonho-faixa {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px; margin-bottom: 14px;
+            background: var(--cor-bg-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: 10px;
+        }
+        .edicao-sonho-faixa > i { font-size: 20px; color: var(--tinta-roxo, var(--cor-primaria)); flex-shrink: 0; }
+        .edicao-sonho-faixa strong { display: block; font-size: 13.5px; color: var(--cor-texto-principal); }
+        .edicao-sonho-faixa span { display: block; font-size: 12px; line-height: 1.5; color: var(--cor-texto-secundario); margin-top: 2px; }
+
         /* === APPLICASH ===========================================
            A composição troca por [data-fase] na <section>: quem não tem
            indicação nenhuma não vê KPI zerado nem tabela vazia, vê o link e
@@ -11386,13 +11398,25 @@
                         <button onclick="selecionarChipTipo('cartao')" id="chipCartao" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-credit-card" style="font-size:13px;"></i> Cartão</button>
                     </div>
 
-                    <div class="form-group">
+                    <!-- Editando um compromisso de sonho, o formulário encolhe:
+                         a classificação já está decidida por ele ser um sonho, e
+                         perguntá-la de novo era o que fazia o lançamento virar
+                         despesa e sumir do sonho. Só valor e data ficam. -->
+                    <div id="avisoEdicaoSonho" class="edicao-sonho-faixa" hidden>
+                        <i class="ph-fill ph-shooting-star" aria-hidden="true"></i>
+                        <div>
+                            <strong id="avisoEdicaoSonhoNome">Aporte para o seu sonho</strong>
+                            <span id="avisoEdicaoSonhoDetalhe"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grupoDescricaoControle">
                         <label>Descrição</label>
                         <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
                         <div id="sugestaoCategoria"></div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
-                        <div class="form-group">
+                        <div class="form-group" id="grupoCategoriaControle">
                             <label>Categoria</label>
                             <select id="categoriaTransacao" onchange="verificarRegraCartao()">
                                 <option value="" disabled selected>Selecione...</option>
