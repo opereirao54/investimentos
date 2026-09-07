@@ -6081,27 +6081,94 @@
            painel de verificação, etc.), align-items:center empurra o topo
            para fora da área scrollável e fica inacessível. display:block
            + margin:auto no inner garante que o topo é sempre alcançável. */
+        /* === PORTA DE ENTRADA ======================================
+           Direção: confiável · acolhedor · nítido.
+
+           O gradiente e o brilho radial são os MESMOS da landing (.hero) de
+           propósito: quem clica em "Começar" vem de lá e tem de sentir que
+           continua no mesmo lugar. Antes o gate usava um gradiente parecido
+           mas sem o brilho, e lia como uma página de terceiro.
+
+           O card também deixou de flutuar sozinho num vazio escuro — no
+           desktop meia tela não fazia nada. Agora divide o palco com o painel
+           de marca, que carrega a promessa dos 7 dias. */
         .auth-gate {
             position: fixed; inset: 0; z-index: 10050;
             display: block;
             padding: 24px 16px;
-            background: linear-gradient(145deg, #0b1410 0%, #0f1f18 45%, #111c17 100%);
+            background: linear-gradient(150deg, #0b1410 0%, #0f1f18 50%, #112720 100%);
             overflow-y: auto;
             box-sizing: border-box;
         }
+        .auth-gate::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none;
+            background:
+                radial-gradient(60% 40% at 82% 8%, rgba(16,185,129,.18), transparent 70%),
+                radial-gradient(42% 36% at 8% 92%, rgba(5,150,105,.16), transparent 70%);
+        }
+        .auth-gate-shell {
+            position: relative; z-index: 1;
+            min-height: 100%;
+            display: grid; align-items: center; justify-content: center;
+            grid-template-columns: minmax(0, 460px) minmax(0, 420px);
+            gap: 56px;
+            max-width: 940px; margin: 0 auto;
+        }
+
+        /* --- Painel de marca (só desktop) --- */
+        .auth-brand { color: #c8d6cf; }
+        .auth-brand-marca { display: block; max-width: 188px; height: auto; margin-bottom: 24px; }
+        .auth-brand-selo {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 999px;
+            background: rgba(52,211,153,.12); color: #6ee7b7;
+            font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+        }
+        .auth-brand-titulo {
+            /* `display: block` explícito: a regra global de h1 deste app é
+               `display: flex`, e ela transformava cada nó de texto e o <em>
+               em itens flex — o título saía picotado, com a vírgula sozinha
+               numa linha. */
+            display: block;
+            font-family: 'Syne', sans-serif; font-weight: 700;
+            font-size: clamp(28px, 3.2vw, 38px); line-height: 1.15; letter-spacing: -0.8px;
+            color: #fff; margin: 16px 0 0; max-width: 16ch;
+        }
+        /* O mint no verbo, como na landing: um acento, não um arco-íris. */
+        .auth-brand-titulo em { color: #34d399; font-style: normal; }
+        .auth-brand-sub { font-size: 15.5px; line-height: 1.6; margin-top: 14px; max-width: 42ch; }
+        .auth-brand-pontos { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; }
+        .auth-brand-pontos li {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 14px; line-height: 1.5; color: #c8d6cf;
+        }
+        .auth-brand-pontos i { color: #34d399; font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+        .auth-brand-rodape { margin-top: 26px; font-size: 13px; color: #9fb3aa; }
+
         .auth-gate-inner {
             width: 100%; max-width: 420px;
             margin: 0 auto;
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: var(--radius);
-            box-shadow: var(--shadow-hover);
+            box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.18);
             padding: 28px 26px 26px;
+            animation: authEntra .32s cubic-bezier(.2,.7,.3,1) both;
         }
+        @keyframes authEntra { from { opacity: 0; transform: translateY(10px); } }
+
         .auth-gate-head {
             text-align: center; margin-bottom: 22px;
         }
         .auth-gate-head img { max-width: 180px; height: auto; }
+        /* No desktop a marca já está no painel ao lado; repeti-la aqui seria
+           dizer o nome duas vezes na mesma tela. */
+        @media (min-width: 901px) { .auth-head-marca, .auth-so-mobile { display: none; } }
+
+        @media (max-width: 900px) {
+            .auth-gate-shell { grid-template-columns: minmax(0, 420px); gap: 0; }
+            .auth-brand { display: none; }
+        }
         .auth-gate-head h2 {
             font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 700;
             color: var(--cor-texto-principal); margin-top: 12px; letter-spacing: -0.3px;
@@ -6132,7 +6199,10 @@
             padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--cor-texto-mutado);
             border-radius: 7px; font-family: 'Figtree', sans-serif; transition: var(--transicao);
         }
-        .auth-tab.ativo { background: var(--cor-branco); color: var(--cor-primaria); box-shadow: var(--shadow-suave); }
+        /* --cor-primaria sobre branco dá 3,77:1 — reprova AA em 13px/600.
+           --cor-txt-primaria é o token feito para texto sobre fundo claro
+           verde e chega a 8,6:1. */
+        .auth-tab.ativo { background: var(--cor-branco); color: var(--cor-txt-primaria); box-shadow: var(--shadow-suave); }
         .auth-err {
             font-size: 12.5px; color: var(--cor-txt-erro); background: var(--cor-bg-erro);
             border: 1px solid var(--cor-borda-erro); border-radius: var(--radius-sm);
@@ -6140,12 +6210,23 @@
         }
         .auth-err.vis { display: block; }
         .auth-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        /* CONTRASTE DO CTA PRINCIPAL.
+           Branco sobre --cor-primaria dava 3,77:1 no tema claro e 1,92:1 no
+           escuro (onde a primária é o mint #34d399) — o botão mais importante
+           da tela era o menos legível dela. No claro o verde escurece para o
+           tom de hover, que leva o par a 5,3:1; no escuro o mint fica e quem
+           inverte é o texto.
+           NOTA: `.btn-acao`, usado no app inteiro, tem o mesmo par e o mesmo
+           problema. Fora do escopo desta tela, mas vale a mesma correção. */
         .auth-btn-prim {
             width: 100%; border: none; cursor: pointer; padding: 12px 16px; border-radius: var(--radius-sm);
             font-size: 14px; font-weight: 600; font-family: 'Figtree', sans-serif;
-            background: var(--cor-primaria); color: #fff; transition: var(--transicao);
+            background: var(--cor-primaria-hover); color: #fff; transition: var(--transicao);
         }
-        .auth-btn-prim:hover { background: var(--cor-primaria-hover); }
+        .auth-btn-prim:hover { background: #036347; }
+        .auth-btn-prim:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+        body.dark .auth-btn-prim { background: var(--cor-primaria); color: #06281c; }
+        body.dark .auth-btn-prim:hover { background: var(--cor-primaria-hover); }
         .auth-btn-prim:disabled { opacity: 0.55; cursor: not-allowed; }
         .auth-btn-sec {
             width: 100%; border: 1px solid var(--cor-borda); cursor: pointer;
@@ -6161,7 +6242,81 @@
             border: none; background: none; cursor: pointer; color: var(--cor-primaria);
             font-weight: 600; font-size: inherit; font-family: inherit; text-decoration: underline;
         }
-        .auth-loading { text-align: center; padding: 20px 8px; color: var(--cor-texto-mutado); font-size: 14px; }
+        /* Era uma linha de texto parada. Sem movimento, "Preparando…" lê como
+           travado — e é o primeiro estado que qualquer pessoa vê. */
+        .auth-loading {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 28px 8px; color: var(--cor-texto-mutado); font-size: 14px;
+        }
+        .auth-spinner {
+            width: 17px; height: 17px; flex-shrink: 0;
+            border: 2px solid var(--cor-borda);
+            border-top-color: var(--cor-primaria);
+            border-radius: 50%;
+            animation: authGira .7s linear infinite;
+        }
+        @keyframes authGira { to { transform: rotate(360deg); } }
+
+        /* --- Confirmação de e-mail: dois passos, para a tela deixar de ler
+               como um beco sem saída. --- */
+        .auth-passos {
+            list-style: none; margin: 0 0 18px; padding: 0;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 600;
+        }
+        .auth-passos li {
+            flex: 1; display: flex; align-items: center; gap: 7px;
+            padding: 8px 10px; border-radius: 999px;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px solid var(--cor-borda);
+        }
+        .auth-passos li span {
+            width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10.5px; background: var(--cor-borda); color: var(--cor-texto-secundario);
+        }
+        .auth-passos .is-feito { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); color: var(--cor-txt-primaria); }
+        .auth-passos .is-feito span { background: var(--cor-primaria); color: #fff; }
+        .auth-passos .is-agora { border-color: var(--cor-borda-primaria); color: var(--cor-texto-principal); background: var(--cor-branco); }
+        .auth-passos .is-agora span { background: var(--cor-primaria); color: #fff; }
+
+        .auth-verify-icone { text-align: center; padding: 4px 0 10px; }
+        .auth-verify-icone i { font-size: 46px; color: var(--cor-primaria); }
+        /* Terceiro nível de ação: saída de emergência, não uma opção de mesmo
+           peso que "Já verifiquei" e "Reenviar". Com borda, os três botões
+           empilhados liam como três caminhos igualmente prováveis. */
+        .auth-btn-texto {
+            width: 100%; border: none; background: none; cursor: pointer;
+            padding: 8px; font-family: 'Figtree', sans-serif;
+            font-size: 12.5px; color: var(--cor-texto-mutado); text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .auth-btn-texto:hover { color: var(--cor-texto-secundario); }
+        .auth-btn-texto:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        .auth-verify-msg { font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.55; text-align: center; }
+        /* O e-mail é o dado que a pessoa precisa CONFERIR — se estiver errado,
+           nenhum botão desta tela resolve. Ganha peso e monoespaçada. */
+        .auth-verify-email {
+            text-align: center; margin: 8px 0 16px; padding: 9px 12px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Mono', monospace; font-size: 13.5px;
+            color: var(--cor-texto-principal); word-break: break-all;
+        }
+
+        /* O gate nunca teve regra de tema escuro: o botão do Google estava com
+           #fff e #3c4043 no atributo style e ficava um retângulo branco
+           gritando no meio do card escuro. */
+        body.dark #authBtnGoogle {
+            background: var(--cor-superficie) !important;
+            color: var(--cor-texto-principal) !important;
+            border-color: var(--cor-borda2) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .auth-gate-inner { animation: none; }
+            .auth-spinner { animation-duration: 2.4s; }
+        }
         .sidebar-auth-mini {
             padding: 0 10px 10px; border-bottom: 1px solid var(--sb-border); margin-bottom: 8px;
         }
@@ -10111,13 +10266,35 @@
     </script>
 
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
+      <div class="auth-gate-shell">
+        <!-- Painel de marca. Existe porque o card flutuava sozinho num vazio
+             escuro: no desktop sobrava meia tela sem função. Aqui ele carrega
+             a promessa (7 dias grátis) que antes era nota de rodapé de 12px,
+             e usa o wordmark de fundo escuro. Some abaixo de 900px, onde o
+             card volta a ser a tela inteira. -->
+        <aside class="auth-brand" aria-hidden="true">
+            <img class="auth-brand-marca" src="appliquei-wordmark.svg" alt="" width="188" height="40" decoding="async">
+            <span class="auth-brand-selo"><i class="ph-fill ph-gift"></i> 7 dias grátis</span>
+            <h1 class="auth-brand-titulo">Seu dinheiro <em>inteiro</em>,<br>numa tela só.</h1>
+            <p class="auth-brand-sub">Contas, cartões, investimentos e sonhos — somados de verdade, sem planilha.</p>
+            <ul class="auth-brand-pontos">
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Saldo real por banco, não estimativa</li>
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Patrimônio e carteira no mesmo lugar</li>
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Sonhos com plano mensal automático</li>
+            </ul>
+            <p class="auth-brand-rodape">Depois do teste: R$ 15/mês. Cancele quando quiser.</p>
+        </aside>
+
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
-                <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
-                <h2>Bem-vindo</h2>
-                <p id="authGateSub">Carregando…</p>
+                <img class="auth-head-marca" src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
+                <h2 id="authGateTitulo">Bem-vindo</h2>
+                <p id="authGateSub">Entre para continuar</p>
             </div>
-            <div id="authGateLoading" class="auth-loading">Preparando a autenticação…</div>
+            <div id="authGateLoading" class="auth-loading">
+                <span class="auth-spinner" aria-hidden="true"></span>
+                <span>Preparando a autenticação…</span>
+            </div>
             <div id="authGateNoConfig" class="auth-gate-panel">
                 <p style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.55;margin-bottom:16px;">
                     O Firebase não iniciou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Console</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
@@ -10158,23 +10335,31 @@
                 </div>
                 <p class="auth-link" id="authHintReg" style="display:none;">Já tem conta? <button type="button" onclick="appliqueiAuthSetModo('login')">Entrar</button></p>
                 <p class="auth-link" id="authHintLogin" style="display:none;">Não tem conta? <button type="button" onclick="appliqueiAuthSetModo('registro')">Criar conta</button></p>
-                <p class="auth-link" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Após o trial: R$ 15/mês via Asaas (PIX, boleto ou cartão).</p>
+                <p class="auth-link auth-so-mobile" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Depois, R$ 15/mês — PIX, boleto ou cartão.</p>
             </div>
             <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
-                <div style="text-align:center;padding:8px 0 4px;">
-                    <i class="ph ph-envelope-simple" style="font-size:34px;color:var(--tinta-verde);"></i>
+                <!-- Sem sinal de progresso, esta tela lia como um beco: três
+                     botões empilhados e nenhuma noção de quanto falta. Os dois
+                     passos dizem que a conta já existe e que resta um clique. -->
+                <ol class="auth-passos" aria-label="Progresso do cadastro">
+                    <li class="is-feito"><span aria-hidden="true"><i class="ph-fill ph-check"></i></span> Conta criada</li>
+                    <li class="is-agora"><span aria-hidden="true">2</span> Confirme o e-mail</li>
+                </ol>
+                <div class="auth-verify-icone" aria-hidden="true">
+                    <i class="ph-duotone ph-envelope-open"></i>
                 </div>
-                <h3 style="text-align:center;font-size:16px;font-weight:600;margin:6px 0 8px;color:var(--cor-texto-primario,#0b1410);">Verifique seu e-mail</h3>
-                <p id="authVerifyMsg" style="font-size:13px;color:var(--cor-texto-secundario,#4a5b53);line-height:1.55;text-align:center;margin-bottom:14px;">Enviamos um link de verificação para <strong id="authVerifyEmail"></strong>. Abra a caixa de entrada e clique no link para liberar o acesso.</p>
+                <p id="authVerifyMsg" class="auth-verify-msg">Enviamos o link de confirmação para</p>
+                <p class="auth-verify-email"><strong id="authVerifyEmail"></strong></p>
                 <div id="authVerifyStatus" style="display:none;font-size:12px;text-align:center;margin-bottom:10px;"></div>
                 <div class="auth-actions" style="display:flex;flex-direction:column;gap:8px;">
                     <button type="button" class="auth-btn-prim" id="authVerifyCheckBtn" onclick="appliqueiAuthVerifyCheck()">Já verifiquei — entrar</button>
                     <button type="button" class="auth-btn-sec" id="authVerifyResendBtn" onclick="appliqueiAuthResend()">Reenviar e-mail</button>
-                    <button type="button" class="auth-btn-sec" onclick="appliqueiAuthSignOut()" style="color:var(--cor-texto-mutado,#6b7d75);font-size:12.5px;">Usar outra conta</button>
+                    <button type="button" class="auth-btn-texto" onclick="appliqueiAuthSignOut()">Usar outra conta</button>
                 </div>
                 <p style="font-size:11.5px;color:var(--cor-texto-mutado,#94a39c);text-align:center;margin-top:14px;line-height:1.5;">Não recebeu? Confira a pasta de spam. O remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>.</p>
             </div>
         </div>
+      </div>
     </div>
 
     <!-- Convite do guia de primeiros passos. Só abre com o app vazio — no
