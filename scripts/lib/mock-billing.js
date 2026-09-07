@@ -573,7 +573,11 @@ function makeRes() {
       this.body = d;
       return this;
     },
-    end() {
+    // `end()` engolia o argumento, e com ele a resposta inteira de qualquer
+    // rota que devolva bytes em vez de JSON (o proxy de logo). Um mock que
+    // descarta corpo e cabeçalho aprova um handler que não devolve nada.
+    end(payload) {
+      if (payload !== undefined) this.body = payload;
       return this;
     },
   };
@@ -582,7 +586,7 @@ async function call(handler, opts) {
   const req = makeReq(opts);
   const res = makeRes();
   await handler(req, res);
-  return { status: res.statusCode, body: res.body };
+  return { status: res.statusCode, body: res.body, headers: res.headers };
 }
 
 module.exports = {

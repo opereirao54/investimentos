@@ -6075,6 +6075,64 @@
             .im-card-titulo { font-size: 14px; }
         }
 
+        /* === MARCA DO ATIVO ========================================
+           Um quadrado só, usado por toda tela que lista ativo. O logo entra
+           POR CIMA do monograma, que continua sendo o chão: FII, Tesouro,
+           cripto e ticker recém-listado normalmente não têm imagem, e a lista
+           não pode ficar com buracos. Se o <img> não carregar ele se remove
+           sozinho e o monograma reaparece sem nenhum salto de layout, porque
+           os dois ocupam exatamente a mesma caixa.
+
+           O tamanho vem inline de logoAtivoHTML() — lado e corpo da letra
+           juntos —, por isso não há aqui uma régua de tamanhos por tela. */
+        .ativo-marca {
+            position: relative; overflow: hidden; flex-shrink: 0;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Mono', monospace; font-weight: 800;
+            line-height: 1; letter-spacing: -0.3px;
+            /* Piso, para quem não manda tamanho e não tem CSS próprio. */
+            width: 40px; height: 40px; font-size: 15px;
+        }
+        .ativo-marca-inicial { font-size: inherit; }
+        .ativo-marca-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+            /* Fundo claro por baixo: quase todo logo de empresa é desenhado
+               para fundo branco e sumiria contra o verde do monograma. */
+            background: #fff;
+            padding: 3px;
+        }
+        /* Ancoragens nas listas que ainda não tinham um lugar para a marca. */
+        .celula-com-marca { display: flex; align-items: center; gap: 9px; }
+        .div-rank-marca, .tl-marca, .cart-score-marca, .op-identidade-marca { border-radius: 9px; }
+        .tl-marca { margin-right: 2px; }
+
+        /* Identidade do ativo no drawer de operação: a confirmação de que o
+           código digitado é mesmo a empresa que a pessoa quer. */
+        .op-identidade {
+            display: flex; align-items: center; gap: 10px;
+            margin-top: 9px; padding: 8px 10px;
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria);
+            border-radius: 11px;
+        }
+        .op-identidade-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .op-identidade-ticker {
+            font-family: 'DM Mono', monospace; font-weight: 800; font-size: 13.5px;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .op-identidade-nome {
+            font-size: 11px; color: var(--cor-texto-secundario);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .op-identidade-tag {
+            flex-shrink: 0; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.4px; padding: 3px 7px; border-radius: 6px;
+            background: var(--cor-superficie); color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda);
+        }
+
         /* === TELA DE LOGIN (Firebase) === */
         /* U1: NÃO usar flex centrado em overlay scrollável — quando o
            conteúdo passa a altura do viewport (ecrã pequeno, conteúdo do
@@ -10572,6 +10630,10 @@
             <div class="form-group">
                 <label id="lblTickerOp">Buscar Ativo (Ticker ou Nome)</label>
                 <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" oninput="ajustarCamposPorCategoria();" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
+                <!-- Confirmação visual de QUAL empresa foi digitada, antes de a
+                     operação existir. Trocar VALE3 por VALE5 num campo de texto
+                     é um erro barato de cometer e caro de desfazer. -->
+                <div id="compraIdentidade" class="op-identidade" hidden aria-live="polite"></div>
                 <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
             </div>
             <div class="form-group">

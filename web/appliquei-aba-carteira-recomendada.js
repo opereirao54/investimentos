@@ -2717,6 +2717,12 @@ function cartCardAtivo(a, posicao) {
     '<span class="cart-score-pos">' +
     (posicao == null ? '—' : '#' + posicao) +
     '</span>' +
+    logoAtivoHTML(a.ticker, {
+      classe: 'ativo-marca cart-score-marca',
+      tamanho: 28,
+      // Título do Tesouro não tem emissor listado; o código aqui nem é ticker.
+      semBusca: a.classe === 'rf',
+    }) +
     '<span class="cart-score-id">' +
     '<span class="cart-score-ticker">' +
     cartEsc(rotulo.codigo) +

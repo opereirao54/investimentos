@@ -772,3 +772,117 @@ function tintaSobre(fundo) {
   if (l == null) return TINTA_CLARA;
   return l > 0.19 ? TINTA_ESCURA : TINTA_CLARA;
 }
+
+// ============================================================
+// === LOGO DO ATIVO ==========================================
+// ============================================================
+//
+// Um ponto só para desenhar a marca de um ativo, usado por todas as telas que
+// listam ativo. Antes cada tela desenhava o seu quadradinho com a inicial; o
+// logo entra por cima disso, e o monograma continua sendo o chão quando não
+// há imagem — que é o caso comum e esperado em FII, Tesouro, cripto e ticker
+// recém-listado.
+//
+// A imagem vem de /api/logo (proxy no nosso domínio, ver api/market.js) e
+// NUNCA de um CDN de terceiro direto: a requisição de imagem sai do navegador
+// com IP e Referer, e isso entregaria a carteira da pessoa a quem serve o
+// arquivo.
+
+/** Cor de fundo do monograma, estável por ticker quando a tela não manda uma. */
+var LOGO_PALETA = [
+  '#10b981',
+  '#059669',
+  '#14b8a6',
+  '#0d9488',
+  '#0ea5e9',
+  '#6366f1',
+  '#8b5cf6',
+  '#f59e0b',
+];
+function corMonogramaAtivo(ticker) {
+  var t = String(ticker || '');
+  var soma = 0;
+  for (var i = 0; i < t.length; i++) soma = (soma + t.charCodeAt(i) * (i + 1)) % 9973;
+  return LOGO_PALETA[soma % LOGO_PALETA.length];
+}
+
+/** Iniciais do monograma: as letras do ticker, sem o número da classe. */
+function monogramaAtivo(ticker) {
+  var t = String(ticker || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+  var letras = t.replace(/[0-9]/g, '');
+  return (letras || t).slice(0, 2) || '—';
+}
+
+/**
+ * Marca do ativo pronta para injetar em innerHTML.
+ *
+ * @param {string} ticker
+ * @param {object} [opts]
+ * @param {string} [opts.classe]  classe do contêiner (default 'ativo-marca')
+ * @param {string} [opts.cor]     cor do monograma; se ausente, derivada do ticker
+ * @param {number} [opts.tamanho] lado em px; omitido, quem dimensiona é o CSS
+ *   da classe passada (é o caso das telas que já tinham o seu quadradinho)
+ * @param {boolean} [opts.semBusca] só monograma, sem pedir imagem ao servidor
+ * @param {string} [opts.extraStyle]
+ */
+function logoAtivoHTML(ticker, opts) {
+  var o = opts || {};
+  var tk = String(ticker || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+  var cor = o.cor || corMonogramaAtivo(tk);
+  var classe = o.classe || 'ativo-marca';
+  var inicial = monogramaAtivo(tk);
+  // Sem `tamanho` o dimensionamento fica com o CSS: as telas que já tinham um
+  // quadradinho (o .rich-avatar do Patrimônio, por exemplo) mudam de lado
+  // conforme a largura, e um width inline venceria essas media queries.
+  var caixa = o.tamanho
+    ? 'width:' +
+      o.tamanho +
+      'px;height:' +
+      o.tamanho +
+      'px;font-size:' +
+      Math.round(o.tamanho * 0.38) +
+      'px;'
+    : '';
+  var estilo =
+    'background:' + cor + ';color:' + tintaSobre(cor) + ';' + caixa + (o.extraStyle || '');
+
+  // Sem ticker (renda fixa sem papel, conta) não há o que buscar: só
+  // monograma. `semBusca` é a mesma decisão tomada por quem chama, para os
+  // papéis que sabidamente não têm emissor listado — Tesouro, CDB, fundo de
+  // previdência. Uma requisição por linha para receber 204 é gasto puro.
+  if (!tk || o.semBusca) {
+    return (
+      '<div class="' + classe + '" style="' + estilo + '">' + escaparHtmlAtivo(inicial) + '</div>'
+    );
+  }
+
+  // O <img> nasce por cima do monograma e se apaga sozinho se a resposta for
+  // 204 ou erro — `onerror` inline porque estas listas são montadas por
+  // innerHTML, sem ponto de anexar listener depois.
+  return (
+    '<div class="' +
+    classe +
+    '" style="' +
+    estilo +
+    '">' +
+    '<span class="ativo-marca-inicial">' +
+    escaparHtmlAtivo(inicial) +
+    '</span>' +
+    '<img class="ativo-marca-img" alt="" aria-hidden="true" loading="lazy" decoding="async"' +
+    ' src="/api/logo/' +
+    encodeURIComponent(tk) +
+    '"' +
+    ' onerror="this.remove()" onload="if(!this.naturalWidth)this.remove()">' +
+    '</div>'
+  );
+}
+
+function escaparHtmlAtivo(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
