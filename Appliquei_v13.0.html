@@ -1519,6 +1519,29 @@
             text-align: left;
         }
 
+        /* === GRADES DE CAMPO DO SIMULADOR =========================
+           POR QUE ISTO É UMA CLASSE, E NÃO UM `[style*=...]`.
+
+           As regras responsivas destas grades casavam o TEXTO do atributo
+           style: `div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"]`.
+           Funciona até o JS tocar no elemento. `atualizarCamposMeta()` faz
+           `el.style.display = 'grid'` para trocar o objetivo, e o navegador
+           então reescreve o atributo inteiro na forma canônica —
+           `repeat(3, minmax(0px, 1fr))`, com espaços e com `0px`. O seletor
+           deixa de casar, a regra some, e a grade volta a três colunas num
+           telefone de 390px: rótulo quebrando, valor cortado ("R$ 15.000,"),
+           campos desalinhados entre as colunas.
+
+           Só quebrava DEPOIS de mexer no <select> do objetivo, que é por que
+           a primeira pintura parecia certa. Medido no Chromium a 390px:
+             atributo intacto  → 1fr
+             após o JS tocar   → repeat(2, minmax(0px, 1fr))
+
+           Classe não tem essa fragilidade: não há string para reescrever. */
+        .sim-campos { display: grid; gap: 14px; }
+        .sim-campos-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .sim-campos-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
         /* Seta própria no select, como já se fazia nos painéis de lançamento
            e de operação. A seta NATIVA é desenhada por cima do padding e come
            a última letra em select estreito — era o "meses" cortado no prazo
@@ -7317,18 +7340,10 @@
             #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
 
             /* Parâmetros da simulação (3 cols) → 2 cols, 1º campo largo */
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 10px !important;
-            }
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
-                grid-column: 1 / -1;
-            }
-            /* Campos da meta em 2 cols inline (acumular um valor) → 1 coluna */
-            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
-                grid-template-columns: 1fr !important;
-                gap: 10px !important;
-            }
+            .sim-campos-3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .sim-campos-3 > .form-group:first-child { grid-column: 1 / -1; }
+            /* Campos da meta em 2 cols (acumular um valor) → 1 coluna */
+            .sim-campos-2 { grid-template-columns: 1fr; gap: 10px; }
 
             /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
             #painelNovoLancamento {
@@ -7446,13 +7461,9 @@
             }
 
             /* Simulador: parâmetros em uma única coluna para caber bem */
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"],
-            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
-                grid-template-columns: 1fr !important;
-            }
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
-                grid-column: auto;
-            }
+            .sim-campos-2,
+            .sim-campos-3 { grid-template-columns: 1fr; }
+            .sim-campos-3 > .form-group:first-child { grid-column: auto; }
         }
 
         /* ============================================================
@@ -12147,7 +12158,7 @@
             <div id="simModoProjetar">
             <div class="card-container" style="margin-bottom:16px;">
                 <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Parâmetros da simulação</div>
-                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                <div class="sim-campos sim-campos-3" style="margin-bottom:14px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Capital inicial (R$)</label>
                         <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
@@ -12162,7 +12173,7 @@
                         <small id="lblSimInflacaoBcb" style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:3px;"><i class="ph ph-spinner ph-spin"></i> Conectando BCB...</small>
                     </div>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+                <div class="sim-campos sim-campos-2">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Taxa de juros</label>
                         <div style="display:flex;gap:8px;">
@@ -12184,7 +12195,7 @@
                 <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--cor-borda);">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Para comparar com o INSS</div>
                     <div style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;margin-bottom:14px;">A contribuição não sai do quanto você investe — sai da sua renda, e trava no teto de <strong id="lblTetoInss">R$ 8.475,55</strong>. <span id="lblTabelaInss">Tabela 2026.</span></div>
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div class="sim-campos sim-campos-2" style="margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Sua renda mensal bruta (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simRenda" value="3500" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
@@ -12195,7 +12206,7 @@
                             <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+                    <div class="sim-campos sim-campos-2">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Anos que você já contribuiu</label>
                             <input type="number" id="simAnosContrib" value="0" min="0" max="60" oninput="calcularSimulador()">
@@ -12380,13 +12391,13 @@
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
                     <div class="form-group" style="margin-bottom:14px;">
                         <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;">
-                            <option value="valor">💰 Quero acumular um valor específico</option>
-                            <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
+                            <option value="valor">💰 Acumular um valor específico</option>
+                            <option value="aposentadoria">🏖️ Me aposentar com uma renda</option>
                         </select>
                     </div>
 
                     <!-- Objetivo: acumular um valor -->
-                    <div id="metaCamposValor" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div id="metaCamposValor" class="sim-campos sim-campos-2" style="margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Quanto quero acumular (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaValor" value="1000000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
@@ -12401,7 +12412,7 @@
                     </div>
 
                     <!-- Objetivo: aposentadoria -->
-                    <div id="metaCamposAposentadoria" style="display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div id="metaCamposAposentadoria" class="sim-campos sim-campos-3" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Minha idade hoje</label>
                             <input type="number" id="metaIdadeAtual" value="30" oninput="calcularMeta()">
@@ -12418,7 +12429,7 @@
                     </div>
 
                     <!-- Parâmetros comuns -->
-                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+                    <div class="sim-campos sim-campos-3">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Capital inicial (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
