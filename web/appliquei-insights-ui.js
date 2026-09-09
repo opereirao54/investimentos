@@ -655,6 +655,36 @@ function insightsUiEstadoAprendendo(meta) {
   );
 }
 
+/**
+ * Por que não há aviso de caixa — dito em voz alta.
+ *
+ * Quando `insightsUiFonteDeSaldo()` se recusa a projetar, o detector de
+ * aperto simplesmente não roda, e a tela seguia mostrando "nada fora do
+ * padrão" ou "ainda aprendendo". As duas frases são falsas e, pior, tranquilas:
+ * a pessoa lê que está tudo bem quando na verdade o app desistiu de olhar.
+ *
+ * Aqui a recusa vira instrução — e o que falta é sempre cadastro, que é coisa
+ * que quem lê consegue resolver.
+ */
+function insightsUiSemProjecao(motivo) {
+  var texto =
+    motivo === 'sem_contas'
+      ? 'Cadastre onde o seu dinheiro está para o app avisar quando as contas vencerem antes de a receita cair.'
+      : 'Há lançamentos já pagos sem dizer de que conta saíram. Enquanto parte do dinheiro não tem dono, qualquer projeção de saldo erraria — e errar em dinheiro custa mais do que ficar calado.';
+  return (
+    '<div class="ins-vazio">' +
+    '<span class="ins-vazio-icone" style="background:var(--cor-bg-amber);color:var(--cor-txt-amber);">' +
+    '<i class="ph-fill ph-warning-circle"></i></span>' +
+    '<div class="ins-vazio-txt">' +
+    '<div class="ins-vazio-titulo">Não consigo prever o seu caixa</div>' +
+    '<div class="ins-vazio-sub">' +
+    texto +
+    '</div>' +
+    '</div>' +
+    '</div>'
+  );
+}
+
 function insightsUiEstadoLimpo(meta) {
   return (
     '<div class="ins-vazio">' +
@@ -693,13 +723,37 @@ function insightsUiEstadoLimpo(meta) {
  * balde contábil como se fosse dinheiro é inventar um saldo que não é de
  * ninguém.
  *
- * Agora: só contas cadastradas entram na conta. E se houver QUALQUER
- * movimento fora delas, a resposta certa não é um número menos errado — é
- * não responder. Com parte das saídas sem dono, nenhuma projeção de caixa é
- * confiável, e um alerta que erra em dinheiro custa mais do que um alerta que
- * não aparece.
+ * Agora: só contas cadastradas entram na foto de hoje. Se houver movimento
+ * PASSADO fora delas, a resposta certa não é um número menos errado — é não
+ * responder.
+ *
+ * ═══ E O DEFEITO QUE ESSA CORREÇÃO CRIOU ═══
+ *
+ * A guarda passou a exigir zero dinheiro fora de conta nas DUAS pontas da
+ * janela: hoje e daqui a 45 dias. A ponta de hoje é a certa. A do futuro
+ * calava o alerta exatamente no caso para o qual ele existe.
+ *
+ * Uma conta a pagar nasce SEM conta escolhida — você só diz de onde sai
+ * quando clica em "Baixar". Até lá ela cai no balde `a-reconciliar`, que a
+ * projeção soma como "fora de conta". Um único boleto futuro sem conta
+ * desligava o detector inteiro, em silêncio.
+ *
+ * Medido no navegador, mesmo saldo (R$ 303,69) e os mesmos 7 vencimentos:
+ *   vencimentos com a conta escolhida → fura em 1 dia, pior R$ -1.126
+ *   vencimentos sem a conta escolhida → detector desligado, nenhum aviso
+ *
+ * A distinção que faltava:
+ *   · fora de conta na FOTO DE HOJE → gasto pago sem dizer de onde saiu. O
+ *     dinheiro saiu de uma conta real que não sabemos qual; o balde é um
+ *     fantasma contábil e projetar sobre ele inventa rombo.
+ *   · fora de conta NO FUTURO → agendamento sem conta escolhida. Não é
+ *     fantasma: esse dinheiro VAI sair de uma conta real. Tem de pesar na
+ *     projeção, senão ela mente para cima — que é o erro caro dos dois.
  */
+var insightsUiMotivoSemProjecao = null;
+
 function insightsUiFonteDeSaldo() {
+  insightsUiMotivoSemProjecao = null;
   if (typeof saldoCaixaPorConta !== 'function' || typeof contasAtivas !== 'function') return null;
 
   var idsReais = {};
@@ -714,7 +768,10 @@ function insightsUiFonteDeSaldo() {
   } catch (_) {
     return null;
   }
-  if (!qtdContas) return null;
+  if (!qtdContas) {
+    insightsUiMotivoSemProjecao = 'sem_contas';
+    return null;
+  }
 
   function separar(ms) {
     var mapa = saldoCaixaPorConta(ms) || {};
@@ -728,25 +785,28 @@ function insightsUiFonteDeSaldo() {
     return { emContas: emContas, foraDeConta: foraDeConta };
   }
 
-  // A validação é feita nas DUAS pontas, antes de devolver a função, e não
-  // dia a dia lá dentro: o detector trata valor não-finito como "dia sem
-  // dado" e simplesmente pula, então recusar por dentro deixaria a análise
-  // seguir com metade da janela — pior que não analisar.
+  // A guarda vale para a FOTO DE HOJE, e só. É nela que mora o fantasma: um
+  // gasto já pago sem dizer de onde saiu deixa um balde negativo que não é
+  // dinheiro de ninguém. Sem saber de que conta saiu, nenhuma projeção em
+  // cima disso é confiável — melhor calar.
   //
-  // Duas pontas bastam: a foto de hoje cobre o passado, e a projeção do
-  // último dia acumula TUDO o que está agendado na janela (ver
-  // aplicarAgendadoNoSaldo, que soma o intervalo inteiro). Se nem hoje nem o
-  // fim da janela têm dinheiro fora de conta, nenhum dia do meio tem.
-  var janela =
-    (window.AppliqueiInsights && window.AppliqueiInsights.LIMIARES.diasJanelaAperto) || 45;
+  // A verificação fica aqui fora, antes de devolver a função, e não dia a dia
+  // lá dentro: o detector trata valor não-finito como "dia sem dado" e pula,
+  // então recusar por dentro deixaria a análise seguir com metade da janela —
+  // pior do que não analisar.
   var agora = Date.now();
-  var pontas = [separar(agora), separar(agora + janela * 86400000)];
-  for (var i = 0; i < pontas.length; i++) {
-    if (Math.abs(pontas[i].foraDeConta) > 0.01) return null;
+  var foraHoje = separar(agora).foraDeConta;
+  if (Math.abs(foraHoje) > 0.01) {
+    insightsUiMotivoSemProjecao = 'sem_dono';
+    return null;
   }
 
   return function (ms) {
-    return separar(ms).emContas;
+    var s = separar(ms);
+    // O que aparece fora de conta DEPOIS de hoje não é fantasma: é conta a
+    // pagar que ainda não teve a conta escolhida. Esse dinheiro vai sair de
+    // alguma conta real, então pesa na projeção como saída.
+    return s.emContas + (s.foraDeConta - foraHoje);
   };
 }
 
@@ -793,6 +853,12 @@ function insightsUiRenderizar() {
   insightsUiUltimo = r;
 
   var lista = transacoes;
+  // A recusa de projetar é informação, não silêncio: sem isto a tela diz
+  // "nada fora do padrão" justamente quando deixou de olhar para o caixa.
+  var avisoSemProjecao =
+    noMesCorrente && !saldoEm && insightsUiMotivoSemProjecao
+      ? insightsUiSemProjecao(insightsUiMotivoSemProjecao)
+      : '';
   var corpo;
   if (r.insights.length) {
     corpo =
@@ -803,11 +869,16 @@ function insightsUiRenderizar() {
         })
         .join('') +
       '</div>';
+  } else if (avisoSemProjecao) {
+    // Nada a dizer sobre padrão E sem projeção de caixa: o que a pessoa
+    // precisa ler é o que falta cadastrar, não um "está tudo bem".
+    corpo = '';
   } else if (r.meta.mesesDisponiveis < r.meta.minMesesHistorico) {
     corpo = insightsUiEstadoAprendendo(r.meta);
   } else {
     corpo = insightsUiEstadoLimpo(r.meta);
   }
+  corpo = avisoSemProjecao + corpo;
 
   var contagem = r.insights.length
     ? '<span class="ins-painel-contagem">' + r.insights.length + '</span>'
