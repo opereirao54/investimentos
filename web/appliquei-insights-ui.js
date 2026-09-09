@@ -885,6 +885,46 @@ function insightsSugestaoAoDigitar() {
   insightsSugestaoTimer = setTimeout(insightsSugestaoAvaliar, 280);
 }
 
+/**
+ * A sugestão ainda tem o que dizer, dado o que já está preenchido?
+ *
+ * ═══ O DEFEITO QUE ISTO CORRIGE ═══
+ *
+ * A guarda antiga era `if (selCat.value) return` — "categoria já escolhida
+ * não se questiona". A intenção estava certa; o sinal, não. Quem preenche o
+ * formulário no celular toca primeiro nos chips do topo (Entrada/Saída/
+ * Cartão), que ficam ACIMA da descrição, e `selecionarChipTipo` grava
+ * `despesa_variavel` no mesmo campo. A partir daí a descrição podia ser
+ * digitada à vontade: a sugestão nunca mais aparecia.
+ *
+ * Medido no navegador, com o mesmo histórico nos dois casos:
+ *   descrição primeiro, chip depois → sugeriu
+ *   chip primeiro, descrição depois → NÃO sugeriu
+ *
+ * Era isso o "só apareceu no primeiro lançamento": o primeiro é digitado com
+ * o formulário recém-aberto (o foco vai para a descrição); do segundo em
+ * diante a pessoa já entrou no ritmo de tocar o chip antes.
+ *
+ * O chip escolhe a classificação GROSSA. A sugestão carrega duas coisas — a
+ * grossa e a categoria de despesa (mercado, transporte, cabeleireiro), que
+ * chip nenhum preenche e que é justamente o trabalho que ela poupa. Então a
+ * pergunta certa não é "já tem alguma coisa aí?", é "o que eu tenho a dizer
+ * já está escrito?". Se ambos os campos já batem com a sugestão, ela cala —
+ * que era o objetivo original da guarda, agora pelo motivo certo.
+ */
+function insightsSugestaoAcrescenta(sug) {
+  var selCat = document.getElementById('categoriaTransacao');
+  var selDesp = document.getElementById('categoriaDespesa');
+  var catAtual = selCat ? selCat.value : '';
+  var despAtual = selDesp ? selDesp.value : '';
+
+  if (!catAtual) return true; // nada preenchido: a sugestão é toda ela nova
+  if (sug.categoria !== catAtual) return true; // discorda do que está lá
+  // Concorda na classificação grossa: só vale falar se souber a fina e ela
+  // ainda não estiver preenchida.
+  return !!sug.categoriaDespesa && sug.categoriaDespesa !== despAtual;
+}
+
 function insightsSugestaoAvaliar() {
   var host = document.getElementById('sugestaoCategoria');
   if (!host) return;
@@ -896,9 +936,6 @@ function insightsSugestaoAvaliar() {
   if (texto.length < 3) return insightsSugestaoLimpar();
   if (insightsSugestaoRecusada[M.normalizarDescricao(texto)]) return insightsSugestaoLimpar();
 
-  var selCat = document.getElementById('categoriaTransacao');
-  if (selCat && selCat.value) return insightsSugestaoLimpar();
-
   var sug;
   try {
     sug = M.sugerirCategoria(texto, transacoes);
@@ -907,6 +944,7 @@ function insightsSugestaoAvaliar() {
     return insightsSugestaoLimpar();
   }
   if (!sug) return insightsSugestaoLimpar();
+  if (!insightsSugestaoAcrescenta(sug)) return insightsSugestaoLimpar();
 
   insightsSugestaoAtual = sug;
   var rotuloContabil = INSIGHTS_ROTULO_CONTABIL[sug.categoria] || sug.categoria;

@@ -10533,7 +10533,7 @@
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="novoCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
                     </div>
-                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Conta que paga a fatura *</label><select id="novoCartaoContaPagadora" style="padding:8px;font-size:13px;"></select><span style="display:block;font-size:10px;color:var(--cor-texto-mutado);margin-top:3px;">Obrigatório — é dessa conta que o dinheiro sai quando você paga a fatura.</span></div>
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Conta que paga a fatura *</label><select id="novoCartaoContaPagadora"></select><span style="display:block;font-size:10px;color:var(--cor-texto-mutado);margin-top:3px;">Obrigatório — é dessa conta que o dinheiro sai quando você paga a fatura.</span></div>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoConfig()">Cancelar</button>
                         <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarNovoCartaoConfig()"><i class="ph ph-check"></i> Adicionar</button>
@@ -11706,7 +11706,7 @@
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
                         <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -11720,7 +11720,7 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                            <select id="selectCartao" onchange="onChangeSelectCartao()"></select>
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
@@ -12167,14 +12167,14 @@
                         <label>Taxa de juros</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                            <select id="simTipoTaxa" style="flex:1;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                         </div>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Período</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTempo" value="10" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                            <select id="simTipoTempo" style="flex:1;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                         </div>
                     </div>
                 </div>
@@ -12191,7 +12191,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Como você contribui</label>
-                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
+                            <select id="simVinculo" style="width:100%;" onchange="calcularSimulador()"></select>
                             <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
                         </div>
                     </div>
@@ -12203,7 +12203,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Regra que se aplica a você</label>
-                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
+                            <select id="simSexo" style="width:100%;" onchange="calcularSimulador()">
                                 <option value="mulher">Mulher — 62 anos, 15 de contribuição</option>
                                 <option value="homem">Homem — 65 anos, 20 de contribuição</option>
                             </select>
@@ -12379,7 +12379,7 @@
                 <div class="card-container" style="margin-bottom:16px;">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
                     <div class="form-group" style="margin-bottom:14px;">
-                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
+                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;">
                             <option value="valor">💰 Quero acumular um valor específico</option>
                             <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
                         </select>
@@ -12395,7 +12395,7 @@
                             <label>Em quanto tempo</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                                <select id="metaTipoPrazo" style="flex:1;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                             </div>
                         </div>
                     </div>
@@ -12427,7 +12427,7 @@
                             <label>Rentabilidade esperada</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                                <select id="metaTipoTaxa" style="flex:1;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
