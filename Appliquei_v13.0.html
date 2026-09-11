@@ -262,6 +262,16 @@
         body.dark #meus_sonhos .sonhos-overview { background: linear-gradient(135deg, var(--cor-branco) 0%, rgba(124,58,237,0.06) 50%, rgba(16,185,129,0.07) 100%); }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Figtree', sans-serif; }
+
+        /* O atributo `hidden` tem de ganhar de QUALQUER regra de autor.
+           O navegador o implementa como `[hidden] { display: none }` na folha
+           do UA, que perde para qualquer `.minha-classe { display: flex }`
+           nossa — então `el.hidden = true` simplesmente não escondia nada.
+           Esta base já foi mordida por isso cinco vezes (.disc-corpo,
+           .cart-ajuda-balao, três em #carteira, #fabMenu), cada uma remendada
+           no lugar. A regra abaixo fecha a classe inteira do defeito: quem
+           quiser um elemento visível não põe `hidden` nele. */
+        [hidden] { display: none !important; }
         body { display: flex; height: 100vh; background-color: var(--cor-fundo); color: var(--cor-texto-principal); overflow: hidden; transition: background .3s, color .3s; }
 
         /* === SIDEBAR — DARK PREMIUM === */
@@ -1508,6 +1518,29 @@
         .form-group input[type="month"] {
             text-align: left;
         }
+
+        /* === GRADES DE CAMPO DO SIMULADOR =========================
+           POR QUE ISTO É UMA CLASSE, E NÃO UM `[style*=...]`.
+
+           As regras responsivas destas grades casavam o TEXTO do atributo
+           style: `div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"]`.
+           Funciona até o JS tocar no elemento. `atualizarCamposMeta()` faz
+           `el.style.display = 'grid'` para trocar o objetivo, e o navegador
+           então reescreve o atributo inteiro na forma canônica —
+           `repeat(3, minmax(0px, 1fr))`, com espaços e com `0px`. O seletor
+           deixa de casar, a regra some, e a grade volta a três colunas num
+           telefone de 390px: rótulo quebrando, valor cortado ("R$ 15.000,"),
+           campos desalinhados entre as colunas.
+
+           Só quebrava DEPOIS de mexer no <select> do objetivo, que é por que
+           a primeira pintura parecia certa. Medido no Chromium a 390px:
+             atributo intacto  → 1fr
+             após o JS tocar   → repeat(2, minmax(0px, 1fr))
+
+           Classe não tem essa fragilidade: não há string para reescrever. */
+        .sim-campos { display: grid; gap: 14px; }
+        .sim-campos-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .sim-campos-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
         /* Seta própria no select, como já se fazia nos painéis de lançamento
            e de operação. A seta NATIVA é desenhada por cima do padding e come
@@ -6065,33 +6098,158 @@
             .im-card-titulo { font-size: 14px; }
         }
 
+        /* === MARCA DO ATIVO ========================================
+           Um quadrado só, usado por toda tela que lista ativo. O logo entra
+           POR CIMA do monograma, que continua sendo o chão: FII, Tesouro,
+           cripto e ticker recém-listado normalmente não têm imagem, e a lista
+           não pode ficar com buracos. Se o <img> não carregar ele se remove
+           sozinho e o monograma reaparece sem nenhum salto de layout, porque
+           os dois ocupam exatamente a mesma caixa.
+
+           O tamanho vem inline de logoAtivoHTML() — lado e corpo da letra
+           juntos —, por isso não há aqui uma régua de tamanhos por tela. */
+        .ativo-marca {
+            position: relative; overflow: hidden; flex-shrink: 0;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'DM Mono', monospace; font-weight: 800;
+            line-height: 1; letter-spacing: -0.3px;
+            /* Piso, para quem não manda tamanho e não tem CSS próprio. */
+            width: 40px; height: 40px; font-size: 15px;
+        }
+        .ativo-marca-inicial { font-size: inherit; }
+        .ativo-marca-img {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            object-fit: contain;
+            /* Fundo claro por baixo: quase todo logo de empresa é desenhado
+               para fundo branco e sumiria contra o verde do monograma. */
+            background: #fff;
+            padding: 3px;
+        }
+        /* Ancoragens nas listas que ainda não tinham um lugar para a marca. */
+        .celula-com-marca { display: flex; align-items: center; gap: 9px; }
+        .div-rank-marca, .tl-marca, .cart-score-marca, .op-identidade-marca { border-radius: 9px; }
+        .tl-marca { margin-right: 2px; }
+
+        /* Identidade do ativo no drawer de operação: a confirmação de que o
+           código digitado é mesmo a empresa que a pessoa quer. */
+        .op-identidade {
+            display: flex; align-items: center; gap: 10px;
+            margin-top: 9px; padding: 8px 10px;
+            background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria);
+            border-radius: 11px;
+        }
+        .op-identidade-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .op-identidade-ticker {
+            font-family: 'DM Mono', monospace; font-weight: 800; font-size: 13.5px;
+            color: var(--cor-texto-principal); letter-spacing: -0.3px;
+        }
+        .op-identidade-nome {
+            font-size: 11px; color: var(--cor-texto-secundario);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .op-identidade-tag {
+            flex-shrink: 0; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.4px; padding: 3px 7px; border-radius: 6px;
+            background: var(--cor-superficie); color: var(--cor-texto-secundario);
+            border: 1px solid var(--cor-borda);
+        }
+
         /* === TELA DE LOGIN (Firebase) === */
         /* U1: NÃO usar flex centrado em overlay scrollável — quando o
            conteúdo passa a altura do viewport (ecrã pequeno, conteúdo do
            painel de verificação, etc.), align-items:center empurra o topo
            para fora da área scrollável e fica inacessível. display:block
            + margin:auto no inner garante que o topo é sempre alcançável. */
+        /* === PORTA DE ENTRADA ======================================
+           Direção: confiável · acolhedor · nítido.
+
+           O gradiente e o brilho radial são os MESMOS da landing (.hero) de
+           propósito: quem clica em "Começar" vem de lá e tem de sentir que
+           continua no mesmo lugar. Antes o gate usava um gradiente parecido
+           mas sem o brilho, e lia como uma página de terceiro.
+
+           O card também deixou de flutuar sozinho num vazio escuro — no
+           desktop meia tela não fazia nada. Agora divide o palco com o painel
+           de marca, que carrega a promessa dos 7 dias. */
         .auth-gate {
             position: fixed; inset: 0; z-index: 10050;
             display: block;
             padding: 24px 16px;
-            background: linear-gradient(145deg, #0b1410 0%, #0f1f18 45%, #111c17 100%);
+            background: linear-gradient(150deg, #0b1410 0%, #0f1f18 50%, #112720 100%);
             overflow-y: auto;
             box-sizing: border-box;
         }
+        .auth-gate::before {
+            content: ''; position: fixed; inset: 0; pointer-events: none;
+            background:
+                radial-gradient(60% 40% at 82% 8%, rgba(16,185,129,.18), transparent 70%),
+                radial-gradient(42% 36% at 8% 92%, rgba(5,150,105,.16), transparent 70%);
+        }
+        .auth-gate-shell {
+            position: relative; z-index: 1;
+            min-height: 100%;
+            display: grid; align-items: center; justify-content: center;
+            grid-template-columns: minmax(0, 460px) minmax(0, 420px);
+            gap: 56px;
+            max-width: 940px; margin: 0 auto;
+        }
+
+        /* --- Painel de marca (só desktop) --- */
+        .auth-brand { color: #c8d6cf; }
+        .auth-brand-marca { display: block; max-width: 188px; height: auto; margin-bottom: 24px; }
+        .auth-brand-selo {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 12px; border-radius: 999px;
+            background: rgba(52,211,153,.12); color: #6ee7b7;
+            font-size: 12px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+        }
+        .auth-brand-titulo {
+            /* `display: block` explícito: a regra global de h1 deste app é
+               `display: flex`, e ela transformava cada nó de texto e o <em>
+               em itens flex — o título saía picotado, com a vírgula sozinha
+               numa linha. */
+            display: block;
+            font-family: 'Syne', sans-serif; font-weight: 700;
+            font-size: clamp(28px, 3.2vw, 38px); line-height: 1.15; letter-spacing: -0.8px;
+            color: #fff; margin: 16px 0 0; max-width: 16ch;
+        }
+        /* O mint no verbo, como na landing: um acento, não um arco-íris. */
+        .auth-brand-titulo em { color: #34d399; font-style: normal; }
+        .auth-brand-sub { font-size: 15.5px; line-height: 1.6; margin-top: 14px; max-width: 42ch; }
+        .auth-brand-pontos { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 10px; }
+        .auth-brand-pontos li {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 14px; line-height: 1.5; color: #c8d6cf;
+        }
+        .auth-brand-pontos i { color: #34d399; font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+        .auth-brand-rodape { margin-top: 26px; font-size: 13px; color: #9fb3aa; }
+
         .auth-gate-inner {
             width: 100%; max-width: 420px;
             margin: 0 auto;
             background: var(--cor-branco);
             border: 1px solid var(--cor-borda);
             border-radius: var(--radius);
-            box-shadow: var(--shadow-hover);
+            box-shadow: 0 24px 60px rgba(0,0,0,.32), 0 2px 8px rgba(0,0,0,.18);
             padding: 28px 26px 26px;
+            animation: authEntra .32s cubic-bezier(.2,.7,.3,1) both;
         }
+        @keyframes authEntra { from { opacity: 0; transform: translateY(10px); } }
+
         .auth-gate-head {
             text-align: center; margin-bottom: 22px;
         }
         .auth-gate-head img { max-width: 180px; height: auto; }
+        /* No desktop a marca já está no painel ao lado; repeti-la aqui seria
+           dizer o nome duas vezes na mesma tela. */
+        @media (min-width: 901px) { .auth-head-marca, .auth-so-mobile { display: none; } }
+
+        @media (max-width: 900px) {
+            .auth-gate-shell { grid-template-columns: minmax(0, 420px); gap: 0; }
+            .auth-brand { display: none; }
+        }
         .auth-gate-head h2 {
             font-family: 'Syne', sans-serif; font-size: 1.35rem; font-weight: 700;
             color: var(--cor-texto-principal); margin-top: 12px; letter-spacing: -0.3px;
@@ -6122,7 +6280,10 @@
             padding: 9px 10px; font-size: 13px; font-weight: 600; color: var(--cor-texto-mutado);
             border-radius: 7px; font-family: 'Figtree', sans-serif; transition: var(--transicao);
         }
-        .auth-tab.ativo { background: var(--cor-branco); color: var(--cor-primaria); box-shadow: var(--shadow-suave); }
+        /* --cor-primaria sobre branco dá 3,77:1 — reprova AA em 13px/600.
+           --cor-txt-primaria é o token feito para texto sobre fundo claro
+           verde e chega a 8,6:1. */
+        .auth-tab.ativo { background: var(--cor-branco); color: var(--cor-txt-primaria); box-shadow: var(--shadow-suave); }
         .auth-err {
             font-size: 12.5px; color: var(--cor-txt-erro); background: var(--cor-bg-erro);
             border: 1px solid var(--cor-borda-erro); border-radius: var(--radius-sm);
@@ -6130,12 +6291,23 @@
         }
         .auth-err.vis { display: block; }
         .auth-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+        /* CONTRASTE DO CTA PRINCIPAL.
+           Branco sobre --cor-primaria dava 3,77:1 no tema claro e 1,92:1 no
+           escuro (onde a primária é o mint #34d399) — o botão mais importante
+           da tela era o menos legível dela. No claro o verde escurece para o
+           tom de hover, que leva o par a 5,3:1; no escuro o mint fica e quem
+           inverte é o texto.
+           NOTA: `.btn-acao`, usado no app inteiro, tem o mesmo par e o mesmo
+           problema. Fora do escopo desta tela, mas vale a mesma correção. */
         .auth-btn-prim {
             width: 100%; border: none; cursor: pointer; padding: 12px 16px; border-radius: var(--radius-sm);
             font-size: 14px; font-weight: 600; font-family: 'Figtree', sans-serif;
-            background: var(--cor-primaria); color: #fff; transition: var(--transicao);
+            background: var(--cor-primaria-hover); color: #fff; transition: var(--transicao);
         }
-        .auth-btn-prim:hover { background: var(--cor-primaria-hover); }
+        .auth-btn-prim:hover { background: #036347; }
+        .auth-btn-prim:focus-visible { outline: 2px solid #6ee7b7; outline-offset: 2px; }
+        body.dark .auth-btn-prim { background: var(--cor-primaria); color: #06281c; }
+        body.dark .auth-btn-prim:hover { background: var(--cor-primaria-hover); }
         .auth-btn-prim:disabled { opacity: 0.55; cursor: not-allowed; }
         .auth-btn-sec {
             width: 100%; border: 1px solid var(--cor-borda); cursor: pointer;
@@ -6151,7 +6323,81 @@
             border: none; background: none; cursor: pointer; color: var(--cor-primaria);
             font-weight: 600; font-size: inherit; font-family: inherit; text-decoration: underline;
         }
-        .auth-loading { text-align: center; padding: 20px 8px; color: var(--cor-texto-mutado); font-size: 14px; }
+        /* Era uma linha de texto parada. Sem movimento, "Preparando…" lê como
+           travado — e é o primeiro estado que qualquer pessoa vê. */
+        .auth-loading {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            padding: 28px 8px; color: var(--cor-texto-mutado); font-size: 14px;
+        }
+        .auth-spinner {
+            width: 17px; height: 17px; flex-shrink: 0;
+            border: 2px solid var(--cor-borda);
+            border-top-color: var(--cor-primaria);
+            border-radius: 50%;
+            animation: authGira .7s linear infinite;
+        }
+        @keyframes authGira { to { transform: rotate(360deg); } }
+
+        /* --- Confirmação de e-mail: dois passos, para a tela deixar de ler
+               como um beco sem saída. --- */
+        .auth-passos {
+            list-style: none; margin: 0 0 18px; padding: 0;
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; font-weight: 600;
+        }
+        .auth-passos li {
+            flex: 1; display: flex; align-items: center; gap: 7px;
+            padding: 8px 10px; border-radius: 999px;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado);
+            border: 1px solid var(--cor-borda);
+        }
+        .auth-passos li span {
+            width: 18px; height: 18px; flex-shrink: 0; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10.5px; background: var(--cor-borda); color: var(--cor-texto-secundario);
+        }
+        .auth-passos .is-feito { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); color: var(--cor-txt-primaria); }
+        .auth-passos .is-feito span { background: var(--cor-primaria); color: #fff; }
+        .auth-passos .is-agora { border-color: var(--cor-borda-primaria); color: var(--cor-texto-principal); background: var(--cor-branco); }
+        .auth-passos .is-agora span { background: var(--cor-primaria); color: #fff; }
+
+        .auth-verify-icone { text-align: center; padding: 4px 0 10px; }
+        .auth-verify-icone i { font-size: 46px; color: var(--cor-primaria); }
+        /* Terceiro nível de ação: saída de emergência, não uma opção de mesmo
+           peso que "Já verifiquei" e "Reenviar". Com borda, os três botões
+           empilhados liam como três caminhos igualmente prováveis. */
+        .auth-btn-texto {
+            width: 100%; border: none; background: none; cursor: pointer;
+            padding: 8px; font-family: 'Figtree', sans-serif;
+            font-size: 12.5px; color: var(--cor-texto-mutado); text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+        .auth-btn-texto:hover { color: var(--cor-texto-secundario); }
+        .auth-btn-texto:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        .auth-verify-msg { font-size: 13.5px; color: var(--cor-texto-secundario); line-height: 1.55; text-align: center; }
+        /* O e-mail é o dado que a pessoa precisa CONFERIR — se estiver errado,
+           nenhum botão desta tela resolve. Ganha peso e monoespaçada. */
+        .auth-verify-email {
+            text-align: center; margin: 8px 0 16px; padding: 9px 12px;
+            background: var(--cor-superficie); border: 1px solid var(--cor-borda);
+            border-radius: var(--radius-sm);
+            font-family: 'DM Mono', monospace; font-size: 13.5px;
+            color: var(--cor-texto-principal); word-break: break-all;
+        }
+
+        /* O gate nunca teve regra de tema escuro: o botão do Google estava com
+           #fff e #3c4043 no atributo style e ficava um retângulo branco
+           gritando no meio do card escuro. */
+        body.dark #authBtnGoogle {
+            background: var(--cor-superficie) !important;
+            color: var(--cor-texto-principal) !important;
+            border-color: var(--cor-borda2) !important;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .auth-gate-inner { animation: none; }
+            .auth-spinner { animation-duration: 2.4s; }
+        }
         .sidebar-auth-mini {
             padding: 0 10px 10px; border-bottom: 1px solid var(--sb-border); margin-bottom: 8px;
         }
@@ -6165,6 +6411,73 @@
             display: flex; align-items: center; justify-content: center; gap: 6px; transition: var(--transicao);
         }
         .sidebar-auth-mini .sa-btn:hover { background: rgba(255,255,255,0.08); border-color: var(--sb-accent-border); }
+
+        /* Faixa do modo "editando um sonho" no painel de lançamento. */
+        .edicao-sonho-faixa {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 12px 14px; margin-bottom: 14px;
+            background: var(--cor-bg-primaria);
+            border: 1px solid var(--cor-borda-primaria);
+            border-radius: 10px;
+        }
+        .edicao-sonho-faixa > i { font-size: 20px; color: var(--tinta-roxo, var(--cor-primaria)); flex-shrink: 0; }
+        .edicao-sonho-faixa strong { display: block; font-size: 13.5px; color: var(--cor-texto-principal); }
+        .edicao-sonho-faixa span { display: block; font-size: 12px; line-height: 1.5; color: var(--cor-texto-secundario); margin-top: 2px; }
+
+        /* === APPLICASH ===========================================
+           A composição troca por [data-fase] na <section>: quem não tem
+           indicação nenhuma não vê KPI zerado nem tabela vazia, vê o link e
+           o "como funciona". Blocos marcam em que fase existem via [data-so].
+
+           Espaçamento na escala 4/8/12/16/24; cor, raio e sombra só por
+           token (os mesmos do tema, então o modo escuro vem de graça). */
+
+        #applicash [data-so] { display: none; }
+        #applicash[data-fase="deslogado"] [data-so~="deslogado"],
+        #applicash[data-fase="erro"]      [data-so~="erro"],
+        #applicash[data-fase="vazio"]     [data-so~="vazio"],
+        #applicash[data-fase="ativo"]     [data-so~="ativo"] { display: block; }
+        #applicash[data-fase="ativo"] .grid-3[data-so],
+        #applicash[data-fase="ativo"] .grid-2-iguais[data-so] { display: grid; }
+        #applicash[data-fase="ativo"] details[data-so] { display: block; }
+
+        /* Carregando: o slot do cupom e o do link viram blocos pulsantes.
+           Antes recebiam a string "Carregando…" e o usuário lia aquilo como
+           se fosse o código dele, em 36px monoespaçado. */
+        #applicash[data-fase="carregando"] .apc-hero-code,
+        #applicash[data-fase="carregando"] .apc-hero-link-pill .pill-url {
+            color: transparent;
+            border-radius: 8px;
+            background: linear-gradient(90deg, var(--cor-superficie) 25%, var(--cor-borda) 37%, var(--cor-superficie) 63%);
+            background-size: 400% 100%;
+            animation: apcSkeleton 1.4s ease-in-out infinite;
+            min-width: 180px;
+            user-select: none;
+        }
+        @keyframes apcSkeleton { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+        @media (prefers-reduced-motion: reduce) {
+            #applicash [class*="apc-"] { animation: none !important; transition: none !important; }
+        }
+
+        .apc-erro {
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+            padding: 12px 16px; margin-bottom: 16px;
+            background: var(--cor-bg-erro);
+            border: 1px solid var(--cor-borda-erro);
+            border-radius: 10px;
+            color: var(--cor-txt-erro);
+            font-size: 13px; line-height: 1.5;
+        }
+        .apc-erro i { font-size: 18px; flex-shrink: 0; }
+        .apc-erro-btn {
+            margin-left: auto; min-height: 36px; padding: 8px 14px;
+            border: 1px solid var(--cor-borda-erro); border-radius: 8px;
+            background: var(--cor-branco); color: var(--cor-txt-erro);
+            font-family: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer;
+            transition: var(--transicao);
+        }
+        .apc-erro-btn:hover { background: var(--cor-bg-erro); }
+        .apc-erro-btn:focus-visible { outline: 2px solid var(--cor-erro); outline-offset: 2px; }
 
         /* === APPLICASH — HERO & EMPTY STATES === */
         .apc-hero {
@@ -6256,6 +6569,135 @@
             .apc-hero-actions { flex-direction: row; flex-wrap: wrap; }
             .apc-hero-actions .btn-acao,
             .apc-hero-actions .btn-secundario { flex: 1 1 calc(50% - 4px); min-width: 0; }
+        }
+
+        /* CTA primário vs. secundários. Antes eram três botões do mesmo
+           peso — mais a pílula do link, que também copia: quatro caminhos
+           concorrentes para uma decisão só. */
+        .apc-hero-actions .apc-cta { font-size: 14px; padding: 13px 18px; }
+        .apc-hero-actions-sec { display: flex; gap: 8px; }
+        .apc-hero-actions-sec .btn-secundario {
+            flex: 1 1 0; min-width: 0; font-size: 12.5px; padding: 9px 12px;
+        }
+        .apc-hero-actions button:disabled { opacity: .5; cursor: not-allowed; }
+        .apc-hero-actions button:focus-visible,
+        .apc-hero-link-pill:focus-visible {
+            outline: 2px solid var(--cor-primaria); outline-offset: 2px;
+        }
+        .apc-hero-link-pill:disabled { cursor: default; }
+
+        /* Aviso de deslogado */
+        .apc-aviso { display: flex; align-items: center; gap: 16px; }
+        .apc-aviso > i { font-size: 36px; color: var(--cor-primaria); flex-shrink: 0; }
+        .apc-aviso h4 { margin: 0 0 4px; font-size: 15px; color: var(--cor-texto-principal); }
+        .apc-aviso p { margin: 0; font-size: 13px; color: var(--cor-texto-secundario); }
+
+        /* Passos do "como funciona" */
+        .apc-passos { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .apc-passos li { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 10px; }
+        .apc-passo-n {
+            width: 28px; height: 28px; flex-shrink: 0; border-radius: 999px;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            display: inline-flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 13px;
+        }
+        .apc-passos strong { display: block; font-size: 13.5px; color: var(--cor-texto-principal); margin-bottom: 2px; }
+        .apc-passos span { font-size: 12.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
+
+        .apc-nota {
+            display: flex; gap: 8px; align-items: flex-start;
+            margin-top: 14px; padding: 12px 14px;
+            background: var(--cor-bg-info); border: 1px solid var(--cor-borda-info);
+            border-radius: 9px; font-size: 12.5px; line-height: 1.5; color: var(--cor-txt-info);
+        }
+        .apc-nota i { flex-shrink: 0; font-size: 15px; margin-top: 1px; }
+        .apc-nota.is-acao { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); color: var(--cor-txt-primaria); }
+
+        /* O PAYOFF — quanto a próxima cobrança vai custar. Era uma tira de
+           13px que nascia display:none; é a recompensa inteira do programa. */
+        .apc-payoff {
+            display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr);
+            gap: 24px; align-items: center;
+            padding: 20px 24px; margin-bottom: 18px;
+            border-radius: 16px;
+            background:
+                radial-gradient(120% 140% at 0% 0%, rgba(16,185,129,0.14) 0%, rgba(16,185,129,0) 55%),
+                linear-gradient(135deg, var(--cor-branco) 0%, var(--cor-superficie) 100%);
+            border: 1px solid var(--cor-borda-primaria);
+            box-shadow: var(--shadow-card);
+        }
+        .apc-payoff-label { font-size: 11px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+        .apc-payoff-valor { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 6px 0 4px; }
+        .apc-payoff-valor strong { font-family: 'DM Mono', monospace; font-size: clamp(28px, 4vw, 38px); font-weight: 700; color: var(--cor-primaria); line-height: 1.1; }
+        .apc-payoff-de { font-size: 13px; color: var(--cor-texto-mutado); }
+        .apc-payoff-de s { font-family: 'DM Mono', monospace; }
+        .apc-payoff-sub { font-size: 12.5px; color: var(--cor-texto-secundario); }
+        .apc-payoff-bar { display: flex; flex-direction: column; gap: 8px; }
+        .apc-payoff-pct { font-size: 12px; color: var(--cor-texto-mutado); }
+
+        /* Barra genérica. Substitui a pizza "paga vs recebe", que com uma
+           indicação desenhava um fiapo verde num círculo vermelho — e pintava
+           a assinatura do próprio usuário como perda. */
+        .apc-bar { background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 999px; height: 14px; overflow: hidden; }
+        .apc-bar > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--cor-primaria), #10b981); transition: width .25s ease; }
+
+        /* Funil de convites */
+        .apc-funil { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .apc-funil li { text-align: center; padding: 14px 8px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 10px; }
+        .apc-funil li.is-fim { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-funil i { font-size: 18px; color: var(--cor-texto-mutado); display: block; margin-bottom: 4px; }
+        .apc-funil li.is-fim i { color: var(--cor-primaria); }
+        .apc-funil strong { display: block; font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 700; color: var(--cor-texto-principal); line-height: 1.1; }
+        .apc-funil span { font-size: 11.5px; color: var(--cor-texto-secundario); }
+
+        /* Meta */
+        .apc-meta-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 4px; }
+        .apc-meta-rot { font-size: 11px; color: var(--cor-texto-mutado); text-transform: uppercase; letter-spacing: .6px; font-weight: 700; }
+        .apc-meta-titulo { font-size: 18px; font-weight: 700; color: var(--cor-texto-principal); }
+        .apc-meta-premio { font-family: 'DM Mono', monospace; font-weight: 700; font-size: 18px; color: var(--cor-primaria); }
+        .apc-meta-sub { font-size: 12px; color: var(--cor-texto-secundario); margin-bottom: 10px; }
+        .apc-meta-legenda { display: flex; justify-content: space-between; font-size: 12px; color: var(--cor-texto-mutado); margin-top: 8px; }
+        .apc-meta-legenda strong { color: var(--cor-texto-principal); }
+
+        .apc-marcos { list-style: none; margin: 18px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+        .apc-marco { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 9px; }
+        /* O ícone preenchido carrega o mesmo significado que a cor — nada
+           essencial pode depender só de cor. */
+        .apc-marco > i { font-size: 20px; flex-shrink: 0; color: var(--cor-texto-mutado); }
+        .apc-marco.is-feito { background: var(--cor-bg-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-marco.is-feito > i { color: var(--cor-primaria); }
+        .apc-marco strong { display: block; font-size: 12.5px; color: var(--cor-texto-principal); }
+        .apc-marco span { font-size: 11.5px; color: var(--cor-texto-secundario); }
+        .apc-marco-tag { margin-left: auto; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: var(--cor-txt-primaria); flex-shrink: 0; }
+
+        /* Tabela de indicados — 3 colunas. "Plano" e "Periodicidade" eram
+           sempre "Mensal" nas duas e forçavam scroll horizontal no celular. */
+        .apc-tabela .apc-td-sub { display: block; font-size: 11.5px; color: var(--cor-texto-mutado); margin-top: 2px; }
+        .apc-tabela .apc-td-num { text-align: right; font-family: 'DM Mono', monospace; font-weight: 700; color: var(--cor-primaria); white-space: nowrap; }
+        .apc-tabela .apc-td-status { text-align: center; }
+        .apc-pill {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+            padding: 4px 10px; border-radius: 999px;
+            background: var(--cor-superficie); color: var(--cor-texto-mutado); border: 1px solid var(--cor-borda);
+        }
+        .apc-pill.is-ok { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); border-color: var(--cor-borda-primaria); }
+        .apc-tabela-vazia { text-align: center; padding: 30px 16px; color: var(--cor-texto-mutado); font-size: 13px; }
+        .apc-tabela-vazia i { font-size: 32px; display: block; margin-bottom: 8px; }
+
+        .apc-detalhes summary {
+            cursor: pointer; font-weight: 700; font-size: 13.5px; color: var(--cor-texto-principal);
+            display: flex; align-items: center; gap: 8px; min-height: 44px;
+        }
+        .apc-detalhes summary:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        .apc-detalhes[open] summary { margin-bottom: 14px; }
+
+        @media (max-width: 720px) {
+            .apc-payoff { grid-template-columns: 1fr; gap: 16px; }
+            .apc-funil { grid-template-columns: 1fr; }
+            .apc-funil li { display: flex; align-items: center; gap: 10px; text-align: left; }
+            .apc-funil i { margin-bottom: 0; }
+            .apc-funil strong { font-size: 20px; }
         }
 
         /* Empty state CTA — substitui o gráfico quando 0 indicações */
@@ -6898,18 +7340,10 @@
             #simulador .card-container > div[style*="width:72px"][style*="height:72px"] { width: 60px !important; height: 60px !important; }
 
             /* Parâmetros da simulação (3 cols) → 2 cols, 1º campo largo */
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] {
-                grid-template-columns: 1fr 1fr !important;
-                gap: 10px !important;
-            }
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
-                grid-column: 1 / -1;
-            }
-            /* Campos da meta em 2 cols inline (acumular um valor) → 1 coluna */
-            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
-                grid-template-columns: 1fr !important;
-                gap: 10px !important;
-            }
+            .sim-campos-3 { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .sim-campos-3 > .form-group:first-child { grid-column: 1 / -1; }
+            /* Campos da meta em 2 cols (acumular um valor) → 1 coluna */
+            .sim-campos-2 { grid-template-columns: 1fr; gap: 10px; }
 
             /* === DRAWER MOBILE: "Novo lançamento" como bottom sheet === */
             #painelNovoLancamento {
@@ -7027,13 +7461,9 @@
             }
 
             /* Simulador: parâmetros em uma única coluna para caber bem */
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"],
-            #simulador div[style*="grid-template-columns:repeat(2,minmax(0,1fr))"] {
-                grid-template-columns: 1fr !important;
-            }
-            #simulador div[style*="grid-template-columns:repeat(3,minmax(0,1fr))"] .form-group:first-child {
-                grid-column: auto;
-            }
+            .sim-campos-2,
+            .sim-campos-3 { grid-template-columns: 1fr; }
+            .sim-campos-3 > .form-group:first-child { grid-column: auto; }
         }
 
         /* ============================================================
@@ -9905,13 +10335,35 @@
     </script>
 
     <div id="authGate" class="auth-gate" style="display:block;" aria-hidden="false">
+      <div class="auth-gate-shell">
+        <!-- Painel de marca. Existe porque o card flutuava sozinho num vazio
+             escuro: no desktop sobrava meia tela sem função. Aqui ele carrega
+             a promessa (7 dias grátis) que antes era nota de rodapé de 12px,
+             e usa o wordmark de fundo escuro. Some abaixo de 900px, onde o
+             card volta a ser a tela inteira. -->
+        <aside class="auth-brand" aria-hidden="true">
+            <img class="auth-brand-marca" src="appliquei-wordmark.svg" alt="" width="188" height="40" decoding="async">
+            <span class="auth-brand-selo"><i class="ph-fill ph-gift"></i> 7 dias grátis</span>
+            <h1 class="auth-brand-titulo">Seu dinheiro <em>inteiro</em>,<br>numa tela só.</h1>
+            <p class="auth-brand-sub">Contas, cartões, investimentos e sonhos — somados de verdade, sem planilha.</p>
+            <ul class="auth-brand-pontos">
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Saldo real por banco, não estimativa</li>
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Patrimônio e carteira no mesmo lugar</li>
+                <li><i class="ph-fill ph-check-circle" aria-hidden="true"></i> Sonhos com plano mensal automático</li>
+            </ul>
+            <p class="auth-brand-rodape">Depois do teste: R$ 15/mês. Cancele quando quiser.</p>
+        </aside>
+
         <div class="auth-gate-inner">
             <div class="auth-gate-head">
-                <img src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
-                <h2>Bem-vindo</h2>
-                <p id="authGateSub">Carregando…</p>
+                <img class="auth-head-marca" src="appliquei-logo.svg" alt="Appliquei" width="180" height="45" decoding="async">
+                <h2 id="authGateTitulo">Bem-vindo</h2>
+                <p id="authGateSub">Entre para continuar</p>
             </div>
-            <div id="authGateLoading" class="auth-loading">Preparando a autenticação…</div>
+            <div id="authGateLoading" class="auth-loading">
+                <span class="auth-spinner" aria-hidden="true"></span>
+                <span>Preparando a autenticação…</span>
+            </div>
             <div id="authGateNoConfig" class="auth-gate-panel">
                 <p style="font-size:13px;color:var(--cor-texto-secundario);line-height:1.55;margin-bottom:16px;">
                     O Firebase não iniciou (rede bloqueada, extensão ou erro no <code>initializeApp</code>). Abra o <strong>Console</strong> (F12) e procure por <code>[AppliqueiFirebase]</code>.
@@ -9952,23 +10404,31 @@
                 </div>
                 <p class="auth-link" id="authHintReg" style="display:none;">Já tem conta? <button type="button" onclick="appliqueiAuthSetModo('login')">Entrar</button></p>
                 <p class="auth-link" id="authHintLogin" style="display:none;">Não tem conta? <button type="button" onclick="appliqueiAuthSetModo('registro')">Criar conta</button></p>
-                <p class="auth-link" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Após o trial: R$ 15/mês via Asaas (PIX, boleto ou cartão).</p>
+                <p class="auth-link auth-so-mobile" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Depois, R$ 15/mês — PIX, boleto ou cartão.</p>
             </div>
             <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
-                <div style="text-align:center;padding:8px 0 4px;">
-                    <i class="ph ph-envelope-simple" style="font-size:34px;color:var(--tinta-verde);"></i>
+                <!-- Sem sinal de progresso, esta tela lia como um beco: três
+                     botões empilhados e nenhuma noção de quanto falta. Os dois
+                     passos dizem que a conta já existe e que resta um clique. -->
+                <ol class="auth-passos" aria-label="Progresso do cadastro">
+                    <li class="is-feito"><span aria-hidden="true"><i class="ph-fill ph-check"></i></span> Conta criada</li>
+                    <li class="is-agora"><span aria-hidden="true">2</span> Confirme o e-mail</li>
+                </ol>
+                <div class="auth-verify-icone" aria-hidden="true">
+                    <i class="ph-duotone ph-envelope-open"></i>
                 </div>
-                <h3 style="text-align:center;font-size:16px;font-weight:600;margin:6px 0 8px;color:var(--cor-texto-primario,#0b1410);">Verifique seu e-mail</h3>
-                <p id="authVerifyMsg" style="font-size:13px;color:var(--cor-texto-secundario,#4a5b53);line-height:1.55;text-align:center;margin-bottom:14px;">Enviamos um link de verificação para <strong id="authVerifyEmail"></strong>. Abra a caixa de entrada e clique no link para liberar o acesso.</p>
+                <p id="authVerifyMsg" class="auth-verify-msg">Enviamos o link de confirmação para</p>
+                <p class="auth-verify-email"><strong id="authVerifyEmail"></strong></p>
                 <div id="authVerifyStatus" style="display:none;font-size:12px;text-align:center;margin-bottom:10px;"></div>
                 <div class="auth-actions" style="display:flex;flex-direction:column;gap:8px;">
                     <button type="button" class="auth-btn-prim" id="authVerifyCheckBtn" onclick="appliqueiAuthVerifyCheck()">Já verifiquei — entrar</button>
                     <button type="button" class="auth-btn-sec" id="authVerifyResendBtn" onclick="appliqueiAuthResend()">Reenviar e-mail</button>
-                    <button type="button" class="auth-btn-sec" onclick="appliqueiAuthSignOut()" style="color:var(--cor-texto-mutado,#6b7d75);font-size:12.5px;">Usar outra conta</button>
+                    <button type="button" class="auth-btn-texto" onclick="appliqueiAuthSignOut()">Usar outra conta</button>
                 </div>
                 <p style="font-size:11.5px;color:var(--cor-texto-mutado,#94a39c);text-align:center;margin-top:14px;line-height:1.5;">Não recebeu? Confira a pasta de spam. O remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>.</p>
             </div>
         </div>
+      </div>
     </div>
 
     <!-- Convite do guia de primeiros passos. Só abre com o app vazio — no
@@ -10084,7 +10544,7 @@
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia fech.*</label><input type="number" id="novoCartaoDiaFech" min="1" max="31" placeholder="Ex: 1" style="padding:8px;font-size:13px;"></div>
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Dia venc.*</label><input type="number" id="novoCartaoDiaVenc" min="1" max="31" placeholder="Ex: 10" style="padding:8px;font-size:13px;"></div>
                     </div>
-                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Conta que paga a fatura *</label><select id="novoCartaoContaPagadora" style="padding:8px;font-size:13px;"></select><span style="display:block;font-size:10px;color:var(--cor-texto-mutado);margin-top:3px;">Obrigatório — é dessa conta que o dinheiro sai quando você paga a fatura.</span></div>
+                    <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Conta que paga a fatura *</label><select id="novoCartaoContaPagadora"></select><span style="display:block;font-size:10px;color:var(--cor-texto-mutado);margin-top:3px;">Obrigatório — é dessa conta que o dinheiro sai quando você paga a fatura.</span></div>
                     <div style="display:flex;gap:6px;">
                         <button class="btn-secundario" style="flex:1;padding:7px;font-size:12px;" onclick="cancelarNovoCartaoConfig()">Cancelar</button>
                         <button class="btn-acao" style="flex:1;padding:7px;font-size:12px;background:var(--cor-primaria);" onclick="salvarNovoCartaoConfig()"><i class="ph ph-check"></i> Adicionar</button>
@@ -10181,6 +10641,10 @@
             <div class="form-group">
                 <label id="lblTickerOp">Buscar Ativo (Ticker ou Nome)</label>
                 <input type="text" id="compraTicker" list="listaAtivosMercado" placeholder="Ex: BTLG11 ou Tesouro" oninput="ajustarCamposPorCategoria();" onblur="preencherPrecoAutomatico(); ajustarCamposPorCategoria();">
+                <!-- Confirmação visual de QUAL empresa foi digitada, antes de a
+                     operação existir. Trocar VALE3 por VALE5 num campo de texto
+                     é um erro barato de cometer e caro de desfazer. -->
+                <div id="compraIdentidade" class="op-identidade" hidden aria-live="polite"></div>
                 <small id="dicaTicker" style="font-size: 12px; color: var(--cor-texto-secundario); display: block; margin-top: 5px;">Digite o ativo e preencheremos a cotação (você pode editar).</small>
             </div>
             <div class="form-group">
@@ -11192,13 +11656,25 @@
                         <button onclick="selecionarChipTipo('cartao')" id="chipCartao" style="flex:1;padding:8px 4px;border-radius:8px;border:1.5px solid var(--cor-borda);background:var(--cor-superficie);color:var(--cor-texto-secundario);font-size:11.5px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Figtree',sans-serif;display:flex;align-items:center;justify-content:center;gap:4px;"><i class="ph ph-credit-card" style="font-size:13px;"></i> Cartão</button>
                     </div>
 
-                    <div class="form-group">
+                    <!-- Editando um compromisso de sonho, o formulário encolhe:
+                         a classificação já está decidida por ele ser um sonho, e
+                         perguntá-la de novo era o que fazia o lançamento virar
+                         despesa e sumir do sonho. Só valor e data ficam. -->
+                    <div id="avisoEdicaoSonho" class="edicao-sonho-faixa" hidden>
+                        <i class="ph-fill ph-shooting-star" aria-hidden="true"></i>
+                        <div>
+                            <strong id="avisoEdicaoSonhoNome">Aporte para o seu sonho</strong>
+                            <span id="avisoEdicaoSonhoDetalhe"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="grupoDescricaoControle">
                         <label>Descrição</label>
                         <input type="text" id="descTransacao" list="listaDescricoes" placeholder="Ex: Salário / Conta de Luz" oninput="insightsSugestaoAoDigitar()">
                         <div id="sugestaoCategoria"></div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;" id="gridCategoriaVencimento">
-                        <div class="form-group">
+                        <div class="form-group" id="grupoCategoriaControle">
                             <label>Categoria</label>
                             <select id="categoriaTransacao" onchange="verificarRegraCartao()">
                                 <option value="" disabled selected>Selecione...</option>
@@ -11241,7 +11717,7 @@
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">
                         <label>Categoria da despesa</label>
-                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                        <select id="categoriaDespesa" onchange="onChangeCategoriaDespesa()"></select>
                         <div id="grupoCategoriaDespesaNova" style="display:none;margin-top:8px;">
                             <div style="display:flex;gap:8px;align-items:center;">
                                 <button type="button" id="categoriaDespesaNovaEmojiBtn" onclick="toggleEmojiPickerCategoria()" title="Escolher emoji" style="flex:0 0 auto;width:44px;height:42px;display:flex;align-items:center;justify-content:center;font-size:20px;border:1.5px solid var(--cor-borda);border-radius:9px;background:var(--cor-superficie);cursor:pointer;line-height:1;">🏷️</button>
@@ -11255,7 +11731,7 @@
                     <div id="grupoCartaoSelect" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:8px;">
                             <label>Cartão</label>
-                            <select id="selectCartao" onchange="onChangeSelectCartao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;"></select>
+                            <select id="selectCartao" onchange="onChangeSelectCartao()"></select>
                         </div>
                         <div id="formNovoCartaoInline" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                             <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="inlineCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
@@ -11682,7 +12158,7 @@
             <div id="simModoProjetar">
             <div class="card-container" style="margin-bottom:16px;">
                 <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Parâmetros da simulação</div>
-                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                <div class="sim-campos sim-campos-3" style="margin-bottom:14px;">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Capital inicial (R$)</label>
                         <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
@@ -11697,19 +12173,19 @@
                         <small id="lblSimInflacaoBcb" style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:flex;align-items:center;gap:3px;"><i class="ph ph-spinner ph-spin"></i> Conectando BCB...</small>
                     </div>
                 </div>
-                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+                <div class="sim-campos sim-campos-2">
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Taxa de juros</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                            <select id="simTipoTaxa" style="flex:1;" onchange="calcularSimulador()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                         </div>
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
                         <label>Período</label>
                         <div style="display:flex;gap:8px;">
                             <input type="number" id="simTempo" value="10" style="flex:1;" oninput="calcularSimulador()">
-                            <select id="simTipoTempo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                            <select id="simTipoTempo" style="flex:1;" onchange="calcularSimulador()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                         </div>
                     </div>
                 </div>
@@ -11719,18 +12195,18 @@
                 <div style="margin-top:18px;padding-top:16px;border-top:1px dashed var(--cor-borda);">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:4px;">Para comparar com o INSS</div>
                     <div style="font-size:11.5px;color:var(--cor-texto-mutado);line-height:1.5;margin-bottom:14px;">A contribuição não sai do quanto você investe — sai da sua renda, e trava no teto de <strong id="lblTetoInss">R$ 8.475,55</strong>. <span id="lblTabelaInss">Tabela 2026.</span></div>
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div class="sim-campos sim-campos-2" style="margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Sua renda mensal bruta (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="simRenda" value="3500" oninput="aplicarMascaraBRL(this); calcularSimulador();"></span>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Como você contribui</label>
-                            <select id="simVinculo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()"></select>
+                            <select id="simVinculo" style="width:100%;" onchange="calcularSimulador()"></select>
                             <small style="font-size:11px;color:var(--cor-texto-mutado);margin-top:4px;display:block;">Autônomo no plano simplificado (11% do mínimo) recebe como MEI.</small>
                         </div>
                     </div>
-                    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;">
+                    <div class="sim-campos sim-campos-2">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Anos que você já contribuiu</label>
                             <input type="number" id="simAnosContrib" value="0" min="0" max="60" oninput="calcularSimulador()">
@@ -11738,7 +12214,7 @@
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Regra que se aplica a você</label>
-                            <select id="simSexo" style="padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;width:100%;" onchange="calcularSimulador()">
+                            <select id="simSexo" style="width:100%;" onchange="calcularSimulador()">
                                 <option value="mulher">Mulher — 62 anos, 15 de contribuição</option>
                                 <option value="homem">Homem — 65 anos, 20 de contribuição</option>
                             </select>
@@ -11914,14 +12390,14 @@
                 <div class="card-container" style="margin-bottom:16px;">
                     <div style="font-size:10px;font-weight:700;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:14px;">Qual é o seu objetivo?</div>
                     <div class="form-group" style="margin-bottom:14px;">
-                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;padding:11px 12px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;">
-                            <option value="valor">💰 Quero acumular um valor específico</option>
-                            <option value="aposentadoria">🏖️ Quero me aposentar com uma renda mensal</option>
+                        <select id="metaObjetivo" onchange="atualizarCamposMeta(); calcularMeta();" style="width:100%;">
+                            <option value="valor">💰 Acumular um valor específico</option>
+                            <option value="aposentadoria">🏖️ Me aposentar com uma renda</option>
                         </select>
                     </div>
 
                     <!-- Objetivo: acumular um valor -->
-                    <div id="metaCamposValor" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div id="metaCamposValor" class="sim-campos sim-campos-2" style="margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Quanto quero acumular (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaValor" value="1000000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
@@ -11930,13 +12406,13 @@
                             <label>Em quanto tempo</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaPrazo" value="20" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoPrazo" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
+                                <select id="metaTipoPrazo" style="flex:1;" onchange="calcularMeta()"><option value="ano">Anos</option><option value="mes">Meses</option></select>
                             </div>
                         </div>
                     </div>
 
                     <!-- Objetivo: aposentadoria -->
-                    <div id="metaCamposAposentadoria" style="display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:14px;">
+                    <div id="metaCamposAposentadoria" class="sim-campos sim-campos-3" style="display:none;margin-bottom:14px;">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Minha idade hoje</label>
                             <input type="number" id="metaIdadeAtual" value="30" oninput="calcularMeta()">
@@ -11953,7 +12429,7 @@
                     </div>
 
                     <!-- Parâmetros comuns -->
-                    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;">
+                    <div class="sim-campos sim-campos-3">
                         <div class="form-group" style="margin-bottom:0;">
                             <label>Capital inicial (R$)</label>
                             <span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaCapital" value="1000" oninput="aplicarMascaraBRL(this); calcularMeta();"></span>
@@ -11962,7 +12438,7 @@
                             <label>Rentabilidade esperada</label>
                             <div style="display:flex;gap:8px;">
                                 <input type="number" id="metaTaxa" value="1" step="0.1" style="flex:1;" oninput="calcularMeta()">
-                                <select id="metaTipoTaxa" style="flex:1;padding:10px 10px;border:1.5px solid var(--cor-borda);border-radius:9px;background-color:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;font-size:14px;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
+                                <select id="metaTipoTaxa" style="flex:1;" onchange="calcularMeta()"><option value="mes">% / mês</option><option value="ano">% / ano</option></select>
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
@@ -12672,180 +13148,219 @@
             </div>
         </section>
 
-        <section id="applicash" class="section">
+        <section id="applicash" class="section" data-fase="carregando">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Applicash $</h1>
-                    <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e ganhe enquanto seus indicados forem assinantes.</p>
+                    <p class="subtitulo" style="margin-bottom:0">Indique a Appliquei e veja sua mensalidade cair.</p>
                 </div>
             </div>
 
-            <!-- HERO: cupom + link + acções -->
-            <div class="apc-hero" id="apcHero">
+            <!-- Falha de carregamento. Antes o erro era engolido e a tela
+                 desenhava o cache antigo como se fosse de agora. -->
+            <div class="apc-erro" id="apcErroFaixa" role="alert" hidden>
+                <i class="ph-fill ph-warning-circle" aria-hidden="true"></i>
+                <span id="apcErroTexto">Não conseguimos carregar seu Applicash agora.</span>
+                <button type="button" class="apc-erro-btn" onclick="recarregarApplicash()">Tentar de novo</button>
+            </div>
+
+            <!-- HERO: o link é o que se compartilha; o código é só o rótulo dele. -->
+            <div class="apc-hero">
                 <div class="apc-hero-left">
-                    <span class="apc-hero-eyebrow"><i class="ph-fill ph-ticket"></i> Seu cupom</span>
+                    <span class="apc-hero-eyebrow"><i class="ph-fill ph-ticket" aria-hidden="true"></i> Seu convite</span>
                     <div class="apc-hero-code" id="apcCupomCodigo">—</div>
-                    <button type="button" class="apc-hero-link-pill" onclick="copiarLinkApplicash()" id="apcHeroLinkPill" title="Copiar link de convite">
-                        <i class="ph ph-link"></i>
+                    <button type="button" class="apc-hero-link-pill" onclick="copiarLinkApplicash()" id="apcHeroLinkPill">
+                        <i class="ph ph-link" aria-hidden="true"></i>
                         <span class="pill-url" id="apcHeroLinkUrl">—</span>
-                        <i class="ph ph-copy" style="opacity:.7;"></i>
+                        <i class="ph ph-copy" aria-hidden="true"></i>
                     </button>
-                    <p class="apc-hero-tagline"><strong>10% de desconto</strong> para quem se cadastra · você recebe <strong>10% da mensalidade</strong> enquanto ele permanecer assinante.</p>
+                    <p class="apc-hero-tagline">Quem entra pelo seu link paga <strong>10% menos</strong> · você abate <strong>10% do que ele pagar</strong> na sua própria fatura, todo mês.</p>
                 </div>
                 <div class="apc-hero-actions">
-                    <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar</button>
-                    <button type="button" class="btn-secundario" onclick="copiarCupomApplicash()" id="btnCopiarCupom"><i class="ph ph-copy"></i> <span id="lblCupomBtn">Copiar cupom</span></button>
-                    <button type="button" class="btn-secundario" onclick="copiarLinkApplicash()" id="btnCopiarLink"><i class="ph ph-link"></i> <span id="lblLinkBtn">Copiar link</span></button>
-                </div>
-            </div>
-
-            <div id="apcResumoServidor" style="display:none;margin-bottom:14px;padding:12px 14px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);border-radius:10px;font-size:13px;color:var(--cor-txt-primaria);line-height:1.5;">
-                <strong id="apcResumoTexto"></strong>
-                <span id="apcResumoDetalhe" style="display:block;font-size:12px;color:var(--cor-texto-secundario);margin-top:4px;"></span>
-            </div>
-
-            <!-- KPIs topo (3 cards) -->
-            <div class="grid-3" style="margin-bottom:18px;">
-                <div class="card-destaque accent">
-                    <h3><i class="ph-fill ph-users-three"></i> Indicações efetivas</h3>
-                    <div class="valor"><span id="apcIndicacoesEfetivas">0</span></div>
-                    <span class="kpi-delta"><i class="ph-bold ph-arrow-up"></i> <span id="apcIndicacoesNoMes">0</span> neste mês</span>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-arrow-circle-down"></i> Você paga (mensal)</h3>
-                    <div class="valor valor-mascarado" id="apcVocePaga" style="color:var(--cor-erro);">R$ 0,00</div>
-                    <span class="kpi-delta delta-negativo"><i class="ph ph-credit-card"></i> Sua assinatura</span>
-                </div>
-                <div class="card-destaque">
-                    <h3><i class="ph ph-arrow-circle-up"></i> Você recebe (mensal)</h3>
-                    <div class="valor valor-mascarado" id="apcVoceRecebe" style="color:var(--cor-primaria);">R$ 0,00</div>
-                    <span class="kpi-delta delta-positivo"><i class="ph ph-coins"></i> 10% de cada ativo</span>
-                </div>
-            </div>
-
-            <!-- Linha: Pizza/CTA + Meta -->
-            <div class="grid-2-iguais" style="margin-bottom:18px;">
-                <!-- Pizza paga vs recebe — esconde quando 0 indicações; mostra CTA -->
-                <div class="card-container" id="apcCardPizza">
-                    <div class="div-chart-title"><i class="ph ph-chart-pie-slice"></i> Paga vs. Recebe (mensal)</div>
-                    <div id="apcPizzaContent" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap;">
-                        <div style="position:relative;width:220px;height:220px;flex-shrink:0;">
-                            <canvas id="chartApplicash"></canvas>
-                        </div>
-                        <div style="flex:1;min-width:200px;">
-                            <p id="apcFraseCenario" style="font-size:14px;line-height:1.55;color:var(--cor-texto-principal);background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:14px 16px;border-radius:10px;">
-                                Convide amigos para a Appliquei e comece a receber 10% do valor pago por cada indicação ativa.
-                            </p>
-                            <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
-                                <div style="flex:1;min-width:120px;background:var(--cor-bg-erro);border:1px solid var(--cor-borda-erro);padding:10px 12px;border-radius:9px;">
-                                    <div style="font-size:10.5px;color:var(--cor-txt-erro);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você paga</div>
-                                    <div class="valor-mascarado" id="apcLegendaPaga" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-erro);">R$ 0,00</div>
-                                </div>
-                                <div style="flex:1;min-width:120px;background:var(--cor-bg-primaria);border:1px solid var(--cor-borda-primaria);padding:10px 12px;border-radius:9px;">
-                                    <div style="font-size:10.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Você recebe</div>
-                                    <div class="valor-mascarado" id="apcLegendaRecebe" style="font-family:'DM Mono',monospace;font-weight:700;font-size:15px;color:var(--cor-txt-primaria);">R$ 0,00</div>
-                                </div>
-                            </div>
-                        </div>
+                    <button type="button" class="btn-acao apc-cta" id="apcBtnWhatsapp" onclick="compartilharWhatsappApplicash()"><i class="ph-fill ph-whatsapp-logo" aria-hidden="true"></i> Enviar no WhatsApp</button>
+                    <div class="apc-hero-actions-sec">
+                        <button type="button" class="btn-secundario" id="apcBtnCompartilhar" onclick="compartilharCupomApplicash()"><i class="ph ph-share-network" aria-hidden="true"></i> Compartilhar</button>
+                        <button type="button" class="btn-secundario" id="apcBtnCopiarLink" onclick="copiarLinkApplicash()"><i class="ph ph-copy" aria-hidden="true"></i> <span id="lblLinkBtn">Copiar link</span></button>
                     </div>
-                    <div class="apc-empty-cta" id="apcEmptyCta">
-                        <i class="ph-duotone ph-paper-plane-tilt empty-illu"></i>
-                        <h4>Convide o primeiro amigo</h4>
-                        <p>Cada indicação que assina te dá <strong>10% do valor pago</strong> todo mês. Comece a partilhar para começar a receber.</p>
-                        <button type="button" class="btn-acao" onclick="compartilharCupomApplicash()"><i class="ph-bold ph-share-network"></i> Compartilhar agora</button>
+                </div>
+            </div>
+
+            <!-- Falhou o carregamento e não há nada em cache. -->
+            <div class="card-container apc-aviso" data-so="erro">
+                <i class="ph-duotone ph-cloud-slash" aria-hidden="true"></i>
+                <div>
+                    <h4>Não conseguimos carregar seu Applicash</h4>
+                    <p>Pode ser a conexão. Use "Tentar de novo" acima — seus dados e seu cupom estão a salvo.</p>
+                </div>
+            </div>
+
+            <!-- Deslogado -->
+            <div class="card-container apc-aviso" data-so="deslogado">
+                <i class="ph-duotone ph-user-circle" aria-hidden="true"></i>
+                <div>
+                    <h4>Entre na sua conta para gerar o convite</h4>
+                    <p>Seu cupom nasce junto com a conta e vale para sempre.</p>
+                </div>
+            </div>
+
+            <!-- Como funciona — sobe para o topo de quem ainda não indicou
+                 ninguém. Estava no rodapé, depois de três widgets zerados. -->
+            <div class="card-container" data-so="vazio">
+                <div class="div-chart-title"><i class="ph ph-path" aria-hidden="true"></i> Como funciona</div>
+                <ol class="apc-passos">
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">1</span>
+                        <div><strong>Mande seu link</strong><span>Quem abrir e assinar entra com 10% de desconto permanente.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">2</span>
+                        <div><strong>Ele assina</strong><span>A partir da primeira cobrança paga, o cashback começa a contar.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">3</span>
+                        <div><strong>Sua fatura cai</strong><span>R$ 1,35 abatidos por indicado ativo, todo mês, automaticamente.</span></div>
+                    </li>
+                </ol>
+                <div class="apc-nota">
+                    <i class="ph-fill ph-info" aria-hidden="true"></i>
+                    <span>O crédito <strong>abate na sua mensalidade</strong> — não é saque em dinheiro. Cadastros que cancelam antes da primeira cobrança não geram cashback.</span>
+                </div>
+            </div>
+
+            <!-- ===================== FASE ATIVO ===================== -->
+
+            <!-- O payoff. Era uma tira de 13px que nascia display:none. -->
+            <div class="apc-payoff" data-so="ativo">
+                <div class="apc-payoff-main">
+                    <span class="apc-payoff-label">Sua próxima cobrança</span>
+                    <div class="apc-payoff-valor">
+                        <strong id="apcFaturaValor">R$ 15,00</strong>
+                        <span class="apc-payoff-de" id="apcFaturaDe" hidden>antes <s id="apcFaturaDeValor">R$ 15,00</s></span>
+                    </div>
+                    <span class="apc-payoff-sub" id="apcFaturaAbatido">Nenhum abatimento nesta cobrança ainda</span>
+                </div>
+                <div class="apc-payoff-bar">
+                    <div class="apc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Parte da mensalidade coberta por indicações">
+                        <span id="apcFaturaBarra" style="width:0%"></span>
+                    </div>
+                    <span class="apc-payoff-pct" id="apcFaturaPct">0% coberto por indicações</span>
+                </div>
+            </div>
+
+            <div class="grid-3 apc-kpis" data-so="ativo">
+                <div class="card-destaque accent">
+                    <h3><i class="ph-fill ph-users-three" aria-hidden="true"></i> Indicados assinando</h3>
+                    <div class="valor"><span id="apcKpiAtivos">0</span></div>
+                    <span class="kpi-delta"><i class="ph ph-repeat" aria-hidden="true"></i> geram abatimento todo mês</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-receipt" aria-hidden="true"></i> Abatido nesta fatura</h3>
+                    <div class="valor valor-mascarado" id="apcKpiAbatimento">R$ 0,00</div>
+                    <span class="kpi-delta"><i class="ph ph-arrow-down" aria-hidden="true"></i> desconto já aplicado</span>
+                </div>
+                <div class="card-destaque">
+                    <h3><i class="ph ph-coins" aria-hidden="true"></i> Acumulado no programa</h3>
+                    <div class="valor valor-mascarado" id="apcKpiAcumulado">R$ 0,00</div>
+                    <span class="kpi-delta"><i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i> desde o início</span>
+                </div>
+            </div>
+
+            <div class="grid-2-iguais" data-so="ativo" style="margin-bottom:18px;">
+                <!-- Funil: fecha o vão entre "compartilhei" e "deu certo". -->
+                <div class="card-container">
+                    <div class="div-chart-title"><i class="ph ph-funnel" aria-hidden="true"></i> Seus convites</div>
+                    <ol class="apc-funil">
+                        <li>
+                            <i class="ph ph-cursor-click" aria-hidden="true"></i>
+                            <strong id="apcFunilHits">0</strong>
+                            <span>abriram o link</span>
+                        </li>
+                        <li>
+                            <i class="ph ph-user-plus" aria-hidden="true"></i>
+                            <strong id="apcFunilSignups">0</strong>
+                            <span>criaram conta</span>
+                        </li>
+                        <li class="is-fim">
+                            <i class="ph-fill ph-check-circle" aria-hidden="true"></i>
+                            <strong id="apcFunilSubs">0</strong>
+                            <span>estão assinando</span>
+                        </li>
+                    </ol>
+                    <div class="apc-nota is-acao" id="apcFunilDica" hidden>
+                        <i class="ph-fill ph-hand-waving" aria-hidden="true"></i>
+                        <span id="apcFunilDicaTexto"></span>
                     </div>
                 </div>
 
                 <!-- Meta -->
                 <div class="card-container">
-                    <div class="div-chart-title"><i class="ph ph-target"></i> Próxima meta</div>
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;">
+                    <div class="div-chart-title"><i class="ph ph-target" aria-hidden="true"></i> Próxima meta</div>
+                    <div class="apc-meta-head">
                         <div>
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Meta</div>
-                            <div id="apcMetaTitulo" style="font-size:18px;font-weight:700;color:var(--cor-texto-principal);">Indique 5 pessoas</div>
+                            <span class="apc-meta-rot">Meta</span>
+                            <div id="apcMetaTitulo" class="apc-meta-titulo">Indique 1 pessoa</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size:11px;color:var(--cor-texto-mutado);text-transform:uppercase;letter-spacing:0.6px;font-weight:700;">Recompensa</div>
-                            <div class="valor-mascarado" id="apcMetaRecompensa" style="font-family:'DM Mono',monospace;font-weight:700;font-size:18px;color:var(--cor-primaria);">9% de desconto</div>
+                            <span class="apc-meta-rot">Sua fatura fica</span>
+                            <div class="apc-meta-premio valor-mascarado" id="apcMetaRecompensa">R$ 13,65/mês</div>
                         </div>
                     </div>
-                    <div id="apcMetaSubtitulo" style="font-size:12px;color:var(--cor-texto-secundario);margin-top:-2px;margin-bottom:6px;">Cashback ativado · economia garantida todo mês</div>
-                    <div style="background:var(--cor-superficie);border-radius:99px;height:14px;border:1px solid var(--cor-borda);overflow:hidden;margin:10px 0 8px;">
-                        <div id="apcMetaProgressoBar" style="height:100%;background:linear-gradient(90deg,var(--cor-primaria),#10b981);width:0%;transition:width 0.6s ease;border-radius:99px;"></div>
+                    <div id="apcMetaSubtitulo" class="apc-meta-sub">Cashback ligado — abatimento todo mês</div>
+                    <div class="apc-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Progresso até a próxima meta">
+                        <span id="apcMetaProgressoBar" style="width:0%"></span>
                     </div>
-                    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--cor-texto-mutado);">
-                        <span><strong id="apcMetaAtual" style="color:var(--cor-texto-principal);">0</strong> de <strong id="apcMetaAlvo" style="color:var(--cor-texto-principal);">5</strong> indicações</span>
-                        <span><strong id="apcMetaRestante" style="color:var(--cor-primaria);">5</strong> restantes</span>
+                    <div class="apc-meta-legenda">
+                        <span><strong id="apcMetaAtual">0</strong> de <strong id="apcMetaAlvo">1</strong> indicações</span>
+                        <span><strong id="apcMetaRestante">1</strong> restantes</span>
                     </div>
-
-                    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px;" id="apcMetasLista">
-                        <!-- Lista de marcos preenchida via JS -->
-                    </div>
+                    <ul class="apc-marcos" id="apcMetasLista"></ul>
                 </div>
             </div>
 
-            <!-- Tabela Minhas Indicações -->
-            <div class="card-container">
-                <div class="div-chart-title" style="display:flex;justify-content:space-between;align-items:center;">
-                    <span><i class="ph ph-list-checks"></i> Minhas indicações</span>
-                    <span style="font-size:11px;font-weight:600;color:var(--cor-texto-mutado);">Total recebido no mês: <strong class="valor-mascarado" id="apcTotalReceberMes" style="color:var(--cor-primaria);font-family:'DM Mono',monospace;">R$ 0,00</strong></span>
-                </div>
+            <!-- Lista. Três colunas: quem, quanto rende, situação. -->
+            <div class="card-container" data-so="ativo">
+                <div class="div-chart-title"><i class="ph ph-list-checks" aria-hidden="true"></i> Seus indicados</div>
                 <div style="overflow-x:auto;">
-                    <table class="tabela-dashboard" id="apcTabelaIndicacoes">
+                    <table class="tabela-dashboard apc-tabela" id="apcTabelaIndicacoes">
                         <thead>
                             <tr>
-                                <th>Nome</th>
-                                <th>Plano contratado</th>
-                                <th style="text-align:right;">Valor pago</th>
-                                <th>Periodicidade</th>
-                                <th style="text-align:right;">Lucro p/ você</th>
-                                <th style="text-align:center;">Status</th>
+                                <th scope="col">Quem</th>
+                                <th scope="col" style="text-align:right;">Abate por mês</th>
+                                <th scope="col" style="text-align:center;">Situação</th>
                             </tr>
                         </thead>
-                        <tbody id="apcTabelaIndicacoesCorpo">
-                            <!-- preenchido via JS -->
-                        </tbody>
+                        <tbody id="apcTabelaIndicacoesCorpo"></tbody>
                     </table>
                 </div>
-                <div id="apcTabelaVazia" style="display:none;text-align:center;padding:30px 16px;color:var(--cor-texto-mutado);">
-                    <i class="ph ph-users" style="font-size:32px;display:block;margin-bottom:8px;"></i>
-                    Você ainda não tem indicações ativas. Compartilhe seu cupom com amigos e familiares!
+                <div id="apcTabelaVazia" class="apc-tabela-vazia" hidden>
+                    <i class="ph ph-users" aria-hidden="true"></i>
+                    Ninguém entrou pelo seu link ainda.
                 </div>
             </div>
 
-            <!-- Como funciona -->
-            <div class="card-container">
-                <div class="div-chart-title"><i class="ph ph-info"></i> Como funciona o programa</div>
-                <div class="grid-3" style="gap:14px;">
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">1</span>
-                            <strong style="font-size:13.5px;">Compartilhe seu cupom</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Seu cupom dá <strong>10% de desconto</strong> ao interessado, em qualquer forma de pagamento.</p>
-                    </div>
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">2</span>
-                            <strong style="font-size:13.5px;">Indicação efetiva</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">A partir de uma <strong>indicação efetiva</strong> (usuário cadastrado pelo seu cupom e ativo), você passa a receber <strong>10% do valor pago</strong> enquanto ele permanecer na plataforma.</p>
-                    </div>
-                    <div style="padding:14px 16px;background:var(--cor-superficie);border-radius:10px;border:1px solid var(--cor-borda);">
-                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-                            <span style="width:28px;height:28px;border-radius:99px;background:var(--cor-bg-primaria);color:var(--cor-primaria);display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">3</span>
-                            <strong style="font-size:13.5px;">Receba todo mês</strong>
-                        </div>
-                        <p style="font-size:12.5px;line-height:1.5;color:var(--cor-texto-secundario);">Plano mensal de R$ 15,00 (-10%) → você recebe <strong>R$ 1,35/mês</strong> por indicação. Quanto mais indicações, mais você lucra.</p>
-                    </div>
+            <!-- Como funciona, versão recolhida para quem já entendeu. -->
+            <details class="card-container apc-detalhes" data-so="ativo">
+                <summary><i class="ph ph-info" aria-hidden="true"></i> Como funciona o programa</summary>
+                <ol class="apc-passos">
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">1</span>
+                        <div><strong>Mande seu link</strong><span>Quem abrir e assinar entra com 10% de desconto permanente.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">2</span>
+                        <div><strong>Ele assina</strong><span>A partir da primeira cobrança paga, o cashback começa a contar.</span></div>
+                    </li>
+                    <li>
+                        <span class="apc-passo-n" aria-hidden="true">3</span>
+                        <div><strong>Sua fatura cai</strong><span>R$ 1,35 abatidos por indicado ativo, todo mês, automaticamente.</span></div>
+                    </li>
+                </ol>
+                <div class="apc-nota">
+                    <i class="ph-fill ph-info" aria-hidden="true"></i>
+                    <span>O crédito <strong>abate na sua mensalidade</strong> — não é saque em dinheiro. A fatura desce até o mínimo de R$ 5,00 exigido pelo meio de pagamento; o que passar disso fica como saldo para os meses seguintes.</span>
                 </div>
-                <div style="margin-top:14px;padding:12px 14px;background:var(--cor-bg-info);border:1px solid var(--cor-borda-info);border-radius:9px;font-size:12px;color:var(--cor-txt-info);line-height:1.5;">
-                    <i class="ph-fill ph-info" style="margin-right:4px;"></i>
-                    <strong>Indicação efetiva:</strong> todos os usuários cadastrados pelo cupom e ativos na plataforma. Você não recebe por cadastros que cancelam antes da primeira cobrança.
-                </div>
-            </div>
+            </details>
         </section>
-
         <section id="duvidas_sugestoes" class="section">
             <div class="page-header">
                 <div class="page-header-left">

@@ -1023,6 +1023,15 @@
      o app mostra na aba Applicash. Mexer lá sem mexer aqui faz a página
      prometer um desconto que a tela do assinante desmente.
 
+     E OS MARCOS SÃO O QUE O MOTOR ENTREGA, não o que soaria melhor. Cada
+     indicado ativo abate R$ 1,35/mês (10% dos R$ 13,50 que ele paga), e
+     MIN_PAYMENT_CENTS trava a fatura em R$ 5,00 — o piso do gateway. Por
+     isso a escada para em "fatura mínima" e não em "mensalidade zerada":
+     do 8º indicado em diante a cobrança já está no mínimo e o excedente
+     vira saldo para os meses seguintes. O teto está fixado em
+     test/pagamentos-applicash.test.js; para prometer R$ 0,00 é preciso
+     antes baixar o piso ou pular a cobrança quando o crédito cobre o mês.
+
      E o crédito ABATE na própria mensalidade: no MVP não há saque em PIX
      (ver a seção Applicash de scripts/build_plan_pdf.py). Escrever
      "ganhe dinheiro" descreveria um produto que ainda não existe. -->
@@ -1053,10 +1062,10 @@
     </div>
 
     <ol class="apc-metas">
-      <li><b>1</b><span>indicação ativa</span><em>9% de desconto</em></li>
-      <li><b>5</b><span>indicações ativas</span><em>45% de desconto</em></li>
-      <li><b>10</b><span>indicações ativas</span><em>90% de desconto</em></li>
-      <li class="apc-zerada"><b>12</b><span>indicações ativas</span><em>Mensalidade zerada</em></li>
+      <li><b>1</b><span>indicação ativa</span><em>Fatura de R$ 13,65</em></li>
+      <li><b>5</b><span>indicações ativas</span><em>Fatura de R$ 8,25</em></li>
+      <li><b>8</b><span>indicações ativas</span><em>Fatura de R$ 5,00</em></li>
+      <li class="apc-zerada"><b>12+</b><span>indicações ativas</span><em>Fatura mínima + saldo acumula</em></li>
     </ol>
 
     <div class="apc-pe">

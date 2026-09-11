@@ -1358,6 +1358,80 @@ function atualizarDatalistDescricoes() {
     });
 }
 
+// === MODO SONHO NO PAINEL DE LANÇAMENTO =====================================
+//
+// Um compromisso de sonho não tem classificação a escolher: ele JÁ é um sonho.
+// O <select> de categoria nem sequer oferece essa opção (só receita, despesa
+// fixa, despesa variável e cartão), então `select.value = 'sonho'` não casava
+// com nada e o campo voltava para "Selecione...". A validação então exigia uma
+// classificação, e qualquer uma que o usuário escolhesse para conseguir salvar
+// transformava o aporte em despesa: passava a contar como gasto no DRE, o
+// `valorAtual` do sonho não acompanhava e o registro dentro do sonho ficava com
+// o valor velho.
+//
+// A resposta é encolher o formulário: só valor e data, que é o que muda quando
+// alguém guarda mais ou menos num mês.
+
+// Trava de reentrância do salvamento em modo sonho (duplo clique).
+var salvandoLancamentoSonho = false;
+
+function transacaoEhSonho(t) {
+  return !!(t && t.categoria === 'sonho' && t.sonhoId);
+}
+
+// Campos que não fazem pergunta nenhuma quando o lançamento é de sonho.
+var CAMPOS_OCULTOS_MODO_SONHO = [
+  'chipsLancamento',
+  'grupoDescricaoControle',
+  'grupoCategoriaControle',
+  'grupoBancoReceita',
+  'grupoCategoriaDespesa',
+  'grupoCartaoSelect',
+  'grupoParcelas',
+];
+
+function entrarModoSonhoControle(trans) {
+  const painel = document.getElementById('painelNovoLancamento');
+  if (painel) painel.classList.add('modo-sonho');
+  CAMPOS_OCULTOS_MODO_SONHO.forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  });
+
+  const sonho = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === trans.sonhoId) : null;
+  const faixa = document.getElementById('avisoEdicaoSonho');
+  if (faixa) faixa.hidden = false;
+  const nomeEl = document.getElementById('avisoEdicaoSonhoNome');
+  if (nomeEl) nomeEl.textContent = sonho ? 'Aporte para: ' + sonho.nome : 'Aporte para o seu sonho';
+  const detEl = document.getElementById('avisoEdicaoSonhoDetalhe');
+  if (detEl) {
+    detEl.textContent = trans.pago
+      ? 'Já guardado. Alterar o valor corrige o quanto entrou no sonho e recalcula as próximas parcelas.'
+      : 'Ainda não saiu da conta. Alterar o valor muda só a parcela deste mês.';
+  }
+}
+
+function sairModoSonhoControle() {
+  const painel = document.getElementById('painelNovoLancamento');
+  if (painel) painel.classList.remove('modo-sonho');
+  CAMPOS_OCULTOS_MODO_SONHO.forEach((id) => {
+    const el = document.getElementById(id);
+    // grupoParcelas e os blocos de cartão/banco são governados por
+    // verificarRegraCartao — devolvê-los como '' deixa a regra decidir de novo
+    // em vez de forçá-los visíveis.
+    if (el) el.style.display = '';
+  });
+  const faixa = document.getElementById('avisoEdicaoSonho');
+  if (faixa) faixa.hidden = true;
+}
+
+/** A transação em edição agora, ou null. */
+function transacaoEmEdicao() {
+  const el = document.getElementById('editTransacaoId');
+  const id = el ? el.value : '';
+  return id ? transacoes.find((t) => t.id === id) || null : null;
+}
+
 function prepararEdicao(id) {
   const trans = transacoes.find((t) => t.id === id);
   if (!trans) return;
@@ -1380,6 +1454,15 @@ function prepararEdicao(id) {
     '<i class="ph-bold ph-pencil-simple"></i> Atualizar Lançamento';
   document.getElementById('btnSalvarControle').style.backgroundColor = 'var(--cor-info)';
   document.getElementById('btnCancelarEdicao').style.display = 'block';
+
+  if (transacaoEhSonho(trans)) {
+    // Sai antes de verificarRegraCartao(): ela mexe em banco, parcelas e
+    // fatura a partir da categoria — que aqui não existe.
+    entrarModoSonhoControle(trans);
+    if (typeof abrirPainelLancamento === 'function') abrirPainelLancamento();
+    return;
+  }
+  sairModoSonhoControle();
   verificarRegraCartao();
   if (trans.categoria === 'cartao_credito') {
     document.getElementById('grupoParcelas').style.display = 'none';
@@ -1419,6 +1502,10 @@ function prepararEdicao(id) {
 }
 
 function cancelarEdicaoControle() {
+  // Devolve o formulário ao normal antes de limpar: sem isto, o próximo
+  // lançamento abriria sem descrição, sem categoria e sem banco — o formulário
+  // ficaria encolhido para sempre.
+  sairModoSonhoControle();
   if (typeof insightsSugestaoLimpar === 'function') insightsSugestaoLimpar();
   faturaSeletorExpandido = false;
   const elFat = document.getElementById('faturaEscolhida');
@@ -1452,6 +1539,19 @@ function tentarSalvarTransacao() {
   const valorTotal = Number(parseBRL(document.getElementById('valorTransacao').value));
   const categoria = document.getElementById('categoriaTransacao').value;
   const editId = document.getElementById('editTransacaoId').value;
+
+  // Duplo clique no Salvar. O primeiro clique grava e limpa `editTransacaoId`;
+  // o segundo já não encontra o lançamento em edição e caía na validação
+  // genérica, mostrando "escolha uma Classificação Contábil válida" num
+  // formulário que nem tem esse campo. A trava vive AQUI, na entrada — dentro
+  // do ramo do sonho ela nunca era alcançada pelo segundo clique. A simulação
+  // de duplo clique pegou exatamente isso.
+  if (salvandoLancamentoSonho) return;
+
+  // Sonho: a classificação já existe e não é perguntada, então a validação
+  // genérica (que exige categoria e banco) não se aplica. Desvia ANTES dela.
+  const emEdicaoSonho = transacaoEmEdicao();
+  if (transacaoEhSonho(emEdicaoSonho)) return salvarEdicaoSonhoDoControle(emEdicaoSonho);
 
   if (!desc || !Number.isFinite(valorTotal) || valorTotal <= 0 || !categoria)
     return mostrarToast(
@@ -1490,7 +1590,60 @@ function tentarSalvarTransacao() {
   executarInsercao();
 }
 
+/**
+ * Salva a edição de um lançamento de sonho feita pelo Controle Financeiro.
+ *
+ * Só lê valor e data — os únicos campos que o modo sonho mostra — e entrega ao
+ * funil de `appliquei-sonhos.js`, que é o mesmo do modal da aba Sonhos. Aqui
+ * não se escreve em `transacoes` diretamente: o aporte, o `valorAtual` e o
+ * plano têm de andar juntos, e isso é responsabilidade do funil.
+ */
+function salvarEdicaoSonhoDoControle(trans) {
+  // Duplo clique: o primeiro salva e limpa `editTransacaoId`; sem esta trava o
+  // segundo caía na validação genérica e mostrava "escolha uma Classificação
+  // Contábil válida" — num formulário que nem tem esse campo. A simulação de
+  // sequências pegou exatamente isso.
+  if (salvandoLancamentoSonho) return;
+  salvandoLancamentoSonho = true;
+  try {
+    const novoValor = Number(parseBRL(document.getElementById('valorTransacao').value));
+    const novaData = (document.getElementById('dataVencimento').value || '').trim();
+
+    if (typeof editarLancamentoSonhoPorTransacao !== 'function') {
+      return mostrarToast('Não foi possível editar o aporte agora.', 'erro');
+    }
+    const r = editarLancamentoSonhoPorTransacao(trans.id, novoValor, novaData);
+    if (!r.ok) return mostrarToast(r.erro || 'Não foi possível salvar.', 'erro');
+
+    const btn = document.getElementById('btnSalvarControle');
+    if (btn) {
+      btn.disabled = true;
+      setTimeout(function () {
+        btn.disabled = false;
+      }, 500);
+    }
+    cancelarEdicaoControle();
+    if (typeof fecharPainelLancamento === 'function') fecharPainelLancamento();
+    atualizarTelaControle();
+    if (typeof renderizarSonhos === 'function') renderizarSonhos();
+    mostrarToast('Aporte atualizado no sonho.', 'sucesso');
+  } finally {
+    // Solta depois da janela do duplo clique, não no mesmo tique: os dois
+    // cliques chegam em tarefas diferentes e um `false` imediato não pegaria
+    // o segundo.
+    setTimeout(function () {
+      salvandoLancamentoSonho = false;
+    }, 500);
+  }
+}
+
 function executarEdicao(modo) {
+  // Segundo funil: o modal "editar só este mês / todos os meses" chama aqui
+  // direto. Um compromisso de sonho tem groupId, então cai neste caminho — e
+  // sem esta guarda ele voltaria a exigir categoria e a virar despesa.
+  const txSonho = transacaoEmEdicao();
+  if (transacaoEhSonho(txSonho)) return salvarEdicaoSonhoDoControle(txSonho);
+
   const desc = (document.getElementById('descTransacao').value || '').trim();
   const valorTotal = Number(parseBRL(document.getElementById('valorTransacao').value));
   const categoria = document.getElementById('categoriaTransacao').value;

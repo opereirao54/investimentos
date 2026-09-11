@@ -1342,7 +1342,58 @@ function ajustarCamposPorCategoria() {
     const sub = subcategoriaInferidaDoTicker(ticker);
     if (sub && selSub && !selSub.dataset.touched) selSub.value = sub;
   }
+  atualizarIdentidadeAtivo(ticker, semQtd);
   atualizarProjecaoForm();
+}
+
+/**
+ * Mostra de quem é o papel que está sendo digitado — logo, ticker e nome.
+ *
+ * É a única confirmação que existe entre digitar o código e a operação estar
+ * gravada. `VALE3` e `VALE5` diferem por um caractere, `BBAS3` e `BBDC3` por
+ * dois; num campo de texto puro o erro só aparece depois, na carteira.
+ *
+ * Só redesenha quando o ticker muda de verdade: o `oninput` dispara a cada
+ * tecla e cada redesenho recria o <img>, ou seja, uma requisição por tecla.
+ */
+function atualizarIdentidadeAtivo(ticker, semTickerListado) {
+  const alvo = document.getElementById('compraIdentidade');
+  if (!alvo) return;
+  const tk = String(ticker || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  // Renda Fixa, Reserva e Previdência têm nome livre, não ticker: não há
+  // emissor a identificar e o rótulo já diz o que o campo espera.
+  const conhecido = semTickerListado
+    ? null
+    : mockAtivosMercado.find((a) => a.ticker === tk) || null;
+  const reconhecivel =
+    !semTickerListado && (conhecido || (tk.length >= 4 && subcategoriaInferidaDoTicker(tk)));
+
+  if (!reconhecivel) {
+    alvo.hidden = true;
+    alvo.innerHTML = '';
+    alvo.dataset.ticker = '';
+    return;
+  }
+  if (alvo.dataset.ticker === tk) return;
+  alvo.dataset.ticker = tk;
+  alvo.hidden = false;
+
+  const nome = conhecido && conhecido.nome ? conhecido.nome : '';
+  const tipo = conhecido && conhecido.tipo ? conhecido.tipo : '';
+  alvo.innerHTML =
+    logoAtivoHTML(tk, { classe: 'ativo-marca op-identidade-marca', tamanho: 34 }) +
+    '<div class="op-identidade-txt">' +
+    '<span class="op-identidade-ticker">' +
+    escaparHtmlAtivo(tk) +
+    '</span>' +
+    (nome
+      ? '<span class="op-identidade-nome">' + escaparHtmlAtivo(nome) + '</span>'
+      : '<span class="op-identidade-nome">Ativo não catalogado — confira o código</span>') +
+    '</div>' +
+    (tipo ? '<span class="op-identidade-tag">' + escaparHtmlAtivo(tipo) + '</span>' : '');
 }
 
 // ============================================================

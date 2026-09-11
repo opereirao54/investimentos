@@ -195,37 +195,99 @@ test('vários indicados acumulam e o excedente fica para o mês seguinte', async
   assert.equal(S.problemas(m, { paresApplicash: [['alice', 'bob']] }), '');
 });
 
-test('teto real do Applicash: o piso do gateway impede a fatura chegar a zero', async () => {
-  // TRAVA DE COERÊNCIA, não um bug a corrigir aqui.
+test('a tela e a landing não podem prometer desconto que o motor não entrega', async () => {
+  // TRAVA DE COERÊNCIA entre a copy e `api/_lib/credits.js`.
   //
-  // A tela do Applicash (web/appliquei-applicash.js, APPLICASH_METAS) promete
-  // "12 indicações → 100% de desconto · Assinatura ZERADA · Appliquei grátis
-  // para sempre". O motor não consegue entregar isso: MIN_PAYMENT_CENTS
-  // trava a fatura no piso do gateway (R$ 5,00 por omissão).
+  // A escada de marcos vive em DOIS lugares — APPLICASH_METAS no app e a
+  // <ol class="apc-metas"> da landing — e o próprio comentário da landing
+  // avisa que mexer num sem o outro "faz a página prometer um desconto que a
+  // tela do assinante desmente". Antes, ambos anunciavam "12 indicações →
+  // 100% · Mensalidade zerada", e o motor nunca conseguiu: MIN_PAYMENT_CENTS
+  // trava a fatura no piso do gateway.
   //
-  // Este teste FIXA o teto verdadeiro. Se um dia a promessa for cumprida —
-  // baixando o piso, ou pulando a cobrança quando o crédito cobre tudo — ele
-  // falha e obriga a revisitar a copy junto com o motor. Enquanto falhar não
-  // for necessário, ele documenta que a tela promete mais do que o código dá.
+  // Este teste falha se a promessa de fatura zerada voltar sem que o piso
+  // tenha ido embora junto.
+  const fs = require('fs');
+  const path = require('path');
   const { maxDiscountFor, minPaymentCents } = require('../api/_lib/credits.js');
 
+  const piso = minPaymentCents();
   assert.equal(
     maxDiscountFor(S.PRECO_BASE_CENTS),
-    S.PRECO_BASE_CENTS - minPaymentCents(),
+    S.PRECO_BASE_CENTS - piso,
     'o desconto máximo é o preço menos o piso — nunca o preço inteiro'
   );
-  assert.ok(
-    maxDiscountFor(S.PRECO_BASE_CENTS) < S.PRECO_BASE_CENTS,
-    '100% de desconto é impossível enquanto houver piso de gateway'
-  );
 
-  const metas = require('fs').readFileSync(
-    require('path').join(__dirname, '..', 'web/appliquei-applicash.js'),
-    'utf8'
-  );
-  const prometeCemPorCento = /desc:\s*100/.test(metas);
-  assert.ok(
-    prometeCemPorCento,
-    'se a copy dos 100% saiu da tela, esta trava já não é necessária — apague-a'
-  );
+  const raiz = path.join(__dirname, '..');
+  // Só a copy que o usuário LÊ. Comentários explicam justamente por que a
+  // promessa saiu — citá-la ali não pode fazer o teste falhar.
+  const semComentarios = (txt) =>
+    txt
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/^\s*\/\/.*$/gm, '');
+  const copy =
+    semComentarios(fs.readFileSync(path.join(raiz, 'web/appliquei-applicash.js'), 'utf8')) +
+    semComentarios(fs.readFileSync(path.join(raiz, 'landing.html'), 'utf8'));
+
+  if (piso > 0) {
+    assert.ok(
+      !/mensalidade zerada|assinatura zerada|gr[áa]tis para sempre/i.test(copy),
+      'com piso de gateway a fatura nunca zera — a copy não pode dizer que zera'
+    );
+    assert.ok(
+      !/100%\s*de desconto/i.test(copy),
+      'com piso de gateway 100% de desconto é impossível'
+    );
+  }
+
+  // O piso que a copy do app cita tem de ser o piso de verdade.
+  const appJs = fs.readFileSync(path.join(raiz, 'web/appliquei-applicash.js'), 'utf8');
+  const declarado = appJs.match(/APPLICASH_PISO_CENTS\s*=\s*(\d+)/);
+  assert.ok(declarado, 'a tela precisa declarar o piso que usa nos cálculos');
+  assert.equal(parseInt(declarado[1], 10), piso, 'o piso da tela desgarrou de MIN_PAYMENT_CENTS');
+});
+
+test('Asaas recusa a cobrança: a reserva de crédito é devolvida inteira', async () => {
+  // Caminho de compensação. Só roda quando o gateway recusa depois de já
+  // termos reservado — e a partição de crédito torna isso delicado: devolver
+  // sem apagar a sobra contaria o mesmo dinheiro duas vezes.
+  const m = S.criarMundoPagamentos({ faturasProjetadas: 0 });
+  await S.criarConta(m, 'alice');
+
+  // Saldo que NÃO cabe inteiro na fatura: força a partição.
+  S.store.docs.set('users/alice/billing/account/credits/grande', {
+    fromUid: 'amigo',
+    amountCents: 1400,
+    appliedAt: null,
+    appliedToPaymentId: null,
+  });
+  S.billing('alice').stats = {
+    pendingDiscountCents: 1400,
+    totalReferralEarningsCents: 1400,
+  };
+
+  const {
+    reservePendingCredits,
+    releaseReservation,
+    maxDiscountFor,
+  } = require('../api/_lib/credits.js');
+
+  // A mesma referência que os handlers usam.
+  const db = require('../api/_lib/firebase-admin').db();
+  const alvo = db.collection('users').doc('alice').collection('billing').doc('account');
+
+  const reserva = await reservePendingCredits(alvo, maxDiscountFor(1500), 'temp:1');
+  assert.equal(reserva.applied, 1000, 'reserva até o teto (preço − piso)');
+  assert.equal(reserva.sobras.length, 1, 'o que não coube virou crédito novo');
+
+  const totalDepoisDaReserva = S.creditos('alice').reduce((a, c) => a + (c.amountCents || 0), 0);
+  assert.equal(totalDepoisDaReserva, 1400, 'partir não pode criar nem sumir com dinheiro');
+
+  await releaseReservation(reserva);
+
+  const creditos = S.creditos('alice');
+  assert.equal(creditos.length, 1, 'a sobra foi apagada — senão o crédito contaria em dobro');
+  assert.equal(creditos[0].amountCents, 1400, 'o valor cheio voltou');
+  assert.equal(creditos[0].appliedAt, null, 'e voltou a ficar pendente');
 });

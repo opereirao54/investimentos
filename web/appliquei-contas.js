@@ -113,6 +113,11 @@ function saldoCaixaPorConta(refMs) {
 //   · aporte externo não conta (o dinheiro nunca passou por conta cadastrada —
 //     a parcela agendada não pode derrubar o saldo projetado de ninguém);
 //   · entrada soma, qualquer outra categoria subtrai.
+// Até quando para trás um vencimento em aberto continua pesando na projeção.
+// Trinta dias cobre o ciclo em curso — a conta deste mês que ainda não foi
+// baixada — sem arrastar cadastro velho que ninguém vai mais pagar.
+var ATRASO_MAXIMO_PROJETADO_MS = 30 * 86400000;
+
 function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
   if (typeof transacoes === 'undefined') return mapa;
   if (typeof mpTimestampTransacao !== 'function') return mapa;
@@ -165,11 +170,28 @@ function aplicarAgendadoNoSaldo(mapa, deMs, ateMs) {
         };
 
   transacoes.forEach(function (t) {
-    // `quando` (dia real) decide se cabe até ateMs; se já aconteceu antes de
-    // hoje, quem manda é a foto.
     const ts = quando(t);
     if (ts > ateMs) return;
-    if (!(ts > deMs)) return;
+    // ═══ POR QUE NÃO SE EXCLUI AQUI O QUE JÁ VENCEU ═══
+    //
+    // A versão anterior cortava tudo com `ts <= deMs` — "se já passou, quem
+    // manda é a foto". Só que a foto SÓ CONTA SAÍDA PAGA. Uma conta vencida e
+    // ainda não baixada não estava na foto nem na projeção: sumia das duas, e
+    // o saldo projetado ficava otimista pelo valor exato do que a pessoa
+    // ainda deve.
+    //
+    // Pior: `mpDataMovimento` ancora o vencimento ao MEIO-DIA. A conta que
+    // vence hoje era contada de manhã e desaparecia à tarde. Medido com os
+    // mesmos dados, saldo de R$ 599,79 e R$ 770 vencendo no dia:
+    //   às 09:00 → pior dia -R$ 830,11
+    //   às 21:05 → pior dia  -R$ 60,11   (os R$ 770 sumiram)
+    //
+    // Quem sabe responder "a foto já contou isto?" é `jaNaFoto`, logo abaixo.
+    // Este filtro só limita quão para trás vale a pena olhar: conta vencida há
+    // meses quase sempre é baixa esquecida, não dívida viva, e arrastá-la para
+    // sempre deixaria a projeção cronicamente no vermelho — um alerta que
+    // sempre aparece é um alerta que ninguém lê.
+    if (ts < deMs - ATRASO_MAXIMO_PROJETADO_MS) return;
     if (
       (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
       t.temLegCaixa

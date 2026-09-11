@@ -1399,6 +1399,7 @@ function renderizarOperacoes() {
             <div class="timeline-body">
                 <div class="timeline-line1">
                     <span class="tl-tipo">${tipoWord}</span>
+                    ${logoAtivoHTML(op.ticker, { classe: 'ativo-marca tl-marca', tamanho: 24, semBusca: semQtd })}
                     <span class="tl-ticker">${op.ticker}</span>
                     ${nomeAtivo ? `<span class="tl-nome">${nomeAtivo}</span>` : ''}
                     ${selo}

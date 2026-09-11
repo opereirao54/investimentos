@@ -107,6 +107,15 @@ function carregar(extras) {
   Object.assign(ctx, extras || {});
   ctx.window = ctx;
   vm.createContext(ctx);
+  // A marca do ativo (logo + monograma) vem de utils.js e é usada no card do
+  // ranking. Entra o pedaço REAL do arquivo, não um stub: um esboço aqui
+  // faria os testes de "nada escapa undefined para a tela" olharem para um
+  // HTML que não é o que o usuário recebe. Só a parte de cor em diante —
+  // o topo de utils.js mexe em localStorage e firebase.
+  const utils = fs.readFileSync(path.join(ROOT, 'web/appliquei-utils.js'), 'utf8');
+  vm.runInContext(utils.slice(utils.indexOf('var TINTA_CLARA')), ctx, {
+    filename: 'web/appliquei-utils.js',
+  });
   for (const f of [
     'web/appliquei-motor-carteira.js',
     'web/appliquei-aba-carteira-recomendada.js',
