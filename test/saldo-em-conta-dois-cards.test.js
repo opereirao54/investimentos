@@ -21,56 +21,104 @@
 //      projeção. Cravar "hoje" faria o card ao lado falar de setembro
 //      enquanto este fala de agora, sem avisar.
 
+//   4. A trava não pode depender do dia em que a suíte roda. Este arquivo
+//      cravava o salário no dia 5 e o aluguel no dia 6 como JÁ PAGOS, e
+//      conferia o total absoluto de 7.000. Nos seis primeiros dias do mês
+//      esses lançamentos ainda estão no futuro, o salário corretamente não
+//      entrou no caixa (INV-24) e o teste acusava -1.000 — não por defeito do
+//      app, mas por sorte de calendário vencida. Agora o relógio é fingido,
+//      como nas provas do INV-23.
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { carregarApp, ORDEM_CONTROLE } = require('./_harness-integracao.js');
 
 const DIA = 86400000;
+
+/**
+ * Roda `fn` com o relógio parado num dia do mês corrente.
+ *
+ * O harness captura `Date` no topo, então o relógio tem de ser trocado ANTES
+ * de ele ser carregado — daí limpar o require.cache aqui dentro.
+ */
+function noDia(diaDoMes, fn) {
+  const real = new Date();
+  const falso = new Date(real.getFullYear(), real.getMonth(), diaDoMes, 12, 0, 0).getTime();
+  const RealDate = Date;
+  const realNow = Date.now;
+  Date.now = () => falso;
+  global.Date = class extends RealDate {
+    constructor(...a) {
+      return a.length ? new RealDate(...a) : new RealDate(falso);
+    }
+    static now() {
+      return falso;
+    }
+  };
+  try {
+    for (const k of Object.keys(require.cache)) delete require.cache[k];
+    const { carregarApp, ORDEM_CONTROLE } = require('./_harness-integracao.js');
+    return fn(carregarApp, ORDEM_CONTROLE);
+  } finally {
+    global.Date = RealDate;
+    Date.now = realNow;
+  }
+}
+
+const { carregarApp, ORDEM_CONTROLE } = require('./_harness-integracao.js');
 
 /** Soma o mapa {contaId: saldo} que saldoCaixaPorConta devolve. */
 function somar(mapa) {
   return Object.keys(mapa || {}).reduce((s, k) => s + (Number(mapa[k]) || 0), 0);
 }
 
-test('o saldo em conta do card é o mesmo saldo que Meu patrimônio mostra', () => {
-  const s = carregarApp({}, ORDEM_CONTROLE);
+/** Cenário do teste: abertura 2.000, salário 8.000 no dia 5, aluguel 3.000 no dia 6. */
+function cenarioDoCard(carregar, ordem) {
+  const s = carregar({}, ordem);
   const conta = s.criarConta({ nome: 'Nubank', tipo: 'banco', saldoInicial: 2000 });
   const hoje = new Date();
-  const dia = (n) => new Date(hoje.getFullYear(), hoje.getMonth(), n);
+  const dia = (n) => new global.Date(hoje.getFullYear(), hoje.getMonth(), n);
+  const lanc = (id, categoria, valor, d) => ({
+    id,
+    categoria,
+    valor,
+    contaId: conta.id,
+    data: dia(d).toISOString(),
+    dataVencimento: dia(d).toISOString().slice(0, 10),
+    mes: hoje.getMonth(),
+    ano: hoje.getFullYear(),
+    pago: true,
+  });
+  s.transacoes.push(lanc('r1', 'receita', 8000, 5), lanc('d1', 'despesa_fixa', 3000, 6));
+  return {
+    doCard: s.calcularSaldoEmContaDoMes(hoje.getMonth(), hoje.getFullYear()),
+    doPatrimonio: s.mpCalcularSaldoTotal(Date.now()),
+  };
+}
 
-  s.transacoes.push(
-    {
-      id: 'r1',
-      categoria: 'receita',
-      valor: 8000,
-      contaId: conta.id,
-      data: dia(5).toISOString(),
-      dataVencimento: dia(5).toISOString().slice(0, 10),
-      mes: hoje.getMonth(),
-      ano: hoje.getFullYear(),
-      pago: true,
-    },
-    {
-      id: 'd1',
-      categoria: 'despesa_fixa',
-      valor: 3000,
-      contaId: conta.id,
-      data: dia(6).toISOString(),
-      dataVencimento: dia(6).toISOString().slice(0, 10),
-      mes: hoje.getMonth(),
-      ano: hoje.getFullYear(),
-      pago: true,
-    }
-  );
-
-  const doCard = s.calcularSaldoEmContaDoMes(hoje.getMonth(), hoje.getFullYear());
-  const doPatrimonio = s.mpCalcularSaldoTotal(Date.now());
+test('o saldo em conta do card é o mesmo saldo que Meu patrimônio mostra', () => {
+  // Relógio no dia 20: os dois lançamentos já aconteceram, então o total é
+  // conhecido e não depende de quando a suíte roda.
+  const r = noDia(20, cenarioDoCard);
   assert.equal(
-    doCard,
-    doPatrimonio,
+    r.doCard,
+    r.doPatrimonio,
     'o Controle financeiro e o Meu patrimônio têm de mostrar o MESMO dinheiro'
   );
-  assert.equal(doCard, 7000, '2.000 de abertura + 8.000 de salário − 3.000 de aluguel pago');
+  assert.equal(r.doCard, 7000, '2.000 de abertura + 8.000 de salário − 3.000 de aluguel pago');
+});
+
+test('os dois cards batem em QUALQUER dia do mês', () => {
+  // A igualdade entre as duas telas é a invariante de verdade — ela não pode
+  // depender do calendário. O total absoluto muda ao longo do mês (no dia 3 o
+  // salário do dia 5 ainda não caiu, e é correto que não tenha caído); a
+  // igualdade, não.
+  const divergiram = [];
+  for (let d = 1; d <= 28; d++) {
+    const r = noDia(d, cenarioDoCard);
+    if (r.doCard !== r.doPatrimonio)
+      divergiram.push(`dia ${d}: card=${r.doCard}, patrimônio=${r.doPatrimonio}`);
+  }
+  assert.deepEqual(divergiram, [], 'as duas telas mostraram dinheiro diferente');
 });
 
 test('despesa não paga separa os dois cards — é para isso que eles são dois', () => {
