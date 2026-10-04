@@ -154,7 +154,7 @@ const v1 = env(`${topo()}
       <b>antes</b> de faltar.</p>
     <div class="g" style="flex:.42"></div>
     <div class="rot">O que eu preciso de você</div>
-    <p class="sub" style="margin-top:16px">Usar por duas semanas e me dizer, sem filtro,
+    <p class="sub" style="margin-top:16px">Usar no seu dia a dia e me dizer, sem filtro,
       <b>o que está ruim</b>.</p>
     <div class="g" style="flex:.62"></div>
     ${cta('Responda esta mensagem<br>para entrar.')}
@@ -186,7 +186,7 @@ const v3 = env(`${topo()}
     <div class="pill"><span class="pt"></span>Beta fechado</div>
     <h1 style="margin-top:32px;font-size:86px">Quero te<br>convidar<br><em>para testar.</em></h1>
     ${bloco('O que é', 'Um app que junta seu controle de gastos, seu patrimônio e seus investimentos <b>numa tela só</b>.')}
-    ${bloco('O que eu preciso', 'Que você use por <b>duas semanas</b> e me diga o que está ruim.')}
+    ${bloco('O que eu preciso', 'Que você use <b>no seu dia a dia</b> e me diga o que está ruim.')}
     ${bloco('O que você ganha', 'Acesso antes de todo mundo e <b>voz no que entra</b> no produto.')}
     <div class="g" style="flex:.5"></div>
     ${cta('Responda esta mensagem<br>para entrar.')}
