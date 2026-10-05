@@ -66,6 +66,8 @@ function mudarAba(e, idAba, callback = null) {
   if (idAba === 'relatorio_mensal') renderRelatorioMensal();
   if (callback) callback();
   if (typeof closeMobileNav === 'function') closeMobileNav();
+  // Barra inferior do celular acompanha a aba nova (appliquei-mobile.js).
+  if (typeof mobSincronizarAba === 'function') mobSincronizarAba(idAba);
 }
 
 // === BLOCOS RECOLHÍVEIS DA ABA "MEUS INVESTIMENTOS" =========================
@@ -396,6 +398,8 @@ function abrirMenuCadastro() {
   menu.hidden = false;
   if (fundo) fundo.hidden = false;
   if (btn) btn.setAttribute('aria-expanded', 'true');
+  const btnBarra = document.getElementById('mobTabCadastro');
+  if (btnBarra) btnBarra.setAttribute('aria-expanded', 'true');
   document.body.classList.add('fab-aberto');
   const primeiro = menu.querySelector('.fab-opcao');
   if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
@@ -408,6 +412,8 @@ function fecharMenuCadastro() {
   if (menu) menu.hidden = true;
   if (fundo) fundo.hidden = true;
   if (btn) btn.setAttribute('aria-expanded', 'false');
+  const btnBarra = document.getElementById('mobTabCadastro');
+  if (btnBarra) btnBarra.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('fab-aberto');
 }
 

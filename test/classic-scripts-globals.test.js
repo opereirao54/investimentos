@@ -53,6 +53,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-primeiros-passos.js', indent: '' },
   { file: 'web/appliquei-rendimento.js', indent: '' },
   { file: 'web/appliquei-admin.js', indent: '' },
+  { file: 'web/appliquei-mobile.js', indent: '' },
 ];
 
 for (const { file, indent } of CLASSIC_SCRIPTS) {

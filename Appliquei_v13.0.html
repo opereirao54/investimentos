@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
@@ -10313,6 +10313,159 @@
                alvo de toque mínimo recomendado. */
             :root { --altura-campo: 44px; }
         }
+
+        /* ============================================================ */
+        /* APP MOBILE — barra inferior, tela "Mais" e voltar            */
+        /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
+        /* continua sendo a navegação e nada disto aparece.             */
+        /* ============================================================ */
+        .mob-tabbar, .mob-voltar { display: none; }
+        @media (min-width: 769px) {
+            #mais_mobile { display: none !important; }
+        }
+        @media (max-width: 768px) {
+            /* A barra tem 64px + a área do gesto do iPhone. A reserva do
+               rodapé passa a cobrir a barra, não o "+" flutuante (que some). */
+            :root {
+                --mob-barra: 64px;
+                --fab-reserva: calc(var(--mob-barra) + env(safe-area-inset-bottom) + 20px);
+            }
+            /* O ☰ e o "+" flutuante dão lugar à barra. */
+            .mobile-nav-toggle, #fabNovoLancamento { display: none !important; }
+            /* A sidebar e o drawer de operação ficam fora da tela, mas a
+               sombra deles vazava como uma faixa cinza nas duas bordas. */
+            .sidebar:not(.mobile-open), .drawer:not(.aberto) { box-shadow: none !important; }
+            /* Sem o ☰ no canto, o topo não precisa mais reservar 60px. */
+            .main-content { padding-top: calc(14px + env(safe-area-inset-top)) !important; }
+
+            .mob-tabbar {
+                display: flex;
+                position: fixed; left: 0; right: 0; bottom: 0;
+                z-index: 9990;
+                height: calc(var(--mob-barra) + env(safe-area-inset-bottom));
+                padding: 0 4px env(safe-area-inset-bottom);
+                box-sizing: border-box;
+                background: rgba(255,255,255,0.94);
+                -webkit-backdrop-filter: saturate(1.4) blur(14px);
+                backdrop-filter: saturate(1.4) blur(14px);
+                border-top: 1px solid var(--cor-borda);
+                align-items: stretch;
+            }
+            body.dark .mob-tabbar { background: rgba(14,22,18,0.94); }
+            /* Com um formulário aberto por cima, a barra não tem o que fazer. */
+            body.painel-lancamento-aberto .mob-tabbar,
+            body.drawer-operacao-aberto .mob-tabbar { display: none; }
+
+            .mob-tab {
+                flex: 1; min-width: 0;
+                display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+                background: none; border: 0; padding: 0; cursor: pointer;
+                font-family: inherit; font-size: 10.5px; font-weight: 600; letter-spacing: 0.1px;
+                color: var(--cor-texto-mutado);
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mob-tab i { font-size: 23px; transition: transform 0.18s ease; }
+            .mob-tab:active i { transform: scale(0.9); }
+            .mob-tab.ativo { color: var(--cor-primaria); }
+            .mob-tab.ativo i { font-weight: bold; }
+            .mob-tab-fab {
+                width: 52px; height: 52px; border-radius: 17px;
+                margin-top: -20px;
+                display: flex; align-items: center; justify-content: center;
+                background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover));
+                color: #fff; font-size: 24px;
+                box-shadow: 0 8px 20px rgba(5,150,105,0.38);
+            }
+            .mob-tab-fab i { transition: transform 0.2s cubic-bezier(.34,1.56,.64,1); }
+            body.fab-aberto .mob-tab-fab i { transform: rotate(135deg); }
+            /* Avisos (toasts) sobem acima da barra em vez de cobri-la. */
+            #toast-container {
+                bottom: calc(var(--mob-barra) + env(safe-area-inset-bottom) + 12px) !important;
+            }
+            /* O menu de cadastro sobe do "+" do centro. */
+            #fabMenu {
+                left: 50%; right: auto; transform: translateX(-50%);
+                bottom: calc(var(--mob-barra) + env(safe-area-inset-bottom) + 14px);
+            }
+
+            /* "‹ Mais" no topo das telas abertas a partir do Mais. */
+            body.mob-secundaria .mob-voltar { display: block; margin: -6px 0 4px -10px; }
+            .mob-voltar button {
+                display: inline-flex; align-items: center; gap: 2px;
+                min-height: 44px; padding: 0 10px 0 4px;
+                background: none; border: 0; cursor: pointer;
+                font-family: inherit; font-size: 15px; font-weight: 600;
+                color: var(--cor-primaria);
+            }
+            .mob-voltar i { font-size: 20px; }
+
+            /* --- Tela "Mais" --- */
+            #mais_mobile.ativa { display: flex; flex-direction: column; gap: 14px; }
+            .mob-titulo { font-size: 28px !important; font-weight: 800; letter-spacing: -0.5px; margin: 0; color: var(--cor-texto-principal); }
+            .mob-conta {
+                display: flex; align-items: center; gap: 14px;
+                padding: 16px; border-radius: 18px;
+                background: var(--sb-bg); color: var(--sb-text-active);
+            }
+            .mob-conta-avatar {
+                width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+                display: flex; align-items: center; justify-content: center;
+                background: var(--sb-accent); color: var(--sb-bg); font-weight: 800; font-size: 18px;
+            }
+            .mob-conta-txt { display: grid; gap: 4px; min-width: 0; }
+            .mob-conta-email { font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mob-conta-salvo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sb-text); }
+            .mob-grupo {
+                margin: 6px 2px -4px; font-size: 11px !important; font-weight: 700;
+                letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado);
+            }
+            .mob-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .mob-tile {
+                display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+                min-height: 104px; padding: 14px; box-sizing: border-box;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
+                font-family: inherit; color: var(--cor-texto-principal); text-align: left; cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mob-tile:active { transform: scale(0.98); }
+            .mob-tile b { font-size: 14px; font-weight: 700; margin-top: 6px; }
+            .mob-tile small { font-size: 12px; color: var(--cor-texto-mutado); }
+            .mob-tile-ic {
+                width: 38px; height: 38px; border-radius: 12px;
+                display: flex; align-items: center; justify-content: center; font-size: 20px;
+            }
+            .mob-tile-ic.verde { background: var(--cor-bg-primaria); color: var(--tinta-verde, #047857); }
+            .mob-tile-ic.azul { background: var(--cor-bg-info); color: var(--tinta-azul, #1d4ed8); }
+            .mob-tile-ic.roxo { background: rgba(124,58,237,0.10); color: var(--tinta-roxo, #6d28d9); }
+            .mob-tile-ic.ambar { background: rgba(217,119,6,0.12); color: #b45309; }
+            .mob-tile-ic.cinza { background: var(--cor-superficie); color: var(--cor-texto-secundario); }
+            .mob-lista {
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
+                padding: 0 16px;
+            }
+            .mob-item {
+                display: flex; align-items: center; gap: 12px; width: 100%;
+                min-height: 54px; padding: 0;
+                background: none; border: 0; border-bottom: 1px solid var(--cor-borda);
+                font-family: inherit; font-size: 15px; font-weight: 600; text-align: left;
+                color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mob-item:last-child { border-bottom: 0; }
+            .mob-item > i:first-child { font-size: 20px; color: var(--cor-texto-secundario); }
+            .mob-item > span:not(.mob-switch) { flex: 1; }
+            .mob-seta { color: var(--cor-texto-mutado); }
+            .mob-switch {
+                position: relative; width: 46px; height: 28px; border-radius: 99px; flex-shrink: 0;
+                background: var(--cor-borda2); transition: background 0.2s;
+            }
+            .mob-switch::after {
+                content: ''; position: absolute; top: 3px; left: 3px;
+                width: 22px; height: 22px; border-radius: 50%; background: #fff;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.25); transition: left 0.2s;
+            }
+            .mob-item[aria-checked="true"] .mob-switch { background: var(--cor-primaria); }
+            .mob-item[aria-checked="true"] .mob-switch::after { left: 21px; }
+        }
     </style>
 </head>
 <body class="controle-ativo">
@@ -10623,6 +10776,15 @@
             aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu">
         <i class="ph-bold ph-plus"></i>
     </button>
+    <!-- App mobile: barra inferior (só até 768px). O "+" do centro abre o
+         mesmo menu de cadastro do botão global, que no celular se esconde. -->
+    <nav class="mob-tabbar" id="mobTabbar" aria-label="Navegação principal">
+        <button type="button" class="mob-tab" data-aba="controle" onclick="mobIrPara('controle')"><i class="ph ph-house"></i><span>Início</span></button>
+        <button type="button" class="mob-tab" data-aba="meu_patrimonio" onclick="mobIrPara('meu_patrimonio')"><i class="ph ph-bank"></i><span>Patrimônio</span></button>
+        <button type="button" class="mob-tab mob-tab-cadastro" id="mobTabCadastro" onclick="alternarMenuCadastro()" aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu"><span class="mob-tab-fab"><i class="ph-bold ph-plus"></i></span></button>
+        <button type="button" class="mob-tab" data-aba="patrimonio" onclick="mobIrPara('patrimonio')"><i class="ph ph-trend-up"></i><span>Investir</span></button>
+        <button type="button" class="mob-tab" data-aba="mais_mobile" onclick="mobIrPara('mais_mobile')"><i class="ph ph-squares-four"></i><span>Mais</span></button>
+    </nav>
     <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
     <aside class="drawer" id="drawerOperacao" role="dialog" aria-labelledby="drawerOperacaoTitulo">
         <div class="drawer-header">
@@ -10861,6 +11023,12 @@
              a cada troca. Nasce vazio; web/appliquei-primeiros-passos.js
              decide se preenche. -->
         <div id="ppGuia" hidden></div>
+
+        <!-- App mobile: telas abertas pelo "Mais" ganham o caminho de volta.
+             Só aparece no celular (body.mob-secundaria + media query). -->
+        <div class="mob-voltar" id="mobVoltar">
+            <button type="button" onclick="mobIrPara('mais_mobile')"><i class="ph ph-caret-left"></i> Mais</button>
+        </div>
 
         <section id="patrimonio" class="section">
 
@@ -13519,6 +13687,45 @@
 
         </section>
 
+
+        <!-- App mobile: a tela "Mais" (web/appliquei-mobile.js). No desktop a
+             sidebar cumpre esse papel e a seção nunca é aberta. -->
+        <section id="mais_mobile" class="section" aria-labelledby="mobMaisTitulo">
+            <h1 class="mob-titulo" id="mobMaisTitulo">Mais</h1>
+
+            <div class="mob-conta">
+                <span class="mob-conta-avatar" id="mobContaAvatar" aria-hidden="true">?</span>
+                <div class="mob-conta-txt">
+                    <span class="mob-conta-email" id="mobContaEmail">Conta</span>
+                    <span class="mob-conta-salvo"><span class="status-dot-sidebar"></span> <span id="mobUltimoSalvo">Pronto</span></span>
+                </div>
+            </div>
+
+            <h2 class="mob-grupo">Planejar</h2>
+            <div class="mob-tiles">
+                <button type="button" class="mob-tile" onclick="mobIrPara('meus_sonhos')"><span class="mob-tile-ic roxo"><i class="ph ph-star"></i></span><b>Meus sonhos</b><small>Metas e aportes</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('carteira')"><span class="mob-tile-ic verde"><i class="ph ph-chart-pie-slice"></i></span><b>Carteira sugerida</b><small>O que comprar no mês</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('simulador')"><span class="mob-tile-ic azul"><i class="ph ph-calculator"></i></span><b>Simule sua liberdade</b><small>Projeção e meta</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('relatorio_mensal')"><span class="mob-tile-ic ambar"><i class="ph ph-file-text"></i></span><b>Relatório mensal</b><small>Termômetro do mês</small></button>
+            </div>
+
+            <h2 class="mob-grupo">Aprender e acompanhar</h2>
+            <div class="mob-tiles">
+                <button type="button" class="mob-tile" onclick="mobIrPara('aulas')"><span class="mob-tile-ic verde"><i class="ph ph-graduation-cap"></i></span><b>Jornada financeira</b><small>Módulos práticos</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('noticias')"><span class="mob-tile-ic cinza"><i class="ph ph-newspaper"></i></span><b>Info Mercado</b><small>Radar do dia</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('applicash')"><span class="mob-tile-ic verde"><i class="ph ph-currency-dollar"></i></span><b>Applicash</b><small>Indique e ganhe</small></button>
+                <button type="button" class="mob-tile" onclick="mobIrPara('duvidas_sugestoes')"><span class="mob-tile-ic azul"><i class="ph ph-question"></i></span><b>Dúvidas &amp; sugestões</b><small>Ajuda e ideias</small></button>
+            </div>
+
+            <h2 class="mob-grupo">Preferências</h2>
+            <div class="mob-lista">
+                <button type="button" class="mob-item" id="mobPrefTema" role="switch" aria-checked="false" onclick="mobAlternarTema()"><i class="ph ph-moon"></i><span>Tema escuro</span><span class="mob-switch" aria-hidden="true"></span></button>
+                <button type="button" class="mob-item" id="mobPrefValores" role="switch" aria-checked="false" onclick="mobAlternarValores()"><i class="ph ph-eye-slash"></i><span>Esconder valores</span><span class="mob-switch" aria-hidden="true"></span></button>
+                <button type="button" class="mob-item" onclick="abrirModalConfig()"><i class="ph ph-gear"></i><span>Configurações</span><i class="ph ph-caret-right mob-seta"></i></button>
+                <button type="button" class="mob-item" onclick="if(window.AppliqueiBilling) AppliqueiBilling.openMyAccount();"><i class="ph ph-receipt"></i><span>Minha assinatura</span><i class="ph ph-caret-right mob-seta"></i></button>
+                <button type="button" class="mob-item" onclick="appliqueiSidebarAuthClick(); setTimeout(mobAtualizarMais, 300);"><i class="ph ph-sign-in"></i><span id="mobAuthLabel">Entrar</span></button>
+            </div>
+        </section>
     </main>
 
     <!-- Utilities extraídas de app.js — carregadas SÍNCRONO antes de app.js
@@ -13571,5 +13778,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
+    <script src="/web/appliquei-mobile.js?v=mobile-1"></script>
 </body>
 </html>
