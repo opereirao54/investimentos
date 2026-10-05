@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10627,6 +10627,98 @@
             #aulas .jor-card.trancado button,
             #aulas .jor-card.trancado .jor-selo { display: none; }
             #aulas .jor-card.trancado { padding-top: 12px !important; padding-bottom: 12px !important; }
+
+            /* ============ Micro: alvos de toque (≥ 40–44px) ============ */
+            /* Medidos numa varredura de todas as telas: setas do mês com
+               28×24, "Fechar" com 34, filtros do extrato com 26, abas de
+               Dúvidas com 30, checkbox de 16. */
+            #controle .seletor-mes .btn-secundario { min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+            #controle .seletor-mes input { min-height: 40px; }
+            .painel-mobile-close { width: 44px !important; height: 44px !important; }
+            #controle .ext-tab, #controle .ext-cat { min-height: 38px; }
+            #patrimonio .subtab-pill { min-height: 42px; }
+            #patrimonio .chip-cat { min-height: 38px; }
+            #meu_patrimonio .btn-secundario, #applicash .btn-secundario, #noticias .btn-secundario { min-height: 42px; }
+            #meus_sonhos .page-header .btn-acao, #aulas .btn-acao { min-height: 46px; }
+            #duvidas_sugestoes .ds-tab-btn { min-height: 40px; }
+            #carteira .disc-toggle { min-height: 40px; }
+            #applicash .apc-hero-link-pill { min-height: 40px; }
+            #transacaoFixa { width: 22px !important; height: 22px !important; min-height: 0 !important; }
+            #acoesBannerSaldoMesAnt .btn-secundario { min-height: 40px; }
+            #listaContas .btn-secundario { min-width: 42px; }
+            /* Textos com tamanho escrito direto no HTML (inline) também
+               respeitam o piso de 11px. */
+            .main-content [style*="font-size:9px"], .main-content [style*="font-size: 9px"],
+            .main-content [style*="font-size:9.5px"], .main-content [style*="font-size: 9.5px"],
+            .main-content [style*="font-size:10px"], .main-content [style*="font-size: 10px"],
+            .main-content [style*="font-size:10.5px"], .main-content [style*="font-size: 10.5px"] { font-size: 11px !important; }
+
+            /* ============ Micro: nada abaixo de 11px ============ */
+            /* Rótulos de 9 a 10,5px eram ilegíveis no sol e para quem usa
+               fonte maior. 11px é o piso; os de 9px (tipo de instituição)
+               sobem mais. */
+            .term-chip-label, .kpi-mini-lbl, .kpi-mini-delta, .kpi-mini-fatia, .kpi-hero-chip,
+            .ins-card-sev, .ins-painel-contagem, .t-stat-lbl, .bar-label-limit,
+            .ext-cat-val, .mp-kpi-sub, .mp-hero-composicao-tit, .mp-kpi-fatia-pct, .mp-kpi-delta,
+            .mp-inst-sub, .inv-eyebrow, .inv-metrica-rot, .cat-label,
+            .rm-hero-status, .rm-hero-stat-label, .rm-criterio-badge, .rm-criterio-meta, .rm-kpi-label,
+            .rm-donut-total-label, .rm-donut-leg-sub-label, .rm-donut-leg-sub-valor, .rm-sec-kpi-label,
+            .cart-q-hint, .im-vazio-motivo, .mdre-rot { font-size: 11px !important; }
+            .mp-inst-tipo { font-size: 10.5px !important; }
+            #extratoUnificado .cat, #extratoUnificado .cat span { font-size: 11.5px !important; }
+
+            /* ============ Micro: modais viram folhas que sobem de baixo ============ */
+            /* No celular a janela centralizada com 12px de margem parecia
+               site; a folha presa ao pé é o gesto de app, e o polegar
+               alcança os botões. */
+            [id^="modal"][style*="position:fixed"], [id^="modal"][style*="position: fixed"], .jm-overlay {
+                align-items: flex-end !important;
+            }
+            [id^="modal"][style*="position:fixed"] > div:first-child,
+            [id^="modal"][style*="position: fixed"] > div:first-child,
+            .jm-folha {
+                width: 100% !important; max-width: 100% !important; margin: 0 !important;
+                border-radius: 22px 22px 0 0 !important; border-bottom: 0 !important;
+                max-height: 92vh !important; overflow-y: auto;
+                padding-bottom: calc(20px + env(safe-area-inset-bottom)) !important;
+                animation: mobFolhaSobe 0.26s cubic-bezier(0.22,1,0.36,1) !important;
+                box-sizing: border-box;
+            }
+            .jm-folha { padding-bottom: env(safe-area-inset-bottom) !important; }
+            @keyframes mobFolhaSobe { from { transform: translateY(40%); opacity: 0.4; } }
+
+            /* Puxador no topo das folhas: diz que dá para fechar puxando
+               (ou tocando fora). */
+            [id^="modal"][style*="position:fixed"] > div:first-child::before,
+            [id^="modal"][style*="position: fixed"] > div:first-child::before {
+                content: ''; display: block; width: 42px; height: 5px; border-radius: 99px;
+                background: var(--cor-borda2); margin: -14px auto 16px;
+            }
+
+            /* ============ Simulador: resultado sempre à vista ============ */
+            #simulador .mob-sim-fixo {
+                position: fixed; left: 12px; right: 12px; z-index: 9989;
+                bottom: calc(var(--mob-barra) + env(safe-area-inset-bottom) + 10px);
+                display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px;
+                border: 0; border-radius: 16px; cursor: pointer; font-family: inherit; text-align: left;
+                background: linear-gradient(135deg, #059669, #047857); color: #fff;
+                box-shadow: 0 10px 24px rgba(4,120,87,0.35);
+                transform: translateY(0); opacity: 1; transition: transform 0.22s ease, opacity 0.22s ease;
+            }
+            #simulador .mob-sim-fixo.oculto { transform: translateY(20px); opacity: 0; pointer-events: none; }
+            #simulador:not(.ativa) .mob-sim-fixo, body.mob-sim-meta .mob-sim-fixo { display: none; }
+            .mob-sim-fixo-rot { flex: 1; font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.85); }
+            .mob-sim-fixo-val { font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 500; white-space: nowrap; }
+            .mob-sim-fixo-val small { font-size: 12px; opacity: 0.75; margin-left: 2px; }
+
+            /* ============ Micro: resposta ao toque ============ */
+            .mob-tile:active, .mdre-card:active, .kpi-mini:active, .kpi-hero:active,
+            .mp-kpi:active, #patrimonio .rich-row:active, .btn-acao:active, .btn-secundario:active {
+                transform: scale(0.985); transition: transform 0.08s ease;
+            }
+            .main-content { -webkit-tap-highlight-color: transparent; }
+            /* A rolagem não "puxa" a página inteira nas bordas (iOS). */
+            .main-content { overscroll-behavior-y: contain; }
 
             /* --- Extrato: ações por deslize (appliquei-mobile.js) --- */
             #extratoUnificado .extrato-item {
@@ -12715,7 +12807,15 @@
                 </div>
             </div>
 
-            <div style="background:linear-gradient(135deg,#059669 0%,#047857 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;">
+            <!-- App mobile: enquanto a pessoa mexe nos parâmetros (acima) o
+                 resultado sai da tela. Esta faixa o mantém à vista, presa
+                 sobre a barra inferior; some quando o bloco abaixo aparece. -->
+            <button type="button" class="mob-sim-fixo" id="mobSimFixo" onclick="mobSimIrResultado()" aria-label="Ver o resultado da simulação">
+                <span class="mob-sim-fixo-rot" id="mobSimFixoRot">Renda passiva estimada</span>
+                <span class="mob-sim-fixo-val"><span id="mobSimFixoVal">R$ 0,00</span><small>/mês</small></span>
+                <i class="ph ph-caret-down"></i>
+            </button>
+            <div id="simHero" style="background:linear-gradient(135deg,#059669 0%,#047857 100%);border-radius:var(--radius);padding:22px 26px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center;">
                 <div>
                     <div style="font-size:10.5px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:0.7px;margin-bottom:8px;">A mais por mês — investindo vs. INSS</div>
                     <div id="heroDiff" style="font-size:36px;font-weight:700;color:#fff;font-family:'DM Mono',monospace;letter-spacing:-1.5px;line-height:1.05;">+R$ 0,00</div>

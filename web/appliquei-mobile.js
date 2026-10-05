@@ -69,6 +69,7 @@ function mobSincronizarAba(idAba) {
     else t.removeAttribute('aria-current');
   });
   document.body.classList.toggle('mob-secundaria', !naBarra);
+  if (typeof _mobIconesBarra === 'function') _mobIconesBarra();
   // App de verdade abre a tela nova no topo. O rolador é .main-content.
   if (mobEhCelular()) {
     const rol = document.querySelector('.main-content');
@@ -139,6 +140,9 @@ function mobSegControle(aba) {
   const sec = document.getElementById('controle');
   if (!sec) return;
   sec.dataset.mobAbaAtiva = aba;
+  try {
+    sessionStorage.setItem(MOB_SEG_CHAVE, aba);
+  } catch (e) {}
   document.querySelectorAll('#mobSegControle [data-mob-seg]').forEach((b) => {
     b.setAttribute('aria-selected', b.dataset.mobSeg === aba ? 'true' : 'false');
   });
@@ -473,3 +477,122 @@ function _mobLigarExtrato() {
 }
 
 document.addEventListener('DOMContentLoaded', _mobLigarExtrato);
+
+// ------------------------------------------------------------
+// Micro: comportamentos de app
+// ------------------------------------------------------------
+
+// Tocar de novo na aba que já está acesa volta ao topo (padrão iOS/Android).
+// A troca de aba já faz isso; aqui é o caso de quem rolou e quer subir.
+function _mobTocarAbaAtiva(e) {
+  const tab = e.target.closest('.mob-tab[data-aba]');
+  if (!tab || !tab.classList.contains('ativo')) return;
+  const ativa = document.querySelector('.section.ativa');
+  // "Mais" aceso com uma tela secundária aberta: aí o toque volta ao Mais.
+  if (tab.dataset.aba === MOB_ABA_MAIS && ativa && ativa.id !== MOB_ABA_MAIS) return;
+  e.stopImmediatePropagation();
+  e.preventDefault();
+  const rol = document.querySelector('.main-content');
+  if (rol) rol.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Ícone da aba acesa preenchido, como nos apps nativos: a forma diz onde a
+// pessoa está antes da cor.
+function _mobIconesBarra() {
+  document.querySelectorAll('#mobTabbar .mob-tab[data-aba] > i').forEach((i) => {
+    const acesa = i.parentElement.classList.contains('ativo');
+    i.classList.toggle('ph-fill', acesa);
+    i.classList.toggle('ph', !acesa);
+  });
+}
+
+// A barra de status do celular acompanha o fundo do app (claro/escuro), em
+// vez de uma faixa verde fixa por cima de uma página clara.
+function _mobCorBarraStatus() {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta || !mobEhCelular()) return;
+  meta.setAttribute('content', document.body.classList.contains('dark') ? '#0b1410' : '#f2f5f2');
+}
+
+// A aba do Controle (Resumo/Extrato/Projeção) sobrevive a ir e voltar.
+var MOB_SEG_CHAVE = 'appliquei_mob_seg_controle';
+function _mobRestaurarSegControle() {
+  let salvo = null;
+  try {
+    salvo = sessionStorage.getItem(MOB_SEG_CHAVE);
+  } catch (e) {}
+  if (salvo && MOB_SEG_CONTROLE.indexOf(salvo) > -1) mobSegControle(salvo);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const barra = document.getElementById('mobTabbar');
+  if (barra) barra.addEventListener('click', _mobTocarAbaAtiva, true);
+  _mobIconesBarra();
+  _mobCorBarraStatus();
+  _mobRestaurarSegControle();
+  new MutationObserver(_mobCorBarraStatus).observe(document.body, {
+    attributes: true,
+    attributeFilter: ['class'],
+  });
+});
+
+// ------------------------------------------------------------
+// Simulador: resultado sempre à vista
+// ------------------------------------------------------------
+// Os parâmetros ficam no alto e o resultado lá embaixo: quem ajusta o
+// aporte não vê o efeito sem rolar. A faixa fixa repete a renda passiva
+// (lida do próprio herói, que o simulador já atualiza) e some quando o
+// herói está na tela — não há duas respostas visíveis ao mesmo tempo.
+function _mobSimAtualizar() {
+  const val = document.getElementById('heroRendaMensal');
+  const alvo = document.getElementById('mobSimFixoVal');
+  const rot = document.getElementById('mobSimFixoRot');
+  if (val && alvo) alvo.textContent = (val.textContent || '').trim();
+  const tempo = document.getElementById('simTempo');
+  const tipo = document.getElementById('simTipoTempo');
+  if (rot && tempo) {
+    const n = (tempo.value || '').trim();
+    const un = tipo && tipo.value === 'mes' ? 'meses' : 'anos';
+    rot.textContent = n ? 'Renda passiva em ' + n + ' ' + un : 'Renda passiva estimada';
+  }
+  // No modo "Planejar minha meta" o herói é outro: a faixa não se aplica.
+  const meta = document.getElementById('simModoMeta');
+  document.body.classList.toggle('mob-sim-meta', !!(meta && meta.style.display !== 'none'));
+}
+
+function mobSimIrResultado() {
+  const hero = document.getElementById('simHero');
+  if (hero) hero.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function _mobLigarSimulador() {
+  const hero = document.getElementById('simHero');
+  const faixa = document.getElementById('mobSimFixo');
+  const val = document.getElementById('heroRendaMensal');
+  if (!hero || !faixa || !val) return;
+  // O simulador reescreve o herói inteiro a cada cálculo (o <span> do valor
+  // é recriado), então a observação é no bloco, não no número.
+  new MutationObserver(_mobSimAtualizar).observe(hero, {
+    childList: true,
+    characterData: true,
+    subtree: true,
+  });
+  const meta = document.getElementById('simModoMeta');
+  if (meta) new MutationObserver(_mobSimAtualizar).observe(meta, { attributes: true });
+  ['simTempo', 'simTipoTempo'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', _mobSimAtualizar);
+    if (el) el.addEventListener('change', _mobSimAtualizar);
+  });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(
+      (ents) => {
+        ents.forEach((en) => faixa.classList.toggle('oculto', en.isIntersecting));
+      },
+      { threshold: 0.15 }
+    ).observe(hero);
+  }
+  _mobSimAtualizar();
+}
+
+document.addEventListener('DOMContentLoaded', _mobLigarSimulador);

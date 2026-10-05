@@ -71,7 +71,10 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 });
 
 test('nada da casca aparece no desktop', () => {
-  assert.match(HTML, /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre \{ display: none; \}/);
+  assert.match(
+    HTML,
+    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo \{ display: none; \}/
+  );
   assert.match(
     HTML,
     /@media \(min-width: 769px\) \{\s*#mais_mobile \{ display: none !important; \}/
@@ -160,4 +163,22 @@ test('as ações do extrato no celular são os botões originais', () => {
     );
   }
   assert.doesNotMatch(MOB, /deletarTransacao\(|prepararEdicao\(|prepararPagamento\(/);
+});
+
+test('a faixa do Simulador lê o resultado do próprio herói', () => {
+  // Ela repete o número que o simulador já calculou — nunca calcula outro.
+  const i = MOB.indexOf('function _mobSimAtualizar');
+  const fn = MOB.slice(i, MOB.indexOf('function mobSimIrResultado'));
+  assert.match(fn, /getElementById\('heroRendaMensal'\)/);
+  assert.doesNotMatch(fn, /calcularSimulador|Math\.pow/);
+  assert.match(HTML, /id="simHero"/);
+});
+
+test('no celular nenhum rótulo fica abaixo de 11px por estilo inline', () => {
+  for (const t of ['9px', '9.5px', '10px', '10.5px']) {
+    assert.ok(
+      HTML.includes(`.main-content [style*="font-size:${t}"]`),
+      `faltou o piso para font-size:${t}`
+    );
+  }
 });
