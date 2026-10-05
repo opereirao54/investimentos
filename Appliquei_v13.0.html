@@ -10548,6 +10548,37 @@
             }
             #controle .btn-tab-dre { flex-shrink: 0; min-height: 40px; }
 
+            /* --- Meu patrimônio --- */
+            #meu_patrimonio .page-header .subtitulo { display: none; }
+            /* Saldo, investido, imóveis e veículos: quatro cartões de 160px
+               empilhados viram uma linha deslizante. O cartão do total, logo
+               acima, já mostra a divisão inteira numa barra. */
+            #meu_patrimonio .mp-kpis-componentes {
+                display: flex !important; gap: 10px;
+                overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+                margin: 0 -16px 16px; padding: 2px 16px 6px; scroll-padding: 0 16px;
+                scrollbar-width: none;
+            }
+            #meu_patrimonio .mp-kpis-componentes::-webkit-scrollbar { display: none; }
+            #meu_patrimonio .mp-kpis-componentes > .mp-kpi { flex: 0 0 68%; scroll-snap-align: start; min-width: 0; margin: 0 !important; }
+
+            /* --- Meus investimentos: topo do herói --- */
+            /* Rótulo e "Registrar" dividem a primeira linha; o aviso de
+               preços estimados desce para a segunda em vez de empurrar o
+               botão para baixo do rótulo. */
+            #patrimonio .inv-hero-top {
+                display: grid !important; grid-template-columns: minmax(0, 1fr) auto;
+                align-items: center; gap: 8px 10px;
+            }
+            #patrimonio .inv-hero-acoes { display: contents !important; }
+            #patrimonio .inv-hero-acoes .inv-btn-add { grid-column: 2; grid-row: 1; min-height: 44px; }
+            #patrimonio .inv-hero-acoes .inv-flag { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+            /* Detalhe do ativo: ao abrir, a linha rola até o topo — mas o
+               cabeçalho fixo do grupo ("Renda variável") a cobriria. E o
+               recuo de 68px do detalhe sobra numa tela de 390. */
+            #patrimonio .rich-row { scroll-margin-top: 80px; }
+            #patrimonio .rich-expand { padding-left: 0 !important; }
+
             /* --- Novo lançamento (bottom sheet) --- */
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
                formulário. O resto segue na ordem de antes. */

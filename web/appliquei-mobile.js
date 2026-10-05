@@ -34,6 +34,9 @@ function mobIrPara(idAba) {
     (b.getAttribute('onclick') || '').includes("'" + idAba + "'")
   );
   if (btn) btn.click();
+  // mudarAba já sincroniza no fim; repetir aqui garante a barra certa mesmo
+  // se o render da aba lançar no meio do caminho.
+  mobSincronizarAba(idAba);
 }
 
 /**

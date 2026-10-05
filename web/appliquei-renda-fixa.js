@@ -1426,7 +1426,14 @@ function renderizarOperacoes() {
 function toggleRichExpand(ticker) {
   const el = document.getElementById('expand_' + ticker);
   if (!el) return;
-  el.classList.toggle('aberto');
+  const abriu = el.classList.toggle('aberto');
+  // No celular a linha tocada costuma estar no pé da tela, e o detalhe abria
+  // abaixo da dobra (atrás da barra inferior). Leva a linha para o topo.
+  if (abriu && typeof mobEhCelular === 'function' && mobEhCelular()) {
+    const linha = el.previousElementSibling || el;
+    if (typeof linha.scrollIntoView === 'function')
+      linha.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 // Abre o drawer com os dados da operação para edição. NÃO apaga nada aqui: a
