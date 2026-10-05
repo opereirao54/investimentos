@@ -401,3 +401,75 @@ function mobDreAlternarTabela() {
       (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa');
   }
 }
+
+// ------------------------------------------------------------
+// Extrato no celular: ações por deslize (ou toque)
+// ------------------------------------------------------------
+// Cada linha trazia três ou quatro ícones de ~20px (pagar, desfazer,
+// editar, excluir) lado a lado — pequenos para o dedo e perigosamente
+// perto um do outro: excluir ficava a 8px de editar. No celular os mesmos
+// botões viram um painel que entra pela direita, com alvos de 56px, ao
+// deslizar a linha para a esquerda ou ao tocar nela. Os botões são os
+// originais (mesmos onclick); só a apresentação muda.
+var _mobExtToque = null;
+
+function _mobExtFecharTodos(exceto) {
+  document.querySelectorAll('#extratoUnificado .extrato-item.mob-acoes').forEach((el) => {
+    if (el !== exceto) el.classList.remove('mob-acoes');
+  });
+}
+
+function _mobLigarExtrato() {
+  const lista = document.getElementById('extratoUnificado');
+  if (!lista || lista.dataset.mobAcoes) return;
+  lista.dataset.mobAcoes = '1';
+
+  lista.addEventListener(
+    'touchstart',
+    (e) => {
+      const item = e.target.closest('.extrato-item');
+      if (!item || !mobEhCelular()) return;
+      const t = e.touches[0];
+      _mobExtToque = { item, x: t.clientX, y: t.clientY, decidido: false };
+    },
+    { passive: true }
+  );
+  lista.addEventListener(
+    'touchmove',
+    (e) => {
+      if (!_mobExtToque || _mobExtToque.decidido) return;
+      const t = e.touches[0];
+      const dx = t.clientX - _mobExtToque.x;
+      const dy = t.clientY - _mobExtToque.y;
+      if (Math.abs(dx) < 28 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+      _mobExtToque.decidido = true;
+      if (dx < 0) {
+        _mobExtFecharTodos(_mobExtToque.item);
+        _mobExtToque.item.classList.add('mob-acoes');
+      } else {
+        _mobExtToque.item.classList.remove('mob-acoes');
+      }
+    },
+    { passive: true }
+  );
+  lista.addEventListener('touchend', () => {
+    _mobExtToque = null;
+  });
+
+  // Toque simples na linha (fora dos botões) abre/fecha o painel: o deslize
+  // não é descobrível por todo mundo.
+  lista.addEventListener('click', (e) => {
+    if (!mobEhCelular()) return;
+    if (e.target.closest('button')) {
+      _mobExtFecharTodos(null);
+      return;
+    }
+    const item = e.target.closest('.extrato-item');
+    if (!item) return;
+    const abrir = !item.classList.contains('mob-acoes');
+    _mobExtFecharTodos(item);
+    item.classList.toggle('mob-acoes', abrir);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', _mobLigarExtrato);

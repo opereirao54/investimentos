@@ -10628,6 +10628,35 @@
             #aulas .jor-card.trancado .jor-selo { display: none; }
             #aulas .jor-card.trancado { padding-top: 12px !important; padding-bottom: 12px !important; }
 
+            /* --- Extrato: ações por deslize (appliquei-mobile.js) --- */
+            #extratoUnificado .extrato-item {
+                position: relative; overflow: hidden; cursor: pointer;
+                touch-action: pan-y; -webkit-tap-highlight-color: transparent;
+            }
+            #extratoUnificado .extrato-item > div:last-child { position: static !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] {
+                position: absolute !important; top: 0; right: 0; bottom: 0; margin: 0 !important;
+                gap: 0 !important; align-items: stretch !important;
+                transform: translateX(105%); transition: transform 0.22s cubic-bezier(0.4,0,0.2,1);
+                z-index: 2;
+            }
+            #extratoUnificado .extrato-item.mob-acoes [id^="acao-pagar-list-"] { transform: translateX(0); box-shadow: -12px 0 18px -10px rgba(0,0,0,0.25); }
+            #extratoUnificado [id^="acao-pagar-list-"] > button {
+                width: 56px; font-size: 20px !important; color: #fff !important;
+                display: inline-flex; align-items: center; justify-content: center;
+                background: #64748b !important;
+            }
+            #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="prepararPagamento"] { background: #059669 !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="prepararEdicao"] { background: #2563eb !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="deletarTransacao"] { background: #dc2626 !important; }
+            /* Sem os ícones na linha, o valor ganha o lado direito inteiro;
+               um "⋯" discreto diz que há ações ali. */
+            #extratoUnificado .extrato-item .valor::after {
+                content: '⋯'; display: block; text-align: right;
+                font-family: 'Figtree', sans-serif; font-size: 16px; line-height: 1; letter-spacing: 1px;
+                color: var(--cor-texto-mutado); margin-top: 6px;
+            }
+
             /* --- DRE no celular (mobRenderDRE) --- */
             #mobDRE { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
             #controle:not([data-mob-aba-ativa="projecao"]) #mobDRE { display: none !important; }

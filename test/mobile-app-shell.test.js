@@ -148,3 +148,16 @@ test('a tabela da DRE continua a um toque no celular', () => {
   );
   assert.match(MOB, /function mobDreAlternarTabela/);
 });
+
+test('as ações do extrato no celular são os botões originais', () => {
+  // O painel de deslize reaproveita os botões da linha (mesmos onclick):
+  // pagar, editar e excluir continuam passando pelas funções de sempre,
+  // e excluir continua pedindo confirmação.
+  for (const fn of ['prepararPagamento', 'prepararEdicao', 'deletarTransacao']) {
+    assert.match(
+      HTML,
+      new RegExp(`\\[id\\^="acao-pagar-list-"\\] > button\\[onclick\\^="${fn}"\\]`)
+    );
+  }
+  assert.doesNotMatch(MOB, /deletarTransacao\(|prepararEdicao\(|prepararPagamento\(/);
+});
