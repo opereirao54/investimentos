@@ -147,3 +147,257 @@ function mobSegControle(aba) {
   // Volta ao começo da aba, mas sem esconder a própria barra de abas.
   if (rol && seg && rol.scrollTop > seg.offsetTop) rol.scrollTop = seg.offsetTop;
 }
+
+// ------------------------------------------------------------
+// DRE no celular: gráfico do resultado + um cartão por mês
+// ------------------------------------------------------------
+// A DRE é uma tabela de 12 a 48 colunas; com a primeira coluna fixa, numa
+// tela de 390px cabia um mês e pouco por vez, e comparar meses exigia rolar
+// de lado e decorar números. A pergunta da Projeção é "vou ficar no vermelho
+// em algum mês?" — então o celular mostra primeiro a resposta (barras e um
+// alerta do primeiro mês negativo) e depois o detalhe, um mês por cartão,
+// só com as linhas que tiveram movimento. A tabela segue a um toque.
+//
+// Os números chegam prontos de atualizarTelaControle: nada é recalculado.
+
+var _mobDreTabela = false;
+
+function _mobDreClasse(v, d) {
+  if (v < 0) return 'neg';
+  if (v < d.metaVermelha) return 'baixo';
+  if (v >= d.metaVerde) return 'ok';
+  return 'neutro';
+}
+
+function _mobDreFmt(v) {
+  return typeof formatarMoeda === 'function'
+    ? formatarMoeda(v)
+    : 'R$ ' +
+        Number(v || 0)
+          .toFixed(2)
+          .replace('.', ',');
+}
+
+function mobRenderDRE(d) {
+  const alvo = document.getElementById('mobDRE');
+  if (!alvo || !d || !Array.isArray(d.meses) || !d.meses.length) return;
+  const meses = d.meses;
+  const fmt = _mobDreFmt;
+  const resultados = meses.map((m) => m.saldoAcumulado || 0);
+  const maxAbs = Math.max(1, ...resultados.map((v) => Math.abs(v)));
+  const temNeg = resultados.some((v) => v < 0);
+  const maxPos = Math.max(0, ...resultados);
+  const maxNeg = Math.max(0, ...resultados.map((v) => -v));
+  // Linha do zero proporcional ao que existe acima e abaixo dela.
+  const fracPos = temNeg ? maxPos / (maxPos + maxNeg || 1) : 1;
+
+  // Alerta: o primeiro mês do horizonte em que o resultado fica negativo.
+  const iNeg = resultados.findIndex((v) => v < 0);
+  let alerta = '';
+  if (iNeg > -1) {
+    alerta =
+      '<button type="button" class="mdre-alerta" onclick="mobDreIrPara(' +
+      iNeg +
+      ')"><i class="ph-fill ph-warning-circle"></i><span>Em <strong>' +
+      d.rotulos[iNeg] +
+      '</strong> o caixa fica negativo: <strong>' +
+      fmt(resultados[iNeg]) +
+      '</strong></span><i class="ph ph-caret-right"></i></button>';
+  } else {
+    const iMin = resultados.indexOf(Math.min(...resultados));
+    alerta =
+      '<div class="mdre-alerta ok"><i class="ph-fill ph-check-circle"></i><span>Sem mês negativo no período. O menor resultado é <strong>' +
+      fmt(resultados[iMin]) +
+      '</strong>, em ' +
+      d.rotulos[iMin] +
+      '.</span></div>';
+  }
+
+  // Barras: uma por mês; rótulo a cada N para não encavalar.
+  const passo = meses.length > 24 ? 6 : meses.length > 12 ? 3 : 1;
+  const barras = meses
+    .map((m, i) => {
+      const v = resultados[i];
+      const h = Math.max(2, Math.round((Math.abs(v) / maxAbs) * 100));
+      const cls = _mobDreClasse(v, d);
+      const rot = i % passo === 0 || i === d.indiceAtual ? d.rotulos[i].split('/')[0] : '';
+      return (
+        '<button type="button" class="mdre-barra ' +
+        cls +
+        (i === d.indiceAtual ? ' atual' : '') +
+        '" data-i="' +
+        i +
+        '" onclick="mobDreIrPara(' +
+        i +
+        ')" aria-label="' +
+        d.rotulos[i] +
+        ': ' +
+        fmt(v) +
+        '"><span class="mdre-col"><span class="mdre-pos"' +
+        (v >= 0 ? ' style="height:' + h + '%"' : '') +
+        '></span><span class="mdre-neg"' +
+        (v < 0 ? ' style="height:' + h + '%"' : '') +
+        '></span></span><span class="mdre-rot">' +
+        rot +
+        '</span></button>'
+      );
+    })
+    .join('');
+
+  // Cartões: só as linhas com movimento naquele mês.
+  const linha = (rot, v, cls, sinal) =>
+    Math.abs(v) < 0.005
+      ? ''
+      : '<div class="mdre-linha"><span>' +
+        rot +
+        '</span><span class="mdre-v ' +
+        cls +
+        '">' +
+        (sinal === '-' ? '−' : sinal === '+' ? '+' : '') +
+        fmt(Math.abs(v)) +
+        '</span></div>';
+  const cartoes = meses
+    .map((m, i) => {
+      const v = resultados[i];
+      const atual = i === d.indiceAtual;
+      const inv = (m.invFixo || 0) + (m.invVar || 0);
+      const acum = d.acumulado ? d.acumulado[i] : 0;
+      const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
+      const deltaAcum = acum - antes;
+      const lapis = atual
+        ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo trazido" onclick="editarSaldoMesAnterior(' +
+          m.mes +
+          ',' +
+          m.ano +
+          ')"><i class="ph ph-pencil-simple"></i></button>'
+        : '';
+      const herdado =
+        Math.abs(m.saldoCarregado || 0) < 0.005
+          ? ''
+          : '<div class="mdre-linha herdado"><span>Saldo anterior' +
+            lapis +
+            '</span><span class="mdre-v ' +
+            (m.saldoCarregado < 0 ? 'neg' : 'roxo') +
+            '">' +
+            fmt(m.saldoCarregado) +
+            '</span></div>';
+      const corpo =
+        linha('Receita', m.receita, 'verde', '+') +
+        linha('Resgates', m.resgate, 'verde', '+') +
+        linha('Despesas', m.despesas, 'vermelho', '-') +
+        linha('Investimentos', inv, 'azul', '-') +
+        linha('Aporte externo', m.invExterno, 'mudo', '') +
+        linha('Sonhos', m.sonho, 'roxo', '-') +
+        herdado;
+      return (
+        '<article class="mdre-card' +
+        (atual ? ' atual' : '') +
+        '" id="mdreCard' +
+        i +
+        '" data-i="' +
+        i +
+        '"><header><span class="mdre-mes">' +
+        d.rotulos[i] +
+        '</span>' +
+        (atual ? '<span class="mdre-tag">mês em foco</span>' : '') +
+        '</header><div class="mdre-res-rot">Resultado do mês</div><div class="mdre-res ' +
+        _mobDreClasse(v, d) +
+        '">' +
+        fmt(v) +
+        '</div><div class="mdre-linhas">' +
+        (corpo || '<div class="mdre-vazio">Sem movimentos neste mês.</div>') +
+        '</div><footer><span>Investimento acumulado</span><span><strong>' +
+        fmt(acum) +
+        '</strong>' +
+        (Math.abs(deltaAcum) < 0.005
+          ? ''
+          : ' <em class="' +
+            (deltaAcum < 0 ? 'neg' : '') +
+            '">' +
+            (deltaAcum > 0 ? '+' : '−') +
+            fmt(Math.abs(deltaAcum)).replace('R$', '').trim() +
+            '</em>') +
+        '</span></footer></article>'
+      );
+    })
+    .join('');
+
+  alvo.innerHTML =
+    alerta +
+    '<div class="mdre-grafico" style="--mdre-zero:' +
+    (fracPos * 100).toFixed(1) +
+    '%">' +
+    barras +
+    '</div><div class="mdre-cards" id="mdreCards">' +
+    cartoes +
+    '</div><button type="button" class="mdre-tabela-btn" onclick="mobDreAlternarTabela()" aria-expanded="' +
+    (_mobDreTabela ? 'true' : 'false') +
+    '"><i class="ph ph-table"></i> ' +
+    (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa') +
+    '</button>';
+
+  // Abre no mês em foco (sem animação) e acende a barra dele.
+  const foco = Math.max(0, Math.min(meses.length - 1, d.indiceAtual));
+  mobDreIrPara(foco, true);
+  _mobDreLigarRolagem();
+}
+
+/** Leva o carrossel ao cartão do mês i e acende a barra correspondente. */
+function mobDreIrPara(i, instantaneo) {
+  const trilho = document.getElementById('mdreCards');
+  const card = document.getElementById('mdreCard' + i);
+  if (trilho && card) {
+    trilho.scrollTo({
+      left: card.offsetLeft - trilho.offsetLeft - 16,
+      behavior: instantaneo ? 'auto' : 'smooth',
+    });
+  }
+  _mobDreAcender(i);
+}
+
+function _mobDreAcender(i) {
+  document.querySelectorAll('#mobDRE .mdre-barra').forEach((b) => {
+    b.classList.toggle('sel', Number(b.dataset.i) === i);
+  });
+}
+
+// Deslizar os cartões também move o destaque nas barras.
+function _mobDreLigarRolagem() {
+  const trilho = document.getElementById('mdreCards');
+  if (!trilho || trilho.dataset.ligado) return;
+  trilho.dataset.ligado = '1';
+  let t = null;
+  trilho.addEventListener(
+    'scroll',
+    () => {
+      clearTimeout(t);
+      t = setTimeout(() => {
+        const cards = trilho.querySelectorAll('.mdre-card');
+        let melhor = 0;
+        let dist = Infinity;
+        cards.forEach((c) => {
+          const dd = Math.abs(c.offsetLeft - trilho.offsetLeft - 16 - trilho.scrollLeft);
+          if (dd < dist) {
+            dist = dd;
+            melhor = Number(c.dataset.i);
+          }
+        });
+        _mobDreAcender(melhor);
+      }, 80);
+    },
+    { passive: true }
+  );
+}
+
+function mobDreAlternarTabela() {
+  _mobDreTabela = !_mobDreTabela;
+  const sec = document.getElementById('controle');
+  if (sec) sec.classList.toggle('mob-dre-tabela', _mobDreTabela);
+  const btn = document.querySelector('#mobDRE .mdre-tabela-btn');
+  if (btn) {
+    btn.setAttribute('aria-expanded', _mobDreTabela ? 'true' : 'false');
+    btn.innerHTML =
+      '<i class="ph ph-table"></i> ' +
+      (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa');
+  }
+}

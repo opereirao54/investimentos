@@ -3765,6 +3765,19 @@ function atualizarTelaControle() {
 
   tbodyDRE.innerHTML = htmlLinhas;
 
+  // No celular a mesma DRE vira gráfico + cartões por mês (appliquei-mobile.js).
+  // Recebe os números já calculados acima: nada é recalculado lá.
+  if (typeof mobRenderDRE === 'function')
+    mobRenderDRE({
+      meses: dreDados,
+      rotulos: labelsMeses,
+      acumulado: acumPorMes,
+      acumuladoInicial: aporteLiquidoAntesDaJanela,
+      indiceAtual: indiceMesAtual,
+      metaVerde: metaVerde,
+      metaVermelha: metaVermelha,
+    });
+
   atualizarTermometro60();
 
   // O painel de insights fecha o render do Controle. Fica por ÚLTIMO de

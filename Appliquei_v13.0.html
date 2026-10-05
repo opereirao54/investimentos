@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar, .mob-seg { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10627,6 +10627,103 @@
             #aulas .jor-card.trancado button,
             #aulas .jor-card.trancado .jor-selo { display: none; }
             #aulas .jor-card.trancado { padding-top: 12px !important; padding-bottom: 12px !important; }
+
+            /* --- DRE no celular (mobRenderDRE) --- */
+            #mobDRE { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+            #controle:not([data-mob-aba-ativa="projecao"]) #mobDRE { display: none !important; }
+            /* A tabela fica a um toque: escondida até a pessoa pedir. */
+            #controle:not(.mob-dre-tabela) #cardTabelaDRE { display: none !important; }
+            .mdre-alerta {
+                display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
+                padding: 12px 14px; border-radius: 14px; text-align: left; font-family: inherit;
+                font-size: 13.5px; line-height: 1.4; cursor: pointer;
+                background: var(--cor-bg-erro); color: var(--cor-txt-erro, #991b1b);
+                border: 1px solid var(--cor-borda-erro);
+            }
+            .mdre-alerta > i:first-child { font-size: 22px; flex-shrink: 0; }
+            .mdre-alerta > span { flex: 1; }
+            .mdre-alerta strong { white-space: nowrap; }
+            .mdre-alerta.ok {
+                cursor: default; background: var(--cor-bg-primaria);
+                color: var(--cor-txt-primaria, #065f46); border-color: var(--cor-borda-primaria);
+            }
+            .mdre-grafico {
+                display: flex; align-items: stretch; gap: 3px; height: 128px;
+                padding: 12px 10px 6px; box-sizing: border-box;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 16px;
+            }
+            .mdre-barra {
+                flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch;
+                gap: 4px; background: none; border: 0; padding: 0; cursor: pointer;
+                -webkit-tap-highlight-color: transparent;
+            }
+            .mdre-col {
+                flex: 1; display: grid; grid-template-rows: var(--mdre-zero) 1fr;
+                border-radius: 4px;
+            }
+            .mdre-pos, .mdre-neg { display: flex; }
+            .mdre-pos { align-items: flex-end; border-bottom: 1px solid var(--cor-borda2); }
+            .mdre-neg { align-items: flex-start; }
+            .mdre-pos[style], .mdre-neg[style] { align-self: end; }
+            .mdre-pos[style] { background: var(--mdre-cor, #a7e3c8); border-radius: 4px 4px 1px 1px; align-self: end; }
+            .mdre-neg[style] { background: #f87171; border-radius: 1px 1px 4px 4px; align-self: start; }
+            .mdre-barra.ok { --mdre-cor: #10b981; }
+            .mdre-barra.neutro { --mdre-cor: #a7e3c8; }
+            .mdre-barra.baixo { --mdre-cor: #fbbf24; }
+            .mdre-barra.sel .mdre-col { box-shadow: 0 0 0 2px var(--cor-primaria); }
+            .mdre-rot { font-size: 10px; font-weight: 600; color: var(--cor-texto-mutado); text-align: center; height: 12px; white-space: nowrap; }
+            .mdre-barra.atual .mdre-rot { color: var(--cor-primaria); font-weight: 800; }
+            .mdre-cards {
+                display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+                overscroll-behavior-x: contain; scrollbar-width: none;
+                margin: 0 -16px; padding: 2px 16px 6px; scroll-padding: 0 16px;
+            }
+            .mdre-cards::-webkit-scrollbar { display: none; }
+            .mdre-card {
+                flex: 0 0 84%; scroll-snap-align: start; box-sizing: border-box;
+                display: flex; flex-direction: column; gap: 4px; padding: 16px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
+            }
+            .mdre-card.atual { border-color: var(--cor-borda-primaria); box-shadow: 0 0 0 1px var(--cor-borda-primaria); }
+            .mdre-card header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+            .mdre-mes { font-size: 15px; font-weight: 800; color: var(--cor-texto-principal); }
+            .mdre-tag { font-size: 11px; font-weight: 700; color: var(--cor-primaria); background: var(--cor-bg-primaria); padding: 3px 9px; border-radius: 99px; }
+            .mdre-res-rot { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+            .mdre-res { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 500; letter-spacing: -0.8px; color: var(--cor-texto-principal); margin-bottom: 8px; }
+            .mdre-res.ok { color: var(--tinta-verde, #047857); }
+            .mdre-res.neg, .mdre-res.baixo { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-linhas { display: flex; flex-direction: column; border-top: 1px solid var(--cor-borda); }
+            .mdre-linha {
+                display: flex; align-items: center; justify-content: space-between; gap: 10px;
+                min-height: 38px; border-bottom: 1px solid var(--cor-borda);
+                font-size: 13.5px; color: var(--cor-texto-secundario);
+            }
+            .mdre-linha > span:first-child { display: inline-flex; align-items: center; gap: 4px; }
+            .mdre-linha.herdado > span:first-child { color: var(--tinta-roxo, #6d28d9); font-weight: 600; }
+            .mdre-v { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--cor-texto-principal); white-space: nowrap; }
+            .mdre-v.verde { color: var(--tinta-verde, #047857); }
+            .mdre-v.vermelho, .mdre-v.neg { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-v.azul { color: var(--tinta-azul, #1d4ed8); }
+            .mdre-v.roxo { color: var(--tinta-roxo, #6d28d9); }
+            .mdre-v.mudo { color: var(--cor-texto-mutado); }
+            .mdre-lapis {
+                width: 36px; height: 36px; margin: -6px 0; border: 0; border-radius: 10px;
+                background: transparent; color: var(--tinta-roxo, #6d28d9); font-size: 16px; cursor: pointer;
+            }
+            .mdre-vazio { font-size: 13px; color: var(--cor-texto-mutado); padding: 12px 0; }
+            .mdre-card footer {
+                display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+                margin-top: 8px; font-size: 12.5px; color: var(--cor-texto-mutado);
+            }
+            .mdre-card footer strong { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 14px; color: var(--tinta-azul, #1d4ed8); }
+            .mdre-card footer em { font-style: normal; font-size: 11.5px; color: var(--tinta-verde, #047857); font-family: 'DM Mono', monospace; }
+            .mdre-card footer em.neg { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-tabela-btn {
+                align-self: center; display: inline-flex; align-items: center; gap: 8px;
+                min-height: 44px; padding: 0 16px; border-radius: 12px;
+                border: 1px solid var(--cor-borda); background: var(--cor-branco);
+                font-family: inherit; font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer;
+            }
 
             /* --- Novo lançamento (bottom sheet) --- */
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
@@ -12162,7 +12259,11 @@
                     <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48,0)">48 meses</button>
                 </div>
             </div>
-            <div class="card-container" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:40px;">
+            <!-- DRE no celular: gráfico do resultado + um cartão por mês
+                 (web/appliquei-mobile.js → mobRenderDRE). A tabela abaixo
+                 continua sendo a DRE do desktop e fica a um toque no celular. -->
+            <div id="mobDRE" class="mob-dre" data-mob-aba="projecao"></div>
+            <div class="card-container" id="cardTabelaDRE" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:40px;">
                 <div style="overflow-x:auto;max-width:100%;">
                     <table class="tabela-dashboard" style="min-width:1100px;">
                         <thead id="cabecalhoDRE"></thead>

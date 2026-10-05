@@ -71,7 +71,7 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 });
 
 test('nada da casca aparece no desktop', () => {
-  assert.match(HTML, /\.mob-tabbar, \.mob-voltar, \.mob-seg \{ display: none; \}/);
+  assert.match(HTML, /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre \{ display: none; \}/);
   assert.match(
     HTML,
     /@media \(min-width: 769px\) \{\s*#mais_mobile \{ display: none !important; \}/
@@ -122,4 +122,29 @@ test('os alertas de conta vencida aparecem em qualquer aba', () => {
     assert.ok(tag, id);
     assert.doesNotMatch(tag[0], /data-mob-aba/, `${id} não pode sumir ao trocar de aba`);
   }
+});
+
+// ---------------------------------------------------------------------------
+// DRE no celular
+// ---------------------------------------------------------------------------
+
+test('a DRE do celular recebe os números prontos da tabela', () => {
+  // Um cálculo paralelo seria a receita para a tabela e os cartões
+  // discordarem. mobRenderDRE só desenha o que atualizarTelaControle já fez.
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  const i = CF.indexOf('tbodyDRE.innerHTML = htmlLinhas;');
+  const trecho = CF.slice(i, i + 900);
+  assert.match(trecho, /mobRenderDRE\(\{[\s\S]*meses: dreDados[\s\S]*acumulado: acumPorMes/);
+  const fn = MOB.slice(MOB.indexOf('function mobRenderDRE'), MOB.indexOf('function mobDreIrPara'));
+  assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
+});
+
+test('a tabela da DRE continua a um toque no celular', () => {
+  assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
+  assert.match(HTML, /id="cardTabelaDRE"/);
+  assert.match(
+    HTML,
+    /#controle:not\(\.mob-dre-tabela\) #cardTabelaDRE \{ display: none !important; \}/
+  );
+  assert.match(MOB, /function mobDreAlternarTabela/);
 });
