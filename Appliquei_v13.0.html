@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10465,6 +10465,109 @@
             }
             .mob-item[aria-checked="true"] .mob-switch { background: var(--cor-primaria); }
             .mob-item[aria-checked="true"] .mob-switch::after { left: 21px; }
+
+            /* Respiro lateral único em todas as larguras de celular: os
+               carrosséis abaixo sangram até a borda com margem negativa. */
+            .main-content { padding-left: 16px !important; padding-right: 16px !important; }
+
+            /* --- Abas internas (Controle: Resumo | Extrato | Projeção) --- */
+            .mob-seg {
+                display: flex; gap: 4px; padding: 4px; margin: 0 0 14px;
+                background: var(--cor-superficie); border: 1px solid var(--cor-borda); border-radius: 13px;
+                position: sticky; top: -14px; z-index: 6;
+                box-shadow: 0 6px 14px -10px rgba(16,30,19,0.25);
+            }
+            .mob-seg button {
+                flex: 1; min-height: 38px; border: 0; border-radius: 10px; background: transparent;
+                font-family: inherit; font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer;
+            }
+            .mob-seg button[aria-selected="true"] {
+                background: var(--cor-branco); color: var(--cor-texto-principal);
+                box-shadow: 0 1px 3px rgba(16,30,19,0.12);
+            }
+            #controle:not([data-mob-aba-ativa="resumo"]) [data-mob-aba="resumo"],
+            #controle:not([data-mob-aba-ativa="extrato"]) [data-mob-aba="extrato"],
+            #controle:not([data-mob-aba-ativa="projecao"]) [data-mob-aba="projecao"] { display: none !important; }
+
+            /* Cabeçalho do Controle: termômetro numa linha, mês + atalhos na
+               outra. O "Novo lançamento" largo sai: o "+" da barra faz isso. */
+            #controle .page-header { margin-bottom: 12px; }
+            #controle .page-header .subtitulo { display: none; }
+            #controle .page-actions {
+                display: grid !important; grid-template-columns: minmax(0, 1fr) auto auto;
+                gap: 8px; width: 100%;
+            }
+            #controle .page-actions > * { margin: 0 !important; width: auto !important; }
+            #controle .page-actions #termometroControle { grid-column: 1 / -1; }
+            #controle .page-actions .seletor-mes { min-width: 0; justify-content: space-between; min-height: 44px; box-sizing: border-box; }
+            #controle .page-actions > .btn-secundario { min-height: 44px; padding: 0 12px; }
+            #controle .page-actions > .btn-secundario:has(.ph-sliders) { font-size: 0; width: 44px !important; padding: 0; }
+            #controle .page-actions > .btn-secundario .ph-sliders { font-size: 19px; }
+            #controle .page-actions > .btn-acao { display: none !important; }
+
+            /* Indicadores em carrossel: o saldo livre ocupa a tela e o saldo
+               em conta espia do lado; as cinco parcelas do mês correm numa
+               linha só em vez de cinco cartões empilhados. */
+            #controle .kpis-controle-heroes,
+            #controle .kpis-controle-grid {
+                display: flex !important; gap: 10px;
+                overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+                margin: 0 -16px 12px; padding: 2px 16px 6px; scroll-padding: 0 16px;
+                scrollbar-width: none;
+            }
+            #controle .kpis-controle-heroes::-webkit-scrollbar,
+            #controle .kpis-controle-grid::-webkit-scrollbar { display: none; }
+            #controle .kpis-controle-heroes > .kpi-hero { flex: 0 0 86%; scroll-snap-align: start; margin: 0 !important; min-width: 0; }
+            #controle .kpis-controle-heroes { align-items: stretch; }
+            #controle .kpis-controle { display: block !important; gap: 0 !important; margin-bottom: 4px !important; padding: 0 !important; background: none !important; border: 0 !important; box-shadow: none !important; }
+            /* Dentro do carrossel o card é estreito: rótulo em cima, valor
+               grande embaixo, e a explicação longa sai (o rótulo basta). */
+            #controle .kpi-hero-head { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 12px; }
+            #controle .kpi-hero-head .kpi-hero-sub { display: none; }
+            #controle .kpi-hero-head .kpi-hero-icon { width: 34px; height: 34px; font-size: 17px; }
+            #controle .kpi-hero-head .kpi-hero-num { grid-column: 1 / -1; text-align: left; align-items: flex-start; }
+            #controle .kpi-hero-head .kpi-hero-valor { font-size: 26px !important; }
+            #controle .kpis-controle-grid > .kpi-mini { flex: 0 0 152px; scroll-snap-align: start; margin: 0 !important; min-width: 0; }
+
+            /* Na aba Extrato a lista é a tela: sem a caixa de 340px com
+               rolagem própria dentro da rolagem da página. */
+            #controle #extratoUnificado { max-height: none !important; overflow: visible !important; }
+            /* Cabeçalho do extrato: título numa linha, filtros deslizando na outra. */
+            #controle [data-mob-aba="extrato"] > div:first-child { flex-direction: column; align-items: stretch !important; gap: 10px; }
+            /* Os cinco totais numa linha deslizante, não em duas fileiras. */
+            #controle [data-mob-aba="extrato"] > div[style*="auto-fit"] {
+                display: flex !important; overflow-x: auto; scrollbar-width: none;
+                margin-left: -14px !important; margin-right: -14px !important; padding: 0 14px;
+            }
+            #controle [data-mob-aba="extrato"] > div[style*="auto-fit"]::-webkit-scrollbar { display: none; }
+            #controle [data-mob-aba="extrato"] > div[style*="auto-fit"] > div { flex: 0 0 auto; min-width: 116px; }
+            /* Horizonte da projeção: uma linha só, deslizando. */
+            #controle [data-mob-aba="projecao"] > div:last-child:has(.btn-tab-dre) {
+                flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
+                margin: 0 -16px; padding: 0 16px 2px; width: calc(100% + 32px);
+            }
+            #controle .btn-tab-dre { flex-shrink: 0; min-height: 40px; }
+
+            /* --- Novo lançamento (bottom sheet) --- */
+            /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
+               formulário. O resto segue na ordem de antes. */
+            #painelNovoLancamento { max-height: 92vh !important; padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important; }
+            #painelNovoLancamento > * { order: 2; }
+            #painelNovoLancamento > .painel-novo-lancamento-grab,
+            #painelNovoLancamento > div:has(> #tituloPainelControle),
+            #painelNovoLancamento > #chipsLancamento,
+            #painelNovoLancamento > #avisoEdicaoSonho { order: 0; }
+            #painelNovoLancamento > .grid-2-iguais:has(#valorTransacao) { order: 1; }
+            #painelNovoLancamento #valorTransacao {
+                font-family: 'DM Mono', monospace; font-size: 26px !important; font-weight: 500;
+                min-height: 56px;
+            }
+            #chipsLancamento > button { min-height: 44px; font-size: 14px !important; }
+            /* Salvar sempre à vista, preso ao pé da folha enquanto ela rola. */
+            #painelNovoLancamento #btnSalvarControle {
+                position: sticky; bottom: 0; z-index: 2; min-height: 52px;
+                box-shadow: 0 -10px 18px 4px var(--cor-branco);
+            }
         }
     </style>
 </head>
@@ -11516,7 +11619,7 @@
         </section>
 
 
-        <section id="controle" class="section ativa">
+        <section id="controle" class="section ativa" data-mob-aba-ativa="resumo">
             <div class="page-header">
                 <div class="page-header-left">
                     <h1>Controle financeiro</h1>
@@ -11563,7 +11666,18 @@
                 </div>
             </div>
 
-            <div class="kpis-controle">
+            <!-- App mobile: no celular a seção vira três abas no mesmo espaço,
+                 em vez de um corredor de 4 telas. Os blocos dizem a que aba
+                 pertencem em data-mob-aba; sem o atributo, aparecem sempre
+                 (os alertas de conta vencida, por exemplo). No desktop a
+                 barra some e tudo continua visível. -->
+            <div class="mob-seg" id="mobSegControle" role="tablist" aria-label="Visão do Controle">
+                <button type="button" role="tab" data-mob-seg="resumo" aria-selected="true" onclick="mobSegControle('resumo')">Resumo</button>
+                <button type="button" role="tab" data-mob-seg="extrato" aria-selected="false" onclick="mobSegControle('extrato')">Extrato</button>
+                <button type="button" role="tab" data-mob-seg="projecao" aria-selected="false" onclick="mobSegControle('projecao')">Projeção</button>
+            </div>
+
+            <div class="kpis-controle" data-mob-aba="resumo">
                 <!-- Dois heróis, e a diferença entre eles é a pergunta que
                      respondem. "Saldo livre" é do MÊS: quanto deste mês ainda
                      não tem destino. "Saldo em conta" é de AGORA: quanto
@@ -11701,7 +11815,7 @@
                 <span id="txtAlertaCartao"></span>
             </div>
 
-            <div id="bannerSaldoMesAnterior" style="display:none;margin-bottom:14px;padding:12px 14px;border:1.5px solid #c4b5fd;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(124,58,237,0.04));align-items:center;gap:12px;flex-wrap:wrap;">
+            <div id="bannerSaldoMesAnterior" data-mob-aba="resumo" style="display:none;margin-bottom:14px;padding:12px 14px;border:1.5px solid #c4b5fd;border-radius:10px;background:linear-gradient(135deg,rgba(139,92,246,0.06),rgba(124,58,237,0.04));align-items:center;gap:12px;flex-wrap:wrap;">
                 <i class="ph-fill ph-arrow-fat-line-right" style="font-size:22px;color:var(--tinta-roxo);flex-shrink:0;"></i>
                 <div style="flex:1;min-width:200px;font-size:13px;color:var(--cor-texto-principal);">
                     <span id="txtBannerSaldoMesAnt"></span>
@@ -11709,14 +11823,14 @@
                 <div id="acoesBannerSaldoMesAnt" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
             </div>
 
-            <div id="painelInsights"></div>
+            <div id="painelInsights" data-mob-aba="resumo"></div>
 
             <!-- Recolhido por padrão: seis contas a vencer empurravam a DRE
                  e o extrato para 150px mais abaixo, todo mês. O cabeçalho
                  mantém o que importa à distância (quantas e quanto), e a
                  escolha de abrir/fechar fica salva. Abre sozinho quando há
                  conta vencida ou vencendo hoje — aí esconder atrapalharia. -->
-            <div id="painelVencimentos" class="venc-painel" data-aberto="0" style="display:none;">
+            <div id="painelVencimentos" data-mob-aba="resumo" class="venc-painel" data-aberto="0" style="display:none;">
                 <button type="button" class="venc-painel-cab" onclick="alternarPainelVencimentos()" aria-controls="listaVencimentosContainer" aria-expanded="false">
                     <i class="ph-fill ph-calendar-dots venc-painel-ic"></i>
                     <span class="venc-painel-tit">Próximos vencimentos</span>
@@ -11726,7 +11840,7 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
-            <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+            <div data-mob-aba="resumo" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
                 <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
                     <div class="thermo-head">
                         <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
@@ -11759,7 +11873,7 @@
 
             <div style="margin-bottom:20px;">
 
-                <div class="card-container" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
+                <div class="card-container" data-mob-aba="extrato" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-shrink:0;">
                         <h3 style="font-size:14px;font-weight:700;margin:0;font-family:'Figtree',sans-serif;">Extrato <span id="lblMesExtrato" style="color:var(--cor-primaria);font-size:13px;font-weight:500;"></span></h3>
                         <div class="ext-tabs-wrap">
@@ -11958,7 +12072,7 @@
                 </div>
             </div>
 
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
+            <div data-mob-aba="projecao" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:12px;">
                 <h2 style="font-size:15px;font-weight:600;color:var(--cor-texto-principal);margin:0;display:flex;align-items:center;gap:7px;"><i class="ph ph-calendar-check" style="color:var(--cor-info);font-size:18px;"></i> Projeção de caixa (DRE)</h2>
                 <div style="display:flex;gap:6px;flex-wrap:wrap;">
                     <button class="btn-tab-dre" onclick="mudarMesesDRE(event,12,-11)"><i class="ph ph-clock-counter-clockwise"></i> 12 passados</button>
@@ -11968,7 +12082,7 @@
                     <button class="btn-tab-dre" onclick="mudarMesesDRE(event,48,0)">48 meses</button>
                 </div>
             </div>
-            <div class="card-container" style="padding:0;overflow:hidden;margin-bottom:40px;">
+            <div class="card-container" data-mob-aba="projecao" style="padding:0;overflow:hidden;margin-bottom:40px;">
                 <div style="overflow-x:auto;max-width:100%;">
                     <table class="tabela-dashboard" style="min-width:1100px;">
                         <thead id="cabecalhoDRE"></thead>

@@ -307,8 +307,11 @@ function abrirPainelLancamento() {
   painel.classList.add('aberto');
   document.body.classList.add('painel-lancamento-aberto');
   setTimeout(() => {
-    const descEl = document.getElementById('descTransacao');
-    if (descEl) descEl.focus({ preventScroll: true });
+    // No celular a folha abre pelo valor (appliquei-mobile.js reordena os
+    // campos), e o foco vai junto: já sobe o teclado numérico.
+    const celular = typeof mobEhCelular === 'function' && mobEhCelular();
+    const alvo = document.getElementById(celular ? 'valorTransacao' : 'descTransacao');
+    if (alvo) alvo.focus({ preventScroll: true });
   }, 240);
 }
 function fecharPainelLancamento() {

@@ -71,10 +71,55 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 });
 
 test('nada da casca aparece no desktop', () => {
-  assert.match(HTML, /\.mob-tabbar, \.mob-voltar \{ display: none; \}/);
+  assert.match(HTML, /\.mob-tabbar, \.mob-voltar, \.mob-seg \{ display: none; \}/);
   assert.match(
     HTML,
     /@media \(min-width: 769px\) \{\s*#mais_mobile \{ display: none !important; \}/
   );
   assert.match(MOB, /matchMedia\('\(max-width: 768px\)'\)/);
+});
+
+// ---------------------------------------------------------------------------
+// Controle no celular: Resumo | Extrato | Projeção
+// ---------------------------------------------------------------------------
+
+function secaoControle() {
+  const i = HTML.indexOf('<section id="controle"');
+  return HTML.slice(i, HTML.indexOf('<section id="aulas"', i));
+}
+
+test('todo bloco do Controle aponta para uma aba que existe', () => {
+  const sec = secaoControle();
+  const abas = new Set([...sec.matchAll(/data-mob-seg="([a-z]+)"/g)].map((m) => m[1]));
+  assert.deepEqual([...abas], ['resumo', 'extrato', 'projecao']);
+  const usadas = [...sec.matchAll(/data-mob-aba="([a-z]+)"/g)].map((m) => m[1]);
+  assert.ok(usadas.length >= 7, `esperava os blocos marcados, achei ${usadas.length}`);
+  for (const a of usadas) assert.ok(abas.has(a), `bloco aponta para aba inexistente: ${a}`);
+  assert.match(sec, /<section id="controle"[^>]*data-mob-aba-ativa="resumo"/);
+});
+
+test('o formulário de lançamento não mora dentro de um bloco de aba', () => {
+  // O painel é `position: fixed` no celular, mas um pai com display:none o
+  // apaga junto. Ele abre de qualquer aba (e pelo "+" de qualquer tela):
+  // nenhum ancestral pode ser escondido pela troca de aba.
+  const sec = secaoControle();
+  const alvo = sec.indexOf('id="painelNovoLancamento"');
+  assert.ok(alvo > -1);
+  const abertos = [];
+  const re = /<(\/?)div\b([^>]*)>/g;
+  let m;
+  while ((m = re.exec(sec)) && m.index < alvo) {
+    if (m[1]) abertos.pop();
+    else abertos.push(/data-mob-aba=/.test(m[2]));
+  }
+  assert.ok(!abertos.includes(true), 'painelNovoLancamento ficou dentro de um data-mob-aba');
+});
+
+test('os alertas de conta vencida aparecem em qualquer aba', () => {
+  const sec = secaoControle();
+  for (const id of ['alertaContaVencida', 'alertaVencimentoHoje', 'alertaCartaoKanban']) {
+    const tag = sec.match(new RegExp(`<div id="${id}"[^>]*>`));
+    assert.ok(tag, id);
+    assert.doesNotMatch(tag[0], /data-mob-aba/, `${id} não pode sumir ao trocar de aba`);
+  }
 });

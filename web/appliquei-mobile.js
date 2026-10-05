@@ -121,3 +121,26 @@ document.addEventListener('DOMContentLoaded', function () {
   mobSincronizarAba(ativa ? ativa.id : 'controle');
   window.addEventListener('resize', _mobAoRedimensionar);
 });
+
+// ------------------------------------------------------------
+// Controle no celular: Resumo | Extrato | Projeção
+// ------------------------------------------------------------
+// A seção empilhava indicadores, alertas, vencimentos, saúde, composição,
+// extrato e DRE — umas quatro telas de rolagem. No celular ela vira três
+// abas que trocam o conteúdo no mesmo espaço. Quem diz a que aba cada bloco
+// pertence é o próprio HTML (data-mob-aba); aqui só se troca o estado.
+var MOB_SEG_CONTROLE = ['resumo', 'extrato', 'projecao'];
+
+function mobSegControle(aba) {
+  if (MOB_SEG_CONTROLE.indexOf(aba) === -1) return;
+  const sec = document.getElementById('controle');
+  if (!sec) return;
+  sec.dataset.mobAbaAtiva = aba;
+  document.querySelectorAll('#mobSegControle [data-mob-seg]').forEach((b) => {
+    b.setAttribute('aria-selected', b.dataset.mobSeg === aba ? 'true' : 'false');
+  });
+  const rol = document.querySelector('.main-content');
+  const seg = document.getElementById('mobSegControle');
+  // Volta ao começo da aba, mas sem esconder a própria barra de abas.
+  if (rol && seg && rol.scrollTop > seg.offsetTop) rol.scrollTop = seg.offsetTop;
+}
