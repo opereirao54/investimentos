@@ -10579,6 +10579,55 @@
             #patrimonio .rich-row { scroll-margin-top: 80px; }
             #patrimonio .rich-expand { padding-left: 0 !important; }
 
+            /* --- Relatório mensal --- */
+            #relatorio_mensal .page-header .subtitulo { display: none; }
+            /* Mês, comparar e PDF numa linha só; os dois botões viram ícones. */
+            #relatorio_mensal .page-actions {
+                display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px; gap: 8px; width: 100%;
+            }
+            #relatorio_mensal .page-actions > * { margin: 0 !important; min-height: 44px; box-sizing: border-box; }
+            #relatorio_mensal .page-actions > button { font-size: 0 !important; padding: 0 !important; display: inline-flex; align-items: center; justify-content: center; }
+            #relatorio_mensal .page-actions > button i { font-size: 19px; }
+            /* Os seis indicadores do mês (cada um com 180px e a própria
+               curva) correm numa linha. O PDF não é afetado: ele é montado
+               num documento à parte, a partir dos dados do mês. */
+            #rmConteudo .rm-kpi-grid {
+                display: flex !important; gap: 10px;
+                overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+                margin-left: -16px !important; margin-right: -16px !important; padding: 2px 16px 6px; scroll-padding: 0 16px;
+                scrollbar-width: none;
+            }
+            #rmConteudo .rm-kpi-grid::-webkit-scrollbar { display: none; }
+            #rmConteudo .rm-kpi-grid > .rm-kpi { flex: 0 0 72%; scroll-snap-align: start; min-width: 0; margin: 0 !important; }
+
+            /* --- Simulador --- */
+            #simulador .page-header .subtitulo { display: none; }
+            /* Capital e aporte lado a lado; inflação na linha de baixo. */
+            #simulador .sim-campos-3 { grid-template-columns: 1fr 1fr !important; }
+            #simulador .sim-campos-3 > .form-group:first-child { grid-column: auto !important; }
+            #simulador .sim-campos-3 > .form-group:nth-child(3) { grid-column: 1 / -1; }
+
+            /* --- Dúvidas & sugestões --- */
+            #duvidas_sugestoes .page-header .subtitulo { display: none; }
+            /* A etiqueta de categoria em cada pergunta espremia o texto em
+               três ou quatro linhas; o filtro de categorias no topo já diz
+               de onde ela vem. */
+            #duvidas_sugestoes .faq-categoria { display: none; }
+
+            /* --- Todas as telas: o título basta --- */
+            /* O subtítulo explicativo de cada tela ocupava duas ou três linhas
+               antes do primeiro número. No app, o título e a barra dizem
+               onde a pessoa está. */
+            .section > .page-header .subtitulo { display: none; }
+
+            /* --- Jornada --- */
+            /* Módulo trancado vira uma linha: título e "abre ao concluir…".
+               A descrição e o botão desabilitado só repetiam o cadeado. */
+            #aulas .jor-card.trancado .jor-card-desc,
+            #aulas .jor-card.trancado button,
+            #aulas .jor-card.trancado .jor-selo { display: none; }
+            #aulas .jor-card.trancado { padding-top: 12px !important; padding-bottom: 12px !important; }
+
             /* --- Novo lançamento (bottom sheet) --- */
             /* Valor primeiro: é o que a pessoa tem na cabeça quando abre o
                formulário. O resto segue na ordem de antes. */
