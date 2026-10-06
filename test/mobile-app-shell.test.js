@@ -78,7 +78,7 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 test('nada da casca aparece no desktop', () => {
   assert.match(
     HTML,
-    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories, \.mob-folha \{ display: none; \}/
+    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories, \.mob-folha, \.mob-wiz \{ display: none; \}/
   );
   assert.match(
     HTML,
@@ -219,4 +219,16 @@ test('Meu patrimônio no celular desenha os números que a aba já calculou', ()
   assert.match(serie, /rmBensAteFimDoMes\(mes, ano\)/);
   const fn = MOB.slice(MOB.indexOf('function mobRenderPatrimonio'));
   assert.doesNotMatch(fn, /mpConsolidar\(|calcularPatrimonioTotal\(/);
+});
+
+test('a Carteira do celular desenha o plano do motor e não grava compras por conta própria', () => {
+  const CR = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-carteira-recomendada.js'), 'utf8');
+  const fn = CR.slice(CR.indexOf('function cartRenderizarMotorPlano'));
+  assert.match(fn, /mobRenderCarteiraPlano\(plano\)/);
+  // "Registrar compra" só preenche o formulário de sempre; quem grava é ele.
+  const reg = MOB.slice(MOB.indexOf('function mobCartRegistrar'));
+  assert.match(reg, /abrirDrawerOperacao\(/);
+  assert.doesNotMatch(MOB, /historicoCompras\.push|localStorage\.setItem\('futurorico_compras'/);
+  // O questionário em passos reusa as opções do desktop: cada passo existe.
+  for (const n of [1, 2, 3, 4]) assert.match(HTML, new RegExp('data-mob-passo="' + n + '"'));
 });

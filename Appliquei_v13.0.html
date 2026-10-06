@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -11380,6 +11380,120 @@
             #meu_patrimonio #formNovaConta[style*="display: block"] #tituloFormConta { font-size: 19px !important; font-weight: 800 !important; margin-bottom: 14px !important; }
             #meu_patrimonio #formNovaConta[style*="display: block"] .grid-2-iguais { grid-template-columns: 1fr !important; }
             body:has(#formNovaConta[style*="display: block"]) .mob-tabbar { visibility: hidden; }
+        }
+
+        /* ============================================================ */
+        /* CARTEIRA NO CELULAR (appliquei-mobile.js)                     */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            /* Questionário em quatro telas */
+            #cartQuestionnaire { padding: 8px 18px 20px !important; border: 0 !important; box-shadow: none !important; background: none !important; }
+            #cartQuestionnaire::before { display: none !important; }
+            #cartQuestionnaire > h2, #cartQuestionnaire > .lead, #cartQuestionnaire .cart-q-section-title { display: none !important; }
+            #cartQuestionnaire[data-mob-passo-ativo="1"] [data-mob-passo]:not([data-mob-passo="1"]),
+            #cartQuestionnaire[data-mob-passo-ativo="2"] [data-mob-passo]:not([data-mob-passo="2"]),
+            #cartQuestionnaire[data-mob-passo-ativo="3"] [data-mob-passo]:not([data-mob-passo="3"]),
+            #cartQuestionnaire[data-mob-passo-ativo="4"] [data-mob-passo]:not([data-mob-passo="4"]) { display: none !important; }
+            #cartQuestionnaire[data-mob-passo-ativo="4"] .mob-wiz-continuar { display: none !important; }
+            .mob-wiz-topo { display: flex; align-items: center; gap: 8px; margin: 0 0 18px -10px; }
+            .mob-wiz-voltar {
+                width: 44px; height: 44px; flex-shrink: 0; border: 0; background: none; cursor: pointer;
+                font-size: 22px; color: var(--cor-texto-principal); display: flex; align-items: center; justify-content: center;
+            }
+            #cartQuestionnaire[data-mob-passo-ativo="1"] .mob-wiz-voltar { visibility: hidden; }
+            .mob-wiz-progs { flex: 1; display: flex; gap: 6px; }
+            .mob-wiz-progs > span { flex: 1; height: 5px; border-radius: 99px; background: var(--cor-borda); transition: background 0.2s; }
+            #cartQuestionnaire[data-mob-passo-ativo="1"] .mob-wiz-progs > span:nth-child(-n+1),
+            #cartQuestionnaire[data-mob-passo-ativo="2"] .mob-wiz-progs > span:nth-child(-n+2),
+            #cartQuestionnaire[data-mob-passo-ativo="3"] .mob-wiz-progs > span:nth-child(-n+3),
+            #cartQuestionnaire[data-mob-passo-ativo="4"] .mob-wiz-progs > span { background: var(--cor-primaria); }
+            .mob-wiz-passo { display: block; margin: 0 0 6px; font-size: 13px; font-weight: 700; color: var(--tinta-verde); }
+            .mob-wiz-q { display: block; margin: 0 0 6px; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; color: var(--cor-texto-principal); }
+            .mob-wiz-sub { display: block; margin: 0 0 18px; font-size: 15px; line-height: 1.45; color: var(--cor-texto-mutado); }
+            #cartQuestionnaire .cart-q-section { margin: 0 !important; }
+            #cartQuestionnaire .cart-q-opts { display: flex !important; flex-direction: column; gap: 10px; }
+            #cartQuestionnaire .cart-q-opt { min-height: 76px; border-radius: 18px !important; }
+            #cartQuestionnaire .cart-q-capital-row {
+                display: flex !important; flex-direction: column; align-items: stretch !important; gap: 14px;
+                padding: 0 !important; background: none !important; border: 0 !important;
+            }
+            #cartQuestionnaire .cart-q-capital-row .btn-acao { min-height: 56px; border-radius: 16px; font-size: 16px; margin-top: 6px; }
+            #cartQuestionnaire #cartQCapital { font-family: 'DM Mono', monospace; font-size: 26px !important; min-height: 60px; }
+            .mob-wiz-valores { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .mob-wiz-valores button {
+                min-height: 52px; border-radius: 14px; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+                font: 500 16px 'DM Mono', monospace; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mob-wiz-valores button[aria-pressed="true"] { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+            .mob-wiz-continuar {
+                display: block; width: 100%; min-height: 56px; margin-top: 22px; border: 0; border-radius: 16px; cursor: pointer;
+                background: var(--cor-primaria); color: #fff; font: 700 16px 'Figtree', sans-serif;
+                box-shadow: 0 10px 22px rgba(5, 150, 105, 0.25);
+            }
+            body.dark .mob-wiz-continuar { color: #052e1a; }
+            .mob-wiz-continuar:disabled { background: var(--cor-borda); color: var(--cor-texto-mutado); box-shadow: none; cursor: default; }
+            #carteira:has(#cartQuestionnaire[style*="display: block"]) > .page-header { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            /* Lista de compras do mês (mobRenderCarteiraPlano) no lugar das colunas. */
+            #carteira #cartMotorPlano { display: none !important; }
+            #cartMobPlano { margin-bottom: 18px; }
+            .mcp-tit { margin: 4px 0 12px; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; color: var(--cor-texto-principal); }
+            .mcp-tit::first-letter { text-transform: uppercase; }
+            .mcp-topo { border-top: 4px solid var(--cor-primaria); padding: 16px; display: flex; align-items: center; gap: 16px; }
+            .mcp-anel { width: 96px; height: 96px; flex-shrink: 0; transform: rotate(-90deg); }
+            .mcp-prog { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+            .mcp-prog > b { font-family: 'DM Mono', monospace; font-size: 24px; font-weight: 500; letter-spacing: -0.8px; color: var(--tinta-verde); }
+            .mcp-prog > small { font-size: 13px; color: var(--cor-texto-mutado); }
+            .mcp-barra { display: block; height: 8px; margin-top: 8px; border-radius: 99px; background: var(--cor-fundo); overflow: hidden; }
+            .mcp-barra > span { display: block; height: 100%; border-radius: 99px; background: var(--cor-primaria); }
+            .mcp-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 18px; }
+            .mcp-nums > div { background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px; padding: 10px 10px; min-width: 0; overflow: hidden; }
+            .mcp-nums small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+            .mcp-nums b { display: block; margin-top: 3px; font-family: 'DM Mono', monospace; font-size: 12.5px; font-weight: 500; white-space: nowrap; letter-spacing: -0.3px; }
+            .mcp-grupo { margin-bottom: 16px; }
+            .mcp-grupo.apagado { opacity: 0.6; }
+            .mcp-grupo-cab { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 0 2px 8px; }
+            .mcp-grupo-nome { display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; color: var(--cor-texto-principal); }
+            .mcp-grupo-meta { font-size: 13px; color: var(--cor-texto-mutado); white-space: nowrap; }
+            .mcp-grupo-meta b { color: var(--cor-texto-principal); }
+            .mcp-grupo-meta span { font-family: 'DM Mono', monospace; }
+            .mcp-vazio { margin: 0; padding: 12px 14px; font-size: 13.5px; color: var(--cor-texto-mutado); background: var(--cor-branco); border: 1px dashed var(--cor-borda2); border-radius: 16px; }
+            .mcp-item {
+                display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; margin-bottom: 8px;
+            }
+            .mcp-item.feito { background: color-mix(in srgb, var(--cor-primaria) 6%, var(--cor-branco)); border-color: color-mix(in srgb, var(--cor-primaria) 30%, transparent); }
+            .mcp-chk {
+                width: 24px; height: 24px; margin-left: 14px; border-radius: 8px; box-sizing: border-box;
+                border: 2px solid var(--cor-borda2); display: flex; align-items: center; justify-content: center;
+                color: transparent; font-size: 14px;
+            }
+            .mcp-item.feito .mcp-chk { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+            .mcp-abre {
+                display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 14px 10px 6px; min-width: 0;
+                background: none; border: 0; font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mcp-meio { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+            .mcp-tk { display: flex; align-items: center; gap: 8px; }
+            .mcp-tk b { font-family: 'DM Mono', monospace; font-size: 15.5px; font-weight: 500; }
+            .mcp-meio > small { font-size: 12.5px; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mcp-nota { font-size: 11.5px; font-weight: 800; color: #fff; border-radius: 99px; padding: 2px 8px; }
+            .mcp-nota.sem { background: var(--cor-borda); color: var(--cor-texto-mutado); }
+            .mcp-val { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; white-space: nowrap; }
+            .mcp-val b { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; }
+            .mcp-val small { font-size: 12px; color: var(--cor-texto-mutado); }
+            .mcp-item.feito .mcp-val b { color: var(--tinta-verde); }
+            .mcp-det { grid-column: 1 / -1; padding: 0 16px 14px 58px; display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+            .mcp-det p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
+            .mcp-acoes { display: flex; gap: 8px; width: 100%; }
+            .mcp-btn1, .mcp-btn2 { flex: 1; min-height: 44px; border-radius: 12px; cursor: pointer; font: 700 13.5px 'Figtree', sans-serif; }
+            .mcp-btn1 { border: 0; background: var(--cor-primaria); color: #fff; }
+            body.dark .mcp-btn1 { color: #052e1a; }
+            .mcp-btn2 { border: 1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-principal); }
+            .mcp-avisos { display: flex; flex-direction: column; gap: 6px; }
+            .mcp-avisos p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--cor-texto-mutado); }
         }
     </style>
 </head>
@@ -13008,11 +13122,21 @@
             <div id="visaoCliente">
 
                 <!-- Profile Questionnaire (shown until profile is set) -->
-                <div class="cart-q-card" id="cartQuestionnaire" style="display:none;">
+                <div class="cart-q-card" id="cartQuestionnaire" style="display:none;" data-mob-passo-ativo="1">
+                    <!-- No celular o questionário vira quatro telas, uma pergunta
+                         por vez (appliquei-mobile.js, mobCartIrPasso). As opções
+                         são as mesmas; só o que aparece de cada vez muda. -->
+                    <div class="mob-wiz mob-wiz-topo">
+                        <button type="button" class="mob-wiz-voltar" onclick="mobCartPasso(-1)" aria-label="Voltar"><i class="ph ph-caret-left"></i></button>
+                        <div class="mob-wiz-progs" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                    </div>
+                    <p class="mob-wiz mob-wiz-passo" id="mobWizPasso">Passo 1 de 4</p>
                     <h2><i class="ph ph-user-circle-gear"></i> Descubra seu perfil de investidor</h2>
                     <p class="lead">Duas perguntas e o seu aporte mensal. A carteira sai montada.</p>
 
-                    <div class="cart-q-section">
+                    <div class="cart-q-section" data-mob-passo="1">
+                        <h3 class="mob-wiz mob-wiz-q">Quanto da carteira você aceita ver cair num ano ruim?</h3>
+                        <p class="mob-wiz mob-wiz-sub">Não existe resposta certa. É o que deixa você dormir tranquilo.</p>
                         <div class="cart-q-section-title" data-step="1">Tolerância a perdas</div>
                         <div class="cart-q-opts" id="cartQTolerancia">
                             <button type="button" class="cart-q-opt" data-q="tolerancia" data-val="nao_aceito">
@@ -13030,7 +13154,9 @@
                         </div>
                     </div>
 
-                    <div class="cart-q-section">
+                    <div class="cart-q-section" data-mob-passo="2">
+                        <h3 class="mob-wiz mob-wiz-q">Para que é esse dinheiro?</h3>
+                        <p class="mob-wiz mob-wiz-sub">Isso decide o peso de renda, crescimento e proteção.</p>
                         <div class="cart-q-section-title" data-step="2">Objetivo principal</div>
                         <div class="cart-q-opts" id="cartQObjetivo">
                             <button type="button" class="cart-q-opt" data-q="objetivo" data-val="preservar">
@@ -13052,7 +13178,9 @@
                         </div>
                     </div>
 
-                    <div class="cart-q-section">
+                    <div class="cart-q-section" data-mob-passo="3">
+                        <h3 class="mob-wiz mob-wiz-q">Quando você vai precisar desse dinheiro?</h3>
+                        <p class="mob-wiz mob-wiz-sub">Prazo curto pede mais renda fixa; prazo longo aguenta mais oscilação.</p>
                         <div class="cart-q-section-title" data-step="3">Prazo do dinheiro</div>
                         <div class="cart-q-opts" id="cartQPrazo">
                             <button type="button" class="cart-q-opt" data-q="prazo" data-val="2">
@@ -13074,7 +13202,15 @@
                         </div>
                     </div>
 
-                    <div class="cart-q-capital-row">
+                    <div class="cart-q-capital-row" data-mob-passo="4">
+                        <h3 class="mob-wiz mob-wiz-q">Quanto você quer investir por mês?</h3>
+                        <p class="mob-wiz mob-wiz-sub">Dá para mudar quando quiser. A carteira se ajusta ao valor.</p>
+                        <div class="mob-wiz mob-wiz-valores" role="group" aria-label="Valores rápidos">
+                            <button type="button" onclick="mobCartAporte(500)">R$ 500</button>
+                            <button type="button" onclick="mobCartAporte(1000)">R$ 1.000</button>
+                            <button type="button" onclick="mobCartAporte(2000)">R$ 2.000</button>
+                            <button type="button" onclick="mobCartAporte(5000)">R$ 5.000</button>
+                        </div>
                         <div class="form-group">
                             <label>Aporte mensal (R$)</label>
                             <span class="input-brl-wrap" style="display:block;">
@@ -13096,6 +13232,7 @@
                             <i class="ph ph-arrow-right"></i> Ver minha carteira
                         </button>
                     </div>
+                    <button type="button" class="mob-wiz mob-wiz-continuar" id="mobWizContinuar" onclick="mobCartPasso(1)">Continuar</button>
                 </div>
 
                 <!-- Profile + Capital Header (shown after questionnaire) -->
@@ -13122,6 +13259,7 @@
                         </div>
                     </div>
 
+                    <div id="cartMobPlano" class="mob-inicio"></div>
                     <div id="cartMotorPlano"></div>
 
                     <!-- Cobertura de dados e lente ativa: é a PROCEDÊNCIA da
@@ -14716,7 +14854,7 @@
     <script src="/web/appliquei-inss.js?v=inss1"></script>
     <script src="/web/appliquei-aba-simulador.js?v=inss1"></script>
     <script src="/web/appliquei-motor-carteira.js?v=motor-carteira-1"></script>
-    <script src="/web/appliquei-aba-carteira-recomendada.js?v=motor-carteira-1"></script>
+    <script src="/web/appliquei-aba-carteira-recomendada.js?v=cart-mob"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
@@ -14739,6 +14877,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=pat-mob"></script>
+    <script src="/web/appliquei-mobile.js?v=cart-mob"></script>
 </body>
 </html>

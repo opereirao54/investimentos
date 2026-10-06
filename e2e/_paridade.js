@@ -59,6 +59,8 @@ const ESTADOS_MOB = {
   ],
   // Os cartões de banco/corretora abrem com as ações (Transferir, Extrato, Editar).
   meu_patrimonio: ['mobPatAbrirCarteira(0)', 'mpToggleExtrato(0)'],
+  // O questionário mostra uma pergunta por vez; o plano abre item a item.
+  carteira: ['mobCartIrPasso(2)', 'mobCartIrPasso(3)', 'mobCartIrPasso(4)', 'mobCartAbrirItem(0)'],
 };
 
 /**

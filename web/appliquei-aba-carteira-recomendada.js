@@ -323,6 +323,8 @@ function cartMostrarQuestionario() {
   // "Editar perfil" reabre este mesmo formulário. Repor as respostas
   // anteriores evita que mexer no aporte custe responder tudo de novo.
   cartPreencherQuestionario();
+  // No celular o questionário recomeça do primeiro passo (appliquei-mobile.js).
+  if (typeof mobCartIrPasso === 'function') mobCartIrPasso(1);
 }
 
 /** Repõe no formulário as respostas já guardadas (quando existem). */
@@ -2342,6 +2344,9 @@ function cartRenderizarMotorPlano(plano) {
         .join('') +
       '</div>'
     : '';
+
+  // No celular o plano vira a lista de compras do mês (appliquei-mobile.js).
+  if (typeof mobRenderCarteiraPlano === 'function') mobRenderCarteiraPlano(plano);
 
   el.innerHTML =
     '<div class="cart-plano-resumo">' +

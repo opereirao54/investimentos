@@ -2035,3 +2035,361 @@ function _mobPatDesenharClasses() {
       .join('') +
     '</div>';
 }
+
+// ------------------------------------------------------------
+// Carteira no celular: o questionário em quatro telas
+// ------------------------------------------------------------
+// As mesmas perguntas e os mesmos botões do desktop (cartConcluirQuestionario
+// lê o que estiver marcado); no celular aparece uma por vez, e tocar numa
+// opção já leva à próxima.
+var MOB_CART_PASSOS = 4;
+
+function _mobCartPassoAtual() {
+  const q = document.getElementById('cartQuestionnaire');
+  return q ? Number(q.dataset.mobPassoAtivo) || 1 : 1;
+}
+
+function _mobCartRespondido(passo) {
+  const q = { 1: 'tolerancia', 2: 'objetivo', 3: 'prazo' }[passo];
+  return (
+    !q || !!document.querySelector('#cartQuestionnaire .cart-q-opt[data-q="' + q + '"].selected')
+  );
+}
+
+function mobCartIrPasso(n) {
+  const q = document.getElementById('cartQuestionnaire');
+  if (!q) return;
+  const passo = Math.max(1, Math.min(MOB_CART_PASSOS, Number(n) || 1));
+  q.dataset.mobPassoAtivo = String(passo);
+  const rot = document.getElementById('mobWizPasso');
+  if (rot) rot.textContent = 'Passo ' + passo + ' de ' + MOB_CART_PASSOS;
+  const btn = document.getElementById('mobWizContinuar');
+  if (btn) btn.disabled = !_mobCartRespondido(passo);
+  _mobCartMarcarAporte();
+  if (mobEhCelular()) {
+    const rol = document.querySelector('.main-content');
+    if (rol) rol.scrollTop = 0;
+  }
+}
+
+function mobCartPasso(delta) {
+  const atual = _mobCartPassoAtual();
+  if (delta > 0 && !_mobCartRespondido(atual)) return;
+  mobCartIrPasso(atual + delta);
+}
+
+function mobCartAporte(v) {
+  const campo = document.getElementById('cartQCapital');
+  if (!campo) return;
+  campo.value = Number(v).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  _mobCartMarcarAporte();
+}
+
+function _mobCartMarcarAporte() {
+  const campo = document.getElementById('cartQCapital');
+  const v = campo && typeof parseBRL === 'function' ? parseBRL(campo.value) : NaN;
+  document.querySelectorAll('#cartQuestionnaire .mob-wiz-valores button').forEach((b) => {
+    const alvo = Number((b.getAttribute('onclick') || '').replace(/\D/g, ''));
+    b.setAttribute('aria-pressed', v === alvo ? 'true' : 'false');
+  });
+}
+
+// Tocar numa opção marca (o handler é o do desktop) e, no celular, avança.
+document.addEventListener('click', function (e) {
+  const opt = e.target.closest && e.target.closest('#cartQuestionnaire .cart-q-opt');
+  if (!opt || !mobEhCelular()) return;
+  const atual = _mobCartPassoAtual();
+  setTimeout(() => {
+    if (_mobCartPassoAtual() === atual && atual < MOB_CART_PASSOS) mobCartIrPasso(atual + 1);
+  }, 220);
+});
+document.addEventListener('input', function (e) {
+  if (e.target && e.target.id === 'cartQCapital') _mobCartMarcarAporte();
+});
+
+// ------------------------------------------------------------
+// Carteira no celular: a lista de compras do mês
+// ------------------------------------------------------------
+// O plano do motor (o mesmo objeto que cartRenderizarMotorPlano desenha em
+// colunas) vira uma lista: o que comprar, quanto, e o que já foi comprado.
+// "Comprado" não é uma marca à parte: é a compra registrada de verdade neste
+// mês (historicoCompras). "Registrar compra" abre o formulário de operação
+// de sempre, já com o ativo e a quantidade sugerida, e quem confirma é a
+// pessoa.
+var _mobCart = { plano: null, aberto: null };
+
+function _mobCartItens(plano) {
+  const lista = [];
+  (typeof MOTOR_CLASSES !== 'undefined' ? MOTOR_CLASSES : ['rf', 'acao', 'fii', 'cripto']).forEach(
+    (classe) => {
+      const c = plano.classes && plano.classes[classe];
+      if (c && Array.isArray(c.itens)) c.itens.forEach((it) => lista.push(it));
+    }
+  );
+  return lista;
+}
+
+/** Quanto deste ativo foi comprado (registrado) no mês corrente. */
+function _mobCartCompradoNoMes(ticker) {
+  if (typeof historicoCompras === 'undefined' || !Array.isArray(historicoCompras) || !ticker)
+    return 0;
+  const hoje = new Date();
+  const alvo = String(ticker).toUpperCase();
+  return historicoCompras.reduce((acc, op) => {
+    if (!op || String(op.ticker || '').toUpperCase() !== alvo) return acc;
+    if ((op.tipo || 'compra') !== 'compra' || !op.data_op) return acc;
+    const d = new Date(op.data_op);
+    if (d.getMonth() !== hoje.getMonth() || d.getFullYear() !== hoje.getFullYear()) return acc;
+    return acc + (Number(op.quantidade) || 0) * (Number(op.preco_op || op.preco_pago) || 0);
+  }, 0);
+}
+
+function mobRenderCarteiraPlano(plano) {
+  const el = document.getElementById('cartMobPlano');
+  if (!el || !plano) return;
+  _mobCart.plano = plano;
+  const itens = _mobCartItens(plano);
+  const nomes = typeof CART_NOMES !== 'undefined' ? CART_NOMES : {};
+  const icones = typeof CART_ICONS !== 'undefined' ? CART_ICONS : {};
+  const cores = {
+    rf: 'var(--cor-info)',
+    acao: 'var(--cor-primaria)',
+    fii: 'var(--cor-patrimonio)',
+    cripto: 'var(--cor-cartao)',
+  };
+  const esc = typeof cartEsc === 'function' ? cartEsc : _mobEsc;
+  const fmt = _mobDreFmt;
+  const mes = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+
+  let comprado = 0;
+  let qtdComprados = 0;
+  const itensComprados = new Set();
+  itens.forEach((it) => {
+    const v = _mobCartCompradoNoMes(it.ticker);
+    if (v > 0.009) {
+      comprado += v;
+      qtdComprados++;
+      itensComprados.add(it.ticker);
+    }
+  });
+  const aporte = Number(plano.aporte) || 0;
+  const fracComprado = aporte > 0 ? Math.min(1, comprado / aporte) : 0;
+
+  // Anel: a fatia de cada classe no aporte.
+  const C = 2 * Math.PI * 48;
+  let acc = 0;
+  const arcos = Object.keys(cores)
+    .map((k) => {
+      const c = plano.classes && plano.classes[k];
+      const pct = c ? Number(c.pct) || 0 : 0;
+      if (pct <= 0) return '';
+      const seg =
+        '<circle cx="60" cy="60" r="48" fill="none" stroke="' +
+        cores[k] +
+        '" stroke-width="14" stroke-dasharray="' +
+        ((C * pct) / 100).toFixed(1) +
+        ' ' +
+        C.toFixed(1) +
+        '" stroke-dashoffset="' +
+        (-(C * acc) / 100).toFixed(1) +
+        '"></circle>';
+      acc += pct;
+      return seg;
+    })
+    .join('');
+
+  const grupos = Object.keys(cores)
+    .map((classe) => {
+      const c = plano.classes && plano.classes[classe];
+      if (!c) return '';
+      const aguardando = c.modo === 'aguardando_dados';
+      const lista = c.itens || [];
+      const corpo = aguardando
+        ? '<p class="mcp-vazio">Aguardando indicadores para selecionar os ativos.</p>'
+        : !lista.length
+          ? '<p class="mcp-vazio">Sem alocação nesta classe.</p>'
+          : lista
+              .map((it) => {
+                const i = itens.indexOf(it);
+                const aberto = _mobCart.aberto === i;
+                const feito = itensComprados.has(it.ticker);
+                const rot =
+                  typeof cartRotuloAtivo === 'function'
+                    ? cartRotuloAtivo(it)
+                    : { codigo: it.ticker };
+                const linha =
+                  typeof cartLinhaSetor === 'function' ? cartLinhaSetor(it).texto : it.nome || '';
+                const score =
+                  it.score === null || it.score === undefined
+                    ? '<span class="mcp-nota sem">—</span>'
+                    : '<span class="mcp-nota" style="background:' +
+                      (typeof cartCorScore === 'function'
+                        ? cartCorScore(it.score)
+                        : 'var(--cor-primaria)') +
+                      '">' +
+                      esc(it.score) +
+                      '</span>';
+                const qtd =
+                  it.quantidade != null && it.unidade
+                    ? '<small>' +
+                      esc(
+                        it.classe === 'cripto' ? it.quantidade : it.quantidade + ' ' + it.unidade
+                      ) +
+                      '</small>'
+                    : '';
+                const detalhe = aberto
+                  ? '<div class="mcp-det"><p>' +
+                    (it.justificativa
+                      ? esc(it.justificativa)
+                      : 'Selecionado entre os mais bem pontuados da classe.') +
+                    (it.trocadoDe
+                      ? ' <b>Trocado por você no lugar de ' + esc(it.trocadoDe) + '.</b>'
+                      : '') +
+                    '</p><div class="mcp-acoes"><button type="button" class="mcp-btn1" onclick="mobCartRegistrar(' +
+                    i +
+                    ')">' +
+                    (feito ? 'Registrar outra compra' : 'Registrar compra') +
+                    '</button><button type="button" class="mcp-btn2" onclick="cartAbrirTroca(\'' +
+                    esc(it.ticker) +
+                    "','" +
+                    esc(it.classe) +
+                    '\')">Trocar</button></div><button type="button" class="mi-link" onclick="mobCartVerRanking(\'' +
+                    esc(it.classe) +
+                    '\')">Ver o ranking da classe <i class="ph ph-caret-right"></i></button></div>'
+                  : '';
+                return (
+                  '<article class="mcp-item' +
+                  (feito ? ' feito' : '') +
+                  (aberto ? ' aberto' : '') +
+                  '"><span class="mcp-chk" role="img" aria-label="' +
+                  (feito ? 'Compra registrada neste mês' : 'Ainda não comprado') +
+                  '"><i class="ph-bold ph-check"></i></span><button type="button" class="mcp-abre" aria-expanded="' +
+                  aberto +
+                  '" onclick="mobCartAbrirItem(' +
+                  i +
+                  ')"><span class="mcp-meio"><span class="mcp-tk"><b>' +
+                  esc(rot.codigo) +
+                  '</b>' +
+                  score +
+                  '</span><small>' +
+                  esc(linha) +
+                  '</small></span><span class="mcp-val"><b class="valor-mascarado">' +
+                  esc(fmt(it.valorInvestido)) +
+                  '</b>' +
+                  qtd +
+                  '</span></button>' +
+                  detalhe +
+                  '</article>'
+                );
+              })
+              .join('');
+      return (
+        '<section class="mcp-grupo' +
+        ((Number(c.pct) || 0) === 0 ? ' apagado' : '') +
+        '"><div class="mcp-grupo-cab"><span class="mcp-grupo-nome"><i class="ph ' +
+        (icones[classe] || 'ph-circle') +
+        '" style="color:' +
+        cores[classe] +
+        '"></i>' +
+        esc(nomes[classe] || classe) +
+        '</span><span class="mcp-grupo-meta"><b>' +
+        (Number(c.pct) || 0) +
+        '%</b> · <span class="valor-mascarado">' +
+        esc(fmt(c.alvo)) +
+        '</span></span></div>' +
+        corpo +
+        '</section>'
+      );
+    })
+    .join('');
+
+  const retido = Number(plano.retido) || 0;
+  const avisos = (plano.avisos || []).length
+    ? '<div class="mcp-avisos">' +
+      plano.avisos.map((a) => '<p><i class="ph ph-info"></i> ' + a + '</p>').join('') +
+      '</div>'
+    : '';
+
+  el.innerHTML =
+    '<h2 class="mcp-tit">Compras de ' +
+    esc(mes) +
+    '</h2>' +
+    '<div class="mi-card mcp-topo"><svg class="mcp-anel" viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="48" fill="none" stroke="var(--cor-borda)" stroke-width="14"></circle>' +
+    arcos +
+    '</svg><div class="mcp-prog"><span class="mi-rot">Comprado até agora</span><b class="valor-mascarado">' +
+    esc(fmt(comprado)) +
+    '</b><small>de <span class="valor-mascarado">' +
+    esc(fmt(aporte)) +
+    '</span> · ' +
+    qtdComprados +
+    ' de ' +
+    itens.length +
+    ' ativos</small><span class="mcp-barra"><span style="width:' +
+    (fracComprado * 100).toFixed(1) +
+    '%"></span></span></div></div>' +
+    '<div class="mcp-nums"><div><small>Aporte</small><b class="valor-mascarado">' +
+    esc(fmt(aporte)) +
+    '</b></div><div><small>Distribuído</small><b class="valor-mascarado">' +
+    esc(fmt(plano.totalInvestido)) +
+    '</b></div><div><small>' +
+    (retido > 0.009 ? 'Retido' : 'Sobra') +
+    '</small><b class="valor-mascarado">' +
+    esc(fmt(retido > 0.009 ? retido : plano.sobra)) +
+    '</b></div></div>' +
+    grupos +
+    avisos;
+}
+
+function mobCartAbrirItem(i) {
+  _mobCart.aberto = _mobCart.aberto === i ? null : i;
+  if (_mobCart.plano) mobRenderCarteiraPlano(_mobCart.plano);
+}
+
+function mobCartVerRanking(classe) {
+  if (typeof cartTrocarClasseRanking === 'function') cartTrocarClasseRanking(classe);
+  const r = document.getElementById('cartMotorRanking');
+  if (r && typeof r.scrollIntoView === 'function')
+    r.scrollIntoView({ block: 'start', behavior: 'smooth' });
+}
+
+/**
+ * Abre o "Registrar operação" de sempre com o ativo e, quando o plano tem,
+ * a quantidade e o preço sugeridos. Nada é gravado aqui: quem confere e
+ * salva é a pessoa, no formulário.
+ */
+function mobCartRegistrar(i) {
+  const it = _mobCart.plano ? _mobCartItens(_mobCart.plano)[i] : null;
+  if (!it || typeof abrirDrawerOperacao !== 'function') return;
+  abrirDrawerOperacao({ semFoco: true });
+  const pos = (id, v) => {
+    const el = document.getElementById(id);
+    if (!el || v == null || v === '') return;
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+  };
+  pos('compraTicker', it.ticker);
+  if (typeof ajustarCamposPorCategoria === 'function') ajustarCamposPorCategoria();
+  if (it.quantidade != null && it.preco) {
+    pos('compraQtd', String(it.quantidade).replace('.', ','));
+    pos(
+      'compraPreco',
+      typeof formatarBRLInput === 'function' ? formatarBRLInput(it.preco) : String(it.preco)
+    );
+  }
+}
+
+// Quando o formulário de operação fecha (salvou ou desistiu), a lista de
+// compras relê o que foi registrado no mês.
+document.addEventListener('DOMContentLoaded', function () {
+  const drawer = document.getElementById('drawerOperacao');
+  if (!drawer || typeof MutationObserver === 'undefined') return;
+  let aberto = drawer.classList.contains('aberto');
+  new MutationObserver(function () {
+    const agora = drawer.classList.contains('aberto');
+    if (aberto && !agora && _mobCart.plano) mobRenderCarteiraPlano(_mobCart.plano);
+    aberto = agora;
+  }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
+});
