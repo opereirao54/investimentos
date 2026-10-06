@@ -10319,6 +10319,10 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
+        /* Fora do style inline de propósito: sairModoSonhoControle devolve
+           display '' aos campos que escondeu, e com o flex só no inline os
+           três botões viravam blocos empilhados depois do primeiro salvar. */
+        #chipsLancamento { display: flex; }
         .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
@@ -10862,7 +10866,11 @@
                 font-family: 'DM Mono', monospace; font-size: 26px !important; font-weight: 500;
                 min-height: 56px;
             }
-            #chipsLancamento > button { min-height: 44px; font-size: 14px !important; }
+            #chipsLancamento { gap: 8px !important; }
+            #chipsLancamento > button {
+                min-height: 46px; font-size: 14px !important; border-radius: 12px !important;
+                gap: 6px !important; flex: 1 1 0 !important; min-width: 0;
+            }
             /* Salvar sempre à vista, preso ao pé da folha enquanto ela rola. */
             #painelNovoLancamento #btnSalvarControle {
                 position: sticky; bottom: 0; z-index: 2; min-height: 52px;
@@ -15213,7 +15221,7 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=rf-motivo"></script>
+    <script src="/web/appliquei-mobile.js?v=ios-teclado"></script>
     <script src="/web/appliquei-privacidade.js?v=politica-1"></script>
 </body>
 </html>

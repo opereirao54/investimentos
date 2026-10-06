@@ -126,6 +126,35 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', _mobAoRedimensionar);
 });
 
+// A página nunca rola: o body tem a altura da tela e quem rola é o
+// .main-content. Mas o iPhone, ao abrir o teclado num campo, empurra a
+// JANELA para cima para mostrar o campo — e não a devolve quando o teclado
+// fecha. No app instalado isso deixava o topo cortado sob a barra de status e
+// uma faixa vazia abaixo da barra inferior até fechar o app. Sem campo em
+// foco, qualquer deslocamento da janela é esse resto: volta para o zero.
+function mobDesfazerDeslocamento() {
+  if (!mobEhCelular()) return;
+  const a = document.activeElement;
+  if (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  if (window.scrollY || document.documentElement.scrollTop || document.body.scrollTop) {
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }
+}
+document.addEventListener('focusout', function () {
+  setTimeout(mobDesfazerDeslocamento, 80);
+});
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', function () {
+    setTimeout(mobDesfazerDeslocamento, 80);
+  });
+}
+window.addEventListener('pageshow', mobDesfazerDeslocamento);
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) mobDesfazerDeslocamento();
+});
+
 // ------------------------------------------------------------
 // Controle no celular: Resumo | Extrato | Projeção
 // ------------------------------------------------------------

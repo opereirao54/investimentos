@@ -232,3 +232,18 @@ test('a Carteira do celular desenha o plano do motor e não grava compras por co
   // O questionário em passos reusa as opções do desktop: cada passo existe.
   for (const n of [1, 2, 3, 4]) assert.match(HTML, new RegExp('data-mob-passo="' + n + '"'));
 });
+
+test('os botões Entrada/Saída/Cartão continuam lado a lado depois de salvar', () => {
+  // sairModoSonhoControle devolve display '' aos campos que escondeu; o flex
+  // dos chips precisa morar no CSS, não só no style inline.
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  assert.match(CF, /CAMPOS_OCULTOS_MODO_SONHO = \[\s*'chipsLancamento'/);
+  assert.match(HTML, /#chipsLancamento \{ display: flex; \}/);
+});
+
+test('no celular a janela volta ao topo quando o teclado do iPhone fecha', () => {
+  const fn = MOB.slice(MOB.indexOf('function mobDesfazerDeslocamento'));
+  assert.match(fn, /window\.scrollTo\(0, 0\)/);
+  assert.match(MOB, /addEventListener\('focusout'[\s\S]*mobDesfazerDeslocamento/);
+  assert.match(MOB, /visualViewport\.addEventListener\('resize'/);
+});
