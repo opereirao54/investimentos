@@ -79,6 +79,8 @@ const OVERLAYS = [
 const EQUIVALENTES = {
   'fn:abrirPainelLancamento':
     'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Lançamento (cadastrarEm → abrirPainelLancamento)',
+  'fn:alternarPainelVencimentos':
+    'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Baixar e Ver fatura estão em cada cartão',
 };
 
 /** Roda NA PÁGINA: coleta as ações visíveis sob `raizSel` (default: a aba ativa). */

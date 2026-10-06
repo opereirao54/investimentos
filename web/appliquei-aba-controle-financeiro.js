@@ -2538,6 +2538,14 @@ function obterSaldoCarregadoParaMes(mes, ano) {
 
 // Edição manual do saldo trazido (ajuste pontual no DRE). Branco = volta ao automático.
 function editarSaldoMesAnterior(mes, ano) {
+  // No celular o ajuste abre numa folha com as duas opções, em vez do
+  // prompt() do navegador (appliquei-mobile.js).
+  if (
+    typeof mobEhCelular === 'function' &&
+    mobEhCelular() &&
+    typeof mobAbrirSaldoAnterior === 'function'
+  )
+    return mobAbrirSaldoAnterior(mes, ano);
   const atual = obterSaldoCarregadoParaMes(mes, ano);
   const entrada = prompt(
     'Ajustar o saldo trazido do mês anterior (em R$). Deixe em branco para voltar ao cálculo automático:',
@@ -3452,6 +3460,8 @@ function atualizarTelaControle() {
     rPizza.invVar +
     rPizza.sonho;
 
+  // As mesmas barras alimentam o "Para onde foi" do celular.
+  let dadosComposicao = null;
   if (somaParaGrafico > 0) {
     document.getElementById('legendaPizzaVazia').style.display = 'none';
     const ctx = document.getElementById('graficoComposicao').getContext('2d');
@@ -3462,6 +3472,7 @@ function atualizarTelaControle() {
       let despesas = Object.keys(mapaCat).map((k) => ({
         label: k === '__sem_categoria__' ? 'Sem categoria' : rotuloCategoriaDespesa(k),
         valor: mapaCat[k],
+        slug: k,
       }));
       despesas.sort((a, b) => b.valor - a.valor);
       despesas.forEach((d, i) => {
@@ -3479,13 +3490,18 @@ function atualizarTelaControle() {
       });
     } else {
       dadosGrafico = [
-        { label: 'Receita', valor: rPizza.receita, cor: '#10b981' },
-        { label: 'Resgate', valor: rPizza.resgate, cor: '#34d399' },
-        { label: 'Cartão', valor: rPizza.cartao, cor: '#f59e0b' },
-        { label: 'Fixa', valor: rPizza.despFixa, cor: '#f97316' },
-        { label: 'Var.', valor: rPizza.despVar, cor: '#e11d48' },
-        { label: 'Aportes Mês', valor: rPizza.invFixo + rPizza.invVar, cor: '#2563eb' },
-        { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed' },
+        { label: 'Receita', valor: rPizza.receita, cor: '#10b981', tipo: 'receita' },
+        { label: 'Resgate', valor: rPizza.resgate, cor: '#34d399', tipo: 'receita' },
+        { label: 'Cartão', valor: rPizza.cartao, cor: '#f59e0b', tipo: 'cartao' },
+        { label: 'Fixa', valor: rPizza.despFixa, cor: '#f97316', tipo: 'despesa' },
+        { label: 'Var.', valor: rPizza.despVar, cor: '#e11d48', tipo: 'despesa' },
+        {
+          label: 'Aportes Mês',
+          valor: rPizza.invFixo + rPizza.invVar,
+          cor: '#2563eb',
+          tipo: 'investimento',
+        },
+        { label: 'Sonhos', valor: rPizza.sonho, cor: '#7c3aed', tipo: 'sonho' },
       ];
       dadosGrafico.sort((a, b) => b.valor - a.valor);
       dadosGrafico.push({
@@ -3494,6 +3510,8 @@ function atualizarTelaControle() {
         cor: vSobra >= 0 ? '#10b981' : '#e11d48',
       });
     }
+
+    dadosComposicao = dadosGrafico;
 
     // Altura adaptativa: a visão por categoria de despesa pode ter mais barras.
     const contGrafico = document.getElementById('graficoComposicao').parentElement;
@@ -3795,6 +3813,11 @@ function atualizarTelaControle() {
       saldoConta: calcularSaldoEmContaDoMes(visaoMes, visaoAno),
       resumo: rPizza,
       sonhos: typeof sonhos !== 'undefined' ? sonhos : [],
+      carregado: saldoCarregado,
+      carregadoManual: !!(obterMapaSaldoCarregado()[chaveMes(visaoMes, visaoAno)] || {}).manual,
+      composicao: { modo: agrupamentoComposicao, itens: dadosComposicao },
+      vencimentos: itensRender,
+      hojeStr: hojeStr,
     });
 }
 

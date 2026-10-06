@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10885,13 +10885,12 @@
             #controle > .alert-contextual { order: 3; }
             #controle > #painelInsights { order: 4; }
             /* Sem avisos, o "nada fora do padrão" não merece o topo. */
-            #controle > #painelInsights:not(.mob-com-stories) { order: 8; }
+            #controle > #painelInsights:not(.mob-com-stories) { order: 10; }
             #controle > #mobInicio { order: 5; }
-            #controle > #bannerSaldoMesAnterior { order: 6; }
             #controle > .kpis-controle { order: 7; }
-            #controle > #painelVencimentos { order: 8; }
-            #controle > .ctrl-saude-composicao { order: 9; }
-            #controle > #mobInicioFim { order: 10; }
+            #controle > #mobComposicao { order: 8; }
+            #controle > #mobProximos { order: 9; }
+            #controle > #mobInicioFim { order: 11; }
 
             /* Cabeçalho: saudação, e o mês com os atalhos numa linha só. */
             #controle .page-header h1 { display: none; }
@@ -10906,10 +10905,169 @@
                 width: 44px !important; padding: 0; font-size: 19px;
             }
 
-            /* O cartão novo faz as vezes destes três. */
+            /* Os blocos novos fazem as vezes destes: heróis e termômetro (o
+               cartão do topo), aviso do saldo trazido (a linha roxa dentro
+               dele), composição ("Para onde foi") e vencimentos ("Próximos
+               dias"). */
             #controle .kpis-controle-heroes,
-            #controle #painelTermometro { display: none !important; }
-            #controle .ctrl-saude-composicao { display: block !important; }
+            #controle #painelTermometro,
+            #controle #bannerSaldoMesAnterior,
+            #controle .ctrl-saude-composicao,
+            #controle #painelVencimentos { display: none !important; }
+
+            /* O mês em números: título e cartões um pouco mais largos. */
+            #controle .kpis-controle::before {
+                content: "O mês em números"; display: block; margin: 0 0 10px;
+                font-size: 17px; font-weight: 800; letter-spacing: -0.2px; color: var(--cor-texto-principal);
+            }
+            #controle .kpis-controle-grid > .kpi-mini { flex-basis: 164px; }
+
+            /* Saldo que veio do mês anterior, dentro do cartão do topo. */
+            .mi-carregado {
+                display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; margin-top: -2px;
+                background: color-mix(in srgb, var(--cor-patrimonio) 8%, var(--cor-branco));
+                border: 1px solid color-mix(in srgb, var(--cor-patrimonio) 25%, transparent);
+                border-radius: 14px; padding: 6px 12px; font-family: inherit; font-size: 13px;
+                color: var(--cor-texto-secundario); text-align: left; cursor: pointer;
+            }
+            .mi-carregado > i { color: var(--tinta-roxo); font-size: 17px; }
+            .mi-carregado > span:first-of-type { flex: 1; min-width: 0; }
+            .mi-carregado b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--tinta-roxo); }
+            .mi-carregado b.neg { color: var(--cor-erro); }
+            .mi-carregado .mi-link { min-height: 0; }
+            .mi-carregado-tag {
+                font-size: 12px; font-weight: 700; color: var(--tinta-roxo);
+                background: color-mix(in srgb, var(--cor-patrimonio) 14%, transparent);
+                border-radius: 99px; padding: 3px 9px;
+            }
+
+            /* Para onde foi */
+            .mc { padding: 14px 16px 10px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 12px; }
+            .mc .mi-tit-linha { align-items: baseline; }
+            .mc-total { font-size: 13px; color: var(--cor-texto-mutado); white-space: nowrap; }
+            .mc-total b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+            .mc-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--cor-fundo); border-radius: 12px; padding: 3px; }
+            .mc-seg button {
+                min-height: 38px; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+                font: 700 13px 'Figtree', sans-serif; color: var(--cor-texto-mutado);
+            }
+            .mc-seg button[aria-selected="true"] { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(16, 30, 19, 0.12); }
+            .mc-barra { display: flex; gap: 2px; height: 12px; border-radius: 99px; overflow: hidden; background: var(--cor-fundo); }
+            .mc-barra > span { display: block; height: 100%; }
+            .mc-lista { display: flex; flex-direction: column; }
+            .mc-row {
+                display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 0;
+                background: none; border: 0; border-bottom: 1px solid var(--cor-borda);
+                font-family: inherit; color: var(--cor-texto-principal); text-align: left; box-sizing: border-box;
+            }
+            button.mc-row { cursor: pointer; }
+            .mc-row:last-child { border-bottom: 0; }
+            .mc-dot { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; }
+            .mc-meio { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+            .mc-lin { display: flex; justify-content: space-between; gap: 8px; font-size: 14.5px; font-weight: 600; }
+            .mc-lin > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .mc-lin b { font-family: 'DM Mono', monospace; font-weight: 500; white-space: nowrap; }
+            .mc-trilho { display: block; height: 5px; border-radius: 99px; background: var(--cor-fundo); }
+            .mc-trilho > span { display: block; height: 5px; border-radius: 99px; }
+            .mc-pct { width: 38px; text-align: right; font-family: 'DM Mono', monospace; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mc-seta { width: 16px; font-size: 16px; color: var(--cor-texto-mutado); flex-shrink: 0; }
+            .mc-mais {
+                min-height: 44px; border: 0; border-radius: 12px; background: var(--cor-fundo); cursor: pointer;
+                font: 700 13.5px 'Figtree', sans-serif; color: var(--tinta-verde);
+            }
+
+            /* Próximos dias */
+            .mp { margin-bottom: 18px; }
+            .mp .mi-tit-linha { align-items: baseline; margin-bottom: 10px; }
+            .mp-fila {
+                display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain;
+                margin: 0 -16px; padding: 2px 16px 6px; scroll-padding: 0 16px; scrollbar-width: none;
+            }
+            .mp-fila::-webkit-scrollbar { display: none; }
+            .mp-card {
+                flex: 0 0 156px; scroll-snap-align: start; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px; padding: 14px;
+            }
+            .mp-topo { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+            .mp-dia { font-size: 11.5px; font-weight: 800; letter-spacing: 0.4px; color: var(--cor-texto-mutado); white-space: nowrap; }
+            .mp-ic {
+                width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                font-size: 16px; background: var(--cor-bg-primaria); color: var(--tinta-verde);
+            }
+            .mp-corpo { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+            .mp-corpo b { font-size: 14.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mp-corpo small { font-size: 12.5px; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mp-val { font-family: 'DM Mono', monospace; font-size: 15px; margin-top: 4px; }
+            .mp-btn {
+                min-height: 42px; border-radius: 12px; cursor: pointer; font: 700 13.5px 'Figtree', sans-serif;
+                background: var(--cor-branco); color: var(--tinta-verde); border: 1.5px solid var(--cor-primaria);
+            }
+            .mp-card.hoje { border-color: color-mix(in srgb, var(--cor-erro) 40%, transparent); }
+            .mp-card.hoje .mp-dia { color: var(--cor-erro); }
+            .mp-card.atraso { border-color: color-mix(in srgb, var(--cor-erro) 45%, transparent); background: var(--cor-bg-erro); }
+            .mp-card.atraso .mp-dia { color: #fff; background: var(--cor-erro); border-radius: 99px; padding: 3px 8px; }
+            .mp-card.atraso .mp-btn { background: var(--cor-erro); border-color: var(--cor-erro); color: #fff; }
+            .mp-card.fatura { border-color: color-mix(in srgb, var(--cor-cartao) 40%, transparent); }
+            .mp-card.fatura .mp-ic { background: var(--cor-bg-amber); color: var(--cor-cartao); }
+            .mp-card.fatura .mp-btn { background: var(--cor-bg-amber); color: var(--tinta-ambar); border-color: color-mix(in srgb, var(--cor-cartao) 60%, transparent); }
+
+            /* Folha que sobe de baixo */
+            .mob-folha:not([hidden]) {
+                display: flex; flex-direction: column; justify-content: flex-end;
+                position: fixed; inset: 0; z-index: 9996;
+            }
+            .mob-folha-fundo { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(16, 30, 19, 0.45); cursor: pointer; }
+            .mob-folha-painel {
+                position: relative; display: flex; flex-direction: column; gap: 16px;
+                max-height: 86vh; overflow-y: auto; box-sizing: border-box;
+                background: var(--cor-branco); border-radius: 26px 26px 0 0;
+                padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+                box-shadow: 0 -10px 30px rgba(16, 30, 19, 0.18);
+                animation: mobFolhaSobe 0.22s ease both;
+            }
+            @keyframes mobFolhaSobe { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+            @media (prefers-reduced-motion: reduce) { .mob-folha-painel { animation: none; } }
+            .mob-folha-alca { align-self: center; width: 40px; height: 5px; border-radius: 99px; background: var(--cor-borda2); }
+            body.mob-folha-aberta .mob-tabbar { visibility: hidden; }
+            .mf-sobre { margin: 0; font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+            .mf-tit { margin: 4px 0 0; font-size: 21px; font-weight: 800; letter-spacing: -0.3px; color: var(--cor-texto-principal); }
+            .mf-txt { margin: 6px 0 0; font-size: 14px; line-height: 1.45; color: var(--cor-texto-secundario); }
+            .mf-opcoes { display: flex; flex-direction: column; gap: 8px; }
+            .mf-opcao {
+                display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; box-sizing: border-box;
+                padding: 10px 14px; border-radius: 16px; border: 1.5px solid var(--cor-borda); background: var(--cor-branco);
+                font-family: inherit; color: var(--cor-texto-principal); text-align: left; cursor: pointer;
+            }
+            .mf-radio { width: 22px; height: 22px; border-radius: 99px; flex-shrink: 0; box-sizing: border-box; border: 2px solid var(--cor-borda2); background: var(--cor-branco); }
+            .mf-opcao-txt { flex: 1; display: flex; flex-direction: column; }
+            .mf-opcao-txt b { font-size: 15px; }
+            .mf-opcao-txt small { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mf-opcao-val { font-family: 'DM Mono', monospace; font-size: 15px; }
+            .mf-opcoes[data-modo="auto"] .mf-opcao[data-op="auto"],
+            .mf-opcoes[data-modo="manual"] .mf-opcao[data-op="manual"] { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); }
+            .mf-opcoes[data-modo="auto"] .mf-opcao[data-op="auto"] .mf-radio,
+            .mf-opcoes[data-modo="manual"] .mf-opcao[data-op="manual"] .mf-radio { border: 7px solid var(--cor-primaria); }
+            .mf-opcoes[data-modo="auto"] .mf-campo { display: none; }
+            .mf-campo { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--cor-texto-secundario); }
+            .mf-campo-caixa {
+                display: flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 14px;
+                border: 1.5px solid var(--cor-primaria); border-radius: 14px; background: var(--cor-branco);
+            }
+            .mf-campo-caixa > span { font-size: 15px; color: var(--cor-texto-mutado); }
+            .mf-campo-caixa input {
+                flex: 1; min-width: 0; border: 0 !important; outline: none; background: none !important; box-shadow: none !important;
+                padding: 0 !important; font: 500 24px 'DM Mono', monospace !important; color: var(--cor-texto-principal);
+            }
+            .mf-info {
+                display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px;
+                background: var(--cor-fundo); font-size: 13.5px; color: var(--cor-texto-secundario);
+            }
+            .mf-info i { color: var(--cor-info); font-size: 18px; }
+            .mf-btn1, .mf-btn2 { width: 100%; border-radius: 16px; cursor: pointer; font-family: 'Figtree', sans-serif; font-weight: 700; }
+            .mf-btn1 { min-height: 52px; border: 0; background: var(--cor-primaria); color: #fff; font-size: 15.5px; }
+            /* Mesma correção do .btn-acao: no escuro o verde clareia e o texto escurece. */
+            body.dark .mf-btn1 { color: #052e1a; }
+            .mf-btn2 { min-height: 48px; border: 1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-principal); font-size: 15px; margin-top: -6px; }
 
             .mob-inicio { display: block; }
             .mi-card {
@@ -12206,6 +12364,9 @@
                  topo; a projeção e as últimas movimentações no fim. O CSS
                  reordena os blocos do Resumo em volta deles. -->
             <div id="mobInicio" class="mob-inicio" data-mob-aba="resumo"></div>
+            <div id="mobComposicao" class="mob-inicio" data-mob-aba="resumo"></div>
+            <div id="mobProximos" class="mob-inicio" data-mob-aba="resumo"></div>
+            <div id="mobFolha" class="mob-folha" hidden></div>
             <div id="mobStory" class="mob-story" role="dialog" aria-modal="true" aria-label="O que notamos" hidden></div>
 
             <div class="kpis-controle" data-mob-aba="resumo">
@@ -14421,7 +14582,7 @@
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=inicio-mob"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=inicio-mob2"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
@@ -14437,6 +14598,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=inicio-mob"></script>
+    <script src="/web/appliquei-mobile.js?v=inicio-mob2"></script>
 </body>
 </html>

@@ -78,7 +78,7 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 test('nada da casca aparece no desktop', () => {
   assert.match(
     HTML,
-    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories \{ display: none; \}/
+    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories, \.mob-folha \{ display: none; \}/
   );
   assert.match(
     HTML,

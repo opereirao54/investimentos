@@ -745,15 +745,12 @@ function mobAcaoRapida(tipo) {
 
 /** "Pagar": abre os vencimentos do mês e leva até eles. */
 function mobIrVencimentos() {
-  const painel = document.getElementById('painelVencimentos');
-  if (!painel || painel.style.display === 'none') {
+  const alvo = document.getElementById('mobProximos');
+  if (!alvo || !alvo.innerHTML.trim()) {
     if (typeof mostrarToast === 'function') mostrarToast('Nada a pagar neste mês.', 'info');
     return;
   }
-  if (painel.dataset.aberto !== '1' && typeof alternarPainelVencimentos === 'function') {
-    alternarPainelVencimentos();
-  }
-  mobRevelar(painel);
+  mobRevelar(alvo);
 }
 
 /**
@@ -764,6 +761,8 @@ function mobIrVencimentos() {
  */
 function mobRevelar(el) {
   if (!el || !mobEhCelular()) return;
+  // No celular os vencimentos moram em "Próximos dias".
+  if (el.id === 'painelVencimentos') el = document.getElementById('mobProximos') || el;
   const bloco = el.closest('#controle [data-mob-aba]');
   if (bloco) {
     const sec = document.getElementById('controle');
@@ -992,6 +991,7 @@ function mobRenderInicio(d) {
     '</span></div>' +
     _mobSvgAneis(a) +
     '</div>' +
+    _mobLinhaCarregado(d) +
     conta +
     '<div class="mi-legs">' +
     leg +
@@ -999,6 +999,11 @@ function mobRenderInicio(d) {
     '<nav class="mi-atalhos" aria-label="Atalhos">' +
     atalhos +
     '</nav>';
+
+  const comp = document.getElementById('mobComposicao');
+  if (comp) comp.innerHTML = _mobComposicao(d.composicao);
+  const prox = document.getElementById('mobProximos');
+  if (prox) prox.innerHTML = _mobProximos(d.vencimentos, d.hojeStr);
 
   const movs = _mobMovimentos(d.mes, d.ano);
   fim.innerHTML =
@@ -1135,3 +1140,418 @@ document.addEventListener('click', function (e) {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && document.body.classList.contains('mob-story-aberta')) mobStoryFechar();
 });
+
+// ------------------------------------------------------------
+// Folha que sobe de baixo
+// ------------------------------------------------------------
+// As confirmações do Início (ajustar o saldo que veio do mês anterior,
+// baixar uma conta) abrem aqui, na zona do polegar, em vez do prompt() do
+// navegador ou de um campo espremido dentro do cartão.
+
+function mobFolhaAbrir(html, rotulo) {
+  const f = document.getElementById('mobFolha');
+  if (!f) return;
+  f.innerHTML =
+    '<button type="button" class="mob-folha-fundo" aria-label="Fechar" onclick="mobFolhaFechar()"></button>' +
+    '<div class="mob-folha-painel" role="dialog" aria-modal="true" aria-label="' +
+    _mobEsc(rotulo || '') +
+    '"><span class="mob-folha-alca" aria-hidden="true"></span>' +
+    html +
+    '</div>';
+  f.hidden = false;
+  document.body.classList.add('mob-folha-aberta');
+  const campo = f.querySelector('input');
+  if (campo) setTimeout(() => campo.focus({ preventScroll: true }), 250);
+}
+
+function mobFolhaFechar() {
+  const f = document.getElementById('mobFolha');
+  if (f) {
+    f.hidden = true;
+    f.innerHTML = '';
+  }
+  document.body.classList.remove('mob-folha-aberta');
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && document.body.classList.contains('mob-folha-aberta')) mobFolhaFechar();
+});
+
+// ------------------------------------------------------------
+// Saldo que veio do mês anterior
+// ------------------------------------------------------------
+var MOB_MESES_CURTOS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+function _mobLinhaCarregado(d) {
+  const v = Number(d.carregado) || 0;
+  if (Math.abs(v) < 0.005 && !d.carregadoManual) return '';
+  const ant = MOB_MESES_CURTOS[(d.mes + 11) % 12];
+  return (
+    '<button type="button" class="mi-carregado" onclick="editarSaldoMesAnterior(' +
+    d.mes +
+    ',' +
+    d.ano +
+    ')"><i class="ph ph-arrow-elbow-down-right"></i><span>' +
+    (d.carregadoManual
+      ? 'Saldo de ' + ant + ' ajustado para '
+      : 'Inclui o que sobrou de ' + ant + ': ') +
+    '<b class="valor-mascarado' +
+    (v < 0 ? ' neg' : '') +
+    '">' +
+    _mobEsc(_mobDreFmt(v)) +
+    '</b></span>' +
+    (d.carregadoManual
+      ? '<span class="mi-carregado-tag">Manual</span>'
+      : '<span class="mi-link">Ajustar</span>') +
+    '</button>'
+  );
+}
+
+/** Chamada por editarSaldoMesAnterior no celular. */
+function mobAbrirSaldoAnterior(mes, ano) {
+  if (typeof obterMapaSaldoCarregado !== 'function') return;
+  const reg = obterMapaSaldoCarregado()[chaveMes(mes, ano)];
+  const manual = !!(reg && reg.manual);
+  // O automático é o fechamento do mês anterior, a mesma conta que
+  // obterSaldoCarregadoParaMes faz quando não há ajuste.
+  const auto = resultadoAcumuladoAteMes(mes === 0 ? 11 : mes - 1, mes === 0 ? ano - 1 : ano);
+  const atual = obterSaldoCarregadoParaMes(mes, ano);
+  const ant = MOB_MESES_CURTOS[(mes + 11) % 12];
+  const html =
+    '<div class="mf-cab"><p class="mf-sobre">Saldo de ' +
+    ant +
+    '</p><h3 class="mf-tit">O que sobrou em ' +
+    ant +
+    ' entra em ' +
+    MOB_MESES_CURTOS[mes] +
+    '</h3><p class="mf-txt">É automático. Se o valor real foi outro, por um gasto que ficou sem lançar, informe aqui.</p></div>' +
+    '<div class="mf-opcoes" id="mobSaldoOpcoes" data-modo="' +
+    (manual ? 'manual' : 'auto') +
+    '">' +
+    '<button type="button" class="mf-opcao" data-op="auto" onclick="mobSaldoModo(\'auto\')"><span class="mf-radio"></span><span class="mf-opcao-txt"><b>Fechamento de ' +
+    ant +
+    '</b><small>calculado pelos lançamentos</small></span><span class="mf-opcao-val valor-mascarado">' +
+    _mobEsc(_mobDreFmt(auto)) +
+    '</span></button>' +
+    '<button type="button" class="mf-opcao" data-op="manual" onclick="mobSaldoModo(\'manual\')"><span class="mf-radio"></span><span class="mf-opcao-txt"><b>Outro valor</b><small>o que de fato sobrou</small></span></button>' +
+    '<label class="mf-campo" for="mobSaldoValor">Valor que sobrou em ' +
+    ant +
+    '<span class="mf-campo-caixa"><span>R$</span><input type="text" inputmode="decimal" data-brl="1" id="mobSaldoValor" value="' +
+    _mobEsc(typeof formatarBRLInput === 'function' ? formatarBRLInput(atual) : String(atual)) +
+    '" oninput="aplicarMascaraBRL(this)"></span></label></div>' +
+    '<button type="button" class="mf-btn1" onclick="mobSaldoSalvar(' +
+    mes +
+    ',' +
+    ano +
+    ')">Salvar</button>';
+  mobFolhaAbrir(html, 'Saldo de ' + ant);
+}
+
+function mobSaldoModo(modo) {
+  const op = document.getElementById('mobSaldoOpcoes');
+  if (op) op.dataset.modo = modo === 'manual' ? 'manual' : 'auto';
+  if (modo === 'manual') {
+    const c = document.getElementById('mobSaldoValor');
+    if (c) c.focus();
+  }
+}
+
+/** Grava pelo mesmo mapa e pelas mesmas funções do desktop. */
+function mobSaldoSalvar(mes, ano) {
+  const op = document.getElementById('mobSaldoOpcoes');
+  if (!op) return;
+  const reg = obterMapaSaldoCarregado()[chaveMes(mes, ano)];
+  if (op.dataset.modo !== 'manual') {
+    mobFolhaFechar();
+    if (reg && reg.manual) resetarSaldoMesAnterior(mes, ano);
+    return;
+  }
+  const campo = document.getElementById('mobSaldoValor');
+  const v = parseBRL(campo ? campo.value : '');
+  if (!Number.isFinite(v)) {
+    if (typeof mostrarToast === 'function') mostrarToast('Valor inválido.', 'erro');
+    return;
+  }
+  const mapa = obterMapaSaldoCarregado();
+  mapa[chaveMes(mes, ano)] = { valor: v, manual: true };
+  salvarMapaSaldoCarregado(mapa);
+  try {
+    if (window.AppliqueiCloudSync && typeof AppliqueiCloudSync.forceFlush === 'function')
+      AppliqueiCloudSync.forceFlush();
+  } catch (_) {}
+  mobFolhaFechar();
+  if (typeof mostrarToast === 'function')
+    mostrarToast('Saldo do mês anterior ajustado manualmente.', 'sucesso');
+  atualizarTelaControle();
+}
+
+// ------------------------------------------------------------
+// Para onde foi
+// ------------------------------------------------------------
+// As mesmas barras do gráfico de composição do desktop, como lista do
+// maior para o menor. Tocar numa linha abre o extrato já filtrado.
+var _mobCompTodas = false;
+var MOB_COMP_LIMITE = 5;
+
+function _mobComposicao(c) {
+  if (!c || !Array.isArray(c.itens) || !c.itens.length) return '';
+  const despesa = c.modo === 'despesa';
+  const base = c.itens
+    .filter((x) => x.label === 'Receita' || x.label === 'Resgate')
+    .reduce((a, x) => a + (Number(x.valor) || 0), 0);
+  const linhas = c.itens
+    .filter((x) => x.label !== 'Receita' && x.label !== 'Resgate')
+    .filter((x) => !(despesa && x.label === 'Sobra'))
+    .filter((x) => Math.abs(Number(x.valor) || 0) > 0.005);
+  const total = despesa ? linhas.reduce((a, x) => a + x.valor, 0) : base;
+  const maior = Math.max(1, ...linhas.map((x) => Math.abs(x.valor)));
+  const nomes = {
+    Fixa: 'Fixas',
+    'Var.': 'Variáveis',
+    'Aportes Mês': 'Investido',
+    Sobra: 'Sobrou',
+  };
+  const barra = linhas
+    .filter((x) => x.valor > 0)
+    .map(
+      (x) =>
+        '<span style="background:' +
+        x.cor +
+        ';width:' +
+        ((x.valor / (total || 1)) * 100).toFixed(2) +
+        '%"></span>'
+    )
+    .join('');
+  const vis = _mobCompTodas ? linhas : linhas.slice(0, MOB_COMP_LIMITE);
+  const rows = vis
+    .map((x) => {
+      const nome = nomes[x.label] || x.label;
+      const pct = total ? Math.round((x.valor / total) * 100) + '%' : '';
+      const alvo = despesa
+        ? x.slug && x.slug !== '__sem_categoria__'
+          ? x.slug
+          : null
+        : x.tipo || null;
+      const corpo =
+        '<span class="mc-dot" style="background:' +
+        x.cor +
+        '"></span><span class="mc-meio"><span class="mc-lin"><span>' +
+        _mobEsc(nome) +
+        '</span><b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(x.valor)) +
+        '</b></span><span class="mc-trilho"><span style="background:' +
+        x.cor +
+        ';width:' +
+        Math.max(2, (Math.abs(x.valor) / maior) * 100).toFixed(1) +
+        '%"></span></span></span><span class="mc-pct">' +
+        pct +
+        '</span>';
+      return alvo
+        ? '<button type="button" class="mc-row" onclick="mobVerNoExtrato(' +
+            (despesa ? "'todos','" + _mobEsc(alvo) + "'" : "'" + alvo + "',''") +
+            ')" aria-label="' +
+            _mobEsc(nome) +
+            ', ver no extrato">' +
+            corpo +
+            '<i class="ph ph-caret-right mc-seta"></i></button>'
+        : '<div class="mc-row">' + corpo + '<span class="mc-seta"></span></div>';
+    })
+    .join('');
+  const mais =
+    linhas.length > MOB_COMP_LIMITE
+      ? '<button type="button" class="mc-mais" onclick="mobCompAlternarTodas()">' +
+        (_mobCompTodas ? 'Mostrar menos' : 'Ver todas (' + linhas.length + ')') +
+        '</button>'
+      : '';
+  return (
+    '<section class="mi-card mc">' +
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Para onde foi</h2><span class="mc-total">' +
+    (despesa ? 'gasto ' : 'entrou ') +
+    '<b class="valor-mascarado">' +
+    _mobEsc(_mobDreFmt(total)) +
+    '</b></span></div>' +
+    '<div class="mc-seg" role="tablist" aria-label="Agrupar">' +
+    '<button type="button" role="tab" aria-selected="' +
+    !despesa +
+    '" onclick="setAgrupamentoComposicao(\'contabil\')">Destino do dinheiro</button>' +
+    '<button type="button" role="tab" aria-selected="' +
+    despesa +
+    '" onclick="setAgrupamentoComposicao(\'despesa\')">Tipo de gasto</button></div>' +
+    '<div class="mc-barra" aria-hidden="true">' +
+    barra +
+    '</div><div class="mc-lista">' +
+    rows +
+    '</div>' +
+    mais +
+    '</section>'
+  );
+}
+
+function mobCompAlternarTodas() {
+  _mobCompTodas = !_mobCompTodas;
+  if (typeof atualizarTelaControle === 'function') atualizarTelaControle();
+}
+
+/** Abre o extrato filtrado pelo tipo e/ou pela categoria de despesa. */
+function mobVerNoExtrato(tipo, slug) {
+  const aba = Array.from(document.querySelectorAll('#controle .ext-tab')).find((b) =>
+    (b.getAttribute('onclick') || '').includes("'" + (tipo || 'todos') + "'")
+  );
+  if (aba) aba.click();
+  if (
+    typeof filtrarExtratoPorCategoria === 'function' &&
+    typeof extratoCategoriaAtiva !== 'undefined'
+  ) {
+    if ((slug || '') !== extratoCategoriaAtiva)
+      filtrarExtratoPorCategoria(slug || extratoCategoriaAtiva);
+  }
+  mobSegControle('extrato');
+}
+
+// ------------------------------------------------------------
+// Próximos dias
+// ------------------------------------------------------------
+// Os vencimentos do mês num carrossel, cada estado com a sua cara:
+// atrasada, vence hoje, fatura do cartão (abre a fatura agrupada, a mesma
+// janela do desktop) e as demais. "Baixar" abre uma folha com o valor
+// editável; confirmar é o confirmarPagamento do desktop.
+
+function _mobDiaVenc(data, hojeStr) {
+  const [a, m, d] = data.split('-').map(Number);
+  const dt = new Date(a, m - 1, d);
+  if (data === hojeStr) return { rot: 'HOJE', estado: 'hoje' };
+  if (data < hojeStr) {
+    const [ha, hm, hd] = hojeStr.split('-').map(Number);
+    const dias = Math.round((new Date(ha, hm - 1, hd) - dt) / 86400000);
+    return { rot: 'ATRASOU ' + dias + (dias === 1 ? ' DIA' : ' DIAS'), estado: 'atraso' };
+  }
+  const sem = dt.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', '').toUpperCase();
+  return { rot: sem + ' ' + d, estado: 'normal' };
+}
+
+function _mobProximos(itens, hojeStr) {
+  if (!Array.isArray(itens) || !itens.length || !hojeStr) return '';
+  let total = 0;
+  const cards = itens
+    .map((it) => {
+      const dia = _mobDiaVenc(it.dataVencimento, hojeStr);
+      const dd = it.dataVencimento.split('-').reverse().slice(0, 2).join('/');
+      if (it.tipo === 'cartao') {
+        const g = it.grupo;
+        total += Number(g.total) || 0;
+        const info = typeof obterCartao === 'function' ? obterCartao(g.cartaoId) : null;
+        const nome = 'Fatura ' + (info ? info.nome : 'do cartão');
+        const key = (g.cartaoId || 'sem') + '_' + g.dataVencimento;
+        const n = g.itens.length;
+        return (
+          '<article class="mp-card fatura ' +
+          dia.estado +
+          '"><div class="mp-topo"><span class="mp-dia">' +
+          dia.rot +
+          '</span><span class="mp-ic"><i class="ph ph-credit-card"></i></span></div><div class="mp-corpo"><b>' +
+          _mobEsc(nome) +
+          '</b><small>' +
+          n +
+          (n === 1 ? ' compra' : ' compras') +
+          '</small><span class="mp-val valor-mascarado">' +
+          _mobEsc(_mobDreFmt(g.total)) +
+          '</span></div><button type="button" class="mp-btn" onclick="abrirModalGrupoCartao(\'' +
+          _mobEsc(key) +
+          '\')">Ver fatura</button></article>'
+        );
+      }
+      const t = it.conta;
+      total += Number(t.valor) || 0;
+      const meta =
+        dia.estado === 'atraso'
+          ? 'venceu ' + dd
+          : t.obs
+            ? t.obs
+            : t.categoria === 'despesa_fixa'
+              ? 'conta fixa'
+              : 'vence ' + dd;
+      return (
+        '<article class="mp-card ' +
+        dia.estado +
+        '"><div class="mp-topo"><span class="mp-dia">' +
+        dia.rot +
+        '</span><span class="mp-ic"><i class="ph ph-receipt"></i></span></div><div class="mp-corpo"><b>' +
+        _mobEsc(t.descricao || 'Conta') +
+        '</b><small>' +
+        _mobEsc(meta) +
+        '</small><span class="mp-val valor-mascarado">' +
+        _mobEsc(_mobDreFmt(t.valor)) +
+        '</span></div><button type="button" class="mp-btn" onclick="mobBaixarConta(\'' +
+        _mobEsc(String(t.id)) +
+        '\')">Baixar</button></article>'
+      );
+    })
+    .join('');
+  return (
+    '<section class="mp"><div class="mi-tit-linha"><h2 class="mi-h2">Próximos dias</h2><span class="mc-total"><b class="valor-mascarado">' +
+    _mobEsc(_mobDreFmt(total)) +
+    '</b> a pagar</span></div><div class="mp-fila">' +
+    cards +
+    '</div></section>'
+  );
+}
+
+/** "Baixar": folha com o valor editável e de qual conta o dinheiro sai. */
+function mobBaixarConta(id) {
+  if (typeof transacoes === 'undefined') return;
+  const t = transacoes.find((x) => String(x.id) === String(id));
+  if (!t) return;
+  const conta = t.contaId && typeof obterConta === 'function' ? obterConta(t.contaId) : null;
+  const nomeConta = conta ? conta.nome : t.banco || '';
+  const dd = (t.dataVencimento || '').split('-').reverse().slice(0, 2).join('/');
+  const idEsc = _mobEsc(String(t.id));
+  const html =
+    '<div class="mf-cab"><p class="mf-sobre">Vence ' +
+    _mobEsc(dd) +
+    '</p><h3 class="mf-tit">Baixar ' +
+    _mobEsc(t.descricao || 'conta') +
+    '</h3><p class="mf-txt">Pagou outro valor, com juros ou desconto? Corrija antes de confirmar.</p></div>' +
+    '<label class="mf-campo" for="input-pago-' +
+    idEsc +
+    '">Valor pago<span class="mf-campo-caixa"><span>R$</span><input type="text" inputmode="decimal" id="input-pago-' +
+    idEsc +
+    '" value="' +
+    _mobEsc(typeof formatarBRLInput === 'function' ? formatarBRLInput(t.valor) : String(t.valor)) +
+    '" oninput="aplicarMascaraBRL(this)"></span></label>' +
+    (nomeConta
+      ? '<div class="mf-info"><i class="ph ph-bank"></i><span>Sai de <b>' +
+        _mobEsc(nomeConta) +
+        '</b></span></div>'
+      : '') +
+    '<button type="button" class="mf-btn1" onclick="mobConfirmarBaixa(\'' +
+    idEsc +
+    '\')">Confirmar pagamento</button>' +
+    '<button type="button" class="mf-btn2" onclick="mobFolhaFechar()">Cancelar</button>';
+  mobFolhaAbrir(html, 'Baixar ' + (t.descricao || 'conta'));
+}
+
+function mobConfirmarBaixa(id) {
+  const campo = document.getElementById('input-pago-' + id);
+  const v = typeof parseBRL === 'function' && campo ? parseBRL(campo.value) : NaN;
+  if (!Number.isFinite(v) || v < 0) {
+    if (typeof mostrarToast === 'function')
+      mostrarToast('Por favor, informe um valor válido.', 'erro');
+    return;
+  }
+  // confirmarPagamento lê o mesmo campo pelo id; a folha fecha depois.
+  confirmarPagamento(id);
+  mobFolhaFechar();
+}
