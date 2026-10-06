@@ -26,12 +26,24 @@ function abasDaSidebar() {
   return ids;
 }
 
-test('a barra tem Início, Patrimônio, cadastro, Investir, Carteira e Mais', () => {
+test('a barra tem Início, Patrimônio, Sonhos, cadastro, Investir, Carteira e Mais', () => {
   const i = HTML.indexOf('id="mobTabbar"');
   assert.ok(i > -1, 'a barra precisa existir');
   const barra = HTML.slice(i, HTML.indexOf('</nav>', i));
   const abas = [...barra.matchAll(/data-aba="([a-z_]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(abas, ['controle', 'meu_patrimonio', 'patrimonio', 'carteira', 'mais_mobile']);
+  assert.deepEqual(abas, [
+    'controle',
+    'meu_patrimonio',
+    'meus_sonhos',
+    'patrimonio',
+    'carteira',
+    'mais_mobile',
+  ]);
+  // Três de cada lado: o "+" fica exatamente no centro.
+  const ordem = [...barra.matchAll(/data-aba="([a-z_]+)"|id="mobTabCadastro"/g)].map(
+    (m) => m[1] || '+'
+  );
+  assert.equal(ordem.indexOf('+'), 3);
   assert.match(barra, /id="mobTabCadastro"[^>]*onclick="alternarMenuCadastro\(\)"/);
 });
 
@@ -49,7 +61,7 @@ test('todo destino da barra e do "Mais" tem botão na sidebar', () => {
 });
 
 test('o "Mais" alcança toda seção que não está na barra', () => {
-  const naBarra = new Set(['controle', 'meu_patrimonio', 'patrimonio', 'carteira']);
+  const naBarra = new Set(['controle', 'meu_patrimonio', 'meus_sonhos', 'patrimonio', 'carteira']);
   const i = HTML.indexOf('<section id="mais_mobile"');
   const mais = HTML.slice(i, HTML.indexOf('</section>', i));
   for (const aba of abasDaSidebar()) {

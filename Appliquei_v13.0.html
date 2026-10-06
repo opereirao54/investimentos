@@ -10365,6 +10365,10 @@
                 -webkit-tap-highlight-color: transparent;
             }
             .mob-tab i { font-size: 23px; transition: transform 0.18s ease; }
+            /* Sete posições: em telas estreitas o rótulo encolhe um pouco
+               para "Patrimônio" caber sem cortar. */
+            @media (max-width: 400px) { .mob-tab { font-size: 9.5px; letter-spacing: -0.2px; } .mob-tab i { font-size: 22px; } }
+            @media (max-width: 370px) { .mob-tab-fab { width: 48px; height: 48px; } }
             .mob-tab:active i { transform: scale(0.9); }
             .mob-tab.ativo { color: var(--cor-primaria); }
             .mob-tab.ativo i { font-weight: bold; }
@@ -11184,6 +11188,7 @@
     <nav class="mob-tabbar" id="mobTabbar" aria-label="Navegação principal">
         <button type="button" class="mob-tab" data-aba="controle" onclick="mobIrPara('controle')"><i class="ph ph-house"></i><span>Início</span></button>
         <button type="button" class="mob-tab" data-aba="meu_patrimonio" onclick="mobIrPara('meu_patrimonio')"><i class="ph ph-bank"></i><span>Patrimônio</span></button>
+        <button type="button" class="mob-tab" data-aba="meus_sonhos" onclick="mobIrPara('meus_sonhos')"><i class="ph ph-star"></i><span>Sonhos</span></button>
         <button type="button" class="mob-tab mob-tab-cadastro" id="mobTabCadastro" onclick="alternarMenuCadastro()" aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu"><span class="mob-tab-fab"><i class="ph-bold ph-plus"></i></span></button>
         <button type="button" class="mob-tab" data-aba="patrimonio" onclick="mobIrPara('patrimonio')"><i class="ph ph-trend-up"></i><span>Investir</span></button>
         <button type="button" class="mob-tab" data-aba="carteira" onclick="mobIrPara('carteira')"><i class="ph ph-chart-pie-slice"></i><span>Carteira</span></button>
@@ -14130,7 +14135,6 @@
 
             <h2 class="mob-grupo">Planejar</h2>
             <div class="mob-tiles">
-                <button type="button" class="mob-tile" onclick="mobIrPara('meus_sonhos')"><span class="mob-tile-ic roxo"><i class="ph ph-star"></i></span><b>Meus sonhos</b><small>Metas e aportes</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('simulador')"><span class="mob-tile-ic azul"><i class="ph ph-calculator"></i></span><b>Simule sua liberdade</b><small>Projeção e meta</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('relatorio_mensal')"><span class="mob-tile-ic ambar"><i class="ph ph-file-text"></i></span><b>Relatório mensal</b><small>Termômetro do mês</small></button>
             </div>
