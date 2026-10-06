@@ -1281,6 +1281,10 @@ async function cartTokenFirebase() {
  */
 function cartPatrimonioPorClasse() {
   var out = { rf: 0, acao: 0, fii: 0, cripto: 0 };
+  // De que é feito cada total: a Renda Fixa soma reserva de emergência e
+  // previdência, e é isso que a tela precisa poder dizer quando a classe
+  // fica fora do aporte por já estar acima do alvo.
+  var composicao = { rf: {}, acao: {}, fii: {}, cripto: {} };
   var temDados = false;
   try {
     if (typeof mpConsolidar === 'function') {
@@ -1301,13 +1305,14 @@ function cartPatrimonioPorClasse() {
         var valor = exib[k] && exib[k].atual;
         if (!destino || !(valor > 0)) return;
         out[destino] += valor;
+        composicao[destino][k] = (composicao[destino][k] || 0) + valor;
         temDados = true;
       });
     }
   } catch (e) {
     console.warn('[carteira] patrimônio por classe indisponível:', e.message);
   }
-  if (temDados) return { valores: out, origem: 'carteira' };
+  if (temDados) return { valores: out, origem: 'carteira', composicao: composicao };
 
   // Sem carteira registrada: distribui o valor informado pela alocação-alvo.
   // Assim o rebalanceamento não inventa um desvio que não se sabe existir.
@@ -1726,6 +1731,8 @@ function cartRecalcularMotor() {
   // Depois do motor, nunca dentro: a carteira calculada é a mesma, e a troca
   // é uma decisão do usuário sobre o resultado dela.
   cartAplicarTrocas(cartMotor.plano, cartMotor.ranking);
+  cartMotor.plano.origemPatrimonio = patr.origem;
+  cartMotor.plano.composicaoAtual = patr.composicao || null;
   cartRenderizarMotorStatus();
   cartRenderizarMotorPlano(cartMotor.plano);
   cartRenderizarMotorRanking(cartMotor.ranking);
@@ -2220,6 +2227,68 @@ function cartRenderizarSetoresClasse(c) {
   );
 }
 
+/**
+ * Por que uma classe com alvo no perfil ficou sem nada no aporte.
+ *
+ * Com a carteira registrada, o aporte vai para os buracos: a classe que já
+ * está acima do alvo fica de fora no mês (motorDistribuirAporte). Sem dizer
+ * isso, a tela mostrava "63%" ao lado de "Sem alocação nesta classe" — e não
+ * havia como saber se era o rebalanceamento ou um defeito. Devolve o texto,
+ * ou '' quando o motivo não é este.
+ */
+var CART_ROTULO_COMPOSICAO = {
+  renda_fixa: 'Renda fixa',
+  reserva_emergencia: 'Reserva de emergência',
+  previdencia: 'Previdência',
+  acoes: 'Ações',
+  bdrs: 'BDRs',
+  etfs: 'ETFs',
+  fiis: 'FIIs',
+  cripto: 'Cripto',
+};
+
+function cartMotivoSemAlocacao(plano, classe) {
+  var c = plano && plano.classes && plano.classes[classe];
+  var atual = plano && plano.patrimonioAtual;
+  if (!c || !atual || (c.alvo || 0) > 0.009 || !(c.pct > 0)) return '';
+  if (!plano.deficits || (plano.deficits[classe] || 0) > 0.009) return '';
+  var total = 0;
+  MOTOR_CLASSES.forEach(function (k) {
+    total += Math.max(0, Number(atual[k]) || 0);
+  });
+  var futuro = total + (Number(plano.aporte) || 0);
+  var tem = Math.max(0, Number(atual[classe]) || 0);
+  if (!(futuro > 0) || !(tem > 0)) return '';
+  var pctHoje = Math.round((tem / futuro) * 100);
+  var nome = CART_NOMES[classe] || classe;
+  var txt =
+    'Você já tem ' +
+    formatarMoeda(tem) +
+    ' em ' +
+    nome +
+    ' — ' +
+    pctHoje +
+    '% da carteira somada ao aporte, acima dos ' +
+    c.pct +
+    '% do seu perfil. Este mês o aporte vai para as classes que estão abaixo do alvo.';
+  var comp = plano.composicaoAtual && plano.composicaoAtual[classe];
+  var partes = comp
+    ? Object.keys(comp)
+        .filter(function (k) {
+          return comp[k] > 0.009;
+        })
+        .sort(function (a, b) {
+          return comp[b] - comp[a];
+        })
+        .map(function (k) {
+          var rot = CART_ROTULO_COMPOSICAO[k] || k;
+          return rot + ' ' + formatarMoeda(comp[k]);
+        })
+    : [];
+  if (partes.length > 1) txt += ' Inclui: ' + partes.join(', ') + '.';
+  return txt;
+}
+
 function cartRenderizarMotorPlano(plano) {
   var el = document.getElementById('cartMotorPlano');
   if (!el || !plano) return;
@@ -2301,7 +2370,9 @@ function cartRenderizarMotorPlano(plano) {
               );
             })
             .join('')
-        : '<li class="cart-classe-empty">Sem alocação nesta classe</li>';
+        : '<li class="cart-classe-empty">' +
+          (cartMotivoSemAlocacao(plano, classe) || 'Sem alocação nesta classe') +
+          '</li>';
 
     return (
       '<div class="cart-classe-col cart-classe-' +

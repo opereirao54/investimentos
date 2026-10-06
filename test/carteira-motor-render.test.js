@@ -1858,3 +1858,52 @@ test('o plano marca o lugar trocado e oferece o botão de troca em cada item', (
   assert.ok(html.includes('cartAbrirTroca('));
   assert.ok(html.includes('Trocado por você no lugar de'), 'e diz de quem era');
 });
+
+// ════════════════════════════════════════════
+// Classe acima do alvo: a tela diz por que ficou sem aporte
+// ════════════════════════════════════════════
+// Relato: "deu 63% em renda fixa mas não alocou". Era o rebalanceamento por
+// aporte — a Renda Fixa da carteira já passava do alvo —, mas a tela só
+// mostrava "63%" ao lado de "Sem alocação nesta classe", sem dizer quanto já
+// havia nem de que era feito. Ninguém conseguia distinguir isso de um defeito.
+
+test('classe acima do alvo explica, com os números, por que ficou fora do aporte', () => {
+  const { run } = carregar();
+  run(SEMENTE);
+  const txt = run(`
+    var p = motorPlanoAporte({
+      aporteMensal: 2000,
+      alocacaoAlvo: { rf: 63, acao: 20, fii: 16, cripto: 1 },
+      ranking: rankingTeste,
+      patrimonioAtual: { rf: 60000, acao: 3000, fii: 2000, cripto: 0 },
+    });
+    p.composicaoAtual = { rf: { reserva_emergencia: 40000, renda_fixa: 15000, previdencia: 5000 } };
+    [p.classes.rf.alvo, p.patrimonioAtual.rf, cartMotivoSemAlocacao(p, 'rf'), cartMotivoSemAlocacao(p, 'acao')];
+  `);
+  assert.equal(txt[0], 0, 'Renda Fixa acima do alvo não recebe aporte');
+  assert.equal(txt[1], 60000, 'o plano carrega o que já existe em cada classe');
+  // 60.000 de 67.000 (carteira + aporte) = 90%, acima dos 63% do perfil.
+  assert.match(txt[2], /Você já tem R\$ 60\.000,00 em Renda Fixa — 90% da carteira/);
+  assert.match(txt[2], /acima dos 63% do seu perfil/);
+  // A composição aparece: é o que permite ver a reserva de emergência pesando.
+  assert.match(
+    txt[2],
+    /Inclui: Reserva de emergência R\$ 40\.000,00, Renda fixa R\$ 15\.000,00, Previdência/
+  );
+  // Classe que recebeu aporte não ganha a explicação.
+  assert.equal(txt[3], '');
+});
+
+test('sem carteira registrada, a classe vazia não inventa motivo', () => {
+  const { run } = carregar();
+  run(SEMENTE);
+  const txt = run(`
+    var p = motorPlanoAporte({
+      aporteMensal: 2000,
+      alocacaoAlvo: { rf: 63, acao: 20, fii: 16, cripto: 1 },
+      ranking: rankingTeste,
+    });
+    cartMotivoSemAlocacao(p, 'rf');
+  `);
+  assert.equal(txt, '');
+});

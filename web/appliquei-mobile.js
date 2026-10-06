@@ -2210,7 +2210,13 @@ function mobRenderCarteiraPlano(plano) {
       const corpo = aguardando
         ? '<p class="mcp-vazio">Aguardando indicadores para selecionar os ativos.</p>'
         : !lista.length
-          ? '<p class="mcp-vazio">Sem alocação nesta classe.</p>'
+          ? '<p class="mcp-vazio">' +
+            esc(
+              (typeof cartMotivoSemAlocacao === 'function' &&
+                cartMotivoSemAlocacao(plano, classe)) ||
+                'Sem alocação nesta classe.'
+            ) +
+            '</p>'
           : lista
               .map((it) => {
                 const i = itens.indexOf(it);

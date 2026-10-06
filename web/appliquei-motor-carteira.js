@@ -2577,6 +2577,9 @@ function motorPlanoAporte(opcoes) {
     modo: dist.modo,
     rebalanceando: dist.modo === 'rebalanceia' || dist.modo === 'rebalanceia_e_sobra',
     deficits: dist.deficits,
+    // O que já existe em cada classe: é o que explica uma classe com alvo
+    // no perfil e zero no aporte (ela já está acima do alvo).
+    patrimonioAtual: op.patrimonioAtual || null,
     alocacaoAlvo: alvo,
     classes: classes,
     itens: itens,
