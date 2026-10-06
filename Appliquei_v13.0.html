@@ -10420,6 +10420,8 @@
                 letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado);
             }
             .mob-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            /* Grupo com número ímpar de telas: a última ocupa a linha toda. */
+            .mob-tiles > .mob-tile:last-child:nth-child(odd) { grid-column: 1 / -1; min-height: 0; }
             .mob-tile {
                 display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
                 min-height: 104px; padding: 14px; box-sizing: border-box;
@@ -11184,6 +11186,7 @@
         <button type="button" class="mob-tab" data-aba="meu_patrimonio" onclick="mobIrPara('meu_patrimonio')"><i class="ph ph-bank"></i><span>Patrimônio</span></button>
         <button type="button" class="mob-tab mob-tab-cadastro" id="mobTabCadastro" onclick="alternarMenuCadastro()" aria-label="Cadastrar" aria-haspopup="menu" aria-expanded="false" aria-controls="fabMenu"><span class="mob-tab-fab"><i class="ph-bold ph-plus"></i></span></button>
         <button type="button" class="mob-tab" data-aba="patrimonio" onclick="mobIrPara('patrimonio')"><i class="ph ph-trend-up"></i><span>Investir</span></button>
+        <button type="button" class="mob-tab" data-aba="carteira" onclick="mobIrPara('carteira')"><i class="ph ph-chart-pie-slice"></i><span>Carteira</span></button>
         <button type="button" class="mob-tab" data-aba="mais_mobile" onclick="mobIrPara('mais_mobile')"><i class="ph ph-squares-four"></i><span>Mais</span></button>
     </nav>
     <div id="painelLancamentoBackdrop" onclick="fecharPainelLancamento()" aria-hidden="true"></div>
@@ -14128,7 +14131,6 @@
             <h2 class="mob-grupo">Planejar</h2>
             <div class="mob-tiles">
                 <button type="button" class="mob-tile" onclick="mobIrPara('meus_sonhos')"><span class="mob-tile-ic roxo"><i class="ph ph-star"></i></span><b>Meus sonhos</b><small>Metas e aportes</small></button>
-                <button type="button" class="mob-tile" onclick="mobIrPara('carteira')"><span class="mob-tile-ic verde"><i class="ph ph-chart-pie-slice"></i></span><b>Carteira sugerida</b><small>O que comprar no mês</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('simulador')"><span class="mob-tile-ic azul"><i class="ph ph-calculator"></i></span><b>Simule sua liberdade</b><small>Projeção e meta</small></button>
                 <button type="button" class="mob-tile" onclick="mobIrPara('relatorio_mensal')"><span class="mob-tile-ic ambar"><i class="ph ph-file-text"></i></span><b>Relatório mensal</b><small>Termômetro do mês</small></button>
             </div>

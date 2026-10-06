@@ -5,8 +5,8 @@
 // um ☰ no canto, cada troca de tela custava dois toques e nada dizia onde a
 // pessoa estava. Aqui fica a casca de app que vale só até 768px:
 //
-//   - uma barra fixa embaixo, na zona do polegar, com as três telas de uso
-//     diário, o "+" de cadastro no centro e o "Mais";
+//   - uma barra fixa embaixo, na zona do polegar, com as telas de uso
+//     diário (incluindo a Carteira sugerida), o "+" de cadastro e o "Mais";
 //   - a tela "Mais", que reúne as demais seções e as preferências que antes
 //     viviam no rodapé da sidebar;
 //   - um "‹ Mais" no topo das telas que se abre a partir dela.
@@ -16,7 +16,7 @@
 // exemplo), e o "+" reaproveita o menu de cadastro global. No desktop nada
 // disto aparece; o CSS esconde a barra e a seção "Mais" acima de 768px.
 
-var MOB_ABAS_BARRA = ['controle', 'meu_patrimonio', 'patrimonio'];
+var MOB_ABAS_BARRA = ['controle', 'meu_patrimonio', 'patrimonio', 'carteira'];
 var MOB_ABA_MAIS = 'mais_mobile';
 
 function mobEhCelular() {
