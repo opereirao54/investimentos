@@ -187,3 +187,36 @@ test('no celular nenhum rótulo fica abaixo de 11px por estilo inline', () => {
     );
   }
 });
+
+// ---------------------------------------------------------------------------
+// Início e Meu patrimônio no celular
+// ---------------------------------------------------------------------------
+
+test('o Início do celular usa o mesmo saldo livre e as mesmas barras do desktop', () => {
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  // Uma conta só para o saldo livre, impressa no card e mandada ao celular.
+  assert.match(
+    CF,
+    /const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho \+ saldoCarregado;/
+  );
+  assert.match(CF, /kpiSaldo\.innerText = formatarMoeda\(saldoLivre\)/);
+  assert.match(
+    CF,
+    /mobRenderInicio\(\{[\s\S]*saldoLivre: saldoLivre[\s\S]*composicao: \{ modo: agrupamentoComposicao, itens: dadosComposicao \}/
+  );
+  // Baixar pelo celular passa pelo confirmarPagamento do desktop.
+  assert.match(MOB, /function mobConfirmarBaixa[\s\S]*confirmarPagamento\(id\)/);
+});
+
+test('Meu patrimônio no celular desenha os números que a aba já calculou', () => {
+  const PAT = fs.readFileSync(path.join(ROOT, 'web/appliquei-patrimonio.js'), 'utf8');
+  assert.match(PAT, /const kpis = mpRenderKPIs\(consolidado, janela\);/);
+  assert.match(PAT, /mobRenderPatrimonio\(\{[\s\S]*kpis: kpis/);
+  // A série mensal soma as parcelas pelas funções que já respondem por elas.
+  const serie = PAT.slice(PAT.indexOf('function mpSerieMensalPatrimonio'));
+  assert.match(serie, /mpCalcularSaldoTotal\(fim\)/);
+  assert.match(serie, /calcularSerieEvolucao\('todos', ''\)/);
+  assert.match(serie, /rmBensAteFimDoMes\(mes, ano\)/);
+  const fn = MOB.slice(MOB.indexOf('function mobRenderPatrimonio'));
+  assert.doesNotMatch(fn, /mpConsolidar\(|calcularPatrimonioTotal\(/);
+});

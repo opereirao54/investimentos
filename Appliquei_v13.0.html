@@ -11249,6 +11249,138 @@
             .mob-story-zona.prox { right: 0; }
             body.mob-story-aberta .mob-tabbar { visibility: hidden; }
         }
+
+        /* ============================================================ */
+        /* MEU PATRIMÔNIO NO CELULAR (appliquei-mobile.js)               */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            #meu_patrimonio > .page-header,
+            #meu_patrimonio #mp-kpis,
+            #meu_patrimonio .mp-kpis-componentes,
+            #meu_patrimonio .mp-onde-head,
+            #meu_patrimonio #mp-lista-inst,
+            #meu_patrimonio .mp-contas-separador,
+            #meu_patrimonio .mp-classes-card { display: none !important; }
+            .mob-pat { margin-bottom: 22px; }
+
+            .mpm-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
+            .mpm-tit { margin: 0; font-size: 15px; font-weight: 700; color: var(--cor-texto-mutado); }
+            .mpm-seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: 12px; padding: 3px; }
+            .mpm-seg button {
+                min-height: 36px; padding: 0 14px; border: 0; border-radius: 9px; background: transparent; cursor: pointer;
+                font: 700 13px 'Figtree', sans-serif; color: var(--cor-texto-mutado);
+            }
+            .mpm-seg button[aria-selected="true"] { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 3px rgba(16, 30, 19, 0.12); }
+            .mpm-valor {
+                margin: 8px 0 0; font-family: 'DM Mono', monospace; font-size: 34px; font-weight: 500;
+                letter-spacing: -1.4px; line-height: 1.05; color: var(--cor-texto-principal); overflow-wrap: anywhere;
+            }
+            .mpm-delta { margin: 6px 0 0; font-size: 13.5px; font-weight: 700; min-height: 18px; }
+            .mpm-delta b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mpm-delta.pos { color: var(--tinta-verde); }
+            .mpm-delta.neg { color: var(--cor-erro); }
+            .mpm-delta.neu { color: var(--cor-texto-mutado); }
+            .mpm-quando { margin: 3px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mpm-nota { margin: 6px 0 0; font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mpm-nota b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-erro); }
+            .mpm-graf { position: relative; height: 150px; margin: 14px -16px 0; touch-action: pan-y; cursor: crosshair; }
+            .mpm-svg { display: block; width: 100%; height: 100%; }
+            .mpm-cursor { stroke: var(--cor-texto-principal); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0; }
+            .mpm-graf.ativo .mpm-cursor { opacity: 0.6; }
+            .mpm-ponto {
+                position: absolute; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 99px;
+                background: var(--cor-primaria); border: 3px solid var(--cor-branco); box-shadow: 0 1px 4px rgba(16, 30, 19, 0.25);
+                pointer-events: none;
+            }
+            .mpm-periodos { display: flex; justify-content: space-between; gap: 6px; margin-top: 8px; }
+            .mpm-periodos button {
+                flex: 1; min-height: 40px; border: 0; border-radius: 10px; background: transparent; cursor: pointer;
+                font: 700 13px 'Figtree', sans-serif; color: var(--cor-texto-mutado);
+            }
+            .mpm-periodos button[aria-pressed="true"] { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+            .mpm-comp { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+            .mpm-comp .mc-barra { height: 14px; gap: 3px; }
+            .mpm-chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .mpm-chip {
+                display: flex; align-items: flex-start; gap: 8px; min-height: 58px; padding: 10px 12px; box-sizing: border-box;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 16px;
+                font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mpm-chip-dot { width: 10px; height: 10px; border-radius: 99px; flex-shrink: 0; margin-top: 4px; }
+            .mpm-chip-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+            .mpm-chip-txt small { font-size: 12.5px; font-weight: 600; color: var(--cor-texto-mutado); }
+            .mpm-chip-txt b { font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+
+            /* Cartões de banco/corretora, empilhados como numa carteira. */
+            #mpMobCarteiras .mi-tit-linha { margin-bottom: 10px; }
+            .mpw-pilha { display: flex; flex-direction: column; }
+            .mpw {
+                position: relative; border-radius: 20px; padding: 0 18px; color: #fff;
+                background: linear-gradient(135deg, var(--mpw-cor), color-mix(in srgb, var(--mpw-cor) 62%, #000));
+                box-shadow: 0 -2px 10px rgba(16, 30, 19, 0.12);
+            }
+            .mpw + .mpw { margin-top: -14px; }
+            .mpw.aberta { padding-bottom: 16px; z-index: 1; }
+            .mpw.aberta + .mpw, .mpw-extrato + .mpw { margin-top: 10px; }
+            .mpw-cab {
+                display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; padding: 16px 0 26px;
+                background: none; border: 0; color: inherit; font-family: inherit; text-align: left; cursor: pointer;
+            }
+            .mpw:last-child .mpw-cab, .mpw.aberta .mpw-cab { padding-bottom: 16px; }
+            .mpw-logo {
+                width: 36px; height: 36px; border-radius: 11px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                background: rgba(255, 255, 255, 0.18); font-size: 13px; font-weight: 800; letter-spacing: 0.3px;
+            }
+            .mpw-nome { flex: 1; min-width: 0; font-size: 16px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mpw-total { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 500; white-space: nowrap; }
+            .mpw-partes { display: flex; flex-direction: column; gap: 8px; padding-top: 2px; }
+            .mpw-partes > span { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; opacity: 0.95; }
+            .mpw-partes b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mpw-acoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 16px; }
+            .mpw-acoes button {
+                display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 64px;
+                background: none; border: 0; color: #fff; font: 600 12px 'Figtree', sans-serif; cursor: pointer;
+            }
+            .mpw-acoes button > span {
+                width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+                background: rgba(255, 255, 255, 0.16); font-size: 19px;
+            }
+            .mpw-aviso { margin: 10px 0 0; font-size: 12.5px; opacity: 0.9; }
+            .mpw-extrato {
+                margin-top: 10px; padding: 8px 14px; background: var(--cor-branco); border: 1px solid var(--cor-borda);
+                border-radius: 18px; max-height: 360px; overflow-y: auto;
+            }
+
+            /* Investido por classe */
+            #mpMobClasses .mi-tit-linha { margin-bottom: 10px; align-items: baseline; }
+            .mpc { padding: 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+            .mpc-linha { display: flex; flex-direction: column; gap: 6px; }
+            .mpc-topo { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 600; }
+            .mpc-topo b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mpc-topo small { color: var(--cor-texto-mutado); font-weight: 500; }
+            .mpc-trilho { height: 8px; border-radius: 99px; background: var(--cor-fundo); }
+            .mpc-trilho > span { display: block; height: 8px; border-radius: 99px; }
+            .mpc-rent { font-size: 12px; font-weight: 700; }
+            .mpc-rent.pos { color: var(--tinta-verde); }
+            .mpc-rent.neg { color: var(--cor-erro); }
+
+            /* Minhas contas: nome e saldo inteiros numa linha, botões na de baixo. */
+            #meu_patrimonio #listaContas > div { flex-wrap: wrap; row-gap: 10px; }
+            #meu_patrimonio #listaContas > div > div { flex: 1 1 calc(100% - 40px) !important; }
+            #meu_patrimonio #listaContas > div > button { min-width: 48px; min-height: 40px; }
+            #meu_patrimonio #listaContas > div > button:first-of-type { margin-left: auto; }
+
+            /* Nova conta / Editar conta abrem como folha, não no meio da lista. */
+            #meu_patrimonio #formNovaConta[style*="display: block"] {
+                position: fixed !important; left: 0; right: 0; bottom: 0; z-index: 9996; margin: 0 !important;
+                border-radius: 26px 26px 0 0 !important; padding: 20px 20px calc(24px + env(safe-area-inset-bottom)) !important;
+                max-height: 88vh; overflow-y: auto; background: var(--cor-branco) !important;
+                box-shadow: 0 0 0 100vmax rgba(16, 30, 19, 0.45), 0 -10px 30px rgba(16, 30, 19, 0.18);
+            }
+            #meu_patrimonio #formNovaConta[style*="display: block"] #tituloFormConta { font-size: 19px !important; font-weight: 800 !important; margin-bottom: 14px !important; }
+            #meu_patrimonio #formNovaConta[style*="display: block"] .grid-2-iguais { grid-template-columns: 1fr !important; }
+            body:has(#formNovaConta[style*="display: block"]) .mob-tabbar { visibility: hidden; }
+        }
     </style>
 </head>
 <body class="controle-ativo">
@@ -13530,6 +13662,12 @@
                 </div>
             </div>
 
+            <!-- No celular (appliquei-mobile.js, mobRenderPatrimonio): o total,
+                 a linha do tempo, do que ele é feito, os cartões de cada banco
+                 e as classes de investimento. Os blocos de gestão abaixo
+                 (Minhas contas, Meus bens) são os mesmos do desktop. -->
+            <div id="mpMob" class="mob-inicio mob-pat"></div>
+
             <!-- KPI hero: patrimônio total.
                  Duas colunas de propósito: o número grande sozinho deixava
                  dois terços do card vazios, e a composição — que é a segunda
@@ -13615,6 +13753,9 @@
                 </div>
             </div>
 
+            <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
+            <div id="mpMobClasses" class="mob-inicio mob-pat"></div>
+
             <!-- Onde está o dinheiro: extrato consolidado por instituição + Minhas Contas -->
             <div class="card-container mp-onde-card">
                 <div class="mp-section-head mp-onde-head">
@@ -13659,7 +13800,7 @@
             </div>
 
             <!-- Total investido por classe: gráfico de barras horizontal -->
-            <div class="card-container">
+            <div class="card-container mp-classes-card">
                 <div class="mp-section-head">
                     <h3>Total investido por classe</h3>
                     <span class="mp-section-sub">Distribuição de todos os seus investimentos por tipo de ativo</span>
@@ -14589,7 +14730,7 @@
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>
     <script src="/web/appliquei-bens.js?v=bens-v1"></script>
-    <script src="/web/appliquei-patrimonio.js?v=onda8-patrimonio"></script>
+    <script src="/web/appliquei-patrimonio.js?v=pat-mob"></script>
     <!-- O material vem ANTES do renderizador: jornada.js lê JORNADA_CONTEUDO. -->
     <script src="/web/appliquei-jornada-conteudo.js?v=material-1"></script>
     <script src="/web/appliquei-jornada.js?v=material-1"></script>
@@ -14598,6 +14739,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=inicio-mob2"></script>
+    <script src="/web/appliquei-mobile.js?v=pat-mob"></script>
 </body>
 </html>

@@ -57,6 +57,8 @@ const ESTADOS_MOB = {
     'mobStoryFechar(); mudarMesVisao(1)',
     'irParaMesAtual()',
   ],
+  // Os cartões de banco/corretora abrem com as ações (Transferir, Extrato, Editar).
+  meu_patrimonio: ['mobPatAbrirCarteira(0)', 'mpToggleExtrato(0)'],
 };
 
 /**
