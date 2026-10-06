@@ -11682,6 +11682,53 @@
             .priv-hero { padding: 16px; }
             .priv-grade { grid-template-columns: 1fr; }
         }
+
+        /* Política de Privacidade: janela, checkbox do cadastro, aba. */
+        .pol-caixa {
+            display: flex; flex-direction: column; width: calc(100% - 24px); max-width: 640px; max-height: 88vh; margin: 12px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+        }
+        .pol-cab { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 14px; border-bottom: 1px solid var(--cor-borda); }
+        .pol-cab-ic {
+            width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; background: var(--cor-bg-primaria); color: var(--tinta-verde);
+        }
+        .pol-cab h3 { margin: 0; font-size: 18px; font-weight: 800; color: var(--cor-texto-principal); }
+        .pol-aviso-exigir { display: none; margin: 3px 0 0; font-size: 13px; color: var(--cor-texto-secundario); }
+        #modalPrivacidade[data-exigir="1"] .pol-aviso-exigir { display: block; }
+        .pol-fechar {
+            width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 10px; background: none; cursor: pointer;
+            font-size: 20px; color: var(--cor-texto-mutado);
+        }
+        #modalPrivacidade[data-exigir="1"] .pol-fechar { display: none; }
+        .pol-texto { flex: 1; overflow-y: auto; padding: 6px 20px 16px; font-size: 13.5px; line-height: 1.6; color: var(--cor-texto-secundario); }
+        .pol-texto h4 { margin: 18px 0 6px; font-size: 14.5px; font-weight: 800; color: var(--cor-texto-principal); }
+        .pol-texto p { margin: 0 0 8px; }
+        .pol-texto ul { margin: 0 0 8px; padding-left: 20px; }
+        .pol-texto li { margin: 4px 0; }
+        .pol-texto strong { color: var(--cor-texto-principal); }
+        .pol-versao { margin-top: 10px !important; font-size: 12px; font-weight: 700; color: var(--cor-texto-mutado); }
+        .pol-rodape { display: none; flex-direction: column; gap: 12px; padding: 14px 20px calc(16px + env(safe-area-inset-bottom)); border-top: 1px solid var(--cor-borda); }
+        #modalPrivacidade[data-exigir="1"] .pol-rodape { display: flex; }
+        .pol-chk { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); cursor: pointer; min-height: 44px; }
+        .pol-chk input { width: 20px; height: 20px; accent-color: var(--cor-primaria); flex-shrink: 0; }
+        .pol-botoes { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+        .pol-botoes .btn-acao:disabled { opacity: 0.45; cursor: not-allowed; }
+        @media (max-width: 768px) {
+            #modalPrivacidade { align-items: flex-end !important; }
+            .pol-caixa { width: 100%; max-width: none; margin: 0; max-height: 92vh; border-radius: 24px 24px 0 0; }
+            .pol-botoes > * { flex: 1; min-height: 48px; }
+        }
+        .auth-chk-priv { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 12px; font-size: 13px; line-height: 1.45; color: var(--cor-texto-secundario, #3b5440); cursor: pointer; }
+        .auth-chk-priv input { width: 18px; height: 18px; margin-top: 1px; flex-shrink: 0; accent-color: var(--cor-primaria, #059669); }
+        .auth-chk-priv button { padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--cor-primaria, #059669); text-decoration: underline; cursor: pointer; }
+        .priv-politica {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 24px; padding: 16px;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 16px;
+        }
+        .priv-politica p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
+        .priv-status { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--tinta-verde) !important; }
     </style>
 </head>
 <body class="controle-ativo">
@@ -11767,6 +11814,10 @@
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente.</p>
                 </div>
+                <label class="auth-chk-priv" id="authPrivWrap" style="display:none;">
+                    <input type="checkbox" id="authPrivAceite">
+                    <span>Li e aceito a <button type="button" onclick="abrirModalPrivacidade(false)">Política de Privacidade</button></span>
+                </label>
                 <div class="auth-actions">
                     <button type="button" class="auth-btn-prim" id="authBtnSubmit" onclick="appliqueiAuthSubmit()">Entrar</button>
                     <button type="button" class="auth-btn-sec" id="authBtnForgot" onclick="appliqueiAuthEsqueciSenha()">Esqueci minha senha</button>
@@ -11826,6 +11877,30 @@
                 <button type="button" class="pp-bv-pular" onclick="ppPularGuia()"><i class="ph ph-arrow-right"></i> Pular, quero explorar sozinho</button>
             </div>
             <p class="pp-bv-nota">Você pode reabrir o guia quando quiser em <strong>&#9881; Configurações</strong>.</p>
+        </div>
+    </div>
+
+    <!-- Política de Privacidade (web/appliquei-privacidade.js). Abre para
+         aceite na primeira vez (e a cada versão nova) e para leitura a partir
+         da aba Privacidade e do cadastro. -->
+    <div id="modalPrivacidade" data-exigir="0" role="dialog" aria-modal="true" aria-labelledby="modalPrivacidadeTitulo" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.55);z-index:10060;justify-content:center;align-items:center;" onclick="if(event.target===this)fecharModalPrivacidade()">
+        <div class="pol-caixa">
+            <div class="pol-cab">
+                <span class="pol-cab-ic"><i class="ph-fill ph-shield-check"></i></span>
+                <div style="flex:1;min-width:0;">
+                    <h3 id="modalPrivacidadeTitulo">Política de Privacidade</h3>
+                    <p class="pol-aviso-exigir">Para continuar, leia e aceite como tratamos seus dados.</p>
+                </div>
+                <button type="button" class="pol-fechar" onclick="fecharModalPrivacidade()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="pol-texto" id="modalPrivacidadeTexto" tabindex="0"></div>
+            <div class="pol-rodape">
+                <label class="pol-chk"><input type="checkbox" id="modalPrivacidadeChk" onchange="privacidadeMarcou(this)"> Li e aceito a Política de Privacidade</label>
+                <div class="pol-botoes">
+                    <button type="button" class="btn-secundario" onclick="recusarPrivacidade()">Sair da conta</button>
+                    <button type="button" class="btn-acao" id="modalPrivacidadeAceitar" disabled onclick="aceitarPrivacidadeModal()"><i class="ph ph-check"></i> Aceitar e continuar</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -15023,6 +15098,13 @@
                         <li>Em lugar público, use <strong>Esconder valores</strong> (o ícone de olho) para mascarar os números na tela.</li>
                     </ul>
 
+                    <h3 class="priv-tit">Política de Privacidade</h3>
+                    <div class="priv-politica">
+                        <p class="priv-status" id="privStatusAceite"></p>
+                        <p>O documento completo, com as bases legais, os prestadores de serviço, os prazos de guarda e os seus direitos pela LGPD.</p>
+                        <button type="button" class="btn-secundario" onclick="abrirModalPrivacidade(false)"><i class="ph ph-file-text"></i> Ler a política completa</button>
+                    </div>
+
                     <div class="priv-nota">
                         <i class="ph ph-info"></i>
                         <p><b>Transparência:</b> a criptografia da Appliquei protege seus dados no caminho e no armazenamento, e o acesso pelo app é só seu. Ela não é de ponta a ponta: tecnicamente, a administração do sistema tem acesso ao banco de dados. Esse acesso não é usado para ler suas finanças. Não vendemos nem compartilhamos seus dados com anunciantes.</p>
@@ -15132,5 +15214,6 @@
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
     <script src="/web/appliquei-mobile.js?v=cart-mob2"></script>
+    <script src="/web/appliquei-privacidade.js?v=politica-1"></script>
 </body>
 </html>

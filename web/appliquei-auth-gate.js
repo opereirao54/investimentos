@@ -353,6 +353,9 @@ window.appliqueiAuthSetModo = function (modo) {
   // signup acidental via Google é rejeitado (ver appliqueiAuthGoogle).
   var cupomWrap = $('authCupomWrap');
   if (cupomWrap) cupomWrap.style.display = login ? 'none' : '';
+  // Aceite da Política de Privacidade: só no cadastro (appliquei-privacidade.js).
+  var privWrap = $('authPrivWrap');
+  if (privWrap) privWrap.style.display = login ? 'none' : '';
   if (!login) {
     var cupomInput = $('authCupom');
     if (cupomInput && !cupomInput.value) {
@@ -414,6 +417,18 @@ window.appliqueiAuthSubmit = function () {
   }
   window.appliqueiAuthErr('');
   var reg = window.__appliqueiAuthModo === 'registro';
+  // Cadastro exige o aceite da Política de Privacidade. O aceite fica
+  // registrado neste aparelho já agora e sobe para o servidor assim que a
+  // conta existir (appliquei-privacidade.js).
+  if (reg) {
+    var privChk = $('authPrivAceite');
+    if (privChk && !privChk.checked) {
+      if (btn) btn.disabled = false;
+      return window.appliqueiAuthErr('Para criar a conta, aceite a Política de Privacidade.');
+    }
+    if (typeof window.registrarAceitePrivacidade === 'function')
+      window.registrarAceitePrivacidade('cadastro', email);
+  }
   if (reg) {
     var cupomEl = $('authCupom');
     var cupom = cupomEl ? cupomEl.value.trim().toUpperCase() : '';

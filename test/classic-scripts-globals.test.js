@@ -54,6 +54,7 @@ const CLASSIC_SCRIPTS = [
   { file: 'web/appliquei-rendimento.js', indent: '' },
   { file: 'web/appliquei-admin.js', indent: '' },
   { file: 'web/appliquei-mobile.js', indent: '' },
+  { file: 'web/appliquei-privacidade.js', indent: '' },
 ];
 
 for (const { file, indent } of CLASSIC_SCRIPTS) {
