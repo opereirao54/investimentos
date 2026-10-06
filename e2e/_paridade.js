@@ -58,9 +58,22 @@ const ESTADOS_MOB = {
     'irParaMesAtual()',
   ],
   // Os cartões de banco/corretora abrem com as ações (Transferir, Extrato, Editar).
-  meu_patrimonio: ['mobPatAbrirCarteira(0)', 'mpToggleExtrato(0)'],
+  meu_patrimonio: [
+    'mobPatAbrirCarteira(0)',
+    'mpToggleExtrato(0)',
+    // Contas e bens abrem as ações ao toque na linha.
+    "contas.length && mobListaAbrir('conta', String(contas[0].id))",
+    "bens.length && mobListaAbrir('bem', String(bens[0].id))",
+  ],
   // O questionário mostra uma pergunta por vez; o plano abre item a item.
-  carteira: ['mobCartIrPasso(2)', 'mobCartIrPasso(3)', 'mobCartIrPasso(4)', 'mobCartAbrirItem(0)'],
+  carteira: [
+    'mobCartIrPasso(2)',
+    'mobCartIrPasso(3)',
+    'mobCartIrPasso(4)',
+    'mobCartAbrirItem(0)',
+    // Ranking, simulação, critérios e procedência ficam atrás de uma linha.
+    "['rank', 'sim', 'crit', 'dados'].forEach((n) => mobCartSecao(n, true))",
+  ],
 };
 
 /**

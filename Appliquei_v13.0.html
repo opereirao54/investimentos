@@ -11495,6 +11495,143 @@
             .mcp-avisos { display: flex; flex-direction: column; gap: 6px; }
             .mcp-avisos p { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--cor-texto-mutado); }
         }
+
+        @media (max-width: 768px) {
+            /* Contas e bens: as listas novas (mobRenderContas / mobRenderBens).
+               O cartão de "Onde está o dinheiro" fica só como casa do
+               formulário de conta, que abre como folha. */
+            #meu_patrimonio .mp-onde-card > .mp-section-head,
+            #meu_patrimonio #listaContas,
+            #meu_patrimonio .mp-bens-card { display: none !important; }
+            #meu_patrimonio .mp-onde-card { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; }
+            #mpMobContas .mi-tit-linha, #mpMobBens .mi-tit-linha { margin-bottom: 8px; }
+            .mpl-botoes { display: inline-flex; gap: 14px; }
+            .mpl { padding: 0 14px; }
+            .mpl-item { border-bottom: 1px solid var(--cor-borda); }
+            .mpl-item:last-child { border-bottom: 0; }
+            .mpl-item.apagada .mpl-cab { opacity: 0.6; }
+            .mpl-cab {
+                display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 0;
+                background: none; border: 0; font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mpl-ic {
+                width: 42px; height: 42px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                font-size: 20px; color: var(--mpl-cor); background: color-mix(in srgb, var(--mpl-cor) 12%, var(--cor-branco));
+            }
+            .mpl-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+            .mpl-txt b { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mpl-txt small { font-size: 12.5px; color: var(--cor-texto-mutado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mpl-alerta { color: var(--tinta-ambar); font-weight: 700; }
+            .mpl-val { font-family: 'DM Mono', monospace; font-size: 15px; white-space: nowrap; }
+            .mpl-seta { font-size: 16px; color: var(--cor-texto-mutado); transition: transform 0.2s; }
+            .mpl-item.aberta .mpl-seta { transform: rotate(180deg); }
+            .mpl-acoes { display: grid; grid-template-columns: repeat(auto-fit, minmax(86px, 1fr)); gap: 8px; padding: 0 0 14px 54px; }
+            .mpl-acoes button {
+                display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 8px; border-radius: 12px;
+                border: 1px solid var(--cor-borda); background: var(--cor-branco); cursor: pointer;
+                font: 700 13px 'Figtree', sans-serif; color: var(--cor-texto-principal);
+            }
+            .mpl-acoes button i { font-size: 16px; }
+            .mpl-acoes button.perigo { color: var(--cor-erro); border-color: color-mix(in srgb, var(--cor-erro) 35%, transparent); }
+        }
+
+        @media (max-width: 768px) {
+            /* Carteira: o cabeçalho novo substitui título, perfil e o convite a
+               personalizar; distribuição e dica já estão no plano. */
+            #carteira > .page-header,
+            #carteira #cartPerfilHeader,
+            #carteira .cart-selecao-header h3,
+            #carteira .cart-custom-cta,
+            #carteira #cartHero,
+            #carteira #cartCallout { display: none !important; }
+            #cartMobCab { margin-bottom: 14px; }
+            .mcc-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
+            .mcc-rot { font-size: 15px; font-weight: 700; color: var(--cor-texto-mutado); white-space: nowrap; }
+            .mcc-chip {
+                display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); cursor: pointer;
+                font: 700 13.5px 'Figtree', sans-serif; color: var(--cor-texto-principal); white-space: nowrap;
+            }
+            .mcc-chip i { color: var(--cor-texto-mutado); font-size: 15px; }
+            .mcc-tag { margin: 8px 0 0; font-size: 12.5px; font-weight: 700; color: var(--tinta-roxo); display: flex; align-items: center; gap: 6px; }
+            .mcc-sobre {
+                display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin-top: 6px; padding: 0;
+                background: none; border: 0; font: 600 13.5px 'Figtree', sans-serif; color: var(--cor-texto-secundario); cursor: pointer;
+            }
+            .mcc-sobre i { transition: transform 0.2s; }
+            .mcc-sobre[aria-expanded="true"] i { transform: rotate(180deg); }
+            .mcc-msg {
+                margin: 0 0 6px; padding: 10px 12px; font-size: 13.5px; line-height: 1.5; color: var(--cor-texto-secundario);
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 14px;
+            }
+            .mcc-botoes { display: flex; gap: 8px; margin-top: 6px; }
+            .mcc-botoes button {
+                display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; min-width: 44px; padding: 0 12px;
+                border-radius: 12px; border: 1px solid var(--cor-borda); background: var(--cor-branco); cursor: pointer;
+                font: 700 13px 'Figtree', sans-serif; color: var(--cor-texto-principal);
+            }
+            .mcc-botoes button:first-child { flex: 1; }
+            .mcc-botoes button i { font-size: 17px; }
+
+            /* Lentes: rótulo e chips numa linha só. */
+            #carteira .cart-selecao-header { display: block !important; margin: 0 0 10px !important; padding: 0 !important; border: 0 !important; }
+            #carteira .cart-motor-controles::before {
+                content: "Lente de seleção"; display: block; margin-bottom: 8px;
+                font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado);
+            }
+            #carteira .cart-motor-lentes {
+                display: flex !important; flex-wrap: nowrap !important; gap: 8px; overflow-x: auto; scrollbar-width: none;
+                margin: 0 -16px; padding: 0 16px 2px;
+            }
+            #carteira .cart-motor-lentes::-webkit-scrollbar { display: none; }
+            #carteira .cart-motor-lentes > * { flex-shrink: 0; min-height: 40px; }
+
+            /* Seções recolhidas: ranking, simulação, critérios. */
+            .mob-sec-row {
+                display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; margin: 0 0 10px; padding: 10px 14px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px; box-sizing: border-box;
+                font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mob-sec-ic {
+                width: 40px; height: 40px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                font-size: 19px; background: var(--cor-bg-primaria); color: var(--tinta-verde);
+            }
+            .mob-sec-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+            .mob-sec-txt b { font-size: 15px; font-weight: 700; }
+            .mob-sec-txt small { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mob-sec-seta { font-size: 17px; color: var(--cor-texto-mutado); transition: transform 0.2s; }
+            .mob-sec-row[aria-expanded="true"] .mob-sec-seta { transform: rotate(180deg); }
+            #carteira:not(.mob-aberto-rank) .cart-motor-sub,
+            #carteira:not(.mob-aberto-rank) #cartMotorRanking,
+            #carteira:not(.mob-aberto-rank) #cartMotorWrap > .cart-sim-disclaimer,
+            #carteira:not(.mob-aberto-sim) #cartSimCard,
+            #carteira:not(.mob-aberto-crit) #cartCriterios,
+            #carteira:not(.mob-aberto-dados) #cartMobAvisos,
+            #carteira:not(.mob-aberto-dados) #cartMotorStatus > :not(.cart-motor-alerta.erro) { display: none !important; }
+            #cartMobAvisos { margin: -2px 0 10px; }
+            #cartMobAvisos p { margin: 0 0 6px; font-size: 12.5px; line-height: 1.45; color: var(--cor-texto-mutado); }
+            #carteira .cart-motor-alerta.erro { font-size: 12.5px !important; padding: 10px 12px !important; border-radius: 14px !important; margin-bottom: 10px !important; }
+            #carteira:has(#cartSimCard[style*="display: none"]) #mobCartRowSim,
+            #carteira:has(#cartCriterios:empty) #mobCartRowCrit { display: none !important; }
+            #carteira .cart-motor-sub { margin-top: 0 !important; }
+
+            /* "Entenda cada classe" com a mesma cara das linhas. */
+            #carteira .cart-edu-details { border-radius: 18px !important; margin-bottom: 10px !important; }
+            #carteira .cart-edu-details > summary { min-height: 64px; box-sizing: border-box; font-size: 15px; }
+
+            /* O painel "Montar do meu jeito" abre em tela cheia. */
+            #carteira #cartCustomPainel:not([hidden]) {
+                position: fixed !important; inset: 0; z-index: 9996; margin: 0 !important; border-radius: 0 !important;
+                overflow-y: auto; background: var(--cor-fundo) !important;
+                padding: calc(14px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom)) !important;
+            }
+            body:has(#cartCustomPainel:not([hidden])) .mob-tabbar { visibility: hidden; }
+
+            /* Procedência e aviso de risco, mais discretos. */
+            #carteira .cart-motor-status { font-size: 12.5px; }
+            #carteira .cart-risco { padding: 14px 16px !important; border-radius: 18px !important; }
+            #carteira .cart-risco-corpo { font-size: 12.5px !important; }
+        }
     </style>
 </head>
 <body class="controle-ativo">
@@ -13236,6 +13373,8 @@
                 </div>
 
                 <!-- Profile + Capital Header (shown after questionnaire) -->
+                <!-- No celular: perfil, aporte e atalhos num cabeçalho só (mobRenderCarteiraCab). -->
+                <div id="cartMobCab" class="mob-inicio"></div>
                 <div class="cart-perfil-header" id="cartPerfilHeader" style="display:none;">
                     <div class="cart-perfil-info">
                         <span class="cart-perfil-badge" id="cartPerfilBadge"></span>
@@ -13266,6 +13405,8 @@
                          recomendação, não a recomendação. Antes vinha acima do
                          plano e empurrava para baixo justamente o que a pessoa
                          abriu a aba para ver. -->
+                    <button type="button" class="mob-wiz mob-sec-row" id="mobCartRowDados" aria-expanded="false" onclick="mobCartSecao('dados')"><span class="mob-sec-ic"><i class="ph ph-database"></i></span><span class="mob-sec-txt"><b>Sobre estes dados</b><small>Cobertura, lente e procedência</small></span><i class="ph ph-caret-down mob-sec-seta"></i></button>
+                    <div id="cartMobAvisos" class="mob-inicio"></div>
                     <div class="cart-motor-status" id="cartMotorStatus"></div>
 
                     <!-- Personalização: vem DEPOIS do plano de propósito.
@@ -13279,6 +13420,9 @@
                     <!-- Folha de troca de ativo (sobreposição) -->
                     <div id="cartTrocaWrap"></div>
 
+                    <!-- No celular o ranking, a simulação e os critérios ficam
+                         recolhidos atrás de uma linha cada (mobCartSecao). -->
+                    <button type="button" class="mob-wiz mob-sec-row" id="mobCartRowRank" aria-expanded="false" onclick="mobCartSecao('rank')"><span class="mob-sec-ic"><i class="ph ph-ranking"></i></span><span class="mob-sec-txt"><b>Ranking dos ativos</b><small>O score de cada ativo, por classe</small></span><i class="ph ph-caret-down mob-sec-seta"></i></button>
                     <div class="cart-motor-sub">
                         <i class="ph ph-ranking"></i> Score dos ativos
                         <button type="button" class="cart-ajuda-btn" id="cartAjudaScoresBtn" aria-expanded="false"
@@ -13336,6 +13480,7 @@
                 </details>
 
                 <!-- Historical Simulation -->
+                <button type="button" class="mob-wiz mob-sec-row" id="mobCartRowSim" aria-expanded="false" onclick="mobCartSecao('sim')"><span class="mob-sec-ic"><i class="ph ph-chart-line"></i></span><span class="mob-sec-txt"><b>Como teria performado?</b><small>Aportes mensais nos últimos anos, comparados ao CDI</small></span><i class="ph ph-caret-down mob-sec-seta"></i></button>
                 <div class="cart-sim-card" id="cartSimCard" style="display:none;">
                     <div class="cart-sim-header">
                         <h3><i class="ph ph-chart-line"></i> Como essa carteira teria performado com aportes mensais?</h3>
@@ -13371,6 +13516,7 @@
                      mão: uma lista estática divergiria do motor no primeiro
                      ajuste de peso e passaria a descrever algo que o
                      produto não faz. -->
+<button type="button" class="mob-wiz mob-sec-row" id="mobCartRowCrit" aria-expanded="false" onclick="mobCartSecao('crit')"><span class="mob-sec-ic"><i class="ph ph-list-magnifying-glass"></i></span><span class="mob-sec-txt"><b>Critérios de seleção</b><small>Os indicadores por trás de cada score</small></span><i class="ph ph-caret-down mob-sec-seta"></i></button>
                 <div class="cart-criterios" id="cartCriterios"></div>
 
                 <!-- FORA do cartMotorWrap de propósito: aquele contentor é
@@ -13893,6 +14039,8 @@
 
             <div id="mpMobCarteiras" class="mob-inicio mob-pat"></div>
             <div id="mpMobClasses" class="mob-inicio mob-pat"></div>
+            <div id="mpMobContas" class="mob-inicio mob-pat"></div>
+            <div id="mpMobBens" class="mob-inicio mob-pat"></div>
 
             <!-- Onde está o dinheiro: extrato consolidado por instituição + Minhas Contas -->
             <div class="card-container mp-onde-card">
@@ -13950,7 +14098,7 @@
             </div>
 
             <!-- Meus Bens (imóveis, veículos, outros) -->
-            <div class="card-container">
+            <div class="card-container mp-bens-card">
                 <div class="mp-section-head">
                     <h3><i class="ph-fill ph-house-line" style="color:var(--cor-patrimonio);"></i> Meus Bens</h3>
                     <button class="btn-secundario" style="padding:6px 12px;font-size:12px;border-radius:10px;" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Novo bem</button>
@@ -14839,7 +14987,7 @@
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo
          após app.js: usa transacoes/historicoCompras p/ o seed inicial e
          expõe `contas` + CRUD p/ os módulos seguintes. -->
-    <script src="/web/appliquei-contas.js?v=contas-fase1"></script>
+    <script src="/web/appliquei-contas.js?v=listas-mob"></script>
     <!-- ABA 1 sub-sistemas — todos consumidos pelo window.onload em app.js
          ou por user action depois. Function declarations => globais. -->
     <script src="/web/appliquei-aba1-charts.js?v=onda5-evolucao"></script>
@@ -14854,7 +15002,7 @@
     <script src="/web/appliquei-inss.js?v=inss1"></script>
     <script src="/web/appliquei-aba-simulador.js?v=inss1"></script>
     <script src="/web/appliquei-motor-carteira.js?v=motor-carteira-1"></script>
-    <script src="/web/appliquei-aba-carteira-recomendada.js?v=cart-mob"></script>
+    <script src="/web/appliquei-aba-carteira-recomendada.js?v=cart-mob2"></script>
     <script src="/web/appliquei-aba-info-mercado.js?v=info-mercado-diagnostico"></script>
     <script src="/web/appliquei-aba-dividendos.js?v=onda3b"></script>
     <!-- Valor de mercado da carteira numa data passada. Vem ANTES do
@@ -14867,7 +15015,7 @@
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
     <script src="/web/appliquei-disclaimer.js?v=disclaimer-1"></script>
-    <script src="/web/appliquei-bens.js?v=bens-v1"></script>
+    <script src="/web/appliquei-bens.js?v=listas-mob"></script>
     <script src="/web/appliquei-patrimonio.js?v=pat-mob"></script>
     <!-- O material vem ANTES do renderizador: jornada.js lê JORNADA_CONTEUDO. -->
     <script src="/web/appliquei-jornada-conteudo.js?v=material-1"></script>
@@ -14877,6 +15025,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=cart-mob"></script>
+    <script src="/web/appliquei-mobile.js?v=cart-mob2"></script>
 </body>
 </html>

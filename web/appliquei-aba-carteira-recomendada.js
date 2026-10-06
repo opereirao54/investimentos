@@ -465,6 +465,8 @@ function cartRenderizarTela() {
   cartRenderizarDonut();
   cartRenderizarMotor();
   cartIniciarSimulacao();
+  // Cabeçalho do celular: perfil, aporte e atalhos (appliquei-mobile.js).
+  if (typeof mobRenderCarteiraCab === 'function') mobRenderCarteiraCab();
 }
 
 // ════════════════════════════════
@@ -3463,6 +3465,8 @@ function cartRenderizarCustom() {
     '</div></div>';
 
   cartCustomAtualizarTotais();
+  // O cabeçalho do celular mostra se a carteira está personalizada.
+  if (typeof mobRenderCarteiraCab === 'function') mobRenderCarteiraCab();
 }
 
 /** Soma de um grupo de controles, para o rodapé do passo. */

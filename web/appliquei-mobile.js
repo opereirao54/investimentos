@@ -2307,11 +2307,14 @@ function mobRenderCarteiraPlano(plano) {
     .join('');
 
   const retido = Number(plano.retido) || 0;
-  const avisos = (plano.avisos || []).length
-    ? '<div class="mcp-avisos">' +
-      plano.avisos.map((a) => '<p><i class="ph ph-info"></i> ' + a + '</p>').join('') +
-      '</div>'
-    : '';
+  // Os avisos do motor (por que uma classe ficou retida) vão para "Sobre
+  // estes dados": explicam a procedência, não são a lista de compras.
+  const elAvisos = document.getElementById('cartMobAvisos');
+  if (elAvisos)
+    elAvisos.innerHTML = (plano.avisos || [])
+      .map((a) => '<p><i class="ph ph-info"></i> ' + a + '</p>')
+      .join('');
+  const avisos = '';
 
   el.innerHTML =
     '<h2 class="mcp-tit">Compras de ' +
@@ -2349,6 +2352,7 @@ function mobCartAbrirItem(i) {
 }
 
 function mobCartVerRanking(classe) {
+  mobCartSecao('rank', true);
   if (typeof cartTrocarClasseRanking === 'function') cartTrocarClasseRanking(classe);
   const r = document.getElementById('cartMotorRanking');
   if (r && typeof r.scrollIntoView === 'function')
@@ -2393,3 +2397,258 @@ document.addEventListener('DOMContentLoaded', function () {
     aberto = agora;
   }).observe(drawer, { attributes: true, attributeFilter: ['class'] });
 });
+
+// ------------------------------------------------------------
+// Meu patrimônio no celular: contas e bens como listas de app
+// ------------------------------------------------------------
+// Uma linha por conta ou bem, com o essencial à vista; tocar abre as ações
+// logo abaixo (as mesmas funções do desktop). Chamadas pelo render original
+// de cada lista, então seguem cada mudança.
+var _mobListas = { conta: null, bem: null };
+
+function mobListaAbrir(tipo, id) {
+  _mobListas[tipo] = _mobListas[tipo] === id ? null : id;
+  if (tipo === 'conta') mobRenderContas();
+  else mobRenderBens();
+}
+
+function _mobLinhaLista(tipo, id, icone, cor, nome, sub, valor, acoes, apagada) {
+  const aberta = _mobListas[tipo] === id;
+  return (
+    '<div class="mpl-item' +
+    (aberta ? ' aberta' : '') +
+    (apagada ? ' apagada' : '') +
+    '"><button type="button" class="mpl-cab" aria-expanded="' +
+    aberta +
+    '" onclick="mobListaAbrir(\'' +
+    tipo +
+    "','" +
+    _mobEsc(id) +
+    '\')"><span class="mpl-ic" style="--mpl-cor:' +
+    cor +
+    '"><i class="ph ' +
+    icone +
+    '"></i></span><span class="mpl-txt"><b>' +
+    _mobEsc(nome) +
+    '</b><small>' +
+    sub +
+    '</small></span>' +
+    (valor ? '<span class="mpl-val valor-mascarado">' + _mobEsc(valor) + '</span>' : '') +
+    '<i class="ph ph-caret-down mpl-seta"></i></button>' +
+    (aberta
+      ? '<div class="mpl-acoes">' +
+        acoes
+          .map(
+            (a) =>
+              '<button type="button" class="' +
+              (a[3] || '') +
+              '" onclick="' +
+              a[0] +
+              '"><i class="ph ' +
+              a[1] +
+              '"></i>' +
+              a[2] +
+              '</button>'
+          )
+          .join('') +
+        '</div>'
+      : '') +
+    '</div>'
+  );
+}
+
+function mobRenderContas() {
+  const el = document.getElementById('mpMobContas');
+  if (!el || typeof contas === 'undefined') return;
+  const ativas =
+    typeof contasAtivas === 'function' ? contasAtivas() : contas.filter((c) => !c.arquivada);
+  const ordem = ativas.concat(contas.filter((c) => c.arquivada));
+  const tipos = {};
+  (typeof CONTA_TIPOS !== 'undefined' ? CONTA_TIPOS : []).forEach((t) => {
+    tipos[t.v] = t.label.replace(/^[^\wÀ-ú]+\s*/, '');
+  });
+  const icones = { banco: 'ph-bank', corretora: 'ph-chart-line-up', carteira: 'ph-wallet' };
+  const cab =
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Contas</h2><span class="mpl-botoes">' +
+    '<button type="button" class="mi-link" onclick="abrirTransferenciaModal()"><i class="ph ph-arrows-left-right"></i> Transferir</button>' +
+    '<button type="button" class="mi-link" onclick="abrirNovaContaForm()"><i class="ph ph-plus"></i> Conta</button></span></div>';
+  if (!ordem.length) {
+    el.innerHTML =
+      cab +
+      '<p class="mi-vazio">Nenhuma conta cadastrada. Não é preciso para lançar: o nome do banco no lançamento já basta. Cadastre para informar o saldo que já tem.</p>';
+    return;
+  }
+  el.innerHTML =
+    cab +
+    '<div class="mi-card mpl">' +
+    ordem
+      .map((c) => {
+        const id = String(c.id);
+        const saldo = Number(c.saldoInicial) || 0;
+        const sub =
+          _mobEsc(tipos[c.tipo] || c.tipo || 'Conta') +
+          ' · ' +
+          (c.arquivada
+            ? 'arquivada'
+            : saldo
+              ? 'saldo inicial ' + _mobEsc(_mobDreFmt(saldo))
+              : 'sem saldo inicial');
+        const idJs = "'" + _mobEsc(id) + "'";
+        const acoes = c.arquivada
+          ? [['restaurarContaUI(' + idJs + ')', 'ph-arrow-counter-clockwise', 'Restaurar']]
+          : [
+              ['editarContaForm(' + idJs + ')', 'ph-pencil-simple', 'Editar'],
+              ['fundirContaPrompt(' + idJs + ')', 'ph-arrows-merge', 'Fundir'],
+              ['arquivarContaUI(' + idJs + ')', 'ph-archive', 'Arquivar', 'perigo'],
+            ];
+        return _mobLinhaLista(
+          'conta',
+          id,
+          icones[c.tipo] || 'ph-piggy-bank',
+          'var(--cor-info)',
+          c.nome,
+          sub,
+          '',
+          acoes,
+          c.arquivada
+        );
+      })
+      .join('') +
+    '</div>';
+}
+
+function mobRenderBens() {
+  const el = document.getElementById('mpMobBens');
+  if (!el || typeof bens === 'undefined') return;
+  const ativos = typeof bensAtivos === 'function' ? bensAtivos() : bens.filter((b) => !b.arquivado);
+  const todos = ativos.concat(bens.filter((b) => b.arquivado));
+  const icones = {};
+  (typeof BEM_TIPOS !== 'undefined' ? BEM_TIPOS : []).forEach((t) => {
+    icones[t.v] = t.icon;
+  });
+  const cab =
+    '<div class="mi-tit-linha"><h2 class="mi-h2">Bens</h2><button type="button" class="mi-link" onclick="abrirNovoBemForm()"><i class="ph ph-plus"></i> Bem</button></div>';
+  if (!todos.length) {
+    el.innerHTML =
+      cab +
+      '<p class="mi-vazio">Nenhum bem cadastrado. Imóveis e veículos entram no seu patrimônio.</p>';
+    return;
+  }
+  el.innerHTML =
+    cab +
+    '<div class="mi-card mpl">' +
+    todos
+      .map((b) => {
+        const id = String(b.id);
+        const idJs = "'" + _mobEsc(id) + "'";
+        const fin = b.financiamento;
+        const financiado = !b.arquivado && fin && fin.ativo && fin.saldoDevedor > 0;
+        const partes = [];
+        if (b.arquivado) partes.push('arquivado');
+        if (financiado) partes.push('devendo ' + _mobEsc(_mobDreFmt(fin.saldoDevedor)));
+        else if (b.tipo === 'imovel' || b.tipo === 'veiculo')
+          partes.push(fin && fin.ativo ? 'financiado' : 'quitado');
+        if (b.fipe && b.fipe.codigoFipe) partes.push('FIPE ' + _mobEsc(b.fipe.mesReferencia || ''));
+        if (
+          financiado &&
+          typeof finConflitoNaoRevisado === 'function' &&
+          finConflitoNaoRevisado(fin)
+        )
+          partes.push('<span class="mpl-alerta">confira a taxa</span>');
+        const acoes = [];
+        if (b.arquivado) {
+          acoes.push([
+            'editarBem(' + idJs + ',{arquivado:false});renderMeusBens();',
+            'ph-arrow-counter-clockwise',
+            'Restaurar',
+          ]);
+        } else {
+          if (financiado) {
+            acoes.push(['abrirModalAmortizacao(' + idJs + ')', 'ph-scissors', 'Antecipar']);
+            acoes.push(['abrirAnaliseBem(' + idJs + ')', 'ph-receipt', 'Analisar']);
+          }
+          if (b.fipe && b.fipe.codigoFipe)
+            acoes.push(['bemAtualizarFipe(' + idJs + ')', 'ph-arrows-clockwise', 'FIPE']);
+          acoes.push(['editarBemForm(' + idJs + ')', 'ph-pencil-simple', 'Editar']);
+          acoes.push(['confirmarExcluirBem(' + idJs + ')', 'ph-trash', 'Excluir', 'perigo']);
+        }
+        return _mobLinhaLista(
+          'bem',
+          id,
+          icones[b.tipo] || 'ph-package',
+          b.tipo === 'imovel' ? 'var(--cor-cartao)' : 'var(--cor-patrimonio)',
+          b.nome,
+          partes.join(' · ') || ' ',
+          b.valorAtual ? _mobDreFmt(b.valorAtual) : '—',
+          acoes,
+          b.arquivado
+        );
+      })
+      .join('') +
+    '</div>';
+}
+
+// ------------------------------------------------------------
+// Carteira no celular: cabeçalho e seções recolhidas
+// ------------------------------------------------------------
+// O perfil vira um chip que reabre o questionário; "Sobre o perfil" abre o
+// texto ali mesmo; os atalhos são os do desktop (personalizar, voltar à
+// recomendação, atualizar os dados). Ranking, simulação e critérios ficam
+// atrás de uma linha cada: estão a um toque, mas não empurram a lista de
+// compras para longe.
+var _mobCartSobre = false;
+
+function mobRenderCarteiraCab() {
+  const el = document.getElementById('cartMobCab');
+  if (!el || typeof cartEstado === 'undefined') return;
+  const p = cartEstado.perfil;
+  if (!p) {
+    el.innerHTML = '';
+    return;
+  }
+  const msg =
+    (typeof CART_MENSAGENS !== 'undefined' && (CART_MENSAGENS[p] || CART_MENSAGENS.Moderado)) || {};
+  const ligado = typeof cartCustomAtivo === 'function' && cartCustomAtivo();
+  el.innerHTML =
+    '<div class="mcc-topo"><span class="mcc-rot">Carteira sugerida</span>' +
+    '<button type="button" class="mcc-chip" onclick="cartEditarPerfil()" aria-label="Editar perfil e aporte">' +
+    _mobEsc(p) +
+    ' · <span class="valor-mascarado">' +
+    _mobEsc('R$ ' + Math.round(cartEstado.capital || 0).toLocaleString('pt-BR')) +
+    '</span>/mês <i class="ph ph-pencil-simple"></i></button></div>' +
+    (ligado
+      ? '<p class="mcc-tag"><i class="ph ph-sliders-horizontal"></i> Personalizada por você</p>'
+      : '') +
+    '<button type="button" class="mcc-sobre" aria-expanded="' +
+    _mobCartSobre +
+    '" onclick="mobCartAlternarSobre()">Sobre o perfil ' +
+    _mobEsc(p.toLowerCase()) +
+    ' <i class="ph ph-caret-down"></i></button>' +
+    (_mobCartSobre && msg.texto ? '<p class="mcc-msg">' + msg.texto + '</p>' : '') +
+    '<div class="mcc-botoes"><button type="button" onclick="cartAbrirCustom()"><i class="ph ph-sliders-horizontal"></i> ' +
+    (ligado ? 'Ajustar minha carteira' : 'Personalizar classes') +
+    '</button>' +
+    (ligado
+      ? '<button type="button" onclick="cartRestaurarRecomendacao()" aria-label="Voltar à recomendação"><i class="ph ph-arrow-counter-clockwise"></i></button>'
+      : '') +
+    '<button type="button" onclick="cartAtualizarMotor()" aria-label="Atualizar a recomendação"><i class="ph ph-arrows-clockwise"></i></button></div>';
+}
+
+function mobCartAlternarSobre() {
+  _mobCartSobre = !_mobCartSobre;
+  mobRenderCarteiraCab();
+}
+
+/** Abre ou fecha uma seção recolhida da Carteira (rank, sim, crit). */
+function mobCartSecao(nome, abrir) {
+  const sec = document.getElementById('carteira');
+  if (!sec) return;
+  const cls = 'mob-aberto-' + nome;
+  const on = typeof abrir === 'boolean' ? abrir : !sec.classList.contains(cls);
+  sec.classList.toggle(cls, on);
+  const row = document.getElementById('mobCartRow' + nome.charAt(0).toUpperCase() + nome.slice(1));
+  if (row) row.setAttribute('aria-expanded', on ? 'true' : 'false');
+  // O gráfico da simulação é desenhado num canvas escondido: ao abrir, ele
+  // precisa do tamanho real.
+  if (on && nome === 'sim') window.dispatchEvent(new Event('resize'));
+}

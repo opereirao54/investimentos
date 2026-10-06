@@ -636,6 +636,8 @@ function confirmarFusaoUI(idOrigem, idDestino) {
 function renderMinhasContas() {
   const wrap = document.getElementById('listaContas');
   if (!wrap) return;
+  // No celular a lista tem formato próprio (appliquei-mobile.js).
+  if (typeof mobRenderContas === 'function') mobRenderContas();
   popularSelectTipoConta();
   const tipoLabel = {};
   CONTA_TIPOS.forEach(function (t) {

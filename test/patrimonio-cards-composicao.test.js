@@ -91,10 +91,10 @@ test('a largura das barras continua em CSS válido — ponto, não vírgula', ()
 });
 
 test('cada card de componente tem o gancho da sua fatia', () => {
-  const secao = HTML.slice(
-    HTML.indexOf('<section id="meu_patrimonio"'),
-    HTML.indexOf('mp-onde-card')
-  );
+  // O fim é procurado a partir do início da seção: o nome da classe também
+  // aparece no CSS, antes dela.
+  const inicio = HTML.indexOf('<section id="meu_patrimonio"');
+  const secao = HTML.slice(inicio, HTML.indexOf('mp-onde-card', inicio));
   for (const c of COMPONENTES) {
     assert.ok(secao.includes('id="mp-kpi-' + c + '-fatia"'), `falta o rótulo da fatia de "${c}"`);
     assert.ok(
