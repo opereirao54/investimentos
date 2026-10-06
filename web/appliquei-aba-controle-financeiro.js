@@ -3376,13 +3376,13 @@ function atualizarTelaControle() {
   if (kpiCart) kpiCart.innerText = formatarMoeda(totCartao);
   if (kpiInv) kpiInv.innerText = formatarMoeda(totInv);
   if (kpiSonho) kpiSonho.innerText = formatarMoeda(totSonho);
+  // `- totSonho` explícito: ele saiu de totDesp e sem esta parcela o saldo
+  // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
+  // já foi reservado para a meta.
+  const saldoLivre = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
   if (kpiSaldo) {
-    // `- totSonho` explícito: ele saiu de totDesp e sem esta parcela o saldo
-    // livre subiria pelo valor guardado no mês — o app diria que sobrou o que
-    // já foi reservado para a meta.
-    const saldo = totRec - totDesp - totCartao - totInv - totSonho + saldoCarregado;
-    kpiSaldo.innerText = formatarMoeda(saldo);
-    kpiSaldo.style.color = saldo >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
+    kpiSaldo.innerText = formatarMoeda(saldoLivre);
+    kpiSaldo.style.color = saldoLivre >= 0 ? 'var(--cor-primaria)' : 'var(--cor-erro)';
   }
   if (lblCarregado) {
     if (saldoCarregado !== 0) {
@@ -3785,6 +3785,17 @@ function atualizarTelaControle() {
   // sobre o mês em visão — navegar para agosto reanalisa agosto em vez de
   // mostrar a leitura de setembro num mês que não é o dela.
   if (typeof insightsUiRenderizar === 'function') insightsUiRenderizar();
+
+  // Início no celular (appliquei-mobile.js): os mesmos totais dos cards.
+  if (typeof mobRenderInicio === 'function')
+    mobRenderInicio({
+      mes: visaoMes,
+      ano: visaoAno,
+      saldoLivre: saldoLivre,
+      saldoConta: calcularSaldoEmContaDoMes(visaoMes, visaoAno),
+      resumo: rPizza,
+      sonhos: typeof sonhos !== 'undefined' ? sonhos : [],
+    });
 }
 
 // ============================================================

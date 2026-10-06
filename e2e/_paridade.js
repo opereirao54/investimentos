@@ -51,6 +51,11 @@ const ESTADOS_MOB = {
     "mobSegControle('extrato')",
     "mobSegControle('projecao')",
     "mobSegControle('projecao'); mobDreAlternarTabela()",
+    // Os avisos de "O que notamos" abrem em tela cheia, com o cartão do desktop.
+    "mobSegControle('resumo'); mobStoryAbrir(0)",
+    // "Hoje" só aparece fora do mês corrente (no mês corrente não faria nada).
+    'mobStoryFechar(); mudarMesVisao(1)',
+    'irParaMesAtual()',
   ],
 };
 

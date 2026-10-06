@@ -561,6 +561,8 @@ var insightsUiRealceTimer = null;
 function insightsUiIrPara(elId) {
   var el = document.getElementById(elId);
   if (!el || typeof el.scrollIntoView !== 'function') return;
+  // No celular o destino pode estar noutra aba do Controle (appliquei-mobile.js).
+  if (typeof mobRevelar === 'function') mobRevelar(el);
   var suave =
     typeof window.matchMedia === 'function' &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -612,6 +614,7 @@ function insightsUiRealcar(descricao) {
   if (primeiro && primeiro.style.display === 'none') {
     if (typeof filtrarExtratoPorCategoria === 'function') filtrarExtratoPorCategoria('');
   }
+  if (typeof mobRevelar === 'function') mobRevelar(lista);
   if (primeiro && typeof primeiro.scrollIntoView === 'function') {
     var suave =
       typeof window.matchMedia === 'function' &&
@@ -900,6 +903,8 @@ function insightsUiRenderizar() {
     '</div>' +
     corpo +
     '</div>';
+  // No celular os avisos viram histórias no topo (appliquei-mobile.js).
+  if (typeof mobRenderStories === 'function') mobRenderStories();
 }
 
 if (typeof window !== 'undefined') {

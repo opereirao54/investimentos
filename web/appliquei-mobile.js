@@ -185,6 +185,7 @@ function _mobDreFmt(v) {
 function mobRenderDRE(d) {
   const alvo = document.getElementById('mobDRE');
   if (!alvo || !d || !Array.isArray(d.meses) || !d.meses.length) return;
+  _mobDreUltimo = d;
   const meses = d.meses;
   const fmt = _mobDreFmt;
   const resultados = meses.map((m) => m.saldoAcumulado || 0);
@@ -596,3 +597,541 @@ function _mobLigarSimulador() {
 }
 
 document.addEventListener('DOMContentLoaded', _mobLigarSimulador);
+
+// ------------------------------------------------------------
+// Início no celular: resposta primeiro, detalhe depois
+// ------------------------------------------------------------
+// O Resumo era o desktop em fila: dois cartões-herói, cinco indicadores,
+// termômetro, composição — e a pergunta de quem abre o app ("quanto ainda
+// posso gastar?") ficava diluída. No celular o topo vira um cartão só, com
+// o livre para gastar, quanto isso dá por dia e três anéis (gastos,
+// investido, sonhos). Logo abaixo, os atalhos do dia a dia. Os blocos
+// originais continuam na tela, reordenados pelo CSS; o que este código
+// desenha é resumo e atalho, e todo botão chama a função que o desktop usa.
+//
+// Os números chegam prontos de atualizarTelaControle: nada é recalculado.
+
+var _mobDreUltimo = null;
+var _mobAnelRealce = null;
+
+var MOB_ANEIS = [
+  { k: 'gastos', nome: 'Gastos', cor: 'var(--cor-primaria)', r: 56 },
+  { k: 'investido', nome: 'Investido', cor: 'var(--cor-info)', r: 41 },
+  { k: 'sonhos', nome: 'Sonhos', cor: 'var(--cor-patrimonio)', r: 26 },
+];
+
+function _mobEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function _mobPct(v) {
+  return (Math.round(v * 10) / 10).toString().replace('.', ',') + '%';
+}
+
+function _mobSaudacao() {
+  const h = new Date().getHours();
+  return h < 12 ? 'Bom dia' : h < 18 ? 'Boa tarde' : 'Boa noite';
+}
+
+/**
+ * Os três anéis. Cada um enche até a sua regra: gastos até o teto de 60% da
+ * receita (a regra do termômetro), investido até os 30% do Relatório mensal
+ * e sonhos até o total das metas. Passar da regra fecha o anel; a cor é que
+ * diz se passar é bom (investido) ou ruim (gastos).
+ */
+function _mobAneis(d) {
+  const r = d.resumo || {};
+  const receita = Number(r.receita) || 0;
+  const gastos = (Number(r.despFixa) || 0) + (Number(r.despVar) || 0) + (Number(r.cartao) || 0);
+  const investido = (Number(r.invFixo) || 0) + (Number(r.invVar) || 0);
+  const pGastos = receita > 0 ? (gastos / receita) * 100 : 0;
+  const pInv = receita > 0 ? (investido / receita) * 100 : 0;
+  const metas = Array.isArray(d.sonhos) ? d.sonhos.filter((s) => s && !s.arquivado) : [];
+  const alvo = metas.reduce((a, s) => a + (Number(s.valorTotal) || 0), 0);
+  const guardado = metas.reduce(
+    (a, s) => a + Math.min(Number(s.valorAtual) || 0, Number(s.valorTotal) || 0),
+    0
+  );
+  const pSonhos = alvo > 0 ? (guardado / alvo) * 100 : 0;
+  return {
+    gastos: {
+      frac: receita > 0 ? pGastos / 60 : 0,
+      val: receita > 0 ? _mobPct(pGastos) : '—',
+      sub:
+        receita > 0
+          ? pGastos <= 60
+            ? 'dentro dos 60% do que entrou'
+            : 'passou dos 60% do que entrou'
+          : 'sem receita no mês',
+      alerta: pGastos > 60,
+    },
+    investido: {
+      frac: receita > 0 ? pInv / 30 : 0,
+      val: receita > 0 ? _mobPct(pInv) : '—',
+      sub: pInv >= 30 ? 'meta de 30% batida' : 'meta: 30% do que entrou',
+    },
+    sonhos: {
+      frac: alvo > 0 ? guardado / alvo : 0,
+      val: metas.length ? _mobPct(pSonhos) : '—',
+      sub: metas.length
+        ? 'guardado de ' + metas.length + (metas.length === 1 ? ' meta' : ' metas')
+        : 'nenhum sonho cadastrado',
+    },
+  };
+}
+
+function _mobSvgAneis(a) {
+  const circ = MOB_ANEIS.map((x) => {
+    const c = 2 * Math.PI * x.r;
+    const f = Math.max(0, Math.min(1, a[x.k].frac || 0));
+    const cor = x.k === 'gastos' && a.gastos.alerta ? 'var(--cor-erro)' : x.cor;
+    const apagado =
+      (f <= 0 ? ' vazio' : '') + (_mobAnelRealce && _mobAnelRealce !== x.k ? ' apagado' : '');
+    return (
+      '<circle class="mi-trilho" cx="66" cy="66" r="' +
+      x.r +
+      '"></circle>' +
+      '<circle class="mi-arco' +
+      apagado +
+      '" data-anel="' +
+      x.k +
+      '" cx="66" cy="66" r="' +
+      x.r +
+      '" stroke="' +
+      cor +
+      '" stroke-dasharray="' +
+      (c * f).toFixed(1) +
+      ' ' +
+      c.toFixed(1) +
+      '"></circle>'
+    );
+  }).join('');
+  return '<svg class="mi-aneis" viewBox="0 0 132 132" aria-hidden="true">' + circ + '</svg>';
+}
+
+/** Realça um anel e apaga os outros; tocar de novo desfaz. Só visual. */
+function mobAnelRealcar(k) {
+  _mobAnelRealce = _mobAnelRealce === k ? null : k;
+  document.querySelectorAll('#mobInicio .mi-arco').forEach((c) => {
+    c.classList.toggle('apagado', !!_mobAnelRealce && c.dataset.anel !== _mobAnelRealce);
+  });
+  document.querySelectorAll('#mobInicio .mi-leg').forEach((b) => {
+    b.setAttribute('aria-pressed', b.dataset.anel === _mobAnelRealce ? 'true' : 'false');
+  });
+}
+
+/** Atalhos do Início: cada um abre o mesmo formulário que o desktop. */
+function mobAcaoRapida(tipo) {
+  if (tipo === 'aporte') {
+    if (typeof cadastrarEm === 'function') cadastrarEm('investimento');
+    return;
+  }
+  if (tipo === 'transferir') {
+    if (typeof abrirTransferenciaModal === 'function') abrirTransferenciaModal();
+    return;
+  }
+  if (tipo === 'pagar') {
+    mobIrVencimentos();
+    return;
+  }
+  if (typeof abrirPainelLancamento === 'function') abrirPainelLancamento();
+  const chip = { despesa: 'saida', receita: 'entrada', cartao: 'cartao' }[tipo];
+  if (chip && typeof selecionarChipTipo === 'function') selecionarChipTipo(chip);
+}
+
+/** "Pagar": abre os vencimentos do mês e leva até eles. */
+function mobIrVencimentos() {
+  const painel = document.getElementById('painelVencimentos');
+  if (!painel || painel.style.display === 'none') {
+    if (typeof mostrarToast === 'function') mostrarToast('Nada a pagar neste mês.', 'info');
+    return;
+  }
+  if (painel.dataset.aberto !== '1' && typeof alternarPainelVencimentos === 'function') {
+    alternarPainelVencimentos();
+  }
+  mobRevelar(painel);
+}
+
+/**
+ * Mostra um elemento do Controle que pode estar noutra aba do celular. Os
+ * avisos de "O que notamos" mandam para o extrato ou para os vencimentos;
+ * no celular eles moram em abas diferentes, e rolar até um bloco escondido
+ * não leva a lugar nenhum.
+ */
+function mobRevelar(el) {
+  if (!el || !mobEhCelular()) return;
+  const bloco = el.closest('#controle [data-mob-aba]');
+  if (bloco) {
+    const sec = document.getElementById('controle');
+    if (sec && sec.dataset.mobAbaAtiva !== bloco.dataset.mobAba)
+      mobSegControle(bloco.dataset.mobAba);
+  }
+  if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
+}
+
+function _mobDiasRestantes(mes, ano) {
+  const hoje = new Date();
+  if (hoje.getMonth() !== mes || hoje.getFullYear() !== ano) return 0;
+  return new Date(ano, mes + 1, 0).getDate() - hoje.getDate() + 1;
+}
+
+/** Movimentações recentes do mês em visão: as últimas já realizadas. */
+function _mobMovimentos(mes, ano) {
+  if (typeof transacoes === 'undefined' || !Array.isArray(transacoes)) return [];
+  const agora = Date.now();
+  return transacoes
+    .filter((t) => t && t.mes === mes && t.ano === ano && !t.transferenciaId)
+    .filter((t) => t.pago !== false && (!t.data || new Date(t.data).getTime() <= agora))
+    .sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')))
+    .slice(0, 5);
+}
+
+function _mobLinhaMovimento(t) {
+  const entrada = t.categoria === 'receita' || t.categoria === 'resgate_investimento';
+  const cat =
+    t.categoriaDespesa && typeof rotuloCategoriaDespesa === 'function'
+      ? rotuloCategoriaDespesa(t.categoriaDespesa)
+      : entrada
+        ? 'Receita'
+        : t.categoria === 'cartao_credito'
+          ? 'Cartão'
+          : /invest|aporte/.test(t.categoria || '')
+            ? 'Investimento'
+            : 'Despesa';
+  const catTxt = cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : '';
+  const dia = t.data
+    ? new Date(t.data).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    : '';
+  return (
+    '<li class="mi-mov"><span class="mi-mov-ic' +
+    (entrada ? ' in' : '') +
+    '"><i class="ph ' +
+    (entrada
+      ? 'ph-arrow-down-left'
+      : t.categoria === 'cartao_credito'
+        ? 'ph-credit-card'
+        : 'ph-arrow-up-right') +
+    '"></i></span><span class="mi-mov-txt"><b>' +
+    _mobEsc(t.descricao || 'Lançamento') +
+    '</b><small>' +
+    _mobEsc(catTxt) +
+    (dia ? ' · ' + _mobEsc(dia) : '') +
+    '</small></span><span class="mi-mov-val valor-mascarado' +
+    (entrada ? ' in' : '') +
+    '">' +
+    (entrada ? '+ ' : '− ') +
+    _mobEsc(_mobDreFmt(Math.abs(Number(t.valor) || 0))) +
+    '</span></li>'
+  );
+}
+
+/** Cartão "Próximos meses": o resultado acumulado daqui em diante. */
+function _mobCartaoProjecao() {
+  const d = _mobDreUltimo;
+  if (!d || !Array.isArray(d.meses) || !d.meses.length) return '';
+  const ini = Math.max(0, d.indiceAtual || 0);
+  const vals = d.meses.slice(ini, ini + 12).map((m) => m.saldoAcumulado || 0);
+  const rots = d.rotulos.slice(ini, ini + 12);
+  if (!vals.length) return '';
+  const iNeg = vals.findIndex((v) => v < 0);
+  const fim = rots[rots.length - 1];
+  const aviso =
+    iNeg > -1
+      ? '<span class="mi-proj-aviso neg"><i class="ph-fill ph-warning-circle"></i><span>Em <b>' +
+        _mobEsc(rots[iNeg]) +
+        '</b> o caixa fica negativo: <b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(vals[iNeg])) +
+        '</b>.</span></span>'
+      : '<span class="mi-proj-aviso"><i class="ph-fill ph-check-circle"></i><span>Sem mês negativo até ' +
+        _mobEsc(fim) +
+        '. O menor resultado é <b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(Math.min(...vals))) +
+        '</b>.</span></span>';
+  const maxAbs = Math.max(1, ...vals.map((v) => Math.abs(v)));
+  const barras = vals
+    .map((v, i) => {
+      const h = Math.max(6, Math.round((Math.abs(v) / maxAbs) * 100));
+      return (
+        '<span class="mi-proj-col"><span class="mi-proj-area"><span class="mi-proj-barra ' +
+        _mobDreClasse(v, d) +
+        (i === 0 ? ' atual' : '') +
+        '" style="height:' +
+        h +
+        '%"></span></span><span class="mi-proj-rot">' +
+        _mobEsc(
+          String(rots[i] || '')
+            .charAt(0)
+            .toUpperCase()
+        ) +
+        '</span></span>'
+      );
+    })
+    .join('');
+  return (
+    '<button type="button" class="mi-card mi-proj" onclick="mobSegControle(\'projecao\')">' +
+    '<span class="mi-tit-linha"><span class="mi-h2">Próximos meses</span><span class="mi-link">Projeção <i class="ph ph-caret-right"></i></span></span>' +
+    aviso +
+    '<span class="mi-proj-barras" aria-hidden="true">' +
+    barras +
+    '</span></button>'
+  );
+}
+
+/**
+ * Desenha o topo e o fim do Início no celular. `d` vem de
+ * atualizarTelaControle com os totais do mês já calculados.
+ */
+function mobRenderInicio(d) {
+  const topo = document.getElementById('mobInicio');
+  const fim = document.getElementById('mobInicioFim');
+  const sec = document.getElementById('controle');
+  if (!topo || !fim || !sec || !d) return;
+
+  const hoje = new Date();
+  const noMes = d.mes === hoje.getMonth() && d.ano === hoje.getFullYear();
+  sec.classList.toggle('mob-fora-do-mes', !noMes);
+  const saud = document.getElementById('mobSaudacao');
+  if (saud) saud.textContent = _mobSaudacao();
+
+  const livre = Number(d.saldoLivre) || 0;
+  const dias = _mobDiasRestantes(d.mes, d.ano);
+  const fimMes = new Date(d.ano, d.mes + 1, 0).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+  });
+  const porDia =
+    dias > 0 && livre > 0
+      ? '≈ <b class="valor-mascarado">' +
+        _mobEsc(_mobDreFmt(livre / dias)) +
+        '</b> por dia até ' +
+        fimMes
+      : livre < 0
+        ? 'O mês fechou no vermelho: saiu mais do que entrou.'
+        : noMes
+          ? 'Tudo o que entrou já tem destino.'
+          : 'o que sobrou de tudo o que entrou no mês';
+
+  const scoreEl = document.getElementById('termChipScore');
+  const rotEl = document.getElementById('termChipRotulo');
+  const score = scoreEl ? (scoreEl.textContent || '').trim() : '';
+  const rot = rotEl ? (rotEl.textContent || '').trim() : '';
+  const termo =
+    '<button type="button" class="mi-termo" onclick="abrirRelatorioDoMesVisao()">' +
+    '<span class="mi-termo-chip"><i class="ph ph-thermometer"></i> ' +
+    _mobEsc(score && score !== '—' ? score + ' · ' + rot : rot || '—') +
+    '</span><span class="mi-termo-txt">Relatório do mês</span><i class="ph ph-caret-right"></i></button>';
+
+  const a = _mobAneis(d);
+  const leg = MOB_ANEIS.map(
+    (x) =>
+      '<button type="button" class="mi-leg" data-anel="' +
+      x.k +
+      '" aria-pressed="' +
+      (_mobAnelRealce === x.k ? 'true' : 'false') +
+      '" onclick="mobAnelRealcar(\'' +
+      x.k +
+      '\')"><span class="mi-leg-dot" style="background:' +
+      (x.k === 'gastos' && a.gastos.alerta ? 'var(--cor-erro)' : x.cor) +
+      '"></span><span class="mi-leg-txt"><b>' +
+      x.nome +
+      '</b><small>' +
+      _mobEsc(a[x.k].sub) +
+      '</small></span><span class="mi-leg-val">' +
+      _mobEsc(a[x.k].val) +
+      '</span></button>'
+  ).join('');
+
+  const conta =
+    d.saldoConta == null
+      ? ''
+      : '<button type="button" class="mi-conta" onclick="ppNavegarPara(\'meu_patrimonio\')">' +
+        '<i class="ph ph-bank"></i><span>Saldo em conta <b class="valor-mascarado' +
+        (d.saldoConta < 0 ? ' neg' : '') +
+        '">' +
+        _mobEsc(_mobDreFmt(d.saldoConta)) +
+        '</b></span><span class="mi-link">Por banco <i class="ph ph-caret-right"></i></span></button>';
+
+  const atalhos = [
+    ['despesa', 'Despesa', 'ph-minus', 'erro'],
+    ['receita', 'Receita', 'ph-plus', 'ok'],
+    ['pagar', 'Pagar', 'ph-check', 'ambar'],
+    ['aporte', 'Aporte', 'ph-trend-up', 'info'],
+    ['transferir', 'Transferir', 'ph-arrows-left-right', 'neutro'],
+  ]
+    .map(
+      (x) =>
+        '<button type="button" class="mi-atalho" onclick="mobAcaoRapida(\'' +
+        x[0] +
+        '\')"><span class="mi-atalho-ic ' +
+        x[3] +
+        '"><i class="ph-bold ' +
+        x[2] +
+        '"></i></span><span>' +
+        x[1] +
+        '</span></button>'
+    )
+    .join('');
+
+  topo.innerHTML =
+    '<section class="mi-card mi-hero">' +
+    termo +
+    '<div class="mi-hero-corpo"><div class="mi-hero-num">' +
+    '<span class="mi-rot">' +
+    (noMes ? 'Livre para gastar' : 'Saldo livre do mês') +
+    '</span><span class="mi-livre valor-mascarado' +
+    (livre < 0 ? ' neg' : '') +
+    (_mobDreFmt(livre).length > 10 ? ' longo' : '') +
+    '">' +
+    _mobEsc(_mobDreFmt(livre)) +
+    '</span><span class="mi-dia">' +
+    porDia +
+    '</span></div>' +
+    _mobSvgAneis(a) +
+    '</div>' +
+    conta +
+    '<div class="mi-legs">' +
+    leg +
+    '</div></section>' +
+    '<nav class="mi-atalhos" aria-label="Atalhos">' +
+    atalhos +
+    '</nav>';
+
+  const movs = _mobMovimentos(d.mes, d.ano);
+  fim.innerHTML =
+    _mobCartaoProjecao() +
+    '<section class="mi-movs"><div class="mi-tit-linha"><h2 class="mi-h2">Movimentações</h2>' +
+    '<button type="button" class="mi-link" onclick="mobSegControle(\'extrato\')">Extrato completo <i class="ph ph-caret-right"></i></button></div>' +
+    (movs.length
+      ? '<ul class="mi-mov-lista">' + movs.map(_mobLinhaMovimento).join('') + '</ul>'
+      : '<p class="mi-vazio">Nenhum lançamento realizado neste mês ainda.</p>') +
+    '</section>';
+}
+
+// ------------------------------------------------------------
+// "O que notamos" em histórias
+// ------------------------------------------------------------
+// No desktop os avisos são uma grade de cartões. No celular eles viram uma
+// fileira de círculos no topo — o formato que todo mundo já sabe usar — e
+// cada um abre em tela cheia com o MESMO cartão do desktop (insightsUiCard),
+// com os mesmos botões. A grade some só quando há histórias para mostrar.
+
+var _mobStoryAtual = -1;
+
+function _mobInsights() {
+  return typeof insightsUiUltimo !== 'undefined' &&
+    insightsUiUltimo &&
+    Array.isArray(insightsUiUltimo.insights)
+    ? insightsUiUltimo.insights
+    : [];
+}
+
+/** Chamada no fim de insightsUiRenderizar: refaz a fileira de histórias. */
+function mobRenderStories() {
+  const host = document.getElementById('painelInsights');
+  if (!host) return;
+  const lista = _mobInsights();
+  const velha = host.querySelector('.mob-stories');
+  if (velha) velha.remove();
+  host.classList.toggle('mob-com-stories', lista.length > 0);
+  if (!lista.length) {
+    mobStoryFechar();
+    return;
+  }
+  const itens = lista
+    .map((ins, i) => {
+      const ap = typeof insightsUiApresentar === 'function' ? insightsUiApresentar(ins) : null;
+      if (!ap) return '';
+      const sev =
+        (typeof INSIGHTS_UI_SEVERIDADE !== 'undefined' && INSIGHTS_UI_SEVERIDADE[ins.severidade]) ||
+        {};
+      return (
+        '<button type="button" class="mob-story-bola ' +
+        _mobEsc(sev.classe || '') +
+        '" onclick="mobStoryAbrir(' +
+        i +
+        ')"><span class="mob-story-anel"><span class="mob-story-ic"><i class="' +
+        _mobEsc(ap.icone) +
+        '"></i></span></span><span class="mob-story-nome">' +
+        _mobEsc(ap.titulo) +
+        '</span></button>'
+      );
+    })
+    .join('');
+  const fila = document.createElement('div');
+  fila.className = 'mob-stories';
+  fila.setAttribute('role', 'list');
+  fila.innerHTML = itens;
+  const cab = host.querySelector('.ins-painel-head');
+  if (cab && cab.parentNode) cab.parentNode.insertBefore(fila, cab.nextSibling);
+  else host.prepend(fila);
+  if (_mobStoryAtual > -1) mobStoryAbrir(Math.min(_mobStoryAtual, lista.length - 1));
+}
+
+function mobStoryAbrir(i) {
+  const lista = _mobInsights();
+  const tela = document.getElementById('mobStory');
+  if (!tela || !lista.length || typeof insightsUiCard !== 'function') return;
+  i = Math.max(0, Math.min(lista.length - 1, Number(i) || 0));
+  _mobStoryAtual = i;
+  const ins = lista[i];
+  const serie =
+    typeof insightsUiSerie === 'function' && typeof transacoes !== 'undefined'
+      ? insightsUiSerie(ins, transacoes)
+      : null;
+  const barras = lista
+    .map(
+      (_, k) =>
+        '<span class="mob-story-prog' + (k < i ? ' visto' : k === i ? ' atual' : '') + '"></span>'
+    )
+    .join('');
+  tela.innerHTML =
+    '<div class="mob-story-topo"><div class="mob-story-progs">' +
+    barras +
+    '</div><div class="mob-story-cab"><span>O que notamos · ' +
+    (i + 1) +
+    ' de ' +
+    lista.length +
+    '</span><button type="button" class="mob-story-fechar" aria-label="Fechar" onclick="mobStoryFechar()"><i class="ph ph-x"></i></button></div></div>' +
+    '<div class="mob-story-corpo">' +
+    insightsUiCard(ins, serie) +
+    '</div>' +
+    '<button type="button" class="mob-story-zona ant" aria-label="Anterior" onclick="mobStoryPassar(-1)"' +
+    (i === 0 ? ' disabled' : '') +
+    '></button>' +
+    '<button type="button" class="mob-story-zona prox" aria-label="Próximo" onclick="mobStoryPassar(1)"></button>';
+  tela.hidden = false;
+  document.body.classList.add('mob-story-aberta');
+}
+
+function mobStoryPassar(delta) {
+  const n = _mobInsights().length;
+  const prox = _mobStoryAtual + delta;
+  if (prox >= n || prox < 0) mobStoryFechar();
+  else mobStoryAbrir(prox);
+}
+
+function mobStoryFechar() {
+  const tela = document.getElementById('mobStory');
+  _mobStoryAtual = -1;
+  if (tela) {
+    tela.hidden = true;
+    tela.innerHTML = '';
+  }
+  document.body.classList.remove('mob-story-aberta');
+}
+
+// Agir num aviso leva a outro lugar do Controle (extrato, vencimentos): a
+// história fecha para mostrar o destino. Dispensar refaz a fileira, e a
+// história segue para o próximo aviso.
+document.addEventListener('click', function (e) {
+  const tela = document.getElementById('mobStory');
+  if (!tela || tela.hidden || !tela.contains(e.target)) return;
+  if (e.target.closest('.ins-btn--primario')) setTimeout(mobStoryFechar, 0);
+});
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && document.body.classList.contains('mob-story-aberta')) mobStoryFechar();
+});

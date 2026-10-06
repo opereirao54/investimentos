@@ -10319,7 +10319,7 @@
         /* (web/appliquei-mobile.js). Só até 768px; no desktop a sidebar */
         /* continua sendo a navegação e nada disto aparece.             */
         /* ============================================================ */
-        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10868,6 +10868,228 @@
                 position: sticky; bottom: 0; z-index: 2; min-height: 52px;
                 box-shadow: 0 -10px 18px 4px var(--cor-branco);
             }
+        }
+
+        /* ============================================================ */
+        /* INÍCIO NO CELULAR (web/appliquei-mobile.js, mobRenderInicio)  */
+        /* A resposta primeiro: um cartão com o livre para gastar e os   */
+        /* três anéis, os atalhos, os avisos em histórias. Os blocos do  */
+        /* desktop seguem na tela, reordenados; só saem os que o cartão  */
+        /* novo substitui (heróis, termômetro, regra dos 60%).           */
+        /* ============================================================ */
+        @media (max-width: 768px) {
+            #controle.section.ativa { display: flex; flex-direction: column; }
+            #controle > * { order: 20; min-width: 0; }
+            #controle > .page-header { order: 1; }
+            #controle > #mobSegControle { order: 2; }
+            #controle > .alert-contextual { order: 3; }
+            #controle > #painelInsights { order: 4; }
+            /* Sem avisos, o "nada fora do padrão" não merece o topo. */
+            #controle > #painelInsights:not(.mob-com-stories) { order: 8; }
+            #controle > #mobInicio { order: 5; }
+            #controle > #bannerSaldoMesAnterior { order: 6; }
+            #controle > .kpis-controle { order: 7; }
+            #controle > #painelVencimentos { order: 8; }
+            #controle > .ctrl-saude-composicao { order: 9; }
+            #controle > #mobInicioFim { order: 10; }
+
+            /* Cabeçalho: saudação, e o mês com os atalhos numa linha só. */
+            #controle .page-header h1 { display: none; }
+            .mob-saudacao { display: block; margin: 0 0 2px; font-size: 13px; font-weight: 500; color: var(--cor-texto-mutado); }
+            #controle .page-actions { display: flex !important; align-items: center; flex-wrap: nowrap !important; }
+            #controle .page-actions .seletor-mes { flex: 1 1 auto; }
+            #controle .page-actions > .btn-secundario { flex: 0 0 auto !important; }
+            #controle .page-actions #termometroControle { display: none !important; }
+            #controle:not(.mob-fora-do-mes) .page-actions > .btn-secundario[onclick^="irParaMesAtual"] { display: none !important; }
+            #controle .page-actions > .btn-secundario.mob-olho {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 44px !important; padding: 0; font-size: 19px;
+            }
+
+            /* O cartão novo faz as vezes destes três. */
+            #controle .kpis-controle-heroes,
+            #controle #painelTermometro { display: none !important; }
+            #controle .ctrl-saude-composicao { display: block !important; }
+
+            .mob-inicio { display: block; }
+            .mi-card {
+                background: var(--cor-branco); border: 1px solid var(--cor-borda);
+                border-radius: 22px; box-shadow: 0 1px 3px rgba(16, 30, 19, 0.05);
+            }
+            .mi-hero {
+                border-top: 4px solid var(--cor-primaria);
+                padding: 14px 18px 6px; display: flex; flex-direction: column; gap: 12px;
+                margin-bottom: 16px;
+            }
+            .mi-termo {
+                display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px;
+                background: none; border: 0; padding: 0; font-family: inherit; text-align: left;
+                font-size: 13px; color: var(--cor-texto-secundario); cursor: pointer;
+            }
+            .mi-termo-chip {
+                font-weight: 700; color: var(--tinta-ambar); background: var(--cor-bg-amber);
+                border: 1px solid color-mix(in srgb, var(--cor-cartao) 35%, transparent);
+                border-radius: 99px; padding: 3px 10px; white-space: nowrap;
+            }
+            .mi-termo-txt { flex: 1; }
+            .mi-hero-corpo { display: flex; align-items: center; gap: 12px; }
+            .mi-hero-num { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+            .mi-rot { font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado); }
+            .mi-livre {
+                font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 500;
+                letter-spacing: -1px; line-height: 1.05; color: var(--tinta-verde); overflow-wrap: anywhere;
+            }
+            .mi-livre.neg { color: var(--cor-erro); }
+            .mi-livre.longo { font-size: 23px; letter-spacing: -0.8px; }
+            .mi-dia { font-size: 13px; line-height: 1.35; color: var(--cor-texto-mutado); }
+            .mi-dia b { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+            .mi-aneis { width: 104px; height: 104px; flex-shrink: 0; transform: rotate(-90deg); }
+            .mi-aneis circle { fill: none; stroke-width: 12; }
+            .mi-trilho { stroke: var(--cor-borda); opacity: 0.7; }
+            .mi-arco { stroke-linecap: round; transition: opacity 0.2s, stroke-dasharray 0.6s ease; }
+            .mi-arco.apagado { opacity: 0.22; }
+            .mi-arco.vazio { opacity: 0; }
+            .mi-conta {
+                display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px;
+                background: var(--cor-fundo); border: 0; border-radius: 14px; padding: 6px 12px;
+                font-family: inherit; font-size: 13.5px; color: var(--cor-texto-principal); text-align: left; cursor: pointer;
+            }
+            .mi-conta > i { color: var(--cor-info); font-size: 18px; }
+            .mi-conta > span:first-of-type { flex: 1; min-width: 0; }
+            .mi-conta b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mi-conta b.neg { color: var(--cor-erro); }
+            .mi-link {
+                display: inline-flex; align-items: center; gap: 2px; min-height: 44px;
+                background: none; border: 0; padding: 0; font-family: inherit;
+                font-size: 13.5px; font-weight: 700; color: var(--tinta-verde); cursor: pointer; white-space: nowrap;
+            }
+            .mi-legs { display: flex; flex-direction: column; border-top: 1px solid var(--cor-borda); padding-top: 4px; }
+            .mi-leg {
+                display: flex; align-items: center; gap: 10px; min-height: 48px;
+                background: none; border: 0; padding: 6px 8px; margin: 0 -8px; border-radius: 12px;
+                font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mi-leg[aria-pressed="true"] { background: var(--cor-fundo); }
+            .mi-leg-dot { width: 12px; height: 12px; border-radius: 99px; flex-shrink: 0; }
+            .mi-leg-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+            .mi-leg-txt b { font-size: 14px; }
+            .mi-leg-txt small { font-size: 12px; color: var(--cor-texto-mutado); }
+            .mi-leg-val { font-family: 'DM Mono', monospace; font-size: 15px; }
+
+            .mi-atalhos { display: flex; justify-content: space-between; gap: 4px; margin: 0 0 18px; }
+            .mi-atalho {
+                flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 7px;
+                background: none; border: 0; padding: 0; font-family: inherit;
+                font-size: 12px; font-weight: 600; color: var(--cor-texto-secundario); cursor: pointer;
+            }
+            .mi-atalho-ic {
+                width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+                font-size: 22px; background: var(--cor-branco); border: 1px solid var(--cor-borda); color: var(--cor-texto-secundario);
+            }
+            .mi-atalho-ic.erro { color: var(--cor-erro); background: var(--cor-bg-erro); border-color: color-mix(in srgb, var(--cor-erro) 25%, transparent); }
+            .mi-atalho-ic.ok { color: var(--tinta-verde); background: var(--cor-bg-primaria); border-color: color-mix(in srgb, var(--cor-primaria) 30%, transparent); }
+            .mi-atalho-ic.ambar { color: var(--tinta-ambar); background: var(--cor-bg-amber); border-color: color-mix(in srgb, var(--cor-cartao) 30%, transparent); }
+            .mi-atalho-ic.info { color: var(--cor-info); background: var(--cor-bg-info); border-color: color-mix(in srgb, var(--cor-info) 25%, transparent); }
+            .mi-atalho:active .mi-atalho-ic { transform: scale(0.94); }
+
+            .mi-tit-linha { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; }
+            .mi-h2 { font-size: 17px; font-weight: 800; margin: 0; letter-spacing: -0.2px; color: var(--cor-texto-principal); }
+            .mi-proj {
+                display: flex; flex-direction: column; gap: 10px; width: 100%; padding: 6px 16px 14px; margin: 0 0 16px;
+                font-family: inherit; text-align: left; color: var(--cor-texto-principal); cursor: pointer;
+            }
+            .mi-proj-aviso {
+                display: flex; align-items: flex-start; gap: 8px; border-radius: 14px; padding: 10px 12px;
+                font-size: 13.5px; line-height: 1.4; color: var(--tinta-verde); background: var(--cor-bg-primaria);
+                border: 1px solid color-mix(in srgb, var(--cor-primaria) 30%, transparent);
+            }
+            .mi-proj-aviso i { font-size: 17px; margin-top: 1px; }
+            .mi-proj-aviso b { font-family: 'DM Mono', monospace; font-weight: 500; }
+            .mi-proj-aviso.neg { color: var(--cor-erro); background: var(--cor-bg-erro); border-color: color-mix(in srgb, var(--cor-erro) 30%, transparent); }
+            .mi-proj-barras { display: flex; align-items: stretch; gap: 5px; height: 76px; }
+            .mi-proj-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+            .mi-proj-area { flex: 1; display: flex; align-items: flex-end; }
+            .mi-proj-barra { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: color-mix(in srgb, var(--cor-primaria) 35%, transparent); }
+            .mi-proj-barra.atual, .mi-proj-barra.ok.atual { background: var(--cor-primaria); }
+            .mi-proj-barra.baixo { background: color-mix(in srgb, var(--cor-cartao) 55%, transparent); }
+            .mi-proj-barra.neg { background: var(--cor-erro); }
+            .mi-proj-rot { font-size: 11px; font-weight: 700; text-align: center; color: var(--cor-texto-mutado); }
+
+            .mi-movs { margin-bottom: 12px; }
+            .mi-mov-lista {
+                list-style: none; margin: 0; padding: 0 14px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
+            }
+            .mi-mov { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--cor-borda); }
+            .mi-mov:last-child { border-bottom: 0; }
+            .mi-mov-ic {
+                width: 40px; height: 40px; border-radius: 13px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+                font-size: 18px; background: var(--cor-fundo); color: var(--cor-texto-secundario);
+            }
+            .mi-mov-ic.in { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+            .mi-mov-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+            .mi-mov-txt b { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .mi-mov-txt small { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mi-mov-val { font-family: 'DM Mono', monospace; font-size: 14.5px; white-space: nowrap; color: var(--cor-texto-principal); }
+            .mi-mov-val.in { color: var(--tinta-verde); }
+            .mi-vazio { font-size: 13.5px; color: var(--cor-texto-mutado); margin: 4px 0 0; }
+
+            /* "O que notamos" em histórias: a grade do desktop dá lugar à
+               fileira de círculos; cada um abre o mesmo cartão em tela cheia. */
+            #painelInsights .mob-stories {
+                display: flex; gap: 12px; overflow-x: auto; scrollbar-width: none;
+                margin: 0 -16px 6px; padding: 2px 16px 6px; scroll-snap-type: x proximity;
+            }
+            #painelInsights .mob-stories::-webkit-scrollbar { display: none; }
+            #painelInsights.mob-com-stories .ins-grid { display: none; }
+            #painelInsights.mob-com-stories .ins-painel { margin-bottom: 8px; }
+            .mob-story-bola {
+                flex: 0 0 74px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+                background: none; border: 0; padding: 0; font-family: inherit; cursor: pointer; scroll-snap-align: start;
+            }
+            .mob-story-anel {
+                width: 64px; height: 64px; border-radius: 999px; padding: 3px; box-sizing: border-box;
+                background: linear-gradient(135deg, var(--cor-primaria), color-mix(in srgb, var(--cor-primaria) 40%, #fff));
+            }
+            .mob-story-bola.critico .mob-story-anel { background: linear-gradient(135deg, var(--cor-erro), color-mix(in srgb, var(--cor-erro) 40%, #fff)); }
+            .mob-story-bola.atencao .mob-story-anel { background: linear-gradient(135deg, var(--cor-cartao), color-mix(in srgb, var(--cor-cartao) 40%, #fff)); }
+            .mob-story-bola.informativo .mob-story-anel { background: linear-gradient(135deg, var(--cor-info), color-mix(in srgb, var(--cor-info) 40%, #fff)); }
+            .mob-story-ic {
+                width: 100%; height: 100%; border-radius: 999px; box-sizing: border-box;
+                border: 3px solid var(--cor-fundo); background: var(--cor-branco);
+                display: flex; align-items: center; justify-content: center; font-size: 22px; color: var(--cor-texto-principal);
+            }
+            .mob-story-nome {
+                font-size: 11.5px; font-weight: 600; line-height: 1.2; text-align: center; color: var(--cor-texto-secundario);
+                display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            }
+            .mob-story:not([hidden]) {
+                display: flex; flex-direction: column; position: fixed; inset: 0; z-index: 9995;
+                background: var(--cor-fundo);
+                padding: calc(10px + env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom));
+            }
+            .mob-story-topo { position: relative; z-index: 3; }
+            .mob-story-progs { display: flex; gap: 4px; }
+            .mob-story-prog { flex: 1; height: 3px; border-radius: 99px; background: var(--cor-borda); }
+            .mob-story-prog.visto, .mob-story-prog.atual { background: var(--cor-primaria); }
+            .mob-story-cab {
+                display: flex; align-items: center; justify-content: space-between; margin-top: 10px;
+                font-size: 13px; font-weight: 700; color: var(--cor-texto-mutado);
+            }
+            .mob-story-fechar {
+                width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--cor-borda);
+                background: var(--cor-branco); color: var(--cor-texto-principal); font-size: 20px;
+                display: flex; align-items: center; justify-content: center; cursor: pointer;
+            }
+            .mob-story-corpo {
+                flex: 1; display: flex; flex-direction: column; justify-content: center;
+                position: relative; z-index: 2; pointer-events: none; overflow-y: auto;
+            }
+            .mob-story-corpo .ins-card { pointer-events: auto; flex: 0 0 auto; width: 100%; max-width: none; height: auto; box-sizing: border-box; }
+            .mob-story-zona { position: absolute; top: 80px; bottom: 0; width: 35%; z-index: 1; background: none; border: 0; padding: 0; }
+            .mob-story-zona.ant { left: 0; }
+            .mob-story-zona.prox { right: 0; }
+            body.mob-story-aberta .mob-tabbar { visibility: hidden; }
         }
     </style>
 </head>
@@ -11922,6 +12144,7 @@
         <section id="controle" class="section ativa" data-mob-aba-ativa="resumo">
             <div class="page-header">
                 <div class="page-header-left">
+                    <p class="mob-saudacao" id="mobSaudacao"></p>
                     <h1>Controle financeiro</h1>
                     <p class="subtitulo" style="margin-bottom:0">Visão mensal de receitas, despesas e saúde do caixa.</p>
                 </div>
@@ -11961,6 +12184,7 @@
                         <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
+                    <button type="button" class="btn-secundario mob-olho" onclick="mobAlternarValores()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
@@ -11976,6 +12200,13 @@
                 <button type="button" role="tab" data-mob-seg="extrato" aria-selected="false" onclick="mobSegControle('extrato')">Extrato</button>
                 <button type="button" role="tab" data-mob-seg="projecao" aria-selected="false" onclick="mobSegControle('projecao')">Projeção</button>
             </div>
+
+            <!-- Início no celular (appliquei-mobile.js, mobRenderInicio): o
+                 cartão do "livre para gastar" com os anéis e os atalhos no
+                 topo; a projeção e as últimas movimentações no fim. O CSS
+                 reordena os blocos do Resumo em volta deles. -->
+            <div id="mobInicio" class="mob-inicio" data-mob-aba="resumo"></div>
+            <div id="mobStory" class="mob-story" role="dialog" aria-modal="true" aria-label="O que notamos" hidden></div>
 
             <div class="kpis-controle" data-mob-aba="resumo">
                 <!-- Dois heróis, e a diferença entre eles é a pergunta que
@@ -12140,7 +12371,7 @@
                 <div id="listaVencimentosContainer" class="vencimentos-grid"></div>
             </div>
 
-            <div data-mob-aba="resumo" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
+            <div data-mob-aba="resumo" class="ctrl-saude-composicao" style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;align-items:stretch;">
                 <div class="thermo-card" id="painelTermometro" style="margin-bottom:0; min-width: 0;">
                     <div class="thermo-head">
                         <div class="thermo-title"><i class="ph ph-thermometer"></i> Saúde financeira — Regra dos 60%</div>
@@ -12170,6 +12401,8 @@
                     <div style="text-align:center;margin-top:8px;font-size:12px;color:var(--cor-texto-mutado);" id="legendaPizzaVazia">Adicione receitas e despesas para visualizar.</div>
                 </div>
             </div>
+
+            <div id="mobInicioFim" class="mob-inicio" data-mob-aba="resumo"></div>
 
             <div style="margin-bottom:20px;">
 
@@ -14188,8 +14421,8 @@
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=onda6-controle"></script>
-    <script src="/web/appliquei-insights-ui.js?v=insights-1"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=inicio-mob"></script>
+    <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
     <script src="/web/appliquei-duvidas.js?v=onda4-feedback"></script>
@@ -14204,6 +14437,6 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=mobile-1"></script>
+    <script src="/web/appliquei-mobile.js?v=inicio-mob"></script>
 </body>
 </html>

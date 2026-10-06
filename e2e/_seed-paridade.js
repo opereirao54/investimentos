@@ -73,6 +73,12 @@ function semearParidade() {
       categoriaDespesa: 'saude',
       pago: !atual,
     });
+    // Um gasto fora do padrão no mês corrente: faz "O que notamos" ter o
+    // que dizer, e o teste olhar também para os cartões de aviso.
+    add('Restaurante', atual ? 1900 : 280, 'despesa_variavel', base, 3, {
+      ...nu,
+      categoriaDespesa: 'restaurantes',
+    });
   }
 
   const compra = (id, ticker, quantidade, preco, data, subcategoria) => ({
