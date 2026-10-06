@@ -1375,6 +1375,15 @@ function atualizarDatalistDescricoes() {
 // Trava de reentrância do salvamento em modo sonho (duplo clique).
 var salvandoLancamentoSonho = false;
 
+// Ícone de cada linha do extrato (só aparece no celular, ao lado da linha).
+var ICONE_TIPO_EXTRATO = {
+  receita: 'ph-arrow-down-left',
+  despesa: 'ph-arrow-up-right',
+  cartao: 'ph-credit-card',
+  investimento: 'ph-chart-line-up',
+  sonho: 'ph-star',
+};
+
 function transacaoEhSonho(t) {
   return !!(t && t.categoria === 'sonho' && t.sonhoId);
 }
@@ -3334,7 +3343,8 @@ function atualizarTelaControle() {
 
       let itemHtml = `
             <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
-                <div>
+                <span class="ext-ico" aria-hidden="true"><i class="ph ${ICONE_TIPO_EXTRATO[tipoFiltro] || 'ph-circle'}"></i></span>
+                <div class="ext-corpo">
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
                     <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${catDespExtrato}${vencimentoHtml}</span>
                 </div>
@@ -3368,6 +3378,15 @@ function atualizarTelaControle() {
   document.getElementById('totalColInv').innerText = formatarMoeda(totInv);
   const colSonho = document.getElementById('totalColSonhos');
   if (colSonho) colSonho.innerText = formatarMoeda(totSonho);
+  // No celular os mesmos totais viram "entrou / gastou / guardou".
+  if (typeof mobRenderExtratoResumo === 'function')
+    mobRenderExtratoResumo({
+      receitas: totRec,
+      despesas: totDesp,
+      cartao: totCartao,
+      investido: totInv,
+      sonhos: totSonho,
+    });
 
   // KPI cards do topo — investimentos/cartão/despesa têm cards próprios e
   // todos são deduzidos da receita para compor o saldo livre.

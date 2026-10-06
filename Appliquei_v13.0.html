@@ -10323,7 +10323,9 @@
            display '' aos campos que escondeu, e com o flex só no inline os
            três botões viravam blocos empilhados depois do primeiro salvar. */
         #chipsLancamento { display: flex; }
-        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz { display: none; }
+        .mob-tabbar, .mob-voltar, .mob-seg, .mob-dre, .mob-sim-fixo, .mob-inicio, .mob-story, .mob-saudacao, .mob-olho, .mob-stories, .mob-folha, .mob-wiz, .mob-ext-resumo { display: none; }
+        /* Ícone redondo de cada linha do extrato: só existe no celular. */
+        .extrato-item .ext-ico { display: none; }
         @media (min-width: 769px) {
             #mais_mobile { display: none !important; }
         }
@@ -10758,8 +10760,9 @@
             /* --- DRE no celular (mobRenderDRE) --- */
             #mobDRE { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
             #controle:not([data-mob-aba-ativa="projecao"]) #mobDRE { display: none !important; }
-            /* A tabela fica a um toque: escondida até a pessoa pedir. */
-            #controle:not(.mob-dre-tabela) #cardTabelaDRE { display: none !important; }
+            /* A tabela do desktop não aparece no celular: "Ver tabela completa"
+               abre a versão mês a mês (mobDreAlternarTabela), com as mesmas linhas. */
+            #controle #cardTabelaDRE { display: none !important; }
             .mdre-alerta {
                 display: flex; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;
                 padding: 12px 14px; border-radius: 14px; text-align: left; font-family: inherit;
@@ -10876,6 +10879,181 @@
                 position: sticky; bottom: 0; z-index: 2; min-height: 52px;
                 box-shadow: 0 -10px 18px 4px var(--cor-branco);
             }
+        }
+
+        /* ============================================================ */
+        /* EXTRATO E TABELA MÊS A MÊS NO CELULAR                         */
+        /* ============================================================ */
+        body.valores-ocultos #mobDRE .mdre-res,
+        body.valores-ocultos #mobDRE .mdre-v,
+        body.valores-ocultos #mobDRE .mdre-mm-v,
+        body.valores-ocultos #mobDRE footer strong,
+        body.valores-ocultos #mobDRE .mdre-mm-total strong { filter: blur(6px); user-select: none; }
+        @media (max-width: 768px) {
+            /* --- Extrato: a lista é a tela, sem a caixa em volta --- */
+            #controle .card-container[data-mob-aba="extrato"] {
+                background: transparent !important; border: none !important; box-shadow: none !important;
+                padding: 0 !important;
+            }
+            /* O mês já está no seletor do topo e a aba diz "Extrato". */
+            #controle [data-mob-aba="extrato"] > div:first-child > h3 { display: none; }
+            #controle [data-mob-aba="extrato"] > div:first-child { margin-bottom: 12px !important; }
+            #controle [data-mob-aba="extrato"] > div[style*="auto-fit"] { display: none !important; }
+
+            .mob-ext-resumo {
+                display: block; margin-bottom: 14px; padding: 16px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px;
+            }
+            .mer-cols { display: flex; flex-direction: column; }
+            .mer-col { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; min-height: 30px; }
+            .mer-col span { font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario); }
+            .mer-col:first-child span { font-size: 15px; color: var(--cor-texto-principal); }
+            .mer-col strong { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 15px; white-space: nowrap; }
+            .mer-col:first-child strong { font-size: 20px; letter-spacing: -0.5px; }
+            .mer-col .verde { color: var(--tinta-verde, #047857); }
+            .mer-col .vermelho { color: var(--tinta-vermelho, #b91c1c); }
+            .mer-col .azul { color: var(--tinta-azul, #1d4ed8); }
+            .mer-barra {
+                display: flex; height: 8px; margin-top: 14px; border-radius: 99px; overflow: hidden;
+                background: var(--cor-superficie); gap: 2px;
+            }
+            .mer-barra i { display: block; height: 100%; }
+            .mer-barra .desp, .mer-legenda .desp b { background: #ef4444; }
+            .mer-barra .cartao, .mer-legenda .cartao b { background: #f59e0b; }
+            .mer-barra .inv, .mer-legenda .inv b { background: #3b82f6; }
+            .mer-barra .sonho, .mer-legenda .sonho b { background: #8b5cf6; }
+            .mer-legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12px; color: var(--cor-texto-secundario); }
+            .mer-legenda span { display: inline-flex; align-items: center; gap: 6px; }
+            .mer-legenda b { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+            .mer-legenda strong { font-family: 'DM Mono', monospace; font-weight: 500; color: var(--cor-texto-principal); }
+
+            /* Filtros por tipo: pílulas cheias; categorias: pílulas leves. */
+            #controle .ext-tabs-wrap { gap: 8px !important; margin: 0 -16px; padding: 0 16px; width: calc(100% + 32px); box-sizing: border-box; }
+            #controle .ext-tab {
+                min-height: 36px !important; padding: 0 16px !important; border-radius: 99px !important;
+                font-size: 13.5px !important; font-weight: 600; border: none !important;
+                background: var(--cor-superficie) !important; color: var(--cor-texto-secundario) !important;
+            }
+            #controle .ext-tab.on { background: var(--cor-primaria) !important; color: #fff !important; }
+            #controle .ext-tab.ext-tab-inv.on { background: #2563eb !important; }
+            #controle .ext-tab.ext-tab-sonho.on { background: #7c3aed !important; }
+            #controle .ext-cat-wrap { margin: 0 -16px 10px; padding: 0 16px 2px; }
+            #controle .ext-cat {
+                min-height: 32px !important; padding: 0 12px; align-items: center; font-size: 12.5px;
+                background: transparent; border-color: var(--cor-borda);
+            }
+            #controle .ext-cat .ext-cat-val { font-size: 11.5px; }
+            #controle .ext-cat.on { background: var(--cor-texto-principal); border-color: var(--cor-texto-principal); color: var(--cor-branco); }
+
+            /* Lista: um cartão branco com linhas de app (ícone, nome, valor). */
+            #controle #extratoUnificado {
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px;
+                padding: 4px 0;
+            }
+            #controle #extratoUnificado:empty { display: none !important; }
+            #extratoUnificado .extrato-item {
+                gap: 12px; padding: 12px 14px !important; border-bottom: none !important; border-radius: 0 !important;
+                min-height: 64px; box-sizing: border-box;
+            }
+            #extratoUnificado .extrato-item + .extrato-item::before {
+                content: ''; position: absolute; top: 0; left: 66px; right: 0; height: 1px; background: var(--cor-borda);
+            }
+            #extratoUnificado .extrato-item:hover { background: transparent; }
+            #extratoUnificado .extrato-item:active { background: var(--cor-superficie); }
+            #extratoUnificado .extrato-item .ext-ico {
+                display: inline-flex; align-items: center; justify-content: center; flex: 0 0 40px;
+                width: 40px; height: 40px; border-radius: 50%; font-size: 19px;
+                background: var(--cor-superficie); color: var(--cor-texto-secundario);
+            }
+            #extratoUnificado [data-ext-tipo="receita"] .ext-ico { background: var(--cor-bg-primaria); color: var(--tinta-verde, #047857); }
+            #extratoUnificado [data-ext-tipo="despesa"] .ext-ico { background: var(--cor-bg-erro); color: var(--tinta-vermelho, #b91c1c); }
+            #extratoUnificado [data-ext-tipo="cartao"] .ext-ico { background: var(--cor-bg-amber); color: var(--cor-txt-amber, #b45309); }
+            #extratoUnificado [data-ext-tipo="investimento"] .ext-ico { background: var(--cor-bg-info); color: var(--tinta-azul, #1d4ed8); }
+            #extratoUnificado [data-ext-tipo="sonho"] .ext-ico { background: rgba(124,58,237,0.10); color: var(--tinta-roxo, #7c3aed); }
+            #extratoUnificado .extrato-item .ext-corpo { flex: 1 1 auto; min-width: 0; }
+            #extratoUnificado .extrato-item .desc {
+                font-size: 15px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            #extratoUnificado .extrato-item .desc i { font-size: 13px; color: var(--cor-texto-mutado); }
+            #extratoUnificado .extrato-item .cat { display: block; line-height: 1.45; }
+            /* A categoria de gasto como texto, não como etiqueta com borda. */
+            #extratoUnificado .extrato-item .cat > span[style*="border:1px solid"] {
+                border: none !important; background: none !important; padding: 0 !important; font-size: inherit !important;
+            }
+            #extratoUnificado .extrato-item .cat > span[style*="border:1px solid"]::before { content: '· '; }
+            #extratoUnificado .extrato-item > div:last-child { flex: 0 0 auto; text-align: right; }
+            #extratoUnificado .extrato-item .valor { font-weight: 500; font-size: 15px; white-space: nowrap; }
+            #extratoUnificado [data-ext-tipo="receita"] .valor { color: var(--tinta-verde, #047857); }
+            #extratoUnificado [data-ext-tipo="receita"] .valor::before { content: '+'; }
+            #extratoUnificado .extrato-item:not([data-ext-tipo="receita"]) .valor::before { content: '−'; }
+            #extratoUnificado .extrato-item .valor::after { font-size: 14px !important; margin-top: 2px !important; opacity: .7; }
+
+            /* --- Projeção: tabela completa mês a mês (mobDreAlternarTabela) --- */
+            .mdre-mm {
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px;
+                padding: 16px 0 6px; margin-top: 4px;
+            }
+            .mdre-mm > header { padding: 0 16px; display: flex; flex-direction: column; gap: 2px; }
+            .mdre-mm > header strong { font-size: 16px; }
+            .mdre-mm > header span { font-size: 12.5px; color: var(--cor-texto-mutado); }
+            .mdre-mm-chips {
+                display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 12px 16px 6px;
+            }
+            .mdre-mm-chips::-webkit-scrollbar { display: none; }
+            .mdre-mm-chips button {
+                flex: 0 0 auto; min-height: 34px; padding: 0 14px; border-radius: 99px; border: none;
+                background: var(--cor-superficie); color: var(--cor-texto-secundario);
+                font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+            }
+            .mdre-mm-chips button[aria-selected="true"] { background: var(--cor-texto-principal); color: var(--cor-branco); }
+            .mdre-mm-lista { display: flex; flex-direction: column; }
+            .mdre-mm-mes + .mdre-mm-mes { border-top: 1px solid var(--cor-borda); }
+            .mdre-mm-mes.atual { background: color-mix(in srgb, var(--cor-bg-primaria) 60%, transparent); }
+            .mdre-mm-linha {
+                display: grid; grid-template-columns: 64px minmax(0, 1fr) auto 18px; align-items: center; gap: 10px;
+                width: 100%; min-height: 52px; padding: 8px 16px; box-sizing: border-box;
+                background: none; border: none; font-family: inherit; text-align: left; cursor: pointer; color: inherit;
+            }
+            .mdre-mm-rot { font-size: 14px; font-weight: 600; display: flex; flex-direction: column; line-height: 1.2; }
+            .mdre-mm-rot em { font-style: normal; font-size: 10.5px; font-weight: 700; color: var(--tinta-verde, #047857); text-transform: uppercase; letter-spacing: .4px; }
+            .mdre-mm-barra { height: 8px; border-radius: 99px; background: var(--cor-superficie); overflow: hidden; }
+            .mdre-mm-barra i { display: block; height: 100%; border-radius: 99px; background: #10b981; }
+            .mdre-mm-barra i.verde, .mdre-mm-barra i.ok { background: #10b981; }
+            .mdre-mm-barra i.neutro { background: #64748b; }
+            .mdre-mm-barra i.baixo { background: #f59e0b; }
+            .mdre-mm-barra i.vermelho, .mdre-mm-barra i.neg { background: #ef4444; }
+            .mdre-mm-barra i.azul { background: #3b82f6; }
+            .mdre-mm-barra i.roxo { background: #8b5cf6; }
+            .mdre-mm-v { font-family: 'DM Mono', monospace; font-size: 14px; white-space: nowrap; text-align: right; }
+            .mdre-mm-v.verde, .mdre-mm-v.ok { color: var(--tinta-verde, #047857); }
+            .mdre-mm-v.vermelho, .mdre-mm-v.neg { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-mm-v.baixo { color: #b45309; }
+            .mdre-mm-v.azul { color: var(--tinta-azul, #1d4ed8); }
+            .mdre-mm-v.roxo { color: var(--tinta-roxo, #7c3aed); }
+            .mdre-mm-seta { color: var(--cor-texto-mutado); transition: transform .2s; }
+            .mdre-mm-mes.aberto .mdre-mm-seta { transform: rotate(180deg); }
+            .mdre-mm-det { margin: 0 16px 12px; padding: 4px 12px; border-radius: 14px; background: var(--cor-superficie); }
+            .mdre-mm-det-l {
+                display: flex; justify-content: space-between; align-items: center; gap: 10px;
+                min-height: 38px; font-size: 13px; color: var(--cor-texto-secundario);
+            }
+            .mdre-mm-det-l + .mdre-mm-det-l { border-top: 1px solid var(--cor-borda); }
+            .mdre-mm-det-l .mdre-v { font-family: 'DM Mono', monospace; font-size: 13px; white-space: nowrap; }
+            .mdre-mm-det-l.herdado > span:first-child { color: var(--tinta-roxo, #7c3aed); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+            .mdre-mm-det-l.forte { font-weight: 700; color: var(--cor-texto-principal); }
+            .mdre-mm-det-l.forte .mdre-v { font-weight: 600; font-size: 14px; }
+            .mdre-mm-det-l.acum em { font-style: normal; font-size: 11px; color: var(--tinta-verde, #047857); }
+            .mdre-mm-det-l.acum em.neg { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-neg-tag { font-family: 'Figtree', sans-serif; font-size: 9.5px; background: #dc2626; color: #fff; padding: 2px 5px; border-radius: 4px; margin-left: 4px; }
+            .mdre-mm-total {
+                display: flex; justify-content: space-between; align-items: center;
+                padding: 12px 16px 8px; border-top: 1px solid var(--cor-borda); font-size: 13px; color: var(--cor-texto-secundario);
+            }
+            .mdre-mm-total strong { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 14px; }
+            .mdre-mm-total .verde { color: var(--tinta-verde, #047857); }
+            .mdre-mm-total .vermelho { color: var(--tinta-vermelho, #b91c1c); }
+            .mdre-mm-total .azul { color: var(--tinta-azul, #1d4ed8); }
+            .mdre-mm-total .roxo { color: var(--tinta-roxo, #7c3aed); }
         }
 
         /* ============================================================ */
@@ -13096,6 +13274,9 @@
                             <button class="ext-tab ext-tab-sonho" onclick="filtrarExtrato(event,'sonho')">Sonhos</button>
                         </div>
                     </div>
+                    <!-- Celular: entrou / gastou / guardou (appliquei-mobile.js,
+                         mobRenderExtratoResumo), no lugar das cinco caixas. -->
+                    <div id="mobExtResumo" class="mob-ext-resumo"></div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:8px;margin-bottom:14px;flex-shrink:0;">
                         <div style="text-align:center;padding:9px 8px;background:var(--cor-bg-primaria);border-radius:8px;border:1px solid var(--cor-borda-primaria);">
                             <div style="font-size:9.5px;color:var(--cor-txt-primaria);font-weight:700;text-transform:uppercase;letter-spacing:0.4px;margin-bottom:4px;">Entradas</div>
@@ -15205,7 +15386,7 @@
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=inicio-mob2"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=extrato-app"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
@@ -15221,7 +15402,7 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
-    <script src="/web/appliquei-mobile.js?v=ios-teclado"></script>
+    <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
     <script src="/web/appliquei-privacidade.js?v=politica-1"></script>
 </body>
 </html>

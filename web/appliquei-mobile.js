@@ -368,7 +368,9 @@ function mobRenderDRE(d) {
     (_mobDreTabela ? 'true' : 'false') +
     '"><i class="ph ph-table"></i> ' +
     (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa') +
-    '</button>';
+    '</button><div id="mdreMM">' +
+    (_mobDreTabela ? _mobDreMesAMes(d) : '') +
+    '</div>';
 
   // Abre no mês em foco (sem animação) e acende a barra dele.
   const foco = Math.max(0, Math.min(meses.length - 1, d.indiceAtual));
@@ -434,6 +436,191 @@ function mobDreAlternarTabela() {
       '<i class="ph ph-table"></i> ' +
       (_mobDreTabela ? 'Esconder tabela completa' : 'Ver tabela completa');
   }
+  _mobDreRedesenharMM();
+}
+
+// ------------------------------------------------------------
+// Tabela completa no celular: mês a mês
+// ------------------------------------------------------------
+// A tabela do desktop é uma linha por conta e uma coluna por mês: no
+// celular isso é rolar de lado e perder o rótulo da linha. Aqui ela vira a
+// lista que os apps de banco usam: um mês por linha, de cima para baixo,
+// com a conta escolhida num chip (resultado, receita, despesas…) e uma
+// barra para comparar os meses de relance. Tocar no mês abre TODAS as
+// linhas da tabela daquele mês, na mesma ordem e com os mesmos sinais —
+// nada da tabela fica só no desktop. Os números são os de mobRenderDRE.
+
+var MOB_DRE_LINHAS = [
+  { k: 'resultado', rot: 'Resultado', v: (m) => m.saldoAcumulado || 0 },
+  { k: 'receita', rot: 'Entradas', cls: 'verde', v: (m) => (m.receita || 0) + (m.resgate || 0) },
+  { k: 'despesas', rot: 'Despesas', cls: 'vermelho', v: (m) => m.despesas || 0 },
+  { k: 'investido', rot: 'Investido', cls: 'azul', v: (m) => (m.invFixo || 0) + (m.invVar || 0) },
+  { k: 'sonhos', rot: 'Sonhos', cls: 'roxo', v: (m) => m.sonho || 0 },
+  {
+    k: 'acumulado',
+    rot: 'Inv. acumulado',
+    cls: 'azul',
+    v: (m, i, d) => (d.acumulado ? d.acumulado[i] : 0),
+  },
+];
+var _mobDreLinha = 'resultado';
+var _mobDreAberto = -1;
+
+function _mobDreMesAMes(d) {
+  const fmt = _mobDreFmt;
+  const def = MOB_DRE_LINHAS.find((l) => l.k === _mobDreLinha) || MOB_DRE_LINHAS[0];
+  const vals = d.meses.map((m, i) => def.v(m, i, d));
+  const max = Math.max(1, ...vals.map((v) => Math.abs(v)));
+  const total = vals.reduce((a, v) => a + v, 0);
+  const chips = MOB_DRE_LINHAS.map(
+    (l) =>
+      '<button type="button" role="tab" aria-selected="' +
+      (l.k === def.k ? 'true' : 'false') +
+      '" onclick="mobDreLinha(\'' +
+      l.k +
+      '\')">' +
+      l.rot +
+      '</button>'
+  ).join('');
+  const linhas = d.meses
+    .map((m, i) => {
+      const v = vals[i];
+      const cls = def.k === 'resultado' ? _mobDreClasse(v, d) : def.cls;
+      const larg = Math.max(2, Math.round((Math.abs(v) / max) * 100));
+      const atual = i === d.indiceAtual;
+      const aberto = i === _mobDreAberto;
+      return (
+        '<div class="mdre-mm-mes' +
+        (atual ? ' atual' : '') +
+        (aberto ? ' aberto' : '') +
+        '"><button type="button" class="mdre-mm-linha" aria-expanded="' +
+        (aberto ? 'true' : 'false') +
+        '" onclick="mobDreAbrirMes(' +
+        i +
+        ')"><span class="mdre-mm-rot">' +
+        d.rotulos[i] +
+        (atual ? '<em>agora</em>' : '') +
+        '</span><span class="mdre-mm-barra"><i class="' +
+        cls +
+        (v < 0 ? ' neg' : '') +
+        '" style="width:' +
+        larg +
+        '%"></i></span><span class="mdre-mm-v ' +
+        cls +
+        '">' +
+        fmt(v) +
+        '</span><i class="ph ph-caret-down mdre-mm-seta"></i></button>' +
+        (aberto ? _mobDreDetalhe(d, i) : '') +
+        '</div>'
+      );
+    })
+    .join('');
+  const rodape =
+    def.k === 'resultado' || def.k === 'acumulado'
+      ? ''
+      : '<div class="mdre-mm-total"><span>Total no período</span><strong class="' +
+        def.cls +
+        '">' +
+        fmt(total) +
+        '</strong></div>';
+  return (
+    '<section class="mdre-mm" aria-label="Tabela mês a mês"><header><strong>Mês a mês</strong><span>Toque num mês para ver todas as linhas</span></header><div class="mdre-mm-chips" role="tablist">' +
+    chips +
+    '</div><div class="mdre-mm-lista">' +
+    linhas +
+    '</div>' +
+    rodape +
+    '</section>'
+  );
+}
+
+/** Todas as linhas da tabela do desktop para o mês i, na mesma ordem. */
+function _mobDreDetalhe(d, i) {
+  const fmt = _mobDreFmt;
+  const m = d.meses[i];
+  const algumExterno = d.meses.some((x) => (x.invExterno || 0) > 0.005);
+  const algumCarregado = d.meses.some((x) => Math.abs(x.saldoCarregado || 0) > 0.005);
+  const saida = (v) => (v > 0 ? '−' + fmt(v) : fmt(0));
+  const lin = (rot, valor, cls, extra) =>
+    '<div class="mdre-mm-det-l' +
+    (extra || '') +
+    '"><span>' +
+    rot +
+    '</span><span class="mdre-v ' +
+    cls +
+    '">' +
+    valor +
+    '</span></div>';
+  const acum = d.acumulado ? d.acumulado[i] : 0;
+  const antes = i === 0 ? d.acumuladoInicial || 0 : d.acumulado[i - 1];
+  const delta = acum - antes;
+  const lapis =
+    i === d.indiceAtual
+      ? ' <button type="button" class="mdre-lapis" aria-label="Ajustar saldo trazido" onclick="editarSaldoMesAnterior(' +
+        m.mes +
+        ',' +
+        m.ano +
+        ')"><i class="ph ph-pencil-simple"></i></button>'
+      : '';
+  return (
+    '<div class="mdre-mm-det">' +
+    lin('Receita total', fmt(m.receita || 0), 'verde') +
+    lin('Resgates (venda de ativos)', fmt(m.resgate || 0), 'verde') +
+    lin('Investimento (renda fixa)', saida(m.invFixo || 0), 'azul') +
+    lin('Investimento (renda variável)', saida(m.invVar || 0), 'azul') +
+    (algumExterno ? lin('Aporte externo (fora do caixa)', fmt(m.invExterno || 0), 'mudo') : '') +
+    lin('Sonhos (separado p/ metas)', saida(m.sonho || 0), 'roxo') +
+    lin('Despesas consumidas', saida(m.despesas || 0), 'vermelho') +
+    (algumCarregado
+      ? lin(
+          '↳ Saldo do mês anterior' + lapis,
+          Math.abs(m.saldoCarregado || 0) > 0.005 ? fmt(m.saldoCarregado) : '—',
+          (m.saldoCarregado || 0) < 0 ? 'vermelho' : 'roxo',
+          ' herdado'
+        )
+      : '') +
+    lin(
+      'Resultado do mês',
+      fmt(m.saldoAcumulado || 0) +
+        ((m.saldoAcumulado || 0) < 0 ? ' <b class="mdre-neg-tag">NEGATIVO</b>' : ''),
+      _mobDreClasse(m.saldoAcumulado || 0, d),
+      ' forte'
+    ) +
+    lin(
+      'Investimento acumulado',
+      fmt(acum) +
+        (Math.abs(delta) < 0.005
+          ? ''
+          : ' <em class="' +
+            (delta < 0 ? 'neg' : '') +
+            '">' +
+            (delta > 0 ? '+' : '−') +
+            fmt(Math.abs(delta)).replace('R$', '').trim() +
+            '</em>'),
+      'azul',
+      ' acum'
+    ) +
+    '</div>'
+  );
+}
+
+function _mobDreRedesenharMM() {
+  const alvo = document.getElementById('mdreMM');
+  if (!alvo) return;
+  alvo.innerHTML = _mobDreTabela && _mobDreUltimo ? _mobDreMesAMes(_mobDreUltimo) : '';
+}
+
+/** Chip: qual linha da tabela a lista compara entre os meses. */
+function mobDreLinha(k) {
+  if (!MOB_DRE_LINHAS.some((l) => l.k === k)) return;
+  _mobDreLinha = k;
+  _mobDreRedesenharMM();
+}
+
+/** Abre (ou fecha) todas as linhas de um mês. */
+function mobDreAbrirMes(i) {
+  _mobDreAberto = _mobDreAberto === i ? -1 : i;
+  _mobDreRedesenharMM();
 }
 
 // ------------------------------------------------------------
@@ -507,6 +694,60 @@ function _mobLigarExtrato() {
 }
 
 document.addEventListener('DOMContentLoaded', _mobLigarExtrato);
+
+// Topo do extrato no celular: cinco caixas coloridas lado a lado viravam uma
+// faixa deslizante em que só cabiam duas e meia. A pergunta de quem abre o
+// extrato é "quanto entrou, quanto gastei, quanto guardei" — três números e
+// uma barra que divide o que entrou entre os destinos. Os totais chegam
+// prontos de atualizarTelaControle (os mesmos das caixas do desktop).
+function mobRenderExtratoResumo(t) {
+  const alvo = document.getElementById('mobExtResumo');
+  if (!alvo || !t) return;
+  const fmt = _mobDreFmt;
+  const gastou = (t.despesas || 0) + (t.cartao || 0);
+  const guardou = (t.investido || 0) + (t.sonhos || 0);
+  const base = Math.max(t.receitas || 0, gastou + guardou, 1);
+  const fatias = [
+    ['desp', t.despesas, 'Despesas'],
+    ['cartao', t.cartao, 'Cartão'],
+    ['inv', t.investido, 'Investido'],
+    ['sonho', t.sonhos, 'Sonhos'],
+  ].filter((f) => (f[1] || 0) > 0.005);
+  const barra = fatias
+    .map(
+      (f) => '<i class="' + f[0] + '" style="width:' + ((f[1] / base) * 100).toFixed(2) + '%"></i>'
+    )
+    .join('');
+  const legenda = fatias
+    .map(
+      (f) =>
+        '<span class="' +
+        f[0] +
+        '"><b></b>' +
+        f[2] +
+        ' <strong class="valor-mascarado">' +
+        fmt(f[1]) +
+        '</strong></span>'
+    )
+    .join('');
+  const col = (rot, v, cls, sinal) =>
+    '<div class="mer-col"><span>' +
+    rot +
+    '</span><strong class="valor-mascarado ' +
+    cls +
+    '">' +
+    (v > 0.005 ? sinal : '') +
+    fmt(v) +
+    '</strong></div>';
+  alvo.innerHTML =
+    '<div class="mer-cols">' +
+    col('Entrou', t.receitas || 0, 'verde', '+') +
+    col('Gastou', gastou, 'vermelho', '−') +
+    col('Guardou', guardou, 'azul', '') +
+    '</div>' +
+    (barra ? '<div class="mer-barra" aria-hidden="true">' + barra + '</div>' : '') +
+    (fatias.length > 1 ? '<div class="mer-legenda">' + legenda + '</div>' : '');
+}
 
 // ------------------------------------------------------------
 // Micro: comportamentos de app

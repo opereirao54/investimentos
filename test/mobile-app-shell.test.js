@@ -78,7 +78,7 @@ test('a reserva do rodapé cobre a barra no celular', () => {
 test('nada da casca aparece no desktop', () => {
   assert.match(
     HTML,
-    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories, \.mob-folha, \.mob-wiz \{ display: none; \}/
+    /\.mob-tabbar, \.mob-voltar, \.mob-seg, \.mob-dre, \.mob-sim-fixo, \.mob-inicio, \.mob-story, \.mob-saudacao, \.mob-olho, \.mob-stories, \.mob-folha, \.mob-wiz, \.mob-ext-resumo \{ display: none; \}/
   );
   assert.match(
     HTML,
@@ -147,14 +147,41 @@ test('a DRE do celular recebe os números prontos da tabela', () => {
   assert.doesNotMatch(fn, /calcularResumoMes|obterSaldoCarregadoParaMes/);
 });
 
-test('a tabela da DRE continua a um toque no celular', () => {
+test('a tabela completa da DRE vira mês a mês no celular, com todas as linhas', () => {
   assert.match(HTML, /id="mobDRE"[^>]*data-mob-aba="projecao"/);
   assert.match(HTML, /id="cardTabelaDRE"/);
-  assert.match(
-    HTML,
-    /#controle:not\(\.mob-dre-tabela\) #cardTabelaDRE \{ display: none !important; \}/
+  assert.match(HTML, /#controle #cardTabelaDRE \{ display: none !important; \}/);
+  assert.match(MOB, /function mobDreAlternarTabela[\s\S]*_mobDreRedesenharMM\(\)/);
+  // Cada linha da tabela do desktop existe no detalhe do mês.
+  const det = MOB.slice(
+    MOB.indexOf('function _mobDreDetalhe'),
+    MOB.indexOf('function _mobDreRedesenharMM')
   );
-  assert.match(MOB, /function mobDreAlternarTabela/);
+  for (const rot of [
+    'Receita total',
+    'Resgates',
+    'Investimento (renda fixa)',
+    'Investimento (renda variável)',
+    'Aporte externo',
+    'Sonhos',
+    'Despesas consumidas',
+    'Saldo do mês anterior',
+    'Resultado do mês',
+    'Investimento acumulado',
+  ])
+    assert.ok(det.includes(rot), rot);
+  assert.match(det, /editarSaldoMesAnterior\(/);
+  assert.doesNotMatch(det, /calcularResumoMes|obterSaldoCarregadoParaMes/);
+});
+
+test('o topo do extrato no celular usa os totais que a tela já somou', () => {
+  const CF = fs.readFileSync(path.join(ROOT, 'web/appliquei-aba-controle-financeiro.js'), 'utf8');
+  assert.match(
+    CF,
+    /mobRenderExtratoResumo\(\{\s*receitas: totRec,\s*despesas: totDesp,\s*cartao: totCartao,\s*investido: totInv,\s*sonhos: totSonho/
+  );
+  assert.match(HTML, /id="mobExtResumo" class="mob-ext-resumo"/);
+  assert.match(HTML, /\.extrato-item \.ext-ico \{ display: none; \}/);
 });
 
 test('as ações do extrato no celular são os botões originais', () => {
