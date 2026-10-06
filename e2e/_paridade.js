@@ -40,6 +40,7 @@ const ESTADOS = {
     "trocarTabDuvidas('faq')",
     "trocarTabDuvidas('sugestao')",
     "trocarTabDuvidas('regulamento')",
+    "trocarTabDuvidas('privacidade')",
   ],
   simulador: ["mudarModoSim('projetar')", "mudarModoSim('meta')"],
 };

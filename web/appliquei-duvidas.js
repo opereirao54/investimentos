@@ -271,6 +271,12 @@ var FAQ_DADOS = [
   {
     cat: 'dados',
     catLbl: 'Dados',
+    p: 'Meus dados estão seguros? Quem consegue ver?',
+    r: 'Tudo trafega criptografado (HTTPS) e fica guardado criptografado no Google Cloud. As regras do banco de dados só liberam a leitura dos seus lançamentos para a sua própria conta, com e-mail confirmado. A Appliquei não guarda sua senha, não se conecta ao seu banco e não guarda o cartão da assinatura. Os detalhes estão na aba <a href="#" onclick="trocarTabDuvidas(\'privacidade\');return false;" style="color:var(--cor-primaria);font-weight:600;">Privacidade</a>.',
+  },
+  {
+    cat: 'dados',
+    catLbl: 'Dados',
     p: 'Uso em mais de um dispositivo — meus dados sincronizam?',
     r: 'Sim. Com o e-mail verificado e assinatura ou trial ativos, seus dados sincronizam automaticamente entre celular e computador. Ao abrir o app em outro aparelho, ele busca a versão mais recente da nuvem.',
   },
@@ -369,7 +375,18 @@ var DS_TABS = [
   { chave: 'faq', botao: 'tabFaq', conteudo: 'dsConteudoFaq' },
   { chave: 'sugestao', botao: 'tabSugestao', conteudo: 'dsConteudoSugestao' },
   { chave: 'regulamento', botao: 'tabRegulamento', conteudo: 'dsConteudoRegulamento' },
+  { chave: 'privacidade', botao: 'tabPrivacidade', conteudo: 'dsConteudoPrivacidade' },
 ];
+
+/** Leva à aba "Privacidade" de Dúvidas & sugestões, de qualquer tela. */
+function abrirPrivacidade() {
+  if (typeof fecharMenuCadastro === 'function') fecharMenuCadastro();
+  const btn = Array.from(document.querySelectorAll('#mainSidebar .menu-btn')).find((b) =>
+    (b.getAttribute('onclick') || '').includes("'duvidas_sugestoes'")
+  );
+  if (btn) btn.click();
+  trocarTabDuvidas('privacidade');
+}
 
 function trocarTabDuvidas(qual) {
   DS_TABS.forEach(function (tab) {
