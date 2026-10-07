@@ -223,6 +223,15 @@ const feedbackListQuery = z
   })
   .partial();
 
+// /api/user?op=telegram-inbox (POST): o app confirma os itens da caixa de
+// entrada do Telegram que já aplicou, para o servidor apagá-los.
+const telegramInboxAckBody = z.object({
+  ids: z
+    .array(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/))
+    .min(1)
+    .max(100),
+});
+
 module.exports = {
   z,
   // building blocks
@@ -245,4 +254,5 @@ module.exports = {
   feedbackListQuery,
   feedbackAnexo,
   ANEXO_MAX_B64,
+  telegramInboxAckBody,
 };
