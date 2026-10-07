@@ -12206,6 +12206,12 @@
                 <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
             </div>
 
+            <!-- Lançar pelo Telegram (web/appliquei-telegram.js desenha o conteúdo). -->
+            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:18px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;"><i class="ph ph-telegram-logo" style="color:var(--cor-info);"></i> Lançar pelo Telegram</label>
+                <div id="telegramConfig"></div>
+            </div>
+
             <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:18px;">
                 <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Primeiros passos</label>
                 <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">O guia que mostra por onde começar — contas, receita e despesa — e responde se é preciso cadastrar uma conta antes de lançar.</p>
@@ -15404,5 +15410,8 @@
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
     <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
     <script src="/web/appliquei-privacidade.js?v=politica-1"></script>
+    <!-- Lançamentos pelo Telegram. Depois de controle-financeiro (criarLancamentos)
+         e contas (salvarContas). -->
+    <script src="/web/appliquei-telegram.js?v=telegram-1"></script>
 </body>
 </html>

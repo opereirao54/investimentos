@@ -229,6 +229,60 @@ const ACOES = [
       return () => m.s.confirmarExcluirSonho(id);
     },
   },
+  {
+    // Lançamento pelo Telegram: o item da caixa de entrada aplicado como o app
+    // aplica. Varia tipo (à vista, receita, cartão parcelado) e às vezes
+    // reentrega o MESMO item — o caso da confirmação perdida.
+    nome: 'lançamento pelo Telegram',
+    fn: (m, r) => {
+      const conta = m.s.contas.find((c) => !c.arquivada && c.tipo !== 'corretora');
+      if (!conta) return null;
+      m.tgSeq = (m.tgSeq || 0) + 1;
+      const repetir = m.tgUltimo && r() < 0.25;
+      const id = repetir ? m.tgUltimo.id : `tg7_${m.tgSeq}`;
+      const tipo = r();
+      const cartao = m.s.cartoes.find((c) => !c.arquivado);
+      const lanc = repetir
+        ? m.tgUltimo.lanc
+        : tipo < 0.5 || !cartao
+          ? {
+              categoria: tipo < 0.25 ? 'receita' : 'despesa_variavel',
+              valor: Math.round(r() * 400) + 5,
+              descricao: 'Telegram',
+              dataCompra: H,
+              contaId: conta.id,
+              banco: conta.nome,
+            }
+          : {
+              categoria: 'cartao_credito',
+              valor: Math.round(r() * 900) + 30,
+              descricao: 'Telegram cartão',
+              dataCompra: H,
+              parcelas: 1 + Math.floor(r() * 4),
+              tipoCartao: 'parcelado',
+              cartaoId: cartao.id,
+            };
+      const item = { id, tipo: 'lancamento', criadoEmMs: m.tgSeq, lanc };
+      m.tgUltimo = item;
+      return () => {
+        m.s.telegramDefinirContaPrincipal(conta.id);
+        m.s.telegramAvisar(m.s.telegramAplicarItens([item]));
+      };
+    },
+  },
+  {
+    nome: 'desfazer pelo Telegram',
+    fn: (m) => {
+      if (!m.tgUltimo) return null;
+      const alvo = m.tgUltimo.id;
+      return () =>
+        m.s.telegramAvisar(
+          m.s.telegramAplicarItens([
+            { id: `desfazer_${alvo}`, tipo: 'desfazer', alvo, criadoEmMs: Date.now() },
+          ])
+        );
+    },
+  },
 ];
 
 /** Roda uma sequência de N passos com a semente dada. */

@@ -2,7 +2,7 @@
   "$schema": "./mapa.schema.md",
   "versao": 1,
   "onda": 3,
-  "atualizadoEm": "2026-09-02",
+  "atualizadoEm": "2026-10-07",
   "descricao": "Mapa de contratos entre módulos da Appliquei. Fonte única de verdade consumida por três lugares: (1) test/integracao-*.test.js — a garantia executável; (2) scripts/impacto-integracoes.js — a análise de impacto do hook; (3) .claude/skills/validar-integracoes — o protocolo. Adicionar integração = adicionar entrada AQUI. Ver mapa.schema.md para o significado de cada campo.",
   "entidades": {
     "transacao": {
@@ -21,7 +21,8 @@
         "web/appliquei-aba-dividendos.js",
         "web/appliquei-contas.js",
         "web/appliquei-patrimonio.js",
-        "web/appliquei-utils.js"
+        "web/appliquei-utils.js",
+        "web/appliquei-telegram.js"
       ],
       "consumidores": [
         "web/appliquei-patrimonio.js",
@@ -133,6 +134,10 @@
           "arquivo": "web/appliquei-renda-fixa.js",
           "via": "obterOuCriarContaPorNome",
           "linhas": [889, 930]
+        },
+        {
+          "arquivo": "web/appliquei-telegram.js",
+          "via": "obterOuCriarContaPorNome (conta do item renomeada) + telegramDefinirContaPrincipal (flag `principal`)"
         }
       ],
       "consumidores": [
@@ -140,7 +145,8 @@
         "web/appliquei-aba-controle-financeiro.js",
         "web/appliquei-renda-fixa.js",
         "web/appliquei-aba-dividendos.js",
-        "web/appliquei-sonhos.js"
+        "web/appliquei-sonhos.js",
+        "web/appliquei-telegram.js"
       ],
       "camposDeLigacao": [
         {
@@ -345,6 +351,12 @@
       "entidade": "operacao",
       "significado": "posição criada ao PAGAR a parcela de previdência/reserva",
       "geradoEm": "web/appliquei-previdencia.js:138"
+    },
+    "tg": {
+      "entidade": "transacao",
+      "geradoEm": "web/appliquei-telegram.js",
+      "onda": 3,
+      "nota": "tg<chat>_<mensagem>_<n>: lançamento vindo do bot do Telegram (api/_lib/telegram-bot.js). O prefixo tg<chat>_<mensagem> é o id do item na caixa de entrada; Desfazer e troca de categoria acham as transações por ele. groupId = tg<chat>_<mensagem>_ quando há parcelas/recorrência."
     }
   },
   "invariantes": [
@@ -357,7 +369,8 @@
       "arquivos": [
         "web/appliquei-contas.js",
         "web/appliquei-patrimonio.js",
-        "web/appliquei-aba-controle-financeiro.js"
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-telegram.js"
       ],
       "simbolos": [
         "resolverContaDeTransacao",
@@ -377,7 +390,7 @@
       "regra": "Salvar receita, resgate_investimento, despesa_fixa ou despesa_variavel SEM banco tem de ser bloqueado no formulário. controleBancoObrigatorio e controleCategoriaUsaBanco têm de cobrir exatamente o mesmo conjunto — se divergirem, existe categoria que mostra o campo e não o exige (ou o contrário).",
       "gravidade": "critica",
       "entidades": ["transacao", "conta"],
-      "arquivos": ["web/appliquei-aba-controle-financeiro.js"],
+      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-telegram.js"],
       "simbolos": [
         "controleBancoObrigatorio",
         "controleCategoriaUsaBanco",
@@ -447,7 +460,11 @@
       "regra": "Toda string gravada em transacao.categoria por qualquer produtor tem de constar no vocabularioCategorias deste mapa, e estar classificada em exatamente um grupo (entradaCaixa | aporte | transferenciaSaida | despesaConsumo).",
       "gravidade": "alta",
       "entidades": ["transacao"],
-      "arquivos": ["web/appliquei-patrimonio.js", "web/appliquei-aba-controle-financeiro.js"],
+      "arquivos": [
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-telegram.js"
+      ],
       "simbolos": ["mpEhEntradaCaixa", "mpEhDespesaConsumo", "categoria"],
       "sintoma": "Categoria nova entra como despesa de consumo por omissão: infla o indicador de Despesa, ou some do relatório.",
       "prova": "test/integracao-inv05-vocabulario-categorias.test.js",
@@ -489,7 +506,11 @@
       "regra": "(a) Toda transação tem mes/ano — a competência canônica que toda a filtragem de tela usa. (b) HAVENDO dataVencimento, a competência é a DELE, em qualquer categoria: o painel de Vencimentos filtra por mes/ano e desenha só o DIA, então competência fora do mês do vencimento põe o card no mês errado mostrando um dia que se lê como daquele mês. (c) Sem vencimento informado não há de onde derivar — fica o mês em visão no momento do lançamento. Como (b) vale para toda parcela, uma série recorrente fica automaticamente em passo: não é preciso checar o deslocamento parcela a parcela.",
       "gravidade": "alta",
       "entidades": ["transacao"],
-      "arquivos": ["web/appliquei-aba-controle-financeiro.js", "web/appliquei-patrimonio.js"],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-patrimonio.js",
+        "web/appliquei-telegram.js"
+      ],
       "simbolos": [
         "mes",
         "ano",
@@ -674,7 +695,11 @@
       "regra": "Toda transação cartao_credito tem cartaoId presente em cartoes. obterCartao faz fallback SILENCIOSO para cartoes[0] quando não acha — então um id quebrado não dá erro: a fatura passa a ser lida como se fosse de outro cartão, com outro vencimento e outra conta pagadora.",
       "gravidade": "alta",
       "entidades": ["transacao", "cartao"],
-      "arquivos": ["web/appliquei-app.js", "web/appliquei-aba-controle-financeiro.js"],
+      "arquivos": [
+        "web/appliquei-app.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-telegram.js"
+      ],
       "simbolos": ["obterCartao", "cartaoId", "cartoesAtivos"],
       "sintoma": "Lançamento aparece na fatura do cartão errado, ou com vencimento que não é o dele.",
       "cadeia": "CADEIA-03",
@@ -764,6 +789,20 @@
       "prova": "test/integracao-inv24-entrada-no-caixa.test.js + test/saldo-futuro-compra.test.js + test/integracao-inv23-projecao-nao-otimista.test.js",
       "status": "coberta",
       "fragilidade": "Duas armadilhas, e as duas já morderam. (1) A assimetria entrada/saída é deliberada e está amarrada à UI: a tela do Controle esconde o botão de pagar para categoria \"receita\" (appliquei-aba-controle-financeiro.js), então `pago` nunca fica true numa entrada e exigi-lo zeraria o saldo de todos. Quem mexer aqui tem de olhar a UI antes. (2) Escolher a data da entrada erra em DUAS direções opostas — adiantar (competência) e atrasar (campo `data`) — e o atraso só aparece em METADE DAS HORAS do dia, porque criarTransferencia carimba meio-dia. Uma suíte rodada à tarde fica verde com o defeito de pé; o CI roda de madrugada em UTC e fica vermelha. A varredura por hora em integracao-inv24 existe por isso."
+    },
+    {
+      "id": "INV-25",
+      "titulo": "Id de lançamento do Telegram é único",
+      "regra": "Nenhum par de transações com id no formato tg<chat>_<mensagem>_<n> tem o mesmo `id`. Os produtores que reaplicam dados vindos de fora (hoje o Telegram: web/appliquei-telegram.js) dependem disso para serem idempotentes — o id é fixo (tg<chat>_<mensagem>_<n>) e o aplicador pula o item cujo id já existe. Um lançamento reaplicado com id NOVO dobraria o gasto; com o mesmo id, editar/excluir/pagar por id passaria a tocar só um dos dois. Restrita ao prefixo tg: a unicidade geral do id é o RISCO-04.",
+      "gravidade": "critica",
+      "entidades": ["transacao"],
+      "arquivos": ["web/appliquei-telegram.js", "web/appliquei-aba-controle-financeiro.js"],
+      "simbolos": ["telegramAplicarItens", "telegramDoItem", "criarLancamentos", "idBase"],
+      "sintoma": "\"Mandei uma despesa no Telegram e ela apareceu duas vezes\" · \"apaguei o lançamento e ele voltou\" · excluir um lançamento some com outro igual.",
+      "historico": "Nasceu com o lançamento pelo Telegram: o servidor reentrega itens da caixa de entrada quando a confirmação do app se perde, e dois aparelhos abertos leem a mesma caixa.",
+      "prova": "test/integracao-inv25-id-unico.test.js + test/telegram-aplicador.test.js",
+      "status": "coberta",
+      "fragilidade": "A duplicata não aparece em teste de um lançamento só: ela nasce na SEGUNDA entrega do mesmo item (confirmação perdida, outro aparelho, Telegram reentregando o update). E o aplicador NÃO pode usar obterCartao(): ele devolve o primeiro cartão quando o id não existe."
     }
   ],
   "riscosConhecidos": [
@@ -791,6 +830,13 @@
       "recomendacao": "Decidir qual é a regra certa para despesa com vencimento futuro e alinhar os dois caminhos. Hoje o teste INV-08 documenta o comportamento atual sem endossá-lo.",
       "decisao": "resolvido",
       "resolucao": "Resolvido pela evidência, não por escolha: o painel de Vencimentos filtra por mes/ano e cada card mostra só o DIA do dataVencimento. Com a competência atrasada, um aluguel registrado em agosto com vencimento em 10/set aparecia no painel de AGOSTO exibindo um \"10\" pelado — e numa despesa fixa recorrente isso se repetia em todas as parcelas, para sempre. executarInsercao passa a derivar a competência de dataVencFinal via competenciaDaData quando há vencimento (o que o branch de cartão já fazia isolado, agora generalizado), caindo para visaoMes/visaoAno só quando não há data. Inserção e edição passam a concordar. Dados antigos NÃO foram migrados: continuam com o deslocamento e o validador os acusa, com a mensagem dizendo que pode ser resíduo de antes da correção."
+    },
+    {
+      "id": "RISCO-04",
+      "titulo": "Id de transação gerado por Date.now() colide no mesmo milissegundo",
+      "descricao": "Vários produtores usam Date.now() (ou operacao.id, que também é Date.now()) como id de transação — ex.: o resgate em web/appliquei-renda-fixa.js usa operacao.id.toString(). Duas ações no mesmo milissegundo geram o mesmo id, e editar/excluir/pagar por id passa a tocar só um dos dois. Um usuário clicando não chega a 1 ms entre ações; a simulação (test/simulacao-sequencias.test.js) chega, e foi assim que apareceu ao estender a checagem de id único (INV-25) para todas as transações.",
+      "recomendacao": "Gerar id com sufixo aleatório (ex.: Date.now() + '_' + 4 caracteres) nos produtores, um por vez, e então estender INV-25 para todas as transações.",
+      "decisao": "pendente"
     }
   ],
   "cadeiasDeEfeito": [

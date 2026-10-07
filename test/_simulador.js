@@ -46,6 +46,7 @@ const ORDEM_COMPLETA = [
   'web/appliquei-patrimonio.js',
   'web/appliquei-sonhos.js',
   'web/appliquei-aba-dividendos.js',
+  'web/appliquei-telegram.js',
 ];
 
 const HOJE = new Date();

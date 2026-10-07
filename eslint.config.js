@@ -117,6 +117,7 @@ module.exports = [
       'web/appliquei-bens.js',
       'web/appliquei-mobile.js',
       'web/appliquei-privacidade.js',
+      'web/appliquei-telegram.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,

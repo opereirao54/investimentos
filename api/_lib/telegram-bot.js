@@ -28,7 +28,7 @@
 // não duplica, e Desfazer/Categoria sabem exatamente o que tocar.
 
 const crypto = require('crypto');
-const { db, fieldValue } = require('./firebase-admin');
+const { db, fieldValue, timestamp } = require('./firebase-admin');
 const { computeAccess } = require('./access');
 const rl = require('./rate-limit');
 const tg = require('./telegram-api');
@@ -51,6 +51,13 @@ function iaAtiva() {
 }
 
 // ─── utilidades ─────────────────────────────────────────────────────────────
+
+// Timestamp para a política de TTL do Firestore (que só aceita Timestamp, não
+// número). As regras do bot leem os campos *Ms; este existe só para a limpeza
+// automática das coleções temporárias (ver docs/TELEGRAM.md).
+function expiraEm(ms) {
+  return timestamp().fromMillis(ms);
+}
 
 function esc(s) {
   return String(s == null ? '' : s)
@@ -236,7 +243,12 @@ async function criarCodigoVinculo(uid) {
   await db()
     .collection('telegramCodigos')
     .doc(codigo)
-    .set({ uid, expiraEmMs: Date.now() + CODIGO_TTL_MS, criadoEm: fieldValue().serverTimestamp() });
+    .set({
+      uid,
+      expiraEmMs: Date.now() + CODIGO_TTL_MS,
+      expiraEm: expiraEm(Date.now() + CODIGO_TTL_MS),
+      criadoEm: fieldValue().serverTimestamp(),
+    });
   const user = botUsername();
   return {
     codigo,
@@ -502,6 +514,7 @@ async function tratarTexto(msg) {
         opcoes: r.opcoes,
         texto,
         expiraEmMs: Date.now() + PENDENTE_TTL_MS,
+        expiraEm: expiraEm(Date.now() + PENDENTE_TTL_MS),
       });
     const teclado = r.opcoes.map((o, i) => [
       { text: `💳 ${o.nome}`, callback_data: `p:${pendId}:${i}` },
@@ -682,7 +695,11 @@ async function processarUpdate(update) {
   }
   // Marca DEPOIS de processar: se algo lançou no meio, o Telegram reentrega e
   // tentamos de novo. O id fixo do lançamento impede a duplicata.
-  await marca.set({ em: fieldValue().serverTimestamp(), expiraEmMs: Date.now() + 7 * 86400000 });
+  await marca.set({
+    em: fieldValue().serverTimestamp(),
+    expiraEmMs: Date.now() + 7 * 86400000,
+    expiraEm: expiraEm(Date.now() + 7 * 86400000),
+  });
   return r;
 }
 
