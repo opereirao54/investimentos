@@ -763,6 +763,18 @@ function mpRenderKPIs(consolidado, janela) {
     elVeic.className = 'mp-kpi-delta neu';
     elVeic.textContent = qtdVeiculos + ' veículo' + (qtdVeiculos === 1 ? '' : 's');
   }
+  // Os mesmos números, para quem desenha a foto em outro formato (celular).
+  return {
+    total: patrimonioTotal,
+    saldo: saldoTotal,
+    investido: valorInvestido,
+    imoveis: totalImoveis,
+    veiculos: totalVeiculos,
+    qtdImoveis: qtdImoveis,
+    qtdVeiculos: qtdVeiculos,
+    rentab: rentab,
+    deltaSaldo: deltaSaldo,
+  };
 }
 
 // Tipo (banco/corretora/carteira/outro) de uma instituição, a partir da CHAVE
@@ -953,6 +965,7 @@ function mpToggleExtrato(i) {
   const chev = document.getElementById('mp-chev-' + i);
   if (body) body.style.display = aberto ? 'flex' : 'none';
   if (chev) chev.classList.toggle('aberto', aberto);
+  if (typeof mobPatrimonioRedesenharCarteiras === 'function') mobPatrimonioRedesenharCarteiras();
 }
 
 // "Onde está o seu dinheiro" — o resumo consolidado por instituição. É o coração
@@ -1000,6 +1013,7 @@ function mpRenderInstituicoes(consolidado) {
     .filter((x) => Math.abs(x.total) > 0.01)
     .sort((a, b) => b.total - a.total);
   if (!arr.length) {
+    mpEstado._instituicoes = [];
     wrap.innerHTML =
       '<div class="mp-empty"><i class="ph ph-bank"></i>Sem dados por instituição.<br><span style="font-size:11.5px;margin-top:4px;display:inline-block;">Cadastre suas contas abaixo e registre movimentações para ver a foto completa.</span></div>';
     return;
@@ -1007,6 +1021,8 @@ function mpRenderInstituicoes(consolidado) {
   const totalGeral = arr.reduce((a, x) => a + x.total, 0);
   // Mapa índice→chave usado pelo toggle do extrato (evita escapar nomes no onclick).
   mpEstado._extratoKeys = arr.map((x) => x.key);
+  // A lista pronta, na mesma ordem dos índices, para o celular.
+  mpEstado._instituicoes = arr;
   wrap.innerHTML = arr
     .map((x, i) => {
       const pct = totalGeral !== 0 ? (x.total / totalGeral) * 100 : 0;
@@ -1277,7 +1293,7 @@ async function renderMeuPatrimonio(skipFetch) {
   if (!skipFetch) await mpFetchCotacoes();
   const janela = mpJanelaPeriodo();
   const consolidado = mpConsolidar();
-  mpRenderKPIs(consolidado, janela);
+  const kpis = mpRenderKPIs(consolidado, janela);
   // Resumo consolidado por instituição (banco/corretora), com o detalhe das
   // classes que cada uma guarda — o coração da foto.
   mpRenderInstituicoes(consolidado);
@@ -1286,4 +1302,84 @@ async function renderMeuPatrimonio(skipFetch) {
   if (typeof renderMinhasContas === 'function') renderMinhasContas();
   if (typeof renderMeusBens === 'function') renderMeusBens();
   if (!skipFetch && typeof bemAtualizarFipeAuto === 'function') bemAtualizarFipeAuto();
+  // No celular a foto tem formato próprio (appliquei-mobile.js), com os
+  // números que os blocos acima acabaram de calcular.
+  if (typeof mobRenderPatrimonio === 'function')
+    mobRenderPatrimonio({
+      kpis: kpis,
+      instituicoes: mpEstado._instituicoes || [],
+      porClasse: consolidado.porCategoriaExibicao || {},
+      divida: typeof totalDividaBens === 'function' ? totalDividaBens() : 0,
+      posicaoMs: janela.fimMs,
+      serie: mpSerieMensalPatrimonio,
+    });
+}
+
+/**
+ * O patrimônio no fim de cada mês: caixa + investimentos a mercado + bens.
+ *
+ * Nada é estimado aqui: cada parcela vem da função que já responde por ela
+ * em outro lugar do app — o caixa de mpCalcularSaldoTotal (a mesma do KPI
+ * "Saldo em conta"), os investimentos da série de evolução da carteira
+ * (cotação DA ÉPOCA, juros da RF), e os bens de rmBensAteFimDoMes (o bem só
+ * entra a partir de quando era seu, pelo valor atual — não há histórico de
+ * avaliação). O último ponto é "agora", o mesmo instante do KPI do total.
+ */
+function mpSerieMensalPatrimonio() {
+  const hoje = new Date();
+  const agora = Date.now();
+  let inv = { meses: [], mercado: [] };
+  const periodoAntes = typeof periodoEvolucao !== 'undefined' ? periodoEvolucao : null;
+  try {
+    if (periodoAntes !== null) periodoEvolucao = 0;
+    if (typeof calcularSerieEvolucao === 'function') inv = calcularSerieEvolucao('todos', '');
+  } catch (e) {
+    inv = { meses: [], mercado: [] };
+  } finally {
+    if (periodoAntes !== null) periodoEvolucao = periodoAntes;
+  }
+  const mercadoPorMes = {};
+  (inv.meses || []).forEach((d, i) => {
+    mercadoPorMes[d.getFullYear() + '-' + d.getMonth()] = inv.mercado[i] || 0;
+  });
+
+  // Começo: o mais antigo entre o primeiro investimento, o primeiro
+  // lançamento e o saldo inicial das contas — no máximo 5 anos para trás.
+  let ini = new Date(hoje.getFullYear(), hoje.getMonth() - 59, 1).getTime();
+  let primeiro = agora;
+  if (inv.meses && inv.meses.length) primeiro = Math.min(primeiro, inv.meses[0].getTime());
+  if (typeof transacoes !== 'undefined')
+    transacoes.forEach((t) => {
+      const ts = mpTimestampTransacao(t);
+      if (isFinite(ts) && ts < primeiro) primeiro = ts;
+    });
+  if (typeof contas !== 'undefined')
+    contas.forEach((c) => {
+      const ts =
+        c && c.dataSaldoInicial ? new Date(c.dataSaldoInicial + 'T12:00:00').getTime() : NaN;
+      if (isFinite(ts) && ts < primeiro) primeiro = ts;
+    });
+  const dP = new Date(primeiro);
+  ini = Math.max(ini, new Date(dP.getFullYear(), dP.getMonth(), 1).getTime());
+
+  const pontos = [];
+  for (let d = new Date(ini); d <= hoje; d.setMonth(d.getMonth() + 1)) {
+    const mes = d.getMonth();
+    const ano = d.getFullYear();
+    const fim = Math.min(new Date(ano, mes + 1, 0, 23, 59, 59, 999).getTime(), agora);
+    const caixa = mpCalcularSaldoTotal(fim);
+    const investido = mercadoPorMes[ano + '-' + mes] || 0;
+    const bens =
+      typeof rmBensAteFimDoMes === 'function' ? rmBensAteFimDoMes(mes, ano).total || 0 : 0;
+    pontos.push({
+      mes: mes,
+      ano: ano,
+      ms: fim,
+      caixa,
+      investido,
+      bens,
+      total: caixa + investido + bens,
+    });
+  }
+  return pontos;
 }

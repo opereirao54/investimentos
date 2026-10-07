@@ -92,7 +92,7 @@ function renderizarTabelaPagamentos() {
           ? ` <span style="font-size:10px;color:var(--cor-texto-mutado);font-weight:400;">(${l.eventos})</span>`
           : '';
       return `<tr>
-            <td data-col="Mês" style="font-weight: 600;">${l.ticker} <span style="font-weight:400;color:var(--cor-texto-secundario);">· ${labelMes}${sufixo}</span></td>
+            <td data-col="Mês" style="font-weight: 600;"><span class="celula-com-marca">${logoAtivoHTML(l.ticker, { classe: 'ativo-marca', tamanho: 22 })}<span>${l.ticker} <span style="font-weight:400;color:var(--cor-texto-secundario);">· ${labelMes}${sufixo}</span></span></span></td>
             <td data-col="Ativo" style="display:none;">${l.ticker}</td>
             <td data-col="Qtd" style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdMes)}</td>
             <td data-col="R$ / cota" style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.somaValorCota)}</td>
@@ -347,7 +347,7 @@ async function carregarDividendos(forcar = false) {
         const selecionado = filtroPagamentosTicker === l.ticker;
         const bg = selecionado ? 'var(--cor-bg-primaria)' : '';
         return `<tr data-ticker="${l.ticker}" onclick="alternarFiltroPagamentosTicker('${l.ticker}')" style="cursor:pointer; background:${bg};" title="Clique para filtrar pagamentos por ${l.ticker}">
-                <td data-col="Ativo" style="font-weight: 600;">${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></td>
+                <td data-col="Ativo" style="font-weight: 600;"><span class="celula-com-marca">${logoAtivoHTML(l.ticker, { classe: 'ativo-marca', tamanho: 24 })}<span>${l.ticker}${tagEncerrada} <span style="display:block; font-weight: 400; font-size: 11px; color: var(--cor-texto-secundario);">${l.nomeAtivo}</span></span></span></td>
                 <td data-col="Qtd atual" style="text-align: right; font-family:'DM Mono', monospace;">${formatarQtd(l.qtdAtual)}</td>
                 <td data-col="Recebido total" style="text-align: right; font-weight: 600; color: var(--cor-txt-primaria); font-family:'DM Mono', monospace;">${formatarMoeda(l.recebidoTotal)}</td>
                 <td data-col="Recebido 12m" style="text-align: right; font-family:'DM Mono', monospace;">${formatarMoeda(l.recebido12m)}</td>
@@ -635,6 +635,7 @@ function renderizarRankingDividendos(linhasAtivos) {
       (l, i) => `
         <div class="div-rank-item">
             <span class="div-rank-pos">${medalhas[i] || i + 1}</span>
+            ${logoAtivoHTML(l.ticker, { classe: 'ativo-marca div-rank-marca', tamanho: 26 })}
             <div style="flex:1;min-width:0;">
                 <span class="div-rank-ticker">${l.ticker}</span>
                 <div style="font-size:10.5px;color:var(--cor-texto-mutado);margin-top:1px;">${l.nomeAtivo}</div>

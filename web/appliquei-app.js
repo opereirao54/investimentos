@@ -66,6 +66,8 @@ function mudarAba(e, idAba, callback = null) {
   if (idAba === 'relatorio_mensal') renderRelatorioMensal();
   if (callback) callback();
   if (typeof closeMobileNav === 'function') closeMobileNav();
+  // Barra inferior do celular acompanha a aba nova (appliquei-mobile.js).
+  if (typeof mobSincronizarAba === 'function') mobSincronizarAba(idAba);
 }
 
 // === BLOCOS RECOLHÍVEIS DA ABA "MEUS INVESTIMENTOS" =========================
@@ -305,8 +307,11 @@ function abrirPainelLancamento() {
   painel.classList.add('aberto');
   document.body.classList.add('painel-lancamento-aberto');
   setTimeout(() => {
-    const descEl = document.getElementById('descTransacao');
-    if (descEl) descEl.focus({ preventScroll: true });
+    // No celular a folha abre pelo valor (appliquei-mobile.js reordena os
+    // campos), e o foco vai junto: já sobe o teclado numérico.
+    const celular = typeof mobEhCelular === 'function' && mobEhCelular();
+    const alvo = document.getElementById(celular ? 'valorTransacao' : 'descTransacao');
+    if (alvo) alvo.focus({ preventScroll: true });
   }, 240);
 }
 function fecharPainelLancamento() {
@@ -396,6 +401,8 @@ function abrirMenuCadastro() {
   menu.hidden = false;
   if (fundo) fundo.hidden = false;
   if (btn) btn.setAttribute('aria-expanded', 'true');
+  const btnBarra = document.getElementById('mobTabCadastro');
+  if (btnBarra) btnBarra.setAttribute('aria-expanded', 'true');
   document.body.classList.add('fab-aberto');
   const primeiro = menu.querySelector('.fab-opcao');
   if (primeiro && typeof primeiro.focus === 'function') primeiro.focus();
@@ -408,6 +415,8 @@ function fecharMenuCadastro() {
   if (menu) menu.hidden = true;
   if (fundo) fundo.hidden = true;
   if (btn) btn.setAttribute('aria-expanded', 'false');
+  const btnBarra = document.getElementById('mobTabCadastro');
+  if (btnBarra) btnBarra.setAttribute('aria-expanded', 'false');
   document.body.classList.remove('fab-aberto');
 }
 
@@ -1342,7 +1351,58 @@ function ajustarCamposPorCategoria() {
     const sub = subcategoriaInferidaDoTicker(ticker);
     if (sub && selSub && !selSub.dataset.touched) selSub.value = sub;
   }
+  atualizarIdentidadeAtivo(ticker, semQtd);
   atualizarProjecaoForm();
+}
+
+/**
+ * Mostra de quem é o papel que está sendo digitado — logo, ticker e nome.
+ *
+ * É a única confirmação que existe entre digitar o código e a operação estar
+ * gravada. `VALE3` e `VALE5` diferem por um caractere, `BBAS3` e `BBDC3` por
+ * dois; num campo de texto puro o erro só aparece depois, na carteira.
+ *
+ * Só redesenha quando o ticker muda de verdade: o `oninput` dispara a cada
+ * tecla e cada redesenho recria o <img>, ou seja, uma requisição por tecla.
+ */
+function atualizarIdentidadeAtivo(ticker, semTickerListado) {
+  const alvo = document.getElementById('compraIdentidade');
+  if (!alvo) return;
+  const tk = String(ticker || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+
+  // Renda Fixa, Reserva e Previdência têm nome livre, não ticker: não há
+  // emissor a identificar e o rótulo já diz o que o campo espera.
+  const conhecido = semTickerListado
+    ? null
+    : mockAtivosMercado.find((a) => a.ticker === tk) || null;
+  const reconhecivel =
+    !semTickerListado && (conhecido || (tk.length >= 4 && subcategoriaInferidaDoTicker(tk)));
+
+  if (!reconhecivel) {
+    alvo.hidden = true;
+    alvo.innerHTML = '';
+    alvo.dataset.ticker = '';
+    return;
+  }
+  if (alvo.dataset.ticker === tk) return;
+  alvo.dataset.ticker = tk;
+  alvo.hidden = false;
+
+  const nome = conhecido && conhecido.nome ? conhecido.nome : '';
+  const tipo = conhecido && conhecido.tipo ? conhecido.tipo : '';
+  alvo.innerHTML =
+    logoAtivoHTML(tk, { classe: 'ativo-marca op-identidade-marca', tamanho: 34 }) +
+    '<div class="op-identidade-txt">' +
+    '<span class="op-identidade-ticker">' +
+    escaparHtmlAtivo(tk) +
+    '</span>' +
+    (nome
+      ? '<span class="op-identidade-nome">' + escaparHtmlAtivo(nome) + '</span>'
+      : '<span class="op-identidade-nome">Ativo não catalogado — confira o código</span>') +
+    '</div>' +
+    (tipo ? '<span class="op-identidade-tag">' + escaparHtmlAtivo(tipo) + '</span>' : '');
 }
 
 // ============================================================

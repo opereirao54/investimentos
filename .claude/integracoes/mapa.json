@@ -723,7 +723,7 @@
     {
       "id": "INV-23",
       "titulo": "O saldo projetado nunca é otimista",
-      "regra": "saldoCaixaPorConta(refMs) com refMs futuro = foto de hoje (mpCalcularSaldoPorInstituicao) + o agendado na janela (agora, refMs]. A guarda de duplo-débito de aplicarAgendadoNoSaldo tem de perguntar 'a foto JÁ contou isto?' a mpTransacaoComputaCaixa — nunca usar a competência (mpTimestampTransacao, que devolve o 1º do mês) como substituto. As duas respostas coincidem para ENTRADA, que a foto conta esteja paga ou não, e divergem para SAÍDA, que a foto só conta com pago:true: uma despesa não paga de mês já começado fica de fora da foto E da projeção, e some das duas.",
+      "regra": "saldoCaixaPorConta(refMs) com refMs futuro = foto de hoje (mpCalcularSaldoPorInstituicao) + o agendado na janela (agora, refMs]. A guarda de duplo-débito de aplicarAgendadoNoSaldo tem de perguntar 'a foto JÁ contou isto?' a mpTransacaoComputaCaixa — nunca usar a competência (mpTimestampTransacao, que devolve o 1º do mês) como substituto. As duas respostas coincidem para ENTRADA, que a foto conta esteja paga ou não, e divergem para SAÍDA, que a foto só conta com pago:true: uma despesa não paga de mês já começado fica de fora da foto E da projeção, e some das duas. O filtro de janela não pode excluir o que JÁ venceu: vencimento em aberto (vencido ou vencendo hoje) continua fora da foto — que só conta saída paga — e tem de pesar na projeção. Quem decide é mpTransacaoComputaCaixa, nunca a comparação de data com `agora`.",
       "gravidade": "critica",
       "entidades": ["transacao", "conta"],
       "arquivos": ["web/appliquei-contas.js", "web/appliquei-patrimonio.js"],
@@ -735,10 +735,10 @@
         "mpTimestampTransacao",
         "contasComSaldo"
       ],
-      "sintoma": "Agendei uma compra e o app disse que eu tinha saldo — mas a fatura/aluguel do mês ainda não tinha saído · a compra passou e a conta ficou negativa.",
-      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js",
+      "sintoma": "Agendei uma compra e o app disse que eu tinha saldo — mas a fatura/aluguel do mês ainda não tinha saído · a compra passou e a conta ficou negativa. · Tenho contas vencendo hoje e o aviso de caixa ignora o valor delas (o mesmo cenário dá um número de manhã e outro à noite).",
+      "prova": "test/integracao-inv23-projecao-nao-otimista.test.js, test/integracao-inv23-vencimento-em-aberto.test.js",
       "status": "coberta",
-      "fragilidade": "O defeito só aparece quando a competência do lançamento JÁ começou, ou seja em função do dia do mês. Um teste que use prazos relativos ('+10 dias') passa nos últimos dez dias do mês e falha nos primeiros vinte — foi assim que este defeito ficou de pé com a suíte verde. Toda prova desta invariante varre os dias do mês com o relógio fingido."
+      "fragilidade": "O defeito só aparece quando a competência do lançamento JÁ começou, ou seja em função do dia do mês. Um teste que use prazos relativos ('+10 dias') passa nos últimos dez dias do mês e falha nos primeiros vinte — foi assim que este defeito ficou de pé com a suíte verde. Toda prova desta invariante varre os dias do mês com o relógio fingido. E do HORÁRIO: mpDataMovimento ancora o vencimento ao meio-dia, então o lançamento que vence hoje entrava na projeção de manhã e sumia à tarde. Toda prova desta invariante varre também as 24 horas do dia."
     },
     {
       "id": "INV-24",

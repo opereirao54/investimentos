@@ -129,6 +129,11 @@ function removerLancamentosFuturosSonho(sonhoId) {
   const antes = transacoes.length;
   transacoes = transacoes.filter((t) => {
     if (t.categoria !== 'sonho' || t.sonhoId !== sonhoId || t.aporteExtra) return true;
+    // Mês que o usuário editou à mão sobrevive ao recálculo. Sem isto, ajustar
+    // a parcela de um mês futuro pelo Controle e depois pagar qualquer outra
+    // apagava a edição em silêncio — o recálculo em bloco varre exatamente as
+    // parcelas futuras não pagas.
+    if (t.valorPersonalizado) return true;
     const futuro = t.ano > a0 || (t.ano === a0 && t.mes > m0);
     if (futuro && !t.pago) return false; // remove apenas mês corrente em diante e não pagos
     return true;
@@ -1993,27 +1998,41 @@ function editarAporteSonho(sonhoId, aporteId) {
   modal.style.display = 'flex';
 }
 
-function salvarEdicaoAporteSonho(sonhoId, aporteId) {
+/**
+ * FUNIL ÚNICO de edição de valor/data de um aporte já realizado.
+ *
+ * Dois formulários desembocam aqui: o modal da aba Sonhos e a edição do
+ * lançamento na aba Controle Financeiro. A guarda de saldo, o acerto do
+ * `valorAtual` e o recálculo do plano vivem NESTE ponto — validar só no
+ * formulário deixaria o outro caminho aberto, que é exatamente como a aba
+ * Controle passou a transformar aporte em despesa.
+ *
+ * Devolve `{ ok, erro }`; quem chama decide como mostrar o erro.
+ */
+function aplicarEdicaoAporteSonho(sonhoId, aporteId, novoValor, novaData, opcoes) {
+  const moverCompetencia = !!(opcoes && opcoes.moverCompetencia);
   const s = sonhos.find((x) => x.id === sonhoId);
-  if (!s) {
-    fecharModal();
-    return;
-  }
+  if (!s) return { ok: false, erro: 'Sonho não encontrado.' };
   const aporte = (s.aportes || []).find((a) => a.id === aporteId);
-  if (!aporte) {
-    fecharModal();
-    return;
-  }
+  if (!aporte) return { ok: false, erro: 'Aporte não encontrado.' };
 
-  const novoValor = parseBRL(document.getElementById('editAporteValor').value);
-  const novaData = document.getElementById('editAporteData').value;
   if (!Number.isFinite(novoValor) || novoValor <= 0) {
-    mostrarToast('Informe um valor maior que zero.', 'erro');
-    return;
+    return { ok: false, erro: 'Informe um valor maior que zero.' };
   }
   if (novaData && !isFinite(new Date(novaData + 'T12:00:00').getTime())) {
-    mostrarToast('Data do aporte inválida.', 'erro');
-    return;
+    return { ok: false, erro: 'Data do aporte inválida.' };
+  }
+
+  // Mover a competência para um mês já ocupado dobraria o "a pagar" daquele mês
+  // (INV-13). Recusa antes de escrever qualquer coisa.
+  if (moverCompetencia && novaData) {
+    const alvo = competenciaDe(novaData);
+    const alvos = [aporte.txId, aporte.txResgateId]
+      .map((id) => (id ? transacoes.find((t) => t.id === id) : null))
+      .filter(Boolean);
+    if (alvo && alvos.some((tx) => !competenciaLivreParaSonho(tx, alvo))) {
+      return { ok: false, erro: 'Já existe um aporte deste sonho no mês escolhido.' };
+    }
   }
 
   const valorAntigo = aporte.valor;
@@ -2032,15 +2051,17 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
     const caixa = saldos[s.contaOrigemId] ? saldos[s.contaOrigemId].caixa : null;
     if (caixa != null && delta > caixa + 0.005) {
       const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
-      mostrarToast(
-        `Saldo insuficiente: aumentar o aporte exige ${fmt(delta)} e a conta tem ${fmt(caixa)}.`,
-        'erro'
-      );
-      return;
+      return {
+        ok: false,
+        erro: `Saldo insuficiente: aumentar o aporte exige ${fmt(delta)} e a conta tem ${fmt(caixa)}.`,
+      };
     }
   }
+
   aporte.valor = novoValor;
   if (novaData) aporte.data = novaData;
+  // INV-14: valorAtual é a soma dos aportes, nunca um número solto. Move pelo
+  // mesmo delta ou a barra de progresso passa a mentir.
   s.valorAtual = Math.max(0, s.valorAtual + delta);
 
   // Migração: ajusta a venda na carteira proporcionalmente ao novo valor,
@@ -2054,18 +2075,26 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
     }
   }
 
-  // Espelha alteração na transação vinculada (se houver)
+  // Espelha na transação vinculada (INV-11: o txId do aporte tem de continuar
+  // apontando para uma transação existente, e com o mesmo valor).
   if (aporte.txId) {
     const tx = transacoes.find((t) => t.id === aporte.txId);
-    if (tx) tx.valor = novoValor;
+    if (tx) {
+      tx.valor = novoValor;
+      if (moverCompetencia && novaData) aplicarDataEmLancamentoSonho(tx, novaData);
+    }
   }
   if (aporte.txResgateId) {
     const txr = transacoes.find((t) => t.id === aporte.txResgateId);
-    if (txr) txr.valor = novoValor;
+    if (txr) {
+      txr.valor = novoValor;
+      if (moverCompetencia && novaData) aplicarDataEmLancamentoSonho(txr, novaData);
+    }
   }
   salvarTransacoes();
 
-  // Recalcula plano (se vinculado)
+  // Recalcula plano (se vinculado): guardar mais num mês deixa os seguintes
+  // mais baratos, mantendo o prazo.
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
     const novoMensal = calcSonhoMensal(
       s.valorTotal,
@@ -2078,6 +2107,142 @@ function salvarEdicaoAporteSonho(sonhoId, aporteId) {
   }
 
   salvarSonhos();
+  return { ok: true };
+}
+
+/**
+ * Escreve a data num lançamento de sonho mantendo a COMPETÊNCIA junto.
+ *
+ * A tela do Controle filtra por t.mes/t.ano; gravar só `dataVencimento`
+ * deixaria o lançamento desenhado no mês antigo com a data nova — o defeito 1
+ * de test/edicao-lancamento.test.js, agora por outra porta.
+ */
+function competenciaDe(novaData) {
+  const d = new Date(novaData + 'T12:00:00');
+  if (!isFinite(d.getTime())) return null;
+  return { mes: d.getMonth(), ano: d.getFullYear() };
+}
+
+/**
+ * O mês de destino está livre para este lançamento?
+ *
+ * INV-13: os compromissos de um sonho são únicos por (sonhoId, mes, ano). Mover
+ * um lançamento para um mês que já tem outro dobraria o "a pagar" daquele mês.
+ * A checagem roda ANTES de qualquer escrita — recusar depois de já ter mexido
+ * é a mutação fantasma que o simulador separa como o defeito mais traiçoeiro.
+ */
+function competenciaLivreParaSonho(tx, alvo) {
+  if (!tx || !alvo || tx.aporteExtra) return true;
+  if (tx.mes === alvo.mes && tx.ano === alvo.ano) return true;
+  return !transacoes.some(
+    (t) =>
+      t !== tx &&
+      t.id !== tx.id &&
+      t.categoria === 'sonho' &&
+      t.sonhoId === tx.sonhoId &&
+      !t.aporteExtra &&
+      t.mes === alvo.mes &&
+      t.ano === alvo.ano
+  );
+}
+
+/**
+ * Escreve a data num lançamento de sonho mantendo a COMPETÊNCIA junto.
+ *
+ * A tela do Controle filtra por t.mes/t.ano; gravar só `dataVencimento`
+ * deixaria o lançamento desenhado no mês antigo com a data nova — o defeito 1
+ * de test/edicao-lancamento.test.js, agora por outra porta.
+ */
+function aplicarDataEmLancamentoSonho(tx, novaData) {
+  if (!tx || !novaData) return;
+  const alvo = competenciaDe(novaData);
+  if (!alvo) return;
+  tx.dataVencimento = novaData;
+  tx.mes = alvo.mes;
+  tx.ano = alvo.ano;
+}
+
+/**
+ * Edição vinda da aba CONTROLE FINANCEIRO, por id de transação.
+ *
+ * Resolve sozinha os dois casos, que o usuário não distingue e não deveria:
+ *
+ *   PARCELA JÁ PAGA  virou aporte no pagamento (registrarAportePorPagamentoSonho).
+ *                    Mexer no valor mexe em dinheiro que já saiu: entra pelo
+ *                    funil acima, com guarda de saldo e recálculo do plano.
+ *
+ *   PARCELA FUTURA   ainda não saiu do caixa e não tem aporte. Só o valor
+ *                    planejado daquele mês muda. NÃO recalcula o plano de
+ *                    propósito: `removerLancamentosFuturosSonho` apaga
+ *                    justamente as parcelas futuras não pagas, então recalcular
+ *                    aqui apagaria a edição que o usuário acabou de fazer.
+ */
+function editarLancamentoSonhoPorTransacao(txId, novoValor, novaData) {
+  const tx = transacoes.find((t) => t.id === txId);
+  if (!tx || tx.categoria !== 'sonho') return { ok: false, erro: 'Lançamento não é de sonho.' };
+  const s = sonhos.find((x) => x.id === tx.sonhoId);
+  if (!s) return { ok: false, erro: 'O sonho deste lançamento não existe mais.' };
+
+  const aporte = (s.aportes || []).find((a) => a.txId === txId || a.txResgateId === txId);
+  if (aporte) {
+    // Pelo Controle a data editada É a data do lançamento, então a competência
+    // acompanha. Pelo modal da aba Sonhos a data é a do APORTE — outra coisa —
+    // e mover a competência de lá arrastava uma parcela paga para cima de
+    // outra. A caça de sequências pegou essa colisão.
+    return aplicarEdicaoAporteSonho(s.id, aporte.id, novoValor, novaData, {
+      moverCompetencia: true,
+    });
+  }
+
+  if (!Number.isFinite(novoValor) || novoValor <= 0) {
+    return { ok: false, erro: 'Informe um valor maior que zero.' };
+  }
+  if (novaData && !isFinite(new Date(novaData + 'T12:00:00').getTime())) {
+    return { ok: false, erro: 'Data inválida.' };
+  }
+
+  // Parcela PLANEJADA não pode planejar ultrapassar a meta: o plano existe para
+  // chegar a `valorTotal`, e um dígito a mais (R$ 999.999.999 numa meta de
+  // R$ 12.000, que a simulação aceitou sem piscar) inflaria o "a pagar" do mês
+  // inteiro no Controle. Aporte JÁ PAGO pode passar da meta — a realidade
+  // ultrapassa, o plano não.
+  const falta = Math.max(0, (s.valorTotal || 0) - (s.valorAtual || 0));
+  if (falta > 0 && novoValor > falta + 0.005) {
+    const fmt = typeof formatarMoeda === 'function' ? formatarMoeda : (v) => 'R$ ' + v;
+    return {
+      ok: false,
+      erro: `Faltam ${fmt(falta)} para completar "${s.nome}". Para guardar mais que isso, registre um aporte pela aba Sonhos.`,
+    };
+  }
+
+  if (novaData) {
+    const alvo = competenciaDe(novaData);
+    if (alvo && !competenciaLivreParaSonho(tx, alvo)) {
+      return { ok: false, erro: 'Já existe uma parcela deste sonho no mês escolhido.' };
+    }
+  }
+
+  tx.valor = Math.round(novoValor * 100) / 100;
+  if (novaData) aplicarDataEmLancamentoSonho(tx, novaData);
+  // Sai do grupo da recorrência: este mês passou a ter valor próprio e não
+  // pode ser reescrito pelo próximo recálculo em bloco (INV-13 continua valendo
+  // — segue único por sonhoId+mes+ano).
+  tx.valorPersonalizado = true;
+  salvarTransacoes();
+  return { ok: true };
+}
+
+function salvarEdicaoAporteSonho(sonhoId, aporteId) {
+  const novoValor = parseBRL(document.getElementById('editAporteValor').value);
+  const novaData = document.getElementById('editAporteData').value;
+  const r = aplicarEdicaoAporteSonho(sonhoId, aporteId, novoValor, novaData);
+  if (!r.ok) {
+    // Sonho/aporte sumiu enquanto o modal estava aberto: fecha em vez de
+    // deixar o usuário preso num formulário sem alvo.
+    if (/não encontrad/i.test(r.erro || '')) fecharModal();
+    else mostrarToast(r.erro, 'erro');
+    return;
+  }
   fecharModal();
   renderizarSonhos();
   if (typeof atualizarTelaControle === 'function') atualizarTelaControle();

@@ -28,3 +28,4 @@ dist/
 playwright-report/
 test-results/
 .playwright-mcp/
+marketing/.fontes.css

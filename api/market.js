@@ -12,6 +12,7 @@ const SETORES_B3 = require('../scripts/lib/setores-b3.json');
 //   - GET  /api/market?op=quote&tickers=PETR4,VALE3              (auth: Firebase Bearer)
 //   - GET  /api/market?op=history&ticker=PETR4&range=1y          (auth: Firebase Bearer)
 //   - GET  /api/market?op=news                                    (auth: Firebase Bearer)
+//   - GET  /api/market?op=logo&ticker=PETR4                       (público; proxy de imagem)
 //   - POST /api/market?op=warmup                                  (auth: Bearer CRON_SECRET)
 //
 // Cache em Firestore: marketQuotes/{TICKER}, marketHistory/{TICKER}_{RANGE}.
@@ -156,6 +157,11 @@ async function fetchBrapi(tickers) {
       // (que exige plano pago) falha.
       marketCap: typeof r.marketCap === 'number' ? r.marketCap : null,
       volume: typeof r.regularMarketVolume === 'number' ? r.regularMarketVolume : null,
+      // Logo da empresa. Vem de graça nesta chamada, junto com preço e nome,
+      // e é gravado no cache marketQuotes/{TICKER} como qualquer outro campo.
+      // O cliente NUNCA recebe esta URL: quem a lê é o proxy `op=logo`, para
+      // que o CDN de terceiro não fique sabendo a carteira de quem abre o app.
+      logoUrl: typeof r.logourl === 'string' && r.logourl ? r.logourl : null,
     };
   }
   return out;
@@ -224,6 +230,11 @@ async function handleQuote(req, res) {
     if (fresh[t]) quotes[t] = { ...fresh[t], cached: true };
     else if (fetched[t]) quotes[t] = { ...fetched[t], cached: false };
     else quotes[t] = { ticker: t, price: null, cached: false, error: 'unavailable' };
+    // A URL do logo fica no servidor. Se ela sair daqui, mais cedo ou mais
+    // tarde alguém a usa direto num <img src>, e aí o CDN de terceiro passa a
+    // receber o IP do usuário junto com a lista de ativos que ele tem — que é
+    // exatamente o que o proxy `op=logo` existe para impedir.
+    delete quotes[t].logoUrl;
   }
 
   return res.json({
@@ -2866,6 +2877,87 @@ async function handleDiagnostico(req, res) {
   });
 }
 
+// ---------- op=logo ----------
+
+// Hosts de onde aceitamos buscar imagem. A URL vem do NOSSO cache (escrita
+// por fetchBrapi a partir da resposta da BRAPI), nunca do cliente — mas a
+// allowlist é a segunda tranca: se um dia a resposta de terceiro trouxer um
+// host inesperado, ainda assim não viramos um proxy HTTP aberto (SSRF).
+const LOGO_HOSTS = new Set(['brapi.dev', 'cdn.brapi.dev', 's3.amazonaws.com', 'icons.brapi.dev']);
+const LOGO_MAX_BYTES = 256 * 1024;
+const LOGO_TIPOS = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml']);
+
+/**
+ * Serve o logo de um ativo pelo NOSSO domínio.
+ *
+ * POR QUE PROXY E NÃO <img src="https://cdn-de-terceiro/PETR4.png">:
+ * a imagem sai do navegador do usuário com Referer e IP, então o CDN passaria
+ * a saber exatamente quais ativos cada pessoa tem na carteira, a cada abertura
+ * do app. Num app de finanças isso é dado sensível. Aqui o terceiro só vê o
+ * nosso servidor, e nunca quantas pessoas nem quem pediu.
+ *
+ * 204 (e não 404) quando não há logo: é o caso comum e esperado — FII, Tesouro,
+ * cripto e ticker novo costumam não ter. O cliente cai no monograma sem tratar
+ * isso como erro.
+ */
+async function handleLogo(req, res) {
+  const ticker = sanitizeTicker(req.query && req.query.ticker);
+  if (!ticker) return res.status(400).json({ error: 'ticker_invalido' });
+
+  let logoUrl = null;
+  try {
+    const snap = await db().collection(CACHE_COLLECTION).doc(ticker).get();
+    logoUrl = (snap.exists && (snap.data() || {}).logoUrl) || null;
+  } catch (e) {
+    console.warn('[market/logo] cache read failed', e && e.message);
+  }
+  // Sem cotação em cache ainda (ticker que ninguém consultou) não vale
+  // disparar uma busca: a próxima abertura da carteira preenche o cache e o
+  // logo aparece sozinho.
+  if (!logoUrl) return semLogo(res);
+
+  let alvo;
+  try {
+    alvo = new URL(logoUrl);
+  } catch (_) {
+    return semLogo(res);
+  }
+  if (alvo.protocol !== 'https:' || !LOGO_HOSTS.has(alvo.hostname)) {
+    console.warn('[market/logo] host fora da allowlist', alvo.hostname);
+    return semLogo(res);
+  }
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const r = await fetch(alvo.toString(), { signal: ctrl.signal });
+    if (!r.ok) return semLogo(res);
+    const tipo = (r.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+    if (!LOGO_TIPOS.has(tipo)) return semLogo(res);
+    const buf = Buffer.from(await r.arrayBuffer());
+    if (!buf.length || buf.length > LOGO_MAX_BYTES) return semLogo(res);
+
+    // Cache longo na borda: logo de empresa não muda. `immutable` evita que o
+    // navegador revalide a cada render de lista.
+    res.setHeader('Content-Type', tipo);
+    res.setHeader('Cache-Control', 'public, max-age=86400, s-maxage=604800, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    return res.status(200).end(buf);
+  } catch (e) {
+    console.warn('[market/logo] fetch falhou', ticker, e && e.message);
+    return semLogo(res);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function semLogo(res) {
+  // Também com cache: sem isto, todo ativo sem logo dispararia uma função por
+  // render de lista.
+  res.setHeader('Cache-Control', 'public, max-age=21600, s-maxage=86400');
+  return res.status(204).end();
+}
+
 // Dispatcher: handler wrapper aplica CORS + try/catch + Sentry. Cada
 // sub-op cuida da própria auth (requireUser p/ quote+history;
 // CRON_SECRET bearer p/ warmup).
@@ -2906,13 +2998,17 @@ module.exports = handler({
       if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
       return handleRendaFixa(req, res);
     }
+    if (op === 'logo') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      return handleLogo(req, res);
+    }
     if (op === 'warmup') {
       return handleWarmup(req, res);
     }
     return res.status(400).json({
       error: 'unknown_op',
       detail:
-        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa or ?op=warmup',
+        'Use ?op=quote, ?op=history, ?op=news, ?op=fundamentals, ?op=ranking, ?op=diagnostico, ?op=indicadores, ?op=rendafixa, ?op=logo or ?op=warmup',
     });
   },
 });
@@ -2950,6 +3046,12 @@ module.exports.__test = {
   fundCobertura,
   mapBrapiFundamental,
   mapBrapiCotacao,
+  // Proxy de logo: a allowlist é a trava contra virarmos proxy HTTP aberto,
+  // e o teste precisa poder afirmar o que está dentro dela.
+  handleLogo,
+  LOGO_HOSTS,
+  LOGO_TIPOS,
+  LOGO_MAX_BYTES,
   fetchYahooCotacoes,
   fetchCotacoesMercado,
   diagnosticarErrosDeFonte,

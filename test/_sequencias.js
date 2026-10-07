@@ -56,6 +56,24 @@ const ACOES = [
     },
   },
   {
+    // Caminho novo: editar o valor do lançamento de sonho pela aba Controle
+    // Financeiro. Entra no catálogo para que as sequências o cruzem com
+    // pagamento, exclusão de sonho e troca de conta — que é onde os defeitos
+    // desta ação vão aparecer, não no clique isolado.
+    nome: 'editar lançamento de sonho pelo Controle',
+    fn: (m, r) => {
+      const tx = m.s.transacoes.find((t) => t.categoria === 'sonho' && t.sonhoId);
+      if (!tx) return null;
+      const novo = Math.round(r() * 900) + 50;
+      return () => {
+        m.s.prepararEdicao(tx.id);
+        m.campos.valorTransacao = String(novo);
+        m.campos.dataVencimento = '';
+        m.s.tentarSalvarTransacao();
+      };
+    },
+  },
+  {
     nome: 'editar o último aporte',
     fn: (m, r) => {
       const s = m.s.sonhos[0];

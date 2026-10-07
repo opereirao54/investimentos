@@ -178,10 +178,21 @@ test('tintaSobre decide pela luminância do bloco, não pelo tema', () => {
 test('o avatar da carteira pinta a inicial pela cor do próprio bloco', () => {
   // Branco sobre o verde-menta da categoria dava 2,54:1. A regra da classe
   // continua branca como padrão; quem conhece o fundo manda a tinta inline.
+  //
+  // A montagem do quadradinho mudou de lugar quando o logo entrou — hoje é
+  // logoAtivoHTML() que a faz, para as seis telas de uma vez. A regra é a
+  // mesma, e o que se cobra aqui é ela, não o template: a lista passa a cor
+  // do bloco, e quem desenha deriva a tinta dela.
   const src = ler('web/appliquei-aba1-charts.js');
   assert.match(
     src,
-    /class="rich-avatar" style="background:\$\{avatarBg\};color:\$\{tintaSobre\(avatarBg\)\};"/,
-    'o avatar voltou a escrever sempre em branco'
+    /logoAtivoHTML\(ticker, \{[^}]*cor: avatarBg/,
+    'a lista deixou de informar a cor do bloco: a inicial volta a ser sempre branca'
+  );
+  const utils = ler('web/appliquei-utils.js');
+  assert.match(
+    utils,
+    /';color:' \+ tintaSobre\(cor\)/,
+    'a marca do ativo voltou a escrever sempre em branco'
   );
 });

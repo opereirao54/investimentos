@@ -1833,6 +1833,8 @@ function bemAtualizarFipeAuto() {
 function renderMeusBens() {
   var wrap = document.getElementById('listaBens');
   if (!wrap) return;
+  // No celular a lista tem formato próprio (appliquei-mobile.js).
+  if (typeof mobRenderBens === 'function') mobRenderBens();
 
   var ativos = bensAtivos();
   var arquivados = bens.filter(function (b) {

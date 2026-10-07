@@ -478,7 +478,7 @@ function abrirModalDividendosMes() {
         const dataLbl = new Date(p.ts).toLocaleDateString('pt-BR');
         return `<tr>
                 <td>
-                    <div style="font-weight:600;font-family:'DM Mono',monospace;">${p.ticker}</div>
+                    <div style="font-weight:600;font-family:'DM Mono',monospace;display:flex;align-items:center;gap:8px;">${logoAtivoHTML(p.ticker, { classe: 'ativo-marca', tamanho: 22 })}${p.ticker}</div>
                     <div style="font-size:11px;color:var(--cor-texto-mutado);">Pagamento previsto ${dataLbl}</div>
                 </td>
                 <td style="text-align:right;font-family:'DM Mono',monospace;">${formatarMoeda(p.valorPorAcao)}</td>

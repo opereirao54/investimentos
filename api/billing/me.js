@@ -154,6 +154,31 @@ module.exports = handler({
     const activeReferrals = referrals.filter((r) => r.active).length;
     const totalReferrals = referrals.length;
 
+    // Funil de indicação: abriu o link → criou conta → está pagando.
+    // As duas últimas etapas saem dos dados que já existem; só a primeira
+    // precisa do contador agregado em referralCodes (ver /api/user?op=ref-hit).
+    // A etapa do meio é a acionável: quem se cadastrou e ainda não assinou é
+    // exatamente quem vale um empurrãozinho.
+    let referralHits = 0;
+    if (billing.referralCode) {
+      try {
+        const codeSnap = await D.collection('referralCodes').doc(billing.referralCode).get();
+        referralHits = (codeSnap.exists && (codeSnap.data() || {}).hits) || 0;
+      } catch (e) {
+        console.warn('[me] referral hits read failed', e.code || '', e.message);
+      }
+    }
+    const funnel = {
+      // Cliques nunca podem parecer MENOS que cadastros: quem chegou pelo
+      // cupom digitado, ou clicou antes de o contador existir, não passou
+      // pelo ping. Sem este piso o funil exibiria 0 → 3 → 1, que lê como bug.
+      hits: Math.max(referralHits, totalReferrals),
+      signups: totalReferrals,
+      subscribers: activeReferrals,
+      // Cadastrou e ainda não paga — o grupo que o indicador pode reativar.
+      pending: totalReferrals - activeReferrals,
+    };
+
     if (credRes) {
       credits = credRes.docs.map((d) => {
         const c = d.data();
@@ -281,6 +306,7 @@ module.exports = handler({
       upcomingCharges: upcoming,
       activeReferrals,
       totalReferrals,
+      funnel,
       pendingDiscountCents,
       totalReferralEarningsCents,
       projectedNextBillCents: projectedNextCents,

@@ -107,6 +107,15 @@ function carregar(extras) {
   Object.assign(ctx, extras || {});
   ctx.window = ctx;
   vm.createContext(ctx);
+  // A marca do ativo (logo + monograma) vem de utils.js e é usada no card do
+  // ranking. Entra o pedaço REAL do arquivo, não um stub: um esboço aqui
+  // faria os testes de "nada escapa undefined para a tela" olharem para um
+  // HTML que não é o que o usuário recebe. Só a parte de cor em diante —
+  // o topo de utils.js mexe em localStorage e firebase.
+  const utils = fs.readFileSync(path.join(ROOT, 'web/appliquei-utils.js'), 'utf8');
+  vm.runInContext(utils.slice(utils.indexOf('var TINTA_CLARA')), ctx, {
+    filename: 'web/appliquei-utils.js',
+  });
   for (const f of [
     'web/appliquei-motor-carteira.js',
     'web/appliquei-aba-carteira-recomendada.js',
@@ -1848,4 +1857,53 @@ test('o plano marca o lugar trocado e oferece o botão de troca em cada item', (
   assert.ok(html.includes('cart-plano-trocar'), 'todo item oferece a troca');
   assert.ok(html.includes('cartAbrirTroca('));
   assert.ok(html.includes('Trocado por você no lugar de'), 'e diz de quem era');
+});
+
+// ════════════════════════════════════════════
+// Classe acima do alvo: a tela diz por que ficou sem aporte
+// ════════════════════════════════════════════
+// Relato: "deu 63% em renda fixa mas não alocou". Era o rebalanceamento por
+// aporte — a Renda Fixa da carteira já passava do alvo —, mas a tela só
+// mostrava "63%" ao lado de "Sem alocação nesta classe", sem dizer quanto já
+// havia nem de que era feito. Ninguém conseguia distinguir isso de um defeito.
+
+test('classe acima do alvo explica, com os números, por que ficou fora do aporte', () => {
+  const { run } = carregar();
+  run(SEMENTE);
+  const txt = run(`
+    var p = motorPlanoAporte({
+      aporteMensal: 2000,
+      alocacaoAlvo: { rf: 63, acao: 20, fii: 16, cripto: 1 },
+      ranking: rankingTeste,
+      patrimonioAtual: { rf: 60000, acao: 3000, fii: 2000, cripto: 0 },
+    });
+    p.composicaoAtual = { rf: { reserva_emergencia: 40000, renda_fixa: 15000, previdencia: 5000 } };
+    [p.classes.rf.alvo, p.patrimonioAtual.rf, cartMotivoSemAlocacao(p, 'rf'), cartMotivoSemAlocacao(p, 'acao')];
+  `);
+  assert.equal(txt[0], 0, 'Renda Fixa acima do alvo não recebe aporte');
+  assert.equal(txt[1], 60000, 'o plano carrega o que já existe em cada classe');
+  // 60.000 de 67.000 (carteira + aporte) = 90%, acima dos 63% do perfil.
+  assert.match(txt[2], /Você já tem R\$ 60\.000,00 em Renda Fixa — 90% da carteira/);
+  assert.match(txt[2], /acima dos 63% do seu perfil/);
+  // A composição aparece: é o que permite ver a reserva de emergência pesando.
+  assert.match(
+    txt[2],
+    /Inclui: Reserva de emergência R\$ 40\.000,00, Renda fixa R\$ 15\.000,00, Previdência/
+  );
+  // Classe que recebeu aporte não ganha a explicação.
+  assert.equal(txt[3], '');
+});
+
+test('sem carteira registrada, a classe vazia não inventa motivo', () => {
+  const { run } = carregar();
+  run(SEMENTE);
+  const txt = run(`
+    var p = motorPlanoAporte({
+      aporteMensal: 2000,
+      alocacaoAlvo: { rf: 63, acao: 20, fii: 16, cripto: 1 },
+      ranking: rankingTeste,
+    });
+    cartMotivoSemAlocacao(p, 'rf');
+  `);
+  assert.equal(txt, '');
 });

@@ -7,6 +7,8 @@
 //   POST /api/user?op=feedback              cria uma sugestão
 //   GET  /api/user?op=feedback-anexo&id=    devolve a imagem anexada a uma delas
 //   POST /api/user?op=resend-verification   novo link de verificação de e-mail
+//   GET  /api/user?op=privacidade           o aceite da Política de Privacidade vigente
+//   POST /api/user?op=privacidade           registra o aceite (versão vigente)
 //
 // POR QUE O FEEDBACK VIVE AQUI, E NÃO NO CLIENTE
 //
@@ -46,6 +48,8 @@ const { db, auth, fieldValue } = require('./_lib/firebase-admin');
 const { handler } = require('./_lib/handler');
 const { feedbackCreateBody, feedbackListQuery } = require('./_lib/schemas');
 const rl = require('./_lib/rate-limit');
+const codes = require('./_lib/codes');
+const { requireUser } = require('./_lib/auth');
 
 const LIMITE_PADRAO = 50;
 
@@ -315,15 +319,144 @@ async function reenviarVerificacao(req, res, user) {
   return res.json({ ok: true });
 }
 
+// ─── APPLICASH: CLIQUES NO LINK DE INDICAÇÃO ────────────────────────────────
+
+// Conta quantas pessoas ABRIRAM um link de indicação. É a primeira etapa do
+// funil que o indicador vê ("3 abriram · 1 cadastrou · 1 assinou"); as outras
+// duas já saem dos dados de billing.
+//
+// PRIVACIDADE (LGPD): grava um CONTADOR AGREGADO e nada mais. Sem IP, sem
+// user-agent, sem fingerprint, sem identificador do visitante — nem no
+// documento, nem em log. O que fica é `referralCodes/{CODE}.hits`, um número.
+// Não há dado pessoal envolvido, por desenho, e não há como reconstruir quem
+// clicou a partir dele.
+//
+// ABUSO: o endpoint é público (quem clica ainda não tem conta), então
+// qualquer um poderia inflar o contador de qualquer cupom. Como o número não
+// vale dinheiro — o crédito Applicash nasce só de pagamento confirmado, no
+// webhook — o risco é vaidade, não fraude. Mesmo assim há rate-limit por IP
+// (hash, via rate-limit.js) para não virar vetor de escrita barata no
+// Firestore, e o cliente deduplica por sessão para um F5 não contar de novo.
+async function registrarCliqueIndicacao(req, res) {
+  const codigo = codes.normalize((req.body && req.body.code) || '');
+  if (!codes.isValid(codigo)) {
+    // 204 e não 400: é telemetria, o visitante não tem nada a corrigir e a
+    // resposta não deve dizer se um cupom existe (evita enumeração).
+    return res.status(204).end();
+  }
+
+  const limite = await rl.check({
+    scope: 'ref-hit-ip',
+    key: rl.ipFrom(req) || 'unknown',
+    windowMs: 60 * 60 * 1000,
+    max: 60,
+  });
+  if (!limite.allowed) return res.status(204).end();
+
+  try {
+    // Só incrementa em cupom que existe. `update` (e não `set`) falha em doc
+    // inexistente — é o que impede criar reservas de cupom por aqui.
+    await db()
+      .collection('referralCodes')
+      .doc(codigo)
+      .update({
+        hits: fieldValue().increment(1),
+        lastHitAt: fieldValue().serverTimestamp(),
+      });
+  } catch (_) {
+    // Cupom inexistente ou escrita falhou. Silencioso de propósito: a
+    // resposta não pode revelar quais cupons existem.
+  }
+  return res.status(204).end();
+}
+
+// ─── POLÍTICA DE PRIVACIDADE: ACEITE ────────────────────────────────────────
+
+// Versão vigente da Política de Privacidade. É a data da redação e tem de ser
+// a mesma de PRIVACIDADE_VERSAO em web/appliquei-privacidade.js (um teste
+// confere). Mudou o texto de forma relevante, muda a versão: quem aceitou a
+// anterior volta a ver a política e aceita de novo.
+const PRIVACIDADE_VERSAO = '2026-10-06';
+const PRIVACIDADE_ORIGENS = new Set(['cadastro', 'app']);
+
+function refAceitePrivacidade(uid) {
+  return db()
+    .collection('users')
+    .doc(uid)
+    .collection('consentimentos')
+    .doc('privacidade-' + PRIVACIDADE_VERSAO);
+}
+
+// O registro do aceite é a PROVA do consentimento (LGPD, art. 8º, §2º: o ônus
+// da prova é do controlador). Por isso mora no servidor, gravado pelo Admin
+// SDK com o uid do TOKEN e a hora do SERVIDOR — nada disso vem do cliente.
+// Um documento por versão: o histórico de aceites fica preservado.
+//
+// Não exige e-mail verificado: o aceite acontece no cadastro, antes da
+// verificação, e registrar consentimento não dá acesso a dado nenhum.
+async function privacidadeStatus(res, user) {
+  const snap = await refAceitePrivacidade(user.uid).get();
+  const d = snap && snap.exists ? snap.data() || {} : null;
+  return res.json({
+    versao: PRIVACIDADE_VERSAO,
+    aceito: !!d,
+    aceitoEmMs: d ? paraMs(d.aceitoEm) : 0,
+  });
+}
+
+async function privacidadeAceitar(res, user, bruto) {
+  const corpo = bruto || {};
+  // Só se aceita a versão vigente: um cliente com a página antiga aberta não
+  // pode registrar o aceite de um texto que já não é o publicado.
+  if (corpo.versao !== PRIVACIDADE_VERSAO) {
+    return res.status(409).json({ error: 'versao_desatualizada', versao: PRIVACIDADE_VERSAO });
+  }
+  const origem = PRIVACIDADE_ORIGENS.has(corpo.origem) ? corpo.origem : 'app';
+  const ref = refAceitePrivacidade(user.uid);
+  const snap = await ref.get();
+  // Idempotente: o primeiro aceite é o que vale como prova; repetir não
+  // reescreve a data.
+  if (snap && snap.exists) {
+    const d = snap.data() || {};
+    return res.json({ ok: true, versao: PRIVACIDADE_VERSAO, aceitoEmMs: paraMs(d.aceitoEm) });
+  }
+  await ref.set({
+    uid: user.uid,
+    versao: PRIVACIDADE_VERSAO,
+    origem: origem,
+    aceitoEm: fieldValue().serverTimestamp(),
+  });
+  return res.status(201).json({ ok: true, versao: PRIVACIDADE_VERSAO, aceitoEmMs: Date.now() });
+}
+
 // ─── ROTEADOR ───────────────────────────────────────────────────────────────
+
+// Ops que podem ser chamadas SEM login. Allowlist explícita, e não
+// `auth: 'none'` no wrapper: assim o padrão do arquivo continua sendo
+// "autenticado", e uma op nova só fica pública se alguém a escrever aqui de
+// propósito. Inverter o default deixaria uma rota futura aberta por descuido.
+const OPS_PUBLICAS = new Set(['ref-hit']);
 
 module.exports = handler({
   method: ['GET', 'POST'],
-  // 'user' e não 'verified': resend-verification existe para quem ainda NÃO
-  // verificou. O feedback exige verificação na própria rota.
-  auth: 'user',
-  handle: async ({ req, res, user, body }) => {
+  // 'none' no wrapper porque o roteador faz a autenticação ele mesmo, logo
+  // abaixo — é 'user' e não 'verified' porque resend-verification existe
+  // justamente para quem ainda NÃO verificou. O feedback exige verificação
+  // na própria rota.
+  auth: 'none',
+  handle: async ({ req, res, body }) => {
     const op = String((req.query && req.query.op) || '');
+
+    if (op === 'ref-hit') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+      return registrarCliqueIndicacao(req, res);
+    }
+
+    let user = null;
+    if (!OPS_PUBLICAS.has(op)) {
+      user = await requireUser(req, res);
+      if (!user) return; // requireUser já respondeu 401
+    }
 
     if (op === 'feedback') {
       if (req.method === 'GET') return feedbackListar(req, res, user);
@@ -335,6 +468,11 @@ module.exports = handler({
       return feedbackAnexoLer(req, res, user);
     }
 
+    if (op === 'privacidade') {
+      if (req.method === 'GET') return privacidadeStatus(res, user);
+      return privacidadeAceitar(res, user, body);
+    }
+
     if (op === 'resend-verification') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
       return reenviarVerificacao(req, res, user);
@@ -343,3 +481,6 @@ module.exports = handler({
     return res.status(400).json({ error: 'unknown_op' });
   },
 });
+
+// Para o teste que confere a versão do cliente.
+module.exports.PRIVACIDADE_VERSAO = PRIVACIDADE_VERSAO;

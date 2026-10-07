@@ -51,6 +51,8 @@ const LOAD_ORDER = [
   'web/appliquei-jornada.js',
   'web/appliquei-sonhos.js',
   'web/appliquei-primeiros-passos.js',
+  'web/appliquei-mobile.js',
+  'web/appliquei-privacidade.js',
 ];
 
 // Stub mínimo de DOM/browser APIs que o código toca em parse-time.

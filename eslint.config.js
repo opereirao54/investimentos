@@ -115,6 +115,8 @@ module.exports = [
       'web/appliquei-yahoo-finance.js',
       'web/appliquei-admin.js',
       'web/appliquei-bens.js',
+      'web/appliquei-mobile.js',
+      'web/appliquei-privacidade.js',
     ],
     languageOptions: {
       ecmaVersion: 2022,
