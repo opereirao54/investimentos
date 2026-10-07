@@ -28,7 +28,8 @@
     "prepare": "husky || true",
     "ingest:cvm": "node scripts/ingest-cvm.js --dry-run",
     "regras:conferir": "node scripts/conferir-regras-firestore.js",
-    "regras:publicar": "node scripts/publicar-regras-firestore.js"
+    "regras:publicar": "node scripts/publicar-regras-firestore.js",
+    "telegram:webhook": "node scripts/telegram-webhook.js"
   },
   "dependencies": {
     "@sentry/browser": "^10.73.0",

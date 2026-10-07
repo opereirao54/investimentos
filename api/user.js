@@ -9,6 +9,12 @@
 //   POST /api/user?op=resend-verification   novo link de verificação de e-mail
 //   GET  /api/user?op=privacidade           o aceite da Política de Privacidade vigente
 //   POST /api/user?op=privacidade           registra o aceite (versão vigente)
+//   POST /api/user?op=telegram              webhook do bot (público; header secreto)
+//   POST /api/user?op=telegram-link         gera o link t.me/<bot>?start=<código>
+//   GET  /api/user?op=telegram-status       o Telegram está conectado?
+//   POST /api/user?op=telegram-unlink       desconecta
+//   GET  /api/user?op=telegram-inbox        lançamentos do Telegram ainda não aplicados
+//   POST /api/user?op=telegram-inbox        confirma os aplicados (apaga da caixa)
 //
 // POR QUE O FEEDBACK VIVE AQUI, E NÃO NO CLIENTE
 //
@@ -46,10 +52,11 @@
 
 const { db, auth, fieldValue } = require('./_lib/firebase-admin');
 const { handler } = require('./_lib/handler');
-const { feedbackCreateBody, feedbackListQuery } = require('./_lib/schemas');
+const { feedbackCreateBody, feedbackListQuery, telegramInboxAckBody } = require('./_lib/schemas');
 const rl = require('./_lib/rate-limit');
 const codes = require('./_lib/codes');
 const { requireUser } = require('./_lib/auth');
+const telegram = require('./_lib/telegram-bot');
 
 const LIMITE_PADRAO = 50;
 
@@ -429,13 +436,62 @@ async function privacidadeAceitar(res, user, bruto) {
   return res.status(201).json({ ok: true, versao: PRIVACIDADE_VERSAO, aceitoEmMs: Date.now() });
 }
 
+// ─── TELEGRAM ───────────────────────────────────────────────────────────────
+// Lógica em api/_lib/telegram-bot.js. Aqui só a borda HTTP. O webhook mora
+// neste arquivo pelo mesmo motivo do feedback: o teto de 12 functions do Hobby.
+
+async function telegramWebhook(req, res, body) {
+  // Sem o header secreto qualquer um poderia forjar mensagens "do Telegram"
+  // e lançar despesas na conta de um usuário vinculado.
+  if (!telegram.segredoConfere(req)) return res.status(401).json({ error: 'unauthorized' });
+  const r = await telegram.processarUpdate(body);
+  return res.status(200).json(Object.assign({ ok: true }, r));
+}
+
+async function telegramRotas(op, req, res, user, body) {
+  if (!exigeEmailVerificado(res, user)) return;
+  if (op === 'telegram-link') {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+    const lim = await rl.check({ scope: 'tg-link', key: user.uid, windowMs: 600000, max: 10 });
+    if (!lim.allowed) return res.status(429).json({ error: 'rate_limited' });
+    const r = await telegram.criarCodigoVinculo(user.uid);
+    if (!r.url) return res.status(503).json({ error: 'telegram_nao_configurado' });
+    return res.json(Object.assign({ ok: true }, r));
+  }
+  if (op === 'telegram-status') {
+    if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+    return res.json(Object.assign({ ok: true }, await telegram.statusVinculo(user.uid)));
+  }
+  if (op === 'telegram-unlink') {
+    if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+    return res.json(await telegram.desvincular(user.uid));
+  }
+  // telegram-inbox
+  if (req.method === 'GET') {
+    return res.json({ ok: true, itens: await telegram.listarInbox(user.uid) });
+  }
+  const parsed = telegramInboxAckBody.safeParse(body || {});
+  if (!parsed.success) return res.status(400).json({ error: 'invalid_body' });
+  const n = await telegram.confirmarInbox(user.uid, parsed.data.ids);
+  return res.json({ ok: true, removidos: n });
+}
+
+const OPS_TELEGRAM_APP = new Set([
+  'telegram-link',
+  'telegram-status',
+  'telegram-unlink',
+  'telegram-inbox',
+]);
+
 // ─── ROTEADOR ───────────────────────────────────────────────────────────────
 
 // Ops que podem ser chamadas SEM login. Allowlist explícita, e não
 // `auth: 'none'` no wrapper: assim o padrão do arquivo continua sendo
 // "autenticado", e uma op nova só fica pública se alguém a escrever aqui de
 // propósito. Inverter o default deixaria uma rota futura aberta por descuido.
-const OPS_PUBLICAS = new Set(['ref-hit']);
+// `telegram` é o webhook do bot: quem chama é o Telegram, sem login, e a
+// autenticação é o header secreto conferido em telegramWebhook.
+const OPS_PUBLICAS = new Set(['ref-hit', 'telegram']);
 
 module.exports = handler({
   method: ['GET', 'POST'],
@@ -450,6 +506,11 @@ module.exports = handler({
     if (op === 'ref-hit') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
       return registrarCliqueIndicacao(req, res);
+    }
+
+    if (op === 'telegram') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+      return telegramWebhook(req, res, body);
     }
 
     let user = null;
@@ -472,6 +533,8 @@ module.exports = handler({
       if (req.method === 'GET') return privacidadeStatus(res, user);
       return privacidadeAceitar(res, user, body);
     }
+
+    if (OPS_TELEGRAM_APP.has(op)) return telegramRotas(op, req, res, user, body);
 
     if (op === 'resend-verification') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });

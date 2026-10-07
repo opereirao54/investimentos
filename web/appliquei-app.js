@@ -627,6 +627,7 @@ function abrirModalConfig() {
   // Também é chamada pelo atalho da sidebar: no mobile o drawer ficaria
   // aberto por trás do modal.
   if (typeof closeMobileNav === 'function') closeMobileNav();
+  if (typeof telegramAoAbrirConfig === 'function') telegramAoAbrirConfig();
   document.getElementById('modalConfiguracoes').style.display = 'flex';
 }
 function fecharModalConfig() {

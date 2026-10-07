@@ -1761,46 +1761,51 @@ function executarEdicao(modo) {
   fecharPainelLancamento();
 }
 
-function executarInsercao() {
-  const desc = (document.getElementById('descTransacao').value || '').trim();
-  const valorTotal = Number(parseBRL(document.getElementById('valorTransacao').value));
-  const categoria = document.getElementById('categoriaTransacao').value;
-  const ehFixo = document.getElementById('transacaoFixa').checked;
-  const parcelas = parseInt(document.getElementById('qtdParcelas').value, 10) || 1;
-  const dataVencInput = document.getElementById('dataVencimento').value;
-  const obs = (document.getElementById('obsTransacao').value || '').trim();
-  const tipoCartao = document.getElementById('tipoCartaoSelecionado').value; // 'parcelado' | 'fixo'
-  const cartaoId =
-    categoria === 'cartao_credito' ? document.getElementById('selectCartao').value : null;
+// === Regra de lançamento, sem DOM ============================================
+// Tudo o que decide COMO um lançamento novo nasce — parcelas, recorrência,
+// competência, `pago` — vive aqui, separado do formulário. O formulário
+// (executarInsercao) e o lançamento pelo Telegram passam pelos mesmos dois
+// passos; manter a regra duplicada faria as duas versões divergirem na primeira
+// mudança de uma delas.
+//
+// `dados`:
+//   descricao, valor (total), categoria       — obrigatórios
+//   fixo (bool), parcelas (n), tipoCartao ('parcelado' | 'fixo'), cartaoId
+//   dataVencimento ('yyyy-mm-dd' ou vazio), obs
+//   banco, contaId, categoriaDespesa
+//   mesBase, anoBase — competência quando não há vencimento (no form: mês em visão)
+//   idBase — prefixo dos ids (default: Date.now()); agora — Date (default: new Date())
 
-  // Revalidação no ponto de inserção: blinda contra entradas que
-  // passaram pela validação anterior mas chegaram aqui inválidas
-  // (ex.: parseBRL devolvendo 0 por máscara mal aplicada).
-  if (!desc || !Number.isFinite(valorTotal) || valorTotal <= 0 || !categoria) {
-    return mostrarToast(
-      'Preencha a descrição, o valor e escolha uma Classificação Contábil válida!',
-      'erro'
-    );
+/** Devolve null se dá para lançar, ou o código do problema. Mesma ordem de
+ *  checagem que o formulário sempre fez. */
+function validarLancamento(dados) {
+  const d = dados || {};
+  const valor = Number(d.valor);
+  if (!d.descricao || !Number.isFinite(valor) || valor <= 0 || !d.categoria) {
+    return 'dados_invalidos';
   }
-
-  if (categoria === 'cartao_credito' && (!cartaoId || cartaoId === '__novo__')) {
-    return mostrarToast('Selecione um cartão válido.', 'erro');
+  if (d.categoria === 'cartao_credito' && (!d.cartaoId || d.cartaoId === '__novo__')) {
+    return 'cartao_invalido';
   }
+  if (controleBancoObrigatorio(d.categoria) && !d.banco) return 'banco_obrigatorio';
+  return null;
+}
 
+/** Monta os registros do lançamento. Não grava nem mexe em `transacoes`: quem
+ *  chama decide. Pressupõe validarLancamento(dados) === null. */
+function criarLancamentos(dados) {
+  const d = dados || {};
+  const agora = d.agora instanceof Date ? d.agora : new Date();
+  const idBase = d.idBase != null ? String(d.idBase) : Date.now().toString();
+  const categoria = d.categoria;
+  const valorTotal = Number(d.valor);
+  const ehFixo = !!d.fixo;
+  const parcelas = parseInt(d.parcelas, 10) || 1;
+  const tipoCartao = d.tipoCartao;
+  const cartaoId = categoria === 'cartao_credito' ? d.cartaoId : null;
   const cartaoFixoMensal = categoria === 'cartao_credito' && tipoCartao === 'fixo';
-  const groupId = ehFixo || categoria === 'cartao_credito' ? Date.now().toString() : null;
-  const bancoReceita = controleCategoriaUsaBanco(categoria)
-    ? (document.getElementById('bancoTransacao')?.value || '').trim()
-    : null;
-  if (controleBancoObrigatorio(categoria) && !bancoReceita) {
-    return mostrarToast('Informe o banco/instituição da operação.', 'erro');
-  }
-  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
-  const contaIdReceita =
-    bancoReceita && typeof obterOuCriarContaPorNome === 'function'
-      ? (obterOuCriarContaPorNome(bancoReceita) || {}).id
-      : undefined;
-  const catDespesa = resolverCategoriaDespesaSelecionada(categoria);
+  const groupId = ehFixo || categoria === 'cartao_credito' ? idBase : null;
+  const banco = controleCategoriaUsaBanco(categoria) ? d.banco || null : null;
   let mesesGerar = 1;
   let valorLancamento = valorTotal;
 
@@ -1812,8 +1817,7 @@ function executarInsercao() {
   // congresso até dia 15"), a despesa variável é um compromisso PROGRAMADO —
   // nasce pendente (pago:false) e só entra no caixa quando for de fato paga.
   const pagoBase = categoria === 'despesa_variavel' && !ehFixo;
-  const _hoje = new Date();
-  const hojeStrIns = `${_hoje.getFullYear()}-${String(_hoje.getMonth() + 1).padStart(2, '0')}-${String(_hoje.getDate()).padStart(2, '0')}`;
+  const hojeStrIns = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
 
   if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1) {
     mesesGerar = parcelas;
@@ -1824,20 +1828,21 @@ function executarInsercao() {
     mesesGerar = 60;
   }
 
+  const lancamentos = [];
   for (let i = 0; i < mesesGerar; i++) {
-    let m = visaoMes + i;
-    let a = visaoAno;
+    let m = d.mesBase + i;
+    let a = d.anoBase;
     while (m > 11) {
       m -= 12;
       a++;
     }
-    let descFinal = desc;
+    let descFinal = d.descricao;
     if (categoria === 'cartao_credito' && tipoCartao === 'parcelado' && parcelas > 1)
       descFinal += ` (${i + 1}/${parcelas})`;
 
     let dataVencFinal = null;
-    if (dataVencInput) {
-      let [vAno, vMes, vDia] = dataVencInput.split('-');
+    if (d.dataVencimento) {
+      let [vAno, vMes, vDia] = d.dataVencimento.split('-');
       let dVenc = new Date(vAno, vMes - 1, vDia);
       dVenc.setMonth(dVenc.getMonth() + i);
       dataVencFinal = `${dVenc.getFullYear()}-${String(dVenc.getMonth() + 1).padStart(2, '0')}-${String(dVenc.getDate()).padStart(2, '0')}`;
@@ -1855,7 +1860,7 @@ function executarInsercao() {
     // competência de competenciaDaData(dataVencimento): antes, abrir e salvar a
     // edição sem mudar nada movia o lançamento de mês.
     //
-    // Sem vencimento informado não há de onde derivar — fica o mês em visão.
+    // Sem vencimento informado não há de onde derivar — fica o mês base.
     const compVenc = competenciaDaData(dataVencFinal);
     if (compVenc) {
       a = compVenc.ano;
@@ -1865,25 +1870,73 @@ function executarInsercao() {
     // Vencimento futuro → compromisso programado (pendente); senão, paga à vista.
     const pagoLanc = pagoBase && !(dataVencFinal && dataVencFinal > hojeStrIns);
 
-    transacoes.push({
-      id: Date.now().toString() + i,
+    lancamentos.push({
+      id: idBase + i,
       groupId: groupId,
       descricao: descFinal,
       valor: Number(valorLancamento),
       categoria: categoria,
       cartaoId: cartaoId,
       cartaoFixoMensal: cartaoFixoMensal || undefined,
-      banco: bancoReceita || undefined,
-      contaId: contaIdReceita,
-      categoriaDespesa: catDespesa || undefined,
-      obs: obs,
+      banco: banco || undefined,
+      contaId: banco ? d.contaId : undefined,
+      categoriaDespesa: d.categoriaDespesa || undefined,
+      obs: d.obs || '',
       mes: m,
       ano: a,
-      data: new Date().toISOString(),
+      data: agora.toISOString(),
       dataVencimento: dataVencFinal,
       pago: pagoLanc,
     });
   }
+  return lancamentos;
+}
+
+function executarInsercao() {
+  const categoria = document.getElementById('categoriaTransacao').value;
+  const dados = {
+    descricao: (document.getElementById('descTransacao').value || '').trim(),
+    valor: Number(parseBRL(document.getElementById('valorTransacao').value)),
+    categoria: categoria,
+    fixo: document.getElementById('transacaoFixa').checked,
+    parcelas: parseInt(document.getElementById('qtdParcelas').value, 10) || 1,
+    dataVencimento: document.getElementById('dataVencimento').value,
+    obs: (document.getElementById('obsTransacao').value || '').trim(),
+    tipoCartao: document.getElementById('tipoCartaoSelecionado').value, // 'parcelado' | 'fixo'
+    cartaoId: categoria === 'cartao_credito' ? document.getElementById('selectCartao').value : null,
+    banco: controleCategoriaUsaBanco(categoria)
+      ? (document.getElementById('bancoTransacao')?.value || '').trim()
+      : null,
+    mesBase: visaoMes,
+    anoBase: visaoAno,
+  };
+
+  // Revalidação no ponto de inserção: blinda contra entradas que
+  // passaram pela validação anterior mas chegaram aqui inválidas
+  // (ex.: parseBRL devolvendo 0 por máscara mal aplicada).
+  const erro = validarLancamento(dados);
+  if (erro === 'dados_invalidos') {
+    return mostrarToast(
+      'Preencha a descrição, o valor e escolha uma Classificação Contábil válida!',
+      'erro'
+    );
+  }
+  if (erro === 'cartao_invalido') return mostrarToast('Selecione um cartão válido.', 'erro');
+  if (erro === 'banco_obrigatorio') {
+    return mostrarToast('Informe o banco/instituição da operação.', 'erro');
+  }
+
+  // Fase 2: carimba a conta (cria se o nome for novo). Mantém `banco` string.
+  dados.contaId =
+    dados.banco && typeof obterOuCriarContaPorNome === 'function'
+      ? (obterOuCriarContaPorNome(dados.banco) || {}).id
+      : undefined;
+  dados.categoriaDespesa = resolverCategoriaDespesaSelecionada(categoria);
+
+  const novos = criarLancamentos(dados);
+  transacoes.push(...novos);
+  const mesesGerar = novos.length;
+  const dataVencInput = dados.dataVencimento;
 
   if (!salvarTransacoes()) return;
   // Força sync imediato em vez de esperar o debounce de 2s — cobre

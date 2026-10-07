@@ -564,6 +564,21 @@ function validarEstado(estado, opcoes) {
     }
   }
 
+  // INV-25 — id de lançamento do Telegram é único. O aplicador é idempotente
+  // PORQUE o id é fixo (tg<chat>_<msg>_<n>); duplicata aqui é gasto dobrado.
+  // Restrito ao prefixo tg de propósito: os demais produtores geram id com
+  // Date.now() e colidem no mesmo milissegundo — risco real mas antigo,
+  // registrado em RISCO-04, que só a simulação consegue disparar.
+  const idsVistos = new Set();
+  for (const t of transacoes) {
+    if (t.id == null || !/^tg\d+_\d+_\d+$/.test(String(t.id))) continue;
+    const id = String(t.id);
+    if (idsVistos.has(id)) {
+      acusar('INV-25', `Id de transação repetido "${id}" — ${rotulo(t)}.`, t);
+    }
+    idsVistos.add(id);
+  }
+
   // INV-21 — aporte de compromisso é idempotente e não rende no futuro.
   const porCompromisso = new Map();
   for (const op of operacoes) {

@@ -8,6 +8,7 @@
       "destination": "/api/user?op=resend-verification"
     },
     { "source": "/api/ref-hit", "destination": "/api/user?op=ref-hit" },
+    { "source": "/api/telegram", "destination": "/api/user?op=telegram" },
     { "source": "/api/logo/:ticker", "destination": "/api/market?op=logo&ticker=:ticker" },
     { "source": "/api/logo", "destination": "/api/market?op=logo" },
     { "source": "/", "destination": "/landing.html" },
