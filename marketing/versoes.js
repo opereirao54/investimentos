@@ -92,6 +92,28 @@ ${tiques}<path d="${suavizar(p)}" fill="none" stroke="url(#gs)" stroke-width="4.
 <circle cx="${p[p.length - 1][0]}" cy="${p[p.length - 1][1].toFixed(1)}" r="5" fill="${C.sinal}"/></svg>`;
 }
 
+// Ícones desenhados aqui, não importados: Phosphor vem de CDN e o render é
+// offline. Traço fino e geometria simples, na mesma família do instrumento.
+const IC = {
+  carteira:
+    '<rect x="2.5" y="5.5" width="19" height="14" rx="3"/><path d="M2.5 9.5h19"/><circle cx="17" cy="14.5" r="1.4" fill="currentColor" stroke="none"/>',
+  camadas:
+    '<path d="M12 3 2.8 7.6 12 12.2l9.2-4.6L12 3Z"/><path d="M2.8 12.4 12 17l9.2-4.6"/><path d="M2.8 16.9 12 21.5l9.2-4.6"/>',
+  // O mergulho do saldo, em miniatura — o mesmo gesto do gráfico grande.
+  aperto:
+    '<path d="M2.5 8c3 0 4.2 7.5 7 7.5S15.5 6 19 6s2.5 3 2.5 3"/><path d="M2.5 12.5h19" stroke-dasharray="1.6 2.6" opacity=".55"/>',
+  alvo: '<circle cx="12" cy="12" r="8.6"/><circle cx="12" cy="12" r="4.2"/><circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>',
+  bandeira: '<path d="M5.2 21V3.6"/><path d="M5.2 4.4h12.4l-2.6 4.2 2.6 4.2H5.2"/>',
+  relatorio:
+    '<path d="M6 2.6h8.4L19 7.2V21.4H6z"/><path d="M14.2 2.8v4.6h4.6"/><path d="M9 12.4h7M9 16.2h5"/>',
+};
+const ico = (k) =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${IC[k]}</svg>`;
+
+/** Uma funcionalidade: ícone, nome e a frase que a explica em uma linha. */
+const func = (k, nome, txt) => `<div class="f"><span class="fi">${ico(k)}</span>
+      <span class="ft"><b>${nome}</b>${txt}</span></div>`;
+
 const BASE = `${FONTES}
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{width:${L}px;height:${A}px;overflow:hidden;background:${C.campo1}}
@@ -128,7 +150,18 @@ h1 em{font-style:normal;color:${C.sinal}}
   letter-spacing:.15em;text-transform:uppercase;color:${C.mudo}}
 .rodape b{color:#fbbf24;font-weight:500}
 .risco{flex:1;height:1px;background:${C.tinta};opacity:.12}
-.g{flex:1}`;
+.g{flex:1}
+.f{display:flex;align-items:flex-start;gap:22px;padding:21px 0}
+.f + .f{border-top:1px solid rgba(240,250,244,.085)}
+.fi{flex:none;width:50px;height:50px;border-radius:14px;color:${C.sinal};
+  background:rgba(52,211,153,.10);border:1px solid rgba(52,211,153,.20);
+  display:flex;align-items:center;justify-content:center}
+.fi svg{width:26px;height:26px}
+.ft{font-size:27px;line-height:1.38;color:${C.deck};padding-top:3px}
+.ft b{display:block;font-weight:800;font-size:30px;color:${C.tinta};
+  letter-spacing:-.012em;margin-bottom:3px}
+.mais{font-size:24px;line-height:1.5;color:${C.mudo};margin-top:24px}
+.mais b{color:${C.pill};font-weight:600}`;
 
 const SETA = `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 5l7 7-7 7"/></svg>`;
 
@@ -193,10 +226,33 @@ const v3 = env(`${topo()}
     <div class="g" style="flex:.4"></div>
     ${rodape('vagas por ordem de resposta')}`);
 
+// ── V4 · O PRODUTO ─ as funcionalidades carregam o convite. Cada linha é uma
+// tela que existe de verdade; o texto sai da landing, não da imaginação. ────
+const v4 = env(`${topo()}
+    <div class="g" style="flex:.5"></div>
+    <div class="pill"><span class="pt"></span>Procuro testadores</div>
+    <h1 style="margin-top:30px;font-size:76px">Procuro pessoas<br><em>para testar meu app.</em></h1>
+    <div class="rot" style="margin-top:40px">O que tem dentro</div>
+    <div style="margin-top:10px">
+      ${func('carteira', 'Controle do mês', 'Receitas, despesas, cartões — e quanto sobrou de verdade.')}
+      ${func('camadas', 'Patrimônio somado', 'Contas, investimentos e bens num lugar só.')}
+      ${func('aperto', 'Aviso de caixa apertado', 'O dia em que o saldo fura, dias antes de furar.')}
+      ${func('alvo', 'Carteira sugerida', 'O próximo aporte com o cálculo à vista, ativo por ativo.')}
+      ${func('bandeira', 'Sonhos e metas', 'Prazo e aporte calculados a partir da sua sobra real.')}
+      ${func('relatorio', 'Relatório mensal', 'Termômetro com cinco critérios, exporta em PDF.')}
+    </div>
+    <p class="mais">E ainda: <b>jornada de estudo</b> em oito módulos, <b>Info Mercado</b> com
+      indicadores e notícias, e <b>Applicash</b> — crédito por indicação.</p>
+    <div class="g" style="flex:.6"></div>
+    ${cta('Responda esta mensagem<br>para entrar.')}
+    <div class="g" style="flex:.4"></div>
+    ${rodape('fecha quando lotar')}`);
+
 for (const [n, h] of [
   ['v1', v1],
   ['v2', v2],
   ['v3', v3],
+  ['v4', v4],
 ])
   fs.writeFileSync(`${n}.html`, h);
-console.log('geradas: v1 (anúncio) · v2 (pergunta) · v3 (briefing)');
+console.log('geradas: v1 (anúncio) · v2 (pergunta) · v3 (briefing) · v4 (produto)');
