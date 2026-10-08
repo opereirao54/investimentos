@@ -175,6 +175,17 @@ function saldoInicialConta(c, refMs) {
   return sIni;
 }
 
+// appliquei-patrimonio.js → mpChaveInstTransacao
+function chaveInstTransacao(t, contas) {
+  const conta = resolverConta(t, contas);
+  if (conta) return { key: conta.id, label: conta.nome };
+  const orig = ((t && t.banco) || '').trim().replace(/\s+/g, ' ');
+  const key = normalizarNome(orig);
+  return key
+    ? { key: 'nome:' + key, label: orig }
+    : { key: 'a-reconciliar', label: 'A reconciliar' };
+}
+
 /**
  * Saldo em caixa por conta, até `refMs`.
  * Cópia de appliquei-patrimonio.js → mpCalcularSaldoPorInstituicao.
@@ -199,16 +210,7 @@ function saldoPorInstituicao(dados, refMs) {
     });
   (dados.transacoes || []).forEach((t) => {
     if (!t || !transacaoComputaCaixa(t, refMs)) return;
-    const conta = resolverConta(t, contas);
-    let ci;
-    if (conta) ci = { key: conta.id, label: conta.nome };
-    else {
-      const orig = (t.banco || '').trim().replace(/\s+/g, ' ');
-      const key = normalizarNome(orig);
-      ci = key
-        ? { key: 'nome:' + key, label: orig }
-        : { key: 'a-reconciliar', label: 'A reconciliar' };
-    }
+    const ci = chaveInstTransacao(t, contas);
     const b = ensure(ci.key, ci.label);
     const valor = Number(t.valor) || 0;
     if (ehEntradaCaixa(t.categoria)) b.caixa += valor;
@@ -385,8 +387,141 @@ function resumoMes(dados, mes, ano) {
   return { mes, ano, bruto: r, totais, porCategoria, resultado };
 }
 
+// ─── saldo projetado e aperto de caixa ──────────────────────────────────────
+
+// appliquei-patrimonio.js → mpDataMovimento (data REAL do lançamento)
+function dataMovimento(t, refMs) {
+  if (t.dataVencimento) {
+    const d = parseData(t.dataVencimento);
+    if (d && !isNaN(d.getTime())) return d.getTime();
+  }
+  if (t.data && typeof t.mes === 'number' && typeof t.ano === 'number') {
+    const d = parseData(t.data);
+    if (d && !isNaN(d.getTime()) && d.getMonth() === t.mes && d.getFullYear() === t.ano)
+      return d.getTime();
+  }
+  if (typeof t.mes === 'number' && typeof t.ano === 'number')
+    return new Date(t.ano, t.mes, 1).getTime();
+  if (t.data) {
+    const d = parseData(t.data);
+    if (d && !isNaN(d.getTime())) return d.getTime();
+  }
+  return refMs;
+}
+
+// appliquei-contas.js → ATRASO_MAXIMO_PROJETADO_MS
+const ATRASO_MAXIMO_PROJETADO_MS = 30 * 86400000;
+
+/**
+ * Saldo por conta em `refMs`, como o app projeta.
+ * Cópia de appliquei-contas.js → saldoCaixaPorConta + aplicarAgendadoNoSaldo:
+ * a foto de hoje (mpCalcularSaldoPorInstituicao) e, numa data futura, tudo o
+ * que está agendado até lá, pago ou não, sem contar duas vezes o que a foto
+ * já contou. `agoraMs` é o "hoje" (o app usa Date.now()).
+ *
+ * @returns {Object<string, number>} chave da instituição → saldo
+ */
+function saldoCaixaPorConta(dados, refMs, agoraMs) {
+  const base = refMs > agoraMs ? agoraMs : refMs;
+  const porInst = saldoPorInstituicao(dados, base);
+  const mapa = {};
+  Object.keys(porInst).forEach((k) => (mapa[k] = Number(porInst[k].caixa) || 0));
+  if (!(refMs > agoraMs)) return mapa;
+  const contas = dados.contas || [];
+  (dados.transacoes || []).forEach((t) => {
+    if (!t) return;
+    const ts = dataMovimento(t, agoraMs);
+    if (ts > refMs) return;
+    if (ts < agoraMs - ATRASO_MAXIMO_PROJETADO_MS) return;
+    if (
+      (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
+      t.temLegCaixa
+    )
+      return;
+    if (ehAporteExterno(t)) return;
+    if (transacaoComputaCaixa(t, agoraMs)) return; // a foto de hoje já contou
+    const chave = chaveInstTransacao(t, contas).key;
+    if (!chave) return;
+    if (mapa[chave] == null) mapa[chave] = 0;
+    const valor = Number(t.valor) || 0;
+    if (ehEntradaCaixa(t.categoria)) mapa[chave] += valor;
+    else mapa[chave] -= valor;
+  });
+  return mapa;
+}
+
+/**
+ * A função saldoEm(ms) que o card "aperto de caixa" usa.
+ * Cópia de appliquei-insights-ui.js → insightsUiFonteDeSaldo: soma as contas
+ * ativas; recusa projetar (devolve {motivo}) sem conta cadastrada ou com
+ * dinheiro "sem dono" hoje; o que fica fora de conta DEPOIS de hoje pesa como
+ * saída.
+ */
+function fonteDeSaldo(dados, agoraMs) {
+  const idsReais = {};
+  let qtd = 0;
+  (dados.contas || []).forEach((c) => {
+    if (c && c.id && !c.arquivada) {
+      idsReais[c.id] = true;
+      qtd++;
+    }
+  });
+  if (!qtd) return { motivo: 'sem_contas' };
+  const separar = (ms) => {
+    const mapa = saldoCaixaPorConta(dados, ms, agoraMs);
+    let emContas = 0;
+    let foraDeConta = 0;
+    Object.keys(mapa).forEach((k) => {
+      const v = Number(mapa[k]) || 0;
+      if (idsReais[k]) emContas += v;
+      else foraDeConta += v;
+    });
+    return { emContas, foraDeConta };
+  };
+  const foraHoje = separar(agoraMs).foraDeConta;
+  if (Math.abs(foraHoje) > 0.01) return { motivo: 'sem_dono' };
+  return {
+    saldoEm: (ms) => {
+      const x = separar(ms);
+      return x.emContas + (x.foraDeConta - foraHoje);
+    },
+  };
+}
+
+/**
+ * Cópia de appliquei-insights.js → insightsAperto: o primeiro dia em que o
+ * saldo projetado fica negativo, o pior valor e o dia em que volta ao azul.
+ */
+function aperto(saldoEm, agoraMs, dias) {
+  const DIA = 86400000;
+  let furo = null;
+  let recupera = null;
+  let pior = 0;
+  for (let d = 1; d <= (dias || 45); d++) {
+    const ms = agoraMs + d * DIA;
+    const saldo = Number(saldoEm(ms));
+    if (!isFinite(saldo)) continue;
+    if (saldo < 0) {
+      if (!furo) furo = { dia: d, ms };
+      if (saldo < pior) pior = saldo;
+    } else if (furo && !recupera) {
+      recupera = { dia: d, ms };
+    }
+  }
+  if (!furo) return null;
+  return {
+    valor: pior,
+    emDias: furo.dia,
+    quandoMs: furo.ms,
+    recuperaMs: recupera ? recupera.ms : null,
+  };
+}
+
 module.exports = {
   agoraBrasilia,
+  saldoCaixaPorConta,
+  fonteDeSaldo,
+  aperto,
   saldoPorInstituicao,
   resumoSaldo,
   resumoFaturas,

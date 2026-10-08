@@ -272,12 +272,139 @@ function alertasLimite60(d, agora) {
   ];
 }
 
+// Aperto de caixa — o card "sai antes de entrar" do Controle
+// (insightsAperto sobre a projeção de saldoCaixaPorConta). A mensagem segue a
+// mesma escolha de palavras do app, e pelo mesmo motivo: o saldo livre da tela
+// é de competência e fecha positivo; "seu saldo vai ficar negativo" ao lado
+// dele parece contradição. O que se avisa é a ORDEM: há conta vencendo antes
+// de o dinheiro entrar.
+// Só avisa furo nos próximos 10 dias (antes disso não há o que fazer hoje),
+// uma vez por data de furo: se a pessoa mexe e o furo muda de dia, é aviso novo.
+const APERTO_JANELA_DIAS = 45; // INSIGHTS_LIMIARES.diasJanelaAperto
+const APERTO_AVISO_ATE_DIAS = 10;
+
+function dataBR(ms) {
+  const d = new Date(ms);
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function alertasSaldoNegativo(d, agora) {
+  // Projeta pelo FIM de cada dia. O app projeta a partir do instante em que a
+  // tela abre, e o vencimento é lido ao meio-dia (appliqueiParseData): às 9h a
+  // conta do dia 12 só "cai" no passo do dia 13. Na tela isso oscila com a hora;
+  // num alerta das 8h daria a data errada. Fim do dia responde "em que dia
+  // fico no vermelho" igual de manhã e de noite. As funções são as mesmas do
+  // app (paridade em test/telegram-alertas.test.js); muda só o relógio.
+  const agoraMs = new Date(
+    agora.getFullYear(),
+    agora.getMonth(),
+    agora.getDate(),
+    23,
+    59,
+    59
+  ).getTime();
+  const fonte = C.fonteDeSaldo(d, agoraMs);
+  if (!fonte.saldoEm) return [];
+  const a = C.aperto(fonte.saldoEm, agoraMs, APERTO_JANELA_DIAS);
+  if (!a || a.emDias > APERTO_AVISO_ATE_DIAS) return [];
+  const furo = dataBR(a.quandoMs);
+  const falta = brl(Math.abs(a.valor));
+  const texto = a.recuperaMs
+    ? `🗓️ <b>Entre ${furo} e ${dataBR(a.recuperaMs)}, sai antes de entrar.</b>\n` +
+      `Com o que está agendado, suas contas ficam <b>${falta}</b> no vermelho no pior dia. ` +
+      `O mês fecha no positivo: é a ordem das datas. Adiar um vencimento para depois de ` +
+      `${dataBR(a.recuperaMs)} resolve.`
+    : `🔻 <b>A partir de ${furo}, sai mais do que entra.</b>\n` +
+      `Com o que está agendado, suas contas ficam <b>${falta}</b> no vermelho e não voltam ` +
+      `ao azul nos próximos ${APERTO_JANELA_DIAS} dias.`;
+  return [{ tipo: 'saldo_negativo', chave: `aperto:${ymd(new Date(a.quandoMs))}`, texto }];
+}
+
+// Ritmo: despesas variáveis + cartão do mês já passaram o mês anterior INTEIRO.
+// Comparar o mês todo (e não "até o mesmo dia") porque o app não guarda o dia
+// do gasto em todo lançamento — recorrente e cartão vivem pela competência.
+// Uma vez por mês.
+function alertasRitmo(d, agora) {
+  const mes = agora.getMonth();
+  const ano = agora.getFullYear();
+  const ant = new Date(ano, mes - 1, 1);
+  const r = C.resumoMes(d, mes, ano).bruto;
+  const p = C.resumoMes(d, ant.getMonth(), ant.getFullYear()).bruto;
+  const atual = r.despVar + r.cartao;
+  const anterior = p.despVar + p.cartao;
+  if (!(anterior > 0) || !(atual > anterior)) return [];
+  const diasFaltam = new Date(ano, mes + 1, 0).getDate() - agora.getDate();
+  return [
+    {
+      tipo: 'ritmo',
+      chave: `ritmo:${ano}-${mes}`,
+      texto:
+        `📈 Em ${MESES[mes]} você já gastou <b>${brl(atual)}</b> em despesas variáveis e ` +
+        `cartão: mais que ${MESES[ant.getMonth()]} inteiro (${brl(anterior)})` +
+        (diasFaltam > 0 ? `, e ainda faltam ${diasFaltam} dias.` : '.'),
+    },
+  ];
+}
+
+// Lembrete: 3 dias sem lançar nada (nem no app, nem aqui). Uma vez por
+// período parado: a chave é o dia da última atividade.
+const LEMBRETE_DIAS = 3;
+
+function ultimaAtividade(d) {
+  let ult = Number(d.ultimaAtividadeMs) || 0;
+  (d.transacoes || []).forEach((t) => {
+    if (!t || !t.data) return;
+    const ms = new Date(t.data).getTime();
+    if (isFinite(ms) && ms > ult) ult = ms;
+  });
+  return ult || null;
+}
+
+function alertasLembrete(d, agora) {
+  const ult = ultimaAtividade(d);
+  if (!ult) return []; // nunca lançou nada: não é lembrete, é onboarding
+  const dias = Math.floor((agora.getTime() - ult) / 86400000);
+  if (dias < LEMBRETE_DIAS) return [];
+  const desde = new Date(ult);
+  return [
+    {
+      tipo: 'lembrete',
+      chave: `lembrete:${ymd(desde)}`,
+      texto:
+        `✍️ Nada lançado desde ${DIAS_SEMANA[desde.getDay()]} (${dataBR(ult)}). ` +
+        'Gastou alguma coisa? É só mandar aqui, por exemplo <code>mercado 52,90</code>.',
+    },
+  ];
+}
+
+// Sonho conquistado: o mesmo critério da aba Sonhos (valorAtual ≥ valorTotal).
+// `silenciosoNaPrimeira`: na primeira avaliação de cada usuário, o que já
+// estava conquistado é registrado sem aviso — quem ligou o bot não recebe
+// parabéns por um sonho de dois anos atrás.
+function alertasSonho(d) {
+  return (d.sonhos || [])
+    .filter((s) => s && s.id && Number(s.valorTotal) > 0)
+    .filter((s) => (Number(s.valorAtual) || 0) >= Number(s.valorTotal))
+    .map((s) => ({
+      tipo: 'sonho',
+      chave: `sonho:${s.id}`,
+      silenciosoNaPrimeira: true,
+      texto:
+        `🎉 <b>Você conquistou o sonho ${esc(s.nome || '')}!</b> ` +
+        `${brl(s.valorTotal)} guardados. Parabéns pela constância.`,
+    }));
+}
+
 const REGRAS = {
   vencimentos: alertasVencimentos,
   vencidas: alertasVencidas,
   fatura_fecha: alertasFaturaFecha,
   fatura_vence: alertasFaturaVence,
+  saldo_negativo: alertasSaldoNegativo,
   limite60: alertasLimite60,
+  ritmo: alertasRitmo,
+  lembrete: alertasLembrete,
+  sonho: alertasSonho,
 };
 
 /**

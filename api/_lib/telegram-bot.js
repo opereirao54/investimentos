@@ -682,6 +682,7 @@ async function gravarLancamento(uid, id, lanc, texto) {
     .collection('integracoes')
     .doc('telegram')
     .set({ ultimoId: id }, { merge: true });
+  await alertas.registrarAtividade(uid);
 }
 
 // Completa conta/banco (despesa e receita) a partir do que o parser achou.

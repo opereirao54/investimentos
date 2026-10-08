@@ -129,6 +129,19 @@ diferentes, todo update volta 401 e aparece em "Último erro" no `--info`.
 
 Referência: <https://core.telegram.org/bots/api#setwebhook>
 
+**Só atualizar o menu "/" (sem terminal):** no @BotFather, mande
+`/setcommands`, escolha o bot e cole, numa mensagem só:
+
+```
+saldo - Saldo de cada conta
+fatura - Fatura aberta de cada cartão
+mes - Resumo do mês por categoria
+alertas - Escolher os avisos automáticos
+ajuda - Como lançar despesas e receitas
+desfazer - Desfaz o último lançamento
+desconectar - Desliga este Telegram da sua conta
+```
+
 ## Passo 7 — (Recomendado) Limpeza automática no Firestore (3 min)
 
 O bot grava três coleções temporárias. Todas têm o campo `expiraEm`
@@ -202,6 +215,76 @@ comandos funcionam mesmo sem isso.
 6. Volte ao app (ou atualize a página): aparece "📲 N lançamentos do Telegram
    entraram". Com o app aberto, entra em até 2 minutos ou ao voltar para a aba.
 
+## Alertas automáticos (sem terminal)
+
+O bot avisa sozinho, duas vezes por dia no máximo (uma mensagem por horário,
+juntando tudo). Tudo vem ligado; o usuário desliga pelo 🔕 de cada aviso, pelo
+botão **🔔 Alertas** ou mandando "parar alertas".
+
+| Horário (Brasília) | Alerta                                                                            |
+| ------------------ | --------------------------------------------------------------------------------- |
+| ☀️ ~8h             | conta vencendo hoje/amanhã · conta vencida (até 3 dias) · com **✅ Já paguei**    |
+| ☀️ ~8h             | fatura fechando em 1–2 dias · fatura vencendo hoje/amanhã (com ✅ Já paguei)      |
+| ☀️ ~8h             | **sai antes de entrar**: o caixa projetado fica negativo nos próximos 10 dias     |
+| 🌙 ~20h            | **limite de 60% da receita** (régua do termômetro do Controle), uma vez por faixa |
+| 🌙 ~20h            | ritmo: variáveis + cartão já passaram o mês anterior inteiro                      |
+| 🌙 ~20h            | lembrete: 3 dias sem lançar nada                                                  |
+| 🌙 ~20h            | sonho conquistado                                                                 |
+
+Quem dispara é o **GitHub Actions** (`.github/workflows/telegram-alertas.yml`),
+porque o cron da Vercel Hobby só roda uma vez por dia e as duas vagas estão
+ocupadas. Ele chama `POST /api/user?op=telegram-alertas` com o `CRON_SECRET`.
+
+### Ligar (uma vez, 5 min, só no navegador)
+
+1. **Confira o `CRON_SECRET` na Vercel.** Projeto → **Settings → Environment
+   Variables**. Os crons que já existem usam essa variável, então ela
+   provavelmente já está lá. Se não estiver, crie com um valor longo e
+   aleatório (um gerador de senha de 40+ caracteres serve) e faça um
+   **Redeploy** (Deployments → ⋯ no último → Redeploy).
+2. **Crie os dois secrets no GitHub.** Repositório → **Settings → Secrets and
+   variables → Actions → New repository secret**:
+   - `APP_URL` = o endereço de produção, sem barra no fim (`https://seu-dominio`)
+   - `CRON_SECRET` = **exatamente** o mesmo valor da Vercel
+3. **Teste.** Aba **Actions** → **Alertas do Telegram** → **Run workflow** →
+   escolha a janela (`manha` ou `noite`) → **Run workflow**. Em ~1 minuto o
+   job fica verde e o log mostra, por exemplo,
+   `{"ok":true,"janela":"manha","processados":3,"motivos":{"enviado":1,"nada":2}}`.
+   Quem tinha algo a receber recebe no Telegram.
+
+Depois disso roda sozinho. Cada janela sai uma vez por dia por usuário: rodar
+de novo no mesmo dia não repete nada.
+
+### O que o log da rodada quer dizer
+
+| motivo          | significado                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `enviado`       | mandou a mensagem                                                  |
+| `nada`          | não havia aviso novo (ou todos desligados)                         |
+| `ja_tratado`    | essa janela já saiu hoje para o usuário                            |
+| `pausado`       | o usuário pausou todos                                             |
+| `assinatura`    | assinatura inativa                                                 |
+| `bot_bloqueado` | o usuário bloqueou o bot; volta a tentar em 7 dias                 |
+| `falha_envio`   | o Telegram recusou agora; a próxima rodada da janela tenta de novo |
+| `erro`          | dado inesperado desse usuário (detalhe nos logs da Vercel)         |
+
+Job vermelho com "Faltam os secrets" = passo 2. Com `401` = o `CRON_SECRET`
+do GitHub é diferente do da Vercel. Com `503 cron_disabled` = falta o
+`CRON_SECRET` na Vercel (passo 1).
+
+### Para desligar tudo
+
+Aba **Actions** → **Alertas do Telegram** → **⋯** → **Disable workflow**.
+
+### "✅ Já paguei"
+
+Funciona como o lançamento: o bot deixa a ordem na caixa de entrada e o app dá
+a baixa ao abrir, pelas mesmas funções do botão **Baixar** do Controle (conta
+pagadora do cartão, aporte do sonho, posição do compromisso). Contrato
+**INV-26** no mapa de integrações. Uma aba do app aberta desde antes desta
+versão não conhece a ordem e a descarta: recarregar o app resolve, e o
+pagamento é refeito pelo app.
+
 ## Solução de problemas
 
 | Sintoma                                                        | Causa provável                                | O que fazer                                                                                                      |
@@ -274,31 +357,34 @@ houver uma conta de caixa (não corretora, não arquivada), ela é a principal.
 
 ### Coleções
 
-| Caminho                            | Quem escreve                        | Conteúdo                                 |
-| ---------------------------------- | ----------------------------------- | ---------------------------------------- |
-| `telegramLinks/{chatId}`           | servidor                            | `{uid}`                                  |
-| `telegramCodigos/{codigo}`         | servidor                            | vínculo pendente, 15 min                 |
-| `telegramPendentes/{id}`           | servidor                            | escolha de cartão pendente, 24 h         |
-| `telegramUpdates/{update_id}`      | servidor                            | updates já processados, 7 dias           |
-| `users/{uid}/integracoes/telegram` | servidor                            | `chatId`, nome, `ultimoId`, `aprendidas` |
-| `users/{uid}/telegramInbox/{id}`   | servidor; o app lê e apaga pela API | itens a aplicar                          |
+| Caminho                                   | Quem escreve                        | Conteúdo                                 |
+| ----------------------------------------- | ----------------------------------- | ---------------------------------------- |
+| `telegramLinks/{chatId}`                  | servidor                            | `{uid}`                                  |
+| `telegramCodigos/{codigo}`                | servidor                            | vínculo pendente, 15 min                 |
+| `telegramPendentes/{id}`                  | servidor                            | escolha de cartão pendente, 24 h         |
+| `telegramUpdates/{update_id}`             | servidor                            | updates já processados, 7 dias           |
+| `users/{uid}/integracoes/telegram`        | servidor                            | `chatId`, nome, `ultimoId`, `aprendidas` |
+| `users/{uid}/telegramInbox/{id}`          | servidor; o app lê e apaga pela API | itens a aplicar                          |
+| `users/{uid}/integracoes/telegramAlertas` | servidor                            | preferências e registro dos alertas      |
 
 Nenhuma delas tem regra no `firestore.rules`, de propósito: o cliente nunca
 acessa direto, e a negação implícita protege.
 
 ### Testes
 
-| Arquivo                                  | Cobre                                                         |
-| ---------------------------------------- | ------------------------------------------------------------- |
-| `test/lancamento-regra-pura.test.js`     | formulário ≡ `criarLancamentos`                               |
-| `test/telegram-parser.test.js`           | interpretação das mensagens                                   |
-| `test/telegram-bot.test.js`              | webhook, vínculo, botões, segurança                           |
-| `test/telegram-ia.test.js`               | Gemini (rede falsa)                                           |
-| `test/telegram-aplicador.test.js`        | aplicação no app                                              |
-| `test/telegram-consultas.test.js`        | /saldo, /fatura e /mes iguais ao app (paridade com a sandbox) |
-| `test/integracao-inv25-id-unico.test.js` | contrato INV-25                                               |
-| `test/simulacao-telegram.test.js`        | entradas inválidas no mundo completo                          |
-| `test/_sequencias.js`                    | ações do Telegram nas sequências aleatórias (`npm run cacar`) |
+| Arquivo                                        | Cobre                                                                    |
+| ---------------------------------------------- | ------------------------------------------------------------------------ |
+| `test/lancamento-regra-pura.test.js`           | formulário ≡ `criarLancamentos`                                          |
+| `test/telegram-parser.test.js`                 | interpretação das mensagens                                              |
+| `test/telegram-bot.test.js`                    | webhook, vínculo, botões, segurança                                      |
+| `test/telegram-ia.test.js`                     | Gemini (rede falsa)                                                      |
+| `test/telegram-aplicador.test.js`              | aplicação no app                                                         |
+| `test/telegram-consultas.test.js`              | /saldo, /fatura e /mes iguais ao app (paridade com a sandbox)            |
+| `test/telegram-alertas.test.js`                | regras, rodada, painel 🔔, 🔕, Já paguei, endpoint, paridade da projeção |
+| `test/integracao-inv26-baixa-telegram.test.js` | Já paguei ≡ Baixar do Controle (INV-26)                                  |
+| `test/integracao-inv25-id-unico.test.js`       | contrato INV-25                                                          |
+| `test/simulacao-telegram.test.js`              | entradas inválidas no mundo completo                                     |
+| `test/_sequencias.js`                          | ações do Telegram nas sequências aleatórias (`npm run cacar`)            |
 
 ### Formatos que as regras entendem
 

@@ -17,6 +17,8 @@
 //   pagaveis    {k: {...}}          alvos do botão "Já paguei" (etapa 2b)
 //   apresentado bool                a 1ª mensagem já explicou como desligar
 //   bloqueadoEmMs ms                o usuário bloqueou o bot (Telegram 403)
+//   semeados    {tipo: true}        tipos já avaliados uma vez (ver silenciosoNaPrimeira)
+//   ultimaAtividadeMs ms            último lançamento feito pelo Telegram (lembrete)
 
 const crypto = require('crypto');
 const { db, fieldValue } = require('./firebase-admin');
@@ -218,8 +220,22 @@ function limpeza(estado, agoraMs) {
   return { enviados, janelas, pagaveis };
 }
 
-async function marcarJanela(uid, chaveJanela) {
-  await refEstado(uid).set({ janelas: { [chaveJanela]: Date.now() } }, { merge: true });
+// Os tipos da janela ficam "semeados" na primeira avaliação, mesmo sem aviso.
+function semeadosDaJanela(janela) {
+  const out = {};
+  A.TIPOS.filter((t) => t.janela === janela).forEach((t) => (out[t.id] = true));
+  return out;
+}
+
+async function marcarJanela(uid, chaveJanela, extra) {
+  await refEstado(uid).set(Object.assign({ janelas: { [chaveJanela]: Date.now() } }, extra || {}), {
+    merge: true,
+  });
+}
+
+/** Lançamento feito pelo Telegram conta como atividade para o lembrete. */
+async function registrarAtividade(uid) {
+  await refEstado(uid).set({ ultimaAtividadeMs: Date.now() }, { merge: true });
 }
 
 async function acessoBloqueado(uid) {
@@ -244,12 +260,21 @@ async function processarUsuario(chatId, uid, agora, janela) {
   }
 
   const dados = await lerDadosUsuario(uid);
+  dados.ultimaAtividadeMs = estado.ultimaAtividadeMs || null;
   const enviados = estado.enviados || {};
-  const avisos = A.avaliar(dados, agora, janela).filter(
-    (a) => ligado(estado, a.tipo) && !enviados[a.chave]
+  const semeados = estado.semeados || {};
+  const todos = A.avaliar(dados, agora, janela);
+  // 1ª avaliação de um tipo "de evento": o que já é verdade vira histórico.
+  const silenciados = {};
+  todos
+    .filter((a) => a.silenciosoNaPrimeira && !semeados[a.tipo])
+    .forEach((a) => (silenciados[a.chave] = Date.now()));
+  const avisos = todos.filter(
+    (a) => ligado(estado, a.tipo) && !enviados[a.chave] && !silenciados[a.chave]
   );
+  const semear = { semeados: semeadosDaJanela(janela), enviados: silenciados };
   if (!avisos.length) {
-    await marcarJanela(uid, chaveJanela);
+    await marcarJanela(uid, chaveJanela, semear);
     return 'nada';
   }
 
@@ -266,7 +291,7 @@ async function processarUsuario(chatId, uid, agora, janela) {
 
   const agoraMs = Date.now();
   const lim = limpeza(estado, agoraMs);
-  const novosEnviados = Object.assign({}, lim.enviados);
+  const novosEnviados = Object.assign({}, lim.enviados, silenciados);
   avisos.slice(0, MAX_AVISOS).forEach((a) => {
     novosEnviados[a.chave] = agoraMs;
     (a.implica || []).forEach((k) => (novosEnviados[k] = agoraMs));
@@ -277,6 +302,7 @@ async function processarUsuario(chatId, uid, agora, janela) {
       janelas: Object.assign({}, lim.janelas, { [chaveJanela]: agoraMs }),
       pagaveis: Object.assign({}, lim.pagaveis, msg.pagaveis),
       apresentado: true,
+      semeados: semear.semeados,
       bloqueadoEmMs: fieldValue().delete(),
     },
     { merge: true }
@@ -333,6 +359,7 @@ module.exports = {
   lerEstado,
   definirTipo,
   definirPausa,
+  registrarAtividade,
   textoPainel,
   tecladoPainel,
   montarMensagem,

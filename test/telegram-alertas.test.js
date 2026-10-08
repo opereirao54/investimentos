@@ -544,3 +544,223 @@ test('Já paguei com assinatura bloqueada não grava', async () => {
   await botao(`pg:${k}`);
   assert.deepEqual(inbox(), {});
 });
+
+// ─── etapa 2c: aperto de caixa, ritmo, lembrete, sonho ──────────────────────
+
+const C2 = () => require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
+
+// Mundo do simulador + uma conta grande vencendo antes de a receita entrar.
+function mundoComAperto() {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const { criarMundo } = require('./_simulador.js');
+  const { s, ref } = criarMundo();
+  for (const f of ['web/appliquei-insights.js', 'web/appliquei-insights-ui.js']) {
+    vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), s, { filename: f });
+  }
+  const hoje = new Date();
+  const ymdL = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const em = (n) => new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate() + n);
+  s.transacoes.push(
+    {
+      id: 'ap_divida',
+      categoria: 'despesa_fixa',
+      descricao: 'Reforma',
+      valor: 30000,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: em(4).getMonth(),
+      ano: em(4).getFullYear(),
+      dataVencimento: ymdL(em(4)),
+      pago: false,
+    },
+    {
+      id: 'ap_receita',
+      categoria: 'receita',
+      descricao: 'Bônus',
+      valor: 40000,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: em(12).getMonth(),
+      ano: em(12).getFullYear(),
+      dataVencimento: ymdL(em(12)),
+    },
+    // vencidas e não pagas: fora da foto, dentro da projeção (até 30 dias atrás)
+    {
+      id: 'ap_atraso1',
+      categoria: 'despesa_fixa',
+      descricao: 'Atrasada ontem',
+      valor: 55,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: em(-1).getMonth(),
+      ano: em(-1).getFullYear(),
+      dataVencimento: ymdL(em(-1)),
+      pago: false,
+    },
+    {
+      id: 'ap_atraso10',
+      categoria: 'despesa_fixa',
+      descricao: 'Atrasada 10 dias',
+      valor: 77,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: em(-10).getMonth(),
+      ano: em(-10).getFullYear(),
+      dataVencimento: ymdL(em(-10)),
+      pago: false,
+    },
+    // conta a pagar ainda sem conta escolhida: pesa como saída no futuro
+    {
+      id: 'ap_semconta',
+      categoria: 'despesa_fixa',
+      descricao: 'Sem conta',
+      valor: 123,
+      mes: em(6).getMonth(),
+      ano: em(6).getFullYear(),
+      dataVencimento: ymdL(em(6)),
+      pago: false,
+    }
+  );
+  return { s, ref };
+}
+
+test('projeção de saldo: igual a saldoCaixaPorConta do app, dia a dia por 45 dias', () => {
+  const { s } = mundoComAperto();
+  const { estadoDe } = require('./_harness-integracao.js');
+  const d = JSON.parse(JSON.stringify(estadoDe(s)));
+  const agora = Date.now();
+  for (let dia = 0; dia <= 45; dia++) {
+    const ms = agora + dia * 86400000;
+    const app = s.saldoCaixaPorConta(ms);
+    const srv = C2().saldoCaixaPorConta(d, ms, agora);
+    assert.deepEqual(Object.keys(srv).sort(), Object.keys(app).sort(), `chaves dia ${dia}`);
+    for (const k of Object.keys(app)) {
+      assert.equal(Math.round(srv[k] * 100), Math.round(app[k] * 100), `${k} dia ${dia}`);
+    }
+  }
+});
+
+test('aperto: mesma fonte de saldo e mesmo furo do card "sai antes de entrar" do app', () => {
+  const { s } = mundoComAperto();
+  const { estadoDe } = require('./_harness-integracao.js');
+  const d = JSON.parse(JSON.stringify(estadoDe(s)));
+  const agora = Date.now();
+  const saldoApp = s.insightsUiFonteDeSaldo();
+  const fonte = C2().fonteDeSaldo(d, agora);
+  assert.ok(saldoApp && fonte.saldoEm);
+  for (let dia = 1; dia <= 45; dia++) {
+    const ms = agora + dia * 86400000;
+    assert.equal(Math.round(fonte.saldoEm(ms) * 100), Math.round(saldoApp(ms) * 100), `dia ${dia}`);
+  }
+  const app = s.insightsAperto({ saldoEm: saldoApp, agora });
+  const srv = C2().aperto(fonte.saldoEm, agora, 45);
+  assert.ok(app && srv, 'há aperto neste mundo');
+  assert.equal(srv.emDias, app.emDias);
+  assert.equal(Math.round(srv.valor * 100), Math.round(app.valor * 100));
+  assert.equal(srv.recuperaMs != null, app.recuperaMs != null);
+
+  // E o alerta sai com as datas do furo e da volta.
+  const av = A.REGRAS.saldo_negativo(d, new Date(agora));
+  assert.equal(av.length, 1);
+  assert.match(av[0].texto, /sai antes de entrar/);
+  assert.match(av[0].texto, /O mês fecha no positivo/);
+});
+
+test('aperto: sem conta cadastrada ou com gasto pago sem conta, não projeta (como o app)', () => {
+  const agora = new Date(2026, 9, 8, 9);
+  const semContas = { contas: [], transacoes: [] };
+  assert.deepEqual(A.REGRAS.saldo_negativo(semContas, agora), []);
+  const semDono = {
+    contas: [{ id: 'c', nome: 'Itaú', saldoInicial: 10 }],
+    transacoes: [
+      { id: 'x', categoria: 'despesa_variavel', valor: 50, mes: 9, ano: 2026, pago: true },
+    ],
+  };
+  assert.equal(C2().fonteDeSaldo(semDono, agora.getTime()).motivo, 'sem_dono');
+  assert.deepEqual(A.REGRAS.saldo_negativo(semDono, agora), []);
+});
+
+test('aperto: furo depois de 10 dias ainda não avisa; sem volta ao azul usa o texto de rombo', () => {
+  const agora = new Date(2026, 9, 8, 9);
+  const base = (diaFuro) => ({
+    contas: [{ id: 'c', nome: 'Itaú', saldoInicial: 100 }],
+    transacoes: [
+      {
+        id: 'd',
+        categoria: 'despesa_fixa',
+        valor: 500,
+        contaId: 'c',
+        mes: 9,
+        ano: 2026,
+        dataVencimento: `2026-10-${String(diaFuro).padStart(2, '0')}`,
+      },
+    ],
+  });
+  assert.deepEqual(A.REGRAS.saldo_negativo(base(25), agora), []);
+  const av = A.REGRAS.saldo_negativo(base(12), agora);
+  assert.equal(av[0].chave, 'aperto:2026-10-12');
+  assert.match(av[0].texto, /A partir de 12\/10, sai mais do que entra/);
+  assert.match(av[0].texto, /R\$\s400,00/);
+});
+
+test('ritmo: avisa quando variáveis + cartão passam o mês anterior inteiro, uma vez no mês', () => {
+  const agora = new Date(2026, 9, 18, 20);
+  const d = {
+    transacoes: [
+      { categoria: 'despesa_variavel', valor: 800, mes: 8, ano: 2026 },
+      { categoria: 'cartao_credito', valor: 200, mes: 8, ano: 2026 },
+      { categoria: 'despesa_fixa', valor: 5000, mes: 9, ano: 2026 }, // fixa não conta
+      { categoria: 'despesa_variavel', valor: 700, mes: 9, ano: 2026 },
+    ],
+  };
+  assert.deepEqual(A.REGRAS.ritmo(d, agora), []);
+  d.transacoes.push({ categoria: 'cartao_credito', valor: 400, mes: 9, ano: 2026 });
+  const av = A.REGRAS.ritmo(d, agora);
+  assert.equal(av[0].chave, 'ritmo:2026-9');
+  assert.match(
+    av[0].texto,
+    /outubro.*R\$\s1\.100,00.*setembro inteiro \(R\$\s1\.000,00\), e ainda faltam 13 dias/
+  );
+});
+
+test('lembrete: 3 dias sem nada lançado, no app ou no Telegram', () => {
+  const agora = new Date(2026, 9, 8, 20);
+  const d = { transacoes: [{ id: 'a', data: new Date(2026, 9, 4, 10).toISOString() }] };
+  const av = A.REGRAS.lembrete(d, agora);
+  assert.equal(av[0].chave, 'lembrete:2026-10-04');
+  assert.match(av[0].texto, /Nada lançado desde domingo \(04\/10\)/);
+  d.ultimaAtividadeMs = new Date(2026, 9, 7, 9).getTime(); // lançou pelo Telegram ontem
+  assert.deepEqual(A.REGRAS.lembrete(d, agora), []);
+  assert.deepEqual(A.REGRAS.lembrete({ transacoes: [] }, agora), [], 'quem nunca lançou não');
+});
+
+test('lançar pelo Telegram conta como atividade para o lembrete', async () => {
+  const bot = require(path.join(ROOT, 'api/_lib/telegram-bot.js'));
+  bot.definirIA(null);
+  await texto('mercado 50');
+  assert.ok(estado().ultimaAtividadeMs > 0);
+});
+
+test('sonho: o que já estava conquistado quando o alerta nasceu não manda parabéns; o novo manda', async () => {
+  const dados = M.store.docs.get(`users/${UID}/data/main`);
+  dados.keys = {
+    appliquei_sonhos: JSON.stringify([
+      { id: 's_velho', nome: 'Carro', valorTotal: 1000, valorAtual: 1000 },
+      { id: 's_novo', nome: 'Viagem', valorTotal: 2000, valorAtual: 1500 },
+    ]),
+  };
+  const r = await E.rodar({ agoraReal: NOITE });
+  assert.deepEqual(r.motivos, { nada: 1 });
+  assert.ok(estado().enviados['sonho:s_velho'], 'registrado em silêncio');
+  dados.keys.appliquei_sonhos = JSON.stringify([
+    { id: 's_velho', nome: 'Carro', valorTotal: 1000, valorAtual: 1000 },
+    { id: 's_novo', nome: 'Viagem', valorTotal: 2000, valorAtual: 2000 },
+  ]);
+  await E.rodar({ agoraReal: new Date('2026-10-09T23:30:00Z') });
+  const m = mensagens();
+  assert.equal(m.length, 1);
+  assert.match(m[0].payload.text, /conquistou o sonho Viagem/);
+  assert.doesNotMatch(m[0].payload.text, /Carro/);
+});
