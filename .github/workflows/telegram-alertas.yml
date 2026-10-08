@@ -61,15 +61,56 @@ jobs:
             exit 1
           fi
           url="${APP_URL%/}/api/user?op=telegram-alertas"
+          echo "Chamando ${APP_URL%/}/api/user?op=telegram-alertas"
+
+          # Explica uma resposta que não é 200, pelo CORPO dela: cada causa de
+          # erro responde diferente. O corpo é do nosso servidor ou da Vercel e
+          # não contém segredo (o Authorization nunca é impresso).
+          diagnosticar() {
+            local status="$1" corpo="$2"
+            echo "Resposta HTTP ${status}:"
+            echo "$corpo" | head -c 600; echo
+            if echo "$corpo" | grep -q '"error":"unauthorized"'; then
+              echo "::error::Senha recusada: o CRON_SECRET do GitHub é DIFERENTE do CRON_SECRET da Vercel. Cole o mesmo valor nos dois (sem espaço nem quebra de linha) e faça Redeploy na Vercel."
+            elif echo "$corpo" | grep -qE '"error":"(invalid_token|missing_token)"'; then
+              echo "::error::Quem respondeu foi uma versão ANTIGA do app, sem os alertas. Confira na Vercel se o deploy do merge do PR #141 está Ready e marcado como Production, e se APP_URL é o domínio de produção."
+            elif echo "$corpo" | grep -q '"error":"cron_disabled"'; then
+              echo "::error::Falta a variável CRON_SECRET na Vercel (ou ela foi criada sem Redeploy depois)."
+            elif echo "$corpo" | grep -qiE '<html|vercel authentication|authentication required|sso'; then
+              echo "::error::A Vercel pediu login antes de chegar ao app: APP_URL aponta para um endereço protegido (preview .vercel.app). Use o domínio de produção, ex.: https://app.appliquei.com"
+            elif [ "$status" = "404" ]; then
+              echo "::error::Endereço não encontrado: confira o APP_URL (domínio de produção, sem barra no fim e sem caminho)."
+            elif [ "$status" = "000" ]; then
+              echo "::error::Não foi possível conectar ao APP_URL (domínio errado ou fora do ar)."
+            else
+              echo "::error::Erro inesperado do servidor (HTTP ${status}). Veja os logs da Vercel com o prefixo [telegram-alertas]."
+            fi
+          }
+
           cursor=""
           for pagina in $(seq 1 200); do
             body=$(jq -nc --arg c "$cursor" --arg j "${JANELA:-}" \
               '{cursor: (if $c == "" then null else $c end), janela: (if $j == "" then null else $j end)}')
-            resp=$(curl -sS --fail-with-body --retry 2 --retry-all-errors --max-time 40 \
-              -X POST "$url" \
-              -H "Authorization: Bearer ${CRON_SECRET}" \
-              -H 'Content-Type: application/json' \
-              -d "$body")
+            status="000"
+            for tentativa in 1 2 3; do
+              rm -f resposta.txt # sem isto, uma falha de conexão mostraria a resposta anterior
+              status=$(curl -sS -o resposta.txt -w '%{http_code}' --max-time 40 \
+                -X POST "$url" \
+                -H "Authorization: Bearer ${CRON_SECRET}" \
+                -H 'Content-Type: application/json' \
+                -d "$body" || true)
+              # Só vale tentar de novo erro de rede ou do servidor (5xx); 4xx é
+              # configuração e repetir não muda nada.
+              case "$status" in
+                000 | 5*) if [ "$tentativa" -lt 3 ]; then sleep $((tentativa * 3)); fi ;;
+                *) break ;;
+              esac
+            done
+            resp=$(cat resposta.txt 2>/dev/null || true)
+            if [ "$status" != "200" ]; then
+              diagnosticar "$status" "$resp"
+              exit 1
+            fi
             echo "página ${pagina}: ${resp}"
             cursor=$(echo "$resp" | jq -r '.proximo // empty')
             if [ -z "$cursor" ]; then

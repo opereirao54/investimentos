@@ -268,9 +268,17 @@ de novo no mesmo dia não repete nada.
 | `falha_envio`   | o Telegram recusou agora; a próxima rodada da janela tenta de novo |
 | `erro`          | dado inesperado desse usuário (detalhe nos logs da Vercel)         |
 
-Job vermelho com "Faltam os secrets" = passo 2. Com `401` = o `CRON_SECRET`
-do GitHub é diferente do da Vercel. Com `503 cron_disabled` = falta o
-`CRON_SECRET` na Vercel (passo 1).
+Job vermelho: abra o job **rodada**. A última linha em vermelho diz a causa e o
+que fazer. O workflow mostra a resposta do servidor e a interpreta:
+
+| A resposta                     | Causa                                                         |
+| ------------------------------ | ------------------------------------------------------------- |
+| "Faltam os secrets"            | falta `APP_URL` ou `CRON_SECRET` no GitHub                    |
+| `{"error":"unauthorized"}`     | `CRON_SECRET` do GitHub diferente do da Vercel                |
+| `{"error":"invalid_token"}`    | respondeu uma versão antiga do app (deploy não terminou)      |
+| `{"error":"cron_disabled"}`    | falta `CRON_SECRET` na Vercel, ou faltou o Redeploy           |
+| página HTML de login da Vercel | `APP_URL` é um endereço de preview; use o domínio de produção |
+| HTTP 404 ou 000                | `APP_URL` errado                                              |
 
 ### Para desligar tudo
 
