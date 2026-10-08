@@ -781,7 +781,9 @@ async function tratarTexto(msg) {
   }
   if (texto.startsWith('/')) return tg.enviar(chat.id, AJUDA, TECLADO_MENU);
 
-  const ctx = Object.assign({ hoje: new Date() }, await carregarContexto(uid));
+  // "Hoje" é o de Brasília: o servidor roda em UTC, e das 21h à meia-noite o
+  // new Date() dele já é amanhã — no último dia do mês, o mês seguinte.
+  const ctx = Object.assign({ hoje: consultas.agoraBrasilia() }, await carregarContexto(uid));
   const r = await interpretarComReserva(texto, ctx);
   const id = idLancamento(chat.id, msg.message_id);
 

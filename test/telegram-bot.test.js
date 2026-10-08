@@ -601,3 +601,21 @@ test('/ajuda lista as consultas e manda o teclado fixo', async () => {
     ['💰 Saldo', '💳 Fatura', '📊 Mês']
   );
 });
+
+test('lançamento às 22h30 de 31/10 em Brasília (01/11 em UTC) cai em 31/10, não em novembro', async (t) => {
+  await conectar();
+  const agora = Date.parse('2026-11-01T01:30:00Z');
+  M.store.docs.set(`users/${UID}/billing/account`, {
+    trialStartedAt: M.makeTimestamp(agora - 86400000),
+    trialEndsAt: M.makeTimestamp(agora + 5 * 86400000),
+  });
+  t.mock.timers.enable({ apis: ['Date'], now: agora });
+  try {
+    await webhook(mensagem('mercado 50', { messageId: 90 }));
+    await webhook(mensagem('ontem uber 18', { messageId: 91 }));
+  } finally {
+    t.mock.timers.reset();
+  }
+  assert.equal(inbox()[`tg${CHAT}_90`].lanc.dataCompra, '2026-10-31');
+  assert.equal(inbox()[`tg${CHAT}_91`].lanc.dataCompra, '2026-10-30');
+});
