@@ -2002,23 +2002,19 @@ function renderPlanInfoBlock(me) {
       nextCharge.status === 'OVERDUE' ||
       nextCharge.status === 'AWAITING_RISK_ANALYSIS');
   var openCents = isOpenInvoice && nextCharge.amountCents ? nextCharge.amountCents : nextCents;
-  var label = isOpenInvoice
-    ? nextCharge.status === 'OVERDUE'
-      ? 'Fatura em atraso'
-      : 'Fatura em aberto'
-    : 'Próxima fatura';
+  // Só o atraso ganha selo aqui. "Em aberto" para uma fatura no prazo
+  // contradizia o bloco de cobrança logo acima ("Cobrança automática" no
+  // cartão, "Fatura disponível" no Pix) — duas mensagens para o mesmo fato.
+  var label =
+    isOpenInvoice && nextCharge.status === 'OVERDUE' ? 'Fatura em atraso' : 'Próxima cobrança';
   var foot = '';
   if (isOpenInvoice) {
-    var statusTxt = paymentStatusLabel(nextCharge.status);
-    var badgeCls = nextCharge.status === 'OVERDUE' ? 'bad' : 'warn';
     foot =
-      '<span class="ma-badge ' +
-      badgeCls +
-      '">' +
-      statusTxt +
-      '</span>' +
-      ' · Vence ' +
-      (nextDate ? fmtDate(nextDate) : '—');
+      (nextCharge.status === 'OVERDUE'
+        ? '<span class="ma-badge bad">' +
+          paymentStatusLabel(nextCharge.status) +
+          '</span> · Venceu '
+        : 'Vence ') + (nextDate ? fmtDate(nextDate) : '—');
   } else {
     foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
   }
