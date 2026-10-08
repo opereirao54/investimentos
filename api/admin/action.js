@@ -1,6 +1,8 @@
-const { db, auth, timestamp } = require('../_lib/firebase-admin');
+const { db, auth, timestamp, fieldValue } = require('../_lib/firebase-admin');
+const asaas = require('../_lib/asaas');
 const { handler } = require('../_lib/handler');
 const { reconcileAccount } = require('../_lib/reconcile');
+const { computeAccess, isLegacyGrant } = require('../_lib/access');
 
 // Ações administrativas pontuais sobre um usuário específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
@@ -179,6 +181,13 @@ module.exports = handler({
               : 'N/A',
           idAsaas: b.customerId || 'Sem cliente',
           emailVerified: !!userRecord.emailVerified,
+          cortesia:
+            b.courtesyPermanent === true
+              ? 'PRO sem prazo'
+              : b.courtesyUntil && typeof b.courtesyUntil.toDate === 'function'
+                ? 'até ' + b.courtesyUntil.toDate().toLocaleString('pt-BR')
+                : 'não',
+          acesso: computeAccess(b).status + ' (' + computeAccess(b).reason + ')',
         };
         return res.json({ uid, resumo, raw_billing: b });
       }
@@ -208,13 +217,39 @@ module.exports = handler({
         });
       }
 
+      // Situação da assinatura no Asaas, para o admin saber se a cortesia
+      // convive com cobranças reais. Cortesia libera o acesso, mas NÃO para
+      // o Asaas: uma assinatura viva continua emitindo e cobrando faturas
+      // (no cartão, debita sozinha). Avisar aqui evita o usuário Pro que
+      // recebe e-mail de "fatura vencida" sem entender por quê.
+      const liveSubWarning = (b) =>
+        b && b.subscriptionId && b.subscriptionStatus && b.subscriptionStatus !== 'INACTIVE'
+          ? ' Atenção: a assinatura no Asaas continua ativa e segue cobrando. Se a cortesia substitui o pagamento, use "Cancelar assinatura no Asaas".'
+          : '';
+      const courtesySnapshot = (b) =>
+        b
+          ? {
+              courtesyPermanent: b.courtesyPermanent === true,
+              courtesyUntil:
+                b.courtesyUntil && typeof b.courtesyUntil.toDate === 'function'
+                  ? b.courtesyUntil.toDate().toISOString()
+                  : null,
+            }
+          : null;
+
       if (action === 'make_pro') {
+        // PRO permanente = cortesia sem prazo. Não mexe em subscriptionStatus
+        // nem lastPaymentStatus: esses campos são do Asaas, e fingir um
+        // pagamento ali é o que fazia a conta "liberada" aparecer com
+        // pagamento pendente (ver courtesyState em _lib/access.js).
         const beforeSnap = await docRef.get();
         const before = beforeSnap.data() || null;
         await docRef.set(
           {
-            subscriptionStatus: 'ACTIVE',
-            lastPaymentStatus: 'CONFIRMED',
+            courtesyPermanent: true,
+            courtesyUntil: fieldValue().delete(),
+            courtesyGrantedAt: timestamp().now(),
+            courtesyGrantedBy: actor,
           },
           { merge: true }
         );
@@ -223,17 +258,94 @@ module.exports = handler({
           email,
           uid,
           actor,
-          before: before
-            ? {
-                subscriptionStatus: before.subscriptionStatus,
-                lastPaymentStatus: before.lastPaymentStatus,
-              }
-            : null,
-          after: { subscriptionStatus: 'ACTIVE', lastPaymentStatus: 'CONFIRMED' },
+          before: courtesySnapshot(before),
+          after: { courtesyPermanent: true, courtesyUntil: null },
         });
         return res.json({
           success: true,
-          message: 'Usuário promovido a PRO (acesso liberado).',
+          message: 'Acesso PRO liberado sem prazo (cortesia).' + liveSubWarning(before),
+        });
+      }
+
+      if (action === 'revoke_pro') {
+        const beforeSnap = await docRef.get();
+        const before = beforeSnap.data() || null;
+        // "PRO" antigo: o make_pro anterior gravava ACTIVE+CONFIRMED sem
+        // assinatura nem pagamento por trás. Revogar também desfaz isso.
+        const legacy = isLegacyGrant(before);
+        if (!before || (before.courtesyPermanent !== true && !before.courtesyUntil && !legacy)) {
+          return res.json({
+            success: true,
+            message: 'Usuário não tinha cortesia — nada a revogar.',
+          });
+        }
+        await docRef.set(
+          {
+            courtesyPermanent: fieldValue().delete(),
+            courtesyUntil: fieldValue().delete(),
+            courtesyRevokedAt: timestamp().now(),
+            courtesyRevokedBy: actor,
+            ...(legacy
+              ? {
+                  subscriptionStatus: fieldValue().delete(),
+                  lastPaymentStatus: fieldValue().delete(),
+                }
+              : {}),
+          },
+          { merge: true }
+        );
+        await writeAudit({
+          action,
+          email,
+          uid,
+          actor,
+          before: courtesySnapshot(before),
+          after: { courtesyPermanent: false, courtesyUntil: null },
+        });
+        return res.json({
+          success: true,
+          message:
+            'Cortesia revogada. O acesso volta a depender de trial ou pagamento (ciclos já pagos continuam valendo).',
+        });
+      }
+
+      if (action === 'cancel_asaas_sub') {
+        // Mesmo efeito do "Cancelar assinatura" do próprio usuário
+        // (api/billing/cancel.js): para as cobranças no Asaas — que apaga as
+        // faturas projetadas — e marca INACTIVE. O ciclo já pago continua
+        // valendo pelo paid_period.
+        const beforeSnap = await docRef.get();
+        const before = beforeSnap.data() || {};
+        if (!before.subscriptionId) {
+          return res.json({ success: true, message: 'Usuário não tem assinatura no Asaas.' });
+        }
+        try {
+          await asaas.cancelSubscription(before.subscriptionId);
+        } catch (e) {
+          if (e.status !== 404) {
+            return res.status(e.status || 500).json({ error: 'cancel_failed', detail: e.message });
+          }
+        }
+        await docRef.set(
+          {
+            subscriptionStatus: 'INACTIVE',
+            cancelledAt: timestamp().now(),
+            updatedAt: timestamp().now(),
+          },
+          { merge: true }
+        );
+        await writeAudit({
+          action,
+          email,
+          uid,
+          actor,
+          before: { subscriptionStatus: before.subscriptionStatus || null },
+          after: { subscriptionStatus: 'INACTIVE' },
+          extra: 'subscription ' + before.subscriptionId,
+        });
+        return res.json({
+          success: true,
+          message: 'Assinatura cancelada no Asaas. Nenhuma cobrança nova será emitida.',
         });
       }
 
@@ -280,21 +392,49 @@ module.exports = handler({
       }
 
       if (action === 'gift_pro_days') {
-        const days = parseInt(actionValue) || 7;
-        const newTrialEndsAt = timestamp().fromMillis(Date.now() + days * 24 * 3600 * 1000);
+        // Antes regravava trialEndsAt = agora + N: a conta aparecia como
+        // "avaliação gratuita" e, pior, ENCURTAVA um trial ou presente maior
+        // já existente. Agora é cortesia com prazo, e o prazo soma ao que o
+        // usuário já tinha de cortesia — ninguém perde dias que já ganhou.
+        const days = parseInt(actionValue, 10) || 7;
+        if (days < 1 || days > 3650) return res.status(400).json({ error: 'invalid_value' });
         const beforeSnap = await docRef.get();
-        const beforeTrial = beforeSnap.data() && beforeSnap.data().trialEndsAt;
-        await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
+        const before = beforeSnap.data() || null;
+        if (before && before.courtesyPermanent === true) {
+          return res.json({
+            success: true,
+            message: 'Usuário já tem PRO sem prazo — nada a somar.',
+          });
+        }
+        const currentUntil =
+          before && before.courtesyUntil && typeof before.courtesyUntil.toMillis === 'function'
+            ? before.courtesyUntil.toMillis()
+            : 0;
+        const base = Math.max(Date.now(), currentUntil);
+        const newUntil = timestamp().fromMillis(base + days * 24 * 3600 * 1000);
+        await docRef.set(
+          {
+            courtesyUntil: newUntil,
+            courtesyGrantedAt: timestamp().now(),
+            courtesyGrantedBy: actor,
+          },
+          { merge: true }
+        );
         await writeAudit({
           action,
           email,
           uid,
           actor,
-          before: { trialEndsAt: beforeTrial ? beforeTrial.toDate().toISOString() : null },
-          after: { trialEndsAt: newTrialEndsAt.toDate().toISOString() },
+          before: courtesySnapshot(before),
+          after: { courtesyUntil: newUntil.toDate().toISOString() },
           extra: `Gifted ${days} days`,
         });
-        return res.json({ success: true, message: `Trial estendido por ${days} dias.` });
+        return res.json({
+          success: true,
+          message:
+            `PRO de cortesia por +${days} dias — até ${newUntil.toDate().toLocaleDateString('pt-BR')}.` +
+            liveSubWarning(before),
+        });
       }
 
       if (action === 'send_verify_link') {
@@ -366,6 +506,13 @@ module.exports = handler({
               : 'N/A',
           idAsaas: b.customerId || 'Sem cliente',
           emailVerified: !!userRecord.emailVerified,
+          cortesia:
+            b.courtesyPermanent === true
+              ? 'PRO sem prazo'
+              : b.courtesyUntil && typeof b.courtesyUntil.toDate === 'function'
+                ? 'até ' + b.courtesyUntil.toDate().toLocaleString('pt-BR')
+                : 'não',
+          acesso: computeAccess(b).status + ' (' + computeAccess(b).reason + ')',
         };
         const authInfo = {
           emailVerified: !!userRecord.emailVerified,

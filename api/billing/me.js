@@ -1,6 +1,6 @@
 const { db } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
-const { computeAccess, paidUntilMs } = require('../_lib/access');
+const { computeAccess, paidUntilMs, courtesyState, isLegacyGrant } = require('../_lib/access');
 const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const { computeCreditTotals } = require('../_lib/reconcile');
 
@@ -37,11 +37,41 @@ function addMonthsYmd(ymd, months) {
   return dt.toISOString().slice(0, 10);
 }
 
+function hasLiveSubscription(billing) {
+  return !!(billing.subscriptionId && billing.subscriptionStatus !== 'INACTIVE');
+}
+
 function buildUpcoming(billing, payments, projectedNextCents, monthlyCents) {
-  // Não há cobranças se não houver assinatura ativa.
-  if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return [];
+  // Sem assinatura viva não há previsão de cobrança. O único "em aberto"
+  // possível é o Pix/boleto AVULSO que o usuário gerou e ainda não pagou —
+  // o mais recente, e só se ainda estiver dentro do vencimento (o vencido
+  // expirou; para renovar, gera-se outro).
+  if (!hasLiveSubscription(billing)) {
+    const oneShot = (payments || [])
+      .filter((p) => p.subscriptionId === null && p.status === 'PENDING' && p.dueDate)
+      .sort((a, b) => b.dueDate.localeCompare(a.dueDate))[0];
+    if (!oneShot) return [];
+    return [
+      {
+        date: oneShot.dueDate,
+        amountCents: Math.round((oneShot.value || 0) * 100),
+        status: oneShot.status,
+        source: 'invoice',
+        oneShot: true,
+        paymentId: oneShot.id,
+        invoiceUrl: oneShot.invoiceUrl || null,
+      },
+    ];
+  }
 
   const pendingByDate = (payments || [])
+    // Só faturas da assinatura ATUAL. O histórico guarda também cobranças de
+    // assinaturas antigas (trocadas ou recriadas) e Pix/boleto avulsos
+    // gerados e abandonados; elas entravam aqui como "em aberto" e a tela
+    // mostrava várias faturas sem dizer qual pagar — algumas já impossíveis
+    // de pagar. Documentos antigos sem o campo (undefined) continuam a
+    // contar, por segurança; avulsos têm subscriptionId: null e saem.
+    .filter((p) => p.subscriptionId === undefined || p.subscriptionId === billing.subscriptionId)
     .filter(
       (p) =>
         p.status === 'PENDING' || p.status === 'OVERDUE' || p.status === 'AWAITING_RISK_ANALYSIS'
@@ -141,7 +171,9 @@ module.exports = handler({
         return {
           uid: b.uid,
           email: maskEmail(b.email),
-          active: access.status === 'active',
+          // Cortesia do admin libera o acesso mas não paga nada: não gera
+          // cashback, então não pode aparecer como indicado "pagante".
+          active: access.status === 'active' && access.reason !== 'courtesy' && !isLegacyGrant(b),
           paymentMode: b.paymentMode || (b.subscriptionId ? 'subscription' : null),
           subscriptionStatus: b.subscriptionStatus || null,
           lastPaymentStatus: b.lastPaymentStatus || null,
@@ -215,6 +247,8 @@ module.exports = handler({
           bankSlipUrl: p.bankSlipUrl || null,
           transactionReceiptUrl: p.transactionReceiptUrl || null,
           referralAppliedCents: p.referralAppliedCents || 0,
+          // undefined = documento antigo, anterior ao campo; null = avulso.
+          subscriptionId: p.subscriptionId === undefined ? undefined : p.subscriptionId || null,
           event: p.event || null,
           receivedAt: tsToIso(p.receivedAt),
         };
@@ -227,8 +261,15 @@ module.exports = handler({
       // e oculta as projeções futuras. OVERDUE não entra neste filtro:
       // é uma cobrança real em atraso e deve permanecer visível.
       const FUTURE_OPEN = new Set(['PENDING', 'AWAITING_RISK_ANALYSIS', 'AUTHORIZED']);
+      // A "mais próxima" tem de ser da assinatura atual: uma PENDING de uma
+      // assinatura antiga, com vencimento anterior, tomava o lugar da fatura
+      // de verdade e a tela mandava pagar a errada.
+      const liveSub = hasLiveSubscription(billing);
+      const isCurrent = (p) =>
+        p.subscriptionId === undefined ||
+        (liveSub ? p.subscriptionId === billing.subscriptionId : p.subscriptionId === null);
       const futurePending = all
-        .filter((p) => FUTURE_OPEN.has(p.status))
+        .filter((p) => FUTURE_OPEN.has(p.status) && isCurrent(p))
         .sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999'));
       const nearestPending = futurePending[0] || null;
       const visible = all.filter((p) => !FUTURE_OPEN.has(p.status));
@@ -265,8 +306,24 @@ module.exports = handler({
       accessExpiresInDays = Math.ceil((expiresMs - Date.now()) / 86400000);
     }
 
+    // Cortesia (Superpoderes): a tela precisa distinguir "liberado pelo
+    // admin" de "pagou" — senão mostra próxima cobrança a quem não paga.
+    const court = courtesyState(billing);
+    const legacyGrant = isLegacyGrant(billing);
+    const courtesy =
+      court || legacyGrant
+        ? {
+            active: true,
+            permanent: legacyGrant || court.permanent,
+            until: court && court.untilMs ? new Date(court.untilMs).toISOString() : null,
+            daysLeft:
+              court && court.untilMs ? Math.ceil((court.untilMs - Date.now()) / 86400000) : null,
+          }
+        : null;
+
     return res.json({
       access: computeAccess(billing),
+      courtesy,
       paymentMode: billing.paymentMode || (billing.subscriptionId ? 'subscription' : null),
       accessExpiresAt,
       accessExpiresInDays,

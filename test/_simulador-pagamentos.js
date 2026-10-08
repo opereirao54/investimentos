@@ -219,6 +219,18 @@ async function cancelar(uid) {
   return call(H.cancel, { headers: autorizado(uid), body: {} });
 }
 
+/**
+ * Superpoderes do painel admin (api/admin/action) sobre um usuário.
+ * Ex.: superpoder('make_pro', 'ana'), superpoder('gift_pro_days', 'ana', 30).
+ */
+async function superpoder(acao, uid, valor) {
+  process.env.ADMIN_API_TOKEN = process.env.ADMIN_API_TOKEN || 'admin_test_token';
+  return call(H.adminAction, {
+    headers: { authorization: 'Bearer ' + process.env.ADMIN_API_TOKEN },
+    body: { action: acao, email: uid + '@example.com', actionValue: valor },
+  });
+}
+
 async function verMinhaConta(uid) {
   const r = await call(H.me, { method: 'GET', headers: autorizado(uid) });
   return r.body;
@@ -356,7 +368,10 @@ function verificar(mundo, opts = {}) {
     if (acc.status === 'active') {
       const dentroDaJanela = agora != null && store.now < agora;
       const assinaturaViva = b.subscriptionStatus === 'ACTIVE';
-      if (!dentroDaJanela && !assinaturaViva) {
+      // Cortesia do admin é a única liberação legítima sem dinheiro: é uma
+      // decisão explícita, registrada no audit log.
+      const cortesia = acc.reason === 'courtesy';
+      if (!dentroDaJanela && !assinaturaViva && !cortesia) {
         falhas.push(
           rotulo + ' PAG08 acesso ativo sem janela paga nem assinatura (' + acc.reason + ')'
         );
@@ -412,6 +427,7 @@ module.exports = {
   estornar,
   cancelar,
   verMinhaConta,
+  superpoder,
   avancarDias,
   restaurarRelogio,
   evento,

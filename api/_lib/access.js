@@ -53,15 +53,67 @@ function paidUntilMs(billing) {
 function nextPaidUntilMs(billing, now = Date.now(), cycleMs = PAID_PERIOD_MS) {
   const current = billing ? paidUntilMs(billing) : null;
   const trialEnd = billing ? toMillis(billing.trialEndsAt) : null;
+  // Cortesia com prazo é tempo que o usuário já tem, como o trial: quem
+  // ganhou 30 dias do admin e assina no dia 10 não pode queimar os 20 que
+  // faltam. A permanente não entra — não há fim para somar depois dele.
+  const courtesyEnd =
+    billing && billing.courtesyPermanent !== true ? toMillis(billing.courtesyUntil) : null;
   let base = now;
   if (current && current > base) base = current;
   if (trialEnd && trialEnd > base) base = trialEnd;
+  if (courtesyEnd && courtesyEnd > base) base = courtesyEnd;
   return base + cycleMs;
+}
+
+/**
+ * Acesso Pro concedido pelo admin (Superpoderes), sem pagamento por trás.
+ *
+ * Vive em campos PRÓPRIOS — `courtesyPermanent` e `courtesyUntil` — e não
+ * finge um pagamento. Antes, "Tornar PRO" gravava subscriptionStatus=ACTIVE
+ * e lastPaymentStatus=CONFIRMED: o primeiro webhook do Asaas (uma fatura
+ * PENDING criada, uma OVERDUE) sobrescrevia esses campos e o usuário caía em
+ * "Aguardando confirmação do pagamento" ou era bloqueado — e a tela de
+ * assinatura mostrava "Assinatura ativa · próxima cobrança" para quem nunca
+ * assinou. Nenhum webhook toca nestes campos, então a cortesia só acaba
+ * quando o prazo vence ou o admin revoga.
+ *
+ * Devolve null quando não há cortesia viva.
+ */
+function courtesyState(billing, now = Date.now()) {
+  if (!billing) return null;
+  if (billing.courtesyPermanent === true) return { permanent: true, untilMs: null };
+  const until = toMillis(billing.courtesyUntil);
+  if (until && now < until) return { permanent: false, untilMs: until };
+  return null;
+}
+
+/**
+ * Conta liberada pelo "Tornar PRO" ANTIGO, que fingia um pagamento:
+ * subscriptionStatus=ACTIVE + lastPaymentStatus=CONFIRMED sem assinatura no
+ * Asaas e sem nenhum pagamento registrado. O gate continua a honrá-la (regra
+ * "paid" abaixo), mas a tela precisa saber que é cortesia — senão promete
+ * "próxima cobrança" a quem nunca vai ser cobrado.
+ */
+function isLegacyGrant(billing) {
+  return !!(
+    billing &&
+    !billing.subscriptionId &&
+    billing.subscriptionStatus === 'ACTIVE' &&
+    PAID_PAYMENT_STATUSES.has(billing.lastPaymentStatus) &&
+    !billing.lastPaidAt &&
+    !billing.paymentMode
+  );
 }
 
 function computeAccess(billing, now = Date.now()) {
   if (!billing) {
     return { status: 'blocked', reason: 'no_billing', trialDaysLeft: 0 };
+  }
+  // Cortesia do admin vence tudo, inclusive fatura atrasada da assinatura:
+  // foi uma decisão explícita de liberar a conta. Para retirar, o admin
+  // revoga (Superpoderes → Revogar cortesia).
+  if (courtesyState(billing, now)) {
+    return { status: 'active', reason: 'courtesy', trialDaysLeft: 0 };
   }
   const subStatus = billing.subscriptionStatus || null;
   const lastPaymentStatus = billing.lastPaymentStatus || null;
@@ -154,6 +206,8 @@ module.exports = {
   TRIAL_DAYS,
   PAID_PERIOD_MS,
   computeAccess,
+  courtesyState,
+  isLegacyGrant,
   toMillis,
   paidUntilMs,
   nextPaidUntilMs,

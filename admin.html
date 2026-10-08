@@ -797,6 +797,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         <div class="filter-chips" id="user-filter-chips">
             <button class="filter-chip active" data-filter="all">Todos <span class="ct" id="ct-all">0</span></button>
             <button class="filter-chip" data-filter="paying">Pagantes <span class="ct" id="ct-paying">0</span></button>
+            <button class="filter-chip" data-filter="courtesy">Cortesia <span class="ct" id="ct-courtesy">0</span></button>
             <button class="filter-chip" data-filter="trial">Trial Ativo <span class="ct" id="ct-trial">0</span></button>
             <button class="filter-chip" data-filter="overdue">Inadimplentes <span class="ct" id="ct-overdue">0</span></button>
             <button class="filter-chip" data-filter="unverified">Não Verificados <span class="ct" id="ct-unverified">0</span></button>
@@ -842,8 +843,10 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
                     <option value="view_payments">🧾 Ver Histórico de Pagamentos</option>
                     <option value="reconcile_user">🔄 Reconciliar Conta (cobrança + crédito)</option>
                     <option value="set_discount">💰 Colocar / Tirar Desconto</option>
-                    <option value="gift_pro_days">🎁 Oferecer PRO (N dias)</option>
-                    <option value="make_pro">🌟 Tornar PRO Permanente</option>
+                    <option value="gift_pro_days">🎁 Oferecer PRO (N dias, soma ao que já tem)</option>
+                    <option value="make_pro">🌟 Tornar PRO sem prazo (cortesia)</option>
+                    <option value="revoke_pro">🚫 Revogar cortesia PRO</option>
+                    <option value="cancel_asaas_sub">🛑 Cancelar assinatura no Asaas</option>
                     <option value="extend_trial">⏳ Estender Trial (+7d)</option>
                     <option value="suspend_trial">⛔ Suspender Trial (expira agora)</option>
                     <option value="force_verify">🛡️ Forçar Verificação E-mail</option>

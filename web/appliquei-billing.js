@@ -1246,6 +1246,8 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-hero.is-blocked{background:linear-gradient(135deg,#b91c1c 0%,#dc2626 50%,#ef4444 100%);box-shadow:0 12px 32px -8px rgba(220,38,38,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero.is-pending{background:linear-gradient(135deg,#a16207 0%,#ca8a04 50%,#eab308 100%);box-shadow:0 12px 32px -8px rgba(202,138,4,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero.is-inactive{background:linear-gradient(135deg,var(--ma-corpo) 0%,var(--ma-corpo) 50%,var(--ma-mudo) 100%);box-shadow:0 12px 32px -8px rgba(71,85,105,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+    '#myAccountModal .ma-hero.is-courtesy{background:linear-gradient(135deg,#065f46 0%,#047857 45%,#0d9488 100%);box-shadow:0 12px 32px -8px rgba(13,148,136,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
+    '#myAccountModal .ma-hero.is-courtesy .ma-hero-cta{color:#065f46;}',
     '#myAccountModal .ma-hero.is-oneshot{background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 50%,#8b5cf6 100%);box-shadow:0 12px 32px -8px rgba(124,58,237,.45),0 0 0 1px rgba(255,255,255,.06) inset;}',
     '#myAccountModal .ma-hero > *{position:relative;z-index:1;}',
     '#myAccountModal .ma-hero-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:5px 11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.22);border-radius:999px;backdrop-filter:blur(4px);}',
@@ -1308,7 +1310,6 @@ function ensureMyAccountStyles() {
     // #991b1b é vermelho de tema claro: sobre a superfície escura dava 2,04:1.
     'body.dark #myAccountModal .ma-btn-danger{color:#fca5a5;}',
     'body.dark #myAccountModal .ma-btn-danger:hover{background:#2d0a0a;color:#fecaca;}',
-    // Table: linha hover, mono digits, vertical padding maior.
     // ---- Bloco de cobrança: uma decisão, uma ação ----------------------
     // O tamanho do valor e a largura do botão são a hierarquia: o cliente
     // precisa ver QUANTO e clicar em UM lugar, sem comparar linhas.
@@ -1330,13 +1331,15 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-cob-venc{font-size:13px;color:var(--ma-corpo);margin-bottom:15px;}',
     '#myAccountModal .ma-cob-total{font-weight:700;color:var(--ma-tx);}',
     // A ação primária ocupa a largura inteira: não há segunda opção com que comparar.
-    '#myAccountModal .ma-cob-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 18px;border-radius:12px;background:linear-gradient(135deg,#047857,#059669);color:#fff;font-size:15px;font-weight:700;text-decoration:none;border:none;cursor:pointer;font-family:inherit;box-shadow:0 8px 18px -8px rgba(5,150,105,.55);transition:transform .12s ease,box-shadow .15s ease;}',
+    '#myAccountModal .ma-cob-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;padding:14px 18px;border-radius:12px;background:linear-gradient(135deg,#047857,#059669);color:#fff;font-size:15px;font-weight:700;text-decoration:none;border:none;cursor:pointer;font-family:inherit;box-shadow:0 8px 18px -8px rgba(5,150,105,.55);transition:transform .12s ease,box-shadow .15s ease;}',
     '#myAccountModal .ma-cob-cta:hover{box-shadow:0 10px 22px -8px rgba(5,150,105,.65);}',
     '#myAccountModal .ma-cob-cta:active{transform:scale(.985);}',
     '#myAccountModal .ma-cob-cta:focus-visible{outline:2px solid #059669;outline-offset:3px;}',
     '#myAccountModal .ma-cob-indisp{padding:12px 14px;border-radius:11px;background:var(--ma-recuo);color:var(--ma-corpo);font-size:12.5px;line-height:1.5;}',
     '#myAccountModal .ma-cob-nota{margin:11px 0 0;font-size:12.5px;line-height:1.55;color:var(--ma-mudo);}',
     '#myAccountModal .ma-cob-nota strong{color:var(--ma-corpo);}',
+    '#myAccountModal .ma-cob-alt{display:inline-flex;align-items:center;min-height:40px;margin-top:4px;font-size:12.5px;font-weight:600;color:#047857;text-decoration:underline;text-underline-offset:3px;}',
+    'body.dark #myAccountModal .ma-cob-alt{color:#6ee7b7;}',
     // Faturas seguintes: informam, não competem. Sem botão, de propósito.
     '#myAccountModal .ma-cob-depois{margin-top:14px;border:1px solid var(--ma-borda);border-radius:13px;overflow:hidden;background:var(--ma-superficie);}',
     '#myAccountModal .ma-cob-depois-tit{padding:10px 14px;background:var(--ma-recuo);font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ma-mudo);}',
@@ -1354,7 +1357,6 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-cob-previstas summary:focus-visible{outline:2px solid #059669;outline-offset:-2px;}',
     '#myAccountModal .ma-cob-previstas-corpo{padding:0 14px 12px;}',
     '#myAccountModal .ma-cob-previstas-corpo .ma-cob-linha{padding-left:0;padding-right:0;}',
-    '@media (max-width:520px){#myAccountModal .ma-cob-valorao{font-size:30px;}#myAccountModal .ma-cobranca{padding:16px 15px 14px;}}',
     '@media (prefers-reduced-motion:reduce){#myAccountModal .ma-cob-cta,#myAccountModal .ma-cob-previstas summary::after{transition:none;}}',
     // ---- Grade de planos ------------------------------------------------
     '#myAccountModal .ma-planos{display:grid;grid-template-columns:1fr 1fr;gap:12px;}',
@@ -1381,12 +1383,18 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-plano.atual .ma-plano-ciclo{color:var(--ma-corpo);}',
     // #64748b inline no card de valor base: 3,57:1 sobre a superfície escura.
     '#myAccountModal .ma-card-sufixo{font-family:Figtree,sans-serif;font-size:12px;font-weight:500;color:var(--ma-mudo);letter-spacing:0;}',
-    '#myAccountModal .ma-table{width:100%;font-size:12.5px;border-collapse:collapse;}',
-    '#myAccountModal .ma-table th{font-size:10.5px;font-weight:700;color:var(--ma-mudo);text-transform:uppercase;letter-spacing:.08em;text-align:left;padding:8px 10px;border-bottom:1px solid var(--ma-borda);}',
-    '#myAccountModal .ma-table td{padding:11px 10px;border-bottom:1px solid var(--ma-linha);vertical-align:middle;color:var(--ma-corpo);font-size:13px;}',
-    '#myAccountModal .ma-table tr:last-child td{border-bottom:none;}',
-    '#myAccountModal .ma-table tr:hover td{background:var(--ma-recuo);}',
-    '#myAccountModal .ma-table .num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;color:var(--ma-tx);}',
+    '#myAccountModal .ma-hist-wrap{padding:0 !important;}',
+    '#myAccountModal .ma-hist{list-style:none;margin:0;padding:0;}',
+    '#myAccountModal .ma-hist-item{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--ma-linha);}',
+    '#myAccountModal .ma-hist-item:first-child{border-top:none;}',
+    '#myAccountModal .ma-hist-main{flex:1;min-width:0;}',
+    '#myAccountModal .ma-hist-data{font-size:13.5px;font-weight:600;color:var(--ma-tx);font-variant-numeric:tabular-nums;}',
+    '#myAccountModal .ma-hist-main small{display:block;font-size:12px;color:var(--ma-mudo);margin-top:2px;}',
+    '#myAccountModal .ma-hist-valor{text-align:right;font-family:"DM Mono",ui-monospace,monospace;font-weight:600;font-size:13.5px;color:var(--ma-tx);font-variant-numeric:tabular-nums;}',
+    '#myAccountModal .ma-hist-ref{display:block;font-family:Figtree,sans-serif;font-size:11px;font-weight:600;color:#059669;}',
+    'body.dark #myAccountModal .ma-hist-ref{color:#6ee7b7;}',
+    '#myAccountModal .ma-hist-link{flex:0 0 40px;height:40px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;color:var(--ma-corpo);border:1px solid var(--ma-borda);font-size:17px;text-decoration:none;}',
+    '#myAccountModal .ma-hist-link:hover{background:var(--ma-recuo);color:var(--ma-tx);}',
     '#myAccountModal .ma-empty{padding:18px;text-align:center;color:var(--ma-mudo);font-size:13px;background:var(--ma-superficie);border:1.5px dashed var(--ma-borda);border-radius:12px;line-height:1.5;}',
     // Collapsible: visual mais limpo, chevron animado.
     '#myAccountModal .ma-collapsible{border:1px solid var(--ma-borda);border-radius:14px;overflow:hidden;background:var(--ma-superficie);transition:border-color .15s ease;}',
@@ -1405,19 +1413,58 @@ function ensureMyAccountStyles() {
     '#myAccountModal .ma-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 26px;border-top:1px solid var(--ma-linha);background:var(--ma-superficie);}',
     '#myAccountModal .ma-foot-link{font-size:12px;color:var(--ma-mudo);display:inline-flex;align-items:center;gap:6px;}',
     '#myAccountModal .ma-foot-link i{color:#059669;}',
-    '@media (max-width:560px){',
-    '  #myAccountModal{padding:12px 8px;}',
-    '  #myAccountModal .ma-shell{max-height:calc(100vh - 16px);border-radius:18px;}',
-    '  #myAccountModal .ma-head{padding:16px 18px;}',
+    // ---- Celular: folha que sobe de baixo, no padrão das outras telas ----
+    // Mesmo gesto dos modais do app (Appliquei_v13.0.html, "modais viram
+    // folhas"): presa ao pé, com puxador, cantos só em cima, respeitando a
+    // área segura do iPhone. A janela centralizada com margem parecia site.
+    '@media (max-width:768px){',
+    '  #myAccountModal,#subModal{align-items:flex-end !important;padding:0 !important;overflow:hidden !important;}',
+    '  #myAccountModal .ma-shell{max-width:100%;max-height:94vh;max-height:94dvh;border-radius:22px 22px 0 0;animation:maFolhaSobe .26s cubic-bezier(.22,1,.36,1);}',
+    '  #myAccountModal .ma-head{position:relative;padding:22px 16px 12px;}',
+    '  #myAccountModal .ma-head::before{content:"";position:absolute;top:8px;left:50%;width:42px;height:5px;margin-left:-21px;border-radius:99px;background:var(--ma-borda2);}',
     '  #myAccountModal .ma-head h2{font-size:1.15rem;}',
-    '  #myAccountModal .ma-body{padding:18px;}',
-    '  #myAccountModal .ma-hero-title{font-size:1.35rem;}',
-    '  #myAccountModal .ma-grid-2,#myAccountModal .ma-grid-3{grid-template-columns:1fr;}',
-    '  #myAccountModal .ma-foot{padding:14px 18px;flex-wrap:wrap;}',
+    '  #myAccountModal .ma-head .ma-close{width:44px;height:44px;margin-right:-8px;}',
+    '  #myAccountModal .ma-body{padding:14px 16px 20px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;}',
+    '  #myAccountModal .ma-foot{padding:10px 16px calc(10px + env(safe-area-inset-bottom));}',
+    '  #myAccountModal .ma-foot .ma-btn{min-height:44px;}',
+    '  #myAccountModal .ma-section{margin-top:18px;}',
+    // Hero mais baixo: o que importa (cobrança) tem de aparecer sem rolar.
+    '  #myAccountModal .ma-hero{padding:16px;border-radius:16px;}',
+    '  #myAccountModal .ma-hero-title{font-size:1.3rem;margin:10px 0 4px;}',
+    '  #myAccountModal .ma-hero-sub{font-size:13px;}',
+    '  #myAccountModal .ma-hero-cta{width:100%;min-height:48px;}',
+    '  #myAccountModal .ma-cobranca{padding:16px 15px 14px;}',
+    '  #myAccountModal .ma-cob-valorao{font-size:30px;}',
+    '  #myAccountModal .ma-cob-cta{min-height:52px;}',
+    '  #myAccountModal .ma-cob-linha{padding:12px 14px;}',
+    '  #myAccountModal .ma-cob-previstas summary{min-height:48px;box-sizing:border-box;}',
+    // Cards de 3 colunas viram uma lista "rótulo · valor", como os extratos
+    // do app — três caixas empilhadas ocupavam a tela inteira.
+    '  #myAccountModal .ma-grid-2,#myAccountModal .ma-grid-3{grid-template-columns:1fr;gap:0;border:1px solid var(--ma-borda);border-radius:14px;overflow:hidden;background:var(--ma-superficie);}',
+    '  #myAccountModal .ma-grid-2 > .ma-card,#myAccountModal .ma-grid-3 > .ma-card{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l v" "f v";column-gap:12px;align-items:center;border:0;border-radius:0;border-top:1px solid var(--ma-linha);padding:12px 14px;}',
+    '  #myAccountModal .ma-grid-2 > .ma-card:first-child,#myAccountModal .ma-grid-3 > .ma-card:first-child{border-top:0;}',
+    '  #myAccountModal .ma-grid-2 > .ma-card .ma-card-label,#myAccountModal .ma-grid-3 > .ma-card .ma-card-label{grid-area:l;}',
+    '  #myAccountModal .ma-grid-2 > .ma-card .ma-card-value,#myAccountModal .ma-grid-3 > .ma-card .ma-card-value{grid-area:v;margin:0;font-size:17px;text-align:right;}',
+    '  #myAccountModal .ma-grid-2 > .ma-card .ma-card-foot,#myAccountModal .ma-grid-3 > .ma-card .ma-card-foot{grid-area:f;margin-top:2px;}',
+    '  #myAccountModal .ma-card-label{font-size:11px;}',
     '  #myAccountModal .ma-row{flex-wrap:wrap;}',
     '  #myAccountModal .ma-row-action{width:100%;}',
-    '  #myAccountModal .ma-row-action .ma-btn{width:100%;}',
+    '  #myAccountModal .ma-row-action .ma-btn{width:100%;min-height:44px;}',
+    '  #myAccountModal .ma-collapsible > summary{min-height:52px;box-sizing:border-box;}',
+    '  #myAccountModal .ma-hist-item{padding:12px 14px;flex-wrap:wrap;}',
+    '  #myAccountModal .ma-btn-danger{min-height:44px;}',
+    // Formulários (trocar cartão, editar dados) também viram folha; 16px nos
+    // campos impede o zoom automático do iOS ao tocar.
+    '  #subModalCard{max-width:100% !important;border-radius:22px 22px 0 0 !important;max-height:92vh;max-height:92dvh;overflow-y:auto;padding:26px 18px calc(20px + env(safe-area-inset-bottom)) !important;box-sizing:border-box;animation:maFolhaSobe .26s cubic-bezier(.22,1,.36,1);position:relative;}',
+    '  #subModalCard::before{content:"";position:absolute;top:8px;left:50%;width:42px;height:5px;margin-left:-21px;border-radius:99px;background:#cbd5e1;}',
+    '  #subModalCard input,#subModalCard select{font-size:16px !important;min-height:44px;}',
+    '  #subModalCard button{min-height:44px;}',
+    '  #subModalClose{width:44px;height:44px;}',
     '}',
+    '@keyframes maFolhaSobe{from{transform:translateY(40%);opacity:.4;}}',
+    '@media (prefers-reduced-motion:reduce){#myAccountModal .ma-shell,#subModalCard{animation:none !important;}}',
+    // Fundo da página não rola por baixo da folha aberta.
+    'body.ma-aberto{overflow:hidden;}',
   ].join('');
   document.head.appendChild(s);
 }
@@ -1472,10 +1519,12 @@ function ensureMyAccountModal() {
 function closeMyAccount() {
   var m = $('myAccountModal');
   if (m) m.style.display = 'none';
+  document.body.classList.remove('ma-aberto');
 }
 async function openMyAccount() {
   ensureMyAccountModal();
   $('myAccountModal').style.display = 'flex';
+  document.body.classList.add('ma-aberto');
   // Stale-while-revalidate: se já carregamos a tela alguma vez, mostramos
   // o último snapshot imediatamente e atualizamos em background. Evita o
   // "Carregando…" branco em ~todos os reopens.
@@ -1536,9 +1585,11 @@ function fmtDate(iso) {
 }
 function paymentStatusLabel(s) {
   var map = {
-    CONFIRMED: 'Confirmado',
-    RECEIVED: 'Recebido',
-    RECEIVED_IN_CASH: 'Recebido',
+    // "Confirmado" × "Recebido" é distinção do Asaas (cartão × Pix/boleto);
+    // para quem paga, os dois são a mesma coisa.
+    CONFIRMED: 'Pago',
+    RECEIVED: 'Pago',
+    RECEIVED_IN_CASH: 'Pago',
     PENDING: 'Pendente',
     OVERDUE: 'Atrasado',
     REFUNDED: 'Devolvido',
@@ -1643,6 +1694,56 @@ function renderHeroBlock(me) {
   var inTrial = access.status === 'trial';
   var trialEndsAt = me.trialEndsAt;
   var baseCents = me.subscriptionBaseValueCents || me.monthlyPriceCents || 1500;
+
+  // Cortesia (liberada pelo admin): vem antes de tudo, porque é ela que dá
+  // o acesso. Sem este ramo, a conta liberada caía no hero de "Assinatura
+  // ativa · próxima cobrança" ou de "Aguardando pagamento" — dizendo a quem
+  // não paga nada que havia algo a pagar.
+  var court = me.courtesy && me.courtesy.active ? me.courtesy : null;
+  if (court && access.status === 'active') {
+    var liveSub = hasSub && !isInactive;
+    var cTitle = court.permanent
+      ? 'Acesso Pro liberado'
+      : 'Pro liberado até ' + fmtDate(court.until);
+    var cSub = court.permanent
+      ? 'Sua conta tem acesso completo, sem prazo e sem cobrança.'
+      : 'Acesso completo de cortesia por mais ' +
+        (court.daysLeft || 0) +
+        ' ' +
+        pluralDays(court.daysLeft || 0) +
+        '. Para continuar depois disso, é só assinar — os dias que restarem não se perdem.';
+    cSub += liveSub
+      ? ' Sua assinatura mensal continua ativa e segue cobrando normalmente — se não quiser mais, cancele no fim desta tela.'
+      : ' Não há nada para pagar agora.';
+    var cBar = '';
+    if (!court.permanent && court.daysLeft != null) {
+      var cPct = clamp(100 - (court.daysLeft / 30) * 100, 0, 100);
+      cBar =
+        '<div class="ma-hero-bar"><span style="width:' +
+        cPct.toFixed(1) +
+        '%;"></span></div>' +
+        '<div class="ma-hero-meta"><span>Cortesia</span><span>Termina ' +
+        fmtDate(court.until) +
+        '</span></div>';
+    }
+    return (
+      '<div class="ma-hero is-courtesy">' +
+      '<span class="ma-hero-eyebrow"><i class="ph-fill ph-gift"></i> Cortesia Appliquei</span>' +
+      '<div class="ma-hero-title">' +
+      cTitle +
+      '</div>' +
+      '<p class="ma-hero-sub">' +
+      cSub +
+      '</p>' +
+      cBar +
+      (!court.permanent && !liveSub
+        ? '<button type="button" class="ma-hero-cta" data-act="subscribe-now"><i class="ph-fill ph-rocket-launch"></i> Assinar · ' +
+          fmtBRL(baseCents) +
+          '/mês</button>'
+        : '') +
+      '</div>'
+    );
+  }
 
   if (inTrial) {
     var totalDays = 7;
@@ -1901,23 +2002,19 @@ function renderPlanInfoBlock(me) {
       nextCharge.status === 'OVERDUE' ||
       nextCharge.status === 'AWAITING_RISK_ANALYSIS');
   var openCents = isOpenInvoice && nextCharge.amountCents ? nextCharge.amountCents : nextCents;
-  var label = isOpenInvoice
-    ? nextCharge.status === 'OVERDUE'
-      ? 'Fatura em atraso'
-      : 'Fatura em aberto'
-    : 'Próxima fatura';
+  // Só o atraso ganha selo aqui. "Em aberto" para uma fatura no prazo
+  // contradizia o bloco de cobrança logo acima ("Cobrança automática" no
+  // cartão, "Fatura disponível" no Pix) — duas mensagens para o mesmo fato.
+  var label =
+    isOpenInvoice && nextCharge.status === 'OVERDUE' ? 'Fatura em atraso' : 'Próxima cobrança';
   var foot = '';
   if (isOpenInvoice) {
-    var statusTxt = paymentStatusLabel(nextCharge.status);
-    var badgeCls = nextCharge.status === 'OVERDUE' ? 'bad' : 'warn';
     foot =
-      '<span class="ma-badge ' +
-      badgeCls +
-      '">' +
-      statusTxt +
-      '</span>' +
-      ' · Vence ' +
-      (nextDate ? fmtDate(nextDate) : '—');
+      (nextCharge.status === 'OVERDUE'
+        ? '<span class="ma-badge bad">' +
+          paymentStatusLabel(nextCharge.status) +
+          '</span> · Venceu '
+        : 'Vence ') + (nextDate ? fmtDate(nextDate) : '—');
   } else {
     foot = (nextDate ? fmtDate(nextDate) : '—') + (nextCents < baseCents ? ' · com Applicash' : '');
   }
@@ -1928,8 +2025,25 @@ function renderPlanInfoBlock(me) {
   var payLink = '';
 
   var isOneShot = me.paymentMode === 'one_shot';
+  var court = me.courtesy && me.courtesy.active ? me.courtesy : null;
+  var liveSub = !!me.subscriptionId && me.subscriptionStatus !== 'INACTIVE';
   var rows = '';
-  if (isOneShot) {
+  if (court && !liveSub) {
+    rows +=
+      '<div class="ma-card"><div class="ma-card-label">Plano ativo</div><div class="ma-card-value">Pro</div><div class="ma-card-foot">Cortesia Appliquei</div></div>';
+    rows +=
+      '<div class="ma-card"><div class="ma-card-label">Valor</div><div class="ma-card-value">' +
+      fmtBRL(0) +
+      '</div><div class="ma-card-foot">Sem cobrança</div></div>';
+    rows +=
+      '<div class="ma-card"><div class="ma-card-label">Acesso até</div><div class="ma-card-value">' +
+      (court.permanent ? 'Sem prazo' : fmtDate(court.until)) +
+      '</div><div class="ma-card-foot">' +
+      (court.permanent
+        ? 'Liberado pela equipe'
+        : 'Faltam ' + (court.daysLeft || 0) + ' ' + pluralDays(court.daysLeft || 0)) +
+      '</div></div>';
+  } else if (isOneShot) {
     var expiresFmt = me.accessExpiresAt ? fmtDate(me.accessExpiresAt) : '—';
     var daysLeft = me.accessExpiresInDays != null ? me.accessExpiresInDays : null;
     var daysFoot =
@@ -2115,20 +2229,66 @@ function renderApplicashBlock(me) {
   );
 }
 
-// Bloco de cobranças. ANTES: uma tabela plana com TODAS as faturas, cada uma com
-// um botão "Pagar" idêntico. Com uma atrasada e uma pendente o cliente via dois
-// botões iguais e não tinha como saber qual clicar — e a régua de cobrança do
-// Asaas processa em ordem: pagar a de agosto com a de julho em aberto não tira
-// ninguém do atraso.
-//
-// AGORA: uma decisão por vez. A fatura mais antiga em aberto ganha o bloco
-// inteiro e o único botão; as outras viram lista sem ação, para informar sem
-// competir; as previstas ficam recolhidas, porque não há nada a fazer com elas.
+// Texto da janela de acesso: "seu acesso está garantido até DD/MM". A data é
+// a do servidor (accessExpiresAt) — a mesma que o gate honra.
+function acessoGarantidoTxt(me) {
+  var a = me.access || {};
+  if (a.status !== 'active') return '';
+  if (me.courtesy && me.courtesy.active) return '';
+  if (me.accessExpiresAt && me.accessExpiresInDays != null && me.accessExpiresInDays > 0) {
+    return (
+      'Seu acesso está garantido até <strong>' +
+      escapeHtml(fmtDate(me.accessExpiresAt)) +
+      '</strong>.'
+    );
+  }
+  return 'Seu acesso continua normal.';
+}
+
+// Bloco de cobranças. A pergunta que ele responde é UMA: "preciso pagar alguma
+// coisa agora, e qual?". Cada estado tem uma resposta só:
+//   · nada em aberto            → "Tudo em dia", sem botão
+//   · fatura no CARTÃO          → "Cobrança automática", sem botão: o Asaas
+//                                 debita sozinho; um "Pagar" aqui fazia gente
+//                                 pagar por Pix o que o cartão já ia cobrar
+//   · Pix/boleto a vencer       → "Fatura disponível" + o botão, dizendo que
+//                                 o acesso continua normal até o vencimento
+//   · atrasada                  → a MAIS ANTIGA ganha o único botão (a régua
+//                                 do Asaas processa em ordem)
+//   · Pix/boleto avulso gerado  → o link para concluir aquele pagamento
+// As demais faturas viram lista sem ação; as previstas ficam recolhidas.
 function renderUpcomingBlock(me) {
   var hasSub = !!me.subscriptionId;
   var isInactive = me.subscriptionStatus === 'INACTIVE';
-  if (!hasSub || isInactive) return '';
+  var liveSub = hasSub && !isInactive;
   var charges = (me.upcomingCharges || []).slice();
+
+  // ---- Sem assinatura: só o Pix/boleto avulso que o usuário gerou ----
+  if (!liveSub) {
+    var avulso = charges.filter(function (u) {
+      return u.oneShot && u.status === 'PENDING';
+    })[0];
+    if (!avulso) return '';
+    return (
+      '<div class="ma-section">' +
+      '<div class="ma-cobranca warn">' +
+      '<div class="ma-cob-selo warn"><i class="ph-fill ph-hourglass-medium"></i> Pagamento gerado</div>' +
+      '<div class="ma-cob-valorao">' +
+      escapeHtml(fmtBRL(avulso.amountCents)) +
+      '</div>' +
+      '<div class="ma-cob-venc">Válido até ' +
+      escapeHtml(fmtDate(avulso.date)) +
+      ' · 30 dias de acesso</div>' +
+      (avulso.invoiceUrl
+        ? '<a class="ma-cob-cta" href="' +
+          escapeHtml(avulso.invoiceUrl) +
+          '" target="_blank" rel="noopener"><i class="ph-fill ph-arrow-square-out"></i> Concluir pagamento</a>'
+        : '<div class="ma-cob-indisp">O link ainda não foi gerado. Toque em <strong>Atualizar</strong> em alguns instantes.</div>') +
+      '<p class="ma-cob-nota">Pix compensa na hora; boleto, em até 3 dias úteis. Assim que compensar, somamos 30 dias ao seu acesso — os dias que você ainda tem não se perdem.</p>' +
+      '</div>' +
+      '</div>'
+    );
+  }
   if (!charges.length) return '';
 
   var ts = function (u) {
@@ -2148,9 +2308,18 @@ function renderUpcomingBlock(me) {
     return abertas.indexOf(u) === -1;
   });
 
+  // Cortesia + assinatura viva: o acesso não depende da fatura, mas a fatura
+  // é real. Dizer as duas coisas evita tanto o "pago à toa" quanto o "fui
+  // cobrado sem saber".
+  var notaCortesia =
+    me.courtesy && me.courtesy.active
+      ? '<p class="ma-cob-nota"><strong>Seu acesso Pro é cortesia</strong> e não depende desta fatura — mas ela é real e a Asaas continua cobrando. Se não quiser pagar, cancele a assinatura no fim desta tela.</p>'
+      : '';
+
   // ---- Tudo em dia: o estado que merece a menor caixa da tela ----
   if (!abertas.length) {
     var prox = previstas[0];
+    var auto = me.paymentMethod === 'CREDIT_CARD';
     return (
       '<div class="ma-section">' +
       '<div class="ma-cobranca ok">' +
@@ -2161,9 +2330,10 @@ function renderUpcomingBlock(me) {
           escapeHtml(fmtDate(prox.date)) +
           '</strong>, de ' +
           escapeHtml(fmtBRL(prox.amountCents)) +
-          '.'
+          (auto ? ', debitada no cartão automaticamente.' : '.')
         : 'Nenhuma fatura em aberto.') +
       '</p>' +
+      notaCortesia +
       '</div>' +
       renderPrevistas(previstas.slice(prox ? 1 : 0)) +
       '</div>'
@@ -2177,12 +2347,18 @@ function renderUpcomingBlock(me) {
   var totalCents = abertas.reduce(function (acc, u) {
     return acc + (Number(u.amountCents) || 0);
   }, 0);
+  // Cartão + fatura ainda no prazo: o débito é automático. Não é pendência
+  // do usuário, então não ganha tom de alerta nem botão de pagar.
+  var automatica = !atrasada && me.paymentMethod === 'CREDIT_CARD';
+  var tom = atrasada ? 'bad' : automatica ? 'ok' : 'warn';
 
   var selo = atrasada
     ? '<div class="ma-cob-selo bad"><i class="ph-fill ph-warning-circle"></i> Fatura atrasada</div>'
-    : '<div class="ma-cob-selo warn"><i class="ph-fill ph-clock"></i> Aguardando pagamento</div>';
+    : automatica
+      ? '<div class="ma-cob-selo ok"><i class="ph-fill ph-credit-card"></i> Cobrança automática</div>'
+      : '<div class="ma-cob-selo warn"><i class="ph-fill ph-receipt"></i> Fatura disponível</div>';
 
-  var botao = alvo.invoiceUrl
+  var linkPagar = alvo.invoiceUrl
     ? '<a class="ma-cob-cta" href="' +
       escapeHtml(alvo.invoiceUrl) +
       '" target="_blank" rel="noopener">' +
@@ -2191,12 +2367,29 @@ function renderUpcomingBlock(me) {
       '</a>'
     : '<div class="ma-cob-indisp">O link desta fatura ainda não foi gerado. Toque em ' +
       '<strong>Atualizar</strong>, no rodapé, em alguns instantes.</div>';
+  var botao = automatica ? '' : linkPagar;
 
-  // Só explica a ordem quando existe mais de uma em aberto — com uma só, a
-  // frase seria ruído.
-  var ordem = restantes.length
-    ? '<p class="ma-cob-nota">Esta é a mais antiga em aberto. Pagando ela, as seguintes entram na fila normalmente.</p>'
-    : '';
+  var garantido = acessoGarantidoTxt(me);
+  var nota;
+  if (automatica) {
+    nota =
+      '<p class="ma-cob-nota">Vamos debitar no ' +
+      escapeHtml(paymentMethodLabel(me.paymentMethod, me.cardBrand, me.cardLast4)) +
+      ' no vencimento. <strong>Você não precisa fazer nada.</strong></p>';
+  } else if (atrasada) {
+    nota =
+      '<p class="ma-cob-nota">' +
+      (garantido
+        ? garantido + ' Pague esta fatura antes disso para não ter o acesso interrompido.'
+        : 'Assim que a Asaas confirmar o pagamento, o acesso volta na hora (boleto pode levar até 3 dias úteis).') +
+      (restantes.length ? ' Esta é a mais antiga em aberto — pague ela primeiro.' : '') +
+      '</p>';
+  } else {
+    nota =
+      '<p class="ma-cob-nota">' +
+      (garantido ? garantido + ' ' : '') +
+      'Pague até o vencimento para não interromper. Pix compensa na hora; boleto, em até 3 dias úteis.</p>';
+  }
 
   var listaRestantes = restantes.length
     ? '<div class="ma-cob-depois">' +
@@ -2228,8 +2421,8 @@ function renderUpcomingBlock(me) {
 
   return (
     '<div class="ma-section">' +
-    '<div class="ma-cobranca' +
-    (atrasada ? ' bad' : ' warn') +
+    '<div class="ma-cobranca ' +
+    tom +
     '">' +
     selo +
     '<div class="ma-cob-valorao">' +
@@ -2247,7 +2440,13 @@ function renderUpcomingBlock(me) {
       : '') +
     '</div>' +
     botao +
-    ordem +
+    nota +
+    notaCortesia +
+    (automatica && alvo.invoiceUrl
+      ? '<a class="ma-cob-alt" href="' +
+        escapeHtml(alvo.invoiceUrl) +
+        '" target="_blank" rel="noopener">Prefere pagar agora por Pix? Abrir fatura</a>'
+      : '') +
     '</div>' +
     listaRestantes +
     renderPrevistas(previstas) +
@@ -2431,75 +2630,75 @@ function renderCustomerBlock(me) {
   );
 }
 
+// Forma de pagamento em português — o código cru (CREDIT_CARD, BOLETO) vazava
+// para a tela.
+function billingTypeLabel(t) {
+  var map = { CREDIT_CARD: 'Cartão', PIX: 'Pix', BOLETO: 'Boleto', UNDEFINED: 'Pix ou boleto' };
+  return map[t] || (t ? String(t) : '');
+}
+
+// Histórico = o que JÁ ACONTECEU com dinheiro: pagos, estornados, contestados.
+// Antes listava também as faturas em aberto (cada uma com "Pagar") e as
+// canceladas pelo Asaas ao trocar/cancelar assinatura — era daí que vinha o
+// "monte de fatura" sem saber qual pagar. O que está em aberto vive num lugar
+// só: o bloco de cobrança, lá em cima.
+var HISTORY_HIDDEN = {
+  PENDING: 1,
+  OVERDUE: 1,
+  AWAITING_RISK_ANALYSIS: 1,
+  AUTHORIZED: 1,
+  DELETED: 1,
+};
 function renderHistoryBlock(me) {
-  var payments = me.payments || [];
+  var payments = (me.payments || []).filter(function (p) {
+    return !HISTORY_HIDDEN[p.status];
+  });
   if (!payments.length) {
     return (
       '<div class="ma-section">' +
-      '<div class="ma-section-title"><i class="ph ph-clock-counter-clockwise"></i> Histórico</div>' +
-      '<div class="ma-empty">Sem cobranças registradas até o momento.</div>' +
+      '<div class="ma-section-title"><i class="ph ph-clock-counter-clockwise"></i> Pagamentos realizados</div>' +
+      '<div class="ma-empty">Nenhum pagamento realizado até agora.</div>' +
       '</div>'
     );
   }
   var rows = payments
     .map(function (p) {
-      var note = eventNote(p);
-      var noteLine = note
-        ? '<small style="display:block;font-size:11.5px;color:#64748b;margin-top:2px;font-weight:500;">' +
-          note +
-          '</small>'
-        : '';
-      var refLine =
-        p.referralAppliedCents && p.referralAppliedCents > 0
-          ? '<small style="display:block;font-size:11px;color:#059669;margin-top:2px;">−' +
-            fmtBRL(p.referralAppliedCents) +
-            ' Applicash</small>'
-          : '';
-      // Link mais útil por contexto:
-      //  - Pago: comprovante (transactionReceiptUrl). Fallback: fatura.
-      //  - Boleto pendente: PDF do boleto (bankSlipUrl).
-      //  - Outros: página da fatura.
       var paid =
         p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'RECEIVED_IN_CASH';
-      var linkUrl = null,
-        linkLabel = null;
-      if (paid && p.transactionReceiptUrl) {
-        linkUrl = p.transactionReceiptUrl;
-        linkLabel = 'Comprovante';
-      } else if (p.billingType === 'BOLETO' && p.bankSlipUrl) {
-        linkUrl = p.bankSlipUrl;
-        linkLabel = 'Boleto PDF';
-      } else if (p.invoiceUrl) {
-        linkUrl = p.invoiceUrl;
-        linkLabel = paid ? 'Fatura' : 'Pagar';
-      }
-      var actionCell = linkUrl
-        ? '<a href="' +
-          linkUrl +
-          '" target="_blank" rel="noopener" class="ma-btn" style="text-decoration:none;display:inline-block;">' +
-          linkLabel +
-          '</a>'
-        : '—';
+      var note = eventNote(p);
+      var sub = [billingTypeLabel(p.billingType), note].filter(Boolean).join(' · ');
+      var refLine =
+        p.referralAppliedCents && p.referralAppliedCents > 0
+          ? '<small class="ma-hist-ref">−' + fmtBRL(p.referralAppliedCents) + ' Applicash</small>'
+          : '';
+      // Pago: comprovante (fallback: fatura). Estornado/contestado: a fatura.
+      var linkUrl = paid ? p.transactionReceiptUrl || p.invoiceUrl : p.invoiceUrl;
+      var link = linkUrl
+        ? '<a class="ma-hist-link" href="' +
+          escapeHtml(linkUrl) +
+          '" target="_blank" rel="noopener" aria-label="' +
+          (paid ? 'Ver comprovante' : 'Ver fatura') +
+          '"><i class="ph ph-receipt"></i></a>'
+        : '';
       return (
-        '<tr>' +
-        '<td>' +
-        fmtDate(p.paymentDate || p.dueDate || p.receivedAt) +
-        noteLine +
-        '</td>' +
-        '<td>' +
-        (p.billingType ? escapeHtml(String(p.billingType)) : '—') +
-        '</td>' +
-        '<td class="num">' +
+        '<li class="ma-hist-item">' +
+        '<div class="ma-hist-main">' +
+        '<div class="ma-hist-data">' +
+        escapeHtml(fmtDate(p.paymentDate || p.dueDate || p.receivedAt)) +
+        '</div>' +
+        '<small>' +
+        escapeHtml(sub || '—') +
+        '</small>' +
+        '</div>' +
+        '<div class="ma-hist-valor">' +
+        '<span>' +
         fmtBRL(Math.round((p.value || 0) * 100)) +
+        '</span>' +
         refLine +
-        '</td>' +
-        '<td>' +
+        '</div>' +
         statusBadge(p.status) +
-        '</td>' +
-        '<td class="num">' +
-        actionCell +
-        '</td>' +
-        '</tr>'
+        link +
+        '</li>'
       );
     })
     .join('');
@@ -2508,12 +2707,12 @@ function renderHistoryBlock(me) {
     '<details class="ma-collapsible"' +
     (payments.length <= 3 ? ' open' : '') +
     '>' +
-    '<summary><span><i class="ph ph-clock-counter-clockwise"></i> Histórico (' +
+    '<summary><span><i class="ph ph-clock-counter-clockwise"></i> Pagamentos realizados (' +
     payments.length +
     ')</span></summary>' +
-    '<div><table class="ma-table"><thead><tr><th>Data</th><th>Forma</th><th style="text-align:right;">Valor</th><th>Status</th><th></th></tr></thead><tbody>' +
+    '<div class="ma-hist-wrap"><ul class="ma-hist">' +
     rows +
-    '</tbody></table></div>' +
+    '</ul></div>' +
     '</details>' +
     '</div>'
   );

@@ -10,7 +10,14 @@
 /* ========================================
    STATE
    ======================================== */
-var DESTRUCTIVE = new Set(['reset_billing', 'make_pro', 'disable_user', 'suspend_trial']);
+var DESTRUCTIVE = new Set([
+  'reset_billing',
+  'make_pro',
+  'revoke_pro',
+  'cancel_asaas_sub',
+  'disable_user',
+  'suspend_trial',
+]);
 var allUsers = [];
 var userFilter = 'all';
 var userSort = { field: 'createdAtMs', dir: 'desc' };
@@ -291,6 +298,7 @@ document.querySelectorAll('.tbl th.sortable').forEach((th) => {
 function statusBadge(status) {
   const map = {
     paying: ['badge-ok', 'Pagante'],
+    courtesy: ['badge-info', 'Cortesia'],
     trial: ['badge-info', 'Trial'],
     overdue: ['badge-danger', 'Inadimplente'],
     unverified: ['badge-warn', 'Não verif.'],
@@ -388,6 +396,7 @@ function renderUsers() {
   const counts = {
     all: allUsers.length,
     paying: 0,
+    courtesy: 0,
     trial: 0,
     overdue: 0,
     unverified: 0,
@@ -1031,7 +1040,9 @@ async function executeSuperpower() {
   if (DESTRUCTIVE.has(action)) {
     const labels = {
       reset_billing: 'APAGAR billing',
-      make_pro: 'forçar PRO',
+      make_pro: 'liberar PRO sem prazo (cortesia)',
+      revoke_pro: 'REVOGAR a cortesia PRO',
+      cancel_asaas_sub: 'CANCELAR a assinatura no Asaas (para as cobranças)',
       disable_user: 'SUSPENDER conta',
       suspend_trial: 'SUSPENDER trial (expira agora)',
     };
@@ -1074,6 +1085,13 @@ async function executeSuperpower() {
           'color:var(--cor-txt-amber);font-weight:700',
         ],
         [`Trial expira: ${r.trialExpiraEm || '—'}`, 'color:var(--cor-texto-mutado)'],
+        [
+          `Cortesia PRO: ${r.cortesia || 'não'}`,
+          r.cortesia && r.cortesia !== 'não'
+            ? 'color:var(--cor-txt-primaria);font-weight:700'
+            : 'color:var(--cor-texto-mutado)',
+        ],
+        [`Acesso calculado: ${r.acesso || '—'}`, 'color:var(--cor-info);font-weight:700'],
         [`ID Asaas: ${r.idAsaas || '—'}`, 'color:var(--cor-texto-mutado)'],
         [
           `E-mail verificado: ${r.emailVerified ? 'sim' : 'não'}`,

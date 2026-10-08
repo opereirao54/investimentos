@@ -318,7 +318,7 @@ const mockFirebaseAdmin = {
     increment: (n) => increment(n),
     delete: () => DELETE,
   }),
-  timestamp: () => ({ fromMillis: (ms) => makeTimestamp(ms) }),
+  timestamp: () => ({ fromMillis: (ms) => makeTimestamp(ms), now: () => makeTimestamp(store.now) }),
   auth: () => ({
     verifyIdToken: async (token) => {
       const [, uid, email] = token.split(':');
@@ -348,6 +348,17 @@ const mockFirebaseAdmin = {
         throw err;
       }
       return { uid, disabled: false, emailVerified: true };
+    },
+    // O painel admin acha o usuário pelo e-mail. Nos testes o e-mail é
+    // sempre `<uid>@example.com` (ver o token fake acima).
+    getUserByEmail: async (email) => {
+      const uid = String(email || '').split('@')[0];
+      if (!uid) {
+        const err = new Error('user not found');
+        err.code = 'auth/user-not-found';
+        throw err;
+      }
+      return { uid, email, disabled: false, emailVerified: true, metadata: {} };
     },
   }),
 };
@@ -550,6 +561,7 @@ function setup(opts = {}) {
     status: me,
     cancel: require(path.join(ROOT, 'api/billing/cancel')),
     customer: require(path.join(ROOT, 'api/billing/customer')),
+    adminAction: require(path.join(ROOT, 'api/admin/action')),
     computeAccess: require(path.join(ROOT, 'api/_lib/access')).computeAccess,
   };
 }
