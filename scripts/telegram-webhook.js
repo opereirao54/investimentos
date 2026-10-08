@@ -86,18 +86,8 @@ async function main() {
   });
   console.log('Webhook ligado em', url);
 
-  await chamar('setMyCommands', {
-    commands: [
-      { command: 'saldo', description: 'Saldo de cada conta' },
-      { command: 'fatura', description: 'Fatura aberta de cada cartão' },
-      { command: 'mes', description: 'Resumo do mês por categoria' },
-      { command: 'alertas', description: 'Escolher os avisos automáticos' },
-      { command: 'relatorio', description: 'Relatório Mensal em PDF' },
-      { command: 'ajuda', description: 'Como lançar despesas e receitas' },
-      { command: 'desfazer', description: 'Desfaz o último lançamento' },
-      { command: 'desconectar', description: 'Desliga este Telegram da sua conta' },
-    ],
-  });
+  // A mesma lista que o bot aplica sozinho (api/_lib/telegram-api.js).
+  await chamar('setMyCommands', { commands: require('../api/_lib/telegram-api').MENU_COMANDOS });
   console.log('Menu de comandos configurado.');
 
   const eu = await chamar('getMe');

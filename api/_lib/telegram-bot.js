@@ -1119,8 +1119,38 @@ async function tratarBotao(cb) {
  * reentrega quando não recebe 200 a tempo, e a segunda entrega não pode
  * lançar de novo nem responder duas vezes.
  */
+// O menu "☰ Menu" do Telegram (a lista de comandos) se atualiza sozinho:
+// a versão é o hash da lista em telegram-api.js, guardado em
+// telegramConfig/menu. Lista mudou num deploy → o primeiro update depois
+// dele aplica a nova (setMyCommands), e ninguém precisa ir ao @BotFather.
+// Conferido uma vez por instância da function: custa uma leitura por
+// partida a frio, nenhuma por mensagem.
+const MENU_VERSAO = crypto
+  .createHash('sha1')
+  .update(JSON.stringify(tg.MENU_COMANDOS))
+  .digest('hex')
+  .slice(0, 12);
+let menuConferido = false;
+
+async function garantirMenu() {
+  if (menuConferido) return;
+  menuConferido = true;
+  try {
+    const ref = db().collection('telegramConfig').doc('menu');
+    const s = await ref.get();
+    if (s.exists && (s.data() || {}).versao === MENU_VERSAO) return;
+    const r = await tg.chamar('setMyCommands', { commands: tg.MENU_COMANDOS });
+    if (r && r.ok) await ref.set({ versao: MENU_VERSAO, atualizadoEmMs: Date.now() });
+    else menuConferido = false; // tenta de novo no próximo update
+  } catch (e) {
+    menuConferido = false;
+    console.error('[telegram] menu', e && e.message);
+  }
+}
+
 async function processarUpdate(update) {
   if (!update || typeof update.update_id !== 'number') return { ignorado: 'sem_update' };
+  await garantirMenu();
   const marca = db().collection('telegramUpdates').doc(String(update.update_id));
   if ((await marca.get()).exists) return { ignorado: 'repetido' };
 
@@ -1175,6 +1205,8 @@ module.exports = {
   confirmarInbox,
   definirIA,
   // exportados para teste
+  reiniciarMenu: () => (menuConferido = false),
+  MENU_VERSAO,
   contaPrincipal,
   categoriasDoUsuario,
   idLancamento,

@@ -619,3 +619,54 @@ test('lançamento às 22h30 de 31/10 em Brasília (01/11 em UTC) cai em 31/10, n
   assert.equal(inbox()[`tg${CHAT}_90`].lanc.dataCompra, '2026-10-31');
   assert.equal(inbox()[`tg${CHAT}_91`].lanc.dataCompra, '2026-10-30');
 });
+
+// ─── menu "☰" automático ────────────────────────────────────────────────────
+
+test('o menu ☰ (setMyCommands) se aplica sozinho uma vez, e de novo quando a lista muda', async () => {
+  const tgApi = require(path.join(ROOT, 'api/_lib/telegram-api.js'));
+  bot.reiniciarMenu();
+  await webhook(mensagem('/ajuda'));
+  const menus = () => enviados.filter((e) => e.metodo === 'setMyCommands');
+  assert.equal(menus().length, 1);
+  assert.deepEqual(menus()[0].payload.commands, tgApi.MENU_COMANDOS);
+  assert.ok(menus()[0].payload.commands.some((c) => c.command === 'relatorio'));
+  assert.equal(M.store.docs.get('telegramConfig/menu').versao, bot.MENU_VERSAO);
+
+  // Outra instância da function (partida a frio) com a mesma lista: só lê.
+  bot.reiniciarMenu();
+  await webhook(mensagem('/ajuda'));
+  assert.equal(menus().length, 1);
+
+  // Deploy com a lista diferente (versão gravada não bate): aplica de novo.
+  M.store.docs.set('telegramConfig/menu', { versao: 'antiga' });
+  bot.reiniciarMenu();
+  await webhook(mensagem('/ajuda'));
+  assert.equal(menus().length, 2);
+});
+
+test('menu: se o Telegram recusar, tenta de novo no próximo update e não trava a mensagem', async () => {
+  await conectar();
+  bot.reiniciarMenu();
+  M.store.docs.delete('telegramConfig/menu');
+  const fetchOk = global.fetch;
+  global.fetch = async (url, opts) => {
+    const metodo = String(url).split('/').pop();
+    enviados.push({ metodo, payload: JSON.parse(opts.body) });
+    if (metodo === 'setMyCommands')
+      return { status: 500, json: async () => ({ ok: false, description: 'x' }) };
+    return { status: 200, json: async () => ({ ok: true, result: {} }) };
+  };
+  try {
+    await webhook(mensagem('/ajuda'));
+    assert.match(ultimoTexto(), /Como lançar/, 'a resposta saiu mesmo assim');
+    assert.ok(
+      enviados.some((e) => e.metodo === 'setMyCommands'),
+      'tentou aplicar o menu'
+    );
+    assert.equal(M.store.docs.get('telegramConfig/menu'), undefined);
+  } finally {
+    global.fetch = fetchOk;
+  }
+  await webhook(mensagem('/ajuda'));
+  assert.equal(M.store.docs.get('telegramConfig/menu').versao, bot.MENU_VERSAO);
+});

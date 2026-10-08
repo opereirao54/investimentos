@@ -129,19 +129,10 @@ diferentes, todo update volta 401 e aparece em "Último erro" no `--info`.
 
 Referência: <https://core.telegram.org/bots/api#setwebhook>
 
-**Só atualizar o menu "/" (sem terminal):** no @BotFather, mande
-`/setcommands`, escolha o bot e cole, numa mensagem só:
-
-```
-saldo - Saldo de cada conta
-fatura - Fatura aberta de cada cartão
-mes - Resumo do mês por categoria
-alertas - Escolher os avisos automáticos
-relatorio - Relatório Mensal em PDF
-ajuda - Como lançar despesas e receitas
-desfazer - Desfaz o último lançamento
-desconectar - Desliga este Telegram da sua conta
-```
+**Menu "☰" (lista de comandos): automático.** O bot aplica a lista sozinho
+(`MENU_COMANDOS` em `api/_lib/telegram-api.js`) no primeiro uso depois de um
+deploy que a tenha mudado. Não precisa do @BotFather nem deste script para
+isso.
 
 ## Passo 7 — (Recomendado) Limpeza automática no Firestore (3 min)
 
