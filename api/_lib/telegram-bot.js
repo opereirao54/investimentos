@@ -33,6 +33,7 @@ const { computeAccess } = require('./access');
 const rl = require('./rate-limit');
 const tg = require('./telegram-api');
 const parser = require('./telegram-parser');
+const consultas = require('./telegram-consultas');
 
 const CODIGO_TTL_MS = 15 * 60 * 1000;
 const PENDENTE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -187,8 +188,25 @@ const AJUDA =
   '• Sem dizer a conta, usa a sua <b>conta principal</b>\n' +
   '• <code>ontem</code>, <code>dia 3</code> ou <code>05/10</code> muda a data da compra\n' +
   '• Conta fixa: <code>dia 10</code> é o vencimento\n\n' +
+  '<b>Consultas</b>\n' +
+  '/saldo — quanto tem em cada conta\n' +
+  '/fatura — fatura aberta de cada cartão\n' +
+  '/mes — receitas, gastos e categorias do mês\n\n' +
   '/desfazer — desfaz o último lançamento\n' +
   '/desconectar — desliga este Telegram da sua conta';
+
+// Teclado fixo embaixo da conversa: um toque manda o texto do botão, que
+// qualConsulta() reconhece. Fica no lugar do teclado do celular até a pessoa
+// recolher; o campo de digitar continua livre para lançar.
+const BOTAO_SALDO = '💰 Saldo';
+const BOTAO_FATURA = '💳 Fatura';
+const BOTAO_MES = '📊 Mês';
+const TECLADO_MENU = {
+  keyboard: [[{ text: BOTAO_SALDO }, { text: BOTAO_FATURA }, { text: BOTAO_MES }]],
+  resize_keyboard: true,
+  is_persistent: true,
+  input_field_placeholder: 'mercado 52,90',
+};
 
 function textoNaoConectado() {
   return (
@@ -325,6 +343,257 @@ async function confirmarInbox(uid, ids) {
   return validos.length;
 }
 
+// ─── consultas (/saldo, /fatura, /mes) ──────────────────────────────────────
+//
+// Só LEEM: os números saem de telegram-consultas.js, que é cópia das regras do
+// app com teste de paridade. Nada aqui grava no banco.
+
+const MESES = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+
+/** 'saldo' | 'fatura' | 'mes' | null. A mensagem INTEIRA tem de ser o pedido:
+ *  "mercado 50" continua sendo lançamento. */
+function qualConsulta(texto) {
+  const t = parser
+    .normalizar(String(texto || ''))
+    .replace(/^\//, '')
+    .replace(/@\w+$/, '')
+    .replace(/[^a-z0-9 ]/g, '')
+    .trim();
+  if (t === 'saldo' || t === 'saldos') return 'saldo';
+  if (t === 'fatura' || t === 'faturas' || t === 'cartao' || t === 'cartoes') return 'fatura';
+  if (t === 'mes' || t === 'resumo' || t === 'gastos') return 'mes';
+  return null;
+}
+
+function dataHoraBR(ms) {
+  return new Date(ms).toLocaleString('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function sinalBRL(n) {
+  return (n < 0 ? '−' : '+') + brl(Math.abs(n));
+}
+
+async function carregarDadosConsulta(uid) {
+  const [dataSnap, caixa] = await Promise.all([
+    db().collection('users').doc(uid).collection('data').doc('main').get(),
+    listarInbox(uid),
+  ]);
+  const doc = dataSnap.exists ? dataSnap.data() || {} : {};
+  const keys = doc.keys || {};
+  const lista = (k) => {
+    const v = lerJSON(keys[k], []);
+    return Array.isArray(v) ? v : [];
+  };
+  return {
+    transacoes: lista('futurorico_transacoes'),
+    contas: lista('appliquei_contas'),
+    cartoes: lista('futurorico_cartoes'),
+    categoriasCustom: lista('futurorico_categoriasDespesa'),
+    atualizadoEmMs:
+      doc.updatedAt && typeof doc.updatedAt.toMillis === 'function'
+        ? doc.updatedAt.toMillis()
+        : null,
+    pendentes: caixa.filter((i) => i.tipo === 'lancamento').length,
+  };
+}
+
+// O que o número NÃO inclui, dito junto com ele.
+function rodapeConsulta(d) {
+  const l = [];
+  if (d.pendentes === 1)
+    l.push(
+      '⏳ 1 lançamento feito aqui ainda não entrou no app e não está nestes números. ' +
+        'Abra o app para ele entrar.'
+    );
+  else if (d.pendentes > 1)
+    l.push(
+      `⏳ ${d.pendentes} lançamentos feitos aqui ainda não entraram no app e não estão ` +
+        'nestes números. Abra o app para eles entrarem.'
+    );
+  if (d.atualizadoEmMs) l.push(`<i>Dados do app de ${dataHoraBR(d.atualizadoEmMs)}.</i>`);
+  return l.length ? '\n\n' + l.join('\n') : '';
+}
+
+function textoSaldo(d, agora) {
+  const r = consultas.resumoSaldo(d, agora.getTime());
+  const linhas = r.contas
+    // Corretora zerada é ruído: quase todo mundo tem uma só para registrar aporte.
+    .filter((c) => !(c.corretora && Math.abs(c.saldo) < 0.005))
+    .map((c) => `${c.corretora ? '📈' : '🏦'} ${esc(c.nome)}: <b>${brl(c.saldo)}</b>`);
+  if (Math.abs(r.fora) >= 0.005) linhas.push(`❔ Fora de conta cadastrada: <b>${brl(r.fora)}</b>`);
+  if (!linhas.length) {
+    return (
+      '🏦 Você ainda não tem conta cadastrada. Cadastre no app ' +
+      '(<b>Meu Patrimônio → Contas</b>) para eu mostrar o saldo.' +
+      rodapeConsulta(d)
+    );
+  }
+  return (
+    '💰 <b>Saldo em conta</b>\n\n' +
+    linhas.join('\n') +
+    `\n\n<b>Total: ${brl(r.total)}</b>` +
+    rodapeConsulta(d)
+  );
+}
+
+function textoFatura(d, agora) {
+  const cartoes = consultas.resumoFaturas(d, agora);
+  if (!cartoes.length) {
+    return (
+      '💳 Você ainda não tem cartão cadastrado. Cadastre no app ' +
+      '(<b>Controle Financeiro → Cartões</b>).' +
+      rodapeConsulta(d)
+    );
+  }
+  const hoje = consultas.ymdLocal(agora);
+  const blocos = cartoes.map((c) => {
+    const l = [`💳 <b>${esc(c.nome)}</b>`];
+    if (c.semDatas) {
+      l.push('Sem dia de fechamento e vencimento. Preencha no app para eu calcular a fatura.');
+      return l.join('\n');
+    }
+    const a = c.aberta;
+    l.push(
+      `Aberta: <b>${brl(a.total)}</b>\n` +
+        `fecha ${dataBR(a.fechamento).slice(0, 5)} · vence ${dataBR(a.vencimento).slice(0, 5)}`
+    );
+    if (c.limite > 0) {
+      const pct = Math.round((a.total / c.limite) * 100);
+      l.push(`${pct}% do limite de ${brl(c.limite)}`);
+    }
+    const f = c.fechada;
+    // Fechada só interessa enquanto tem o que pagar (ou acabou de ser paga).
+    if (f.total > 0 && !(f.paga && f.vencimento < hoje)) {
+      let estado = '⏳ a pagar';
+      if (f.paga) estado = '✅ paga';
+      else if (f.vencimento < hoje) estado = '⚠️ vencida';
+      l.push(
+        `Fechada: <b>${brl(f.total)}</b> · vence ${dataBR(f.vencimento).slice(0, 5)} · ${estado}`
+      );
+    }
+    return l.join('\n');
+  });
+  return blocos.join('\n\n') + rodapeConsulta(d);
+}
+
+function barra(fracao) {
+  const cheios = Math.max(0, Math.min(10, Math.round(fracao * 10)));
+  return '▓'.repeat(cheios) + '░'.repeat(10 - cheios);
+}
+
+function textoMes(d, mes, ano) {
+  const r = consultas.resumoMes(d, mes, ano);
+  const t = r.totais;
+  const l = [`📊 <b>${MESES[mes]} de ${ano}</b>`, ''];
+  l.push(`Receitas: <b>${brl(t.receita)}</b>`);
+  l.push(`Despesas: <b>${brl(t.despesas)}</b>`);
+  l.push(`Cartão: <b>${brl(t.cartao)}</b>`);
+  if (t.investimentos) l.push(`Investimentos: <b>${brl(t.investimentos)}</b>`);
+  if (t.sonhos) l.push(`Sonhos: <b>${brl(t.sonhos)}</b>`);
+  l.push(`\nResultado: <b>${sinalBRL(r.resultado)}</b>`);
+
+  // Rótulos: categorias visíveis do usuário; as ocultas e as criadas por ele
+  // também, porque lançamento antigo pode estar numa categoria que ele escondeu.
+  const rotulos = {};
+  parser.CATEGORIAS_PADRAO.forEach((c) => (rotulos[c.v] = c.label));
+  d.categoriasCustom.forEach((c) => {
+    if (c && c.v && c.label) rotulos[c.v] = c.label;
+  });
+  rotulos.__sem_categoria__ = '🏷️ Sem categoria';
+
+  const gasto = t.despesas + t.cartao;
+  const cats = Object.keys(r.porCategoria)
+    .map((k) => ({ k, v: r.porCategoria[k] }))
+    .filter((c) => c.v > 0.005)
+    .sort((a, b) => b.v - a.v);
+  if (cats.length && gasto > 0) {
+    const MAX = 8;
+    const mostradas = cats.slice(0, MAX);
+    const resto = cats.slice(MAX).reduce((s, c) => s + c.v, 0);
+    if (resto > 0.005) mostradas.push({ k: '__outras__', v: resto });
+    rotulos.__outras__ = '➕ Outras';
+    l.push('\n<b>Para onde foi</b> (despesas + cartão)');
+    mostradas.forEach((c) => {
+      const f = c.v / gasto;
+      l.push(
+        `<code>${barra(f)}</code> ${String(Math.round(f * 100)).padStart(2, ' ')}% ` +
+          `${esc(rotulos[c.k] || c.k)} · ${brl(c.v)}`
+      );
+    });
+  } else if (!gasto && !t.receita) {
+    l.push('\nNenhum lançamento neste mês.');
+  }
+  return l.join('\n') + rodapeConsulta(d);
+}
+
+// Navegação entre meses: botões ◀ ▶ que editam a mesma mensagem.
+function tecladoMes(mes, ano, agora) {
+  const ant = new Date(ano, mes - 1, 1);
+  const prox = new Date(ano, mes + 1, 1);
+  const linha = [
+    {
+      text: `◀ ${MESES[ant.getMonth()]}`,
+      callback_data: `m:${ant.getFullYear()}-${ant.getMonth()}`,
+    },
+  ];
+  // Não navega para depois do mês que vem: lá só há parcela e conta fixa.
+  const limite = new Date(agora.getFullYear(), agora.getMonth() + 1, 1);
+  if (prox <= limite)
+    linha.push({
+      text: `${MESES[prox.getMonth()]} ▶`,
+      callback_data: `m:${prox.getFullYear()}-${prox.getMonth()}`,
+    });
+  return [linha];
+}
+
+async function responderConsulta(chatId, uid, qual) {
+  const d = await carregarDadosConsulta(uid);
+  const agora = consultas.agoraBrasilia();
+  if (qual === 'saldo') return tg.enviar(chatId, textoSaldo(d, agora), TECLADO_MENU);
+  if (qual === 'fatura') return tg.enviar(chatId, textoFatura(d, agora), TECLADO_MENU);
+  const mes = agora.getMonth();
+  const ano = agora.getFullYear();
+  return tg.enviar(chatId, textoMes(d, mes, ano), tecladoMes(mes, ano, agora));
+}
+
+async function navegarMes(cb, chatId, uid, alvo) {
+  const m = /^(\d{4})-(\d{1,2})$/.exec(alvo || '');
+  const ano = m ? parseInt(m[1], 10) : NaN;
+  const mes = m ? parseInt(m[2], 10) : NaN;
+  if (!(mes >= 0 && mes <= 11 && ano >= 2000 && ano <= 2100)) return tg.responderBotao(cb.id);
+  if (await acessoBloqueado(uid)) {
+    return tg.responderBotao(cb.id, 'Sua assinatura está inativa.');
+  }
+  const d = await carregarDadosConsulta(uid);
+  const agora = consultas.agoraBrasilia();
+  await tg.responderBotao(cb.id);
+  return tg.editar(
+    chatId,
+    cb.message.message_id,
+    textoMes(d, mes, ano),
+    tecladoMes(mes, ano, agora)
+  );
+}
+
 // ─── webhook ────────────────────────────────────────────────────────────────
 
 async function vincularPorCodigo(chat, from, codigo) {
@@ -377,7 +646,7 @@ async function vincularPorCodigo(chat, from, codigo) {
     ? `Quando você não disser a conta, uso a sua conta principal: <b>${esc(principal.nome)}</b>.`
     : '⚠️ Você ainda não escolheu a <b>conta principal</b>. Escolha no app, na mesma tela ' +
       'onde conectou, para eu saber de onde sai o dinheiro.';
-  return tg.enviar(chat.id, `🎉 <b>Conectado!</b>\n\n${avisoConta}\n\n${AJUDA}`);
+  return tg.enviar(chat.id, `🎉 <b>Conectado!</b>\n\n${avisoConta}\n\n${AJUDA}`, TECLADO_MENU);
 }
 
 async function linkDoChat(chatId) {
@@ -476,7 +745,7 @@ async function tratarTexto(msg) {
   const uid = await linkDoChat(chat.id);
   if (!uid) return tg.enviar(chat.id, textoNaoConectado());
 
-  if (/^\/(start|ajuda|help)(@\w+)?\b/i.test(texto)) return tg.enviar(chat.id, AJUDA);
+  if (/^\/(start|ajuda|help)(@\w+)?\b/i.test(texto)) return tg.enviar(chat.id, AJUDA, TECLADO_MENU);
   if (/^\/desconectar(@\w+)?\b/i.test(texto)) {
     await desvincular(uid);
     return tg.enviar(chat.id, '👋 Desconectado. Para voltar, conecte de novo pelo app.');
@@ -495,6 +764,9 @@ async function tratarTexto(msg) {
     return tg.enviar(chat.id, '⏳ Muitas mensagens em pouco tempo. Espere um minuto.');
   }
 
+  const consulta = qualConsulta(texto);
+  if (consulta) return responderConsulta(chat.id, uid, consulta);
+
   if (/^\/desfazer(@\w+)?\b/i.test(texto)) {
     const integ = await db()
       .collection('users')
@@ -507,7 +779,7 @@ async function tratarTexto(msg) {
     await desfazer(uid, ultimo);
     return tg.enviar(chat.id, '↩️ Último lançamento desfeito.');
   }
-  if (texto.startsWith('/')) return tg.enviar(chat.id, AJUDA);
+  if (texto.startsWith('/')) return tg.enviar(chat.id, AJUDA, TECLADO_MENU);
 
   const ctx = Object.assign({ hoje: new Date() }, await carregarContexto(uid));
   const r = await interpretarComReserva(texto, ctx);
@@ -589,6 +861,8 @@ async function tratarBotao(cb) {
   }
 
   const [acao, id, extra] = dados.split(':');
+  // Navegação do /mes: só lê, e o "id" é o mês, não um lançamento.
+  if (acao === 'm') return navegarMes(cb, chatId, uid, id);
   if (!RE_ID_INBOX.test(id || '')) return tg.responderBotao(cb.id);
   // Cada botão só age sobre lançamentos DESTE chat: o id carrega o chat.
   if (!id.startsWith(`tg${String(chatId).replace(/[^0-9]/g, '')}_`)) {

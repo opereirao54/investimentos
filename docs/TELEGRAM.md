@@ -186,7 +186,20 @@ produto. Se não for usar o Gemini, basta o primeiro parágrafo.
 | qualquer uma → **↩️ Desfazer**            | Desfeito                                        | lançamento some                                                    |
 | `mercado` (sem valor)                     | dica de formato                                 | nada                                                               |
 
-5. Volte ao app (ou atualize a página): aparece "📲 N lançamentos do Telegram
+5. Consultas (o teclado fixo embaixo da conversa tem os três atalhos):
+
+| Mensagem                         | O bot deve responder                                                           |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| `/saldo` ou **💰 Saldo**         | saldo de cada conta e o total, igual ao "Saldo em conta" do Meu Patrimônio     |
+| `/fatura` ou **💳 Fatura**       | fatura aberta de cada cartão (fechamento e vencimento) e a fechada, se a pagar |
+| `/mes` ou **📊 Mês**             | receitas, despesas, cartão, resultado e gastos por categoria; ◀ ▶ trocam o mês |
+| qualquer consulta com lançamento | "⏳ N lançamentos feitos aqui ainda não entraram no app"                       |
+
+Quem já tinha ligado o webhook antes das consultas precisa rodar o Passo 6
+de novo, só para o menu "/" do Telegram ganhar os comandos novos. Os
+comandos funcionam mesmo sem isso.
+
+6. Volte ao app (ou atualize a página): aparece "📲 N lançamentos do Telegram
    entraram". Com o app aberto, entra em até 2 minutos ou ao voltar para a aba.
 
 ## Solução de problemas
@@ -247,6 +260,15 @@ estiver lá. Saber se o app já aplicou exigiria ler o JSON das transações, e 
 app lendo a caixa naquele instante tornaria a resposta errada de qualquer
 jeito.
 
+**Consultas (/saldo, /fatura, /mes):** só leem `users/{uid}/data/main`, nada é
+gravado. As regras ficam em `api/_lib/telegram-consultas.js`, uma cópia das
+funções do app (`mpCalcularSaldoPorInstituicao`, `cartaoFaturasCandidatas`,
+`calcularResumoMes`…), porque o servidor não carrega os scripts do navegador.
+`test/telegram-consultas.test.js` roda o app e o servidor sobre o mesmo estado e
+exige o mesmo número. **Mudou uma dessas regras no app, mude a cópia.** O teste
+avisa se esquecer. A data de referência é a de Brasília (`agoraBrasilia`), não o
+UTC da Vercel.
+
 **Conta principal:** a flag `principal: true` em `appliquei_contas`. Se só
 houver uma conta de caixa (não corretora, não arquivada), ela é a principal.
 
@@ -273,6 +295,7 @@ acessa direto, e a negação implícita protege.
 | `test/telegram-bot.test.js`              | webhook, vínculo, botões, segurança                           |
 | `test/telegram-ia.test.js`               | Gemini (rede falsa)                                           |
 | `test/telegram-aplicador.test.js`        | aplicação no app                                              |
+| `test/telegram-consultas.test.js`        | /saldo, /fatura e /mes iguais ao app (paridade com a sandbox) |
 | `test/integracao-inv25-id-unico.test.js` | contrato INV-25                                               |
 | `test/simulacao-telegram.test.js`        | entradas inválidas no mundo completo                          |
 | `test/_sequencias.js`                    | ações do Telegram nas sequências aleatórias (`npm run cacar`) |

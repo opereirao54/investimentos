@@ -423,3 +423,181 @@ test('segredo com acento e mesmo número de caracteres responde 401, não 500', 
   const r = await webhook(mensagem('mercado 50'), 'segredo-de-teste-ca');
   assert.equal(r.status, 401);
 });
+
+// ─── consultas ──────────────────────────────────────────────────────────────
+// Os números em si são provados contra o app em telegram-consultas.test.js.
+// Aqui: roteamento, texto, teclados, aviso da caixa de entrada e as travas.
+
+function ultimoEnvio() {
+  const m = enviados.filter((e) => e.metodo === 'sendMessage' || e.metodo === 'editMessageText');
+  return m.length ? m[m.length - 1].payload : {};
+}
+
+function semearTransacoes() {
+  // O mês do bot é o de Brasília (o servidor roda em UTC).
+  const agora = require(path.join(ROOT, 'api/_lib/telegram-consultas.js')).agoraBrasilia();
+  const M0 = agora.getMonth();
+  const A0 = agora.getFullYear();
+  const dados = M.store.docs.get(`users/${UID}/data/main`);
+  dados.keys.appliquei_contas = JSON.stringify([
+    { id: 'c_itau', nome: 'Itaú', tipo: 'banco', principal: true, saldoInicial: 1000 },
+    { id: 'c_nu', nome: 'Nubank', tipo: 'banco', saldoInicial: 250.5 },
+    { id: 'c_rico', nome: 'Rico', tipo: 'corretora' },
+  ]);
+  dados.keys.futurorico_transacoes = JSON.stringify([
+    { id: 't1', categoria: 'receita', valor: 5000, contaId: 'c_itau', mes: M0, ano: A0 },
+    {
+      id: 't2',
+      categoria: 'despesa_variavel',
+      valor: 300,
+      contaId: 'c_itau',
+      mes: M0,
+      ano: A0,
+      pago: true,
+      categoriaDespesa: 'alimentacao',
+    },
+    {
+      id: 't3',
+      categoria: 'despesa_fixa',
+      valor: 1200,
+      contaId: 'c_itau',
+      mes: M0,
+      ano: A0,
+      pago: false,
+      categoriaDespesa: 'moradia',
+    },
+  ]);
+  dados.updatedAt = M.makeTimestamp(Date.now());
+}
+
+test('/saldo responde o saldo por conta, esconde corretora zerada e manda o teclado fixo', async () => {
+  semearTransacoes();
+  await conectar();
+  await webhook(mensagem('/saldo'));
+  const p = ultimoEnvio();
+  assert.match(p.text, /Saldo em conta/);
+  assert.match(p.text, /Itaú: <b>R\$\s5\.700,00<\/b>/); // 1000 + 5000 − 300 (a fixa não foi paga)
+  assert.match(p.text, /Nubank: <b>R\$\s250,50<\/b>/);
+  assert.doesNotMatch(p.text, /Rico/);
+  assert.match(p.text, /Total: R\$\s5\.950,50/);
+  assert.match(p.text, /Dados do app de/);
+  assert.ok(p.reply_markup.keyboard, 'teclado fixo');
+  assert.deepEqual(inbox(), {}, 'consulta não grava nada');
+});
+
+test('o botão do teclado e a palavra solta também consultam; "mercado 50" continua lançamento', async () => {
+  semearTransacoes();
+  await conectar();
+  await webhook(mensagem('💰 Saldo'));
+  assert.match(ultimoTexto(), /Saldo em conta/);
+  await webhook(mensagem('Fatura'));
+  assert.match(ultimoTexto(), /💳 <b>Nubank<\/b>/);
+  await webhook(mensagem('/saldo@AppliqueiBot'));
+  assert.match(ultimoTexto(), /Saldo em conta/);
+  await webhook(mensagem('mercado 50', { messageId: 70 }));
+  assert.ok(inbox()[`tg${CHAT}_70`]);
+});
+
+test('/fatura soma o que já está na fatura aberta de cada cartão', async () => {
+  semearTransacoes();
+  await conectar();
+  // Lança no cartão pelo bot e finge que o app aplicou: a transação vai para o
+  // JSON com o vencimento que o app teria calculado.
+  const consultas = require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
+  const agora = consultas.agoraBrasilia();
+  const venc = consultas.cartaoCalcularVencimento(agora, 2, 10);
+  const dados = M.store.docs.get(`users/${UID}/data/main`);
+  const tx = JSON.parse(dados.keys.futurorico_transacoes);
+  tx.push({
+    id: 'c1',
+    categoria: 'cartao_credito',
+    cartaoId: 'card_nu',
+    valor: 89.9,
+    dataVencimento: consultas.ymdLocal(venc),
+    mes: venc.getMonth(),
+    ano: venc.getFullYear(),
+  });
+  dados.keys.futurorico_transacoes = JSON.stringify(tx);
+  await webhook(mensagem('/fatura'));
+  const t = ultimoTexto();
+  assert.match(t, /💳 <b>Nubank<\/b>\nAberta: <b>R\$\s89,90<\/b>/);
+  assert.match(t, /💳 <b>C6<\/b>\nAberta: <b>R\$\s0,00<\/b>/);
+});
+
+test('/mes mostra o resumo, as categorias e navega entre meses pelo botão', async () => {
+  semearTransacoes();
+  await conectar();
+  await webhook(mensagem('/mes'));
+  const p = ultimoEnvio();
+  assert.match(p.text, /Receitas: <b>R\$\s5\.000,00<\/b>/);
+  assert.match(p.text, /Despesas: <b>R\$\s1\.500,00<\/b>/);
+  assert.match(p.text, /Resultado: <b>\+R\$\s3\.500,00<\/b>/);
+  assert.match(p.text, /80% 🏠 Moradia · R\$\s1\.200,00/);
+  assert.match(p.text, /20% 🛒 Alimentação · R\$\s300,00/);
+  const voltar = p.reply_markup.inline_keyboard[0][0].callback_data;
+  assert.match(voltar, /^m:\d{4}-\d{1,2}$/);
+
+  await webhook(botao(voltar));
+  const ed = ultimoEnvio();
+  assert.equal(enviados[enviados.length - 1].metodo, 'editMessageText');
+  assert.match(ed.text, /Nenhum lançamento neste mês/);
+
+  // Mês inválido no botão: só responde o clique.
+  const antes = enviados.length;
+  await webhook(botao('m:2026-13'));
+  assert.equal(enviados.length, antes + 1);
+  assert.equal(enviados[enviados.length - 1].metodo, 'answerCallbackQuery');
+});
+
+test('consulta avisa os lançamentos do Telegram que o app ainda não aplicou', async () => {
+  semearTransacoes();
+  await conectar();
+  await webhook(mensagem('mercado 50', { messageId: 80 }));
+  await webhook(mensagem('uber 18', { messageId: 81 }));
+  await webhook(mensagem('/saldo'));
+  assert.match(ultimoTexto(), /2 lançamentos feitos aqui ainda não entraram no app/);
+});
+
+test('consulta sem conta nem cartão explica onde cadastrar', async () => {
+  const dados = M.store.docs.get(`users/${UID}/data/main`);
+  await conectar();
+  dados.keys.appliquei_contas = '[]';
+  dados.keys.futurorico_cartoes = '[]';
+  await webhook(mensagem('/saldo'));
+  assert.match(ultimoTexto(), /ainda não tem conta cadastrada/);
+  await webhook(mensagem('/fatura'));
+  assert.match(ultimoTexto(), /ainda não tem cartão cadastrado/);
+});
+
+test('assinatura bloqueada não consulta, nem pelo botão de mês', async () => {
+  semearTransacoes();
+  await conectar();
+  M.store.docs.set(`users/${UID}/billing/account`, {
+    trialStartedAt: M.makeTimestamp(Date.now() - 30 * 86400000),
+    trialEndsAt: M.makeTimestamp(Date.now() - 20 * 86400000),
+  });
+  await webhook(mensagem('/saldo'));
+  assert.match(ultimoTexto(), /assinatura .* inativa/);
+  assert.doesNotMatch(ultimoTexto(), /Total/);
+  await webhook(botao('m:2026-0'));
+  const ult = enviados[enviados.length - 1];
+  assert.equal(ult.metodo, 'answerCallbackQuery');
+  assert.match(ult.payload.text, /inativa/);
+});
+
+test('chat não conectado não consulta', async () => {
+  semearTransacoes();
+  await webhook(mensagem('/saldo', { chat: 777 }));
+  assert.match(ultimoTexto(), /ainda não está ligado/);
+});
+
+test('/ajuda lista as consultas e manda o teclado fixo', async () => {
+  await conectar();
+  await webhook(mensagem('/ajuda'));
+  const p = ultimoEnvio();
+  assert.match(p.text, /\/saldo/);
+  assert.deepEqual(
+    p.reply_markup.keyboard[0].map((b) => b.text),
+    ['💰 Saldo', '💳 Fatura', '📊 Mês']
+  );
+});
