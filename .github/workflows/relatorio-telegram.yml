@@ -1,0 +1,78 @@
+name: Relatório pelo Telegram
+
+# Gera o Relatório Mensal em PDF pedido no bot e envia ao usuário.
+# Acionado pelo bot (api/_lib/telegram-relatorio.js) pela API do GitHub; o
+# trabalho é do scripts/relatorio-telegram.js.
+#
+# POR QUE AQUI
+#   O PDF é o MESMO do app: o código do app monta o documento (numa sandbox)
+#   e um Chromium o imprime, como o "Salvar como PDF" do navegador. A Vercel
+#   Hobby não roda navegador; o GitHub Actions já roda (os testes e2e).
+#
+# O REPOSITÓRIO É PÚBLICO: o log desta execução também. A única entrada é o
+# id do pedido (aleatório); uid, chat e mês são lidos do Firestore. O script
+# não escreve dado do usuário no log, e nenhum arquivo é guardado como
+# artefato — o PDF vai direto para o Telegram.
+#
+# SECRETS (Settings → Secrets and variables → Actions):
+#   FIREBASE_SERVICE_ACCOUNT_BASE64, FIREBASE_PROJECT_ID  (já existem)
+#   TELEGRAM_BOT_TOKEN                                    (o mesmo da Vercel)
+
+run-name: Relatório ${{ inputs.pedido }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      pedido:
+        description: 'Id do pedido (o bot preenche)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Mesmo cache de Chromium do job e2e (ci.yml).
+      - name: Get Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}
+
+      - name: Install Playwright Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Install Playwright OS deps (cached browser)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+
+      - name: Gerar e enviar o relatório
+        env:
+          PEDIDO: ${{ inputs.pedido }}
+          FIREBASE_SERVICE_ACCOUNT_BASE64: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BASE64 }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          # As datas do relatório ("gerado em", o mês) no fuso do usuário.
+          TZ: America/Sao_Paulo
+        run: node scripts/relatorio-telegram.js

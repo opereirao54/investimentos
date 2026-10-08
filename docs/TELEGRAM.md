@@ -137,6 +137,7 @@ saldo - Saldo de cada conta
 fatura - Fatura aberta de cada cartão
 mes - Resumo do mês por categoria
 alertas - Escolher os avisos automáticos
+relatorio - Relatório Mensal em PDF
 ajuda - Como lançar despesas e receitas
 desfazer - Desfaz o último lançamento
 desconectar - Desliga este Telegram da sua conta
@@ -147,11 +148,12 @@ desconectar - Desliga este Telegram da sua conta
 O bot grava três coleções temporárias. Todas têm o campo `expiraEm`
 (Timestamp), e uma política de TTL apaga os documentos vencidos sozinha:
 
-| Coleção             | Para quê                                               | Vence em   |
-| ------------------- | ------------------------------------------------------ | ---------- |
-| `telegramUpdates`   | evita processar duas vezes a mesma entrega do Telegram | 7 dias     |
-| `telegramCodigos`   | códigos de vínculo                                     | 15 minutos |
-| `telegramPendentes` | mensagem esperando o usuário escolher o cartão         | 24 horas   |
+| Coleção              | Para quê                                               | Vence em   |
+| -------------------- | ------------------------------------------------------ | ---------- |
+| `telegramUpdates`    | evita processar duas vezes a mesma entrega do Telegram | 7 dias     |
+| `telegramCodigos`    | códigos de vínculo                                     | 15 minutos |
+| `telegramPendentes`  | mensagem esperando o usuário escolher o cartão         | 24 horas   |
+| `telegramRelatorios` | pedidos de Relatório Mensal em PDF                     | 24 horas   |
 
 Firebase Console (<https://console.firebase.google.com/>) → Firestore Database →
 aba **TTL** (Time-to-live) → **Create policy**. Para cada coleção acima:
@@ -162,7 +164,7 @@ Referência: <https://firebase.google.com/docs/firestore/ttl>
 
 ## Passo 8 — Política de Privacidade (decisão sua)
 
-A integração adiciona dois tratamentos de dados que a política deve citar:
+A integração adiciona três tratamentos de dados que a política deve citar:
 
 > **Telegram (opcional).** Se você conectar sua conta ao bot do Appliquei no
 > Telegram, guardamos o identificador da conversa, seu nome e @usuário no
@@ -174,6 +176,11 @@ A integração adiciona dois tratamentos de dados que a política deve citar:
 > regras, o texto dela (sem nenhum dado que identifique você) pode ser enviado
 > ao Google Gemini para interpretação. O Google pode usar esse texto para
 > melhorar os próprios serviços.
+>
+> **Relatório em PDF pelo Telegram.** Quando você pede o Relatório Mensal pelo
+> bot, seus dados financeiros são processados por alguns segundos num servidor
+> do GitHub (Microsoft), que gera o PDF e o envia para a sua conversa. Nada é
+> guardado lá depois do envio.
 
 Trocar o texto da política e subir `PRIVACIDADE_VERSAO` em `api/user.js` faz
 todos os usuários aceitarem de novo. Não mexi nisso: é decisão jurídica e de
@@ -293,6 +300,61 @@ pagadora do cartão, aporte do sonho, posição do compromisso). Contrato
 versão não conhece a ordem e a descarta: recarregar o app resolve, e o
 pagamento é refeito pelo app.
 
+## Relatório Mensal em PDF (sem terminal)
+
+O botão **📄 Relatório** (ou `/relatorio`) pergunta o mês e, em 1 a 2 minutos,
+manda o PDF na conversa. É **o mesmo relatório do app** (Relatório mensal →
+Exportar PDF): o próprio código do app monta o documento e um Chromium o
+imprime. Não há cópia da regra.
+
+```
+Bot ── grava telegramRelatorios/{id} ──▶ API do GitHub: workflow_dispatch(pedido=id)
+                                               │
+GitHub Actions (relatorio-telegram.yml) ◀──────┘
+  └─ scripts/relatorio-telegram.js
+       ├─ lê o pedido, users/{uid}/data/main e a caixa de entrada (Firestore)
+       ├─ abre o app numa sandbox com esses dados (scripts/lib/app-sandbox.js),
+       │  aplica a caixa de entrada e busca os dividendos — como o app ao abrir
+       ├─ rmDocumentoImprimivel(mês) → Chromium → PDF
+       └─ sendDocument para o chat do pedido
+```
+
+Roda no GitHub porque a Vercel Hobby não roda navegador. O repositório é
+público, então **o log também é**: a única entrada do workflow é o id
+(aleatório) do pedido, e o script só registra "pedido X: enviado/erro".
+Nenhum dado do usuário vai para o log nem fica guardado como arquivo.
+
+### Ligar (uma vez, ~5 min, só no navegador)
+
+1. **Token do GitHub para o bot acionar o workflow.**
+   <https://github.com/settings/personal-access-tokens/new> →
+   _Token name_: `appliquei-relatorio` · _Expiration_: a mais longa que quiser
+   (anote para renovar) · _Repository access_: **Only select repositories** →
+   `investimentos` · _Permissions → Repository permissions → **Actions**_:
+   **Read and write** → **Generate token** → copie (começa com `github_pat_`).
+2. **Na Vercel:** Settings → Environment Variables → `GITHUB_DISPATCH_TOKEN` =
+   o token do passo 1 → salvar → **Redeploy**.
+3. **No GitHub:** Settings → Secrets and variables → Actions → New repository
+   secret → `TELEGRAM_BOT_TOKEN` = o mesmo token do bot que está na Vercel.
+   (`FIREBASE_SERVICE_ACCOUNT_BASE64` e `FIREBASE_PROJECT_ID` já existem.)
+4. **Teste:** no Telegram, **📄 Relatório** → um mês. Em 1–2 min o PDF chega.
+   Acompanhe em Actions → **Relatório pelo Telegram**.
+5. (Recomendado) **TTL** da coleção `telegramRelatorios`, campo `expiraEm`
+   (mesmo procedimento do Passo 7).
+
+### Se não chegar
+
+| O que aparece                                    | Causa                                                                  |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| "ainda não foi ativado"                          | falta `GITHUB_DISPATCH_TOKEN` na Vercel (ou faltou o Redeploy)         |
+| "Não consegui pedir o relatório"                 | token vencido, sem permissão de Actions, ou de outro repositório       |
+| "Não consegui gerar o relatório agora"           | o workflow rodou e falhou: veja o log em Actions (só o código do erro) |
+| nada chega e não há execução em Actions          | o pedido não saiu do bot: logs da Vercel com `[telegram-relatorio]`    |
+| execução em Actions vermelha em "Gerar e enviar" | falta `TELEGRAM_BOT_TOKEN` ou os secrets do Firebase no GitHub         |
+
+Limite: 6 relatórios por hora por usuário. Um pedido com mais de 30 minutos
+(fila do GitHub travada) é descartado em vez de chegar atrasado.
+
 ## Solução de problemas
 
 | Sintoma                                                        | Causa provável                                | O que fazer                                                                                                      |
@@ -380,19 +442,22 @@ acessa direto, e a negação implícita protege.
 
 ### Testes
 
-| Arquivo                                        | Cobre                                                                    |
-| ---------------------------------------------- | ------------------------------------------------------------------------ |
-| `test/lancamento-regra-pura.test.js`           | formulário ≡ `criarLancamentos`                                          |
-| `test/telegram-parser.test.js`                 | interpretação das mensagens                                              |
-| `test/telegram-bot.test.js`                    | webhook, vínculo, botões, segurança                                      |
-| `test/telegram-ia.test.js`                     | Gemini (rede falsa)                                                      |
-| `test/telegram-aplicador.test.js`              | aplicação no app                                                         |
-| `test/telegram-consultas.test.js`              | /saldo, /fatura e /mes iguais ao app (paridade com a sandbox)            |
-| `test/telegram-alertas.test.js`                | regras, rodada, painel 🔔, 🔕, Já paguei, endpoint, paridade da projeção |
-| `test/integracao-inv26-baixa-telegram.test.js` | Já paguei ≡ Baixar do Controle (INV-26)                                  |
-| `test/integracao-inv25-id-unico.test.js`       | contrato INV-25                                                          |
-| `test/simulacao-telegram.test.js`              | entradas inválidas no mundo completo                                     |
-| `test/_sequencias.js`                          | ações do Telegram nas sequências aleatórias (`npm run cacar`)            |
+| Arquivo                                        | Cobre                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------- |
+| `test/lancamento-regra-pura.test.js`           | formulário ≡ `criarLancamentos`                                              |
+| `test/telegram-parser.test.js`                 | interpretação das mensagens                                                  |
+| `test/telegram-bot.test.js`                    | webhook, vínculo, botões, segurança                                          |
+| `test/telegram-ia.test.js`                     | Gemini (rede falsa)                                                          |
+| `test/telegram-aplicador.test.js`              | aplicação no app                                                             |
+| `test/telegram-consultas.test.js`              | /saldo, /fatura e /mes iguais ao app (paridade com a sandbox)                |
+| `test/telegram-alertas.test.js`                | regras, rodada, painel 🔔, 🔕, Já paguei, endpoint, paridade da projeção     |
+| `test/integracao-inv26-baixa-telegram.test.js` | Já paguei ≡ Baixar do Controle (INV-26)                                      |
+| `test/relatorio-pdf.test.js`                   | relatório gerado na sandbox = documento do app; caixa de entrada; dividendos |
+| `test/telegram-relatorio.test.js`              | botão 📄, pedido, acionamento do GitHub, script do workflow                  |
+| `e2e/relatorio-pdf.spec.js`                    | impressão real em Chromium: PDF A4 de uma página                             |
+| `test/integracao-inv25-id-unico.test.js`       | contrato INV-25                                                              |
+| `test/simulacao-telegram.test.js`              | entradas inválidas no mundo completo                                         |
+| `test/_sequencias.js`                          | ações do Telegram nas sequências aleatórias (`npm run cacar`)                |
 
 ### Formatos que as regras entendem
 
