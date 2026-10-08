@@ -10,30 +10,40 @@ service cloud.firestore {
     function billingDoc(uid) {
       return get(/databases/$(database)/documents/users/$(uid)/billing/account);
     }
+    // Cortesia do admin (Superpoderes → Tornar PRO / Oferecer PRO). Espelha
+    // courtesyState() em api/_lib/access.js: vence qualquer estado da
+    // assinatura, porque foi uma liberação explícita.
+    function hasCourtesy(uid) {
+      return billingDoc(uid).data.get('courtesyPermanent', false) == true
+        || (billingDoc(uid).data.get('courtesyUntil', null) is timestamp
+          && request.time < billingDoc(uid).data.courtesyUntil);
+    }
+    // Janela já paga. `paidUntil` é o campo canônico (acumula ciclos quando o
+    // usuário antecipa); contas antigas só têm lastPaidAt, e para elas vale
+    // lastPaidAt + 30 dias — o mesmo fallback de paidUntilMs() no backend.
+    // Antes a regra só olhava lastPaidAt: quem antecipava a renovação via a
+    // tela liberada e o banco recusava gravar antes da data prometida.
+    function withinPaidWindow(uid) {
+      return (billingDoc(uid).data.get('paidUntil', null) is timestamp
+          && request.time < billingDoc(uid).data.paidUntil)
+        || (billingDoc(uid).data.get('lastPaidAt', null) is timestamp
+          && request.time < billingDoc(uid).data.lastPaidAt + duration.value(30, 'd'));
+    }
     function hasActiveAccess(uid) {
       return exists(/databases/$(database)/documents/users/$(uid)/billing/account)
-        && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
-          'CHARGEBACK',
-          'CHARGEBACK_REVERSAL_PENDING',
-          'PAYMENT_REPROVED',
-          'OVERDUE',
-          'REFUND_IN_PROGRESS'
-        ])
         && (
-          (billingDoc(uid).data.trialEndsAt is timestamp
-            && request.time < billingDoc(uid).data.trialEndsAt)
+          hasCourtesy(uid)
           || (
-            // Ciclo pago: lastPaidAt + 30 dias. Cobre usuário que pagou
-            // e cancelou a sub no meio do mês — mantém acesso até o
-            // fim do período já pago. duration.value(30,'d') existe em
-            // Firestore Security Rules.
-            billingDoc(uid).data.lastPaidAt is timestamp
-            && request.time < billingDoc(uid).data.lastPaidAt + duration.value(30, 'd')
-          )
-          || (
-            billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
+            // Ciclo pago protege mesmo com a fatura SEGUINTE vencida (OVERDUE),
+            // como em computeAccess — quem pagou boleto no vencimento não pode
+            // perder o mês. Estorno e chargeback não: o dinheiro voltou.
+            withinPaidWindow(uid)
+            && !(billingDoc(uid).data.get('subscriptionStatus', '') in [
+              'CHARGEBACK',
+              'CHARGEBACK_REVERSAL_PENDING',
+              'REFUND_IN_PROGRESS'
+            ])
             && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [
-              'OVERDUE',
               'REFUNDED',
               'REFUND_IN_PROGRESS',
               'REFUND_REQUESTED',
@@ -41,6 +51,31 @@ service cloud.firestore {
               'CHARGEBACK_DISPUTE',
               'AWAITING_CHARGEBACK_REVERSAL'
             ])
+          )
+          || (
+            !(billingDoc(uid).data.get('subscriptionStatus', '') in [
+              'CHARGEBACK',
+              'CHARGEBACK_REVERSAL_PENDING',
+              'PAYMENT_REPROVED',
+              'OVERDUE',
+              'REFUND_IN_PROGRESS'
+            ])
+            && (
+              (billingDoc(uid).data.trialEndsAt is timestamp
+                && request.time < billingDoc(uid).data.trialEndsAt)
+              || (
+                billingDoc(uid).data.subscriptionStatus == 'ACTIVE'
+                && !(billingDoc(uid).data.get('lastPaymentStatus', '') in [
+                  'OVERDUE',
+                  'REFUNDED',
+                  'REFUND_IN_PROGRESS',
+                  'REFUND_REQUESTED',
+                  'CHARGEBACK_REQUESTED',
+                  'CHARGEBACK_DISPUTE',
+                  'AWAITING_CHARGEBACK_REVERSAL'
+                ])
+              )
+            )
           )
         );
     }

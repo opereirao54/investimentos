@@ -1,5 +1,6 @@
 const { db, auth, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
+const { courtesyState, isLegacyGrant } = require('../_lib/access');
 const { runReconcileSweep } = require('../_lib/reconcile');
 
 // Endpoint admin CONSOLIDADO (cabe em 1 função Vercel — antes eram 3):
@@ -332,7 +333,8 @@ async function dashboard(req, res) {
       withReferral++;
       referralCountByUid[b.referredByUserId] = (referralCountByUid[b.referredByUserId] || 0) + 1;
     }
-    const isActive = ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus);
+    // O "Tornar PRO" antigo gravava ACTIVE+CONFIRMED sem pagamento: não é MRR.
+    const isActive = ss === 'ACTIVE' && PAID_STATUSES.has(b.lastPaymentStatus) && !isLegacyGrant(b);
     if (isActive) {
       active++;
       mrrCents += b.subscriptionBaseValueCents || b.monthlyPriceCents || 1500;
@@ -500,6 +502,9 @@ async function dashboard(req, res) {
       const isUnverified = !u.emailVerified;
       let status = 'unknown';
       if (isSuspended) status = 'suspended';
+      // Cortesia vem antes de "paying": a conta liberada pelo admin não paga
+      // nada, e contá-la como pagante inflava a receita estimada do painel.
+      else if (courtesyState(b, now) || isLegacyGrant(b)) status = 'courtesy';
       else if (isOverdue) status = 'overdue';
       else if (isActive) status = 'paying';
       else if (isTrialActive) status = 'trial';

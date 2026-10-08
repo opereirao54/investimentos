@@ -127,7 +127,7 @@ Cada um é um erro que já aconteceu neste código, não uma hipótese.
 | `PAG05`    | crédito marcado como gasto sem ter abatido fatura nenhuma                 |
 | `PAG06`    | cobrança negativa, acima do preço de tabela, ou abaixo do piso do gateway |
 | `PAG07`    | assinatura recorrente e avulso vivos ao mesmo tempo — cobrança dupla      |
-| `PAG08`    | acesso liberado sem janela paga nem assinatura por trás                   |
+| `PAG08`    | acesso liberado sem janela paga, assinatura ou cortesia do admin por trás |
 | `PAG09`    | o indicado pagou e o indicador não recebeu nada                           |
 
 `PAG03` é o mais traiçoeiro. O saldo é derivado dos **documentos** de crédito
@@ -209,6 +209,25 @@ A ordem das regras importa e é deliberada:
 4. trial vivo → `trial` (antes do ciclo pago, para a tela mostrar a avaliação)
 5. janela paga viva → `active` por `paid_period`
 
+### Cortesia do admin (Superpoderes) não finge pagamento
+
+"Tornar PRO" e "Oferecer PRO N dias" gravam `courtesyPermanent` /
+`courtesyUntil` — campos que **nenhum webhook toca**. `computeAccess` checa a
+cortesia antes de tudo (`reason: 'courtesy'`), e `firestore.rules` espelha a
+mesma regra em `hasCourtesy()`.
+
+Nunca volte a liberar acesso gravando `subscriptionStatus: 'ACTIVE'` +
+`lastPaymentStatus: 'CONFIRMED'`: o primeiro `PAYMENT_CREATED`/`OVERDUE` do
+Asaas sobrescreve esses campos e a conta "PRO" cai em "pagamento pendente" ou
+bloqueada. Contas liberadas assim no passado são reconhecidas por
+`isLegacyGrant()` e tratadas como cortesia na tela e no painel.
+
+Cortesia com prazo **soma** (presente de 30 + presente de 30 = 60) e entra na
+base de `nextPaidUntilMs` — quem assina durante a cortesia não perde os dias
+dela. Cortesia **não para o Asaas**: se a assinatura continua viva, ela segue
+cobrando; o admin usa "Cancelar assinatura no Asaas" quando a cortesia
+substitui o pagamento. Testes: `test/pagamentos-cortesia.test.js`.
+
 ---
 
 ## Avaliar se está intuitivo
@@ -237,7 +256,8 @@ Duas regras de copy que valem por qualquer redesign:
 ## Antes de dar por pronto
 
 ```bash
-node --test test/pagamentos-*.test.js       # ciclo + applicash
+node --test test/pagamentos-*.test.js       # ciclo + applicash + cortesia
+node --test test/assinatura-tela.test.js    # o que a tela manda (ou não) pagar
 node --test test/billing-credit-invariant.test.js test/access.test.js
 npm test                                     # nada mais pode quebrar
 npm run lint
