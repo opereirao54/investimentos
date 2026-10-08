@@ -98,4 +98,18 @@ async function enviarDocumento(chatId, conteudo, nome, legenda, tipo) {
   }
 }
 
-module.exports = { chamar, enviar, editar, responderBotao, enviarDocumento };
+// O menu "☰ Menu" do bot (setMyCommands). Fonte única: o bot o aplica sozinho
+// quando a lista muda (telegram-bot.js → garantirMenu) e o script do webhook
+// também. Mudou aqui, o menu de todo mundo muda no próximo uso do bot.
+const MENU_COMANDOS = [
+  { command: 'saldo', description: '💰 Saldo de cada conta' },
+  { command: 'fatura', description: '💳 Fatura aberta de cada cartão' },
+  { command: 'mes', description: '📊 Resumo do mês por categoria' },
+  { command: 'relatorio', description: '📄 Relatório Mensal em PDF' },
+  { command: 'alertas', description: '🔔 Escolher os avisos automáticos' },
+  { command: 'ajuda', description: '❓ Como lançar despesas e receitas' },
+  { command: 'desfazer', description: '↩️ Desfaz o último lançamento' },
+  { command: 'desconectar', description: 'Desliga este Telegram da sua conta' },
+];
+
+module.exports = { chamar, enviar, editar, responderBotao, enviarDocumento, MENU_COMANDOS };
