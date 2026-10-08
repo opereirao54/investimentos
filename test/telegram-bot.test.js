@@ -417,3 +417,9 @@ test('IA de reserva: só entra quando a regra não entende, e a regra valida o r
     bot.definirIA(null);
   }
 });
+
+test('segredo com acento e mesmo número de caracteres responde 401, não 500', async () => {
+  process.env.TELEGRAM_WEBHOOK_SECRET = 'segredo-de-teste-çã';
+  const r = await webhook(mensagem('mercado 50'), 'segredo-de-teste-ca');
+  assert.equal(r.status, 401);
+});

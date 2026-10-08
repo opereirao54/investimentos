@@ -59,6 +59,15 @@ function expiraEm(ms) {
   return timestamp().fromMillis(ms);
 }
 
+// O Firestore recusa campo undefined (o projeto não liga
+// ignoreUndefinedProperties), e o lançamento do parser tem campos opcionais
+// — tipoCartao fora de cartão, por exemplo. Tudo que vai para o banco passa
+// por aqui. Os valores são JSON puro (texto, número, null), então a ida e
+// volta só descarta os undefined.
+function semUndefined(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
 function esc(s) {
   return String(s == null ? '' : s)
     .replace(/&/g, '&amp;')
@@ -388,7 +397,7 @@ async function gravarLancamento(uid, id, lanc, texto) {
     .doc(id)
     .set({
       tipo: 'lancamento',
-      lanc,
+      lanc: semUndefined(lanc),
       texto: String(texto || '').slice(0, 300),
       criadoEmMs: Date.now(),
     });
@@ -510,7 +519,7 @@ async function tratarTexto(msg) {
       .doc(pendId)
       .set({
         uid,
-        lanc: r.lanc,
+        lanc: semUndefined(r.lanc),
         opcoes: r.opcoes,
         texto,
         expiraEmMs: Date.now() + PENDENTE_TTL_MS,
@@ -705,10 +714,16 @@ async function processarUpdate(update) {
 
 /** Confere o header que o Telegram manda com o secret_token do setWebhook. */
 function segredoConfere(req) {
-  const esperado = process.env.TELEGRAM_WEBHOOK_SECRET || '';
-  const recebido = String((req.headers || {})['x-telegram-bot-api-secret-token'] || '');
-  if (!esperado || recebido.length !== esperado.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(recebido), Buffer.from(esperado));
+  const esperado = Buffer.from(String(process.env.TELEGRAM_WEBHOOK_SECRET || ''), 'utf8');
+  const recebido = Buffer.from(
+    String((req.headers || {})['x-telegram-bot-api-secret-token'] || ''),
+    'utf8'
+  );
+  // Compara BYTES: timingSafeEqual lança (e o webhook viraria 500) quando os
+  // buffers têm tamanhos diferentes — o que acontece com o mesmo número de
+  // caracteres se um dos lados tiver acento.
+  if (!esperado.length || recebido.length !== esperado.length) return false;
+  return crypto.timingSafeEqual(recebido, esperado);
 }
 
 module.exports = {

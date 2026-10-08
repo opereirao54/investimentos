@@ -66,6 +66,28 @@ function resolveValue(value, existing) {
   return value;
 }
 
+// O Firestore real (sem `ignoreUndefinedProperties`, que este projeto não liga)
+// RECUSA gravar campo com valor undefined: "Cannot use \"undefined\" as a
+// Firestore value". Um mock que aceita em silêncio aprovou o bot do Telegram
+// gravando `tipoCartao: undefined` — e em produção todo lançamento dava 500.
+function recusarUndefined(value, caminho) {
+  if (value === undefined) {
+    const err = new Error(
+      `Cannot use "undefined" as a Firestore value (found in field "${caminho}").`
+    );
+    err.code = 3;
+    throw err;
+  }
+  if (value === SERVER_TS || value === DELETE || isIncrement(value) || isTimestamp(value)) return;
+  if (Array.isArray(value)) {
+    value.forEach((v, i) => recusarUndefined(v, `${caminho}.${i}`));
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const k of Object.keys(value)) recusarUndefined(value[k], caminho ? `${caminho}.${k}` : k);
+  }
+}
+
 function mergeData(existing, incoming) {
   const out = existing ? { ...existing } : {};
   for (const k of Object.keys(incoming)) {
@@ -117,6 +139,7 @@ class DocRef {
     };
   }
   async set(data, options) {
+    recusarUndefined(data, '');
     const existing = store.docs.get(this.path);
     const next =
       options && options.merge && existing
