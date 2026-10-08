@@ -45,11 +45,15 @@ function mundo() {
     syncApplicashFromServer: () => Promise.resolve(),
     initBilling() {
       chamadas.init++;
-      return Promise.resolve();
+      // Fica "no ar" até o teste soltar — como um /init de verdade.
+      return new Promise((r) => (chamadas.terminar = r));
     },
   };
   const ctx = vm.createContext(sandbox);
-  vm.runInContext('var signupBlocked = false; var deferredUser = null;', ctx);
+  vm.runInContext(
+    'var signupBlocked = false; var deferredUser = null; var initInFlightUid = null;',
+    ctx
+  );
   vm.runInContext(extract('setSignupBlock'), ctx);
   vm.runInContext(extract('onUser'), ctx);
   return { ctx, chamadas, auth: sandbox.window.AppliqueiFirebase.auth };
@@ -75,6 +79,20 @@ test('cadastro Google recusado: deslogou antes de soltar → nada de billing', (
   auth.currentUser = null; // auth-gate fez signOut da conta recusada
   ctx.setSignupBlock(false);
   assert.equal(chamadas.init, 0);
+});
+
+test('cadastro Google novo: soltar o bloqueio + kickstart não disparam dois /init', async () => {
+  const { ctx, chamadas, auth } = mundo();
+  ctx.setSignupBlock(true);
+  auth.currentUser = ANA;
+  ctx.onUser(ANA); // sessão chegou durante o bloqueio
+  ctx.setSignupBlock(false); // caminho positivo do auth-gate…
+  ctx.onUser(ANA); // …seguido de kickstart() → onUser
+  assert.equal(chamadas.init, 1, 'o segundo /init bateria em init_in_progress (409)');
+  chamadas.terminar();
+  await new Promise((r) => setTimeout(r, 0));
+  ctx.onUser(ANA); // terminado, uma nova verificação volta a ser permitida
+  assert.equal(chamadas.init, 2);
 });
 
 test('sem corrida: verifica uma vez só, e soltar o bloqueio depois não repete', () => {

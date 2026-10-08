@@ -3608,6 +3608,7 @@ var signupBlocked = false;
 // reabrir) até alguém abrir "Minha assinatura". Agora soltar o bloqueio
 // retoma a verificação adiada.
 var deferredUser = null;
+var initInFlightUid = null;
 function setSignupBlock(v) {
   signupBlocked = !!v;
   if (signupBlocked || !deferredUser) return;
@@ -3637,17 +3638,28 @@ function onUser(user) {
     return;
   }
   deferredUser = null;
-  initBilling().then(function () {
-    syncApplicashFromServer().then(function () {
-      if (typeof window.atualizarTelaApplicash === 'function') {
-        try {
-          var sec = document.getElementById('applicash');
-          if (sec && sec.classList && sec.classList.contains('ativa'))
-            window.atualizarTelaApplicash();
-        } catch (_) {}
-      }
+  // Uma verificação por vez. No cadastro Google o auth-gate solta o
+  // bloqueio (que retoma o onUser adiado) e chama kickstart() logo em
+  // seguida: sem isto saíam dois /init juntos, e na conta nova o segundo
+  // batia na trava init_in_progress (409) e piscava "Não foi possível
+  // verificar a sua assinatura".
+  if (initInFlightUid === user.uid) return;
+  initInFlightUid = user.uid;
+  initBilling()
+    .finally(function () {
+      initInFlightUid = null;
+    })
+    .then(function () {
+      syncApplicashFromServer().then(function () {
+        if (typeof window.atualizarTelaApplicash === 'function') {
+          try {
+            var sec = document.getElementById('applicash');
+            if (sec && sec.classList && sec.classList.contains('ativa'))
+              window.atualizarTelaApplicash();
+          } catch (_) {}
+        }
+      });
     });
-  });
 }
 
 var attempts = 0;
