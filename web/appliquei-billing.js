@@ -1130,6 +1130,9 @@ async function initBilling() {
             ? 'Não é possível usar o seu próprio cupom — a conta foi criada sem cupom.'
             : 'O cupom informado não foi encontrado — a conta foi criada sem cupom.';
         showErr(msg);
+        // showErr escreve DENTRO do portão de pagamento, que fica escondido
+        // durante o trial: sem o toast, quem errou o cupom nunca sabia.
+        if (typeof window.mostrarToast === 'function') window.mostrarToast(msg, 'aviso');
         return;
       } catch (e2) {
         console.warn('[billing] init retry', e2);
