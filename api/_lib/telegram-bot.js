@@ -34,6 +34,8 @@ const rl = require('./rate-limit');
 const tg = require('./telegram-api');
 const parser = require('./telegram-parser');
 const consultas = require('./telegram-consultas');
+const alertas = require('./telegram-alertas-envio');
+const alertasRegras = require('./telegram-alertas');
 
 const CODIGO_TTL_MS = 15 * 60 * 1000;
 const PENDENTE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -191,7 +193,8 @@ const AJUDA =
   '<b>Consultas</b>\n' +
   '/saldo — quanto tem em cada conta\n' +
   '/fatura — fatura aberta de cada cartão\n' +
-  '/mes — receitas, gastos e categorias do mês\n\n' +
+  '/mes — receitas, gastos e categorias do mês\n' +
+  '/alertas — escolher os avisos automáticos\n\n' +
   '/desfazer — desfaz o último lançamento\n' +
   '/desconectar — desliga este Telegram da sua conta';
 
@@ -201,8 +204,12 @@ const AJUDA =
 const BOTAO_SALDO = '💰 Saldo';
 const BOTAO_FATURA = '💳 Fatura';
 const BOTAO_MES = '📊 Mês';
+const BOTAO_ALERTAS = '🔔 Alertas';
 const TECLADO_MENU = {
-  keyboard: [[{ text: BOTAO_SALDO }, { text: BOTAO_FATURA }, { text: BOTAO_MES }]],
+  keyboard: [
+    [{ text: BOTAO_SALDO }, { text: BOTAO_FATURA }],
+    [{ text: BOTAO_MES }, { text: BOTAO_ALERTAS }],
+  ],
   resize_keyboard: true,
   is_persistent: true,
   input_field_placeholder: 'mercado 52,90',
@@ -363,8 +370,9 @@ const MESES = [
   'Dezembro',
 ];
 
-/** 'saldo' | 'fatura' | 'mes' | null. A mensagem INTEIRA tem de ser o pedido:
- *  "mercado 50" continua sendo lançamento. */
+/** 'saldo' | 'fatura' | 'mes' | 'alertas' | 'pausar' | 'retomar' | null.
+ *  A mensagem INTEIRA tem de ser o pedido: "mercado 50" continua sendo
+ *  lançamento. */
 function qualConsulta(texto) {
   const t = parser
     .normalizar(String(texto || ''))
@@ -375,6 +383,9 @@ function qualConsulta(texto) {
   if (t === 'saldo' || t === 'saldos') return 'saldo';
   if (t === 'fatura' || t === 'faturas' || t === 'cartao' || t === 'cartoes') return 'fatura';
   if (t === 'mes' || t === 'resumo' || t === 'gastos') return 'mes';
+  if (t === 'alertas' || t === 'alerta' || t === 'avisos') return 'alertas';
+  if (/^(parar|pausar|desligar|silenciar) (os )?(alertas|avisos)$/.test(t)) return 'pausar';
+  if (/^(ligar|retomar|religar|voltar) (os )?(alertas|avisos)$/.test(t)) return 'retomar';
   return null;
 }
 
@@ -393,27 +404,10 @@ function sinalBRL(n) {
 }
 
 async function carregarDadosConsulta(uid) {
-  const [dataSnap, caixa] = await Promise.all([
-    db().collection('users').doc(uid).collection('data').doc('main').get(),
-    listarInbox(uid),
-  ]);
-  const doc = dataSnap.exists ? dataSnap.data() || {} : {};
-  const keys = doc.keys || {};
-  const lista = (k) => {
-    const v = lerJSON(keys[k], []);
-    return Array.isArray(v) ? v : [];
-  };
-  return {
-    transacoes: lista('futurorico_transacoes'),
-    contas: lista('appliquei_contas'),
-    cartoes: lista('futurorico_cartoes'),
-    categoriasCustom: lista('futurorico_categoriasDespesa'),
-    atualizadoEmMs:
-      doc.updatedAt && typeof doc.updatedAt.toMillis === 'function'
-        ? doc.updatedAt.toMillis()
-        : null,
+  const [dados, caixa] = await Promise.all([alertas.lerDadosUsuario(uid), listarInbox(uid)]);
+  return Object.assign(dados, {
     pendentes: caixa.filter((i) => i.tipo === 'lancamento').length,
-  };
+  });
 }
 
 // O que o número NÃO inclui, dito junto com ele.
@@ -566,6 +560,17 @@ function tecladoMes(mes, ano, agora) {
 }
 
 async function responderConsulta(chatId, uid, qual) {
+  if (qual === 'alertas' || qual === 'pausar' || qual === 'retomar') {
+    if (qual !== 'alertas') await alertas.definirPausa(uid, qual === 'pausar');
+    const estado = await alertas.lerEstado(uid);
+    const aviso =
+      qual === 'pausar'
+        ? '⏸️ Alertas pausados. Mande "ligar alertas" ou toque em ▶️ para voltar.\n\n'
+        : qual === 'retomar'
+          ? '▶️ Alertas ligados de novo.\n\n'
+          : '';
+    return tg.enviar(chatId, aviso + alertas.textoPainel(estado), alertas.tecladoPainel(estado));
+  }
   const d = await carregarDadosConsulta(uid);
   const agora = consultas.agoraBrasilia();
   if (qual === 'saldo') return tg.enviar(chatId, textoSaldo(d, agora), TECLADO_MENU);
@@ -850,6 +855,55 @@ async function trocarCategoria(uid, alvo, categoriaDespesa, descricao) {
   }
 }
 
+// Botões dos alertas:
+//   a:t:<tipo>  painel: liga/desliga e redesenha o painel
+//   a:p:1|0     painel: pausa/retoma todos
+//   a:v         abre o painel numa mensagem nova
+//   a:o:<tipo>  🔕 numa mensagem de alerta: desliga aquele tipo
+//   a:u:<tipo>  ↩️ desfaz o 🔕
+// Preferência não depende da assinatura: quem está bloqueado também pode
+// desligar o que não quer receber.
+async function botaoAlertas(cb, chatId, uid, sub, tipo) {
+  const msgId = cb.message.message_id;
+  const rotulo = (t) =>
+    t && alertasRegras.TIPO_POR_ID[t] ? alertasRegras.TIPO_POR_ID[t].rotulo : '';
+  if (sub === 't' && rotulo(tipo)) {
+    const antes = await alertas.lerEstado(uid);
+    const estavaLigado = !(antes.desligados && antes.desligados[tipo]);
+    await alertas.definirTipo(uid, tipo, !estavaLigado);
+    const estado = await alertas.lerEstado(uid);
+    await tg.responderBotao(cb.id, `${rotulo(tipo)}: ${estavaLigado ? 'desligado' : 'ligado'}`);
+    return tg.editar(chatId, msgId, alertas.textoPainel(estado), alertas.tecladoPainel(estado));
+  }
+  if (sub === 'p' && (tipo === '0' || tipo === '1')) {
+    await alertas.definirPausa(uid, tipo === '1');
+    const estado = await alertas.lerEstado(uid);
+    await tg.responderBotao(cb.id, tipo === '1' ? 'Alertas pausados' : 'Alertas ligados');
+    return tg.editar(chatId, msgId, alertas.textoPainel(estado), alertas.tecladoPainel(estado));
+  }
+  if (sub === 'v') {
+    await tg.responderBotao(cb.id);
+    const estado = await alertas.lerEstado(uid);
+    return tg.enviar(chatId, alertas.textoPainel(estado), alertas.tecladoPainel(estado));
+  }
+  if (sub === 'o' && rotulo(tipo)) {
+    await alertas.definirTipo(uid, tipo, false);
+    await tg.responderBotao(cb.id, `Não aviso mais: ${rotulo(tipo)}`);
+    return tg.enviar(
+      chatId,
+      `🔕 Pronto, não aviso mais sobre <b>${esc(rotulo(tipo).toLowerCase())}</b>.\n` +
+        'Os outros alertas continuam. Para ver todos, toque em 🔔 Alertas.',
+      [[{ text: '↩️ Desfazer', callback_data: `a:u:${tipo}` }]]
+    );
+  }
+  if (sub === 'u' && rotulo(tipo)) {
+    await alertas.definirTipo(uid, tipo, true);
+    await tg.responderBotao(cb.id, 'Ligado de novo');
+    return tg.editar(chatId, msgId, `🔔 <b>${esc(rotulo(tipo))}</b> ligado de novo.`, []);
+  }
+  return tg.responderBotao(cb.id);
+}
+
 async function tratarBotao(cb) {
   const msg = cb.message || {};
   const chatId = msg.chat && msg.chat.id;
@@ -865,6 +919,7 @@ async function tratarBotao(cb) {
   const [acao, id, extra] = dados.split(':');
   // Navegação do /mes: só lê, e o "id" é o mês, não um lançamento.
   if (acao === 'm') return navegarMes(cb, chatId, uid, id);
+  if (acao === 'a') return botaoAlertas(cb, chatId, uid, id, extra);
   if (!RE_ID_INBOX.test(id || '')) return tg.responderBotao(cb.id);
   // Cada botão só age sobre lançamentos DESTE chat: o id carrega o chat.
   if (!id.startsWith(`tg${String(chatId).replace(/[^0-9]/g, '')}_`)) {

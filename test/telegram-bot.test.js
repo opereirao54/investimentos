@@ -597,8 +597,11 @@ test('/ajuda lista as consultas e manda o teclado fixo', async () => {
   const p = ultimoEnvio();
   assert.match(p.text, /\/saldo/);
   assert.deepEqual(
-    p.reply_markup.keyboard[0].map((b) => b.text),
-    ['💰 Saldo', '💳 Fatura', '📊 Mês']
+    p.reply_markup.keyboard.map((linha) => linha.map((b) => b.text)),
+    [
+      ['💰 Saldo', '💳 Fatura'],
+      ['📊 Mês', '🔔 Alertas'],
+    ]
   );
 });
 

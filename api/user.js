@@ -10,6 +10,7 @@
 //   GET  /api/user?op=privacidade           o aceite da Política de Privacidade vigente
 //   POST /api/user?op=privacidade           registra o aceite (versão vigente)
 //   POST /api/user?op=telegram              webhook do bot (público; header secreto)
+//   POST /api/user?op=telegram-alertas      rodada dos alertas (agendador; Bearer CRON_SECRET)
 //   POST /api/user?op=telegram-link         gera o link t.me/<bot>?start=<código>
 //   GET  /api/user?op=telegram-status       o Telegram está conectado?
 //   POST /api/user?op=telegram-unlink       desconecta
@@ -50,6 +51,7 @@
 // continua respondendo por um rewrite em vercel.json, para não quebrar cliente
 // com aba antiga aberta.
 
+const crypto = require('crypto');
 const { db, auth, fieldValue } = require('./_lib/firebase-admin');
 const { handler } = require('./_lib/handler');
 const { feedbackCreateBody, feedbackListQuery, telegramInboxAckBody } = require('./_lib/schemas');
@@ -57,6 +59,7 @@ const rl = require('./_lib/rate-limit');
 const codes = require('./_lib/codes');
 const { requireUser } = require('./_lib/auth');
 const telegram = require('./_lib/telegram-bot');
+const telegramAlertas = require('./_lib/telegram-alertas-envio');
 
 const LIMITE_PADRAO = 50;
 
@@ -448,6 +451,24 @@ async function telegramWebhook(req, res, body) {
   return res.status(200).json(Object.assign({ ok: true }, r));
 }
 
+// Rodada dos alertas. Quem chama é o agendador (.github/workflows/
+// telegram-alertas.yml), com o mesmo CRON_SECRET dos crons da Vercel. Uma
+// página por chamada; o agendador repete com `cursor` enquanto vier `proximo`.
+async function telegramRodadaAlertas(req, res, body) {
+  const segredo = process.env.CRON_SECRET;
+  if (!segredo) return res.status(503).json({ error: 'cron_disabled' });
+  const recebido = Buffer.from(String((req.headers || {}).authorization || ''), 'utf8');
+  const esperado = Buffer.from(`Bearer ${segredo}`, 'utf8');
+  if (recebido.length !== esperado.length || !crypto.timingSafeEqual(recebido, esperado)) {
+    return res.status(401).json({ error: 'unauthorized' });
+  }
+  const b = body && typeof body === 'object' ? body : {};
+  const cursor = typeof b.cursor === 'string' && b.cursor.length <= 40 ? b.cursor : null;
+  const janela = b.janela === 'manha' || b.janela === 'noite' ? b.janela : null;
+  const r = await telegramAlertas.rodar({ cursor, janela });
+  return res.status(200).json(Object.assign({ ok: true }, r));
+}
+
 async function telegramRotas(op, req, res, user, body) {
   if (!exigeEmailVerificado(res, user)) return;
   if (op === 'telegram-link') {
@@ -491,7 +512,7 @@ const OPS_TELEGRAM_APP = new Set([
 // propósito. Inverter o default deixaria uma rota futura aberta por descuido.
 // `telegram` é o webhook do bot: quem chama é o Telegram, sem login, e a
 // autenticação é o header secreto conferido em telegramWebhook.
-const OPS_PUBLICAS = new Set(['ref-hit', 'telegram']);
+const OPS_PUBLICAS = new Set(['ref-hit', 'telegram', 'telegram-alertas']);
 
 module.exports = handler({
   method: ['GET', 'POST'],
@@ -511,6 +532,11 @@ module.exports = handler({
     if (op === 'telegram') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
       return telegramWebhook(req, res, body);
+    }
+
+    if (op === 'telegram-alertas') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+      return telegramRodadaAlertas(req, res, body);
     }
 
     let user = null;
