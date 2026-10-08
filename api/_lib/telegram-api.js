@@ -64,4 +64,38 @@ function responderBotao(callbackId, texto) {
   return chamar('answerCallbackQuery', { callback_query_id: callbackId, text: texto || undefined });
 }
 
-module.exports = { chamar, enviar, editar, responderBotao };
+/**
+ * Manda um arquivo (sendDocument), em multipart. Mesma política de `chamar`:
+ * nunca lança, devolve {ok:false} e loga só o método e o status.
+ *
+ * @param {number|string} chatId
+ * @param {Buffer} conteudo
+ * @param {string} nome     nome do arquivo que o usuário vê (ex.: relatorio-mensal-2026-10.pdf)
+ * @param {string} [legenda] HTML
+ * @param {string} [tipo]   media type (default application/pdf)
+ */
+async function enviarDocumento(chatId, conteudo, nome, legenda, tipo) {
+  const tk = token();
+  if (!tk) {
+    console.error('[telegram] TELEGRAM_BOT_TOKEN ausente; não enviei sendDocument');
+    return { ok: false, description: 'sem_token' };
+  }
+  try {
+    const form = new FormData();
+    form.append('chat_id', String(chatId));
+    form.append('document', new Blob([conteudo], { type: tipo || 'application/pdf' }), nome);
+    if (legenda) {
+      form.append('caption', legenda);
+      form.append('parse_mode', 'HTML');
+    }
+    const r = await fetch(`${BASE}/bot${tk}/sendDocument`, { method: 'POST', body: form });
+    const j = await r.json().catch(() => ({}));
+    if (!j.ok) console.error('[telegram] sendDocument', r.status, j.description);
+    return j;
+  } catch (e) {
+    console.error('[telegram] sendDocument falhou', e && e.message);
+    return { ok: false, description: 'rede' };
+  }
+}
+
+module.exports = { chamar, enviar, editar, responderBotao, enviarDocumento };

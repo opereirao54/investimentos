@@ -36,6 +36,7 @@ const parser = require('./telegram-parser');
 const consultas = require('./telegram-consultas');
 const alertas = require('./telegram-alertas-envio');
 const alertasRegras = require('./telegram-alertas');
+const relatorio = require('./telegram-relatorio');
 
 const CODIGO_TTL_MS = 15 * 60 * 1000;
 const PENDENTE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -194,7 +195,8 @@ const AJUDA =
   '/saldo — quanto tem em cada conta\n' +
   '/fatura — fatura aberta de cada cartão\n' +
   '/mes — receitas, gastos e categorias do mês\n' +
-  '/alertas — escolher os avisos automáticos\n\n' +
+  '/alertas — escolher os avisos automáticos\n' +
+  '/relatorio — o Relatório Mensal em PDF\n\n' +
   '/desfazer — desfaz o último lançamento\n' +
   '/desconectar — desliga este Telegram da sua conta';
 
@@ -205,10 +207,12 @@ const BOTAO_SALDO = '💰 Saldo';
 const BOTAO_FATURA = '💳 Fatura';
 const BOTAO_MES = '📊 Mês';
 const BOTAO_ALERTAS = '🔔 Alertas';
+const BOTAO_RELATORIO = '📄 Relatório';
 const TECLADO_MENU = {
   keyboard: [
     [{ text: BOTAO_SALDO }, { text: BOTAO_FATURA }],
     [{ text: BOTAO_MES }, { text: BOTAO_ALERTAS }],
+    [{ text: BOTAO_RELATORIO }],
   ],
   resize_keyboard: true,
   is_persistent: true,
@@ -384,6 +388,7 @@ function qualConsulta(texto) {
   if (t === 'fatura' || t === 'faturas' || t === 'cartao' || t === 'cartoes') return 'fatura';
   if (t === 'mes' || t === 'resumo' || t === 'gastos') return 'mes';
   if (t === 'alertas' || t === 'alerta' || t === 'avisos') return 'alertas';
+  if (/^relatorios?( mensal)?$/.test(t)) return 'relatorio';
   if (/^(parar|pausar|desligar|silenciar) (os )?(alertas|avisos)$/.test(t)) return 'pausar';
   if (/^(ligar|retomar|religar|voltar) (os )?(alertas|avisos)$/.test(t)) return 'retomar';
   return null;
@@ -560,6 +565,13 @@ function tecladoMes(mes, ano, agora) {
 }
 
 async function responderConsulta(chatId, uid, qual) {
+  if (qual === 'relatorio') {
+    return tg.enviar(
+      chatId,
+      '📄 <b>Relatório Mensal</b>\nO mesmo PDF do app. De qual mês?',
+      tecladoMesesRelatorio(consultas.agoraBrasilia())
+    );
+  }
   if (qual === 'alertas' || qual === 'pausar' || qual === 'retomar') {
     if (qual !== 'alertas') await alertas.definirPausa(uid, qual === 'pausar');
     const estado = await alertas.lerEstado(uid);
@@ -949,6 +961,54 @@ async function botaoPagar(cb, chatId, uid, acao, k) {
   );
 }
 
+// ─── relatório mensal em PDF ────────────────────────────────────────────────
+
+// O mês atual e os cinco anteriores, do mais recente ao mais antigo.
+function tecladoMesesRelatorio(agora) {
+  const botoes = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(agora.getFullYear(), agora.getMonth() - i, 1);
+    const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const ano =
+      d.getFullYear() !== agora.getFullYear() ? `/${String(d.getFullYear()).slice(2)}` : '';
+    botoes.push({ text: MESES[d.getMonth()] + ano, callback_data: `rl:${ym}` });
+  }
+  return [botoes.slice(0, 3), botoes.slice(3, 6)];
+}
+
+// rl:<aaaa-mm>: pede o PDF. Quem gera é o GitHub Actions; aqui só o pedido.
+async function botaoRelatorio(cb, chatId, uid, ym) {
+  const msgId = cb.message.message_id;
+  const m = /^(\d{4})-(\d{2})$/.exec(ym || '');
+  const agora = consultas.agoraBrasilia();
+  const atual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}`;
+  if (!m || +m[2] < 1 || +m[2] > 12 || ym > atual) return tg.responderBotao(cb.id);
+  if (await acessoBloqueado(uid)) {
+    return tg.responderBotao(cb.id, 'Sua assinatura está inativa.');
+  }
+  const lim = await rl.check({ scope: 'tg-relatorio', key: uid, windowMs: 3600000, max: 6 });
+  if (!lim.allowed) {
+    return tg.responderBotao(cb.id, 'Muitos relatórios na última hora. Tente mais tarde.');
+  }
+  const rotulo = `${MESES[+m[2] - 1]}/${m[1]}`;
+  await tg.responderBotao(cb.id, 'Gerando…');
+  const r = await relatorio.pedirRelatorio(uid, chatId, ym);
+  if (r.ok) {
+    return tg.editar(
+      chatId,
+      msgId,
+      `⏳ Gerando o relatório de <b>${rotulo}</b>…\nEle chega aqui em 1 a 2 minutos.`,
+      []
+    );
+  }
+  const texto =
+    r.motivo === 'nao_configurado'
+      ? '📄 O relatório pelo Telegram ainda não foi ativado. Por enquanto, ele sai pelo app: ' +
+        '<b>Relatório mensal → Exportar PDF</b>.'
+      : '😕 Não consegui pedir o relatório agora. Tente de novo em alguns minutos.';
+  return tg.editar(chatId, msgId, texto, []);
+}
+
 async function tratarBotao(cb) {
   const msg = cb.message || {};
   const chatId = msg.chat && msg.chat.id;
@@ -966,6 +1026,7 @@ async function tratarBotao(cb) {
   if (acao === 'm') return navegarMes(cb, chatId, uid, id);
   if (acao === 'a') return botaoAlertas(cb, chatId, uid, id, extra);
   if (acao === 'pg' || acao === 'pu') return botaoPagar(cb, chatId, uid, acao, id);
+  if (acao === 'rl') return botaoRelatorio(cb, chatId, uid, id);
   if (!RE_ID_INBOX.test(id || '')) return tg.responderBotao(cb.id);
   // Cada botão só age sobre lançamentos DESTE chat: o id carrega o chat.
   if (!id.startsWith(`tg${String(chatId).replace(/[^0-9]/g, '')}_`)) {

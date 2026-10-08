@@ -1592,19 +1592,17 @@ function rmConstruirRelatorioImprimivel(yyyymm) {
   </div>`;
 }
 
-async function rmExportarPDF() {
-  try {
-    const seletor = document.getElementById('rmSeletorMes');
-    const ym =
-      seletor && seletor.value
-        ? seletor.value
-        : rmMesAnoToYyyymm(new Date().getMonth(), new Date().getFullYear());
+// O documento que vai para a impressão: o relatório dentro de uma página A4
+// com as margens e as cores de fundo forçadas. Separado de rmExportarPDF para
+// o Relatório Mensal pelo Telegram (scripts/relatorio-telegram.js) imprimir
+// EXATAMENTE este documento — mesmo HTML, mesmo @page — num Chromium no
+// servidor, em vez de um modelo parecido.
+function rmDocumentoImprimivel(ym) {
+  // Conteúdo do relatório (HTML limpo, branco e tipográfico, montado a
+  // partir dos DADOS do mês — sem depender da UI escura da tela).
+  const inner = rmConstruirRelatorioImprimivel(ym);
 
-    // Conteúdo do relatório (HTML limpo, branco e tipográfico, montado a
-    // partir dos DADOS do mês — sem depender da UI escura da tela).
-    const inner = rmConstruirRelatorioImprimivel(ym);
-
-    const docHtml = `<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -1622,6 +1620,17 @@ async function rmExportarPDF() {
 </head>
 <body>${inner}</body>
 </html>`;
+}
+
+async function rmExportarPDF() {
+  try {
+    const seletor = document.getElementById('rmSeletorMes');
+    const ym =
+      seletor && seletor.value
+        ? seletor.value
+        : rmMesAnoToYyyymm(new Date().getMonth(), new Date().getFullYear());
+
+    const docHtml = rmDocumentoImprimivel(ym);
 
     // ── Por que NÃO usamos mais html2canvas/html2pdf ──
     // A versão antiga "fotografava" um elemento com html2canvas e o PDF saía
