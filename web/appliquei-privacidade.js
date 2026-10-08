@@ -244,7 +244,15 @@ function _privEnviarPendente() {
  * nenhum: abre a janela de aceite.
  */
 function privacidadeVerificar() {
-  if (!_privUsuario()) return;
+  const u = _privUsuario();
+  if (!u) return;
+  // Cadastro Google à espera de confirmação (appliquei-auth-gate.js): o
+  // painel de confirmação já pede este mesmo aceite. A janela obrigatória
+  // abria POR CIMA dele e travava os botões. Ao confirmar, o aceite é
+  // registrado e esta verificação passa sem abrir nada.
+  try {
+    if (localStorage.getItem('appliquei_auth_google_confirmar') === u.uid) return;
+  } catch (e) {}
   const local = privacidadeAceiteLocal();
   if (local && !local.enviado) {
     _privEnviarPendente();

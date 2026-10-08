@@ -12040,6 +12040,31 @@
                 </div>
                 <p style="font-size:11.5px;color:var(--cor-texto-mutado,#94a39c);text-align:center;margin-top:14px;line-height:1.5;">Não recebeu? Confira a pasta de spam. O remetente é <code>noreply@appliquei-prod.firebaseapp.com</code>.</p>
             </div>
+            <!-- Conta Google nova: confirma o cadastro AQUI, sem trocar de aba nem
+                 abrir o Google de novo. Antes o app apagava a conta recém-criada e
+                 mandava para "Criar conta" — só por causa do cupom e do aceite da
+                 Política de Privacidade, que agora vivem neste painel. -->
+            <div id="authGateGoogle" class="auth-gate-panel">
+                <div class="auth-verify-icone" aria-hidden="true">
+                    <i class="ph-duotone ph-user-circle-plus"></i>
+                </div>
+                <p class="auth-verify-msg">Ainda não existe conta na Appliquei para</p>
+                <p class="auth-verify-email"><strong id="authGoogleEmail"></strong></p>
+                <div id="authGoogleErr" class="auth-err" role="alert"></div>
+                <div class="auth-field">
+                    <label for="authGoogleCupom">Cupom de indicação <span style="color:var(--cor-texto-mutado,#94a39c);font-weight:400;">(opcional)</span></label>
+                    <input type="text" id="authGoogleCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
+                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto todo mês.</p>
+                </div>
+                <label class="auth-chk-priv" id="authGooglePrivWrap">
+                    <input type="checkbox" id="authGooglePrivAceite">
+                    <span>Li e aceito a <button type="button" onclick="abrirModalPrivacidade(false)">Política de Privacidade</button></span>
+                </label>
+                <div class="auth-actions">
+                    <button type="button" class="auth-btn-prim" id="authGoogleConfirmar" onclick="appliqueiAuthGoogleConfirmar()">Criar minha conta · 7 dias grátis</button>
+                    <button type="button" class="auth-btn-texto" id="authGoogleOutra" onclick="appliqueiAuthGoogleOutraConta()">Usar outra conta Google</button>
+                </div>
+            </div>
         </div>
       </div>
     </div>
@@ -15415,7 +15440,7 @@
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
     <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
-    <script src="/web/appliquei-privacidade.js?v=politica-1"></script>
+    <script src="/web/appliquei-privacidade.js?v=google-confirmar"></script>
     <!-- Lançamentos pelo Telegram. Depois de controle-financeiro (criarLancamentos)
          e contas (salvarContas). -->
     <script src="/web/appliquei-telegram.js?v=telegram-1"></script>

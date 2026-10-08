@@ -279,7 +279,16 @@ function setAuthPanel(mode) {
   var nc = $('authGateNoConfig');
   var form = $('authGateForm');
   var verify = $('authGateVerify');
+  var google = $('authGateGoogle');
   if (!load || !nc || !form) return;
+  if (google) google.classList.toggle('ativo', mode === 'google');
+  if (mode === 'google') {
+    load.style.display = 'none';
+    nc.classList.remove('ativo');
+    form.classList.remove('ativo');
+    if (verify) verify.style.display = 'none';
+    return;
+  }
   if (mode === 'load') {
     load.style.display = '';
     nc.classList.remove('ativo');
@@ -464,7 +473,14 @@ window.appliqueiAuthSubmit = function () {
 var GOOGLE_REDIRECT_FLAG = 'appliquei_google_redirect_at';
 // Aviso que precisa sobreviver ao appliqueiAuthSetModo('login') do timer de
 // "sem sessão" (setModo limpa o erro).
+// Também sobrevive a um reload (o cloud-sync recarrega a página ao deslogar):
+// fica em sessionStorage até ser mostrado.
+var AVISO_LOGIN_KEY = 'appliquei_auth_aviso';
 var avisoLoginPendente = '';
+try {
+  avisoLoginPendente = sessionStorage.getItem(AVISO_LOGIN_KEY) || '';
+  sessionStorage.removeItem(AVISO_LOGIN_KEY);
+} catch (_) {}
 function consumirFlagRedirectGoogle() {
   try {
     var t = Number(sessionStorage.getItem(GOOGLE_REDIRECT_FLAG) || 0);
@@ -474,6 +490,135 @@ function consumirFlagRedirectGoogle() {
     return false;
   }
 }
+// Conta Google criada e ainda não confirmada (cupom + Política). Fica no
+// aparelho para que, se a pessoa fechar o app no meio, o painel volte em
+// vez de o billing abrir um trial que ela não confirmou.
+var GOOGLE_CONFIRMAR_KEY = 'appliquei_auth_google_confirmar';
+function confirmacaoGooglePendente() {
+  try {
+    return localStorage.getItem(GOOGLE_CONFIRMAR_KEY) || '';
+  } catch (_) {
+    return '';
+  }
+}
+function limparConfirmacaoGoogle() {
+  try {
+    localStorage.removeItem(GOOGLE_CONFIRMAR_KEY);
+  } catch (_) {}
+}
+function pedirConfirmacaoGoogle(user) {
+  if (!user) return;
+  appliqueiSetSignupBlock(true);
+  try {
+    localStorage.setItem(GOOGLE_CONFIRMAR_KEY, user.uid);
+  } catch (_) {}
+  var em = $('authGoogleEmail');
+  if (em) em.textContent = user.email || '';
+  var errEl = $('authGoogleErr');
+  if (errEl) errEl.textContent = '';
+  // Cupom: o que já estava a caminho (link ?ref= ou digitado na aba
+  // "Criar conta") vem preenchido.
+  var cupom = $('authGoogleCupom');
+  if (cupom && !cupom.value) {
+    var pend = '';
+    try {
+      pend = sessionStorage.getItem('appliquei_pending_referral') || '';
+    } catch (_) {}
+    var doForm = $('authCupom');
+    cupom.value = pend || (doForm && doForm.value.trim().toUpperCase()) || '';
+  }
+  var priv = $('authGooglePrivAceite');
+  var privReg = $('authPrivAceite');
+  if (priv && privReg && privReg.checked) priv.checked = true;
+  showGate();
+  setCabecalho('Criar sua conta', 'Falta só um toque para começar os 7 dias grátis');
+  setAuthPanel('google');
+  refreshSidebar();
+}
+window.appliqueiAuthGoogleConfirmar = function () {
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  var errEl = $('authGoogleErr');
+  var erro = function (m) {
+    if (errEl) errEl.textContent = m;
+  };
+  if (!u) {
+    limparConfirmacaoGoogle();
+    appliqueiSetSignupBlock(false);
+    setAuthPanel('form');
+    return window.appliqueiAuthErr(
+      'A sessão do Google expirou. Toque em "Continuar com Google" de novo.'
+    );
+  }
+  var priv = $('authGooglePrivAceite');
+  if (priv && !priv.checked) return erro('Para criar a conta, aceite a Política de Privacidade.');
+  var cupomEl = $('authGoogleCupom');
+  var cupom = cupomEl ? cupomEl.value.replace(/\s+/g, '').toUpperCase() : '';
+  if (cupom && !/^APP-[A-Z0-9]{6}$/.test(cupom))
+    return erro('O cupom tem o formato APP-XXXXXX. Confira ou deixe em branco.');
+  try {
+    if (cupom) sessionStorage.setItem('appliquei_pending_referral', cupom);
+    else sessionStorage.removeItem('appliquei_pending_referral');
+  } catch (_) {}
+  if (typeof window.registrarAceitePrivacidade === 'function')
+    window.registrarAceitePrivacidade('cadastro', u.email || '');
+  limparConfirmacaoGoogle();
+  hideGate();
+  setAuthPanel('form');
+  // Solta o bloqueio: o billing retoma o usuário adiado e o /init cria o
+  // trial, já com o cupom em sessionStorage.
+  appliqueiSetSignupBlock(false);
+  try {
+    if (window.AppliqueiBilling && typeof window.AppliqueiBilling.kickstart === 'function') {
+      window.AppliqueiBilling.kickstart();
+    }
+  } catch (_) {}
+  if (typeof mostrarToast === 'function') {
+    mostrarToast(
+      cupom
+        ? 'Conta criada. Cupom ' + cupom + ' aplicado — sua avaliação de 7 dias começou.'
+        : 'Conta criada. Sua avaliação de 7 dias começou.',
+      'sucesso'
+    );
+  }
+};
+window.appliqueiAuthGoogleOutraConta = function () {
+  var fb = window.AppliqueiFirebase;
+  var u = fb && fb.auth && fb.auth.currentUser;
+  limparConfirmacaoGoogle();
+  avisoLoginPendente =
+    'Toque em "Continuar com Google" e escolha a conta que você já usa na Appliquei.';
+  try {
+    sessionStorage.setItem(AVISO_LOGIN_KEY, avisoLoginPendente);
+  } catch (_) {}
+  var fim = function () {
+    appliqueiSetSignupBlock(false);
+    showGate();
+    setAuthPanel('form');
+    window.appliqueiAuthSetModo('login');
+    window.appliqueiAuthErr(avisoLoginPendente);
+    refreshSidebar();
+    // Sem reload, o aviso já foi mostrado: não repete na próxima abertura.
+    setTimeout(function () {
+      try {
+        sessionStorage.removeItem(AVISO_LOGIN_KEY);
+      } catch (_) {}
+    }, 2000);
+  };
+  // Apaga a conta recém-criada e não confirmada: não tem billing (o
+  // bloqueio segurou o /init), então a limpeza é completa.
+  if (u && typeof u.delete === 'function') {
+    u.delete()
+      .catch(function () {
+        try {
+          return fb.auth.signOut();
+        } catch (_) {}
+      })
+      .then(fim, fim);
+  } else {
+    fim();
+  }
+};
 // Processa o resultado de signInWithPopup OU getRedirectResult.
 // Centraliza: detecção isNewUser, política de rejeição de signup
 // acidental, toast de boas-vindas, kickstart do billing.
@@ -487,64 +632,19 @@ function handleGoogleAuthResult(result, ctx) {
     pending = sessionStorage.getItem('appliquei_pending_referral') || '';
   } catch (_) {}
 
-  if (isNew && requireExisting) {
-    // Rejeita signup acidental: usuário clicou Google na aba "Entrar"
-    // mas não tinha conta. Apaga o user recém-criado no Firebase Auth
-    // (não tendo billing.account ainda — graças ao signupBlock
-    // mantido até este handler executar — o cleanup é completo).
-    //
-    // Flag __appliqueiAuthGoogleRejecting: faz o onAuthStateChanged
-    // skipar o setTimeout que mostraria o form e LIMPARIA o erro
-    // que vamos exibir aqui.
-    window.__appliqueiAuthGoogleRejecting = true;
-    var u = fb && fb.auth && fb.auth.currentUser;
-    var done = function () {
-      appliqueiSetSignupBlock(false);
-      showGate();
-      setCabecalho('Conta não encontrada', 'Crie a sua para começar a avaliação de 7 dias');
-      setAuthPanel('form');
-      window.appliqueiAuthSetModo('registro');
-      var rejectMsg =
-        'Não encontramos uma conta Google com este e-mail. Clique em "Continuar com Google" para criar sua conta agora.';
-      window.appliqueiAuthErr(rejectMsg);
-      if (typeof refreshSidebar === 'function') refreshSidebar();
-      // Sticky: re-afirma a mensagem durante 6s caso outra
-      // rotina (onAuthStateChanged, setModo, getRedirectResult) a
-      // limpe. Antes a flag soltava em 800ms e a mensagem podia
-      // sumir antes do usuário ler.
-      var stickyDeadline = Date.now() + 6000;
-      var stickyTick = setInterval(function () {
-        var errEl = $('authErr');
-        if (!errEl) {
-          clearInterval(stickyTick);
-          return;
-        }
-        if (Date.now() > stickyDeadline) {
-          clearInterval(stickyTick);
-          window.__appliqueiAuthGoogleRejecting = false;
-          return;
-        }
-        if (errEl.textContent !== rejectMsg) {
-          window.appliqueiAuthErr(rejectMsg);
-        }
-      }, 120);
-    };
-    if (u && typeof u.delete === 'function') {
-      u.delete()
-        .then(done)
-        .catch(function () {
-          try {
-            fb.auth.signOut();
-          } catch (_) {}
-          done();
-        });
-    } else {
-      try {
-        fb && fb.auth && fb.auth.signOut();
-      } catch (_) {}
-      done();
+  if (isNew) {
+    // Conta Google nova. Pela aba "Criar conta" com a Política já aceita,
+    // segue direto. Em qualquer outro caso (aba "Entrar", ou "Criar conta"
+    // sem o aceite) confirma NESTA tela: cupom + aceite + um botão. O
+    // bloqueio do billing continua ligado até a confirmação — nada de trial
+    // nem cliente no Asaas para quem só errou de conta.
+    var privReg = $('authPrivAceite');
+    if (requireExisting || !(privReg && privReg.checked)) {
+      pedirConfirmacaoGoogle(result.user || (fb && fb.auth && fb.auth.currentUser));
+      return;
     }
-    return;
+    if (typeof window.registrarAceitePrivacidade === 'function')
+      window.registrarAceitePrivacidade('cadastro', (result.user && result.user.email) || '');
   }
 
   // Caminho positivo: libera billing e mostra feedback se for novo.
@@ -576,6 +676,10 @@ window.appliqueiAuthGoogle = function () {
   var provider = new firebase.auth.GoogleAuthProvider();
   provider.addScope('email');
   provider.addScope('profile');
+  // Sempre mostra o seletor de contas: quem tem mais de uma conta Google
+  // escolhe de propósito, em vez de entrar na última usada.
+  if (typeof provider.setCustomParameters === 'function')
+    provider.setCustomParameters({ prompt: 'select_account' });
   // Persiste o cupom ANTES do popup. Cobre os 3 cenários:
   //  (a) usuário existente faz login Google (cupom será aplicado
   //      retroativamente no /init se ainda não tem subscription);
@@ -824,7 +928,9 @@ function initAppliqueiAuth() {
           handleGoogleAuthResult(result, { requireExisting: redirectRequireExisting });
         } else {
           // Sem resultado pendente (página carregada sem vir de redirect).
-          appliqueiSetSignupBlock(false);
+          // Com cadastro Google por confirmar, o bloqueio fica: quem decide é
+          // o onAuthStateChanged, quando souber quem está logado.
+          if (!confirmacaoGooglePendente()) appliqueiSetSignupBlock(false);
           // Voltou do Google e o resultado se perdeu (partição de
           // armazenamento do navegador): sem este aviso a pessoa via só a
           // tela de login de novo, sem saber por quê.
@@ -836,7 +942,7 @@ function initAppliqueiAuth() {
         }
       })
       .catch(function (err) {
-        appliqueiSetSignupBlock(false);
+        if (!confirmacaoGooglePendente()) appliqueiSetSignupBlock(false);
         if (err && err.code) window.appliqueiAuthErr(mapAuthErr(err));
       });
   } catch (_) {
@@ -847,6 +953,17 @@ function initAppliqueiAuth() {
     if (authUiTimer) {
       clearTimeout(authUiTimer);
       authUiTimer = null;
+    }
+    var pendenteUid = confirmacaoGooglePendente();
+    if (pendenteUid) {
+      if (user && user.uid === pendenteUid) {
+        // Fechou o app sem confirmar o cadastro Google: o painel volta.
+        pedirConfirmacaoGoogle(user);
+        return;
+      }
+      // Outra pessoa (ou ninguém) logada: a pendência não vale mais.
+      limparConfirmacaoGoogle();
+      appliqueiSetSignupBlock(false);
     }
     if (user) {
       window.appliqueiAuthErr('');
@@ -890,13 +1007,9 @@ function initAppliqueiAuth() {
       refreshSidebar();
       return;
     }
-    // Durante rejeição de signup acidental Google, o handler já
-    // gerencia a UI (modo registro + mensagem). NÃO sobrescrever.
-    if (window.__appliqueiAuthGoogleRejecting) return;
     authUiTimer = setTimeout(function () {
       authUiTimer = null;
       if (AppliqueiFirebase.auth.currentUser || isGuest()) return;
-      if (window.__appliqueiAuthGoogleRejecting) return;
       showGate();
       setAuthPanel('form');
       setCabecalho('Bem-vindo de volta', 'Entre para continuar de onde parou');
