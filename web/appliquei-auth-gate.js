@@ -459,6 +459,21 @@ window.appliqueiAuthSubmit = function () {
     if (btn) btn.disabled = false;
   });
 };
+// Marca "saí para o Google por redirect" — para, na volta, distinguir a
+// abertura normal do app de um login cujo resultado se perdeu.
+var GOOGLE_REDIRECT_FLAG = 'appliquei_google_redirect_at';
+// Aviso que precisa sobreviver ao appliqueiAuthSetModo('login') do timer de
+// "sem sessão" (setModo limpa o erro).
+var avisoLoginPendente = '';
+function consumirFlagRedirectGoogle() {
+  try {
+    var t = Number(sessionStorage.getItem(GOOGLE_REDIRECT_FLAG) || 0);
+    sessionStorage.removeItem(GOOGLE_REDIRECT_FLAG);
+    return !!t && Date.now() - t < 10 * 60 * 1000;
+  } catch (_) {
+    return false;
+  }
+}
 // Processa o resultado de signInWithPopup OU getRedirectResult.
 // Centraliza: detecção isNewUser, política de rejeição de signup
 // acidental, toast de boas-vindas, kickstart do billing.
@@ -589,14 +604,38 @@ window.appliqueiAuthGoogle = function () {
   window.appliqueiAuthErr('');
   var btn = $('authBtnGoogle');
   if (btn) btn.disabled = true;
-  var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-  var p = isMobile ? fb.auth.signInWithRedirect(provider) : fb.auth.signInWithPopup(provider);
-  Promise.resolve(p)
+  // Popup em TODO aparelho. O celular usava signInWithRedirect, e o
+  // redirect passa pelo authDomain (appliquei-prod.firebaseapp.com), que
+  // não é o domínio do app. Com a partição de armazenamento dos navegadores
+  // atuais (Safari 16.1+, Chrome 115+, Firefox 109+), o resultado do login
+  // fica preso no domínio do Firebase: getRedirectResult() volta vazio e o
+  // usuário cai de novo na tela de login — o "loop" de quem já tem conta
+  // Google. O Firebase recomenda o popup para esse cenário. O redirect fica
+  // só como último recurso, quando o próprio navegador recusa o popup.
+  var POPUP_INDISPONIVEL = {
+    'auth/popup-blocked': 1,
+    'auth/operation-not-supported-in-environment': 1,
+  };
+  fb.auth
+    .signInWithPopup(provider)
     .then(function (result) {
-      // Caminho popup. Redirect resolve via getRedirectResult em initAppliqueiAuth.
       handleGoogleAuthResult(result, { requireExisting: requireExisting });
     })
     .catch(function (err) {
+      if (err && POPUP_INDISPONIVEL[err.code]) {
+        try {
+          sessionStorage.setItem(GOOGLE_REDIRECT_FLAG, String(Date.now()));
+        } catch (_) {}
+        // Mantém o bloqueio do billing: a página sai para o Google e o
+        // handler de getRedirectResult decide na volta.
+        return fb.auth.signInWithRedirect(provider).catch(function (e2) {
+          try {
+            sessionStorage.removeItem(GOOGLE_REDIRECT_FLAG);
+          } catch (_) {}
+          appliqueiSetSignupBlock(false);
+          window.appliqueiAuthErr(mapAuthErr(e2));
+        });
+      }
       appliqueiSetSignupBlock(false);
       window.appliqueiAuthErr(mapAuthErr(err));
     })
@@ -780,11 +819,20 @@ function initAppliqueiAuth() {
     AppliqueiFirebase.auth
       .getRedirectResult()
       .then(function (result) {
+        var vinhaDoGoogle = consumirFlagRedirectGoogle();
         if (result && result.user) {
           handleGoogleAuthResult(result, { requireExisting: redirectRequireExisting });
         } else {
           // Sem resultado pendente (página carregada sem vir de redirect).
           appliqueiSetSignupBlock(false);
+          // Voltou do Google e o resultado se perdeu (partição de
+          // armazenamento do navegador): sem este aviso a pessoa via só a
+          // tela de login de novo, sem saber por quê.
+          if (vinhaDoGoogle && !AppliqueiFirebase.auth.currentUser) {
+            avisoLoginPendente =
+              'O navegador não devolveu o login do Google. Permita popups para este site e toque em "Continuar com Google" de novo — ou entre com e-mail e senha.';
+            window.appliqueiAuthErr(avisoLoginPendente);
+          }
         }
       })
       .catch(function (err) {
@@ -853,6 +901,10 @@ function initAppliqueiAuth() {
       setAuthPanel('form');
       setCabecalho('Bem-vindo de volta', 'Entre para continuar de onde parou');
       window.appliqueiAuthSetModo('login');
+      if (avisoLoginPendente) {
+        window.appliqueiAuthErr(avisoLoginPendente);
+        avisoLoginPendente = '';
+      }
       refreshSidebar();
     }, 500);
   });
