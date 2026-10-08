@@ -11765,9 +11765,15 @@
                 content: "Lente de seleção"; display: block; margin-bottom: 8px;
                 font-size: 12px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado);
             }
+            /* A margem negativa leva o trilho de ponta a ponta da tela, mas
+               só funciona se a LARGURA crescer junto. A regra base tem
+               max-width:100%, que travava a largura na do pai: o trilho saía
+               16px para a esquerda e acabava 32px antes da borda direita —
+               a faixa vazia à direita das lentes no celular. */
             #carteira .cart-motor-lentes {
                 display: flex !important; flex-wrap: nowrap !important; gap: 8px; overflow-x: auto; scrollbar-width: none;
                 margin: 0 -16px; padding: 0 16px 2px;
+                max-width: none; width: calc(100% + 32px); box-sizing: border-box;
             }
             #carteira .cart-motor-lentes::-webkit-scrollbar { display: none; }
             #carteira .cart-motor-lentes > * { flex-shrink: 0; min-height: 40px; }
