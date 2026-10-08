@@ -475,11 +475,16 @@ test('/saldo responde o saldo por conta, esconde corretora zerada e manda o tecl
   await conectar();
   await webhook(mensagem('/saldo'));
   const p = ultimoEnvio();
-  assert.match(p.text, /Saldo em conta/);
+  assert.match(p.text, /Saldo em conta: R\$\s5\.950,50/);
+  assert.match(p.text, /o que existe hoje, somando as suas contas/);
   assert.match(p.text, /Itaú: <b>R\$\s5\.700,00<\/b>/); // 1000 + 5000 − 300 (a fixa não foi paga)
   assert.match(p.text, /Nubank: <b>R\$\s250,50<\/b>/);
   assert.doesNotMatch(p.text, /Rico/);
-  assert.match(p.text, /Total: R\$\s5\.950,50/);
+  // Saldo livre do mês: receita 5.000 − despesas 1.500 (a fixa conta mesmo não
+  // paga, como no card do app) e nada trazido do mês anterior.
+  assert.match(p.text, /🟢 <b>Saldo livre de [a-zç]+: R\$\s3\.500,00<\/b>/);
+  assert.match(p.text, /o que sobrou de tudo o que entrou neste mês/);
+  assert.doesNotMatch(p.text, /do mês anterior/);
   assert.match(p.text, /Dados do app de/);
   assert.ok(p.reply_markup.keyboard, 'teclado fixo');
   assert.deepEqual(inbox(), {}, 'consulta não grava nada');

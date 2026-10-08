@@ -74,6 +74,11 @@ async function lerDadosUsuario(uid) {
     contas: lista('appliquei_contas'),
     cartoes: lista('futurorico_cartoes'),
     sonhos: lista('appliquei_sonhos'),
+    // Ajustes manuais do saldo trazido entre meses (objeto, não lista).
+    saldoCarregado: (() => {
+      const v = lerJSON(keys.futurorico_saldoCarregado, {});
+      return v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+    })(),
     categoriasCustom,
     rotulos: rotulosCategorias(categoriasCustom),
     atualizadoEmMs:

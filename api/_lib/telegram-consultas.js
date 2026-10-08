@@ -517,8 +517,84 @@ function aperto(saldoEm, agoraMs, dias) {
   };
 }
 
+// ─── saldo livre do mês ─────────────────────────────────────────────────────
+
+// appliquei-aba-controle-financeiro.js → resultadoAcumuladoAteMes: soma os
+// resultados (calcularResultadoMes) desde o 1º mês com lançamento até
+// (mes, ano), recomeçando onde houver ajuste manual do saldo trazido.
+function resultadoAcumuladoAteMes(dados, mapa, mes, ano) {
+  const alvo = ano * 12 + mes;
+  let primeiro = null;
+  (dados.transacoes || []).forEach((t) => {
+    if (!t || typeof t.mes !== 'number' || typeof t.ano !== 'number') return;
+    const v = t.ano * 12 + t.mes;
+    if (primeiro === null || v < primeiro) primeiro = v;
+  });
+  if (primeiro === null) {
+    const ov = mapa[`${ano}-${mes}`];
+    const base = ov && ov.manual ? Number(ov.valor) || 0 : 0;
+    return base + resumoMes(dados, mes, ano).resultado;
+  }
+  let acc = 0;
+  for (let v = Math.min(primeiro, alvo); v <= alvo; v++) {
+    const a = Math.floor(v / 12);
+    const m = v % 12;
+    const ov = mapa[`${a}-${m}`];
+    const r = resumoMes(dados, m, a).resultado;
+    acc = ov && ov.manual ? (Number(ov.valor) || 0) + r : acc + r;
+  }
+  return acc;
+}
+
+// appliquei-aba-controle-financeiro.js → obterSaldoCarregadoParaMes: ajuste
+// manual do mês (futurorico_saldoCarregado) ou o fechamento do mês anterior.
+function saldoCarregadoParaMes(dados, mes, ano) {
+  const mapa =
+    dados.saldoCarregado && typeof dados.saldoCarregado === 'object' ? dados.saldoCarregado : {};
+  const ov = mapa[`${ano}-${mes}`];
+  if (ov && ov.manual) return Number(ov.valor) || 0;
+  return mes === 0
+    ? resultadoAcumuladoAteMes(dados, mapa, 11, ano - 1)
+    : resultadoAcumuladoAteMes(dados, mapa, mes - 1, ano);
+}
+
+/**
+ * O card "Saldo livre" do Controle Financeiro: o que sobrou de tudo o que
+ * entrou no mês, somado ao que veio do mês anterior.
+ * Cópia da conta de atualizarTelaControle (os totais do extrato do mês, sem as
+ * pernas de transferência) + obterSaldoCarregadoParaMes.
+ */
+function saldoLivreMes(dados, mes, ano) {
+  let receita = 0;
+  let despesas = 0;
+  let cartao = 0;
+  let investimentos = 0;
+  let sonhos = 0;
+  (dados.transacoes || []).forEach((t) => {
+    if (!t || t.mes !== mes || t.ano !== ano) return;
+    if (t.categoria === 'transferencia_saida' || t.categoria === 'transferencia_entrada') return;
+    const c = t.categoria;
+    if (c === 'receita' || c === 'dividendo' || c === 'resgate_investimento') receita += t.valor;
+    else if (c === 'despesa_fixa' || c === 'despesa_variavel') despesas += t.valor;
+    else if (c === 'cartao_credito') cartao += t.valor;
+    else if (c === 'sonho') sonhos += t.valor;
+    else investimentos += t.valor;
+  });
+  const carregado = saldoCarregadoParaMes(dados, mes, ano);
+  return {
+    livre: receita - despesas - cartao - investimentos - sonhos + carregado,
+    carregado,
+    receita,
+    despesas,
+    cartao,
+    investimentos,
+    sonhos,
+  };
+}
+
 module.exports = {
   agoraBrasilia,
+  saldoLivreMes,
   saldoCaixaPorConta,
   fonteDeSaldo,
   aperto,
