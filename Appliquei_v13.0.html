@@ -10259,6 +10259,32 @@
         .pp-bv-pular:hover { border-color: var(--cor-texto-mutado); color: var(--cor-texto-principal); }
         .pp-bv-nota { margin: 14px 0 0; font-size: 11.5px; color: var(--cor-texto-mutado); text-align: center; line-height: 1.5; }
 
+        /* ---------- Convite, página 1: Telegram ---------- */
+        .pp-bv-etapa { display: inline-block; margin-bottom: 10px; padding: 3px 10px; border-radius: 999px; background: var(--cor-superficie); border: 1px solid var(--cor-borda2); font-size: 11px; font-weight: 700; color: var(--cor-texto-mutado); letter-spacing: 0.3px; }
+        #ppBvTelegram h2 i { color: #229ed9; }
+        /* A conversa de exemplo é a explicação: ver o "mercado 52,90" virar
+           lançamento diz mais que um parágrafo. */
+        .pp-tg-chat { position: relative; display: flex; flex-direction: column; gap: 7px; padding: 14px 14px 22px; margin-bottom: 16px; border-radius: var(--radius-sm); background: var(--cor-superficie); border: 1px solid var(--cor-borda); }
+        .pp-tg-msg { max-width: 82%; padding: 8px 12px; border-radius: 14px; font-size: 13px; line-height: 1.4; }
+        .pp-tg-eu { align-self: flex-end; background: #229ed9; color: #fff; border-bottom-right-radius: 4px; font-family: 'DM Mono', monospace; font-size: 12.5px; }
+        .pp-tg-bot { align-self: flex-start; background: var(--cor-branco); border: 1px solid var(--cor-borda); color: var(--cor-texto-principal); border-bottom-left-radius: 4px; }
+        .pp-tg-bot i { color: var(--cor-primaria); }
+        .pp-tg-legenda { position: absolute; right: 12px; bottom: 5px; font-size: 10.5px; color: var(--cor-texto-mutado); }
+        .pp-tg-conta { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+        .pp-tg-campo { flex: 1 1 200px; display: flex; flex-direction: column; gap: 5px; }
+        .pp-tg-campo label { font-size: 12.5px; font-weight: 600; color: var(--cor-texto-secundario); }
+        .pp-tg-campo label span { font-weight: 400; color: var(--cor-texto-mutado); }
+        .pp-tg-campo input { padding: 10px 12px; border: 1px solid var(--cor-borda2); border-radius: var(--radius-sm); background: var(--cor-branco); color: var(--cor-texto-principal); font-family: 'Figtree', sans-serif; font-size: 14px; min-height: 44px; box-sizing: border-box; }
+        .pp-tg-campo input:focus { outline: 2px solid var(--cor-primaria); outline-offset: 1px; }
+        .pp-tg-erro { display: none; margin-bottom: 12px; padding: 9px 12px; border-radius: var(--radius-sm); background: var(--cor-bg-erro, #fef2f2); color: var(--cor-txt-erro, #991b1b); font-size: 12.5px; line-height: 1.45; }
+        .pp-tg-erro.ativo { display: block; }
+        .pp-tg-abrir { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 48px; padding: 12px; margin-bottom: 8px; border-radius: var(--radius-sm); background: #229ed9; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; box-sizing: border-box; }
+        .pp-tg-dica { font-size: 11.5px; color: var(--cor-texto-mutado); line-height: 1.5; margin: 0 0 14px; }
+        .pp-tg-ok { display: flex; gap: 8px; align-items: flex-start; padding: 11px 13px; margin-bottom: 14px; border-radius: var(--radius-sm); background: var(--cor-bg-primaria); border: 1px solid var(--cor-borda-primaria); color: var(--cor-txt-primaria); font-size: 13px; line-height: 1.5; }
+        @media (max-width: 768px) {
+            .pp-tg-campo input { font-size: 16px; }
+        }
+
         @media (max-width: 768px) {
             #ppGuia { margin-bottom: 18px; }
             .pp-cartao { padding: 16px 15px 14px; }
@@ -12074,7 +12100,47 @@
          que ele faz é responder à dúvida que trava todo mundo no dia 1:
          "preciso criar a conta antes de lançar?". -->
     <div id="ppBoasVindas" role="dialog" aria-modal="true" aria-labelledby="ppBoasVindasTitulo">
-        <div class="pp-bv-caixa">
+        <!-- Página 1: lançar pelo Telegram. Vem antes do guia porque é o que
+             mais economiza tempo no dia a dia; a pessoa conecta aqui mesmo
+             ou passa para o guia ("Agora não"). Some para quem já conectou
+             ou está no modo convidado (ppTelegramDisponivel). -->
+        <div class="pp-bv-caixa" id="ppBvTelegram" style="display:none;">
+            <span class="pp-bv-etapa">1 de 2</span>
+            <h2 id="ppBvTelegramTitulo"><i class="ph-fill ph-telegram-logo"></i> Lance seus gastos pelo Telegram</h2>
+            <p class="pp-bv-sub">Gastou? Mande uma mensagem para o nosso bot e o lançamento entra no app, sem precisar abrir a Appliquei.</p>
+
+            <div class="pp-tg-chat" aria-label="Exemplo de conversa com o bot">
+                <div class="pp-tg-msg pp-tg-eu">mercado 52,90</div>
+                <div class="pp-tg-msg pp-tg-bot"><i class="ph-fill ph-check-circle"></i> Despesa lançada: Mercado · R$ 52,90</div>
+                <div class="pp-tg-msg pp-tg-eu">nubank 300 tênis 3x</div>
+                <div class="pp-tg-msg pp-tg-bot"><i class="ph-fill ph-check-circle"></i> Compra no cartão: Tênis · 3x de R$ 100,00</div>
+                <span class="pp-tg-legenda">Exemplo</span>
+            </div>
+
+            <!-- Só aparece sem conta principal: o bot precisa saber de onde sai
+                 o dinheiro quando a mensagem não cita o banco. -->
+            <div id="ppTgConta" class="pp-tg-conta">
+                <div class="pp-tg-campo">
+                    <label for="ppTgBanco">De qual banco sai o dinheiro do dia a dia?</label>
+                    <input type="text" id="ppTgBanco" placeholder="Ex.: Nubank" autocomplete="off" maxlength="40">
+                </div>
+                <div class="pp-tg-campo">
+                    <label for="ppTgSaldo">Quanto tem nele hoje? <span>(opcional)</span></label>
+                    <input type="text" id="ppTgSaldo" inputmode="decimal" placeholder="R$ 0,00" autocomplete="off">
+                </div>
+            </div>
+            <div id="ppTgErro" class="pp-tg-erro" role="alert"></div>
+            <div id="ppTgLink"></div>
+
+            <div class="pp-bv-acoes" id="ppTgAcoes">
+                <button type="button" class="pp-bv-seguir" id="ppTgConectar" onclick="ppTelegramConectar()"><i class="ph ph-telegram-logo"></i> Conectar o Telegram</button>
+                <button type="button" class="pp-bv-pular" id="ppTgPular" onclick="ppTelegramIrParaGuia()"><i class="ph ph-arrow-right"></i> Agora não</button>
+            </div>
+            <p class="pp-bv-nota">Dá para conectar depois em <strong>&#9881; Configurações → Lançar pelo Telegram</strong>.</p>
+        </div>
+
+        <div class="pp-bv-caixa" id="ppBvGuia">
+            <span class="pp-bv-etapa" id="ppBvGuiaEtapa" style="display:none;">2 de 2</span>
             <h2 id="ppBoasVindasTitulo"><i class="ph-fill ph-hand-waving"></i> Bem-vindo à Appliquei</h2>
             <p class="pp-bv-sub" id="ppBoasVindasSub">Antes de qualquer coisa, a dúvida que todo mundo tem no primeiro dia:</p>
 
@@ -15438,11 +15504,11 @@
     <!-- Guia de primeiros passos. POR ÚLTIMO: lê contas, transacoes,
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
-    <script src="/web/appliquei-primeiros-passos.js?v=primeiros-passos-1"></script>
+    <script src="/web/appliquei-primeiros-passos.js?v=boas-vindas-telegram"></script>
     <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
     <script src="/web/appliquei-privacidade.js?v=google-confirmar"></script>
     <!-- Lançamentos pelo Telegram. Depois de controle-financeiro (criarLancamentos)
          e contas (salvarContas). -->
-    <script src="/web/appliquei-telegram.js?v=telegram-1"></script>
+    <script src="/web/appliquei-telegram.js?v=boas-vindas-telegram"></script>
 </body>
 </html>

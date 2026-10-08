@@ -429,3 +429,164 @@ test('o vazio de Minhas Contas não se lê como pré-requisito', () => {
   const bloco = contas.slice(inicio, inicio + 2600);
   assert.ok(/não precisa/i.test(bloco), 'o estado vazio voltou a sugerir que a conta vem antes');
 });
+
+// ============================================================
+// Boas-vindas, página 1: lançar pelo Telegram
+// ============================================================
+//
+// A primeira página do convite oferece o Telegram; a pessoa conecta ali ou
+// toca em "Agora não" e segue para o guia. Como o convite só aparece com o app
+// vazio, ainda não existe conta: a página cria a do dia a dia como principal,
+// senão o bot não sabe de onde sai o dinheiro.
+
+function no(extra) {
+  return Object.assign(makeDeadNode(), { style: {}, innerHTML: '', value: '' }, extra || {});
+}
+
+function comTelegram(opcoes) {
+  const o = opcoes || {};
+  const r = carregar(APP_VAZIO);
+  const ids = [
+    'ppBoasVindas',
+    'ppBoasVindasTitulo',
+    'ppBoasVindasSub',
+    'ppBvTelegram',
+    'ppBvGuia',
+    'ppBvGuiaEtapa',
+    'ppTgConta',
+    'ppTgBanco',
+    'ppTgSaldo',
+    'ppTgErro',
+    'ppTgLink',
+    'ppTgConectar',
+    'ppTgPular',
+  ];
+  ids.forEach((id) => (r.elementos[id] = no()));
+  const w = r.win;
+  w.contas = o.contas || [];
+  w.telegramEstado = { conectado: o.conectado === undefined ? false : o.conectado };
+  w.telegramUsuario = () => (o.semSessao ? null : { uid: 'u1' });
+  w.telegramContaPrincipal = () =>
+    w.contas.find((c) => c.principal) || (w.contas.length === 1 ? w.contas[0] : null);
+  w.telegramDefinirContaPrincipal = (id) => w.contas.forEach((c) => (c.principal = c.id === id));
+  w.obterContaPorNome = (n) => w.contas.find((c) => c.nome === n) || null;
+  w.criarConta = (d) => {
+    const c = { id: 'c' + (w.contas.length + 1), nome: d.nome, saldoInicial: d.saldoInicial };
+    w.contas.push(c);
+    return c;
+  };
+  w.parseBRL = (s) => Number(String(s).replace(/\./g, '').replace(',', '.')) || 0;
+  w.__links = 0;
+  w.telegramGerarLink = () => {
+    w.__links++;
+    return o.falhaLink
+      ? Promise.reject(new Error('telegram_nao_configurado'))
+      : Promise.resolve({ url: 'https://t.me/Bot?start=x', bot: 'Bot', codigo: 'x' });
+  };
+  w.telegramMensagemErroLink = () => 'O Telegram ainda não foi configurado no servidor.';
+  return r;
+}
+
+const pagina = (el) => (el.ppBvTelegram.style.display === 'none' ? 'guia' : 'telegram');
+const espera = () => new Promise((r) => setTimeout(r, 0));
+
+test('Telegram é a PRIMEIRA página do convite', () => {
+  const { win, elementos } = comTelegram();
+  win.ppAbrirBoasVindas();
+  assert.equal(pagina(elementos), 'telegram');
+  assert.equal(elementos.ppTgConta.style.display, '', 'sem conta: pergunta o banco');
+});
+
+test('"Agora não" leva ao guia, que vira "2 de 2"', () => {
+  const { win, elementos } = comTelegram();
+  win.ppAbrirBoasVindas();
+  win.ppTelegramIrParaGuia();
+  assert.equal(pagina(elementos), 'guia');
+  assert.equal(elementos.ppBvGuiaEtapa.style.display, '');
+  assert.equal(win.ppEstadoAtual(), 'pendente', 'só passar de página não responde o guia');
+});
+
+test('convidado (sem sessão) e quem já conectou vão direto ao guia', () => {
+  for (const op of [{ semSessao: true }, { conectado: true }]) {
+    const { win, elementos } = comTelegram(op);
+    win.ppAbrirBoasVindas();
+    assert.equal(pagina(elementos), 'guia', JSON.stringify(op));
+    assert.equal(elementos.ppBvGuiaEtapa.style.display, 'none', 'sem "2 de 2" sem a página 1');
+  }
+});
+
+test('conectar sem banco pede o banco e não gera link', () => {
+  const { win, elementos } = comTelegram();
+  win.ppAbrirBoasVindas();
+  win.ppTelegramConectar();
+  assert.match(elementos.ppTgErro.textContent, /banco/);
+  assert.equal(win.__links, 0);
+  assert.equal(win.contas.length, 0);
+});
+
+test('conectar cria a conta do dia a dia com o saldo, como principal, e gera o link', async () => {
+  const { win, elementos } = comTelegram();
+  win.ppAbrirBoasVindas();
+  elementos.ppTgBanco.value = 'Nubank';
+  elementos.ppTgSaldo.value = '1.250,40';
+  win.ppTelegramConectar();
+  await espera();
+  assert.equal(win.contas.length, 1);
+  assert.equal(win.contas[0].nome, 'Nubank');
+  assert.equal(win.contas[0].saldoInicial, 1250.4);
+  assert.equal(win.contas[0].principal, true);
+  assert.equal(win.__links, 1);
+  assert.match(elementos.ppTgLink.innerHTML, /t\.me\/Bot\?start=x/);
+  assert.match(elementos.ppTgPular.innerHTML, /Continuar/);
+});
+
+test('com conta principal já existente, não pergunta banco nem cria outra conta', async () => {
+  const { win, elementos } = comTelegram({ contas: [{ id: 'c1', nome: 'Itaú', principal: true }] });
+  win.ppAbrirBoasVindas();
+  assert.equal(elementos.ppTgConta.style.display, 'none');
+  win.ppTelegramConectar();
+  await espera();
+  assert.equal(win.contas.length, 1);
+  assert.equal(win.__links, 1);
+});
+
+test('servidor sem Telegram: mostra o erro e a pessoa ainda pode seguir', async () => {
+  const { win, elementos } = comTelegram({ falhaLink: true });
+  win.ppAbrirBoasVindas();
+  elementos.ppTgBanco.value = 'Nubank';
+  win.ppTelegramConectar();
+  await espera();
+  await espera();
+  assert.match(elementos.ppTgErro.textContent, /não foi configurado/);
+  assert.equal(elementos.ppTgConectar.disabled, false);
+  win.ppTelegramIrParaGuia();
+  assert.equal(pagina(elementos), 'guia');
+});
+
+test('status "conectado" chegando depois: sem link na tela sai para o guia; com link mostra sucesso', async () => {
+  const a = comTelegram();
+  a.win.ppAbrirBoasVindas();
+  a.win.telegramEstado.conectado = true;
+  a.win.ppTelegramStatusMudou();
+  assert.equal(pagina(a.elementos), 'guia');
+  assert.equal(a.elementos.ppBvGuiaEtapa.style.display, 'none');
+
+  const b = comTelegram();
+  b.win.ppAbrirBoasVindas();
+  b.elementos.ppTgBanco.value = 'Nubank';
+  b.win.ppTelegramConectar();
+  await espera();
+  b.win.telegramEstado.conectado = true;
+  b.win.ppTelegramStatusMudou();
+  assert.equal(pagina(b.elementos), 'telegram');
+  assert.match(b.elementos.ppTgLink.innerHTML, /Telegram conectado/);
+});
+
+test('o HTML traz a página do Telegram antes do guia', () => {
+  const HTML = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
+  const tg = HTML.indexOf('id="ppBvTelegram"');
+  const guia = HTML.indexOf('id="ppBvGuia"');
+  assert.ok(tg > -1 && guia > -1 && tg < guia);
+  assert.match(HTML, /onclick="ppTelegramConectar\(\)"/);
+  assert.match(HTML, /onclick="ppTelegramIrParaGuia\(\)"/);
+});
