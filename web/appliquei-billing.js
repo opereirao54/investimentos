@@ -3600,8 +3600,27 @@ function startActivePolling() {
 // Continua "bypassável" via DevTools (toda lógica client é), mas remove
 // o atalho de uma palavra no console.
 var signupBlocked = false;
+// Usuário cujo onUser foi ADIADO pelo bloqueio. A cada abertura do app o
+// auth-gate liga o bloqueio enquanto confere getRedirectResult(); quando a
+// sessão restaurava nesse meio-tempo, onUser desistia e, ao soltar o
+// bloqueio, ninguém o chamava de novo: o app abria sem portão para quem não
+// tem assinatura (lançava, o servidor recusava a gravação e tudo sumia ao
+// reabrir) até alguém abrir "Minha assinatura". Agora soltar o bloqueio
+// retoma a verificação adiada.
+var deferredUser = null;
 function setSignupBlock(v) {
   signupBlocked = !!v;
+  if (signupBlocked || !deferredUser) return;
+  var pend = deferredUser;
+  deferredUser = null;
+  // Só retoma se o MESMO usuário continua logado: no signup Google
+  // rejeitado o auth-gate faz signOut antes de soltar o bloqueio, e aí não
+  // pode nascer billing nenhum.
+  try {
+    var fb = window.AppliqueiFirebase;
+    var u = fb && fb.auth && fb.auth.currentUser;
+    if (u && u.uid === pend.uid && !lastAccess) onUser(u);
+  } catch (_) {}
 }
 
 function onUser(user) {
@@ -3613,7 +3632,11 @@ function onUser(user) {
     lastAccess = null;
     return;
   }
-  if (signupBlocked) return;
+  if (signupBlocked) {
+    deferredUser = user;
+    return;
+  }
+  deferredUser = null;
   initBilling().then(function () {
     syncApplicashFromServer().then(function () {
       if (typeof window.atualizarTelaApplicash === 'function') {
@@ -3677,6 +3700,12 @@ setInterval(
     if (lastAccess) {
       try {
         refresh(false);
+      } catch (_) {}
+    } else if (!signupBlocked) {
+      // Logado e nunca verificado: era exatamente o buraco por onde a conta
+      // sem assinatura passava a sessão inteira sem portão.
+      try {
+        initBilling();
       } catch (_) {}
     }
   },
