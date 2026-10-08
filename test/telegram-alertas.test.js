@@ -477,3 +477,70 @@ test('endpoint: sem CRON_SECRET certo é 401; com ele roda (janela forçada para
   delete process.env.CRON_SECRET;
   assert.equal((await chamarRodada({ authorization: 'Bearer cron-123' })).status, 503);
 });
+
+// ─── ✅ Já paguei (etapa 2b) ────────────────────────────────────────────────
+
+const inbox = () => {
+  const out = {};
+  for (const [p, d] of M.store.docs) {
+    const pre = `users/${UID}/telegramInbox/`;
+    if (p.startsWith(pre)) out[p.slice(pre.length)] = d;
+  }
+  return out;
+};
+
+test('✅ Já paguei grava a ordem na caixa de entrada; ↩️ Desfazer troca por despagar', async () => {
+  await E.rodar({ agoraReal: MANHA });
+  const botoes = mensagens()[0].payload.reply_markup.inline_keyboard.flat();
+  const pagar = botoes.filter((b) => b.callback_data.startsWith('pg:'));
+  // Luz, Aluguel, Internet e a fatura do C6. O fechamento do Nubank não se paga.
+  assert.deepEqual(
+    pagar.map((b) => b.text),
+    [
+      '✅ Já paguei: Luz',
+      '✅ Já paguei: Aluguel',
+      '✅ Já paguei: Internet',
+      '✅ Já paguei: fatura C6',
+    ]
+  );
+  const k = pagar[3].callback_data.slice(3);
+  await botao(`pg:${k}`);
+  assert.deepEqual(inbox()[`pagar_${k}`].alvos, ['c61']);
+  assert.equal(inbox()[`pagar_${k}`].tipo, 'pagar');
+  const m = mensagens().pop().payload;
+  assert.match(m.text, /fatura C6<\/b> marcado como pago/);
+  assert.equal(m.reply_markup.inline_keyboard[0][0].callback_data, `pu:${k}`);
+
+  await botao(`pu:${k}`);
+  assert.equal(inbox()[`pagar_${k}`], undefined);
+  assert.deepEqual(inbox()[`despagar_${k}`].alvos, ['c61']);
+  // e pagar de novo apaga o despagar pendente
+  await botao(`pg:${k}`);
+  assert.equal(inbox()[`despagar_${k}`], undefined);
+  assert.ok(inbox()[`pagar_${k}`]);
+});
+
+test('Já paguei com chave desconhecida, expirada ou forjada não grava nada', async () => {
+  await botao('pg:AAAAAAAAAA');
+  await botao('pg:../../billing');
+  await botao('pu:AAAAAAAAAA');
+  assert.deepEqual(inbox(), {});
+  const resp = enviados
+    .filter((e) => e.metodo === 'answerCallbackQuery')
+    .map((e) => e.payload.text);
+  assert.ok(resp.some((t) => /expirou/.test(t || '')));
+});
+
+test('Já paguei com assinatura bloqueada não grava', async () => {
+  await E.rodar({ agoraReal: MANHA });
+  const k = mensagens()[0]
+    .payload.reply_markup.inline_keyboard.flat()
+    .find((b) => b.callback_data.startsWith('pg:'))
+    .callback_data.slice(3);
+  M.store.docs.set(`users/${UID}/billing/account`, {
+    trialStartedAt: M.makeTimestamp(Date.now() - 30 * 86400000),
+    trialEndsAt: M.makeTimestamp(Date.now() - 20 * 86400000),
+  });
+  await botao(`pg:${k}`);
+  assert.deepEqual(inbox(), {});
+});

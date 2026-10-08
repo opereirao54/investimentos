@@ -904,6 +904,50 @@ async function botaoAlertas(cb, chatId, uid, sub, tipo) {
   return tg.responderBotao(cb.id);
 }
 
+// "✅ Já paguei" (pg:<k>) e o "↩️ Desfazer" dele (pu:<k>). <k> aponta para
+// telegramAlertas.pagaveis, gravado pelo envio do alerta: o botão não carrega
+// ids de transação (o callback do Telegram tem 64 bytes) e não aceita alvo
+// vindo de fora. A baixa em si é do app: vai pela caixa de entrada, como o
+// lançamento, porque o servidor não escreve no JSON das transações.
+async function botaoPagar(cb, chatId, uid, acao, k) {
+  if (!/^[A-Za-z0-9_-]{10}$/.test(k || '')) return tg.responderBotao(cb.id);
+  if (await acessoBloqueado(uid)) {
+    return tg.responderBotao(cb.id, 'Sua assinatura está inativa.');
+  }
+  const estado = await alertas.lerEstado(uid);
+  const p = (estado.pagaveis || {})[k];
+  if (!p || !Array.isArray(p.alvos) || !p.alvos.length) {
+    return tg.responderBotao(cb.id, 'Esse aviso expirou. Dê baixa pelo app.');
+  }
+  const col = db().collection('users').doc(uid).collection('telegramInbox');
+  if (acao === 'pg') {
+    await col.doc(`despagar_${k}`).delete();
+    await col.doc(`pagar_${k}`).set({
+      tipo: 'pagar',
+      alvos: p.alvos,
+      rotulo: String(p.rotulo || '').slice(0, 80),
+      criadoEmMs: Date.now(),
+    });
+    await tg.responderBotao(cb.id, 'Marcado como pago');
+    return tg.enviar(
+      chatId,
+      `✅ <b>${esc(p.rotulo)}</b> marcado como pago.\n<i>Entra no app assim que ele abrir.</i>`,
+      [[{ text: '↩️ Desfazer', callback_data: `pu:${k}` }]]
+    );
+  }
+  // Desfazer: tira da caixa se o app ainda não pegou, e deixa a ordem de
+  // despagar para o caso de já ter pego (a mesma lógica do Desfazer do lançamento).
+  await col.doc(`pagar_${k}`).delete();
+  await col.doc(`despagar_${k}`).set({ tipo: 'despagar', alvos: p.alvos, criadoEmMs: Date.now() });
+  await tg.responderBotao(cb.id, 'Desfeito');
+  return tg.editar(
+    chatId,
+    cb.message.message_id,
+    `↩️ <s>${esc(p.rotulo)} marcado como pago</s>\n<b>Desfeito</b>: continua a pagar.`,
+    []
+  );
+}
+
 async function tratarBotao(cb) {
   const msg = cb.message || {};
   const chatId = msg.chat && msg.chat.id;
@@ -920,6 +964,7 @@ async function tratarBotao(cb) {
   // Navegação do /mes: só lê, e o "id" é o mês, não um lançamento.
   if (acao === 'm') return navegarMes(cb, chatId, uid, id);
   if (acao === 'a') return botaoAlertas(cb, chatId, uid, id, extra);
+  if (acao === 'pg' || acao === 'pu') return botaoPagar(cb, chatId, uid, acao, id);
   if (!RE_ID_INBOX.test(id || '')) return tg.responderBotao(cb.id);
   // Cada botão só age sobre lançamentos DESTE chat: o id carrega o chat.
   if (!id.startsWith(`tg${String(chatId).replace(/[^0-9]/g, '')}_`)) {
