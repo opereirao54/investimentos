@@ -592,6 +592,21 @@
      para o plano de IA — as duas coisas que o visitante conclui errado se
      não estiverem escritas. */
   .inteligente-nota { margin-top: 20px; font-size: 12.5px; line-height: 1.55; color: var(--muted); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 11px 14px; }
+  /* Novidade: Telegram. Reusa a moldura do .inteligente; o balão de
+     conversa sobrepõe o canto do print no desktop e empilha no celular. */
+  .hero-novo { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: #34d399; color: #052e1f; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; vertical-align: 1px; }
+  .telegram { background: var(--bg); }
+  .telegram-fig { position: relative; }
+  .tg-chat { position: absolute; left: -18px; bottom: 34px; width: 54%; max-width: 300px; display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: #e8eef3; box-shadow: 0 18px 40px rgba(15,23,42,.18); font-size: 12.5px; line-height: 1.45; color: #0f172a; }
+  .tg-msg { padding: 8px 11px; border-radius: 13px; max-width: 92%; }
+  .tg-eu { justify-self: end; background: #d9fdd3; border-bottom-right-radius: 4px; font-weight: 600; }
+  .tg-bot { justify-self: start; background: #fff; border-bottom-left-radius: 4px; }
+  .tg-bot i { color: #64748b; font-style: italic; }
+  .tg-botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-top: 8px; }
+  .tg-botoes span { text-align: center; padding: 5px 4px; border-radius: 8px; background: #f1f5f9; color: #2563eb; font-weight: 600; font-size: 11.5px; }
+  @media (max-width: 880px) {
+    .tg-chat { position: relative; left: auto; bottom: auto; width: auto; max-width: none; margin: 14px 0 0; box-shadow: none; }
+  }
   .inteligente-nota i { color: var(--emerald-dark); font-size: 15px; vertical-align: -2px; margin-right: 5px; }
   @media (max-width: 900px) {
     .inteligente { padding: 42px 0; }
@@ -675,6 +690,7 @@
         <li><i class="ph-fill ph-check-circle"></i> Tudo o que você tem, somado num lugar só</li>
         <li><i class="ph-fill ph-check-circle"></i> O próximo aporte com o cálculo à vista e a simulação de rentabilidade, ativo por ativo</li>
         <li><i class="ph-fill ph-check-circle"></i> Controle de despesas na palma da mão</li>
+        <li><i class="ph-fill ph-check-circle"></i> <span>Lance um gasto mandando uma mensagem no Telegram <span class="hero-novo">Novo</span></span></li>
         <li><i class="ph-fill ph-check-circle"></i> Metas, relatório mensal e trilha de estudo no mesmo plano</li>
       </ul>
       <div class="hero-actions">
@@ -698,7 +714,7 @@
              metade da promessa. Sozinha, a tela de investimentos deixava
              essa metade só no texto. -->
         <div class="shot hero-shot-2">
-          <img src="prints/controle-financeiro.webp" width="1400" height="1325" alt="Tela Controle financeiro da Appliquei: saldo livre do mês, receitas e despesas lançadas e a régua da regra dos 60%." decoding="async">
+          <img src="prints/controle-financeiro.webp" width="1400" height="1499" alt="Tela Controle financeiro da Appliquei: saldo livre do mês, receitas e despesas lançadas e a régua da regra dos 60%." decoding="async">
         </div>
       </div>
       <div class="shot-legenda"><i class="ph-fill ph-camera"></i> Telas reais da Appliquei. Dados de demonstração.</div>
@@ -796,7 +812,7 @@
           </ul>
         </div>
         <figure class="ato-fig">
-          <img src="prints/controle-financeiro.webp" width="1400" height="1325" alt="Tela Controle financeiro da Appliquei com saldo livre do mês, receitas, despesas e a régua da regra dos 60%." loading="lazy" decoding="async">
+          <img src="prints/controle-financeiro.webp" width="1400" height="1499" alt="Tela Controle financeiro da Appliquei com saldo livre do mês, receitas, despesas e a régua da regra dos 60%." loading="lazy" decoding="async">
         </figure>
         <div class="ato-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração.</div>
       </article>
@@ -930,6 +946,51 @@
   </div>
 </section>
 
+<!-- ============================================================
+     NOVIDADE — lançar pelo Telegram
+     ============================================================
+     Mesma moldura do "Sistema inteligente": texto de um lado, print real do
+     outro. O balão de conversa é um EXEMPLO do formato (as frases e a
+     resposta são as que o bot de verdade entende e devolve), não um print
+     do Telegram — por isso a legenda diz "exemplo" e o print ao lado é a
+     tela real do app no instante em que os lançamentos entram.
+
+     Não falar em IA aqui: o plano Pro + IA está "em construção" logo
+     abaixo, e prometer IA nesta seção desmentiria a grade de planos. -->
+<section id="telegram" class="inteligente telegram">
+  <div class="container inteligente-grid">
+    <div class="inteligente-texto">
+      <span class="dif-selo"><i class="ph-fill ph-telegram-logo"></i> Novidade</span>
+      <h2>Gastou? Mande uma mensagem no Telegram e o lançamento está feito</h2>
+      <p>Conecte o seu Telegram em Configurações e lance despesas e receitas sem abrir o app. A Appliquei entende o valor, a data, a conta e a categoria, e o lançamento entra no Controle financeiro como se você tivesse digitado lá.</p>
+      <ul class="dif-lista">
+        <li><i class="ph-fill ph-shopping-cart"></i><span><strong>"mercado 52,90"</strong> vira despesa paga na sua conta principal, já na categoria Alimentação.</span></li>
+        <li><i class="ph-fill ph-credit-card"></i><span><strong>"nubank 300 tênis 3x"</strong> vira compra parcelada no cartão, cada parcela na fatura certa.</span></li>
+        <li><i class="ph-fill ph-arrows-clockwise"></i><span><strong>"+3500 salário"</strong> e <strong>"aluguel 1800 fixa dia 10"</strong>: receitas e despesas fixas com vencimento também entram.</span></li>
+        <li><i class="ph-fill ph-arrow-u-up-left"></i><span><strong>Errou? Um toque desfaz.</strong> Toda resposta tem os botões Desfazer e Categoria, e o bot aprende a categoria que você corrigir.</span></li>
+      </ul>
+      <p class="inteligente-nota"><i class="ph-fill ph-lock-key"></i> Incluído no plano, sem custo extra. Só lança na sua conta o Telegram que você conectou pelo app, com um link de uso único, e você desconecta quando quiser.</p>
+    </div>
+    <figure class="inteligente-fig telegram-fig">
+      <div class="shot">
+        <img src="prints/telegram-lancamentos.webp" width="1400" height="1027" alt="Tela Controle financeiro da Appliquei no instante em que chegam lançamentos enviados pelo Telegram, com o aviso 3 lançamentos do Telegram entraram no canto da tela." loading="lazy" decoding="async">
+      </div>
+      <div class="tg-chat" role="img" aria-label="Exemplo de conversa: a pessoa manda mercado 52,90 e o bot da Appliquei responde Despesa lançada, Mercado, 52 reais e 90 centavos, Alimentação, conta Nubank, com os botões Desfazer e Categoria.">
+        <div class="tg-msg tg-eu">mercado 52,90</div>
+        <div class="tg-msg tg-bot">
+          <b>✅ Despesa lançada</b><br>
+          Mercado · <b>R$ 52,90</b><br>
+          🛒 Alimentação<br>
+          🏦 Nubank<br>
+          <i>Aparece no app assim que ele abrir.</i>
+          <span class="tg-botoes"><span>↩️ Desfazer</span><span>🏷️ Categoria</span></span>
+        </div>
+      </div>
+      <figcaption class="shot-legenda"><i class="ph-fill ph-camera"></i> Tela real da Appliquei. Dados de demonstração. A conversa é um exemplo.</figcaption>
+    </figure>
+  </div>
+</section>
+
 <section class="block" id="comecar">
   <div class="container">
     <div class="section-head">
@@ -979,6 +1040,7 @@
         <ul class="plan-list">
           <li><i class="ph-fill ph-check-circle"></i> Sistema inteligente que lê os seus lançamentos</li>
           <li><i class="ph-fill ph-check-circle"></i> Patrimônio, investimentos e controle financeiro</li>
+          <li><i class="ph-fill ph-check-circle"></i> Lançamentos pelo Telegram, com uma mensagem</li>
           <li><i class="ph-fill ph-check-circle"></i> Carteira sugerida e relatório mensal</li>
           <li><i class="ph-fill ph-check-circle"></i> Simulador de liberdade e metas (Sonhos)</li>
           <li><i class="ph-fill ph-check-circle"></i> Jornada Financeira (aulas) e Info Mercado</li>
@@ -1085,6 +1147,7 @@
       <details class="faq"><summary>Preciso cadastrar cartão para começar?</summary><p>Não. Os 7 dias são liberados sem cartão. Ao final do trial, você decide se quer assinar — escolhendo PIX, boleto ou cartão recorrente.</p></details>
       <details class="faq"><summary>O que acontece quando termina o trial?</summary><p>O acesso fica bloqueado e mostramos a tela de assinatura. Nada é cobrado automaticamente.</p></details>
       <details class="faq"><summary>Posso cancelar quando quiser?</summary><p>Sim. O cancelamento é imediato pelo painel "Minha assinatura". Sem multas, sem fidelidade.</p></details>
+      <details class="faq"><summary>Como funciona o lançamento pelo Telegram?</summary><p>No app, em Configurações, você escolhe a conta principal e toca em "Conectar Telegram". Daí é só mandar mensagens como "mercado 52,90" ou "nubank 300 tênis 3x" para o bot da Appliquei: ele responde com o que lançou, e cada resposta tem os botões Desfazer e Categoria. Está incluído no plano, sem custo extra, e você desconecta quando quiser.</p></details>
       <details class="faq"><summary>Quais formas de pagamento?</summary><p>PIX, boleto e cartão de crédito recorrente, todos via Asaas — gateway brasileiro com cobrança em real.</p></details>
       <details class="faq"><summary>Quando o Pro + IA fica disponível?</summary><p>Está em construção. Quem está no Pro recebe um aviso e pode migrar com um clique quando lançarmos, sem perder o histórico.</p></details>
       <details class="faq"><summary>Como funciona o Applicash?</summary><p>É o programa de indicações. Cada pessoa que assina com o seu cupom devolve 10% do valor pago como crédito na sua própria mensalidade, todo mês, enquanto a assinatura dela estiver ativa — e quem entra pelo seu cupom começa com 10% de desconto. Com 12 indicações ativas, a mensalidade zera. O crédito abate na sua cobrança; não é resgate em dinheiro.</p></details>
