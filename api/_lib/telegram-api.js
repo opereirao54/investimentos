@@ -34,13 +34,18 @@ async function chamar(metodo, payload) {
   }
 }
 
+// `teclado`: lista de linhas de botões = teclado inline (preso à mensagem);
+// objeto = reply_markup pronto (ex.: o teclado fixo do menu, embaixo do chat).
 function enviar(chatId, texto, teclado) {
+  let markup;
+  if (Array.isArray(teclado)) markup = { inline_keyboard: teclado };
+  else if (teclado) markup = teclado;
   return chamar('sendMessage', {
     chat_id: chatId,
     text: texto,
     parse_mode: 'HTML',
     disable_web_page_preview: true,
-    reply_markup: teclado ? { inline_keyboard: teclado } : undefined,
+    reply_markup: markup,
   });
 }
 

@@ -1,0 +1,80 @@
+name: Alertas do Telegram
+
+# Dispara a rodada dos alertas automáticos do bot (api/_lib/telegram-alertas-envio.js).
+#
+# POR QUE AQUI E NÃO NO CRON DA VERCEL
+#   O plano Hobby permite 2 crons, só uma vez por dia, e os dois já estão
+#   ocupados (market warmup e reconcile de billing). Os alertas saem de manhã
+#   E à noite.
+#
+# COMO FUNCIONA
+#   Roda nas horas das duas janelas (horário de Brasília = UTC−3):
+#     manhã 08h–11h → 11h–14h UTC      noite 20h–22h → 23h, 00h e 01h UTC
+#   O servidor manda cada janela UMA vez por dia por usuário, na primeira
+#   rodada que cair nela. As outras rodadas da janela só cobrem atraso ou falha
+#   do agendador do GitHub (que atrasa e às vezes pula uma execução).
+#   Minuto 17: o minuto 0 concorre com o pico de agendamentos e atrasa mais.
+#
+# PRECISA DE DOIS SECRETS (Settings → Secrets and variables → Actions):
+#   APP_URL      endereço de produção, sem barra no fim (https://seu-dominio)
+#   CRON_SECRET  o MESMO valor da variável CRON_SECRET da Vercel
+#
+# TESTE MANUAL: aba Actions → "Alertas do Telegram" → Run workflow, escolhendo
+# a janela. Quem já recebeu a janela hoje não recebe de novo.
+
+on:
+  schedule:
+    - cron: '17 11,12,13,14,23,0,1 * * *'
+  workflow_dispatch:
+    inputs:
+      janela:
+        description: 'Janela a forçar (vazio = a do horário atual)'
+        required: false
+        default: ''
+        type: choice
+        options:
+          - ''
+          - manha
+          - noite
+
+permissions:
+  contents: read
+
+concurrency:
+  group: telegram-alertas
+  cancel-in-progress: false
+
+jobs:
+  rodada:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Disparar a rodada (página por página)
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          JANELA: ${{ inputs.janela }}
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::Faltam os secrets APP_URL e/ou CRON_SECRET (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+          url="${APP_URL%/}/api/user?op=telegram-alertas"
+          cursor=""
+          for pagina in $(seq 1 200); do
+            body=$(jq -nc --arg c "$cursor" --arg j "${JANELA:-}" \
+              '{cursor: (if $c == "" then null else $c end), janela: (if $j == "" then null else $j end)}')
+            resp=$(curl -sS --fail-with-body --retry 2 --retry-all-errors --max-time 40 \
+              -X POST "$url" \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              -H 'Content-Type: application/json' \
+              -d "$body")
+            echo "página ${pagina}: ${resp}"
+            cursor=$(echo "$resp" | jq -r '.proximo // empty')
+            if [ -z "$cursor" ]; then
+              echo "Rodada concluída."
+              exit 0
+            fi
+          done
+          echo "::warning::Parou no limite de 200 páginas; a próxima rodada continua."

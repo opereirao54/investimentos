@@ -190,18 +190,27 @@ class CollRef {
   limit(n) {
     return new Query(this.path, false, [], null, n);
   }
+  startAfter(v) {
+    return new Query(this.path, false).startAfter(v);
+  }
   async get() {
     return new Query(this.path, false).get();
   }
 }
 
 class Query {
-  constructor(basePath, isGroup, filters, order, limitN) {
+  constructor(basePath, isGroup, filters, order, limitN, after) {
     this.basePath = basePath;
     this.isGroup = !!isGroup;
     this.filters = filters || [];
     this.order = order || null;
     this.limitN = limitN || null;
+    this.after = after === undefined ? undefined : after;
+  }
+  // Cursor de paginação. Só o caso usado: um valor do campo de ordenação
+  // ('__name__' = id do documento, como FieldPath.documentId() no Admin SDK).
+  startAfter(v) {
+    return new Query(this.basePath, this.isGroup, this.filters, this.order, this.limitN, v);
   }
   where(f, op, v) {
     return new Query(
@@ -209,7 +218,8 @@ class Query {
       this.isGroup,
       [...this.filters, { field: f, op, value: v }],
       this.order,
-      this.limitN
+      this.limitN,
+      this.after
     );
   }
   orderBy(f, d) {
@@ -218,11 +228,12 @@ class Query {
       this.isGroup,
       this.filters,
       { field: f, dir: d || 'asc' },
-      this.limitN
+      this.limitN,
+      this.after
     );
   }
   limit(n) {
-    return new Query(this.basePath, this.isGroup, this.filters, this.order, n);
+    return new Query(this.basePath, this.isGroup, this.filters, this.order, n, this.after);
   }
   async get() {
     let out = [];
@@ -252,14 +263,21 @@ class Query {
       const ref = new DocRef(p);
       out.push({ id: ref.id, ref, exists: true, data: () => deepClone(data) });
     }
+    const valorOrdem = (d) => (this.order.field === '__name__' ? d.id : d.data()[this.order.field]);
     if (this.order) {
       out.sort((a, b) => {
-        let av = a.data()[this.order.field];
-        let bv = b.data()[this.order.field];
+        let av = valorOrdem(a);
+        let bv = valorOrdem(b);
         if (isTimestamp(av)) av = av.toMillis();
         if (isTimestamp(bv)) bv = bv.toMillis();
         if (av === bv) return 0;
         return this.order.dir === 'desc' ? (av < bv ? 1 : -1) : av < bv ? -1 : 1;
+      });
+    }
+    if (this.order && this.after !== undefined) {
+      out = out.filter((d) => {
+        const v = valorOrdem(d);
+        return this.order.dir === 'desc' ? v < this.after : v > this.after;
       });
     }
     if (this.limitN) out = out.slice(0, this.limitN);

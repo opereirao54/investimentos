@@ -803,6 +803,31 @@
       "prova": "test/integracao-inv25-id-unico.test.js + test/telegram-aplicador.test.js",
       "status": "coberta",
       "fragilidade": "A duplicata não aparece em teste de um lançamento só: ela nasce na SEGUNDA entrega do mesmo item (confirmação perdida, outro aparelho, Telegram reentregando o update). E o aplicador NÃO pode usar obterCartao(): ele devolve o primeiro cartão quando o id não existe."
+    },
+    {
+      "id": "INV-26",
+      "titulo": "Baixa pelo Telegram é a baixa do Controle",
+      "regra": "O \"✅ Já paguei\" dos alertas do bot dá baixa pelas MESMAS funções do botão Baixar do Controle: marcarTransacaoPaga (pago, pagoEm e, no cartão, a conta pagadora — INV-17) e efeitosDoPagamento (aporte do sonho — INV-16; posição do compromisso — INV-21). Só baixa conta a pagar (tem dataVencimento, não é entrada, não está paga) e que existe; repetir o item não duplica. O Desfazer do Telegram só volta a pagar o que o Telegram pagou (pagoVia: 'telegram') e só o que controlePodeReverterPagamento permite (INV-18).",
+      "gravidade": "critica",
+      "entidades": ["transacao", "sonho", "cartao"],
+      "arquivos": [
+        "web/appliquei-telegram.js",
+        "web/appliquei-aba-controle-financeiro.js",
+        "api/_lib/telegram-bot.js",
+        "api/_lib/telegram-alertas-envio.js"
+      ],
+      "simbolos": [
+        "telegramPagar",
+        "telegramDespagar",
+        "marcarTransacaoPaga",
+        "efeitosDoPagamento",
+        "pagoVia"
+      ],
+      "sintoma": "\"Marquei como paga pelo Telegram e o saldo do banco não mudou\" · \"paguei a parcela do sonho pelo Telegram e o sonho subiu o dobro\" · \"desfiz no Telegram e despagou uma conta que eu tinha pago no app\".",
+      "historico": "Nasceu com os alertas do bot (fase 2b). Antes, a baixa existia só dentro de confirmarPagamento, misturada à leitura do valor digitado; foi extraída para o Telegram não ter uma cópia própria da regra.",
+      "prova": "test/integracao-inv26-baixa-telegram.test.js + test/telegram-alertas.test.js",
+      "status": "coberta",
+      "fragilidade": "Os alvos chegam do servidor: o app confere de novo se cada um é conta a pagar. A ordem pagar/despagar é a de criadoEmMs, e os dois podem chegar na mesma busca. Uma aba antiga do app aberta (JS de antes desta versão) não conhece o tipo 'pagar' e o confirma sem aplicar: o pagamento se perde e precisa ser feito de novo."
     }
   ],
   "riscosConhecidos": [

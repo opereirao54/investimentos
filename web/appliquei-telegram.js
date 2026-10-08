@@ -203,6 +203,68 @@ function telegramDoItem(t, id) {
   return telegramIdValido(id) && t && typeof t.id === 'string' && t.id.indexOf(id + '_') === 0;
 }
 
+// Entradas não se "pagam": a agenda de vencimentos do app não as lista, e o
+// bot nunca oferece "Já paguei" para elas. Conferido de novo aqui porque os
+// alvos vêm do servidor.
+function telegramPagavel(t) {
+  if (!t || !t.dataVencimento) return false;
+  var c = t.categoria;
+  return !(
+    c === 'receita' ||
+    c === 'dividendo' ||
+    c === 'resgate_investimento' ||
+    c === 'transferencia_entrada'
+  );
+}
+
+/**
+ * "✅ Já paguei" de um alerta do bot: dá baixa nos alvos pela MESMA regra do
+ * botão Baixar (marcarTransacaoPaga + efeitosDoPagamento: conta pagadora do
+ * cartão, aporte do sonho, posição do compromisso). Alvo que não existe mais,
+ * já pago, ou que não é conta a pagar fica como está. Devolve quantos pagou.
+ */
+function telegramPagar(alvos) {
+  var ids = Array.isArray(alvos) ? alvos.slice(0, 200) : [];
+  var pagas = [];
+  ids.forEach(function (id) {
+    var t = transacoes.find(function (x) {
+      return x && x.id === id;
+    });
+    if (!t || t.pago || !telegramPagavel(t)) return;
+    marcarTransacaoPaga(t);
+    // Só o que o Telegram pagou pode ser despago pelo Telegram.
+    t.pagoVia = 'telegram';
+    pagas.push(t);
+  });
+  pagas.forEach(function (t) {
+    if (typeof efeitosDoPagamento === 'function') efeitosDoPagamento(t);
+  });
+  return pagas.length;
+}
+
+/**
+ * "↩️ Desfazer" do "Já paguei": volta para a pagar o que o Telegram pagou e
+ * cuja baixa é só o flag (controlePodeReverterPagamento — sonho e compromisso
+ * geram aporte e são revertidos na aba deles, como no app).
+ */
+function telegramDespagar(alvos) {
+  var ids = Array.isArray(alvos) ? alvos.slice(0, 200) : [];
+  var n = 0;
+  ids.forEach(function (id) {
+    var t = transacoes.find(function (x) {
+      return x && x.id === id;
+    });
+    if (!t || !t.pago || t.pagoVia !== 'telegram') return;
+    if (typeof controlePodeReverterPagamento === 'function' && !controlePodeReverterPagamento(t))
+      return;
+    t.pago = false;
+    delete t.pagoEm;
+    delete t.pagoVia;
+    n++;
+  });
+  return n;
+}
+
 /**
  * Aplica os itens da caixa de entrada. Devolve {confirmar, lancados, desfeitos,
  * recusados}. NÃO chama a rede: quem chama confirma `confirmar` ao servidor
@@ -210,7 +272,7 @@ function telegramDoItem(t, id) {
  */
 function telegramAplicarItens(itens) {
   var hist = telegramLerHistorico();
-  var r = { confirmar: [], lancados: 0, desfeitos: 0, recusados: [] };
+  var r = { confirmar: [], lancados: 0, desfeitos: 0, recusados: [], pagos: 0 };
   var mudou = false;
   var ordenados = (itens || []).slice().sort(function (a, b) {
     return (a.criadoEmMs || 0) - (b.criadoEmMs || 0);
@@ -259,6 +321,16 @@ function telegramAplicarItens(itens) {
       }
       if (hist.desfeitos.indexOf(item.alvo) === -1) hist.desfeitos.push(item.alvo);
       r.confirmar.push(item.id);
+    } else if (item.tipo === 'pagar') {
+      var p = telegramPagar(item.alvos);
+      if (p) {
+        r.pagos += p;
+        mudou = true;
+      }
+      r.confirmar.push(item.id);
+    } else if (item.tipo === 'despagar') {
+      if (telegramDespagar(item.alvos)) mudou = true;
+      r.confirmar.push(item.id);
     } else if (item.tipo === 'categoria' && item.alvo) {
       transacoes.forEach(function (t) {
         if (telegramDoItem(t, item.alvo) && t.categoriaDespesa !== item.categoriaDespesa) {
@@ -275,7 +347,7 @@ function telegramAplicarItens(itens) {
   if (mudou && typeof salvarTransacoes === 'function') {
     if (!salvarTransacoes({ flush: true })) {
       // Não gravou no aparelho: não confirma nada, a próxima busca tenta de novo.
-      return { confirmar: [], lancados: 0, desfeitos: 0, recusados: [], falhou: true };
+      return { confirmar: [], lancados: 0, desfeitos: 0, recusados: [], pagos: 0, falhou: true };
     }
   }
   telegramSalvarHistorico(hist);
@@ -340,6 +412,14 @@ function telegramAvisar(r) {
       r.lancados === 1
         ? '📲 1 lançamento do Telegram entrou.'
         : '📲 ' + r.lancados + ' lançamentos do Telegram entraram.',
+      'sucesso'
+    );
+  }
+  if (r.pagos && typeof mostrarToast === 'function') {
+    mostrarToast(
+      r.pagos === 1
+        ? '📲 1 pagamento marcado pelo Telegram.'
+        : '📲 ' + r.pagos + ' pagamentos marcados pelo Telegram.',
       'sucesso'
     );
   }

@@ -88,6 +88,9 @@ async function main() {
 
   await chamar('setMyCommands', {
     commands: [
+      { command: 'saldo', description: 'Saldo de cada conta' },
+      { command: 'fatura', description: 'Fatura aberta de cada cartão' },
+      { command: 'mes', description: 'Resumo do mês por categoria' },
       { command: 'ajuda', description: 'Como lançar despesas e receitas' },
       { command: 'desfazer', description: 'Desfaz o último lançamento' },
       { command: 'desconectar', description: 'Desliga este Telegram da sua conta' },

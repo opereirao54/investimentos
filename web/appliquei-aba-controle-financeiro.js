@@ -2837,6 +2837,40 @@ function prepararPagamento(id, contexto) {
   }
 }
 
+// A baixa de UM lançamento, sem tela: marca pago e carimba a data e, no
+// cartão, a conta pagadora. É a parte de confirmarPagamento que não depende do
+// valor digitado — o "Já paguei" do Telegram passa por aqui também, para as
+// duas baixas não divergirem.
+function marcarTransacaoPaga(t) {
+  t.pago = true;
+  t.pagoEm = new Date().toISOString(); // pagamento explícito — protege da normalização
+  // Fase 3: baixa de cartão debita a conta pagadora do cartão.
+  if (t.categoria === 'cartao_credito' && t.cartaoId && typeof obterCartao === 'function') {
+    const card = obterCartao(t.cartaoId);
+    if (card && card.contaPagadoraId) t.contaId = card.contaPagadoraId;
+  }
+}
+
+// O que pagar um lançamento dispara FORA dele: compromisso de sonho vira aporte
+// no sonho; compromisso de investimento (previdência/reserva) vira posição.
+// Devolve 'sonho', 'compromisso' ou null (para a mensagem de quem chamou).
+function efeitosDoPagamento(txPaga) {
+  let efeito = null;
+  if (txPaga && txPaga.categoria === 'sonho' && !txPaga.aporteExtra && txPaga.sonhoId) {
+    registrarAportePorPagamentoSonho(txPaga);
+    efeito = 'sonho';
+  }
+  if (
+    txPaga &&
+    txPaga.compromissoId &&
+    typeof registrarAportePorPagamentoCompromisso === 'function' &&
+    registrarAportePorPagamentoCompromisso(txPaga)
+  ) {
+    efeito = 'compromisso';
+  }
+  return efeito;
+}
+
 function confirmarPagamento(id) {
   const inputVal = document.getElementById(`input-pago-${id}`).value;
   const novoValor = parseBRL(inputVal);
@@ -2846,39 +2880,21 @@ function confirmarPagamento(id) {
   let txPaga = null;
   transacoes = transacoes.map((t) => {
     if (t.id === id) {
-      t.pago = true;
-      t.pagoEm = new Date().toISOString(); // pagamento explícito — protege da normalização
       if (t.valor !== novoValor) {
         t.valor = novoValor;
         if (t.groupId) t.groupId = null; // Isola o registro
       }
-      // Fase 3: baixa de cartão debita a conta pagadora do cartão.
-      if (t.categoria === 'cartao_credito' && t.cartaoId && typeof obterCartao === 'function') {
-        const card = obterCartao(t.cartaoId);
-        if (card && card.contaPagadoraId) t.contaId = card.contaPagadoraId;
-      }
+      marcarTransacaoPaga(t);
       txPaga = t;
     }
     return t;
   });
   salvarTransacoes();
 
-  // Se for compromisso mensal de sonho, registrar como aporte e atualizar valorAtual
+  const efeito = efeitosDoPagamento(txPaga);
   let toastMsg = 'Pagamento confirmado!';
-  if (txPaga && txPaga.categoria === 'sonho' && !txPaga.aporteExtra && txPaga.sonhoId) {
-    registrarAportePorPagamentoSonho(txPaga);
-    toastMsg = 'Pagamento confirmado e aporte registrado no sonho!';
-  }
-  // Compromisso de investimento (previdência/reserva): ao pagar, materializa a
-  // posição em Patrimônio/Investimentos (aporte programado vira aporte realizado).
-  if (
-    txPaga &&
-    txPaga.compromissoId &&
-    typeof registrarAportePorPagamentoCompromisso === 'function' &&
-    registrarAportePorPagamentoCompromisso(txPaga)
-  ) {
-    toastMsg = 'Aporte confirmado e somado ao seu patrimônio!';
-  }
+  if (efeito === 'sonho') toastMsg = 'Pagamento confirmado e aporte registrado no sonho!';
+  if (efeito === 'compromisso') toastMsg = 'Aporte confirmado e somado ao seu patrimônio!';
 
   mostrarToast(toastMsg, 'sucesso');
   atualizarTelaControle();

@@ -283,6 +283,46 @@ const ACOES = [
         );
     },
   },
+  {
+    // "✅ Já paguei" de um alerta: alvos escolhidos entre as contas a pagar
+    // (às vezes uma fatura inteira, às vezes repetindo a ordem anterior).
+    nome: 'já paguei pelo Telegram',
+    fn: (m, r) => {
+      const pendentes = m.s.transacoes.filter(
+        (t) => t.dataVencimento && !t.pago && t.categoria !== 'receita'
+      );
+      if (!pendentes.length) return null;
+      const alvo = pendentes[Math.floor(r() * pendentes.length)];
+      const alvos =
+        alvo.categoria === 'cartao_credito'
+          ? pendentes
+              .filter(
+                (t) => t.cartaoId === alvo.cartaoId && t.dataVencimento === alvo.dataVencimento
+              )
+              .map((t) => t.id)
+          : [alvo.id];
+      m.tgPagSeq = (m.tgPagSeq || 0) + 1;
+      const item =
+        m.tgUltimoPagar && r() < 0.2
+          ? m.tgUltimoPagar
+          : { id: `pagar_s${m.tgPagSeq}`, tipo: 'pagar', alvos, criadoEmMs: Date.now() };
+      m.tgUltimoPagar = item;
+      return () => m.s.telegramAvisar(m.s.telegramAplicarItens([item]));
+    },
+  },
+  {
+    nome: 'desfazer o pagamento pelo Telegram',
+    fn: (m) => {
+      if (!m.tgUltimoPagar) return null;
+      const p = m.tgUltimoPagar;
+      return () =>
+        m.s.telegramAvisar(
+          m.s.telegramAplicarItens([
+            { id: `des${p.id}`, tipo: 'despagar', alvos: p.alvos, criadoEmMs: Date.now() },
+          ])
+        );
+    },
+  },
 ];
 
 /** Roda uma sequência de N passos com a semente dada. */
