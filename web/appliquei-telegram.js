@@ -423,6 +423,10 @@ function telegramAtualizarStatus() {
         telegramBuscarEAplicar();
       }
       telegramRenderConfig();
+      // Página de boas-vindas do guia (appliquei-primeiros-passos.js): mostra
+      // "conectado" na volta do Telegram, ou sai da frente de quem já tinha
+      // conectado antes (o status chega depois de o convite abrir).
+      if (typeof ppTelegramStatusMudou === 'function') ppTelegramStatusMudou();
       return telegramEstado;
     })
     .catch(function () {
@@ -548,12 +552,30 @@ function telegramAoTrocarContaPrincipal(id) {
   telegramRenderConfig();
 }
 
+/**
+ * Pede ao servidor um link de conexão (uso único, 15 min). Devolve
+ * {url, bot, codigo}. Usado pelas Configurações e pela página de boas-vindas
+ * do guia (appliquei-primeiros-passos.js).
+ */
+function telegramGerarLink() {
+  return telegramApi('telegram-link', { method: 'POST', body: {} }).then(function (j) {
+    // Ao voltar do Telegram, o visibilitychange do boot confere o status.
+    telegramLinkAtual = j.url;
+    return j;
+  });
+}
+
+function telegramMensagemErroLink(e) {
+  return e && e.message === 'telegram_nao_configurado'
+    ? 'O Telegram ainda não foi configurado no servidor.'
+    : 'Não consegui gerar o link agora. Tente de novo.';
+}
+
 function telegramConectar() {
   var btn = document.getElementById('btnTelegramConectar');
   if (btn) btn.disabled = true;
-  telegramApi('telegram-link', { method: 'POST', body: {} })
+  telegramGerarLink()
     .then(function (j) {
-      telegramLinkAtual = j.url;
       var area = document.getElementById('telegramLinkArea');
       // Link em vez de window.open: abrir janela depois de um await é
       // bloqueado como pop-up em vários navegadores.
@@ -574,11 +596,7 @@ function telegramConectar() {
     })
     .catch(function (e) {
       if (btn) btn.disabled = false;
-      var msg =
-        e && e.message === 'telegram_nao_configurado'
-          ? 'O Telegram ainda não foi configurado no servidor.'
-          : 'Não consegui gerar o link agora. Tente de novo.';
-      if (typeof mostrarToast === 'function') mostrarToast(msg, 'erro');
+      if (typeof mostrarToast === 'function') mostrarToast(telegramMensagemErroLink(e), 'erro');
     });
 }
 

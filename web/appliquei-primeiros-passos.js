@@ -409,10 +409,203 @@ function ppAbrirBoasVindas() {
       : 'Antes de qualquer coisa, a dúvida que todo mundo tem no primeiro dia:';
   }
 
+  // Primeira página: lançar pelo Telegram. Quem não tem sessão (convidado)
+  // ou já conectou vai direto para o guia.
+  ppMostrarPaginaBoasVindas(ppTelegramDisponivel() ? 'telegram' : 'guia');
+
   modal.style.display = 'flex';
   try {
     document.body.classList.add('pp-modal-aberto');
   } catch (_) {}
+}
+
+// ============================================================
+// --- Boas-vindas, página 1: lançar pelo Telegram ---
+// ============================================================
+//
+// Vem antes do guia porque é o que mais poupa trabalho no dia a dia. A pessoa
+// conecta ali mesmo ou toca em "Agora não" e segue para o guia. Como o
+// convite só aparece com o app VAZIO, ainda não existe conta: o bot precisa
+// saber de onde sai o dinheiro quando a mensagem não cita o banco, então a
+// página pergunta o banco do dia a dia (e o saldo, opcional) e cria a conta
+// já como principal — o mesmo que o passo "Suas contas" do guia pediria.
+
+var _ppPaginaTelegramMostrada = false;
+
+function ppTelegramDisponivel() {
+  try {
+    if (typeof telegramGerarLink !== 'function' || typeof telegramUsuario !== 'function') {
+      return false;
+    }
+    if (!telegramUsuario()) return false;
+    if (typeof telegramEstado !== 'undefined' && telegramEstado && telegramEstado.conectado) {
+      return false;
+    }
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function ppMostrarPaginaBoasVindas(pagina) {
+  var tg = document.getElementById('ppBvTelegram');
+  var guia = document.getElementById('ppBvGuia');
+  var modal = document.getElementById('ppBoasVindas');
+  var noTelegram = pagina === 'telegram' && !!tg;
+  if (noTelegram) {
+    _ppPaginaTelegramMostrada = true;
+    ppTelegramPrepararPagina();
+  }
+  if (tg) tg.style.display = noTelegram ? '' : 'none';
+  if (guia) guia.style.display = noTelegram ? 'none' : '';
+  // "2 de 2" só faz sentido se a pessoa passou pela página 1.
+  var etapa = document.getElementById('ppBvGuiaEtapa');
+  if (etapa) etapa.style.display = !noTelegram && _ppPaginaTelegramMostrada ? '' : 'none';
+  if (modal) {
+    modal.setAttribute('aria-labelledby', noTelegram ? 'ppBvTelegramTitulo' : 'ppBoasVindasTitulo');
+    try {
+      modal.scrollTop = 0;
+      var caixa = noTelegram ? tg : guia;
+      if (caixa) caixa.scrollTop = 0;
+    } catch (_) {}
+  }
+}
+
+function ppTelegramErro(msg) {
+  var el = document.getElementById('ppTgErro');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.classList.toggle('ativo', !!msg);
+}
+
+function ppTelegramPrepararPagina() {
+  var temPrincipal = typeof telegramContaPrincipal === 'function' && !!telegramContaPrincipal();
+  var campos = document.getElementById('ppTgConta');
+  if (campos) campos.style.display = temPrincipal ? 'none' : '';
+  ppTelegramErro('');
+  var link = document.getElementById('ppTgLink');
+  if (link) link.innerHTML = '';
+  var btn = document.getElementById('ppTgConectar');
+  if (btn) {
+    btn.style.display = '';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph ph-telegram-logo"></i> Conectar o Telegram';
+  }
+  ppTelegramBotaoSeguir(false);
+}
+
+// "Agora não" vira "Continuar" depois que o link saiu: a pessoa já fez a
+// parte dela, o resto acontece no Telegram.
+function ppTelegramBotaoSeguir(continuar) {
+  var pular = document.getElementById('ppTgPular');
+  if (!pular) return;
+  pular.className = continuar ? 'pp-bv-seguir' : 'pp-bv-pular';
+  pular.innerHTML = continuar
+    ? 'Continuar <i class="ph ph-arrow-right"></i>'
+    : '<i class="ph ph-arrow-right"></i> Agora não';
+}
+
+function ppTelegramEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function ppTelegramConectar() {
+  ppTelegramErro('');
+  var temPrincipal = typeof telegramContaPrincipal === 'function' && !!telegramContaPrincipal();
+  if (!temPrincipal) {
+    var bancoEl = document.getElementById('ppTgBanco');
+    var nome = ((bancoEl && bancoEl.value) || '').trim();
+    if (!nome) {
+      ppTelegramErro('Diga de qual banco sai o dinheiro do dia a dia — por exemplo, Nubank.');
+      if (bancoEl) bancoEl.focus();
+      return;
+    }
+    var saldoEl = document.getElementById('ppTgSaldo');
+    var saldo =
+      saldoEl && saldoEl.value && typeof parseBRL === 'function' ? parseBRL(saldoEl.value) : 0;
+    var conta = null;
+    try {
+      conta =
+        (typeof obterContaPorNome === 'function' && obterContaPorNome(nome)) ||
+        (typeof criarConta === 'function'
+          ? criarConta({ nome: nome, tipo: 'banco', saldoInicial: saldo || 0 })
+          : null);
+    } catch (_) {
+      conta = null;
+    }
+    if (!conta) {
+      ppTelegramErro('Não consegui criar a conta agora. Tente de novo.');
+      return;
+    }
+    if (typeof telegramDefinirContaPrincipal === 'function')
+      telegramDefinirContaPrincipal(conta.id);
+    var campos = document.getElementById('ppTgConta');
+    if (campos) campos.style.display = 'none';
+  }
+
+  var btn = document.getElementById('ppTgConectar');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ph ph-spinner"></i> Gerando o link…';
+  }
+  telegramGerarLink()
+    .then(function (j) {
+      var area = document.getElementById('ppTgLink');
+      if (area) {
+        // Link (e não window.open): abrir janela depois de um await é
+        // bloqueado como pop-up.
+        area.innerHTML =
+          '<a class="pp-tg-abrir" href="' +
+          ppTelegramEsc(j.url) +
+          '" target="_blank" rel="noopener"><i class="ph-fill ph-telegram-logo"></i> Abrir o Telegram e tocar em Iniciar</a>' +
+          '<p class="pp-tg-dica">O link vale 15 minutos. Se não abrir, procure <strong>@' +
+          ppTelegramEsc(j.bot) +
+          '</strong> no Telegram e mande <code style="user-select:all;">/start ' +
+          ppTelegramEsc(j.codigo) +
+          '</code>.</p>';
+      }
+      if (btn) btn.style.display = 'none';
+      ppTelegramBotaoSeguir(true);
+    })
+    .catch(function (e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-telegram-logo"></i> Conectar o Telegram';
+      }
+      ppTelegramErro(
+        typeof telegramMensagemErroLink === 'function'
+          ? telegramMensagemErroLink(e)
+          : 'Não consegui gerar o link agora. Tente de novo.'
+      );
+    });
+}
+
+// Chamada pelo appliquei-telegram.js a cada status novo do servidor.
+function ppTelegramStatusMudou() {
+  var tg = document.getElementById('ppBvTelegram');
+  if (!tg || tg.style.display === 'none') return;
+  if (typeof telegramEstado === 'undefined' || !telegramEstado || !telegramEstado.conectado) return;
+  var area = document.getElementById('ppTgLink');
+  // Já estava conectado antes de o convite abrir: a página não tem nada a
+  // oferecer — vai para o guia como se nunca tivesse aparecido.
+  if (!area || !area.innerHTML) {
+    _ppPaginaTelegramMostrada = false;
+    ppMostrarPaginaBoasVindas('guia');
+    return;
+  }
+  if (area) {
+    area.innerHTML =
+      '<div class="pp-tg-ok"><i class="ph-fill ph-check-circle"></i><span><strong>Telegram conectado!</strong> Mande <code>mercado 52,90</code> para o bot e veja o lançamento chegar.</span></div>';
+  }
+  ppTelegramBotaoSeguir(true);
+}
+
+function ppTelegramIrParaGuia() {
+  ppMostrarPaginaBoasVindas('guia');
 }
 
 function ppFecharBoasVindas() {

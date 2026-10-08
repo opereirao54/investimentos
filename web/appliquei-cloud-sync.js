@@ -59,7 +59,11 @@ var DELETIONS_LS = 'appliquei_cloud_deletions';
 
 function shouldSyncKey(key) {
   if (!key || typeof key !== 'string') return false;
-  if (key === 'appliquei_auth_guest') return false;
+  // Estado do LOGIN neste aparelho (modo convidado, cadastro Google à espera
+  // de confirmação): não é dado do usuário — não sobe para a nuvem nem some
+  // na troca de conta (clearUserScopedKeys), que roda justamente no meio do
+  // login.
+  if (key.indexOf('appliquei_auth_') === 0) return false;
   if (key.indexOf('appliquei_cloud_') === 0) return false;
   return key.indexOf('futurorico_') === 0 || key.indexOf('appliquei_') === 0;
 }

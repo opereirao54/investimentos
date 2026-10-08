@@ -231,3 +231,61 @@ test('descrição só com valor ganha nome genérico', () => {
   assert.equal(ok('50').descricao, 'Despesa');
   assert.equal(ok('+50').descricao, 'Receita');
 });
+
+// ── "dia N": data da compra ou vencimento ─────────────────────────────────────
+// A frase real que falhou: "Comprei dia 3 um celular no valor de 1000 no cartão
+// de credito em 12x" entrou com a data de hoje e a descrição "Um celular no
+// valor". Antes, "dia N" era sempre vencimento — e no cartão (que não tem
+// vencimento próprio) o dia era jogado fora. HOJE aqui é 07/10/2026.
+
+// Um cartão só (como o "MP" da conversa real): sem pergunta de qual cartão.
+const CTX_UM_CARTAO = Object.assign({}, CTX, { cartoes: [{ id: 'card_mp', nome: 'MP' }] });
+
+test('"comprei dia 3 ... no cartão em 12x" usa o dia 3 como data da compra', () => {
+  const l = ok(
+    'Comprei dia 3 um celular no valor de 1000 no cartão de credito em 12x',
+    CTX_UM_CARTAO
+  );
+  assert.equal(l.cartaoId, 'card_mp');
+  assert.equal(l.categoria, 'cartao_credito');
+  assert.equal(l.dataCompra, '2026-10-03');
+  assert.equal(l.parcelas, 12);
+  assert.equal(l.valor, 1000);
+  assert.equal(l.descricao, 'Celular');
+});
+
+test('dia que já passou no mês é data da compra; dia por vir com verbo no passado é do mês anterior', () => {
+  const a = ok('mercado 80 dia 5');
+  assert.equal(a.dataCompra, '2026-10-05');
+  assert.equal(a.diaVencimento, null);
+  const b = ok('paguei a luz 120 dia 25');
+  assert.equal(b.dataCompra, '2026-09-25');
+  assert.equal(b.diaVencimento, null);
+});
+
+test('cartão nunca leva "dia N" como vencimento, nem dia por vir', () => {
+  const l = ok('nubank 300 tenis dia 20');
+  assert.equal(l.categoria, 'cartao_credito');
+  assert.equal(l.dataCompra, '2026-09-20');
+  assert.equal(l.diaVencimento, null);
+});
+
+test('conta fixa, "vence" e dia por vir sem pista continuam sendo vencimento', () => {
+  assert.equal(ok('aluguel 1800 fixa dia 10').diaVencimento, 10);
+  const v = ok('luz 200 vence dia 20');
+  assert.equal(v.diaVencimento, 20);
+  assert.equal(v.descricao, 'Luz', '"vence" não entra na descrição');
+  assert.equal(v.dataCompra, '2026-10-07');
+  assert.equal(ok('internet 100 dia 20').diaVencimento, 20);
+});
+
+test('"dia 03/10" é a data completa e o "dia" sai da descrição', () => {
+  const l = ok('tenis 300 dia 03/10 no cartao', CTX_UM_CARTAO);
+  assert.equal(l.dataCompra, '2026-10-03');
+  assert.equal(l.descricao, 'Tenis');
+});
+
+test('dia que o mês anterior não tem cai no último dia dele', () => {
+  // 31 em 07/10 com verbo no passado: setembro não tem 31 → 30/09.
+  assert.equal(ok('gastei 50 farmacia dia 31').dataCompra, '2026-09-30');
+});
