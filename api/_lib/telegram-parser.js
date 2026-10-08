@@ -368,7 +368,32 @@ const CONECTIVOS = new Set([
   'a',
   'o',
   'e',
+  // "Comprei um celular no valor de 1000" → "Celular", não "Um celular no valor".
+  'um',
+  'uma',
+  'valor',
+  'fiz',
+  'foi',
 ]);
+
+// Verbos no passado: "comprei dia 3" é quando comprou, não quando vence.
+const VERBOS_PASSADO = [
+  'comprei',
+  'gastei',
+  'paguei',
+  'fiz',
+  'foi',
+  'recebi',
+  'ganhei',
+  'pedi',
+  'almocei',
+  'jantei',
+  'abasteci',
+  'tomei',
+  'assinei',
+];
+// Pistas de vencimento: "vence dia 10", "a pagar dia 10".
+const PALAVRAS_VENCIMENTO = ['vence', 'vencimento', 'vencer', 'a pagar', 'pagar ate', 'pagar dia'];
 
 const MAX_VALOR = 10000000;
 const MAX_PARCELAS = 48;
@@ -524,6 +549,20 @@ function categoriaPorPalavras(descNorm, aprendidas, customizadas) {
  * @param {Array}  [ctx.categorias]  categorias do usuário [{v, label}] (sem as ocultas)
  * @param {object} [ctx.aprendidas]  {palavra: slug}
  */
+// A data mais recente, até hoje, com o dia N: "dia 3" em 08/10 é 03/10; "dia 25"
+// em 08/10 é 25/09. Mês sem o dia (31 em setembro) usa o último dia dele.
+function ultimoDiaN(hoje, n) {
+  const ate = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  for (let volta = 0; volta < 2; volta++) {
+    const ano = ate.getFullYear();
+    const mes = ate.getMonth() - volta;
+    const ultimo = new Date(ano, mes + 1, 0).getDate();
+    const cand = new Date(ano, mes, Math.min(n, ultimo));
+    if (cand <= ate) return cand;
+  }
+  return ate;
+}
+
 function interpretar(texto, ctx) {
   const c = ctx || {};
   const hoje = c.hoje instanceof Date ? c.hoje : new Date();
@@ -553,12 +592,19 @@ function interpretar(texto, ctx) {
   }
   if (!(parcelas >= 1 && parcelas <= MAX_PARCELAS)) return { ok: false, motivo: 'parcelas' };
 
-  // ---- dia de vencimento: "dia 10" ----
-  let diaVencimento = null;
-  const mDia = t.match(/(?<![\p{L}\p{N}])dia\s+(\d{1,2})(?![\p{L}\p{N}])/u);
+  // ---- "dia 10": vencimento OU data da compra (decidido mais abaixo) ----
+  // Antes era sempre vencimento. "Comprei dia 3 um celular no cartão" perdia a
+  // data: compra no cartão não tem vencimento próprio, o dia era jogado fora e
+  // a compra caía em hoje — e na fatura errada.
+  // Pistas lidas ANTES de tirar palavras do texto.
+  const falouPassado = contem(t, VERBOS_PASSADO);
+  const falouVencimento = contem(t, PALAVRAS_VENCIMENTO);
+  let diaCitado = null;
+  // `/` fora do fim: "dia 03/10" é data completa, tratada logo abaixo.
+  const mDia = t.match(/(?<![\p{L}\p{N}])dia\s+(\d{1,2})(?![\p{L}\p{N}/])/u);
   if (mDia) {
     const d = parseInt(mDia[1], 10);
-    if (d >= 1 && d <= 31) diaVencimento = d;
+    if (d >= 1 && d <= 31) diaCitado = d;
     t = t.replace(mDia[0], ' ');
     removidos.push('dia', mDia[1]);
   }
@@ -590,7 +636,14 @@ function interpretar(texto, ctx) {
     data = cand;
     t = t.replace(mData[0], ' ');
     removidos.push(mData[0]);
+    // "dia 03/10": o "dia" não é parte da descrição.
+    if (/(?<![\p{L}])dia(?![\p{L}])/u.test(t)) {
+      t = removerExpr(t, 'dia');
+      removidos.push('dia');
+    }
   }
+  const temDataExplicita =
+    data.getTime() !== new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime();
   if (/(?<![\p{L}])hoje(?![\p{L}])/u.test(t)) {
     t = removerExpr(t, 'hoje');
     removidos.push('hoje');
@@ -674,7 +727,7 @@ function interpretar(texto, ctx) {
     contaId = contaCitada.item.id;
     removidos.push(...contaCitada.achadas);
   }
-  [PALAVRAS_CREDITO, PALAVRAS_DEBITO].forEach((lista) =>
+  [PALAVRAS_CREDITO, PALAVRAS_DEBITO, PALAVRAS_VENCIMENTO].forEach((lista) =>
     lista.forEach((p) => {
       if (contem(t, [p])) removidos.push(p);
     })
@@ -716,6 +769,21 @@ function interpretar(texto, ctx) {
   else if (destino === 'cartao') categoria = 'cartao_credito';
   else if (ehFixa) categoria = 'despesa_fixa';
   else categoria = 'despesa_variavel';
+
+  // ---- "dia N": data da compra ou vencimento ----
+  //  · cartão: sempre data da compra (a fatura já tem o vencimento dela);
+  //  · "vence/vencimento/a pagar" ou conta FIXA: vencimento;
+  //  · verbo no passado ("comprei", "paguei") ou dia que já passou no mês:
+  //    data da compra — o dia N mais recente, deste mês ou do anterior;
+  //  · dia ainda por vir, sem pista: vencimento ("luz 200 dia 20").
+  let diaVencimento = null;
+  if (diaCitado && !temDataExplicita) {
+    const ehCompra =
+      categoria === 'cartao_credito' ||
+      (!falouVencimento && !ehFixa && (falouPassado || diaCitado <= hoje.getDate()));
+    if (ehCompra) data = ultimoDiaN(hoje, diaCitado);
+    else diaVencimento = diaCitado;
+  }
 
   const lanc = {
     categoria,

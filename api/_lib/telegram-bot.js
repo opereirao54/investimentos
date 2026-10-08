@@ -185,7 +185,8 @@ const AJUDA =
   '• Nome do cartão, "cartão" ou <code>3x</code> = compra no cartão\n' +
   '• "pix" ou "débito" = sai da conta\n' +
   '• Sem dizer a conta, usa a sua <b>conta principal</b>\n' +
-  '• <code>ontem</code> ou <code>05/10</code> muda a data\n\n' +
+  '• <code>ontem</code>, <code>dia 3</code> ou <code>05/10</code> muda a data da compra\n' +
+  '• Conta fixa: <code>dia 10</code> é o vencimento\n\n' +
   '/desfazer — desfaz o último lançamento\n' +
   '/desconectar — desliga este Telegram da sua conta';
 
