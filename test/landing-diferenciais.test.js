@@ -284,3 +284,21 @@ test('o disclaimer do app continua tendo as seções que a landing promete abrir
   assert.match(titulos, /Ausência de recomendação automática individualizada/);
   assert.match(titulos, /Ausência de garantia de rentabilidade/);
 });
+
+// ---------------------------------------------------------------------------
+// 4. Novidade: lançar pelo Telegram
+// ---------------------------------------------------------------------------
+
+test('a novidade do Telegram tem seção própria, com print real e sem prometer IA', () => {
+  const m = VISIVEL.match(/<section id="telegram"[\s\S]*?<\/section>/);
+  assert.ok(m, 'seção #telegram ausente');
+  const sec = m[0];
+  assert.match(sec, /src="prints\/telegram-lancamentos\.webp"/, 'o print é tela real do app');
+  assert.match(sec, /Dados de demonstração/);
+  // O balão é exemplo do formato, não print do Telegram — e a legenda diz isso.
+  assert.match(sec, /A conversa é um exemplo/);
+  // O plano "Pro + IA" está em construção: esta seção não pode falar em IA.
+  assert.doesNotMatch(sec.replace(/<[^>]+>/g, ' '), /\bIA\b|intelig[êe]ncia artificial/i);
+  // E vem antes dos planos, onde a venda acontece.
+  assert.ok(VISIVEL.indexOf('id="telegram"') < VISIVEL.indexOf('id="planos"'));
+});
