@@ -661,6 +661,13 @@ function verificarRegraCartao() {
   if (gridCatVenc) gridCatVenc.style.gridTemplateColumns = ehCartao ? '1fr' : '';
   const inputVenc = document.getElementById('dataVencimento');
   if (inputVenc && !ehCartao) {
+    // Saindo do cartão: a data no campo era o vencimento da FATURA (travado,
+    // escolhido pelo seletor), não uma data que a pessoa digitou. Herdá-la
+    // numa despesa a jogava para o mês que vem sem ninguém ver — o campo
+    // volta vazio, como num lançamento novo. Na edição a data é a guardada
+    // no lançamento e fica.
+    const editando = !!(document.getElementById('editTransacaoId') || {}).value;
+    if (inputVenc.readOnly && !editando) inputVenc.value = '';
     inputVenc.readOnly = false;
     inputVenc.style.opacity = '';
     inputVenc.title = '';
@@ -688,6 +695,9 @@ function verificarRegraCartao() {
       chkFixa.checked = false;
     }
   }
+  // O tipo decide se há categoria de despesa a sugerir: escolher o chip
+  // depois de digitar a descrição também mostra (ou esconde) a sugestão.
+  if (typeof insightsSugestaoAoDigitar === 'function') insightsSugestaoAoDigitar();
 }
 
 function atualizarSelectCartoesForm() {
@@ -1010,10 +1020,22 @@ function atualizarResumoFatura() {
 /** O que dizer depois de salvar. Em cartão, o usuário acabou de escolher uma
  *  fatura — "salvo com sucesso" não conta se a escolha pegou. Nomeia a fatura,
  *  e no parcelado diz até onde as parcelas vão. */
-function mensagemLancamentoSalvo(categoria, ymdVenc, qtdLancamentos) {
-  if (categoria !== 'cartao_credito' || !ymdVenc) return 'Lançamento salvo com sucesso!';
+function mensagemLancamentoSalvo(categoria, ymdVenc, qtdLancamentos, hoje) {
+  if (!ymdVenc) return 'Lançamento salvo com sucesso!';
   const comp = competenciaDaData(ymdVenc);
   if (!comp) return 'Lançamento salvo com sucesso!';
+  if (categoria !== 'cartao_credito') {
+    // Fora do mês corrente o lançamento não aparece na tela que a pessoa está
+    // olhando — dizer onde ele foi parar evita o "lancei e sumiu".
+    const ref = hoje || new Date();
+    if (qtdLancamentos > 1 || (comp.mes === ref.getMonth() && comp.ano === ref.getFullYear())) {
+      return 'Lançamento salvo com sucesso!';
+    }
+    const [, mm, dd] = ymdVenc.split('-');
+    return (
+      'Lançado em ' + FATURA_MESES[comp.mes] + '/' + comp.ano + ' — vence em ' + dd + '/' + mm + '.'
+    );
+  }
   const primeiro = FATURA_MESES[comp.mes];
   const [, , dia] = ymdVenc.split('-');
   if (qtdLancamentos > 1) {
