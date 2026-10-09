@@ -337,6 +337,65 @@ function refreshSidebar() {
   if (btn) btn.setAttribute('data-tooltip', 'Entrar');
 }
 window.__appliqueiAuthModo = 'login';
+// ─── Cadastro por convite (fase de testes) ──────────────────────────────────
+// O servidor diz se o cadastro está fechado (GET /api/user?op=convite-modo).
+// Fechado: a aba "Criar conta" mostra o campo do convite e esconde o cupom do
+// Applicash (o convite já dá acesso vitalício; o cupom só confundiria). A
+// trava de verdade é o /api/billing/init — isto aqui é só a tela.
+var CONVITE_KEY = 'appliquei_pending_convite';
+window.__appliqueiConviteObrigatorio = false;
+function convitePendente() {
+  try {
+    var daUrl = new URLSearchParams(location.search).get('convite');
+    if (daUrl) {
+      localStorage.setItem(CONVITE_KEY, String(daUrl).trim().slice(0, 40));
+      return String(daUrl).trim();
+    }
+    return localStorage.getItem(CONVITE_KEY) || '';
+  } catch (_) {
+    return '';
+  }
+}
+function aplicarModoConvite() {
+  var obrig = window.__appliqueiConviteObrigatorio === true;
+  var reg = window.__appliqueiAuthModo === 'registro';
+  var wrap = $('authConviteWrap');
+  if (wrap) wrap.style.display = obrig && reg ? '' : 'none';
+  var cupomWrap = $('authCupomWrap');
+  if (cupomWrap && obrig) cupomWrap.style.display = 'none';
+  // "7 dias grátis, depois R$ 15/mês" contradiz o convite vitalício.
+  var rodape = $('authRodapePreco');
+  if (rodape) rodape.style.display = obrig ? 'none' : '';
+  var inp = $('authConvite');
+  if (inp && !inp.value) inp.value = convitePendente();
+  if (obrig && reg) setCabecalho('Criar sua conta', 'Acesso por convite · fase de testes');
+}
+(function descobrirModoConvite() {
+  // Quem chegou pelo link do convite já sabe a resposta: abre direto em
+  // "Criar conta", com o código preenchido.
+  var veioPorLink = false;
+  try {
+    veioPorLink = !!new URLSearchParams(location.search).get('convite');
+  } catch (_) {}
+  convitePendente();
+  var base = window.__APPLIQUEI_API_BASE__ || '';
+  try {
+    fetch(base + '/api/user?op=convite-modo')
+      .then(function (r) {
+        return r.ok ? r.json() : null;
+      })
+      .then(function (d) {
+        window.__appliqueiConviteObrigatorio = !!(d && d.obrigatorio);
+        if (veioPorLink && typeof window.appliqueiAuthSetModo === 'function') {
+          window.appliqueiAuthSetModo('registro');
+        } else {
+          aplicarModoConvite();
+        }
+      })
+      .catch(function () {});
+  } catch (_) {}
+})();
+
 window.appliqueiAuthSetModo = function (modo) {
   window.__appliqueiAuthModo = modo === 'registro' ? 'registro' : 'login';
   var login = window.__appliqueiAuthModo === 'login';
@@ -365,6 +424,7 @@ window.appliqueiAuthSetModo = function (modo) {
   // Aceite da Política de Privacidade: só no cadastro (appliquei-privacidade.js).
   var privWrap = $('authPrivWrap');
   if (privWrap) privWrap.style.display = login ? 'none' : '';
+  aplicarModoConvite();
   if (!login) {
     var cupomInput = $('authCupom');
     if (cupomInput && !cupomInput.value) {
@@ -437,6 +497,17 @@ window.appliqueiAuthSubmit = function () {
     }
     if (typeof window.registrarAceitePrivacidade === 'function')
       window.registrarAceitePrivacidade('cadastro', email);
+  }
+  if (reg && window.__appliqueiConviteObrigatorio === true) {
+    var convEl = $('authConvite');
+    var conv = convEl ? convEl.value.trim() : '';
+    if (!conv) {
+      if (btn) btn.disabled = false;
+      return window.appliqueiAuthErr('Informe o código de convite que você recebeu.');
+    }
+    try {
+      localStorage.setItem(CONVITE_KEY, conv);
+    } catch (_) {}
   }
   if (reg) {
     var cupomEl = $('authCupom');
@@ -680,6 +751,14 @@ window.appliqueiAuthGoogle = function () {
   // escolhe de propósito, em vez de entrar na última usada.
   if (typeof provider.setCustomParameters === 'function')
     provider.setCustomParameters({ prompt: 'select_account' });
+  // Convite digitado na aba "Criar conta" vale também para o Google: o
+  // /api/billing/init o lê do localStorage quando a conta for criada.
+  var convGoogle = $('authConvite');
+  if (convGoogle && convGoogle.value.trim()) {
+    try {
+      localStorage.setItem(CONVITE_KEY, convGoogle.value.trim());
+    } catch (_) {}
+  }
   // Persiste o cupom ANTES do popup. Cobre os 3 cenários:
   //  (a) usuário existente faz login Google (cupom será aplicado
   //      retroativamente no /init se ainda não tem subscription);

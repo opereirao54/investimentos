@@ -57,6 +57,7 @@ const { handler } = require('./_lib/handler');
 const { feedbackCreateBody, feedbackListQuery, telegramInboxAckBody } = require('./_lib/schemas');
 const rl = require('./_lib/rate-limit');
 const codes = require('./_lib/codes');
+const convites = require('./_lib/convites');
 const { requireUser } = require('./_lib/auth');
 const telegram = require('./_lib/telegram-bot');
 const telegramAlertas = require('./_lib/telegram-alertas-envio');
@@ -512,7 +513,7 @@ const OPS_TELEGRAM_APP = new Set([
 // propósito. Inverter o default deixaria uma rota futura aberta por descuido.
 // `telegram` é o webhook do bot: quem chama é o Telegram, sem login, e a
 // autenticação é o header secreto conferido em telegramWebhook.
-const OPS_PUBLICAS = new Set(['ref-hit', 'telegram', 'telegram-alertas']);
+const OPS_PUBLICAS = new Set(['ref-hit', 'telegram', 'telegram-alertas', 'convite-modo']);
 
 module.exports = handler({
   method: ['GET', 'POST'],
@@ -527,6 +528,15 @@ module.exports = handler({
     if (op === 'ref-hit') {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
       return registrarCliqueIndicacao(req, res);
+    }
+
+    // Só diz se o cadastro está pedindo convite — a tela de login usa para
+    // mostrar o campo. Não revela nada sobre códigos.
+    if (op === 'convite-modo') {
+      if (req.method !== 'GET') return res.status(405).json({ error: 'method_not_allowed' });
+      const obrigatorio = await convites.modoObrigatorio(db());
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.json({ obrigatorio });
     }
 
     if (op === 'telegram') {

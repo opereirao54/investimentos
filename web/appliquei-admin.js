@@ -202,6 +202,7 @@ function mudarAba(e, tab) {
   if (tab === 'audit') loadAudit();
   if (tab === 'feedback') loadFeedback();
   if (tab === 'carteira') loadCarteira();
+  if (tab === 'convites') loadConvites();
 }
 
 /* ========================================
@@ -1513,6 +1514,123 @@ async function cmSalvar() {
   try {
     const data = await adminPost({ action: 'save_carteira', carteira: cmCarteira });
     toast(data.message || 'Carteira publicada.', 'success');
+  } catch (err) {
+    toast('Erro: ' + err.message, 'error');
+  }
+}
+
+/* ========================================
+   CONVITES (fase de testes)
+   ======================================== */
+function cvLink(codigo) {
+  return location.origin + '/app?convite=' + encodeURIComponent(codigo);
+}
+
+function cvRender(data) {
+  const obrig = !!data.obrigatorio;
+  $('cv-obrigatorio').checked = obrig;
+  $('cv-modo-txt').textContent = obrig
+    ? 'LIGADO — conta nova só entra com código. Quem já tem conta continua entrando normal.'
+    : 'DESLIGADO — cadastro aberto, como antes (avaliação de 7 dias e assinatura).';
+  const itens = data.itens || [];
+  const tb = $('cv-lista');
+  if (!itens.length) {
+    tb.innerHTML = '<tr><td colspan="5" class="tbl-empty">Nenhum convite gerado ainda.</td></tr>';
+    return;
+  }
+  const situacao = (i) => {
+    if (i.status === 'usado')
+      return `<span class="badge-s badge-ok">✅ Usado</span><div style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:3px;">${escHTML(i.usadoEmail || '')}${i.usadoEm ? ' · ' + fmtDateTime(i.usadoEm) : ''}</div>`;
+    if (i.status === 'cancelado') return '<span class="badge-s badge-muted">Cancelado</span>';
+    return '<span class="badge-s badge-warn">🟡 Livre</span>';
+  };
+  tb.innerHTML = itens
+    .map(
+      (i) => `<tr>
+        <td style="font-family:'DM Mono',monospace;white-space:nowrap;">${escHTML(i.codigo)}</td>
+        <td>${escHTML(i.nota || '—')}</td>
+        <td>${situacao(i)}</td>
+        <td style="white-space:nowrap;">${i.criadoEm ? fmtDate(i.criadoEm) : '—'}</td>
+        <td style="white-space:nowrap;text-align:right;">${
+          i.status === 'livre'
+            ? `<button class="btn-sec" onclick="cvCopiar('${escHTML(i.codigo)}')"><i class="ph ph-copy"></i> Link</button>
+               <button class="btn-sec danger" onclick="cvCancelar('${escHTML(i.codigo)}')"><i class="ph ph-x"></i></button>`
+            : ''
+        }</td>
+      </tr>`
+    )
+    .join('');
+}
+
+async function loadConvites() {
+  try {
+    cvRender(await adminPost({ action: 'convites_listar' }));
+  } catch (err) {
+    $('cv-lista').innerHTML =
+      `<tr><td colspan="5" class="tbl-empty" style="color:var(--cor-erro)">Erro: ${escHTML(err.message)}</td></tr>`;
+  }
+}
+
+async function cvMudarModo(ligar) {
+  const msg = ligar
+    ? 'Ligar o cadastro só com convite? Quem não tiver código não consegue criar conta.'
+    : 'Desligar? O cadastro volta a ser aberto para qualquer pessoa (7 dias grátis e depois assinatura).';
+  if (!confirm(msg)) {
+    $('cv-obrigatorio').checked = !ligar;
+    return;
+  }
+  try {
+    cvRender(await adminPost({ action: 'convites_modo', obrigatorio: ligar }));
+    toast(ligar ? 'Cadastro só com convite: LIGADO' : 'Cadastro aberto novamente', 'success');
+  } catch (err) {
+    $('cv-obrigatorio').checked = !ligar;
+    toast('Erro: ' + err.message, 'error');
+  }
+}
+
+async function cvGerar() {
+  const nota = $('cv-nota').value.trim();
+  const quantidade = Math.max(1, Math.min(50, parseInt($('cv-qtd').value, 10) || 1));
+  try {
+    const r = await adminPost({ action: 'convites_gerar', nota, quantidade });
+    cvRender(r);
+    const novos = r.criados || [];
+    const texto = (c) =>
+      `Você foi convidado(a) para testar o Appliquei! Crie sua conta por este link (o código já vem preenchido): ${cvLink(c)}\nSeu código: ${c}`;
+    $('cv-novos').innerHTML = novos
+      .map(
+        (
+          c
+        ) => `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px dashed var(--cor-borda);border-radius:10px;margin-bottom:8px;">
+          <strong style="font-family:'DM Mono',monospace;">${escHTML(c)}</strong>
+          <span style="font-size:12px;color:var(--cor-texto-mutado);flex:1;min-width:200px;word-break:break-all;">${escHTML(cvLink(c))}</span>
+          <button class="btn-sec" onclick="cvCopiar('${escHTML(c)}')"><i class="ph ph-copy"></i> Copiar link</button>
+          <a class="btn-sec" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(texto(c))}"><i class="ph ph-whatsapp-logo"></i> WhatsApp</a>
+        </div>`
+      )
+      .join('');
+    $('cv-nota').value = '';
+    toast(novos.length === 1 ? 'Convite gerado' : novos.length + ' convites gerados', 'success');
+  } catch (err) {
+    toast('Erro: ' + err.message, 'error');
+  }
+}
+
+async function cvCopiar(codigo) {
+  const link = cvLink(codigo);
+  try {
+    await navigator.clipboard.writeText(link);
+    toast('Link copiado: ' + link, 'success');
+  } catch (_) {
+    prompt('Copie o link do convite:', link);
+  }
+}
+
+async function cvCancelar(codigo) {
+  if (!confirm('Cancelar o convite ' + codigo + '? Ele deixa de funcionar.')) return;
+  try {
+    cvRender(await adminPost({ action: 'convites_cancelar', codigo }));
+    toast('Convite cancelado', 'success');
   } catch (err) {
     toast('Erro: ' + err.message, 'error');
   }

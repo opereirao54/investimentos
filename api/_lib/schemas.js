@@ -53,6 +53,9 @@ const cep = z
 const billingInitBody = z
   .object({
     referralCode: referralCode.optional().nullable(),
+    // Código de convite da fase de testes (api/_lib/convites.js). Formato
+    // conferido lá, tolerante a como a pessoa digita.
+    convite: z.string().trim().max(40).optional().nullable(),
   })
   .strict();
 
