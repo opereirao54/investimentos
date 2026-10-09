@@ -27,6 +27,14 @@
  * (mercado, transporte), que chip nenhum preenche — e é ela que poupa o
  * trabalho. A sugestão cala quando as duas já batem, que era o objetivo
  * original da guarda, agora pelo motivo certo.
+ *
+ * ═══ SÓ A CATEGORIA, NUNCA O TIPO ═══
+ *
+ * Relato: "diversos" sugeriu "Cartão de crédito · Diversos"; o "Usar" trocou
+ * o tipo para cartão, a data virou o vencimento da fatura (mês que vem), a
+ * pessoa voltou para despesa, lançou sem ver a data e não achou mais o
+ * lançamento. A sugestão agora só propõe a categoria de despesa, e o "Usar"
+ * só preenche esse campo. Ver também test/sugestao-so-categoria.test.js.
  */
 
 const fs = require('node:fs');
@@ -38,11 +46,13 @@ const assert = require('node:assert/strict');
 const ROOT = path.resolve(__dirname, '..');
 const M = require('../web/appliquei-insights.js');
 
+const OPCOES = ['', 'mercado', 'moradia', 'lazer', 'diversos'].map((value) => ({ value }));
+
 /** Formulário mínimo: os dois selects que decidem a guarda. */
 function montarTela(contabil, fina) {
   const els = {
     categoriaTransacao: { value: contabil || '' },
-    categoriaDespesa: { value: fina || '' },
+    categoriaDespesa: { value: fina || '', options: OPCOES },
     descTransacao: { value: '' },
     sugestaoCategoria: { innerHTML: '' },
   };
@@ -64,19 +74,29 @@ function montarTela(contabil, fina) {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'web/appliquei-insights-ui.js'), 'utf8'), ctx, {
     filename: 'web/appliquei-insights-ui.js',
   });
-  return { ctx, els, acrescenta: (sug) => vm.runInContext('insightsSugestaoAcrescenta', ctx)(sug) };
+  return {
+    ctx,
+    els,
+    acrescenta: (sug) => vm.runInContext('insightsSugestaoAcrescenta', ctx)(sug),
+    usar: (sug) => {
+      vm.runInContext('insightsSugestaoAtual = ' + JSON.stringify(sug), ctx);
+      vm.runInContext('insightsSugestaoUsar()', ctx);
+    },
+  };
 }
 
 const SUG = { categoria: 'despesa_variavel', categoriaDespesa: 'mercado' };
 
-test('formulário limpo: a sugestão é toda ela nova', () => {
-  assert.equal(montarTela('', '').acrescenta(SUG), true);
+test('formulário sem tipo escolhido: não sugere (o tipo é de quem lança)', () => {
+  // Sem tipo, o campo de categoria nem aparece; sugerir aqui era o caminho
+  // que levava o "Usar" a escolher o tipo pela pessoa.
+  assert.equal(montarTela('', '').acrescenta(SUG), false);
 });
 
 test('chip tocado antes de digitar não cala a sugestão', () => {
-  // ESTE é o defeito relatado. selecionarChipTipo('saida') grava
-  // 'despesa_variavel' em categoriaTransacao; a categoria de despesa continua
-  // vazia, e é ela que a sugestão tem a oferecer.
+  // O defeito antigo: selecionarChipTipo('saida') grava 'despesa_variavel' em
+  // categoriaTransacao; a categoria de despesa continua vazia, e é ela que a
+  // sugestão tem a oferecer.
   assert.equal(
     montarTela('despesa_variavel', '').acrescenta(SUG),
     true,
@@ -84,34 +104,63 @@ test('chip tocado antes de digitar não cala a sugestão', () => {
   );
 });
 
-test('a sugestão cala quando os dois campos já batem', () => {
-  // O objetivo original da guarda, preservado: sem nada a acrescentar, não
-  // ocupa espaço na tela.
+test('a sugestão cala quando a categoria já é a sugerida', () => {
   assert.equal(montarTela('despesa_variavel', 'mercado').acrescenta(SUG), false);
 });
 
-test('discordar do que está preenchido é justamente quando ela vale mais', () => {
-  // Tocou "Saída", mas o histórico diz que isso é despesa fixa.
+test('o tipo do histórico não importa: só a categoria', () => {
+  // O histórico diz cartão; a pessoa escolheu Saída hoje. A sugestão vale
+  // (pela categoria) e não discute o tipo.
+  const sug = { categoria: 'cartao_credito', categoriaDespesa: 'diversos' };
+  assert.equal(montarTela('despesa_variavel', '').acrescenta(sug), true);
+  // E o contrário também.
+  assert.equal(montarTela('cartao_credito', '').acrescenta(SUG), true);
+  // Mesmo tipo, categoria igual: nada a dizer, ainda que o tipo do histórico
+  // seja outro.
   assert.equal(
-    montarTela('despesa_variavel', 'mercado').acrescenta({
-      categoria: 'despesa_fixa',
-      categoriaDespesa: 'moradia',
+    montarTela('despesa_fixa', 'mercado').acrescenta({
+      categoria: 'despesa_variavel',
+      categoriaDespesa: 'mercado',
     }),
-    true
+    false
   );
-  // Mesma classificação grossa, categoria de despesa diferente.
-  assert.equal(montarTela('despesa_variavel', 'lazer').acrescenta(SUG), true);
 });
 
-test('sem categoria de despesa a oferecer, concordar é calar', () => {
+test('entrada não tem categoria de despesa: não sugere', () => {
+  assert.equal(montarTela('receita', '').acrescenta(SUG), false);
+});
+
+test('sem categoria de despesa a oferecer, não há sugestão', () => {
   assert.equal(
     montarTela('despesa_variavel', '').acrescenta({
-      categoria: 'despesa_variavel',
+      categoria: 'despesa_fixa',
       categoriaDespesa: null,
     }),
     false,
-    'repetir o que o chip já disse não é sugestão, é ruído'
+    'sugerir só o tipo é justamente o que não se faz mais'
   );
+});
+
+test('categoria que não existe mais no select não é sugerida', () => {
+  assert.equal(
+    montarTela('despesa_variavel', '').acrescenta({
+      categoria: 'despesa_variavel',
+      categoriaDespesa: 'apagada',
+    }),
+    false
+  );
+});
+
+test('"Usar" preenche só a categoria — tipo e data ficam como estão', () => {
+  const t = montarTela('despesa_variavel', '');
+  t.els.dataVencimento = { value: '2026-10-08' };
+  // Nem o chip nem a regra do cartão podem ser chamados.
+  t.ctx.selecionarChipTipo = () => assert.fail('o "Usar" trocou o tipo');
+  t.ctx.verificarRegraCartao = () => assert.fail('o "Usar" mexeu na regra do cartão');
+  t.usar({ categoria: 'cartao_credito', categoriaDespesa: 'diversos' });
+  assert.equal(t.els.categoriaDespesa.value, 'diversos');
+  assert.equal(t.els.categoriaTransacao.value, 'despesa_variavel', 'o tipo não muda');
+  assert.equal(t.els.dataVencimento.value, '2026-10-08', 'a data não muda');
 });
 
 test('a guarda antiga não pode voltar', () => {

@@ -21,6 +21,8 @@
  */
 (function () {
   var ABERTO = null; // painel atualmente aberto (só um por vez)
+  // Quanto o dedo pode andar e ainda ser um toque (e não uma rolagem).
+  var COMBO_TOLERANCIA_PX = 10;
 
   function fecharAberto() {
     if (ABERTO) {
@@ -156,17 +158,36 @@
         if (ABERTO === panel) fecharAberto();
       }, 150);
     });
-    // pointerdown cobre toque (mobile) e mouse, e roda antes do blur; o
-    // preventDefault mantém o foco no input ao escolher uma opção.
+    // ═══ ESCOLHER NO TOQUE, NÃO NO ENCOSTAR ═══
+    //
+    // A escolha era no `pointerdown`: no celular, encostar o dedo para ROLAR
+    // a lista já selecionava o banco embaixo dele — não dava para rolar.
+    // Agora a escolha é no `click`, que o navegador só dispara num toque de
+    // verdade (depois de uma rolagem ele não vem). Por garantia, um toque que
+    // andou mais que alguns pixels também não conta como escolha.
+    //
+    // O `mousedown` com preventDefault segura o foco no input — sem isso o
+    // blur fecharia o painel antes do click. No toque ele só existe quando o
+    // gesto foi um toque (não na rolagem), então não atrapalha rolar.
+    var inicioToque = null;
     panel.addEventListener('pointerdown', function (e) {
+      inicioToque = { x: e.clientX, y: e.clientY };
+    });
+    panel.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+    panel.addEventListener('click', function (e) {
+      var ini = inicioToque;
+      inicioToque = null;
+      if (ini && Math.abs(e.clientX - ini.x) + Math.abs(e.clientY - ini.y) > COMBO_TOLERANCIA_PX) {
+        return; // foi arrasto, não toque
+      }
       var opt = e.target.closest('.appq-combo-opt');
       if (opt) {
-        e.preventDefault();
         selecionar(opt.getAttribute('data-val'));
         return;
       }
       if (e.target.closest('.appq-combo-usar')) {
-        e.preventDefault();
         fecharAberto();
         input.focus();
       }

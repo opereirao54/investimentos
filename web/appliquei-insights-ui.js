@@ -931,21 +931,6 @@ var insightsSugestaoAtual = null;
 /** Descrições em que o usuário já disse "não" nesta sessão. */
 var insightsSugestaoRecusada = {};
 
-var INSIGHTS_ROTULO_CONTABIL = {
-  receita: 'Receita',
-  despesa_fixa: 'Despesa fixa',
-  despesa_variavel: 'Despesa variável',
-  cartao_credito: 'Cartão de crédito',
-};
-
-/** Qual chip do topo do formulário corresponde à categoria contábil. */
-function insightsChipDaCategoria(cat) {
-  if (cat === 'receita') return 'entrada';
-  if (cat === 'cartao_credito') return 'cartao';
-  if (cat === 'despesa_fixa' || cat === 'despesa_variavel') return 'saida';
-  return null;
-}
-
 /**
  * Roda a cada tecla na descrição, com folga para não recalcular o mapa de
  * categorias a cada caractere.
@@ -964,41 +949,51 @@ function insightsSugestaoAoDigitar() {
 /**
  * A sugestão ainda tem o que dizer, dado o que já está preenchido?
  *
- * ═══ O DEFEITO QUE ISTO CORRIGE ═══
+ * ═══ SÓ A CATEGORIA, NUNCA O TIPO ═══
  *
- * A guarda antiga era `if (selCat.value) return` — "categoria já escolhida
- * não se questiona". A intenção estava certa; o sinal, não. Quem preenche o
- * formulário no celular toca primeiro nos chips do topo (Entrada/Saída/
- * Cartão), que ficam ACIMA da descrição, e `selecionarChipTipo` grava
- * `despesa_variavel` no mesmo campo. A partir daí a descrição podia ser
- * digitada à vontade: a sugestão nunca mais aparecia.
+ * A sugestão já propôs o tipo junto ("Cartão de crédito · Diversos"), e o
+ * "Usar" trocava o chip. Relato: a descrição "diversos" sugeriu cartão, o
+ * "Usar" mudou o tipo, o campo de data passou a ser o vencimento da fatura
+ * (mês que vem); a pessoa voltou para despesa, lançou sem olhar a data e não
+ * achou mais o lançamento.
  *
- * Medido no navegador, com o mesmo histórico nos dois casos:
- *   descrição primeiro, chip depois → sugeriu
- *   chip primeiro, descrição depois → NÃO sugeriu
+ * O tipo (Entrada/Saída/Cartão) é decisão de quem lança — depende de COMO se
+ * pagou hoje, não de como se pagou da última vez. O que o histórico sabe
+ * de verdade é a categoria (mercado, transporte, diversos), que é o trabalho
+ * que a sugestão poupa. Então ela só fala da categoria de despesa, e só
+ * quando o tipo escolhido usa categoria de despesa.
  *
- * Era isso o "só apareceu no primeiro lançamento": o primeiro é digitado com
- * o formulário recém-aberto (o foco vai para a descrição); do segundo em
- * diante a pessoa já entrou no ritmo de tocar o chip antes.
+ * ═══ O DEFEITO ANTERIOR, QUE CONTINUA CORRIGIDO ═══
  *
- * O chip escolhe a classificação GROSSA. A sugestão carrega duas coisas — a
- * grossa e a categoria de despesa (mercado, transporte, cabeleireiro), que
- * chip nenhum preenche e que é justamente o trabalho que ela poupa. Então a
- * pergunta certa não é "já tem alguma coisa aí?", é "o que eu tenho a dizer
- * já está escrito?". Se ambos os campos já batem com a sugestão, ela cala —
- * que era o objetivo original da guarda, agora pelo motivo certo.
+ * A guarda antiga era `if (selCat.value) return`: tocar no chip antes de
+ * digitar (o que a mão faz depois do primeiro lançamento) desligava a
+ * sugestão. A pergunta certa é "o que eu tenho a dizer já está escrito?" —
+ * agora: a categoria sugerida já é a do campo?
  */
 function insightsSugestaoAcrescenta(sug) {
+  if (!sug || !sug.categoriaDespesa) return false;
   var selCat = document.getElementById('categoriaTransacao');
   var selDesp = document.getElementById('categoriaDespesa');
   var catAtual = selCat ? selCat.value : '';
-  var despAtual = selDesp ? selDesp.value : '';
+  if (!insightsTipoUsaCategoriaDespesa(catAtual)) return false;
+  if (!selDesp) return false;
+  if (sug.categoriaDespesa === selDesp.value) return false;
+  // Categoria apagada no passado ainda aparece no histórico: sugerir algo
+  // que o select não tem seria um "Usar" que não faz nada.
+  if (selDesp.options && !insightsSelectTem(selDesp, sug.categoriaDespesa)) return false;
+  return true;
+}
 
-  if (!catAtual) return true; // nada preenchido: a sugestão é toda ela nova
-  if (sug.categoria !== catAtual) return true; // discorda do que está lá
-  // Concorda na classificação grossa: só vale falar se souber a fina e ela
-  // ainda não estiver preenchida.
-  return !!sug.categoriaDespesa && sug.categoriaDespesa !== despAtual;
+/** Despesa fixa, variável e cartão têm categoria de despesa; entrada não. */
+function insightsTipoUsaCategoriaDespesa(cat) {
+  if (typeof categoriaDespesaUsada === 'function') return categoriaDespesaUsada(cat);
+  return cat === 'despesa_fixa' || cat === 'despesa_variavel' || cat === 'cartao_credito';
+}
+
+function insightsSelectTem(sel, valor) {
+  return Array.prototype.some.call(sel.options || [], function (o) {
+    return o.value === valor;
+  });
 }
 
 function insightsSugestaoAvaliar() {
@@ -1023,9 +1018,8 @@ function insightsSugestaoAvaliar() {
   if (!insightsSugestaoAcrescenta(sug)) return insightsSugestaoLimpar();
 
   insightsSugestaoAtual = sug;
-  var rotuloContabil = INSIGHTS_ROTULO_CONTABIL[sug.categoria] || sug.categoria;
-  var rotuloDespesa = sug.categoriaDespesa ? insightsUiRotuloCategoria(sug.categoriaDespesa) : '';
-  var alvo = rotuloContabil + (rotuloDespesa ? ' · ' + rotuloDespesa : '');
+  // Só a categoria: o tipo continua sendo o que a pessoa escolheu.
+  var alvo = insightsUiRotuloCategoria(sug.categoriaDespesa);
 
   host.innerHTML =
     '<div class="ins-sugestao">' +
@@ -1054,41 +1048,23 @@ function insightsSugestaoLimpar() {
 }
 
 /**
- * Aplica a sugestão pelo MESMO caminho do clique manual.
+ * Preenche SÓ a categoria de despesa.
  *
- * Não escreve em transação nenhuma: só preenche os campos do formulário, que
- * o usuário ainda revisa e submete. selecionarChipTipo mantém o chip do topo
- * coerente com o select — preencher só o select deixaria o formulário dizendo
- * duas coisas diferentes ao mesmo tempo.
+ * Não toca no tipo (chip/categoriaTransacao), nem em verificarRegraCartao, nem
+ * na data: trocar o tipo por baixo do usuário levava o lançamento para o
+ * vencimento da fatura sem ele ver. Não escreve em transação nenhuma — o
+ * formulário ainda é revisado e submetido por quem lança.
  */
 function insightsSugestaoUsar() {
   var sug = insightsSugestaoAtual;
-  if (!sug) return;
-  var selCat = document.getElementById('categoriaTransacao');
-  if (!selCat) return;
-
-  var chip = insightsChipDaCategoria(sug.categoria);
-  if (chip && typeof selecionarChipTipo === 'function') selecionarChipTipo(chip);
-  selCat.value = sug.categoria;
-  if (typeof verificarRegraCartao === 'function') verificarRegraCartao();
-
-  // A categoria de despesa só existe depois que verificarRegraCartao popula o
-  // select; e só é aplicada se a opção realmente existir — categoria apagada
-  // no passado ainda aparece no histórico e selecioná-la deixaria o campo num
-  // valor fantasma que o formulário não sabe validar.
-  if (sug.categoriaDespesa) {
-    var selDesp = document.getElementById('categoriaDespesa');
-    if (selDesp) {
-      var existe = Array.prototype.some.call(selDesp.options, function (o) {
-        return o.value === sug.categoriaDespesa;
-      });
-      if (existe) selDesp.value = sug.categoriaDespesa;
-    }
+  if (!sug || !sug.categoriaDespesa) return;
+  var selDesp = document.getElementById('categoriaDespesa');
+  if (selDesp && insightsSelectTem(selDesp, sug.categoriaDespesa)) {
+    selDesp.value = sug.categoriaDespesa;
   }
-
   insightsSugestaoLimpar();
   if (typeof mostrarToast === 'function') {
-    mostrarToast('Classificação preenchida — confira antes de salvar.', 'info');
+    mostrarToast('Categoria preenchida — confira antes de salvar.', 'info');
   }
 }
 
