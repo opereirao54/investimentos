@@ -331,6 +331,7 @@ module.exports = handler({
       referredByCode: billing.referredByCode || null,
       referredByUserId: billing.referredByUserId || null,
       recurringDiscountPercent: billing.recurringDiscountPercent || 0,
+      conviteDescontoPercent: billing.conviteDescontoPercent || 0,
       monthlyPriceCents: billing.monthlyPriceCents || 1500,
       subscriptionBaseValueCents: monthlyCents,
       subscriptionStatus: billing.subscriptionStatus || null,

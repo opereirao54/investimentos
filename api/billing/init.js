@@ -77,7 +77,7 @@ module.exports = handler({
       // Conta sem customer ainda = conta nova (ou /init anterior que falhou no
       // meio). Com o interruptor ligado, ela só nasce com um convite válido.
       // Quem já tem conta não é afetado — exceto se mandar um convite: aí o
-      // convite vira o Pro vitalício dele (bloco has_customer abaixo).
+      // convite vira o benefício de testador dele (bloco has_customer abaixo).
       const preData = preSnap.exists ? preSnap.data() || {} : {};
       const contaNova = !preData.customerId;
       const conviteBruto = body.convite ? String(body.convite) : '';
@@ -87,7 +87,9 @@ module.exports = handler({
           .status(400)
           .json({ error: 'convite_invalido', detail: convites.MENSAGENS.convite_invalido });
       }
-      if (contaNova && !conviteCodigo && (await convites.modoObrigatorio(D))) {
+      // Uma leitura só do config/convites por /init, e só quando importa.
+      const cfgConvite = contaNova || conviteCodigo ? await convites.lerConfig(D) : null;
+      if (contaNova && !conviteCodigo && cfgConvite.obrigatorio) {
         return res
           .status(403)
           .json({ error: 'convite_obrigatorio', detail: convites.MENSAGENS.convite_obrigatorio });
@@ -199,7 +201,7 @@ module.exports = handler({
         let billingNow = existing;
 
         // Convite numa conta que já existe (criada antes do interruptor, ou em
-        // avaliação): vira Pro vitalício. Quem já tem conta NUNCA fica preso
+        // avaliação): ganha o benefício de testador. Quem já tem conta NUNCA fica preso
         // por causa de um convite — se o código não servir, o /init responde
         // normal e só avisa (avisoConvite), para um link velho não trancar
         // quem já usa o app. Com assinatura no Asaas, não troca: a cortesia
@@ -214,7 +216,11 @@ module.exports = handler({
               const leitura = await convites.lerParaResgate(tx, D, conviteCodigo, user.uid);
               if (!leitura.ok) return leitura;
               convites.marcarUsado(tx, leitura, { uid: user.uid, email: user.email }, timestamp());
-              tx.set(ref, convites.camposCortesia(conviteCodigo, timestamp()), { merge: true });
+              tx.set(
+                ref,
+                convites.camposCortesia(conviteCodigo, timestamp(), cfgConvite.dataLancamento),
+                { merge: true }
+              );
               return leitura;
             });
             if (resgate.ok) billingNow = (await ref.get()).data();
@@ -263,7 +269,11 @@ module.exports = handler({
               referredByUserId: owner.uid,
               referredByCode: owner.code,
               referralUsedAt: timestamp().fromMillis(Date.now()),
-              recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
+              // O desconto de testador (50%) não cai para os 10% do cupom.
+              recurringDiscountPercent: Math.max(
+                REFERRAL_DISCOUNT_PERCENT,
+                (billingNow && billingNow.conviteDescontoPercent) || 0
+              ),
               updatedAt: fieldValue().serverTimestamp(),
             },
             { merge: true }
@@ -377,8 +387,12 @@ module.exports = handler({
           initLock: fieldValue().delete(),
           initLockAt: fieldValue().delete(),
         };
-        // Convite: o Pro vitalício entra junto com o nascimento da conta.
-        if (conviteCodigo) Object.assign(data, convites.camposCortesia(conviteCodigo, timestamp()));
+        // Convite: o benefício de testador entra junto com o nascimento da conta.
+        if (conviteCodigo)
+          Object.assign(
+            data,
+            convites.camposCortesia(conviteCodigo, timestamp(), cfgConvite.dataLancamento)
+          );
         if (referredByUserId) {
           data.referredByUserId = referredByUserId;
           data.referredByCode = referredByCode;
@@ -415,6 +429,7 @@ function safeBilling(b) {
     referralCode: b.referralCode || null,
     referredByCode: b.referredByCode || null,
     recurringDiscountPercent: b.recurringDiscountPercent || 0,
+    conviteDescontoPercent: b.conviteDescontoPercent || 0,
     monthlyPriceCents: b.monthlyPriceCents || MONTHLY_PRICE_CENTS,
   };
 }

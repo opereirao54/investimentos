@@ -340,7 +340,7 @@ window.__appliqueiAuthModo = 'login';
 // ─── Cadastro por convite (fase de testes) ──────────────────────────────────
 // O servidor diz se o cadastro está fechado (GET /api/user?op=convite-modo).
 // Fechado: a aba "Criar conta" mostra o campo do convite e esconde o cupom do
-// Applicash (o convite já dá acesso vitalício; o cupom só confundiria). A
+// Applicash (o convite já dá acesso grátis e depois 50%; o cupom só confundiria). A
 // trava de verdade é o /api/billing/init — isto aqui é só a tela.
 var CONVITE_KEY = 'appliquei_pending_convite';
 window.__appliqueiConviteObrigatorio = false;
@@ -363,7 +363,7 @@ function aplicarModoConvite() {
   if (wrap) wrap.style.display = obrig && reg ? '' : 'none';
   var cupomWrap = $('authCupomWrap');
   if (cupomWrap && obrig) cupomWrap.style.display = 'none';
-  // "7 dias grátis, depois R$ 15/mês" contradiz o convite vitalício.
+  // "7 dias grátis, depois R$ 15/mês" contradiz o benefício do convite.
   var rodape = $('authRodapePreco');
   if (rodape) rodape.style.display = obrig ? 'none' : '';
   var inp = $('authConvite');

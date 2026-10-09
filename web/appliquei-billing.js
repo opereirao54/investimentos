@@ -75,7 +75,11 @@ function updateGatePrices() {
           ? fmtBRL(diff)
           : 'R$ ' + (diff / 100).toFixed(2).replace('.', ','));
       var lbl = document.getElementById('billingSummaryDiscountLabel');
-      if (lbl) lbl.textContent = 'Cupom ' + pct + '% off';
+      if (lbl)
+        lbl.textContent =
+          lastBilling && lastBilling.conviteDescontoPercent
+            ? 'Desconto de testador ' + pct + '%'
+            : 'Cupom ' + pct + '% off';
     } else {
       row.style.display = 'none';
     }
@@ -90,6 +94,11 @@ function renderCouponState() {
   var section = $('billingCouponSection');
   if (!section) return;
   var b = lastBilling || {};
+  // Testador (convite) já tem 50%: o cupom de 10% não somaria nada.
+  if (b.conviteDescontoPercent) {
+    section.style.display = 'none';
+    return;
+  }
   section.style.display = '';
   var body = $('billingCouponBody');
   var toggle = $('billingCouponToggle');
@@ -1242,7 +1251,10 @@ async function initBilling() {
       convite &&
       typeof window.mostrarToast === 'function'
     ) {
-      window.mostrarToast('Convite aceito — seu acesso é vitalício. Bem-vindo(a)!', 'sucesso');
+      window.mostrarToast(
+        'Convite aceito — bem-vindo(a) ao grupo de testadores do Appliquei!',
+        'sucesso'
+      );
     }
   } catch (e) {
     console.warn('[billing] init', e);

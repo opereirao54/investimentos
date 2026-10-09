@@ -1532,6 +1532,15 @@ function cvRender(data) {
   $('cv-modo-txt').textContent = obrig
     ? 'LIGADO — conta nova só entra com código. Quem já tem conta continua entrando normal.'
     : 'DESLIGADO — cadastro aberto, como antes (avaliação de 7 dias e assinatura).';
+  const inpData = $('cv-lancamento');
+  if (inpData && document.activeElement !== inpData) inpData.value = data.dataLancamento || '';
+  const txt = $('cv-lancamento-txt');
+  if (txt) {
+    const pct = data.descontoPercent || 50;
+    txt.innerHTML = data.ultimoDiaGratis
+      ? `🎁 Testadores: <strong>grátis até ${escHTML(data.ultimoDiaGratis || '')}</strong>, depois <strong>${pct}% de desconto</strong> na mensalidade, para sempre.`
+      : `⚠️ <strong>Sem data de lançamento:</strong> por enquanto os testadores têm acesso grátis sem prazo. Defina a data para valer o "1 ano depois do lançamento" (e depois ${pct}% de desconto).`;
+  }
   const itens = data.itens || [];
   const tb = $('cv-lista');
   if (!itens.length) {
@@ -1584,6 +1593,26 @@ async function cvMudarModo(ligar) {
     toast(ligar ? 'Cadastro só com convite: LIGADO' : 'Cadastro aberto novamente', 'success');
   } catch (err) {
     $('cv-obrigatorio').checked = !ligar;
+    toast('Erro: ' + err.message, 'error');
+  }
+}
+
+async function cvSalvarLancamento() {
+  const data = $('cv-lancamento').value; // 'aaaa-mm-dd' ou '' (limpar)
+  const msg = data
+    ? 'Definir o lançamento em ' +
+      data.split('-').reverse().join('/') +
+      '? O acesso grátis de TODOS os testadores passa a valer até 1 ano depois desta data.'
+    : 'Apagar a data de lançamento? Os testadores voltam a ter acesso grátis sem prazo até você definir uma data.';
+  if (!confirm(msg)) return;
+  try {
+    const r = await adminPost({ action: 'convites_lancamento', data });
+    cvRender(r);
+    toast(
+      'Data salva. ' + (r.recalculados || 0) + ' testador(es) com o prazo recalculado.',
+      'success'
+    );
+  } catch (err) {
     toast('Erro: ' + err.message, 'error');
   }
 }
