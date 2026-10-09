@@ -32,12 +32,14 @@ const TIPOS = [
 ];
 const TIPO_POR_ID = Object.fromEntries(TIPOS.map((t) => [t.id, t]));
 
-// Horas de Brasília em que cada janela pode sair. Mais de uma hora por
-// janela de propósito: o agendador do GitHub atrasa e às vezes pula uma
-// rodada. A janela sai uma vez por dia, na primeira rodada que cair aqui.
+// Horas de Brasília em que cada janela pode sair. Largas de propósito: o
+// agendador do GitHub atrasa HORAS e às vezes pula rodadas (medido: a rodada
+// das 22:17 chegou às 23:56; as das 8:17 e 9:17 nem vieram). A janela sai
+// uma vez por dia, na primeira rodada que cair aqui — então a largura só
+// serve para um atraso não fazer o alerta do dia se perder.
 const JANELAS = {
-  manha: { de: 8, ate: 11, titulo: '☀️ <b>Bom dia!</b>' },
-  noite: { de: 20, ate: 22, titulo: '🌙 <b>Boa noite!</b>' },
+  manha: { de: 7, ate: 12, titulo: '☀️ <b>Bom dia!</b>' },
+  noite: { de: 18, ate: 23, titulo: '🌙 <b>Boa noite!</b>' },
 };
 
 function janelaDaHora(agora) {

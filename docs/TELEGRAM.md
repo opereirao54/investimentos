@@ -221,17 +221,22 @@ botão **🔔 Alertas** ou mandando "parar alertas".
 
 | Horário (Brasília) | Alerta                                                                            |
 | ------------------ | --------------------------------------------------------------------------------- |
-| ☀️ ~8h             | conta vencendo hoje/amanhã · conta vencida (até 3 dias) · com **✅ Já paguei**    |
-| ☀️ ~8h             | fatura fechando em 1–2 dias · fatura vencendo hoje/amanhã (com ✅ Já paguei)      |
-| ☀️ ~8h             | **sai antes de entrar**: o caixa projetado fica negativo nos próximos 10 dias     |
-| 🌙 ~20h            | **limite de 60% da receita** (régua do termômetro do Controle), uma vez por faixa |
-| 🌙 ~20h            | ritmo: variáveis + cartão já passaram o mês anterior inteiro                      |
-| 🌙 ~20h            | lembrete: 3 dias sem lançar nada                                                  |
-| 🌙 ~20h            | sonho conquistado                                                                 |
+| ☀️ ~7h             | conta vencendo hoje/amanhã · conta vencida (até 3 dias) · com **✅ Já paguei**    |
+| ☀️ ~7h             | fatura fechando em 1–2 dias · fatura vencendo hoje/amanhã (com ✅ Já paguei)      |
+| ☀️ ~7h             | **sai antes de entrar**: o caixa projetado fica negativo nos próximos 10 dias     |
+| 🌙 ~18h            | **limite de 60% da receita** (régua do termômetro do Controle), uma vez por faixa |
+| 🌙 ~18h            | ritmo: variáveis + cartão já passaram o mês anterior inteiro                      |
+| 🌙 ~18h            | lembrete: 3 dias sem lançar nada                                                  |
+| 🌙 ~18h            | sonho conquistado                                                                 |
 
 Quem dispara é o **GitHub Actions** (`.github/workflows/telegram-alertas.yml`),
 porque o cron da Vercel Hobby só roda uma vez por dia e as duas vagas estão
 ocupadas. Ele chama `POST /api/user?op=telegram-alertas` com o `CRON_SECRET`.
+
+O GitHub atrasa o agendamento em horas e às vezes pula rodadas. Por isso a
+rodada sai de hora em hora desde cedo (manhã 07:07–11:07, noite 18:07–22:07)
+e cada janela aceita até o fim do período (manhã 7h–12h59, noite 18h–23h59):
+a primeira rodada que chegar manda, as outras não repetem.
 
 ### Ligar (uma vez, 5 min, só no navegador)
 

@@ -168,16 +168,38 @@ test.beforeEach(() => reset());
 
 // ─── regras ─────────────────────────────────────────────────────────────────
 
-test('janelas: 8–11h manhã, 20–22h noite, fora disso nada (horário de Brasília)', () => {
+test('janelas: 7–12h manhã, 18–23h noite, fora disso nada (horário de Brasília)', () => {
   const C = require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
   const h = (iso) => A.janelaDaHora(C.agoraBrasilia(new Date(iso)));
-  assert.equal(h('2026-10-08T10:59:00Z'), null); // 07:59
-  assert.equal(h('2026-10-08T11:00:00Z'), 'manha');
-  assert.equal(h('2026-10-08T14:59:00Z'), 'manha'); // 11:59
-  assert.equal(h('2026-10-08T15:00:00Z'), null);
-  assert.equal(h('2026-10-08T23:00:00Z'), 'noite'); // 20:00
-  assert.equal(h('2026-10-09T01:59:00Z'), 'noite'); // 22:59
-  assert.equal(h('2026-10-09T02:00:00Z'), null);
+  assert.equal(h('2026-10-08T09:59:00Z'), null); // 06:59
+  assert.equal(h('2026-10-08T10:00:00Z'), 'manha'); // 07:00
+  assert.equal(h('2026-10-08T15:59:00Z'), 'manha'); // 12:59
+  assert.equal(h('2026-10-08T16:00:00Z'), null); // 13:00
+  assert.equal(h('2026-10-08T20:59:00Z'), null); // 17:59
+  assert.equal(h('2026-10-08T21:00:00Z'), 'noite'); // 18:00
+  // A rodada das 22:17 que o GitHub só disparou às 23:56 (medido em produção)
+  // agora ainda cai na noite.
+  assert.equal(h('2026-10-09T02:56:00Z'), 'noite'); // 23:56
+  assert.equal(h('2026-10-09T03:00:00Z'), null); // 00:00 — já é outro dia
+});
+
+test('o agendamento do workflow cobre o começo de cada janela', () => {
+  const fs = require('node:fs');
+  const yml = fs.readFileSync(path.join(ROOT, '.github/workflows/telegram-alertas.yml'), 'utf8');
+  const m = yml.match(/cron:\s*'(\d+) ([\d,]+) \* \* \*'/);
+  assert.ok(m, 'cron não encontrado');
+  const horasBrasilia = m[2].split(',').map((x) => (Number(x) + 21) % 24);
+  for (const id of Object.keys(A.JANELAS)) {
+    const j = A.JANELAS[id];
+    const dentro = horasBrasilia.filter((hh) => hh >= j.de && hh <= j.ate);
+    assert.ok(dentro.includes(j.de), `${id}: nenhuma rodada na primeira hora da janela`);
+    assert.ok(dentro.length >= 3, `${id}: poucas rodadas de reserva`);
+  }
+  // Nenhuma rodada fora das janelas (seria só gasto).
+  assert.ok(
+    horasBrasilia.every((hh) => Object.values(A.JANELAS).some((j) => hh >= j.de && hh <= j.ate)),
+    'rodada agendada fora de janela'
+  );
 });
 
 test('manhã: contas de hoje e amanhã, vencidas há até 3 dias, faturas', () => {
