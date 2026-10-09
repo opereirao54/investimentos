@@ -289,3 +289,93 @@ test('dados vazios ou estranhos não estouram', () => {
   const r = C.resumoMes({ transacoes: [null, {}, { mes: 1, ano: 2026 }] }, 1, 2026);
   assert.equal(r.resultado, 0);
 });
+
+// ─── saldo livre do mês (card do Controle Financeiro) ───────────────────────
+
+test('saldo livre e saldo em conta: os mesmos números que o Controle desenha, em vários meses', () => {
+  const { s, ref } = mundo();
+  const M = HOJE.getMonth();
+  const A = HOJE.getFullYear();
+  const mesAnt = new Date(A, M - 1, 1);
+  const mes2 = new Date(A, M - 2, 1);
+  s.transacoes.push(
+    // meses anteriores: o resultado deles vira o saldo trazido
+    {
+      id: 'sl1',
+      categoria: 'receita',
+      valor: 3000,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: mes2.getMonth(),
+      ano: mes2.getFullYear(),
+    },
+    {
+      id: 'sl2',
+      categoria: 'despesa_variavel',
+      valor: 1200,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: mesAnt.getMonth(),
+      ano: mesAnt.getFullYear(),
+      pago: true,
+    },
+    // resgate de investimento: entra como receita do mês
+    {
+      id: 'sl4',
+      categoria: 'resgate_investimento',
+      valor: 650,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: M,
+      ano: A,
+    },
+    // transferência entre contas: fora do saldo livre
+    {
+      id: 'sl3',
+      categoria: 'transferencia_saida',
+      valor: 400,
+      contaId: ref.nubank.id,
+      banco: 'Nubank',
+      mes: M,
+      ano: A,
+      pago: true,
+    }
+  );
+  // Ajuste manual do saldo trazido no mês passado (o app guarda só os manuais).
+  s.salvarMapaSaldoCarregado({
+    [`${mesAnt.getFullYear()}-${mesAnt.getMonth()}`]: { valor: 777, manual: true },
+  });
+
+  const d = dadosServidor(s);
+  d.saldoCarregado = JSON.parse(s.localStorage.getItem('futurorico_saldoCarregado') || '{}');
+
+  let capturado = null;
+  s.mobRenderInicio = (x) => (capturado = x);
+  for (const alvo of [mes2, mesAnt, new Date(A, M, 1), new Date(A, M + 1, 1)]) {
+    s.visaoMes = alvo.getMonth();
+    s.visaoAno = alvo.getFullYear();
+    capturado = null;
+    s.atualizarTelaControle();
+    assert.ok(capturado, 'a tela entregou os números');
+    const srv = C.saldoLivreMes(d, alvo.getMonth(), alvo.getFullYear());
+    const quando = `${alvo.getMonth() + 1}/${alvo.getFullYear()}`;
+    assert.equal(
+      Math.round(srv.livre * 100),
+      Math.round(capturado.saldoLivre * 100),
+      `livre ${quando}`
+    );
+    assert.equal(
+      Math.round(srv.carregado * 100),
+      Math.round(capturado.carregado * 100),
+      `carregado ${quando}`
+    );
+  }
+  // E o saldo em conta do mês corrente é o total do /saldo.
+  s.visaoMes = M;
+  s.visaoAno = A;
+  s.atualizarTelaControle();
+  assert.equal(
+    Math.round(C.resumoSaldo(d, Date.now()).total * 100),
+    Math.round(capturado.saldoConta * 100)
+  );
+});

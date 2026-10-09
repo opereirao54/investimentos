@@ -439,19 +439,29 @@ function textoSaldo(d, agora) {
     .filter((c) => !(c.corretora && Math.abs(c.saldo) < 0.005))
     .map((c) => `${c.corretora ? '📈' : '🏦'} ${esc(c.nome)}: <b>${brl(c.saldo)}</b>`);
   if (Math.abs(r.fora) >= 0.005) linhas.push(`❔ Fora de conta cadastrada: <b>${brl(r.fora)}</b>`);
-  if (!linhas.length) {
-    return (
-      '🏦 Você ainda não tem conta cadastrada. Cadastre no app ' +
-      '(<b>Meu Patrimônio → Contas</b>) para eu mostrar o saldo.' +
-      rodapeConsulta(d)
-    );
-  }
-  return (
-    '💰 <b>Saldo em conta</b>\n\n' +
-    linhas.join('\n') +
-    `\n\n<b>Total: ${brl(r.total)}</b>` +
-    rodapeConsulta(d)
-  );
+
+  // Os dois números do topo do Controle Financeiro, com as legendas de lá:
+  // "Saldo em conta" é de AGORA (o dinheiro nas contas); "Saldo livre" é do
+  // MÊS (o que sobrou do que entrou). Juntos num número só, a pessoa leria um
+  // pelo outro — foi por isso que o app os separou em dois cards.
+  const emConta = linhas.length
+    ? `💰 <b>Saldo em conta: ${brl(r.total)}</b>\n` +
+      '<i>o que existe hoje, somando as suas contas</i>\n' +
+      linhas.join('\n')
+    : '🏦 Você ainda não tem conta cadastrada. Cadastre no app ' +
+      '(<b>Meu Patrimônio → Contas</b>) para eu mostrar o saldo em conta.';
+
+  const l = consultas.saldoLivreMes(d, agora.getMonth(), agora.getFullYear());
+  const carregado =
+    Math.abs(l.carregado) >= 0.005
+      ? ` (${l.carregado > 0 ? '+' : '−'}${brl(Math.abs(l.carregado))} do mês anterior)`
+      : '';
+  const livre =
+    `${l.livre >= 0 ? '🟢' : '🔴'} <b>Saldo livre de ${MESES[agora.getMonth()].toLowerCase()}: ` +
+    `${brl(l.livre)}</b>\n` +
+    `<i>o que sobrou de tudo o que entrou neste mês</i>${carregado}`;
+
+  return emConta + '\n\n' + livre + rodapeConsulta(d);
 }
 
 function textoFatura(d, agora) {
