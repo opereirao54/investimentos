@@ -201,6 +201,13 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // Convites da fase de testes: só o Admin SDK lê e escreve (painel admin e
+    // /api/billing/init). Fechado para não permitir enumerar códigos.
+    match /convites/{codigo} {
+      allow read: if false;
+      allow write: if false;
+    }
+
     // Nada mais é permitido por defeito (negação implícita).
   }
 }

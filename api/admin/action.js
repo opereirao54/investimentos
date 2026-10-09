@@ -3,6 +3,7 @@ const asaas = require('../_lib/asaas');
 const { handler } = require('../_lib/handler');
 const { reconcileAccount } = require('../_lib/reconcile');
 const { computeAccess, isLegacyGrant } = require('../_lib/access');
+const convites = require('../_lib/convites');
 
 // Ações administrativas pontuais sobre um usuário específico.
 // Autenticação igual à de `stats.js`: header `Authorization: Bearer <ADMIN_API_TOKEN>`.
@@ -144,6 +145,75 @@ module.exports = handler({
         });
       } catch (e) {
         console.error('[admin/action] save_carteira', e);
+        return res.status(500).json({ error: 'action_failed', detail: e.message });
+      }
+    }
+
+    // ── Convites da fase de testes (api/_lib/convites.js) ──
+    if (
+      action === 'convites_listar' ||
+      action === 'convites_gerar' ||
+      action === 'convites_cancelar' ||
+      action === 'convites_modo'
+    ) {
+      try {
+        const D = db();
+        const ts = timestamp();
+        if (action === 'convites_modo') {
+          const ligado = await convites.definirModo(
+            D,
+            body && body.obrigatorio === true,
+            actor,
+            ts
+          );
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: ligado
+              ? 'cadastro só com convite: LIGADO'
+              : 'cadastro só com convite: DESLIGADO',
+          });
+        }
+        if (action === 'convites_gerar') {
+          const criados = await convites.gerar(
+            D,
+            { quantidade: body && body.quantidade, nota: body && body.nota, actor },
+            ts
+          );
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: `${criados.length} convite(s)${body && body.nota ? ' — ' + String(body.nota).slice(0, 120) : ''}`,
+          });
+          return res.json({
+            success: true,
+            criados,
+            obrigatorio: await convites.modoObrigatorio(D),
+            itens: await convites.listar(D),
+          });
+        }
+        if (action === 'convites_cancelar') {
+          const r = await convites.cancelar(D, body && body.codigo, actor, ts);
+          if (!r.ok) return res.status(400).json({ error: r.erro });
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: `convite ${r.codigo} cancelado`,
+          });
+        }
+        return res.json({
+          success: true,
+          obrigatorio: await convites.modoObrigatorio(D),
+          itens: await convites.listar(D),
+        });
+      } catch (e) {
+        console.error('[admin/action] convites', e);
         return res.status(500).json({ error: 'action_failed', detail: e.message });
       }
     }

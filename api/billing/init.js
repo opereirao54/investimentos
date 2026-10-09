@@ -7,6 +7,7 @@ const { syncBillingFromAsaas } = require('../_lib/billing-sync');
 const codes = require('../_lib/codes');
 const rl = require('../_lib/rate-limit');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
+const convites = require('../_lib/convites');
 
 const MONTHLY_PRICE_CENTS = 1500;
 const REFERRAL_DISCOUNT_PERCENT = 10;
@@ -61,262 +62,332 @@ module.exports = handler({
 
     try {
       const D = db();
-    const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
+      const ref = D.collection('users').doc(user.uid).collection('billing').doc('account');
 
-    // Antifraude:
-    //  - Primeira criação de billing: rate-limit por IP+device (TRIAL_RATE_LIMIT_*).
-    //  - Retro-apply de cupom (billing já existe, ainda sem referredByUserId
-    //    e com rawCode informado): rate-limit menor, escopo separado
-    //    'init-retroref-*'. Evita usar uma conta legítima como sonda de
-    //    enumeração de cupons.
-    const preSnap = await ref.get();
-    const isFirstInit = !preSnap.exists;
-    const isRetroRefAttempt =
-      !isFirstInit && !!rawCode && !(preSnap.data() && preSnap.data().referredByUserId);
-    if (isFirstInit || isRetroRefAttempt) {
-      const ip = signupIp(req) || 'unknown';
-      const device = rl.deviceFingerprint(req);
-      const antifraudEnabled =
-        String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
-      const scopePrefix = isFirstInit ? 'init' : 'init-retroref';
-      const windowIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_WINDOW_MS : 60 * 60 * 1000;
-      const maxIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_MAX : 10;
-      const windowDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS : 60 * 60 * 1000;
-      const maxDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_MAX : 10;
-      const ipCheck = await rl.check({
-        scope: scopePrefix + '-ip',
-        key: ip,
-        windowMs: windowIp,
-        max: maxIp,
-      });
-      const devCheck = await rl.check({
-        scope: scopePrefix + '-device',
-        key: device,
-        windowMs: windowDev,
-        max: maxDev,
-      });
-      if (!ipCheck.allowed || !devCheck.allowed) {
-        console.warn('[init] rate-limit hit', {
-          scope: scopePrefix,
-          uid: user.uid,
-          ip,
-          device,
-          ipCount: ipCheck.count,
-          devCount: devCheck.count,
-          enforced: antifraudEnabled,
+      // Antifraude:
+      //  - Primeira criação de billing: rate-limit por IP+device (TRIAL_RATE_LIMIT_*).
+      //  - Retro-apply de cupom (billing já existe, ainda sem referredByUserId
+      //    e com rawCode informado): rate-limit menor, escopo separado
+      //    'init-retroref-*'. Evita usar uma conta legítima como sonda de
+      //    enumeração de cupons.
+      const preSnap = await ref.get();
+      const isFirstInit = !preSnap.exists;
+
+      // ── Convite (fase de testes) ──────────────────────────────────────────
+      // Conta sem customer ainda = conta nova (ou /init anterior que falhou no
+      // meio). Com o interruptor ligado, ela só nasce com um convite válido.
+      // Quem já tem conta não é afetado — exceto se mandar um convite: aí o
+      // convite vira o Pro vitalício dele (bloco has_customer abaixo).
+      const preData = preSnap.exists ? preSnap.data() || {} : {};
+      const contaNova = !preData.customerId;
+      const conviteBruto = body.convite ? String(body.convite) : '';
+      const conviteCodigo = conviteBruto ? convites.normalizar(conviteBruto) : null;
+      if (conviteBruto && !conviteCodigo) {
+        return res
+          .status(400)
+          .json({ error: 'convite_invalido', detail: convites.MENSAGENS.convite_invalido });
+      }
+      if (contaNova && !conviteCodigo && (await convites.modoObrigatorio(D))) {
+        return res
+          .status(403)
+          .json({ error: 'convite_obrigatorio', detail: convites.MENSAGENS.convite_obrigatorio });
+      }
+      const isRetroRefAttempt =
+        !isFirstInit && !!rawCode && !(preSnap.data() && preSnap.data().referredByUserId);
+      if (isFirstInit || isRetroRefAttempt) {
+        const ip = signupIp(req) || 'unknown';
+        const device = rl.deviceFingerprint(req);
+        const antifraudEnabled =
+          String(process.env.ANTIFRAUD_INIT_ENABLED || '').toLowerCase() === 'true';
+        const scopePrefix = isFirstInit ? 'init' : 'init-retroref';
+        const windowIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_WINDOW_MS : 60 * 60 * 1000;
+        const maxIp = isFirstInit ? TRIAL_RATE_LIMIT_IP_MAX : 10;
+        const windowDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_WINDOW_MS : 60 * 60 * 1000;
+        const maxDev = isFirstInit ? TRIAL_RATE_LIMIT_DEVICE_MAX : 10;
+        const ipCheck = await rl.check({
+          scope: scopePrefix + '-ip',
+          key: ip,
+          windowMs: windowIp,
+          max: maxIp,
         });
-        if (antifraudEnabled) {
-          const retry = Math.max(ipCheck.retryAfterMs || 0, devCheck.retryAfterMs || 0);
-          res.setHeader('Retry-After', Math.ceil(retry / 1000));
-          return res.status(429).json({
-            error: isFirstInit ? 'too_many_trials' : 'too_many_referral_attempts',
-            detail: isFirstInit
-              ? 'Muitas contas criadas a partir deste dispositivo/IP recentemente. Tente novamente mais tarde ou entre em contato com o suporte.'
-              : 'Muitas tentativas de aplicar cupom recentemente. Tente novamente em alguns minutos.',
+        const devCheck = await rl.check({
+          scope: scopePrefix + '-device',
+          key: device,
+          windowMs: windowDev,
+          max: maxDev,
+        });
+        if (!ipCheck.allowed || !devCheck.allowed) {
+          console.warn('[init] rate-limit hit', {
+            scope: scopePrefix,
+            uid: user.uid,
+            ip,
+            device,
+            ipCount: ipCheck.count,
+            devCount: devCheck.count,
+            enforced: antifraudEnabled,
           });
+          if (antifraudEnabled) {
+            const retry = Math.max(ipCheck.retryAfterMs || 0, devCheck.retryAfterMs || 0);
+            res.setHeader('Retry-After', Math.ceil(retry / 1000));
+            return res.status(429).json({
+              error: isFirstInit ? 'too_many_trials' : 'too_many_referral_attempts',
+              detail: isFirstInit
+                ? 'Muitas contas criadas a partir deste dispositivo/IP recentemente. Tente novamente mais tarde ou entre em contato com o suporte.'
+                : 'Muitas tentativas de aplicar cupom recentemente. Tente novamente em alguns minutos.',
+            });
+          }
         }
       }
-    }
 
-    // A3: lock transacional contra inicializações concorrentes do mesmo uid
-    // (duas abas / app+web simultâneo). Evita criar dois customers no Asaas.
-    const LOCK_TTL_MS = 30000;
-    const claim = await D.runTransaction(async (tx) => {
-      const s = await tx.get(ref);
-      const ex = s.exists ? s.data() : null;
-      if (ex && ex.customerId) return { state: 'has_customer', existing: ex };
-      const lockedAtMs =
-        ex && ex.initLockAt && typeof ex.initLockAt.toMillis === 'function'
-          ? ex.initLockAt.toMillis()
-          : 0;
-      if (ex && ex.initLock && Date.now() - lockedAtMs < LOCK_TTL_MS) {
-        return { state: 'locked' };
-      }
-      tx.set(
-        ref,
-        {
-          initLock: true,
-          initLockAt: timestamp().fromMillis(Date.now()),
-        },
-        { merge: true }
-      );
-      return { state: 'acquired', existing: ex };
-    });
+      // A3: lock transacional contra inicializações concorrentes do mesmo uid
+      // (duas abas / app+web simultâneo). Evita criar dois customers no Asaas.
+      const LOCK_TTL_MS = 30000;
+      const claim = await D.runTransaction(async (tx) => {
+        const s = await tx.get(ref);
+        const ex = s.exists ? s.data() : null;
+        if (ex && ex.customerId) return { state: 'has_customer', existing: ex };
+        const lockedAtMs =
+          ex && ex.initLockAt && typeof ex.initLockAt.toMillis === 'function'
+            ? ex.initLockAt.toMillis()
+            : 0;
+        if (ex && ex.initLock && Date.now() - lockedAtMs < LOCK_TTL_MS) {
+          return { state: 'locked' };
+        }
+        // O convite é marcado como usado NA MESMA transação que pega a trava:
+        // dois cadastros com o mesmo código no mesmo instante → só um passa.
+        // Se o Asaas falhar adiante, o convite continua deste uid e a nova
+        // tentativa dele passa (lerParaResgate aceita o próprio dono).
+        let leituraConvite = null;
+        if (conviteCodigo) {
+          leituraConvite = await convites.lerParaResgate(tx, D, conviteCodigo, user.uid);
+          if (!leituraConvite.ok) return { state: 'convite', erro: leituraConvite.erro };
+        }
+        if (leituraConvite) {
+          convites.marcarUsado(
+            tx,
+            leituraConvite,
+            { uid: user.uid, email: user.email },
+            timestamp()
+          );
+        }
+        tx.set(
+          ref,
+          {
+            initLock: true,
+            initLockAt: timestamp().fromMillis(Date.now()),
+          },
+          { merge: true }
+        );
+        return { state: 'acquired', existing: ex };
+      });
 
-    if (claim.state === 'locked') {
-      return res
-        .status(409)
-        .json({
+      if (claim.state === 'locked') {
+        return res.status(409).json({
           error: 'init_in_progress',
           detail: 'Inicialização em andamento, tente novamente em instantes.',
         });
-    }
-
-    if (claim.state === 'has_customer') {
-      const existing = claim.existing;
-      let billingNow = existing;
-
-      // Self-heal: se billing.referralCode aponta para um doc que não existe
-      // mais em referralCodes/ (estado órfão herdado de versões antigas ou
-      // edição manual), recria a reserva. Sem isto, ninguém consegue usar
-      // o cupom deste usuário — `lookupOwner` devolve null e o /init de
-      // quem tenta usar bate referral_code_not_found.
-      if (existing.referralCode && codes.isValid(existing.referralCode)) {
-        try {
-          await codes.ensureReserved(D, existing.referralCode, user.uid, timestamp());
-        } catch (e) {
-          console.warn('[init] self-heal referralCodes failed', e.message || e);
-        }
       }
 
-      // Bug #1 fix: aplicar cupom retroativo se o usuário ainda não criou
-      // a subscription no Asaas (ou seja, ainda não pagou nenhuma fatura
-      // recorrente). Cobre os casos:
-      //   - Usuário já estava logado e só agora clicou no link de indicação
-      //   - Usuário criou conta sem cupom e depois recebeu o link
-      // Após /subscribe (subscriptionId existe), o cupom não pode mais ser
-      // aplicado retroativamente porque a recorrência no Asaas já foi
-      // criada com valor fixo. Também recusa se já há referral vinculado
-      // (não permite trocar de cupom).
-      if (rawCode && !existing.subscriptionId && !existing.referredByUserId) {
-        if (!codes.isValid(rawCode)) {
-          return res.status(400).json({ error: 'invalid_referral_code' });
-        }
-        const owner = await codes.lookupOwner(D, rawCode);
-        if (!owner) {
-          return res.status(400).json({ error: 'referral_code_not_found' });
-        }
-        // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
-        // e indicador INACTIVE).
-        const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
-        if (!guard.allowed) {
-          return res.status(400).json({ error: guard.reason });
-        }
-        await ref.set(
-          {
-            referredByUserId: owner.uid,
-            referredByCode: owner.code,
-            referralUsedAt: timestamp().fromMillis(Date.now()),
-            recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
-            updatedAt: fieldValue().serverTimestamp(),
-          },
-          { merge: true }
-        );
-        const reread = await ref.get();
-        billingNow = reread.data();
+      if (claim.state === 'convite') {
+        return res
+          .status(400)
+          .json({ error: claim.erro, detail: convites.MENSAGENS[claim.erro] || claim.erro });
       }
 
-      const synced = await syncBillingFromAsaas(ref, billingNow);
-      return res.json({
-        access: computeAccess(synced.billing),
-        billing: safeBilling(synced.billing),
-      });
-    }
+      if (claim.state === 'has_customer') {
+        const existing = claim.existing;
+        let billingNow = existing;
 
-    const existing = claim.existing;
-    let releasedOnError = false;
-    const releaseLock = async () => {
-      if (releasedOnError) return;
-      releasedOnError = true;
-      try {
-        await ref.set(
-          {
-            initLock: fieldValue().delete(),
-            initLockAt: fieldValue().delete(),
-          },
-          { merge: true }
-        );
-      } catch (_) {}
-    };
-
-    try {
-      let referredByUserId = null;
-      let referredByCode = null;
-      let discountPercent = (existing && existing.recurringDiscountPercent) || 0;
-
-      if (rawCode && !(existing && existing.referredByUserId)) {
-        if (!codes.isValid(rawCode)) {
-          await releaseLock();
-          return res.status(400).json({ error: 'invalid_referral_code' });
+        // Convite numa conta que já existe (criada antes do interruptor, ou em
+        // avaliação): vira Pro vitalício. Quem já tem conta NUNCA fica preso
+        // por causa de um convite — se o código não servir, o /init responde
+        // normal e só avisa (avisoConvite), para um link velho não trancar
+        // quem já usa o app. Com assinatura no Asaas, não troca: a cortesia
+        // não para as cobranças, e trocar uma pela outra é decisão do admin
+        // ("Cancelar assinatura no Asaas" + "Tornar PRO").
+        let avisoConvite = null;
+        if (conviteCodigo && existing.courtesyPermanent !== true) {
+          if (existing.subscriptionId) {
+            avisoConvite = 'convite_com_assinatura';
+          } else {
+            const resgate = await D.runTransaction(async (tx) => {
+              const leitura = await convites.lerParaResgate(tx, D, conviteCodigo, user.uid);
+              if (!leitura.ok) return leitura;
+              convites.marcarUsado(tx, leitura, { uid: user.uid, email: user.email }, timestamp());
+              tx.set(ref, convites.camposCortesia(conviteCodigo, timestamp()), { merge: true });
+              return leitura;
+            });
+            if (resgate.ok) billingNow = (await ref.get()).data();
+            else avisoConvite = resgate.erro;
+          }
         }
-        const owner = await codes.lookupOwner(D, rawCode);
-        if (!owner) {
-          await releaseLock();
-          return res.status(400).json({ error: 'referral_code_not_found' });
-        }
-        // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
-        // e indicador INACTIVE).
-        const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
-        if (!guard.allowed) {
-          await releaseLock();
-          return res.status(400).json({ error: guard.reason });
-        }
-        referredByUserId = owner.uid;
-        referredByCode = owner.code;
-        discountPercent = REFERRAL_DISCOUNT_PERCENT;
-      }
 
-      let ownCode;
-      if (existing && existing.referralCode) {
-        ownCode = existing.referralCode;
-        // Self-heal: re-cria a reserva se sumiu (mesma razão do bloco
-        // has_customer acima).
-        if (codes.isValid(ownCode)) {
+        // Self-heal: se billing.referralCode aponta para um doc que não existe
+        // mais em referralCodes/ (estado órfão herdado de versões antigas ou
+        // edição manual), recria a reserva. Sem isto, ninguém consegue usar
+        // o cupom deste usuário — `lookupOwner` devolve null e o /init de
+        // quem tenta usar bate referral_code_not_found.
+        if (existing.referralCode && codes.isValid(existing.referralCode)) {
           try {
-            await codes.ensureReserved(D, ownCode, user.uid, timestamp());
+            await codes.ensureReserved(D, existing.referralCode, user.uid, timestamp());
           } catch (e) {
             console.warn('[init] self-heal referralCodes failed', e.message || e);
           }
         }
-      } else {
-        ownCode = await codes.reserveUniqueCode(D, user.uid, timestamp());
+
+        // Bug #1 fix: aplicar cupom retroativo se o usuário ainda não criou
+        // a subscription no Asaas (ou seja, ainda não pagou nenhuma fatura
+        // recorrente). Cobre os casos:
+        //   - Usuário já estava logado e só agora clicou no link de indicação
+        //   - Usuário criou conta sem cupom e depois recebeu o link
+        // Após /subscribe (subscriptionId existe), o cupom não pode mais ser
+        // aplicado retroativamente porque a recorrência no Asaas já foi
+        // criada com valor fixo. Também recusa se já há referral vinculado
+        // (não permite trocar de cupom).
+        if (rawCode && !existing.subscriptionId && !existing.referredByUserId) {
+          if (!codes.isValid(rawCode)) {
+            return res.status(400).json({ error: 'invalid_referral_code' });
+          }
+          const owner = await codes.lookupOwner(D, rawCode);
+          if (!owner) {
+            return res.status(400).json({ error: 'referral_code_not_found' });
+          }
+          // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
+          // e indicador INACTIVE).
+          const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
+          if (!guard.allowed) {
+            return res.status(400).json({ error: guard.reason });
+          }
+          await ref.set(
+            {
+              referredByUserId: owner.uid,
+              referredByCode: owner.code,
+              referralUsedAt: timestamp().fromMillis(Date.now()),
+              recurringDiscountPercent: REFERRAL_DISCOUNT_PERCENT,
+              updatedAt: fieldValue().serverTimestamp(),
+            },
+            { merge: true }
+          );
+          const reread = await ref.get();
+          billingNow = reread.data();
+        }
+
+        const synced = await syncBillingFromAsaas(ref, billingNow);
+        return res.json({
+          access: computeAccess(synced.billing),
+          billing: safeBilling(synced.billing),
+          ...(avisoConvite
+            ? { avisoConvite: { erro: avisoConvite, detail: convites.MENSAGENS[avisoConvite] } }
+            : {}),
+        });
       }
 
-      const customer = await asaas.createCustomer({
-        email: user.email,
-        name: user.name || user.email,
-        uid: user.uid,
-      });
-
-      const now = Date.now();
-      const trialEnd = now + TRIAL_DAYS * 86400000;
-
-      // M6: rastreabilidade de signup (IP + UA). Preserva os valores
-      // originais se já existirem — só grava na primeira criação.
-      const ip = signupIp(req);
-      const ua = (req.headers['user-agent'] || '').slice(0, 256) || null;
-      const deviceHash = rl.deviceFingerprint(req);
-
-      const data = {
-        uid: user.uid,
-        email: user.email || null,
-        customerId: customer.id,
-        createdAt: (existing && existing.createdAt) || timestamp().fromMillis(now),
-        trialStartsAt: timestamp().fromMillis(now),
-        trialEndsAt: timestamp().fromMillis(trialEnd),
-        subscriptionId: null,
-        subscriptionStatus: null,
-        lastPaymentStatus: null,
-        lastPaymentId: null,
-        referralCode: ownCode,
-        monthlyPriceCents: MONTHLY_PRICE_CENTS,
-        recurringDiscountPercent: discountPercent,
-        signupIp: (existing && existing.signupIp) || ip,
-        signupUserAgent: (existing && existing.signupUserAgent) || ua,
-        signupDevice: (existing && existing.signupDevice) || deviceHash,
-        updatedAt: fieldValue().serverTimestamp(),
-        initLock: fieldValue().delete(),
-        initLockAt: fieldValue().delete(),
+      const existing = claim.existing;
+      let releasedOnError = false;
+      const releaseLock = async () => {
+        if (releasedOnError) return;
+        releasedOnError = true;
+        try {
+          await ref.set(
+            {
+              initLock: fieldValue().delete(),
+              initLockAt: fieldValue().delete(),
+            },
+            { merge: true }
+          );
+        } catch (_) {}
       };
-      if (referredByUserId) {
-        data.referredByUserId = referredByUserId;
-        data.referredByCode = referredByCode;
-        data.referralUsedAt = timestamp().fromMillis(now);
-      }
-      await ref.set(data, { merge: true });
-      releasedOnError = true; // lock já saiu junto com o set acima
 
-      return res.json({ access: computeAccess(data), billing: safeBilling(data) });
+      try {
+        let referredByUserId = null;
+        let referredByCode = null;
+        let discountPercent = (existing && existing.recurringDiscountPercent) || 0;
+
+        if (rawCode && !(existing && existing.referredByUserId)) {
+          if (!codes.isValid(rawCode)) {
+            await releaseLock();
+            return res.status(400).json({ error: 'invalid_referral_code' });
+          }
+          const owner = await codes.lookupOwner(D, rawCode);
+          if (!owner) {
+            await releaseLock();
+            return res.status(400).json({ error: 'referral_code_not_found' });
+          }
+          // H2/H3/L2: política unificada (self-referral por uid/device/IP/CPF
+          // e indicador INACTIVE).
+          const guard = await assertReferralAllowed(D, { indicatorUid: owner.uid, user, req });
+          if (!guard.allowed) {
+            await releaseLock();
+            return res.status(400).json({ error: guard.reason });
+          }
+          referredByUserId = owner.uid;
+          referredByCode = owner.code;
+          discountPercent = REFERRAL_DISCOUNT_PERCENT;
+        }
+
+        let ownCode;
+        if (existing && existing.referralCode) {
+          ownCode = existing.referralCode;
+          // Self-heal: re-cria a reserva se sumiu (mesma razão do bloco
+          // has_customer acima).
+          if (codes.isValid(ownCode)) {
+            try {
+              await codes.ensureReserved(D, ownCode, user.uid, timestamp());
+            } catch (e) {
+              console.warn('[init] self-heal referralCodes failed', e.message || e);
+            }
+          }
+        } else {
+          ownCode = await codes.reserveUniqueCode(D, user.uid, timestamp());
+        }
+
+        const customer = await asaas.createCustomer({
+          email: user.email,
+          name: user.name || user.email,
+          uid: user.uid,
+        });
+
+        const now = Date.now();
+        const trialEnd = now + TRIAL_DAYS * 86400000;
+
+        // M6: rastreabilidade de signup (IP + UA). Preserva os valores
+        // originais se já existirem — só grava na primeira criação.
+        const ip = signupIp(req);
+        const ua = (req.headers['user-agent'] || '').slice(0, 256) || null;
+        const deviceHash = rl.deviceFingerprint(req);
+
+        const data = {
+          uid: user.uid,
+          email: user.email || null,
+          customerId: customer.id,
+          createdAt: (existing && existing.createdAt) || timestamp().fromMillis(now),
+          trialStartsAt: timestamp().fromMillis(now),
+          trialEndsAt: timestamp().fromMillis(trialEnd),
+          subscriptionId: null,
+          subscriptionStatus: null,
+          lastPaymentStatus: null,
+          lastPaymentId: null,
+          referralCode: ownCode,
+          monthlyPriceCents: MONTHLY_PRICE_CENTS,
+          recurringDiscountPercent: discountPercent,
+          signupIp: (existing && existing.signupIp) || ip,
+          signupUserAgent: (existing && existing.signupUserAgent) || ua,
+          signupDevice: (existing && existing.signupDevice) || deviceHash,
+          updatedAt: fieldValue().serverTimestamp(),
+          initLock: fieldValue().delete(),
+          initLockAt: fieldValue().delete(),
+        };
+        // Convite: o Pro vitalício entra junto com o nascimento da conta.
+        if (conviteCodigo) Object.assign(data, convites.camposCortesia(conviteCodigo, timestamp()));
+        if (referredByUserId) {
+          data.referredByUserId = referredByUserId;
+          data.referredByCode = referredByCode;
+          data.referralUsedAt = timestamp().fromMillis(now);
+        }
+        await ref.set(data, { merge: true });
+        releasedOnError = true; // lock já saiu junto com o set acima
+
+        return res.json({ access: computeAccess(data), billing: safeBilling(data) });
       } catch (innerErr) {
         await releaseLock();
         throw innerErr;

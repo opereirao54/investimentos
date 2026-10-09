@@ -1099,20 +1099,160 @@ function stopPolling() {
   }
 }
 
+// ═══ CONVITE (fase de testes) ═══
+//
+// Com o cadastro fechado (api/_lib/convites.js), uma conta nova só ganha
+// acesso se o /init receber um código de convite. O código chega por três
+// caminhos: o link do convite (?convite=BETA-...), o campo da aba "Criar
+// conta" (appliquei-auth-gate.js) ou a tela abaixo, que aparece quando o
+// servidor pede o código — o caso de quem entrou pelo Google sem o link.
+//
+// localStorage e não sessionStorage: no cadastro por e-mail a pessoa
+// confirma o endereço clicando no link do e-mail, que abre OUTRA aba — o
+// código precisa estar lá quando o /init finalmente rodar.
+var CONVITE_KEY = 'appliquei_pending_convite';
+var ERROS_CONVITE = {
+  convite_obrigatorio: 1,
+  convite_invalido: 1,
+  convite_usado: 1,
+  convite_cancelado: 1,
+};
+function lerConvitePendente() {
+  try {
+    return localStorage.getItem(CONVITE_KEY) || '';
+  } catch (_) {
+    return '';
+  }
+}
+function guardarConvitePendente(c) {
+  try {
+    if (c) localStorage.setItem(CONVITE_KEY, c);
+    else localStorage.removeItem(CONVITE_KEY);
+  } catch (_) {}
+}
+(function capturarConviteDaUrl() {
+  try {
+    var c = new URLSearchParams(location.search).get('convite');
+    if (c) guardarConvitePendente(String(c).trim().slice(0, 40));
+  } catch (_) {}
+})();
+
+function esconderPedidoConvite() {
+  var el = document.getElementById('conviteGate');
+  if (el) el.remove();
+  document.body.style.overflow = '';
+}
+function mostrarPedidoConvite(erro, detalhe) {
+  var el = document.getElementById('conviteGate');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'conviteGate';
+    el.setAttribute('role', 'dialog');
+    el.setAttribute('aria-modal', 'true');
+    el.setAttribute('aria-labelledby', 'conviteGateTitulo');
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:100000;background:var(--cor-fundo,#f4f6f5);display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;';
+    el.innerHTML =
+      '<div style="width:100%;max-width:400px;background:var(--cor-superficie,#fff);border:1px solid var(--cor-borda,#d4dad7);border-radius:16px;padding:28px 24px;box-shadow:0 10px 30px rgba(0,0,0,.08);">' +
+      '<div style="font-size:30px;line-height:1;margin-bottom:10px;" aria-hidden="true">🎟️</div>' +
+      '<h2 id="conviteGateTitulo" style="font-size:20px;margin:0 0 6px;color:var(--cor-texto-principal,#1c2b24);">Acesso por convite</h2>' +
+      '<p style="font-size:13.5px;line-height:1.55;color:var(--cor-texto-secundario,#4b5c54);margin:0 0 18px;">O Appliquei está em fase de testes fechados. Digite o código de convite que você recebeu para liberar sua conta.</p>' +
+      '<label for="conviteGateCodigo" style="display:block;font-size:12.5px;font-weight:600;margin-bottom:6px;color:var(--cor-texto-principal,#1c2b24);">Código de convite</label>' +
+      '<input id="conviteGateCodigo" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20" placeholder="BETA-XXXX-XXXX" style="width:100%;box-sizing:border-box;padding:12px 14px;font-size:16px;letter-spacing:1px;text-transform:uppercase;border:1px solid var(--cor-borda,#d4dad7);border-radius:10px;background:var(--cor-branco,#fff);color:var(--cor-texto-principal,#1c2b24);">' +
+      '<div id="conviteGateErro" role="alert" style="display:none;margin-top:10px;font-size:13px;color:var(--cor-erro,#c0392b);"></div>' +
+      '<button type="button" id="conviteGateOk" style="width:100%;margin-top:16px;padding:12px;border:0;border-radius:10px;background:var(--cor-primaria,#1f7a52);color:#fff;font-size:15px;font-weight:600;cursor:pointer;">Liberar acesso</button>' +
+      '<button type="button" id="conviteGateSair" style="width:100%;margin-top:8px;padding:10px;border:0;background:transparent;color:var(--cor-texto-secundario,#4b5c54);font-size:13px;cursor:pointer;">Sair e entrar com outra conta</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    var enviar = function () {
+      var inp = document.getElementById('conviteGateCodigo');
+      var cod = ((inp && inp.value) || '').trim();
+      if (!cod) {
+        mostrarErroConvite('Digite o código de convite.');
+        return;
+      }
+      var btn = document.getElementById('conviteGateOk');
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Verificando…';
+      }
+      guardarConvitePendente(cod);
+      initBilling().finally(function () {
+        var b = document.getElementById('conviteGateOk');
+        if (b) {
+          b.disabled = false;
+          b.textContent = 'Liberar acesso';
+        }
+      });
+    };
+    document.getElementById('conviteGateOk').addEventListener('click', enviar);
+    document.getElementById('conviteGateCodigo').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') enviar();
+    });
+    document.getElementById('conviteGateSair').addEventListener('click', function () {
+      guardarConvitePendente('');
+      esconderPedidoConvite();
+      try {
+        window.AppliqueiFirebase.auth.signOut();
+      } catch (_) {}
+    });
+  }
+  document.body.style.overflow = 'hidden';
+  // O primeiro pedido (convite_obrigatorio) não é erro: é a explicação.
+  if (erro && erro !== 'convite_obrigatorio') mostrarErroConvite(detalhe || erro);
+  var campo = document.getElementById('conviteGateCodigo');
+  if (campo && document.activeElement !== campo) {
+    try {
+      campo.focus();
+    } catch (_) {}
+  }
+}
+function mostrarErroConvite(msg) {
+  var e = document.getElementById('conviteGateErro');
+  if (!e) return;
+  e.textContent = msg;
+  e.style.display = msg ? 'block' : 'none';
+}
+
 async function initBilling() {
   var pending = '';
   try {
     pending = sessionStorage.getItem('appliquei_pending_referral') || '';
   } catch (_) {}
+  var convite = lerConvitePendente();
   var bodyObj = pending ? { referralCode: pending } : {};
+  if (convite) bodyObj.convite = convite;
   try {
     var r = await authedFetch('/init', { method: 'POST', body: JSON.stringify(bodyObj) });
     try {
       sessionStorage.removeItem('appliquei_pending_referral');
     } catch (_) {}
+    guardarConvitePendente('');
+    esconderPedidoConvite();
     applyAccess(r.access, r.billing);
+    // Conta que já existia: o convite não serviu, mas o acesso dela segue.
+    if (r.avisoConvite && typeof window.mostrarToast === 'function') {
+      window.mostrarToast(
+        r.avisoConvite.detail || 'O código de convite não pôde ser usado.',
+        'aviso'
+      );
+    } else if (
+      r.access &&
+      r.access.reason === 'courtesy' &&
+      convite &&
+      typeof window.mostrarToast === 'function'
+    ) {
+      window.mostrarToast('Convite aceito — seu acesso é vitalício. Bem-vindo(a)!', 'sucesso');
+    }
   } catch (e) {
     console.warn('[billing] init', e);
+    if (e.detail && ERROS_CONVITE[e.detail.error]) {
+      // Código ruim não fica guardado para a próxima tentativa automática
+      // (a cada 5 min / ao voltar para a aba) repetir o mesmo erro.
+      if (e.detail.error !== 'convite_obrigatorio') guardarConvitePendente('');
+      mostrarPedidoConvite(e.detail.error, e.detail.detail);
+      return;
+    }
     var refErr =
       e.detail &&
       (e.detail.error === 'invalid_referral_code' ||
@@ -1123,7 +1263,11 @@ async function initBilling() {
         sessionStorage.removeItem('appliquei_pending_referral');
       } catch (_) {}
       try {
-        var r2 = await authedFetch('/init', { method: 'POST', body: JSON.stringify({}) });
+        var r2 = await authedFetch('/init', {
+          method: 'POST',
+          body: JSON.stringify(convite ? { convite: convite } : {}),
+        });
+        guardarConvitePendente('');
         applyAccess(r2.access, r2.billing);
         var msg =
           e.detail.error === 'self_referral_not_allowed'
@@ -3728,6 +3872,8 @@ setInterval(
 );
 
 window.AppliqueiBilling = {
+  // Tela do convite (fase de testes) — exposta para o teste de tela.
+  pedirConvite: mostrarPedidoConvite,
   refresh: function () {
     return refresh(true);
   },

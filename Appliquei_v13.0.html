@@ -12035,6 +12035,13 @@
                     <input type="text" id="authCupom" autocomplete="off" placeholder="APP-XXXXXX" maxlength="12" style="text-transform:uppercase;">
                     <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">Tem o cupom de um amigo? Ganhe 10% de desconto recorrente.</p>
                 </div>
+                <!-- Cadastro por convite (fase de testes): só aparece quando o
+                     admin liga "cadastro só com convite". Ver appliquei-auth-gate.js. -->
+                <div class="auth-field" id="authConviteWrap" style="display:none;">
+                    <label for="authConvite">Código de convite</label>
+                    <input type="text" id="authConvite" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="BETA-XXXX-XXXX" maxlength="20" style="text-transform:uppercase;">
+                    <p style="font-size:11.5px;color:var(--cor-texto-mutado);margin-top:4px;">O Appliquei está em testes fechados. Use o código que você recebeu — vale também para entrar com o Google.</p>
+                </div>
                 <label class="auth-chk-priv" id="authPrivWrap" style="display:none;">
                     <input type="checkbox" id="authPrivAceite">
                     <span>Li e aceito a <button type="button" onclick="abrirModalPrivacidade(false)">Política de Privacidade</button></span>
@@ -12046,7 +12053,7 @@
                 <p class="auth-link" id="authHintReg" style="display:none;">Já tem conta? <button type="button" onclick="appliqueiAuthSetModo('login')">Entrar</button></p>
                 <p class="auth-link" id="authHintLogin" style="display:none;">Não tem conta? <button type="button" onclick="appliqueiAuthSetModo('registro')">Criar conta</button></p>
                 <p class="auth-seguranca"><i class="ph-fill ph-lock-key"></i> Conexão criptografada. Seus dados ficam guardados criptografados e só a sua conta tem acesso a eles.</p>
-                <p class="auth-link auth-so-mobile" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Depois, R$ 15/mês — PIX, boleto ou cartão.</p>
+                <p class="auth-link auth-so-mobile" id="authRodapePreco" style="margin-top:14px;font-size:12px;color:var(--cor-texto-mutado);">Avaliação gratuita de 7 dias. Depois, R$ 15/mês — PIX, boleto ou cartão.</p>
             </div>
             <div id="authGateVerify" class="auth-gate-panel" style="display:none;">
                 <!-- Sem sinal de progresso, esta tela lia como um beco: três

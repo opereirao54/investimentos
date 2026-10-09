@@ -440,6 +440,7 @@ body { font-family: 'Figtree', system-ui, sans-serif; background: var(--cor-fund
         </div>
         <div class="nav-group">
             <span class="nav-group-label">Ferramentas</span>
+            <button class="menu-btn" onclick="mudarAba(event,'convites')" data-tab="convites"><i class="ph ph-ticket"></i> Convites</button>
             <button class="menu-btn" onclick="mudarAba(event,'carteira')" data-tab="carteira"><i class="ph ph-chart-pie-slice"></i> Carteira modelo</button>
             <button class="menu-btn" onclick="mudarAba(event,'superpower')" data-tab="superpower"><i class="ph ph-lightning"></i> Superpoderes</button>
             <button class="menu-btn" onclick="mudarAba(event,'audit')" data-tab="audit"><i class="ph ph-list-dashes"></i> Audit Log</button>
@@ -962,6 +963,46 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
         </div>
     </section>
 
+    <!-- ═══════ CONVITES (fase de testes — api/_lib/convites.js) ═══════ -->
+    <section id="sec-convites" class="section">
+        <div class="page-header">
+            <div>
+                <h1><i class="ph-fill ph-ticket" style="color:var(--cor-primaria)"></i> Convites</h1>
+                <p class="sub">Fase de testes: com o cadastro fechado, só entra quem tiver um código. Cada código vale uma vez e dá acesso Pro vitalício.</p>
+            </div>
+            <div class="page-actions">
+                <button class="btn-sec" onclick="loadConvites()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
+            </div>
+        </div>
+
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+            <label style="display:flex;align-items:center;gap:12px;cursor:pointer;">
+                <input type="checkbox" id="cv-obrigatorio" onchange="cvMudarModo(this.checked)" style="width:20px;height:20px;cursor:pointer;">
+                <span>
+                    <strong>Cadastro só com convite</strong>
+                    <span id="cv-modo-txt" style="display:block;font-size:12.5px;color:var(--cor-texto-mutado);margin-top:2px;">Carregando…</span>
+                </span>
+            </label>
+        </div>
+
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:10px;">Gerar convite</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <input type="text" id="cv-nota" class="sp-input" maxlength="120" placeholder="Para quem? (ex.: João – amigo do trabalho)">
+                <input type="number" id="cv-qtd" class="sp-input" min="1" max="50" value="1" style="flex:0 0 90px;min-width:90px;" aria-label="Quantidade">
+                <button class="sp-btn" onclick="cvGerar()"><i class="ph-fill ph-plus-circle"></i> Gerar</button>
+            </div>
+            <div id="cv-novos" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:auto;">
+            <table class="tbl">
+                <thead><tr><th>Código</th><th>Para quem</th><th>Situação</th><th>Criado</th><th></th></tr></thead>
+                <tbody id="cv-lista"><tr><td colspan="5" class="tbl-empty">Carregando…</td></tr></tbody>
+            </table>
+        </div>
+    </section>
+
     <!-- ═══════ CARTEIRA MODELO (Painel do consultor migrado) ═══════ -->
     <section id="sec-carteira" class="section">
         <div class="page-header">
@@ -1044,6 +1085,6 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
     <div class="drawer-actions" id="drawer-actions"></div>
 </aside>
 
-<script src="/web/appliquei-admin.js?v=onda4-feedback-carteira"></script>
+<script src="/web/appliquei-admin.js?v=convites"></script>
 </body>
 </html>
