@@ -7812,6 +7812,9 @@
             display: none; background: var(--cor-branco);
             border: 1px solid var(--cor-borda); border-radius: 11px;
             box-shadow: var(--shadow-hover); max-height: 244px; overflow-y: auto; padding: 5px;
+            /* Rolar com o dedo: a rolagem fica na lista (não arrasta o
+               formulário/drawer por trás) e é vertical. */
+            overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch;
         }
         .appq-combo-panel.aberto { display: block; }
         .appq-combo-opt {
@@ -15463,7 +15466,7 @@
          state da app — pode carregar antes ou depois de app.js. -->
     <script src="/web/appliquei-yahoo-finance.js?v=onda3b"></script>
     <script src="/web/appliquei-app.js?v=fase5-emoji"></script>
-    <script src="/web/appliquei-combobox.js?v=mobile-combo"></script>
+    <script src="/web/appliquei-combobox.js?v=combo-rolagem"></script>
     <!-- Contas / Instituições financeiras (entidade central). Carrega logo
          após app.js: usa transacoes/historicoCompras p/ o seed inicial e
          expõe `contas` + CRUD p/ os módulos seguintes. -->
