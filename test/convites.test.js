@@ -5,7 +5,11 @@
  *
  * O pedido: "a pessoa só consegue se cadastrar (Google ou e-mail) se tiver um
  * código que eu passei, e o código vale uma vez só; quem entra assim ganha
- * acesso vitalício". E é temporário: um interruptor no admin liga e desliga.
+ * acesso [...]". E é temporário: um interruptor no admin liga e desliga.
+ *
+ * O benefício virou: grátis até 1 ano depois da DATA DE LANÇAMENTO (editável
+ * no admin) e, depois, 50% de desconto na mensalidade para sempre. Sem data
+ * definida, a cortesia fica sem prazo até o admin definir.
  *
  * A trava fica em /api/billing/init (sem billing, o servidor bloqueia tudo),
  * então os testes dirigem o /init de verdade, no mundo de pagamentos fiel ao
@@ -102,7 +106,7 @@ test('ligado: conta nova sem convite não nasce — e não cria cliente no Asaas
   assert.equal(S.problemas(m), '');
 });
 
-test('ligado: com convite, a conta nasce com Pro vitalício e o código vira "usado"', async () => {
+test('ligado: com convite (sem data de lançamento ainda), a conta nasce com cortesia sem prazo e 50%', async () => {
   const m = S.criarMundoPagamentos();
   await ligar(true);
   const codigo = await gerarUm('Carla – amiga do trabalho');
@@ -206,7 +210,7 @@ test('quem já tem conta nunca fica preso por um convite ruim (link velho, já u
   assert.equal(S.problemas(m), '');
 });
 
-test('conta em avaliação que recebe um convite vira vitalícia', async () => {
+test('conta em avaliação que recebe um convite ganha o benefício de testador', async () => {
   const m = S.criarMundoPagamentos();
   await init('joao');
   await ligar(true);
@@ -235,7 +239,7 @@ test('conta com assinatura no Asaas não troca por convite sozinha (as cobrança
   assert.equal(S.problemas(m), '');
 });
 
-test('desligar o interruptor volta ao cadastro aberto; vitalícios continuam', async () => {
+test('desligar o interruptor volta ao cadastro aberto; testadores continuam', async () => {
   const m = S.criarMundoPagamentos();
   await ligar(true);
   const codigo = await gerarUm();
@@ -284,4 +288,184 @@ test('a tela de login descobre o modo sem login e sem ver código nenhum', async
   const r = await ver();
   assert.equal(r.status, 200);
   assert.deepEqual(r.body, { obrigatorio: true });
+});
+
+// ─── benefício de testador: 1 ano depois do lançamento, depois 50% ──────────
+
+const DIA = 86400000;
+function ymdUtc(ms) {
+  return new Date(ms).toISOString().slice(0, 10);
+}
+async function lancamento(data) {
+  const r = await admin('convites_lancamento', { data });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  return r.body;
+}
+
+test('data: válida, ano bissexto, e fim = dia inteiro do aniversário em Brasília', () => {
+  assert.equal(C.dataValida('2026-12-01'), '2026-12-01');
+  assert.equal(C.dataValida('2026-02-30'), null);
+  assert.equal(C.dataValida('01/12/2026'), null);
+  assert.equal(C.dataValida(''), null);
+  // 01/12/2026 → vale até 01/12/2027 23:59 em Brasília = 02/12/2027 03:00Z.
+  assert.equal(new Date(C.fimCortesiaMs('2026-12-01')).toISOString(), '2027-12-02T03:00:00.000Z');
+  // 29/02 → 01/03 do ano seguinte (até o fim desse dia).
+  assert.equal(new Date(C.fimCortesiaMs('2028-02-29')).toISOString(), '2029-03-02T03:00:00.000Z');
+});
+
+test('com data de lançamento: grátis até 1 ano depois dela; depois paga 50% (R$ 7,50)', async () => {
+  const m = S.criarMundoPagamentos();
+  await ligar(true);
+  const lanc = ymdUtc(M.store.now + 30 * DIA); // lança daqui a 30 dias
+  const st = await lancamento(lanc);
+  assert.equal(st.dataLancamento, lanc);
+  const codigo = await gerarUm('Rui');
+  const r = await init('rui', { convite: codigo });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.access.reason, 'courtesy');
+  assert.equal(r.body.billing.recurringDiscountPercent, 50);
+
+  const b = S.billing('rui');
+  assert.notEqual(b.courtesyPermanent, true, 'não é mais sem prazo');
+  assert.equal(b.courtesyUntil.toMillis(), C.fimCortesiaMs(lanc));
+
+  // Grátis antes do lançamento e durante o ano seguinte…
+  S.avancarDias(30 + 360);
+  assert.equal(S.acesso('rui').status, 'active');
+  // …e acabou: agora precisa assinar.
+  S.avancarDias(10);
+  assert.equal(S.acesso('rui').status, 'blocked');
+
+  // Assina: a mensalidade sai com 50%.
+  const a = await S.assinar(m, 'rui');
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.equal(S.billing('rui').subscriptionBaseValueCents, 750);
+  assert.equal(S.problemas(m), '');
+});
+
+test('mudar a data de lançamento recalcula o prazo de TODOS os testadores', async () => {
+  const m = S.criarMundoPagamentos();
+  await ligar(true);
+  const c1 = await gerarUm();
+  const c2 = await gerarUm();
+  await init('sol', { convite: c1 }); // sem data ainda: sem prazo
+  assert.equal(S.billing('sol').courtesyPermanent, true);
+
+  const st = await lancamento('2027-03-15');
+  assert.equal(st.recalculados, 1);
+  assert.equal(S.billing('sol').courtesyUntil.toMillis(), C.fimCortesiaMs('2027-03-15'));
+  assert.notEqual(S.billing('sol').courtesyPermanent, true);
+
+  await init('tom', { convite: c2 }); // já nasce com a data
+  const st2 = await lancamento('2027-06-01'); // adiou o lançamento
+  assert.equal(st2.recalculados, 2);
+  for (const u of ['sol', 'tom']) {
+    assert.equal(S.billing(u).courtesyUntil.toMillis(), C.fimCortesiaMs('2027-06-01'), u);
+  }
+
+  // Apagar a data: voltam a ter cortesia sem prazo.
+  await lancamento('');
+  assert.equal(S.billing('sol').courtesyPermanent, true);
+  assert.ok(!S.billing('sol').courtesyUntil);
+  assert.equal(S.problemas(m), '');
+});
+
+test('data inválida é recusada e não mexe em ninguém', async () => {
+  S.criarMundoPagamentos();
+  const r = await admin('convites_lancamento', { data: '31/12/2026' });
+  assert.equal(r.status, 400);
+  assert.equal(r.body.error, 'data_invalida');
+});
+
+test('o que o admin mudou à mão depois não é sobrescrito pela data', async () => {
+  const m = S.criarMundoPagamentos();
+  await ligar(true);
+  const c1 = await gerarUm();
+  const c2 = await gerarUm();
+  await init('ugo', { convite: c1 });
+  await init('vera', { convite: c2 });
+  await S.superpoder('revoke_pro', 'ugo'); // tirou o acesso do ugo
+  await S.superpoder('make_pro', 'vera'); // deu PRO de verdade à vera
+
+  const st = await lancamento('2027-01-10');
+  assert.equal(st.recalculados, 0);
+  assert.ok(
+    !S.billing('ugo').courtesyPermanent && !S.billing('ugo').courtesyUntil,
+    'revogado fica revogado'
+  );
+  assert.equal(S.billing('vera').courtesyPermanent, true, 'PRO do admin fica sem prazo');
+  assert.equal(S.problemas(m), '');
+});
+
+test('o desconto de testador não cai para os 10% do cupom', async () => {
+  const m = S.criarMundoPagamentos();
+  // Um indicador com cupom.
+  await init('xavi');
+  const cupom = S.billing('xavi').referralCode;
+  await ligar(true);
+  const codigo = await gerarUm();
+  // Entra com convite E cupom: fica com 50%.
+  const r = await init('yara', { convite: codigo, referralCode: cupom });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(S.billing('yara').recurringDiscountPercent, 50);
+  const a = await S.assinar(m, 'yara');
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.equal(S.billing('yara').subscriptionBaseValueCents, 750);
+  assert.equal(S.problemas(m), '');
+});
+
+test('conta antiga com cupom de 10% que resgata convite passa a 50%', async () => {
+  const m = S.criarMundoPagamentos();
+  await init('zeca');
+  const cupom = S.billing('zeca').referralCode;
+  await init('wil', { referralCode: cupom });
+  assert.equal(S.billing('wil').recurringDiscountPercent, 10);
+  await ligar(true);
+  const codigo = await gerarUm();
+  const r = await init('wil', { convite: codigo });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(S.billing('wil').recurringDiscountPercent, 50);
+  assert.equal(S.problemas(m), '');
+});
+
+test('a aba Convites mostra a data e até quando os testadores usam grátis', async () => {
+  S.criarMundoPagamentos();
+  await lancamento('2026-12-01');
+  const r = await admin('convites_listar');
+  assert.equal(r.body.dataLancamento, '2026-12-01');
+  assert.equal(r.body.fimCortesiaMs, C.fimCortesiaMs('2026-12-01'));
+  assert.equal(r.body.descontoPercent, 50);
+  // O que a tela escreve: o último dia grátis, no calendário de Brasília.
+  assert.equal(r.body.ultimoDiaGratis, '01/12/2027');
+  assert.equal(C.ultimoDiaGratisTexto('2028-02-29'), '01/03/2029');
+});
+
+test('conta antiga que manda convite E cupom juntos fica com 50%, não 10%', async () => {
+  const m = S.criarMundoPagamentos();
+  await init('ana2');
+  const cupom = S.billing('ana2').referralCode;
+  await init('beto2'); // conta antiga, sem cupom
+  await ligar(true);
+  const codigo = await gerarUm();
+  const r = await init('beto2', { convite: codigo, referralCode: cupom });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(S.billing('beto2').recurringDiscountPercent, 50);
+  assert.equal(S.problemas(m), '');
+});
+
+test('cupom derrubado na hora de assinar não leva junto o desconto de testador', async () => {
+  const m = S.criarMundoPagamentos();
+  await init('ivo');
+  const cupom = S.billing('ivo').referralCode;
+  await ligar(true);
+  const codigo = await gerarUm();
+  await init('jade', { convite: codigo, referralCode: cupom });
+  // O indicador ficou inativo: o /subscribe derruba o vínculo do cupom.
+  const k = 'users/ivo/billing/account';
+  M.store.docs.set(k, Object.assign({}, M.store.docs.get(k), { subscriptionStatus: 'INACTIVE' }));
+  const a = await S.assinar(m, 'jade');
+  assert.equal(a.status, 200, JSON.stringify(a.body));
+  assert.ok(!S.billing('jade').referredByUserId, 'o cupom caiu');
+  assert.equal(S.billing('jade').recurringDiscountPercent, 50);
+  assert.equal(S.billing('jade').subscriptionBaseValueCents, 750);
 });

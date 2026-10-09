@@ -968,7 +968,7 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
         <div class="page-header">
             <div>
                 <h1><i class="ph-fill ph-ticket" style="color:var(--cor-primaria)"></i> Convites</h1>
-                <p class="sub">Fase de testes: com o cadastro fechado, só entra quem tiver um código. Cada código vale uma vez e dá acesso Pro vitalício.</p>
+                <p class="sub">Fase de testes: com o cadastro fechado, só entra quem tiver um código. Cada código vale uma vez. O testador usa grátis até 1 ano depois do lançamento e, depois, paga 50% da mensalidade para sempre.</p>
             </div>
             <div class="page-actions">
                 <button class="btn-sec" onclick="loadConvites()"><i class="ph ph-arrows-clockwise"></i> Recarregar</button>
@@ -983,6 +983,16 @@ Dica: você pode inserir o e-mail ou o UID do usuário alvo.</div>
                     <span id="cv-modo-txt" style="display:block;font-size:12.5px;color:var(--cor-texto-mutado);margin-top:2px;">Carregando…</span>
                 </span>
             </label>
+        </div>
+
+        <div class="card" style="padding:20px;margin-bottom:16px;">
+            <div style="font-weight:700;margin-bottom:4px;">Data de lançamento</div>
+            <p style="font-size:12.5px;color:var(--cor-texto-mutado);margin:0 0 10px;">O acesso grátis dos testadores vale até 1 ano depois desta data. Mudou a data? Salve de novo: o prazo de todos é recalculado.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                <input type="date" id="cv-lancamento" class="sp-input" style="flex:0 0 190px;min-width:170px;" aria-label="Data de lançamento">
+                <button class="sp-btn" onclick="cvSalvarLancamento()"><i class="ph-fill ph-calendar-check"></i> Salvar data</button>
+            </div>
+            <div id="cv-lancamento-txt" style="margin-top:10px;font-size:13px;"></div>
         </div>
 
         <div class="card" style="padding:20px;margin-bottom:16px;">

@@ -196,7 +196,8 @@ module.exports = handler({
                   referredByUserId: fieldValue().delete(),
                   referredByCode: fieldValue().delete(),
                   referralUsedAt: fieldValue().delete(),
-                  recurringDiscountPercent: 0,
+                  // Caiu o cupom, não o desconto de testador (convite).
+                  recurringDiscountPercent: billing.conviteDescontoPercent || 0,
                   referralDroppedReason: guard.reason,
                   updatedAt: fieldValue().serverTimestamp(),
                 },
@@ -204,7 +205,7 @@ module.exports = handler({
               );
               billing.referredByUserId = null;
               billing.referredByCode = null;
-              billing.recurringDiscountPercent = 0;
+              billing.recurringDiscountPercent = billing.conviteDescontoPercent || 0;
               console.warn('[subscribe] referral dropped at subscribe', {
                 uid: user.uid,
                 reason: guard.reason,

@@ -11,6 +11,19 @@ const convites = require('../_lib/convites');
 // Cada ação executada é registrada em `adminAuditLog/{autoId}` para rastreio.
 // Custo: 1 lookup auth + 1-2 ops Firestore + 1 write audit por chamada.
 
+/** O que a aba Convites do admin mostra. */
+async function estadoConvites(D) {
+  const cfg = await convites.lerConfig(D);
+  return {
+    obrigatorio: cfg.obrigatorio,
+    dataLancamento: cfg.dataLancamento,
+    fimCortesiaMs: convites.fimCortesiaMs(cfg.dataLancamento),
+    ultimoDiaGratis: convites.ultimoDiaGratisTexto(cfg.dataLancamento),
+    descontoPercent: convites.DESCONTO_TESTADOR,
+    itens: await convites.listar(D),
+  };
+}
+
 async function writeAudit({ action, email, uid, actor, before, after, extra }) {
   try {
     await db()
@@ -154,7 +167,8 @@ module.exports = handler({
       action === 'convites_listar' ||
       action === 'convites_gerar' ||
       action === 'convites_cancelar' ||
-      action === 'convites_modo'
+      action === 'convites_modo' ||
+      action === 'convites_lancamento'
     ) {
       try {
         const D = db();
@@ -189,11 +203,25 @@ module.exports = handler({
             actor,
             extra: `${criados.length} convite(s)${body && body.nota ? ' — ' + String(body.nota).slice(0, 120) : ''}`,
           });
-          return res.json({
-            success: true,
-            criados,
-            obrigatorio: await convites.modoObrigatorio(D),
-            itens: await convites.listar(D),
+          return res.json({ success: true, criados, ...(await estadoConvites(D)) });
+        }
+        let recalculados = null;
+        if (action === 'convites_lancamento') {
+          const r = await convites.aplicarLancamento(
+            D,
+            String((body && body.data) || '').trim(),
+            actor,
+            ts,
+            fieldValue()
+          );
+          if (!r.ok) return res.status(400).json({ error: r.erro });
+          recalculados = r.atualizados;
+          await writeAudit({
+            action,
+            email: '',
+            uid: '',
+            actor,
+            extra: `data de lançamento: ${r.dataLancamento || '(sem data)'} — ${r.atualizados} testador(es) recalculado(s)`,
           });
         }
         if (action === 'convites_cancelar') {
@@ -207,11 +235,7 @@ module.exports = handler({
             extra: `convite ${r.codigo} cancelado`,
           });
         }
-        return res.json({
-          success: true,
-          obrigatorio: await convites.modoObrigatorio(D),
-          itens: await convites.listar(D),
-        });
+        return res.json({ success: true, recalculados, ...(await estadoConvites(D)) });
       } catch (e) {
         console.error('[admin/action] convites', e);
         return res.status(500).json({ error: 'action_failed', detail: e.message });
