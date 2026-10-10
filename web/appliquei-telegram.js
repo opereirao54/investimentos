@@ -339,6 +339,24 @@ function telegramAplicarItens(itens) {
         }
       });
       r.confirmar.push(item.id);
+    } else if (item.tipo === 'descricao' && item.alvo && typeof item.descricao === 'string') {
+      // ✏️ Descrição no bot. A parcela "(2/10)" é do app, não da descrição:
+      // fica no fim de cada parcela.
+      var nova = item.descricao.trim().slice(0, 60);
+      if (nova) {
+        transacoes.forEach(function (t) {
+          if (!telegramDoItem(t, item.alvo)) return;
+          var parcela = (String(t.descricao || '').match(/\s*\(\s*\d+\s*\/\s*\d+\s*\)\s*$/) || [
+            '',
+          ])[0];
+          var final = nova + parcela;
+          if (t.descricao !== final) {
+            t.descricao = final;
+            mudou = true;
+          }
+        });
+      }
+      r.confirmar.push(item.id);
     } else {
       r.confirmar.push(item.id);
     }
