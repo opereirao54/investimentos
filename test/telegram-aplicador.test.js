@@ -242,6 +242,49 @@ test('troca de categoria alcança todas as parcelas', () => {
   assert.deepEqual(plano(win.transacoes.map((t) => t.categoriaDespesa)), ['lazer', 'lazer']);
 });
 
+test('troca de descrição alcança todas as parcelas e mantém o "(n/N)"', () => {
+  const win = app();
+  win.telegramAplicarItens([
+    item('tg1_30', {
+      categoria: 'cartao_credito',
+      valor: 300,
+      descricao: 'tenis',
+      dataCompra: HOJE_YMD,
+      parcelas: 3,
+      tipoCartao: 'parcelado',
+      cartaoId: 'card_nu',
+      categoriaDespesa: null,
+    }),
+    item('tg1_31', MERCADO, 2),
+  ]);
+  const r = win.telegramAplicarItens([
+    {
+      id: 'desc_tg1_30',
+      tipo: 'descricao',
+      alvo: 'tg1_30',
+      descricao: 'Tênis Nike',
+      criadoEmMs: 9,
+    },
+  ]);
+  assert.deepEqual(plano(r.confirmar), ['desc_tg1_30']);
+  assert.deepEqual(
+    plano(win.transacoes.filter((t) => t.id.startsWith('tg1_30_')).map((t) => t.descricao)),
+    ['Tênis Nike (1/3)', 'Tênis Nike (2/3)', 'Tênis Nike (3/3)']
+  );
+  // O outro lançamento não foi tocado.
+  assert.equal(win.transacoes.find((t) => t.id.startsWith('tg1_31_')).descricao, 'Mercado');
+  semViolacoes(win);
+});
+
+test('descrição vazia não apaga a descrição', () => {
+  const win = app();
+  win.telegramAplicarItens([item('tg1_32', MERCADO)]);
+  win.telegramAplicarItens([
+    { id: 'desc_tg1_32', tipo: 'descricao', alvo: 'tg1_32', descricao: '   ', criadoEmMs: 9 },
+  ]);
+  assert.equal(win.transacoes[0].descricao, 'Mercado');
+});
+
 test('cartão apagado depois da mensagem: não lança, avisa e libera a caixa', () => {
   const win = app();
   const r = win.telegramAplicarItens([

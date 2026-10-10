@@ -194,6 +194,7 @@ produto. Se não for usar o Gemini, basta o primeiro parágrafo.
 | `cartão 89 farmácia` (com 2+ cartões)     | pergunta qual cartão, com botões                | entra no cartão escolhido                                          |
 | `aluguel 1800 fixa dia 10`                | 🔁 Fixa mensal · vence dia 10                   | despesa fixa recorrente                                            |
 | `presente 150` → **🏷️ Categoria** → Lazer | categoria trocada                               | categoria Lazer; a próxima mensagem com "presente" já vem em Lazer |
+| `ubr 25` → **✏️ Descrição** → Uber        | até 3 sugestões + ✍️ Escrever outra + Voltar    | descrição "Uber"; a próxima "ubr" já vem como "Uber"               |
 | qualquer uma → **↩️ Desfazer**            | Desfeito                                        | lançamento some                                                    |
 | `mercado` (sem valor)                     | dica de formato                                 | nada                                                               |
 
@@ -403,11 +404,21 @@ sem ninguém ver.
 perdendo ou dois aparelhos abertos não duplicam nada. Isso é o contrato
 **INV-25** em `.claude/integracoes/mapa.json`.
 
-**Desfazer e Categoria** sempre deixam um item na caixa
-(`desfazer_<id>` / `cat_<id>`), além de mexer no lançamento se ele ainda
-estiver lá. Saber se o app já aplicou exigiria ler o JSON das transações, e um
+**Desfazer, Categoria e Descrição** sempre deixam um item na caixa
+(`desfazer_<id>` / `cat_<id>` / `desc_<id>`), além de mexer no lançamento se
+ele ainda estiver lá. Saber se o app já aplicou exigiria ler o JSON das transações, e um
 app lendo a caixa naquele instante tornaria a resposta errada de qualquer
 jeito.
+
+**✏️ Descrição** (`api/_lib/telegram-descricao.js`, sem IA): até 3 sugestões,
+nesta ordem — descrições que a própria pessoa já usou e se parecem com a
+digitada (palavra igual, começo igual "mc" → "McDonald's", ou erro de
+digitação "ubr" → "Uber"), a digitada arrumada (maiúsculas), e as mais usadas
+da mesma categoria. **✍️ Escrever outra** manda um pedido com resposta forçada
+(`force_reply`); a resposta vira a descrição. Sem a marcação de resposta, só
+texto sem número é aceito — "uber 25" no meio da espera continua lançamento. A
+correção vira apelido (`integracoes/telegram.apelidos`): a próxima mensagem com
+a mesma descrição já sai corrigida. No app, a parcela "(2/10)" é preservada.
 
 **Consultas (/saldo, /fatura, /mes):** só leem `users/{uid}/data/main`, nada é
 gravado. As regras ficam em `api/_lib/telegram-consultas.js`, uma cópia das

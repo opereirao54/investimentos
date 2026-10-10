@@ -204,8 +204,8 @@ test('despesa simples vai para a caixa de entrada com a conta principal', async 
   assert.match(ultimoTexto(), /Despesa lançada/);
   const ultimo = enviados[enviados.length - 1].payload;
   assert.deepEqual(
-    ultimo.reply_markup.inline_keyboard[0].map((b) => b.callback_data),
-    [`u:${id}`, `c:${id}`]
+    ultimo.reply_markup.inline_keyboard.map((l) => l.map((b) => b.callback_data)),
+    [[`c:${id}`, `e:${id}`], [`u:${id}`]]
   );
   // E o bot NÃO tocou nas transações.
   assert.equal(M.store.docs.get(`users/${UID}/data/main`).keys.futurorico_transacoes, undefined);
@@ -674,4 +674,120 @@ test('menu: se o Telegram recusar, tenta de novo no próximo update e não trava
   }
   await webhook(mensagem('/ajuda'));
   assert.equal(M.store.docs.get('telegramConfig/menu').versao, bot.MENU_VERSAO);
+});
+
+// ─── ✏️ Descrição ───────────────────────────────────────────────────────────
+
+function comHistorico(descricoes) {
+  const doc = M.store.docs.get(`users/${UID}/data/main`);
+  doc.keys.futurorico_transacoes = JSON.stringify(
+    descricoes.map((d, i) => ({
+      id: 't' + i,
+      descricao: d,
+      categoria: 'despesa_variavel',
+      categoriaDespesa: /uber/i.test(d) ? 'transporte' : 'alimentacao',
+      valor: 10,
+    }))
+  );
+}
+function teclado() {
+  const comTeclado = enviados.filter(
+    (e) => e.payload.reply_markup && e.payload.reply_markup.inline_keyboard
+  );
+  return comTeclado[comTeclado.length - 1].payload.reply_markup.inline_keyboard;
+}
+
+test('✏️ Descrição: sugere do histórico, troca, deixa o ajuste e aprende o apelido', async () => {
+  comHistorico(['Uber', 'Uber', 'Uber Eats', 'Mercado Extra']);
+  await conectar();
+  await webhook(mensagem('ubr 25', { messageId: 40 }));
+  const id = `tg${CHAT}_40`;
+  assert.equal(inbox()[id].lanc.descricao, 'Ubr'); // o parser já põe maiúscula
+
+  await webhook(botao(`e:${id}`, { texto: '✅ Despesa lançada\nubr · R$ 25,00\n🚗 Transporte' }));
+  assert.match(ultimoTexto(), /Qual descrição\?/);
+  const opcoes = teclado().map((l) => l[0]);
+  const textos = opcoes.map((b) => b.text);
+  assert.ok(textos.length >= 3, JSON.stringify(textos));
+  assert.equal(textos[textos.length - 2], '✍️ Escrever outra');
+  assert.equal(textos[textos.length - 1], '↩️ Voltar');
+  assert.ok(!textos.includes('Ubr'), 'não sugere a própria');
+  assert.equal(textos[0], 'Uber', 'erro de digitação casa com o histórico');
+
+  await webhook(botao(opcoes[0].callback_data, { texto: '✅ Despesa lançada\nUbr · R$ 25,00' }));
+  const escolhida = 'Uber';
+  assert.equal(inbox()[id].lanc.descricao, escolhida);
+  assert.equal(inbox()[`desc_${id}`].descricao, escolhida);
+  assert.match(ultimoTexto(), new RegExp(escolhida));
+  // Teclado de volta ao normal.
+  assert.deepEqual(
+    teclado().map((l) => l.map((b) => b.callback_data)),
+    [[`c:${id}`, `e:${id}`], [`u:${id}`]]
+  );
+  // Aprendeu: a próxima "ubr" já vem com a descrição corrigida.
+  await webhook(mensagem('ubr 30', { messageId: 41 }));
+  assert.equal(inbox()[`tg${CHAT}_41`].lanc.descricao, escolhida);
+});
+
+test('✏️ Descrição: "Escrever outra" pede resposta e aplica o texto digitado', async () => {
+  await conectar();
+  await webhook(mensagem('padaria 12', { messageId: 50 }));
+  const id = `tg${CHAT}_50`;
+  const confirmacao = '✅ Despesa lançada\npadaria · R$ 12,00\n🛒 Alimentação';
+  await webhook(botao(`e:${id}`, { messageId: 77, texto: confirmacao }));
+  await webhook(botao(`d:${id}:w`, { messageId: 77, texto: confirmacao }));
+  const pedido = enviados[enviados.length - 1];
+  assert.equal(pedido.metodo, 'sendMessage');
+  assert.equal(pedido.payload.reply_markup.force_reply, true);
+
+  // A resposta (sem número): vira descrição, não lançamento.
+  const resp = mensagem('Padaria São Jorge', { messageId: 51 });
+  resp.message.reply_to_message = { message_id: 1 };
+  await webhook(resp);
+  assert.equal(inbox()[id].lanc.descricao, 'Padaria São Jorge');
+  assert.ok(!inbox()[`tg${CHAT}_51`], 'não virou lançamento');
+  const edicao = enviados.filter((e) => e.metodo === 'editMessageText').pop();
+  assert.equal(edicao.payload.message_id, 77, 'redesenha a confirmação original');
+  assert.match(edicao.payload.text, /Padaria São Jorge/);
+  assert.match(ultimoTexto(), /Descrição trocada/);
+});
+
+test('✏️ Descrição: no meio da espera, "uber 25" sem responder continua sendo lançamento', async () => {
+  await conectar();
+  await webhook(mensagem('padaria 12', { messageId: 60 }));
+  const id = `tg${CHAT}_60`;
+  await webhook(botao(`d:${id}:w`, { messageId: 78 }));
+  await webhook(mensagem('uber 25', { messageId: 61 }));
+  assert.ok(inbox()[`tg${CHAT}_61`], 'lançou');
+  assert.equal(inbox()[id].lanc.descricao, 'Padaria', 'a descrição não mudou');
+});
+
+test('✏️ Descrição: Voltar restaura a confirmação sem mudar nada', async () => {
+  await conectar();
+  await webhook(mensagem('mercado 20', { messageId: 70 }));
+  const id = `tg${CHAT}_70`;
+  await webhook(botao(`e:${id}`));
+  await webhook(botao(`d:${id}:v`));
+  assert.match(ultimoTexto(), /Despesa lançada/);
+  assert.doesNotMatch(ultimoTexto(), /Qual descrição/);
+  assert.ok(!inbox()[`desc_${id}`]);
+  assert.equal(inbox()[id].lanc.descricao, 'Mercado');
+});
+
+test('✏️ Descrição: receita também pode corrigir (sem botão de categoria)', async () => {
+  await conectar();
+  await webhook(mensagem('+3500 salario', { messageId: 80 }));
+  const id = `tg${CHAT}_80`;
+  assert.deepEqual(
+    teclado().map((l) => l.map((b) => b.callback_data)),
+    [[`e:${id}`], [`u:${id}`]]
+  );
+});
+
+test('✏️ Descrição: botão de outro chat não mexe', async () => {
+  await conectar();
+  await webhook(mensagem('mercado 20', { messageId: 90 }));
+  const id = `tg999_90`;
+  await webhook(botao(`e:${id}`));
+  assert.ok(!M.store.docs.has(`telegramPendentes/desc_${id}`));
 });

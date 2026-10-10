@@ -23,6 +23,7 @@
 //   {tipo:'lancamento', lanc:{...}}          vira transação(ões) no app
 //   {tipo:'desfazer',   alvo:<id>}           remove as transações daquele lançamento
 //   {tipo:'categoria',  alvo:<id>, categoriaDespesa}  troca a categoria delas
+//   {tipo:'descricao',  alvo:<id>, descricao}         troca a descrição delas
 // O id do lançamento é `tg<chat>_<mensagem>`; as transações nascem com
 // `tg<chat>_<mensagem>_<n>`. Id fixo = Telegram reentregando a mesma mensagem
 // não duplica, e Desfazer/Categoria sabem exatamente o que tocar.
@@ -37,9 +38,12 @@ const consultas = require('./telegram-consultas');
 const alertas = require('./telegram-alertas-envio');
 const alertasRegras = require('./telegram-alertas');
 const relatorio = require('./telegram-relatorio');
+const descricoes = require('./telegram-descricao');
 
 const CODIGO_TTL_MS = 15 * 60 * 1000;
 const PENDENTE_TTL_MS = 24 * 60 * 60 * 1000;
+// Quanto tempo o bot espera a pessoa digitar a descrição nova.
+const ESCREVER_TTL_MS = 15 * 60 * 1000;
 const RE_ID_INBOX = /^[A-Za-z0-9_-]{1,80}$/;
 
 // A IA de reserva é injetável: o módulo real é carregado sob demanda e os
@@ -167,7 +171,19 @@ async function carregarContexto(uid) {
     cartoes: Array.isArray(cartoes) ? cartoes : [],
     categorias,
     aprendidas: integ.aprendidas || {},
+    apelidos: integ.apelidos || {},
   };
+}
+
+// "Da próxima vez que eu escrever X, use Y": aprendido quando a pessoa
+// corrige uma descrição pelo ✏️. Só troca o texto — valor, conta, cartão e
+// categoria continuam sendo o que o parser decidiu.
+function aplicarApelido(lanc, ctx) {
+  if (!lanc || !lanc.descricao) return lanc;
+  const nova = (ctx.apelidos || {})[descricoes.chaveApelido(lanc.descricao)];
+  if (!nova || nova === lanc.descricao) return lanc;
+  lanc.descricao = nova;
+  return lanc;
 }
 
 // ─── textos ─────────────────────────────────────────────────────────────────
@@ -253,9 +269,11 @@ function descreverLancamento(lanc, ctx) {
 }
 
 function tecladoLancamento(id, lanc) {
-  const linha = [{ text: '↩️ Desfazer', callback_data: `u:${id}` }];
-  if (lanc.categoria !== 'receita') linha.push({ text: '🏷️ Categoria', callback_data: `c:${id}` });
-  return [linha];
+  const corrigir = [];
+  if (!lanc || lanc.categoria !== 'receita')
+    corrigir.push({ text: '🏷️ Categoria', callback_data: `c:${id}` });
+  corrigir.push({ text: '✏️ Descrição', callback_data: `e:${id}` });
+  return [corrigir, [{ text: '↩️ Desfazer', callback_data: `u:${id}` }]];
 }
 
 const DICA_FORMATO = '🤔 Não entendi o valor. Mande a descrição e o valor, assim:\n' + EXEMPLOS;
@@ -792,6 +810,10 @@ async function tratarTexto(msg) {
     return tg.enviar(chat.id, '⏳ Muitas mensagens em pouco tempo. Espere um minuto.');
   }
 
+  // Resposta ao "✍️ Escrever outra" do ✏️ Descrição: o texto é a descrição
+  // nova, não um lançamento.
+  if (await receberDescricaoDigitada(msg, chat.id, uid, texto)) return null;
+
   const consulta = qualConsulta(texto);
   if (consulta) return responderConsulta(chat.id, uid, consulta);
 
@@ -813,6 +835,7 @@ async function tratarTexto(msg) {
   // new Date() dele já é amanhã — no último dia do mês, o mês seguinte.
   const ctx = Object.assign({ hoje: consultas.agoraBrasilia() }, await carregarContexto(uid));
   const r = await interpretarComReserva(texto, ctx);
+  if (r.lanc) aplicarApelido(r.lanc, ctx);
   const id = idLancamento(chat.id, msg.message_id);
 
   if (!r.ok && r.motivo === 'cartao_ambiguo') {
@@ -876,6 +899,224 @@ async function trocarCategoria(uid, alvo, categoriaDespesa, descricao) {
       .doc('telegram')
       .set({ aprendidas: { [palavra]: categoriaDespesa } }, { merge: true });
   }
+}
+
+// ─── ✏️ Descrição ───────────────────────────────────────────────────────────
+
+/**
+ * Troca a descrição de um lançamento do Telegram — o mesmo caminho da
+ * categoria: atualiza o item se o app ainda não pegou, deixa a ordem para o
+ * app aplicar se já pegou, e aprende o apelido para a próxima mensagem.
+ */
+async function trocarDescricao(uid, alvo, nova, original) {
+  const D = db();
+  const col = D.collection('users').doc(uid).collection('telegramInbox');
+  const ref = col.doc(alvo);
+  const s = await ref.get();
+  if (s.exists && (s.data() || {}).tipo === 'lancamento') {
+    const d = s.data();
+    await ref.set(Object.assign({}, d, { lanc: Object.assign({}, d.lanc, { descricao: nova }) }));
+  }
+  await col
+    .doc(`desc_${alvo}`)
+    .set({ tipo: 'descricao', alvo, descricao: nova, criadoEmMs: Date.now() });
+  const chave = descricoes.chaveApelido(original);
+  if (chave && chave !== descricoes.chaveApelido(nova)) {
+    await D.collection('users')
+      .doc(uid)
+      .collection('integracoes')
+      .doc('telegram')
+      .set({ apelidos: { [chave]: nova } }, { merge: true });
+  }
+}
+
+async function carregarTransacoes(uid) {
+  const s = await db().collection('users').doc(uid).collection('data').doc('main').get();
+  const keys = (s.exists && (s.data() || {}).keys) || {};
+  const t = lerJSON(keys.futurorico_transacoes, []);
+  return Array.isArray(t) ? t : [];
+}
+
+/** Descrição e categoria atuais: do item ainda na caixa, ou da transação no app. */
+async function estadoDoLancamento(uid, id, msgText, transacoes) {
+  const inbox = await db().collection('users').doc(uid).collection('telegramInbox').doc(id).get();
+  if (inbox.exists && (inbox.data() || {}).tipo === 'lancamento') {
+    const lanc = inbox.data().lanc || {};
+    return {
+      pendente: true,
+      lanc,
+      descricao: lanc.descricao,
+      categoria: lanc.categoriaDespesa,
+      contabil: lanc.categoria,
+    };
+  }
+  const t = (transacoes || []).find(
+    (x) => x && typeof x.id === 'string' && x.id.indexOf(id + '_') === 0
+  );
+  if (t)
+    return {
+      pendente: false,
+      descricao: descricoes.semParcela(t.descricao),
+      categoria: t.categoriaDespesa || null,
+      contabil: t.categoria,
+    };
+  // Linha 2 da confirmação é "Descrição · R$ valor".
+  const linha = String(msgText || '').split('\n')[1] || '';
+  return {
+    pendente: false,
+    descricao: linha.split(' · ')[0],
+    categoria: null,
+    contabil: /Receita lançada/.test(String(msgText || '')) ? 'receita' : null,
+  };
+}
+
+/** A confirmação, sem a pergunta pendurada no fim. */
+function textoSemPergunta(texto) {
+  return String(texto || '')
+    .split('\nQual descrição?')[0]
+    .split('\nQual categoria?')[0]
+    .trim();
+}
+
+/** Redesenha a confirmação já com a descrição nova. */
+function corpoComDescricao(est, nova, msgText, ctx) {
+  if (est.pendente)
+    return descreverLancamento(Object.assign({}, est.lanc, { descricao: nova }), ctx);
+  const linhas = textoSemPergunta(msgText).split('\n');
+  if (linhas[1] && linhas[1].indexOf(' · ') !== -1) {
+    linhas[1] = nova + linhas[1].slice(linhas[1].indexOf(' · '));
+  }
+  return esc(linhas.join('\n'));
+}
+
+async function aplicarDescricao(chatId, msgId, msgText, uid, id, nova) {
+  const ctx = await carregarContexto(uid);
+  const transacoes = await carregarTransacoes(uid);
+  const est = await estadoDoLancamento(uid, id, msgText, transacoes);
+  const limpa = descricoes.limpar(nova);
+  if (!limpa) return false;
+  await trocarDescricao(uid, id, limpa, est.descricao || '');
+  await tg.editar(
+    chatId,
+    msgId,
+    corpoComDescricao(est, limpa, msgText, ctx),
+    tecladoLancamento(id, { categoria: est.contabil })
+  );
+  return true;
+}
+
+// Botões do ✏️ Descrição:
+//   e:<id>     abre as sugestões
+//   d:<id>:N   escolhe a sugestão N
+//   d:<id>:w   "✍️ Escrever outra": pede a descrição com resposta forçada
+//   d:<id>:v   volta à confirmação sem mudar nada
+async function botaoDescricao(cb, chatId, uid, acao, id, extra) {
+  const msg = cb.message || {};
+  const pendRef = db().collection('telegramPendentes').doc(`desc_${id}`);
+
+  if (acao === 'e') {
+    const transacoes = await carregarTransacoes(uid);
+    const est = await estadoDoLancamento(uid, id, msg.text, transacoes);
+    const opcoes = descricoes.sugerir(est.descricao, transacoes, est.categoria);
+    await pendRef.set({
+      uid,
+      opcoes,
+      expiraEmMs: Date.now() + PENDENTE_TTL_MS,
+      expiraEm: expiraEm(Date.now() + PENDENTE_TTL_MS),
+    });
+    await tg.responderBotao(cb.id);
+    const teclado = opcoes.map((o, i) => [{ text: o, callback_data: `d:${id}:${i}` }]);
+    teclado.push([{ text: '✍️ Escrever outra', callback_data: `d:${id}:w` }]);
+    teclado.push([{ text: '↩️ Voltar', callback_data: `d:${id}:v` }]);
+    const pergunta = opcoes.length
+      ? '<b>Qual descrição?</b> Toque numa sugestão ou escreva outra.'
+      : '<b>Qual descrição?</b> Toque em ✍️ para escrever.';
+    return tg.editar(
+      chatId,
+      msg.message_id,
+      `${esc(textoSemPergunta(msg.text))}\n\n${pergunta}`,
+      teclado
+    );
+  }
+
+  if (extra === 'v') {
+    await tg.responderBotao(cb.id);
+    const ctx = await carregarContexto(uid);
+    const est = await estadoDoLancamento(uid, id, msg.text, await carregarTransacoes(uid));
+    const corpo = est.pendente
+      ? descreverLancamento(est.lanc, ctx)
+      : esc(textoSemPergunta(msg.text));
+    return tg.editar(
+      chatId,
+      msg.message_id,
+      corpo,
+      tecladoLancamento(id, { categoria: est.contabil })
+    );
+  }
+
+  if (extra === 'w') {
+    await tg.responderBotao(cb.id);
+    const r = await tg.enviar(
+      chatId,
+      '✍️ Escreva a <b>nova descrição</b> e envie (responda esta mensagem).',
+      {
+        force_reply: true,
+        input_field_placeholder: 'Nova descrição',
+      }
+    );
+    const promptId = r && r.result && r.result.message_id;
+    await db()
+      .collection('telegramPendentes')
+      .doc(`descw_${String(chatId).replace(/[^0-9-]/g, '')}`)
+      .set({
+        uid,
+        alvo: id,
+        confirmMsgId: msg.message_id,
+        confirmTexto: String(msg.text || ''),
+        promptId: promptId || null,
+        expiraEmMs: Date.now() + ESCREVER_TTL_MS,
+        expiraEm: expiraEm(Date.now() + ESCREVER_TTL_MS),
+      });
+    return null;
+  }
+
+  const ps = await pendRef.get();
+  const pend = ps.exists ? ps.data() || {} : null;
+  const opcao = pend && pend.uid === uid ? (pend.opcoes || [])[parseInt(extra, 10)] : null;
+  if (!opcao || !(pend.expiraEmMs > Date.now())) {
+    return tg.responderBotao(cb.id, 'Expirou. Toque em ✏️ Descrição de novo.');
+  }
+  await pendRef.delete();
+  await aplicarDescricao(chatId, msg.message_id, msg.text, uid, id, opcao);
+  return tg.responderBotao(cb.id, 'Descrição trocada');
+}
+
+/**
+ * A mensagem é a resposta ao "✍️ Escrever outra"? Aplica e devolve true.
+ * Vale a resposta ao pedido (o Telegram marca reply_to_message). Sem a
+ * marcação, só aceita texto SEM número: "uber 25" mandado no meio da espera
+ * é um lançamento, não uma descrição.
+ */
+async function receberDescricaoDigitada(msg, chatId, uid, texto) {
+  const ref = db()
+    .collection('telegramPendentes')
+    .doc(`descw_${String(chatId).replace(/[^0-9-]/g, '')}`);
+  const s = await ref.get();
+  if (!s.exists) return false;
+  const p = s.data() || {};
+  if (p.uid !== uid || !(p.expiraEmMs > Date.now())) return false;
+  const resposta = msg.reply_to_message && msg.reply_to_message.message_id;
+  const ehResposta = p.promptId ? resposta === p.promptId : !!resposta;
+  if (!ehResposta && (resposta || /\d/.test(texto) || texto.startsWith('/'))) return false;
+  const nova = descricoes.limpar(texto);
+  if (!nova) return false;
+  await ref.delete();
+  await aplicarDescricao(chatId, p.confirmMsgId, p.confirmTexto, uid, p.alvo, nova);
+  await tg.enviar(
+    chatId,
+    `✅ Descrição trocada para <b>${esc(nova)}</b>.\n<i>Da próxima vez que você escrever assim, já uso essa.</i>`
+  );
+  return true;
 }
 
 // Botões dos alertas:
@@ -1053,6 +1294,8 @@ async function tratarBotao(cb) {
     );
   }
 
+  if (acao === 'e' || acao === 'd') return botaoDescricao(cb, chatId, uid, acao, id, extra);
+
   const ctx = await carregarContexto(uid);
 
   if (acao === 'c') {
@@ -1084,12 +1327,7 @@ async function tratarBotao(cb) {
       : (String(msg.text || '').split('\n')[1] || '').split(' · ')[0];
     await trocarCategoria(uid, id, cat.v, descricao);
     await tg.responderBotao(cb.id, 'Categoria trocada');
-    const teclado = [
-      [
-        { text: '↩️ Desfazer', callback_data: `u:${id}` },
-        { text: '🏷️ Categoria', callback_data: `c:${id}` },
-      ],
-    ];
+    const teclado = tecladoLancamento(id, lancAntes);
     // Ainda na caixa de entrada: redesenha a confirmação inteira com a
     // categoria nova. Já aplicado pelo app: o texto antigo fica, sem a pergunta,
     // e a categoria nova vai numa linha no fim.
