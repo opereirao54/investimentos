@@ -26,8 +26,8 @@ var PRIVACIDADE_CHAVE = 'appliquei_privacidade_aceite';
 // o que estiver vazio sai do texto em vez de aparecer como lacuna.
 var PRIVACIDADE_CONTROLADOR = {
   nome: 'Appliquei',
-  razaoSocial: '',
-  cnpj: '',
+  razaoSocial: 'Caio de Oliveira Pereira Tecnologia da Informação Ltda.',
+  cnpj: '36.570.064/0001-75',
   email: '',
 };
 
