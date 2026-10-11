@@ -617,7 +617,27 @@ function formatarMoeda(valor) {
 }
 
 // --- GESTÃO DO MODAL DE CONFIGURAÇÕES ---
-function abrirModalConfig() {
+// Menu de seções + um painel por vez (ver o comentário no HTML). No
+// computador há sempre um painel aberto ao lado do menu; no celular a tela
+// inicial é só a lista, e tocar numa seção abre o painel dela em tela cheia.
+// Função, e não `var` no topo: uma falha mais acima neste arquivo deixaria a
+// variável sem valor, e as Configurações sem abrir.
+function _cfgPaineis() {
+  return {
+    cartoes: 'Cartões de crédito',
+    categorias: 'Categorias de despesa',
+    metas: 'Metas de saldo',
+    telegram: 'Lançar pelo Telegram',
+    dados: 'Dados e conta',
+  };
+}
+
+function _cfgCelular() {
+  return !!(window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+}
+
+/** `painel` (opcional): abre direto numa seção — ver _cfgPaineis. */
+function abrirModalConfig(painel) {
   renderizarListaCartoesConfig();
   // Estado limpo: sem formulário aberto nem confirmação de exclusão pendente
   // de uma abertura anterior do modal.
@@ -628,15 +648,55 @@ function abrirModalConfig() {
   // aberto por trás do modal.
   if (typeof closeMobileNav === 'function') closeMobileNav();
   if (typeof telegramAoAbrirConfig === 'function') telegramAoAbrirConfig();
+  const p = typeof painel === 'string' && _cfgPaineis()[painel] ? painel : '';
+  cfgAbrirPainel(p || (_cfgCelular() ? '' : 'cartoes'));
   document.getElementById('modalConfiguracoes').style.display = 'flex';
 }
+
+/** Mostra uma seção ('' = só a lista de seções, no celular). */
+function cfgAbrirPainel(painel) {
+  const m = document.getElementById('modalConfiguracoes');
+  if (!m) return;
+  const paineis = _cfgPaineis();
+  const p = paineis[painel] ? painel : '';
+  m.dataset.painel = p;
+  m.querySelectorAll('.cfg-painel').forEach((el) => {
+    el.classList.toggle('ativo', el.dataset.painel === p);
+  });
+  m.querySelectorAll('.cfg-item[data-painel]').forEach((el) => {
+    const on = el.dataset.painel === p;
+    el.classList.toggle('ativo', on);
+    if (on) el.setAttribute('aria-current', 'page');
+    else el.removeAttribute('aria-current');
+  });
+  // No celular o título grande é o da tela aberta; no computador o painel
+  // já tem o próprio título e o cabeçalho fica "Configurações".
+  const tit = document.getElementById('cfgTitulo');
+  if (tit) tit.textContent = p && _cfgCelular() ? paineis[p] : 'Configurações';
+  const rol = m.querySelector(_cfgCelular() ? '.cfg-corpo' : '.cfg-paineis');
+  if (rol) rol.scrollTop = 0;
+}
+
+/** "‹ Configurações" no celular: volta da seção para a lista. */
+function cfgVoltarLista() {
+  cfgAbrirPainel('');
+}
+
 function fecharModalConfig() {
   document.getElementById('modalConfiguracoes').style.display = 'none';
+  // Valor digitado nas metas e não salvo não pode ficar no campo: o Controle
+  // lê #metaVerde direto, e a meta "mudaria" sem ninguém ter salvo.
+  if (typeof carregarMetas === 'function') carregarMetas();
+  const v = document.getElementById('metaVerde');
+  const r = document.getElementById('metaVermelha');
+  if (v && !localStorage.getItem('futurorico_metaVerde')) setValorBRLInput(v, '3000');
+  if (r && !localStorage.getItem('futurorico_metaVermelha')) setValorBRLInput(r, '1000');
 }
-function salvarEFecharConfig() {
+/** "Salvar metas": grava e continua nas configurações (no celular, volta à lista). */
+function cfgSalvarMetas() {
   salvarMetasEAtualizar();
-  fecharModalConfig();
-  mostrarToast('Configurações atualizadas!', 'sucesso');
+  mostrarToast('Metas salvas!', 'sucesso');
+  if (_cfgCelular()) cfgVoltarLista();
 }
 
 function salvarMetasEAtualizar() {

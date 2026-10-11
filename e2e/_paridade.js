@@ -84,7 +84,15 @@ const ESTADOS_MOB = {
 const OVERLAYS = [
   ['controle', 'abrirPainelLancamento()', '#painelNovoLancamento'],
   ['patrimonio', 'abrirDrawerOperacao()', '#drawerOperacao'],
-  ['controle', 'abrirModalConfig()', '#modalConfiguracoes'],
+  // Configurações: no computador há sempre um painel ao lado do menu; no
+  // celular a tela inicial é só a lista. Por isso cada painel é aberto pelo
+  // nome nos dois tamanhos e comparado à parte, além da lista de seções.
+  ['controle', 'abrirModalConfig()', '#modalConfiguracoes .cfg-nav'],
+  ['controle', "abrirModalConfig('cartoes')", '#cfgPainelCartoes'],
+  ['controle', "abrirModalConfig('categorias')", '#cfgPainelCategorias'],
+  ['controle', "abrirModalConfig('metas')", '#cfgPainelMetas'],
+  ['controle', "abrirModalConfig('telegram')", '#cfgPainelTelegram'],
+  ['controle', "abrirModalConfig('dados')", '#cfgPainelDados'],
   ['meus_sonhos', 'abrirCadastroSonho()', '#modalSonho'],
   ['meu_patrimonio', 'abrirNovoBemForm()', '#modalBem'],
   ['meu_patrimonio', 'abrirNovaContaForm()', '#formNovaConta'],

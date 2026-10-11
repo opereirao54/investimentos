@@ -197,12 +197,25 @@ test('reabrir pelas Configurações traz o guia de volta depois de pulado', () =
   assert.equal(win.ppDeveMostrarBoasVindas(), true);
 });
 
-test('reabrir com dados já lançados vai direto para a lista de passos', () => {
-  const { win } = carregar(comLancamentos([{ id: '1', categoria: 'receita' }]));
+test('reabrir com dados já lançados abre a lista de passos numa janela', () => {
+  // Antes virava o cartão do topo do conteúdo, que aparecia em cima da tela
+  // que estivesse por baixo (no celular, a "Mais") em vez de na frente.
+  const { win, elementos } = carregar(comLancamentos([{ id: '1', categoria: 'receita' }]));
+  const janela = { style: {} };
+  const conteudo = { innerHTML: '' };
+  elementos.ppGuiaPopup = janela;
+  elementos.ppGuiaPopupConteudo = conteudo;
   win.ppPularGuia();
   win.ppReabrirGuia();
-  assert.equal(win.ppEstadoAtual(), 'guiando');
-  assert.equal(win.ppDeveMostrarCartao(), true);
+  assert.equal(janela.style.display, 'flex', 'a janela abre');
+  assert.match(conteudo.innerHTML, /Primeiros passos/);
+  assert.match(conteudo.innerHTML, /ppFecharGuiaPopup\(\)/, 'o X da janela só fecha');
+  // O estado não muda: quem pulou não ganha o cartão fixo no Controle.
+  assert.equal(win.ppEstadoAtual(), 'pulado');
+  assert.equal(win.ppDeveMostrarCartao(), false);
+  // Seguir um passo tira a janela da frente.
+  win.ppIrParaPasso('despesa');
+  assert.equal(janela.style.display, 'none');
 });
 
 // ============================================================
@@ -370,6 +383,26 @@ test('auth que resolve sem usuário destrava o guia sem esperar o teto', () => {
   assert.equal(typeof aoResolver, 'function', 'o guia deveria observar a autenticação');
   aoResolver(null); // "não há ninguém logado"
   assert.equal(win.ppNuvemRespondeu(), true, 'resolvido sem usuário: não há pull a esperar');
+});
+
+test('com as Configurações abertas, o convite espera em vez de surgir por cima', () => {
+  // No celular as Configurações ocupam a tela inteira; o convite decidido
+  // nesse meio-tempo aparecia por cima delas.
+  const { win, elementos } = carregar(APP_VAZIO);
+  const convite = {
+    style: {},
+    dataset: {},
+    classList: { add() {}, remove() {} },
+    setAttribute() {},
+    removeAttribute() {},
+  };
+  elementos.ppBoasVindas = convite;
+  elementos.modalConfiguracoes = { style: { display: 'flex' } };
+  assert.equal(win.ppAvaliar(), false, 'janela aberta: ainda não decide');
+  assert.notEqual(convite.style.display, 'flex', 'o convite não abre por cima');
+  elementos.modalConfiguracoes.style.display = 'none';
+  assert.equal(win.ppAvaliar(), true, 'janela fechada: decide');
+  assert.equal(convite.style.display, 'flex', 'e o convite aparece');
 });
 
 // ============================================================
