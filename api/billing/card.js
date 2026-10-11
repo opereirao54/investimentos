@@ -2,6 +2,7 @@ const { db, fieldValue } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
 const { billingCardBody } = require('../_lib/schemas');
 const asaas = require('../_lib/asaas');
+const { conferirLimitePagamento } = require('../_lib/limite-pagamento');
 
 function clientIp(req) {
   const xff = req.headers['x-forwarded-for'];
@@ -25,6 +26,9 @@ module.exports = handler({
   bodySchema: billingCardBody,
   handle: async ({ req, res, user, body }) => {
     const { creditCard, creditCardHolderInfo } = body;
+    // Trocar o cartão também testa cartão: mesmo limite da assinatura.
+    const barrado = await conferirLimitePagamento(req, user.uid, true);
+    if (barrado) return res.status(barrado.status).json(barrado.body);
 
     const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');
     const snap = await ref.get();

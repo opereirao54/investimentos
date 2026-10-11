@@ -950,6 +950,14 @@ async function authedFetch(path, opts) {
       }
       return t2data;
     }
+    // Limite de tentativas de pagamento (api/_lib/limite-pagamento.js): a
+    // mensagem do servidor já é a frase para o usuário.
+    if (r.status === 429 && data.error === 'rate_limited') {
+      var lim = new Error(data.detail || 'Muitas tentativas. Espere um pouco e tente de novo.');
+      lim.detail = data;
+      lim.code = 'rate_limited';
+      throw lim;
+    }
     if (r.status === 429 && data.error === 'too_many_trials') {
       var rl = new Error('too_many_trials');
       rl.detail = data;
