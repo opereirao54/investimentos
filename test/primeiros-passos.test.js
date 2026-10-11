@@ -372,6 +372,26 @@ test('auth que resolve sem usuário destrava o guia sem esperar o teto', () => {
   assert.equal(win.ppNuvemRespondeu(), true, 'resolvido sem usuário: não há pull a esperar');
 });
 
+test('com as Configurações abertas, o convite espera em vez de surgir por cima', () => {
+  // No celular as Configurações ocupam a tela inteira; o convite decidido
+  // nesse meio-tempo aparecia por cima delas.
+  const { win, elementos } = carregar(APP_VAZIO);
+  const convite = {
+    style: {},
+    dataset: {},
+    classList: { add() {}, remove() {} },
+    setAttribute() {},
+    removeAttribute() {},
+  };
+  elementos.ppBoasVindas = convite;
+  elementos.modalConfiguracoes = { style: { display: 'flex' } };
+  assert.equal(win.ppAvaliar(), false, 'janela aberta: ainda não decide');
+  assert.notEqual(convite.style.display, 'flex', 'o convite não abre por cima');
+  elementos.modalConfiguracoes.style.display = 'none';
+  assert.equal(win.ppAvaliar(), true, 'janela fechada: decide');
+  assert.equal(convite.style.display, 'flex', 'e o convite aparece');
+});
+
 // ============================================================
 // 5. O HTML tem o que o módulo precisa
 // ============================================================

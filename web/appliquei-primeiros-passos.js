@@ -263,6 +263,20 @@ function ppAppLiberado() {
   return true;
 }
 
+// Alguma janela do app aberta agora? No celular as Configurações ocupam a
+// tela inteira, e o convite de boas-vindas surgia por cima dela quando a
+// decisão do guia chegava com a pessoa já lá dentro.
+function ppJanelaAberta() {
+  try {
+    return ['modalConfiguracoes', 'modalConfirmacao', 'modalPrivacidade'].some(function (id) {
+      var el = document.getElementById(id);
+      return !!(el && el.style && el.style.display && el.style.display !== 'none');
+    });
+  } catch (_) {
+    return false;
+  }
+}
+
 // Vale a pena esperar a nuvem antes de decidir?
 //
 // Só quando existe um pull a caminho. Há três maneiras de não existir, e as
@@ -808,6 +822,9 @@ function ppAvaliar() {
     _ppLiberadoDesde = 0;
     return false;
   }
+  // Configurações (ou outra janela) aberta: o convite não pode surgir por
+  // cima dela. Espera fechar — o vigia volta a olhar em instantes.
+  if (ppJanelaAberta()) return false;
   if (!_ppLiberadoDesde) _ppLiberadoDesde = Date.now();
   // A espera pela nuvem conta a partir da LIBERAÇÃO, não do boot: quem passou
   // dois minutos a digitar a senha não deve gastar a janela nisso. Estourado o
