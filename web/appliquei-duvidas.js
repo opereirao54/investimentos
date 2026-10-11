@@ -284,7 +284,7 @@ var FAQ_DADOS = [
     cat: 'dados',
     catLbl: 'Dados',
     p: 'Como funciona o backup? Posso exportar e excluir meus dados?',
-    r: 'Você exporta tudo em JSON pelo botão <strong>Backup</strong> a qualquer momento e pode importar esse arquivo de volta. Também é possível <strong>recomeçar do zero</strong>, que apaga seus lançamentos e mantém a conta. Para excluir a conta e os dados de vez, peça pela aba <strong>Enviar sugestão</strong> — a equipe cuida disso.',
+    r: 'Você exporta tudo em JSON pelo botão <strong>Backup</strong> a qualquer momento e pode importar esse arquivo de volta. Também é possível <strong>recomeçar do zero</strong>, que apaga seus lançamentos e mantém a conta. Para excluir a conta e os dados de vez, use <strong>Excluir minha conta</strong>, em Configurações: a conta, os dados e a assinatura são encerrados na hora.',
   },
   {
     cat: 'dados',

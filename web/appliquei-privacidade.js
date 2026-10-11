@@ -134,7 +134,8 @@ function privacidadeTextoHtml() {
     '<li><strong>Exportar seus dados:</strong> botão Backup, a qualquer momento.</li>' +
     '<li><strong>Apagar seus lançamentos:</strong> Recomeçar do zero, em Configurações.</li>' +
     '<li><strong>Corrigir dados:</strong> editando no próprio app.</li>' +
-    '<li><strong>Excluir a conta e os dados</strong> e os demais pedidos: ' +
+    '<li><strong>Excluir a conta e os dados:</strong> Excluir minha conta, em Configurações. A exclusão é imediata e cancela a assinatura.</li>' +
+    '<li><strong>Demais pedidos:</strong> ' +
     contato +
     '.</li>' +
     '</ul>' +
