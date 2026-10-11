@@ -438,7 +438,8 @@
             display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px;
             margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--cor-borda);
         }
-        .page-header-left { min-width: 0; flex: 1 1 320px; }
+        /* Base 0: o título cede espaço às ações antes de elas quebrarem de linha. */
+        .page-header-left { min-width: 240px; flex: 1 1 0%; }
         .page-header-left .subtitulo { max-width: 640px; line-height: 1.5; }
         /* Ações do cabeçalho: do tamanho do conteúdo, alinhadas à direita. */
         .page-header > .page-actions { flex: 0 1 auto; justify-content: flex-end; }
@@ -11124,7 +11125,6 @@
             #controle > #mobInicioFim { order: 11; }
 
             /* Cabeçalho: saudação, e o mês com os atalhos numa linha só. */
-            #controle .page-header h1 { display: none; }
             .mob-saudacao { display: block; margin: 0 0 2px; font-size: 13px; font-weight: 500; color: var(--cor-texto-mutado); }
             #controle .page-actions { display: flex !important; align-items: center; flex-wrap: nowrap !important; }
             #controle .page-actions .seletor-mes { flex: 1 1 auto; }
@@ -11485,7 +11485,6 @@
         /* MEU PATRIMÔNIO NO CELULAR (appliquei-mobile.js)               */
         /* ============================================================ */
         @media (max-width: 768px) {
-            #meu_patrimonio > .page-header,
             #meu_patrimonio #mp-kpis,
             #meu_patrimonio .mp-kpis-componentes,
             #meu_patrimonio .mp-onde-head,
@@ -11769,7 +11768,6 @@
         @media (max-width: 768px) {
             /* Carteira: o cabeçalho novo substitui título, perfil e o convite a
                personalizar; distribuição e dica já estão no plano. */
-            #carteira > .page-header,
             #carteira #cartPerfilHeader,
             #carteira .cart-selecao-header h3,
             #carteira .cart-custom-cta,
@@ -11777,7 +11775,8 @@
             #carteira #cartCallout { display: none !important; }
             #cartMobCab { margin-bottom: 14px; }
             .mcc-topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
-            .mcc-rot { font-size: 15px; font-weight: 700; color: var(--cor-texto-mutado); white-space: nowrap; }
+            /* O título grande da tela já diz "Carteira sugerida": o rótulo pequeno sai. */
+            .mcc-rot { display: none; }
             .mcc-chip {
                 display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border-radius: 999px;
                 background: var(--cor-branco); border: 1px solid var(--cor-borda); cursor: pointer;
@@ -12865,6 +12864,12 @@
         </div>
 
         <section id="patrimonio" class="section">
+            <div class="page-header">
+                <div class="page-header-left">
+                    <h1>Meus investimentos</h1>
+                    <p class="subtitulo" style="margin-bottom:0">Posição, rentabilidade, operações e dividendos da sua carteira.</p>
+                </div>
+            </div>
 
             <!-- ================= TOPO: saldo + evolução =================
                  O antigo abria com título, subtítulo, badge, botão largo, dois
