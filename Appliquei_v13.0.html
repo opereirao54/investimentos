@@ -10225,6 +10225,23 @@
         .pp-link:hover { color: var(--cor-primaria); }
         .pp-rodape-sep { opacity: 0.5; }
 
+        /* ---------- Guia aberto por Configurações (janela) ---------- */
+        #ppGuiaPopup {
+            display: none; position: fixed; inset: 0; z-index: 9998;
+            background: rgba(15,23,42,0.55); backdrop-filter: blur(3px);
+            align-items: center; justify-content: center; padding: 20px 16px; overflow-y: auto;
+        }
+        .pp-popup-caixa { width: 100%; max-width: 640px; margin: auto; }
+        .pp-popup-caixa .pp-cartao { box-shadow: 0 20px 50px rgba(15,23,42,0.25); }
+        @media (max-width: 768px) {
+            #ppGuiaPopup { align-items: flex-end; padding: 0; }
+            .pp-popup-caixa { max-width: none; margin: 0; }
+            .pp-popup-caixa .pp-cartao {
+                border-radius: 24px 24px 0 0; max-height: 90vh; overflow-y: auto;
+                padding-bottom: calc(16px + env(safe-area-inset-bottom));
+            }
+        }
+
         /* ---------- Convite (modal de boas-vindas) ---------- */
         /* z-index abaixo do authGate (10050) e do billingGate (10060): se um
            deles estiver na tela, o convite fica por baixo — e o guia nem tenta
@@ -12296,6 +12313,12 @@
          primeiro acesso e depois do "Recomeçar do zero". A primeira coisa
          que ele faz é responder à dúvida que trava todo mundo no dia 1:
          "preciso criar a conta antes de lançar?". -->
+    <!-- Guia de primeiros passos aberto por Configurações (ppReabrirGuia):
+         a mesma lista do cartão, numa janela — e não no topo da tela que
+         estiver por baixo. -->
+    <div id="ppGuiaPopup" role="dialog" aria-modal="true" aria-label="Primeiros passos" onclick="if(event.target===this)ppFecharGuiaPopup()">
+        <div class="pp-popup-caixa" id="ppGuiaPopupConteudo"></div>
+    </div>
     <div id="ppBoasVindas" role="dialog" aria-modal="true" aria-labelledby="ppBoasVindasTitulo">
         <!-- Página 1: lançar pelo Telegram. Vem antes do guia porque é o que
              mais economiza tempo no dia a dia; a pessoa conecta aqui mesmo

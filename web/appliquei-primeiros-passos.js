@@ -368,6 +368,8 @@ function ppMostrarCartaoNaTela() {
 // O respiro entre trocar de aba e abrir o formulário é o mesmo de
 // cadastrarEm(): a seção precisa pintar antes, senão o painel abre invisível.
 function ppIrParaPasso(id) {
+  // Seguir um passo pela janela leva à tela do passo: a janela sai da frente.
+  ppFecharGuiaPopup();
   if (id === 'conta') {
     ppNavegarPara('meu_patrimonio');
     setTimeout(function () {
@@ -640,6 +642,7 @@ function ppComecarGuia() {
 function ppPularGuia() {
   ppGravarEstado('pulado');
   ppFecharBoasVindas();
+  ppFecharGuiaPopup();
   ppRenderizarCartao();
   if (typeof mostrarToast === 'function') {
     mostrarToast('Guia dispensado. Ele volta pelo botão ⚙ Configurações.', 'sucesso', 4000);
@@ -648,6 +651,7 @@ function ppPularGuia() {
 
 function ppConcluirGuia() {
   ppGravarEstado('concluido');
+  ppFecharGuiaPopup();
   ppRenderizarCartao();
   if (typeof mostrarToast === 'function') {
     mostrarToast('Boa! Seus primeiros passos estão prontos.', 'sucesso');
@@ -655,7 +659,13 @@ function ppConcluirGuia() {
 }
 
 // Chamado pelo botão em Configurações. Reabre onde a pessoa parou: quem
-// nunca respondeu vê o convite; quem já conhece vê a lista direto.
+// nunca respondeu vê o convite; quem já conhece vê a lista de passos.
+//
+// Sempre numa JANELA. Antes, com dados lançados, o guia virava o cartão do
+// topo do conteúdo — que aparecia em cima de qualquer tela aberta por baixo
+// (no celular, a tela "Mais", de onde se abrem as Configurações) e não na
+// frente da pessoa. O estado não muda: quem tinha pulado continua sem o
+// cartão fixo no Controle; a janela é só para consultar e seguir um passo.
 function ppReabrirGuia() {
   if (typeof fecharModalConfig === 'function') fecharModalConfig();
   if (ppAppVazio() && ppEstadoAtual() !== 'guiando') {
@@ -663,9 +673,27 @@ function ppReabrirGuia() {
     ppAbrirBoasVindas();
     return;
   }
-  ppGravarEstado('guiando');
-  ppRenderizarCartao();
-  ppMostrarCartaoNaTela();
+  ppAbrirGuiaPopup();
+}
+
+function ppAbrirGuiaPopup() {
+  var modal = document.getElementById('ppGuiaPopup');
+  var corpo = document.getElementById('ppGuiaPopupConteudo');
+  if (!modal || !corpo) return;
+  corpo.innerHTML = ppHtmlCartao(true);
+  modal.style.display = 'flex';
+  try {
+    document.body.classList.add('pp-modal-aberto');
+  } catch (_) {}
+}
+
+function ppFecharGuiaPopup() {
+  var modal = document.getElementById('ppGuiaPopup');
+  if (!modal || modal.style.display !== 'flex') return;
+  modal.style.display = 'none';
+  try {
+    document.body.classList.remove('pp-modal-aberto');
+  } catch (_) {}
 }
 
 // ============================================================
@@ -714,7 +742,8 @@ function ppHtmlPasso(p, numero) {
   );
 }
 
-function ppHtmlCartao() {
+/** `emJanela`: dentro da janela aberta por Configurações — o X só fecha. */
+function ppHtmlCartao(emJanela) {
   var passos = ppPassos();
   var prog = ppProgresso();
   var completo = ppEssenciaisConcluidos();
@@ -748,7 +777,9 @@ function ppHtmlCartao() {
       : prog.feitos + ' de ' + prog.total + ' passos essenciais concluídos.') +
     '</p>' +
     '</div>' +
-    '<button type="button" class="pp-btn-fechar" onclick="ppPularGuia()" aria-label="Dispensar o guia" title="Dispensar o guia">' +
+    (emJanela
+      ? '<button type="button" class="pp-btn-fechar" onclick="ppFecharGuiaPopup()" aria-label="Fechar" title="Fechar">'
+      : '<button type="button" class="pp-btn-fechar" onclick="ppPularGuia()" aria-label="Dispensar o guia" title="Dispensar o guia">') +
     '<i class="ph ph-x"></i></button>' +
     '</header>' +
     '<div class="pp-barra"><div class="pp-barra-fill" style="width:' +

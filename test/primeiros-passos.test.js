@@ -197,12 +197,25 @@ test('reabrir pelas Configurações traz o guia de volta depois de pulado', () =
   assert.equal(win.ppDeveMostrarBoasVindas(), true);
 });
 
-test('reabrir com dados já lançados vai direto para a lista de passos', () => {
-  const { win } = carregar(comLancamentos([{ id: '1', categoria: 'receita' }]));
+test('reabrir com dados já lançados abre a lista de passos numa janela', () => {
+  // Antes virava o cartão do topo do conteúdo, que aparecia em cima da tela
+  // que estivesse por baixo (no celular, a "Mais") em vez de na frente.
+  const { win, elementos } = carregar(comLancamentos([{ id: '1', categoria: 'receita' }]));
+  const janela = { style: {} };
+  const conteudo = { innerHTML: '' };
+  elementos.ppGuiaPopup = janela;
+  elementos.ppGuiaPopupConteudo = conteudo;
   win.ppPularGuia();
   win.ppReabrirGuia();
-  assert.equal(win.ppEstadoAtual(), 'guiando');
-  assert.equal(win.ppDeveMostrarCartao(), true);
+  assert.equal(janela.style.display, 'flex', 'a janela abre');
+  assert.match(conteudo.innerHTML, /Primeiros passos/);
+  assert.match(conteudo.innerHTML, /ppFecharGuiaPopup\(\)/, 'o X da janela só fecha');
+  // O estado não muda: quem pulou não ganha o cartão fixo no Controle.
+  assert.equal(win.ppEstadoAtual(), 'pulado');
+  assert.equal(win.ppDeveMostrarCartao(), false);
+  // Seguir um passo tira a janela da frente.
+  win.ppIrParaPasso('despesa');
+  assert.equal(janela.style.display, 'none');
 });
 
 // ============================================================
