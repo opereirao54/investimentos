@@ -2301,7 +2301,7 @@ function cartRenderizarMotorPlano(plano) {
     var aguardando = c.modo === 'aguardando_dados';
     var linhas = aguardando
       ? '<li class="cart-classe-empty">Aguardando indicadores para selecionar os ativos. ' +
-        'A recomendação sai dos mais bem pontuados — sem score não há seleção a fazer.</li>'
+        'A sugestão sai dos mais bem pontuados — sem score não há seleção a fazer.</li>'
       : itens.length
         ? itens
             .map(function (it) {
@@ -3480,11 +3480,11 @@ function cartRenderizarCustom() {
     (ligado ? 'ph-sliders-horizontal' : 'ph-seal-check') +
     '"></i>' +
     '<div class="cart-custom-cta-txt"><strong>' +
-    (ligado ? 'Carteira personalizada por você' : 'Esta é a nossa recomendação') +
+    (ligado ? 'Carteira personalizada por você' : 'Esta é a carteira sugerida') +
     '</strong><span>' +
     (ligado
       ? 'A divisão, os setores e os ativos acima seguem o que você definiu. ' +
-        'A recomendação continua a um clique de distância.'
+        'A sugestão padrão continua a um clique de distância.'
       : 'Perfil, objetivo e prazo definiram a divisão entre classes; a política de setores ' +
         'decidiu quanto vai para cada setor; e o score escolheu os ativos dentro de cada um.') +
     '</span></div>' +
@@ -3494,7 +3494,7 @@ function cartRenderizarCustom() {
     '</button>' +
     (ligado
       ? '<button type="button" class="cart-custom-voltar" onclick="cartRestaurarRecomendacao()">' +
-        '<i class="ph ph-arrow-counter-clockwise"></i> Voltar à recomendação</button>'
+        '<i class="ph ph-arrow-counter-clockwise"></i> Voltar à sugestão padrão</button>'
       : '') +
     '</div>' +
     '<div class="cart-custom-painel" id="cartCustomPainel" hidden>' +
@@ -3505,7 +3505,7 @@ function cartRenderizarCustom() {
     '</div>' +
     '<div class="cart-custom-aviso"><i class="ph ph-info"></i> ' +
     'A partir daqui a decisão é sua: o motor continua pontuando e distribuindo o aporte, ' +
-    'só deixa de escolher a divisão. Passo não mexido mantém a recomendação.</div>' +
+    'só deixa de escolher a divisão. Passo não mexido mantém a sugestão padrão.</div>' +
     // Passo 1
     '<section class="cart-custom-passo">' +
     '<div class="cart-custom-passo-head"><span class="cart-custom-n">1</span>' +
@@ -3530,7 +3530,7 @@ function cartRenderizarCustom() {
     '</section>' +
     '<div class="cart-custom-rodape">' +
     '<button type="button" class="cart-custom-restaurar" onclick="cartRestaurarRecomendacao()">' +
-    'Voltar à recomendação</button>' +
+    'Voltar à sugestão padrão</button>' +
     '<button type="button" class="cart-custom-aplicar" onclick="cartAplicarCustom()">' +
     '<i class="ph ph-check"></i> Aplicar minha carteira</button>' +
     '</div></div>';
@@ -3674,7 +3674,7 @@ function cartRestaurarRecomendacao() {
   cartFecharCustom();
   cartRecalcularMotor();
   if (!cartMotor.temDados) cartRenderizarCustom();
-  if (typeof mostrarToast === 'function') mostrarToast('De volta à carteira recomendada.');
+  if (typeof mostrarToast === 'function') mostrarToast('De volta à carteira sugerida.');
 }
 
 // ════════════════════════════════

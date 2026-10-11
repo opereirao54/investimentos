@@ -15,6 +15,8 @@
  * do estado pré-Onda C.
  */
 
+import { limparEventoSentry } from './appliquei-sentry-scrub.js';
+
 const dsn = (typeof window !== 'undefined' && window.__APPLIQUEI_SENTRY_DSN__) || '';
 
 if (dsn) {
@@ -38,7 +40,9 @@ if (dsn) {
           if (/ResizeObserver loop|Non-Error promise rejection captured/.test(msg)) {
             return null;
           }
-          return event;
+          // E-mail, CPF/CNPJ, cartão, valores em R$ e tokens não saem daqui —
+          // nem na mensagem, nem nos breadcrumbs (console.log vira breadcrumb).
+          return limparEventoSentry(event);
         },
       });
       // Expõe para resto do código capturar manualmente quando quiser:

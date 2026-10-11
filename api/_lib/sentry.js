@@ -7,6 +7,8 @@
 // Em produção (Vercel): seta SENTRY_DSN em Project Settings → Environment
 // Variables. Em dev/CI: deixe sem — não polui erros locais.
 
+const { limparEventoSentry } = require('./sentry-scrub');
+
 let Sentry = null;
 let initialized = false;
 let initFailed = false;
@@ -32,6 +34,9 @@ function ensureInit() {
       // Não envia request bodies — pode conter dados pessoais (cpfCnpj,
       // cardNumber). Stack traces e mensagens chegam mesmo assim.
       sendDefaultPii: false,
+      // O que o nosso código põe no evento (mensagem, extra) também é
+      // limpo: e-mail, CPF/CNPJ, cartão, valores em R$ e tokens.
+      beforeSend: (event) => limparEventoSentry(event),
     });
     return Sentry;
   } catch (e) {

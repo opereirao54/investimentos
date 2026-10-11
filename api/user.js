@@ -7,8 +7,8 @@
 //   POST /api/user?op=feedback              cria uma sugestão
 //   GET  /api/user?op=feedback-anexo&id=    devolve a imagem anexada a uma delas
 //   POST /api/user?op=resend-verification   novo link de verificação de e-mail
-//   GET  /api/user?op=privacidade           o aceite da Política de Privacidade vigente
-//   POST /api/user?op=privacidade           registra o aceite (versão vigente)
+//   GET  /api/user?op=privacidade           o aceite da Política de Privacidade e dos Termos de Uso vigentes
+//   POST /api/user?op=privacidade           registra o aceite (versões vigentes)
 //   POST /api/user?op=telegram              webhook do bot (público; header secreto)
 //   POST /api/user?op=telegram-alertas      rodada dos alertas (agendador; Bearer CRON_SECRET)
 //   POST /api/user?op=telegram-link         gera o link t.me/<bot>?start=<código>
@@ -387,15 +387,37 @@ async function registrarCliqueIndicacao(req, res) {
 // a mesma de PRIVACIDADE_VERSAO em web/appliquei-privacidade.js (um teste
 // confere). Mudou o texto de forma relevante, muda a versão: quem aceitou a
 // anterior volta a ver a política e aceita de novo.
-const PRIVACIDADE_VERSAO = '2026-10-06';
+const PRIVACIDADE_VERSAO = '2026-10-11';
+// Versão vigente dos Termos de Uso — a mesma de TERMOS_VERSAO em
+// web/appliquei-termos.js (um teste confere). Os Termos são aceitos junto com
+// a política, no mesmo POST, mas cada um tem o seu documento de prova.
+const TERMOS_VERSAO = '2026-10-11';
 const PRIVACIDADE_ORIGENS = new Set(['cadastro', 'app']);
 
+function refAceite(uid, id) {
+  return db().collection('users').doc(uid).collection('consentimentos').doc(id);
+}
+
 function refAceitePrivacidade(uid) {
-  return db()
-    .collection('users')
-    .doc(uid)
-    .collection('consentimentos')
-    .doc('privacidade-' + PRIVACIDADE_VERSAO);
+  return refAceite(uid, 'privacidade-' + PRIVACIDADE_VERSAO);
+}
+
+function refAceiteTermos(uid) {
+  return refAceite(uid, 'termos-' + TERMOS_VERSAO);
+}
+
+// Grava o aceite de um documento, se ainda não existir. Idempotente: o
+// primeiro aceite é o que vale como prova; repetir não reescreve a data.
+async function gravarAceite(ref, uid, versao, origem) {
+  const snap = await ref.get();
+  if (snap && snap.exists) return { novo: false, aceitoEmMs: paraMs((snap.data() || {}).aceitoEm) };
+  await ref.set({
+    uid: uid,
+    versao: versao,
+    origem: origem,
+    aceitoEm: fieldValue().serverTimestamp(),
+  });
+  return { novo: true, aceitoEmMs: Date.now() };
 }
 
 // O registro do aceite é a PROVA do consentimento (LGPD, art. 8º, §2º: o ônus
@@ -406,12 +428,19 @@ function refAceitePrivacidade(uid) {
 // Não exige e-mail verificado: o aceite acontece no cadastro, antes da
 // verificação, e registrar consentimento não dá acesso a dado nenhum.
 async function privacidadeStatus(res, user) {
-  const snap = await refAceitePrivacidade(user.uid).get();
+  const [snap, snapT] = await Promise.all([
+    refAceitePrivacidade(user.uid).get(),
+    refAceiteTermos(user.uid).get(),
+  ]);
   const d = snap && snap.exists ? snap.data() || {} : null;
+  const t = snapT && snapT.exists ? snapT.data() || {} : null;
   return res.json({
     versao: PRIVACIDADE_VERSAO,
     aceito: !!d,
     aceitoEmMs: d ? paraMs(d.aceitoEm) : 0,
+    termosVersao: TERMOS_VERSAO,
+    termosAceito: !!t,
+    termosAceitoEmMs: t ? paraMs(t.aceitoEm) : 0,
   });
 }
 
@@ -420,24 +449,41 @@ async function privacidadeAceitar(res, user, bruto) {
   // Só se aceita a versão vigente: um cliente com a página antiga aberta não
   // pode registrar o aceite de um texto que já não é o publicado.
   if (corpo.versao !== PRIVACIDADE_VERSAO) {
-    return res.status(409).json({ error: 'versao_desatualizada', versao: PRIVACIDADE_VERSAO });
+    return res.status(409).json({
+      error: 'versao_desatualizada',
+      versao: PRIVACIDADE_VERSAO,
+      termosVersao: TERMOS_VERSAO,
+    });
+  }
+  // Termos ausentes = cliente de antes dos Termos: registra só a política, e
+  // o GET seguinte (termosAceito: false) pede os Termos. Versão errada dos
+  // Termos é recusada como a da política.
+  const comTermos = corpo.termosVersao != null && corpo.termosVersao !== '';
+  if (comTermos && corpo.termosVersao !== TERMOS_VERSAO) {
+    return res.status(409).json({
+      error: 'versao_desatualizada',
+      versao: PRIVACIDADE_VERSAO,
+      termosVersao: TERMOS_VERSAO,
+    });
   }
   const origem = PRIVACIDADE_ORIGENS.has(corpo.origem) ? corpo.origem : 'app';
-  const ref = refAceitePrivacidade(user.uid);
-  const snap = await ref.get();
-  // Idempotente: o primeiro aceite é o que vale como prova; repetir não
-  // reescreve a data.
-  if (snap && snap.exists) {
-    const d = snap.data() || {};
-    return res.json({ ok: true, versao: PRIVACIDADE_VERSAO, aceitoEmMs: paraMs(d.aceitoEm) });
-  }
-  await ref.set({
-    uid: user.uid,
+  const priv = await gravarAceite(
+    refAceitePrivacidade(user.uid),
+    user.uid,
+    PRIVACIDADE_VERSAO,
+    origem
+  );
+  const termos = comTermos
+    ? await gravarAceite(refAceiteTermos(user.uid), user.uid, TERMOS_VERSAO, origem)
+    : null;
+  return res.status(priv.novo || (termos && termos.novo) ? 201 : 200).json({
+    ok: true,
     versao: PRIVACIDADE_VERSAO,
-    origem: origem,
-    aceitoEm: fieldValue().serverTimestamp(),
+    aceitoEmMs: priv.aceitoEmMs,
+    termosVersao: TERMOS_VERSAO,
+    termosAceito: !!termos,
+    termosAceitoEmMs: termos ? termos.aceitoEmMs : 0,
   });
-  return res.status(201).json({ ok: true, versao: PRIVACIDADE_VERSAO, aceitoEmMs: Date.now() });
 }
 
 // ─── TELEGRAM ───────────────────────────────────────────────────────────────
@@ -583,3 +629,4 @@ module.exports = handler({
 
 // Para o teste que confere a versão do cliente.
 module.exports.PRIVACIDADE_VERSAO = PRIVACIDADE_VERSAO;
+module.exports.TERMOS_VERSAO = TERMOS_VERSAO;
