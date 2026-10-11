@@ -1,6 +1,7 @@
 const { db, fieldValue, timestamp } = require('../_lib/firebase-admin');
 const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
+const { conferirLimitePagamento } = require('../_lib/limite-pagamento');
 const { assertReferralAllowed } = require('../_lib/referral-guard');
 const { isValidCpfCnpj } = require('../_lib/cpf-cnpj');
 const { toMillis, paidUntilMs } = require('../_lib/access');
@@ -73,6 +74,10 @@ module.exports = handler({
     // (cobrança única de 30 dias, sem subscription). Fundido com /subscribe
     // para caber no limite de 12 functions do Vercel Hobby.
     const mode = body.mode === 'one_shot' ? 'one_shot' : 'subscription';
+
+    // Teste de cartão roubado / cobranças em série: ver limite-pagamento.js.
+    const barrado = await conferirLimitePagamento(req, user.uid, wantsCard);
+    if (barrado) return res.status(barrado.status).json(barrado.body);
 
     try {
       const ref = db().collection('users').doc(user.uid).collection('billing').doc('account');

@@ -12365,6 +12365,14 @@
                 <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
             </div>
 
+            <!-- Excluir a conta (web/appliquei-excluir-conta.js). Diferente do
+                 "Recomeçar": apaga a CONTA, não só os registros. -->
+            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
+                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Excluir minha conta</label>
+                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga a conta e todos os dados dela, cancela a assinatura e desfaz o vínculo com o Telegram. Diferente de recomeçar: depois disso não há mais login.</p>
+                <button class="btn-secundario" id="btnExcluirConta" onclick="abrirModalExcluirConta()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:transparent;"><i class="ph ph-user-minus"></i> Excluir minha conta</button>
+            </div>
+
             <div style="display:flex;gap:10px;">
                 <button class="btn-secundario" style="flex:1;" onclick="fecharModalConfig()">Cancelar</button>
                 <button class="btn-acao" style="flex:1;background-color:var(--cor-info);" onclick="salvarEFecharConfig()"><i class="ph ph-check"></i> Salvar</button>
@@ -15431,7 +15439,7 @@
                     <ul class="priv-lista">
                         <li><b>Levar seus dados</b>: o botão <strong>Backup</strong> exporta tudo num arquivo, a qualquer momento.</li>
                         <li><b>Apagar seus lançamentos</b>: <strong>Recomeçar do zero</strong>, em Configurações.</li>
-                        <li><b>Excluir a conta</b>: peça pela aba <strong>Enviar sugestão</strong> e apagamos a conta e os dados.</li>
+                        <li><b>Excluir a conta</b>: <strong>Excluir minha conta</strong>, em Configurações, apaga a conta e os dados na hora.</li>
                     </ul>
 
                     <h3 class="priv-tit">No seu aparelho</h3>
@@ -15568,6 +15576,7 @@
     <script src="/web/appliquei-primeiros-passos.js?v=boas-vindas-telegram"></script>
     <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
     <script src="/web/appliquei-termos.js?v=termos-1"></script>
+    <script src="/web/appliquei-excluir-conta.js?v=excluir-1"></script>
     <script src="/web/appliquei-privacidade.js?v=termos-1"></script>
     <!-- Lançamentos pelo Telegram. Depois de controle-financeiro (criarLancamentos)
          e contas (salvarContas). -->

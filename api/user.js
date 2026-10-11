@@ -9,6 +9,7 @@
 //   POST /api/user?op=resend-verification   novo link de verificação de e-mail
 //   GET  /api/user?op=privacidade           o aceite da Política de Privacidade e dos Termos de Uso vigentes
 //   POST /api/user?op=privacidade           registra o aceite (versões vigentes)
+//   POST /api/user?op=excluir-conta         exclui a conta e os dados (login recente + "EXCLUIR")
 //   POST /api/user?op=telegram              webhook do bot (público; header secreto)
 //   POST /api/user?op=telegram-alertas      rodada dos alertas (agendador; Bearer CRON_SECRET)
 //   POST /api/user?op=telegram-link         gera o link t.me/<bot>?start=<código>
@@ -58,7 +59,9 @@ const { feedbackCreateBody, feedbackListQuery, telegramInboxAckBody } = require(
 const rl = require('./_lib/rate-limit');
 const codes = require('./_lib/codes');
 const convites = require('./_lib/convites');
-const { requireUser } = require('./_lib/auth');
+const { requireUser, invalidateUid } = require('./_lib/auth');
+const asaas = require('./_lib/asaas');
+const { excluirConta } = require('./_lib/excluir-conta');
 const telegram = require('./_lib/telegram-bot');
 const telegramAlertas = require('./_lib/telegram-alertas-envio');
 
@@ -381,6 +384,41 @@ async function registrarCliqueIndicacao(req, res) {
   return res.status(204).end();
 }
 
+// ─── EXCLUSÃO DA CONTA ──────────────────────────────────────────────────────
+
+// Login feito há no máximo isto. Um token esquecido num aparelho emprestado
+// não pode apagar a conta de ninguém: o app pede a senha (ou o Google) de novo
+// e só então manda o pedido. É a mesma regra do Firebase para trocar a senha.
+const EXCLUIR_LOGIN_RECENTE_S = 10 * 60;
+const EXCLUIR_PALAVRA = 'EXCLUIR';
+
+// Não exige e-mail verificado: quem criou a conta com um e-mail errado (e
+// nunca vai conseguir verificar) também tem o direito de apagá-la.
+async function excluirContaRota(res, user, bruto) {
+  const corpo = bruto || {};
+  if (
+    String(corpo.confirmacao || '')
+      .trim()
+      .toUpperCase() !== EXCLUIR_PALAVRA
+  ) {
+    return res.status(400).json({ error: 'confirmacao_invalida' });
+  }
+  const authTime = Number(user.auth_time) || 0;
+  if (!authTime || Date.now() / 1000 - authTime > EXCLUIR_LOGIN_RECENTE_S) {
+    return res.status(401).json({ error: 'reautenticar' });
+  }
+  try {
+    const r = await excluirConta(user.uid, { db, auth, fieldValue, asaas, telegram });
+    invalidateUid(user.uid);
+    return res.json(r);
+  } catch (e) {
+    console.error('[excluir-conta] falhou etapa=%s', (e && e.etapa) || '?', e && e.message);
+    return res
+      .status((e && e.status) || 500)
+      .json({ error: 'exclusao_falhou', etapa: (e && e.etapa) || null });
+  }
+}
+
 // ─── POLÍTICA DE PRIVACIDADE: ACEITE ────────────────────────────────────────
 
 // Versão vigente da Política de Privacidade. É a data da redação e tem de ser
@@ -614,6 +652,11 @@ module.exports = handler({
     if (op === 'privacidade') {
       if (req.method === 'GET') return privacidadeStatus(res, user);
       return privacidadeAceitar(res, user, body);
+    }
+
+    if (op === 'excluir-conta') {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+      return excluirContaRota(res, user, body);
     }
 
     if (OPS_TELEGRAM_APP.has(op)) return telegramRotas(op, req, res, user, body);
