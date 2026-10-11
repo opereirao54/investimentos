@@ -429,9 +429,25 @@
         .section.ativa { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-        .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-        .page-header-left h1 { font-size: 21px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--cor-texto-principal); margin-bottom: 5px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 9px; }
-        .page-header-left .subtitulo { color: var(--cor-texto-mutado); font-size: 13px; font-weight: 400; margin-bottom: 0; }
+        /* Cabeçalho de tela — UM padrão para todas as abas: título (sem ícone,
+           só a primeira letra maiúscula), uma linha de subtítulo e as ações à
+           direita, alinhadas pela base. Nada de margem ou ícone inline por
+           tela: era o que deixava cada cabeçalho de um jeito. No celular vira
+           o título grande do app (ver "CABEÇALHO DE TELA NO CELULAR"). */
+        .page-header {
+            display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px;
+            margin-bottom: 24px; padding-bottom: 18px; border-bottom: 1px solid var(--cor-borda);
+        }
+        .page-header-left { min-width: 0; flex: 1 1 320px; }
+        .page-header-left .subtitulo { max-width: 640px; line-height: 1.5; }
+        /* Ações do cabeçalho: do tamanho do conteúdo, alinhadas à direita. */
+        .page-header > .page-actions { flex: 0 1 auto; justify-content: flex-end; }
+        @media (min-width: 769px) {
+            .page-header > .page-actions > .btn-acao,
+            .page-header > .page-actions > .btn-secundario { width: auto; }
+        }
+        .page-header-left h1 { font-size: 24px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--cor-texto-principal); margin-bottom: 5px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 9px; }
+        .page-header-left .subtitulo { color: var(--cor-texto-mutado); font-size: 13.5px; font-weight: 400; margin-bottom: 0; }
         h1 { font-size: 21px; font-weight: 700; font-family: 'Syne', sans-serif; color: var(--cor-texto-principal); margin-bottom: 6px; letter-spacing: -0.5px; display: flex; align-items: center; gap: 9px; }
         .subtitulo { color: var(--cor-texto-mutado); margin-bottom: 24px; font-size: 13px; font-weight: 400; }
         .page-actions { display: flex; align-items: center; gap: 8px; }
@@ -11978,6 +11994,150 @@
         }
         .priv-politica p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cor-texto-secundario); }
         .priv-status { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--tinta-verde) !important; }
+
+        /* ============================================================
+           CABEÇALHO DE TELA NO CELULAR — o título grande do app
+           ============================================================
+           O mesmo da tela "Mais" (.mob-titulo): 28px, sem a fonte de
+           display, sem a linha de baixo. O "‹ Mais" fica acima nas telas
+           abertas a partir do Mais, como nos apps do iPhone. Mais específico
+           que as regras antigas de 16–18px por largura, que ficam sem efeito. */
+        @media (max-width: 768px) {
+            .section > .page-header { padding-bottom: 0; border-bottom: 0; align-items: stretch; }
+            /* Empilhado na vertical, a base de 320px do computador viraria ALTURA. */
+            .section > .page-header .page-header-left { flex: 0 0 auto; }
+            .section > .page-header .page-header-left h1 {
+                font-family: inherit; font-size: clamp(24px, 7.2vw, 28px) !important; font-weight: 800;
+                letter-spacing: -0.5px; line-height: 1.15; margin-bottom: 2px;
+            }
+        }
+
+        /* ============================================================
+           Configurações (#modalConfiguracoes) — menu + painel no
+           computador, lista + tela por seção no celular. Ver o comentário
+           no HTML e cfgAbrirPainel em appliquei-app.js.
+           ============================================================ */
+        .cfg-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            align-items: center; justify-content: center;
+            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(3px);
+        }
+        .cfg-caixa {
+            display: flex; flex-direction: column;
+            width: min(920px, calc(100% - 40px)); height: min(680px, 88vh);
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.25);
+            animation: fadeIn 0.2s ease;
+        }
+        .cfg-cab { display: flex; align-items: center; gap: 12px; padding: 16px 16px 16px 24px; border-bottom: 1px solid var(--cor-borda); }
+        .cfg-titulo { flex: 1; margin: 0; font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.4px; color: var(--cor-texto-principal); }
+        .cfg-voltar { display: none; }
+        .cfg-fechar {
+            width: 40px; height: 40px; flex-shrink: 0; border: 0; border-radius: 10px; background: none;
+            font-size: 20px; color: var(--cor-texto-mutado); cursor: pointer;
+        }
+        .cfg-fechar:hover { background: var(--cor-superficie); color: var(--cor-texto-principal); }
+        .cfg-corpo { flex: 1; min-height: 0; display: grid; grid-template-columns: 290px minmax(0, 1fr); }
+        .cfg-nav { overflow-y: auto; padding: 18px 12px; background: var(--cor-superficie); border-right: 1px solid var(--cor-borda); }
+        .cfg-grupo {
+            display: block; margin: 18px 10px 6px; font-size: 11px; font-weight: 700;
+            letter-spacing: 0.6px; text-transform: uppercase; color: var(--cor-texto-mutado);
+        }
+        .cfg-grupo:first-child { margin-top: 0; }
+        .cfg-lista { display: flex; flex-direction: column; gap: 2px; }
+        .cfg-item {
+            display: flex; align-items: center; gap: 11px; width: 100%; padding: 9px 10px;
+            border: 0; border-radius: 12px; background: none; cursor: pointer; text-align: left;
+            font-family: inherit; color: var(--cor-texto-principal); transition: background 0.15s;
+        }
+        .cfg-item:hover { background: var(--cor-branco); }
+        .cfg-item.ativo { background: var(--cor-branco); box-shadow: 0 1px 3px rgba(16, 30, 19, 0.10); }
+        .cfg-item:focus-visible { outline: 2px solid var(--cor-primaria); outline-offset: 1px; }
+        .cfg-ic {
+            width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .cfg-ic.verde { background: var(--cor-bg-primaria); color: var(--tinta-verde); }
+        .cfg-ic.azul { background: var(--cor-bg-info); color: var(--tinta-azul); }
+        .cfg-ic.roxo { background: rgba(124, 58, 237, 0.10); color: var(--tinta-roxo); }
+        .cfg-ic.ambar { background: var(--cor-bg-amber); color: var(--cor-txt-amber); }
+        .cfg-ic.vermelho { background: var(--cor-bg-erro); color: var(--tinta-vermelho); }
+        .cfg-item-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+        .cfg-item-txt b { font-size: 13.5px; font-weight: 700; }
+        .cfg-item-txt small { font-size: 11.5px; color: var(--cor-texto-mutado); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .cfg-seta { font-size: 15px; color: var(--cor-texto-mutado); }
+        .cfg-item[data-painel] .cfg-seta { display: none; }
+        .cfg-paineis { overflow-y: auto; padding: 24px 32px 32px; }
+        .cfg-painel { display: none; max-width: 620px; }
+        .cfg-painel.ativo { display: block; animation: fadeIn 0.18s ease; }
+        .cfg-painel-tit { margin: 0 0 4px; font-size: 17px; font-weight: 700; color: var(--cor-texto-principal); }
+        .cfg-painel-desc { margin: 0 0 18px; font-size: 13px; line-height: 1.55; color: var(--cor-texto-mutado); }
+        .cfg-verde { color: var(--tinta-verde); }
+        .cfg-vermelho { color: var(--tinta-vermelho); }
+        .cfg-metas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+        .cfg-salvar { background: var(--cor-primaria); }
+        .cfg-zona {
+            display: flex; align-items: center; justify-content: space-between; gap: 18px;
+            margin-bottom: 12px; padding: 16px; border: 1px solid var(--cor-borda-erro); border-radius: 14px;
+        }
+        .cfg-zona-txt b { display: block; margin-bottom: 4px; font-size: 14px; color: var(--cor-texto-principal); }
+        .cfg-zona-txt p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--cor-texto-mutado); }
+        .cfg-btn-perigo { flex-shrink: 0; white-space: nowrap; color: var(--tinta-vermelho); border-color: var(--cor-borda-erro); }
+        .cfg-btn-perigo:hover { background: var(--cor-bg-erro); }
+
+        /* Celular: tela cheia, como um app. A lista de seções é a tela inicial;
+           tocar numa seção mostra só ela, com "‹ Configurações" no topo. */
+        @media (max-width: 768px) {
+            .cfg-overlay { align-items: stretch; justify-content: stretch; background: var(--cor-fundo); backdrop-filter: none; }
+            .cfg-caixa {
+                width: 100%; height: 100%; border: 0; border-radius: 0; box-shadow: none;
+                background: var(--cor-fundo); animation: cfgEntra 0.22s ease;
+            }
+            .cfg-cab {
+                flex-wrap: wrap; gap: 0; border-bottom: 0;
+                padding: calc(env(safe-area-inset-top) + 6px) 8px 6px 16px;
+            }
+            .cfg-voltar {
+                display: inline-flex; align-items: center; gap: 2px; visibility: hidden;
+                min-height: 44px; margin-left: -10px; padding: 0 10px 0 4px; border: 0; background: none; cursor: pointer;
+                font-family: inherit; font-size: 15px; font-weight: 600; color: var(--cor-primaria);
+            }
+            .cfg-voltar i { font-size: 20px; }
+            .cfg-overlay:not([data-painel=""]) .cfg-voltar { visibility: visible; }
+            .cfg-fechar { margin-left: auto; width: 44px; height: 44px; }
+            .cfg-titulo {
+                order: 3; flex: 0 0 100%; margin: 2px 0 4px;
+                font-family: inherit; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;
+            }
+            .cfg-corpo {
+                display: block; overflow-y: auto; -webkit-overflow-scrolling: touch;
+                padding: 4px 16px calc(28px + env(safe-area-inset-bottom));
+            }
+            .cfg-nav { padding: 0; background: none; border: 0; overflow: visible; }
+            .cfg-overlay:not([data-painel=""]) .cfg-nav { display: none; }
+            .cfg-overlay[data-painel=""] .cfg-paineis { display: none; }
+            .cfg-grupo { margin: 20px 4px 8px; }
+            .cfg-lista {
+                gap: 0; padding: 0 14px;
+                background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 18px;
+            }
+            .cfg-item { min-height: 62px; padding: 8px 0; border-radius: 0; border-bottom: 1px solid var(--cor-borda); }
+            .cfg-item:last-child { border-bottom: 0; }
+            .cfg-item:hover, .cfg-item.ativo { background: none; box-shadow: none; }
+            .cfg-item:active { opacity: 0.6; }
+            .cfg-item-txt b { font-size: 15px; }
+            .cfg-item-txt small { font-size: 12.5px; }
+            .cfg-item[data-painel] .cfg-seta { display: inline; }
+            .cfg-paineis { padding: 0; overflow: visible; }
+            .cfg-painel { max-width: none; }
+            .cfg-painel-tit { display: none; }
+            .cfg-painel-desc { font-size: 13.5px; }
+            .cfg-metas { grid-template-columns: 1fr; }
+            .cfg-salvar { width: 100%; min-height: 48px; justify-content: center; }
+            .cfg-zona { flex-direction: column; align-items: stretch; background: var(--cor-branco); border-color: var(--cor-borda); border-radius: 18px; }
+            .cfg-btn-perigo { min-height: 46px; justify-content: center; }
+        }
+        @keyframes cfgEntra { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
     </style>
 </head>
 <body class="controle-ativo">
@@ -12301,15 +12461,45 @@
         </div>
     </div>
 
-    <div id="modalConfiguracoes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);">
-        <div style="max-width:440px;width:90%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:28px;animation:fadeIn 0.2s ease;max-height:88vh;overflow-y:auto;">
-            <h3 style="margin-bottom:8px;font-size:17px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--cor-texto-principal);"><i class="ph ph-sliders" style="color:var(--cor-info);font-size:18px;"></i> Configurações</h3>
-            <p style="font-size:13px;color:var(--cor-texto-mutado);margin-bottom:22px;line-height:1.5;">Cartões, limites de gastos e metas de saldo.</p>
+    <!-- Configurações (web/appliquei-app.js: abrirModalConfig / cfgAbrirPainel).
+         Um DOM só para os dois tamanhos:
+           · computador — janela larga, menu à esquerda e o painel escolhido à
+             direita (antes era uma coluna estreita com tudo empilhado);
+           · celular — tela cheia no estilo do app: a lista de seções e, ao
+             tocar numa, o painel dela com "‹ Configurações" para voltar.
+         data-painel diz qual painel está aberto ('' = só a lista, no celular). -->
+    <div id="modalConfiguracoes" class="cfg-overlay" data-painel="" style="display:none;">
+        <div class="cfg-caixa" role="dialog" aria-modal="true" aria-labelledby="cfgTitulo">
+            <header class="cfg-cab">
+                <button type="button" class="cfg-voltar" onclick="cfgVoltarLista()" aria-label="Voltar para as configurações"><i class="ph ph-caret-left"></i> Configurações</button>
+                <h2 id="cfgTitulo" class="cfg-titulo">Configurações</h2>
+                <button type="button" class="cfg-fechar" onclick="fecharModalConfig()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+            </header>
+            <div class="cfg-corpo">
+                <nav class="cfg-nav" aria-label="Seções das configurações">
+                    <span class="cfg-grupo">Finanças</span>
+                    <div class="cfg-lista">
+                        <button type="button" class="cfg-item" data-painel="cartoes" onclick="cfgAbrirPainel('cartoes')"><span class="cfg-ic verde"><i class="ph ph-credit-card"></i></span><span class="cfg-item-txt"><b>Cartões de crédito</b><small>Limite, fechamento e conta que paga</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                        <button type="button" class="cfg-item" data-painel="categorias" onclick="cfgAbrirPainel('categorias')"><span class="cfg-ic ambar"><i class="ph ph-tag"></i></span><span class="cfg-item-txt"><b>Categorias de despesa</b><small>Nomes e emojis dos seus gastos</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                        <button type="button" class="cfg-item" data-painel="metas" onclick="cfgAbrirPainel('metas')"><span class="cfg-ic azul"><i class="ph ph-target"></i></span><span class="cfg-item-txt"><b>Metas de saldo</b><small>Quando o mês fica verde ou vermelho</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                    </div>
+                    <span class="cfg-grupo">Integrações e ajuda</span>
+                    <div class="cfg-lista">
+                        <button type="button" class="cfg-item" data-painel="telegram" onclick="cfgAbrirPainel('telegram')"><span class="cfg-ic azul"><i class="ph ph-telegram-logo"></i></span><span class="cfg-item-txt"><b>Lançar pelo Telegram</b><small>Registre gastos por mensagem</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                        <button type="button" class="cfg-item" id="btnReabrirGuia" onclick="ppReabrirGuia()"><span class="cfg-ic roxo"><i class="ph ph-compass"></i></span><span class="cfg-item-txt"><b>Guia de primeiros passos</b><small>Por onde começar: contas, receita e despesa</small></span><i class="ph ph-arrow-up-right cfg-seta"></i></button>
+                    </div>
+                    <span class="cfg-grupo">Conta</span>
+                    <div class="cfg-lista">
+                        <button type="button" class="cfg-item" data-painel="dados" onclick="cfgAbrirPainel('dados')"><span class="cfg-ic vermelho"><i class="ph ph-shield-warning"></i></span><span class="cfg-item-txt"><b>Dados e conta</b><small>Recomeçar do zero ou excluir a conta</small></span><i class="ph ph-caret-right cfg-seta"></i></button>
+                    </div>
+                </nav>
 
-            <div style="margin-bottom:18px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Meus cartões de crédito</label>
-                <div id="listaCartoesConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
-                <div id="formNovoCartaoConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
+                <div class="cfg-paineis">
+                    <section class="cfg-painel" id="cfgPainelCartoes" data-painel="cartoes" aria-labelledby="cfgTitCartoes">
+                        <h3 class="cfg-painel-tit" id="cfgTitCartoes">Cartões de crédito</h3>
+                        <p class="cfg-painel-desc">O limite e os dias de fechamento e vencimento organizam as faturas no Controle. A conta que paga é de onde o dinheiro sai quando você paga a fatura.</p>
+                        <div id="listaCartoesConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+                        <div id="formNovoCartaoConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                     <div class="form-group" style="margin-bottom:8px;"><label style="font-size:11px;">Nome do cartão</label><input type="text" id="novoCartaoNome" placeholder="Ex: Nubank, Itaú..." style="padding:8px;font-size:13px;"></div>
                     <div class="grid-3-iguais" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;align-items:end;margin-bottom:8px;">
                         <div class="form-group" style="margin-bottom:0;"><label style="font-size:11px;">Limite (R$)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="novoCartaoLimite" placeholder="5.000,00" oninput="aplicarMascaraBRL(this)" style="padding:8px;font-size:13px;"></span></div>
@@ -12323,10 +12513,12 @@
                     </div>
                 </div>
                 <button class="btn-secundario" id="btnAbrirNovoCartao" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovoCartaoConfig()"><i class="ph ph-plus"></i> Adicionar cartão</button>
-            </div>
-            <div style="margin-bottom:18px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:8px;">Categorias de despesa</label>
-                <div id="listaCategoriasConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;max-height:264px;overflow-y:auto;"></div>
+                    </section>
+
+                    <section class="cfg-painel" id="cfgPainelCategorias" data-painel="categorias" aria-labelledby="cfgTitCategorias">
+                        <h3 class="cfg-painel-tit" id="cfgTitCategorias">Categorias de despesa</h3>
+                        <p class="cfg-painel-desc">Crie, renomeie ou apague as categorias que aparecem ao lançar uma despesa.</p>
+                        <div id="listaCategoriasConfig" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
                 <div id="formCategoriaConfig" style="display:none;background:var(--cor-superficie);border:1px dashed var(--cor-borda);border-radius:9px;padding:12px;margin-bottom:8px;">
                     <div style="font-size:11px;font-weight:600;color:var(--cor-texto-secundario);margin-bottom:8px;" id="tituloFormCategoriaConfig">Nova categoria</div>
                     <div style="display:flex;gap:8px;align-items:center;">
@@ -12341,41 +12533,44 @@
                     </div>
                 </div>
                 <button class="btn-secundario" id="btnAbrirNovaCategoria" style="width:100%;padding:8px;font-size:12px;border-style:dashed;" onclick="abrirNovaCategoriaConfig()"><i class="ph ph-plus"></i> Adicionar categoria</button>
-            </div>
-            <div class="grid-2-iguais" style="gap:14px;margin-bottom:22px;">
-                <div class="form-group" style="margin-bottom:0;"><label>Meta verde (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
-                <div class="form-group" style="margin-bottom:0;"><label>Alerta vermelho (DRE)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
-            </div>
+                    </section>
 
-            <!-- Lançar pelo Telegram (web/appliquei-telegram.js desenha o conteúdo). -->
-            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:18px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;"><i class="ph ph-telegram-logo" style="color:var(--cor-info);"></i> Lançar pelo Telegram</label>
-                <div id="telegramConfig"></div>
-            </div>
+                    <section class="cfg-painel" id="cfgPainelMetas" data-painel="metas" aria-labelledby="cfgTitMetas">
+                        <h3 class="cfg-painel-tit" id="cfgTitMetas">Metas de saldo</h3>
+                        <p class="cfg-painel-desc">O saldo acumulado do mês fica <b class="cfg-verde">verde</b> acima da meta e <b class="cfg-vermelho">vermelho</b> abaixo do alerta, no Controle e no Relatório mensal.</p>
+                        <div class="cfg-metas">
+                            <div class="form-group" style="margin-bottom:0;"><label for="metaVerde">Meta verde (saldo ideal)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
+                            <div class="form-group" style="margin-bottom:0;"><label for="metaVermelha">Alerta vermelho (saldo crítico)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
+                        </div>
+                        <button type="button" class="btn-acao cfg-salvar" onclick="cfgSalvarMetas()"><i class="ph ph-check"></i> Salvar metas</button>
+                    </section>
 
-            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:18px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Primeiros passos</label>
-                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">O guia que mostra por onde começar — contas, receita e despesa — e responde se é preciso cadastrar uma conta antes de lançar.</p>
-                <button class="btn-secundario" id="btnReabrirGuia" onclick="ppReabrirGuia()" style="width:100%;padding:9px;font-size:12.5px;color:var(--cor-txt-primaria);border-color:var(--cor-borda-primaria);background:var(--cor-bg-primaria);"><i class="ph ph-compass"></i> Ver o guia de primeiros passos</button>
-            </div>
+                    <!-- Lançar pelo Telegram (web/appliquei-telegram.js desenha o conteúdo). -->
+                    <section class="cfg-painel" id="cfgPainelTelegram" data-painel="telegram" aria-labelledby="cfgTitTelegram">
+                        <h3 class="cfg-painel-tit" id="cfgTitTelegram">Lançar pelo Telegram</h3>
+                        <div id="telegramConfig"></div>
+                    </section>
 
-            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Recomeçar do zero</label>
-                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
-                <button class="btn-secundario" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:var(--cor-bg-erro);"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
-            </div>
-
-            <!-- Excluir a conta (web/appliquei-excluir-conta.js). Diferente do
-                 "Recomeçar": apaga a CONTA, não só os registros. -->
-            <div style="border-top:1px solid var(--cor-borda);padding-top:18px;margin-bottom:22px;">
-                <label style="font-size:12.5px;font-weight:600;color:var(--cor-texto-secundario);display:block;margin-bottom:6px;">Excluir minha conta</label>
-                <p style="font-size:12px;color:var(--cor-texto-mutado);margin-bottom:10px;line-height:1.5;">Apaga a conta e todos os dados dela, cancela a assinatura e desfaz o vínculo com o Telegram. Diferente de recomeçar: depois disso não há mais login.</p>
-                <button class="btn-secundario" id="btnExcluirConta" onclick="abrirModalExcluirConta()" style="width:100%;padding:9px;font-size:12.5px;color:var(--tinta-vermelho);border-color:var(--cor-borda-erro);background:transparent;"><i class="ph ph-user-minus"></i> Excluir minha conta</button>
-            </div>
-
-            <div style="display:flex;gap:10px;">
-                <button class="btn-secundario" style="flex:1;" onclick="fecharModalConfig()">Cancelar</button>
-                <button class="btn-acao" style="flex:1;background-color:var(--cor-info);" onclick="salvarEFecharConfig()"><i class="ph ph-check"></i> Salvar</button>
+                    <section class="cfg-painel" id="cfgPainelDados" data-painel="dados" aria-labelledby="cfgTitDados">
+                        <h3 class="cfg-painel-tit" id="cfgTitDados">Dados e conta</h3>
+                        <div class="cfg-zona">
+                            <div class="cfg-zona-txt">
+                                <b>Recomeçar do zero</b>
+                                <p>Apaga todos os seus registros — lançamentos, investimentos, contas, cartões, bens, sonhos e metas — e devolve a Appliquei ao primeiro uso. Sua conta e sua assinatura continuam ativas.</p>
+                            </div>
+                            <button class="btn-secundario cfg-btn-perigo" id="btnRecomecarDoZero" onclick="abrirModalRecomecar()"><i class="ph ph-arrow-counter-clockwise"></i> Apagar tudo e recomeçar</button>
+                        </div>
+                        <!-- Excluir a conta (web/appliquei-excluir-conta.js). Diferente do
+                             "Recomeçar": apaga a CONTA, não só os registros. -->
+                        <div class="cfg-zona">
+                            <div class="cfg-zona-txt">
+                                <b>Excluir minha conta</b>
+                                <p>Apaga a conta e todos os dados dela, cancela a assinatura e desfaz o vínculo com o Telegram. Diferente de recomeçar: depois disso não há mais login.</p>
+                            </div>
+                            <button class="btn-secundario cfg-btn-perigo" id="btnExcluirConta" onclick="abrirModalExcluirConta()"><i class="ph ph-user-minus"></i> Excluir minha conta</button>
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
     </div>
@@ -13650,7 +13845,7 @@
         </section>
 
         <section id="aulas" class="section">
-            <div class="page-header" style="margin-bottom:20px;">
+            <div class="page-header">
                 <div class="page-header-left">
                     <h1>Jornada Financeira</h1>
                     <p class="subtitulo" style="margin-bottom:0">Trilhas de capacitação financeira focadas em execução prática. Marque cada módulo conforme você o conclui.</p>
@@ -13724,10 +13919,10 @@
         </section>
 
         <section id="carteira" class="section">
-            <div class="page-header" style="margin-bottom:16px;">
+            <div class="page-header">
                 <div class="page-header-left">
                     <h1>Carteira sugerida</h1>
-                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0;max-width:700px;">Sua alocação, explicada e simulada com dados reais.</p>
+                    <p class="subtitulo" id="carteiraDescricao" style="margin-bottom:0">Sua alocação, explicada e simulada com dados reais.</p>
                 </div>
             </div>
 
@@ -14015,9 +14210,9 @@
         </section>
 
         <section id="simulador" class="section">
-            <div class="page-header" style="margin-bottom:16px;">
+            <div class="page-header">
                 <div class="page-header-left">
-                    <h1><i class="ph ph-chart-line-up" style="color:var(--cor-primaria);font-size:20px;"></i> Simule sua liberdade</h1>
+                    <h1>Simule sua liberdade</h1>
                     <p class="subtitulo" style="margin-bottom:0">Projete onde você chega investindo — ou descubra o caminho até a sua meta.</p>
                 </div>
             </div>
@@ -14397,7 +14592,7 @@
         </section>
 
         <section id="noticias" class="section">
-            <div class="page-header" style="margin-bottom:14px;">
+            <div class="page-header">
                 <div class="page-header-left">
                     <h1>Radar de mercado</h1>
                     <p class="subtitulo" style="margin-bottom:0">Escolha os assuntos que você acompanha — o resto some da tela.</p>
@@ -14867,7 +15062,7 @@
         <section id="meus_sonhos" class="section">
             <div class="page-header">
                 <div class="page-header-left">
-                    <h1><i class="ph-fill ph-shooting-star" style="color: var(--cor-primaria);"></i> Meus Sonhos</h1>
+                    <h1>Meus sonhos</h1>
                     <p class="subtitulo" style="margin-bottom:0">Planeje, acompanhe e conquiste seus objetivos financeiros — passo a passo.</p>
                 </div>
                 <div class="page-actions">
