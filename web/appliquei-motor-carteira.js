@@ -2432,7 +2432,7 @@ function motorPlanoClasse(classe, valorClasse, ranking, opcoes) {
       modo: 'aguardando_dados',
       aviso:
         'Nenhum ativo desta classe tem indicadores suficientes para pontuar. ' +
-        'A recomendação sai dos ativos mais bem pontuados, então não há seleção a fazer ' +
+        'A sugestão sai dos ativos mais bem pontuados, então não há seleção a fazer ' +
         'enquanto o dado não chegar — o valor da classe fica retido.',
     };
   }

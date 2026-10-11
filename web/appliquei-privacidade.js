@@ -13,18 +13,28 @@
 // Mudou o texto de forma relevante: mude PRIVACIDADE_VERSAO (aqui e em
 // api/user.js — um teste confere que são iguais). Quem aceitou a versão
 // anterior vê a política de novo e aceita a nova.
+//
+// Os Termos de Uso (texto em appliquei-termos.js) são aceitos JUNTO com a
+// política: mesma janela, mesmo checkbox, mesmo POST. O registro local guarda
+// as duas versões, e mudar qualquer uma delas abre a janela de novo. Um
+// aceite só, em vez de duas janelas seguidas que ninguém leria.
 
-var PRIVACIDADE_VERSAO = '2026-10-06';
+var PRIVACIDADE_VERSAO = '2026-10-11';
 var PRIVACIDADE_CHAVE = 'appliquei_privacidade_aceite';
 
 // Identificação do controlador (LGPD, art. 9º). Preencha antes de publicar:
 // o que estiver vazio sai do texto em vez de aparecer como lacuna.
 var PRIVACIDADE_CONTROLADOR = {
   nome: 'Appliquei',
-  razaoSocial: '',
-  cnpj: '',
+  razaoSocial: 'Caio de Oliveira Pereira Tecnologia da Informação Ltda.',
+  cnpj: '36.570.064/0001-75',
   email: '',
 };
+
+/** Versão vigente dos Termos de Uso (appliquei-termos.js carrega antes). */
+function _privTermosVersao() {
+  return typeof TERMOS_VERSAO === 'string' ? TERMOS_VERSAO : '';
+}
 
 function _privEsc(s) {
   return String(s == null ? '' : s)
@@ -73,6 +83,7 @@ function privacidadeTextoHtml() {
     '<li><strong>Dados de uso e técnicos:</strong> telas abertas e eventos de navegação (Google Analytics), registros de erros técnicos (sem dados pessoais) e o endereço IP, usado para limitar abusos.</li>' +
     '<li><strong>Mensagens de suporte:</strong> o que você envia pela aba Enviar sugestão, inclusive imagens anexadas.</li>' +
     '<li><strong>Indicações (Applicash):</strong> o código de indicação usado no cadastro e o vínculo entre quem indicou e quem foi indicado.</li>' +
+    '<li><strong>Telegram (opcional):</strong> se você conectar sua conta ao bot da Appliquei no Telegram, o identificador da conversa, seu nome e @usuário no Telegram e o texto das mensagens que você envia ao bot, para registrar seus lançamentos. Você pode desconectar a qualquer momento em Configurações ou mandando /desconectar ao bot.</li>' +
     '</ul>' +
     '<h4>3. Para que usamos e com que base legal</h4>' +
     '<ul>' +
@@ -90,12 +101,15 @@ function privacidadeTextoHtml() {
     '<li><strong>Vercel:</strong> hospedagem do aplicativo e dos serviços do servidor.</li>' +
     '<li><strong>Asaas:</strong> processamento dos pagamentos da assinatura.</li>' +
     '<li><strong>Sentry:</strong> registro de erros técnicos, sem dados pessoais.</li>' +
+    '<li><strong>Telegram:</strong> só se você conectar o bot; as mensagens trocadas com ele passam pelos servidores do Telegram.</li>' +
+    '<li><strong>Google Gemini (inteligência artificial):</strong> quando o bot do Telegram não entende uma mensagem pelas regras, o texto dela, sem nenhum dado que identifique você (nome, e-mail, contas ou saldos), pode ser enviado ao Gemini para interpretação. O Google pode usar esse texto para melhorar os próprios serviços.</li>' +
+    '<li><strong>GitHub (Microsoft):</strong> quando você pede o Relatório Mensal pelo bot do Telegram, seus dados financeiros são processados por alguns segundos num servidor do GitHub, que gera o PDF e o envia para a sua conversa. Nada fica guardado lá depois do envio.</li>' +
     '<li><strong>ViaCEP e BrasilAPI:</strong> o CEP digitado no cadastro de um imóvel, só para buscar o endereço.</li>' +
     '<li><strong>Fontes de dados de mercado</strong> (como B3/BRAPI, Yahoo Finance, CoinGecko, Tesouro Direto, Banco Central e tabela FIPE): recebem apenas os códigos de ativos, veículos e índices consultados, nunca dados seus.</li>' +
     '</ul>' +
     '<p>Também podemos compartilhar dados quando a lei ou uma autoridade competente exigir.</p>' +
     '<h4>5. Transferência internacional</h4>' +
-    '<p>Google, Vercel e Sentry podem guardar e processar dados em servidores fora do Brasil, principalmente nos Estados Unidos. Essas empresas adotam cláusulas contratuais e medidas de segurança compatíveis com a LGPD (art. 33).</p>' +
+    '<p>Google (inclusive o Gemini), Vercel, Sentry, Telegram e GitHub podem guardar e processar dados em servidores fora do Brasil, principalmente nos Estados Unidos. Essas empresas adotam cláusulas contratuais e medidas de segurança compatíveis com a LGPD (art. 33).</p>' +
     '<h4>6. Como protegemos</h4>' +
     '<ul>' +
     '<li>Toda comunicação entre o seu aparelho e os nossos servidores é criptografada (HTTPS).</li>' +
@@ -158,7 +172,7 @@ function _privGravar(reg) {
  */
 function privacidadeAceiteLocal() {
   const r = _privLer();
-  if (!r || r.versao !== PRIVACIDADE_VERSAO) return null;
+  if (!r || r.versao !== PRIVACIDADE_VERSAO || r.termos !== _privTermosVersao()) return null;
   const u = _privUsuario();
   if (!u) return r;
   if (r.uid) return r.uid === u.uid ? r : null;
@@ -207,6 +221,7 @@ function registrarAceitePrivacidade(origem, email) {
   const u = _privUsuario();
   const reg = {
     versao: PRIVACIDADE_VERSAO,
+    termos: _privTermosVersao(),
     em: new Date().toISOString(),
     origem: origem === 'cadastro' ? 'cadastro' : 'app',
     enviado: false,
@@ -221,7 +236,7 @@ function registrarAceitePrivacidade(origem, email) {
 function _privEnviarPendente() {
   const r = privacidadeAceiteLocal();
   if (!r || r.enviado || !_privUsuario()) return Promise.resolve();
-  return _privApi('POST', { versao: r.versao, origem: r.origem })
+  return _privApi('POST', { versao: r.versao, termosVersao: r.termos, origem: r.origem })
     .then(function (j) {
       const u = _privUsuario();
       _privGravar(
@@ -260,10 +275,13 @@ function privacidadeVerificar() {
   }
   _privApi('GET')
     .then(function (j) {
-      if (j && j.aceito) {
+      // Vale só com os dois documentos aceitos: quem aceitou a política antes
+      // de existirem os Termos vê a janela uma vez, para aceitar os Termos.
+      if (j && j.aceito && j.termosAceito) {
         const u = _privUsuario();
         _privGravar({
           versao: PRIVACIDADE_VERSAO,
+          termos: _privTermosVersao(),
           em: new Date(j.aceitoEmMs || Date.now()).toISOString(),
           origem: (local && local.origem) || 'app',
           enviado: true,
@@ -293,19 +311,46 @@ function privacidadeVerificar() {
 /**
  * `exigir`: true abre a janela de aceite (sem fechar, com "Aceitar" e
  * "Sair da conta"); false abre só para leitura.
+ * `doc`: 'privacidade' (padrão) ou 'termos' — qual documento abre primeiro.
+ * Os dois ficam na mesma janela, alternados pelas abas do topo.
  */
-function abrirModalPrivacidade(exigir) {
+function abrirModalPrivacidade(exigir, doc) {
   const m = document.getElementById('modalPrivacidade');
   if (!m) return;
-  const corpo = document.getElementById('modalPrivacidadeTexto');
-  if (corpo) corpo.innerHTML = privacidadeTextoHtml();
   m.dataset.exigir = exigir ? '1' : '0';
+  // Para aceitar, começa pelos Termos: é o primeiro dos dois documentos.
+  privacidadeMostrarDoc(doc || (exigir ? 'termos' : 'privacidade'));
   const chk = document.getElementById('modalPrivacidadeChk');
   if (chk) chk.checked = false;
   const btn = document.getElementById('modalPrivacidadeAceitar');
   if (btn) btn.disabled = true;
   m.style.display = 'flex';
-  if (corpo) corpo.scrollTop = 0;
+}
+
+/** Abre os Termos de Uso só para leitura. */
+function abrirModalTermos() {
+  abrirModalPrivacidade(false, 'termos');
+}
+
+/** Troca o documento exibido na janela: 'termos' ou 'privacidade'. */
+function privacidadeMostrarDoc(doc) {
+  const termos = doc === 'termos' && typeof termosTextoHtml === 'function';
+  const corpo = document.getElementById('modalPrivacidadeTexto');
+  if (corpo) {
+    corpo.innerHTML = termos ? termosTextoHtml() : privacidadeTextoHtml();
+    corpo.scrollTop = 0;
+  }
+  const titulo = document.getElementById('modalPrivacidadeTitulo');
+  if (titulo) titulo.textContent = termos ? 'Termos de Uso' : 'Política de Privacidade';
+  [
+    ['modalPolAbaTermos', termos],
+    ['modalPolAbaPrivacidade', !termos],
+  ].forEach(function (par) {
+    const aba = document.getElementById(par[0]);
+    if (!aba) return;
+    aba.classList.toggle('ativo', par[1]);
+    aba.setAttribute('aria-selected', par[1] ? 'true' : 'false');
+  });
 }
 
 function fecharModalPrivacidade() {
@@ -329,7 +374,7 @@ function aceitarPrivacidadeModal() {
     m.style.display = 'none';
   }
   if (typeof mostrarToast === 'function')
-    mostrarToast('Obrigado! Política de privacidade aceita.', 'sucesso');
+    mostrarToast('Obrigado! Termos de Uso e Política de Privacidade aceitos.', 'sucesso');
 }
 
 /** Recusar = não usar o app com esta conta: sai da conta. */
@@ -342,16 +387,21 @@ function recusarPrivacidade() {
   if (typeof window.appliqueiAuthSignOut === 'function') window.appliqueiAuthSignOut();
 }
 
-/** Status do aceite na aba "Privacidade". */
+/** Status do aceite nas abas "Privacidade" e "Regulamento" (Termos). */
 function privacidadeRenderStatus() {
-  const el = document.getElementById('privStatusAceite');
-  if (!el) return;
   const r = privacidadeAceiteLocal();
-  el.innerHTML = r
+  const aceito = r
     ? '<i class="ph-fill ph-check-circle"></i> Você aceitou esta versão em ' +
       _privEsc(new Date(r.em).toLocaleDateString('pt-BR')) +
       '.'
-    : '<i class="ph ph-info"></i> Versão de ' + privacidadeDataVersao() + '.';
+    : '';
+  const el = document.getElementById('privStatusAceite');
+  if (el)
+    el.innerHTML =
+      aceito || '<i class="ph ph-info"></i> Versão de ' + privacidadeDataVersao() + '.';
+  const elT = document.getElementById('termosStatusAceite');
+  if (elT && typeof termosDataVersao === 'function')
+    elT.innerHTML = aceito || '<i class="ph ph-info"></i> Versão de ' + termosDataVersao() + '.';
 }
 
 // O Firebase sobe num módulo à parte; espera ele ficar pronto (até ~30s) para

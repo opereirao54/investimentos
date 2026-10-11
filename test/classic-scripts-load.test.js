@@ -52,6 +52,7 @@ const LOAD_ORDER = [
   'web/appliquei-sonhos.js',
   'web/appliquei-primeiros-passos.js',
   'web/appliquei-mobile.js',
+  'web/appliquei-termos.js',
   'web/appliquei-privacidade.js',
   'web/appliquei-telegram.js',
 ];

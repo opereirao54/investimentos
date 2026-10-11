@@ -370,6 +370,16 @@ function aplicarModoConvite() {
   if (inp && !inp.value) inp.value = convitePendente();
   if (obrig && reg) setCabecalho('Criar sua conta', 'Acesso por convite · fase de testes');
 }
+// Selo "Beta" do app: à vista enquanto o cadastro está fechado por convite
+// (fase de testes). Abrir o cadastro no admin tira o selo sem deploy.
+function aplicarSeloBeta() {
+  var beta = window.__appliqueiConviteObrigatorio === true;
+  try {
+    document.querySelectorAll('.selo-beta').forEach(function (el) {
+      el.hidden = !beta;
+    });
+  } catch (_) {}
+}
 (function descobrirModoConvite() {
   // Quem chegou pelo link do convite já sabe a resposta: abre direto em
   // "Criar conta", com o código preenchido.
@@ -386,6 +396,7 @@ function aplicarModoConvite() {
       })
       .then(function (d) {
         window.__appliqueiConviteObrigatorio = !!(d && d.obrigatorio);
+        aplicarSeloBeta();
         if (veioPorLink && typeof window.appliqueiAuthSetModo === 'function') {
           window.appliqueiAuthSetModo('registro');
         } else {
@@ -493,7 +504,9 @@ window.appliqueiAuthSubmit = function () {
     var privChk = $('authPrivAceite');
     if (privChk && !privChk.checked) {
       if (btn) btn.disabled = false;
-      return window.appliqueiAuthErr('Para criar a conta, aceite a Política de Privacidade.');
+      return window.appliqueiAuthErr(
+        'Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.'
+      );
     }
     if (typeof window.registrarAceitePrivacidade === 'function')
       window.registrarAceitePrivacidade('cadastro', email);
@@ -622,7 +635,8 @@ window.appliqueiAuthGoogleConfirmar = function () {
     );
   }
   var priv = $('authGooglePrivAceite');
-  if (priv && !priv.checked) return erro('Para criar a conta, aceite a Política de Privacidade.');
+  if (priv && !priv.checked)
+    return erro('Para criar a conta, aceite os Termos de Uso e a Política de Privacidade.');
   var cupomEl = $('authGoogleCupom');
   var cupom = cupomEl ? cupomEl.value.replace(/\s+/g, '').toUpperCase() : '';
   if (cupom && !/^APP-[A-Z0-9]{6}$/.test(cupom))

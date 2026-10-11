@@ -378,14 +378,19 @@ var DS_TABS = [
   { chave: 'privacidade', botao: 'tabPrivacidade', conteudo: 'dsConteudoPrivacidade' },
 ];
 
-/** Leva à aba "Privacidade" de Dúvidas & sugestões, de qualquer tela. */
-function abrirPrivacidade() {
+/** Leva a uma aba de Dúvidas & sugestões (DS_TABS), de qualquer tela. */
+function abrirDuvidasNaAba(qual) {
   if (typeof fecharMenuCadastro === 'function') fecharMenuCadastro();
   const btn = Array.from(document.querySelectorAll('#mainSidebar .menu-btn')).find((b) =>
     (b.getAttribute('onclick') || '').includes("'duvidas_sugestoes'")
   );
   if (btn) btn.click();
-  trocarTabDuvidas('privacidade');
+  trocarTabDuvidas(qual);
+}
+
+/** Leva à aba "Privacidade" de Dúvidas & sugestões, de qualquer tela. */
+function abrirPrivacidade() {
+  abrirDuvidasNaAba('privacidade');
 }
 
 function trocarTabDuvidas(qual) {

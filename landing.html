@@ -195,6 +195,21 @@
   .aviso .disc-lista { margin: 6px 0 0 18px; padding: 0; font-size: 12.5px; color: #6b5a3e; }
   .aviso .disc-lista li { margin-bottom: 3px; }
 
+  /* Termos de Uso / Política de Privacidade, abertos pelo rodapé. */
+  .lp-doc { width: min(680px, calc(100% - 32px)); max-height: 86vh; padding: 0; border: 1px solid var(--line); border-radius: 18px; }
+  .lp-doc::backdrop { background: rgba(15, 23, 42, 0.55); }
+  .lp-doc-caixa { display: flex; flex-direction: column; max-height: 86vh; }
+  .lp-doc-cab { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+  .lp-doc-cab h2 { margin: 0; font-size: 18px; }
+  .lp-doc-cab button { width: 44px; height: 44px; border: 0; background: none; font-size: 20px; cursor: pointer; color: var(--ink-2); }
+  .lp-doc-texto { overflow-y: auto; padding: 4px 20px 20px; font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+  .lp-doc-texto h4 { margin: 18px 0 6px; font-size: 15px; color: var(--ink); }
+  .lp-doc-texto p { margin: 0 0 8px; }
+  .lp-doc-texto ul { margin: 0 0 8px; padding-left: 20px; }
+  .lp-doc-texto li { margin: 4px 0; }
+  .lp-doc-texto strong { color: var(--ink); }
+  .lp-doc-texto .pol-versao { margin-top: 12px; font-size: 12px; font-weight: 700; }
+
   /* Aviso de rodapé — versão compacta, fora do bloco da carteira. */
   .legal { background: #f4f6f5; border-top: 1px solid var(--line); padding: 26px 0; }
   .legal p { font-size: 12px; line-height: 1.6; max-width: 940px; margin: 0 auto; text-align: center; }
@@ -1204,6 +1219,16 @@
   </div>
 </section>
 
+<dialog id="lpDoc" class="lp-doc" aria-labelledby="lpDocTitulo" onclick="if(event.target===this)this.close()">
+  <div class="lp-doc-caixa">
+    <div class="lp-doc-cab">
+      <h2 id="lpDocTitulo"></h2>
+      <button type="button" onclick="document.getElementById('lpDoc').close()" aria-label="Fechar"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="lp-doc-texto" id="lpDocTexto"></div>
+  </div>
+</dialog>
+
 <footer>
   <div class="container row">
     <div class="brand">
@@ -1211,11 +1236,13 @@
       <img src="appliquei-wordmark.svg" alt="Appliquei" class="logo-wordmark" width="120" height="28" decoding="async">
     </div>
     <div>© <span id="year"></span> Appliquei. Todos os direitos reservados.</div>
-    <div style="display:flex;gap:16px;">
+    <div style="display:flex;flex-wrap:wrap;gap:16px;">
       <a href="/app">Entrar</a>
       <a href="#planos">Planos</a>
       <a href="#applicash">Applicash</a>
       <a href="#faq">Dúvidas</a>
+      <a href="#termos" onclick="lpAbrirDoc('termos');return false;">Termos de Uso</a>
+      <a href="#privacidade" onclick="lpAbrirDoc('privacidade');return false;">Privacidade</a>
     </div>
   </div>
 </footer>
@@ -1225,11 +1252,36 @@
      segunda cópia que divergiria na primeira revisão jurídica — e a versão
      desatualizada seria justamente a que o visitante leu antes de assinar. -->
 <script src="web/appliquei-disclaimer.js"></script>
+<!-- Termos de Uso e Política de Privacidade: os MESMOS arquivos que o app usa
+     na janela de aceite, para o visitante ler antes de criar a conta o texto
+     que vai aceitar. -->
+<script src="web/appliquei-termos.js"></script>
+<script src="web/appliquei-privacidade.js"></script>
 <!-- O palco dos quatro atos. `defer` porque ele só move elementos que já
      existem: nada na página espera por ele para ser legível. -->
 <script src="web/appliquei-palco.js" defer></script>
 <script>
   document.getElementById('year').textContent = new Date().getFullYear();
+
+  // Termos / Privacidade do rodapé. Sem os arquivos (falha de rede), o link
+  // leva ao app, onde os dois documentos aparecem no cadastro.
+  function lpAbrirDoc(doc) {
+    var termos = doc === 'termos';
+    var fn = termos ? window.termosTextoHtml : window.privacidadeTextoHtml;
+    var dlg = document.getElementById('lpDoc');
+    if (typeof fn !== 'function' || !dlg || typeof dlg.showModal !== 'function') {
+      location.href = '/app';
+      return;
+    }
+    document.getElementById('lpDocTitulo').textContent = termos ? 'Termos de Uso' : 'Política de Privacidade';
+    var texto = document.getElementById('lpDocTexto');
+    texto.innerHTML = fn();
+    dlg.showModal();
+    texto.scrollTop = 0;
+  }
+  if (location.hash === '#termos' || location.hash === '#privacidade') {
+    lpAbrirDoc(location.hash.slice(1));
+  }
 
   // `disclaimerMontar()` só conhece os dois pontos do app; aqui montamos o
   // bloco no slot desta página. Sem o arquivo (falha de rede), a seção mantém

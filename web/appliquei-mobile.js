@@ -2905,9 +2905,9 @@ function mobRenderCarteiraCab() {
     (ligado ? 'Ajustar minha carteira' : 'Personalizar classes') +
     '</button>' +
     (ligado
-      ? '<button type="button" onclick="cartRestaurarRecomendacao()" aria-label="Voltar à recomendação"><i class="ph ph-arrow-counter-clockwise"></i></button>'
+      ? '<button type="button" onclick="cartRestaurarRecomendacao()" aria-label="Voltar à sugestão padrão"><i class="ph ph-arrow-counter-clockwise"></i></button>'
       : '') +
-    '<button type="button" onclick="cartAtualizarMotor()" aria-label="Atualizar a recomendação"><i class="ph ph-arrows-clockwise"></i></button></div>';
+    '<button type="button" onclick="cartAtualizarMotor()" aria-label="Atualizar a sugestão"><i class="ph ph-arrows-clockwise"></i></button></div>';
 }
 
 function mobCartAlternarSobre() {

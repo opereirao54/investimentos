@@ -1544,7 +1544,7 @@ test('voltar à recomendação apaga as escolhas, não só o interruptor', () =>
   // aconteceu: o usuário aplicava, o painel fechava, e a barra continuava
   // a dizer o contrário do estado — sem caminho de volta à vista.
   const cta = s.dom.els.get('cartCustomWrap').innerHTML;
-  assert.ok(cta.includes('Esta é a nossa recomendação'), 'a barra tem de voltar ao texto padrão');
+  assert.ok(cta.includes('Esta é a carteira sugerida'), 'a barra tem de voltar ao texto padrão');
   assert.ok(!cta.includes('Carteira personalizada por você'));
 });
 
@@ -1557,7 +1557,7 @@ test('o painel abre com a recomendação carregada, não com tudo em zero', () =
   );
   const html = s.dom.els.get('cartCustomWrap').innerHTML;
 
-  assert.ok(html.includes('Esta é a nossa recomendação'), 'a recomendação é o que se apresenta');
+  assert.ok(html.includes('Esta é a carteira sugerida'), 'a recomendação é o que se apresenta');
   assert.ok(html.includes('Montar do meu jeito'));
   assert.ok(html.includes('cart-custom-painel'));
   assert.ok(html.includes('hidden'), 'o painel nasce fechado');
@@ -1583,7 +1583,7 @@ test('com o custom ligado, a tela diz de quem é a carteira e como voltar', () =
   `);
   const html = s.dom.els.get('cartCustomWrap').innerHTML;
   assert.ok(html.includes('Carteira personalizada por você'));
-  assert.ok(html.includes('Voltar à recomendação'), 'o caminho de volta tem de estar à vista');
+  assert.ok(html.includes('Voltar à sugestão padrão'), 'o caminho de volta tem de estar à vista');
 });
 
 test('o painel não deixa escapar undefined nem NaN', () => {

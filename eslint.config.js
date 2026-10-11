@@ -116,6 +116,7 @@ module.exports = [
       'web/appliquei-admin.js',
       'web/appliquei-bens.js',
       'web/appliquei-mobile.js',
+      'web/appliquei-termos.js',
       'web/appliquei-privacidade.js',
       'web/appliquei-telegram.js',
     ],

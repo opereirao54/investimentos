@@ -93,6 +93,7 @@ stubModule(SENTRY_PATH, {
 
 const endpoint = require('../api/user.js');
 const VERSAO = endpoint.PRIVACIDADE_VERSAO;
+const TERMOS = endpoint.TERMOS_VERSAO;
 
 async function chamar(method, body) {
   const req = {
@@ -138,7 +139,14 @@ test('sem aceite, GET diz que a versão vigente não foi aceita', async () => {
   limpar();
   const r = await chamar('GET');
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body, { versao: VERSAO, aceito: false, aceitoEmMs: 0 });
+  assert.deepEqual(r.body, {
+    versao: VERSAO,
+    aceito: false,
+    aceitoEmMs: 0,
+    termosVersao: TERMOS,
+    termosAceito: false,
+    termosAceitoEmMs: 0,
+  });
 });
 
 test('POST grava o aceite com o uid do token e a hora do servidor', async () => {
@@ -200,4 +208,109 @@ test('o cadastro exige o aceite e o registra antes de criar a conta', () => {
   const html = fs.readFileSync(path.join(ROOT, 'Appliquei_v13.0.html'), 'utf8');
   assert.match(html, /id="authPrivAceite"/);
   assert.match(html, /id="modalPrivacidade"/);
+});
+
+// ─── Termos de Uso: aceitos junto com a política ────────────────────────────
+
+test('POST com os Termos grava os dois aceites, cada um com seu documento', async () => {
+  limpar();
+  const r = await chamar('POST', { versao: VERSAO, termosVersao: TERMOS, origem: 'cadastro' });
+  assert.equal(r.status, 201);
+  assert.deepEqual(
+    gravacoes.map((g) => g.chave),
+    ['u1/privacidade-' + VERSAO, 'u1/termos-' + TERMOS]
+  );
+  assert.deepEqual(gravacoes[1].d, {
+    uid: 'u1',
+    versao: TERMOS,
+    origem: 'cadastro',
+    aceitoEm: 'SERVER_TS',
+  });
+  const g = await chamar('GET');
+  assert.equal(g.body.aceito, true);
+  assert.equal(g.body.termosAceito, true);
+});
+
+test('quem aceitou só a política (antes dos Termos) aceita os Termos depois', async () => {
+  limpar();
+  // Cliente antigo: sem termosVersao, grava só a política.
+  await chamar('POST', { versao: VERSAO, origem: 'app' });
+  let g = await chamar('GET');
+  assert.equal(g.body.aceito, true);
+  assert.equal(g.body.termosAceito, false, 'o app novo abre a janela para os Termos');
+  // Aceite novo: a política não é regravada, os Termos entram.
+  const r = await chamar('POST', { versao: VERSAO, termosVersao: TERMOS, origem: 'app' });
+  assert.equal(r.status, 201);
+  assert.equal(gravacoes.length, 2);
+  assert.equal(gravacoes[1].chave, 'u1/termos-' + TERMOS);
+  g = await chamar('GET');
+  assert.equal(g.body.termosAceito, true);
+  // E repetir não reescreve nenhum dos dois.
+  const deNovo = await chamar('POST', { versao: VERSAO, termosVersao: TERMOS, origem: 'app' });
+  assert.equal(deNovo.status, 200);
+  assert.equal(gravacoes.length, 2);
+});
+
+test('versão dos Termos diferente da vigente é recusada sem gravar nada', async () => {
+  limpar();
+  const r = await chamar('POST', { versao: VERSAO, termosVersao: '2000-01-01', origem: 'app' });
+  assert.equal(r.status, 409);
+  assert.equal(r.body.termosVersao, TERMOS);
+  assert.equal(gravacoes.length, 0);
+});
+
+test('cliente e servidor falam da mesma versão dos Termos', () => {
+  const termos = require('../web/appliquei-termos.js');
+  assert.equal(termos.TERMOS_VERSAO, TERMOS);
+});
+
+test('o cliente só dá o aceite por válido com as duas versões', () => {
+  const cli = fs.readFileSync(path.join(ROOT, 'web/appliquei-privacidade.js'), 'utf8');
+  // Registro local carrega a versão dos Termos e a confere.
+  assert.match(cli, /termos: _privTermosVersao\(\)/);
+  assert.match(cli, /r\.termos !== _privTermosVersao\(\)/);
+  // O POST manda as duas versões.
+  assert.match(cli, /termosVersao: r\.termos/);
+  // O servidor só vale com os dois aceitos.
+  assert.match(cli, /j\.aceito && j\.termosAceito/);
+  // Termos carregam antes da política, no app e na landing.
+  for (const f of ['Appliquei_v13.0.html', 'landing.html']) {
+    const html = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    const iT = html.search(/<script src="\/?web\/appliquei-termos\.js/);
+    const iP = html.search(/<script src="\/?web\/appliquei-privacidade\.js/);
+    assert.ok(iT > -1 && iT < iP, f + ': appliquei-termos.js antes de appliquei-privacidade.js');
+  }
+});
+
+test('o texto dos Termos cobre o que o usuário precisa saber antes de aceitar', () => {
+  const { termosTextoHtml } = require('../web/appliquei-termos.js');
+  const html = termosTextoHtml();
+  for (const trecho of [
+    'não é instituição financeira',
+    'recomendação individualizada',
+    '7 dias grátis',
+    'R$ 15,00',
+    'sem multa',
+    'art. 49',
+    'valor integral',
+    'Applicash',
+    'não pode ser sacado',
+    'Programa de testadores',
+    '1 (um) ano depois da data de lançamento',
+    '50% de desconto',
+    'perda de dados',
+    'foro do seu domicílio',
+  ]) {
+    assert.ok(html.includes(trecho), 'falta nos Termos: ' + trecho);
+  }
+  // Sem dados do controlador, nada de lacuna no texto.
+  assert.ok(!/CNPJ\s*[,.<]/.test(html), 'CNPJ vazio não pode aparecer');
+  assert.ok(!html.includes('undefined'));
+});
+
+test('a política cita o Telegram e a IA (Gemini) que recebem dados', () => {
+  const cli = fs.readFileSync(path.join(ROOT, 'web/appliquei-privacidade.js'), 'utf8');
+  assert.match(cli, /Google Gemini/);
+  assert.match(cli, /Telegram \(opcional\)/);
+  assert.match(cli, /GitHub \(Microsoft\)/);
 });
