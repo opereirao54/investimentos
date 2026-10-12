@@ -1521,13 +1521,13 @@ function aplicarEdicaoSonhoComModo(modo) {
         aportesNaoIniciais.map((a) => ({ ...a, arquivadoEm: p.agoraIso, motivo: 'edicao_valor' }))
       );
     }
-    sonho.valorAtual = valorInicial;
+    sonho.valorAtual = arredCentavos(valorInicial);
     sonho.aportes =
       valorInicial > 0 ? [{ valor: valorInicial, data: dataInicialOriginal, tipo: 'inicial' }] : [];
   } else {
     // 'manter' — comportamento legado: soma extras em cima do novo valorInicial.
     const somaExtras = aportesNaoIniciais.reduce((s, a) => s + (a.valor || 0), 0);
-    sonho.valorAtual = valorInicial + somaExtras;
+    sonho.valorAtual = arredCentavos(valorInicial + somaExtras);
     const aportesAtualizados = [...aportesNaoIniciais];
     if (valorInicial > 0) {
       aportesAtualizados.unshift({
@@ -1687,7 +1687,7 @@ function salvarSonho() {
       // Atualiza o "valor já guardado" (aporte inicial), preservando aportes posteriores
       const aportesNaoIniciais = (sonhos[idx].aportes || []).filter((a) => a.tipo !== 'inicial');
       const somaAportesExtras = aportesNaoIniciais.reduce((s, a) => s + (a.valor || 0), 0);
-      sonhos[idx].valorAtual = (valorInicial || 0) + somaAportesExtras;
+      sonhos[idx].valorAtual = arredCentavos((valorInicial || 0) + somaAportesExtras);
       const aportesAtualizados = [...aportesNaoIniciais];
       if (valorInicial > 0) {
         const dataInicialOriginal =
@@ -2062,7 +2062,7 @@ function aplicarEdicaoAporteSonho(sonhoId, aporteId, novoValor, novaData, opcoes
   if (novaData) aporte.data = novaData;
   // INV-14: valorAtual é a soma dos aportes, nunca um número solto. Move pelo
   // mesmo delta ou a barra de progresso passa a mentir.
-  s.valorAtual = Math.max(0, s.valorAtual + delta);
+  s.valorAtual = arredCentavos(Math.max(0, s.valorAtual + delta));
 
   // Migração: ajusta a venda na carteira proporcionalmente ao novo valor,
   // mantendo o abate do investimento coerente com o valor do aporte.
@@ -2302,7 +2302,7 @@ function confirmarExcluirAporteSonho(sonhoId, aporteId) {
   }
 
   // Reverte o valor
-  s.valorAtual = Math.max(0, s.valorAtual - aporte.valor);
+  s.valorAtual = arredCentavos(Math.max(0, s.valorAtual - aporte.valor));
   s.aportes = (s.aportes || []).filter((a) => a.id !== aporteId);
 
   // Recalcula plano
@@ -2464,7 +2464,7 @@ function finalizarAporteSonho(sonhoId, valor, dataStr, origem, detalhes) {
   }
   const origemAtivo = detalhes?.origemAtivo || null;
   const origemDesc = detalhes?.origemDesc || null;
-  s.valorAtual += valor;
+  s.valorAtual = arredCentavos(s.valorAtual + valor);
   if (!s.aportes) s.aportes = [];
   s.aportes.push({
     valor,

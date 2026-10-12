@@ -126,7 +126,9 @@ const ACOES = [
           sonhoValorTotal: String(meta),
           sonhoPrazo: '12',
           sonhoPrazoUnidade: 'meses',
-          sonhoValorInicial: String(s.valorAtual),
+          // Como a tela preenche (setValorBRLInput): "2.797,30", e não o
+          // número cru "2797.3" — que o parser pt-BR leria como 27.973.
+          sonhoValorInicial: m.s.formatarBRLInput(s.valorAtual),
           sonhoDescricao: '',
           sonhoContaOrigem: s.contaOrigemId,
           sonhoMesInicio: '',
@@ -152,7 +154,9 @@ const ACOES = [
           sonhoValorTotal: String(s.valorTotal),
           sonhoPrazo: '12',
           sonhoPrazoUnidade: 'meses',
-          sonhoValorInicial: String(s.valorAtual),
+          // Como a tela preenche (setValorBRLInput): "2.797,30", e não o
+          // número cru "2797.3" — que o parser pt-BR leria como 27.973.
+          sonhoValorInicial: m.s.formatarBRLInput(s.valorAtual),
           sonhoDescricao: '',
           sonhoContaOrigem: conta.id,
           sonhoMesInicio: '',
