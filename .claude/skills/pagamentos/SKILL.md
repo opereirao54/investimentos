@@ -43,6 +43,7 @@ campo é bloqueado no deploy.
 | Peça             | Onde                                    | Papel                                 |
 | ---------------- | --------------------------------------- | ------------------------------------- |
 | Simulador        | `test/_simulador-pagamentos.js`         | Mundo fiel ao Asaas + `verificar()`   |
+| Caça de furos    | `test/_sequencias-pagamentos.js`        | Sequências aleatórias + CUP01–CUP10   |
 | Ciclo            | `test/pagamentos-ciclo.test.js`         | Antecipação, trial, carência, estorno |
 | Applicash        | `test/pagamentos-applicash.test.js`     | As duas pontas do cupom               |
 | Mock do gateway  | `scripts/lib/mock-billing.js`           | Firestore + Asaas em memória          |
@@ -129,6 +130,7 @@ Cada um é um erro que já aconteceu neste código, não uma hipótese.
 | `PAG07`    | assinatura recorrente e avulso vivos ao mesmo tempo — cobrança dupla      |
 | `PAG08`    | acesso liberado sem janela paga, assinatura ou cortesia do admin por trás |
 | `PAG09`    | o indicado pagou e o indicador não recebeu nada                           |
+| `PAG10`    | INACTIVE aqui mas a assinatura segue ativa no Asaas — cobra sem acesso    |
 
 `PAG03` é o mais traiçoeiro. O saldo é derivado dos **documentos** de crédito
 (`computeCreditTotals`), mas `stats.*` são contadores acumulados por seis
@@ -253,10 +255,35 @@ Duas regras de copy que valem por qualquer redesign:
 
 ---
 
+## Caça de furos: sequências aleatórias
+
+Teste de caso escrito só pega o que alguém imaginou. A caça
+(`test/_sequencias-pagamentos.js`) sorteia sequências de ~25 ações sobre os
+handlers reais: cupom (próprio, inventado, de outro aparelho, depois da
+conta), convite (reusado, cancelado, junto com cupom), assinar (duplo clique,
+CPF de outro, avulso/recorrente, cartão/boleto), Asaas (paga, vence, estorna,
+chargeback, apaga fatura, repete webhook, encerra assinatura), webhook
+forjado, superpoderes do admin e o relógio. Depois de **cada** ação valem
+PAG01–PAG10 (`verificar`), CUP01–CUP10 (cupom e fraude) e "nenhum 5xx".
+
+Oito defeitos reais saíram dela na primeira rodada (lista em
+`test/simulacao-pagamentos.test.js`, cada um com trava). Ao achar um novo:
+reproduza com `node scripts/cacar-pagamentos.js --semente N 40`, decida se é
+defeito ou invariante errada (a regra da skill simular-acao), corrija e some
+a semente a `ACHADAS`.
+
+O mock precisa ser fiel para a caça não mentir: transações otimistas (o
+callback roda de novo se algo lido mudou) e `DELETE` de assinatura apagando
+as faturas não pagas, como o Asaas.
+
+---
+
 ## Antes de dar por pronto
 
 ```bash
 node --test test/pagamentos-*.test.js       # ciclo + applicash + cortesia
+node --test test/simulacao-pagamentos.test.js  # caça: sementes fixas + travas
+npm run cacar:pagamentos -- 2000 40          # caça funda (milhares de sequências)
 node --test test/assinatura-tela.test.js    # o que a tela manda (ou não) pagar
 node --test test/billing-credit-invariant.test.js test/access.test.js
 npm test                                     # nada mais pode quebrar

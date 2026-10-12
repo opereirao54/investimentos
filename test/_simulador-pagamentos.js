@@ -329,7 +329,17 @@ function verificar(mundo, opts = {}) {
       }
       const cob = asaasState.payments.get(alvo);
       if (!cob) continue; // cobrança apagada: releaseAppliedCredits trata
-      const baseCents = b.subscriptionBaseValueCents || b.monthlyPriceCents || PRECO_BASE_CENTS;
+      // A base é a da assinatura DONA da cobrança — pode ser uma anterior,
+      // com outro valor (antes ou depois de um cupom).
+      const subDona = cob.subscription && asaasState.subscriptions.get(cob.subscription);
+      // Avulsa nasce já com o abatimento, e o desconto do cupom pode ter
+      // mudado depois: a única base segura é o preço de tabela.
+      const baseCents = !cob.subscription
+        ? PRECO_BASE_CENTS
+        : (subDona && Math.round(subDona.value * 100)) ||
+          b.subscriptionBaseValueCents ||
+          b.monthlyPriceCents ||
+          PRECO_BASE_CENTS;
       if (Math.round(cob.value * 100) >= baseCents) {
         falhas.push(
           rotulo +
@@ -363,6 +373,17 @@ function verificar(mundo, opts = {}) {
       falhas.push(rotulo + ' PAG07 ' + subsAtivas.length + ' assinaturas ativas ao mesmo tempo');
     }
 
+    // PAG10 — sem acesso por assinatura encerrada, sem cobrança. Se o nosso
+    // lado diz INACTIVE, a assinatura no Asaas tem de estar parada também;
+    // senão o cartão segue sendo debitado de quem já não tem acesso. O
+    // estorno marcava INACTIVE só aqui (achado pela caça de pagamentos).
+    if (b.subscriptionId && b.subscriptionStatus === 'INACTIVE') {
+      const sub = asaasState.subscriptions.get(b.subscriptionId);
+      if (sub && sub.status !== 'INACTIVE') {
+        falhas.push(rotulo + ' PAG10 INACTIVE aqui, mas a assinatura segue ATIVA no Asaas');
+      }
+    }
+
     // PAG08 — acesso liberado tem de ter uma razão de dinheiro por trás.
     const acc = computeAccess(b, store.now);
     if (acc.status === 'active') {
@@ -385,8 +406,29 @@ function verificar(mundo, opts = {}) {
     for (const [indicador, indicado] of opts.paresApplicash) {
       const bi = billing(indicado);
       if (!bi.lastPaidAt) continue; // o indicado ainda não pagou nada
+      // Só cobranças criadas DEPOIS do vínculo: o cupom pode entrar depois
+      // da conta (antes de assinar), e o que já tinha sido cobrado não muda.
+      const vinculoMs =
+        bi.referralUsedAt && bi.referralUsedAt.toMillis ? bi.referralUsedAt.toMillis() : 0;
+      const posVinculo = (p) => p.__criadaMs == null || p.__criadaMs >= vinculoMs;
+      // Pagamento estornado/contestado anula o crédito (de propósito): só
+      // conta quem tem pelo menos uma cobrança paga que continua paga.
+      // Com `soAvisadas`, só valem cobranças cujo webhook já chegou: o cartão
+      // captura na criação e o crédito nasce quando o Asaas avisa.
+      const pagoDeVerdade = cobrancas(indicado).some(
+        (p) =>
+          posVinculo(p) &&
+          (p.status === 'CONFIRMED' || p.status === 'RECEIVED') &&
+          (!opts.soAvisadas || p.__avisada)
+      );
+      if (!pagoDeVerdade) continue;
       if (bi.referredByUserId !== indicador) continue; // vínculo caiu (antifraude)
-      const cs = creditos(indicador).filter((c) => !c.voidedAt);
+      // Regra A6 (webhook): indicador com assinatura encerrada, em chargeback
+      // ou reprovada não recebe crédito. Quem chama passa quem esteve
+      // bloqueado em algum momento da história.
+      if (opts.indicadoresBloqueados && opts.indicadoresBloqueados.has(indicador)) continue;
+      // Crédito que o admin tirou ("Tirar desconto") também conta: chegou.
+      const cs = creditos(indicador).filter((c) => !c.voidedAt || c.voidedReason === 'admin');
       const total = cs.reduce((a, c) => a + (c.amountCents || 0), 0);
       if (total <= 0) {
         falhas.push(
@@ -395,7 +437,7 @@ function verificar(mundo, opts = {}) {
       }
       // ...e o INDICADO tem de ter pago menos que o preço de tabela.
       const pagas = cobrancas(indicado).filter(
-        (p) => p.status === 'CONFIRMED' || p.status === 'RECEIVED'
+        (p) => posVinculo(p) && (p.status === 'CONFIRMED' || p.status === 'RECEIVED')
       );
       if (pagas.length && pagas.every((p) => Math.round(p.value * 100) >= PRECO_BASE_CENTS)) {
         falhas.push(

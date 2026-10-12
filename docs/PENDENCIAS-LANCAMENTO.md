@@ -3,7 +3,7 @@
 Lista viva do que falta para abrir a Appliquei a mais testadores e depois
 divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
 
-Última revisão: 11/10/2026.
+Última revisão: 12/10/2026.
 
 ## Jurídico (antes de divulgar)
 
@@ -55,4 +55,6 @@ divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
   "sugestão" no lugar de "recomendação"; selo Beta; razão social e CNPJ.
 - 11/10/2026 · #154 — Excluir a própria conta (testado em produção); limite de
   tentativas de pagamento (teste de cartão).
+- 12/10/2026 · caça de furos em pagamentos e cupons (`npm run cacar:pagamentos`,
+  semanal no GitHub) — 8 defeitos de dinheiro/fraude corrigidos.
 - Já existia — antifraude do Applicash (aparelho, CPF, limite de cadastro por IP).

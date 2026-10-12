@@ -1,7 +1,8 @@
 const { db, auth, timestamp, fieldValue } = require('../_lib/firebase-admin');
 const asaas = require('../_lib/asaas');
 const { handler } = require('../_lib/handler');
-const { reconcileAccount } = require('../_lib/reconcile');
+const { reconcileAccount, computeCreditTotals } = require('../_lib/reconcile');
+const { pushCreditToOpenInvoice } = require('../_lib/credits');
 const { computeAccess, isLegacyGrant } = require('../_lib/access');
 const convites = require('../_lib/convites');
 
@@ -287,27 +288,101 @@ module.exports = handler({
       }
 
       if (action === 'set_discount') {
+        // O saldo de desconto é derivado dos DOCUMENTOS de crédito (é deles
+        // que a reserva tira o abatimento). Gravar só o contador, como antes,
+        // mostrava "R$ 10 de abatimento" que nunca chegava a fatura nenhuma,
+        // e a reconciliação seguinte apagava. Agora a diferença vira um
+        // crédito de verdade (origem 'admin'), ou anula créditos pendentes.
         const reais = parseFloat(actionValue);
-        if (!isFinite(reais)) return res.status(400).json({ error: 'invalid_value' });
+        if (!isFinite(reais) || reais < 0) return res.status(400).json({ error: 'invalid_value' });
         const cents = Math.round(reais * 100);
+        const creditsCol = docRef.collection('credits');
         const beforeSnap = await docRef.get();
         const beforeCents =
           (beforeSnap.data() &&
             beforeSnap.data().stats &&
             beforeSnap.data().stats.pendingDiscountCents) ||
           0;
-        await docRef.set({ stats: { pendingDiscountCents: cents } }, { merge: true });
+        const pendentes = (await creditsCol.where('appliedAt', '==', null).get()).docs.filter(
+          (d) => !(d.data() || {}).voidedAt && ((d.data() || {}).amountCents || 0) > 0
+        );
+        const saldo = pendentes.reduce((s, d) => s + (d.data().amountCents || 0), 0);
+        const agora = timestamp().now();
+        if (cents > saldo) {
+          await creditsCol.doc('admin-' + Date.now()).set({
+            origem: 'admin',
+            actor,
+            fromUid: null,
+            fromEmail: null,
+            paymentId: null,
+            amountCents: cents - saldo,
+            appliedAt: null,
+            appliedToPaymentId: null,
+            createdAt: agora,
+          });
+        } else if (cents < saldo) {
+          // Tira do saldo: anula pendentes (os do admin primeiro); o último
+          // pode ser partido — a parte que fica continua pendente.
+          let tirar = saldo - cents;
+          pendentes.sort(
+            (x, y) => (x.data().origem === 'admin' ? 0 : 1) - (y.data().origem === 'admin' ? 0 : 1)
+          );
+          for (const d of pendentes) {
+            if (tirar <= 0) break;
+            const v = d.data().amountCents || 0;
+            const corte = Math.min(v, tirar);
+            tirar -= corte;
+            if (corte === v) {
+              await d.ref.set(
+                { voidedAt: agora, voidedReason: 'admin', voidedBy: actor },
+                { merge: true }
+              );
+            } else {
+              await d.ref.set({ amountCents: v - corte }, { merge: true });
+              await creditsCol.doc(d.id + '-adm' + corte).set({
+                ...d.data(),
+                amountCents: corte,
+                voidedAt: agora,
+                voidedReason: 'admin',
+                voidedBy: actor,
+              });
+            }
+          }
+        }
+        // Contadores a partir dos documentos (a mesma conta da reconciliação).
+        const truth = computeCreditTotals((await creditsCol.get()).docs);
+        await docRef.set(
+          {
+            stats: {
+              pendingDiscountCents: truth.pendingDiscountCents,
+              totalReferralEarningsCents: truth.totalReferralEarningsCents,
+            },
+          },
+          { merge: true }
+        );
+        // Quem já tem fatura em aberto (assinatura com faturas projetadas)
+        // recebe o abatimento nela agora; senão, na próxima cobrança.
+        let aplicado = 0;
+        try {
+          aplicado = await pushCreditToOpenInvoice(uid);
+        } catch (e) {
+          console.error('[admin/action] set_discount push', e && e.message);
+        }
         await writeAudit({
           action,
           email,
           uid,
           actor,
           before: { pendingDiscountCents: beforeCents },
-          after: { pendingDiscountCents: cents },
+          after: { pendingDiscountCents: cents, aplicadoNaFatura: aplicado },
         });
         return res.json({
           success: true,
-          message: `Desconto atualizado para R$ ${reais.toFixed(2)}`,
+          message:
+            `Desconto atualizado para R$ ${reais.toFixed(2)}` +
+            (aplicado > 0
+              ? ` (R$ ${(aplicado / 100).toFixed(2)} já abatidos na fatura em aberto)`
+              : ''),
         });
       }
 
@@ -447,6 +522,20 @@ module.exports = handler({
         const newTrialEndsAt = timestamp().fromMillis(Date.now() + 7 * 24 * 3600 * 1000);
         const beforeSnap = await docRef.get();
         const beforeTrial = beforeSnap.data() && beforeSnap.data().trialEndsAt;
+        // Estender o trial de quem já tem cobrança no Asaas não adia a
+        // cobrança: a fatura vence dentro do "trial" e a pessoa paga por
+        // dias que eram grátis. Para quem paga, o caminho é Oferecer dias.
+        const bAtual = beforeSnap.data() || {};
+        const subViva =
+          bAtual.subscriptionId &&
+          bAtual.subscriptionStatus &&
+          bAtual.subscriptionStatus !== 'INACTIVE';
+        if (subViva || bAtual.lastOneShotPaymentId) {
+          return res.status(409).json({
+            error:
+              'Usuário já tem cobrança no Asaas. Use "Oferecer dias PRO" em vez de estender o trial.',
+          });
+        }
         await docRef.set({ trialEndsAt: newTrialEndsAt }, { merge: true });
         await writeAudit({
           action,

@@ -37,7 +37,9 @@ function computeCreditTotals(creditDocs) {
     const data = c && typeof c.data === 'function' ? c.data() : c;
     if (!data || data.voidedAt) continue;
     const amount = data.amountCents || 0;
-    totalReferralEarningsCents += amount;
+    // Desconto dado pelo admin ("Colocar desconto") abate a fatura como
+    // qualquer crédito, mas não é ganho com indicação.
+    if (data.origem !== 'admin') totalReferralEarningsCents += amount;
     if (!data.appliedAt) pendingDiscountCents += amount;
   }
   return { pendingDiscountCents, totalReferralEarningsCents };
