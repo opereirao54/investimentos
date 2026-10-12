@@ -149,6 +149,16 @@ function parseBRL(str) {
   const n = parseFloat(limpo);
   return Number.isFinite(n) ? n : 0;
 }
+/**
+ * Arredonda para centavos. Dinheiro acumulado por soma e subtração em ponto
+ * flutuante desgarra (1584 vira 1584.0000000000002); o resíduo, relido como
+ * texto em pt-BR, já virou um valor 10^13 vezes maior (o ponto tomado por
+ * separador de milhar). Todo valor que se acumula passa por aqui.
+ */
+function arredCentavos(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
 function formatarBRLInput(valor) {
   const n = typeof valor === 'number' ? valor : parseBRL(valor);
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

@@ -2974,7 +2974,7 @@ function registrarAportePorPagamentoSonho(tx) {
   };
   if (!s.aportes) s.aportes = [];
   s.aportes.push(novoAporte);
-  s.valorAtual = (s.valorAtual || 0) + tx.valor;
+  s.valorAtual = arredCentavos((s.valorAtual || 0) + tx.valor);
 
   // Recalcula a parcela mensal e regenera lançamentos futuros
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
