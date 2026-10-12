@@ -12559,10 +12559,10 @@
 
                     <section class="cfg-painel" id="cfgPainelMetas" data-painel="metas" aria-labelledby="cfgTitMetas">
                         <h3 class="cfg-painel-tit" id="cfgTitMetas">Metas de saldo</h3>
-                        <p class="cfg-painel-desc">O saldo acumulado do mês fica <b class="cfg-verde">verde</b> acima da meta e <b class="cfg-vermelho">vermelho</b> abaixo do alerta, no Controle e no Relatório mensal.</p>
+                        <p class="cfg-painel-desc">O saldo acumulado do mês fica <b class="cfg-verde">verde</b> acima da meta e <b class="cfg-vermelho">vermelho</b> abaixo do alerta, no Controle e no Relatório mensal. Os valores são salvos ao sair do campo.</p>
                         <div class="cfg-metas">
-                            <div class="form-group" style="margin-bottom:0;"><label for="metaVerde">Meta verde (saldo ideal)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3000" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)"></span></div>
-                            <div class="form-group" style="margin-bottom:0;"><label for="metaVermelha">Alerta vermelho (saldo crítico)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1000" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)"></span></div>
+                            <div class="form-group" style="margin-bottom:0;"><label for="metaVerde">Meta verde (saldo ideal)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVerde" value="3.000,00" placeholder="Saldo ideal" oninput="aplicarMascaraBRL(this)" onchange="cfgSalvarMetasAuto()"></span></div>
+                            <div class="form-group" style="margin-bottom:0;"><label for="metaVermelha">Alerta vermelho (saldo crítico)</label><span class="input-brl-wrap"><input type="text" inputmode="decimal" data-brl="1" id="metaVermelha" value="1.000,00" placeholder="Saldo crítico" oninput="aplicarMascaraBRL(this)" onchange="cfgSalvarMetasAuto()"></span></div>
                         </div>
                         <button type="button" class="btn-acao cfg-salvar" onclick="cfgSalvarMetas()"><i class="ph ph-check"></i> Salvar metas</button>
                     </section>
