@@ -33,6 +33,7 @@
  */
 
 const { db, fieldValue } = require('./firebase-admin');
+const asaas = require('./asaas');
 
 // Piso do gateway. O Asaas recusa cobranças abaixo disto (≈ R$ 5,00 para
 // PIX/boleto). Mesma env var lida em api/billing/webhook.js — um valor só
@@ -86,6 +87,8 @@ async function reservePendingCredits(billingRef, maxDiscountCents, reservationId
             fromUid: c.fromUid || null,
             fromEmail: c.fromEmail || null,
             paymentId: c.paymentId || null,
+            // A sobra de um desconto do admin continua sendo do admin.
+            ...(c.origem ? { origem: c.origem } : {}),
             amountCents: valor - take,
             appliedAt: null,
             appliedToPaymentId: null,
@@ -177,7 +180,99 @@ function maxDiscountFor(paymentCents) {
   return Math.max(0, (paymentCents || 0) - minPaymentCents());
 }
 
+/**
+ * Abate o saldo pendente numa cobrança que JÁ existe no Asaas (reserva em
+ * transação + updatePayment; devolve a reserva se o Asaas recusar).
+ */
+async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValueReais) {
+  const billing = indicatorBillingDoc.data();
+  const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
+  const paymentCents = Math.round((paymentValueReais || monthlyCents / 100) * 100);
+
+  // C5: a reserva é ATÓMICA (api/_lib/credits.js). Sem isto, dois webhooks
+  // paralelos — dois indicados a pagar no mesmo instante — liam ambos os
+  // mesmos créditos pendentes e cada um abatia na sua fatura: o crédito
+  // gastava-se duas vezes. A mesma função serve /subscribe, para a regra de
+  // "quanto dá para abater" não existir em dois sítios e divergir.
+  const reservation = await reservePendingCredits(
+    indicatorBillingDoc.ref,
+    maxDiscountFor(paymentCents),
+    paymentId
+  );
+  if (reservation.applied <= 0) return reservation;
+
+  const newValueReais = Math.max(minPaymentCents(), paymentCents - reservation.applied) / 100;
+  try {
+    await asaas.updatePayment(paymentId, { value: newValueReais });
+  } catch (e) {
+    // Compensação: o Asaas rejeitou a atualização do valor (p. ex.,
+    // valor abaixo do mínimo do gateway, fatura já paga, rede). Liberta
+    // os créditos para um próximo retry — caso contrário ficariam
+    // marcados como gastos sem desconto aplicado.
+    await releaseReservation(reservation);
+    throw e;
+  }
+
+  return reservation;
+}
+
+/**
+ * Empurra o saldo Applicash do indicador para a fatura EM ABERTO dele.
+ *
+ * Por que isto precisa existir: o único gatilho de desconto era o evento
+ * PAYMENT_CREATED. Só que o Asaas projeta as faturas dos próximos 6-12 meses
+ * no instante em que a assinatura é criada — todos os PAYMENT_CREATED do
+ * indicador já aconteceram, com saldo zero, antes de o primeiro indicado
+ * pagar. Resultado observado: o crédito nascia, aparecia como "sua próxima
+ * mensalidade já tem R$ X de abatimento" e NUNCA chegava a nenhuma fatura.
+ * O indicado ganhava o desconto dele; o indicador não ganhava nada.
+ *
+ * Aqui, assim que o crédito nasce, procuramos a próxima fatura ainda aberta
+ * e aplicamos nela. Best-effort e idempotente: `applyPendingCreditsTo`
+ * reserva os créditos em transação e devolve-os se o Asaas recusar, e o
+ * caminho antigo (PAYMENT_CREATED) continua a funcionar para quem ainda não
+ * tem fatura aberta.
+ */
+const OPEN_INVOICE_STATUSES = new Set(['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS']);
+
+async function pushCreditToOpenInvoice(indicatorUid) {
+  const billingRef = db()
+    .collection('users')
+    .doc(indicatorUid)
+    .collection('billing')
+    .doc('account');
+  const snap = await billingRef.get();
+  if (!snap.exists) return 0;
+  const billing = snap.data();
+  if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return 0;
+
+  const list = await asaas.listPaymentsBySubscription(billing.subscriptionId);
+  // C7: mesma exigência de forma estrita do billing-sync — um corpo
+  // inesperado não pode virar "não há faturas".
+  if (!list || !Array.isArray(list.data)) return 0;
+
+  const open = list.data
+    .filter((p) => p && p.id && OPEN_INVOICE_STATUSES.has(p.status))
+    .sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
+  const target = open[0];
+  if (!target) return 0;
+
+  const applied = await applyPendingCreditsTo(snap, target.id, target.value);
+  if (applied.applied > 0) {
+    await billingRef.set(
+      {
+        stats: { pendingDiscountCents: fieldValue().increment(-applied.applied) },
+        updatedAt: fieldValue().serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+  return applied.applied;
+}
+
 module.exports = {
+  applyPendingCreditsTo,
+  pushCreditToOpenInvoice,
   reservePendingCredits,
   releaseReservation,
   rebindReservation,

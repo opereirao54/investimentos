@@ -3,15 +3,11 @@ const { handler } = require('../_lib/handler');
 const asaas = require('../_lib/asaas');
 const { releaseAppliedCredits } = require('../_lib/billing-sync');
 const { nextPaidUntilMs } = require('../_lib/access');
-const { reservePendingCredits, releaseReservation, maxDiscountFor } = require('../_lib/credits');
+const { applyPendingCreditsTo, pushCreditToOpenInvoice } = require('../_lib/credits');
 
 const REFERRAL_PERCENT = 10;
-// Valor mínimo após desconto referral. Asaas rejeita faturas abaixo do
-// piso do gateway (≈ R$ 5,00 para PIX/Boleto; cartão tolera menos). O
-// default era R$ 1,00, o que provocava 400 na atualização da fatura
-// para indicadores com muitos créditos acumulados. Pode ser ajustado
-// por env quando se confirma que todos os usuários usam cartão.
-const MIN_PAYMENT_CENTS = parseInt(process.env.MIN_PAYMENT_CENTS || '500', 10);
+// O piso do gateway (MIN_PAYMENT_CENTS) e o abatimento de crédito numa
+// fatura vivem em api/_lib/credits.js, junto com a reserva.
 
 async function findBillingByCustomer(customerId) {
   const q = await db()
@@ -39,38 +35,6 @@ function userRefFromBilling(doc) {
 function paymentsCol(billingDoc) {
   return userRefFromBilling(billingDoc).collection('payments');
 }
-async function applyPendingCreditsTo(indicatorBillingDoc, paymentId, paymentValueReais) {
-  const billing = indicatorBillingDoc.data();
-  const monthlyCents = billing.subscriptionBaseValueCents || billing.monthlyPriceCents || 1500;
-  const paymentCents = Math.round((paymentValueReais || monthlyCents / 100) * 100);
-
-  // C5: a reserva é ATÓMICA (api/_lib/credits.js). Sem isto, dois webhooks
-  // paralelos — dois indicados a pagar no mesmo instante — liam ambos os
-  // mesmos créditos pendentes e cada um abatia na sua fatura: o crédito
-  // gastava-se duas vezes. A mesma função serve /subscribe, para a regra de
-  // "quanto dá para abater" não existir em dois sítios e divergir.
-  const reservation = await reservePendingCredits(
-    indicatorBillingDoc.ref,
-    maxDiscountFor(paymentCents),
-    paymentId
-  );
-  if (reservation.applied <= 0) return reservation;
-
-  const newValueReais = Math.max(MIN_PAYMENT_CENTS, paymentCents - reservation.applied) / 100;
-  try {
-    await asaas.updatePayment(paymentId, { value: newValueReais });
-  } catch (e) {
-    // Compensação: o Asaas rejeitou a atualização do valor (p. ex.,
-    // valor abaixo do mínimo do gateway, fatura já paga, rede). Liberta
-    // os créditos para um próximo retry — caso contrário ficariam
-    // marcados como gastos sem desconto aplicado.
-    await releaseReservation(reservation);
-    throw e;
-  }
-
-  return reservation;
-}
-
 const INDICATOR_BLOCKED_STATUSES = new Set([
   'INACTIVE',
   'CHARGEBACK',
@@ -148,60 +112,6 @@ async function creditIndicatorFromIndicado(indicadoBilling, payment) {
   return generated;
 }
 
-/**
- * Empurra o saldo Applicash do indicador para a fatura EM ABERTO dele.
- *
- * Por que isto precisa existir: o único gatilho de desconto era o evento
- * PAYMENT_CREATED. Só que o Asaas projeta as faturas dos próximos 6-12 meses
- * no instante em que a assinatura é criada — todos os PAYMENT_CREATED do
- * indicador já aconteceram, com saldo zero, antes de o primeiro indicado
- * pagar. Resultado observado: o crédito nascia, aparecia como "sua próxima
- * mensalidade já tem R$ X de abatimento" e NUNCA chegava a nenhuma fatura.
- * O indicado ganhava o desconto dele; o indicador não ganhava nada.
- *
- * Aqui, assim que o crédito nasce, procuramos a próxima fatura ainda aberta
- * e aplicamos nela. Best-effort e idempotente: `applyPendingCreditsTo`
- * reserva os créditos em transação e devolve-os se o Asaas recusar, e o
- * caminho antigo (PAYMENT_CREATED) continua a funcionar para quem ainda não
- * tem fatura aberta.
- */
-const OPEN_INVOICE_STATUSES = new Set(['PENDING', 'OVERDUE', 'AWAITING_RISK_ANALYSIS']);
-
-async function pushCreditToOpenInvoice(indicatorUid) {
-  const billingRef = db()
-    .collection('users')
-    .doc(indicatorUid)
-    .collection('billing')
-    .doc('account');
-  const snap = await billingRef.get();
-  if (!snap.exists) return 0;
-  const billing = snap.data();
-  if (!billing.subscriptionId || billing.subscriptionStatus === 'INACTIVE') return 0;
-
-  const list = await asaas.listPaymentsBySubscription(billing.subscriptionId);
-  // C7: mesma exigência de forma estrita do billing-sync — um corpo
-  // inesperado não pode virar "não há faturas".
-  if (!list || !Array.isArray(list.data)) return 0;
-
-  const open = list.data
-    .filter((p) => p && p.id && OPEN_INVOICE_STATUSES.has(p.status))
-    .sort((a, b) => String(a.dueDate || '9999').localeCompare(String(b.dueDate || '9999')));
-  const target = open[0];
-  if (!target) return 0;
-
-  const applied = await applyPendingCreditsTo(snap, target.id, target.value);
-  if (applied.applied > 0) {
-    await billingRef.set(
-      {
-        stats: { pendingDiscountCents: fieldValue().increment(-applied.applied) },
-        updatedAt: fieldValue().serverTimestamp(),
-      },
-      { merge: true }
-    );
-  }
-  return applied.applied;
-}
-
 async function reverseReferralCredit(indicatorUid, paymentId) {
   if (!indicatorUid || !paymentId) return false;
   const indicatorBillingRef = db()
@@ -209,30 +119,47 @@ async function reverseReferralCredit(indicatorUid, paymentId) {
     .doc(indicatorUid)
     .collection('billing')
     .doc('account');
-  const creditRef = indicatorBillingRef.collection('credits').doc(paymentId);
-  const snap = await creditRef.get();
-  if (!snap.exists) return false;
-  const c = snap.data();
-  if (c.voidedAt) return false; // já revertido
+  // O crédito de um pagamento pode estar PARTIDO (reservePendingCredits
+  // parte o documento quando só uma fatia cabe na fatura): o original,
+  // gasto, e a sobra, pendente, com o mesmo paymentId. Anular só o original
+  // deixava a sobra valendo desconto depois do estorno/chargeback. Achado
+  // pela caça de pagamentos.
+  const docs = [];
+  const original = await indicatorBillingRef.collection('credits').doc(paymentId).get();
+  if (original.exists) docs.push(original);
+  const irmaos = await indicatorBillingRef
+    .collection('credits')
+    .where('paymentId', '==', paymentId)
+    .get();
+  for (const d of irmaos.docs) if (d.id !== paymentId) docs.push(d);
 
-  await creditRef.set(
-    {
-      voidedAt: fieldValue().serverTimestamp(),
-      voidedReason: 'payment_refunded',
-    },
+  let earnings = 0;
+  let pending = 0;
+  for (const d of docs) {
+    const c = d.data() || {};
+    if (c.voidedAt) continue; // já revertido
+    await d.ref.set(
+      {
+        voidedAt: fieldValue().serverTimestamp(),
+        voidedReason: 'payment_refunded',
+      },
+      { merge: true }
+    );
+    const amount = c.amountCents || 0;
+    // Pendente: desconto ainda não aplicado → estorna pending + total.
+    // Já aplicado: o desconto já consumido fica mantido na fatura passada,
+    // mas o earnings total é corrigido para refletir o estorno.
+    earnings += amount;
+    if (!c.appliedAt) pending += amount;
+  }
+  if (!earnings && !pending) return false;
+
+  const stats = { totalReferralEarningsCents: fieldValue().increment(-earnings) };
+  if (pending) stats.pendingDiscountCents = fieldValue().increment(-pending);
+  await indicatorBillingRef.set(
+    { updatedAt: fieldValue().serverTimestamp(), stats },
     { merge: true }
   );
-
-  const updateStats = { updatedAt: fieldValue().serverTimestamp(), stats: {} };
-  const amount = c.amountCents || 0;
-  // Pendente: desconto ainda não aplicado → estorna pending + total.
-  // Já aplicado: o desconto já consumido fica mantido na fatura passada,
-  // mas o earnings total é corrigido para refletir o estorno.
-  updateStats.stats.totalReferralEarningsCents = fieldValue().increment(-amount);
-  if (!c.appliedAt) {
-    updateStats.stats.pendingDiscountCents = fieldValue().increment(-amount);
-  }
-  await indicatorBillingRef.set(updateStats, { merge: true });
   return true;
 }
 
@@ -350,6 +277,14 @@ module.exports = handler({
       } else if (payment && payment.customer) {
         doc = await findBillingByCustomer(payment.customer);
       }
+      // Cobrança de uma assinatura ANTERIOR (a pessoa cancelou e assinou de
+      // novo, e o billing já aponta para a nova): a busca pela assinatura não
+      // acha nada. Antes o evento era descartado — o estorno ou chargeback de
+      // um mês antigo não anulava o crédito que ele gerou para o indicador.
+      // Achado pela caça de pagamentos. Vai pelo cliente.
+      if (!doc && payment && payment.subscription && payment.customer) {
+        doc = await findBillingByCustomer(payment.customer);
+      }
       if (!doc) {
         console.warn('[webhook] billing not found', event);
         return res.json({ ok: true, skipped: true });
@@ -374,6 +309,10 @@ module.exports = handler({
         // Também limpamos trialEndsAt para que o branch "trial" não
         // esconda o "active".
         const isOneShot = !payment.subscription;
+        // De uma assinatura que já não é a atual: o dinheiro conta (crédito
+        // do indicador, estorno), mas o estado da assinatura ATUAL não muda.
+        const deSubAntiga =
+          !isOneShot && !!billing.subscriptionId && payment.subscription !== billing.subscriptionId;
 
         switch (event) {
           case 'PAYMENT_CONFIRMED':
@@ -450,6 +389,15 @@ module.exports = handler({
             break;
         }
 
+        if (deSubAntiga && !String(event).startsWith('PAYMENT_CHARGEBACK')) {
+          // Chargeback continua valendo para a conta (sinal de fraude).
+          delete update.subscriptionStatus;
+          if (event === 'PAYMENT_REFUNDED' || event === 'PAYMENT_DELETED') {
+            delete update.lastPaymentId;
+            delete update.lastPaymentStatus;
+          }
+        }
+
         // Pagamento avulso: não promovemos subscriptionStatus para nenhum
         // valor — não há assinatura para "ativar" ou "cancelar". Bloqueios
         // (OVERDUE, REFUNDED, CHARGEBACK) já são capturados em access.js
@@ -500,6 +448,26 @@ module.exports = handler({
             }
           } catch (e) {
             console.error('[webhook] creditIndicatorFromIndicado failed', e);
+          }
+        }
+
+        // Estorno de fatura da assinatura ATUAL: o acesso já caiu (INACTIVE
+        // acima), então a assinatura tem de parar no Asaas também. Estornar
+        // não cancela nada lá — sem isto o cartão seguia sendo debitado todo
+        // mês de quem já estava sem acesso, e o M3 abaixo ainda recusava
+        // reativar com esses pagamentos. Best-effort: 404 = já parada.
+        if (
+          event === 'PAYMENT_REFUNDED' &&
+          !isOneShot &&
+          payment.subscription === billing.subscriptionId
+        ) {
+          try {
+            await asaas.cancelSubscription(payment.subscription);
+            update.cancelledAt = fieldValue().serverTimestamp();
+          } catch (e) {
+            if (!e || e.status !== 404) {
+              console.error('[webhook] cancel after refund failed', e && e.message);
+            }
           }
         }
 

@@ -56,20 +56,34 @@ async function assertReferralAllowed(D, opts) {
     }
   }
 
+  let userBilling = null;
+  try {
+    const snap = await D.collection('users')
+      .doc(user.uid)
+      .collection('billing')
+      .doc('account')
+      .get();
+    if (snap.exists) userBilling = snap.data() || null;
+  } catch (_) {}
+
+  // O aparelho de CADASTRO da conta indicada também conta, não só o da
+  // requisição: abrir a segunda conta no próprio celular sem cupom e mandar
+  // o cupom depois, de outro navegador, passava. Achado pela caça de
+  // pagamentos.
+  if (
+    userBilling &&
+    userBilling.signupDevice &&
+    indicatorBilling.signupDevice &&
+    userBilling.signupDevice === indicatorBilling.signupDevice
+  ) {
+    console.warn('[referral-guard] same signup device', { uid: user.uid, indicatorUid });
+    return { allowed: false, reason: 'self_referral_not_allowed' };
+  }
+
   // H3: mesmo CPF (quando disponível dos dois lados). Aceita cpfCnpj
   // injetado direto (caso /subscribe que ainda nao gravou) ou lê do
   // billing do user.
-  let userCpf = user.cpfCnpj || null;
-  if (!userCpf) {
-    try {
-      const snap = await D.collection('users')
-        .doc(user.uid)
-        .collection('billing')
-        .doc('account')
-        .get();
-      if (snap.exists) userCpf = snap.data().cpfCnpj || null;
-    } catch (_) {}
-  }
+  const userCpf = user.cpfCnpj || (userBilling && userBilling.cpfCnpj) || null;
   const indicatorCpf = indicatorBilling.cpfCnpj;
   if (userCpf && indicatorCpf && userCpf === indicatorCpf) {
     return { allowed: false, reason: 'self_referral_not_allowed' };

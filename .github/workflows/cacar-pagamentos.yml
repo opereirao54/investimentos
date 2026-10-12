@@ -1,0 +1,102 @@
+name: Caça de furos em pagamentos
+
+# O CI roda 60 sequências fixas de pagamento/cupom (test/simulacao-pagamentos
+# .test.js). Este workflow vai muito mais fundo, de madrugada: 20000
+# sequências de 40 passos — ~800 mil ações sobre os handlers reais de billing
+# (cupom, convite, assinatura, webhooks do Asaas, superpoderes do admin),
+# validando os invariantes de dinheiro e de fraude entre cada passo.
+#
+# Quando achar algo, abre uma issue com a semente exata para reproduzir.
+
+on:
+  schedule:
+    # Segundas, 04:40 UTC (01:40 em Brasília) — depois da caça de interações.
+    - cron: '40 4 * * 1'
+  workflow_dispatch:
+    inputs:
+      sementes:
+        description: 'Quantas sequências rodar'
+        required: false
+        default: '20000'
+      passos:
+        description: 'Ações por sequência'
+        required: false
+        default: '40'
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  cacar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      # Os handlers de billing usam dependências (zod etc.); o Firestore e o
+      # Asaas são simulados em memória — nenhuma credencial é usada.
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
+      - name: Caçar
+        id: caca
+        run: |
+          set +e
+          node scripts/cacar-pagamentos.js \
+            "${{ github.event.inputs.sementes || '20000' }}" \
+            "${{ github.event.inputs.passos || '40' }}" 2>&1 | tee saida.txt
+          echo "status=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+
+      - name: Abrir issue se achou furo
+        if: steps.caca.outputs.status != '0'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const saida = fs.readFileSync('saida.txt', 'utf8');
+            const corpo = saida.length > 55000 ? saida.slice(0, 55000) + '\n\n… (truncado)' : saida;
+            const titulo = `Caça de pagamentos achou furo — ${new Date().toISOString().slice(0, 10)}`;
+
+            const abertas = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'caca-de-pagamentos',
+            });
+            if (abertas.data.length) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: abertas.data[0].number,
+                body: `Nova execução também falhou (${new Date().toISOString()}).\n\n<details><summary>Saída</summary>\n\n\`\`\`\n${corpo}\n\`\`\`\n\n</details>`,
+              });
+              return;
+            }
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: titulo,
+              labels: ['caca-de-pagamentos'],
+              body:
+                'A caça semanal de pagamentos e cupons encontrou uma sequência que viola um invariante de dinheiro ou de fraude.\n\n' +
+                'A saída abaixo traz a **semente** e a **sequência exata**. Para reproduzir:\n\n' +
+                '```bash\nnode scripts/cacar-pagamentos.js --semente <semente> 40\n```\n\n' +
+                'Depois de corrigir, some a semente a `ACHADAS` em `test/simulacao-pagamentos.test.js`. ' +
+                'Ver `.claude/skills/pagamentos/SKILL.md`.\n\n' +
+                '```\n' + corpo + '\n```',
+            });
+
+      - name: Falhar o job quando houver furo
+        if: steps.caca.outputs.status != '0'
+        run: exit 1

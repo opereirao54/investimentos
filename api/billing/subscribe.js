@@ -111,7 +111,7 @@ module.exports = handler({
           },
           { merge: true }
         );
-        return { state: 'acquired' };
+        return { state: 'acquired', billing: ex };
       });
       if (claim.state === 'locked') {
         return res.status(409).json({
@@ -137,7 +137,12 @@ module.exports = handler({
         }
       };
 
-      const billing = snap.data();
+      // O billing que vale é o lido DENTRO da transação da trava, não o de
+      // antes dela. Com a leitura de antes, um segundo clique que ficou
+      // parado entre as duas leituras enquanto o primeiro terminava
+      // (trava pega, assinatura criada, trava solta) via subscriptionId
+      // vazio e criava a SEGUNDA assinatura. Achado pela caça de pagamentos.
+      const billing = claim.billing || snap.data();
 
       if (!billing.cpfCnpj && !cpfCnpj) {
         await releaseLock();
@@ -256,6 +261,22 @@ module.exports = handler({
         // o usuário clica "Reativar" → frontend faz DELETE local primeiro.
         // Defensivamente, se INACTIVE chegar aqui, recriamos.
         if (billing.subscriptionStatus === 'INACTIVE') {
+          // INACTIVE aqui nem sempre quer dizer "parada no Asaas": o estorno
+          // (PAYMENT_REFUNDED) marca INACTIVE só no nosso lado. Esquecer o id
+          // sem parar a antiga deixava DUAS assinaturas cobrando. Para a
+          // antiga primeiro (404 = já não existe); se o Asaas recusar, não
+          // cria a nova.
+          try {
+            await asaas.cancelSubscription(billing.subscriptionId);
+          } catch (e) {
+            if (!e || e.status !== 404) {
+              await releaseLock();
+              return res.status(502).json({
+                error: 'old_subscription_cancel_failed',
+                detail: 'Não foi possível encerrar a assinatura anterior. Tente de novo.',
+              });
+            }
+          }
           // limpa para permitir nova criação no fluxo abaixo
           await ref.set(
             {

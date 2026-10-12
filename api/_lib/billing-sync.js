@@ -91,6 +91,12 @@ async function reconcileNonFinalPayments(userRef, subscriptionId, remoteList) {
   snap.docs.forEach((d) => {
     const local = d.data() || {};
     if (!NON_FINAL_STATUSES.has(local.status)) return;
+    // A lista remota é só a DESTA assinatura. Cobrança avulsa (sem
+    // subscriptionId) ou de uma assinatura anterior nunca aparece nela — e
+    // era dada como "apagada": o crédito Applicash usado nela voltava ao
+    // saldo enquanto o boleto, já com o desconto, continuava pagável.
+    // Achado pela caça de pagamentos.
+    if (local.subscriptionId !== subscriptionId) return;
     const remote = remoteById.get(local.id || d.id);
     if (!remote) {
       // Pagamento desapareceu do Asaas — foi apagado.

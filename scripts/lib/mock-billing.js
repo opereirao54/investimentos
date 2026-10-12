@@ -45,6 +45,11 @@ function deepClone(v) {
 
 // ---------- In-memory store ----------
 const store = { docs: new Map(), now: Date.now() };
+// Versão de cada documento, para as transações otimistas (ver runTransaction).
+const versoes = new Map();
+function tocar(path) {
+  versoes.set(path, (versoes.get(path) || 0) + 1);
+}
 
 function resolveValue(value, existing) {
   if (value === SERVER_TS) return makeTimestamp(store.now);
@@ -146,6 +151,7 @@ class DocRef {
         ? mergeData(existing, data)
         : resolveValue(data, existing || {});
     store.docs.set(this.path, next);
+    tocar(this.path);
   }
   async update(data) {
     // O Firestore real RECUSA update em documento inexistente (NOT_FOUND);
@@ -161,6 +167,7 @@ class DocRef {
   }
   async delete() {
     store.docs.delete(this.path);
+    tocar(this.path);
   }
 }
 
@@ -318,14 +325,60 @@ const firestore = {
   collection: (n) => new CollRef(n),
   collectionGroup: (n) => new Query(n, true),
   batch: () => new Batch(),
+  // Transação OTIMISTA, como a do Firestore: as leituras guardam a versão do
+  // que leram, as escritas ficam num buffer, e no commit, se algo lido mudou
+  // no meio (outra requisição escreveu), tudo é descartado e o callback roda
+  // de novo. O mock antigo executava o callback direto, sem isolamento:
+  // dois cliques simultâneos em "Assinar" passavam ambos pela trava e o
+  // teste acusava assinatura dupla que o Firestore real impede.
   runTransaction: async (cb) => {
-    const tx = {
-      get: (ref) => ref.get(),
-      set: (ref, data, options) => ref.set(data, options),
-      update: (ref, data) => ref.update(data),
-      delete: (ref) => ref.delete(),
-    };
-    return cb(tx);
+    for (let tentativa = 0; tentativa < 5; tentativa++) {
+      const lidas = new Map();
+      const consultas = [];
+      const escritas = [];
+      const tx = {
+        get: async (alvo) => {
+          if (escritas.length) {
+            throw new Error(
+              'Firestore transactions require all reads to be executed before all writes.'
+            );
+          }
+          const snap = await alvo.get();
+          if (alvo instanceof DocRef) {
+            lidas.set(alvo.path, versoes.get(alvo.path) || 0);
+          } else {
+            consultas.push({ q: alvo, chave: snap.docs.map((d) => d.ref.path).join('|') });
+            for (const d of snap.docs) lidas.set(d.ref.path, versoes.get(d.ref.path) || 0);
+          }
+          return snap;
+        },
+        set: (ref, data, options) => {
+          escritas.push(() => ref.set(data, options));
+          return tx;
+        },
+        update: (ref, data) => {
+          escritas.push(() => ref.update(data));
+          return tx;
+        },
+        delete: (ref) => {
+          escritas.push(() => ref.delete());
+          return tx;
+        },
+      };
+      const out = await cb(tx);
+      let conflito = false;
+      for (const [p, v] of lidas) if ((versoes.get(p) || 0) !== v) conflito = true;
+      for (const c of consultas) {
+        const agora = (await c.q.get()).docs.map((d) => d.ref.path).join('|');
+        if (agora !== c.chave) conflito = true;
+      }
+      if (conflito) continue;
+      for (const w of escritas) await w();
+      return out;
+    }
+    const err = new Error('ABORTED: too much contention');
+    err.code = 10;
+    throw err;
   },
 };
 
@@ -469,6 +522,8 @@ const mockAsaas = {
         // Só a primeira pode nascer capturada; as projetadas ficam PENDING.
         status: i === 0 && paidOnCreate ? 'CONFIRMED' : 'PENDING',
         dueDate: addMonthsToYmd(nextDueDate, i),
+        dateCreated: new Date(store.now).toISOString().slice(0, 10),
+        __criadaMs: store.now,
         billingType: sub.billingType,
         invoiceUrl: 'https://sandbox.asaas/' + pid,
       });
@@ -493,6 +548,8 @@ const mockAsaas = {
       // avulso (`const isOneShot = !payment.subscription`).
       status: creditCard && asaasState.cardCapturesImmediately ? 'CONFIRMED' : 'PENDING',
       dueDate,
+      dateCreated: new Date(store.now).toISOString().slice(0, 10),
+      __criadaMs: store.now,
       description: description || null,
       externalReference: externalReference || null,
       billingType: billingType || 'UNDEFINED',
@@ -507,6 +564,15 @@ const mockAsaas = {
   cancelSubscription: async (id) => {
     const s = asaasState.subscriptions.get(id);
     if (s) s.status = 'INACTIVE';
+    // O DELETE de assinatura no Asaas remove junto as faturas ainda não
+    // pagas (as projetadas). Deixá-las PENDING aqui fazia uma assinatura
+    // cancelada continuar "cobrando" no mundo simulado.
+    for (const p of asaasState.payments.values()) {
+      if (p.subscription === id && (p.status === 'PENDING' || p.status === 'OVERDUE')) {
+        p.status = 'DELETED';
+        p.deleted = true;
+      }
+    }
     return { id, deleted: true };
   },
   getSubscription: async (id) => asaasState.subscriptions.get(id),
