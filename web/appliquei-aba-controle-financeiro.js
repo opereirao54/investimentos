@@ -3703,8 +3703,10 @@ function atualizarTelaControle() {
   }
 
   // DRE
-  const metaVerde = parseBRL(document.getElementById('metaVerde').value) || 3000;
-  const metaVermelha = parseBRL(document.getElementById('metaVermelha').value) || 1000;
+  // Metas salvas (localStorage), não o campo da tela de Configurações.
+  const metas = typeof obterMetas === 'function' ? obterMetas() : { verde: 3000, vermelha: 1000 };
+  const metaVerde = metas.verde;
+  const metaVermelha = metas.vermelha;
 
   let inicioMes = visaoMes + offsetMesesDRE;
   let inicioAno = visaoAno;

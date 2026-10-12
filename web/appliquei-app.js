@@ -648,6 +648,9 @@ function abrirModalConfig(painel) {
   // aberto por trás do modal.
   if (typeof closeMobileNav === 'function') closeMobileNav();
   if (typeof telegramAoAbrirConfig === 'function') telegramAoAbrirConfig();
+  // Os campos das metas mostram sempre o que está SALVO, não o que ficou
+  // digitado de uma abertura anterior.
+  carregarMetas();
   const p = typeof painel === 'string' && _cfgPaineis()[painel] ? painel : '';
   cfgAbrirPainel(p || (_cfgCelular() ? '' : 'cartoes'));
   document.getElementById('modalConfiguracoes').style.display = 'flex';
@@ -679,43 +682,85 @@ function cfgAbrirPainel(painel) {
 
 /** "‹ Configurações" no celular: volta da seção para a lista. */
 function cfgVoltarLista() {
+  // Voltar é o "pronto" do celular: o que foi digitado nas metas fica salvo.
+  cfgSalvarMetasAuto();
   cfgAbrirPainel('');
 }
 
 function fecharModalConfig() {
+  // Fechar também salva as metas digitadas. Antes, fechar sem tocar em
+  // "Salvar metas" descartava o valor — e no celular, onde se digita e volta
+  // como em qualquer app, a meta "não ficava salva".
+  cfgSalvarMetasAuto();
   document.getElementById('modalConfiguracoes').style.display = 'none';
-  // Valor digitado nas metas e não salvo não pode ficar no campo: o Controle
-  // lê #metaVerde direto, e a meta "mudaria" sem ninguém ter salvo.
-  if (typeof carregarMetas === 'function') carregarMetas();
+}
+
+// --- METAS DE SALDO ---
+// A fonte da verdade é o localStorage (sincronizado com a nuvem), não o campo
+// da tela: o Controle lia #metaVerde direto, e se o campo não tivesse sido
+// preenchido no carregamento a meta salva era ignorada.
+/** As metas salvas, com o padrão no lugar de valor ausente ou inválido. */
+function obterMetas() {
+  const ler = (chave, padrao) => {
+    const n = Number(localStorage.getItem(chave));
+    return Number.isFinite(n) && n > 0 ? n : padrao;
+  };
+  return {
+    // Padrões literais, e não numa `var` do topo: uma falha mais acima neste
+    // arquivo deixaria a variável sem valor (ver _cfgPaineis).
+    verde: ler('futurorico_metaVerde', 3000),
+    vermelha: ler('futurorico_metaVermelha', 1000),
+  };
+}
+
+/** O que está digitado nos campos difere do que está salvo? */
+function _cfgMetasDigitadas() {
   const v = document.getElementById('metaVerde');
   const r = document.getElementById('metaVermelha');
-  if (v && !localStorage.getItem('futurorico_metaVerde')) setValorBRLInput(v, '3000');
-  if (r && !localStorage.getItem('futurorico_metaVermelha')) setValorBRLInput(r, '1000');
+  return { verde: parseBRL(v ? v.value : ''), vermelha: parseBRL(r ? r.value : '') };
 }
-/** "Salvar metas": grava e continua nas configurações (no celular, volta à lista). */
-function cfgSalvarMetas() {
+
+function _cfgMetasMudaram() {
+  const d = _cfgMetasDigitadas();
+  const m = obterMetas();
+  return (d.verde > 0 && d.verde !== m.verde) || (d.vermelha > 0 && d.vermelha !== m.vermelha);
+}
+
+/** Salva as metas se mudaram — ao sair do campo, voltar ou fechar. */
+var _cfgMetasSalvasEm = 0;
+
+function cfgSalvarMetasAuto() {
+  if (!_cfgMetasMudaram()) return false;
   salvarMetasEAtualizar();
-  mostrarToast('Metas salvas!', 'sucesso');
-  if (_cfgCelular()) cfgVoltarLista();
+  _cfgMetasSalvasEm = Date.now();
+  if (typeof mostrarToast === 'function') mostrarToast('Metas salvas!', 'sucesso');
+  return true;
+}
+
+/** Botão "Salvar metas": grava (se mudou) e confirma; no celular volta à lista. */
+function cfgSalvarMetas() {
+  // Tocar no botão tira o foco do campo, e o `change` já salvou e avisou um
+  // instante antes: não repete o aviso.
+  if (!cfgSalvarMetasAuto() && Date.now() - (_cfgMetasSalvasEm || 0) > 1500) {
+    mostrarToast('Metas salvas!', 'sucesso');
+  }
+  if (_cfgCelular()) cfgAbrirPainel('');
 }
 
 function salvarMetasEAtualizar() {
-  localStorage.setItem(
-    'futurorico_metaVerde',
-    parseBRL(document.getElementById('metaVerde').value)
-  );
-  localStorage.setItem(
-    'futurorico_metaVermelha',
-    parseBRL(document.getElementById('metaVermelha').value)
-  );
+  // Campo vazio ou zerado não apaga a meta: mantém a que estava.
+  const d = _cfgMetasDigitadas();
+  if (d.verde > 0) localStorage.setItem('futurorico_metaVerde', String(d.verde));
+  if (d.vermelha > 0) localStorage.setItem('futurorico_metaVermelha', String(d.vermelha));
+  carregarMetas();
   atualizarTelaControle();
 }
 
+/** Preenche os campos com as metas salvas (ou o padrão), já formatadas. */
 function carregarMetas() {
-  const verde = localStorage.getItem('futurorico_metaVerde');
-  const vermelha = localStorage.getItem('futurorico_metaVermelha');
-  if (verde) setValorBRLInput(document.getElementById('metaVerde'), verde);
-  if (vermelha) setValorBRLInput(document.getElementById('metaVermelha'), vermelha);
+  const m = obterMetas();
+  setValorBRLInput(document.getElementById('metaVerde'), m.verde);
+  setValorBRLInput(document.getElementById('metaVermelha'), m.vermelha);
 }
 
 // --- GESTÃO DE CARTÕES ---
