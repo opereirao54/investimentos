@@ -296,3 +296,35 @@ test('tela firme no navegador do celular: 100dvh e sem arrasto lateral', () => {
   assert.match(HTML, /html, body \{ overscroll-behavior: none; \}/);
   assert.match(HTML, /\.main-content \{ overflow-x: hidden; \}/);
 });
+
+test('os três anéis do topo usam a mesma régua: o mês, sobre o que entrou', () => {
+  // Sonhos mostrava o progresso das metas desde sempre (6,4%) ao lado de
+  // Gastos e Investido, que são do mês — e brigava com o "36% da receita"
+  // do card Sonhos logo abaixo.
+  const vm = require('node:vm');
+  const corte = (nome) => {
+    const i = MOB.indexOf('function ' + nome);
+    return MOB.slice(i, MOB.indexOf('\n}\n', i) + 2);
+  };
+  const ctx = {};
+  vm.createContext(ctx);
+  vm.runInContext(corte('_mobPct') + corte('_mobAneis'), ctx);
+  const sonhos = [
+    { valorTotal: 50000, valorAtual: 3200, aporteMensalPlano: 1500 },
+    { valorTotal: 10000, valorAtual: 0, aporteMensalPlano: 500 },
+    { valorTotal: 900, valorAtual: 900, aporteMensalPlano: 300 }, // conquistado: fora do plano
+  ];
+  const a = ctx._mobAneis({ resumo: { receita: 10000, sonho: 3600, invFixo: 340 }, sonhos });
+  assert.equal(a.sonhos.val, '36%', 'o mesmo número do card Sonhos');
+  assert.equal(a.investido.val, '3,4%');
+  assert.equal(a.sonhos.sub, 'plano do mês cumprido');
+  assert.equal(a.sonhos.frac, 1.8);
+
+  const b = ctx._mobAneis({ resumo: { receita: 10000, sonho: 500 }, sonhos });
+  assert.equal(b.sonhos.val, '5%');
+  assert.equal(b.sonhos.sub, '25% do plano do mês');
+
+  const c = ctx._mobAneis({ resumo: { receita: 0, sonho: 0 }, sonhos: [] });
+  assert.equal(c.sonhos.val, '—');
+  assert.equal(c.sonhos.sub, 'nenhum sonho cadastrado');
+});
