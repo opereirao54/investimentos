@@ -288,3 +288,11 @@ test('tela inteira (viewport-fit=cover) só no app instalado', () => {
   const LANDING = fs.readFileSync(path.join(ROOT, 'landing.html'), 'utf8');
   assert.doesNotMatch(LANDING, /viewport-fit=cover/, 'a landing não trata a área segura');
 });
+
+test('tela firme no navegador do celular: 100dvh e sem arrasto lateral', () => {
+  // 100vh no Safari é a altura com a barra de endereço recolhida — maior que
+  // o visível; a barra encolhendo e crescendo fazia a página inteira balançar.
+  assert.match(HTML, /body \{ height: 100vh; height: 100dvh; \}/);
+  assert.match(HTML, /html, body \{ overscroll-behavior: none; \}/);
+  assert.match(HTML, /\.main-content \{ overflow-x: hidden; \}/);
+});

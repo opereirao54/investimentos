@@ -10994,6 +10994,17 @@
             .main-content { -webkit-tap-highlight-color: transparent; }
             /* A rolagem não "puxa" a página inteira nas bordas (iOS). */
             .main-content { overscroll-behavior-y: contain; }
+            /* Tela firme no NAVEGADOR do celular (no app instalado isto não
+               acontecia): o body media 100vh, que no Safari é a altura com a
+               barra de endereço RECOLHIDA — maior que o visível. A barra
+               encolhe e cresce durante a rolagem e a página inteira balançava
+               junto, quicando. 100dvh acompanha a área realmente visível, e o
+               documento por fora não quica. A área que rola só rola na
+               vertical: uma linha mais larga que a tela não vira arrasto
+               lateral. */
+            html, body { overscroll-behavior: none; }
+            body { height: 100vh; height: 100dvh; }
+            .main-content { overflow-x: hidden; }
 
             /* --- Extrato: ações por deslize (appliquei-mobile.js) --- */
             #extratoUnificado .extrato-item {
