@@ -180,6 +180,24 @@ const ACOES = [
     },
   },
   {
+    // Pela tela de Faturas (appliquei-faturas.js): baixa a fatura inteira de
+    // uma vez, com a conta pagadora do cartão (INV-17).
+    nome: 'pagar a fatura pela tela de Faturas',
+    fn: (m) => {
+      const f = m.s.transacoes.find((t) => t.categoria === 'cartao_credito' && !t.pago);
+      if (!f || typeof m.s.faturasConfirmarPagar !== 'function') return null;
+      return () => m.s.faturasConfirmarPagar(f.cartaoId, f.dataVencimento);
+    },
+  },
+  {
+    nome: 'desfazer o pagamento da fatura pela tela de Faturas',
+    fn: (m) => {
+      const f = m.s.transacoes.find((t) => t.categoria === 'cartao_credito' && t.pago);
+      if (!f || typeof m.s.faturasDesfazerPagamento !== 'function') return null;
+      return () => m.s.faturasDesfazerPagamento(f.cartaoId, f.dataVencimento);
+    },
+  },
+  {
     nome: 'reverter um pagamento reversível',
     fn: (m) => {
       const t = m.s.transacoes.find((x) => m.s.controlePodeReverterPagamento(x));

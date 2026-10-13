@@ -597,6 +597,12 @@ function insightsUiRealcar(descricao) {
     var bate = (el.dataset.extDesc || '') === alvo;
     el.classList.toggle('ins-realce', bate);
     if (bate) {
+      // Compra no cartão mora dentro da linha da fatura: abre a fatura para
+      // o realce não apontar para uma linha escondida.
+      var fat = el.closest ? el.closest('.ext-fatura') : null;
+      if (fat && !fat.classList.contains('aberta') && typeof extratoAlternarFatura === 'function') {
+        extratoAlternarFatura(el);
+      }
       achou++;
       if (!primeiro) primeiro = el;
     }

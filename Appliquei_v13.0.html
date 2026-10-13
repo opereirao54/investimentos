@@ -2937,6 +2937,161 @@
         .alert-danger { border-color: var(--cor-borda-erro); background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
         .alert-contextual i { font-size: 17px; flex-shrink: 0; }
 
+        /* === FATURAS DO CARTÃO (web/appliquei-faturas.js) === */
+        .fat-overlay {
+            position: fixed; inset: 0; z-index: 9990; background: rgba(15,23,42,0.5);
+            justify-content: center; align-items: center; backdrop-filter: blur(3px);
+        }
+        .fat-folha {
+            width: 94%; max-width: 560px; max-height: 88vh; display: flex; flex-direction: column;
+            background: var(--cor-fundo); border: 1px solid var(--cor-borda); border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(15,23,42,0.25); animation: fadeIn 0.2s ease; overflow: hidden;
+        }
+        .fat-topo { display: flex; align-items: center; gap: 12px; padding: 18px 20px 12px; }
+        .fat-topo-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+        .fat-topo-txt span { font-size: 12.5px; color: var(--cor-texto-mutado); }
+        .fat-topo-txt h2 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; color: var(--cor-texto-principal); }
+        .fat-voltar {
+            width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; border: 1px solid var(--cor-borda);
+            background: var(--cor-branco); color: var(--cor-texto-principal); font-size: 18px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .fat-btn-atual {
+            min-height: 44px; padding: 0 16px; border-radius: 999px; border: none; cursor: pointer;
+            background: var(--cor-texto-principal); color: var(--cor-branco); font: inherit; font-size: 14px; font-weight: 600;
+        }
+        .fat-corpo { overflow-y: auto; padding: 4px 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+        .fat-corpo > * { flex-shrink: 0; }
+        .fat-cartoes { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+        .fat-cartao, .fat-cartao-unico {
+            flex: 0 0 auto; min-height: 44px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--cor-borda);
+            background: var(--cor-branco); color: var(--cor-texto-principal); font: inherit; font-size: 14px; font-weight: 600;
+            display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+        }
+        .fat-cartao-unico { cursor: default; align-self: flex-start; }
+        .fat-cartao.on { background: var(--cor-texto-principal); border-color: var(--cor-texto-principal); color: var(--cor-branco); }
+        .fat-cartao small { font-weight: 400; opacity: .75; }
+        .fat-hist-rotulo, .fat-itens-rotulo {
+            font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cor-texto-mutado);
+        }
+        .fat-hist-rotulo { margin-bottom: -6px; }
+        .fat-meses { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .fat-meses::-webkit-scrollbar, .fat-cartoes::-webkit-scrollbar { display: none; }
+        .fat-mes {
+            flex: 0 0 auto; min-width: 64px; min-height: 60px; padding: 6px 10px; border-radius: 14px; cursor: pointer;
+            border: 1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-principal);
+            display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font: inherit;
+        }
+        .fat-mes-nome { font-size: 15px; font-weight: 700; text-transform: capitalize; }
+        .fat-mes-st { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: var(--cor-texto-secundario); }
+        .fat-mes-st i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; display: inline-block; }
+        .fat-mes.on { background: var(--cor-texto-principal); border-color: var(--cor-texto-principal); color: var(--cor-branco); }
+        .fat-mes.on .fat-mes-st { color: var(--cor-branco); opacity: .85; }
+        .fat-mes.st-paga .fat-mes-st i { background: #16a34a; }
+        .fat-mes.st-vencida .fat-mes-st i { background: #dc2626; }
+        .fat-mes.st-fechada .fat-mes-st i { background: #ea580c; }
+        .fat-mes.st-aberta .fat-mes-st i { background: #2563eb; }
+        .fat-mes.st-futura .fat-mes-st i, .fat-mes.st-vazia .fat-mes-st i { background: #94a3b8; }
+        .fat-cartao-det {
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 20px; padding: 18px;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .fat-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+        .fat-seta {
+            width: 44px; height: 44px; flex: 0 0 44px; border-radius: 50%; border: 1px solid var(--cor-borda);
+            background: var(--cor-branco); color: var(--cor-texto-principal); font-size: 18px; cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        .fat-seta:disabled { opacity: .35; cursor: default; }
+        .fat-titulo { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+        .fat-titulo strong { font-size: 17px; color: var(--cor-texto-principal); }
+        .fat-chip { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 4px 10px; }
+        .fat-chip.st-paga { background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .fat-chip.st-vencida { background: var(--cor-bg-erro); color: var(--cor-txt-erro); }
+        .fat-chip.st-fechada { background: var(--cor-bg-amber); color: var(--cor-txt-amber); }
+        .fat-chip.st-aberta { background: var(--cor-bg-info); color: var(--cor-txt-info); }
+        .fat-chip.st-futura, .fat-chip.st-vazia { background: var(--cor-superficie); color: var(--cor-texto-secundario); }
+        .fat-total {
+            display: flex; flex-direction: column; align-items: center; gap: 4px; padding-bottom: 12px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        .fat-total-valor { font-family: 'DM Mono', monospace; font-size: 30px; font-weight: 600; letter-spacing: -0.02em; color: var(--cor-texto-principal); }
+        .fat-prazo { font-size: 13px; color: var(--cor-texto-mutado); }
+        .fat-parcial { font-size: 12.5px; color: var(--cor-txt-amber); font-weight: 600; }
+        .fat-pagar { min-height: 48px; border-radius: 14px; font-size: 15px; justify-content: center; width: 100%; }
+        .fat-paga-nota {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; font-size: 13px; line-height: 1.45;
+            background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+        }
+        .fat-paga-nota span { flex: 1; }
+        .fat-desfazer {
+            flex: 0 0 auto; min-height: 36px; padding: 0 12px; border-radius: 10px; cursor: pointer; font: inherit; font-size: 12.5px; font-weight: 600;
+            border: 1px solid var(--cor-borda-primaria); background: transparent; color: var(--cor-txt-primaria);
+        }
+        .fat-itens { display: flex; flex-direction: column; }
+        .fat-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--cor-borda); }
+        .fat-item:first-child { border-top: none; }
+        .fat-item-dia { flex: 0 0 40px; font-size: 12px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; }
+        .fat-item-corpo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .fat-item-desc { font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .fat-item-cat { font-size: 12px; color: var(--cor-texto-mutado); }
+        .fat-item.pago .fat-item-desc { color: var(--cor-texto-secundario); }
+        .fat-item-valor { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal); white-space: nowrap; }
+        .fat-item-editar {
+            width: 36px; height: 36px; flex: 0 0 36px; border: none; background: none; cursor: pointer; border-radius: 50%;
+            color: var(--cor-texto-mutado); font-size: 16px; display: inline-flex; align-items: center; justify-content: center;
+        }
+        .fat-item-editar:hover { background: var(--cor-superficie); color: var(--cor-info); }
+        .fat-itens-vazio { font-size: 13px; color: var(--cor-texto-mutado); padding: 8px 0; }
+        .fat-vazio {
+            display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 32px 16px;
+            color: var(--cor-texto-mutado); font-size: 13.5px;
+        }
+        .fat-vazio i { font-size: 32px; }
+        .fat-vazio strong { color: var(--cor-texto-principal); font-size: 15px; }
+        @media (max-width: 768px) {
+            /* No celular a tela de Faturas é uma página do app, não um popup. */
+            .fat-overlay { background: var(--cor-fundo); backdrop-filter: none; align-items: stretch; }
+            .fat-folha {
+                width: 100%; max-width: none; max-height: none; height: 100%; border: none; border-radius: 0; box-shadow: none;
+                padding-top: env(safe-area-inset-top, 0px);
+            }
+            .fat-topo { padding: 14px 16px 10px; }
+            .fat-corpo { padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+            body.faturas-aberta { overflow: hidden; }
+        }
+
+        /* === EXTRATO: dia, fatura, ordem e rodapé === */
+        .ext-ferramentas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
+        .ext-campo { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: var(--cor-texto-mutado); }
+        .ext-campo select {
+            min-height: 34px; padding: 0 28px 0 10px; border-radius: 8px; border: 1.5px solid var(--cor-borda);
+            background-color: var(--cor-branco); color: var(--cor-texto-principal); font: inherit; font-size: 12.5px; font-weight: 600; max-width: 230px;
+        }
+        .ext-dia-cab {
+            display: flex; justify-content: space-between; align-items: center; gap: 8px;
+            padding: 10px 10px 6px; font-size: 11.5px; font-weight: 700; color: var(--cor-texto-mutado);
+            text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--cor-borda);
+            position: sticky; top: 0; background: var(--cor-branco); z-index: 1;
+        }
+        .ext-dia-total { font-family: 'DM Mono', monospace; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--cor-texto-secundario); }
+        .ext-fatura-itens { display: none; padding-left: 14px; border-left: 3px solid var(--cor-borda-amber); margin-left: 10px; }
+        .ext-fatura.aberta .ext-fatura-itens, .ext-fatura.filtrada .ext-fatura-itens { display: block; }
+        .ext-fatura .ext-fat-abrir i { transition: transform .15s; }
+        .ext-fatura.aberta .ext-fat-abrir i, .ext-fatura.filtrada .ext-fat-abrir i { transform: rotate(180deg); }
+        .ext-fatura-linha { cursor: pointer; }
+        .ext-fat-st { font-weight: 600; }
+        .ext-fat-st.paga { color: var(--cor-primaria); }
+        .ext-fat-st.vencida { color: var(--cor-erro); }
+        .ext-rodape {
+            justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;
+            margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--cor-superficie);
+            font-size: 12.5px; font-weight: 600; color: var(--cor-texto-secundario); flex-shrink: 0;
+        }
+        .ext-rodape > span:last-child { display: inline-flex; gap: 12px; font-family: 'DM Mono', monospace; }
+        .ext-rodape .ent { color: var(--cor-primaria); }
+        .ext-rodape .sai { color: var(--cor-erro); }
+
         /* === ABAS EXTRATO === */
         .ext-tabs-wrap { display: flex; gap: 4px; }
         .ext-tab {
@@ -10812,6 +10967,21 @@
             #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="prepararPagamento"] { background: #059669 !important; }
             #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="prepararEdicao"] { background: #2563eb !important; }
             #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="deletarTransacao"] { background: #dc2626 !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="faturasPagar"] { background: #059669 !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] > button[onclick^="abrirFaturas"] { background: #2563eb !important; }
+            #extratoUnificado [id^="acao-pagar-list-"] > button.ext-fat-abrir { display: none !important; }
+            /* Extrato por dia: cabeçalho do dia dentro do cartão branco; a
+               fatura abre as compras com um recuo. */
+            #extratoUnificado .ext-dia-cab { padding: 14px 16px 6px; border-bottom: none; font-size: 12px; }
+            #extratoUnificado .ext-dia + .ext-dia .ext-dia-cab { border-top: 1px solid var(--cor-borda); }
+            #extratoUnificado .ext-dia:first-child .ext-dia-cab { border-radius: 20px 20px 0 0; }
+            #extratoUnificado .ext-fatura-itens { margin-left: 34px; padding-left: 0; border-left: 2px solid var(--cor-borda-amber); }
+            #controle .ext-ferramentas { flex-wrap: nowrap; gap: 8px; }
+            #controle .ext-campo { flex: 1 1 0; min-width: 0; }
+            #controle .ext-campo > span { display: none; }
+            #controle .ext-campo select { width: 100%; max-width: none; min-height: 40px; border-radius: 12px; font-size: 13px; }
+            #controle .page-actions > .btn-faturas { font-size: 0; width: 44px !important; padding: 0; }
+            #controle .page-actions > .btn-faturas .ph-credit-card { font-size: 19px; }
             /* Sem os ícones na linha, o valor ganha o lado direito inteiro;
                um "⋯" discreto diz que há ações ali. */
             #extratoUnificado .extrato-item .valor::after {
@@ -12437,6 +12607,23 @@
         </div>
     </div>
 
+    <!-- Faturas do cartão (web/appliquei-faturas.js). Uma fatura por ciclo,
+         paga ou não — pagar muda o status, não tira a fatura da tela. No
+         celular ocupa a tela inteira, como uma página do app. -->
+    <div id="telaFaturas" class="fat-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="faturasTitulo" onclick="if(event.target===this) fecharFaturas()">
+        <div class="fat-folha">
+            <div class="fat-topo">
+                <button type="button" class="fat-voltar" onclick="fecharFaturas()" aria-label="Fechar faturas"><i class="ph ph-x" aria-hidden="true"></i></button>
+                <div class="fat-topo-txt">
+                    <span>Controle financeiro</span>
+                    <h2 id="faturasTitulo">Faturas</h2>
+                </div>
+                <button type="button" id="faturasBtnAtual" class="fat-btn-atual" onclick="faturasIrParaAtual()">Fatura atual</button>
+            </div>
+            <div id="faturasCorpo" class="fat-corpo"></div>
+        </div>
+    </div>
+
     <div id="modalDividendosMes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalDividendosMes()">
         <div style="max-width:680px;width:94%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
@@ -13422,6 +13609,7 @@
                     </div>
                     <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
                     <button type="button" class="btn-secundario mob-olho" onclick="mobAlternarValores()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button>
+                    <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()"><i class="ph ph-credit-card"></i> Faturas</button>
                     <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
@@ -13689,6 +13877,23 @@
                          Os chips saem do próprio mês e vêm do maior total para o
                          menor — a linha já é o ranking de para onde foi o dinheiro. -->
                     <div id="extratoCategorias" class="ext-cat-wrap" style="display:none;"></div>
+                    <!-- Ordem (por data é o padrão: o extrato agrupa por dia,
+                         com subtotal) e conta/cartão, que se soma aos filtros
+                         de tipo e categoria. -->
+                    <div id="extratoFerramentas" class="ext-ferramentas">
+                        <label class="ext-campo"><span>Ordenar</span>
+                            <select id="extratoOrdem" onchange="mudarOrdemExtrato(this.value)">
+                                <option value="recentes">Mais recentes</option>
+                                <option value="antigos">Mais antigos</option>
+                                <option value="valor">Maior valor</option>
+                            </select>
+                        </label>
+                        <label class="ext-campo"><span>Conta ou cartão</span>
+                            <select id="extratoOrigem" onchange="filtrarExtratoPorOrigem(this.value)">
+                                <option value="">Todas as contas e cartões</option>
+                            </select>
+                        </label>
+                    </div>
                     <!-- Lista ÚNICA. Eram quatro caixas empilhadas (entradas,
                          saídas, cartão, aportes) e os filtros do topo mostravam
                          ou escondiam a caixa inteira. Com isso a ordem visível
@@ -13698,6 +13903,7 @@
                          mês inteiro; os filtros passaram a esconder por item. -->
                     <div id="extratoUnificado" style="display:flex;flex-direction:column;overflow-y:auto;max-height:340px;flex:1;"></div>
                     <div id="extratoVazio" class="kanban-empty" style="display:none;"></div>
+                    <div id="extratoRodape" class="ext-rodape" style="display:none;"></div>
                 </div>
 
                 <div class="card-container" id="painelNovoLancamento" style="margin-bottom:0;display:flex;flex-direction:column; min-width: 0;">
@@ -15781,7 +15987,8 @@
          controle financeiro, que desenha a linha de rendimento da DRE. -->
     <script src="/web/appliquei-rendimento.js?v=rendimento-1"></script>
     <script src="/web/appliquei-insights.js?v=insights-1"></script>
-    <script src="/web/appliquei-aba-controle-financeiro.js?v=extrato-app"></script>
+    <script src="/web/appliquei-aba-controle-financeiro.js?v=faturas-1"></script>
+    <script src="/web/appliquei-faturas.js?v=faturas-1"></script>
     <script src="/web/appliquei-insights-ui.js?v=inicio-mob"></script>
     <script src="/web/appliquei-relatorio-mensal.js?v=detalhe-categorias"></script>
     <script src="/web/appliquei-applicash.js?v=onda3b"></script>
@@ -15797,7 +16004,7 @@
          historicoCompras, bens e sonhos para saber quais passos já estão
          feitos — todos declarados nos arquivos acima. -->
     <script src="/web/appliquei-primeiros-passos.js?v=boas-vindas-telegram"></script>
-    <script src="/web/appliquei-mobile.js?v=extrato-app"></script>
+    <script src="/web/appliquei-mobile.js?v=faturas-1"></script>
     <script src="/web/appliquei-termos.js?v=termos-1"></script>
     <script src="/web/appliquei-excluir-conta.js?v=excluir-1"></script>
     <script src="/web/appliquei-privacidade.js?v=termos-1"></script>

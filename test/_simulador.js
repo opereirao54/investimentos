@@ -41,6 +41,7 @@ const ORDEM_COMPLETA = [
   'web/appliquei-renda-fixa.js',
   'web/appliquei-previdencia.js',
   'web/appliquei-aba-controle-financeiro.js',
+  'web/appliquei-faturas.js',
   'web/appliquei-relatorio-mensal.js',
   'web/appliquei-bens.js',
   'web/appliquei-patrimonio.js',

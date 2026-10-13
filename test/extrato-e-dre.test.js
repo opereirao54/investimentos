@@ -119,19 +119,18 @@ test('a linha acumulada não é somável com as de fluxo — e o HTML diz isso',
 // Extrato: ordem e sub-filtro
 // ---------------------------------------------------------------------------
 
-test('o extrato é ordenado por valor decrescente', () => {
+test('o extrato abre por data; "maior valor" continua a uma escolha', () => {
+  // Por valor responde "o que pesou", mas não "o que aconteceu no mês" — o
+  // padrão passou a ser por data, agrupado por dia (test/faturas-extrato).
+  assert.match(CF, /return v === 'antigos' \|\| v === 'valor' \? v : 'recentes'/);
   // Tolerante à quebra de linha: o Prettier reflui a expressão conforme ela
   // cresce, e o que importa aqui é a regra, não onde cai o \n.
   assert.match(
     CF.replace(/\s+/g, ' '),
-    /\.sort\( ?\(a, b\) => \(b\.valor \|\| 0\) - \(a\.valor \|\| 0\)/,
-    'a lista tem de sair do maior para o menor'
+    /entradas\.sort\(\(a, b\) => valorDe\(b\) - valorDe\(a\) \|\| a\.ref\.localeCompare\(b\.ref\)\)/,
+    'por valor: do maior para o menor, com desempate estável — senão a lista dança entre renders'
   );
-  assert.match(
-    CF,
-    /String\(a\.data\)\.localeCompare\(String\(b\.data\)\)/,
-    'com desempate estável — senão a lista dança entre renders'
-  );
+  assert.match(HTML, /<option value="valor">Maior valor<\/option>/);
 });
 
 test('cada item carrega a categoria que o sub-filtro usa', () => {

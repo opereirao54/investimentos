@@ -57,4 +57,6 @@ divulgar. Ao concluir um item, mova-o para "Feito" com a data e o PR.
   tentativas de pagamento (teste de cartão).
 - 12/10/2026 · caça de furos em pagamentos e cupons (`npm run cacar:pagamentos`,
   semanal no GitHub) — 8 defeitos de dinheiro/fraude corrigidos.
+- 13/10/2026 · tela de Faturas do cartão (fatura paga não some mais) e
+  extrato por data, agrupado por dia, com o cartão numa linha por fatura.
 - Já existia — antifraude do Applicash (aparelho, CPF, limite de cadastro por IP).

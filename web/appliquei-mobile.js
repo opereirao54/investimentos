@@ -687,6 +687,11 @@ function _mobLigarExtrato() {
     }
     const item = e.target.closest('.extrato-item');
     if (!item) return;
+    // A linha da fatura abre as compras (onclick dela); as ações vêm no deslize.
+    if (item.classList.contains('ext-fatura-linha')) {
+      _mobExtFecharTodos(null);
+      return;
+    }
     const abrir = !item.classList.contains('mob-acoes');
     _mobExtFecharTodos(item);
     item.classList.toggle('mob-acoes', abrir);
