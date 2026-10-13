@@ -2769,6 +2769,11 @@ function executarDelecao(modo) {
 function abrirModalGrupoCartao(key) {
   const grupo = window._gruposCartaoVenc && window._gruposCartaoVenc[key];
   if (!grupo) return mostrarToast('Grupo não encontrado.', 'erro');
+  // A fatura abre na tela de Faturas (appliquei-faturas.js), com o histórico
+  // do cartão em volta — o modal antigo só mostrava o que faltava pagar.
+  if (typeof abrirFaturas === 'function' && document.getElementById('telaFaturas')) {
+    return abrirFaturas(grupo.cartaoId, grupo.dataVencimento);
+  }
   const cartaoInfo = obterCartao(grupo.cartaoId);
   const nomeCartao = cartaoInfo ? cartaoInfo.nome : 'Cartão';
   const [vAno, vMes, vDia] = grupo.dataVencimento.split('-');
@@ -3354,18 +3359,16 @@ function atualizarTelaControle() {
     sonho: '⭐ Sonho',
   };
 
-  // Do maior para o menor. O extrato saía na ordem de cadastro, que não diz
-  // nada: quem abre o mês quer ver primeiro o que pesou. O desempate pela data
-  // mantém a lista estável entre renders quando dois lançamentos empatam.
-  const doMes = transacoes
-    .filter((t) => t.mes === visaoMes && t.ano === visaoAno)
-    .slice()
-    .sort(
-      (a, b) => (b.valor || 0) - (a.valor || 0) || String(a.data).localeCompare(String(b.data))
-    );
+  // A ORDEM e o AGRUPAMENTO (por dia, com a fatura do cartão numa linha só)
+  // saem de extratoAgrupar, mais abaixo; aqui só se monta cada linha.
+  const doMes = transacoes.filter((t) => t.mes === visaoMes && t.ano === visaoAno);
 
   // Categorias presentes no mês, para os chips do sub-filtro.
   const catsDoMes = new Map();
+  // Contas e cartões presentes no mês, para o filtro de origem.
+  const origensDoMes = new Map();
+  // HTML de cada lançamento, pelo id — o agrupamento decide onde ele entra.
+  const htmlPorId = new Map();
 
   doMes.forEach((t) => {
     {
@@ -3397,6 +3400,9 @@ function atualizarTelaControle() {
         }
       }
 
+      // Compra no cartão aparece DENTRO da linha da fatura: cartão, tipo e
+      // vencimento já estão no cabeçalho dela; repetir em cada compra é ruído.
+      const dentroDaFatura = t.categoria === 'cartao_credito' && !!t.cartaoId;
       let nomeCartaoExtrato = '';
       if (t.categoria === 'cartao_credito' && t.cartaoId) {
         const c = obterCartao(t.cartaoId);
@@ -3432,12 +3438,17 @@ function atualizarTelaControle() {
                 ? 'sonho'
                 : 'investimento';
 
+      // De onde o dinheiro saiu (ou para onde entrou): o cartão, a conta, ou
+      // o nome de banco digitado nos lançamentos antigos.
+      const origem = extratoOrigemDe(t);
+      if (!origensDoMes.has(origem.chave)) origensDoMes.set(origem.chave, origem.rotulo);
+
       let itemHtml = `
-            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
+            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-origem="${origem.chave.replace(/"/g, '&quot;')}" data-ext-valor="${(tipoFiltro === 'receita' ? 1 : -1) * (Number(t.valor) || 0)}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
                 <span class="ext-ico" aria-hidden="true"><i class="ph ${ICONE_TIPO_EXTRATO[tipoFiltro] || 'ph-circle'}"></i></span>
                 <div class="ext-corpo">
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
-                    <span class="cat">${nomesCat[t.categoria] || 'Outros'}${nomeCartaoExtrato}${catDespExtrato}${vencimentoHtml}</span>
+                    <span class="cat">${dentroDaFatura ? (t.categoriaDespesa ? rotuloCategoriaDespesa(t.categoriaDespesa) : 'Compra no cartão') + (t.pago ? vencimentoHtml : '') : (nomesCat[t.categoria] || 'Outros') + nomeCartaoExtrato + catDespExtrato + vencimentoHtml}</span>
                 </div>
                 <div style="text-align: right;">
                     <span class="valor">${formatarMoeda(t.valor)}</span>
@@ -3455,11 +3466,21 @@ function atualizarTelaControle() {
       else if (tipoFiltro === 'cartao') totCartao += t.valor;
       else if (tipoFiltro === 'sonho') totSonho += t.valor;
       else totInv += t.valor;
-      htmlExtrato += itemHtml;
+      htmlPorId.set(t.id, itemHtml);
     }
   });
 
+  htmlExtrato = extratoMontarHtml(
+    extratoAgrupar(
+      doMes.filter((t) => htmlPorId.has(t.id)),
+      extratoOrdem,
+      visaoMes,
+      visaoAno
+    ),
+    htmlPorId
+  );
   listaExtrato.innerHTML = htmlExtrato;
+  renderizarOrigensExtrato(origensDoMes);
   renderizarChipsCategoriaExtrato(catsDoMes);
   aplicarFiltrosExtrato();
 
@@ -3997,22 +4018,399 @@ function filtrarExtratoPorCategoria(slug) {
   aplicarFiltrosExtrato();
 }
 
-// Tipo (abas do topo) e categoria (chips) se somam: "Saídas" + "Alimentação"
-// mostra a interseção. Esconder por item — e não re-renderizar — preserva os
-// botões de pagar/editar já ligados e a posição do scroll.
+// ---------------------------------------------------------------------------
+// Extrato: ordem, dia e fatura
+// ---------------------------------------------------------------------------
+//
+// O extrato ordenava só por VALOR — responde "o que pesou", mas não "o que
+// aconteceu no mês". Agora o padrão é por DATA, agrupado por dia com
+// subtotal, como o extrato do banco; "maior valor" continua a uma escolha.
+//
+// O CARTÃO entra como UMA LINHA POR FATURA ("Fatura Nubank · vence 15/10"),
+// no dia do vencimento: no extrato por competência a compra no cartão já
+// entra no mês da fatura (INV-08), e é como o banco mostra. A linha abre para
+// mostrar as compras e leva para a tela de Faturas (appliquei-faturas.js).
+
+// Escolha do usuário, por aparelho: não sincroniza (não é dado financeiro).
+var extratoOrdem = (function () {
+  try {
+    var v = localStorage.getItem('ui_extratoOrdem');
+    return v === 'antigos' || v === 'valor' ? v : 'recentes';
+  } catch (_e) {
+    return 'recentes';
+  }
+})();
+var extratoOrigemAtiva = '';
+var extratoFaturasAbertas = new Set();
+
+var EXTRATO_DIA_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+var EXTRATO_MES_CURTO = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
+
+function _extYmd(a, m, d) {
+  return a + '-' + String(m + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+
+/**
+ * O dia do mês em que o lançamento aparece. Puro/testável.
+ *
+ * `data` é o MOMENTO DO CADASTRO, não da compra — e o recorrente gera os 60
+ * meses de uma vez, todos com a mesma `data`. Agrupar por ela poria o aluguel
+ * de dezembro em "12 de outubro". Então:
+ *   1. com vencimento, vale o vencimento (conta a pagar, cartão, parcelas);
+ *   2. sem, vale o DIA de `data` levado para o mês de competência (o
+ *      recorrente cai todo mês no mesmo dia; o lançamento retroativo, no dia
+ *      em que foi feito, dentro do mês a que pertence);
+ *   3. sem nada, o dia 1.
+ */
+function extratoDiaDe(t, mes, ano) {
+  if (t.dataVencimento && /^\d{4}-\d{2}-\d{2}$/.test(t.dataVencimento)) return t.dataVencimento;
+  const ultimo = new Date(ano, mes + 1, 0).getDate();
+  const d = t.data ? new Date(t.data) : null;
+  const dia = d && !isNaN(d) ? Math.min(d.getDate(), ultimo) : 1;
+  return _extYmd(ano, mes, dia);
+}
+
+/** De onde saiu o dinheiro: o cartão, a conta, ou o banco digitado. */
+function extratoOrigemDe(t) {
+  if (t.categoria === 'cartao_credito' && t.cartaoId) {
+    const c = typeof cartoes !== 'undefined' ? cartoes.find((x) => x.id === t.cartaoId) : null;
+    return { chave: 'cartao:' + t.cartaoId, rotulo: c ? c.nome : 'Cartão' };
+  }
+  if (t.contaId) {
+    const c = typeof obterConta === 'function' ? obterConta(t.contaId) : null;
+    return { chave: 'conta:' + t.contaId, rotulo: c ? c.nome : t.banco || 'Conta' };
+  }
+  if (t.banco) return { chave: 'banco:' + t.banco, rotulo: t.banco };
+  return { chave: 'sem', rotulo: 'Sem conta' };
+}
+
+/**
+ * Monta as linhas do extrato. Puro/testável — não toca no DOM.
+ *
+ * Devolve grupos `{ dia, entradas }` — `dia` é 'aaaa-mm-dd', ou null quando a
+ * ordem é por valor (uma lista só, sem dia). Cada entrada é
+ * `{ tipo: 'item', t }` ou `{ tipo: 'fatura', cartaoId, vencimento, itens,
+ * total }`: os lançamentos de cartão viram UMA entrada por fatura.
+ */
+function extratoAgrupar(lista, ordem, mes, ano) {
+  const entradas = [];
+  const faturas = new Map();
+  (lista || []).forEach((t) => {
+    if (t.categoria === 'cartao_credito' && t.cartaoId) {
+      const venc = t.dataVencimento || extratoDiaDe(t, mes, ano);
+      const k = t.cartaoId + '|' + venc;
+      let f = faturas.get(k);
+      if (!f) {
+        f = { tipo: 'fatura', cartaoId: t.cartaoId, vencimento: venc, itens: [], total: 0 };
+        f.dia = venc;
+        f.ref = '';
+        faturas.set(k, f);
+        entradas.push(f);
+      }
+      f.itens.push(t);
+      f.total += Number(t.valor) || 0;
+      if (String(t.data || '') > f.ref) f.ref = String(t.data || '');
+    } else {
+      entradas.push({ tipo: 'item', t, dia: extratoDiaDe(t, mes, ano), ref: String(t.data || '') });
+    }
+  });
+  faturas.forEach((f) => {
+    f.itens.sort((a, b) => String(b.data || '').localeCompare(String(a.data || '')));
+  });
+
+  const valorDe = (e) => (e.tipo === 'fatura' ? e.total : Number(e.t.valor) || 0);
+  const idDe = (e) => (e.tipo === 'fatura' ? e.cartaoId : String(e.t.id));
+  if (ordem === 'valor') {
+    // Do maior para o menor; o desempate pela data mantém a lista estável
+    // entre renders quando dois lançamentos empatam.
+    entradas.sort((a, b) => valorDe(b) - valorDe(a) || a.ref.localeCompare(b.ref));
+    return entradas.length ? [{ dia: null, entradas }] : [];
+  }
+  const asc = ordem === 'antigos';
+  entradas.sort((a, b) => {
+    const c =
+      a.dia.localeCompare(b.dia) || a.ref.localeCompare(b.ref) || idDe(a).localeCompare(idDe(b));
+    return asc ? c : -c;
+  });
+  const grupos = [];
+  entradas.forEach((e) => {
+    const g = grupos[grupos.length - 1];
+    if (g && g.dia === e.dia) g.entradas.push(e);
+    else grupos.push({ dia: e.dia, entradas: [e] });
+  });
+  return grupos;
+}
+
+/** "Hoje · 13 out", "Ontem · 12 out", "10 out · sex". */
+function extratoRotuloDia(ymd, hoje) {
+  const [a, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(a, m - 1, d);
+  const h = hoje instanceof Date ? hoje : new Date();
+  const base = d + ' ' + EXTRATO_MES_CURTO[m - 1] + (a !== h.getFullYear() ? ' ' + a : '');
+  const hojeYmd = _extYmd(h.getFullYear(), h.getMonth(), h.getDate());
+  const ontem = new Date(h.getFullYear(), h.getMonth(), h.getDate() - 1);
+  if (ymd === hojeYmd) return 'Hoje · ' + base;
+  if (ymd === _extYmd(ontem.getFullYear(), ontem.getMonth(), ontem.getDate()))
+    return 'Ontem · ' + base;
+  // Dia que ainda não chegou: o que está nele é compromisso, não fato.
+  return base + ' · ' + EXTRATO_DIA_SEMANA[dt.getDay()] + (ymd > hojeYmd ? ' · previsto' : '');
+}
+
+function _extEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function _extHtmlFatura(f, htmlPorId) {
+  const cartao = typeof cartoes !== 'undefined' ? cartoes.find((c) => c.id === f.cartaoId) : null;
+  const nome = cartao ? cartao.nome : 'Cartão';
+  const pagos = f.itens.filter((t) => t.pago).length;
+  const [, vm, vd] = f.vencimento.split('-');
+  const h = new Date();
+  const hojeYmd = _extYmd(h.getFullYear(), h.getMonth(), h.getDate());
+  let estado;
+  if (pagos === f.itens.length)
+    estado = '<span class="ext-fat-st paga"><i class="ph-bold ph-check"></i> Paga</span>';
+  else if (f.vencimento < hojeYmd)
+    estado = '<span class="ext-fat-st vencida"><i class="ph-bold ph-warning"></i> Vencida</span>';
+  else if (f.vencimento === hojeYmd) estado = '<span class="ext-fat-st vencida">Vence hoje</span>';
+  else estado = '<span class="ext-fat-st">Vence ' + vd + '/' + vm + '</span>';
+  const qtd = f.itens.length;
+  const chave = f.cartaoId + '|' + f.vencimento;
+  const aberta = extratoFaturasAbertas.has(chave);
+  const idAcoes =
+    'acao-pagar-list-fat-' + String(f.cartaoId).replace(/[^\w-]/g, '') + '-' + f.vencimento;
+  const arg = "'" + _extEsc(f.cartaoId) + "','" + f.vencimento + "'";
+  return (
+    '<div class="ext-fatura' +
+    (aberta ? ' aberta' : '') +
+    '" data-ext-fatura="' +
+    _extEsc(chave) +
+    '" data-ext-total="' +
+    f.total +
+    '" data-ext-qtd="' +
+    qtd +
+    '">' +
+    '<div class="extrato-item ext-fatura-linha" data-ext-tipo="cartao" onclick="if (!event.target.closest(\'button\')) extratoAlternarFatura(this)">' +
+    '<span class="ext-ico" aria-hidden="true"><i class="ph ph-credit-card"></i></span>' +
+    '<div class="ext-corpo"><span class="desc">Fatura ' +
+    _extEsc(nome) +
+    '</span><span class="cat">' +
+    estado +
+    ' · <span class="ext-fat-qtd">' +
+    qtd +
+    (qtd === 1 ? ' lançamento' : ' lançamentos') +
+    '</span></span></div>' +
+    '<div style="text-align: right;"><span class="valor ext-fat-valor">' +
+    formatarMoeda(f.total) +
+    '</span>' +
+    '<div style="margin-top: 4px; display: flex; justify-content: flex-end; align-items: center; gap: 8px;" id="' +
+    idAcoes +
+    '">' +
+    (pagos < qtd
+      ? '<button onclick="faturasPagar(' +
+        arg +
+        ')" style="background:none; border:none; cursor:pointer; color:var(--cor-primaria); font-size:16px;" title="Pagar a fatura" aria-label="Pagar a fatura"><i class="ph-bold ph-check-circle"></i></button>'
+      : '') +
+    '<button onclick="abrirFaturas(' +
+    arg +
+    ')" style="background:none; border:none; cursor:pointer; color:var(--cor-info); font-size:15px;" title="Abrir na tela de Faturas" aria-label="Abrir na tela de Faturas"><i class="ph ph-arrow-square-out"></i></button>' +
+    '<button onclick="extratoAlternarFatura(this)" class="ext-fat-abrir" aria-expanded="' +
+    aberta +
+    '" style="background:none; border:none; cursor:pointer; color:var(--cor-texto-mutado); font-size:15px;" title="Ver as compras desta fatura" aria-label="Ver as compras desta fatura"><i class="ph ph-caret-down"></i></button>' +
+    '</div></div></div>' +
+    '<div class="ext-fatura-itens">' +
+    f.itens.map((t) => htmlPorId.get(t.id) || '').join('') +
+    '</div></div>'
+  );
+}
+
+/** HTML da lista a partir dos grupos de extratoAgrupar. */
+function extratoMontarHtml(grupos, htmlPorId) {
+  let html = '';
+  grupos.forEach((g) => {
+    const corpo = g.entradas
+      .map((e) =>
+        e.tipo === 'fatura' ? _extHtmlFatura(e, htmlPorId) : htmlPorId.get(e.t.id) || ''
+      )
+      .join('');
+    if (!g.dia) {
+      html += corpo;
+      return;
+    }
+    html +=
+      '<div class="ext-dia" data-ext-dia="' +
+      g.dia +
+      '"><div class="ext-dia-cab"><span>' +
+      extratoRotuloDia(g.dia) +
+      '</span><span class="ext-dia-total valor-mascarado"></span></div>' +
+      corpo +
+      '</div>';
+  });
+  return html;
+}
+
+/** Abre/fecha as compras de uma fatura dentro do extrato. */
+function extratoAlternarFatura(el) {
+  const f = el && el.closest ? el.closest('.ext-fatura') : null;
+  if (!f) return;
+  const aberta = !f.classList.contains('aberta');
+  f.classList.toggle('aberta', aberta);
+  const k = f.dataset.extFatura;
+  if (aberta) extratoFaturasAbertas.add(k);
+  else extratoFaturasAbertas.delete(k);
+  const b = f.querySelector('.ext-fat-abrir');
+  if (b) b.setAttribute('aria-expanded', String(aberta));
+}
+
+function mudarOrdemExtrato(ordem) {
+  extratoOrdem = ordem === 'antigos' || ordem === 'valor' ? ordem : 'recentes';
+  try {
+    localStorage.setItem('ui_extratoOrdem', extratoOrdem);
+  } catch (_e) {}
+  atualizarTelaControle();
+}
+
+/** O seletor de conta/cartão sai das origens que existem no mês. */
+function renderizarOrigensExtrato(mapa) {
+  const sel = document.getElementById('extratoOrigem');
+  const ord = document.getElementById('extratoOrdem');
+  if (ord) ord.value = extratoOrdem;
+  if (!sel) return;
+  if (extratoOrigemAtiva && !mapa.has(extratoOrigemAtiva)) extratoOrigemAtiva = '';
+  const itens = Array.from(mapa.entries()).sort((a, b) =>
+    String(a[1]).localeCompare(String(b[1]), 'pt-BR')
+  );
+  sel.innerHTML =
+    '<option value="">Todas as contas e cartões</option>' +
+    itens
+      .map(
+        ([k, rot]) =>
+          '<option value="' +
+          _extEsc(k) +
+          '"' +
+          (k === extratoOrigemAtiva ? ' selected' : '') +
+          '>' +
+          (k.startsWith('cartao:') ? 'Cartão ' : '') +
+          _extEsc(rot) +
+          '</option>'
+      )
+      .join('');
+  // Uma origem só não é filtro.
+  const campo = sel.closest('.ext-campo');
+  if (campo) campo.style.display = itens.length < 2 ? 'none' : '';
+}
+
+function filtrarExtratoPorOrigem(chave) {
+  extratoOrigemAtiva = chave || '';
+  aplicarFiltrosExtrato();
+}
+
+// Tipo (abas do topo), categoria (chips) e conta/cartão (seletor) se somam:
+// "Saídas" + "Alimentação" mostra a interseção. Esconder por item — e não
+// re-renderizar — preserva os botões de pagar/editar já ligados e a posição
+// do scroll. A linha da FATURA e o cabeçalho do DIA não são filtrados: eles
+// aparecem se sobrar algum lançamento dentro, e o valor deles passa a ser a
+// soma do que sobrou.
 function aplicarFiltrosExtrato() {
   const lista = document.getElementById('extratoUnificado');
   if (!lista) return;
   let visiveis = 0;
+  let entrou = 0;
+  let saiu = 0;
   lista.querySelectorAll('.extrato-item').forEach((el) => {
+    if (el.classList.contains('ext-fatura-linha')) return;
     const bate =
       (!extratoTipoAtivo ||
         extratoTipoAtivo === 'todos' ||
         el.dataset.extTipo === extratoTipoAtivo) &&
-      (!extratoCategoriaAtiva || el.dataset.extCat === extratoCategoriaAtiva);
+      (!extratoCategoriaAtiva || el.dataset.extCat === extratoCategoriaAtiva) &&
+      (!extratoOrigemAtiva || el.dataset.extOrigem === extratoOrigemAtiva);
     el.style.display = bate ? '' : 'none';
-    if (bate) visiveis++;
+    if (bate) {
+      visiveis++;
+      const v = Number(el.dataset.extValor) || 0;
+      if (v >= 0) entrou += v;
+      else saiu -= v;
+    }
   });
+
+  const visivel = (el) => el.style.display !== 'none';
+  lista.querySelectorAll('.ext-fatura').forEach((f) => {
+    const itens = Array.from(f.querySelectorAll('.ext-fatura-itens > .extrato-item')).filter(
+      visivel
+    );
+    const qtd = Number(f.dataset.extQtd) || 0;
+    f.style.display = itens.length ? '' : 'none';
+    // Com categoria escolhida, a fatura abre sozinha: a pergunta é "quanto
+    // de Mercado foi no cartão", e a resposta está nas compras.
+    f.classList.toggle('filtrada', !!extratoCategoriaAtiva && itens.length > 0);
+    const parcial = itens.length > 0 && itens.length < qtd;
+    const soma = parcial
+      ? itens.reduce((s, el) => s - (Number(el.dataset.extValor) || 0), 0)
+      : Number(f.dataset.extTotal) || 0;
+    const v = f.querySelector('.ext-fat-valor');
+    if (v) v.textContent = formatarMoeda(soma);
+    const q = f.querySelector('.ext-fat-qtd');
+    if (q)
+      q.textContent = parcial
+        ? itens.length + ' de ' + qtd + ' lançamentos'
+        : qtd + (qtd === 1 ? ' lançamento' : ' lançamentos');
+  });
+
+  lista.querySelectorAll('.ext-dia').forEach((g) => {
+    let n = 0;
+    let soma = 0;
+    g.querySelectorAll('.extrato-item').forEach((el) => {
+      if (el.classList.contains('ext-fatura-linha') || !visivel(el)) return;
+      n++;
+      soma += Number(el.dataset.extValor) || 0;
+    });
+    g.style.display = n ? '' : 'none';
+    const tot = g.querySelector('.ext-dia-total');
+    if (tot) tot.textContent = (soma >= 0 ? '+' : '−') + formatarMoeda(Math.abs(soma));
+  });
+
+  // Rodapé: o total do que está filtrado — é o que transforma a lista em
+  // resposta ("quanto foi de Mercado no Nubank este mês?").
+  const rodape = document.getElementById('extratoRodape');
+  if (rodape) {
+    const filtrando =
+      (extratoTipoAtivo && extratoTipoAtivo !== 'todos') ||
+      !!extratoCategoriaAtiva ||
+      !!extratoOrigemAtiva;
+    if (filtrando && visiveis > 0) {
+      rodape.style.display = 'flex';
+      rodape.innerHTML =
+        '<span>' +
+        visiveis +
+        (visiveis === 1 ? ' lançamento' : ' lançamentos') +
+        ' no filtro</span><span class="valor-mascarado">' +
+        (entrou ? '<b class="ent">+' + formatarMoeda(entrou) + '</b>' : '') +
+        (saiu ? '<b class="sai">−' + formatarMoeda(saiu) + '</b>' : '') +
+        '</span>';
+    } else {
+      rodape.style.display = 'none';
+      rodape.innerHTML = '';
+    }
+  }
 
   // Vazio por FILTRO e vazio por MÊS SEM LANÇAMENTO são situações diferentes:
   // na primeira, o caminho de volta é limpar o filtro, e a mensagem tem de

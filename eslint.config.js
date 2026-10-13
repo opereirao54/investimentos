@@ -98,6 +98,7 @@ module.exports = [
       'web/appliquei-aba-info-mercado.js',
       'web/appliquei-aba-dividendos.js',
       'web/appliquei-aba-controle-financeiro.js',
+      'web/appliquei-faturas.js',
       'web/appliquei-relatorio-mensal.js',
       'web/appliquei-applicash.js',
       'web/appliquei-duvidas.js',
