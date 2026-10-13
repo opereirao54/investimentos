@@ -331,3 +331,69 @@ test('cabeçalho do Controle: mês em português e campos que não dão zoom no 
     /#controle \.page-header > \.page-actions \{ display: contents !important; \}/
   );
 });
+
+// ---------------------------------------------------------------------------
+// Filtros do extrato no celular: busca, gaveta e etiquetas
+// ---------------------------------------------------------------------------
+
+test('a busca ignora maiúsculas e acentos', () => {
+  const s = mundo();
+  assert.equal(s.extratoNormalizarBusca('  Pão de Açúcar '), 'pao de acucar');
+  assert.match(CF, /data-ext-busca="\$\{extratoNormalizarBusca\(t\.descricao\)/);
+  assert.match(
+    CF,
+    /\(!extratoBusca \|\| \(el\.dataset\.extBusca \|\| ''\)\.includes\(extratoBusca\)\)/,
+    'a busca se soma aos outros filtros'
+  );
+});
+
+test('o badge do botão Filtros conta ordem, conta/cartão e categoria', () => {
+  const s = mundo();
+  s.extratoOrdem = 'recentes';
+  s.extratoOrigemAtiva = '';
+  s.extratoCategoriaAtiva = '';
+  assert.equal(s.extratoQtdFiltros(), 0);
+  s.extratoOrdem = 'valor';
+  s.extratoOrigemAtiva = 'cartao:card_nu';
+  s.extratoCategoriaAtiva = 'alimentacao';
+  assert.equal(s.extratoQtdFiltros(), 3);
+});
+
+test('a gaveta trabalha num rascunho: nada muda até "Ver N lançamentos"', () => {
+  const s = mundo();
+  s.extratoOrdem = 'recentes';
+  s.extratoOrigemAtiva = '';
+  s.extratoCategoriaAtiva = '';
+  s.extratoRascunho = { ordem: 'recentes', origem: '', categoria: '' };
+  s.mudarRascunhoFiltros('categoria', 'alimentacao');
+  s.mudarRascunhoFiltros('origem', 'cartao:card_nu');
+  assert.equal(s.extratoCategoriaAtiva, '', 'o filtro de verdade ainda não mudou');
+  assert.equal(s.extratoRascunho.categoria, 'alimentacao');
+  // Tocar de novo na mesma categoria desmarca.
+  s.mudarRascunhoFiltros('categoria', 'alimentacao');
+  assert.equal(s.extratoRascunho.categoria, '');
+  s.limparRascunhoFiltros();
+  assert.equal(
+    JSON.stringify(s.extratoRascunho),
+    '{"ordem":"recentes","origem":"","categoria":""}'
+  );
+});
+
+test('celular: barra de busca + Filtros, etiquetas e gaveta; no computador, só a busca', () => {
+  assert.match(HTML, /id="extratoBusca"[^>]*oninput="filtrarExtratoPorBusca\(this\.value\)"/);
+  assert.match(HTML, /id="extratoBtnFiltros"[^>]*onclick="abrirFolhaFiltros\(\)"/);
+  assert.match(HTML, /id="extratoFolha" class="ext-folha" hidden/);
+  assert.match(HTML, /onclick="aplicarFolhaFiltros\(\)"/);
+  assert.match(
+    HTML,
+    /#controle #extratoCategorias, #controle #extratoFerramentas \{ display: none !important; \}/
+  );
+  // A gaveta e a tela de Faturas ficam acima da barra de abas do celular.
+  assert.match(HTML, /\.ext-folha \{ position: fixed; inset: 0; z-index: 9995;/);
+});
+
+test('atalhos do cabeçalho: ícone no centro, sem o espaço da palavra escondida', () => {
+  assert.match(HTML, /<span class="btn-rotulo">Faturas<\/span>/);
+  assert.match(HTML, /#controle \.page-actions \.btn-rotulo \{ display: none; \}/);
+  assert.match(HTML, /#controle \.page-actions > \.btn-config \{ gap: 0 !important; \}/);
+});
