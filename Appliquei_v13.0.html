@@ -3,6 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script>
+        // Tela inteira (viewport-fit=cover) só no app INSTALADO. No navegador
+        // do iPhone (Safari, ou o navegador embutido de outro app) a página
+        // passa a ser desenhada por baixo da barra de status, mas o
+        // env(safe-area-inset-top) pode vir 0 — e o topo de todas as telas
+        // ficava cortado sob a hora e a bateria. Sem o "cover", quem cuida da
+        // barra é o próprio navegador. Roda antes do primeiro layout.
+        (function () {
+            try {
+                var instalado =
+                    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                    window.navigator.standalone === true;
+                if (instalado) return;
+                var m = document.querySelector('meta[name="viewport"]');
+                if (m) m.setAttribute('content', 'width=device-width, initial-scale=1.0');
+            } catch (e) {}
+        })();
+    </script>
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
