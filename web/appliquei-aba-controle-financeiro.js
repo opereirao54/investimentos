@@ -2960,18 +2960,46 @@ function confirmarPagamento(id) {
   if (typeof renderizarSonhos === 'function') renderizarSonhos();
 }
 
-// Pode reverter ("desfazer") o pagamento? Só lançamentos cujo pagamento apenas
-// alterna o flag `pago` — despesa fixa/variável e cartão. Sonho e compromisso
-// (previdência/reserva) geram aportes/posições vinculadas ao pagar; revertê-los
-// aqui deixaria registros órfãos, então são tratados nas suas próprias abas.
+// Pode reverter ("desfazer") o pagamento? Despesa fixa/variável e cartão só
+// alternam o flag `pago`. A parcela mensal do sonho também volta: o aporte que
+// o pagamento gerou no sonho sai JUNTO (desfazerBaixaTransacao), senão o mesmo
+// dinheiro ficaria guardado no sonho e pendente no Controle (INV-18).
+// Compromisso de investimento (previdência/reserva) gera posição no
+// patrimônio e continua sendo tratado na aba dele.
 function controlePodeReverterPagamento(t) {
   if (!t || !t.pago) return false;
-  if (t.sonhoId || t.compromissoId) return false;
+  if (t.compromissoId) return false;
+  if (t.sonhoId) return _sonhoBaixaReversivel(t);
   return (
     t.categoria === 'despesa_fixa' ||
     t.categoria === 'despesa_variavel' ||
     t.categoria === 'cartao_credito'
   );
+}
+
+// Parcela mensal do sonho cuja baixa gerou só o aporte "mensal pago". Aporte
+// avulso (aporteExtra), migração de investimento e resgate se desfazem na aba
+// Sonhos, onde a venda/resgate vinculados voltam juntos.
+function _sonhoBaixaReversivel(t) {
+  if (t.categoria !== 'sonho' || t.aporteExtra) return false;
+  const s = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === t.sonhoId) : null;
+  // Sonho excluído com o histórico mantido: a parcela paga é só registro.
+  // Voltar para "a pagar" criaria uma conta sem dono (INV-10).
+  if (!s) return false;
+  const ap = (s.aportes || []).find((a) => a.txId === t.id);
+  return !ap || (!ap.txResgateId && !ap.vendaOpId);
+}
+
+// A ÚNICA porta de desfazer baixa — Controle, Faturas e o "↩️ Desfazer" do
+// Telegram passam por aqui para o efeito sair junto com o flag. Devolve true se
+// desfez.
+function desfazerBaixaTransacao(t) {
+  if (!controlePodeReverterPagamento(t)) return false;
+  t.pago = false;
+  delete t.pagoEm; // deixa de ser pagamento explícito
+  delete t.pagoVia;
+  if (t.sonhoId) desfazerAportePorPagamentoSonho(t);
+  return true;
 }
 
 // Desfaz um pagamento marcado por engano: volta o lançamento para "a pagar"
@@ -2980,17 +3008,22 @@ function controlePodeReverterPagamento(t) {
 function reverterPagamento(id) {
   const t = transacoes.find((x) => x.id === id);
   if (!t || !t.pago) return;
-  if (!controlePodeReverterPagamento(t)) {
+  const sonho = !!t.sonhoId;
+  if (!desfazerBaixaTransacao(t)) {
     return mostrarToast(
       'Este pagamento gerou um aporte vinculado — reverta pela aba correspondente.',
       'erro'
     );
   }
-  t.pago = false;
-  delete t.pagoEm; // deixa de ser pagamento explícito
   salvarTransacoes({ flush: true });
-  mostrarToast('Pagamento desfeito — voltou para "a pagar".', 'sucesso');
+  mostrarToast(
+    sonho
+      ? 'Pagamento desfeito — a parcela voltou para "a pagar" e o valor saiu do sonho.'
+      : 'Pagamento desfeito — voltou para "a pagar".',
+    'sucesso'
+  );
   atualizarTelaControle();
+  if (sonho && typeof renderizarSonhos === 'function') renderizarSonhos();
 }
 
 // Liga um pagamento de compromisso mensal a um aporte registrado no sonho
@@ -3014,6 +3047,34 @@ function registrarAportePorPagamentoSonho(tx) {
   s.valorAtual = arredCentavos((s.valorAtual || 0) + tx.valor);
 
   // Recalcula a parcela mensal e regenera lançamentos futuros
+  if (s.planoVinculado && s.valorAtual < s.valorTotal) {
+    const novoMensal = calcSonhoMensal(
+      s.valorTotal,
+      s.valorAtual,
+      s.mesesRestantes || s.prazoMeses
+    );
+    removerLancamentosFuturosSonho(s.id);
+    gerarLancamentosMensaisSonho(s, novoMensal, Math.min(60, s.mesesRestantes || s.prazoMeses));
+    s.aporteMensalPlano = novoMensal;
+  }
+  salvarSonhos();
+}
+
+// O inverso exato de registrarAportePorPagamentoSonho: tira o aporte que a
+// baixa gerou, devolve o guardado e recalcula as parcelas futuras. A parcela
+// desfeita (já com pago:false) fica onde está — removerLancamentosFuturosSonho
+// só varre meses depois do atual, e uma antecipada que ele varrer volta
+// recriada pelo gerarLancamentosMensaisSonho logo abaixo.
+function desfazerAportePorPagamentoSonho(tx) {
+  const s = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === tx.sonhoId) : null;
+  if (!s) return;
+  // Volta a ser compromisso a pagar: sai da conta que o sonho debita HOJE —
+  // a conta pode ter sido trocada depois da baixa (INV-22).
+  if (s.contaOrigemId) tx.contaId = s.contaOrigemId;
+  const ap = (s.aportes || []).find((a) => a.txId === tx.id);
+  if (!ap) return;
+  s.aportes = s.aportes.filter((a) => a !== ap);
+  s.valorAtual = arredCentavos(Math.max(0, (s.valorAtual || 0) - (Number(ap.valor) || 0)));
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
     const novoMensal = calcSonhoMensal(
       s.valorTotal,

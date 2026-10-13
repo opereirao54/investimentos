@@ -655,14 +655,20 @@
     },
     {
       "id": "INV-18",
-      "titulo": "Pagamento com efeito colateral não é reversível pelo Controle",
-      "regra": "controlePodeReverterPagamento recusa transações com sonhoId ou compromissoId. Reverter um pagamento que já gerou aporte no sonho (ou posição no patrimônio) deixaria o aporte de pé com a transação pendente: o mesmo dinheiro contado duas vezes.",
+      "titulo": "Desfazer pagamento com efeito colateral desfaz o efeito junto",
+      "regra": "Toda reversão de baixa passa por desfazerBaixaTransacao (Controle, Faturas e Telegram). Na parcela mensal do sonho ela tira o aporte gerado pela baixa (desfazerAportePorPagamentoSonho) junto com o flag; aporte avulso, migração e resgate continuam sendo desfeitos na aba Sonhos. Compromisso de investimento (compromissoId) continua recusado por controlePodeReverterPagamento. Reverter só o flag deixaria o aporte de pé com a transação pendente: o mesmo dinheiro contado duas vezes.",
       "gravidade": "critica",
       "entidades": ["transacao", "sonho", "operacao"],
-      "arquivos": ["web/appliquei-aba-controle-financeiro.js"],
+      "arquivos": [
+        "web/appliquei-aba-controle-financeiro.js",
+        "web/appliquei-faturas.js",
+        "web/appliquei-telegram.js"
+      ],
       "simbolos": [
         "controlePodeReverterPagamento",
         "reverterPagamento",
+        "desfazerBaixaTransacao",
+        "desfazerAportePorPagamentoSonho",
         "sonhoId",
         "compromissoId"
       ],
@@ -807,7 +813,7 @@
     {
       "id": "INV-26",
       "titulo": "Baixa pelo Telegram é a baixa do Controle",
-      "regra": "O \"✅ Já paguei\" dos alertas do bot dá baixa pelas MESMAS funções do botão Baixar do Controle: marcarTransacaoPaga (pago, pagoEm e, no cartão, a conta pagadora — INV-17) e efeitosDoPagamento (aporte do sonho — INV-16; posição do compromisso — INV-21). Só baixa conta a pagar (tem dataVencimento, não é entrada, não está paga) e que existe; repetir o item não duplica. O Desfazer do Telegram só volta a pagar o que o Telegram pagou (pagoVia: 'telegram') e só o que controlePodeReverterPagamento permite (INV-18).",
+      "regra": "O \"✅ Já paguei\" dos alertas do bot dá baixa pelas MESMAS funções do botão Baixar do Controle: marcarTransacaoPaga (pago, pagoEm e, no cartão, a conta pagadora — INV-17) e efeitosDoPagamento (aporte do sonho — INV-16; posição do compromisso — INV-21). Só baixa conta a pagar (tem dataVencimento, não é entrada, não está paga) e que existe; repetir o item não duplica. O Desfazer do Telegram só volta a pagar o que o Telegram pagou (pagoVia: 'telegram') pela mesma porta do app, desfazerBaixaTransacao (INV-18): na parcela do sonho o aporte sai junto.",
       "gravidade": "critica",
       "entidades": ["transacao", "sonho", "cartao"],
       "arquivos": [
