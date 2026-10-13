@@ -424,9 +424,9 @@ test('4.9 mpMudarMes navega e faz rollover de ano', () => {
   assert.equal(s.mpEstado.ano, 2025);
 });
 
-// ---- 4.8: datalist de bancos só com saldo nas despesas -----------------
+// ---- 4.8: datalist de bancos nas despesas (com saldo primeiro) --------
 
-test('4.8 despesa só sugere bancos com saldo; receita lista completa', () => {
+test('4.8 despesa sugere primeiro quem tem saldo; receita lista completa', () => {
   // Stub mínimo do datalist e do input de banco.
   const options = [];
   const datalist = { innerHTML: '', appendChild: (o) => options.push(o) };

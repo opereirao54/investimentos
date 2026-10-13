@@ -70,6 +70,13 @@ function appliqueiNormalizarNomeConta(nome) {
     .replace(new RegExp('[\\u0300-\\u036f]', 'g'), '');
 }
 
+// Chave "compacta": só letras e números. É a segunda chance da busca por nome
+// — "Nu Invest" e "nu-invest" encontram a conta "NuInvest" em vez de criar
+// outra (foi assim que nascia a conta duplicada no primeiro uso).
+function appliqueiChaveCompactaConta(nome) {
+  return appliqueiNormalizarNomeConta(nome).replace(/[^a-z0-9]/g, '');
+}
+
 function contasAtivas() {
   return contas.filter(function (c) {
     return !c.arquivada;
@@ -294,10 +301,18 @@ function obterConta(id) {
 function obterContaPorNome(nome) {
   const key = appliqueiNormalizarNomeConta(nome);
   if (!key) return null;
+  const exata = contas.find(function (c) {
+    return appliqueiNormalizarNomeConta(c.nome) === key;
+  });
+  if (exata) return exata;
+  // Segunda chance, só entre as ativas: mesmo nome escrito de outro jeito.
+  const compacta = appliqueiChaveCompactaConta(nome);
   return (
-    contas.find(function (c) {
-      return appliqueiNormalizarNomeConta(c.nome) === key;
-    }) || null
+    (compacta &&
+      contasAtivas().find(function (c) {
+        return appliqueiChaveCompactaConta(c.nome) === compacta;
+      })) ||
+    null
   );
 }
 
@@ -336,12 +351,11 @@ function obterOuCriarContaPorNome(nome, tipo) {
 function obterContaPorNomeOuAlias(nome) {
   const key = appliqueiNormalizarNomeConta(nome);
   if (!key) return null;
-  return (
-    contas.find(function (c) {
-      if (appliqueiNormalizarNomeConta(c.nome) === key) return true;
-      return Array.isArray(c.aliases) && c.aliases.indexOf(key) !== -1;
-    }) || null
-  );
+  const exata = contas.find(function (c) {
+    if (appliqueiNormalizarNomeConta(c.nome) === key) return true;
+    return Array.isArray(c.aliases) && c.aliases.indexOf(key) !== -1;
+  });
+  return exata || obterContaPorNome(nome);
 }
 
 // Resolve a conta de uma transação de caixa: prioriza `contaId`; cai para
