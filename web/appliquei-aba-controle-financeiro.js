@@ -2433,6 +2433,38 @@ function vencDeveAbrir(estado) {
   return false;
 }
 
+// Até quando para trás uma conta não baixada continua avisando. O painel
+// olhava só o mês na tela: a conta de setembro que ficou sem pagar avisava
+// "vence hoje" e "vencida" enquanto setembro estava aberto, e no dia 1º de
+// outubro sumia do painel e do alerta vermelho — exatamente quando os juros
+// começam a pesar. Noventa dias cobre o atraso real sem transformar cadastro
+// velho, nunca baixado, num alerta eterno que ninguém mais lê.
+var VENC_ATRASO_MAX_DIAS = 90;
+
+// O que entra no painel de vencimentos: as contas em aberto do mês na tela e,
+// quando o mês na tela é o atual ou um futuro, as atrasadas de meses
+// anteriores. Olhando um mês passado, o atraso daquele mês já aparece nele.
+// Pura para poder ser testada; `hojeStr` e `mesVisaoStr` são YYYY-MM-DD/YYYY-MM.
+function vencimentosDoPainel(lista, mesVisaoStr, hojeStr) {
+  const mesHoje = hojeStr.slice(0, 7);
+  const d = new Date(hojeStr + 'T12:00:00');
+  d.setDate(d.getDate() - VENC_ATRASO_MAX_DIAS);
+  const limite = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const trazAtrasadas = mesVisaoStr >= mesHoje;
+  return (lista || []).filter((t) => {
+    if (!t || !t.dataVencimento || t.pago) return false;
+    // Receitas e resgates são entradas — não devem aparecer como "conta a vencer"
+    if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') return false;
+    if (t.dataVencimento.startsWith(mesVisaoStr)) return true;
+    return (
+      trazAtrasadas &&
+      t.dataVencimento < hojeStr &&
+      t.dataVencimento < mesVisaoStr &&
+      t.dataVencimento >= limite
+    );
+  });
+}
+
 function atualizarCabecalhoVencimentos(estado) {
   const el = document.getElementById('painelVencimentos');
   if (!el) return;
@@ -3229,14 +3261,10 @@ function atualizarTelaControle() {
   const hojeObj = new Date();
   const hojeStr = `${hojeObj.getFullYear()}-${String(hojeObj.getMonth() + 1).padStart(2, '0')}-${String(hojeObj.getDate()).padStart(2, '0')}`;
 
-  // Filtro robusto: usa o mês/ano efetivo de dataVencimento (não a competência)
+  // Filtro robusto: usa o mês/ano efetivo de dataVencimento (não a competência),
+  // mais as atrasadas de meses anteriores (ver vencimentosDoPainel).
   const mesVisaoStr = `${visaoAno}-${String(visaoMes + 1).padStart(2, '0')}`;
-  let contasComVencimento = transacoes.filter((t) => {
-    if (!t.dataVencimento || t.pago) return false;
-    // Receitas e resgates são entradas — não devem aparecer como "conta a vencer"
-    if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') return false;
-    return t.dataVencimento.startsWith(mesVisaoStr);
-  });
+  let contasComVencimento = vencimentosDoPainel(transacoes, mesVisaoStr, hojeStr);
   // Ordena por string YYYY-MM-DD (sem timezone) — sempre ascendente
   contasComVencimento.sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
 
@@ -3281,8 +3309,12 @@ function atualizarTelaControle() {
   };
 
   itensRender.forEach((item) => {
-    const [vAno, vMes, vDia] = item.dataVencimento.split('-');
+    const [, vMes, vDia] = item.dataVencimento.split('-');
     const { corBorda, corTextoData, badgeAtraso } = renderEstadoVenc(item.dataVencimento);
+    // Atrasada de outro mês: só o dia ("12") faria parecer que vence este mês.
+    const mesOutro = !item.dataVencimento.startsWith(mesVisaoStr)
+      ? `<small class="venc-mes">${ctrlMesCurto(Number(vMes) - 1, 2000)}</small>`
+      : '';
 
     if (item.tipo === 'individual') {
       const conta = item.conta;
@@ -3291,7 +3323,7 @@ function atualizarTelaControle() {
         : '';
       containerVenc.innerHTML += `
                 <div class="venc-card" style="border-color:${corBorda}">
-                    <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                    <div class="venc-day" style="color:${corTextoData}">${vDia}${mesOutro}</div>
                     <div style="flex:1;min-width:0;">
                         <div class="venc-name" title="${String(conta.descricao || '').replace(/"/g, '&quot;')}">${conta.descricao}${obsIcone}${badgeAtraso}</div>
                         <div class="venc-val">${formatarMoeda(conta.valor)}</div>
@@ -3312,7 +3344,7 @@ function atualizarTelaControle() {
       const qtdLanc = g.itens.length;
       containerVenc.innerHTML += `
                 <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="abrirModalGrupoCartao('${grupoKey}')">
-                    <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                    <div class="venc-day" style="color:${corTextoData}">${vDia}${mesOutro}</div>
                     <div style="flex:1;min-width:0;">
                         <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);font-size:11px;"></i> ${nomeCartao}${badgeAtraso}</div>
                         <div class="venc-val">${formatarMoeda(g.total)}<span class="venc-meta">${qtdLanc} ${qtdLanc === 1 ? 'lançamento' : 'lançamentos'}</span></div>

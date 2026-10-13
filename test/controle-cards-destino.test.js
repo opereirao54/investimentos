@@ -215,6 +215,39 @@ test('o painel de vencimentos nasce recolhido, mas nunca esconde o que está ven
   assert.equal(s.vencDeveAbrir({ salvo: '0', temHoje: true }), true);
 });
 
+test('conta atrasada de mês anterior continua no painel depois que o mês vira', () => {
+  // Bug real: a conta de setembro sem baixa avisava enquanto setembro estava
+  // na tela e sumia do painel e do alerta vermelho no dia 1º de outubro.
+  const s = carregarApp({}, ORDEM_CONTROLE);
+  const lista = [
+    { id: 'set', categoria: 'despesa_fixa', valor: 100, dataVencimento: '2026-09-12', pago: false },
+    {
+      id: 'setPaga',
+      categoria: 'despesa_fixa',
+      valor: 100,
+      dataVencimento: '2026-09-12',
+      pago: true,
+    },
+    {
+      id: 'velha',
+      categoria: 'despesa_fixa',
+      valor: 100,
+      dataVencimento: '2026-05-10',
+      pago: false,
+    },
+    { id: 'rec', categoria: 'receita', valor: 100, dataVencimento: '2026-09-05', pago: false },
+    { id: 'out', categoria: 'despesa_fixa', valor: 100, dataVencimento: '2026-10-20', pago: false },
+    { id: 'nov', categoria: 'despesa_fixa', valor: 100, dataVencimento: '2026-11-03', pago: false },
+  ];
+  const ids = (mes) => Array.from(s.vencimentosDoPainel(lista, mes, '2026-10-13'), (t) => t.id);
+
+  assert.deepEqual(ids('2026-10'), ['set', 'out'], 'mês atual: a de setembro segue avisando');
+  assert.deepEqual(ids('2026-11'), ['set', 'nov'], 'mês futuro: o atraso não some ao avançar');
+  assert.deepEqual(ids('2026-09'), ['set'], 'mês passado: só o que é dele');
+  assert.ok(!ids('2026-10').includes('velha'), 'cadastro de meses atrás não vira alerta eterno');
+  assert.ok(!ids('2026-10').includes('rec'), 'entrada não é conta a pagar');
+});
+
 test('quem manda olhar os vencimentos abre o painel antes de rolar até ele', () => {
   // O insight de aperto de caixa diz "confira os vencimentos" e rola até o
   // painel. Recolhido, a pessoa chegaria num cabeçalho fechado.
