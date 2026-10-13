@@ -925,13 +925,17 @@ function _mobAneis(d) {
   const investido = (Number(r.invFixo) || 0) + (Number(r.invVar) || 0);
   const pGastos = receita > 0 ? (gastos / receita) * 100 : 0;
   const pInv = receita > 0 ? (investido / receita) * 100 : 0;
+  // Sonhos na mesma régua das outras duas linhas: o que foi para os sonhos
+  // NESTE mês, sobre o que entrou. Antes era o progresso de todas as metas
+  // desde sempre (guardado ÷ alvo) — ao lado de Gastos e Investido, que são do
+  // mês, o 6,4% de cima brigava com o "36% da receita" do card de baixo.
+  // O anel enche até o plano mensal somado dos sonhos ainda em curso.
   const metas = Array.isArray(d.sonhos) ? d.sonhos.filter((s) => s && !s.arquivado) : [];
-  const alvo = metas.reduce((a, s) => a + (Number(s.valorTotal) || 0), 0);
-  const guardado = metas.reduce(
-    (a, s) => a + Math.min(Number(s.valorAtual) || 0, Number(s.valorTotal) || 0),
-    0
-  );
-  const pSonhos = alvo > 0 ? (guardado / alvo) * 100 : 0;
+  const sonhoMes = Number(r.sonho) || 0;
+  const pSonhos = receita > 0 ? (sonhoMes / receita) * 100 : 0;
+  const plano = metas
+    .filter((s) => (Number(s.valorAtual) || 0) < (Number(s.valorTotal) || 0))
+    .reduce((a, s) => a + (Number(s.aporteMensalPlano) || 0), 0);
   return {
     gastos: {
       frac: receita > 0 ? pGastos / 60 : 0,
@@ -950,11 +954,15 @@ function _mobAneis(d) {
       sub: pInv >= 30 ? 'meta de 30% batida' : 'meta: 30% do que entrou',
     },
     sonhos: {
-      frac: alvo > 0 ? guardado / alvo : 0,
-      val: metas.length ? _mobPct(pSonhos) : '—',
-      sub: metas.length
-        ? 'guardado de ' + metas.length + (metas.length === 1 ? ' meta' : ' metas')
-        : 'nenhum sonho cadastrado',
+      frac: plano > 0 ? sonhoMes / plano : sonhoMes > 0 ? 1 : 0,
+      val: receita > 0 && (metas.length || sonhoMes > 0) ? _mobPct(pSonhos) : '—',
+      sub: !metas.length
+        ? 'nenhum sonho cadastrado'
+        : plano > 0
+          ? sonhoMes >= plano
+            ? 'plano do mês cumprido'
+            : Math.round((sonhoMes / plano) * 100) + '% do plano do mês'
+          : 'do que entrou',
     },
   };
 }

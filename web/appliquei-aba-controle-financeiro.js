@@ -2433,6 +2433,38 @@ function vencDeveAbrir(estado) {
   return false;
 }
 
+// Até quando para trás uma conta não baixada continua avisando. O painel
+// olhava só o mês na tela: a conta de setembro que ficou sem pagar avisava
+// "vence hoje" e "vencida" enquanto setembro estava aberto, e no dia 1º de
+// outubro sumia do painel e do alerta vermelho — exatamente quando os juros
+// começam a pesar. Noventa dias cobre o atraso real sem transformar cadastro
+// velho, nunca baixado, num alerta eterno que ninguém mais lê.
+var VENC_ATRASO_MAX_DIAS = 90;
+
+// O que entra no painel de vencimentos: as contas em aberto do mês na tela e,
+// quando o mês na tela é o atual ou um futuro, as atrasadas de meses
+// anteriores. Olhando um mês passado, o atraso daquele mês já aparece nele.
+// Pura para poder ser testada; `hojeStr` e `mesVisaoStr` são YYYY-MM-DD/YYYY-MM.
+function vencimentosDoPainel(lista, mesVisaoStr, hojeStr) {
+  const mesHoje = hojeStr.slice(0, 7);
+  const d = new Date(hojeStr + 'T12:00:00');
+  d.setDate(d.getDate() - VENC_ATRASO_MAX_DIAS);
+  const limite = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const trazAtrasadas = mesVisaoStr >= mesHoje;
+  return (lista || []).filter((t) => {
+    if (!t || !t.dataVencimento || t.pago) return false;
+    // Receitas e resgates são entradas — não devem aparecer como "conta a vencer"
+    if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') return false;
+    if (t.dataVencimento.startsWith(mesVisaoStr)) return true;
+    return (
+      trazAtrasadas &&
+      t.dataVencimento < hojeStr &&
+      t.dataVencimento < mesVisaoStr &&
+      t.dataVencimento >= limite
+    );
+  });
+}
+
 function atualizarCabecalhoVencimentos(estado) {
   const el = document.getElementById('painelVencimentos');
   if (!el) return;
@@ -2928,18 +2960,46 @@ function confirmarPagamento(id) {
   if (typeof renderizarSonhos === 'function') renderizarSonhos();
 }
 
-// Pode reverter ("desfazer") o pagamento? Só lançamentos cujo pagamento apenas
-// alterna o flag `pago` — despesa fixa/variável e cartão. Sonho e compromisso
-// (previdência/reserva) geram aportes/posições vinculadas ao pagar; revertê-los
-// aqui deixaria registros órfãos, então são tratados nas suas próprias abas.
+// Pode reverter ("desfazer") o pagamento? Despesa fixa/variável e cartão só
+// alternam o flag `pago`. A parcela mensal do sonho também volta: o aporte que
+// o pagamento gerou no sonho sai JUNTO (desfazerBaixaTransacao), senão o mesmo
+// dinheiro ficaria guardado no sonho e pendente no Controle (INV-18).
+// Compromisso de investimento (previdência/reserva) gera posição no
+// patrimônio e continua sendo tratado na aba dele.
 function controlePodeReverterPagamento(t) {
   if (!t || !t.pago) return false;
-  if (t.sonhoId || t.compromissoId) return false;
+  if (t.compromissoId) return false;
+  if (t.sonhoId) return _sonhoBaixaReversivel(t);
   return (
     t.categoria === 'despesa_fixa' ||
     t.categoria === 'despesa_variavel' ||
     t.categoria === 'cartao_credito'
   );
+}
+
+// Parcela mensal do sonho cuja baixa gerou só o aporte "mensal pago". Aporte
+// avulso (aporteExtra), migração de investimento e resgate se desfazem na aba
+// Sonhos, onde a venda/resgate vinculados voltam juntos.
+function _sonhoBaixaReversivel(t) {
+  if (t.categoria !== 'sonho' || t.aporteExtra) return false;
+  const s = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === t.sonhoId) : null;
+  // Sonho excluído com o histórico mantido: a parcela paga é só registro.
+  // Voltar para "a pagar" criaria uma conta sem dono (INV-10).
+  if (!s) return false;
+  const ap = (s.aportes || []).find((a) => a.txId === t.id);
+  return !ap || (!ap.txResgateId && !ap.vendaOpId);
+}
+
+// A ÚNICA porta de desfazer baixa — Controle, Faturas e o "↩️ Desfazer" do
+// Telegram passam por aqui para o efeito sair junto com o flag. Devolve true se
+// desfez.
+function desfazerBaixaTransacao(t) {
+  if (!controlePodeReverterPagamento(t)) return false;
+  t.pago = false;
+  delete t.pagoEm; // deixa de ser pagamento explícito
+  delete t.pagoVia;
+  if (t.sonhoId) desfazerAportePorPagamentoSonho(t);
+  return true;
 }
 
 // Desfaz um pagamento marcado por engano: volta o lançamento para "a pagar"
@@ -2948,17 +3008,22 @@ function controlePodeReverterPagamento(t) {
 function reverterPagamento(id) {
   const t = transacoes.find((x) => x.id === id);
   if (!t || !t.pago) return;
-  if (!controlePodeReverterPagamento(t)) {
+  const sonho = !!t.sonhoId;
+  if (!desfazerBaixaTransacao(t)) {
     return mostrarToast(
       'Este pagamento gerou um aporte vinculado — reverta pela aba correspondente.',
       'erro'
     );
   }
-  t.pago = false;
-  delete t.pagoEm; // deixa de ser pagamento explícito
   salvarTransacoes({ flush: true });
-  mostrarToast('Pagamento desfeito — voltou para "a pagar".', 'sucesso');
+  mostrarToast(
+    sonho
+      ? 'Pagamento desfeito — a parcela voltou para "a pagar" e o valor saiu do sonho.'
+      : 'Pagamento desfeito — voltou para "a pagar".',
+    'sucesso'
+  );
   atualizarTelaControle();
+  if (sonho && typeof renderizarSonhos === 'function') renderizarSonhos();
 }
 
 // Liga um pagamento de compromisso mensal a um aporte registrado no sonho
@@ -2982,6 +3047,34 @@ function registrarAportePorPagamentoSonho(tx) {
   s.valorAtual = arredCentavos((s.valorAtual || 0) + tx.valor);
 
   // Recalcula a parcela mensal e regenera lançamentos futuros
+  if (s.planoVinculado && s.valorAtual < s.valorTotal) {
+    const novoMensal = calcSonhoMensal(
+      s.valorTotal,
+      s.valorAtual,
+      s.mesesRestantes || s.prazoMeses
+    );
+    removerLancamentosFuturosSonho(s.id);
+    gerarLancamentosMensaisSonho(s, novoMensal, Math.min(60, s.mesesRestantes || s.prazoMeses));
+    s.aporteMensalPlano = novoMensal;
+  }
+  salvarSonhos();
+}
+
+// O inverso exato de registrarAportePorPagamentoSonho: tira o aporte que a
+// baixa gerou, devolve o guardado e recalcula as parcelas futuras. A parcela
+// desfeita (já com pago:false) fica onde está — removerLancamentosFuturosSonho
+// só varre meses depois do atual, e uma antecipada que ele varrer volta
+// recriada pelo gerarLancamentosMensaisSonho logo abaixo.
+function desfazerAportePorPagamentoSonho(tx) {
+  const s = typeof sonhos !== 'undefined' ? sonhos.find((x) => x.id === tx.sonhoId) : null;
+  if (!s) return;
+  // Volta a ser compromisso a pagar: sai da conta que o sonho debita HOJE —
+  // a conta pode ter sido trocada depois da baixa (INV-22).
+  if (s.contaOrigemId) tx.contaId = s.contaOrigemId;
+  const ap = (s.aportes || []).find((a) => a.txId === tx.id);
+  if (!ap) return;
+  s.aportes = s.aportes.filter((a) => a !== ap);
+  s.valorAtual = arredCentavos(Math.max(0, (s.valorAtual || 0) - (Number(ap.valor) || 0)));
   if (s.planoVinculado && s.valorAtual < s.valorTotal) {
     const novoMensal = calcSonhoMensal(
       s.valorTotal,
@@ -3229,14 +3322,10 @@ function atualizarTelaControle() {
   const hojeObj = new Date();
   const hojeStr = `${hojeObj.getFullYear()}-${String(hojeObj.getMonth() + 1).padStart(2, '0')}-${String(hojeObj.getDate()).padStart(2, '0')}`;
 
-  // Filtro robusto: usa o mês/ano efetivo de dataVencimento (não a competência)
+  // Filtro robusto: usa o mês/ano efetivo de dataVencimento (não a competência),
+  // mais as atrasadas de meses anteriores (ver vencimentosDoPainel).
   const mesVisaoStr = `${visaoAno}-${String(visaoMes + 1).padStart(2, '0')}`;
-  let contasComVencimento = transacoes.filter((t) => {
-    if (!t.dataVencimento || t.pago) return false;
-    // Receitas e resgates são entradas — não devem aparecer como "conta a vencer"
-    if (t.categoria === 'receita' || t.categoria === 'resgate_investimento') return false;
-    return t.dataVencimento.startsWith(mesVisaoStr);
-  });
+  let contasComVencimento = vencimentosDoPainel(transacoes, mesVisaoStr, hojeStr);
   // Ordena por string YYYY-MM-DD (sem timezone) — sempre ascendente
   contasComVencimento.sort((a, b) => a.dataVencimento.localeCompare(b.dataVencimento));
 
@@ -3281,8 +3370,12 @@ function atualizarTelaControle() {
   };
 
   itensRender.forEach((item) => {
-    const [vAno, vMes, vDia] = item.dataVencimento.split('-');
+    const [, vMes, vDia] = item.dataVencimento.split('-');
     const { corBorda, corTextoData, badgeAtraso } = renderEstadoVenc(item.dataVencimento);
+    // Atrasada de outro mês: só o dia ("12") faria parecer que vence este mês.
+    const mesOutro = !item.dataVencimento.startsWith(mesVisaoStr)
+      ? `<small class="venc-mes">${ctrlMesCurto(Number(vMes) - 1, 2000)}</small>`
+      : '';
 
     if (item.tipo === 'individual') {
       const conta = item.conta;
@@ -3291,7 +3384,7 @@ function atualizarTelaControle() {
         : '';
       containerVenc.innerHTML += `
                 <div class="venc-card" style="border-color:${corBorda}">
-                    <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                    <div class="venc-day" style="color:${corTextoData}">${vDia}${mesOutro}</div>
                     <div style="flex:1;min-width:0;">
                         <div class="venc-name" title="${String(conta.descricao || '').replace(/"/g, '&quot;')}">${conta.descricao}${obsIcone}${badgeAtraso}</div>
                         <div class="venc-val">${formatarMoeda(conta.valor)}</div>
@@ -3312,7 +3405,7 @@ function atualizarTelaControle() {
       const qtdLanc = g.itens.length;
       containerVenc.innerHTML += `
                 <div class="venc-card venc-card-grupo" style="border-color:${corBorda};border-left:4px solid var(--cor-cartao);cursor:pointer;" onclick="abrirModalGrupoCartao('${grupoKey}')">
-                    <div class="venc-day" style="color:${corTextoData}">${vDia}</div>
+                    <div class="venc-day" style="color:${corTextoData}">${vDia}${mesOutro}</div>
                     <div style="flex:1;min-width:0;">
                         <div class="venc-name"><i class="ph-fill ph-credit-card" style="color:var(--cor-cartao);font-size:11px;"></i> ${nomeCartao}${badgeAtraso}</div>
                         <div class="venc-val">${formatarMoeda(g.total)}<span class="venc-meta">${qtdLanc} ${qtdLanc === 1 ? 'lançamento' : 'lançamentos'}</span></div>

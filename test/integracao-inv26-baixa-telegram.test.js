@@ -9,8 +9,8 @@
 //      (conta pagadora do cartão — INV-17; aporte do sonho — INV-16);
 //   2. repetir o item não duplica nada (o Telegram reentrega, dois aparelhos);
 //   3. alvo que não é conta a pagar (receita, inexistente, já pago) é ignorado;
-//   4. o Desfazer só desfaz o que o Telegram pagou, e nunca sonho/compromisso
-//      (INV-18);
+//   4. o Desfazer só desfaz o que o Telegram pagou, pela mesma porta do app:
+//      na parcela do sonho o aporte sai junto (INV-18);
 //   5. o estado continua são para o validador de invariantes.
 
 const test = require('node:test');
@@ -99,9 +99,10 @@ test('alvo que não é conta a pagar fica como está', () => {
   assert.deepEqual([...r.confirmar], ['pagar_k3', 'pagar_k4'], 'confirma para não travar a caixa');
 });
 
-test('Desfazer: volta a pagar só o que o Telegram pagou; sonho não (INV-18)', () => {
-  const { s } = criarMundo();
+test('Desfazer: volta a pagar o que o Telegram pagou; no sonho o aporte sai junto (INV-18)', () => {
+  const { s, ref } = criarMundo();
   const parcela = s.transacoes.find((t) => t.categoria === 'sonho' && !t.pago);
+  const antes = s.sonhos.find((x) => x.id === ref.sonho.id).valorAtual;
   s.telegramAplicarItens([
     { id: 'pagar_a', tipo: 'pagar', alvos: ['sim_fatura', parcela.id], criadoEmMs: 1 },
   ]);
@@ -112,7 +113,10 @@ test('Desfazer: volta a pagar só o que o Telegram pagou; sonho não (INV-18)', 
   assert.equal(f.pago, false);
   assert.equal(f.pagoEm, undefined);
   assert.equal(f.pagoVia, undefined);
-  assert.equal(tx(s, parcela.id).pago, true, 'sonho gerou aporte: desfaz-se na aba Sonhos');
+  const sonho = s.sonhos.find((x) => x.id === ref.sonho.id);
+  assert.equal(tx(s, parcela.id).pago, false, 'a parcela do sonho também volta');
+  assert.equal(sonho.aportes.filter((a) => a.txId === parcela.id).length, 0, 'sem aporte órfão');
+  assert.equal(sonho.valorAtual, antes, 'o guardado volta ao que era');
   sao(s);
 });
 

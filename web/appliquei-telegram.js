@@ -243,9 +243,9 @@ function telegramPagar(alvos) {
 }
 
 /**
- * "↩️ Desfazer" do "Já paguei": volta para a pagar o que o Telegram pagou e
- * cuja baixa é só o flag (controlePodeReverterPagamento — sonho e compromisso
- * geram aporte e são revertidos na aba deles, como no app).
+ * "↩️ Desfazer" do "Já paguei": volta para a pagar o que o Telegram pagou,
+ * pela mesma porta do app (desfazerBaixaTransacao — na parcela do sonho o
+ * aporte sai junto; compromisso de investimento é revertido na aba dele).
  */
 function telegramDespagar(alvos) {
   var ids = Array.isArray(alvos) ? alvos.slice(0, 200) : [];
@@ -255,11 +255,8 @@ function telegramDespagar(alvos) {
       return x && x.id === id;
     });
     if (!t || !t.pago || t.pagoVia !== 'telegram') return;
-    if (typeof controlePodeReverterPagamento === 'function' && !controlePodeReverterPagamento(t))
-      return;
-    t.pago = false;
-    delete t.pagoEm;
-    delete t.pagoVia;
+    // Mesma porta do botão do app: na parcela do sonho, o aporte sai junto.
+    if (typeof desfazerBaixaTransacao !== 'function' || !desfazerBaixaTransacao(t)) return;
     n++;
   });
   return n;

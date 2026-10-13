@@ -194,10 +194,8 @@ function faturaDesfazer(cartaoId, ymdVenc) {
       t.categoria === 'cartao_credito' &&
       t.cartaoId === cartaoId &&
       t.dataVencimento === ymdVenc &&
-      controlePodeReverterPagamento(t)
+      desfazerBaixaTransacao(t)
     ) {
-      t.pago = false;
-      delete t.pagoEm;
       n++;
     }
   });
