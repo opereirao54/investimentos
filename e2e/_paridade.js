@@ -107,6 +107,15 @@ const EQUIVALENTES = {
     'no celular o "Novo lançamento" largo sai do Controle; o "+" da barra inferior abre o menu de cadastro → Lançamento (cadastrarEm → abrirPainelLancamento)',
   'fn:alternarPainelVencimentos':
     'no celular os vencimentos ficam sempre abertos, em "Próximos dias" (carrossel do Início): não há o que recolher; Baixar e Ver fatura estão em cada cartão',
+  // Extrato no celular: ordem, conta/cartão e categoria moram na gaveta que o
+  // botão "Filtros" abre (abrirFolhaFiltros → mudarRascunhoFiltros →
+  // aplicarFolhaFiltros), e os ativos viram etiquetas com ✕ (tirarFiltroExtrato).
+  'fn:filtrarExtratoPorCategoria':
+    'no celular a categoria fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Categoria → Ver N lançamentos); a ativa vira etiqueta removível',
+  'fn:mudarOrdemExtrato':
+    'no celular a ordem fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Ordenar → Ver N lançamentos); fora de "Recentes" vira etiqueta removível',
+  'fn:filtrarExtratoPorOrigem':
+    'no celular conta/cartão fica na gaveta "Filtros" do extrato (abrirFolhaFiltros → Conta ou cartão → Ver N lançamentos); a ativa vira etiqueta removível',
 };
 
 /** Roda NA PÁGINA: coleta as ações visíveis sob `raizSel` (default: a aba ativa). */

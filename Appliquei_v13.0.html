@@ -3,6 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script>
+        // Tela inteira (viewport-fit=cover) só no app INSTALADO. No navegador
+        // do iPhone (Safari, ou o navegador embutido de outro app) a página
+        // passa a ser desenhada por baixo da barra de status, mas o
+        // env(safe-area-inset-top) pode vir 0 — e o topo de todas as telas
+        // ficava cortado sob a hora e a bateria. Sem o "cover", quem cuida da
+        // barra é o próprio navegador. Roda antes do primeiro layout.
+        (function () {
+            try {
+                var instalado =
+                    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                    window.navigator.standalone === true;
+                if (instalado) return;
+                var m = document.querySelector('meta[name="viewport"]');
+                if (m) m.setAttribute('content', 'width=device-width, initial-scale=1.0');
+            } catch (e) {}
+        })();
+    </script>
     <link rel="icon" type="image/png" href="appliquei-favicon.png">
     <!-- "Adicionar à tela de início": manifest cobre Android/Chrome; o iOS
          ignora o manifest e só olha apple-touch-icon + as metas apple-*.
@@ -2939,7 +2957,7 @@
 
         /* === FATURAS DO CARTÃO (web/appliquei-faturas.js) === */
         .fat-overlay {
-            position: fixed; inset: 0; z-index: 9990; background: rgba(15,23,42,0.5);
+            position: fixed; inset: 0; z-index: 9995; background: rgba(15,23,42,0.5);
             justify-content: center; align-items: center; backdrop-filter: blur(3px);
         }
         .fat-folha {
@@ -3058,8 +3076,124 @@
             }
             .fat-topo { padding: 14px 16px 10px; }
             .fat-corpo { padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+            /* Firme: a tela rola só na vertical e não arrasta a página por baixo. */
+            .fat-overlay { overflow: hidden; overscroll-behavior: contain; }
+            .fat-folha { overflow: hidden; }
+            .fat-corpo { overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y pinch-zoom; }
+            .fat-meses, .fat-cartoes { touch-action: pan-x pinch-zoom; overscroll-behavior-x: contain; }
             body.faturas-aberta { overflow: hidden; }
         }
+
+        /* === Mês em visão do Controle (seletor próprio, em português) === */
+        .seletor-mes {
+            display: flex; align-items: center; gap: 2px; padding: 3px; min-height: 40px; box-sizing: border-box;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 10px;
+        }
+        .seletor-mes .mes-seta {
+            border: none !important; background: none !important; padding: 4px 6px !important;
+            font-size: 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--cor-texto-secundario);
+        }
+        .mes-rotulo {
+            position: relative; flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-width: 128px; padding: 0 6px; white-space: nowrap; cursor: pointer;
+            font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        .mes-rotulo i { font-size: 12px; color: var(--cor-texto-mutado); }
+        .mes-rotulo input {
+            position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0;
+            opacity: 0; cursor: pointer; font-size: 16px; min-height: 0 !important;
+        }
+        .mes-rotulo:focus-within { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        /* Toque (celular e tablet): campo com fonte < 16px faz o Safari dar
+           zoom e a página fica solta, arrastando para os lados. */
+        @media (pointer: coarse) {
+            .ext-campo select { font-size: 16px !important; }
+        }
+
+        /* === EXTRATO: busca, botão Filtros, etiquetas ativas e gaveta === */
+        .ext-barra { display: flex; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
+        .ext-busca {
+            flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 12px;
+            background: var(--cor-branco); border: 1.5px solid var(--cor-borda); border-radius: 10px; color: var(--cor-texto-mutado);
+        }
+        .ext-busca:focus-within { border-color: var(--cor-primaria); }
+        .ext-busca input {
+            flex: 1; min-width: 0; border: none; outline: none; background: transparent; padding: 0; min-height: 0;
+            font: inherit; font-size: 13px; color: var(--cor-texto-principal);
+        }
+        .ext-busca input::-webkit-search-cancel-button { cursor: pointer; }
+        .ext-btn-filtros {
+            display: none; align-items: center; gap: 6px; flex: 0 0 auto; min-height: 46px; padding: 0 14px; border-radius: 14px;
+            border: 1px solid var(--cor-borda); background: var(--cor-branco); color: var(--cor-texto-principal);
+            font: inherit; font-size: 15px; font-weight: 700; cursor: pointer;
+        }
+        .ext-btn-filtros i { font-size: 18px; }
+        .ext-btn-filtros.on { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+        .ext-btn-filtros b {
+            min-width: 20px; height: 20px; padding: 0 5px; box-sizing: border-box; border-radius: 99px;
+            background: #fff; color: var(--cor-primaria); font-size: 12px; font-weight: 800;
+            display: inline-flex; align-items: center; justify-content: center;
+        }
+        /* As etiquetas dos filtros ativos só existem no celular: no computador
+           os próprios filtros já estão à vista. */
+        .ext-ativos { display: none; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+        .ext-ativo {
+            display: inline-flex; align-items: center; gap: 6px; min-height: 34px; padding: 0 8px 0 12px; border-radius: 99px;
+            border: 1px solid var(--cor-borda-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria);
+            font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+        }
+        .ext-ativo i { font-size: 14px; }
+        .ext-ativos-limpar {
+            min-height: 34px; padding: 0 8px; border: none; background: none; cursor: pointer;
+            font: inherit; font-size: 13px; font-weight: 600; color: var(--cor-texto-mutado); text-decoration: underline;
+        }
+        /* Acima da barra de abas do celular (9990), abaixo das confirmações (9999). */
+        .ext-folha { position: fixed; inset: 0; z-index: 9995; display: flex; flex-direction: column; justify-content: flex-end; }
+        .ext-folha[hidden] { display: none; }
+        .ext-folha-fundo { flex: 1; border: none; padding: 0; margin: 0; background: rgba(12,22,16,0.45); cursor: default; animation: fadeIn .18s ease; }
+        .ext-folha-painel {
+            background: var(--cor-branco); border-radius: 24px 24px 0 0; display: flex; flex-direction: column; gap: 14px;
+            max-height: 86dvh; padding: 0 16px calc(16px + env(safe-area-inset-bottom, 0px)); box-sizing: border-box;
+            box-shadow: 0 -12px 40px rgba(0,0,0,0.18); animation: extFolhaSobe .22s cubic-bezier(.22,1,.36,1);
+            overscroll-behavior: contain; will-change: transform;
+        }
+        @keyframes extFolhaSobe { from { transform: translateY(40px); opacity: .6; } to { transform: none; opacity: 1; } }
+        @media (prefers-reduced-motion: reduce) { .ext-folha-painel, .ext-folha-fundo { animation: none; } }
+        .ext-folha-alca { display: flex; justify-content: center; padding: 10px 0 2px; touch-action: none; cursor: grab; }
+        .ext-folha-alca span { width: 40px; height: 5px; border-radius: 99px; background: var(--cor-borda2, #d4ddd7); }
+        .ext-folha-topo { display: flex; align-items: center; justify-content: space-between; touch-action: none; }
+        .ext-folha-topo h2 { margin: 0; font-size: 19px; font-weight: 800; color: var(--cor-texto-principal); }
+        .ext-folha-limpar { min-height: 40px; padding: 0 4px; border: none; background: none; color: var(--cor-primaria); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .ext-folha-corpo { overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 18px; margin: 0 -16px; padding: 0 16px 4px; }
+        .ext-folha-sec { display: flex; flex-direction: column; gap: 8px; }
+        .ext-folha-sec > span { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cor-texto-mutado); }
+        .ext-folha-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; background: var(--cor-superficie); border-radius: 12px; padding: 4px; }
+        .ext-folha-seg button {
+            min-height: 40px; border: none; border-radius: 9px; background: transparent; cursor: pointer;
+            font: inherit; font-size: 14px; font-weight: 600; color: var(--cor-texto-secundario);
+        }
+        .ext-folha-seg button[aria-pressed="true"] { background: var(--cor-branco); color: var(--cor-texto-principal); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+        .ext-folha-op {
+            width: 100%; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 0 2px; border: none; border-bottom: 1px solid var(--cor-borda);
+            background: none; text-align: left; cursor: pointer; font: inherit; color: var(--cor-texto-principal);
+        }
+        .ext-folha-op:last-child { border-bottom: none; }
+        .ext-folha-op .radio { width: 20px; height: 20px; flex: 0 0 20px; border-radius: 50%; box-sizing: border-box; border: 2px solid var(--cor-borda2, #b9c6be); }
+        .ext-folha-op[aria-checked="true"] .radio { border: 6px solid var(--cor-primaria); }
+        .ext-folha-op .nome { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ext-folha-op .tot { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--cor-texto-mutado); }
+        .ext-folha-cats { display: flex; flex-wrap: wrap; gap: 8px; }
+        .ext-folha-cat {
+            min-height: 38px; padding: 0 12px; border-radius: 99px; border: 1px solid var(--cor-borda); background: var(--cor-branco);
+            display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font: inherit; font-size: 14px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        .ext-folha-cat span { font-family: 'DM Mono', monospace; font-size: 12px; opacity: .75; }
+        .ext-folha-cat[aria-pressed="true"] { border-color: var(--cor-primaria); background: var(--cor-bg-primaria); color: var(--cor-txt-primaria); }
+        .ext-folha-ver {
+            min-height: 52px; border-radius: 16px; border: none; background: var(--cor-primaria); color: #fff; cursor: pointer;
+            font: inherit; font-size: 16px; font-weight: 700; flex-shrink: 0;
+        }
+        body.ext-folha-aberta { overflow: hidden; }
 
         /* === EXTRATO: dia, fatura, ordem e rodapé === */
         .ext-ferramentas { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; flex-shrink: 0; }
@@ -10945,6 +11079,17 @@
             .main-content { -webkit-tap-highlight-color: transparent; }
             /* A rolagem não "puxa" a página inteira nas bordas (iOS). */
             .main-content { overscroll-behavior-y: contain; }
+            /* Tela firme no NAVEGADOR do celular (no app instalado isto não
+               acontecia): o body media 100vh, que no Safari é a altura com a
+               barra de endereço RECOLHIDA — maior que o visível. A barra
+               encolhe e cresce durante a rolagem e a página inteira balançava
+               junto, quicando. 100dvh acompanha a área realmente visível, e o
+               documento por fora não quica. A área que rola só rola na
+               vertical: uma linha mais larga que a tela não vira arrasto
+               lateral. */
+            html, body { overscroll-behavior: none; }
+            body { height: 100vh; height: 100dvh; }
+            .main-content { overflow-x: hidden; }
 
             /* --- Extrato: ações por deslize (appliquei-mobile.js) --- */
             #extratoUnificado .extrato-item {
@@ -10972,16 +11117,41 @@
             #extratoUnificado [id^="acao-pagar-list-"] > button.ext-fat-abrir { display: none !important; }
             /* Extrato por dia: cabeçalho do dia dentro do cartão branco; a
                fatura abre as compras com um recuo. */
-            #extratoUnificado .ext-dia-cab { padding: 14px 16px 6px; border-bottom: none; font-size: 12px; }
+            /* Sem sticky no celular: a barra Resumo/Extrato/Projeção já gruda no
+               topo, e dois elementos grudando no mesmo lugar tremem na rolagem. */
+            #extratoUnificado .ext-dia-cab { position: static; padding: 14px 16px 6px; border-bottom: none; font-size: 12px; }
             #extratoUnificado .ext-dia + .ext-dia .ext-dia-cab { border-top: 1px solid var(--cor-borda); }
             #extratoUnificado .ext-dia:first-child .ext-dia-cab { border-radius: 20px 20px 0 0; }
             #extratoUnificado .ext-fatura-itens { margin-left: 34px; padding-left: 0; border-left: 2px solid var(--cor-borda-amber); }
             #controle .ext-ferramentas { flex-wrap: nowrap; gap: 8px; }
             #controle .ext-campo { flex: 1 1 0; min-width: 0; }
             #controle .ext-campo > span { display: none; }
-            #controle .ext-campo select { width: 100%; max-width: none; min-height: 40px; border-radius: 12px; font-size: 13px; }
+            #controle .ext-campo select { width: 100%; max-width: none; min-height: 44px; border-radius: 12px; font-size: 16px !important; }
             #controle .page-actions > .btn-faturas { font-size: 0; width: 44px !important; padding: 0; }
             #controle .page-actions > .btn-faturas .ph-credit-card { font-size: 19px; }
+            /* Atalhos só com ícone: a palavra sai e o espaço entre ícone e
+               texto (gap) também — com ele o ícone ficava fora do centro. */
+            #controle .page-actions .btn-rotulo { display: none; }
+            #controle .page-actions > .btn-faturas,
+            #controle .page-actions > .btn-config { gap: 0 !important; }
+
+            /* --- Extrato com cara de app: resumo, busca + Filtros, tipos,
+               etiquetas dos filtros ativos e a lista. Ordem, conta/cartão e
+               categoria ficam na gaveta. --- */
+            #controle [data-mob-aba="extrato"] > #mobExtResumo { order: 1; }
+            #controle [data-mob-aba="extrato"] > #extratoBarra { order: 2; }
+            #controle [data-mob-aba="extrato"] > div:first-child { order: 3; }
+            #controle [data-mob-aba="extrato"] > #extratoAtivos { order: 4; }
+            #controle [data-mob-aba="extrato"] > #extratoUnificado { order: 5; }
+            #controle [data-mob-aba="extrato"] > #extratoVazio { order: 6; }
+            #controle [data-mob-aba="extrato"] > #extratoRodape { order: 7; }
+            #controle #extratoCategorias, #controle #extratoFerramentas { display: none !important; }
+            #controle .ext-barra { margin-bottom: 10px; }
+            #controle .ext-busca { min-height: 46px; border-radius: 14px; border-width: 1px; padding: 0 14px; }
+            #controle .ext-busca i { font-size: 18px; }
+            #controle .ext-busca input { font-size: 16px !important; }
+            #controle .ext-btn-filtros { display: inline-flex; }
+            #controle .ext-ativos:not([hidden]) { display: flex; margin: 2px 0 12px; }
             /* Sem os ícones na linha, o valor ganha o lado direito inteiro;
                um "⋯" discreto diz que há ações ali. */
             #extratoUnificado .extrato-item .valor::after {
@@ -11322,6 +11492,57 @@
                 display: inline-flex; align-items: center; justify-content: center;
                 width: 44px !important; padding: 0; font-size: 19px;
             }
+
+            /* ---- Cabeçalho de app: título com os atalhos ao lado, e o mês
+               numa pílula larga logo abaixo. A .page-actions some como caixa
+               (display: contents) e os botões dela viram células da grade do
+               cabeçalho. "Hoje" só aparece fora do mês atual, ao lado do mês. */
+            #controle .page-header {
+                display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px 44px;
+                align-items: center; column-gap: 8px; row-gap: 6px; margin-bottom: 14px !important;
+                padding-bottom: 0 !important; border-bottom: none !important;
+            }
+            /* Linha 1: saudação e atalhos; linha 2: o título inteiro. */
+            #controle .page-header > .page-header-left { display: contents !important; }
+            #controle .page-header-left > .mob-saudacao { grid-column: 1; grid-row: 1; margin: 0 !important; align-self: center; }
+            #controle .page-header-left > h1 { grid-column: 1 / -1; grid-row: 2; }
+            #controle .page-header-left h1 {
+                font-size: 26px !important; line-height: 1.15; letter-spacing: -0.6px; margin: 0 !important;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            #controle .page-header > .page-actions { display: contents !important; }
+            #controle .page-actions > .mob-olho,
+            #controle .page-actions > .btn-faturas,
+            #controle .page-actions > .btn-config {
+                grid-row: 1; width: 44px !important; height: 44px; min-height: 44px; padding: 0 !important;
+                display: inline-flex !important; align-items: center; justify-content: center;
+                border-radius: 50% !important; border: 1px solid var(--cor-borda) !important;
+                background: var(--cor-branco) !important; color: var(--cor-texto-principal) !important;
+                font-size: 0 !important; box-shadow: none !important;
+            }
+            #controle .page-actions > .mob-olho i,
+            #controle .page-actions > .btn-faturas i,
+            #controle .page-actions > .btn-config i { font-size: 20px !important; }
+            #controle .page-actions > .mob-olho { grid-column: 2; }
+            #controle .page-actions > .btn-faturas { grid-column: 3; }
+            #controle .page-actions > .btn-config { grid-column: 4; }
+            #controle .page-actions > .seletor-mes {
+                grid-column: 1 / -1; grid-row: 3; margin-top: 8px !important; min-height: 52px; padding: 4px !important; gap: 4px;
+                border-radius: 16px !important; justify-content: space-between;
+            }
+            #controle.mob-fora-do-mes .page-actions > .seletor-mes { grid-column: 1 / 3; }
+            #controle.mob-fora-do-mes .page-actions > .btn-mes-hoje {
+                grid-column: 3 / -1; grid-row: 3; margin-top: 8px !important; display: inline-flex !important; align-items: center; justify-content: center;
+                width: auto !important; height: 52px; padding: 0 !important;
+                border-radius: 16px !important; font-size: 14px !important; font-weight: 700;
+                background: var(--cor-texto-principal) !important; color: var(--cor-branco) !important; border: none !important;
+            }
+            #controle .seletor-mes .mes-seta {
+                width: 44px; height: 44px; min-width: 44px; border-radius: 12px; font-size: 20px;
+                background: var(--cor-superficie) !important; color: var(--cor-texto-principal);
+            }
+            #controle .mes-rotulo { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; min-height: 44px; }
+            #controle .mes-rotulo i { font-size: 14px; }
 
             /* Os blocos novos fazem as vezes destes: heróis e termômetro (o
                cartão do topo), aviso do saldo trazido (a linha roxa dentro
@@ -12624,6 +12845,22 @@
         </div>
     </div>
 
+    <!-- Gaveta de filtros do extrato no celular (appliquei-aba-controle-financeiro.js,
+         abrirFolhaFiltros). O id não começa com "modal": a regra global de
+         modais forçaria margem e largura. -->
+    <div id="extratoFolha" class="ext-folha" hidden>
+        <button type="button" class="ext-folha-fundo" onclick="fecharFolhaFiltros()" aria-label="Fechar filtros" tabindex="-1"></button>
+        <div class="ext-folha-painel" role="dialog" aria-modal="true" aria-labelledby="extratoFolhaTitulo">
+            <div class="ext-folha-alca" aria-hidden="true"><span></span></div>
+            <div class="ext-folha-topo">
+                <h2 id="extratoFolhaTitulo">Filtros</h2>
+                <button type="button" class="ext-folha-limpar" onclick="limparRascunhoFiltros()">Limpar</button>
+            </div>
+            <div id="extratoFolhaCorpo" class="ext-folha-corpo"></div>
+            <button type="button" id="extratoFolhaVer" class="ext-folha-ver" onclick="aplicarFolhaFiltros()">Ver lançamentos</button>
+        </div>
+    </div>
+
     <div id="modalDividendosMes" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.5); z-index:9999; justify-content:center; align-items:center; backdrop-filter:blur(3px);" onclick="if(event.target===this) fecharModalDividendosMes()">
         <div style="max-width:680px;width:94%;margin:20px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:var(--radius);padding:24px;animation:fadeIn 0.2s ease;max-height:85vh;display:flex;flex-direction:column;">
             <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px;">
@@ -13602,15 +13839,24 @@
                         </span>
                         <i class="ph ph-caret-right term-chip-seta" aria-hidden="true"></i>
                     </button>
-                    <div class="seletor-mes" style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
-                        <input type="month" id="inputMesAnoVisao" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="selecionarMesVisao()">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
+                    <!-- Mês em visão. O texto é nosso ("Outubro 2026"), não o do
+                         <input type="month"> — que no celular mostrava o mês em
+                         inglês e sem o ano. O input fica por cima, invisível, só
+                         para abrir o seletor nativo; com 16px, porque fonte
+                         menor faz o Safari do iPhone dar zoom e a página inteira
+                         ficar solta, arrastando para os lados. -->
+                    <div class="seletor-mes">
+                        <button type="button" class="btn-secundario mes-seta" onclick="mudarMesVisao(-1)" aria-label="Mês anterior"><i class="ph ph-caret-left"></i></button>
+                        <label class="mes-rotulo">
+                            <span id="lblMesVisao"></span><i class="ph ph-caret-down" aria-hidden="true"></i>
+                            <input type="month" id="inputMesAnoVisao" class="filtro-data" aria-label="Escolher o mês" onclick="try { this.showPicker(); } catch (e) {}" onchange="selecionarMesVisao()">
+                        </label>
+                        <button type="button" class="btn-secundario mes-seta" onclick="mudarMesVisao(1)" aria-label="Próximo mês"><i class="ph ph-caret-right"></i></button>
                     </div>
-                    <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
+                    <button type="button" class="btn-secundario btn-mes-hoje" onclick="irParaMesAtual()">Hoje</button>
                     <button type="button" class="btn-secundario mob-olho" onclick="mobAlternarValores()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button>
-                    <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()"><i class="ph ph-credit-card"></i> Faturas</button>
-                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
+                    <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()" aria-label="Faturas do cartão"><i class="ph ph-credit-card" aria-hidden="true"></i><span class="btn-rotulo">Faturas</span></button>
+                    <button type="button" class="btn-secundario btn-config" onclick="abrirModalConfig()" aria-label="Configurações"><i class="ph ph-sliders" aria-hidden="true"></i><span class="btn-rotulo">Configurações</span></button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>
@@ -13876,6 +14122,20 @@
                          CATEGORIA de gasto, que é como o usuário pensa o mês.
                          Os chips saem do próprio mês e vêm do maior total para o
                          menor — a linha já é o ranking de para onde foi o dinheiro. -->
+                    <!-- Busca e "Filtros". No celular é a barra principal: ordem,
+                         conta/cartão e categoria moram na gaveta (#extratoFolha) e
+                         os filtros ativos viram etiquetas removíveis logo abaixo.
+                         No computador a busca fica aqui e o resto continua à vista. -->
+                    <div id="extratoBarra" class="ext-barra">
+                        <label class="ext-busca">
+                            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                            <input type="search" id="extratoBusca" placeholder="Buscar lançamento" aria-label="Buscar lançamento" autocomplete="off" enterkeyhint="search" oninput="filtrarExtratoPorBusca(this.value)">
+                        </label>
+                        <button type="button" id="extratoBtnFiltros" class="ext-btn-filtros" onclick="abrirFolhaFiltros()" aria-haspopup="dialog" aria-controls="extratoFolha">
+                            <i class="ph ph-sliders-horizontal" aria-hidden="true"></i><span>Filtros</span><b id="extratoQtdFiltros" hidden></b>
+                        </button>
+                    </div>
+                    <div id="extratoAtivos" class="ext-ativos" hidden></div>
                     <div id="extratoCategorias" class="ext-cat-wrap" style="display:none;"></div>
                     <!-- Ordem (por data é o padrão: o extrato agrupa por dia,
                          com subtotal) e conta/cartão, que se soma aos filtros

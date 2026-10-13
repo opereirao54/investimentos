@@ -3181,6 +3181,13 @@ function atualizarTelaControle() {
   normalizarDespesasProgramadas();
   const mesFormatado = (visaoMes + 1).toString().padStart(2, '0');
   document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
+  // O mês por extenso, em português: o texto do <input type="month"> segue o
+  // idioma do aparelho e no celular mostrava só "October".
+  const lblMes = document.getElementById('lblMesVisao');
+  if (lblMes) {
+    const nome = FATURA_MESES[visaoMes];
+    lblMes.textContent = nome.charAt(0).toUpperCase() + nome.slice(1) + ' ' + visaoAno;
+  }
   const nomeMeses = [
     'Jan',
     'Fev',
@@ -3444,7 +3451,7 @@ function atualizarTelaControle() {
       if (!origensDoMes.has(origem.chave)) origensDoMes.set(origem.chave, origem.rotulo);
 
       let itemHtml = `
-            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-origem="${origem.chave.replace(/"/g, '&quot;')}" data-ext-valor="${(tipoFiltro === 'receita' ? 1 : -1) * (Number(t.valor) || 0)}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
+            <div class="extrato-item" data-ext-tipo="${tipoFiltro}" data-ext-cat="${catFiltro.replace(/"/g, '&quot;')}" data-ext-origem="${origem.chave.replace(/"/g, '&quot;')}" data-ext-busca="${extratoNormalizarBusca(t.descricao).replace(/"/g, '&quot;')}" data-ext-valor="${(tipoFiltro === 'receita' ? 1 : -1) * (Number(t.valor) || 0)}" data-ext-desc="${(typeof insightsNormalizarDescricao === 'function' ? insightsNormalizarDescricao(t.descricao) : '').replace(/"/g, '&quot;')}">
                 <span class="ext-ico" aria-hidden="true"><i class="ph ${ICONE_TIPO_EXTRATO[tipoFiltro] || 'ph-circle'}"></i></span>
                 <div class="ext-corpo">
                     <span class="desc">${t.descricao}${iconFixo}${iconFixoCartao}${iconObs}</span>
@@ -3972,6 +3979,7 @@ function renderizarChipsCategoriaExtrato(mapa) {
   const wrap = document.getElementById('extratoCategorias');
   if (!wrap) return;
   const cats = Array.from(mapa.entries()).sort((a, b) => b[1].total - a[1].total);
+  extratoCatsDoMes = mapa;
 
   // Um chip só não é filtro — é rótulo. Nesse caso a linha não aparece.
   if (cats.length < 2) {
@@ -4041,6 +4049,24 @@ var extratoOrdem = (function () {
   }
 })();
 var extratoOrigemAtiva = '';
+var extratoBusca = '';
+// Rótulos e totais do mês, guardados pelo render para a gaveta de filtros.
+var extratoOrigensDoMes = new Map();
+var extratoCatsDoMes = new Map();
+
+/** Minúsculas e sem acento: "Padaria" acha "padaria" e "pão" acha "pao". */
+function extratoNormalizarBusca(s) {
+  return String(s || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim();
+}
+
+function filtrarExtratoPorBusca(v) {
+  extratoBusca = extratoNormalizarBusca(v);
+  aplicarFiltrosExtrato();
+}
 var extratoFaturasAbertas = new Set();
 
 var EXTRATO_DIA_SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
@@ -4295,6 +4321,7 @@ function renderizarOrigensExtrato(mapa) {
   if (ord) ord.value = extratoOrdem;
   if (!sel) return;
   if (extratoOrigemAtiva && !mapa.has(extratoOrigemAtiva)) extratoOrigemAtiva = '';
+  extratoOrigensDoMes = mapa;
   const itens = Array.from(mapa.entries()).sort((a, b) =>
     String(a[1]).localeCompare(String(b[1]), 'pt-BR')
   );
@@ -4342,7 +4369,8 @@ function aplicarFiltrosExtrato() {
         extratoTipoAtivo === 'todos' ||
         el.dataset.extTipo === extratoTipoAtivo) &&
       (!extratoCategoriaAtiva || el.dataset.extCat === extratoCategoriaAtiva) &&
-      (!extratoOrigemAtiva || el.dataset.extOrigem === extratoOrigemAtiva);
+      (!extratoOrigemAtiva || el.dataset.extOrigem === extratoOrigemAtiva) &&
+      (!extratoBusca || (el.dataset.extBusca || '').includes(extratoBusca));
     el.style.display = bate ? '' : 'none';
     if (bate) {
       visiveis++;
@@ -4361,7 +4389,7 @@ function aplicarFiltrosExtrato() {
     f.style.display = itens.length ? '' : 'none';
     // Com categoria escolhida, a fatura abre sozinha: a pergunta é "quanto
     // de Mercado foi no cartão", e a resposta está nas compras.
-    f.classList.toggle('filtrada', !!extratoCategoriaAtiva && itens.length > 0);
+    f.classList.toggle('filtrada', (!!extratoCategoriaAtiva || !!extratoBusca) && itens.length > 0);
     const parcial = itens.length > 0 && itens.length < qtd;
     const soma = parcial
       ? itens.reduce((s, el) => s - (Number(el.dataset.extValor) || 0), 0)
@@ -4395,7 +4423,8 @@ function aplicarFiltrosExtrato() {
     const filtrando =
       (extratoTipoAtivo && extratoTipoAtivo !== 'todos') ||
       !!extratoCategoriaAtiva ||
-      !!extratoOrigemAtiva;
+      !!extratoOrigemAtiva ||
+      !!extratoBusca;
     if (filtrando && visiveis > 0) {
       rodape.style.display = 'flex';
       rodape.innerHTML =
@@ -4412,6 +4441,8 @@ function aplicarFiltrosExtrato() {
     }
   }
 
+  renderizarFiltrosAtivosExtrato();
+
   // Vazio por FILTRO e vazio por MÊS SEM LANÇAMENTO são situações diferentes:
   // na primeira, o caminho de volta é limpar o filtro, e a mensagem tem de
   // dizer isso.
@@ -4426,4 +4457,287 @@ function aplicarFiltrosExtrato() {
   vazio.innerHTML = temAlgum
     ? '<i class="ph ph-funnel"></i>Nenhum lançamento com este filtro'
     : '<i class="ph ph-tray"></i>Nenhum lançamento neste mês';
+}
+
+// ---------------------------------------------------------------------------
+// Filtros do extrato no celular: etiquetas ativas e a gaveta
+// ---------------------------------------------------------------------------
+//
+// Eram quatro linhas de controle antes do primeiro lançamento (tipos,
+// categorias, ordem, conta). No celular ficam duas — busca + "Filtros", e os
+// tipos —; ordem, conta/cartão e categoria vão para uma gaveta que sobe de
+// baixo, com um RASCUNHO: nada muda na lista até "Ver N lançamentos", e o N é
+// calculado enquanto a pessoa escolhe. O que está ativo aparece como etiqueta
+// com ✕ sob a barra. No computador os controles continuam à vista.
+
+var EXTRATO_ORDENS = [
+  ['recentes', 'Mais recentes'],
+  ['antigos', 'Mais antigos'],
+  ['valor', 'Maior valor'],
+];
+var extratoRascunho = null;
+
+function _extRotuloOrdem(o) {
+  const r = EXTRATO_ORDENS.find((x) => x[0] === o);
+  return r ? r[1] : '';
+}
+
+/** Quantos filtros da gaveta estão ativos (o badge do botão). */
+function extratoQtdFiltros() {
+  return (
+    (extratoOrdem !== 'recentes' ? 1 : 0) +
+    (extratoOrigemAtiva ? 1 : 0) +
+    (extratoCategoriaAtiva ? 1 : 0)
+  );
+}
+
+function renderizarFiltrosAtivosExtrato() {
+  const qtd = extratoQtdFiltros();
+  const btn = document.getElementById('extratoBtnFiltros');
+  const badge = document.getElementById('extratoQtdFiltros');
+  if (btn) btn.classList.toggle('on', qtd > 0);
+  if (badge) {
+    badge.hidden = qtd === 0;
+    badge.textContent = String(qtd);
+  }
+  const wrap = document.getElementById('extratoAtivos');
+  if (!wrap) return;
+  const chips = [];
+  if (extratoOrdem !== 'recentes') chips.push(['ordem', _extRotuloOrdem(extratoOrdem)]);
+  if (extratoOrigemAtiva) {
+    chips.push(['origem', extratoOrigensDoMes.get(extratoOrigemAtiva) || 'Conta']);
+  }
+  if (extratoCategoriaAtiva) {
+    const c = extratoCatsDoMes.get(extratoCategoriaAtiva);
+    chips.push(['categoria', c ? c.rotulo : 'Categoria']);
+  }
+  wrap.hidden = chips.length === 0;
+  wrap.innerHTML = chips.length
+    ? chips
+        .map(
+          ([k, rot]) =>
+            '<button type="button" class="ext-ativo" onclick="tirarFiltroExtrato(\'' +
+            k +
+            '\')" aria-label="Tirar o filtro ' +
+            _extEsc(rot) +
+            '">' +
+            _extEsc(rot) +
+            '<i class="ph-bold ph-x" aria-hidden="true"></i></button>'
+        )
+        .join('') +
+      '<button type="button" class="ext-ativos-limpar" onclick="limparFiltrosExtrato()">Limpar</button>'
+    : '';
+}
+
+function tirarFiltroExtrato(qual) {
+  if (qual === 'ordem') return mudarOrdemExtrato('recentes');
+  if (qual === 'origem') {
+    extratoOrigemAtiva = '';
+    const sel = document.getElementById('extratoOrigem');
+    if (sel) sel.value = '';
+    return aplicarFiltrosExtrato();
+  }
+  if (qual === 'categoria') filtrarExtratoPorCategoria(extratoCategoriaAtiva);
+}
+
+function limparFiltrosExtrato() {
+  extratoOrigemAtiva = '';
+  const sel = document.getElementById('extratoOrigem');
+  if (sel) sel.value = '';
+  if (extratoCategoriaAtiva) filtrarExtratoPorCategoria(extratoCategoriaAtiva);
+  if (extratoOrdem !== 'recentes') return mudarOrdemExtrato('recentes');
+  aplicarFiltrosExtrato();
+}
+
+/** Itens da lista que passariam com o rascunho (para "Ver N" e os totais). */
+function _extItensComRascunho(r, ignorar) {
+  const lista = document.getElementById('extratoUnificado');
+  if (!lista) return [];
+  return Array.from(lista.querySelectorAll('.extrato-item:not(.ext-fatura-linha)')).filter(
+    (el) =>
+      (!extratoTipoAtivo ||
+        extratoTipoAtivo === 'todos' ||
+        el.dataset.extTipo === extratoTipoAtivo) &&
+      (!extratoBusca || (el.dataset.extBusca || '').includes(extratoBusca)) &&
+      (ignorar === 'origem' || !r.origem || el.dataset.extOrigem === r.origem) &&
+      (ignorar === 'categoria' || !r.categoria || el.dataset.extCat === r.categoria)
+  );
+}
+
+function _extSomaAbs(itens) {
+  return itens.reduce((s, el) => s + Math.abs(Number(el.dataset.extValor) || 0), 0);
+}
+
+function abrirFolhaFiltros() {
+  extratoRascunho = {
+    ordem: extratoOrdem,
+    origem: extratoOrigemAtiva,
+    categoria: extratoCategoriaAtiva,
+  };
+  const folha = document.getElementById('extratoFolha');
+  if (!folha) return;
+  renderizarFolhaFiltros();
+  folha.hidden = false;
+  document.body.classList.add('ext-folha-aberta');
+  _extLigarArrasteFolha();
+}
+
+function fecharFolhaFiltros() {
+  const folha = document.getElementById('extratoFolha');
+  if (folha) folha.hidden = true;
+  document.body.classList.remove('ext-folha-aberta');
+  const painel = folha && folha.querySelector('.ext-folha-painel');
+  if (painel) painel.style.transform = '';
+  extratoRascunho = null;
+}
+
+function mudarRascunhoFiltros(campo, valor) {
+  if (!extratoRascunho) return;
+  extratoRascunho[campo] =
+    campo === 'categoria' && extratoRascunho.categoria === valor ? '' : valor;
+  renderizarFolhaFiltros();
+}
+
+function limparRascunhoFiltros() {
+  extratoRascunho = { ordem: 'recentes', origem: '', categoria: '' };
+  renderizarFolhaFiltros();
+}
+
+function renderizarFolhaFiltros() {
+  const corpo = document.getElementById('extratoFolhaCorpo');
+  const r = extratoRascunho;
+  if (!corpo || !r) return;
+  const arg = (v) => "'" + String(v).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  let html = '<div class="ext-folha-sec"><span>Ordenar</span><div class="ext-folha-seg">';
+  EXTRATO_ORDENS.forEach(([v, rot]) => {
+    html +=
+      '<button type="button" aria-pressed="' +
+      (r.ordem === v) +
+      '" onclick="mudarRascunhoFiltros(\'ordem\',' +
+      arg(v) +
+      ')">' +
+      { recentes: 'Recentes', antigos: 'Antigos', valor: 'Maior valor' }[v] +
+      '</button>';
+  });
+  html += '</div></div>';
+
+  // Conta ou cartão: as origens do mês, com o total de cada uma (respeitando
+  // o tipo, a busca e a categoria do rascunho).
+  if (extratoOrigensDoMes.size > 1) {
+    html += '<div class="ext-folha-sec"><span>Conta ou cartão</span><div role="radiogroup">';
+    const op = (v, rot, tot) =>
+      '<button type="button" role="radio" class="ext-folha-op" aria-checked="' +
+      (r.origem === v) +
+      '" onclick="mudarRascunhoFiltros(\'origem\',' +
+      arg(v) +
+      ')"><span class="radio" aria-hidden="true"></span><span class="nome">' +
+      _extEsc(rot) +
+      '</span><span class="tot valor-mascarado">' +
+      tot +
+      '</span></button>';
+    html += op('', 'Todas as contas e cartões', '');
+    Array.from(extratoOrigensDoMes.entries())
+      .sort((a, b) => String(a[1]).localeCompare(String(b[1]), 'pt-BR'))
+      .forEach(([k, rot]) => {
+        const itens = _extItensComRascunho(r, 'origem').filter((el) => el.dataset.extOrigem === k);
+        html += op(
+          k,
+          (k.startsWith('cartao:') ? 'Cartão ' : '') + rot,
+          formatarMoeda(_extSomaAbs(itens))
+        );
+      });
+    html += '</div></div>';
+  }
+
+  if (extratoCatsDoMes.size > 0) {
+    html += '<div class="ext-folha-sec"><span>Categoria</span><div class="ext-folha-cats">';
+    Array.from(extratoCatsDoMes.entries())
+      .map(([k, c]) => {
+        const itens = _extItensComRascunho(r, 'categoria').filter((el) => el.dataset.extCat === k);
+        return [k, c.rotulo, _extSomaAbs(itens)];
+      })
+      // Categoria que some com o rascunho (R$ 0,00) só polui: sai, a não
+      // ser que seja a escolhida.
+      .filter(([k, , tot]) => tot > 0 || r.categoria === k)
+      .sort((a, b) => b[2] - a[2])
+      .forEach(([k, rot, tot]) => {
+        html +=
+          '<button type="button" class="ext-folha-cat" aria-pressed="' +
+          (r.categoria === k) +
+          '" onclick="mudarRascunhoFiltros(\'categoria\',' +
+          arg(k) +
+          ')">' +
+          rot +
+          ' <span class="valor-mascarado">' +
+          formatarMoeda(tot) +
+          '</span></button>';
+      });
+    html += '</div></div>';
+  }
+  corpo.innerHTML = html;
+
+  const n = _extItensComRascunho(r).length;
+  const ver = document.getElementById('extratoFolhaVer');
+  if (ver) {
+    ver.textContent =
+      n === 0 ? 'Nenhum lançamento' : n === 1 ? 'Ver 1 lançamento' : 'Ver ' + n + ' lançamentos';
+  }
+}
+
+function aplicarFolhaFiltros() {
+  const r = extratoRascunho;
+  if (!r) return fecharFolhaFiltros();
+  extratoOrigemAtiva = r.origem || '';
+  const sel = document.getElementById('extratoOrigem');
+  if (sel) sel.value = extratoOrigemAtiva;
+  extratoCategoriaAtiva = r.categoria || '';
+  document.querySelectorAll('#extratoCategorias .ext-cat').forEach((b) => {
+    b.classList.toggle('on', (b.dataset.extChip || '') === extratoCategoriaAtiva);
+  });
+  const mudouOrdem = r.ordem !== extratoOrdem;
+  fecharFolhaFiltros();
+  if (mudouOrdem) mudarOrdemExtrato(r.ordem);
+  else aplicarFiltrosExtrato();
+}
+
+// Arrastar a gaveta para baixo fecha — o gesto que todo app ensina.
+var _extFolhaArrasteLigado = false;
+function _extLigarArrasteFolha() {
+  if (_extFolhaArrasteLigado) return;
+  const folha = document.getElementById('extratoFolha');
+  const painel = folha && folha.querySelector('.ext-folha-painel');
+  if (!painel || typeof painel.addEventListener !== 'function') return;
+  _extFolhaArrasteLigado = true;
+  let y0 = null;
+  let dy = 0;
+  const alvos = painel.querySelectorAll('.ext-folha-alca, .ext-folha-topo');
+  alvos.forEach((el) => {
+    el.addEventListener(
+      'touchstart',
+      (e) => {
+        y0 = e.touches[0].clientY;
+        dy = 0;
+        painel.style.transition = 'none';
+      },
+      { passive: true }
+    );
+    el.addEventListener(
+      'touchmove',
+      (e) => {
+        if (y0 == null) return;
+        dy = Math.max(0, e.touches[0].clientY - y0);
+        painel.style.transform = 'translateY(' + dy + 'px)';
+      },
+      { passive: true }
+    );
+    el.addEventListener('touchend', () => {
+      painel.style.transition = 'transform .18s ease';
+      if (dy > 90) fecharFolhaFiltros();
+      else painel.style.transform = '';
+      y0 = null;
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !folha.hidden) fecharFolhaFiltros();
+  });
 }
