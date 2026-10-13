@@ -3058,7 +3058,38 @@
             }
             .fat-topo { padding: 14px 16px 10px; }
             .fat-corpo { padding: 4px 16px calc(24px + env(safe-area-inset-bottom, 0px)); }
+            /* Firme: a tela rola só na vertical e não arrasta a página por baixo. */
+            .fat-overlay { overflow: hidden; overscroll-behavior: contain; }
+            .fat-folha { overflow: hidden; }
+            .fat-corpo { overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y pinch-zoom; }
+            .fat-meses, .fat-cartoes { touch-action: pan-x pinch-zoom; overscroll-behavior-x: contain; }
             body.faturas-aberta { overflow: hidden; }
+        }
+
+        /* === Mês em visão do Controle (seletor próprio, em português) === */
+        .seletor-mes {
+            display: flex; align-items: center; gap: 2px; padding: 3px; min-height: 40px; box-sizing: border-box;
+            background: var(--cor-branco); border: 1px solid var(--cor-borda); border-radius: 10px;
+        }
+        .seletor-mes .mes-seta {
+            border: none !important; background: none !important; padding: 4px 6px !important;
+            font-size: 18px; display: inline-flex; align-items: center; justify-content: center; color: var(--cor-texto-secundario);
+        }
+        .mes-rotulo {
+            position: relative; flex: 1 1 auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            min-width: 128px; padding: 0 6px; white-space: nowrap; cursor: pointer;
+            font-size: 13.5px; font-weight: 600; color: var(--cor-texto-principal);
+        }
+        .mes-rotulo i { font-size: 12px; color: var(--cor-texto-mutado); }
+        .mes-rotulo input {
+            position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; padding: 0; border: 0;
+            opacity: 0; cursor: pointer; font-size: 16px; min-height: 0 !important;
+        }
+        .mes-rotulo:focus-within { outline: 2px solid var(--cor-primaria); outline-offset: 2px; border-radius: 6px; }
+        /* Toque (celular e tablet): campo com fonte < 16px faz o Safari dar
+           zoom e a página fica solta, arrastando para os lados. */
+        @media (pointer: coarse) {
+            .ext-campo select { font-size: 16px !important; }
         }
 
         /* === EXTRATO: dia, fatura, ordem e rodapé === */
@@ -10972,14 +11003,16 @@
             #extratoUnificado [id^="acao-pagar-list-"] > button.ext-fat-abrir { display: none !important; }
             /* Extrato por dia: cabeçalho do dia dentro do cartão branco; a
                fatura abre as compras com um recuo. */
-            #extratoUnificado .ext-dia-cab { padding: 14px 16px 6px; border-bottom: none; font-size: 12px; }
+            /* Sem sticky no celular: a barra Resumo/Extrato/Projeção já gruda no
+               topo, e dois elementos grudando no mesmo lugar tremem na rolagem. */
+            #extratoUnificado .ext-dia-cab { position: static; padding: 14px 16px 6px; border-bottom: none; font-size: 12px; }
             #extratoUnificado .ext-dia + .ext-dia .ext-dia-cab { border-top: 1px solid var(--cor-borda); }
             #extratoUnificado .ext-dia:first-child .ext-dia-cab { border-radius: 20px 20px 0 0; }
             #extratoUnificado .ext-fatura-itens { margin-left: 34px; padding-left: 0; border-left: 2px solid var(--cor-borda-amber); }
             #controle .ext-ferramentas { flex-wrap: nowrap; gap: 8px; }
             #controle .ext-campo { flex: 1 1 0; min-width: 0; }
             #controle .ext-campo > span { display: none; }
-            #controle .ext-campo select { width: 100%; max-width: none; min-height: 40px; border-radius: 12px; font-size: 13px; }
+            #controle .ext-campo select { width: 100%; max-width: none; min-height: 44px; border-radius: 12px; font-size: 16px !important; }
             #controle .page-actions > .btn-faturas { font-size: 0; width: 44px !important; padding: 0; }
             #controle .page-actions > .btn-faturas .ph-credit-card { font-size: 19px; }
             /* Sem os ícones na linha, o valor ganha o lado direito inteiro;
@@ -11322,6 +11355,57 @@
                 display: inline-flex; align-items: center; justify-content: center;
                 width: 44px !important; padding: 0; font-size: 19px;
             }
+
+            /* ---- Cabeçalho de app: título com os atalhos ao lado, e o mês
+               numa pílula larga logo abaixo. A .page-actions some como caixa
+               (display: contents) e os botões dela viram células da grade do
+               cabeçalho. "Hoje" só aparece fora do mês atual, ao lado do mês. */
+            #controle .page-header {
+                display: grid !important; grid-template-columns: minmax(0, 1fr) 44px 44px 44px;
+                align-items: center; column-gap: 8px; row-gap: 6px; margin-bottom: 14px !important;
+                padding-bottom: 0 !important; border-bottom: none !important;
+            }
+            /* Linha 1: saudação e atalhos; linha 2: o título inteiro. */
+            #controle .page-header > .page-header-left { display: contents !important; }
+            #controle .page-header-left > .mob-saudacao { grid-column: 1; grid-row: 1; margin: 0 !important; align-self: center; }
+            #controle .page-header-left > h1 { grid-column: 1 / -1; grid-row: 2; }
+            #controle .page-header-left h1 {
+                font-size: 26px !important; line-height: 1.15; letter-spacing: -0.6px; margin: 0 !important;
+                white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            }
+            #controle .page-header > .page-actions { display: contents !important; }
+            #controle .page-actions > .mob-olho,
+            #controle .page-actions > .btn-faturas,
+            #controle .page-actions > .btn-config {
+                grid-row: 1; width: 44px !important; height: 44px; min-height: 44px; padding: 0 !important;
+                display: inline-flex !important; align-items: center; justify-content: center;
+                border-radius: 50% !important; border: 1px solid var(--cor-borda) !important;
+                background: var(--cor-branco) !important; color: var(--cor-texto-principal) !important;
+                font-size: 0 !important; box-shadow: none !important;
+            }
+            #controle .page-actions > .mob-olho i,
+            #controle .page-actions > .btn-faturas i,
+            #controle .page-actions > .btn-config i { font-size: 20px !important; }
+            #controle .page-actions > .mob-olho { grid-column: 2; }
+            #controle .page-actions > .btn-faturas { grid-column: 3; }
+            #controle .page-actions > .btn-config { grid-column: 4; }
+            #controle .page-actions > .seletor-mes {
+                grid-column: 1 / -1; grid-row: 3; margin-top: 8px !important; min-height: 52px; padding: 4px !important; gap: 4px;
+                border-radius: 16px !important; justify-content: space-between;
+            }
+            #controle.mob-fora-do-mes .page-actions > .seletor-mes { grid-column: 1 / 3; }
+            #controle.mob-fora-do-mes .page-actions > .btn-mes-hoje {
+                grid-column: 3 / -1; grid-row: 3; margin-top: 8px !important; display: inline-flex !important; align-items: center; justify-content: center;
+                width: auto !important; height: 52px; padding: 0 !important;
+                border-radius: 16px !important; font-size: 14px !important; font-weight: 700;
+                background: var(--cor-texto-principal) !important; color: var(--cor-branco) !important; border: none !important;
+            }
+            #controle .seletor-mes .mes-seta {
+                width: 44px; height: 44px; min-width: 44px; border-radius: 12px; font-size: 20px;
+                background: var(--cor-superficie) !important; color: var(--cor-texto-principal);
+            }
+            #controle .mes-rotulo { font-size: 17px; font-weight: 700; letter-spacing: -0.2px; min-height: 44px; }
+            #controle .mes-rotulo i { font-size: 14px; }
 
             /* Os blocos novos fazem as vezes destes: heróis e termômetro (o
                cartão do topo), aviso do saldo trazido (a linha roxa dentro
@@ -13602,15 +13686,24 @@
                         </span>
                         <i class="ph ph-caret-right term-chip-seta" aria-hidden="true"></i>
                     </button>
-                    <div class="seletor-mes" style="display:flex;align-items:center;gap:4px;background:var(--cor-branco);border:1px solid var(--cor-borda);border-radius:9px;padding:4px 8px;">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(-1)"><i class="ph ph-caret-left" style="font-size:18px;"></i></button>
-                        <input type="month" id="inputMesAnoVisao" class="filtro-data" style="border:none;background:none;padding:0;font-size:13px;font-weight:500;" onchange="selecionarMesVisao()">
-                        <button class="btn-secundario" style="border:none;padding:3px 5px;background:none;" onclick="mudarMesVisao(1)"><i class="ph ph-caret-right" style="font-size:18px;"></i></button>
+                    <!-- Mês em visão. O texto é nosso ("Outubro 2026"), não o do
+                         <input type="month"> — que no celular mostrava o mês em
+                         inglês e sem o ano. O input fica por cima, invisível, só
+                         para abrir o seletor nativo; com 16px, porque fonte
+                         menor faz o Safari do iPhone dar zoom e a página inteira
+                         ficar solta, arrastando para os lados. -->
+                    <div class="seletor-mes">
+                        <button type="button" class="btn-secundario mes-seta" onclick="mudarMesVisao(-1)" aria-label="Mês anterior"><i class="ph ph-caret-left"></i></button>
+                        <label class="mes-rotulo">
+                            <span id="lblMesVisao"></span><i class="ph ph-caret-down" aria-hidden="true"></i>
+                            <input type="month" id="inputMesAnoVisao" class="filtro-data" aria-label="Escolher o mês" onclick="try { this.showPicker(); } catch (e) {}" onchange="selecionarMesVisao()">
+                        </label>
+                        <button type="button" class="btn-secundario mes-seta" onclick="mudarMesVisao(1)" aria-label="Próximo mês"><i class="ph ph-caret-right"></i></button>
                     </div>
-                    <button class="btn-secundario" onclick="irParaMesAtual()">Hoje</button>
+                    <button type="button" class="btn-secundario btn-mes-hoje" onclick="irParaMesAtual()">Hoje</button>
                     <button type="button" class="btn-secundario mob-olho" onclick="mobAlternarValores()" aria-label="Esconder ou mostrar valores"><i class="ph ph-eye"></i></button>
-                    <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()"><i class="ph ph-credit-card"></i> Faturas</button>
-                    <button class="btn-secundario" onclick="abrirModalConfig()"><i class="ph ph-sliders"></i> Configurações</button>
+                    <button type="button" class="btn-secundario btn-faturas" onclick="abrirFaturas()" aria-label="Faturas do cartão"><i class="ph ph-credit-card"></i> Faturas</button>
+                    <button type="button" class="btn-secundario btn-config" onclick="abrirModalConfig()" aria-label="Configurações"><i class="ph ph-sliders"></i> Configurações</button>
                     <button class="btn-acao" onclick="abrirPainelLancamento()" style="background-color: var(--cor-primaria);"><i class="ph-bold ph-plus"></i> Novo lançamento</button>
                 </div>
             </div>

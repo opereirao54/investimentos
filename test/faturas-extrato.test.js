@@ -316,3 +316,18 @@ test('os três filtros se somam, e o de conta/cartão entra no mesmo teste', () 
   assert.match(CF, /data-ext-origem="\$\{origem\.chave/);
   assert.match(CF, /data-ext-valor="\$\{/, 'o subtotal do dia soma o que está visível');
 });
+
+test('cabeçalho do Controle: mês em português e campos que não dão zoom no iPhone', () => {
+  // O <input type="month"> mostrava "October" no celular. O texto agora é
+  // nosso, e o input fica por cima, invisível, com 16px — fonte menor faz o
+  // Safari dar zoom e a página inteira ficar solta, arrastando para os lados.
+  assert.match(HTML, /<span id="lblMesVisao"><\/span>/);
+  assert.match(HTML, /\.mes-rotulo input \{[^}]*opacity: 0;[^}]*font-size: 16px;/s);
+  assert.match(CF, /lblMes\.textContent = nome\.charAt\(0\)\.toUpperCase\(\)/);
+  assert.match(HTML, /#controle \.ext-campo select \{[^}]*font-size: 16px !important;/);
+  // Cabeçalho de app no celular: os botões viram células da grade.
+  assert.match(
+    HTML,
+    /#controle \.page-header > \.page-actions \{ display: contents !important; \}/
+  );
+});

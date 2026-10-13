@@ -3181,6 +3181,13 @@ function atualizarTelaControle() {
   normalizarDespesasProgramadas();
   const mesFormatado = (visaoMes + 1).toString().padStart(2, '0');
   document.getElementById('inputMesAnoVisao').value = `${visaoAno}-${mesFormatado}`;
+  // O mês por extenso, em português: o texto do <input type="month"> segue o
+  // idioma do aparelho e no celular mostrava só "October".
+  const lblMes = document.getElementById('lblMesVisao');
+  if (lblMes) {
+    const nome = FATURA_MESES[visaoMes];
+    lblMes.textContent = nome.charAt(0).toUpperCase() + nome.slice(1) + ' ' + visaoAno;
+  }
   const nomeMeses = [
     'Jan',
     'Fev',
