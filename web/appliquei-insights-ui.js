@@ -360,10 +360,94 @@ function insightsUiApresentar(ins) {
         // Sem esta linha o número parece brigar com o saldo livre do topo.
         ['Conta feita sobre', 'saldo das contas cadastradas, por data'],
       ],
+      // Os lançamentos que fazem a conta — "quais contas são essas?" era a
+      // pergunta seguinte de quem lia o aviso.
+      composicao: ins.composicao || null,
       acao: { rotulo: 'Ver os vencimentos', icone: 'ph ph-calendar-dots' },
     };
   }
   return null;
+}
+
+/**
+ * O que compõe o aviso de aperto: o saldo de hoje nas contas e cada
+ * lançamento agendado até o dia que fecha a janela (a volta ao positivo, ou o
+ * primeiro dia no vermelho quando não há volta). A lista vem de
+ * `movimentosAgendados` (contas.js) — a MESMA que o saldo projetado soma —,
+ * então saldo de hoje + lançamentos = saldo do último dia, sem segunda conta.
+ */
+function insightsUiComposicaoAperto(ins, saldoEm) {
+  if (!ins || ins.tipo !== 'aperto' || typeof saldoEm !== 'function') return null;
+  if (typeof movimentosAgendados !== 'function') return null;
+  var agora = Date.now();
+  var ate = ins.recuperaMs != null ? ins.recuperaMs : ins.quandoMs;
+  var itens = movimentosAgendados(agora, ate)
+    .map(function (m) {
+      return {
+        ms: m.ms,
+        descricao: (m.t && m.t.descricao) || 'Lançamento',
+        conta: m.rotuloConta || '',
+        valor: m.valor,
+        vencida: m.ms < agora - 43200000,
+      };
+    })
+    .sort(function (a, b) {
+      return a.ms - b.ms || a.valor - b.valor;
+    });
+  return { saldoHoje: Number(saldoEm(agora)) || 0, itens: itens, ateMs: ate };
+}
+
+var INSIGHTS_UI_MAX_ITENS_COMPOSICAO = 12;
+
+function insightsUiComposicaoHtml(c) {
+  if (!c || !c.itens || !c.itens.length) return '';
+  var v = function (n) {
+    return typeof formatarMoeda === 'function' ? formatarMoeda(n) : 'R$ ' + Number(n).toFixed(2);
+  };
+  var dia = function (ms) {
+    return new Date(ms).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  };
+  var linha = function (quando, desc, conta, valor, classe) {
+    return (
+      '<div class="ins-comp-linha' +
+      (classe ? ' ' + classe : '') +
+      '"><span class="ins-comp-dia">' +
+      insightsUiEscapar(quando) +
+      '</span><span class="ins-comp-desc">' +
+      insightsUiEscapar(desc) +
+      (conta ? '<small>' + insightsUiEscapar(conta) + '</small>' : '') +
+      '</span><b class="valor-mascarado">' +
+      insightsUiEscapar(valor) +
+      '</b></div>'
+    );
+  };
+  var mostrar = c.itens.slice(0, INSIGHTS_UI_MAX_ITENS_COMPOSICAO);
+  var resto = c.itens.length - mostrar.length;
+  return (
+    '<div class="ins-comp">' +
+    '<div class="ins-comp-titulo">Lançamentos que entram na conta</div>' +
+    linha('hoje', 'Saldo nas suas contas', '', v(c.saldoHoje), 'ins-comp-base') +
+    mostrar
+      .map(function (it) {
+        return linha(
+          it.vencida ? 'vencida' : dia(it.ms),
+          it.descricao,
+          it.conta,
+          (it.valor >= 0 ? '+' : '−') + v(Math.abs(it.valor)),
+          it.valor >= 0 ? 'ins-comp-entra' : 'ins-comp-sai'
+        );
+      })
+      .join('') +
+    (resto > 0
+      ? '<div class="ins-comp-mais">e mais ' +
+        resto +
+        (resto === 1 ? ' lançamento' : ' lançamentos') +
+        ' até ' +
+        dia(c.ateMs) +
+        '</div>'
+      : '') +
+    '</div>'
+  );
 }
 
 function insightsUiCard(ins, serie) {
@@ -431,6 +515,7 @@ function insightsUiCard(ins, serie) {
     '<summary><i class="ph ph-caret-down"></i> Por que estou vendo isto</summary>' +
     '<div class="ins-porque-corpo">' +
     prova +
+    insightsUiComposicaoHtml(ap.composicao) +
     '</div>' +
     '</details>' +
     '<div class="ins-card-acoes">' +
@@ -860,6 +945,11 @@ function insightsUiRenderizar() {
     return;
   }
   insightsUiUltimo = r;
+  if (saldoEm) {
+    r.insights.forEach(function (i) {
+      if (i.tipo === 'aperto') i.composicao = insightsUiComposicaoAperto(i, saldoEm);
+    });
+  }
 
   var lista = transacoes;
   // A recusa de projetar é informação, não silêncio: sem isto a tela diz
@@ -921,6 +1011,7 @@ if (typeof window !== 'undefined') {
     restaurarTodos: insightsUiRestaurarTodos,
     sparkline: insightsUiSparkline,
     apresentar: insightsUiApresentar,
+    composicaoAperto: insightsUiComposicaoAperto,
     serie: insightsUiSerie,
     agir: insightsUiAgir,
     realcar: insightsUiRealcar,

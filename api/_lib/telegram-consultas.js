@@ -493,12 +493,21 @@ function fonteDeSaldo(dados, agoraMs) {
  * saldo projetado fica negativo, o pior valor e o dia em que volta ao azul.
  */
 function aperto(saldoEm, agoraMs, dias) {
-  const DIA = 86400000;
   let furo = null;
   let recupera = null;
   let pior = 0;
+  // Cada dia no FIM dele, como no app: vencimento conta a partir do meio-dia,
+  // e `agora + d dias` de manhã empurrava o furo um dia para a frente.
+  const base = new Date(agoraMs);
   for (let d = 1; d <= (dias || 45); d++) {
-    const ms = agoraMs + d * DIA;
+    const ms = new Date(
+      base.getFullYear(),
+      base.getMonth(),
+      base.getDate() + d,
+      23,
+      59,
+      59
+    ).getTime();
     const saldo = Number(saldoEm(ms));
     if (!isFinite(saldo)) continue;
     if (saldo < 0) {

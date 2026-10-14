@@ -636,13 +636,24 @@ function insightsAperto(opcoes) {
   if (typeof saldoEm !== 'function') return null;
 
   var agora = cfg.agora != null ? cfg.agora : Date.now();
-  var DIA = 86400000;
   var furo = null;
   var recupera = null;
   var pior = 0;
 
+  // Cada dia é olhado no FIM dele, não na hora de agora. Vencimento conta a
+  // partir do meio-dia (mpDataMovimento); aberto de manhã, `agora + d dias`
+  // caía antes do meio-dia e o aluguel do dia 15 só "vencia" no dia 16 — o
+  // aviso dizia "primeiro dia no vermelho: 16/10" listando contas de 15/10.
+  var base = new Date(agora);
   for (var d = 1; d <= cfg.diasJanelaAperto; d++) {
-    var ms = agora + d * DIA;
+    var ms = new Date(
+      base.getFullYear(),
+      base.getMonth(),
+      base.getDate() + d,
+      23,
+      59,
+      59
+    ).getTime();
     var saldo = Number(saldoEm(ms));
     if (!isFinite(saldo)) continue;
     if (saldo < 0) {
