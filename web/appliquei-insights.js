@@ -644,8 +644,11 @@ function insightsAperto(opcoes) {
   // partir do meio-dia (mpDataMovimento); aberto de manhã, `agora + d dias`
   // caía antes do meio-dia e o aluguel do dia 15 só "vencia" no dia 16 — o
   // aviso dizia "primeiro dia no vermelho: 16/10" listando contas de 15/10.
+  // Começa pelo fim de HOJE (d = 0): a conta que vence hoje com o salário
+  // amanhã é o aperto mais urgente de todos — começando em amanhã, o salário
+  // já tinha entrado e o aviso sumia.
   var base = new Date(agora);
-  for (var d = 1; d <= cfg.diasJanelaAperto; d++) {
+  for (var d = 0; d <= cfg.diasJanelaAperto; d++) {
     var ms = new Date(
       base.getFullYear(),
       base.getMonth(),

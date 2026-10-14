@@ -498,8 +498,9 @@ function aperto(saldoEm, agoraMs, dias) {
   let pior = 0;
   // Cada dia no FIM dele, como no app: vencimento conta a partir do meio-dia,
   // e `agora + d dias` de manhã empurrava o furo um dia para a frente.
+  // Começa pelo fim de HOJE: conta vencendo hoje com o salário amanhã.
   const base = new Date(agoraMs);
-  for (let d = 1; d <= (dias || 45); d++) {
+  for (let d = 0; d <= (dias || 45); d++) {
     const ms = new Date(
       base.getFullYear(),
       base.getMonth(),

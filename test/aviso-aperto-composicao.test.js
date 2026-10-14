@@ -120,3 +120,18 @@ test('aberto de manhã, a conta que vence amanhã fura AMANHÃ — não depois d
   assert.equal(ins.emDias, 1);
   assert.equal(new Date(ins.quandoMs).getDate(), new Date(meioDiaAmanha).getDate());
 });
+
+test('conta vencendo HOJE com o salário amanhã: o aviso aparece, com o furo hoje', () => {
+  // Regressão real: ao olhar o fim de cada dia começando por amanhã, o salário
+  // de amanhã já tinha entrado e o aviso sumia — justo no aperto mais urgente.
+  const s = carregarApp({}, ORDEM);
+  const manha = new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate(), 6, 23).getTime();
+  const meioDiaHoje = new Date(HOJE.getFullYear(), HOJE.getMonth(), HOJE.getDate(), 12).getTime();
+  const meioDiaAmanha = meioDiaHoje + 86400000;
+  const saldoEm = (ms) => 286 - (ms >= meioDiaHoje ? 1200 : 0) + (ms >= meioDiaAmanha ? 5200 : 0);
+  const ins = s.AppliqueiInsights.aperto({ saldoEm, agora: manha, diasJanelaAperto: 5 });
+  assert.ok(ins, 'o aviso existe');
+  assert.equal(ins.emDias, 0);
+  assert.equal(new Date(ins.quandoMs).getDate(), new Date(meioDiaHoje).getDate());
+  assert.equal(new Date(ins.recuperaMs).getDate(), new Date(meioDiaAmanha).getDate());
+});
