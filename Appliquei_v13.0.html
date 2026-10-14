@@ -8131,8 +8131,11 @@
             font-size: 14px; color: var(--cor-texto-principal);
         }
         .appq-combo-opt:hover, .appq-combo-opt.ativo { background: var(--cor-superficie); }
-        .appq-combo-opt-v { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .appq-combo-opt-l { font-size: 11.5px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; flex-shrink: 0; }
+        /* O nome da conta nunca some: quem encolhe (com reticências) é a
+           explicação ao lado — "recebe R$ 5.000,00 em 18/10" empurrava o nome
+           para fora da linha no celular. */
+        .appq-combo-opt-v { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 auto; min-width: 72px; }
+        .appq-combo-opt-l { font-size: 11.5px; color: var(--cor-texto-mutado); font-family: 'DM Mono', monospace; flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
         .appq-combo-empty {
             padding: 11px 12px; font-size: 13px; color: var(--cor-texto-mutado);
             display: flex; align-items: center; gap: 6px; border-radius: 8px;
@@ -13213,7 +13216,7 @@
                 <select id="compraOrigemRecurso" onchange="ajustarOrigemRecursoCampos()">
                     <option value="">— selecione a conta —</option>
                 </select>
-                <small id="dicaOrigemRecurso" style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Só aparecem contas com saldo disponível. Sem saldo em conta, use <em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.</small>
+                <small id="dicaOrigemRecurso" style="font-size:11px;color:var(--cor-texto-mutado);display:block;margin-top:5px;">Contas sem saldo aparecem apagadas, com o motivo. Sem saldo em conta, use <em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.</small>
                 <input type="text" id="compraOrigemBanco" list="listaCorretoras" placeholder="Ex.: Bradesco, Nubank..." style="display:none;margin-top:8px;width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:13px;background:var(--cor-superficie);color:var(--cor-texto-principal);">
             </div>
             <div class="form-group" id="grupoDestinoRecurso" style="display:none;">
@@ -14222,7 +14225,7 @@
                              salvamento lê; o seletor é quem o preenche. -->
                         <div class="form-group" id="grupoVencimentoControle">
                             <label>Vencimento</label>
-                            <input type="date" id="dataVencimento">
+                            <input type="date" id="dataVencimento" onchange="if (typeof atualizarSugestoesBancoTransacao === 'function') atualizarSugestoesBancoTransacao()">
                         </div>
                     </div>
                     <div class="grid-2-iguais" style="gap:12px;align-items:end;">
@@ -14232,13 +14235,16 @@
 
                     <div class="form-group" id="grupoBancoReceita" style="display:none;">
                         <label id="lblBancoTransacao">Banco / instituição que recebe <span style="color:var(--cor-erro);">*</span></label>
-                        <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
+                        <input type="text" id="bancoTransacao" list="listaBancosTransacao" placeholder="Ex: Nubank, Itaú, Bradesco..." oninput="avisarContaNovaTransacao()" style="width:100%;padding:10px 13px;border:1.5px solid var(--cor-borda);border-radius:9px;font-size:14px;background:var(--cor-superficie);color:var(--cor-texto-principal);font-family:'Figtree',sans-serif;">
                         <datalist id="listaBancosTransacao"></datalist>
                         <!-- O asterisco lê-se como "escolha uma conta que você
                              já cadastrou" — e foi essa leitura que travou o
                              primeiro uso. O campo é texto livre: quem escreve
                              um nome novo ganha a conta na hora. -->
-                        <small style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
+                        <!-- Com contas já cadastradas, o texto avisa quando o
+                             nome digitado NÃO é nenhuma delas: salvar criaria
+                             uma segunda conta (avisarContaNovaTransacao). -->
+                        <small id="dicaBancoTransacao" style="display:block;font-size:11px;color:var(--cor-texto-mutado);margin-top:5px;line-height:1.45;"><i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.</small>
                     </div>
 
                     <div class="form-group" id="grupoCategoriaDespesa" style="display:none;">

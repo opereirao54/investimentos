@@ -1241,16 +1241,125 @@ function inicializarDatalistCorretoras() {
   const dl = document.getElementById('listaCorretoras');
   if (!dl) return;
   dl.innerHTML = '';
-  // Junta as padrão com qualquer corretora que o usuário já tenha digitado
+  // As contas que a pessoa já tem vêm primeiro: a NuInvest em que o salário
+  // cai é a mesma onde o investimento fica. Sem elas na lista, "Nu Invest"
+  // digitado aqui virava uma segunda conta. Depois, as padrão e as já usadas.
+  const nomesContas = typeof contasAtivas === 'function' ? contasAtivas().map((c) => c.nome) : [];
   const usadas = [...new Set(historicoCompras.map((op) => op.corretora).filter(Boolean))];
-  const todas = [...new Set([...LISTA_CORRETORAS, ...usadas])].sort((a, b) =>
-    a.localeCompare(b, 'pt-BR')
-  );
-  todas.forEach((nome) => {
+  const outras = [...new Set([...LISTA_CORRETORAS, ...usadas])]
+    .filter((n) => !nomesContas.some((c) => mesmaInstituicao(c, n)))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  nomesContas.forEach((nome) => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.label = 'sua conta';
+    dl.appendChild(opt);
+  });
+  outras.forEach((nome) => {
     const opt = document.createElement('option');
     opt.value = nome;
     dl.appendChild(opt);
   });
+}
+
+// Data de referência do saldo no formulário do Controle: o vencimento, se for
+// futuro (o que vale é quanto a conta terá naquele dia); senão, agora.
+function dataLancamentoRefMs() {
+  const el = document.getElementById('dataVencimento');
+  const v = el ? el.value : '';
+  const ts = v ? new Date(v + 'T12:00:00').getTime() : NaN;
+  return isFinite(ts) && ts > Date.now() ? ts : Date.now();
+}
+
+// Próxima entrada ainda não recebida numa conta — explica o "sem saldo" de
+// quem acabou de cadastrar o salário a receber.
+function proximaEntradaPendenteDaConta(contaId) {
+  if (typeof transacoes === 'undefined' || !contaId) return null;
+  let melhor = null;
+  transacoes.forEach((t) => {
+    if (t.pago || t.contaId !== contaId || !t.dataVencimento) return;
+    if (t.categoria !== 'receita' && t.categoria !== 'resgate_investimento') return;
+    if (!melhor || t.dataVencimento < melhor.dataVencimento) melhor = t;
+  });
+  return melhor;
+}
+
+function _ddmm(ymd) {
+  const p = String(ymd || '').split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] : '';
+}
+
+// As contas para "de onde sai" uma despesa: TODAS as ativas (com o saldo na
+// data do lançamento, da maior para a menor) e, depois, instituições antigas
+// só com nome que ainda têm dinheiro. Nunca esconde uma conta da pessoa — a
+// que está sem saldo aparece dizendo por quê.
+function sugestoesContasDeSaida(refMs) {
+  const fmt = (v) => (typeof formatarMoeda === 'function' ? formatarMoeda(v) : 'R$ ' + v);
+  const futura = refMs > Date.now() + 60000;
+  const saldos = typeof saldoCaixaPorConta === 'function' ? saldoCaixaPorConta(refMs) : {};
+  const itens = (typeof contasAtivas === 'function' ? contasAtivas() : []).map((c) => {
+    const saldo = Number(saldos[c.id]) || 0;
+    let rotulo;
+    if (saldo > 0.005) rotulo = fmt(saldo) + (futura ? ' previsto nessa data' : ' disponível');
+    else {
+      const prox = proximaEntradaPendenteDaConta(c.id);
+      rotulo = prox
+        ? 'recebe ' + fmt(prox.valor) + ' em ' + _ddmm(prox.dataVencimento)
+        : saldo < -0.005
+          ? fmt(saldo) + ' (negativo)'
+          : 'sem saldo';
+    }
+    return { nome: c.nome, saldo, rotulo };
+  });
+  if (typeof mpCalcularSaldoPorInstituicao === 'function') {
+    const inst = mpCalcularSaldoPorInstituicao(refMs);
+    Object.values(inst).forEach((v) => {
+      if (String(v.key).indexOf('nome:') !== 0 || (v.caixa || 0) <= 0.005) return;
+      if (itens.some((i) => i.nome === v.label)) return;
+      itens.push({ nome: v.label, saldo: v.caixa, rotulo: fmt(v.caixa) + ' disponível' });
+    });
+  }
+  return itens.sort((a, b) => b.saldo - a.saldo);
+}
+
+// Quando a pessoa JÁ tem contas e digita um nome que não é nenhuma delas,
+// avisa antes de salvar: é assim que nascia a segunda conta sem querer.
+function avisarContaNovaTransacao() {
+  const el = document.getElementById('dicaBancoTransacao');
+  const inp = document.getElementById('bancoTransacao');
+  if (!el || !inp) return;
+  const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+  const nome = (inp.value || '').trim();
+  const existe =
+    !nome || (typeof obterContaPorNomeOuAlias === 'function' && !!obterContaPorNomeOuAlias(nome));
+  if (!ativas.length) {
+    el.innerHTML =
+      '<i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Não precisa ter cadastrado a conta antes — digite o nome e nós criamos para você.';
+    return;
+  }
+  if (existe) {
+    el.innerHTML =
+      '<i class="ph ph-info" style="color:var(--cor-info);vertical-align:-1px;"></i> Escolha uma das suas contas na lista.';
+    return;
+  }
+  const esc = (s) =>
+    String(s).replace(
+      /[&<>"]/g,
+      (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+    );
+  el.innerHTML =
+    '<i class="ph ph-warning" style="color:var(--cor-alerta,#d97706);vertical-align:-1px;"></i> <strong>' +
+    esc(nome) +
+    '</strong> ainda não é uma conta sua — ao salvar, vira uma conta nova. Suas contas: ' +
+    ativas.map((c) => esc(c.nome)).join(', ') +
+    '.';
+}
+
+// Trocar a data muda o saldo projetado de cada conta: refaz a lista.
+function atualizarSugestoesBancoTransacao() {
+  const cat = (document.getElementById('categoriaTransacao') || {}).value;
+  const grupo = document.getElementById('grupoBancoReceita');
+  if (grupo && grupo.style.display !== 'none' && cat) inicializarDatalistBancosTransacao(cat);
 }
 
 function inicializarDatalistBancosTransacao(cat) {
@@ -1258,38 +1367,61 @@ function inicializarDatalistBancosTransacao(cat) {
   if (!dl) return;
   dl.innerHTML = '';
 
-  // 4.8 — Despesa = dinheiro SAINDO: sugere só instituições que já têm
-  // saldo, da maior pra menor (preenchimento rápido). Se houver uma só,
-  // preenche automaticamente (menos cliques). Receita/resgate: lista
-  // completa, pois o dinheiro pode entrar num banco ainda sem saldo.
+  // Despesa = dinheiro SAINDO: as contas da pessoa vêm primeiro, da que tem
+  // mais saldo para a que tem menos — e TODAS aparecem. Antes só entravam as
+  // de saldo positivo HOJE: quem cadastrava o salário a receber na NuInvest e
+  // em seguida uma despesa não via a NuInvest, digitava outro nome e ganhava
+  // uma segunda conta sem perceber. O saldo é o projetado para a data do
+  // lançamento (o salário que cai antes do vencimento conta).
   const ehSaida = cat === 'despesa_fixa' || cat === 'despesa_variavel';
-  if (ehSaida && typeof mpCalcularSaldoPorInstituicao === 'function') {
-    const saldos = mpCalcularSaldoPorInstituicao(Date.now());
-    const comSaldo = Object.values(saldos)
-      .filter((v) => (v.caixa || 0) > 0.005)
-      .sort((a, b) => b.caixa - a.caixa);
-    comSaldo.forEach((v) => {
+  if (ehSaida) {
+    const itens = sugestoesContasDeSaida(dataLancamentoRefMs());
+    itens.forEach((v) => {
       const opt = document.createElement('option');
-      opt.value = v.label;
-      opt.label = typeof formatarMoeda === 'function' ? `${formatarMoeda(v.caixa)} disponível` : '';
+      opt.value = v.nome;
+      opt.label = v.rotulo;
       dl.appendChild(opt);
     });
     const inp = document.getElementById('bancoTransacao');
-    if (inp && !inp.value && comSaldo.length === 1) inp.value = comSaldo[0].label;
+    const ativas = typeof contasAtivas === 'function' ? contasAtivas() : [];
+    if (inp && !inp.value && ativas.length === 1) inp.value = ativas[0].nome;
+    else if (
+      inp &&
+      !inp.value &&
+      itens.length &&
+      itens[0].saldo > 0.005 &&
+      !(itens[1] && itens[1].saldo > 0.005)
+    )
+      inp.value = itens[0].nome; // uma só com dinheiro: é ela
+    avisarContaNovaTransacao();
     return;
   }
 
+  // Entrada: as contas da pessoa primeiro (marcadas), depois as sugestões.
   const nomesContas = typeof contasAtivas === 'function' ? contasAtivas().map((c) => c.nome) : [];
   const usadosCorretora = historicoCompras.map((op) => op.corretora).filter(Boolean);
   const usadosBancoTx = (transacoes || []).map((t) => t.banco).filter(Boolean);
-  const todos = [
-    ...new Set([...nomesContas, ...LISTA_CORRETORAS, ...usadosCorretora, ...usadosBancoTx]),
-  ].sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  todos.forEach((nome) => {
+  const outros = [...new Set([...LISTA_CORRETORAS, ...usadosCorretora, ...usadosBancoTx])]
+    .filter((n) => !nomesContas.some((c) => mesmaInstituicao(c, n)))
+    .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+  nomesContas.forEach((nome) => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.label = 'sua conta';
+    dl.appendChild(opt);
+  });
+  outros.forEach((nome) => {
     const opt = document.createElement('option');
     opt.value = nome;
     dl.appendChild(opt);
   });
+  avisarContaNovaTransacao();
+}
+
+// "NuInvest", "Nu Invest" e "nu-invest" são a mesma instituição.
+function mesmaInstituicao(a, b) {
+  const k = appliqueiChaveCompactaConta;
+  return !!k(a) && k(a) === k(b);
 }
 
 function categoriaInferidaDoMercado(ticker) {
@@ -1644,9 +1776,29 @@ function popularOrigemRecurso() {
     : typeof optionsContasComSaldo === 'function'
       ? optionsContasComSaldo({ semPlaceholder: true, refMs: refMs })
       : '';
+  // Contas SEM saldo nessa data aparecem desabilitadas, dizendo por quê —
+  // sumir com elas fazia a pessoa achar que a conta não existia (e criar
+  // outra). Comprar delas continua barrado: o caixa não pode ficar negativo.
+  const fmt = (v) => (typeof formatarMoeda === 'function' ? formatarMoeda(v) : 'R$ ' + v);
+  const semSaldo = (typeof contasAtivas === 'function' ? contasAtivas() : []).filter(
+    (c) => !comSaldo.some((x) => x.conta.id === c.id)
+  );
+  const semSaldoHtml = semSaldo
+    .map((c) => {
+      const prox =
+        typeof proximaEntradaPendenteDaConta === 'function'
+          ? proximaEntradaPendenteDaConta(c.id)
+          : null;
+      const motivo = prox
+        ? 'recebe ' + fmt(prox.valor) + ' em ' + _ddmm(prox.dataVencimento)
+        : 'sem saldo ' + (futura ? 'nessa data' : 'hoje');
+      return '<option value="" disabled>' + c.nome + ' — ' + motivo + '</option>';
+    })
+    .join('');
   sel.innerHTML =
     '<option value="">— selecione a conta —</option>' +
-    contasHtml +
+    (comSaldo.length ? contasHtml : semSaldo.length ? '' : contasHtml) +
+    semSaldoHtml +
     '<option value="' +
     ORIGEM_RETROATIVA +
     '">Investimento já existente — cadastro retroativo</option>' +
@@ -1708,7 +1860,7 @@ function ajustarOrigemRecursoCampos() {
         'despesas agendadas até lá.';
     } else {
       dica.innerHTML =
-        'Só aparecem contas com saldo disponível. Sem saldo em conta, use ' +
+        'Contas sem saldo aparecem apagadas, com o motivo. Sem saldo em conta, use ' +
         '<em>cadastro retroativo</em> ou <em>aporte externo</em> logo abaixo na lista.';
     }
   }

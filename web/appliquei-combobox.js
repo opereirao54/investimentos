@@ -74,10 +74,22 @@
 
     function render() {
       var termo = (input.value || '').trim().toLowerCase();
+      // "nu inves" também acha "NuInvest": compara sem espaço nem acento.
+      var compacto = function (s) {
+        return String(s || '')
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '');
+      };
+      var termoC = compacto(termo);
       var opts = opcoesDoDatalist(input.dataset.comboList);
       var filtradas = termo
         ? opts.filter(function (o) {
-            return o.value.toLowerCase().indexOf(termo) !== -1;
+            return (
+              o.value.toLowerCase().indexOf(termo) !== -1 ||
+              (termoC && compacto(o.value).indexOf(termoC) !== -1)
+            );
           })
         : opts;
       idxAtivo = -1;
