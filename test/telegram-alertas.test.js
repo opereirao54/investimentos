@@ -202,22 +202,71 @@ test('o agendamento do workflow cobre o começo de cada janela', () => {
   );
 });
 
-test('manhã: contas de hoje e amanhã, vencidas há até 3 dias, faturas', () => {
+test('manhã: contas de hoje e amanhã, vencidas em aberto, faturas', () => {
   const C = require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
   const avisos = A.avaliar(dadosPuros(), C.agoraBrasilia(MANHA), 'manha');
   const chaves = avisos.map((a) => a.chave);
   assert.deepEqual(chaves, [
     'venc:luz:2026-10-08:h',
     'venc:alug:2026-10-09:a',
-    'vencida:net:2026-10-06',
+    // A de 01/09 segue em aberto há 37 dias: lembrete semanal (5ª semana).
+    'vencida:velha:2026-09-01:s4',
+    // A de 06/10, há 2 dias: aviso diário nos 3 primeiros dias.
+    'vencida:net:2026-10-06:d2',
     'ff:card_nu:2026-10-10',
     'fv:card_c6:2026-10-09:a',
   ]);
-  // Paga, receita, vencida há mais de 3 dias e cartão arquivado ficam de fora.
-  assert.ok(!chaves.some((c) => /paga|rfut|velha|card_velho/.test(c)));
+  // Paga, receita e cartão arquivado ficam de fora.
+  assert.ok(!chaves.some((c) => /paga|rfut|card_velho/.test(c)));
+  assert.match(avisos[2].texto, /Velha<\/b> venceu 01\/09 \(há 37 dias\) e continua em aberto/);
+  assert.match(avisos[3].texto, /Internet<\/b> venceu 06\/10 \(há 2 dias\) e não está paga/);
   assert.match(avisos[0].texto, /<b>Hoje<\/b> vence <b>Luz<\/b>/);
-  assert.match(avisos[3].texto, /Nubank<\/b> fecha <b>sábado \(10\/10\)<\/b> com R\$\s300,00/);
-  assert.deepEqual(avisos[4].pagar.alvos, ['c61']);
+  assert.match(avisos[4].texto, /Nubank<\/b> fecha <b>sábado \(10\/10\)<\/b> com R\$\s300,00/);
+  assert.deepEqual(avisos[5].pagar.alvos, ['c61']);
+});
+
+test('conta vencida volta a ser lembrada: todo dia até o 3º, depois toda semana, até 90 dias', () => {
+  const C = require(path.join(ROOT, 'api/_lib/telegram-consultas.js'));
+  const base = dadosPuros();
+  base.transacoes = [
+    {
+      id: 'x',
+      categoria: 'despesa_fixa',
+      descricao: 'Condomínio',
+      valor: 470,
+      dataVencimento: '2026-10-10',
+      mes: 9,
+      ano: 2026,
+      pago: false,
+    },
+  ];
+  const chaveNoDia = (iso) => {
+    const a = A.avaliar(base, C.agoraBrasilia(new Date(iso)), 'manha').filter(
+      (x) => x.tipo === 'vencidas'
+    );
+    return a.length ? a[0].chave : null;
+  };
+  assert.equal(chaveNoDia('2026-10-10T11:30:00Z'), null, 'no dia é "vence hoje", não vencida');
+  const chaves = [];
+  for (let d = 11; d <= 31; d++)
+    chaves.push(chaveNoDia(`2026-10-${String(d).padStart(2, '0')}T11:30:00Z`));
+  // 3 diárias + uma por semana: o relato era "a do dia 10 sumiu no dia 15".
+  assert.deepEqual(
+    [...new Set(chaves)],
+    [
+      'vencida:x:2026-10-10:d1',
+      'vencida:x:2026-10-10:d2',
+      'vencida:x:2026-10-10:d3',
+      'vencida:x:2026-10-10:s0',
+      'vencida:x:2026-10-10:s1',
+      'vencida:x:2026-10-10:s2',
+    ]
+  );
+  assert.equal(chaveNoDia('2026-10-15T11:30:00Z'), 'vencida:x:2026-10-10:s0');
+  assert.ok(chaveNoDia('2027-01-08T11:30:00Z'), '90 dias ainda lembra');
+  assert.equal(chaveNoDia('2027-01-09T11:30:00Z'), null, 'depois de 90 dias, para');
+  base.transacoes[0].pago = true;
+  assert.equal(chaveNoDia('2026-10-15T11:30:00Z'), null, 'paga, para na hora');
 });
 
 test('limite de 60%: mesma régua do termômetro do app, uma vez por faixa', () => {
@@ -292,14 +341,18 @@ test('rodada da manhã manda UMA mensagem com tudo e não repete na hora seguint
 test('aviso já enviado não sai de novo no dia seguinte; o novo sai, sem a explicação', async () => {
   await E.rodar({ agoraReal: MANHA });
   // Dia 09, manhã: Aluguel vence HOJE (chave nova), Luz ficou vencida (nova),
-  // C6 vence hoje (nova). Internet e o fechamento do Nubank já foram.
+  // C6 vence hoje (nova). O fechamento do Nubank e a "Velha" (lembrete
+  // semanal) já foram. A Internet, vencida há 3 dias, volta: conta em aberto
+  // é lembrada todo dia nos 3 primeiros dias de atraso.
   await E.rodar({ agoraReal: new Date('2026-10-09T11:30:00Z') });
   const m = mensagens();
   assert.equal(m.length, 2);
   const t = m[1].payload.text;
   assert.match(t, /<b>Hoje<\/b> vence <b>Aluguel/);
-  assert.match(t, /Luz<\/b> venceu 08\/10/);
-  assert.doesNotMatch(t, /Internet/);
+  assert.match(t, /Luz<\/b> venceu 08\/10 \(ontem\)/);
+  assert.match(t, /Internet<\/b> venceu 06\/10 \(há 3 dias\)/);
+  assert.doesNotMatch(t, /Velha/);
+  assert.doesNotMatch(t, /Nubank<\/b> fecha/);
   assert.doesNotMatch(t, /Para escolher quais receber/);
 });
 
@@ -515,17 +568,19 @@ test('✅ Já paguei grava a ordem na caixa de entrada; ↩️ Desfazer troca po
   await E.rodar({ agoraReal: MANHA });
   const botoes = mensagens()[0].payload.reply_markup.inline_keyboard.flat();
   const pagar = botoes.filter((b) => b.callback_data.startsWith('pg:'));
-  // Luz, Aluguel, Internet e a fatura do C6. O fechamento do Nubank não se paga.
+  // Luz, Aluguel, Velha, Internet e a fatura do C6. O fechamento do Nubank
+  // não se paga.
   assert.deepEqual(
     pagar.map((b) => b.text),
     [
       '✅ Já paguei: Luz',
       '✅ Já paguei: Aluguel',
+      '✅ Já paguei: Velha',
       '✅ Já paguei: Internet',
       '✅ Já paguei: fatura C6',
     ]
   );
-  const k = pagar[3].callback_data.slice(3);
+  const k = pagar[4].callback_data.slice(3);
   await botao(`pg:${k}`);
   assert.deepEqual(inbox()[`pagar_${k}`].alvos, ['c61']);
   assert.equal(inbox()[`pagar_${k}`].tipo, 'pagar');
