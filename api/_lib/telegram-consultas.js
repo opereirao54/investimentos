@@ -121,10 +121,24 @@ function quandoEntraNoCaixa(t, refMs) {
   return timestampTransacao(t, refMs);
 }
 
+// appliquei-utils.js → appliqueiPagoEmMs (instante da baixa de uma saída)
+function pagoEmMs(t) {
+  if (!t || !t.pago || !t.pagoEm) return null;
+  const ms = new Date(t.pagoEm).getTime();
+  return isFinite(ms) ? ms : null;
+}
+
+// appliquei-patrimonio.js → mpQuandoSaiDoCaixa: no dia do pagamento; sem a
+// data da baixa, pela competência.
+function quandoSaiDoCaixa(t, refMs) {
+  const ms = pagoEmMs(t);
+  return ms != null ? ms : timestampTransacao(t, refMs);
+}
+
 // appliquei-patrimonio.js → mpTransacaoComputaCaixa
 function transacaoComputaCaixa(t, refMs) {
   const ehEntrada = ehEntradaCaixa(t.categoria);
-  const quando = ehEntrada ? quandoEntraNoCaixa(t, refMs) : timestampTransacao(t, refMs);
+  const quando = ehEntrada ? quandoEntraNoCaixa(t, refMs) : quandoSaiDoCaixa(t, refMs);
   if (quando > refMs) return false;
   if (
     (t.categoria === 'investimento_fixo' || t.categoria === 'investimento_variavel') &&
@@ -391,6 +405,10 @@ function resumoMes(dados, mes, ano) {
 
 // appliquei-patrimonio.js → mpDataMovimento (data REAL do lançamento)
 function dataMovimento(t, refMs) {
+  if (!ehEntradaCaixa(t.categoria)) {
+    const pago = pagoEmMs(t);
+    if (pago != null) return pago;
+  }
   if (t.dataVencimento) {
     const d = parseData(t.dataVencimento);
     if (d && !isNaN(d.getTime())) return d.getTime();
